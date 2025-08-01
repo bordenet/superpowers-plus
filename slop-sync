@@ -1,0 +1,482 @@
+#!/bin/bash
+#
+# slop-sync - Synchronize slop dictionary across machines via GitHub
+#
+# This script manages cross-machine synchronization of the slop dictionary
+# using a private GitHub repository as the sync backend.
+#
+# Usage:
+#   slop-sync push     Upload local dictionary to GitHub
+#   slop-sync pull     Download latest dictionary from GitHub
+#   slop-sync status   Show sync state and any conflicts
+#   slop-sync init     Initialize sync configuration
+#   slop-sync help     Show this help message
+#
+# Configuration:
+#   Set SLOP_SYNC_REPO environment variable or create ~/.slop-sync-config
+#
+# Requirements:
+#   - git
+#   - GitHub authentication (SSH key or credential helper)
+#
+
+set -euo pipefail
+
+# Colors for output (disabled if not a terminal)
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
+
+# Configuration
+SCRIPT_NAME="slop-sync"
+CONFIG_FILE="${HOME}/.slop-sync-config"
+DEFAULT_DICT_PATH="${PWD}/.slop-dictionary.json"
+SYNC_DIR="${HOME}/.slop-sync"
+SYNC_BRANCH="main"
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Error handler
+error_exit() {
+    log_error "$1"
+    exit 1
+}
+
+# Show help
+show_help() {
+    cat << 'EOF'
+slop-sync - Synchronize slop dictionary across machines via GitHub
+
+USAGE:
+    slop-sync <command>
+
+COMMANDS:
+    push      Upload local dictionary to GitHub repository
+    pull      Download latest dictionary from GitHub repository
+    status    Show sync state, last sync time, and any conflicts
+    init      Initialize sync configuration (interactive)
+    help      Show this help message
+
+CONFIGURATION:
+    Create ~/.slop-sync-config with:
+        SLOP_SYNC_REPO=git@github.com:username/repo.git
+        SLOP_DICT_PATH=/path/to/.slop-dictionary.json  (optional)
+
+    Or set environment variables:
+        export SLOP_SYNC_REPO="git@github.com:username/repo.git"
+
+CONFLICT RESOLUTION:
+    Uses Last Write Wins based on last_modified timestamp in dictionary.
+    If local is newer, push overwrites remote.
+    If remote is newer, pull overwrites local.
+
+EXAMPLES:
+    # Initialize configuration
+    slop-sync init
+
+    # After editing dictionary, push to sync
+    slop-sync push
+
+    # On another machine, pull latest
+    slop-sync pull
+
+    # Check sync status
+    slop-sync status
+
+EOF
+}
+
+# Load configuration
+load_config() {
+    # Try config file first
+    if [[ -f "$CONFIG_FILE" ]]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_FILE"
+    fi
+
+    # Environment variables override config file
+    SLOP_SYNC_REPO="${SLOP_SYNC_REPO:-}"
+    SLOP_DICT_PATH="${SLOP_DICT_PATH:-$DEFAULT_DICT_PATH}"
+
+    # Validate
+    if [[ -z "$SLOP_SYNC_REPO" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Initialize configuration interactively
+cmd_init() {
+    log_info "Initializing slop-sync configuration"
+    echo ""
+
+    # Check for existing config
+    if [[ -f "$CONFIG_FILE" ]]; then
+        log_warn "Configuration file already exists: $CONFIG_FILE"
+        read -rp "Overwrite? [y/N] " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            log_info "Keeping existing configuration"
+            return 0
+        fi
+    fi
+
+    # Get repository URL
+    echo "Enter your GitHub repository URL for syncing dictionary."
+    echo "Examples:"
+    echo "  git@github.com:username/slop-dictionary.git"
+    echo "  https://github.com/username/slop-dictionary.git"
+    echo ""
+    read -rp "Repository URL: " repo_url
+
+    if [[ -z "$repo_url" ]]; then
+        error_exit "Repository URL is required"
+    fi
+
+    # Get dictionary path (optional)
+    echo ""
+    echo "Enter path to your slop dictionary (press Enter for default)"
+    echo "Default: .slop-dictionary.json in current working directory"
+    read -rp "Dictionary path [default]: " dict_path
+
+    if [[ -z "$dict_path" ]]; then
+        dict_path="$DEFAULT_DICT_PATH"
+    fi
+
+    # Write config file
+    cat > "$CONFIG_FILE" << EOF
+# slop-sync configuration
+# Generated: $(date -Iseconds)
+
+# GitHub repository for syncing dictionary
+SLOP_SYNC_REPO="$repo_url"
+
+# Path to local dictionary file (optional, defaults to PWD/.slop-dictionary.json)
+SLOP_DICT_PATH="$dict_path"
+EOF
+
+    log_success "Configuration saved to $CONFIG_FILE"
+
+    # Test connection
+    echo ""
+    log_info "Testing repository connection..."
+    if git ls-remote "$repo_url" &>/dev/null; then
+        log_success "Repository accessible"
+    else
+        log_warn "Could not access repository. Check your credentials."
+    fi
+
+    # Initialize sync directory
+    if [[ ! -d "$SYNC_DIR" ]]; then
+        mkdir -p "$SYNC_DIR"
+        log_info "Created sync directory: $SYNC_DIR"
+    fi
+
+    echo ""
+    log_success "Initialization complete. Run 'slop-sync push' or 'slop-sync pull' to sync."
+}
+
+# Ensure sync directory exists and is up to date
+ensure_sync_dir() {
+    if [[ ! -d "$SYNC_DIR/.git" ]]; then
+        log_info "Cloning sync repository..."
+        rm -rf "$SYNC_DIR"
+        if ! git clone --depth 1 "$SLOP_SYNC_REPO" "$SYNC_DIR" 2>&1; then
+            # Repository might be empty, initialize it
+            mkdir -p "$SYNC_DIR"
+            cd "$SYNC_DIR"
+            git init
+            git remote add origin "$SLOP_SYNC_REPO"
+            cd - > /dev/null
+            log_info "Initialized empty sync repository"
+        fi
+    else
+        # Fetch latest
+        log_info "Fetching latest from remote..."
+        (cd "$SYNC_DIR" && git fetch origin "$SYNC_BRANCH" 2>&1) || true
+    fi
+}
+
+# Get timestamp from dictionary file
+get_dict_timestamp() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        # Extract last_modified from JSON
+        grep -o '"last_modified"[[:space:]]*:[[:space:]]*"[^"]*"' "$file" 2>/dev/null | \
+            sed 's/.*"\([^"]*\)"$/\1/' || echo ""
+    else
+        echo ""
+    fi
+}
+
+# Push local dictionary to remote
+cmd_push() {
+    if ! load_config; then
+        error_exit "Not configured. Run 'slop-sync init' first."
+    fi
+
+    if [[ ! -f "$SLOP_DICT_PATH" ]]; then
+        error_exit "Dictionary not found: $SLOP_DICT_PATH"
+    fi
+
+    ensure_sync_dir
+
+    local local_ts
+    local_ts=$(get_dict_timestamp "$SLOP_DICT_PATH")
+    local remote_ts
+    remote_ts=$(get_dict_timestamp "$SYNC_DIR/slop-dictionary.json")
+
+    log_info "Local dictionary:  $local_ts"
+    log_info "Remote dictionary: ${remote_ts:-<none>}"
+
+    # Check for conflict
+    if [[ -n "$remote_ts" ]] && [[ -n "$local_ts" ]]; then
+        if [[ "$remote_ts" > "$local_ts" ]]; then
+            log_warn "Remote is newer than local!"
+            read -rp "Overwrite remote with older local? [y/N] " response
+            if [[ ! "$response" =~ ^[Yy]$ ]]; then
+                log_info "Aborted. Run 'slop-sync pull' to get remote version."
+                return 1
+            fi
+        fi
+    fi
+
+    # Copy dictionary to sync dir
+    cp "$SLOP_DICT_PATH" "$SYNC_DIR/slop-dictionary.json"
+
+    # Commit and push
+    cd "$SYNC_DIR"
+    git add slop-dictionary.json
+
+    if git diff --cached --quiet; then
+        log_info "No changes to push"
+        cd - > /dev/null
+        return 0
+    fi
+
+    local hostname
+    hostname=$(hostname 2>/dev/null || echo "unknown")
+    git commit -m "Sync dictionary from $hostname at $(date -Iseconds)"
+
+    log_info "Pushing to remote..."
+
+    # Retry logic with exponential backoff
+    local retries=0
+    local max_retries=4
+    local wait_time=2
+
+    while [[ $retries -lt $max_retries ]]; do
+        if git push -u origin "$SYNC_BRANCH" 2>&1; then
+            cd - > /dev/null
+            log_success "Dictionary pushed successfully"
+            return 0
+        fi
+
+        ((retries++)) || true
+        if [[ $retries -lt $max_retries ]]; then
+            log_warn "Push failed, retrying in ${wait_time}s... (attempt $((retries+1))/$max_retries)"
+            sleep $wait_time
+            ((wait_time*=2)) || true
+        fi
+    done
+
+    cd - > /dev/null
+    error_exit "Failed to push after $max_retries attempts"
+}
+
+# Pull remote dictionary to local
+cmd_pull() {
+    if ! load_config; then
+        error_exit "Not configured. Run 'slop-sync init' first."
+    fi
+
+    ensure_sync_dir
+
+    # Pull latest
+    log_info "Pulling latest from remote..."
+
+    # Retry logic with exponential backoff
+    local retries=0
+    local max_retries=4
+    local wait_time=2
+
+    while [[ $retries -lt $max_retries ]]; do
+        if (cd "$SYNC_DIR" && git pull origin "$SYNC_BRANCH" 2>&1); then
+            break
+        fi
+
+        ((retries++)) || true
+        if [[ $retries -lt $max_retries ]]; then
+            log_warn "Pull failed, retrying in ${wait_time}s... (attempt $((retries+1))/$max_retries)"
+            sleep $wait_time
+            ((wait_time*=2)) || true
+        else
+            error_exit "Failed to pull after $max_retries attempts"
+        fi
+    done
+
+    if [[ ! -f "$SYNC_DIR/slop-dictionary.json" ]]; then
+        log_warn "No dictionary in remote repository"
+        return 0
+    fi
+
+    local local_ts
+    local_ts=$(get_dict_timestamp "$SLOP_DICT_PATH")
+    local remote_ts
+    remote_ts=$(get_dict_timestamp "$SYNC_DIR/slop-dictionary.json")
+
+    log_info "Local dictionary:  ${local_ts:-<none>}"
+    log_info "Remote dictionary: $remote_ts"
+
+    # Check for conflict
+    if [[ -n "$local_ts" ]] && [[ -n "$remote_ts" ]]; then
+        if [[ "$local_ts" > "$remote_ts" ]]; then
+            log_warn "Local is newer than remote!"
+            read -rp "Overwrite local with older remote? [y/N] " response
+            if [[ ! "$response" =~ ^[Yy]$ ]]; then
+                log_info "Aborted. Run 'slop-sync push' to update remote."
+                return 1
+            fi
+        fi
+    fi
+
+    # Backup local if it exists
+    if [[ -f "$SLOP_DICT_PATH" ]]; then
+        cp "$SLOP_DICT_PATH" "${SLOP_DICT_PATH}.backup"
+        log_info "Backed up local dictionary to ${SLOP_DICT_PATH}.backup"
+    fi
+
+    # Copy from sync dir
+    cp "$SYNC_DIR/slop-dictionary.json" "$SLOP_DICT_PATH"
+
+    log_success "Dictionary pulled successfully"
+}
+
+# Show sync status
+cmd_status() {
+    if ! load_config; then
+        error_exit "Not configured. Run 'slop-sync init' first."
+    fi
+
+    echo ""
+    echo "slop-sync Status"
+    echo "================"
+    echo ""
+    echo "Configuration:"
+    echo "  Repository: $SLOP_SYNC_REPO"
+    echo "  Dictionary: $SLOP_DICT_PATH"
+    echo "  Sync dir:   $SYNC_DIR"
+    echo ""
+
+    # Local dictionary info
+    if [[ -f "$SLOP_DICT_PATH" ]]; then
+        local local_ts
+        local_ts=$(get_dict_timestamp "$SLOP_DICT_PATH")
+        local local_size
+        local_size=$(wc -c < "$SLOP_DICT_PATH" 2>/dev/null || echo "0")
+        echo "Local Dictionary:"
+        echo "  Last modified: ${local_ts:-<unknown>}"
+        echo "  Size: $local_size bytes"
+    else
+        echo "Local Dictionary: <not found>"
+    fi
+
+    # Remote dictionary info
+    ensure_sync_dir 2>/dev/null || true
+
+    if [[ -f "$SYNC_DIR/slop-dictionary.json" ]]; then
+        local remote_ts
+        remote_ts=$(get_dict_timestamp "$SYNC_DIR/slop-dictionary.json")
+        local remote_size
+        remote_size=$(wc -c < "$SYNC_DIR/slop-dictionary.json" 2>/dev/null || echo "0")
+        echo ""
+        echo "Remote Dictionary:"
+        echo "  Last modified: ${remote_ts:-<unknown>}"
+        echo "  Size: $remote_size bytes"
+
+        # Compare
+        local local_ts_val
+        local_ts_val=$(get_dict_timestamp "$SLOP_DICT_PATH")
+        if [[ -n "$local_ts_val" ]] && [[ -n "$remote_ts" ]]; then
+            echo ""
+            if [[ "$local_ts_val" == "$remote_ts" ]]; then
+                echo -e "Status: ${GREEN}In sync${NC}"
+            elif [[ "$local_ts_val" > "$remote_ts" ]]; then
+                echo -e "Status: ${YELLOW}Local is newer${NC} - run 'slop-sync push'"
+            else
+                echo -e "Status: ${YELLOW}Remote is newer${NC} - run 'slop-sync pull'"
+            fi
+        fi
+    else
+        echo ""
+        echo "Remote Dictionary: <not found or empty repository>"
+    fi
+
+    # Last sync info
+    if [[ -d "$SYNC_DIR/.git" ]]; then
+        echo ""
+        echo "Last Sync:"
+        (cd "$SYNC_DIR" && git log -1 --format="  %ci - %s" 2>/dev/null) || echo "  <no sync history>"
+    fi
+
+    echo ""
+}
+
+# Main command dispatcher
+main() {
+    local cmd="${1:-}"
+
+    case "$cmd" in
+        push)
+            cmd_push
+            ;;
+        pull)
+            cmd_pull
+            ;;
+        status)
+            cmd_status
+            ;;
+        init)
+            cmd_init
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        "")
+            show_help
+            exit 1
+            ;;
+        *)
+            log_error "Unknown command: $cmd"
+            echo "Run 'slop-sync help' for usage"
+            exit 1
+            ;;
+    esac
+}
+
+# Run main
+main "$@"
