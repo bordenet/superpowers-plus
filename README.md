@@ -27,6 +27,19 @@ Skills install to `~/.codex/skills/` and `~/.augment/skills/`. Verify:
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
+## Augment.ai Clients
+
+**Any Augment client works.** Choose what fits your workflow:
+
+| Client | Installation |
+|--------|--------------|
+| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
+| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
+| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
+| **Cursor Extension** | Extensions → search "Augment" → Install |
+
+All paths lead to the same superpowers. The install.sh deploys skills to standard paths that all clients read.
+
 ## Platform Support
 
 | Platform | Status | Notes |
