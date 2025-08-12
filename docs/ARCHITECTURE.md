@@ -102,16 +102,17 @@ The `tools/skill-trigger-validator.sh` script audits triggers across all skills:
 
 Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-editing`). These are declared in the `ALLOWED_OVERLAPS` array in the validator script.
 
-## Dual Deployment
+## Multi-Target Deployment
 
-`install.sh` deploys skills to both Claude Code and Augment Agent paths:
+`install.sh` deploys skills to three locations for different AI tools:
 
-| Tool | Install Path |
-|------|--------------|
-| Claude Code | `~/.codex/skills/` |
-| Augment Agent | `~/.augment/skills/` |
+| Tool | Install Path | Notes |
+|------|--------------|-------|
+| Augment Agent | `~/.codex/skills/` | Primary path for superpowers-augment.js |
+| Claude Code | `~/.claude/skills/` | Native Skill tool path |
+| Augment (alt) | `~/.augment/skills/` | Alternative Augment location |
 
-Both paths are scanned by `superpowers-augment.js`.
+Note: `superpowers-augment.js` scans `~/.codex/skills/` and `~/.codex/superpowers/skills/`.
 
 ## Shared Modules
 
@@ -179,4 +180,3 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ```
 
 This loads the `using-superpowers` skill which governs skill invocation.
-

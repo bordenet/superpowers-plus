@@ -1,44 +1,108 @@
 # superpowers-plus
 
-Skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude, Augment, and other AI coding assistants.
+Extended domain skills for [obra/superpowers](https://github.com/obra/superpowers) — wiki editing, issue tracking, security audits, and more.
 
-## Quick Start
+**⚠️ Prerequisite:** This extends obra/superpowers. Install that first, then install superpowers-plus alongside it.
 
-**Prerequisite:** Install [obra/superpowers](https://github.com/obra/superpowers) first — this repo extends it.
+## Installation
 
-**macOS / Linux / WSL Terminal:**
+**Note:** Installation differs by platform. Claude Code and Cursor have built-in plugin marketplaces. Codex and OpenCode require manual setup.
+
+### Claude Code (via Plugin Marketplace)
+
+Register the marketplace, then install **both** plugins:
+
 ```bash
+# One-time: Register the marketplace
+/plugin marketplace add bordenet/superpowers-plus
+
+# Install prerequisite (obra/superpowers)
+/plugin install superpowers@superpowers-plus
+
+# Install extended skills
+/plugin install superpowers-plus@superpowers-plus
+```
+
+> ⚠️ **Untested:** This plugin marketplace flow has not been end-to-end validated. If you encounter issues, use the Manual Installation method below.
+
+### Cursor (via Plugin Marketplace)
+
+In Cursor Agent chat:
+
+```text
+/add-plugin superpowers-plus
+```
+
+Or search for "superpowers-plus" in the plugin marketplace.
+
+**Note:** You must also install obra/superpowers separately for the full experience.
+
+### Codex
+
+Tell Codex:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/refs/heads/main/.codex/INSTALL.md
+```
+
+**Detailed docs:** [.codex/INSTALL.md](.codex/INSTALL.md)
+
+### OpenCode
+
+Tell OpenCode:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/refs/heads/main/.opencode/INSTALL.md
+```
+
+**Detailed docs:** [.opencode/INSTALL.md](.opencode/INSTALL.md)
+
+### Gemini CLI
+
+> **Note:** Gemini CLI support is based on obra/superpowers documentation. Verify current syntax with `gemini --help`.
+
+```bash
+# Install prerequisite first
+gemini extensions install https://github.com/obra/superpowers
+
+# Then install superpowers-plus
+gemini extensions install https://github.com/bordenet/superpowers-plus
+```
+
+### Manual Installation (Shell Script)
+
+For environments without plugin marketplaces:
+
+**macOS / Linux / WSL:**
+```bash
+# Install prerequisite (if not already installed)
+git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+
+# Install superpowers-plus
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
 ./install.sh
 ```
 
-**Windows PowerShell:**
-```powershell
+**Windows (WSL — Recommended):**
+```bash
+# In Ubuntu terminal (not PowerShell)
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
-.\install.ps1
+./install.sh
 ```
-> ⚠️ **Windows users:** Run `.\install.ps1` (not `.\install.sh`). The PowerShell wrapper handles WSL detection and setup.
 
-Skills install to `~/.codex/skills/` and `~/.augment/skills/`. Verify:
+> 💡 **Windows users:** Use **Ubuntu on WSL** (`wsl --install -d Ubuntu`). Native PowerShell has path translation issues.
+
+### Verify Installation
+
+For manual installations, verify skills are installed:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
-## Augment.ai Clients
-
-**Any Augment client works.** Choose what fits your workflow:
-
-| Client | Installation |
-|--------|--------------|
-| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
-| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
-| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
-| **Cursor Extension** | Extensions → search "Augment" → Install |
-
-All paths lead to the same superpowers. The install.sh deploys skills to standard paths that all clients read.
+Then start a new session and ask for something that should trigger a skill (e.g., "help me write a wiki page" or "check this issue for problems"). The agent should automatically invoke the relevant skill.
 
 ## Platform Support
 
@@ -49,22 +113,53 @@ All paths lead to the same superpowers. The install.sh deploys skills to standar
 | Linux (Debian/Ubuntu) | ✅ Supported | apt-get for dependencies |
 | Linux (RHEL/Fedora/CentOS) | ✅ Supported | dnf/yum for dependencies |
 | Linux (Arch) | ✅ Supported | pacman for dependencies |
-| Windows (WSL) | ✅ Supported | Same as underlying Linux distro |
+| Windows (WSL/Ubuntu) | ✅ Supported | Use Ubuntu terminal |
 | Windows (native) | ❌ Not supported | Use WSL |
 
-**Prerequisites:**
-- `git` — installed automatically if missing (prompts for confirmation)
-- [obra/superpowers](https://github.com/obra/superpowers) — install first
+## Augment.ai Clients
 
-## Getting Started
+**Any Augment client works.** The install.sh deploys skills to standard paths that all clients read.
 
-After installation, add this bootstrap command to your project's `AGENTS.md`:
+| Client | Installation |
+|--------|--------------|
+| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
+| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
+| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
+| **Cursor Extension** | Extensions → search "Augment" → Install |
 
+## What You Get
+
+**From obra/superpowers (prerequisite):**
+- Core workflow: brainstorming, writing-plans, executing-plans
+- Testing: test-driven-development
+- Debugging: systematic-debugging, verification-before-completion
+- Collaboration: subagent-driven-development, using-git-worktrees
+
+**From superpowers-plus (this repo):**
+- Wiki: editing, authoring, verification, debunking, secret audit
+- Issue Tracking: authoring, editing, verification (Linear, GitHub, Jira, ADO adapters)
+- Security: secret-detection, public-repo-ip-audit
+- TypeScript: strict mode, complexity refactoring, Vitest patterns
+- Writing: AI slop detection, professional language audit
+- Engineering: pre-commit gates, blast radius checks, code review
+
+## Updating
+
+**Plugin marketplaces:**
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+/plugin update superpowers
+/plugin update superpowers-plus
 ```
 
-This loads the skill system at conversation start. See [obra/superpowers](https://github.com/obra/superpowers) for details.
+**Manual installations:**
+```bash
+cd ~/.codex/superpowers && git pull
+
+# From your superpowers-plus clone directory
+./install.sh --upgrade --verbose
+```
+
+See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Configuration
 
@@ -86,15 +181,15 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 
 | Domain | Skills | Description |
 |--------|--------|-------------|
-| **writing/** | 4 | Detect and eliminate AI slop, README authoring |
+| **writing/** | 5 | Detect/eliminate AI slop, profanity audit, README authoring |
 | **typescript/** | 5 | Strict mode, complexity refactoring, Vitest patterns |
 | **issue-tracking/** | 5 | Issue authoring/editing/verification (Linear, GitHub, Jira, ADO adapters) |
 | **wiki/** | 7 | Wiki editing, authoring, verification, debunking |
-| **engineering/** | 4 | Engineering rigor, pre-commit gates, blast radius checks, code review |
+| **engineering/** | 5 | Engineering rigor, pre-commit gates, blast radius checks, code review (providing + receiving) |
 | **observability/** | 4 | Skill firing tracker, audit validation, completeness checks |
 | **productivity/** | 4 | TODO management, think-twice, golden-agents, style enforcement |
 | **research/** | 2 | Perplexity integration, incorporating external research |
-| **security/** | 1 | CVE scanning and dependency upgrades |
+| **security/** | 2 | CVE scanning, dependency upgrades, public repo IP audit |
 | **experimental/** | 1 | Self-prompting (not production-ready) |
 
 ## Skill Reference
@@ -102,6 +197,7 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 ### writing/
 - `detecting-ai-slop` — Score text for AI patterns (0-100), 300+ patterns across 13 content types
 - `eliminating-ai-slop` — Rewrite AI-like text using Generate-Verify-Refine loop
+- `professional-language-audit` — **HARD GATE** for profanity before wiki/commit
 - `readme-authoring` — Structure READMEs for <5 minute onboarding
 - `reviewing-ai-text` — (Deprecated) Use detecting/eliminating-ai-slop instead
 
@@ -150,23 +246,17 @@ Requires `WIKI_PLATFORM` in `.env`. See `skills/wiki/_adapters/` for platform se
 
 ### security/
 - `security-upgrade` — Scan for CVEs, upgrade dependencies one at a time
+- `public-repo-ip-audit` — Audit public repos for proprietary IP before commit/push
 
 ### engineering/
 - `engineering-rigor` — Hub skill for engineering rigor philosophy and cross-references
 - `pre-commit-gate` — Run lint → typecheck → test locally before every commit
 - `blast-radius-check` — Search for ALL usages before modifying existing code
 - `providing-code-review` — Apply engineering rigor when reviewing others' PRs
+- `receiving-code-review` — Technical evaluation of code review feedback before implementing
 
 ### experimental/
 - `experimental-self-prompting` — Write context-free prompts for fresh perspective (not production-ready)
-
-## Upgrading
-
-```bash
-./install.sh --upgrade --verbose
-```
-
-See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Trigger Validation
 

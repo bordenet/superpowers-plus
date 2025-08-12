@@ -43,11 +43,9 @@ repos:
 files:
   - backend-service/package.json#dependencies
   - settings-service/src/integrations/**
-azure-devops:
-  - project: Your Project
 -->
 
-*🔄 AI-maintained — invoke [wiki-verify](https://dev.azure.com/YourOrg/Your-Project/_git/superpowers-plus?path=/skills/wiki-verify) to update*
+*🔄 AI-maintained — invoke wiki-verify skill to update*
 ```
 
 ### Step 2: Fallback to Central Registry
@@ -72,18 +70,18 @@ If neither exists, STOP and report:
 
 | Claim Type | Example in Wiki | How to Verify |
 |------------|-----------------|---------------|
-| **Version numbers** | "Deepgram SDK v3.2.1" | Check `package.json` or `requirements.txt` |
-| **Repo existence** | "backend-service repo" | Azure DevOps API or git |
-| **File paths** | "`src/integrations/twilio.ts`" | Git file existence check |
-| **Vendor names** | "We use Twilio for SMS" | Grep codebase for imports/configs |
+| **Version numbers** | "SDK v3.2.1" | Check `package.json` or `requirements.txt` |
+| **Repo existence** | "backend-service repo" | Repository adapter or git |
+| **File paths** | "`src/integrations/service.ts`" | Git file existence check |
+| **Vendor names** | "We use Service X for Y" | Grep codebase for imports/configs |
 | **Config values** | "Default timeout: 30s" | Check config files |
-| **PR/commit refs** | "Fixed in PR #25008" | Azure DevOps API |
+| **PR/commit refs** | "Fixed in PR #123" | Repository adapter |
 | **Dates** | "Added in January 2026" | Git history |
 
 ## Verification Process
 
 ```
-1. Fetch wiki page content (use Outline API)
+1. Fetch wiki page content (use adapter's get_page operation)
 2. Parse tail section OR lookup in wiki-sources.yaml
 3. Clone/fetch relevant repos if not local
 4. Extract verifiable claims from page content
@@ -122,7 +120,7 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 ## After Verification
 
 1. Ensure the maintenance footer exists (see below)
-2. Push changes to wiki via Outline API
+2. Push changes via adapter's update_page operation
 3. Report summary to user
 
 ## Required Page Footer
@@ -132,7 +130,7 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 ```markdown
 ---
 
-*🔄 AI-maintained — invoke [wiki-verify](https://dev.azure.com/YourOrg/Your-Project/_git/superpowers-plus?path=/skills/wiki-verify) to update*
+*🔄 AI-maintained — invoke wiki-verify skill to update*
 ```
 
 **Rules:**
@@ -141,15 +139,13 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 - If page only uses central registry (no tail section), the footer is the only tail content
 - **Omit** "Last verified" or "Last updated" lines — they add noise without value
 - **Omit** full page URL — the skill can determine context
-- **ALWAYS hyperlink** `wiki-verify` to the skill code in Azure DevOps
-- **Use `[wiki-verify]` NOT `[\`wiki-verify\`]`** — no backticks inside the link text
 
 ## Authoritative Sources Reference
 
 | Source Type | How to Access |
 |-------------|---------------|
 | **Git repos** | `git show`, `git log`, file reads |
-| **Azure DevOps** | Azure DevOps MCP or REST API |
+| **Repository platform** | Use your repository adapter |
 | **package.json** | Parse JSON, check `dependencies`/`devDependencies` |
 | **requirements.txt** | Parse pinned versions |
 | **Config files** | Parse YAML/JSON/TOML configs |
@@ -176,4 +172,3 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 
 When adding new wiki pages with codebase dependencies, add them to this registry.
-

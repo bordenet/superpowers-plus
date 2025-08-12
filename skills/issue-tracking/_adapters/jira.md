@@ -59,4 +59,3 @@ Example: `https://mycompany.atlassian.net/browse/PROJ-123`
 ## Note
 
 Jira MCP support varies. You may need to use direct REST API calls via `web-fetch` or a custom MCP server.
-

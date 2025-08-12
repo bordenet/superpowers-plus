@@ -210,4 +210,3 @@ Options:
 - **Current:** 0.1.0 (MVP)
 - **Scope:** Coding and technical problems only
 - **Future:** Writing, architecture review, performance, security (Phase 5)
-

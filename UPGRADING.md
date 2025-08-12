@@ -133,4 +133,3 @@ Users may request upgrades with phrases like:
 | "Fast-forward pull failed" | Run `./install.sh --upgrade --force` |
 | Skills not loading | Check `~/.codex/superpowers/skills/` exists |
 | Wrong skill count | Run `./install.sh` to reinstall personal skills |
-

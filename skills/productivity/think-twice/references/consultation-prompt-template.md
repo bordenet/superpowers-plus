@@ -82,4 +82,3 @@ The filled prompt MUST:
 - Include what was tried AND why it failed
 - Be under 2000 tokens (forces distillation)
 - Explicitly encourage the consultant to search the web
-

@@ -1,5 +1,7 @@
 ---
 name: receiving-code-review
+source: superpowers-plus
+triggers: ["received code review", "PR feedback", "reviewer commented", "code review feedback", "implement review suggestions", "address review comments"]
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 ---
 # Code Review Reception
@@ -150,4 +152,3 @@ When feedback IS correct:
 Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 
 No performative agreement. Technical rigor always.
-

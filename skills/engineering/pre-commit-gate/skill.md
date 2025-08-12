@@ -1,14 +1,8 @@
 ---
 name: pre-commit-gate
 source: superpowers-plus
-triggers: [
-  "before commit", "ready to commit", "about to commit",
-  "git commit", "committing", "push this",
-  "before push", "ready to push"
-]
-description: |
-  Pre-commit quality gate: Run lint → typecheck → test LOCALLY before committing.
-  Prevents wasted CI time and embarrassing build failures.
+triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push"]
+description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
 ---
 
 # Pre-Commit Quality Gate
@@ -102,4 +96,3 @@ If NO to any → DO NOT COMMIT
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
-

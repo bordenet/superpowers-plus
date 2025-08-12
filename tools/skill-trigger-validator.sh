@@ -101,6 +101,11 @@ ALLOWED_OVERLAPS=(
     "link-verification:wiki-orchestrator"     # link-verification fires before wiki-orchestrator
     # Research skills - both activate on "stuck" patterns
     "perplexity-research:think-twice"         # Both help when stuck, user chooses approach
+    # Pre-commit quality gates - all fire before commit/PR
+    "enforce-style-guide:pre-commit-gate"     # Both enforce quality before commit
+    "pre-commit-gate:professional-language-audit" # Both fire on "before commit"
+    # PR creation checks
+    "engineering-rigor:holistic-repo-verification" # Both fire before creating PR
 )
 
 is_allowed_overlap() {
@@ -248,4 +253,3 @@ case "${1:-audit}" in
         exit 1
         ;;
 esac
-

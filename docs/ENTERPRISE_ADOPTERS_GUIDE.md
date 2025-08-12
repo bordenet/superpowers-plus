@@ -171,6 +171,14 @@ skills/
 
 ### Environment Variables
 
+Adapters are selected via environment variables in `.env`:
+
+| Variable | Purpose | Example Values |
+|----------|---------|----------------|
+| `WIKI_PLATFORM` | Selects wiki adapter | `outline`, `confluence`, `notion` |
+| `ISSUE_TRACKER_TYPE` | Selects issue tracker | `linear`, `github`, `jira`, `azure-devops` |
+
+Skills read these at runtime to load the appropriate adapter configuration.
 
 ## The Fork Pattern
 
@@ -583,4 +591,3 @@ For a senior engineer setting up superpowers-plus for their organization:
 - [superpowers-plus README](../README.md) — Installation and usage
 - [obra/superpowers](https://github.com/obra/superpowers) — Base skill framework
 - [Adapter Interface](../skills/wiki/_adapters/adapter-interface.md) — How to create adapters
-

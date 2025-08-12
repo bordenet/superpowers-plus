@@ -189,4 +189,3 @@ pnpm lint       # No Biome errors (import order, etc.)
 ```
 
 A task is NOT complete until both pass.
-

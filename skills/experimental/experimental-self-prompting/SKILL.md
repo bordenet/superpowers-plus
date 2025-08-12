@@ -1,5 +1,7 @@
 ---
 name: experimental-self-prompting
+source: superpowers-plus
+triggers: ["self-prompt", "write prompt for analysis", "context-free prompt", "reframe analysis"]
 description: "⚠️ EXPERIMENTAL - Write comprehensive context-free prompts before analyzing code. Validated in 20-round experiment but NOT production-ready. Always verify outputs manually."
 ---
 
@@ -148,4 +150,3 @@ This skill will be promoted to production when:
 - Full experiment: `superpowers-plus/docs/plans/experiment-results-v2/`
 - Statistical analysis: `superpowers-plus/docs/plans/experiment-results-v2/STATISTICAL_ANALYSIS.md`
 - Skill comparison: `superpowers-plus/docs/SKILL_COMPARISON_self-prompting_vs_think-twice.md`
-

@@ -184,4 +184,3 @@ else
   echo "No existing Agents.md found in $REPO_PATH"
   echo "Use seed.sh to generate a new one instead."
 fi
-

@@ -123,4 +123,3 @@ else
     echo "Safe to commit and push."
     exit 0
 fi
-

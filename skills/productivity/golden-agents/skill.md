@@ -333,5 +333,3 @@ detect_type() {
 
 - **readme-authoring**: After setting up AI guidance, update README
 - **superpowers:verification-before-completion**: Verify files before committing
-
-

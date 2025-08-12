@@ -62,4 +62,3 @@ case "${1:-help}" in
         echo "  $0 stats"
         ;;
 esac
-

@@ -120,4 +120,3 @@ Before referencing ANY issue key:
 
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
-

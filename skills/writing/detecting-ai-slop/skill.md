@@ -434,7 +434,53 @@ Overused phrases that signal template-driven or AI-generated content.
 
 **Note:** One use of a cliché may be acceptable if intentional. Two or more in the same document is a strong AI signal.
 
-### Category 9: Time Estimate Inflation
+### Category 9: Profanity (HARD BLOCK)
+
+Profanity in user-facing documentation is never acceptable. Unlike other slop patterns that add points to a score, **profanity triggers a HARD BLOCK** — the content cannot be published until the language is replaced.
+
+> **Incident:** Crude language was found in documentation during an audit. This should have been caught before commit.
+
+**Detection:**
+- Case-insensitive word-boundary match against profanity pattern list
+- Each profanity match adds **+50 points** (effectively maxes the score)
+- Flagged items appear at top of "Top Offenders" with `[PROFANITY - HARD BLOCK]` tag
+
+**Pattern categories:**
+
+| Category | Examples | Action |
+|----------|----------|--------|
+| Explicit terms | f-word and variants | BLOCK |
+| Scatological | s-word and variants | BLOCK |
+| Religious profanity | d-word, taking name in vain | BLOCK |
+| Body vulgarities | a-word and variants | BLOCK |
+| Gendered slurs | b-word and variants | BLOCK |
+| Internet shorthand | common acronyms (wtf, stfu) | BLOCK |
+| Crude expressions | "sucky", crude compounds | FLAG |
+
+**Replacement guidance:**
+
+| Original Pattern | Professional Alternative |
+|------------------|--------------------------|
+| [crude] + negative | "frustrating", "problematic", "unrewarding" |
+| [expletive] + broken | "completely broken", "non-functional" |
+| "this is [expletive]" | "this is unacceptable", "this doesn't work" |
+| [profane] + difficult | "extremely difficult", "challenging" |
+
+**When reviewing user-facing docs** (README, wiki, skill.md), **ALWAYS scan for profanity first.**
+
+**Seed profanity patterns:**
+```bash
+node scripts/slop-dictionary.js seed-profanity
+```
+
+**Scan a file:**
+```bash
+node scripts/slop-dictionary.js scan-profanity FILE.md
+```
+
+**Related skill:** See `professional-language-audit` for the full HARD GATE implementation.
+
+### Category 10: Time Estimate Inflation
 
 AI-generated documentation frequently contains wildly inflated time estimates originating from pre-AI training data. With AI coding assistants, most tasks that took hours now take minutes.
 
@@ -471,7 +517,7 @@ AI-generated documentation frequently contains wildly inflated time estimates or
 - Moderate inflation (3-5x realistic): +5 points
 - Severe inflation (>5x realistic): +8 points
 
-### Category 10: Redundancy and Repetition
+### Category 11: Redundancy and Repetition
 
 AI-generated text often repeats phrases, creating a "chattering parrot" effect that damages credibility.
 
