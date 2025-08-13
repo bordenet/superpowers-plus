@@ -21,11 +21,23 @@ Use an existing domain or create a new one. Current domains:
 - `security/` — vulnerability scanning
 - `experimental/` — unstable skills
 
-### 2. Create skill.md
+### 2. Create Skill Directory Structure
 
 ```bash
+mkdir -p skills/{domain}/{skill-name}
 touch skills/{domain}/{skill-name}/skill.md
 ```
+
+**Multi-file skills (for skills >200 lines):**
+
+```
+skills/{domain}/{skill-name}/
+├── skill.md        # REQUIRED: Core skill with YAML frontmatter
+├── examples.md     # OPTIONAL: Extended examples (loaded on demand)
+└── reference.md    # OPTIONAL: Detailed reference material
+```
+
+The `skill.md` file MUST contain all trigger conditions. Auxiliary files are loaded when the skill references them with `See also:` links.
 
 ### 3. Write the Skill
 
@@ -122,10 +134,112 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
 
 ## Submitting Changes
 
+### Before Committing
+
+**Install the pre-commit hook** (recommended):
+```bash
+./tools/install-hooks.sh
+```
+
+This will automatically block commits that violate quality standards.
+
+**Or manually run the harsh review:**
+```bash
+./tools/harsh-review.sh
+```
+
+### Quality Requirements (Enforced by CI)
+
+All PRs must pass these checks:
+
+| Check | Requirement |
+|-------|-------------|
+| File endings | Exactly one newline at EOF (`0a`) |
+| Shell scripts | `#!/usr/bin/env bash` shebang |
+| Shell scripts | Pass `bash -n` and `shellcheck` |
+| JSON files | Valid syntax |
+| Required files | README.md, AGENTS.md, etc. must exist |
+
+**CI will block merge if any check fails.**
+
+### Auto-Fix Available
+
+```bash
+./tools/harsh-review.sh --fix
+```
+
+This will automatically fix file endings.
+
+### Pull Request Process
+
 1. Fork the repository
 2. Create a feature branch
 3. Add your skill
-4. Submit a pull request with:
+4. Run `./tools/harsh-review.sh` (must pass)
+5. Submit a pull request with:
    - Skill name and purpose
    - Example trigger scenario
    - Example output
+6. Complete the PR checklist (auto-populated from template)
+
+---
+
+## Versioning
+
+superpowers-plus uses [Semantic Versioning](https://semver.org/):
+
+| Change Type | Version Bump | Example |
+|-------------|--------------|---------|
+| Bug fixes, minor updates | PATCH | 2.1.0 → 2.1.1 |
+| New skills, features | MINOR | 2.1.0 → 2.2.0 |
+| Breaking changes | MAJOR | 2.1.0 → 3.0.0 |
+
+### Creating a Release
+
+**Most steps are now automated.** You only need to:
+
+1. **Update version in `install.sh`:**
+   ```bash
+   VERSION="2.2.0"
+   ```
+
+2. **Update CHANGELOG.md:**
+   - Move `[Unreleased]` items to new version section
+   - Add date: `## [2.2.0] - YYYY-MM-DD`
+   - Add version link at bottom
+
+3. **Commit and push to main:**
+   ```bash
+   git add -A
+   git commit -m "chore: release v2.2.0"
+   git push origin main
+   ```
+
+**Automation handles the rest:**
+
+| Step | Automated By |
+|------|--------------|
+| Sync version to `plugin.json` | `version-sync.yml` |
+| Sync version to `marketplace.json` | `version-sync.yml` |
+| Create git tag `v2.2.0` | `version-sync.yml` |
+| Create GitHub Release | `release.yml` (triggered by tag) |
+
+### What's Still Manual
+
+| Task | Why |
+|------|-----|
+| Update CHANGELOG.md | Human judgment needed for categorization |
+| Update `superpowers-help` skill version | Displayed to users, verify accuracy |
+| PR to `obra/superpowers-marketplace` | External repo, requires Jesse's approval |
+
+### Version Check
+
+Users can verify their installed version:
+```bash
+./install.sh --version
+# install.sh version 2.2.0
+```
+
+### CI Version Consistency Check
+
+CI will warn (not fail) if versions are inconsistent across files. The `version-sync.yml` workflow automatically fixes this on merge to main.

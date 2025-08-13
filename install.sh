@@ -129,10 +129,11 @@ SYNOPSIS
     install.sh [OPTIONS]
 
 DESCRIPTION
-    Installs obra/superpowers (if not present) and all personal skills from
-    this repository to ~/.codex/skills/. Safe to run multiple times.
+    superpowers-plus extends obra/superpowers by Jesse Vincent with additional
+    skills for wiki editing, issue tracking, security audits, and AI text quality.
 
-    If superpowers is already installed, automatically updates it.
+    This installer clones obra/superpowers (if not present) and deploys all
+    superpowers-plus skills to ~/.codex/skills/. Safe to run multiple times.
 
 OPTIONS
     -h, --help
@@ -176,11 +177,43 @@ EXAMPLES
     # Force upgrade, discarding any local changes
     ./install.sh --upgrade --force
 
+INSTALLATION METHODS
+    This script is ONE of several installation options:
+
+    1. DIRECT CLONE (this script)
+       For: Power users who want full control
+       Steps:
+           git clone https://github.com/bordenet/superpowers-plus.git
+           cd superpowers-plus
+           ./install.sh
+       Updates: Run ./install.sh --upgrade
+
+    2. CURL PIPE (one-liner for Augment users)
+       For: Quick Augment setup without cloning
+       Command:
+           curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
+       Updates: Re-run the curl command
+
+    3. GITHUB RELEASES (version-pinned)
+       For: Reproducible installations, CI/CD
+       Steps:
+           1. Visit https://github.com/bordenet/superpowers-plus/releases
+           2. Download desired version tarball
+           3. Extract and run ./install.sh
+       Updates: Download newer release manually
+
+VERSION INFO
+    Current: Run ./install.sh --version
+    Check for updates: Compare with latest at
+        https://github.com/bordenet/superpowers-plus/releases
+
 AUTHOR
     Matt J Bordenet
 
 SEE ALSO
-    https://github.com/obra/superpowers
+    Repository: https://github.com/bordenet/superpowers-plus
+    Superpowers core: https://github.com/obra/superpowers
+    Changelog: https://github.com/bordenet/superpowers-plus/blob/main/CHANGELOG.md
 EOF
     exit 0
 }
