@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Pre-commit hook for superpowers-plus
+# PURPOSE: Block commits that violate quality standards
+# INSTALL: cp tools/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#          OR: ./tools/install-hooks.sh
+# -----------------------------------------------------------------------------
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# If running from .git/hooks, find repo root
+if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+else
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+fi
+
+cd "$REPO_ROOT"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  PRE-COMMIT: Running quality checks..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [[ -z "$STAGED_FILES" ]]; then
+    echo -e "${GREEN}No files staged for commit.${NC}"
+    exit 0
+fi
+
+ERRORS=0
+
+# -----------------------------------------------------------------------------
+# CHECK 1: File endings (single newline at EOF)
+# -----------------------------------------------------------------------------
+echo -e "${YELLOW}[1/4]${NC} Checking file endings..."
+
+for file in $STAGED_FILES; do
+    [[ ! -f "$file" ]] && continue
+    
+    # Skip binary files
+    if file "$file" | grep -q "binary"; then
+        continue
+    fi
+    
+    # Check for extra blank lines at EOF
+    if tail -c 2 "$file" 2>/dev/null | xxd -p | grep -q "0a0a"; then
+        echo -e "${RED}  ✗ $file: extra blank line at EOF${NC}"
+        ((ERRORS++))
+    fi
+    
+    # Check for missing final newline
+    if [[ $(tail -c 1 "$file" 2>/dev/null | wc -l) -eq 0 ]]; then
+        echo -e "${RED}  ✗ $file: missing final newline${NC}"
+        ((ERRORS++))
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# CHECK 2: Shell script syntax
+# -----------------------------------------------------------------------------
+echo -e "${YELLOW}[2/4]${NC} Checking shell scripts..."
+
+for file in $STAGED_FILES; do
+    [[ "$file" != *.sh ]] && continue
+    [[ ! -f "$file" ]] && continue
+    
+    if ! bash -n "$file" 2>/dev/null; then
+        echo -e "${RED}  ✗ $file: bash syntax error${NC}"
+        ((ERRORS++))
+    fi
+    
+    # Check shebang
+    shebang=$(head -n1 "$file")
+    if [[ "$shebang" == "#!/bin/bash" ]]; then
+        echo -e "${RED}  ✗ $file: use '#!/usr/bin/env bash' not '#!/bin/bash'${NC}"
+        ((ERRORS++))
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# CHECK 3: JSON syntax
+# -----------------------------------------------------------------------------
+echo -e "${YELLOW}[3/4]${NC} Checking JSON files..."
+
+for file in $STAGED_FILES; do
+    [[ "$file" != *.json ]] && continue
+    [[ ! -f "$file" ]] && continue
+    
+    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+        echo -e "${RED}  ✗ $file: invalid JSON${NC}"
+        ((ERRORS++))
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# CHECK 4: Shellcheck (if available)
+# -----------------------------------------------------------------------------
+echo -e "${YELLOW}[4/4]${NC} Running shellcheck..."
+
+# Same exclusions as CI and harsh-review.sh
+SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
+
+if command -v shellcheck &> /dev/null; then
+    for file in $STAGED_FILES; do
+        [[ "$file" != *.sh ]] && continue
+        [[ ! -f "$file" ]] && continue
+
+        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
+            echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
+            ((ERRORS++))
+        fi
+    done
+else
+    echo -e "  (shellcheck not installed, skipping)"
+fi
+
+# -----------------------------------------------------------------------------
+# RESULT
+# -----------------------------------------------------------------------------
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [[ $ERRORS -gt 0 ]]; then
+    echo -e "${RED}  COMMIT BLOCKED: $ERRORS error(s) found${NC}"
+    echo ""
+    echo "  Fix the errors above, then:"
+    echo "    git add <files>"
+    echo "    git commit"
+    echo ""
+    echo "  To bypass (NOT RECOMMENDED):"
+    echo "    git commit --no-verify"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+else
+    echo -e "${GREEN}  All checks passed!${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi
+

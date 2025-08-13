@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # migrate-agents.sh - Migrate existing Agents.md to Golden Agents format
 # Preserves all repo-specific content while adding missing critical sections
 #
