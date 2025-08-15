@@ -9,11 +9,44 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-03-12
+
+### Changed
+- **superpowers-help**: Complete rewrite with accurate skill enumeration
+  - Now lists ALL 55 skills (14 core + 41 extended)
+  - Added "what are my superpowers" as primary trigger
+  - Added missing Experimental category
+  - Fixed incorrect counts (was claiming 54/40, now correctly 55/41)
+  - Added Quick Reference section mapping common tasks to skills
+  - Organized core skills by workflow phase
+
+## [2.2.0] - 2026-03-12
+
 ### Added
+- Full end-to-end automated version propagation
+  - Version bump in `install.sh` triggers complete automation chain
+  - Standalone marketplace auto-updates via `repository_dispatch`
+
+### Fixed
+- Marketplace workflow registration (GitHub quirk requiring successful run)
+- YAML syntax error in marketplace commit message
+
+## [2.1.2] - 2026-03-12
+
+### Fixed
+- `version-sync.yml` now handles "no changes to commit" gracefully
+
+## [2.1.1] - 2026-03-12
+
+### Added
+- Automated marketplace version sync (#20)
+  - `version-sync.yml` dispatches to `superpowers-plus-marketplace` on release
+  - Marketplace repo receives dispatch and updates `marketplace.json`
 - `superpowers-help` skill for listing available skills and invocation methods
 
 ### Changed
 - `install.sh --help` now shows all installation methods (direct, curl, releases)
+- README: standalone marketplace is now Option A (recommended)
 
 ## [2.1.0] - 2026-03-12
 
