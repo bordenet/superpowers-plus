@@ -79,7 +79,7 @@ rm -rf ~/.codex/superpowers
 - Wiki editing and verification skills
 - Issue tracking patterns
 - Security audit skills (secret detection, IP audit)
-- TypeScript-specific patterns
+- Engineering skills (pre-commit gates, blast radius)
 - Observability and research skills
 - AI slop detection for writing
 
