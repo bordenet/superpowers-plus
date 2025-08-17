@@ -1,7 +1,7 @@
 {
   "name": "superpowers-plus",
-  "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more. Requires obra/superpowers as prerequisite.",
-  "version": "2.3.0",
+  "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 36 skills for wiki management, issue tracking, security audits, and engineering workflows.",
+  "version": "2.4.1",
   "author": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"
@@ -11,11 +11,14 @@
   "license": "MIT",
   "keywords": [
     "skills",
+    "slop-detection",
+    "ai-writing",
     "wiki",
     "issue-tracking",
     "security",
-    "typescript",
-    "observability",
-    "extensions"
-  ]
+    "observability"
+  ],
+  "components": {
+    "skills": "skills/"
+  }
 }
