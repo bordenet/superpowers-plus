@@ -3,6 +3,11 @@ name: wiki-authoring
 source: superpowers-plus
 triggers: ["fix wiki formatting", "structure this wiki page", "improve readability", "wiki markdown rules"]
 description: Use when structuring wiki content, fixing wiki formatting issues, or ensuring platform compatibility. Enforces semantic headings, spacing rules, anchor format, and no-HTML constraints. Companion to wiki-editing (workflow) and wiki-orchestrator (pipeline). See skills/wiki/_adapters/ for platform-specific rules.
+composition:
+  consumes: [user-intent]
+  produces: [markdown-content]
+  capabilities: [generates-content]
+  priority: 10
 ---
 
 # Wiki Authoring

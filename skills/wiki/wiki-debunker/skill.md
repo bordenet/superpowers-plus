@@ -3,6 +3,12 @@ name: wiki-debunker
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
 description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, meeting transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
+composition:
+  consumes: [markdown-content]
+  produces: [verified-facts]
+  capabilities: [validates-facts]
+  priority: 30
+  optional: true
 ---
 
 # Wiki Debunker
@@ -255,16 +261,16 @@ Use when claims involve feature decisions, bug reports, or team agreements.
 issue tracker query: "Search issues mentioning 'Telnyx' in Your Team"
 
 # Get specific ticket with comments
-issue tracker query: "Get issue DEL-123 with all comments"
+issue tracker query: "Get issue TICKET-123 with all comments"
 
 # Find decisions in comments
-issue tracker query: "Get comments on DEL-89 containing 'decided'"
+issue tracker query: "Get comments on TICKET-89 containing 'decided'"
 ```
 
 ### Citation Format
 
 ```markdown
-Decision: Use Telnyx WebSocket API [[DEL-89](https://[your-tracker]/DEL-89)]
+Decision: Use Telnyx WebSocket API [[TICKET-89](https://[your-tracker]/TICKET-89)]
 ```
 
 **Verify before citing:**

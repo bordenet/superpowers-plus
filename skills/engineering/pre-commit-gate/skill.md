@@ -1,8 +1,15 @@
 ---
 name: pre-commit-gate
 source: superpowers-plus
-triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push"]
+triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push", "commit:pre-check", "commit:gate"]
 description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
+coordination:
+  group: commit-gates
+  order: 1
+  requires: []
+  enables: ["enforce-style-guide", "professional-language-audit"]
+  escalates_to: []
+  internal: false
 ---
 
 # Pre-Commit Quality Gate
@@ -96,3 +103,18 @@ If NO to any → DO NOT COMMIT
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
+
+---
+
+## Commit Gate Coordination
+
+Multiple skills fire on "before commit". Execute in this order:
+
+| Order | Skill | Purpose | Scope |
+|-------|-------|---------|-------|
+| 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
+| 2 | `enforce-style-guide` | Code style compliance | All commits |
+| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+
+**Rationale:** Technical checks first (fast feedback), then style, then content gates.

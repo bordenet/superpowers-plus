@@ -65,6 +65,53 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
 ---
 
+## Planning and Task Management
+
+For multi-step plans (3+ steps), use **both** persistence mechanisms:
+
+1. **TODO.md file** (PRIMARY) — Persist to disk for resilience against context loss
+2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
+
+### When to Use Task Management
+
+| Situation | Action |
+|-----------|--------|
+| Creating a plan with 3+ steps | Name effort, write to TODO.md with `#plan-<id>`, call `add_tasks` |
+| User says "implement", "execute", or "work through" a plan | Persist steps with effort-specific tag |
+| Starting work on a step | Mark `IN_PROGRESS` in both systems |
+| Completing a step | Mark `COMPLETE` immediately in both (don't batch) |
+| Before claiming work is done | Filter by `#plan-<id>` in TODO.md, check `view_tasklist` |
+
+### Task Lifecycle (MANDATORY for 3+ step plans)
+
+1. **Name** — Derive effort identifier from plan title (e.g., "Auth Fix" → `auth-fix`)
+2. **Persist** — Write plan steps to TODO.md as P1 tasks with `#plan-<identifier>` tag
+3. **Mirror** — Create parent task for plan, add steps as children via `parent_task_id`
+4. **Track** — Mark `IN_PROGRESS` when starting each step (both systems)
+5. **Complete** — Mark `COMPLETE` immediately when done (both systems)
+6. **Verify** — Filter by `#plan-<identifier>` in TODO.md, check `view_tasklist`
+
+### Why File Persistence Matters
+
+| Risk | Without TODO.md | With TODO.md |
+|------|-----------------|--------------|
+| Context window compaction | Plan steps lost | Recoverable from disk |
+| Session crash/timeout | Progress lost | Resume from last state |
+| User switches tasks | No continuity | Pick up where you left off |
+| Parallel efforts | Tasks get mixed up | Isolated by `#plan-<identifier>` |
+
+### Anti-Patterns to Avoid
+
+| Anti-Pattern | Why It's Bad | Correct Behavior |
+|--------------|--------------|------------------|
+| MCP-only tracking | Lost on context compaction | Always persist to TODO.md first |
+| Generic `#plan` tag | Can't distinguish parallel efforts | Use `#plan-<identifier>` for isolation |
+| Skipping task creation for "simple" plans | Loses visibility | Create tasks for any 3+ step plan |
+| Batching task completions | User can't track progress | Mark COMPLETE immediately after each step |
+| Not verifying before claiming done | May miss incomplete steps | Check both TODO.md and `view_tasklist` |
+
+---
+
 ## Optional: golden-agents Integration
 
 If [golden-agents](https://github.com/bordenet/golden-agents) is installed, load templates before these actions:

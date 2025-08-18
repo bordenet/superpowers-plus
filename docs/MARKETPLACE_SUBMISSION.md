@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 36/36 skills validated |
+| Skills have SKILL.md with frontmatter | ✅ PASS | 47/47 skills validated |
 
 ## Draft Submission
 
@@ -24,10 +24,10 @@
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 36 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 47 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 38 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
@@ -37,8 +37,8 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills 
 - Wiki management (7 skills): authoring, editing, link verification, secret scanning
 - Issue tracking (5 skills): Linear/GitHub/Jira/Azure DevOps adapters
 - Engineering (5 skills): pre-commit gates, blast radius checks, PR review
-- Productivity (5 skills): TODO management, style enforcement
-- Observability (4 skills): skill firing tracking, completeness checks
+- Productivity (6 skills): innovation, TODO management, style enforcement
+- Observability (5 skills): skill effectiveness, firing tracking, completeness checks
 - Security (2 skills): CVE scanning, public repo IP audit
 - Research (2 skills): Perplexity integration
 - Experimental (1 skill): self-prompting
@@ -49,7 +49,7 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills 
 ```
 
 ### Prerequisite
-Requires `obra/superpowers` (installed automatically via marketplace.json dependency).
+Requires `obra/superpowers`. The Claude marketplace does not have a dependency resolution mechanism — `install.sh` handles cloning obra/superpowers as a prerequisite. Users installing via `/plugin install` should install obra/superpowers first, or use `install.sh` which handles both.
 
 ## Known Bug: category/source Key Contamination
 
@@ -71,7 +71,7 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 36 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 47 skills for wiki, issue tracking, security",
      "version": "2.4.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "source": "https://github.com/bordenet/superpowers-plus.git",
@@ -90,4 +90,4 @@ If users report install failures:
 - [ ] Monitor Anthropic's plugin directory submission form: https://clau.de/plugin-directory-submission
 - [ ] Verify current PR requirements (check open PRs for examples)
 - [ ] Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
-- [ ] Confirm obra/superpowers dependency installs correctly
+- [ ] Confirm obra/superpowers prerequisite is documented clearly (no auto-install via marketplace)

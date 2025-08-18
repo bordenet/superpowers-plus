@@ -8,6 +8,18 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Semantic skill routing and auto-composition
+const {
+  matchSkills: semanticMatch,
+  embedSkills,
+  getRouterInfo,
+  matchSkillsTfIdf,
+  buildPipeline,
+  explainPipeline,
+  pipelineToMermaid,
+  getComposition
+} = require('./lib/skill-router');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
@@ -42,8 +54,13 @@ function extractFrontmatter(filePath) {
         const content = fs.readFileSync(filePath, 'utf8');
         const lines = content.split('\n');
         let inFrontmatter = false;
+        let inComposition = false;
         let name = '';
         let description = '';
+        let triggers = [];
+        let composition = null;
+        let compositionLines = [];
+
         for (const line of lines) {
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
@@ -51,6 +68,40 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
+                // Check for composition block start
+                if (line.match(/^composition:/)) {
+                    inComposition = true;
+                    composition = {};
+                    continue;
+                }
+                // Parse composition fields (indented with 2 spaces)
+                if (inComposition && line.match(/^  \w+:/)) {
+                    const compMatch = line.match(/^  (\w+):\s*(.+)?$/);
+                    if (compMatch) {
+                        const key = compMatch[1];
+                        let value = compMatch[2] || '';
+                        // Parse array values
+                        if (value.startsWith('[')) {
+                            value = value.replace(/[\[\]]/g, '').split(',').map(v => v.trim().replace(/"/g, '')).filter(v => v);
+                        } else if (value === 'true') {
+                            value = true;
+                        } else if (value === 'false') {
+                            value = false;
+                        } else if (!isNaN(value) && value !== '') {
+                            value = parseInt(value, 10);
+                        }
+                        composition[key] = value;
+                    }
+                } else if (inComposition && !line.match(/^  /)) {
+                    inComposition = false; // End of composition block
+                }
+
+                // Check for triggers array
+                const triggersMatch = line.match(/^triggers:\s*\[(.+)\]/);
+                if (triggersMatch) {
+                    const triggerStr = triggersMatch[1];
+                    triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                }
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
                     const key = match[1];
@@ -60,9 +111,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description };
+        return { name, description, triggers, composition };
     } catch (error) {
-        return { name: '', description: '' };
+        return { name: '', description: '', triggers: [], composition: null };
     }
 }
 
@@ -87,9 +138,13 @@ function findSkillsInDir(dir, sourceType) {
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
+            const hasTriggers = meta.triggers && meta.triggers.length > 0;
             skills.push({
                 name: meta.name || entry.name,
                 description: meta.description || '',
+                triggers: meta.triggers || [],
+                composition: meta.composition || null,
+                isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
                 skillFile,
                 skillDir
@@ -117,31 +172,75 @@ function stripFrontmatter(content) {
     return contentLines.join('\n').trim();
 }
 
-function findSkills() {
-    console.log('Available skills:');
-    console.log('==================\n');
+function findSkills(filterMode = 'all') {
     const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
     const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
     const allSkills = [...personalSkills, ...superpowersSkills];
     const seen = new Set();
+    const deduped = [];
     for (const skill of allSkills) {
-        const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
         if (seen.has(skill.name)) continue;
         seen.add(skill.name);
-        console.log(displayName);
-        if (skill.description) {
-            console.log('  ' + skill.description + '\n');
-        } else {
+        deduped.push(skill);
+    }
+    // Categorize
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+
+    if (filterMode === 'superpowers') {
+        console.log('🦸 Superpowers (auto-triggered):');
+        console.log('=================================\n');
+        console.log('These skills activate automatically when trigger phrases are detected.\n');
+        for (const skill of superpowers) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description);
+            if (skill.triggers.length > 0) {
+                console.log('  Triggers: ' + skill.triggers.slice(0, 3).map(t => `"${t}"`).join(', ') + (skill.triggers.length > 3 ? '...' : ''));
+            }
             console.log();
+        }
+        console.log(`Total: ${superpowers.length} superpowers\n`);
+    } else if (filterMode === 'explicit') {
+        console.log('🔧 Explicit Skills (invoke by name):');
+        console.log('=====================================\n');
+        console.log('These skills must be explicitly invoked — they do not auto-trigger.\n');
+        for (const skill of explicitSkills) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
+        }
+        console.log(`Total: ${explicitSkills.length} explicit skills\n`);
+    } else {
+        // Default: show both categories
+        console.log('🦸 SUPERPOWERS (auto-triggered)');
+        console.log('================================\n');
+        for (const skill of superpowers) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
+        }
+        console.log('🔧 EXPLICIT SKILLS (invoke by name)');
+        console.log('====================================\n');
+        for (const skill of explicitSkills) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
         }
     }
     console.log('Usage:');
-    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill\n');
-    console.log('Skill naming:');
-    console.log('  Superpowers skills: superpowers:skill-name (from ~/.codex/superpowers/skills/)');
-    console.log('  Personal skills: skill-name (from ~/.codex/skills/)');
+    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill');
+    console.log('  superpowers-augment find-skills              # List all skills');
+    console.log('  superpowers-augment find-skills superpowers  # List only superpowers (auto-triggered)');
+    console.log('  superpowers-augment find-skills explicit     # List only explicit skills\n');
+    console.log('Naming convention:');
+    console.log('  superpowers:skill-name  → from ~/.codex/superpowers/skills/ (obra/superpowers)');
+    console.log('  skill-name              → from ~/.codex/skills/ (personal/superpowers-plus)');
     console.log('  Personal skills override superpowers skills when names match.\n');
-    console.log('Note: All skills are disclosed at session start via bootstrap.');
+    console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
 function useSkill(skillName) {
@@ -163,6 +262,13 @@ function useSkill(skillName) {
         const superpowersFile = findSkillFile(superpowersDir);
         if (superpowersFile) skillFile = superpowersFile;
     }
+    // Fallback: if superpowers: prefix was used but skill not found in superpowers dir,
+    // check personal dir too (personal skills with triggers are listed as superpowers)
+    if (!skillFile && forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) skillFile = personalFile;
+    }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         console.error('Run "superpowers-augment find-skills" to see available skills');
@@ -173,6 +279,7 @@ function useSkill(skillName) {
     const transformed = transformOutput(stripped);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
+
 }
 
 function bootstrap() {
@@ -187,7 +294,10 @@ function bootstrap() {
         console.log('\n---\n');
     }
     findSkills();
+
 }
+
+
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -195,12 +305,200 @@ const args = process.argv.slice(3);
 switch (command) {
     case 'bootstrap': bootstrap(); break;
     case 'use-skill': useSkill(args[0]); break;
-    case 'find-skills': findSkills(); break;
+    case 'find-skills': findSkills(args[0] || 'all'); break;
+    case 'list-superpowers': findSkills('superpowers'); break;
+    case 'list-skills': findSkills('explicit'); break;
+
+
+
+
+
+
+
+
+
+
+
+    case 'compose-pipeline': {
+        const capability = args[0];
+        if (!capability) {
+            console.error('Usage: compose-pipeline <target-capability>');
+            console.error('Example: compose-pipeline publishes-wiki');
+            console.error('\nAvailable capabilities:');
+            console.error('  publishes-wiki     - Full wiki authoring pipeline');
+            console.error('  validates-links    - Link verification only');
+            console.error('  generates-content  - Content generation only');
+            console.error('  detects-secrets    - Secret scanning only');
+            process.exit(1);
+        }
+
+        // Gather all skills with composition metadata
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+
+        // Filter to skills with composition blocks
+        const composableSkills = allSkills.filter(s => s.composition !== null);
+
+        if (composableSkills.length === 0) {
+            console.log('No skills with composition: blocks found.');
+            process.exit(1);
+        }
+
+        console.log(`# Auto-Composition Pipeline\n`);
+        console.log(`Target capability: ${capability}`);
+        console.log(`Composable skills: ${composableSkills.length}\n`);
+
+        // Build the pipeline
+        const result = buildPipeline(capability, composableSkills, ['user-intent']);
+
+        if (result.error) {
+            console.log(`Error: ${result.error}\n`);
+            console.log('Resolution trace:');
+            console.log(result.explanation.join('\n'));
+            process.exit(1);
+        }
+
+        console.log('## Pipeline Order\n');
+        console.log('| Step | Skill | Consumes | Produces |');
+        console.log('|------|-------|----------|----------|');
+        result.pipeline.forEach((skill, i) => {
+            const comp = skill.composition || {};
+            const consumes = (comp.consumes || []).join(', ');
+            const produces = (comp.produces || []).join(', ');
+            console.log(`| ${i + 1} | ${skill.name} | ${consumes} | ${produces} |`);
+        });
+
+        console.log('\n## Mermaid Diagram\n');
+        console.log('```mermaid');
+        console.log(pipelineToMermaid(result.pipeline));
+        console.log('```');
+
+        console.log('\n## Resolution Trace\n');
+        console.log(result.explanation.join('\n'));
+        break;
+    }
+
+    case 'match-skills': {
+        // Parse options: --tfidf, --embedding, or auto
+        const useEmbedding = args.includes('--embedding');
+        const useTfidf = args.includes('--tfidf');
+        const queryArgs = args.filter(a => !a.startsWith('--'));
+        const query = queryArgs.join(' ');
+
+        if (!query) {
+            console.error('Usage: match-skills [--tfidf|--embedding] <query>');
+            console.error('Example: match-skills "my tests keep failing randomly"');
+            console.error('\nOptions:');
+            console.error('  --tfidf      Force TF-IDF mode (fast, offline)');
+            console.error('  --embedding  Force OpenAI embeddings (requires OPENAI_API_KEY)');
+            console.error('  (default)    Auto-select best available method');
+            process.exit(1);
+        }
+
+        // Gather all skills
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+        const seen = new Set();
+        const skills = allSkills.filter(s => {
+            if (seen.has(s.name)) return false;
+            seen.add(s.name);
+            return true;
+        });
+
+        // Determine method
+        let method = 'auto';
+        if (useTfidf) method = 'tfidf';
+        if (useEmbedding) method = 'embedding';
+
+        const routerInfo = getRouterInfo();
+        const actualMethod = method === 'auto' ? routerInfo.default : method;
+
+        semanticMatch(query, skills, { topN: 5, method })
+            .then(matches => {
+                console.log(`# Skill Match Results\n`);
+                console.log(`Query: "${query}"`);
+                console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
+                console.log('| Rank | Skill | Score | Type |');
+                console.log('|------|-------|-------|------|');
+                for (let i = 0; i < matches.length; i++) {
+                    const m = matches[i];
+                    const type = m.isSuperpower ? 'superpower' : 'explicit';
+                    const scoreDisplay = actualMethod === 'tfidf'
+                        ? m.score.toFixed(2)
+                        : (m.score * 100).toFixed(1) + '%';
+                    console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
+                }
+                console.log(`\nTop match: **${matches[0]?.name}**`);
+                console.log(`\nTo use: \`superpowers-augment use-skill ${matches[0]?.name}\``);
+            })
+            .catch(err => {
+                console.error('Error:', err.message);
+                process.exit(1);
+            });
+        break;
+    }
+
+    case 'router-info': {
+        const info = getRouterInfo();
+        console.log('# Skill Router Info\n');
+        console.log('Available methods:');
+        console.log(`  • TF-IDF: ${info.tfidf.available ? '✅' : '❌'} ${info.tfidf.description}`);
+        console.log(`  • Embedding: ${info.embedding.available ? '✅' : '❌'} ${info.embedding.description}`);
+        console.log(`\nDefault method: ${info.default.toUpperCase()}`);
+        break;
+    }
+
+    case 'embed-skills': {
+        // Pre-embed all skills (optional, for embedding mode)
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+        const seen = new Set();
+        const skills = allSkills.filter(s => {
+            if (seen.has(s.name)) return false;
+            seen.add(s.name);
+            return true;
+        });
+
+        const forceRefresh = args.includes('--force');
+        console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
+        console.log('(Requires OPENAI_API_KEY)\n');
+
+        embedSkills(skills, forceRefresh)
+            .then(cache => {
+                const count = Object.keys(cache.embeddings).length;
+                console.log(`\n✅ Embedded ${count} skills`);
+                console.log(`Cache: ~/.codex/.skill-embeddings.json`);
+            })
+            .catch(err => {
+                console.error('Error:', err.message);
+                if (err.message.includes('OPENAI_API_KEY')) {
+                    console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
+                    console.error('Run: match-skills --tfidf "your query"');
+                }
+                process.exit(1);
+            });
+        break;
+    }
+
     default:
         console.log('Superpowers for Augment\n');
         console.log('Usage:');
-        console.log('  node superpowers-augment.js bootstrap      # Initialize session with skills');
-        console.log('  node superpowers-augment.js use-skill <n>  # Load a specific skill');
-        console.log('  node superpowers-augment.js find-skills    # List all available skills');
+        console.log('  node superpowers-augment.js bootstrap              # Initialize session');
+        console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
+        console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
+        console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
+        console.log('');
+        console.log('Skill Matching (find skills by intent):');
+        console.log('  node superpowers-augment.js match-skills <query>   # Auto-select best method');
+        console.log('  node superpowers-augment.js match-skills --tfidf <query>  # Fast offline mode');
+        console.log('  node superpowers-augment.js match-skills --embedding <query>  # OpenAI (optional)');
+        console.log('  node superpowers-augment.js router-info            # Show available methods');
+        console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed (optional)');
+        console.log('  node superpowers-augment.js compose-pipeline <capability>  # Build auto-composition pipeline');
+
         break;
 }

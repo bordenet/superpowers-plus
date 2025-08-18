@@ -1,8 +1,15 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["think twice", "I'm stuck", "hitting a wall", "need fresh eyes", "different perspective", "second opinion", "why isn't this working", "help me debug this"]
-description: Use when stuck on a coding or technical problem, hitting a wall, or needing a fresh perspective. Generates context-free sub-agent consultation for independent analysis.
+triggers: ["think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "second opinion", "try a different approach", "stuck:reasoning", "stuck:perspective"]
+description: Helps the AI coding assistant break out of spirals and stuck loops. Auto-detects circular reasoning, repeated failures, or exhaustion signals. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+coordination:
+  group: stuck-escalation
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: ["perplexity-research"]
+  internal: false
 ---
 
 # Think Twice
@@ -44,6 +51,8 @@ Monitor for stuck signals. When cumulative score ≥ 7, **suggest** Think Twice:
 | "I'm not sure why" / uncertainty hedging | 2 |
 | "Let me try a completely different approach" without rationale | 2 |
 | Conversation > 80% context window, no resolution | 2 |
+
+**Calibration note:** These weights are heuristic estimates, not empirically calibrated. Use `skill-effectiveness` to record outcomes after Think Twice invocations and adjust weights based on which signals best predict genuine stuck states vs. false positives.
 
 **Suggested prompt when threshold met:**
 
@@ -204,6 +213,35 @@ Options:
 - `references/scoring-rubric.md` — Scoring dimensions and weights
 - `references/heuristic-signals.md` — Auto-detection criteria
 - `prompts/consultant-persona.md` — Sub-agent persona and constraints
+
+---
+
+## "I'm Stuck" Escalation Path
+
+Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this decision tree:
+
+```
+"I'm stuck"
+    │
+    ├─► Is this a REASONING problem?
+    │   (logic, approach, design, architecture)
+    │   └─► Use think-twice FIRST (free, internal)
+    │       └─► Still stuck? → Escalate to perplexity-research
+    │
+    └─► Is this a KNOWLEDGE problem?
+        (API docs, error codes, library versions, facts)
+        └─► Use perplexity-research FIRST (external knowledge)
+            └─► Still stuck? → Use think-twice for fresh reasoning
+```
+
+**Default order:** `think-twice` → `perplexity-research`
+- Think-twice is free and instant
+- Perplexity costs money and requires justification
+- Try internal reasoning before external research
+
+**See also:** `perplexity-research` skill for knowledge-based research
+
+---
 
 ## Version
 

@@ -9,6 +9,80 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+- `lib/learning-state.js` — skill metrics tracking (zero organic data produced) (#113)
+- `tools/skill-fire-logger.sh` — shell fire logging wrapper (#113)
+- `skills/observability/skill-firing-tracker/` — fire tracking skill (#113)
+- `skills/observability/skill-effectiveness/` — outcome tracking skill (#113)
+- 12 metrics CLI commands from `superpowers-augment.js` (#113)
+- MANDATORY Skill Outcome Tracking from bootstrap rule (#113)
+- Skill count: 49 → 47
+
+## [2.5.1] - 2026-03-16
+
+### Added
+- `--yes`/`-y` flag for non-interactive installs; auto-detects piped stdin (#88)
+- Ubuntu installation instructions and dependency install template (#87)
+- `skill-authoring` skill for skill synthesis (#83)
+- Skill auto-composition engine (RFC-001) (#82)
+- `markdown-table-discipline` skill (#81)
+- Skill dependency graph with coordination schema and DAG visualization (#73)
+- **wiki-verify**: Bulk Operations Protocol — 5-page chunking for multi-page wiki operations (#95)
+
+### Fixed
+- **todo-management**: Deterministic default path (`$HOME/.codex/TODO.md`) with hard gate (#90)
+- **todo-management**: Migration now cleans personal skills dir (`~/.codex/skills/`) (#92)
+- **todo-management**: Migration cleanup + upstream recruiting tags (#91)
+- Documentation accuracy audit — 8 corrections (#93)
+- Node.js package names on Linux (`node` → `nodejs`), added version check (#89)
+- Critical audit findings — wire composition, remove dead code (#86)
+- README quality, skill priority disambiguation, repository quality audit (#71-79)
+- **perplexity-research**: Replace Augment-specific tool names with platform-agnostic descriptions (#95)
+
+### Changed
+- Version sync workflow: plugin files now updated in-PR instead of direct push (#94)
+- **install.sh**: Decomposed from 1,163 lines into 380-line orchestrator + 6 modules in `lib/install/` (#97)
+
+## [2.5.0] - 2026-03-15
+
+### Changed
+- **BREAKING**: Semantic skill router now defaults to local TF-IDF matching
+  - Eliminates OpenAI API dependency for skill discovery
+  - Works offline with zero external calls
+  - OpenAI embeddings still available as optional enhanced mode when `OPENAI_API_KEY` is set
+
+### Added
+- **TF-IDF Engine**: Custom implementation with Porter-style stemming and stop-word filtering
+- **Query Expansion**: `CONCEPT_EXPANSIONS` map bridges semantic gaps (e.g., "failing" → "debug")
+- **Intent Patterns**: `INTENT_PATTERNS` provide high-confidence routing for domain-specific phrases
+- `--tfidf` and `--embedding` flags for `match-skills` command to force specific method
+
+### Fixed
+- Prototype pollution bug with `constructor` term causing NaN scores and corrupted sort results
+- Trigger boost accumulation (now takes best partial match only, not sum of all matches)
+
+## [2.4.2] - 2026-03-15
+
+### Added
+- **innovation**: New superpower for radical, high-impact thinking beyond incremental improvements
+  - Triggers: "innovate", "moonshot", "10x improvement", "breakthrough idea", etc.
+  - Generates 3-5 ranked transformative ideas across categories (technical, UX, architectural)
+  - Integrates with brainstorming (downstream) and think-twice (fallback when stuck)
+- **skill-effectiveness**: Tracks skill outcomes and learns trigger improvements
+  - New CLI commands: `record-outcome`, `analyze-triggers`, `suggest-trigger`, `record-pattern`, `learning-report`, `learning-status`
+  - Persistent state at `~/.codex/.learning-state.json`
+  - Bootstrap shows learning insights (low performers, top performers)
+- **ADR-001**: Formal taxonomy distinguishing superpowers (auto-triggered) from explicit skills
+- `find-skills superpowers` and `find-skills explicit` filter modes in `superpowers-augment.js`
+- `EXPLICIT_SKILLS` array in `skill-trigger-validator.sh` for intentionally trigger-less skills
+
+### Changed
+- **superpowers-augment.js**: Now extracts `triggers` from frontmatter and categorizes skills
+- **superpowers-help**: Updated to distinguish superpowers vs explicit skills in output
+- **ARCHITECTURE.md**: Added "Terminology" section documenting the taxonomy
+- **CONTRIBUTING.md**: Added guidance on when to use triggers vs explicit skills
+- **README.md**: Updated skill counts (38 skills: 30 superpowers + 8 explicit) and added type indicators (🦸/🔧)
+
 ## [2.3.0] - 2026-03-12
 
 ### Changed
@@ -123,6 +197,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
+| 2.5.1 | 2026-03-17 | 49 | Thinking-orchestrator, adversarial-search improvements, 7 new skills |
+| 2.4.2 | 2026-03-15 | 38 | Innovation skill, skill-effectiveness, taxonomy |
 | 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
 | 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
 | 2.1.0 | 2026-03-12 | 41 | Enforcement system, marketplace support |
@@ -131,7 +207,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 | 1.4.0 | 2026-03-01 | 35 | Windows/WSL support |
 | 1.0.0 | 2026-02-15 | 35 | Initial release |
 
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...v2.4.2
 [2.3.0]: https://github.com/bordenet/superpowers-plus/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/bordenet/superpowers-plus/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/bordenet/superpowers-plus/compare/v2.1.1...v2.1.2

@@ -1,35 +1,157 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list"]
-description: Use when capturing tasks, tracking work, triaging priorities, or querying task history.
+triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist"]
+description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 ---
 
 # TODO Management
 
-> **File location:** `$TODO_FILE_PATH` (see Configuration below)
+> **File location:** Resolved from `TODO_FILE_PATH` in `~/.codex/.env` (falls back to `$HOME/.codex/TODO.md`)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
+> **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
 ---
 
-## Configuration
+## Multi-Step Plan Tracking
 
-**REQUIRED:** Set the `TODO_FILE_PATH` environment variable before using this skill.
+When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms:
 
-```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+1. **TODO.md file** (PRIMARY) — Persist all plan steps to disk for resilience
+2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
 
-# macOS example:
-export TODO_FILE_PATH="$HOME/Documents/TODO.md"
+### Why Both?
 
-# Windows/WSL example:
-export TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"
+| Mechanism | Purpose | Survives |
+|-----------|---------|----------|
+| **TODO.md** | Persistence, recovery, cross-session continuity | Context compaction, crashes, session switches |
+| **MCP tools** | Real-time UI visibility for user | Current session only |
 
-# Linux example:
-export TODO_FILE_PATH="$HOME/Documents/TODO.md"
+**Default behavior:** Write to TODO.md first, then mirror to MCP tools if available.
+
+### Workflow: Executing a Multi-Step Plan
+
+When user says "implement this plan", "execute these steps", etc.:
+
+1. **Name the effort** — Derive identifier from plan title (kebab-case) or ask user if ambiguous
+   - "Implement the config refactor" → `config-refactor`
+   - "Fix the auth bug" → `auth-fix`
+   - If unclear: "What should I call this effort?"
+2. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan-<identifier>` tag
+3. **Mirror to MCP** — Create parent task for the plan, add steps as children using `parent_task_id`
+4. **Track progress** — Update both systems as you complete steps
+5. **Verify** — Filter by `#plan-<identifier>` to check completion
+
+### Example: Executing a 4-Step Plan
+
+```
+User: "Implement the config refactor: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
+
+Agent:
+1. Derive effort identifier: "config refactor" → config-refactor
+2. Write 4 tasks to TODO.md as P1 #plan-config-refactor #engineering
+3. Call add_tasks: create parent "Plan: Config Refactor", add steps as children
+4. For each step:
+   - Mark IN_PROGRESS in both systems
+   - Do the work
+   - Mark COMPLETE in both systems
+5. Verify: Filter #plan-config-refactor in TODO.md, call view_tasklist
+6. Report "Config refactor complete"
 ```
 
-The skill will check for this variable on first use and prompt you to configure it if missing.
+### Querying by Effort
+
+| Query | Action |
+|-------|--------|
+| "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
+| "Show my active plans" | List unique `#plan-*` tags with task counts |
+| "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
+| "Switch to auth-fix" | Set current context for subsequent completion commands |
+
+### MCP Tool Reference (Supplementary)
+
+| Tool | Purpose | When to Call |
+|------|---------|--------------|
+| `add_tasks` | Create parent task + children | After writing to TODO.md |
+| `update_tasks` | Sync state changes | After updating TODO.md |
+| `view_tasklist` | Quick status check | In addition to reading TODO.md |
+
+### When MCP Tools Are Unavailable
+
+If MCP tools are not available, **TODO.md is sufficient**. The file provides:
+- Full persistence
+- Recovery from interruptions
+- Cross-session continuity
+- Queryable history ("what did I do?")
+- Effort isolation via `#plan-<identifier>` tags
+
+MCP tools are a convenience layer, not a requirement.
+
+---
+
+## ⛔ HARD GATE: File Path Resolution
+
+**Before ANY task operation** (add, complete, query, triage), you MUST resolve the TODO.md path:
+
+1. Source the environment file to load `TODO_FILE_PATH`:
+   ```bash
+   source ~/.codex/.env 2>/dev/null
+   ```
+2. Resolve the path (falls back to default if unset):
+   ```bash
+   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
+   echo "$TODO_PATH"
+   ```
+3. Verify the file exists: `ls -la "$TODO_PATH"`
+4. If the file does not exist, create it from the template (see Implementation Workflow)
+5. **NEVER proceed with MCP-only tracking** — MCP state is lost on context compaction
+
+**Configuration:** `TODO_FILE_PATH` is set in `~/.codex/.env` (the canonical environment file).
+**Default path:** `$HOME/.codex/TODO.md` (used only if `TODO_FILE_PATH` is not set in `~/.codex/.env`).
+
+### Why This Gate Exists
+
+Without a resolved file path, the agent falls back to MCP tools only. MCP task state
+is session-scoped — it is lost on context compaction, crashes, or session switches.
+This causes hallucinated task state where the agent fabricates TODO items from
+context fragments. The file is the source of truth. No file = no task operations.
+
+### Why Source `~/.codex/.env`?
+
+`TODO_FILE_PATH` is configured in `~/.codex/.env`, not in the user's shell profile.
+If you skip the `source` step, the variable will be unset and you'll read/write to
+the wrong file (`$HOME/.codex/TODO.md` instead of the user's actual TODO location).
+
+### Configuration
+
+Set `TODO_FILE_PATH` in `~/.codex/.env`:
+
+```bash
+# Example entries in ~/.codex/.env:
+TODO_FILE_PATH="$HOME/OneDrive/Documents/TODO.md"
+TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"  # WSL
+```
+
+### Getting Started
+
+1. Add `TODO_FILE_PATH="<path-to-your-TODO.md>"` to `~/.codex/.env`
+2. Or use the default location (`~/.codex/TODO.md`) — no setup needed
+3. Optionally copy the template: `cp ~/.codex/templates/TODO.md "$TODO_FILE_PATH"`
+
+---
+
+## ⚠️ CRITICAL: Always Check Persistent TODO.md First
+
+When user asks "show my TODOs", "what are my tasks", or any task query:
+
+1. **ALWAYS read the resolved TODO.md path FIRST** — This is the source of truth
+2. **MCP tools are supplementary** — `view_tasklist` shows session context only
+3. **Never imply completeness** from MCP state alone
+
+**Why this matters:**
+- MCP tasks are session-only (lost on context compaction)
+- TODO.md persists across sessions
+- Showing only MCP tasks gives a false "all done" impression
 
 ---
 
@@ -69,7 +191,11 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ## Tagging Taxonomy
 
-### Engineering Tags (auto-inferred from keywords)
+Tags are auto-inferred from keywords in the task description. The taxonomy below
+covers common domains. **Customize for your organization** by adding domain-specific
+tags (e.g., replace `#team` with your team name like `#delta-team`).
+
+### Engineering Tags
 
 | Tag | Trigger Keywords |
 |-----|------------------|
@@ -79,14 +205,48 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | `#engineering-testing` | test, coverage, unit, integration, QA |
 | `#engineering-docs` | documentation, README, wiki, spec, ADR |
 
+### Recruiting Tags
+
+| Tag | Trigger Keywords |
+|-----|------------------|
+| `#recruiting-sourcer` | source, outreach, LinkedIn, pipeline, candidate search |
+| `#recruiting-scheduler` | schedule, calendar, Zoom, interview time, availability |
+| `#recruiting-admin` | offer, letter, system, ATS, paperwork |
+| `#recruiting-interviewer` | interview, prep, feedback, scorecard, debrief |
+| `#recruiting-hr` | comp, compensation, policy, HR, benefits |
+
 ### General Tags (auto-inferred from context)
 
 | Tag | Trigger Context |
 |-----|-----------------|
-| `#team` | Team member names, "team", "direct report" |
+| `#team` | Team member names, "team", "direct report" (customize: `#delta-team`, `#your-team`) |
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
-| `#product` | "product", "feature", "roadmap" |
+| `#product` | "product", "feature", "roadmap" (customize: `#[product]`, `#your-product`) |
 | `#process` | "process", "workflow", "documentation" |
+
+### Plan Tags (effort-scoped)
+
+Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
+
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `#plan-<identifier>` | Group tasks by effort | `#plan-auth-fix`, `#plan-config-refactor` |
+| `#plan` | ⚠️ **Deprecated** | Use `#plan-<identifier>` for effort isolation |
+
+**Identifier derivation:**
+- Derive from plan title: "Config Refactor" → `config-refactor`
+- Use kebab-case: lowercase, hyphens instead of spaces
+- Keep short but descriptive: 2-4 words max
+- If ambiguous, ask: "What should I call this effort?"
+
+**Example TODO.md with multiple efforts:**
+```markdown
+## P1 - Today
+- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering
+- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering
+- [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
+- [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
+```
 
 ---
 
@@ -224,19 +384,20 @@ Before EVERY write to TODO.md:
 
 ## Implementation Workflow
 
-### On First Use
+### On First Use (HARD GATE)
 
-1. Check that `$TODO_FILE_PATH` is set:
+1. Source the environment and resolve the file path:
    ```bash
-   if [ -z "$TODO_FILE_PATH" ]; then
-     echo "ERROR: TODO_FILE_PATH not set. See skill Configuration section."
-     exit 1
-   fi
+   source ~/.codex/.env 2>/dev/null
+   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
+   echo "$TODO_PATH"
    ```
 
-2. If TODO.md doesn't exist at `$TODO_FILE_PATH`, create it:
+2. Verify the file exists: `ls -la "$TODO_PATH"`
+
+3. If the file does not exist, create it:
    ```bash
-   mkdir -p "$(dirname "$TODO_FILE_PATH")"
+   mkdir -p "$(dirname "$TODO_PATH")"
    ```
 
 3. Initialize with empty section structure:
@@ -265,11 +426,11 @@ Before EVERY write to TODO.md:
 ### On Task Add
 
 ```bash
-# 1. Read current TODO.md
-cat "$TODO_FILE_PATH"
+# 1. Read current TODO.md (use resolved path from HARD GATE)
+cat "$TODO_PATH"
 
 # 2. Backup
-cp "$TODO_FILE_PATH" "$TODO_FILE_PATH.$(date +%Y%m%d-%H%M%S).bak"
+cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"
 
 # 3. Parse task, infer priority/tags
 # 4. Generate ID: YYYYMMDD-NN

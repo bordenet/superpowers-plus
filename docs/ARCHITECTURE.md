@@ -2,6 +2,22 @@
 
 How superpowers-plus skills work and how to extend them.
 
+## Terminology: Skills vs Superpowers
+
+| Term | Definition | Frontmatter | Example |
+|------|------------|-------------|---------|
+| **Skill** | Generic term for any procedural module (a `skill.md` file) | Any | All of them |
+| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-editing` |
+| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `think-twice` |
+
+**Key distinction:**
+- **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
+- **Explicit skills** have no triggers → AI only invokes when user explicitly requests by name
+
+This distinction matters for user queries:
+- "What are my superpowers?" → List only auto-triggered skills
+- "What skills do I have?" → List all skills (both types)
+
 ## Framework Integration
 
 superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
@@ -9,12 +25,30 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 ```
 ~/.codex/
 ├── superpowers/          # obra/superpowers (cloned by install.sh)
-│   └── skills/           # Core framework skills
+│   └── skills/           # Core framework skills (mostly superpowers)
 ├── skills/               # Your personal skills (this repo)
-└── superpowers-augment/  # Wrapper script for skill discovery
+├── superpowers-augment/  # Wrapper script for skill discovery
+│   └── lib/              # Shared modules (learning-state.js)
+└── .learning-state.json  # Persistent learning data (auto-created)
 ```
 
 Skills from both directories are discovered by `superpowers-augment.js`.
+
+### Installer Architecture
+
+`install.sh` is a thin orchestrator (~380 lines) that sources 6 modules from `lib/install/`:
+
+```
+lib/install/
+├── logging.sh       # Colors, log_*, error_exit, create_dir
+├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
+├── deps.sh          # Package manager detection, dependency install, Node.js version check
+├── superpowers.sh   # obra/superpowers clone, update, upgrade, version check
+├── deploy.sh        # Skill, adapter, rule, template deployment to 3 target dirs
+└── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
+```
+
+Modules are sourced in dependency order: `logging` → `platform` → `deps` → `superpowers` → `deploy` → `migrate`. Globals (`VERBOSE`, `FORCE`, `SKILLS_DIR`, etc.) are shared via shell environment.
 
 ## Skill Discovery
 
@@ -25,6 +59,48 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
 Each skill is identified by its directory name, not the filename.
+
+## Semantic Skill Matching
+
+Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** that matches natural language queries to skills based on meaning, not just keywords.
+
+### Usage
+
+```bash
+# Find skills matching a natural language query
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
+
+# Force TF-IDF (local, no API) or embedding (OpenAI) method
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --tfidf "review this PR"
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --embedding "stuck on a bug"
+```
+
+### How It Works
+
+The router uses a **hybrid TF-IDF + Intent Pattern** approach:
+
+| Component | Purpose |
+|-----------|---------|
+| **TF-IDF Engine** | Matches query terms to skill descriptions using term frequency-inverse document frequency |
+| **Stemming** | Reduces words to roots (e.g., "failing" → "fail") for better matching |
+| **Query Expansion** | Maps domain concepts (e.g., "stuck" → "think-twice", "debug") |
+| **Intent Patterns** | Boosts skills when high-confidence phrases are detected (e.g., "resume" → cv-review skills) |
+
+### Default Behavior
+
+- **Local-first**: Uses TF-IDF by default (no external API calls)
+- **Optional enhancement**: If `OPENAI_API_KEY` is set, embeddings are available via `--embedding` flag
+- **100% offline**: Works without network connectivity
+
+### Architecture
+
+```
+lib/skill-router.js
+├── buildTfIdfIndex()      # Builds document index from skill descriptions
+├── matchSkillsTfIdf()     # Local TF-IDF matching with intent boosts
+├── matchSkillsEmbedding() # OpenAI embedding matching (optional)
+└── matchSkills()          # Unified interface (auto-selects method)
+```
 
 ## Skill Structure
 
@@ -63,9 +139,40 @@ description: One-line description of what the skill does.
 |-------|----------|-------------|
 | `name` | Yes | Skill identifier (must match directory name) |
 | `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
-| `triggers` | Yes | Array of phrases that should invoke this skill |
+| `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
 | `description` | Yes | One-line description for skill discovery |
 | `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
+
+### Superpower vs Explicit Skill Examples
+
+**Superpower (auto-triggered):**
+```yaml
+---
+name: wiki-editing
+source: superpowers-plus
+triggers: ["update wiki page", "push to wiki", "edit wiki"]
+description: Use when editing wiki pages.
+---
+```
+
+**Explicit Skill (manual invocation):**
+```yaml
+---
+name: think-twice
+source: superpowers-plus
+triggers: []  # Empty array = explicit
+description: Use when stuck on a problem.
+---
+```
+
+Or simply omit triggers entirely:
+```yaml
+---
+name: superpowers-help
+source: superpowers-plus
+description: Lists available skills.
+---
+```
 
 ### Downstream Override Declaration
 
@@ -104,7 +211,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 
 ## Multi-Target Deployment
 
-`install.sh` deploys skills to three locations for different AI tools:
+`install.sh` (via `lib/install/deploy.sh`) deploys skills to three locations for different AI tools:
 
 | Tool | Install Path | Notes |
 |------|--------------|-------|
@@ -170,6 +277,47 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 |----------|---------|---------|
 | `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select adapter: `linear`, `github`, `jira`, `azure-devops` |
 | `PERPLEXITY_API_KEY` | research/perplexity-research | Perplexity MCP authentication |
+
+## Learning System
+
+The skill effectiveness feedback loop tracks outcomes to improve the system over time.
+
+### Architecture
+
+```
+lib/learning-state.js          # Core learning state manager
+~/.codex/.learning-state.json  # Persistent state (auto-created)
+```
+
+### State Structure
+
+```json
+{
+  "version": "1.0.0",
+  "outcomes": [],              // Success/failure records with evidence
+  "trigger_metrics": {},       // Aggregated per-skill success rates
+  "skill_suggestions": [],     // Pending trigger improvements
+  "pattern_observations": []   // Recurring behaviors for new skills
+}
+```
+
+### CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `record-outcome <skill> <success\|failure> [evidence]` | Track skill outcomes |
+| `analyze-triggers` | View trigger effectiveness metrics |
+| `suggest-trigger <skill> <phrase>` | Propose new trigger phrases |
+| `record-pattern <pattern> [skill]` | Capture recurring behaviors |
+| `learning-report` | Full effectiveness report |
+| `learning-status` | Learning state summary |
+
+### Bootstrap Integration
+
+At session start, `bootstrap` shows learning insights if outcome data exists:
+- Skills needing attention (<70% success rate)
+- Top performers (90%+ success rate)
+- Overall success statistics
 
 ## Bootstrapping
 
