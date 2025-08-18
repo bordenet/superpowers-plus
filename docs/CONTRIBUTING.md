@@ -85,10 +85,30 @@ Do NOT invoke when:
 |-------|----------|---------|
 | `name` | ✅ | `link-verification` |
 | `source` | ✅ | `superpowers-plus` |
-| `triggers` | ✅ | `["verify links", "check URL"]` |
+| `triggers` | ⚡ | `["verify links", "check URL"]` (see below) |
 | `description` | ✅ | One sentence, no "Triggers on" — triggers are in the array |
 
-**Note:** The `triggers` array enables automated auditing via `./tools/skill-trigger-validator.sh`.
+### Superpowers vs Explicit Skills
+
+**Choose the right type for your skill:**
+
+| Type | Triggers Field | When to Use |
+|------|----------------|-------------|
+| **Superpower** | `triggers: ["phrase1", "phrase2"]` | Skill should auto-fire when user says certain phrases |
+| **Explicit Skill** | `triggers: []` or omit | Skill should only run when explicitly requested |
+
+**Use superpowers (with triggers) when:**
+- The skill applies to a common workflow pattern (e.g., "fix this bug")
+- Auto-firing prevents mistakes (e.g., pre-commit checks)
+- The skill is part of a dependency chain (e.g., wiki-editing triggers link-verification)
+
+**Use explicit skills (no triggers) when:**
+- The skill is a meta-tool (help, observability, metrics)
+- Running it has side effects the user should consciously choose (e.g., security-upgrade)
+- It's experimental or heavyweight
+- It requires context that can't be detected from phrases alone
+
+**Note:** The `triggers` array enables automated auditing via `./tools/skill-trigger-validator.sh`. Skills without triggers should be listed in `EXPLICIT_SKILLS` in the validator to avoid false warnings.
 
 ### 4. Validate Triggers
 

@@ -1,8 +1,14 @@
 ---
 name: wiki-editing
 source: superpowers-plus
-triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document", "delete wiki page"]
-description: Use when editing wiki pages, pushing content to wiki, or managing wiki documents. Enforces download-before-edit pattern, MCP-first tooling, and write scope restrictions. Platform-specific setup in skills/wiki/_adapters/.
+triggers: ["wiki-editing:execute", "delete wiki page", "wiki:edit-internal", "wiki:delete"]
+description: "INTERNAL SKILL — Invoked by wiki-orchestrator as Stage 7. Do NOT invoke directly. Enforces download-before-edit pattern, MCP-first tooling, and write scope restrictions. Platform-specific setup in skills/wiki/_adapters/."
+composition:
+  consumes: [verified-links, sanitized-content]
+  produces: [published-page]
+  capabilities: [publishes-wiki]
+  priority: 100
+  requires_all: true
 ---
 
 # Wiki Editing
@@ -65,10 +71,27 @@ Configure `WIKI_ALLOWED_ROOTS` in your adapter with document/collection IDs that
 
 ### Scope Verification
 
-1. Get target document info via adapter's `get_page`
-2. Check if document ID OR any parent matches an allowed root
-3. **IN SCOPE** → proceed
-4. **OUT OF SCOPE** → STOP, display warning, ask for confirmation
+**For create operations with a parent document:**
+
+1. **Fetch the parent document** via adapter's `get_page` using the parent ID
+2. Walk the parent chain: check if the parent's ID matches an allowed root
+3. If the parent itself has a parent, fetch THAT document too — walk until you reach a root or match
+4. **MATCH FOUND** → proceed
+5. **NO MATCH** → STOP, display warning, ask for confirmation
+
+**For update, delete, and move operations:**
+
+1. **Fetch the target document** via adapter's `get_page`
+2. Check if the document's ID, parent ID, or collection ID matches an allowed root
+3. If no direct match, walk the parent chain upward (same as create flow)
+4. **MATCH FOUND** → proceed
+5. **NO MATCH** → STOP, display warning, ask for confirmation
+
+### Common Failure: "I found a parent that looks right"
+
+Do NOT assume a parent document is in-scope just because its title sounds relevant (e.g., "Drafts", "PRDs", "Team Docs"). You MUST verify the parent chain resolves to an allowed root. Titles are not unique — multiple teams may have identically-named sections.
+
+> **Incident:** An agent published a document under a "PRD Drafts" section that belonged to a different team's wiki area. The agent found the parent by searching for existing documents with similar titles, then used it without verifying the parent chain resolved to an allowed write root. The user had to manually move the document.
 
 **Read operations remain unrestricted.**
 </EXTREMELY_IMPORTANT>
@@ -83,6 +106,10 @@ Before making ANY edit to a wiki page, you MUST:
 1. **Fetch current document state** via adapter's `get_page`
 2. **Use that fetched content as the base** for all edits
 3. **Verify** local temp files reflect current wiki state
+
+**This rule also applies when correcting a mistake.** If the user tells you something is wrong with a wiki page (wrong location, wrong content, already fixed), **fetch the document's current state first** before attempting any corrective action. The user may have already moved, edited, or deleted it. Acting without checking risks undoing the user's fix.
+
+> **Incident:** An agent published a document to the wrong wiki section. When the user reported the error, the agent immediately attempted a `move` operation without first fetching the document's current state. The user had already moved the document manually — the agent's unchecked move would have undone the fix.
 
 **Violating this rule risks overwriting another agent's or user's work.**
 </EXTREMELY_IMPORTANT>

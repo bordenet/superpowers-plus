@@ -1,8 +1,15 @@
 ---
 name: enforce-style-guide
 source: superpowers-plus
-triggers: ["check style", "enforce coding standards", "before commit", "lint this", "style guide"]
+triggers: ["check style", "enforce coding standards", "before commit", "lint this", "style guide", "commit:style", "commit:lint"]
 description: Enforce coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, line limits, ShellCheck compliance, and syntax validation.
+coordination:
+  group: commit-gates
+  order: 2
+  requires: ["pre-commit-gate"]
+  enables: ["professional-language-audit"]
+  escalates_to: []
+  internal: false
 ---
 
 # enforce-style-guide
@@ -191,3 +198,18 @@ Key requirements:
 ---
 
 **Remember**: This skill exists because 80% of scripts were non-compliant. Never let that happen again.
+
+---
+
+## Commit Gate Coordination
+
+Multiple skills fire on "before commit". Execute in this order:
+
+| Order | Skill | Purpose | Scope |
+|-------|-------|---------|-------|
+| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
+| 2 | **enforce-style-guide** (this skill) | Code style compliance | All commits |
+| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+
+**Rationale:** Technical checks first (fast feedback), then style, then content gates.

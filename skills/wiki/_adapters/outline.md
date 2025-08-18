@@ -25,7 +25,7 @@ Additional tools:
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `OUTLINE_API_TOKEN` | ✅ Yes | API token from Outline settings | `ol_api_xxxxxxxxxxxx` |
+| `OUTLINE_API_KEY` | ✅ Yes | API token from Outline settings | `ol_api_xxxxxxxxxxxx` |
 | `OUTLINE_BASE_URL` | ❌ No | Wiki instance URL | `https://wiki.example.com` |
 
 ## Getting Your API Token
@@ -84,7 +84,7 @@ When MCP tools are unavailable:
 ```bash
 source .env
 curl -s -X POST "https://wiki.example.com/api/documents.info" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
+  -H "Authorization: Bearer $OUTLINE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"id": "document-id-or-url-slug"}'
 ```
