@@ -159,7 +159,13 @@ if [[ -d ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
-    git pull --quiet origin main 2>/dev/null || git pull --quiet origin master 2>/dev/null || warn "Could not update superpowers"
+    if ! git pull --ff-only --quiet origin main 2>/dev/null; then
+        # --ff-only failed — try reset (handles upstream history rewrites and divergent branches)
+        verbose "Fast-forward failed, resetting to origin/main..."
+        git fetch --quiet origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
+            || git pull --quiet origin master 2>/dev/null \
+            || warn "Could not update superpowers"
+    fi
     popd > /dev/null
     success "Superpowers updated"
 else
@@ -193,8 +199,8 @@ const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skil
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 
 const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'add_tasks/update_tasks'],
-    [/\bTodoRead\b/g, 'view_tasklist'],
+    [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
+    [/\bTodoRead\b/g, 'view tool on TODO.md (run todo-preflight.sh first to get path), then optionally view_tasklist for UI'],
     [/\bTask\b tool with subagents/g, 'Note: Augment does not have subagents - do the work directly'],
     [/\bTask\b tool/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],

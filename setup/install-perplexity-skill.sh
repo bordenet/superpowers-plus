@@ -15,6 +15,28 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+install-perplexity-skill.sh — Install perplexity-research skill
+
+USAGE
+  ./setup/install-perplexity-skill.sh [--verify-only]
+
+OPTIONS
+  --verify-only  Run verification tests without installing
+  --help         Show this help message
+
+DESCRIPTION
+  Installs perplexity-research skill to ~/.codex/superpowers/skills/.
+  Creates directory structure, copies skill file, initializes stats.
+
+PREREQUISITES
+  - Superpowers framework installed (~/.codex/superpowers/)
+  - Perplexity MCP server configured (run setup/mcp-perplexity.sh first)
+HELP
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 SKILL_SOURCE="$REPO_DIR/skills/perplexity-research/SKILL.md"

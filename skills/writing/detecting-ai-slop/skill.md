@@ -1,8 +1,8 @@
 ---
 name: detecting-ai-slop
 source: superpowers-plus
-triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "slop density", "is this AI generated", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text"]
-description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, tooltip definitions, documentation prose, or any text where you need to quantify machine-generated patterns before deciding whether to edit.
+triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "slop density", "is this AI generated", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "review AI text", "edit AI output", "check AI writing", "fix AI prose", "improve AI draft"]
+description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, tooltip definitions, documentation prose, or any text where you need to quantify machine-generated patterns before deciding whether to edit. Also use when reviewing or editing AI-generated text to detect slop patterns (formerly reviewing-ai-text).
 ---
 
 # Detecting AI Slop
@@ -159,7 +159,27 @@ This skill reads from `.slop-dictionary.json` if present in workspace root.
 
 ---
 
+## Semantic Quick Tests
+
+Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`):
+
+| Test | Slop Signal | Real Signal |
+|------|-------------|-------------|
+| **Specificity** | "Use appropriate caching strategies" | "Use Redis with 5-minute TTL for session data" |
+| **Asymmetry** | "Both options have merits" | "Use Postgres unless >10M writes/day" |
+| **Constraint** | "Implement microservices for scalability" | "Microservices add 3x ops overhead. Stay monolith unless dedicated platform team." |
+| **First-Person** | Generic enough to apply anywhere | Grounded in specific context |
+
+---
+
 ## Related Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection
+
+
+## Common Failure Modes
+
+- **False positives on domain jargon:** Flagging legitimate technical terms (e.g., "robust" in a load-testing context) as slop
+- **Score inflation:** Giving a passing score to text with subtle but pervasive AI patterns
+- **Detection without action:** Scoring text as sloppy but not invoking `eliminating-ai-slop` to fix it

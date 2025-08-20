@@ -17,13 +17,23 @@ coordination:
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
+## When to Use
+
+- Before every `git commit` — run local lint, typecheck, and tests first
+- Before pushing to any remote branch (CI should confirm, not discover)
+- After resolving merge conflicts to verify nothing broke
+- When preparing a hotfix under time pressure (especially then)
+
 ## The Rule
 
 **RUN THESE LOCALLY BEFORE EVERY `git commit`.** Not after CI fails — BEFORE you commit.
 
-## Required Order: Lint → Typecheck → Test → Commit → Push
+## Required Order: Safety Scan → Lint → Typecheck → Test → Commit → Push
 
 ```bash
+# 0. Dangerous pattern scan (MUST pass if .sh files are staged)
+~/.codex/superpowers-plus/tools/dangerous-pattern-scan.sh
+
 # 1. Lint (MUST pass with zero errors)
 npm run lint    # or: pnpm run lint, biome check .
 
@@ -40,12 +50,18 @@ git add -A && git commit -m "message"
 git push origin <branch>
 ```
 
+> **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
+> `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
+> (e.g., `rm -rf ~/.codex/something`) produce warnings, not blocks. <!-- doctor-ignore -->
+> Use `--all` flag to scan the entire repo: `dangerous-pattern-scan.sh --all`
+
 ## Why This Gate Exists
 
 > **Common failure:** Pushing code without running local checks, then debugging CI failures. Lint errors, type errors, and test failures are all detectable locally. Instead of running checks locally first, developers push, wait for CI, read logs, fix, push again — wasting multiple CI cycles that could have been zero.
 
 ## Pre-Commit Checklist
 
+- [ ] `dangerous-pattern-scan.sh` — no blocked patterns (if .sh files staged)
 - [ ] `npm run lint` — zero errors (warnings OK if project allows)
 - [ ] `npm run typecheck` — zero errors
 - [ ] `npm test` — all tests pass (or only pre-existing failures)
@@ -66,8 +82,9 @@ git push origin <branch>
 ```
 BEFORE EVERY COMMIT:
 
+0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)
 1. Did I run `npm run lint`? (zero errors)
-2. Did I run `npm run typecheck`? (zero errors)  
+2. Did I run `npm run typecheck`? (zero errors)
 3. Did I run `npm test`? (all pass or only pre-existing failures)
 4. Did I review staged changes? (`git diff --staged`)
 
@@ -112,9 +129,10 @@ Multiple skills fire on "before commit". Execute in this order:
 
 | Order | Skill | Purpose | Scope |
 |-------|-------|---------|-------|
+| 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
 | 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
 | 2 | `enforce-style-guide` | Code style compliance | All commits |
 | 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
 | 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
+**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style, then content gates.

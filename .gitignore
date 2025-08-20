@@ -1,57 +1,72 @@
-# Environment secrets (keep .env.example, ignore .env)
+# =============================================================================
+# OneDrive / cloud sync artifacts
+# =============================================================================
+# OneDrive creates random-named temp/conflict files (commas, tildes, hashes)
+*,*
+*#*#
+~$*
+~*
+*~
+*.tmp
+*.temp
+.~lock.*
+
+# =============================================================================
+# macOS
+# =============================================================================
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+.fseventsd
+.apdisk
+Icon?
+Thumbs.db
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.github/instructions/codacy.instructions.md
+
+# =============================================================================
+# Environment / secrets
+# =============================================================================
 .env
+
+# =============================================================================
+# Build / runtime artifacts
+# =============================================================================
+node_modules/
+npm-debug.log*
+*.log
+*.backup
+*.bak
+.cache/
+
+# =============================================================================
+# Project-specific
+# =============================================================================
+# Profanity patterns - root-level file is for local overrides (not tracked)
+# scripts/.profanity-patterns.txt IS tracked - it's the reference list
+/.profanity-patterns.txt
 
 # Slop detection workspace files
 .slop-dictionary.json
 .slop-metrics.json
 
-# Profanity patterns - root-level file is for local overrides (not tracked)
-# scripts/.profanity-patterns.txt IS tracked - it's the reference list
-/.profanity-patterns.txt
-
-# MacOS specific files
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# MacOS directory preferences
-Icon
-.Spotlight-V100
-.Trashes
-
-# MacOS resource forks
-*.swp
-*~
-
-# Thumbnail cache
-.fseventsd
-.apdisk
-
-# IDE and editor files
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
-
-# Node.js (in case of local testing)
-node_modules/
-npm-debug.log*
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Backup files
-*.bak
-*.backup
-
-
-#Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
-.DS_Store
+# Session state
+.superpowers-session
 
 # wiki-instruction-guard local domain allowlist (org-specific, never committed)
 skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
-Nv,f8H811
+
+# Local-only IP patterns for pre-commit/pre-push scanning
+.ip-patterns

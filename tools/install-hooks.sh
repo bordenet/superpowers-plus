@@ -6,6 +6,23 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+install-hooks.sh — Install git hooks for superpowers-plus
+
+USAGE
+  ./tools/install-hooks.sh
+
+DESCRIPTION
+  Installs pre-commit hook to .git/hooks/ that validates file endings,
+  shell syntax, and JSON syntax before each commit. Backs up any
+  existing pre-commit hook to .bak.
+
+  To bypass: git commit --no-verify
+HELP
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOOKS_DIR="$REPO_ROOT/.git/hooks"
@@ -27,9 +44,20 @@ cp "$SCRIPT_DIR/pre-commit" "$HOOKS_DIR/pre-commit"
 chmod +x "$HOOKS_DIR/pre-commit"
 echo "✓ Installed pre-commit hook"
 
+# Install pre-push hook
+if [[ -f "$HOOKS_DIR/pre-push" ]]; then
+    echo "⚠️  Existing pre-push hook found. Backing up to pre-push.bak"
+    mv "$HOOKS_DIR/pre-push" "$HOOKS_DIR/pre-push.bak"
+fi
+
+cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
+chmod +x "$HOOKS_DIR/pre-push"
+echo "✓ Installed pre-push hook"
+
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax"
+echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax, IP scan"
+echo "  • pre-push: Scans unpushed commits for proprietary IP"
 echo ""
 echo "To bypass hooks (not recommended): git commit --no-verify"
 echo ""

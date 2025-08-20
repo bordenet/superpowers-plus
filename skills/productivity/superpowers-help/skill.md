@@ -7,6 +7,12 @@ description: Dynamically enumerates ALL installed skills at runtime, distinguish
 
 # 🦸 Superpowers & Skills
 
+## When to Use
+
+- User asks "what can you do?" or "what skills do you have?"
+- Need to enumerate available superpowers or explicit skills at runtime
+- Debugging whether a specific skill is installed and active
+
 ## Understanding the Distinction
 
 | Term | Definition | How It Works |
@@ -86,65 +92,13 @@ These skills are typically meta-tools (help, observability) or tools that should
 
 ---
 
-## Platform Invocation
-
-### Claude Code
-
-Superpowers auto-trigger via natural language. Explicit skills via slash commands:
-```
-"help me debug this"              → systematic-debugging auto-fires
-/think-twice                      → explicit skill, must invoke
-```
-
-### Augment
-
-Bootstrap at session start:
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
-```
-
-Commands:
-```bash
-# List all (categorized as superpowers vs explicit)
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-
-# List only superpowers (auto-triggered)
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers
-
-# List only explicit skills
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
-
-# Load a specific skill
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
-```
-
-Learning System (track skill effectiveness):
-```bash
-# Record outcome after skill-guided work
-node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> <success|failure> [evidence]
-
-# View trigger effectiveness metrics
-node ~/.codex/superpowers-augment/superpowers-augment.js analyze-triggers
-
-# Full effectiveness report
-node ~/.codex/superpowers-augment/superpowers-augment.js learning-report
-```
-
-### Cursor
+## Namespace Shorthands
 
 ```bash
-superpowers-cursor bootstrap
+sp-doctor    # expands to superpowers-doctor (normal resolution)
+spp-doctor   # loads from superpowers-plus source repo directly
+spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 ```
-
-### Codex (OpenAI)
-
-```bash
-superpowers-codex bootstrap
-```
-
-### Gemini CLI
-
-Skills activate via `activate_skill` tool. Gemini loads skill metadata at session start.
 
 ---
 
@@ -152,18 +106,14 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 
 | Task | Type | Skill(s) |
 |------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → writing-plans → subagent-driven-development |
-| "What's the boldest move?" | 🦸 auto | innovation → brainstorming → writing-plans |
+| "Build a new feature" | 🦸 auto | brainstorming → writing-plans |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
-| "Create a Linear issue" | 🦸 auto | linear-issue-authoring → linear-link-verification |
 | "Update the wiki" | 🦸 auto | wiki-orchestrator → outline-wiki-editing → link-verification |
 | "Check my AI writing" | 🦸 auto | detecting-ai-slop → eliminating-ai-slop |
 | "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
 | "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
-| "Upgrade dependencies" | 🔧 explicit | security-upgrade (runs on request) |
-| "Refactor complex code" | 🦸 auto | cognitive-complexity-refactoring → blast-radius-check |
-| "Track skill outcomes" | 🦸 auto | skill-effectiveness (record success/failure) |
+| "Check skill health" | 🦸 auto | superpowers-doctor (sp-doctor) |
 
 ---
 
@@ -186,6 +136,12 @@ cd superpowers-plus
 ```
 
 ---
+
+## Common Failure Modes
+
+- **Stale enumeration:** Reporting skills from memory instead of running the runtime discovery command
+- **Missing overlay skills:** Forgetting that `SPC_SOURCE_DIR` overlay adds skills not in the base superpowers-plus install
+- **Confusing superpowers vs explicit:** A skill with triggers is a superpower (auto-fires); without triggers it must be explicitly invoked
 
 ## Documentation
 
