@@ -45,6 +45,21 @@ if ! [[ -t 0 ]]; then
     YES=true
 fi
 
+# --- CRLF self-heal (WSL + Windows git clone with core.autocrlf=true) ---
+# If this script or its modules have Windows line endings, bash will fail with
+# cryptic errors like "syntax error near unexpected token `$'\r'". Fix them
+# before sourcing anything.
+if grep -q $'\r' "${BASH_SOURCE[0]}" 2>/dev/null; then
+    # Fix this script and all lib modules in-place
+    find "$SCRIPT_DIR" -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+    echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
+    echo "       Re-run: $0 $*"
+    echo ""
+    echo "       To prevent this, configure git:"
+    echo "         git config --global core.autocrlf input"
+    exit 0
+fi
+
 # --- Source modules in dependency order ---
 INSTALL_LIB_DIR="${SCRIPT_DIR}/lib/install"
 
@@ -57,7 +72,7 @@ source "${INSTALL_LIB_DIR}/deps.sh"          # check_dependencies, check_node_ve
 # shellcheck source=lib/install/superpowers.sh
 source "${INSTALL_LIB_DIR}/superpowers.sh"   # install/update/upgrade_superpowers
 # shellcheck source=lib/install/deploy.sh
-source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates
+source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates/tools
 # shellcheck source=lib/install/migrate.sh
 source "${INSTALL_LIB_DIR}/migrate.sh"       # post_install_migrations
 
@@ -393,6 +408,7 @@ main() {
         post_install_migrations
         install_rules
         install_templates
+        install_tools
         install_adapter
         validate_installation
         print_summary
@@ -428,11 +444,20 @@ main() {
     # Install templates
     install_templates
 
+    # Install tools (todo-preflight.sh, todo-lock.sh, etc.)
+    install_tools
+
     # Install adapter
     install_adapter
 
     # Validate
     validate_installation
+
+    # Post-install health check (report only, non-blocking)
+    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" ]]; then
+        log_info "Running post-install health check..."
+        "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
+    fi
 
     # Print summary
     print_summary

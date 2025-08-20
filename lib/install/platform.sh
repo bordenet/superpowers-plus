@@ -4,7 +4,7 @@
 # PURPOSE: Platform and OS detection (macOS, Linux, WSL, Windows).
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: (none)
-# GLOBALS SET: PLATFORM, LINUX_DISTRO
+# GLOBALS SET: PLATFORM, LINUX_DISTRO, WSL_WINDOWS_FS
 # REQUIRES: lib/install/logging.sh (for color variables)
 # -----------------------------------------------------------------------------
 
@@ -39,9 +39,15 @@ detect_linux_distro() {
     fi
 }
 
+# Check if a path is on a Windows filesystem mount (NTFS via DrvFs)
+is_windows_fs() {
+    [[ "$PLATFORM" == "wsl" ]] && [[ "${1:-}" == /mnt/[a-zA-Z]/* ]]
+}
+
 # Run detection and set globals (consumed by parent installer)
 PLATFORM=$(detect_platform)
 export LINUX_DISTRO=""
+export WSL_WINDOWS_FS=false
 if [[ "$PLATFORM" == "linux" ]] || [[ "$PLATFORM" == "wsl" ]]; then
     LINUX_DISTRO=$(detect_linux_distro)
 fi
@@ -49,15 +55,17 @@ fi
 # WSL-specific checks
 if [[ "$PLATFORM" == "wsl" ]]; then
     # Check if running from Windows filesystem (common mistake, causes permission issues)
-    if [[ "$PWD" == /mnt/* ]]; then
+    if is_windows_fs "$PWD"; then
+        WSL_WINDOWS_FS=true
         echo ""
         echo -e "${YELLOW}[WARN]${NC} Running from Windows filesystem ($PWD)"
         echo ""
-        echo "This may cause permission issues. For best results:"
-        echo "  1. Clone the repo to WSL filesystem: ~/GitHub/superpowers-plus"
-        echo "  2. Run from there: cd ~/GitHub/superpowers-plus && ./install.sh"
+        echo "  NTFS mounts do not support Unix permissions (chmod is a no-op)."
+        echo "  For best results:"
+        echo "    1. Clone the repo to WSL filesystem: ~/superpowers-plus"
+        echo "    2. Run from there: cd ~/superpowers-plus && ./install.sh"
         echo ""
-        echo "Continuing anyway..."
+        echo "  Continuing with compatibility workarounds..."
         echo ""
     fi
 
@@ -70,5 +78,13 @@ if [[ "$PLATFORM" == "wsl" ]]; then
         echo "  export HOME=/home/\$(whoami)"
         echo ""
         exit 1
+    fi
+
+    # Check if install targets land on Windows FS (even if repo is on Linux FS)
+    if is_windows_fs "${HOME}/.codex"; then
+        echo -e "${YELLOW}[WARN]${NC} Install target (~/.codex) is on Windows filesystem"
+        echo "  chmod +x will not work on installed scripts."
+        echo "  Consider setting HOME to a WSL-native path."
+        echo ""
     fi
 fi

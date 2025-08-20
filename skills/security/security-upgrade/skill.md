@@ -1,7 +1,7 @@
 ---
 name: security-upgrade
 source: superpowers-plus
-triggers: ["scan for CVEs", "upgrade vulnerable packages", "security audit", "npm audit", "dependency vulnerabilities"]
+triggers: ["scan for CVEs", "upgrade vulnerable packages", "dependency security audit", "npm audit", "dependency vulnerabilities"]
 description: Use when you need to scan project dependencies for CVEs, upgrade vulnerable packages, validate that everything still compiles and passes tests, then commit and push the fixes - works with npm, Go, Python, Rust, and Flutter projects.
 ---
 

@@ -9,6 +9,48 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `skills/security/wiki-instruction-guard/` — Blocks prompt injection in wiki content (#104)
+- `skills/productivity/adversarial-search/` — Defeats confirmation bias in analysis (#107)
+- `skills/productivity/thinking-orchestrator/` — Hub router for metacognition skills (#110)
+- `skills/wiki/wiki-content-coherence/` — Detects duplication and structural defects (#127)
+- `skills/security/repo-security-scan/` — Full repo security scan across 4 categories (#132)
+- `skills/productivity/todo-archive/` — Archive completed tasks from TODO.md to monthly satellite files (#133)
+- `tools/dangerous-pattern-scan.sh` — Pre-commit scanner for `rm -rf`, `chmod 777`, `curl|bash` (#123)
+- `tools/todo-lock.sh` — Advisory file locking for TODO.md with cross-machine support (#120)
+- `tools/todo-preflight.sh` — Single-command TODO.md path resolution and validation (#117)
+- `tools/skill-cost-analyzer.sh` — Token cost analysis for skill loading (#159)
+- One-time high-cost skill warning on first load (#160)
+- `spp:` and `spc:` namespace prefixes for cross-repo skill resolution (#151)
+- `sp-`/`spp-`/`spc-` dash shorthands for fewer keystrokes (#152)
+- `superpowers-doctor` expanded to 18 checks with `--fix` mode and graduated fix tiers (#141, #145, #146, #169)
+- WSL compatibility handling in installer (#163)
+- Depth Challenge Gate for rigorous analysis requests (#112)
+- Bootstrap-first discipline enforcement in `use-skill` (#130)
+- Batch operations workflow in wiki-orchestrator (#129)
+- wiki-debunker Source Authority Matrix for source-laundered attributions (#138)
+
+### Changed
+- 9 oversized skills split to ≤250 lines with `references/` directories (#143)
+- Efficiency optimization across 6 skills — net −794 lines (#162)
+- README overhauled: updated counts, reduced length 18%, eliminated duplication (#158)
+- 5 generic engineering skills restored from orphan cleanup (#105)
+- Vestigial `~/.augment/skills/` deployment path removed (#106)
+
+### Fixed
+- Security scrub: removed all proprietary references from public repo (#154)
+- Ghost command and dead URL removed from superpowers-help (#155, #156)
+- Doctor: overlay awareness, subshell counter bugs, false positive reduction (#147, #166–#170)
+- Doctor: resolved 82 trigger collision warnings (#168)
+- Cross-platform hardening + `--help` for all standalone scripts (#165)
+- POSIX-compatible CRLF detection — dropped `grep -P` (#164)
+- Shell compatibility fixes: SC2064, SC2155, SC2162, SC2038 (#125, #137, #161)
+- TODO.md data loss prevention with safety gate and section-survival validation (#135, #136)
+- todo-lock.sh: `rm -rf` safeguards, `$PPID` for PID tracking, cross-platform hardening (#121, #122)
+- todo-management: HARD GATE rewritten to use preflight script (#117)
+- pre-commit-gate: added Step 0 dangerous pattern scan (#123)
+- Stale skill count references corrected across all distribution files
+
 ### Removed
 - `lib/learning-state.js` — skill metrics tracking (zero organic data produced) (#113)
 - `tools/skill-fire-logger.sh` — shell fire logging wrapper (#113)
@@ -16,7 +58,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `skills/observability/skill-effectiveness/` — outcome tracking skill (#113)
 - 12 metrics CLI commands from `superpowers-augment.js` (#113)
 - MANDATORY Skill Outcome Tracking from bootstrap rule (#113)
-- Skill count: 49 → 47
+- Net skill count: 47 (added 5 new skills, removed 2 metric skills)
 
 ## [2.5.1] - 2026-03-16
 
@@ -197,8 +239,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
-| 2.5.1 | 2026-03-17 | 49 | Thinking-orchestrator, adversarial-search improvements, 7 new skills |
-| 2.4.2 | 2026-03-15 | 38 | Innovation skill, skill-effectiveness, taxonomy |
+| 2.5.1 | 2026-03-16 | 47 | Non-interactive install, skill-authoring, auto-composition, install.sh modularization |
+| 2.4.2 | 2026-03-15 | 49 | Innovation skill, skill-effectiveness, taxonomy |
 | 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
 | 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
 | 2.1.0 | 2026-03-12 | 41 | Enforcement system, marketplace support |
@@ -207,7 +249,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 | 1.4.0 | 2026-03-01 | 35 | Windows/WSL support |
 | 1.0.0 | 2026-02-15 | 35 | Initial release |
 
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...v2.5.1
 [2.4.2]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...v2.4.2
 [2.3.0]: https://github.com/bordenet/superpowers-plus/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/bordenet/superpowers-plus/compare/v2.1.2...v2.2.0

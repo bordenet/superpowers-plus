@@ -23,10 +23,89 @@ const {
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
+const COST_WARNINGS_DIR = path.join(homeDir, '.codex', '.skill-cost-warnings');
+
+// Source repo directories for namespace prefix resolution (spp:, spc:)
+// These point to git source repos, NOT installed directories.
+// Discovery order: env var → well-known paths → null (prefix unavailable)
+function discoverSourceDir(envVar, wellKnownPaths) {
+    if (process.env[envVar]) {
+        const dir = process.env[envVar];
+        if (fs.existsSync(dir)) return dir;
+    }
+    for (const p of wellKnownPaths) {
+        const resolved = p.replace(/^~/, homeDir);
+        if (fs.existsSync(resolved)) return resolved;
+    }
+    return null;
+}
+
+const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
+    '~/GitHub/Personal/superpowers-plus',
+    '~/superpowers-plus',
+]);
+
+const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
+    // Set SPC_SOURCE_DIR env var to point to your overlay repo
+]);
+
+/**
+ * Find a skill.md in a source repo by searching domain subdirectories.
+ * Source repos use {domain}/{skill-name}/skill.md layout.
+ * Returns the skill file path or null.
+ */
+function findSkillInSourceRepo(repoDir, skillName) {
+    if (!repoDir) return null;
+    // Check skills/ subdirectory first (superpowers-plus layout)
+    const skillsSubdir = path.join(repoDir, 'skills');
+    const searchRoots = fs.existsSync(skillsSubdir) ? [skillsSubdir] : [repoDir];
+    for (const root of searchRoots) {
+        try {
+            const domains = fs.readdirSync(root, { withFileTypes: true });
+            for (const domain of domains) {
+                if (!domain.isDirectory()) continue;
+                const skip = new Set(['node_modules', '.git', '.github', 'lib', 'docs', 'tools', 'mcp', 'setup', 'references']);
+                if (domain.name.startsWith('_') || domain.name.startsWith('.') || skip.has(domain.name)) continue;
+                const skillDir = path.join(root, domain.name, skillName);
+                const skillFile = findSkillFile(skillDir);
+                if (skillFile) return skillFile;
+            }
+            // Direct child of root (non-domain layout)
+            const directDir = path.join(root, skillName);
+            const directFile = findSkillFile(directDir);
+            if (directFile) return directFile;
+        } catch (_) { /* directory not readable */ }
+    }
+    return null;
+}
+
+// Session staleness threshold: 4 hours (sessions don't last longer than this)
+const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
+
+function writeSessionMarker() {
+    try {
+        fs.writeFileSync(SESSION_FILE, JSON.stringify({
+            bootstrapped: new Date().toISOString(),
+            pid: process.ppid || process.pid
+        }));
+    } catch (_) { /* non-fatal */ }
+}
+
+function checkBootstrap() {
+    try {
+        if (!fs.existsSync(SESSION_FILE)) return false;
+        const data = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+        const age = Date.now() - new Date(data.bootstrapped).getTime();
+        return age < SESSION_MAX_AGE_MS;
+    } catch (_) {
+        return false;
+    }
+}
 
 const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'add_tasks/update_tasks'],
-    [/\bTodoRead\b/g, 'view_tasklist'],
+    [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
+    [/\bTodoRead\b/g, 'view tool on TODO.md (run todo-preflight.sh first to get path), then optionally view_tasklist for UI'],
     [/\bTask\b tool with subagents/g, 'Note: Augment does not have subagents - do the work directly'],
     [/\bTask\b tool/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
@@ -239,8 +318,54 @@ function findSkills(filterMode = 'all') {
     console.log('Naming convention:');
     console.log('  superpowers:skill-name  → from ~/.codex/superpowers/skills/ (obra/superpowers)');
     console.log('  skill-name              → from ~/.codex/skills/ (personal/superpowers-plus)');
-    console.log('  Personal skills override superpowers skills when names match.\n');
+    console.log('  Personal skills override superpowers skills when names match.');
+    console.log('');
+    console.log('Namespace prefixes (resolve to source repos, not installed dir):');
+    console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  spc:skill-name          → overlay source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('');
+    console.log('Dash shorthands (sp- expands to superpowers-):');
+    console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
+    console.log('  spp-doctor              → superpowers-doctor from superpowers-plus source');
+    console.log('  spc-doctor              → superpowers-doctor from overlay source\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
+}
+
+
+// High-cost skill warning (one-time per installation)
+function getHighCostSkills() {
+    // Try installed location first, then source repo
+    const locations = [
+        path.join(homeDir, '.codex', 'superpowers-plus', 'tools', 'high-cost-skills.json'),
+        path.join(__dirname, 'tools', 'high-cost-skills.json'),
+    ];
+    for (const loc of locations) {
+        if (fs.existsSync(loc)) {
+            try { return JSON.parse(fs.readFileSync(loc, 'utf8')); } catch { /* ignore */ }
+        }
+    }
+    return [];
+}
+
+function showHighCostWarningOnce(skillName) {
+    const highCost = getHighCostSkills();
+    // Normalize: strip prefixes to get bare skill name
+    const bare = skillName.replace(/^(superpowers:|spp:|spc:|sp-|spp-|spc-)/, '');
+    if (!highCost.includes(bare)) return;
+
+    // Check if warning already shown
+    try { fs.mkdirSync(COST_WARNINGS_DIR, { recursive: true }); } catch { /* exists */ }
+    const markerFile = path.join(COST_WARNINGS_DIR, bare);
+    if (fs.existsSync(markerFile)) return;
+
+    // Show warning and create marker
+    console.error('');
+    console.error(`⚠️  HIGH TOKEN COST: "${bare}" is a high-cost skill.`);
+    console.error('   It loads references, chains to other skills, or spawns sub-agents.');
+    console.error('   See docs/SKILL_TOKEN_COSTS.md for details.');
+    console.error('   (This warning appears once per skill per installation.)');
+    console.error('');
+    try { fs.writeFileSync(markerFile, new Date().toISOString()); } catch { /* best effort */ }
 }
 
 function useSkill(skillName) {
@@ -249,15 +374,88 @@ function useSkill(skillName) {
         console.error('Usage: superpowers-augment use-skill <skill-name>');
         process.exit(1);
     }
-    const forceSuperpowers = skillName.startsWith('superpowers:');
-    const actualName = forceSuperpowers ? skillName.replace(/^superpowers:/, '') : skillName;
+
+    // Enforce bootstrap-first discipline
+    if (!checkBootstrap()) {
+        console.error('');
+        console.error('⚠️  BOOTSTRAP NOT RUN — Skills are degraded without session context.');
+        console.error('');
+        console.error('You MUST bootstrap before using skills. Run this FIRST:');
+        console.error('');
+        console.error('  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap');
+        console.error('');
+        console.error('Then retry: use-skill ' + skillName);
+        console.error('');
+        console.error('WHY: Bootstrap loads the using-superpowers skill which governs');
+        console.error('skill invocation discipline, priority ordering, and red-flag');
+        console.error('detection. Without it, skills fire in isolation without the');
+        console.error('meta-framework that makes them effective.');
+        console.error('');
+        // Don't block — still load the skill, but the warning is impossible to miss
+    }
+
+    // Namespace prefix resolution
+    // superpowers:name → obra/superpowers skills only
+    // spp:name         → superpowers-plus source repo only
+    // spc:name         → overlay source repo only (set SPC_SOURCE_DIR)
+    // name (no prefix) → installed dir (overlay overrides plus) → obra
+    //
+    // Dash shorthand (prefix expansion for fewer keystrokes):
+    // sp-X   → expands to superpowers-X, normal resolution
+    // spp-X  → expands to superpowers-X, spp: resolution
+    // spc-X  → expands to superpowers-X, spc: resolution
+    let forceSuperpowers = skillName.startsWith('superpowers:');
+    let forceSpp = skillName.startsWith('spp:');
+    let forceSpc = skillName.startsWith('spc:');
+    let actualName;
+
+    // Dash shorthand expansion: spp-X → spp:superpowers-X, spc-X → spc:superpowers-X, sp-X → superpowers-X
+    if (!forceSuperpowers && !forceSpp && !forceSpc) {
+        if (skillName.startsWith('spp-')) {
+            forceSpp = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('spc-')) {
+            forceSpc = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('sp-')) {
+            actualName = 'superpowers-' + skillName.slice(3);
+        }
+    }
+
+    if (!actualName) {
+        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+        else if (forceSpc) actualName = skillName.replace(/^spc:/, '');
+        else actualName = skillName;
+    }
+
     let skillFile = null;
-    if (!forceSuperpowers) {
+
+    if (forceSpp) {
+        // spp: → search superpowers-plus source repo only
+        if (!SPP_SOURCE_DIR) {
+            console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
+            console.error('Set SPP_SOURCE_DIR env var or clone to ~/GitHub/Personal/superpowers-plus');
+            process.exit(1);
+        }
+        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
+    } else if (forceSpc) {
+        // spc: → search overlay source repo only
+        if (!SPC_SOURCE_DIR) {
+            console.error('Error: spc: prefix used but overlay source repo not found.');
+            console.error('Set SPC_SOURCE_DIR env var to point to your overlay skill repo');
+            process.exit(1);
+        }
+        skillFile = findSkillInSourceRepo(SPC_SOURCE_DIR, actualName);
+    } else if (!forceSuperpowers) {
+        // No prefix → personal/installed dir first (overlay overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
         const personalFile = findSkillFile(personalDir);
         if (personalFile) skillFile = personalFile;
     }
-    if (!skillFile) {
+
+    if (!skillFile && !forceSpp && !forceSpc) {
+        // Fall through to obra/superpowers
         const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
         const superpowersFile = findSkillFile(superpowersDir);
         if (superpowersFile) skillFile = superpowersFile;
@@ -271,9 +469,12 @@ function useSkill(skillName) {
     }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
+        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
+        if (forceSpc) console.error('Searched overlay source: ' + SPC_SOURCE_DIR);
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
+    showHighCostWarningOnce(actualName);
     const content = fs.readFileSync(skillFile, 'utf8');
     const stripped = stripFrontmatter(content);
     const transformed = transformOutput(stripped);
@@ -285,16 +486,42 @@ function useSkill(skillName) {
 function bootstrap() {
     console.log('# Superpowers Bootstrap\n');
     console.log('Loading skill system for Augment Code...\n');
+    writeSessionMarker();
     const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
     if (usingSuperpowersFile) {
         const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
         const stripped = stripFrontmatter(content);
-        const transformed = transformOutput(stripped);
+        // Strip DOT graph blocks (```dot ... ```) — not renderable in text
+        const noDotGraph = stripped.replace(/```dot[\s\S]*?```/g, '');
+        const transformed = transformOutput(noDotGraph);
         console.log(transformed);
         console.log('\n---\n');
     }
-    findSkills();
+    // Compact catalog: names only (descriptions available via find-skills)
+    findSkillsCompact();
 
+}
+
+function findSkillsCompact() {
+    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+    const allSkills = [...personalSkills, ...superpowersSkills];
+    const seen = new Set();
+    const deduped = [];
+    for (const skill of allSkills) {
+        if (seen.has(skill.name)) continue;
+        seen.add(skill.name);
+        deduped.push(skill);
+    }
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+
+    console.log(`🦸 ${superpowers.length} superpowers (auto-triggered): ` +
+        superpowers.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
+    console.log(`\n🔧 ${explicitSkills.length} explicit skills: ` +
+        explicitSkills.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
+    console.log('\nUse `find-skills` for descriptions. Use `use-skill <name>` to load a skill.');
+    console.log(`\nSummary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
 
@@ -488,6 +715,10 @@ switch (command) {
         console.log('Usage:');
         console.log('  node superpowers-augment.js bootstrap              # Initialize session');
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
+        console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
+        console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from overlay source repo');
+        console.log('  node superpowers-augment.js use-skill spp-<name>  # spp-X from superpowers-plus source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');

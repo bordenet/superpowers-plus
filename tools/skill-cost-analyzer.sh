@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/compat.sh
+source "${SCRIPT_DIR}/compat.sh"
+require_bash4
+
+# skill-cost-analyzer.sh — Estimates relative token cost of each skill
+#
+# Metrics:
+#   - Skill file size (lines in skill.md)
+#   - Auxiliary files (examples.md, reference.md — loaded on demand)
+#   - Reference files (files in references/ subdirectory)
+#   - Skill chaining (how many other skills does it invoke?)
+#   - Verification patterns (re-read, re-fetch, confirm correctness loops)
+#   - Sub-agent invocations (dispatches fresh agents)
+#
+# Usage:
+#   ./tools/skill-cost-analyzer.sh              # Print table to stdout
+#   ./tools/skill-cost-analyzer.sh --markdown   # Output as markdown file
+
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILLS_DIR="$REPO_ROOT/skills"
+OUTPUT_MD="${1:---stdout}"
+
+# All known skill names for chaining detection
+mapfile -t ALL_SKILLS < <(find "$SKILLS_DIR" -name "skill.md" -not -path "*/._*" -not -path "*/_*/*" \
+  -exec dirname {} \; | while IFS= read -r d; do basename "$d"; done | sort)
+
+analyze_skill() {
+  local skill_dir="$1"
+  local skill_name domain skill_file
+  skill_name=$(basename "$skill_dir")
+  domain=$(basename "$(dirname "$skill_dir")")
+  skill_file="$skill_dir/skill.md"
+
+  [[ -f "$skill_file" ]] || return
+
+  # 1. Skill file size
+  local size
+  size=$(wc -l < "$skill_file" | tr -d ' ')
+
+  # 2. Auxiliary files (examples.md, reference.md)
+  local aux_lines=0
+  for aux in "$skill_dir/examples.md" "$skill_dir/reference.md"; do
+    if [[ -f "$aux" ]]; then
+      aux_lines=$((aux_lines + $(wc -l < "$aux" | tr -d ' ')))
+    fi
+  done
+
+  # 3. Reference files
+  local ref_count=0 ref_lines=0
+  if [[ -d "$skill_dir/references" ]]; then
+    ref_count=$(find "$skill_dir/references" -type f | wc -l | tr -d ' ')
+    ref_lines=$(find "$skill_dir/references" -type f -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
+  fi
+
+  # 4. Prompts directory
+  local prompt_lines=0
+  if [[ -d "$skill_dir/prompts" ]]; then
+    prompt_lines=$(find "$skill_dir/prompts" -type f -exec cat {} + 2>/dev/null | wc -l | tr -d ' ')
+  fi
+
+  # 5. Skill chaining (count references to other skill names)
+  local chains=0
+  for other in "${ALL_SKILLS[@]}"; do
+    [[ "$other" == "$skill_name" ]] && continue
+    if grep -q "$other" "$skill_file" 2>/dev/null; then
+      chains=$((chains + 1))
+    fi
+  done
+
+  # 6. Verification patterns
+  local verif=0
+  verif=$(grep -ciE "re-read|re-fetch|verify.*(output|result)|post-update|fetch.*again|confirm.*correct|check.*result|MANDATORY.*verif" "$skill_file" 2>/dev/null || true)
+  verif=${verif:-0}
+  verif=$(echo "$verif" | tr -d '[:space:]')
+
+  # 7. Sub-agent patterns
+  local subagent=0
+  subagent=$(grep -ciE "sub.agent|consultant|dispatch|parallel.*agent|fresh.*agent" "$skill_file" 2>/dev/null || true)
+  subagent=${subagent:-0}
+  subagent=$(echo "$subagent" | tr -d '[:space:]')
+
+  # Estimate total loadable lines
+  local total_lines=$((size + aux_lines + ref_lines + prompt_lines))
+
+  # Cost score: weighted composite
+  local cost_score
+  cost_score=$(echo "scale=1; $total_lines / 50 + $chains * 2 + $verif * 1 + $subagent * 3" | bc | tr -d '\n')
+
+  # Tier assignment
+  local tier
+  if [[ $(echo "$cost_score >= 15" | bc) -eq 1 ]]; then
+    tier="high"
+  elif [[ $(echo "$cost_score >= 8" | bc) -eq 1 ]]; then
+    tier="medium"
+  else
+    tier="low"
+  fi
+
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    "$domain" "$skill_name" "$size" "$aux_lines" "$ref_count/$ref_lines" \
+    "$chains" "$verif" "$subagent" "$cost_score ($tier)"
+}
+
+# Header
+header="Domain\tSkill\tSize\tAux\tRefs (n/lines)\tChains\tVerify\tSubAgents\tEst. Cost"
+
+echo "Analyzing $(echo "${ALL_SKILLS[@]}" | wc -w | tr -d ' ') skills..."
+echo ""
+
+results=""
+while IFS= read -r skill_dir; do
+  row=$(analyze_skill "$skill_dir")
+  [[ -n "$row" ]] && results+="$row"$'\n'
+done < <(find "$SKILLS_DIR" -name "skill.md" -not -path "*/_*/*" -exec dirname {} \; | sort)
+
+# Sort by cost score (last field) descending
+sorted=$(echo "$results" | sort -t$'\t' -k9 -rn)
+
+# Always generate high-cost skills JSON for runtime warnings
+high_cost_json="$REPO_ROOT/tools/high-cost-skills.json"
+high_cost_names=()
+while IFS=$'\t' read -r d s sz ax rf ch vr sa cs; do
+  [[ -z "$d" ]] && continue
+  if echo "$cs" | grep -q "(high)"; then
+    high_cost_names+=("$s")
+  fi
+done <<< "$sorted"
+printf '[\n' > "$high_cost_json"
+for i in "${!high_cost_names[@]}"; do
+  if (( i < ${#high_cost_names[@]} - 1 )); then
+    printf '  "%s",\n' "${high_cost_names[$i]}" >> "$high_cost_json"
+  else
+    printf '  "%s"\n' "${high_cost_names[$i]}" >> "$high_cost_json"
+  fi
+done
+printf ']\n' >> "$high_cost_json"
+
+if [[ "$OUTPUT_MD" == "--markdown" ]]; then
+  outfile="$REPO_ROOT/docs/SKILL_TOKEN_COSTS.md"
+  {
+    echo "# Skill Token Cost Estimates"
+    echo ""
+    echo "> Generated by \`tools/skill-cost-analyzer.sh\` on $(date -u +%Y-%m-%d)"
+    echo ""
+    echo "| Domain | Skill | Size (lines) | Aux (lines) | References | Chains To | Verify Loops | Sub-Agents | Est. Cost |"
+    echo "|--------|-------|-------------:|------------:|-----------:|----------:|-------------:|-----------:|-----------|"
+    echo "$sorted" | while IFS=$'\t' read -r d s sz ax rf ch vr sa cs; do
+      [[ -z "$d" ]] && continue
+      printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n" "$d" "$s" "$sz" "$ax" "$rf" "$ch" "$vr" "$sa" "$cs"
+    done
+    echo ""
+    echo "## Methodology"
+    echo ""
+    echo "**Cost score** = (total loadable lines / 50) + (chains × 2) + (verify loops × 1) + (sub-agents × 3)"
+    echo ""
+    echo "- **Size**: Lines in \`skill.md\`"
+    echo "- **Aux**: Lines in \`examples.md\` + \`reference.md\` (loaded on demand)"
+    echo "- **References**: Files in \`references/\` subdirectory (count/total lines)"
+    echo "- **Chains To**: Number of other skills referenced (each loads additional context)"
+    echo "- **Verify Loops**: Patterns like re-read, re-fetch, post-update checks"
+    echo "- **Sub-Agents**: Patterns dispatching fresh agents (think-twice consultant, etc.)"
+    echo ""
+    echo "**Tiers**: low (<8), medium (8-14.9), high (≥15)"
+  } > "$outfile"
+  echo "Written to $outfile"
+else
+  echo -e "$header"
+  echo "------------------------------------------------------------------------"
+  echo "$sorted"
+fi
