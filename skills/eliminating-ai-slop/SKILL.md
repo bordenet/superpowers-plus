@@ -1,18 +1,96 @@
 ---
 name: eliminating-ai-slop
-description: Use when writing or editing prose to actively prevent and remove AI slop patterns - operates in interactive mode (confirms before rewriting user text) or automatic mode (silently prevents slop during generation)
+description: Use when writing or editing prose to actively prevent and remove AI slop patterns - operates in interactive mode (confirms before rewriting user text) or automatic mode (silently prevents slop during generation using GVR loop)
 ---
 
 # Eliminating AI Slop
+
+> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Last Updated:** 2026-01-25
 
 ## Overview
 
 This skill actively rewrites text to eliminate AI slop patterns. It operates in two modes:
 
 1. **Interactive Mode**: User provides existing text → skill confirms before rewriting
-2. **Automatic Mode**: Skill prevents slop during prose generation → no confirmation needed
+2. **Automatic Mode**: Skill prevents slop during prose generation using **GVR loop** → no confirmation needed
 
 **Core principle:** Preserve meaning while increasing specificity and varying structure.
+
+---
+
+## Generate-Verify-Refine (GVR) Loop
+
+The GVR loop is the core architecture for automatic slop elimination.
+
+### How It Works
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  GENERATE   │────▶│   VERIFY    │────▶│   REFINE    │
+│  Raw draft  │     │  Analyze    │     │  Fix issues │
+└─────────────┘     └─────────────┘     └──────┬──────┘
+                           │                    │
+                           │ Pass               │ Fail
+                           ▼                    │
+                    ┌─────────────┐             │
+                    │   RETURN    │◀────────────┘
+                    │ Clean output│    (max 3 iterations)
+                    └─────────────┘
+```
+
+### GVR Phases
+
+**Phase 1: GENERATE**
+- Produce raw draft based on user request
+- No filtering during generation
+
+**Phase 2: VERIFY**
+- Analyze draft against slop dictionary
+- Calculate stylometric metrics:
+  - Sentence length σ (target: >15.0)
+  - Paragraph length SD (target: >25)
+  - TTR (target: 0.50-0.70)
+  - Hapax rate (target: >40% or user baseline)
+- Flag patterns and threshold violations
+
+**Phase 3: REFINE**
+- Issue specific refinement commands for flagged issues
+- Rewrite affected sections only
+- Preserve semantic meaning
+
+**Phase 4: RETURN or ITERATE**
+- If all thresholds met → Return clean output
+- If thresholds missed → Iterate (max 3 times)
+- If max iterations reached → Return with remaining issues noted
+
+### GVR Thresholds
+
+| Metric | Pass Threshold | Action if Failed |
+|--------|----------------|------------------|
+| Lexical patterns | 0 in output | Rewrite flagged phrases |
+| Sentence length σ | ≥15.0 | Vary sentence lengths |
+| Paragraph SD | ≥25 | Vary paragraph lengths |
+| TTR | 0.50-0.70 | Diversify vocabulary |
+| Hapax rate | ≥40% (or calibrated) | Add unique words |
+
+### GVR Iteration Limits
+
+- **Maximum iterations:** 3
+- **Early exit:** All thresholds pass
+- **Timeout:** If 3 iterations insufficient, return with notes
+
+### GVR Transparency Report
+
+After generation, report GVR activity:
+
+```
+[GVR: 2 iterations | removed 8 patterns | σ: 7.2→16.4 | TTR: 0.42→0.56]
+```
+
+Detailed report available on request: "Show GVR details"
+
+---
 
 ## When to Use
 
@@ -93,23 +171,24 @@ Activate automatic mode when user requests prose generation:
 - "Write documentation for..."
 - "Summarize this article..."
 
-### Behavior
+### GVR Behavior
 
-1. Generate content normally
-2. Scan output for slop patterns
-3. Rewrite to eliminate patterns before returning
-4. Append transparency summary
+1. **Generate** content normally
+2. **Verify** output against patterns and stylometric thresholds
+3. **Refine** if thresholds missed (max 3 iterations)
+4. **Return** clean output with transparency summary
 
 ### Transparency Reporting
 
 After generation, report what was prevented:
 
 ```
-[Slop prevention: removed 8 patterns (5 lexical, 2 structural, 1 semantic)]
+[GVR: 2 iterations | removed 8 patterns (5 lexical, 2 structural, 1 semantic) | σ: 6.8→17.2]
 ```
 
 User can request details:
 - "Show what slop you removed" → Display before/after for each pattern
+- "Show GVR details" → Full iteration breakdown
 - "Why did you change X?" → Explain specific rewrite
 
 ### Activation Control
@@ -180,45 +259,223 @@ Replace hedging with clear statements.
 
 ---
 
+## User Feedback Integration
+
+### Adding Patterns (with Immediate Rescan)
+
+When user flags a missed pattern:
+
+```
+User: "This is slop: 'at the intersection of'"
+```
+
+**Workflow:**
+
+1. Extract phrase from user message
+2. Add to dictionary:
+   - `pattern`: "at the intersection of"
+   - `category`: "chatgpt-cliche"
+   - `weight`: 1.0
+   - `count`: 1
+   - `timestamp`: now
+   - `source`: "user-added"
+   - `exception`: false
+3. Confirm addition
+4. **Immediately rescan current document**
+5. Report if pattern found and offer to refine
+
+**Response:**
+
+```
+Added "at the intersection of" to slop dictionary (chatgpt-cliche).
+
+Rescanning current document...
+Found 2 instances:
+- Line 12: "CallBox sits at the intersection of AI and automotive"
+- Line 45: "at the intersection of technology and customer service"
+
+Rephrase these? [Yes/No]
+```
+
+### Marking False Positives
+
+```
+User: "Don't flag 'leverage' - I use it intentionally"
+```
+
+**Workflow:**
+
+1. Update dictionary entry: `exception: true` or add to exceptions list
+2. Set scope (permanent or document-only)
+3. Confirm
+
+**Response:**
+
+```
+Added "leverage" to permanent exceptions.
+Won't flag in future documents.
+
+Current exceptions (8 total):
+- leverage (permanent)
+- robust (permanent - technical term)
+- comprehensive (document-only)
+...
+```
+
+### Feedback Recognition Patterns
+
+| User Says | Action |
+|-----------|--------|
+| "This is slop: [phrase]" | Add to dictionary, rescan |
+| "Flag [phrase] as slop" | Add to dictionary, rescan |
+| "[phrase] sounds AI-generated" | Add to dictionary, rescan |
+| "Don't flag [phrase]" | Add to exceptions |
+| "Keep [phrase]" | Document-only exception |
+| "[phrase] is intentional" | Permanent exception |
+
+---
+
 ## Dictionary Management
 
 This skill owns dictionary mutations. The detecting-ai-slop skill reads from the dictionary; this skill writes to it.
-
-### Add Patterns
-
-```
-User: "Add 'synergize' to the slop dictionary"
-Skill: Added 'synergize' to Buzzwords category. Count: 1.
-
-User: "Flag 'game-changing' as slop"
-Skill: Added 'game-changing' to Generic Boosters. Count: 1.
-```
-
-### Add Exceptions
-
-```
-User: "Never flag 'leverage' - I use it intentionally"
-Skill: Added 'leverage' to exceptions. Won't flag in future.
-
-User: "Keep 'comprehensive' - it's accurate here"
-Skill: Added 'comprehensive' to exceptions (this session only).
-```
-
-### Query Dictionary
-
-```
-User: "Show my top slop patterns"
-Skill: [displays patterns sorted by frequency]
-
-User: "What's in my exceptions list?"
-Skill: [displays all permanently excepted phrases]
-```
 
 ### Dictionary Location
 
 **File:** `{workspace_root}/.slop-dictionary.json`
 
 Auto-added to `.gitignore` if git repo detected.
+
+### Dictionary Schema (v2)
+
+```json
+{
+  "version": "2.0",
+  "last_modified": "2026-01-25T10:30:00Z",
+  "patterns": {
+    "leverage": {
+      "pattern": "leverage",
+      "category": "buzzword",
+      "weight": 1.0,
+      "count": 47,
+      "timestamp": "2026-01-25T10:30:00Z",
+      "source": "built-in",
+      "exception": false
+    }
+  },
+  "exceptions": {
+    "robust": {
+      "pattern": "robust",
+      "scope": "permanent",
+      "added": "2026-01-23T09:15:00Z",
+      "reason": "Technical term in my domain"
+    }
+  },
+  "calibration": {
+    "samples_provided": 3,
+    "baseline_ttr": 0.58,
+    "baseline_hapax": 0.45,
+    "baseline_sentence_sd": 12.3,
+    "calibrated_at": "2026-01-20T16:00:00Z"
+  }
+}
+```
+
+### Add Patterns
+
+```
+User: "Add 'synergize' to the slop dictionary"
+Skill: Added 'synergize' to Buzzwords category.
+       Weight: 1.0 | Count: 1 | Source: user-added
+       Rescanning current document... No instances found.
+
+User: "Flag 'game-changing' as slop"
+Skill: Added 'game-changing' to Generic Boosters.
+       Rescanning... Found 1 instance at line 34.
+       Rephrase? [Yes/No]
+```
+
+### Add Exceptions
+
+```
+User: "Never flag 'leverage' - I use it intentionally"
+Skill: Added 'leverage' to permanent exceptions. Won't flag in future.
+
+User: "Keep 'comprehensive' - it's accurate here"
+Skill: Added 'comprehensive' to exceptions (this document only).
+```
+
+### Query Dictionary
+
+```
+User: "Show my top slop patterns"
+Skill: [displays patterns sorted by count]
+
+User: "What's in my exceptions list?"
+Skill: [displays all excepted phrases with scope]
+
+User: "Show dictionary stats"
+Skill:
+  Dictionary Statistics:
+  ├── Total patterns: 312
+  ├── Built-in: 265
+  ├── User-added: 47
+  ├── Exceptions: 8 (6 permanent, 2 document)
+  └── Last modified: 2026-01-25T10:30:00Z
+```
+
+### Adjust Pattern Weight
+
+```
+User: "Make 'leverage' a high-priority pattern"
+Skill: Updated 'leverage' weight: 1.0 → 1.5
+       This pattern will now contribute 50% more to the bullshit factor.
+
+User: "Lower priority for 'furthermore'"
+Skill: Updated 'furthermore' weight: 1.0 → 0.5
+       This pattern will contribute half as much to the bullshit factor.
+```
+
+---
+
+## Calibration Mode
+
+Calibrate thresholds using your own human-written samples.
+
+### Invoke Calibration
+
+```
+User: "Calibrate slop detection with my writing"
+[Paste 3-5 samples of your authentic writing, 300+ words each]
+```
+
+### Calibration Process
+
+1. Analyze each sample for stylometric measurements
+2. Calculate your personal baselines:
+   - Sentence length σ (your natural variance)
+   - TTR range (your vocabulary diversity)
+   - Hapax rate (your unique word frequency)
+3. Store baselines in dictionary calibration section
+4. Adjust future GVR thresholds to your personal baseline
+
+### Calibration Output
+
+```
+Calibration Complete
+
+Your Writing Profile:
+├── Sentence length σ: 12.3 words (default threshold: <15)
+├── TTR range: 0.55-0.62 (default threshold: <0.50)
+├── Hapax rate: 45% (default threshold: <40%)
+└── Paragraph variance: High (characteristic of your style)
+
+Adjusted GVR Thresholds:
+├── Sentence σ target: >10 (personalized from your 12.3 baseline)
+├── TTR target: >0.52 (personalized from your 0.55 low)
+└── Hapax target: >42% (personalized from your 45% baseline)
+
+Calibration saved. GVR loop now uses your personalized thresholds.
+```
 
 ---
 
@@ -251,6 +508,39 @@ Auto-added to `.gitignore` if git repo detected.
 | "in terms of" | Rewrite directly: "for performance" → "performance improved by 12%" |
 | "the fact that" | Delete; rephrase sentence |
 
+### CV/Resume (Detect-Only)
+
+When processing resumes for recruiting, **detect but do not rewrite**. Resumes are candidate materials.
+
+```
+User: "Analyze this resume for AI slop"
+Skill: [Uses detecting-ai-slop, returns bullshit factor and flags]
+       Note: Resume is candidate content. Displaying analysis only, no rewrites offered.
+```
+
+### Cover Letter (Detect-Only)
+
+Same as CV/Resume—detect patterns but don't offer rewrites for candidate materials.
+
+---
+
+## Content-Type-Specific Strategies
+
+| Content Type | Rewriting Strategy |
+|--------------|-------------------|
+| Document | Standard rewriting |
+| Email | Lead with the ask, trim pleasantries |
+| LinkedIn | Remove engagement bait, authentic voice |
+| SMS | Match conversational register |
+| Teams/Slack | Direct and immediate |
+| CLAUDE.md | Make rules actionable |
+| README | Quickstart first, trim marketing |
+| PRD | Add acceptance criteria |
+| Design Doc | Recommend with rationale |
+| Test Plan | Add expected results |
+| CV/Resume | **Detect-only** (candidate content) |
+| Cover Letter | **Detect-only** (candidate content) |
+
 ---
 
 ## Self-Check Before Publishing
@@ -264,6 +554,7 @@ Before returning rewritten text, verify:
 | Length reasonable? | Is it shorter (deleted fluff) or longer (added detail)? |
 | Voice consistent? | Does it match the document's tone? |
 | No new slop? | Did I introduce patterns while rewriting? |
+| GVR thresholds met? | Are stylometric metrics in target range? |
 
 ---
 
@@ -334,13 +625,64 @@ Options:
 
 ---
 
+## Example: GVR Loop in Action
+
+**User:** "Write a blog post introduction about database indexing"
+
+**GVR Iteration 1 (Generate):**
+> "In today's data-driven world, database performance is incredibly important. Let's explore how indexing can significantly improve your query speeds and deliver robust solutions for your applications."
+
+**GVR Iteration 1 (Verify):**
+- Patterns found: 5 (In today's, incredibly, Let's explore, significantly, robust)
+- Sentence σ: 4.2 (target: >15) ⚠️
+- TTR: 0.48 (target: 0.50-0.70) ⚠️
+
+**GVR Iteration 2 (Refine → Verify):**
+> "Database indexing cut our query time from 340ms to 12ms. Here's what we learned after indexing 50M rows across three production systems."
+
+- Patterns found: 0 ✓
+- Sentence σ: 18.4 ✓
+- TTR: 0.62 ✓
+
+**GVR Return:**
+> "Database indexing cut our query time from 340ms to 12ms. Here's what we learned after indexing 50M rows across three production systems."
+>
+> [GVR: 2 iterations | removed 5 patterns | σ: 4.2→18.4 | TTR: 0.48→0.62]
+
+---
+
 ## Metrics Contribution
 
 After each session, this skill updates `{workspace_root}/.slop-metrics.json`:
 
 - Patterns eliminated (count by category)
+- GVR iterations per document
 - User approvals vs. rejections
 - Exception patterns added
 - Documents processed
+- Stylometric improvements (before/after)
 
 Metrics inform detection algorithm refinement over time.
+
+---
+
+## Cross-Machine Sync
+
+Dictionary can be synchronized across machines using `slop-sync`:
+
+```bash
+slop-sync push    # Upload dictionary to GitHub
+slop-sync pull    # Download latest dictionary
+slop-sync status  # Show sync state
+```
+
+See `slop-sync` script in repository root for setup instructions.
+
+---
+
+## Related Skills
+
+- **detecting-ai-slop**: Analysis and scoring (read-only)
+- **resume-screening**: Uses detecting-ai-slop for candidate evaluation
+- **phone-screen-prep**: Phone screen preparation
+- **reviewing-ai-text**: (Deprecated) Original combined skill

@@ -5,9 +5,35 @@ description: "Screen Senior SDE candidates against CallBox hiring criteria. Invo
 
 # CallBox Senior SDE Resume Screening
 
+> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Last Updated:** 2026-01-25
+>
 > **📋 Source:** https://wiki.int.callbox.net/doc/llm-prompt-LfFH19Gj0y
 >
 > **⚠️ Check for updates daily.** The canonical prompt lives in the wiki. This skill should be kept in sync.
+
+---
+
+## Integration with AI Slop Detection
+
+This skill integrates with `detecting-ai-slop` for comprehensive AI-generated content analysis.
+
+**When to use slop detection:**
+- After initial resume review, run bullshit factor analysis
+- Use for screening responses that seem too polished
+- Apply to "Why CallBox?" answers
+
+**Invoke:**
+```
+User: "What's the bullshit factor on this resume?"
+[Paste resume/screening response]
+```
+
+**Note:** Slop detection for recruiting is **detect-only**. We flag AI patterns but don't rewrite candidate materials.
+
+See `detecting-ai-slop` skill for full pattern lists and scoring algorithm.
+
+---
 
 ## Overview
 

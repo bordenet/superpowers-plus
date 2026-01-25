@@ -1,9 +1,12 @@
 ---
 name: detecting-ai-slop
-description: Use when analyzing text to calculate a bullshit factor score (0-100) that measures AI slop density - invoke for CVs, marketing copy, drafts, or any text where you need to quantify machine-generated patterns before deciding whether to edit
+description: Use when analyzing text to calculate a bullshit factor score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, or any text where you need to quantify machine-generated patterns before deciding whether to edit
 ---
 
 # Detecting AI Slop
+
+> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Last Updated:** 2026-01-25
 
 ## Overview
 
@@ -14,10 +17,37 @@ This skill analyzes text and produces a **bullshit factor score** (0-100) with d
 ## When to Use
 
 - Score a CV or resume for AI-generated content
-- Analyze marketing copy for slop density
-- Audit your own AI-assisted drafts before editing
+- Analyze cover letters for generic patterns
+- Audit marketing copy for slop density
+- Review your own AI-assisted drafts before editing
 - Compare before/after versions of edited text
 - Triage documents: which need the most cleanup?
+- **Recruiting:** Assess candidate materials for AI-generated red flags (integrate with `resume-screening`)
+
+---
+
+## Content Type Detection
+
+The skill auto-detects content type from context and applies type-specific patterns:
+
+| Content Type | Detection Signals | Type-Specific Patterns |
+|--------------|-------------------|------------------------|
+| Document | Default fallback | Universal patterns only |
+| Email | "email", "to:", "subject:" | Corporate filler, buried leads |
+| LinkedIn | "linkedin", "post", "connections" | Engagement bait, humble brags |
+| SMS | "text", "sms", short length | Formality mismatch |
+| Teams/Slack | "teams", "slack", "channel" | Email-in-chat patterns |
+| CLAUDE.md | Filename contains "CLAUDE" | Vague instructions |
+| README | Filename is "README" | Marketing language, missing quickstart |
+| PRD | "requirements", "PRD", "product" | Vague requirements |
+| Design Doc | "design", "architecture" | Decision avoidance |
+| Test Plan | "test plan", "test cases" | Vague test cases |
+| CV/Resume | "resume", "cv", "experience" | Responsibilities vs achievements |
+| Cover Letter | "cover letter", "dear hiring" | Generic openings |
+
+**Override:** "Analyze this as a [type]: [text]"
+
+---
 
 ## Output Format
 
@@ -41,10 +71,19 @@ Top Offenders (showing 10 of 23):
  ...
 
 Stylometric Measurements:
-├── Sentence length SD: 2.3 words (flag: <5 indicates AI)
-├── Type-token ratio: 0.38 (flag: <0.4 indicates AI)
-└── Hapax rate: 31% (flag: <40% indicates AI)
+├── Sentence length σ: 7.3 words (target: >15.0) ⚠️
+├── Paragraph length SD: 18 words (target: >25) ⚠️
+├── Type-token ratio: 0.48 (target: 0.50-0.70) ⚠️
+└── Hapax rate: 31% (target: >40% or user baseline) ⚠️
+
+Content Type: CV/Resume
+Type-Specific Flags:
+├── "Responsible for" appears 5 times [Duties, not achievements]
+├── No quantified metrics in experience section
+└── Generic skills list without context
 ```
+
+---
 
 ## Scoring Algorithm
 
@@ -66,6 +105,43 @@ Stylometric Measurements:
 | 41-60 | Moderate: noticeable AI fingerprint, edit recommended |
 | 61-80 | Heavy: significant slop, substantial rewrite needed |
 | 81-100 | Severe: text reads as unedited AI output |
+
+---
+
+## Stylometric Thresholds
+
+Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
+
+| Metric | Formula | Flag If | Target |
+|--------|---------|---------|--------|
+| Sentence length σ | Standard deviation of words/sentence | σ < 15.0 | σ > 15.0 |
+| Paragraph length SD | Standard deviation of words/paragraph | SD < 25 | SD > 25 |
+| Type-Token Ratio (TTR) | Unique words / Total words (per 100-word window) | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
+| Hapax legomena rate | Words appearing once / Total unique words | Below user baseline | At or above baseline |
+
+### Stylometric Calculation Methods
+
+**Sentence length σ:**
+1. Split text into sentences (period, question mark, exclamation)
+2. Count words in each sentence
+3. Calculate standard deviation: `σ = sqrt(Σ(x - μ)² / n)`
+
+**Paragraph length SD:**
+1. Split text into paragraphs (double newline)
+2. Count words in each paragraph
+3. Calculate standard deviation
+
+**Type-Token Ratio (TTR):**
+1. Normalize text (lowercase, remove punctuation)
+2. For each 100-word window:
+   - Count unique tokens
+   - Divide by 100
+3. Average across windows
+
+**Hapax legomena rate:**
+1. Build word frequency map
+2. Count words appearing exactly once
+3. Divide by total unique words
 
 ---
 
@@ -99,6 +175,11 @@ Delete or replace with specific metrics.
 | tremendously | generic-booster |
 | immensely | generic-booster |
 | profoundly | generic-booster |
+| delve | generic-booster |
+| tapestry | generic-booster |
+| multifaceted | generic-booster |
+| myriad | generic-booster |
+| plethora | generic-booster |
 
 ### Category 2: Buzzwords
 
@@ -156,6 +237,7 @@ Replace with plain language or specific descriptions.
 | spearhead | buzzword |
 | champion | buzzword |
 | pivot | buzzword |
+| actionable | buzzword |
 
 ### Category 3: Filler Phrases
 
@@ -402,94 +484,125 @@ Each semantic pattern found adds 5 points.
 
 ---
 
-## Stylometric Patterns (15 points max)
+## Content-Type-Specific Patterns
 
-Each stylometric flag adds 5 points.
+### CV/Resume Patterns
 
-### Sentence Length Variance
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| "Responsible for" | duties-not-achievements | High |
+| "Assisted with" | passive-contribution | Medium |
+| "Helped to" | passive-contribution | Medium |
+| "Worked on" | vague-contribution | Medium |
+| "Involved in" | vague-contribution | Medium |
+| "Participated in" | vague-contribution | Medium |
+| "Passionate about" | empty-enthusiasm | High |
+| "Team player" | generic-trait | Medium |
+| "Detail-oriented" | generic-trait | Medium |
+| "Self-motivated" | generic-trait | Medium |
+| "Strong communication skills" | generic-trait | Medium |
+| "Problem solver" | generic-trait | Medium |
+| "Results-driven" | generic-trait | Medium |
+| "Dynamic" | buzzword | Medium |
+| "Synergized" | buzzword | High |
+| "Spearheaded" (without metrics) | inflated-verb | Medium |
+| "Orchestrated" (without metrics) | inflated-verb | Medium |
+| "Architected" (without metrics) | inflated-verb | Medium |
+| Skills list >15 items | skills-inflation | High |
+| No metrics in experience | missing-quantification | High |
 
-**Heuristic:** Count words in 5-10 consecutive sentences. Calculate standard deviation.
+**CV/Resume Red Flags for Recruiting:**
+- Skills list exactly matches job description keywords → GPT optimization
+- Every bullet uses "power verbs" with no specifics → Resume generator
+- Claims expertise in 20+ technologies → Aspirational, not evidenced
+- Generic bullets that apply anywhere → Template-driven
 
-| SD | Interpretation |
-|----|----------------|
-| < 5 words | Flag: uniform cadence (AI pattern) |
-| 5-10 words | Normal variation |
-| > 10 words | High variation (human pattern) |
+### Cover Letter Patterns
 
-**AI pattern (flag):**
-> "The new system provides significant improvements. (7) Users can expect faster response times. (6) This update addresses several key issues. (7)"
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| "I am writing to express my interest" | generic-opener | High |
+| "I am excited to apply" | generic-opener | Medium |
+| "I believe I would be a great fit" | unsupported-claim | Medium |
+| "I am confident that" | unsupported-claim | Medium |
+| "As you can see from my resume" | redundant-reference | Low |
+| "Thank you for your consideration" | generic-closer | Low |
+| "I look forward to hearing from you" | generic-closer | Low |
+| No company-specific details | missing-research | High |
+| Repeats resume bullet points | cv-duplication | Medium |
+| "Intersection of X and Y" | chatgpt-cliche | High |
+| "Needle in a haystack" | chatgpt-cliche | High |
+| "Aligns with my values" | vague-alignment | Medium |
+| "Make a meaningful impact" | vague-impact | Medium |
+| "Thrilled by the opportunity" | performative-enthusiasm | High |
 
-**Human pattern (pass):**
-> "It works. (2) The new caching layer reduced p99 latency from 340ms to 89ms. (14) Still breaks on edge cases. (5)"
+### Email Patterns
 
-**Flags:** +5 points if SD < 5
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| "Hope this email finds you well" | corporate-opener | Medium |
+| "Per my last email" | passive-aggressive | Medium |
+| "Just wanted to follow up" | hedge-opener | Low |
+| "Please don't hesitate to reach out" | filler-closer | Low |
+| "Let me know if you have any questions" | filler-closer | Low |
+| "Best regards" after short email | formality-mismatch | Low |
+| Ask buried in paragraph 3+ | buried-lead | High |
+| 5+ paragraphs for simple ask | overcommunication | Medium |
 
-### Type-Token Ratio (TTR)
+### LinkedIn Patterns
 
-**Heuristic:** In a 100-word sample, count unique words. Divide by 100.
-
-| TTR | Interpretation |
-|-----|----------------|
-| < 0.40 | Low diversity (AI pattern) |
-| 0.40-0.60 | Normal range |
-| > 0.60 | High diversity |
-
-**Quick check:** Same adjective 3+ times in 200 words = flag.
-
-**Flags:** +5 points if TTR < 0.40
-
-### Hapax Legomena Rate
-
-**Definition:** Words that appear exactly once in the text.
-
-**Heuristic:** In 500 words, 40-60% of vocabulary should be hapax.
-
-| Hapax % | Interpretation |
-|---------|----------------|
-| < 35% | Low: repetitive vocabulary (AI pattern) |
-| 35-60% | Normal range |
-| > 60% | High: varied vocabulary |
-
-**Flags:** +5 points if hapax rate < 35%
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| "I'm humbled to announce" | humble-brag | High |
+| "Excited to share" | engagement-bait | Medium |
+| "Thrilled to announce" | engagement-bait | Medium |
+| "Grateful for this opportunity" | performative-gratitude | Medium |
+| "Who else agrees?" | engagement-bait | High |
+| "Drop a 🙋 if you..." | engagement-bait | High |
+| "Comment below" | engagement-bait | Medium |
+| Line breaks after every sentence | listicle-abuse | Medium |
+| "Agree?" | engagement-bait | High |
+| "Thoughts?" at end | engagement-bait | Medium |
 
 ---
 
-## Domain-Specific Patterns
+## Recruiting Integration
 
-Flag these in addition to general patterns when domain is identified.
+### Using with resume-screening Skill
 
-### Technical Documentation
+When screening candidates, invoke this skill for comprehensive slop analysis:
 
-| Pattern | Example |
-|---------|---------|
-| Passive function opener | "This function is used to..." |
-| Dismissive "simply" | "Simply call the API..." |
-| Vague "easy" claims | "Easy to use and configure" |
-| Capability laundry list | "Supports X, Y, Z, and more" |
-| Empty "powerful" | "A powerful library for..." |
-| Vague error handling | "Handle errors appropriately" |
+```
+User: "What's the bullshit factor on this resume?"
+[Paste resume text]
+```
 
-### Marketing/Business
+**Output integrates with resume-screening:**
 
-| Pattern | Example |
-|---------|---------|
-| Unsubstantiated leadership | "Industry-leading solution" |
-| Transformation promises | "Transform your workflow" |
-| Customer count padding | "Trusted by thousands" |
-| Satisfaction claims | "Loved by customers" |
-| ROI promises | "Maximize your ROI" |
-| Future-proofing claims | "Future-proof your business" |
+```
+Bullshit Factor: 67/100 (Heavy slop - substantial rewrite typical of AI-generated resume)
 
-### Academic/Research
+Recruiting Red Flags:
+├── Skills list matches JD exactly (14/14 keywords) [GPT optimization]
+├── "Spearheaded", "Orchestrated", "Architected" x7 [Power verb overuse]
+├── No specific metrics in any bullet [Missing quantification]
+├── "Passionate about building scalable systems" [Empty enthusiasm]
+└── Experience bullets could apply to any company [Generic content]
 
-| Pattern | Example |
-|---------|---------|
-| Vague attribution | "The literature suggests..." |
-| Appeal to consensus | "It is well known that..." |
-| Scope hedging | "This is beyond the scope..." |
-| Future work dumping | "Further research is needed" |
-| Significance claims | "This research is significant because..." |
-| Passive voice overuse | "It was found that..." |
+Recommendation: HIGH SUSPICION of AI-generated resume. Probe depth in phone screen.
+```
+
+### Recruiting-Specific Scoring Adjustments
+
+When content type is CV/Resume or Cover Letter:
+
+| Pattern | Base Score | Recruiting Multiplier | Recruiting Score |
+|---------|------------|----------------------|------------------|
+| Skills matches JD exactly | +10 | ×2 | +20 |
+| Power verbs without metrics | +5 | ×1.5 | +7.5 |
+| Generic bullets | +5 | ×1.5 | +7.5 |
+| No quantified achievements | +10 | ×2 | +20 |
+| ChatGPT clichés ("intersection of") | +10 | ×2 | +20 |
 
 ---
 
@@ -534,6 +647,217 @@ Read a sentence and try to predict the next word. If you can consistently predic
 
 ---
 
+## Dictionary Integration
+
+This skill reads from the shared pattern dictionary if available.
+
+### Dictionary Location
+
+**Primary:** `{workspace_root}/.slop-dictionary.json`
+**Fallback:** Built-in patterns only
+
+### Dictionary Schema (v2)
+
+```json
+{
+  "version": "2.0",
+  "last_modified": "2026-01-25T10:30:00Z",
+  "patterns": {
+    "leverage": {
+      "pattern": "leverage",
+      "category": "buzzword",
+      "weight": 1.0,
+      "count": 47,
+      "timestamp": "2026-01-25T10:30:00Z",
+      "source": "built-in",
+      "exception": false
+    },
+    "synergize": {
+      "pattern": "synergize",
+      "category": "buzzword",
+      "weight": 1.5,
+      "count": 12,
+      "timestamp": "2026-01-24T14:22:00Z",
+      "source": "user-added",
+      "exception": false
+    }
+  },
+  "exceptions": {
+    "robust": {
+      "pattern": "robust",
+      "scope": "permanent",
+      "added": "2026-01-23T09:15:00Z",
+      "reason": "Technical term in my domain"
+    }
+  },
+  "calibration": {
+    "samples_provided": 3,
+    "baseline_ttr": 0.58,
+    "baseline_hapax": 0.45,
+    "baseline_sentence_sd": 12.3,
+    "calibrated_at": "2026-01-20T16:00:00Z"
+  }
+}
+```
+
+### Dictionary Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| pattern | string | The slop phrase or pattern |
+| category | string | lexical, structural, semantic, stylometric |
+| weight | float | Detection priority (default 1.0, range 0.1-2.0) |
+| count | integer | Times detected and flagged |
+| timestamp | ISO 8601 | Last time pattern was detected |
+| source | string | "built-in" or "user-added" |
+| exception | boolean | If true, skip during detection |
+
+### Behavior
+
+- If dictionary exists, include custom patterns in detection
+- If dictionary has exceptions, skip those patterns
+- Weight affects scoring: `score = base_score * weight`
+- Higher count patterns are reported first in "Top Offenders"
+
+**Note:** This skill reads from the dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
+
+---
+
+## Calibration Mode
+
+Calibrate detection thresholds using your own human-written samples.
+
+### Invoke Calibration
+
+```
+User: "Calibrate slop detection with my writing"
+[Paste 3-5 samples of your authentic writing, 300+ words each]
+```
+
+### Calibration Process
+
+1. Analyze each sample for stylometric measurements
+2. Calculate your personal baselines:
+   - Sentence length σ (your natural variance)
+   - TTR range (your vocabulary diversity)
+   - Hapax rate (your unique word frequency)
+3. Store baselines in dictionary calibration section
+4. Adjust future thresholds to your personal baseline
+
+### Calibration Output
+
+```
+Calibration Complete
+
+Your Writing Profile:
+├── Sentence length σ: 12.3 words (AI baseline: <15)
+├── TTR range: 0.55-0.62 (AI baseline: <0.50)
+├── Hapax rate: 45% (AI baseline: <40%)
+└── Paragraph variance: High (characteristic of your style)
+
+Adjusted Thresholds:
+├── Sentence σ flag: <10 (personalized from your 12.3 baseline)
+├── TTR flag: <0.52 (personalized from your 0.55 low)
+└── Hapax flag: <42% (personalized from your 45% baseline)
+
+Calibration saved to dictionary. Future analysis uses your thresholds.
+```
+
+---
+
+## Metrics Commands
+
+### Show Detection Stats
+
+```
+User: "Show slop detection stats"
+```
+
+**Output:**
+
+```
+Slop Detection Metrics
+
+Session Stats:
+├── Documents analyzed: 12
+├── Total patterns found: 156
+├── Average bullshit factor: 43/100
+└── Patterns by category:
+    ├── Lexical: 89 (57%)
+    ├── Structural: 34 (22%)
+    ├── Semantic: 21 (13%)
+    └── Stylometric: 12 (8%)
+
+All-Time Stats (from .slop-metrics.json):
+├── Documents analyzed: 347
+├── Total patterns found: 4,231
+├── Dictionary size: 312 patterns
+├── User-added patterns: 47
+└── Exceptions: 8
+
+Top 5 Patterns (by frequency):
+ 1. "leverage" - 47 times
+ 2. "comprehensive" - 39 times
+ 3. "it's important to note" - 31 times
+ 4. "robust" - 28 times
+ 5. "incredibly" - 24 times
+```
+
+### Export Metrics
+
+```
+User: "Export slop metrics"
+```
+
+Exports `.slop-metrics.json` in machine-readable format for analysis.
+
+---
+
+## Metrics Location
+
+**File:** `{workspace_root}/.slop-metrics.json`
+
+**Schema:**
+
+```json
+{
+  "version": "2.0",
+  "last_updated": "2026-01-25T10:30:00Z",
+  "totals": {
+    "documents_analyzed": 347,
+    "patterns_found": 4231,
+    "patterns_fixed": 3892,
+    "average_bullshit_factor": 43
+  },
+  "by_category": {
+    "lexical": 2412,
+    "structural": 934,
+    "semantic": 567,
+    "stylometric": 318
+  },
+  "by_content_type": {
+    "document": 120,
+    "email": 89,
+    "cv_resume": 45,
+    "cover_letter": 23,
+    "linkedin": 34,
+    "readme": 18,
+    "prd": 12,
+    "design_doc": 6
+  },
+  "sessions": [
+    {
+      "date": "2026-01-25",
+      "documents": 12,
+      "patterns": 156,
+      "avg_score": 43
+    }
+  ]
+}
+```
+
+---
+
 ## Example Analysis
 
 **Input text:**
@@ -564,46 +888,33 @@ Top Offenders:
  11. "Let's explore" [Filler phrase]
 
 Stylometric Measurements:
-├── Sentence length SD: 3.2 words (flag: <5)
-├── Type-token ratio: 0.52 (pass)
-└── Hapax rate: 48% (pass)
+├── Sentence length σ: 3.2 words (target: >15.0) ⚠️
+├── Paragraph length SD: N/A (single paragraph)
+├── Type-token ratio: 0.52 (target: 0.50-0.70) ✓
+└── Hapax rate: 48% (target: >40%) ✓
 
 Verdict: Severe slop. Substantial rewrite needed.
 ```
 
 ---
 
-## Dictionary Integration
-
-This skill reads from the shared pattern dictionary if available:
-
-**Location:** `{workspace_root}/.slop-dictionary.json`
-
-**Behavior:**
-- If dictionary exists, include custom patterns in detection
-- If dictionary has exceptions, skip those patterns
-- If dictionary missing, use built-in patterns only
-
-**Note:** This skill does not write to the dictionary. Use `eliminating-ai-slop` to add patterns or exceptions.
-
----
-
-## Metrics Contribution
-
-After each analysis, this skill contributes to shared metrics:
-
-**Location:** `{workspace_root}/.slop-metrics.json`
-
-**Tracked:**
-- Documents analyzed count
-- Total patterns found
-- Patterns by category
-- Average bullshit factor
-
----
-
 ## Related Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
+- **resume-screening**: Candidate evaluation (uses this skill for AI detection)
+- **phone-screen-prep**: Phone screen preparation based on screening concerns
 - **reviewing-ai-text**: (Deprecated) Original combined skill
 
+---
+
+## Cross-Machine Sync
+
+Dictionary and metrics can be synchronized across machines using `slop-sync`:
+
+```bash
+slop-sync push    # Upload dictionary to GitHub
+slop-sync pull    # Download latest dictionary
+slop-sync status  # Show sync state
+```
+
+See `slop-sync` script in repository root for setup instructions.

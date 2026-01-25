@@ -1,8 +1,8 @@
 # TODO - superpowers-plus
 
 > **Last Updated:** 2026-01-25
-> **Status:** Active Development - 13 Content Types Implemented
-> **Primary Focus:** Testing and validation across all content types
+> **Status:** Enhanced with GVR loop, calibration, slop-sync, and recruiting integration
+> **Primary Focus:** Real-world validation and testing
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 
 This document tracks all work items for the superpowers-plus repository. Update this file as tasks progress.
@@ -33,20 +33,28 @@ This document tracks all work items for the superpowers-plus repository. Update 
 | 13 content types | ✅ Complete | Document, Email, LinkedIn, SMS, Teams, CLAUDE.md, README, PRD, Design, Test Plan, CV, Cover Letter |
 | 300+ detection patterns | ✅ Complete | Universal + type-specific patterns |
 | 11 rewriting strategies | ✅ Complete | One per content type |
+| GVR loop | ✅ Complete | Generate-Verify-Refine with max 3 iterations |
+| Full dictionary schema | ✅ Complete | weight, count, timestamp, source, exception fields |
+| Stylometric thresholds | ✅ Complete | Sentence σ, paragraph SD, TTR, hapax rate |
+| Calibration mode | ✅ Complete | Personalized thresholds from user samples |
+| slop-sync script | ✅ Complete | Cross-machine dictionary sync via GitHub |
+| Metrics commands | ✅ Complete | show-slop-stats, export metrics |
+| User feedback rescan | ✅ Complete | Immediate rescan after adding patterns |
+| Recruiting integration | ✅ Complete | resume-screening + phone-screen-prep integration |
 | Install script | ✅ Complete | Auto-installs obra/superpowers, fault-tolerant |
-| Design document | ✅ Complete | Full architecture for 13 content types |
+| Design document | ✅ Complete | Full architecture with all enhancements |
 | Test plan | ✅ Complete | 80+ test cases across all content types |
 
 ### Skills Inventory
 
-| Skill | Status | Lines |
-|-------|--------|-------|
-| detecting-ai-slop | ✅ Implemented | 610 |
-| eliminating-ai-slop | ✅ Implemented | 347 |
-| enforce-style-guide | ✅ Stable | - |
-| resume-screening | ✅ Stable | 453 |
-| phone-screen-prep | ✅ Stable | - |
-| reviewing-ai-text | ⚠️ Deprecated | Use detecting/eliminating instead |
+| Skill | Status | Lines | Enhancements |
+|-------|--------|-------|--------------|
+| detecting-ai-slop | ✅ Enhanced | 920+ | Stylometric thresholds, calibration, metrics, recruiting integration |
+| eliminating-ai-slop | ✅ Enhanced | 690+ | GVR loop, user feedback rescan, full dictionary schema |
+| enforce-style-guide | ✅ Stable | - | - |
+| resume-screening | ✅ Integrated | 470+ | detecting-ai-slop integration |
+| phone-screen-prep | ✅ Integrated | - | AI slop probing questions |
+| reviewing-ai-text | ⚠️ Deprecated | - | Use detecting/eliminating instead |
 
 ---
 
@@ -56,23 +64,41 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 - [ ] **Real-world testing** - Test skills on actual documents across all 13 content types
 - [ ] **Engineering_Culture corpus** - Already analyzed, average score 18/100 (clean)
-- [ ] **User feedback integration** - Collect false positives/negatives
-- [ ] **Pattern refinement** - Adjust based on validation results
+- [ ] **Calibration testing** - Test calibration with real user samples
+- [ ] **GVR loop validation** - Verify 3-iteration limit and threshold checking
+- [ ] **slop-sync testing** - Test cross-machine sync workflow
+- [ ] **Recruiting workflow testing** - Test resume-screening + detecting-ai-slop integration
 
 ### Future Enhancements
 
-- [ ] Add stylometric calibration with user samples
 - [ ] Create CI/CD for skill validation
 - [ ] Add skill versioning
 - [ ] Multi-language support
 - [ ] Batch processing mode for document libraries
-- [ ] Cross-machine dictionary synchronization
+- [ ] ML-based detection (if heuristics prove insufficient)
 
 ---
 
 ## Completed Work
 
-### 2026-01-25
+### 2026-01-25 (Session 2)
+
+- [x] Implement GVR loop (Generate-Verify-Refine, max 3 iterations)
+- [x] Implement full dictionary schema (weight, count, timestamp, source, exception)
+- [x] Implement stylometric thresholds (sentence σ, paragraph SD, TTR, hapax rate)
+- [x] Implement calibration mode with user writing samples
+- [x] Create slop-sync shell script for cross-machine dictionary sync
+- [x] Implement metrics commands (show-slop-stats, export)
+- [x] Implement user feedback with immediate rescan
+- [x] Integrate detecting-ai-slop with resume-screening (detect-only mode)
+- [x] Integrate detecting-ai-slop with phone-screen-prep (AI slop probing questions)
+- [x] Update detecting-ai-slop skill (610 → 920+ lines)
+- [x] Update eliminating-ai-slop skill (347 → 690+ lines)
+- [x] Update DESIGN.md with GVR, calibration, slop-sync, recruiting integration
+- [x] Update README.md with slop-sync and recruiting integration
+- [x] Update TODO.md with completed enhancements
+
+### 2026-01-25 (Session 1)
 
 - [x] Expand PRDs to 13 content types (Email, LinkedIn, SMS, Teams, CLAUDE.md, README, PRD, Design, Test Plan, CV, Cover Letter)
 - [x] Update DESIGN.md for 13 content types with full architecture
@@ -102,10 +128,25 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 ### Two-Skill Design
 
-| Skill | Purpose | Mode |
-|-------|---------|------|
-| detecting-ai-slop | Analysis, scoring, bullshit factor | Read-only |
-| eliminating-ai-slop | Rewriting, prevention | Interactive + Automatic |
+| Skill | Purpose | Mode | Key Features |
+|-------|---------|------|--------------|
+| detecting-ai-slop | Analysis, scoring, bullshit factor | Read-only | Stylometric thresholds, calibration, metrics, recruiting integration |
+| eliminating-ai-slop | Rewriting, prevention | Interactive + Automatic (GVR) | GVR loop, user feedback rescan, dictionary management |
+
+### GVR Loop (Generate-Verify-Refine)
+
+```
+GENERATE → VERIFY → REFINE → RETURN (or iterate, max 3)
+```
+
+### Stylometric Thresholds
+
+| Metric | Target |
+|--------|--------|
+| Sentence length σ | >15.0 words |
+| Paragraph SD | >25 words |
+| TTR | 0.50-0.70 |
+| Hapax rate | >40% (or calibrated) |
 
 ### Content Type Support
 
