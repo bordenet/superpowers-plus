@@ -1,8 +1,8 @@
 # TODO - superpowers-plus
 
 > **Last Updated:** 2026-01-24
-> **Status:** Active Development
-> **Primary Focus:** reviewing-ai-text skill enhancement
+> **Status:** Active Development - Architecture Pivot
+> **Primary Focus:** Bifurcating into detecting-ai-slop + eliminating-ai-slop skills
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 
 This document tracks all work items for the superpowers-plus repository. Update this file as tasks progress.
@@ -14,16 +14,48 @@ This document tracks all work items for the superpowers-plus repository. Update 
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [CLAUDE.md](./CLAUDE.md) | AI agent guidelines and anti-slop rules | ✅ Complete |
-| [README.md](./README.md) | Repository overview | ✅ Complete |
-| [docs/PRD.md](./docs/PRD.md) | Product requirements | ✅ Complete |
-| [docs/DESIGN.md](./docs/DESIGN.md) | Technical design | ✅ Complete |
-| [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan | ✅ Complete |
+| [README.md](./README.md) | Repository overview | 🔄 Needs update |
+| [docs/Vision_PRD.md](./docs/Vision_PRD.md) | High-level vision and requirements | ✅ Complete |
+| [docs/PRD_detecting-ai-slop.md](./docs/PRD_detecting-ai-slop.md) | Detector skill requirements | 📝 Draft |
+| [docs/PRD_eliminating-ai-slop.md](./docs/PRD_eliminating-ai-slop.md) | Eliminator skill requirements | 📝 Draft |
+| [docs/DESIGN.md](./docs/DESIGN.md) | Technical design | 🔄 Needs revision |
+| [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan | 🔄 Needs revision |
 
 ---
 
-## Current Sprint: reviewing-ai-text Enhancement
+## Architecture Decision (2026-01-24)
 
-### Phase 1: Documentation Foundation ✅
+**Decision:** Bifurcate into two skills (Option A from brainstorming session)
+
+| Skill | Purpose | Use Cases |
+|-------|---------|-----------|
+| `detecting-ai-slop` | Analysis, scoring, bullshit factor | External doc review (CVs), exploratory review |
+| `eliminating-ai-slop` | Rewriting, prevention | Clean up drafts, background prevention |
+
+**Rationale:**
+1. User needs "bullshit factor" scoring on external documents (read-only)
+2. User needs interactive rewriting for own work (with confirmation)
+3. User needs background prevention during daily generation (automatic)
+4. These are three distinct workflows best served by two focused skills
+
+---
+
+## Current Sprint: Architecture Pivot
+
+### Phase 0: Architecture Pivot 🔄
+
+- [x] **Brainstorm skill architecture** with superpowers:brainstorming
+- [x] **Decision:** Two skills (detecting-ai-slop + eliminating-ai-slop)
+- [x] **Rename PRD.md to Vision_PRD.md** (high-level vision document)
+- [x] **Create PRD_detecting-ai-slop.md** (detector requirements)
+- [x] **Create PRD_eliminating-ai-slop.md** (eliminator requirements)
+- [x] **Update CLAUDE.md cross-references**
+- [x] **Update TODO.md** (this document)
+- [ ] **Review and approve Vision_PRD.md** (user approval pending)
+- [ ] **Review and approve PRD_detecting-ai-slop.md** (user approval pending)
+- [ ] **Review and approve PRD_eliminating-ai-slop.md** (user approval pending)
+
+### Phase 1: Documentation Foundation ✅ (Original Work)
 
 - [x] **Rewrite CLAUDE.md** - Add strict anti-slop writing guidelines
   - [x] Banned phrases list (production-grade, world-class, etc.)
@@ -84,12 +116,104 @@ This document tracks all work items for the superpowers-plus repository. Update 
   - [x] Skill contains 36 domain-specific patterns (12 per domain)
   - [x] Skill contains 6 stylometric detection methods
 
-### Phase 6: Finalization 🔄
+### Phase 6: Finalization (Original Work) ⏸️ PAUSED
 
-- [ ] **Commit and push**
-  - [x] Verify all cross-references valid (all docs link to CLAUDE.md)
-  - [ ] Run pre-commit checklist
-  - [ ] Push to origin main
+- [x] Commit and push original work (commit 3bc960d)
+- [ ] ~~Run pre-commit checklist~~ (paused for architecture pivot)
+
+---
+
+## Implementation Strategy
+
+**Approach:** Iterative development with real-world validation
+
+1. **Detection First** - Build and validate detecting-ai-slop before eliminating-ai-slop
+2. **Real Document Testing** - Use actual wiki markdown document as validation corpus
+3. **Collaborative Refinement** - User and agent jointly evaluate detection quality
+4. **Sequential Skills** - Only proceed to eliminator after detector is validated
+
+---
+
+## Next Phases (Post PRD Approval)
+
+### Phase 7: Design and Test Plan Revision
+
+- [ ] **Revise DESIGN.md** for two-skill architecture
+  - [ ] Detection skill architecture
+  - [ ] Elimination skill architecture
+  - [ ] Shared infrastructure (dictionary, metrics)
+  - [ ] Data flow between skills
+
+- [ ] **Revise TEST_PLAN.md** for two-skill architecture
+  - [ ] Detection test cases (bullshit factor scoring)
+  - [ ] Elimination test cases (rewriting quality)
+  - [ ] Integration test cases (shared dictionary)
+  - [ ] Real-world validation protocol
+
+### Phase 8: Detector Implementation
+
+- [ ] **Create detecting-ai-slop skill**
+  - [ ] Create skills/detecting-ai-slop/SKILL.md
+  - [ ] Migrate detection patterns from reviewing-ai-text
+  - [ ] Implement bullshit factor scoring (0-100)
+  - [ ] Implement score breakdown by dimension
+  - [ ] Implement pattern location reporting
+
+- [ ] **First Trial: Detection Validation**
+  - [ ] User provides wiki markdown document
+  - [ ] Run detection analysis, report all flagged patterns
+  - [ ] User and agent jointly evaluate detection quality
+  - [ ] Identify false positives (flagged but acceptable)
+  - [ ] Identify false negatives (missed slop)
+  - [ ] Refine detection algorithms based on findings
+  - [ ] Iterate until detection quality is satisfactory
+
+### Phase 9: Eliminator Implementation
+
+- [ ] **Create eliminating-ai-slop skill**
+  - [ ] Create skills/eliminating-ai-slop/SKILL.md
+  - [ ] Implement interactive rewriting mode
+  - [ ] Implement confirmation prompts
+  - [ ] Implement automatic prevention mode
+  - [ ] Implement activation control
+
+- [ ] **Second Trial: Rewriting Validation**
+  - [ ] Apply eliminator to same wiki markdown document
+  - [ ] Interactively work through flagged patterns
+  - [ ] User approves/rejects proposed rewrites
+  - [ ] Evaluate rewrite quality (meaning preservation)
+  - [ ] Refine rewriting algorithms based on findings
+
+### Phase 10: Shared Infrastructure
+
+- [ ] **Implement persistent dictionary**
+  - [ ] Dictionary file format
+  - [ ] Workspace root storage
+  - [ ] .gitignore auto-update
+  - [ ] Read/write operations
+
+- [ ] **Implement metrics tracking**
+  - [ ] Metrics file format
+  - [ ] Detection metrics (bullshit factors, patterns)
+  - [ ] Rewriting metrics (fixes, user feedback)
+
+### Phase 11: Final Validation
+
+- [ ] **Return to wiki markdown document**
+  - [ ] Run full detection + elimination pipeline
+  - [ ] Compare before/after quality
+  - [ ] Measure against success metrics from PRD
+  - [ ] Document lessons learned
+
+- [ ] **Deprecate reviewing-ai-text**
+  - [ ] Mark as deprecated in SKILL.md
+  - [ ] Point users to new skills
+  - [ ] Update install.sh
+
+- [ ] **Cross-machine validation**
+  - [ ] Test on all 3 machines
+  - [ ] Verify dictionary sync
+  - [ ] Verify consistent behavior
 
 ---
 
@@ -99,19 +223,23 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 - [x] Initialize superpowers-plus repository
 - [x] Copy skills from mb_scratchpad and scripts repo
-- [x] Create initial README.md
-- [x] Create initial CLAUDE.md
+- [x] Create initial README.md and CLAUDE.md
 - [x] Push initial commit to origin main
+- [x] Enhance reviewing-ai-text with 180+ patterns (Phase 2-4)
+- [x] Commit and push enhanced skill (commit 3bc960d)
+- [x] Brainstorm bifurcation with superpowers:brainstorming
+- [x] Decision: Two skills (detecting-ai-slop + eliminating-ai-slop)
+- [x] Create Vision_PRD.md, PRD_detecting-ai-slop.md, PRD_eliminating-ai-slop.md
 
 ---
 
 ## Backlog (Future Work)
 
-- [ ] Add automated slop detection script
+- [ ] Add stylometric calibration with user samples
 - [ ] Create CI/CD for skill validation
 - [ ] Add skill versioning
-- [ ] Create skill dependency management
-- [ ] Add skill testing framework
+- [ ] Multi-language support (Phase 2)
+- [ ] Batch processing mode for document libraries
 
 ---
 

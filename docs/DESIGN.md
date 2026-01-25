@@ -1,187 +1,371 @@
-# Design Document: reviewing-ai-text Skill Enhancement
+# Design Document: AI Slop Detection and Elimination Skills
 
 > **Guidelines:** See [CLAUDE.md](../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-24
-> **Status:** Draft
+> **Status:** Revised for two-skill architecture
 > **Author:** Matt J Bordenet
 
 ## Purpose
 
-Technical design for enhancing the `reviewing-ai-text` skill per [PRD.md](./PRD.md) requirements.
+Technical design for two complementary skills:
+- **detecting-ai-slop**: Read-only analysis producing bullshit factor scores
+- **eliminating-ai-slop**: Active rewriting with interactive and automatic modes
+
+See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
 ---
 
-## Current State
+## Architecture Overview
 
-The existing skill (`skills/reviewing-ai-text/SKILL.md`) contains:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER WORKFLOWS                          │
+├─────────────────┬─────────────────────┬─────────────────────────┤
+│ "Score this CV" │ "Clean up my draft" │ "Write a blog post"     │
+│                 │                     │                         │
+│   ▼             │        ▼            │           ▼             │
+│ DETECTOR        │    ELIMINATOR       │      ELIMINATOR         │
+│ (read-only)     │  (interactive)      │     (automatic)         │
+└────────┬────────┴──────────┬──────────┴────────────┬────────────┘
+         │                   │                       │
+         ▼                   ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    SHARED INFRASTRUCTURE                        │
+│  ┌──────────────────┐  ┌──────────────────┐                     │
+│  │ Pattern Dictionary│  │ Metrics Store    │                     │
+│  │ (workspace root)  │  │ (workspace root) │                     │
+│  └──────────────────┘  └──────────────────┘                     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-| Component | Current | Target |
-|-----------|---------|--------|
-| Lexical patterns | ~30 phrases | 100+ phrases |
-| Domain patterns | 0 | 3 domains |
-| Detection heuristics | 5 | 10+ |
-| Stylometric detection | 0 | 3 metrics |
+---
+
+## Skill 1: detecting-ai-slop
+
+### Purpose
+
+Analyze text and produce a bullshit factor score (0-100) with detailed breakdown.
+
+### Invocation
+
+```
+User: "What's the bullshit factor on this CV?"
+User: "Score this draft for AI patterns"
+User: "How much slop is in this document?"
+```
+
+### Output Format
+
+```
+Bullshit Factor: 73/100
+
+Breakdown:
+├── Lexical:      28/40  (14 patterns in 500 words)
+├── Structural:   18/25  (formulaic intro, template sections)
+├── Semantic:     12/20  (3 hollow examples, 1 absolute claim)
+└── Stylometric:  15/15  (low sentence variance, flat TTR)
+
+Top Offenders (showing 10 of 23):
+ 1. Line 12: "incredibly powerful" [Generic booster]
+ 2. Line 34: "leverage synergies" [Buzzword cluster]
+ 3. Line 56: "it's important to note" [Filler phrase]
+ 4. Line 78: "In this document, we will explore" [Signposting]
+ 5. Line 92: "comprehensive solution" [Vague quality]
+ ...
+
+Stylometric Measurements:
+├── Sentence length SD: 2.3 words (flag: <5 indicates AI)
+├── Type-token ratio: 0.38 (flag: <0.4 indicates AI)
+└── Hapax rate: 31% (flag: <40% indicates AI)
+```
+
+### Scoring Algorithm
+
+| Dimension | Max Points | Calculation |
+|-----------|------------|-------------|
+| Lexical | 40 | `min(40, pattern_count * 2)` |
+| Structural | 25 | `5 * structural_patterns_found` |
+| Semantic | 20 | `5 * semantic_patterns_found` |
+| Stylometric | 15 | `5 * stylometric_flags` |
+
+**Total:** Sum of dimensions, capped at 100.
+
+### Detection Logic
+
+The skill contains embedded detection patterns (migrated from reviewing-ai-text):
+
+1. **Lexical patterns** (100+ phrases across 5 categories)
+2. **Structural patterns** (formulaic intros, templates, signposting)
+3. **Semantic patterns** (hollow specificity, symmetry, absent constraints)
+4. **Stylometric heuristics** (sentence variance, TTR, hapax rate)
+
+### Skill File Structure
+
+```
+skills/detecting-ai-slop/SKILL.md
+├── YAML frontmatter
+├── Overview (when to use, what it produces)
+├── Scoring Explanation
+├── Pattern Reference
+│   ├── Lexical Patterns (5 categories, 100+ phrases)
+│   ├── Structural Patterns
+│   ├── Semantic Patterns
+│   └── Stylometric Thresholds
+├── Output Format Specification
+└── Examples (sample inputs with expected scores)
+```
+
+---
+
+## Skill 2: eliminating-ai-slop
+
+### Purpose
+
+Actively rewrite text to eliminate detected slop patterns. Operates in two modes:
+- **Interactive**: User provides text, skill confirms before rewriting
+- **Automatic**: Skill prevents slop during generation (background mode)
+
+### Mode 1: Interactive Rewriting
+
+**Trigger:** User provides existing text with edit/review request.
+
+```
+User: "Clean up this paragraph: [text]"
+User: "Remove the AI patterns from this: [text]"
+```
+
+**Workflow:**
+1. Skill detects patterns in provided text
+2. Skill presents findings with confirmation prompt
+3. User approves/rejects per pattern or batch
+4. Skill rewrites approved patterns
+
+**Confirmation Prompt Format:**
+```
+Found 5 slop patterns in your text:
+
+1. "incredibly powerful" [Generic booster]
+   → Suggest: delete, or specify what makes it powerful
+
+2. "it's important to note" [Filler phrase]
+   → Suggest: delete, start with the actual point
+
+3. "comprehensive solution" [Vague quality]
+   → Suggest: specify what it covers
+
+Options:
+- "Rephrase all" - I'll rewrite all 5
+- "Keep all" - Leave text unchanged
+- "List them" - I'll ask about each one
+- "Rephrase 1,2" - Rewrite specific patterns
+```
+
+### Mode 2: Automatic Prevention
+
+**Trigger:** User requests prose generation (blog post, wiki, README).
+
+**Behavior:** Skill operates silently during generation:
+1. Generate content
+2. Detect slop patterns in output
+3. Rewrite to eliminate patterns
+4. Return clean output
+
+**Transparency:** After generation, skill reports summary:
+```
+[Slop prevention: removed 8 patterns (5 lexical, 2 structural, 1 semantic)]
+```
+
+User can request details: "Show what slop you removed"
+
+### Activation Control
+
+| Context | Activation |
+|---------|------------|
+| Blog post, wiki, README | Auto-activate |
+| Code blocks | Auto-deactivate |
+| JSON, YAML, config files | Auto-deactivate |
+| User says "disable slop detection" | Manual deactivate |
+| User says "enable slop detection" | Manual activate |
+
+### Dictionary Management
+
+This skill owns dictionary mutations:
+
+```
+User: "Add 'synergize' to the slop dictionary"
+Skill: Added 'synergize' to Buzzwords category. Count: 1.
+
+User: "Never flag 'leverage' - I use it intentionally"
+Skill: Added 'leverage' to exceptions. Won't flag in future.
+
+User: "Show my top slop patterns"
+Skill: [displays dictionary sorted by frequency]
+```
+
+### Skill File Structure
+
+```
+skills/eliminating-ai-slop/SKILL.md
+├── YAML frontmatter
+├── Overview (when to use, two modes)
+├── Interactive Mode
+│   ├── Trigger conditions
+│   ├── Confirmation workflow
+│   └── User response options
+├── Automatic Mode
+│   ├── Activation triggers
+│   ├── Deactivation triggers
+│   └── Transparency reporting
+├── Rewriting Guidelines
+│   ├── Preserve meaning
+│   ├── Increase specificity
+│   └── Vary structure
+├── Dictionary Management
+│   ├── Add patterns
+│   ├── Remove patterns
+│   └── Query dictionary
+└── Pattern Reference (same as detector, for rewrite guidance)
+```
+
+---
+
+## Shared Infrastructure
+
+### Pattern Dictionary
+
+**Location:** `{workspace_root}/.slop-dictionary.json`
+
+**Format:**
+```json
+{
+  "version": "1.0",
+  "patterns": [
+    {
+      "phrase": "incredibly",
+      "category": "generic-booster",
+      "count": 47,
+      "added": "2026-01-24",
+      "source": "built-in"
+    }
+  ],
+  "exceptions": [
+    {
+      "phrase": "leverage",
+      "scope": "permanent",
+      "added": "2026-01-25"
+    }
+  ]
+}
+```
+
+**Behavior:**
+- Detector reads dictionary, does not write
+- Eliminator reads and writes dictionary
+- Both fall back to built-in patterns if dictionary missing
+- Auto-add to .gitignore if git repo detected
+
+### Metrics Store
+
+**Location:** `{workspace_root}/.slop-metrics.json`
+
+**Format:**
+```json
+{
+  "version": "1.0",
+  "detection": {
+    "documents_analyzed": 42,
+    "total_patterns_found": 387,
+    "by_category": {
+      "generic-booster": 89,
+      "buzzword": 67,
+      "filler-phrase": 112
+    },
+    "average_bullshit_factor": 58.3
+  },
+  "elimination": {
+    "documents_processed": 31,
+    "patterns_fixed": 298,
+    "user_kept": 23,
+    "false_positives_reported": 5
+  }
+}
+```
 
 ---
 
 ## Design Decisions
 
-### D1: Skill File Organization
+### D1: Two Skills vs. One
 
-**Decision:** Keep all content in single SKILL.md file.
-
-**Rationale:** 
-- Superpowers framework loads single SKILL.md per skill
-- No external file imports supported
-- User reads skill in context, not as reference doc
-
-**Consequence:** Skill file will be 400-600 lines. Use clear section headers.
-
-### D2: Pattern Storage Format
-
-**Decision:** Use markdown tables for pattern storage.
-
-**Format:**
-```markdown
-| Pattern | Category | Severity | Replacement |
-|---------|----------|----------|-------------|
-| incredibly | booster | high | [delete] or use specific metric |
-```
+**Decision:** Two separate skills.
 
 **Rationale:**
-- Scannable during review
-- Sortable by category or severity
-- Copy-paste friendly
+- Three distinct use cases (score external docs, clean my drafts, prevent during generation)
+- Detector is read-only; eliminator mutates
+- User can invoke just what they need
+- Each skill stays focused (<400 lines)
 
-### D3: Domain Pattern Sections
+### D2: Shared Detection Logic
 
-**Decision:** Separate sections per domain, not mixed tables.
-
-**Structure:**
-```markdown
-## Technical Documentation Slop
-[patterns specific to tech docs]
-
-## Marketing/Business Slop
-[patterns specific to marketing]
-
-## Academic/Research Slop
-[patterns specific to academic writing]
-```
-
-**Rationale:** User reviews one domain at a time.
-
-### D4: Stylometric Detection Approach
-
-**Decision:** Provide manual heuristics, not automated calculations.
+**Decision:** Both skills contain identical detection patterns.
 
 **Rationale:**
-- Skill runs in Claude context without tooling
-- User can eyeball sentence variance
-- Exact metrics require external tools
+- Superpowers framework doesn't support skill imports
+- Duplication acceptable for consistency
+- Single source of truth: reviewing-ai-text patterns migrated to both
 
-**Heuristics provided:**
-1. **Sentence variance:** "If most sentences are 15-22 words, flag."
-2. **Vocabulary diversity:** "If same adjectives repeat 3+ times, flag."
-3. **Hapax check:** "In 500 words, expect 40-60% unique words."
+**Maintenance:** When updating patterns, update both skills.
+
+### D3: Dictionary Ownership
+
+**Decision:** Eliminator owns dictionary writes; detector reads only.
+
+**Rationale:**
+- Detector is analysis tool; shouldn't mutate state
+- Eliminator handles user feedback (add/remove patterns)
+- Clear ownership prevents conflicts
+
+### D4: Scoring Weights
+
+**Decision:** Lexical 40%, Structural 25%, Semantic 20%, Stylometric 15%.
+
+**Rationale:**
+- Lexical patterns most reliable and numerous
+- Structural patterns strong signal but fewer instances
+- Semantic patterns require judgment
+- Stylometric patterns experimental, lower weight
+
+### D5: Confirmation Default
+
+**Decision:** Interactive mode requires confirmation; automatic mode does not.
+
+**Rationale:**
+- User-provided text: user may have intentional patterns
+- Generated text: skill is preventing its own slop, no confirmation needed
+- Safe default: if unclear, treat as user-provided (confirm)
 
 ---
 
-## Implementation Plan
+## Migration from reviewing-ai-text
 
-### Phase 2: Expanded Word Lists (REQ-001)
+### What Moves Where
 
-**Location:** Add after current "Kill on Sight" table in SKILL.md
+| Current Content | Destination |
+|-----------------|-------------|
+| Lexical patterns (180+ phrases) | Both skills |
+| Domain-specific patterns | Both skills |
+| Stylometric heuristics | Both skills |
+| Detection heuristics | Both skills |
+| Rewrite process | eliminating-ai-slop only |
+| JSON output schema | detecting-ai-slop (modified for scoring) |
+| Self-check checklist | eliminating-ai-slop only |
 
-**New sections:**
-1. Expanded boosters table (~30 entries)
-2. Buzzwords table (~25 entries)
-3. Glue phrases table (~25 entries)
-4. Hedge patterns table (~15 entries)
-5. Sycophantic phrases table (~10 entries)
+### Deprecation Plan
 
-**Format per table:**
-```markdown
-### Boosters - Kill or Justify
-
-| Phrase | Replacement | Note |
-|--------|-------------|------|
-| incredibly | [delete] | Never adds meaning |
-| extremely | [delete] or "more than X" | Quantify instead |
-```
-
-### Phase 3: Domain Patterns (REQ-002)
-
-**Location:** New major section after word lists
-
-**Per domain:**
-- 10 domain-specific patterns
-- 2-3 examples each
-- Rewrite guidance
-
-**Technical docs patterns include:**
-- "This function/method/class..." (passive opener)
-- "Simply call..." (dismissive)
-- "Easy to use" (subjective)
-
-**Marketing patterns include:**
-- "Industry-leading" (unsubstantiated)
-- "Seamless integration" (meaningless)
-- "Transform your..." (hype)
-
-**Academic patterns include:**
-- "The literature suggests..." (vague attribution)
-- "It is well known that..." (appeal to authority)
-- "Further research is needed" (boilerplate)
-
-### Phase 4: Stylometric Detection (REQ-004, REQ-005)
-
-**Location:** New major section "Stylometric Red Flags"
-
-**Content:**
-1. Sentence length variance test (with example)
-2. Type-token ratio heuristic
-3. Hapax legomena check
-4. Zipf deviation explanation (conceptual only)
-5. Entropy pattern heuristic
-
-**Format:**
-```markdown
-### Sentence Length Variance Test
-
-**Heuristic:** Count words in 5 consecutive sentences. 
-If all are within ±3 words of each other, flag.
-
-**AI pattern:** 18, 19, 17, 20, 18 (variance ~2)
-**Human pattern:** 8, 24, 12, 31, 5 (variance ~10)
-```
-
----
-
-## File Structure After Enhancement
-
-```
-skills/reviewing-ai-text/SKILL.md
-├── YAML frontmatter
-├── Overview
-├── Quick Reference Tables (existing, expanded)
-│   ├── Kill on Sight (~30 → 100+ entries)
-│   ├── Glue Phrase Killers (expanded)
-│   └── Hedge Patterns (expanded)
-├── Detection Heuristics (existing, enhanced)
-├── NEW: Domain-Specific Patterns
-│   ├── Technical Documentation
-│   ├── Marketing/Business
-│   └── Academic/Research
-├── NEW: Stylometric Red Flags
-│   ├── Sentence Variance
-│   ├── Vocabulary Diversity
-│   └── Entropy Signals
-├── The Rewrite Process (existing)
-├── Advanced Detection (existing)
-├── JSON Output Schema (existing)
-└── Self-Check Checklist (existing, updated)
-```
+1. Mark reviewing-ai-text as deprecated in SKILL.md header
+2. Add pointer to new skills in overview
+3. Keep in install.sh for 30 days
+4. Remove after validation complete
 
 ---
 
@@ -189,7 +373,8 @@ skills/reviewing-ai-text/SKILL.md
 
 - [CLAUDE.md](../CLAUDE.md) - Writing standards
 - [TODO.md](../TODO.md) - Task tracking
-- [PRD.md](./PRD.md) - Requirements
+- [Vision_PRD.md](./Vision_PRD.md) - High-level requirements
+- [PRD_detecting-ai-slop.md](./PRD_detecting-ai-slop.md) - Detector requirements
+- [PRD_eliminating-ai-slop.md](./PRD_eliminating-ai-slop.md) - Eliminator requirements
 - [TEST_PLAN.md](./TEST_PLAN.md) - Test plan
-- [skills/reviewing-ai-text/SKILL.md](../skills/reviewing-ai-text/SKILL.md) - Skill file
 
