@@ -1,15 +1,13 @@
 # superpowers-plus
 
-Personal skills extending [obra/superpowers](https://github.com/obra/superpowers) for Augment Code.
+> **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
+> **Last Updated:** 2026-01-25
+
+Personal skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, and Codex.
 
 ## Overview
 
-This repository contains custom Claude/Augment skills that build on the superpowers framework. These are personal skills that extend the core superpowers with domain-specific capabilities.
-
-## Prerequisites
-
-- [Superpowers](https://github.com/obra/superpowers) installed via `install-augment-superpowers.sh`
-- Augment Code or Claude Code with superpowers enabled
+This repository contains custom AI coding assistant skills that build on the superpowers framework. These personal skills extend the core superpowers with domain-specific capabilities for AI slop detection, resume screening, and code quality enforcement.
 
 ## Installation
 
@@ -18,41 +16,55 @@ This repository contains custom Claude/Augment skills that build on the superpow
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
 
-# Install skills to ~/.codex/skills/
+# Install obra/superpowers (if not present) and all skills
 ./install.sh
 ```
 
-Or install superpowers from scratch:
+The install script:
+- Clones obra/superpowers to `~/.codex/superpowers/` if not already installed
+- Installs all skills from this repo to `~/.codex/skills/`
+- Validates the installation
 
-```bash
-./install-augment-superpowers.sh
-./install.sh
-```
+Use `./install.sh --verbose` for detailed output or `./install.sh --force` to reinstall superpowers.
 
 ## Skills
 
-| Skill | Description |
-|-------|-------------|
-| `reviewing-ai-text` | Detect and eliminate AI slop patterns in text |
-| `enforce-style-guide` | Ruthlessly enforce coding standards before commits |
+| Skill | Purpose |
+|-------|---------|
+| `detecting-ai-slop` | Analyze text and produce bullshit factor scores (0-100) |
+| `eliminating-ai-slop` | Rewrite text to remove slop patterns |
+| `enforce-style-guide` | Enforce coding standards before commits |
 | `resume-screening` | Screen Senior SDE candidates against hiring criteria |
 | `phone-screen-prep` | Prepare phone screen notes with targeted questions |
+| `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
 
-### reviewing-ai-text
+### detecting-ai-slop
 
-Detects and eliminates AI slop: the telltale patterns of machine-like writing including overused boosters, formulaic structure, excessive hedging, and hollow specificity.
+Analyzes text and produces a bullshit factor score (0-100) with detailed breakdown. Supports 13 content types with type-specific pattern detection.
 
-**Invoke:** When reviewing AI-generated text or self-auditing responses.
+**Supported content types:** Document, Email, LinkedIn, SMS, Teams/Slack, CLAUDE.md, README, PRD, Design Doc, Test Plan, CV/Resume, Cover Letter
+
+**Invoke:** "What's the bullshit factor on this [content type]?"
+
+### eliminating-ai-slop
+
+Rewrites text to eliminate detected slop patterns. Operates in two modes:
+- **Interactive:** User provides text, skill proposes changes with confirmation
+- **Automatic:** Skill prevents slop during content generation
+
+**Invoke:**
+- Interactive: "Clean up this email: [text]"
+- Automatic: "Write an email to the team about [topic]"
 
 ### enforce-style-guide
 
-Ruthlessly enforces coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, dry-run flags, line limits, ShellCheck, and syntax.
+Enforces coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, dry-run flags, line limits, ShellCheck, and syntax.
 
 **Invoke:** Before ANY commit to ANY repository.
 
 ### resume-screening
 
-Screens Senior SDE candidates against rigorous hiring criteria. Evaluates experience, stack fit, scale, leadership, and salary alignment.
+Screens Senior SDE candidates against CallBox hiring criteria. Evaluates experience, stack fit, scale, leadership, contractor patterns, and salary alignment.
 
 **Invoke:** "Screen at $[X]k cap" + paste resume
 
@@ -66,21 +78,33 @@ Creates phone screen notes files with targeted questions based on screening conc
 
 ```
 superpowers-plus/
-├── README.md
+├── CLAUDE.md                       # AI agent guidelines and anti-slop rules
+├── TODO.md                         # Task tracking
+├── README.md                       # This file
 ├── LICENSE
-├── install.sh                      # Install skills to ~/.codex/skills/
-├── install-augment-superpowers.sh  # Full superpowers installation
+├── install.sh                      # Install superpowers and skills
+├── .gitignore
+├── docs/
+│   ├── Vision_PRD.md               # High-level vision and requirements
+│   ├── PRD_detecting-ai-slop.md    # Detector skill requirements
+│   ├── PRD_eliminating-ai-slop.md  # Eliminator skill requirements
+│   ├── DESIGN.md                   # Technical design
+│   └── TEST_PLAN.md                # Test plan (80+ test cases)
 └── skills/
-    ├── reviewing-ai-text/
+    ├── detecting-ai-slop/          # Analysis and scoring (300+ patterns)
+    │   └── SKILL.md
+    ├── eliminating-ai-slop/        # Rewriting and prevention
     │   └── SKILL.md
     ├── enforce-style-guide/
     │   └── SKILL.md
     ├── resume-screening/
     │   ├── SKILL.md
     │   └── README.md
-    └── phone-screen-prep/
-        ├── SKILL.md
-        └── README.md
+    ├── phone-screen-prep/
+    │   ├── SKILL.md
+    │   └── README.md
+    └── reviewing-ai-text/          # Deprecated
+        └── SKILL.md
 ```
 
 ## Creating New Skills
@@ -88,9 +112,19 @@ superpowers-plus/
 1. Create a new directory under `skills/`
 2. Add `SKILL.md` with frontmatter (name, description)
 3. Run `./install.sh` to deploy
-4. Test with `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>`
+4. Test with `~/.codex/superpowers/.codex/superpowers-codex use-skill <skill-name>`
 
 See [superpowers:writing-skills](https://github.com/obra/superpowers) for skill authoring guidelines.
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [Vision_PRD.md](./docs/Vision_PRD.md) | High-level vision and requirements |
+| [PRD_detecting-ai-slop.md](./docs/PRD_detecting-ai-slop.md) | Detector requirements (13 content types) |
+| [PRD_eliminating-ai-slop.md](./docs/PRD_eliminating-ai-slop.md) | Eliminator requirements (11 rewriting strategies) |
+| [DESIGN.md](./docs/DESIGN.md) | Technical architecture |
+| [TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan (80+ test cases) |
 
 ## Author
 
