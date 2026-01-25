@@ -31,6 +31,16 @@ Claude's default prose generation relies on high-probability token sequences tha
 - Wiki page creation and updates
 - README documentation
 - One-Pager and Six-Pager business documents
+- Email composition and cleanup
+- LinkedIn post creation
+- SMS/text message composition
+- Teams/Slack chat message composition
+- CLAUDE.md / agent instruction authoring
+- Product Requirements Documents (PRDs)
+- Software design specifications
+- Test plans
+- CV/resume composition
+- Cover letter composition
 
 **Quantified pain points**:
 
@@ -194,6 +204,16 @@ When user provides existing text for editing (not requesting new generation), th
 - README files
 - One-Pager documents
 - Six-Pager documents
+- Email messages (composition and cleanup)
+- LinkedIn posts and updates
+- SMS/text messages
+- Teams/Slack chat messages
+- CLAUDE.md and agent instruction files
+- Product Requirements Documents (PRDs)
+- Software design specifications
+- Test plans
+- CV/resumes
+- Cover letters
 - Any English prose content (excludes code)
 
 **Detection dimensions**:
@@ -201,6 +221,18 @@ When user provides existing text for editing (not requesting new generation), th
 - Structural patterns (formulaic intros, template sections, signposting, paragraph rhythm)
 - Semantic patterns (hollow specificity, symmetric coverage, absent constraints)
 - Stylometric patterns (sentence length variance, paragraph length variance, TTR, hapax legomena)
+- Content-type-specific patterns:
+  - Email: corporate filler, buried leads, unnecessary pleasantries
+  - LinkedIn: engagement bait, humble brags, listicle abuse
+  - SMS: formality mismatches, overcommunication
+  - Teams/Slack: email-in-chat patterns, unnecessary meeting requests
+  - CLAUDE.md: vague instructions, unenforceable rules, meta-commentary
+  - README: marketing language, missing quickstart, feature-before-install
+  - PRD: vague requirements, missing acceptance criteria, scope creep
+  - Design docs: decision avoidance, over-abstraction, missing alternatives
+  - Test plans: vague test cases, coverage theater, missing traceability
+  - CV/Resume: responsibilities vs achievements, buzzword stuffing, vague metrics
+  - Cover letters: generic openings, CV repetition, empty claims
 
 **Capabilities**:
 - GVR loop detection and refinement
@@ -407,7 +439,13 @@ When user provides existing text for editing (not requesting new generation), th
 
 **Activation triggers**:
 - Blog posts, wiki articles, READMEs (prose sections), documentation, business documents
+- Email composition or cleanup requests
+- LinkedIn post composition or cleanup
+- SMS/text message composition
+- Teams/Slack chat message composition
 - Any user prompt requesting prose content generation
+
+**Content-type detection**: Skill identifies content type from context and applies type-specific patterns. See PRD_detecting-ai-slop.md §FR6 for content-type-specific patterns.
 
 **Deactivation triggers**:
 - Code blocks (Python, JavaScript, SQL, etc.)
