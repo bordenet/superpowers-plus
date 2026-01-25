@@ -14,7 +14,9 @@ identifiable patterns that undermine credibility.
 |----------|---------|-------------|
 | [TODO.md](./TODO.md) | Task tracking | Any task changes |
 | [README.md](./README.md) | Repository overview | Adding/removing skills |
-| [docs/PRD.md](./docs/PRD.md) | Product requirements | Scope changes |
+| [docs/Vision_PRD.md](./docs/Vision_PRD.md) | High-level vision and requirements | Major scope changes |
+| [docs/PRD_detecting-ai-slop.md](./docs/PRD_detecting-ai-slop.md) | Detector skill requirements | Detection feature changes |
+| [docs/PRD_eliminating-ai-slop.md](./docs/PRD_eliminating-ai-slop.md) | Eliminator skill requirements | Rewriting feature changes |
 | [docs/DESIGN.md](./docs/DESIGN.md) | Technical design | Implementation changes |
 | [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan | Test changes |
 
@@ -156,11 +158,15 @@ superpowers-plus/
 ├── install.sh          # Deploy skills to ~/.codex/skills/
 ├── install-augment-superpowers.sh
 ├── docs/
-│   ├── PRD.md          # Product requirements
-│   ├── DESIGN.md       # Technical design
-│   └── TEST_PLAN.md    # Test plan
+│   ├── Vision_PRD.md               # High-level vision
+│   ├── PRD_detecting-ai-slop.md    # Detector skill requirements
+│   ├── PRD_eliminating-ai-slop.md  # Eliminator skill requirements
+│   ├── DESIGN.md                   # Technical design
+│   └── TEST_PLAN.md                # Test plan
 └── skills/
-    ├── reviewing-ai-text/
+    ├── detecting-ai-slop/          # Analysis and scoring
+    │   └── SKILL.md
+    ├── eliminating-ai-slop/        # Rewriting and prevention
     │   └── SKILL.md
     ├── enforce-style-guide/
     │   └── SKILL.md
