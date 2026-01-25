@@ -1,5 +1,7 @@
 # CLAUDE.md - AI Agent Guidelines for superpowers-plus
 
+> **Last Updated:** 2026-01-25
+
 This document defines the writing standards and quality requirements that **MUST** be followed
 without exception in this repository. These rules exist because AI-generated text has
 identifiable patterns that undermine credibility.
@@ -15,10 +17,10 @@ identifiable patterns that undermine credibility.
 | [TODO.md](./TODO.md) | Task tracking | Any task changes |
 | [README.md](./README.md) | Repository overview | Adding/removing skills |
 | [docs/Vision_PRD.md](./docs/Vision_PRD.md) | High-level vision and requirements | Major scope changes |
-| [docs/PRD_detecting-ai-slop.md](./docs/PRD_detecting-ai-slop.md) | Detector skill requirements | Detection feature changes |
-| [docs/PRD_eliminating-ai-slop.md](./docs/PRD_eliminating-ai-slop.md) | Eliminator skill requirements | Rewriting feature changes |
+| [docs/PRD_detecting-ai-slop.md](./docs/PRD_detecting-ai-slop.md) | Detector skill requirements (13 content types) | Detection feature changes |
+| [docs/PRD_eliminating-ai-slop.md](./docs/PRD_eliminating-ai-slop.md) | Eliminator skill requirements (11 strategies) | Rewriting feature changes |
 | [docs/DESIGN.md](./docs/DESIGN.md) | Technical design | Implementation changes |
-| [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan | Test changes |
+| [docs/TEST_PLAN.md](./docs/TEST_PLAN.md) | Test plan (80+ test cases) | Test changes |
 
 **Rule:** Every markdown file in this repo MUST link back to this CLAUDE.md file.
 
@@ -51,7 +53,7 @@ identifiable patterns that undermine credibility.
 | Best practice | Citation or link to source |
 
 **WRONG:** "This skill provides comprehensive AI detection."
-**RIGHT:** "This skill detects 47 specific slop patterns across 9 categories."
+**RIGHT:** "This skill detects 300+ slop patterns across 13 content types."
 
 ### No Celebratory Language
 
@@ -155,14 +157,14 @@ superpowers-plus/
 ├── TODO.md             # Task tracking (keep updated!)
 ├── README.md           # Repository overview
 ├── LICENSE
-├── install.sh          # Deploy skills to ~/.codex/skills/
-├── install-augment-superpowers.sh
+├── install.sh          # Deploy superpowers and skills
+├── .gitignore
 ├── docs/
 │   ├── Vision_PRD.md               # High-level vision
-│   ├── PRD_detecting-ai-slop.md    # Detector skill requirements
-│   ├── PRD_eliminating-ai-slop.md  # Eliminator skill requirements
+│   ├── PRD_detecting-ai-slop.md    # Detector requirements (13 content types)
+│   ├── PRD_eliminating-ai-slop.md  # Eliminator requirements (11 strategies)
 │   ├── DESIGN.md                   # Technical design
-│   └── TEST_PLAN.md                # Test plan
+│   └── TEST_PLAN.md                # Test plan (80+ test cases)
 └── skills/
     ├── detecting-ai-slop/          # Analysis and scoring
     │   └── SKILL.md
@@ -173,9 +175,11 @@ superpowers-plus/
     ├── resume-screening/
     │   ├── SKILL.md
     │   └── README.md
-    └── phone-screen-prep/
-        ├── SKILL.md
-        └── README.md
+    ├── phone-screen-prep/
+    │   ├── SKILL.md
+    │   └── README.md
+    └── reviewing-ai-text/          # Deprecated
+        └── SKILL.md
 ```
 
 ---
@@ -183,15 +187,36 @@ superpowers-plus/
 ## Testing Skills
 
 ```bash
-# Install skills
+# Install superpowers (if needed) and skills
 ./install.sh
 
-# List available skills
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
+# Use a personal skill
+~/.codex/superpowers/.codex/superpowers-codex use-skill detecting-ai-slop
 
-# Load a specific skill
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill reviewing-ai-text
+# Use a superpowers skill
+~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:brainstorming
 ```
+
+---
+
+## Supported Content Types
+
+The AI slop skills support 13 content types with type-specific patterns:
+
+| Type | Detection Patterns | Rewriting Strategy |
+|------|-------------------|-------------------|
+| Document | Universal patterns only | Standard rewriting |
+| Email | Corporate filler, buried leads | Lead with the ask |
+| LinkedIn | Engagement bait, humble brags | Remove performative elements |
+| SMS | Formality mismatch | Match conversational register |
+| Teams/Slack | Email-in-chat patterns | Direct and immediate |
+| CLAUDE.md | Vague instructions | Make rules actionable |
+| README | Marketing language | Quickstart first |
+| PRD | Vague requirements | Add acceptance criteria |
+| Design Doc | Decision avoidance | Recommend with rationale |
+| Test Plan | Vague test cases | Add expected results |
+| CV/Resume | Responsibilities vs achievements | Quantify impact |
+| Cover Letter | Generic openings | Company-specific hooks |
 
 ---
 
@@ -208,4 +233,3 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill reviewing-ai-
 ## Author
 
 Matt J Bordenet (@bordenet)
-

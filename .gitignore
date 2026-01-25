@@ -1,2 +1,41 @@
+# Slop detection workspace files
 .slop-dictionary.json
 .slop-metrics.json
+
+# MacOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# MacOS directory preferences
+Icon
+.Spotlight-V100
+.Trashes
+
+# MacOS resource forks
+*.swp
+*~
+
+# Thumbnail cache
+.fseventsd
+.apdisk
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js (in case of local testing)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Backup files
+*.bak
+*.backup
