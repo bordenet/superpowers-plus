@@ -5,9 +5,40 @@ description: "Prepare phone screen notes file from template with targeted questi
 
 # Phone Screen Prep
 
+> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Last Updated:** 2026-01-25
+>
 > **📋 Screening criteria source:** https://wiki.int.callbox.net/doc/llm-prompt-LfFH19Gj0y
 >
 > **⚠️ Check for updates daily.** Targeted questions are derived from the canonical screening prompt.
+
+---
+
+## Integration with AI Slop Detection
+
+When resume screening flags high AI slop (bullshit factor >50), add targeted questions to probe authenticity:
+
+| Slop Flag | Phone Screen Question |
+|-----------|----------------------|
+| Skills list matches JD exactly | "Walk me through a project using [specific skill]. What was the hardest part?" |
+| Power verbs without metrics | "You said you 'spearheaded' X. What specifically did you do vs. your team?" |
+| Generic bullets | "This bullet says 'improved performance.' Give me the numbers—before/after." |
+| ChatGPT clichés | "Your cover letter mentions 'intersection of X and Y.' What specifically attracted you to CallBox?" |
+
+**Add to Screening Concerns section when bullshit factor >50:**
+
+```markdown
+### AI-Generated Content Concern
+**Bullshit Factor:** [X]/100
+
+**Flag:** [Specific concern from slop analysis]
+
+_"Tell me about [specific claim] in your own words. What were the challenges you faced?"_
+
+_"Walk me through the technical details of [project]. What would you do differently?"_
+```
+
+---
 
 ---
 

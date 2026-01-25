@@ -48,13 +48,20 @@ Analyzes text and produces a bullshit factor score (0-100) with detailed breakdo
 
 ### eliminating-ai-slop
 
-Rewrites text to eliminate detected slop patterns. Operates in two modes:
+Rewrites text to eliminate detected slop patterns using the **Generate-Verify-Refine (GVR) loop**. Operates in two modes:
 - **Interactive:** User provides text, skill proposes changes with confirmation
-- **Automatic:** Skill prevents slop during content generation
+- **Automatic:** Skill prevents slop during content generation (GVR loop, max 3 iterations)
+
+**Features:**
+- GVR loop with stylometric threshold checking (sentence σ, TTR, hapax rate)
+- User calibration with personal writing samples
+- Immediate rescan after adding patterns
+- Cross-machine dictionary sync via `slop-sync`
 
 **Invoke:**
 - Interactive: "Clean up this email: [text]"
 - Automatic: "Write an email to the team about [topic]"
+- Calibrate: "Calibrate slop detection with my writing"
 
 ### enforce-style-guide
 
@@ -64,15 +71,37 @@ Enforces coding standards before any commit. Checks shebang, error handling, hel
 
 ### resume-screening
 
-Screens Senior SDE candidates against CallBox hiring criteria. Evaluates experience, stack fit, scale, leadership, contractor patterns, and salary alignment.
+Screens Senior SDE candidates against CallBox hiring criteria. Evaluates experience, stack fit, scale, leadership, contractor patterns, and salary alignment. **Integrates with detecting-ai-slop** for AI-generated resume detection.
 
-**Invoke:** "Screen at $[X]k cap" + paste resume
+**Invoke:**
+- "Screen at $[X]k cap" + paste resume
+- "What's the bullshit factor on this resume?" (slop analysis)
 
 ### phone-screen-prep
 
-Creates phone screen notes files with targeted questions based on screening concerns.
+Creates phone screen notes files with targeted questions based on screening concerns. **Adds AI slop probing questions** when bullshit factor >50.
 
 **Invoke:** "Prep phone screen for [Name]"
+
+## Cross-Machine Sync
+
+The `slop-sync` script synchronizes your slop dictionary across machines via GitHub:
+
+```bash
+# Initialize (first time only)
+./slop-sync init
+
+# Upload dictionary after changes
+./slop-sync push
+
+# Download latest on another machine
+./slop-sync pull
+
+# Check sync status
+./slop-sync status
+```
+
+Uses Last Write Wins conflict resolution based on timestamps.
 
 ## Directory Structure
 
@@ -83,6 +112,7 @@ superpowers-plus/
 ├── README.md                       # This file
 ├── LICENSE
 ├── install.sh                      # Install superpowers and skills
+├── slop-sync                       # Cross-machine dictionary sync script
 ├── .gitignore
 ├── docs/
 │   ├── Vision_PRD.md               # High-level vision and requirements
@@ -93,14 +123,14 @@ superpowers-plus/
 └── skills/
     ├── detecting-ai-slop/          # Analysis and scoring (300+ patterns)
     │   └── SKILL.md
-    ├── eliminating-ai-slop/        # Rewriting and prevention
+    ├── eliminating-ai-slop/        # Rewriting and prevention (GVR loop)
     │   └── SKILL.md
     ├── enforce-style-guide/
     │   └── SKILL.md
-    ├── resume-screening/
+    ├── resume-screening/           # Integrates with detecting-ai-slop
     │   ├── SKILL.md
     │   └── README.md
-    ├── phone-screen-prep/
+    ├── phone-screen-prep/          # Adds AI slop probing questions
     │   ├── SKILL.md
     │   └── README.md
     └── reviewing-ai-text/          # Deprecated

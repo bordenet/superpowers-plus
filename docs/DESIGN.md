@@ -2,16 +2,16 @@
 
 > **Guidelines:** See [CLAUDE.md](../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-25
-> **Status:** Revised for 13 content types
+> **Status:** Enhanced with GVR loop, full dictionary schema, stylometric thresholds, calibration, slop-sync, and recruiting integration
 > **Author:** Matt J Bordenet
 
 ## Purpose
 
 Technical design for two complementary skills:
 - **detecting-ai-slop**: Read-only analysis producing bullshit factor scores
-- **eliminating-ai-slop**: Active rewriting with interactive and automatic modes
+- **eliminating-ai-slop**: Active rewriting with interactive and automatic modes using GVR loop
 
-Supports 13 content types with type-specific detection and rewriting.
+Supports 13 content types with type-specific detection and rewriting. Integrates with recruiting skills (resume-screening, phone-screen-prep) for candidate evaluation.
 
 See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
@@ -263,12 +263,56 @@ User: "Draft a LinkedIn post about our product launch"
 User: "Create a README for this project"
 ```
 
-**Behavior:**
+**Behavior (GVR Loop):**
 1. Detect requested content type from prompt
-2. Generate content
-3. Apply type-specific slop prevention during generation
-4. Return clean output
-5. Report summary
+2. **GENERATE:** Produce raw draft
+3. **VERIFY:** Analyze against patterns and stylometric thresholds
+4. **REFINE:** Rewrite if thresholds missed (max 3 iterations)
+5. **RETURN:** Clean output with transparency summary
+
+---
+
+## Generate-Verify-Refine (GVR) Loop
+
+The GVR loop is the core architecture for automatic slop elimination in eliminating-ai-slop.
+
+### GVR Flow
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  GENERATE   │────▶│   VERIFY    │────▶│   REFINE    │
+│  Raw draft  │     │  Analyze    │     │  Fix issues │
+└─────────────┘     └─────────────┘     └──────┬──────┘
+                           │                    │
+                           │ Pass               │ Fail
+                           ▼                    │
+                    ┌─────────────┐             │
+                    │   RETURN    │◀────────────┘
+                    │ Clean output│    (max 3 iterations)
+                    └─────────────┘
+```
+
+### GVR Thresholds
+
+| Metric | Pass Threshold | Action if Failed |
+|--------|----------------|------------------|
+| Lexical patterns | 0 in output | Rewrite flagged phrases |
+| Sentence length σ | ≥15.0 words | Vary sentence lengths |
+| Paragraph SD | ≥25 words | Vary paragraph lengths |
+| TTR | 0.50-0.70 | Diversify vocabulary |
+| Hapax rate | ≥40% (or calibrated) | Add unique words |
+
+### GVR Iteration Limits
+
+- **Maximum iterations:** 3
+- **Early exit:** All thresholds pass
+- **Timeout behavior:** Return with remaining issues noted
+
+### GVR Transparency Report
+
+```
+[GVR: 2 iterations | removed 8 patterns | σ: 7.2→16.4 | TTR: 0.42→0.56]
+```
 
 **Example Summary:**
 ```
@@ -316,56 +360,60 @@ User: "Create a README for this project"
 
 **Location:** `{workspace_root}/.slop-dictionary.json`
 
-**Format (updated for content types):**
+**Format (v2 - Full Schema):**
 ```json
 {
   "version": "2.0",
-  "universal_patterns": [
-    {
-      "phrase": "incredibly",
-      "category": "generic-booster",
+  "last_modified": "2026-01-25T10:30:00Z",
+  "patterns": {
+    "leverage": {
+      "pattern": "leverage",
+      "category": "buzzword",
+      "weight": 1.0,
       "count": 47,
-      "added": "2026-01-24",
-      "source": "built-in"
-    }
-  ],
-  "content_type_patterns": {
-    "email": [
-      {
-        "phrase": "I hope this email finds you well",
-        "category": "opening-slop",
-        "count": 12,
-        "added": "2026-01-25",
-        "source": "built-in"
-      }
-    ],
-    "linkedin": [...],
-    "sms": [...],
-    "teams": [...],
-    "claude-md": [...],
-    "readme": [...],
-    "prd": [...],
-    "design-doc": [...],
-    "test-plan": [...],
-    "cv": [...],
-    "cover-letter": [...]
-  },
-  "exceptions": [
-    {
-      "phrase": "leverage",
-      "scope": "permanent",
-      "content_type": "all",
-      "added": "2026-01-25"
+      "timestamp": "2026-01-25T10:30:00Z",
+      "source": "built-in",
+      "exception": false
     },
-    {
-      "phrase": "I hope this finds you well",
-      "scope": "permanent",
-      "content_type": "email",
-      "reason": "Required by company policy",
-      "added": "2026-01-25"
+    "synergize": {
+      "pattern": "synergize",
+      "category": "buzzword",
+      "weight": 1.5,
+      "count": 12,
+      "timestamp": "2026-01-24T14:22:00Z",
+      "source": "user-added",
+      "exception": false
     }
-  ]
+  },
+  "exceptions": {
+    "robust": {
+      "pattern": "robust",
+      "scope": "permanent",
+      "added": "2026-01-23T09:15:00Z",
+      "reason": "Technical term in my domain"
+    }
+  },
+  "calibration": {
+    "samples_provided": 3,
+    "baseline_ttr": 0.58,
+    "baseline_hapax": 0.45,
+    "baseline_sentence_sd": 12.3,
+    "calibrated_at": "2026-01-20T16:00:00Z"
+  }
 }
+```
+
+### Dictionary Field Reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| pattern | string | The slop phrase |
+| category | string | lexical, structural, semantic, stylometric |
+| weight | float | Scoring multiplier (0.1-2.0, default 1.0) |
+| count | integer | Times detected and flagged |
+| timestamp | ISO 8601 | Last detection time |
+| source | string | "built-in" or "user-added" |
+| exception | boolean | Skip during detection if true |
 ```
 
 **Behavior:**
@@ -431,6 +479,123 @@ User: "Create a README for this project"
     }
   }
 }
+```
+
+---
+
+## Stylometric Analysis
+
+Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
+
+### Metrics and Thresholds
+
+| Metric | Formula | Flag If | Target |
+|--------|---------|---------|--------|
+| Sentence length σ | Standard deviation of words/sentence | σ < 15.0 | σ > 15.0 |
+| Paragraph length SD | Standard deviation of words/paragraph | SD < 25 | SD > 25 |
+| Type-Token Ratio (TTR) | Unique words / Total words (per 100-word window) | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
+| Hapax legomena rate | Words appearing once / Total unique words | Below baseline | At or above baseline |
+
+### Calculation Methods
+
+**Sentence length σ:**
+1. Split text into sentences (period, question mark, exclamation)
+2. Count words in each sentence
+3. Calculate: `σ = sqrt(Σ(x - μ)² / n)`
+
+**Type-Token Ratio:**
+1. Normalize text (lowercase, remove punctuation)
+2. For each 100-word window: unique tokens / 100
+3. Average across windows
+
+---
+
+## Calibration System
+
+Users can calibrate stylometric thresholds using their own human-written samples.
+
+### Calibration Process
+
+1. User provides 3-5 authentic writing samples (300+ words each)
+2. Skill calculates stylometric baselines from samples
+3. Baselines stored in dictionary `calibration` section
+4. Future GVR thresholds adjusted to personal baseline
+
+### Calibration Storage
+
+```json
+"calibration": {
+  "samples_provided": 3,
+  "baseline_ttr": 0.58,
+  "baseline_hapax": 0.45,
+  "baseline_sentence_sd": 12.3,
+  "calibrated_at": "2026-01-20T16:00:00Z"
+}
+```
+
+---
+
+## Cross-Machine Synchronization
+
+### slop-sync Script
+
+The `slop-sync` shell script enables dictionary synchronization across machines via GitHub.
+
+**Commands:**
+```bash
+slop-sync push    # Upload local dictionary to GitHub
+slop-sync pull    # Download latest dictionary from GitHub
+slop-sync status  # Show sync state, conflicts, timestamps
+slop-sync init    # Initialize configuration
+```
+
+**Conflict Resolution:** Last Write Wins based on `last_modified` timestamp.
+
+### Configuration
+
+```bash
+# ~/.slop-sync-config
+SLOP_SYNC_REPO="git@github.com:username/slop-dictionary.git"
+SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
+```
+
+---
+
+## Recruiting Integration
+
+### Integration with resume-screening
+
+The detecting-ai-slop skill integrates with resume-screening for candidate evaluation.
+
+**Key principle:** Detect-only mode for candidate materials. We flag AI patterns but never rewrite candidate content.
+
+**Workflow:**
+1. Resume screening identifies potential AI-generated content
+2. User invokes: "What's the bullshit factor on this resume?"
+3. detecting-ai-slop returns bullshit factor with recruiting-specific flags
+4. phone-screen-prep generates targeted questions for high-slop candidates
+
+### Recruiting-Specific Scoring
+
+When content type is CV/Resume or Cover Letter:
+
+| Pattern | Base Score | Recruiting Multiplier | Final Score |
+|---------|------------|----------------------|-------------|
+| Skills matches JD exactly | +10 | ×2 | +20 |
+| Power verbs without metrics | +5 | ×1.5 | +7.5 |
+| No quantified achievements | +10 | ×2 | +20 |
+| ChatGPT clichés | +10 | ×2 | +20 |
+
+### phone-screen-prep Integration
+
+When bullshit factor >50, phone-screen-prep adds targeted questions:
+
+```markdown
+### AI-Generated Content Concern
+**Bullshit Factor:** 67/100
+**Flag:** Skills list matches JD exactly (14/14 keywords)
+
+_"Walk me through a project using [specific skill]. What was the hardest part?"_
 ```
 
 ---
