@@ -34,6 +34,7 @@ Use `./install.sh --verbose` for detailed output or `./install.sh --force` to re
 | `detecting-ai-slop` | Analyze text and produce bullshit factor scores (0-100) |
 | `eliminating-ai-slop` | Rewrite text to remove slop patterns |
 | `enforce-style-guide` | Enforce coding standards before commits |
+| `incorporating-research` | Incorporate external research into docs (strips artifacts, preserves voice) |
 | `resume-screening` | Screen Senior SDE candidates against hiring criteria |
 | `phone-screen-prep` | Prepare phone screen notes with targeted questions |
 | `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
@@ -68,6 +69,21 @@ Rewrites text to eliminate detected slop patterns using the **Generate-Verify-Re
 Enforces coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, dry-run flags, line limits, ShellCheck, and syntax.
 
 **Invoke:** Before ANY commit to ANY repository.
+
+### incorporating-research
+
+Incorporates external research (Perplexity, web searches, ChatGPT outputs) into existing documents. Triages input to separate signal from noise, strips citation artifacts, preserves document voice, and confirms scope before editing.
+
+**Features:**
+- Triage: Separates new content from irrelevant sections and artifacts
+- Artifact stripping: Removes citation numbers, source sections, formatting quirks
+- Voice preservation: Matches existing document style and tone
+- Scope confirmation: Always confirms changes before editing
+
+**Invoke:**
+- "Incorporate this Perplexity output into [doc]"
+- "Merge this research into the doc"
+- "Add this to [file]"
 
 ### resume-screening
 
@@ -126,6 +142,8 @@ superpowers-plus/
     ├── eliminating-ai-slop/        # Rewriting and prevention (GVR loop)
     │   └── SKILL.md
     ├── enforce-style-guide/
+    │   └── SKILL.md
+    ├── incorporating-research/     # Incorporate external research (strips artifacts)
     │   └── SKILL.md
     ├── resume-screening/           # Integrates with detecting-ai-slop
     │   ├── SKILL.md

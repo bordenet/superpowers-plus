@@ -52,6 +52,7 @@ This document tracks all work items for the superpowers-plus repository. Update 
 | detecting-ai-slop | ✅ Enhanced | 920+ | Stylometric thresholds, calibration, metrics, recruiting integration |
 | eliminating-ai-slop | ✅ Enhanced | 690+ | GVR loop, user feedback rescan, full dictionary schema |
 | enforce-style-guide | ✅ Stable | - | - |
+| incorporating-research | ✅ Complete | 200+ | Triage, artifact stripping, voice preservation |
 | resume-screening | ✅ Integrated | 470+ | detecting-ai-slop integration |
 | phone-screen-prep | ✅ Integrated | - | AI slop probing questions |
 | reviewing-ai-text | ⚠️ Deprecated | - | Use detecting/eliminating instead |
@@ -80,6 +81,13 @@ This document tracks all work items for the superpowers-plus repository. Update 
 ---
 
 ## Completed Work
+
+### 2026-01-26
+
+- [x] Create incorporating-research skill (200+ lines)
+- [x] Test skill installation and invocation
+- [x] Update TODO.md with new skill
+- [x] Update README.md with new skill
 
 ### 2026-01-25 (Session 2)
 
