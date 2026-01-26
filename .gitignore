@@ -39,3 +39,7 @@ npm-debug.log*
 # Backup files
 *.bak
 *.backup
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
