@@ -1,7 +1,7 @@
 # superpowers-plus
 
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-01-25
+> **Last Updated:** 2026-01-31
 
 Personal skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, and Codex.
 
@@ -78,7 +78,7 @@ The skill uses a 4-step evaluation loop:
 
 ---
 
-## Skills
+## Skills Overview
 
 | Skill | Purpose |
 |-------|---------|
@@ -92,65 +92,246 @@ The skill uses a 4-step evaluation loop:
 | `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
 | `security-upgrade` | CVE scanning and dependency upgrade workflow |
 
+---
+
+## Skills: Goals & Outcomes
+
+> **CRITICAL**: These GOALS/OUTCOMES define what each skill MUST accomplish. If a skill fails to achieve its goals, it is useless and should be fixed or deprecated.
+
 ### detecting-ai-slop
 
-Analyzes text and produces a bullshit factor score (0-100) with detailed breakdown. Supports 13 content types with type-specific pattern detection.
+**Goal:** Identify AI-generated content by detecting telltale patterns (boosters, hedging, clichés, uniformity) and produce an actionable bullshit factor score.
 
-**Supported content types:** Document, Email, LinkedIn, SMS, Teams/Slack, CLAUDE.md, README, PRD, Design Doc, Test Plan, CV/Resume, Cover Letter
+**Success Criteria:**
+- [ ] Score accurately reflects AI-generation likelihood (0-100)
+- [ ] Human-written text scores <30 consistently
+- [ ] Obvious AI slop scores >60 consistently
+- [ ] Breakdown identifies SPECIFIC patterns, not vague categories
+- [ ] Stylometric metrics (sentence σ, TTR, hapax) calculated correctly
+
+**Expected Outcomes:**
+1. User pastes text → receives numeric score + pattern breakdown in <5 seconds
+2. Score matches human intuition (calibrated via user samples)
+3. Actionable fixes: each flagged pattern has a concrete fix suggestion
+4. Content-type detection adjusts thresholds appropriately (email vs PRD)
+
+**Failure Modes:**
+- ❌ High scores on obviously human text (false positive)
+- ❌ Low scores on ChatGPT-generated text (false negative)
+- ❌ Vague output: "some issues detected" without specifics
+- ❌ Takes >30 seconds to analyze reasonable-length text
 
 **Invoke:** "What's the bullshit factor on this [content type]?"
 
+---
+
 ### eliminating-ai-slop
 
-Rewrites text to eliminate detected slop patterns using the **Generate-Verify-Refine (GVR) loop**. Operates in two modes:
-- **Interactive:** User provides text, skill proposes changes with confirmation
-- **Automatic:** Skill prevents slop during content generation (GVR loop, max 3 iterations)
+**Goal:** Transform AI-like text into human-quality writing by eliminating detected patterns while preserving meaning and adding specificity.
 
-**Features:**
-- GVR loop with stylometric threshold checking (sentence σ, TTR, hapax rate)
-- User calibration with personal writing samples
-- Immediate rescan after adding patterns
-- Cross-machine dictionary sync via `slop-sync`
+**Success Criteria:**
+- [ ] GVR loop reduces bullshit factor by ≥30 points
+- [ ] Output passes stylometric thresholds (sentence σ >3, TTR >0.45)
+- [ ] Meaning preserved—no information loss
+- [ ] Matches target voice when calibrated
+- [ ] Max 3 GVR iterations (prevents infinite loops)
+
+**Expected Outcomes:**
+1. Input text with score 70 → output text with score <40
+2. User can verify before/after with side-by-side comparison
+3. Transparency report explains what changed and why
+4. Personal dictionary updates persist across sessions
+
+**Failure Modes:**
+- ❌ Output loses critical information
+- ❌ Rewritten text sounds generic or loses voice
+- ❌ Infinite GVR loops (>3 iterations)
+- ❌ No improvement after rewriting
 
 **Invoke:**
 - Interactive: "Clean up this email: [text]"
 - Automatic: "Write an email to the team about [topic]"
 - Calibrate: "Calibrate slop detection with my writing"
 
+---
+
 ### enforce-style-guide
 
-Enforces coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, dry-run flags, line limits, ShellCheck, and syntax.
+**Goal:** Prevent non-compliant code from being committed by enforcing repository-specific and language-specific standards.
+
+**Success Criteria:**
+- [ ] Runs automatically before every commit
+- [ ] Checks ALL mandatory requirements from style guides
+- [ ] Reports violations with file:line references
+- [ ] Provides fix suggestions or auto-fixes where possible
+- [ ] Re-validates after fixes
+
+**Expected Outcomes:**
+1. User attempts commit → skill audits all changed files
+2. Violations listed with actionable fix instructions
+3. After fixes, re-audit confirms compliance
+4. No non-compliant code reaches the repository
+
+**Failure Modes:**
+- ❌ Misses obvious violations (false negative)
+- ❌ Flags compliant code (false positive)
+- ❌ Vague error: "style violation" without location
+- ❌ Skipped for some commits (inconsistent enforcement)
 
 **Invoke:** Before ANY commit to ANY repository.
 
+---
+
 ### incorporating-research
 
-Incorporates external research (Perplexity, web searches, ChatGPT outputs) into existing documents. Triages input to separate signal from noise, strips citation artifacts, preserves document voice, and confirms scope before editing.
+**Goal:** Seamlessly integrate external research (Perplexity, web, ChatGPT) into existing documents while stripping artifacts and preserving document voice.
 
-**Features:**
-- Triage: Separates new content from irrelevant sections and artifacts
-- Artifact stripping: Removes citation numbers, source sections, formatting quirks
-- Voice preservation: Matches existing document style and tone
-- Scope confirmation: Always confirms changes before editing
+**Success Criteria:**
+- [ ] Citation artifacts (numbers, source sections) removed
+- [ ] Document voice/tone preserved after integration
+- [ ] Only relevant content extracted (triage works)
+- [ ] User confirms scope before any edits
+- [ ] No duplicate content introduced
+
+**Expected Outcomes:**
+1. User pastes Perplexity output → skill triages relevant vs noise
+2. Skill proposes specific insertions with location
+3. User confirms → content integrated matching existing style
+4. Original document structure preserved
+
+**Failure Modes:**
+- ❌ Artifacts remain in final document (e.g., "[1]" citations)
+- ❌ Integrated content clashes with document voice
+- ❌ Entire paste incorporated without triage
+- ❌ Edits made without user confirmation
 
 **Invoke:**
 - "Incorporate this Perplexity output into [doc]"
 - "Merge this research into the doc"
 - "Add this to [file]"
 
+---
+
+### perplexity-research
+
+**Goal:** Automatically invoke Perplexity when the AI assistant is stuck, uncertain, or at risk of hallucinating—then evaluate if the research actually helped.
+
+**Success Criteria:**
+- [ ] Auto-triggers on 2+ failed attempts at same operation
+- [ ] Auto-triggers on uncertainty/guessing
+- [ ] Uses correct Perplexity tool (ask vs research vs search)
+- [ ] 4-step evaluation loop: Report → Apply → Evaluate → Track
+- [ ] Stats only recorded AFTER evaluating helpfulness
+
+**Expected Outcomes:**
+1. AI hits wall → Perplexity invoked automatically
+2. Response summarized, then APPLIED to the problem
+3. Outcome evaluated: SUCCESS (fixed it), PARTIAL (helped some), FAILURE (didn't help)
+4. Stats tracked with outcome, enabling success rate analysis
+
+**Failure Modes:**
+- ❌ Perplexity called but response not applied (wasted API call)
+- ❌ Stats recorded before knowing if it helped (inflated success rates)
+- ❌ Over-triggers on easy problems (wastes API quota)
+- ❌ Never triggers even when clearly stuck
+
+**Invoke:** Automatic, or manual: "Use Perplexity to research X"
+
+---
+
 ### resume-screening
 
-Screens Senior SDE candidates against CallBox hiring criteria. Evaluates experience, stack fit, scale, leadership, contractor patterns, and salary alignment. **Integrates with detecting-ai-slop** for AI-generated resume detection.
+**Goal:** Efficiently screen Senior SDE candidates against hiring criteria, flagging concerns and generating targeted phone screen questions.
+
+**Success Criteria:**
+- [ ] Work authorization checked FIRST (reject if needs sponsorship)
+- [ ] 5+ years qualifying SWE experience verified
+- [ ] Contractor patterns detected and flagged
+- [ ] Salary alignment validated against cap
+- [ ] AI slop detected in resumes/responses
+- [ ] Phone screen questions target identified concerns
+
+**Expected Outcomes:**
+1. User pastes resume → HIRE/NO HIRE/PROBE decision in <30 seconds
+2. Phone screen questions generated for each concern
+3. Loop questions generated for deeper probing
+4. AI slop flagged if detected in resume or responses
+
+**Failure Modes:**
+- ❌ Misses sponsorship requirement (wastes interview time)
+- ❌ Passes unqualified candidate (< 5 years SWE)
+- ❌ Rejects strong candidate on technicality (over-filtering)
+- ❌ Generic questions instead of targeted probes
 
 **Invoke:**
 - "Screen at $[X]k cap" + paste resume
 - "What's the bullshit factor on this resume?" (slop analysis)
 
+---
+
 ### phone-screen-prep
 
-Creates phone screen notes files with targeted questions based on screening concerns. **Adds AI slop probing questions** when bullshit factor >50.
+**Goal:** Create phone screen notes files with targeted questions based on screening concerns, ready for the interviewer.
+
+**Success Criteria:**
+- [ ] Template copied and placeholders replaced
+- [ ] Targeted questions added for each screening concern
+- [ ] AI slop probing questions added when bullshit factor >50
+- [ ] File named correctly (FirstName_LastName__YYYY-MM-DD.md)
+- [ ] Links populated (Paylocity, GitHub, LinkedIn)
+
+**Expected Outcomes:**
+1. User requests prep → file created in correct location
+2. Concerns from resume screening → targeted questions in file
+3. High AI slop → explicit authenticity probing questions added
+4. File ready for interviewer to use during call
+
+**Failure Modes:**
+- ❌ Wrong file location or naming
+- ❌ Missing targeted questions (generic template only)
+- ❌ AI slop concerns not translated to probe questions
+- ❌ Links/placeholders not populated
 
 **Invoke:** "Prep phone screen for [Name]"
+
+---
+
+### security-upgrade
+
+**Goal:** Systematically scan for CVEs, upgrade vulnerable dependencies, and verify fixes across all supported package managers.
+
+**Success Criteria:**
+- [ ] All package managers scanned (npm, Go, Python, Rust, Flutter)
+- [ ] CVEs identified with severity and fix versions
+- [ ] Upgrades applied one at a time with testing
+- [ ] Breaking changes detected and addressed
+- [ ] Post-upgrade verification confirms fixes
+
+**Expected Outcomes:**
+1. User invokes → full vulnerability scan across all ecosystems
+2. CVEs listed with severity, affected package, fix version
+3. Each upgrade tested before proceeding to next
+4. Final verification shows 0 vulnerabilities (or documented exceptions)
+
+**Failure Modes:**
+- ❌ Misses vulnerabilities (incomplete scan)
+- ❌ Bulk upgrades break the build
+- ❌ Upgrades applied without testing
+- ❌ Says "done" but vulnerabilities remain
+
+**Invoke:** "Scan for CVEs" or "Upgrade dependencies"
+
+---
+
+### reviewing-ai-text *(DEPRECATED)*
+
+**Goal:** N/A — Use `detecting-ai-slop` and `eliminating-ai-slop` instead.
+
+This skill is deprecated. It has been superseded by the more capable slop detection and elimination skills which provide:
+- Better pattern detection (300+ patterns vs original ~50)
+- GVR loop for automatic rewriting
+- Stylometric analysis
+- Cross-machine dictionary sync
 
 ## Cross-Machine Sync
 

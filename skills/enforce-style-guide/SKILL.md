@@ -1,4 +1,9 @@
-# Skill: /enforce-style-guide
+---
+name: enforce-style-guide
+description: "Enforce coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, line limits, ShellCheck compliance, and syntax validation."
+---
+
+# enforce-style-guide
 
 **MANDATORY**: Use this skill before ANY commit to ANY repository to ruthlessly enforce coding standards.
 
