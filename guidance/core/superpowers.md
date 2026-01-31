@@ -22,6 +22,30 @@ This loads available skills and the `using-superpowers` skill.
 | `superpowers:test-driven-development` | Before writing implementation |
 | `superpowers:verification-before-completion` | Before claiming done |
 | `superpowers:writing-plans` | Before multi-step tasks |
+| `superpowers:perplexity-research` | When stuck or uncertain (see below) |
+
+## 🔍 Perplexity Research - Automatic Invocation
+
+**CRITICAL**: This skill has AUTOMATIC triggers. You MUST invoke `superpowers:perplexity-research` when:
+
+| Trigger | Action |
+|---------|--------|
+| **2+ Failed Attempts** | Same operation failed twice → invoke Perplexity |
+| **Uncertainty/Guessing** | About to guess at an answer → invoke Perplexity |
+| **Cutting Corners** | About to violate Agents.md guidance → invoke Perplexity |
+| **Hallucination Risk** | Unsure about API/library/fact → invoke Perplexity |
+| **Outdated Knowledge** | Post-training-cutoff topic → invoke Perplexity |
+| **Unknown Errors** | Can't interpret error message → invoke Perplexity |
+
+**Decision tree**:
+- Personal preference question? → Ask the user
+- Broader/extrinsic research needed? → Invoke Perplexity
+
+**Manual override**: User can always say "Use Perplexity to research X"
+
+**ALWAYS announce**: `🔍 **Consulting Perplexity**: [topic] - Reason: [trigger]`
+
+**Stats tracking**: Update `~/.codex/perplexity-stats.json` after every invocation
 
 ## Skill Commands
 

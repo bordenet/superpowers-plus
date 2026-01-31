@@ -1,0 +1,136 @@
+---
+name: perplexity-research
+description: "Invoke when stuck (2+ failed attempts, uncertainty, or guessing) OR manually to research technical/domain questions via Perplexity MCP. ALWAYS announce invocation and track stats."
+---
+
+# Perplexity Research
+
+> **Purpose**: Get unstuck by dispatching research queries to Perplexity AI
+> **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
+> **Stats**: `~/.codex/perplexity-stats.json`
+
+## When to Invoke (Automatic Triggers)
+
+You MUST invoke this skill when ANY of these conditions are met:
+
+| Trigger | Description |
+|---------|-------------|
+| **2+ Failed Attempts** | Same operation failed twice with different approaches |
+| **Uncertainty/Guessing** | You're unsure and would otherwise guess at an answer |
+| **Cutting Corners** | About to do something that violates Agents.md guidance |
+| **Hallucination Risk** | Making claims about APIs, libraries, or facts you're not certain about |
+| **Outdated Knowledge** | Question involves tools/frameworks potentially released after training |
+| **Unknown Errors** | Encountering error messages you can't interpret |
+
+**Personal preference matters?** → Ask the user instead
+**Broader/extrinsic research needed?** → Invoke this skill
+
+## Manual Invocation
+
+User can always force invocation with:
+- "Use Perplexity to research X"
+- "Get unstuck on X"  
+- "Research X via Perplexity"
+
+## Invocation Protocol
+
+### Step 1: Announce
+
+**ALWAYS** announce before invoking:
+
+```
+🔍 **Consulting Perplexity**: [Brief description of what I'm researching]
+Reason: [Which trigger condition was met]
+```
+
+### Step 2: Generate Rich Prompt
+
+Craft a detailed prompt for Perplexity that includes:
+- **Context**: What you're trying to accomplish
+- **Specific question**: The exact information needed
+- **Constraints**: Any requirements (language, version, platform)
+- **What you've tried**: Failed approaches (if applicable)
+
+### Step 3: Dispatch to Perplexity
+
+Use the Perplexity MCP tools:
+
+| Query Type | Tool |
+|------------|------|
+| Quick fact | `perplexity_search_perplexity` |
+| How-to question | `perplexity_ask_perplexity` |
+| Deep research | `perplexity_research_perplexity` |
+| Complex reasoning | `perplexity_reason_perplexity` |
+
+### Step 4: Report Results
+
+After receiving response:
+
+```
+✅ **Perplexity Result**: [Summary of findings]
+
+Key insights:
+- [insight 1]
+- [insight 2]
+
+Applying this to solve: [how you'll use this information]
+```
+
+### Step 5: Update Stats
+
+After EVERY invocation, update `~/.codex/perplexity-stats.json`:
+
+```json
+{
+  "total_invocations": 42,
+  "successful": 38,
+  "unsuccessful": 4,
+  "success_rate": 0.905,
+  "last_invocation": "2026-01-31T10:30:00Z",
+  "by_trigger": {
+    "failed_attempts": 15,
+    "uncertainty": 12,
+    "outdated_knowledge": 8,
+    "unknown_errors": 5,
+    "manual": 2
+  },
+  "by_tool": {
+    "search": 10,
+    "ask": 20,
+    "research": 10,
+    "reason": 2
+  },
+  "recent": [
+    {
+      "timestamp": "2026-01-31T10:30:00Z",
+      "trigger": "failed_attempts",
+      "tool": "ask",
+      "query_summary": "ESLint 9.x flat config ignore patterns",
+      "successful": true
+    }
+  ]
+}
+```
+
+**Success criteria**: The research helped solve the problem or provided actionable information.
+
+## Stats Commands
+
+View stats: `cat ~/.codex/perplexity-stats.json | jq .`
+
+Reset stats: `echo '{"total_invocations":0,"successful":0,"unsuccessful":0,"success_rate":0,"by_trigger":{},"by_tool":{},"recent":[]}' > ~/.codex/perplexity-stats.json`
+
+## Integration with Other Skills
+
+- **superpowers:systematic-debugging**: Invoke Perplexity when debugging hits a wall
+- **superpowers:brainstorming**: Use for research during design exploration
+- **superpowers:verification-before-completion**: Verify facts before claiming done
+
+## Key Principles
+
+1. **ALWAYS announce** - User must know when Perplexity is being consulted
+2. **Track everything** - Stats enable tuning and improvement
+3. **Rich prompts** - Better prompts = better results
+4. **Broad scope** - Technical AND domain questions are valid
+5. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
+
