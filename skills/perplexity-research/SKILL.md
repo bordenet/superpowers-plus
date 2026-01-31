@@ -62,23 +62,52 @@ Use the Perplexity MCP tools:
 | Deep research | `perplexity_research_perplexity` |
 | Complex reasoning | `perplexity_reason_perplexity` |
 
-### Step 4: Report Results
+### Step 4: Report Results (Preliminary)
 
-After receiving response:
+After receiving response, report what you learned:
 
 ```
-✅ **Perplexity Result**: [Summary of findings]
+📋 **Perplexity Response**: [Summary of findings]
 
 Key insights:
 - [insight 1]
 - [insight 2]
 
-Applying this to solve: [how you'll use this information]
+**Attempting to apply**: [specific action you'll take based on this]
 ```
 
-### Step 5: Update Stats
+### Step 5: Apply the Information
 
-After EVERY invocation, update `~/.codex/perplexity-stats.json`:
+Actually USE the information from Perplexity:
+- Run the suggested command
+- Implement the suggested fix
+- Apply the recommended approach
+- Test the solution
+
+**DO NOT record stats yet.** You must evaluate whether it helped first.
+
+### Step 6: Evaluate Helpfulness (CRITICAL)
+
+After attempting to apply the Perplexity response, explicitly evaluate:
+
+```
+📊 **Perplexity Evaluation**:
+- Applied: [what you tried]
+- Outcome: [SUCCESS | PARTIAL | FAILURE]
+- Reason: [why it helped or didn't help]
+```
+
+**Evaluation criteria**:
+
+| Outcome | Criteria | Record As |
+|---------|----------|-----------|
+| **SUCCESS** | Problem solved, unblocked, or gained actionable insight | `successful: true` |
+| **PARTIAL** | Some useful info but needed additional work | `successful: true` |
+| **FAILURE** | Information was wrong, irrelevant, or didn't help | `successful: false` |
+
+### Step 7: Update Stats (After Evaluation)
+
+**ONLY after Step 6**, update `~/.codex/perplexity-stats.json`:
 
 ```json
 {
@@ -106,13 +135,19 @@ After EVERY invocation, update `~/.codex/perplexity-stats.json`:
       "trigger": "failed_attempts",
       "tool": "ask",
       "query_summary": "ESLint 9.x flat config ignore patterns",
-      "successful": true
+      "successful": true,
+      "outcome": "SUCCESS",
+      "outcome_reason": "Fixed the ignore pattern issue"
     }
   ]
 }
 ```
 
-**Success criteria**: The research helped solve the problem or provided actionable information.
+**The evaluation loop**:
+1. Receive Perplexity response → Report (Step 4)
+2. Apply the information → Act (Step 5)
+3. Evaluate outcome → Judge (Step 6)
+4. Record stats → Track (Step 7)
 
 ## Stats Commands
 

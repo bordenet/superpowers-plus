@@ -27,6 +27,57 @@ The install script:
 
 Use `./install.sh --verbose` for detailed output or `./install.sh --force` to reinstall superpowers.
 
+## Perplexity MCP Integration
+
+The `perplexity-research` skill enables AI assistants to automatically consult Perplexity when stuck.
+
+### Quick Install (New Machine)
+
+```bash
+# 1. Clone this repo
+git clone https://github.com/bordenet/superpowers-plus.git
+cd superpowers-plus
+
+# 2. Install base superpowers and skills
+./install.sh
+
+# 3. Configure Perplexity MCP (requires API key)
+./setup/mcp-perplexity.sh
+
+# 4. Install the perplexity-research skill
+./setup/install-perplexity-skill.sh
+
+# 5. Verify everything works
+./setup/verify-perplexity-setup.sh
+```
+
+### Automatic Triggers
+
+The skill auto-invokes when:
+- **2+ failed attempts** at the same operation
+- **Uncertainty/guessing** at an answer
+- **Hallucination risk** (unsure about APIs/facts)
+- **Outdated knowledge** (post-training topics)
+
+### Manual Override
+
+Say: "Use Perplexity to research X" or "Get unstuck on X"
+
+### Stats Tracking
+
+Stats are tracked in `~/.codex/perplexity-stats.json`:
+```bash
+cat ~/.codex/perplexity-stats.json | jq .
+```
+
+The skill uses a 4-step evaluation loop:
+1. **Report** - Summarize Perplexity response
+2. **Apply** - Actually use the information
+3. **Evaluate** - Judge if it helped (SUCCESS/PARTIAL/FAILURE)
+4. **Track** - Record stats only after evaluation
+
+---
+
 ## Skills
 
 | Skill | Purpose |
@@ -35,9 +86,11 @@ Use `./install.sh --verbose` for detailed output or `./install.sh --force` to re
 | `eliminating-ai-slop` | Rewrite text to remove slop patterns |
 | `enforce-style-guide` | Enforce coding standards before commits |
 | `incorporating-research` | Incorporate external research into docs (strips artifacts, preserves voice) |
+| `perplexity-research` | Auto-invoke Perplexity when stuck (2+ failures, uncertainty) |
 | `resume-screening` | Screen Senior SDE candidates against hiring criteria |
 | `phone-screen-prep` | Prepare phone screen notes with targeted questions |
 | `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
+| `security-upgrade` | CVE scanning and dependency upgrade workflow |
 
 ### detecting-ai-slop
 
