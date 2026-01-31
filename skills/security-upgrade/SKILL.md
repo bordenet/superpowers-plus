@@ -172,6 +172,20 @@ git push origin main
 4. **Re-scan for vulnerabilities** after upgrades to verify fixes
 5. **Never bypass security updates** - all CVEs must be addressed
 
+## ⛔ NEVER Do These Things
+
+- **NEVER skip, disable, or bypass tests** to make upgrades pass
+- **NEVER use `--force` flags** without explicit user approval
+- **NEVER delete or comment out failing tests** to hide breakage
+- **NEVER use `|| true` to suppress test failures**
+- **NEVER commit with failing tests** - fix the code or rollback the upgrade
+
+If tests fail after an upgrade, the correct response is:
+1. Investigate why the test fails
+2. Fix the code to work with the new dependency version
+3. OR rollback to the previous dependency version
+4. OR ask the user for guidance
+
 ---
 
 ## Expected Outcomes
