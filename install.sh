@@ -1,20 +1,13 @@
-#!/bin/bash
-#
-# install.sh - Install superpowers-plus skills
-#
-# This script:
-# 1. Checks for and installs obra/superpowers if not present
-# 2. Installs all skills from this repository to ~/.codex/skills/
-# 3. Validates the installation
-#
-# Usage: ./install.sh [--force] [--verbose]
-#
-# Options:
-#   --force    Reinstall superpowers even if already present
-#   --verbose  Show detailed output
-#   --help     Show this help message
-
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Script: install.sh
+# PURPOSE: Install superpowers-plus skills (obra/superpowers + personal skills)
+# USAGE: ./install.sh [-h|--help] [-v|--verbose] [--force]
+# PLATFORM: macOS, Linux
+# -----------------------------------------------------------------------------
 set -euo pipefail
+
+VERSION="1.1.0"
 
 # Colors for output (disabled if not a terminal)
 if [[ -t 1 ]]; then
@@ -42,24 +35,65 @@ SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
 FORCE=false
 VERBOSE=false
 
-# Parse arguments
+# --- Help ---
+show_help() {
+    cat << 'EOF'
+NAME
+    install.sh - Install superpowers-plus skills
+
+SYNOPSIS
+    install.sh [OPTIONS]
+
+DESCRIPTION
+    Installs obra/superpowers (if not present) and all personal skills from
+    this repository to ~/.codex/skills/. Safe to run multiple times.
+
+OPTIONS
+    -h, --help
+        Display this help message and exit
+
+    -v, --verbose
+        Show detailed progress information
+
+    --force
+        Reinstall superpowers even if already present
+
+    --version
+        Display version information and exit
+
+WHAT GETS INSTALLED
+    ~/.codex/superpowers/   obra/superpowers core (cloned from GitHub)
+    ~/.codex/skills/        Your personal skills from superpowers-plus/skills/
+
+EXAMPLES
+    # Install with default settings
+    ./install.sh
+
+    # Install with verbose output
+    ./install.sh --verbose
+
+    # Force reinstall of superpowers
+    ./install.sh --force
+
+AUTHOR
+    Matt J Bordenet
+
+SEE ALSO
+    https://github.com/obra/superpowers
+EOF
+    exit 0
+}
+
+# --- Argument Parsing ---
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --force)
-            FORCE=true
-            shift
-            ;;
-        --verbose)
-            VERBOSE=true
-            shift
-            ;;
-        --help)
-            head -20 "$0" | tail -15
-            exit 0
-            ;;
+        -h|--help) show_help ;;
+        -v|--verbose) VERBOSE=true; shift ;;
+        --force) FORCE=true; shift ;;
+        --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
-            echo -e "${RED}Error: Unknown option $1${NC}"
-            echo "Use --help for usage information"
+            echo -e "${RED}Error: Unknown option $1${NC}" >&2
+            echo "Use -h or --help for usage information" >&2
             exit 1
             ;;
     esac
@@ -138,7 +172,7 @@ install_superpowers() {
     # Remove existing installation if force flag set
     if [[ "$FORCE" == "true" ]] && [[ -d "$SUPERPOWERS_DIR" ]]; then
         log_verbose "Removing existing superpowers installation"
-        rm -rf "$SUPERPOWERS_DIR"
+        rm -rf "${SUPERPOWERS_DIR:?}"
     fi
 
     # Clone the repository directly to ~/.codex/superpowers
@@ -193,7 +227,7 @@ install_skill() {
 
     # Remove existing skill directory
     if [[ -d "$SKILLS_DIR/$skill_name" ]]; then
-        rm -rf "$SKILLS_DIR/$skill_name" || \
+        rm -rf "${SKILLS_DIR:?}/${skill_name:?}" || \
             error_exit "Failed to remove existing skill: $skill_name"
     fi
 
@@ -298,36 +332,14 @@ print_summary() {
     echo "  superpowers-plus Installation Complete"
     echo "========================================"
     echo ""
-    echo "Installed to:"
-    echo "  Superpowers:     $SUPERPOWERS_DIR"
-    echo "  Personal Skills: $SKILLS_DIR"
+    echo "Installed to: $SUPERPOWERS_DIR, $SKILLS_DIR"
     echo ""
-    echo "Personal skills (from superpowers-plus):"
+    echo "Personal skills:"
     for skill_dir in "$SKILLS_DIR/"*/; do
-        if [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]]; then
-            local skill_name
-            skill_name=$(basename "$skill_dir")
-            echo "  • $skill_name"
-        fi
+        [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]] && echo "  • $(basename "$skill_dir")"
     done
     echo ""
-    echo "Superpowers skills (from obra/superpowers):"
-    if [[ -d "$SUPERPOWERS_DIR/skills" ]]; then
-        for skill_dir in "$SUPERPOWERS_DIR/skills/"*/; do
-            if [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]]; then
-                local skill_name
-                skill_name=$(basename "$skill_dir")
-                echo "  • superpowers:$skill_name"
-            fi
-        done
-    fi
-    echo ""
-    echo "Usage:"
-    echo "  # Use a personal skill"
-    echo "  ~/.codex/superpowers/.codex/superpowers-codex use-skill <skill-name>"
-    echo ""
-    echo "  # Use a superpowers skill"
-    echo "  ~/.codex/superpowers/.codex/superpowers-codex use-skill superpowers:<skill-name>"
+    echo "Usage: ~/.codex/superpowers/.codex/superpowers-codex use-skill <skill-name>"
     echo ""
 }
 
@@ -345,7 +357,7 @@ main() {
         install_superpowers
     elif [[ "$FORCE" == "true" ]]; then
         log_info "Force flag set, reinstalling superpowers..."
-        rm -rf "$SUPERPOWERS_DIR"
+        rm -rf "${SUPERPOWERS_DIR:?}"
         install_superpowers
     else
         log_success "obra/superpowers already installed"

@@ -13,12 +13,20 @@ VERSION="1.0.0"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
 VERBOSE=false
 
-# --- Colors ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# --- Colors (disabled if not a TTY) ---
+if [[ -t 1 ]]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
 
 # --- Logging ---
 info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
