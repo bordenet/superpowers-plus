@@ -23,6 +23,8 @@ This loads available skills and the `using-superpowers` skill.
 | `superpowers:verification-before-completion` | Before committing, creating PRs, or claiming done |
 | `superpowers:writing-plans` | Before multi-step tasks |
 | `superpowers:perplexity-research` | When stuck or uncertain (see below) |
+| `superpowers:requesting-code-review` | Before creating PRs or merging to main |
+| `superpowers:finishing-a-development-branch` | When completing work (merge/PR/cleanup decisions) |
 | `enforce-style-guide` | Before committing shell scripts |
 
 ## 🔍 Perplexity Research - Automatic Invocation
