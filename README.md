@@ -406,6 +406,10 @@ superpowers-plus/
 │   ├── DESIGN.md                   # Technical design
 │   └── TEST_PLAN.md                # Test plan (80+ test cases)
 ├── guidance/                       # 🆕 Golden Agents Framework
+│   ├── Agents.md                   # AI guidance for this directory
+│   ├── CLAUDE.md                   # Redirect to Agents.md
+│   ├── GEMINI.md                   # Redirect to Agents.md
+│   ├── COPILOT.md                  # Redirect to Agents.md
 │   ├── README.md                   # Framework documentation
 │   ├── seed.sh                     # Generator script
 │   ├── TEMPLATE-minimal.md         # Minimal template (~100 lines)
