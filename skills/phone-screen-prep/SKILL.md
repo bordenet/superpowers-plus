@@ -67,7 +67,7 @@ _TEMPLATE.md (master template)
 Phone Screen Notes/FirstName_LastName__YYYY-MM-DD.md
        │
        ▼ interviewer fills, then pastes back for
-LLM Synthesis (produces clean debrief summary)
+phone-screen-synthesis skill (produces actionable HIRE/NO-HIRE decision)
 ```
 
 ---
@@ -393,4 +393,4 @@ Generate phone screen notes file with this structure:
 3. Confirm interview structure timing is included
 4. Confirm rubric is included
 5. Remind user to fill in notes during the call
-6. After call, user pastes filled notes and agent synthesizes using LLM prompt at bottom of template
+6. After call, user pastes filled notes and invokes `phone-screen-synthesis` skill for actionable decision

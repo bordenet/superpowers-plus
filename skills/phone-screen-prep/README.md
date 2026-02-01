@@ -30,7 +30,7 @@ _TEMPLATE.md (master template)
 Phone Screen Notes/FirstName_LastName__YYYY-MM-DD.md
        │
        ▼ interviewer fills, then pastes back for
-LLM Synthesis (produces clean debrief summary)
+phone-screen-synthesis skill (produces actionable HIRE/NO-HIRE decision)
 ```
 
 ---
@@ -158,7 +158,10 @@ What action did you take? What was the result?"_
 1. Fill in notes during the call
 2. Paste completed notes back to Augment
 3. Say: "Synthesize these notes"
-4. Agent produces clean summary for Paylocity
+4. Agent invokes `phone-screen-synthesis` skill for actionable decision:
+   - **HIRE** or **NO HIRE** (binary, no filler)
+   - Pros, Cons, Unknowns
+   - Detractors ordered by severity (NO HIRE) or Follow-up questions (HIRE)
 
 ---
 
