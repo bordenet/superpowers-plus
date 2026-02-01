@@ -6,7 +6,7 @@ description: "Screen Senior SDE candidates against CallBox hiring criteria. Invo
 # CallBox Senior SDE Resume Screening
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-01-25
+> **Last Updated:** 2026-02-01
 >
 > **📋 Source:** https://wiki.int.callbox.net/doc/llm-prompt-LfFH19Gj0y
 >
@@ -99,42 +99,56 @@ No further evaluation performed.
 ### ABSOLUTE REJECT FILTERS
 
 * **<5 years qualifying SWE** – Title inflation and bootcamp/self-taught without equivalent depth = reject.
-* **Consulting/agency with no product tenure** – Multiple short stints building apps for clients without owning production = reject.
+* **Consulting/agency with no product tenure** – Multiple short stints (<3 months each) building apps for clients without owning production = reject.
 * **Job-hopping pattern** – 3+ roles under 18 months each without clear narrative = reject.
-* **AI-generated slop resume** – Buzzword-heavy, no specifics, claims everything = reject.
+* **AI-fabricated resume** – Generic, unverifiable claims with zero specific evidence = reject.
 * **Salary mismatch** – If their minimum exceeds 110% of BASE_SALARY cap, reject.
-* **Chronic contractor pattern** – 3+ consecutive contract roles OR >50% of career as contractor = reject. See below.
+* **Low credibility score with serious concerns** – Hollow claims, fabricated-looking content = reject.
 
-### 🚨 CONTRACTOR/CONSULTANT RED FLAG — CRITICAL
+### 🔄 CONTRACTOR/CONSULTANT EVALUATION — CONTEXT-AWARE
 
-**Contractors and consultants are NOT equivalent to full-time product engineers.**
+**Contractors and consultants require nuanced evaluation, not automatic rejection.**
 
-| Pattern | Impact | Action |
-|---------|--------|--------|
-| **3+ consecutive contract roles** | No ownership, no long-term accountability | **AUTO-REJECT** |
-| **>50% of career as contractor** | Never invested in a product/team | **AUTO-REJECT** |
-| **2 consecutive contracts** | Yellow flag, needs strong narrative | **PROBE: Why contracts?** |
-| **Contract at FAANG/Big Tech** | Often vendor work, not core team | **PROBE: What team? What access?** |
-| **"Contract" with no end-client detail** | May be body-shop/staffing agency | **PROBE: Direct or through agency?** |
+> **⚠️ BIAS WARNING:** Contractor bias may correlate with demographic discrimination. Many senior engineers choose contract work for flexibility, skill diversity, or portfolio building. Systematic penalization without context is both unfair and potentially discriminatory.
 
-**Why contractors are risky:**
+#### Context-Aware Scoring (NOT Flat Penalties)
 
-1. **No ownership** — Contractors deliver features, not outcomes. They don't own on-call, don't own technical debt, don't own production.
-2. **No accountability** — When the contract ends, they leave. No incentive to build maintainable systems.
-3. **No team investment** — Contractors don't mentor, don't drive culture, don't hire. They're resources, not teammates.
-4. **Often excluded from core systems** — Contractors at big companies rarely get access to the most critical/sensitive systems.
-5. **Selection bias** — Engineers who CAN get FTE roles at good companies usually DO. Chronic contractors often can't.
+| Pattern | Signal | Scoring | Action |
+|---------|--------|---------|--------|
+| **Long-term contractor (2+ years same client)** | Deep expertise, client retention | **+5 pts** | Positive signal |
+| **Specialist consultant (infrastructure/security/data)** | Deep domain expertise | **Neutral to +5** | Probe depth |
+| **Contract-to-hire that converted** | Company wanted to keep them | **No penalty** | Positive signal |
+| **1 contract in otherwise FTE career** | Sometimes makes sense | **No penalty** | Neutral |
+| **5 different clients, 1 year each** | Breadth, adaptability | **Neutral** | Probe depth vs breadth |
+| **2 consecutive contracts** | May be strategic | **-5 pts** | PROBE: motivation |
+| **Short gigs (<3 months)** | Limited depth opportunity | **-10 pts** | PROBE: learning |
+| **Contract at unknown company** | Body shop risk | **-5 pts** | PROBE: direct or agency? |
 
-**How to score contractor experience:**
+#### Contractor Assessment Questions
 
-| Scenario | Scoring |
-|----------|---------|
-| 1 contract role in otherwise FTE career | No penalty — sometimes makes sense |
-| 2 consecutive contracts | -10 points, probe why in phone screen |
-| 3+ consecutive contracts | -25 points minimum, likely reject |
-| >50% career as contractor | -30 points, reject unless extraordinary circumstances |
-| Contract-to-hire that converted | No penalty — shows company wanted to keep them |
-| Contract at unknown company | Additional -5 points (body shop risk) |
+Generate these STAR questions when contractor pattern detected:
+
+1. _"Tell me about the scope and technical depth of a recent contract engagement. What was your responsibility? What did you deliver?"_
+2. _"Tell me about a time you maintained ownership or accountability without being a permanent team member."_
+3. _"What drew you to contract work, and what draws you to FTE now?"_
+
+#### What to Look For (Positive Signals)
+
+- **Substantive work**: Did they solve real problems, not just fill a seat?
+- **Engagement length**: 6+ months indicates genuine expertise development
+- **Verifiable outcomes**: Can they describe specific deliverables and impact?
+- **Strategic choice**: Contractor by choice (flexibility, learning) vs necessity
+- **Transition motivation**: Clear reason for wanting FTE now
+
+#### Contractor Pattern Decoder
+
+| Pattern | Interpretation |
+|---------|---------------|
+| 5+ years same client | Deep expertise, high value to client → Positive |
+| Serial 1-year contracts, different domains | Breadth-seeker or difficulty with fit → Probe carefully |
+| Contracts after layoff | Common and reasonable → Neutral |
+| Contracts only at unknown companies | Body shop risk → Probe quality |
+| Mix of FTE + strategic consulting | Deliberate portfolio building → Neutral to Positive |
 
 **Contract detection keywords:** "Contract", "Contractor", "Consulting", "Consultant", "Freelance", "Independent", "Corp-to-Corp", "C2C", "W-2 Contract", "1099"
 
@@ -142,7 +156,8 @@ No further evaluation performed.
 - Total FTE years vs contractor years
 - Pattern of contracts (scattered vs consecutive)
 - Whether contracts converted to FTE
-- Quality of contract clients (FAANG contractor ≠ unknown startup contractor)
+- Quality of contract clients
+- Evidence of depth vs breadth
 
 ### PHONE SCREEN FILTERS (Flag, Don't Auto-Reject)
 
@@ -227,51 +242,86 @@ When generating PROBE questions:
 - **DON'T:** Ask detailed questions about skills-list-only claims as if they're proven
 - **DO:** Flag skills-list-only claims as concerns to validate: "Is this aspirational or did you build something?"
 
-### 🚨 AI SLOP DETECTION — BE RUTHLESS
+### ✅ CREDIBILITY ASSESSMENT — POSITIVE SIGNALS
 
-**You have been fooled before. Do NOT be naive.** Candidates use ChatGPT to write screening responses. Detect and reject.
+> **Balance evaluation:** Don't just hunt for weaknesses. Actively look for credibility signals.
 
-#### Screening Response Red Flags (ANY = strong suspicion, 2+ = reject)
+**Strong Positive Signals (Add to credibility score):**
 
-| Pattern | Example | Why It's Slop |
-|---------|---------|---------------|
-| **"Intersection of X and Y"** | "CallBox sits at the intersection of AI and automotive" | ChatGPT's favorite cliché |
-| **"Needle in a haystack"** | "Finding the right role is like finding a needle..." | Overused GPT metaphor |
-| **"Passionate about"** | "I'm passionate about building scalable systems" | Empty enthusiasm, no evidence |
-| **"Excited to leverage"** | "Excited to leverage my skills to drive innovation" | Corporate word salad |
-| **"Aligns with my values"** | "CallBox's mission aligns with my values" | What values? Be specific or it's slop |
-| **"Thrilled by the opportunity"** | Any variant of performative excitement | Real engineers don't write like this |
-| **"Make a meaningful impact"** | "I want to make a meaningful impact" | Meaningless without specifics |
-| **"Dynamic environment"** | "I thrive in dynamic environments" | Every job posting says this |
-| **Generic company praise** | "CallBox is revolutionizing the industry" | Did they even research us? |
-| **No specific CallBox details** | Response could apply to any company | Copy-paste job |
-| **Perfect grammar + zero personality** | Reads like a corporate press release | Real humans have voice |
-| **Answers all questions identically** | Same tone/structure across all responses | Batch-generated |
+| Signal | Evidence | Weight |
+|--------|----------|--------|
+| **Quantified achievements** | Specific metrics: "Reduced p99 latency from 800ms to 120ms" | +15 pts |
+| **Technical depth progression** | Moved from feature work → architecture → systems design | +10 pts |
+| **Specific implementation details** | Named technologies with context, not just buzzword lists | +10 pts |
+| **Learning from failures** | Mentions what went wrong and what they learned | +10 pts |
+| **Coherent career narrative** | Clear reason for each transition, growth story | +10 pts |
+| **Verifiable claims** | Company names, dates, projects that can be cross-referenced | +5 pts |
+| **Admits limitations** | "I haven't used X, but I've done Y which is similar" | +5 pts |
+| **Asks specific questions** | Questions about architecture, team, technical decisions | +5 pts |
 
-#### Resume Red Flags
+**Credibility Assessment Output:**
+```markdown
+## Credibility Assessment
 
-| Pattern | Example | Why It's Slop |
-|---------|---------|---------------|
-| **Skills list matches JD exactly** | Lists Twilio, WebRTC, Kafka, LLM, CDK when those are our exact requirements | GPT resume optimization |
-| **"Spearheaded", "Orchestrated", "Architected" overuse** | Every bullet starts with power verbs | Resume generator output |
-| **No metrics, all adjectives** | "Built robust, scalable, enterprise-grade solutions" | What did you actually do? |
-| **Claims expertise in 20+ technologies** | Lists every buzzword imaginable | Nobody is expert in everything |
-| **Bullets that could apply anywhere** | "Collaborated with cross-functional teams" | Generic filler |
+**Positive Signals:** [List specific signals found]
+**Concerns:** [List specific concerns]
+**Credibility Score:** [High (60+ pts) / Medium (30-59 pts) / Low (<30 pts)]
+```
 
-#### What GOOD Answers Look Like
+---
 
-* **Specific CallBox reference**: "I read about your Twilio-based voice AI for dealerships and noticed you're using CDK..."
-* **Concrete past work**: "At [Company], I debugged a Kafka consumer lag issue by analyzing JMX metrics..."
-* **Admits limitations**: "I haven't used WebRTC directly but I've built SIP integrations with..."
-* **Shows personality**: Humor, frustration, opinions — real humans have these
-* **Asks questions back**: Genuine curiosity about the role/stack
+### 🔍 AI CONTENT ASSESSMENT — DISTINGUISH POLISH FROM FABRICATION
 
-#### Scoring
+> **⚠️ CRITICAL DISTINCTION:** AI-assisted polish (no penalty) ≠ AI-fabricated content (flag for verification)
 
-* **0 red flags**: Proceed normally
-* **1 red flag**: Note concern but evaluate holistically
-* **2+ red flags**: Strong suspicion of AI-generated response — reject unless resume is exceptional
-* **"Why CallBox?" is generic slop**: Automatic NO-HIRE (shows zero research/effort)
+**The Goal:** Detect fabrication and hollow claims, NOT penalize good writing.
+
+#### Three Categories of AI Use
+
+| Category | Example | Action |
+|----------|---------|--------|
+| **AI-Assisted Polish** | Well-structured sentences, clear formatting, good grammar | **No penalty** — smart tool use |
+| **AI-Enhanced Claims** | Buzzwords without substance, perfect structure but hollow content | **Flag for verification** — probe depth |
+| **AI-Fabricated Content** | Claims that can't be verified, generic content, zero specifics | **Serious concern** — deep verification |
+
+#### What Matters: VERIFIABILITY, Not Polish
+
+**Evaluate on:**
+1. **Can claims be verified?** (Company existed, project shipped, metrics make sense)
+2. **Is there substance behind the polish?** (Specific decisions, trade-offs, lessons)
+3. **Does depth exist when probed?** (Can they explain the "why" behind choices)
+
+#### Screening Response Red Flags (Flag for Verification, Not Auto-Reject)
+
+| Pattern | Example | Action |
+|---------|---------|--------|
+| **No specific details** | "I built scalable systems" with no specifics | PROBE: "Walk me through a specific system" |
+| **Claims match JD exactly** | Lists our exact stack with no work history evidence | PROBE: "Tell me about your [Kafka/Twilio] work" |
+| **Generic company praise** | "CallBox is revolutionizing the industry" | PROBE: "What specifically attracted you?" |
+| **Answers all questions identically** | Same structure across all responses | PROBE: "Tell me more about [specific claim]" |
+| **ChatGPT clichés** | "Intersection of", "needle in haystack", "passionate about" | NOTE: concern but don't auto-reject |
+
+#### Resume Red Flags (Flag for Verification)
+
+| Pattern | Example | Action |
+|---------|---------|--------|
+| **Skills list matches JD exactly** | Lists Twilio, WebRTC, Kafka, LLM, CDK | PROBE: depth on each |
+| **Power verbs without metrics** | "Spearheaded initiative to improve..." | PROBE: "What specifically?" |
+| **Claims expertise in 20+ technologies** | Lists every buzzword | PROBE: "Which 3 are you deepest in?" |
+
+#### What GOOD Content Looks Like (AI-Assisted or Not)
+
+* **Specific and verifiable**: "At Stripe, I debugged a Kafka consumer lag issue by analyzing JMX metrics and discovered our partition strategy..."
+* **Admits limitations with context**: "I haven't used WebRTC directly but I've built SIP integrations with Twilio Voice SDK..."
+* **Shows personality and opinions**: "I'm skeptical of microservices for small teams—we went monolith-first at my last startup..."
+* **Asks specific questions back**: "I noticed CallBox uses CDK—are you using the L2 or L3 constructs for your Twilio integrations?"
+
+#### Scoring (Credibility-Based)
+
+* **High credibility (verifiable claims, depth evident)**: Proceed regardless of polish level
+* **Medium credibility (some verifiable, some hollow)**: Proceed with targeted STAR questions
+* **Low credibility (generic, unverifiable, hollow)**: Flag serious concerns; deep verification needed
+* **Zero specific CallBox research**: Strong concern—shows minimal effort
 
 ### PASS MATRIX
 
@@ -279,7 +329,7 @@ When generating PROBE questions:
 * 5+ years **qualifying industry SWE** (product company, startup, or Big Tech).
 * Title explicitly states SWE/SDE/Backend/Staff/Principal/SRE.
 * 2+ shipped release cycles as individual contributor or tech lead.
-* **Majority FTE tenure** — More than 50% of career as full-time employee, not contractor.
+* **Contractor experience evaluated in context** — See contractor evaluation section for nuanced scoring.
 
 **Stack Fit – PASS if (TypeScript/Node primary):**
 * Backend-heavy production work (Node/TypeScript, Python, Go, Java OK as secondary).
@@ -330,20 +380,44 @@ We are hiring FUNGIBLE ENGINEERS, not stack-matching code monkeys. Do not over-i
 
 ---
 
-## Phone Screen Questions
+## Phone Screen Questions (STAR Format)
 
-1. "[Most critical flag — phrase as direct question]"
-2. "[Second critical flag]"
-3. "[Third flag if needed]"
-4. "[Fourth flag if needed]"
+Use STAR behavioral questions for all flags:
+
+1. **[Critical flag]** — [Severity: Minor/Moderate/Serious]
+   _"Tell me about a time when [situation]. What was the challenge? What action did you take? What was the result?"_
+   **Follow-up:** _"What would you do differently?"_
+
+2. **[Second flag]** — [Severity]
+   _"Tell me about a time when..."_
+   **Follow-up:** _"How has this changed your approach?"_
+
+3. **[Third flag if needed]** — [Severity]
+   _"Tell me about a time when..."_
 
 ---
 
 ## Loop Questions (First Interviewer)
 
-1. "[Question that validates startup readiness / scrappy execution]"
-2. "[Question that validates growth mindset / learning new domains]"
-3. "[Question that validates leadership / mentorship]"
+1. _"Tell me about a time you built something from zero with no established patterns. What was the situation? How did you make technical decisions? What was the result?"_ (Startup readiness)
+
+2. _"Tell me about a time you had to learn a completely new domain or technology stack. What was the challenge? How did you ramp up? What did you learn?"_ (Learning agility)
+
+3. _"Tell me about a time you influenced a technical decision without formal authority. What was the situation? How did you build consensus? What was the outcome?"_ (Leadership)
+
+---
+
+## Credibility Assessment
+
+**Positive Signals:**
+- [Specific verifiable claim 1]
+- [Specific verifiable claim 2]
+
+**Concerns:**
+- [Specific unverifiable or hollow claim 1]
+- [Specific concern 2]
+
+**Credibility Score:** [High (60+ pts) / Medium (30-59 pts) / Low (<30 pts)]
 
 ---
 
@@ -356,26 +430,43 @@ We are hiring FUNGIBLE ENGINEERS, not stack-matching code monkeys. Do not over-i
 ## Supporting Evidence
 
 **Experience:** [X years] — [Company trajectory]
+**Contractor Assessment:** [Context-aware evaluation — see contractor section]
 **Education:** [Degree, school]
 **Salary:** $[X]k [✓ in range / ✗ over cap]
 **GitHub:** [URL or N/A]
 
-| Screening Answer | Matches Resume? |
-|------------------|-----------------|
-| [Key claim from screening response] | ✓/✗ [Which bullet] |
-| [Key claim from screening response] | ✓/✗ [Which bullet] |
+| Screening Answer | Matches Resume? | Verifiable? |
+|------------------|-----------------|-------------|
+| [Key claim from screening response] | ✓/✗ [Which bullet] | ✓/✗ |
+| [Key claim from screening response] | ✓/✗ [Which bullet] | ✓/✗ |
 
-**AI Slop:** [None detected / Detected — explain]
+**AI Content Assessment:** [High credibility / Medium — probe depth / Low — verify carefully]
 
 ---
 
 ## Flags
 
-| Flag | Severity | Covered By |
-|------|----------|------------|
-| [Specific concern] | Red/Yellow/Low | Phone Q# |
-| [Specific concern] | Red/Yellow/Low | Phone Q# |
+| Flag | Severity | Probing Depth | STAR Question |
+|------|----------|---------------|---------------|
+| [Specific concern] | Red/Yellow/Low | [1Q / 2-3Q / Deep dive] | Phone Q# |
+| [Specific concern] | Red/Yellow/Low | [1Q / 2-3Q / Deep dive] | Phone Q# |
 ```
+
+---
+
+## ✅ Bias Audit Checklist (Complete Before Submitting)
+
+> **⚠️ MANDATORY:** Review these before finalizing any candidate evaluation.
+
+- [ ] **Contractor evaluation:** Did I use context-aware scoring, not flat penalties?
+- [ ] **Gap evaluation:** Did I evaluate gaps for circumstance, not as commitment issues?
+- [ ] **Pedigree bias:** Did I evaluate based on capability evidence, not company prestige?
+- [ ] **Education bias:** Did I evaluate education for relevance, not school ranking?
+- [ ] **AI content:** Did I distinguish polish from fabrication?
+- [ ] **Skills vs evidence:** Did I verify skills-list claims against work history?
+- [ ] **Cultural fit:** Did I focus on capability, not "fit" impressions?
+
+**If any checkbox is "No", revise the evaluation before proceeding.**
 
 ### Flag Severity Guide
 
@@ -389,8 +480,8 @@ We are hiring FUNGIBLE ENGINEERS, not stack-matching code monkeys. Do not over-i
 - Screening answers don't match resume bullets
 - Skills list includes our exact JD requirements but zero work history evidence
 - Salary expectation 2x+ our cap
-- **3+ consecutive contract roles** (no ownership, no accountability)
-- **>50% of career as contractor/consultant** (never invested in a product)
+- **Low credibility score** with unverifiable claims throughout
+- **AI-fabricated content** with generic, hollow claims that can't be probed
 
 ### Examples of Yellow Flags
 
@@ -398,7 +489,8 @@ We are hiring FUNGIBLE ENGINEERS, not stack-matching code monkeys. Do not over-i
 - Stack experience is adjacent but not exact (e.g., Go instead of Node.js)
 - Big company background, unclear if can work scrappy
 - Generic "Why CallBox?" answer
-- **2 consecutive contract roles** (probe: why contracts? why not FTE?)
+- **Multiple short contract gigs** (<3 months each) — probe for learning and depth
+- **Medium credibility score** — some claims verifiable, some hollow
 
 ### Examples of Low Flags (Don't Over-Weight)
 

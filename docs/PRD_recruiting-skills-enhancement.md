@@ -343,13 +343,124 @@ phone-screen-prep
 | P3 | Bias audit checklist (FR8) | Low |
 | P3 | Probing depth calibration (FR7) | Low |
 
-## 9. References
+## 9. Perplexity Review Feedback (Incorporated)
+
+Based on comprehensive Perplexity review, the following critical gaps were identified and addressed:
+
+### Gap 1: Observable Behavioral Anchors
+
+**Problem**: Rubric names competencies without specifying observable behaviors.
+**Solution**: Added 4-level behavioral rubrics (Strong Yes/Yes/Mixed/No) for each competency.
+
+**Example - Technical Depth Behavioral Anchors**:
+
+| Rating | Observable Behaviors |
+|--------|---------------------|
+| Strong Yes | Explains architectural decisions at multiple abstraction levels; identifies trade-offs and constraints proactively; articulates why choices made sense at the time even if different now |
+| Yes | Explains technical choices with rationale; addresses trade-off questions when prompted |
+| Mixed | Describes choices but struggles with trade-offs; vague explanations |
+| No | Cannot explain choices coherently; describes implementation without design understanding |
+
+**Example - Learning Agility Behavioral Anchors**:
+
+| Rating | Observable Behaviors |
+|--------|---------------------|
+| Strong Yes | Describes specific learning from failure; explains behavioral changes implemented; shows pattern of applying lessons across subsequent situations |
+| Yes | Identifies lessons learned; some evidence of behavioral change |
+| Mixed | Generic lessons; unclear if behavior actually changed |
+| No | Defensive about failures; no evidence of learning or growth |
+
+### Gap 2: Role-Specific Assessment Profiles
+
+**Problem**: Single rubric for all senior roles ignores different capability requirements.
+**Solution**: Added role-specific competency weighting.
+
+**Role Profile Examples**:
+
+| Role Type | High Priority (40%) | Medium Priority (35%) | Supporting (25%) |
+|-----------|--------------------|-----------------------|------------------|
+| IC Depth (Staff/Principal) | Technical Depth, Systems Thinking | Problem-Solving, Learning Agility | Leadership, Communication |
+| Team Lead | Leadership, Communication | Technical Depth, Systems Thinking | Problem-Solving, Learning Agility |
+| Cross-Functional | Communication, Learning Agility | Systems Thinking, Leadership | Technical Depth, Problem-Solving |
+
+### Gap 3: Legal/Compliance Framework
+
+**Problem**: AI credibility assessment lacks regulatory compliance guidance.
+**Solution**: Added compliance requirements.
+
+**AI Hiring Compliance Checklist**:
+- [ ] Annual bias audits (NYC Local Law 144)
+- [ ] Impact assessments for high-risk AI systems (Colorado AI Act)
+- [ ] Data collection and retention policies documented
+- [ ] Candidate consent and opt-out procedures
+- [ ] Transparency disclosures about AI use in hiring
+- [ ] Human-in-the-loop for all final decisions
+
+### Gap 4: Accessibility & Inclusion
+
+**Problem**: Process assumes all candidates have same communication preferences.
+**Solution**: Added accommodation protocols.
+
+**Accommodation Options**:
+- Phone, video, or text-based screen options
+- Extended time upon request
+- Interview questions provided in advance (for certain disabilities)
+- Interpreter availability
+- Diverse interviewer representation upon request
+
+### Gap 5: Interviewer Calibration Protocols
+
+**Problem**: Rubric without calibration produces inconsistent ratings.
+**Solution**: Added calibration requirements.
+
+**Calibration Protocol**:
+1. Monthly: Interviewers jointly rate sample responses using rubric
+2. Quarterly: Review hiring outcomes vs. interview assessments
+3. Annual: Full bias audit tracking pass-through rates by demographic
+4. Per-role: Establish minimum acceptable scores per competency
+
+### Gap 6: Refined STAR Questions with Follow-ups
+
+**Enhanced Technical Depth Question**:
+```
+"Tell me about a particularly difficult technical problem—bug, performance issue,
+or design flaw—that you debugged. What made it hard to diagnose, and walk me
+through how you approached solving it. What did you learn, and how did it change
+how you approach similar problems in the future?"
+```
+
+**Mandatory Follow-ups**:
+- "Walk me through a decision you made in that situation. What would you do differently?"
+- "Have you encountered similar situations since? How did you handle them differently?"
+- "What did the team learn vs. what did you personally learn?"
+
+### Gap 7: Contractor Career Assessment Protocol
+
+**Enhanced Contractor Evaluation Questions**:
+1. "Describe the scope and technical depth of a recent contract engagement" (doesn't require confidential details)
+2. "How did you continue learning and maintaining skills while contracting?"
+3. "What drew you to contract work, and what draws you to FTE now?"
+
+**Contractor Pattern Decoder**:
+| Pattern | Signal | Assessment |
+|---------|--------|------------|
+| 5+ years same client | Deep expertise, client retention | Positive |
+| 5 different clients, 1 year each | Breadth, adaptability | Neutral—probe depth |
+| Short gigs (<3 months) | Limited depth opportunity | Probe learning |
+| Contractor by choice | Flexibility preference | Neutral |
+| Contractor by necessity | Market positioning | Probe carefully |
+
+## 10. References
 
 - Perplexity Research: Technical Hiring Best Practices (2026-02-01)
+- Perplexity Review: PRD Feedback & Gap Analysis (2026-02-01)
 - Tech Interview Handbook: Resume Guidelines
 - EEOC: AI Bias in Hiring Guidance
 - Research: Structured Interview Predictive Validity
 - GPTZero: AI Content Detection Methodology
+- NYC Local Law 144: AI Hiring Audits
+- Colorado AI Act: High-Risk AI Systems
+- Karat: Interview Engineering Rubrics
 
 ---
 

@@ -55,8 +55,8 @@ Evaluates candidates on a 100-point scale:
 | Debugging Ability | 10 |
 | Leadership | 5 |
 | Salary Fit | 5 |
-| AI Slop Penalty | -20 |
-| Contractor Penalty | -35 |
+| Credibility Assessment | +15 to -15 |
+| Contractor Evaluation | Context-aware |
 
 ### Verdicts
 
@@ -90,64 +90,107 @@ Say one of:
 - <5 years experience
 - Frontend-only
 - Consulting/agency-only (no product ownership)
-- 3+ consecutive contractor roles
-- AI slop in screening answers (5+ patterns)
+- Job-hopping: 3+ roles under 18 months each
+- AI-fabricated content (hollow, unverifiable claims)
 - Requires work sponsorship
+- Low credibility score with serious concerns
 
 ### Yellow Flags (Need Probing)
 - Short tenure pattern (<2 years average)
 - Stack mismatch (no Node.js/TypeScript)
 - Contribution ambiguity ("we" not "I")
-- Single employer entire career
+- Single employer entire career (8+ years)
+- Multiple short contract gigs (<3 months each)
+- Medium credibility score
 
 ---
 
-## Contractor Scoring
+## Contractor Evaluation (Context-Aware)
 
-| Pattern | Penalty |
-|---------|---------|
-| 2 consecutive contracts | -10 |
-| 3+ consecutive contracts | -25 |
-| >50% career as contractor | -30 |
-| Contract at unknown company | -5 |
+> **⚠️ BIAS WARNING:** Contractor bias may correlate with demographic discrimination.
+
+| Pattern | Scoring | Action |
+|---------|---------|--------|
+| Long-term contractor (2+ years same client) | **+5 pts** | Positive signal |
+| Specialist consultant (infra/security/data) | **Neutral to +5** | Probe depth |
+| Contract-to-hire that converted | **No penalty** | Positive signal |
+| 5 different clients, 1 year each | **Neutral** | Probe depth vs breadth |
+| 2 consecutive contracts | **-5 pts** | PROBE: motivation |
+| Short gigs (<3 months) | **-10 pts** | PROBE: learning |
 
 ---
 
-## AI Slop Detection
+## Credibility Assessment
 
-Patterns that indicate ChatGPT-generated answers:
+Evaluates positive signals, not just weaknesses:
 
-- "commitment to innovative solutions"
-- "values creativity and teamwork"
-- "eager to leverage my expertise"
-- "drive impactful outcomes"
-- No specific company reference (CallBox, automotive, voice AI)
+| Signal | Weight |
+|--------|--------|
+| Quantified achievements | +15 pts |
+| Technical depth progression | +10 pts |
+| Specific implementation details | +10 pts |
+| Learning from failures | +10 pts |
+| Coherent career narrative | +10 pts |
 
-**5+ patterns = -20 points + yellow flag**
+**Credibility Score:** High (60+ pts) / Medium (30-59 pts) / Low (<30 pts)
+
+---
+
+## AI Content Assessment
+
+> **Key distinction:** AI-assisted polish (no penalty) ≠ AI-fabricated content (flag)
+
+| Category | Action |
+|----------|--------|
+| **AI-Assisted Polish** | No penalty — smart tool use |
+| **AI-Enhanced Claims** | Flag for verification — probe depth |
+| **AI-Fabricated Content** | Serious concern — deep verification |
+
+**Focus on VERIFIABILITY, not polish level.**
 
 ---
 
 ## Output Format
 
 ```markdown
-# Resume Screening: [Name]
+# [Candidate Name]
 
-## [HIRE/NO-HIRE/PROBE]
+## HIRE | NO HIRE | PROBE
 
-[1-2 sentence rationale]
+---
 
-## Phone Screen Questions (by priority)
-1. 🔴 [Critical concern question]
-2. 🟡 [Important concern question]
-...
+## Phone Screen Questions (STAR Format)
 
-## Scoring Table
-| Category | Raw | Adjustments | Final | Max | Notes |
-...
+1. **[Critical flag]** — [Severity: Minor/Moderate/Serious]
+   _"Tell me about a time when [situation]. What was the challenge?
+   What action did you take? What was the result?"_
+   **Follow-up:** _"What would you do differently?"_
+
+---
+
+## Credibility Assessment
+
+**Positive Signals:** [List specific signals found]
+**Concerns:** [List specific concerns]
+**Credibility Score:** [High/Medium/Low]
+
+---
 
 ## Flags
-| Flag | Severity | Covered By |
-...
+
+| Flag | Severity | Probing Depth | STAR Question |
+|------|----------|---------------|---------------|
+| [Concern] | Red/Yellow/Low | [1Q / 2-3Q / Deep dive] | Phone Q# |
+
+---
+
+## ✅ Bias Audit Checklist
+
+- [ ] Contractor evaluation: context-aware scoring?
+- [ ] Gap evaluation: circumstance, not commitment?
+- [ ] Pedigree bias: capability evidence, not prestige?
+- [ ] AI content: polish vs fabrication distinguished?
+- [ ] Skills vs evidence: verified against work history?
 ```
 
 ---
@@ -163,6 +206,7 @@ Patterns that indicate ChatGPT-generated answers:
 
 ## Version
 
+- 2.0.0 — 2026-02-01: **Major update** — Context-aware contractor evaluation, credibility assessment with positive signals, AI content assessment (polish vs fabrication), STAR format questions, bias audit checklist
 - 1.5.0 — 2026-01-20: Added contractor penalty scoring, cross-references
 - 1.4.0 — 2026-01-15: Added PRE-SCREEN REJECT for work sponsorship
 - 1.3.0 — 2026-01-15: Added probe triggers (single-employer, stack mismatch, contribution ambiguity)

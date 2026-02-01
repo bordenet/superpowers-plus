@@ -50,10 +50,12 @@ LLM Synthesis (produces clean debrief summary)
 1. **Runs resume screening** on the candidate to identify concerns
 2. **Copies template** from `_TEMPLATE.md`
 3. **Creates file** with naming convention: `FirstName_LastName__YYYY-MM-DD.md`
-4. **Adds targeted questions** based on screening flags:
-   - 🔴 Red flags get critical probes (ask first)
-   - 🟡 Yellow flags get important probes
-   - Each concern includes specific question text
+4. **Adds targeted STAR questions** based on screening flags:
+   - All questions use STAR format (Situation-Task-Action-Result)
+   - Each question includes mandatory follow-ups
+   - Probing depth calibrated by severity (1Q / 2-3Q / Deep dive)
+5. **Includes interview rubric** with 6 competencies and behavioral anchors
+6. **Adds bias audit checklist** for interviewer self-check
 
 ---
 
@@ -101,19 +103,53 @@ What's going on with your career trajectory?"_
 
 ---
 
-## Common Concerns to Probe
+## STAR Question Format
 
-| Concern | Sample Question |
-|---------|-----------------|
-| Short tenure | "What drove the transitions between roles?" |
-| Frontend-heavy | "Walk me through a backend system you built from scratch." |
-| No IaC | "Have you written Terraform, CDK, CloudFormation?" |
-| Weak scale metrics | "What's the highest traffic system you worked on? RPS, latency, DB size?" |
-| Consulting/agency | "How many release cycles did you own end-to-end?" |
-| Salary mismatch | "Our range is $X base-only, no equity. Does that work?" |
-| No real-time | "What experience with WebSockets, audio streaming, low-latency?" |
-| No LLM experience | "Have you integrated LLMs into production? Evals, tool calling?" |
-| Contractor pattern | "What made you choose contract work vs. full-time?" |
+All questions use behavioral STAR format with mandatory follow-ups:
+
+```markdown
+**[Flag]** — Severity: [Minor/Moderate/Serious]
+_"Tell me about a time when [situation]. What was the challenge?
+What action did you take? What was the result?"_
+**Follow-up:** _"What would you do differently?"_
+```
+
+---
+
+## Common Concerns to Probe (STAR Format)
+
+| Concern | STAR Question |
+|---------|---------------|
+| Short tenure | _"Tell me about a time you left a role earlier than planned. What was the situation? How did you make the decision? What was the outcome?"_ |
+| Frontend-heavy | _"Tell me about a time you built a backend system from scratch. What was the challenge? How did you design the data model? What was the result?"_ |
+| Contractor pattern | _"Tell me about a time you maintained ownership in a contract role. What was the situation? How did you ensure quality? What was the outcome?"_ |
+| Single employer | _"Tell me about a time you had to build something without established patterns. What was the situation? How did you make decisions? What was the result?"_ |
+| AI content concerns | _"Tell me about [specific claim] in your own words. What were the challenges? What would you do differently?"_ |
+
+---
+
+## Interview Rubric (6 Competencies)
+
+| Competency | What to Evaluate |
+|------------|------------------|
+| **Technical Depth** | Explains architectural decisions at multiple abstraction levels |
+| **Systems Thinking** | Considers failure modes, scale, and operational concerns |
+| **Problem-Solving** | Breaks down ambiguous problems, considers alternatives |
+| **Communication** | Explains complex concepts clearly, adjusts to audience |
+| **Leadership/Influence** | Influences without authority, mentors effectively |
+| **Learning Agility** | Learns new domains quickly, applies patterns across contexts |
+
+**Rating Scale:** Strong Yes / Yes / Mixed / No
+
+---
+
+## Probing Depth by Severity
+
+| Severity | Probing Depth | Approach |
+|----------|---------------|----------|
+| Minor (Yellow) | 1 STAR question | Accept reasonable explanation |
+| Moderate (Orange) | 2-3 follow-ups | Seek specific examples |
+| Serious (Red) | Deep dive | Request references if needed |
 
 ---
 
@@ -135,8 +171,21 @@ What's going on with your career trajectory?"_
 
 ---
 
+## Bias Audit Checklist
+
+Interviewers complete before submitting evaluation:
+
+- [ ] Did I evaluate contractor experience in context?
+- [ ] Did I focus on capability evidence, not pedigree?
+- [ ] Did I distinguish AI polish from fabrication?
+- [ ] Did I use structured criteria, not "gut feel"?
+- [ ] Did I consider accessibility accommodations?
+
+---
+
 ## Version
 
+- 2.0.0 — 2026-02-01: **Major update** — STAR format questions, 6-competency interview rubric, probing depth calibration, contractor assessment protocol, role-specific profiles, accessibility options, bias audit checklist
 - 1.1.0 — 2026-01-20: Added cross-references and contractor probes
 - 1.0.0 — 2026-01-13: Initial release
 
