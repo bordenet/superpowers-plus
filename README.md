@@ -1,13 +1,13 @@
 # superpowers-plus
 
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-01-31
+> **Last Updated:** 2026-02-01
 
-Personal skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, and Codex.
+10 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, and Codex.
 
-## Overview
+## What This Does
 
-This repository contains custom AI coding assistant skills that build on the superpowers framework. These personal skills extend the core superpowers with domain-specific capabilities for AI slop detection, resume screening, and code quality enforcement.
+Detects AI-generated text (300+ patterns, 13 content types), screens resumes for Senior SDE hiring, and enforces code style before commits. See the [Skills Overview](#skills-overview) for the full list.
 
 ## Installation
 
@@ -87,8 +87,10 @@ The skill uses a 4-step evaluation loop:
 | `enforce-style-guide` | Enforce coding standards before commits |
 | `incorporating-research` | Incorporate external research into docs (strips artifacts, preserves voice) |
 | `perplexity-research` | Auto-invoke Perplexity when stuck (2+ failures, uncertainty) |
+| `readme-authoring` | Author and maintain README.md files with best practices and anti-slop enforcement |
 | `resume-screening` | Screen Senior SDE candidates against hiring criteria |
 | `phone-screen-prep` | Prepare phone screen notes with targeted questions |
+| `phone-screen-synthesis` | Generate HIRE/NO-HIRE recommendation with evidence synthesis |
 | `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
 | `security-upgrade` | CVE scanning and dependency upgrade workflow |
 
@@ -184,7 +186,7 @@ The skill uses a 4-step evaluation loop:
 
 ### incorporating-research
 
-**Goal:** Seamlessly integrate external research (Perplexity, web, ChatGPT) into existing documents while stripping artifacts and preserving document voice.
+**Goal:** Integrate external research (Perplexity, web, ChatGPT) into existing documents by stripping citation artifacts and matching document voice.
 
 **Success Criteria:**
 - [ ] Citation artifacts (numbers, source sections) removed
@@ -335,7 +337,7 @@ This skill is deprecated. It has been superseded by the more capable slop detect
 
 ## Golden Agents Framework
 
-The `guidance/` directory contains a portable, modular AI guidance framework that can be used to seed new projects with comprehensive AI agent guidelines.
+The `guidance/` directory generates Agents.md files for new projects, covering superpowers bootstrap, anti-slop rules, and language-specific guidance (Go, Python, JavaScript, Shell, Dart).
 
 ### Quick Start
 
@@ -421,12 +423,21 @@ superpowers-plus/
     │   └── SKILL.md
     ├── incorporating-research/     # Incorporate external research (strips artifacts)
     │   └── SKILL.md
+    ├── perplexity-research/        # Auto-invoke Perplexity when stuck
+    │   └── SKILL.md
+    ├── readme-authoring/           # README.md best practices + anti-slop
+    │   └── SKILL.md
     ├── resume-screening/           # Integrates with detecting-ai-slop
     │   ├── SKILL.md
     │   └── README.md
     ├── phone-screen-prep/          # Adds AI slop probing questions
     │   ├── SKILL.md
     │   └── README.md
+    ├── phone-screen-synthesis/     # HIRE/NO-HIRE recommendation
+    │   ├── SKILL.md
+    │   └── README.md
+    ├── security-upgrade/           # CVE scanning and upgrades
+    │   └── SKILL.md
     └── reviewing-ai-text/          # Deprecated
         └── SKILL.md
 ```
