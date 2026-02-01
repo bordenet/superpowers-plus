@@ -72,17 +72,32 @@ func TestFunction(t *testing.T) {
 }
 ```
 
+## ⚠️ CRITICAL: Always Build After Lint
+
+**The linter may pass while code doesn't compile.** This is a common failure mode.
+
+```bash
+# REQUIRED workflow (in this exact order)
+golangci-lint run ./...    # Step 1: Lint
+go build ./...             # Step 2: ALWAYS compile after lint
+go test ./...              # Step 3: Run tests
+```
+
+**Never skip `go build`.** It catches issues the linter misses.
+
 ## Commands
 
 ```bash
-# Lint
+# Full validation workflow
 golangci-lint run ./...
-
-# Test with coverage
+go build ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out
 
 # Security scan
 govulncheck ./...
+
+# Tidy dependencies
+go mod tidy
 ```
 

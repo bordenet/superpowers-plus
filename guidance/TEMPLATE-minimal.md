@@ -1,8 +1,8 @@
-# AI Agent Guidelines
+# AI Agent Guidelines - [PROJECT_NAME]
 
-> **Project**: [PROJECT_NAME]
-> **Languages**: [javascript/python/go/shell]
-> **Type**: [genesis-tools/cli-tools/web-apps]
+> **Last Updated**: [DATE]
+> **Languages**: [javascript/python/go/shell/dart]
+> **Type**: [cli-tool/web-app/mobile-app/genesis-tool]
 
 ---
 
@@ -14,54 +14,87 @@ At the START of every conversation, run:
 node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ```
 
-**The Rule**: IF A SKILL APPLIES TO YOUR TASK (even 1% chance), YOU MUST INVOKE IT.
+### Key Skills
+
+| Skill | When to Invoke |
+|-------|---------------|
+| `superpowers:brainstorming` | Before creative/feature work |
+| `superpowers:systematic-debugging` | Before fixing bugs |
+| `superpowers:test-driven-development` | Before writing implementation |
+| `superpowers:verification-before-completion` | Before claiming done |
+| `superpowers:writing-plans` | Before multi-step tasks |
+
+**The Rule**: IF A SKILL APPLIES (even 1% chance), YOU MUST INVOKE IT.
 
 ---
 
-## Guidance References
+## Communication Standards
 
-This project follows the consolidated guidance in `superpowers-plus/guidance/`:
+- **No flattery** - Skip "Great question!" or "Excellent point!"
+- **No hype words** - Avoid "revolutionary", "game-changing", "cutting-edge"
+- **Evidence-based** - Cite sources, provide data, or qualify as opinion
+- **Direct** - State facts without embellishment
 
-### Core (Always Apply)
-- `superpowers-plus/guidance/core/superpowers.md` - Skill invocation
-- `superpowers-plus/guidance/core/communication.md` - Communication standards
-- `superpowers-plus/guidance/core/anti-slop.md` - Writing quality
+### Banned Phrases
 
-### Workflows
-- `superpowers-plus/guidance/workflows/deployment.md` - CI/CD workflow
-- `superpowers-plus/guidance/workflows/testing.md` - Testing standards
-- `superpowers-plus/guidance/workflows/security.md` - Security practices
+| Category | Avoid |
+|----------|-------|
+| Self-Promotion | production-grade, world-class, enterprise-ready |
+| Filler | incredibly, extremely, very, really, truly |
+| AI Tells | leverage, utilize, facilitate, streamline, optimize |
+| Sycophancy | Happy to help!, Absolutely!, I appreciate... |
 
-### Language-Specific
-<!-- Uncomment the languages used in this project -->
-<!-- - `superpowers-plus/guidance/languages/javascript.md` -->
-<!-- - `superpowers-plus/guidance/languages/python.md` -->
-<!-- - `superpowers-plus/guidance/languages/go.md` -->
-<!-- - `superpowers-plus/guidance/languages/shell.md` -->
+---
 
-### Project Type
-<!-- Uncomment if applicable -->
-<!-- - `superpowers-plus/guidance/project-types/genesis-tools.md` -->
-<!-- - `superpowers-plus/guidance/project-types/cli-tools.md` -->
-<!-- - `superpowers-plus/guidance/project-types/web-apps.md` -->
+## Quality Gates
+
+### Before Committing
+
+1. **Lint**: `[LINT_COMMAND]`
+2. **Build**: `[BUILD_COMMAND]`
+3. **Test**: `[TEST_COMMAND]`
+4. **Coverage**: Minimum [XX]%
+
+### Before Pushing
+
+- [ ] All tests pass
+- [ ] No linting errors
+- [ ] No secrets in code
+- [ ] Commit messages are descriptive
+
+### Before Deploying
+
+- [ ] CI shows green checkmark
+- [ ] Security scan passed
+- [ ] Documentation updated
 
 ---
 
 ## Project-Specific Rules
 
-<!-- Add any project-specific guidance here -->
+<!-- Add project-specific guidance below -->
 
 ---
 
-## Quick Reference
+## Quick Command Reference
 
-### Before Committing
-1. Run tests: `[test command]`
-2. Run linting: `[lint command]`
-3. Check coverage: `[coverage command]`
+```bash
+# Setup
+[SETUP_COMMAND]
 
-### Before Pushing
-- All tests pass
-- CI will be green
-- No secrets in code
+# Development
+[DEV_COMMAND]
+
+# Test
+[TEST_COMMAND]
+
+# Lint
+[LINT_COMMAND]
+
+# Build
+[BUILD_COMMAND]
+
+# Deploy (after CI green)
+[DEPLOY_COMMAND]
+```
 

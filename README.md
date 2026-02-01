@@ -333,6 +333,38 @@ This skill is deprecated. It has been superseded by the more capable slop detect
 - Stylometric analysis
 - Cross-machine dictionary sync
 
+## Golden Agents Framework
+
+The `guidance/` directory contains a portable, modular AI guidance framework that can be used to seed new projects with comprehensive AI agent guidelines.
+
+### Quick Start
+
+```bash
+# Generate Agents.md for a Go CLI project
+./guidance/seed.sh --language=go --type=cli-tools --path=./my-project
+
+# Generate for a Flutter mobile app
+./guidance/seed.sh --language=dart-flutter --type=mobile-apps --path=./my-app
+
+# Preview without writing
+./guidance/seed.sh --language=javascript --type=web-apps --dry-run
+```
+
+### What's Included
+
+| Category | Modules |
+|----------|---------|
+| **Core** | superpowers bootstrap, communication standards, anti-slop rules |
+| **Workflows** | deployment, testing, security, session-resumption, build-hygiene |
+| **Languages** | Go, Python, JavaScript, Shell, Dart/Flutter |
+| **Project Types** | CLI tools, web apps, genesis tools, mobile apps |
+
+Generated files are self-contained (no external references) and typically 300-800 lines depending on selected options.
+
+See [guidance/README.md](./guidance/README.md) for full documentation.
+
+---
+
 ## Cross-Machine Sync
 
 The `slop-sync` script synchronizes your slop dictionary across machines via GitHub:
@@ -358,6 +390,7 @@ Uses Last Write Wins conflict resolution based on timestamps.
 ```
 superpowers-plus/
 ├── CLAUDE.md                       # AI agent guidelines and anti-slop rules
+├── Agents.md                       # Primary AI guidance (CLAUDE.md redirects here)
 ├── TODO.md                         # Task tracking
 ├── README.md                       # This file
 ├── LICENSE
@@ -370,6 +403,15 @@ superpowers-plus/
 │   ├── PRD_eliminating-ai-slop.md  # Eliminator skill requirements
 │   ├── DESIGN.md                   # Technical design
 │   └── TEST_PLAN.md                # Test plan (80+ test cases)
+├── guidance/                       # 🆕 Golden Agents Framework
+│   ├── README.md                   # Framework documentation
+│   ├── seed.sh                     # Generator script
+│   ├── TEMPLATE-minimal.md         # Minimal template (~100 lines)
+│   ├── TEMPLATE-full.md            # Full template with placeholders
+│   ├── core/                       # Core guidance (always included)
+│   ├── workflows/                  # Development workflow guidance
+│   ├── languages/                  # Language-specific guidance
+│   └── project-types/              # Project type guidance
 └── skills/
     ├── detecting-ai-slop/          # Analysis and scoring (300+ patterns)
     │   └── SKILL.md
