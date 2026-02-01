@@ -3,7 +3,7 @@
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-01
 
-11 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, OpenAI Codex CLI, Gemini, and GitHub Copilot.
+12 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, OpenAI Codex CLI, Gemini, and GitHub Copilot.
 
 ## What This Does
 
@@ -85,6 +85,7 @@ The skill uses a 4-step evaluation loop:
 | `detecting-ai-slop` | Analyze text and produce bullshit factor scores (0-100) |
 | `eliminating-ai-slop` | Rewrite text to remove slop patterns |
 | `enforce-style-guide` | Enforce coding standards before commits |
+| `golden-agents` | Initialize or upgrade AI guidance in repos (wraps golden-agents framework) |
 | `incorporating-research` | Incorporate external research into docs (strips artifacts, preserves voice) |
 | `perplexity-research` | Auto-invoke Perplexity when stuck (2+ failures, uncertainty) |
 | `readme-authoring` | Author and maintain README.md files with best practices and anti-slop enforcement |
@@ -181,6 +182,36 @@ The skill uses a 4-step evaluation loop:
 - ❌ Skipped for some commits (inconsistent enforcement)
 
 **Invoke:** Before ANY commit to ANY repository.
+
+---
+
+### golden-agents
+
+**Goal:** Initialize or upgrade AI guidance in any repository using the golden-agents framework, with auto-detection of repo state and language.
+
+**Success Criteria:**
+
+- [ ] Detects git state (no repo, existing repo, existing guidance)
+- [ ] Auto-detects languages and project type from files
+- [ ] Presents findings for user confirmation before proceeding
+- [ ] Creates all redirect files (CLAUDE.md, CODEX.md, GEMINI.md, COPILOT.md)
+- [ ] Preserves project-specific content during upgrades
+
+**Expected Outcomes:**
+
+1. New repo → git init + generate Agents.md + redirects
+2. Existing repo without guidance → generate Agents.md + redirects
+3. Existing guidance with markers → safe upgrade preserving custom rules
+4. Existing guidance without markers → interactive migrate/replace choice
+
+**Failure Modes:**
+
+- ❌ Overwrites custom project rules without backup
+- ❌ Generates without confirming detected language/type
+- ❌ Forgets redirect files (only creates Agents.md)
+- ❌ Commits without user permission
+
+**Invoke:** When setting up new repos, adding AI guidance, or upgrading outdated Agents.md files.
 
 ---
 
@@ -428,6 +459,8 @@ superpowers-plus/
     ├── eliminating-ai-slop/        # Rewriting and prevention (GVR loop)
     │   └── SKILL.md
     ├── enforce-style-guide/
+    │   └── SKILL.md
+    ├── golden-agents/              # Initialize/upgrade AI guidance in repos
     │   └── SKILL.md
     ├── incorporating-research/     # Incorporate external research (strips artifacts)
     │   └── SKILL.md
