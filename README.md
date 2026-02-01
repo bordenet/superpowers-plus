@@ -3,7 +3,7 @@
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-01
 
-10 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, and Codex.
+11 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, OpenAI Codex CLI, Gemini, and GitHub Copilot.
 
 ## What This Does
 
@@ -391,10 +391,13 @@ Uses Last Write Wins conflict resolution based on timestamps.
 
 ```
 superpowers-plus/
-├── CLAUDE.md                       # AI agent guidelines and anti-slop rules
-├── Agents.md                       # Primary AI guidance (CLAUDE.md redirects here)
-├── TODO.md                         # Task tracking
+├── Agents.md                       # Primary AI guidance
+├── CLAUDE.md                       # Redirect → Agents.md
+├── CODEX.md                        # Redirect → Agents.md
+├── GEMINI.md                       # Redirect → Agents.md
+├── COPILOT.md                      # Redirect → Agents.md
 ├── README.md                       # This file
+├── TODO.md                         # Task tracking
 ├── LICENSE
 ├── install.sh                      # Install superpowers and skills
 ├── slop-sync                       # Cross-machine dictionary sync script
@@ -407,9 +410,10 @@ superpowers-plus/
 │   └── TEST_PLAN.md                # Test plan (80+ test cases)
 ├── guidance/                       # 🆕 Golden Agents Framework
 │   ├── Agents.md                   # AI guidance for this directory
-│   ├── CLAUDE.md                   # Redirect to Agents.md
-│   ├── GEMINI.md                   # Redirect to Agents.md
-│   ├── COPILOT.md                  # Redirect to Agents.md
+│   ├── CLAUDE.md                   # Redirect → Agents.md
+│   ├── CODEX.md                    # Redirect → Agents.md
+│   ├── GEMINI.md                   # Redirect → Agents.md
+│   ├── COPILOT.md                  # Redirect → Agents.md
 │   ├── README.md                   # Framework documentation
 │   ├── seed.sh                     # Generator script
 │   ├── TEMPLATE-minimal.md         # Minimal template (~100 lines)
