@@ -20,9 +20,10 @@ This loads available skills and the `using-superpowers` skill.
 | `superpowers:brainstorming` | Before creative/feature work |
 | `superpowers:systematic-debugging` | Before fixing bugs |
 | `superpowers:test-driven-development` | Before writing implementation |
-| `superpowers:verification-before-completion` | Before claiming done |
+| `superpowers:verification-before-completion` | Before committing, creating PRs, or claiming done |
 | `superpowers:writing-plans` | Before multi-step tasks |
 | `superpowers:perplexity-research` | When stuck or uncertain (see below) |
+| `enforce-style-guide` | Before committing shell scripts |
 
 ## 🔍 Perplexity Research - Automatic Invocation
 
