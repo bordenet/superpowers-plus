@@ -87,7 +87,6 @@ This document tracks potential paths forward for superpowers-plus. Ideas here ar
 
 **Observation:** Some skills naturally chain together:
 - `detecting-ai-slop` → `eliminating-ai-slop`
-- `resume-screening` → `detecting-ai-slop` → `phone-screen-prep`
 - `perplexity-research` → `incorporating-research`
 
 **Opportunity:** Formalize integration patterns so skills can:

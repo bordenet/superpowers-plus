@@ -22,7 +22,7 @@ This skill analyzes text and produces a **bullshit factor score** (0-100) with d
 - Review your own AI-assisted drafts before editing
 - Compare before/after versions of edited text
 - Triage documents: which need the most cleanup?
-- **Recruiting:** Assess candidate materials for AI-generated red flags (integrate with `resume-screening`)
+- Assess candidate materials for AI-generated red flags
 
 ---
 
@@ -511,7 +511,7 @@ Each semantic pattern found adds 5 points.
 | Skills list >15 items | skills-inflation | High |
 | No metrics in experience | missing-quantification | High |
 
-**CV/Resume Red Flags for Recruiting:**
+**CV/Resume Red Flags:**
 - Skills list exactly matches job description keywords → GPT optimization
 - Every bullet uses "power verbs" with no specifics → Resume generator
 - Claims expertise in 20+ technologies → Aspirational, not evidenced
@@ -563,46 +563,6 @@ Each semantic pattern found adds 5 points.
 | Line breaks after every sentence | listicle-abuse | Medium |
 | "Agree?" | engagement-bait | High |
 | "Thoughts?" at end | engagement-bait | Medium |
-
----
-
-## Recruiting Integration
-
-### Using with resume-screening Skill
-
-When screening candidates, invoke this skill for comprehensive slop analysis:
-
-```
-User: "What's the bullshit factor on this resume?"
-[Paste resume text]
-```
-
-**Output integrates with resume-screening:**
-
-```
-Bullshit Factor: 67/100 (Heavy slop - substantial rewrite typical of AI-generated resume)
-
-Recruiting Red Flags:
-├── Skills list matches JD exactly (14/14 keywords) [GPT optimization]
-├── "Spearheaded", "Orchestrated", "Architected" x7 [Power verb overuse]
-├── No specific metrics in any bullet [Missing quantification]
-├── "Passionate about building scalable systems" [Empty enthusiasm]
-└── Experience bullets could apply to any company [Generic content]
-
-Recommendation: HIGH SUSPICION of AI-generated resume. Probe depth in phone screen.
-```
-
-### Recruiting-Specific Scoring Adjustments
-
-When content type is CV/Resume or Cover Letter:
-
-| Pattern | Base Score | Recruiting Multiplier | Recruiting Score |
-|---------|------------|----------------------|------------------|
-| Skills matches JD exactly | +10 | ×2 | +20 |
-| Power verbs without metrics | +5 | ×1.5 | +7.5 |
-| Generic bullets | +5 | ×1.5 | +7.5 |
-| No quantified achievements | +10 | ×2 | +20 |
-| ChatGPT clichés ("intersection of") | +10 | ×2 | +20 |
 
 ---
 
@@ -901,8 +861,6 @@ Verdict: Severe slop. Substantial rewrite needed.
 ## Related Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
-- **resume-screening**: Candidate evaluation (uses this skill for AI detection)
-- **phone-screen-prep**: Phone screen preparation based on screening concerns
 - **reviewing-ai-text**: (Deprecated) Original combined skill
 
 ---

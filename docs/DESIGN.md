@@ -11,7 +11,7 @@ Technical design for two complementary skills:
 - **detecting-ai-slop**: Read-only analysis producing bullshit factor scores
 - **eliminating-ai-slop**: Active rewriting with interactive and automatic modes using GVR loop
 
-Supports 13 content types with type-specific detection and rewriting. Integrates with recruiting skills (resume-screening, phone-screen-prep) for candidate evaluation.
+Supports 13 content types with type-specific detection and rewriting.
 
 See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
@@ -557,45 +557,6 @@ slop-sync init    # Initialize configuration
 # ~/.slop-sync-config
 SLOP_SYNC_REPO="git@github.com:username/slop-dictionary.git"
 SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
-```
-
----
-
-## Recruiting Integration
-
-### Integration with resume-screening
-
-The detecting-ai-slop skill integrates with resume-screening for candidate evaluation.
-
-**Key principle:** Detect-only mode for candidate materials. We flag AI patterns but never rewrite candidate content.
-
-**Workflow:**
-1. Resume screening identifies potential AI-generated content
-2. User invokes: "What's the bullshit factor on this resume?"
-3. detecting-ai-slop returns bullshit factor with recruiting-specific flags
-4. phone-screen-prep generates targeted questions for high-slop candidates
-
-### Recruiting-Specific Scoring
-
-When content type is CV/Resume or Cover Letter:
-
-| Pattern | Base Score | Recruiting Multiplier | Final Score |
-|---------|------------|----------------------|-------------|
-| Skills matches JD exactly | +10 | ×2 | +20 |
-| Power verbs without metrics | +5 | ×1.5 | +7.5 |
-| No quantified achievements | +10 | ×2 | +20 |
-| ChatGPT clichés | +10 | ×2 | +20 |
-
-### phone-screen-prep Integration
-
-When bullshit factor >50, phone-screen-prep adds targeted questions:
-
-```markdown
-### AI-Generated Content Concern
-**Bullshit Factor:** 67/100
-**Flag:** Skills list matches JD exactly (14/14 keywords)
-
-_"Walk me through a project using [specific skill]. What was the hardest part?"_
 ```
 
 ---

@@ -1,7 +1,7 @@
 # TODO - superpowers-plus
 
 > **Last Updated:** 2026-01-25
-> **Status:** Enhanced with GVR loop, calibration, slop-sync, and recruiting integration
+> **Status:** Enhanced with GVR loop, calibration, and slop-sync
 > **Primary Focus:** Real-world validation and testing
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 
@@ -40,7 +40,7 @@ This document tracks all work items for the superpowers-plus repository. Update 
 | slop-sync script | ✅ Complete | Cross-machine dictionary sync via GitHub |
 | Metrics commands | ✅ Complete | show-slop-stats, export metrics |
 | User feedback rescan | ✅ Complete | Immediate rescan after adding patterns |
-| Recruiting integration | ✅ Complete | resume-screening + phone-screen-prep integration |
+
 | Install script | ✅ Complete | Auto-installs obra/superpowers, fault-tolerant |
 | Design document | ✅ Complete | Full architecture with all enhancements |
 | Test plan | ✅ Complete | 80+ test cases across all content types |
@@ -49,12 +49,10 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 | Skill | Status | Lines | Enhancements |
 |-------|--------|-------|--------------|
-| detecting-ai-slop | ✅ Enhanced | 920+ | Stylometric thresholds, calibration, metrics, recruiting integration |
+| detecting-ai-slop | ✅ Enhanced | 920+ | Stylometric thresholds, calibration, metrics |
 | eliminating-ai-slop | ✅ Enhanced | 690+ | GVR loop, user feedback rescan, full dictionary schema |
 | enforce-style-guide | ✅ Stable | - | - |
 | incorporating-research | ✅ Complete | 200+ | Triage, artifact stripping, voice preservation |
-| resume-screening | ✅ Integrated | 470+ | detecting-ai-slop integration |
-| phone-screen-prep | ✅ Integrated | - | AI slop probing questions |
 | reviewing-ai-text | ⚠️ Deprecated | - | Use detecting/eliminating instead |
 
 ---
@@ -68,7 +66,7 @@ This document tracks all work items for the superpowers-plus repository. Update 
 - [ ] **Calibration testing** - Test calibration with real user samples
 - [ ] **GVR loop validation** - Verify 3-iteration limit and threshold checking
 - [ ] **slop-sync testing** - Test cross-machine sync workflow
-- [ ] **Recruiting workflow testing** - Test resume-screening + detecting-ai-slop integration
+
 
 ### Future Enhancements
 
@@ -98,12 +96,10 @@ This document tracks all work items for the superpowers-plus repository. Update 
 - [x] Create slop-sync shell script for cross-machine dictionary sync
 - [x] Implement metrics commands (show-slop-stats, export)
 - [x] Implement user feedback with immediate rescan
-- [x] Integrate detecting-ai-slop with resume-screening (detect-only mode)
-- [x] Integrate detecting-ai-slop with phone-screen-prep (AI slop probing questions)
 - [x] Update detecting-ai-slop skill (610 → 920+ lines)
 - [x] Update eliminating-ai-slop skill (347 → 690+ lines)
-- [x] Update DESIGN.md with GVR, calibration, slop-sync, recruiting integration
-- [x] Update README.md with slop-sync and recruiting integration
+- [x] Update DESIGN.md with GVR, calibration, slop-sync
+- [x] Update README.md with slop-sync
 - [x] Update TODO.md with completed enhancements
 
 ### 2026-01-25 (Session 1)
@@ -138,7 +134,7 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 | Skill | Purpose | Mode | Key Features |
 |-------|---------|------|--------------|
-| detecting-ai-slop | Analysis, scoring, bullshit factor | Read-only | Stylometric thresholds, calibration, metrics, recruiting integration |
+| detecting-ai-slop | Analysis, scoring, bullshit factor | Read-only | Stylometric thresholds, calibration, metrics |
 | eliminating-ai-slop | Rewriting, prevention | Interactive + Automatic (GVR) | GVR loop, user feedback rescan, dictionary management |
 
 ### GVR Loop (Generate-Verify-Refine)

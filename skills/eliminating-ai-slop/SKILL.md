@@ -291,7 +291,7 @@ Added "at the intersection of" to slop dictionary (chatgpt-cliche).
 
 Rescanning current document...
 Found 2 instances:
-- Line 12: "CallBox sits at the intersection of AI and automotive"
+- Line 12: "Acme Corp sits at the intersection of AI and automotive"
 - Line 45: "at the intersection of technology and customer service"
 
 Rephrase these? [Yes/No]
@@ -510,17 +510,17 @@ Calibration saved. GVR loop now uses your personalized thresholds.
 
 ### CV/Resume (Detect-Only)
 
-When processing resumes for recruiting, **detect but do not rewrite**. Resumes are candidate materials.
+When processing resumes, **detect but do not rewrite**. Resumes are external materials.
 
 ```
 User: "Analyze this resume for AI slop"
 Skill: [Uses detecting-ai-slop, returns bullshit factor and flags]
-       Note: Resume is candidate content. Displaying analysis only, no rewrites offered.
+       Note: Resume is external content. Displaying analysis only, no rewrites offered.
 ```
 
 ### Cover Letter (Detect-Only)
 
-Same as CV/Resume—detect patterns but don't offer rewrites for candidate materials.
+Same as CV/Resume—detect patterns but don't offer rewrites for external materials.
 
 ---
 
@@ -683,6 +683,4 @@ See `slop-sync` script in repository root for setup instructions.
 ## Related Skills
 
 - **detecting-ai-slop**: Analysis and scoring (read-only)
-- **resume-screening**: Uses detecting-ai-slop for candidate evaluation
-- **phone-screen-prep**: Phone screen preparation
 - **reviewing-ai-text**: (Deprecated) Original combined skill

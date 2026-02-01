@@ -3,11 +3,11 @@
 > **Guidelines:** See [CLAUDE.md](./CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-01
 
-12 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, OpenAI Codex CLI, Gemini, and GitHub Copilot.
+9 skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude Code, Augment Code, OpenAI Codex CLI, Gemini, and GitHub Copilot.
 
 ## What This Does
 
-Detects AI-generated text (300+ patterns, 13 content types), screens resumes for Senior SDE hiring, and enforces code style before commits. See the [Skills Overview](#skills-overview) for the full list.
+Detects AI-generated text (300+ patterns, 13 content types), enforces code style before commits, and provides workflow automation for development tasks. See the [Skills Overview](#skills-overview) for the full list.
 
 ## Installation
 
@@ -89,9 +89,6 @@ The skill uses a 4-step evaluation loop:
 | `incorporating-research` | Incorporate external research into docs (strips artifacts, preserves voice) |
 | `perplexity-research` | Auto-invoke Perplexity when stuck (2+ failures, uncertainty) |
 | `readme-authoring` | Author and maintain README.md files with best practices and anti-slop enforcement |
-| `resume-screening` | Screen Senior SDE candidates against hiring criteria |
-| `phone-screen-prep` | Prepare phone screen notes with targeted questions |
-| `phone-screen-synthesis` | Generate HIRE/NO-HIRE recommendation with evidence synthesis |
 | `reviewing-ai-text` | *(Deprecated)* Use detecting-ai-slop and eliminating-ai-slop instead |
 | `security-upgrade` | CVE scanning and dependency upgrade workflow |
 
@@ -272,63 +269,6 @@ The skill uses a 4-step evaluation loop:
 
 ---
 
-### resume-screening
-
-**Goal:** Efficiently screen Senior SDE candidates against hiring criteria, flagging concerns and generating targeted phone screen questions.
-
-**Success Criteria:**
-- [ ] Work authorization checked FIRST (reject if needs sponsorship)
-- [ ] 5+ years qualifying SWE experience verified
-- [ ] Contractor patterns detected and flagged
-- [ ] Salary alignment validated against cap
-- [ ] AI slop detected in resumes/responses
-- [ ] Phone screen questions target identified concerns
-
-**Expected Outcomes:**
-1. User pastes resume → HIRE/NO HIRE/PROBE decision in <30 seconds
-2. Phone screen questions generated for each concern
-3. Loop questions generated for deeper probing
-4. AI slop flagged if detected in resume or responses
-
-**Failure Modes:**
-- ❌ Misses sponsorship requirement (wastes interview time)
-- ❌ Passes unqualified candidate (< 5 years SWE)
-- ❌ Rejects strong candidate on technicality (over-filtering)
-- ❌ Generic questions instead of targeted probes
-
-**Invoke:**
-- "Screen at $[X]k cap" + paste resume
-- "What's the bullshit factor on this resume?" (slop analysis)
-
----
-
-### phone-screen-prep
-
-**Goal:** Create phone screen notes files with targeted questions based on screening concerns, ready for the interviewer.
-
-**Success Criteria:**
-- [ ] Template copied and placeholders replaced
-- [ ] Targeted questions added for each screening concern
-- [ ] AI slop probing questions added when bullshit factor >50
-- [ ] File named correctly (FirstName_LastName__YYYY-MM-DD.md)
-- [ ] Links populated (Paylocity, GitHub, LinkedIn)
-
-**Expected Outcomes:**
-1. User requests prep → file created in correct location
-2. Concerns from resume screening → targeted questions in file
-3. High AI slop → explicit authenticity probing questions added
-4. File ready for interviewer to use during call
-
-**Failure Modes:**
-- ❌ Wrong file location or naming
-- ❌ Missing targeted questions (generic template only)
-- ❌ AI slop concerns not translated to probe questions
-- ❌ Links/placeholders not populated
-
-**Invoke:** "Prep phone screen for [Name]"
-
----
-
 ### security-upgrade
 
 **Goal:** Systematically scan for CVEs, upgrade vulnerable dependencies, and verify fixes across all supported package managers.
@@ -468,15 +408,6 @@ superpowers-plus/
     │   └── SKILL.md
     ├── readme-authoring/           # README.md best practices + anti-slop
     │   └── SKILL.md
-    ├── resume-screening/           # Integrates with detecting-ai-slop
-    │   ├── SKILL.md
-    │   └── README.md
-    ├── phone-screen-prep/          # Adds AI slop probing questions
-    │   ├── SKILL.md
-    │   └── README.md
-    ├── phone-screen-synthesis/     # HIRE/NO-HIRE recommendation
-    │   ├── SKILL.md
-    │   └── README.md
     ├── security-upgrade/           # CVE scanning and upgrades
     │   └── SKILL.md
     └── reviewing-ai-text/          # Deprecated
