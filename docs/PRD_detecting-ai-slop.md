@@ -6,13 +6,13 @@
 
 ## 1. Purpose
 
-Analyze any text to produce a "bullshit factor" score quantifying AI-generated patterns. This skill performs read-only analysis—it detects and reports but does not modify text.
+Analyze any text to produce a "slop score" score quantifying AI-generated patterns. This skill performs read-only analysis—it detects and reports but does not modify text.
 
 ## 2. Use Cases
 
 | Use Case | Example | Output |
 |----------|---------|--------|
-| Screen external documents | "What's the bullshit factor on this CV?" | Score + pattern breakdown |
+| Screen external documents | "What's the slop score on this CV?" | Score + pattern breakdown |
 | Exploratory review | "How much slop is in this draft?" | Score + flagged sections |
 | Pre-rewrite assessment | "Should I clean this up?" | Score helps user decide |
 | Email review | "Check this email before I send" | Score + email-specific flags |
@@ -84,7 +84,7 @@ Detect statistical anomalies indicating AI generation.
 - [ ] Flag if ≥2 metrics indicate AI generation
 - [ ] Report raw measurements for transparency
 
-### FR5: Bullshit Factor Scoring
+### FR5: Slop Score Scoring
 
 Produce a single composite score summarizing AI-likeness.
 
@@ -96,7 +96,7 @@ Produce a single composite score summarizing AI-likeness.
 
 **Output Format**:
 ```
-Bullshit Factor: 73/100
+Slop Score: 73/100
 
 Breakdown:
 - Lexical:      28/40  (14 patterns in 500 words)
@@ -510,7 +510,7 @@ Contribute detection metrics to shared tracking.
 **Tracked Metrics**:
 - Documents analyzed (count, by content type)
 - Patterns detected (count, by category, by content type)
-- Average bullshit factor (rolling, by content type)
+- Average slop score (rolling, by content type)
 - Highest-scoring patterns (frequency, by content type)
 - Content type distribution (what types user analyzes most)
 

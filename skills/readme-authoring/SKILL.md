@@ -212,7 +212,7 @@ More text
 Before finalizing any README:
 
 1. Run `detecting-ai-slop` on the content
-2. Target bullshit factor: **<20** for READMEs
+2. Target slop score: **<20** for READMEs
 3. Fix all flagged patterns
 4. Verify sentence variance (σ >12)
 
@@ -232,7 +232,7 @@ Run before releases or quarterly:
 - [ ] Badges are current
 - [ ] Version numbers match release
 - [ ] Screenshots/GIFs are current
-- [ ] No marketing language (bullshit factor <20)
+- [ ] No marketing language (slop score <20)
 
 ---
 
@@ -253,7 +253,7 @@ After generating README content, report:
 
 ```
 [GVR: 1 iteration | removed 3 patterns | σ: 14.2 | TTR: 0.58]
-README bullshit factor: 18/100 ✓
+README slop score: 18/100 ✓
 Markdown lint: PASS (0 errors)
 ```
 
@@ -263,10 +263,10 @@ Markdown lint: PASS (0 errors)
 
 ## Example: Rewriting a Bad Opening
 
-**Before (bullshit factor: 67):**
+**Before (slop score: 67):**
 > "SuperTool is a comprehensive, cutting-edge solution that seamlessly integrates into your workflow to provide powerful capabilities for modern development teams."
 
-**After (bullshit factor: 12):**
+**After (slop score: 12):**
 > "SuperTool runs your tests in parallel across 8 cores. Install in 10 seconds: `npm i -g supertool`"
 
 ---
@@ -282,7 +282,7 @@ Based on patterns from:
 
 ## Related Skills
 
-- **detecting-ai-slop**: Analyze README for bullshit factor
+- **detecting-ai-slop**: Analyze README for slop score
 - **eliminating-ai-slop**: GVR loop for clean generation
 - **brainstorming**: Before creating README, brainstorm structure
 

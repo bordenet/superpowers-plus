@@ -8,7 +8,7 @@
 ## Purpose
 
 Validate that the two skills meet requirements across all 13 supported content types:
-- **detecting-ai-slop**: Accurate bullshit factor scoring with content-type-specific patterns
+- **detecting-ai-slop**: Accurate slop score scoring with content-type-specific patterns
 - **eliminating-ai-slop**: Effective rewriting with meaning preservation per content type
 
 See [DESIGN.md](./DESIGN.md) for technical architecture.
@@ -350,7 +350,7 @@ with no specific content type markers. It could be anything.
 
 **Expected output:**
 ```
-Bullshit Factor: ≥50/100
+Slop Score: ≥50/100
 Lexical: ≥20/40 (≥7 patterns)
 - "incredibly" [Generic booster]
 - "extremely" [Generic booster]
@@ -1093,7 +1093,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Procedure:**
 1. User provides one document per content type (13 total)
 2. Agent runs detecting-ai-slop on each
-3. Agent reports bullshit factor and all flagged patterns
+3. Agent reports slop score and all flagged patterns
 4. User and agent jointly review each flag:
    - **True positive**: Correctly identified slop
    - **False positive**: Incorrectly flagged acceptable prose
@@ -1147,7 +1147,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill detecting-ai-
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill eliminating-ai-slop
 
 # Run detection with content type
-"What's the bullshit factor on this email: [paste text]"
+"What's the slop score on this email: [paste text]"
 "Score this LinkedIn post: [paste text]"
 "Check this CV for AI patterns: [paste text]"
 

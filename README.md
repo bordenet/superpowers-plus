@@ -92,7 +92,7 @@ The skill uses a 4-step evaluation loop:
 
 | Skill | Purpose |
 |-------|---------|
-| `detecting-ai-slop` | Analyze text and produce bullshit factor scores (0-100) |
+| `detecting-ai-slop` | Analyze text and produce slop score scores (0-100) |
 | `eliminating-ai-slop` | Rewrite text to remove slop patterns |
 | `enforce-style-guide` | Enforce coding standards before commits |
 | `golden-agents` | Initialize or upgrade AI guidance in repos (wraps golden-agents framework) |
@@ -110,7 +110,7 @@ The skill uses a 4-step evaluation loop:
 
 ### detecting-ai-slop
 
-**Goal:** Identify AI-generated content by detecting telltale patterns (boosters, hedging, clichés, uniformity) and produce an actionable bullshit factor score.
+**Goal:** Identify AI-generated content by detecting telltale patterns (boosters, hedging, clichés, uniformity) and produce an actionable slop score score.
 
 **Success Criteria:**
 - [ ] Score accurately reflects AI-generation likelihood (0-100)
@@ -131,7 +131,7 @@ The skill uses a 4-step evaluation loop:
 - ❌ Vague output: "some issues detected" without specifics
 - ❌ Takes >30 seconds to analyze reasonable-length text
 
-**Invoke:** "What's the bullshit factor on this [content type]?"
+**Invoke:** "What's the slop score on this [content type]?"
 
 ---
 
@@ -140,7 +140,7 @@ The skill uses a 4-step evaluation loop:
 **Goal:** Transform AI-like text into human-quality writing by eliminating detected patterns while preserving meaning and adding specificity.
 
 **Success Criteria:**
-- [ ] GVR loop reduces bullshit factor by ≥30 points
+- [ ] GVR loop reduces slop score by ≥30 points
 - [ ] Output passes stylometric thresholds (sentence σ >3, TTR >0.45)
 - [ ] Meaning preserved—no information loss
 - [ ] Matches target voice when calibrated

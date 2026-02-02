@@ -8,7 +8,7 @@
 ## Purpose
 
 Technical design for two complementary skills:
-- **detecting-ai-slop**: Read-only analysis producing bullshit factor scores
+- **detecting-ai-slop**: Read-only analysis producing slop score scores
 - **eliminating-ai-slop**: Active rewriting with interactive and automatic modes using GVR loop
 
 Supports 13 content types with type-specific detection and rewriting.
@@ -98,12 +98,12 @@ See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
 ### Purpose
 
-Analyze text and produce a bullshit factor score (0-100) with detailed breakdown, applying content-type-specific patterns.
+Analyze text and produce a slop score score (0-100) with detailed breakdown, applying content-type-specific patterns.
 
 ### Invocation
 
 ```
-User: "What's the bullshit factor on this CV?"
+User: "What's the slop score on this CV?"
 User: "Score this email draft for AI patterns"
 User: "How much slop is in this README?"
 User: "Check this LinkedIn post before I publish"
@@ -114,7 +114,7 @@ User: "Check this LinkedIn post before I publish"
 ```
 Content Type Detected: Email
 
-Bullshit Factor: 58/100
+Slop Score: 58/100
 
 Breakdown:
 ├── Lexical:      18/40  (9 patterns in 200 words)
@@ -447,7 +447,7 @@ The GVR loop is the core architecture for automatic slop elimination in eliminat
       "email-opening-slop": 23,
       "linkedin-engagement-bait": 18
     },
-    "average_bullshit_factor": {
+    "average_slop_score": {
       "overall": 58.3,
       "by_content_type": {
         "email": 42.1,

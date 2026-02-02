@@ -4,7 +4,7 @@
  * CLI tool for managing slop detection/elimination metrics
  * 
  * Usage:
- *   node slop-metrics.js record-detection <bullshit_factor> <patterns_json>
+ *   node slop-metrics.js record-detection <slop_score> <patterns_json>
  *   node slop-metrics.js record-elimination <patterns_fixed> <user_kept>
  *   node slop-metrics.js report-false-positive
  *   node slop-metrics.js summary
@@ -32,7 +32,7 @@ function loadMetrics() {
           'sycophantic-phrase': 0,
           'transitional-filler': 0
         },
-        average_bullshit_factor: 0
+        average_slop_score: 0
       },
       elimination: {
         documents_processed: 0,
@@ -49,19 +49,19 @@ function saveMetrics(metrics) {
   fs.writeFileSync(METRICS_FILE, JSON.stringify(metrics, null, 2));
 }
 
-function recordDetection(bullshitFactor, patternsJson) {
+function recordDetection(slopScore, patternsJson) {
   const metrics = loadMetrics();
   const patterns = JSON.parse(patternsJson || '{}');
   
   // Update detection metrics
   const prevDocs = metrics.detection.documents_analyzed;
-  const prevAvg = metrics.detection.average_bullshit_factor;
+  const prevAvg = metrics.detection.average_slop_score;
   
   metrics.detection.documents_analyzed++;
   
   // Calculate running average
-  metrics.detection.average_bullshit_factor = 
-    ((prevAvg * prevDocs) + bullshitFactor) / metrics.detection.documents_analyzed;
+  metrics.detection.average_slop_score = 
+    ((prevAvg * prevDocs) + slopScore) / metrics.detection.documents_analyzed;
   
   // Count patterns by category
   let totalPatterns = 0;
@@ -74,7 +74,7 @@ function recordDetection(bullshitFactor, patternsJson) {
   metrics.detection.total_patterns_found += totalPatterns;
   
   saveMetrics(metrics);
-  console.log(`Recorded detection: BF=${bullshitFactor}, patterns=${totalPatterns}`);
+  console.log(`Recorded detection: SS=${slopScore}, patterns=${totalPatterns}`);
 }
 
 function recordElimination(patternsFixed, userKept) {
@@ -103,7 +103,7 @@ function showSummary() {
   console.log('Detection:');
   console.log(`  Documents analyzed: ${metrics.detection.documents_analyzed}`);
   console.log(`  Total patterns found: ${metrics.detection.total_patterns_found}`);
-  console.log(`  Average bullshit factor: ${metrics.detection.average_bullshit_factor.toFixed(1)}`);
+  console.log(`  Average slop score: ${metrics.detection.average_slop_score.toFixed(1)}`);
   console.log('  By category:');
   for (const [cat, count] of Object.entries(metrics.detection.by_category)) {
     if (count > 0) {
@@ -145,7 +145,7 @@ function resetMetrics() {
       'sycophantic-phrase': 0,
       'transitional-filler': 0
     },
-    average_bullshit_factor: 0
+    average_slop_score: 0
   };
   metrics.elimination = {
     documents_processed: 0,
@@ -163,7 +163,7 @@ const [,, command, ...args] = process.argv;
 switch (command) {
   case 'record-detection':
     if (args.length < 1) {
-      console.error('Usage: node slop-metrics.js record-detection <bullshit_factor> [patterns_json]');
+      console.error('Usage: node slop-metrics.js record-detection <slop_score> [patterns_json]');
       process.exit(1);
     }
     recordDetection(parseFloat(args[0]), args[1]);

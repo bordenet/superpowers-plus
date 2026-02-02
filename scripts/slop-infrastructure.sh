@@ -46,7 +46,7 @@ DEFAULT_METRICS='{
       "sycophantic-phrase": 0,
       "transitional-filler": 0
     },
-    "average_bullshit_factor": 0
+    "average_slop_score": 0
   },
   "elimination": {
     "documents_processed": 0,
@@ -130,13 +130,13 @@ show_status() {
         local patterns_found=$(jq '.detection.total_patterns_found' "$METRICS_FILE" 2>/dev/null || echo "0")
         local docs_processed=$(jq '.elimination.documents_processed' "$METRICS_FILE" 2>/dev/null || echo "0")
         local patterns_fixed=$(jq '.elimination.patterns_fixed' "$METRICS_FILE" 2>/dev/null || echo "0")
-        local avg_bf=$(jq '.detection.average_bullshit_factor' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local avg_bf=$(jq '.detection.average_slop_score' "$METRICS_FILE" 2>/dev/null || echo "0")
         
         echo -e "${GREEN}Metrics:${NC} $METRICS_FILE"
         echo "  Detection:"
         echo "    Documents analyzed: $docs_analyzed"
         echo "    Patterns found: $patterns_found"
-        echo "    Avg bullshit factor: $avg_bf"
+        echo "    Avg slop score: $avg_bf"
         echo "  Elimination:"
         echo "    Documents processed: $docs_processed"
         echo "    Patterns fixed: $patterns_fixed"

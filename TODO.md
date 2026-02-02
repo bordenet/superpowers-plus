@@ -134,7 +134,7 @@ This document tracks all work items for the superpowers-plus repository. Update 
 
 | Skill | Purpose | Mode | Key Features |
 |-------|---------|------|--------------|
-| detecting-ai-slop | Analysis, scoring, bullshit factor | Read-only | Stylometric thresholds, calibration, metrics |
+| detecting-ai-slop | Analysis, scoring, slop score | Read-only | Stylometric thresholds, calibration, metrics |
 | eliminating-ai-slop | Rewriting, prevention | Interactive + Automatic (GVR) | GVR loop, user feedback rescan, dictionary management |
 
 ### GVR Loop (Generate-Verify-Refine)

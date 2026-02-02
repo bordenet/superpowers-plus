@@ -1,6 +1,6 @@
 ---
 name: detecting-ai-slop
-description: Use when analyzing text to calculate a bullshit factor score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, or any text where you need to quantify machine-generated patterns before deciding whether to edit
+description: Use when analyzing text to calculate a slop score score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, or any text where you need to quantify machine-generated patterns before deciding whether to edit
 ---
 
 # Detecting AI Slop
@@ -10,7 +10,7 @@ description: Use when analyzing text to calculate a bullshit factor score (0-100
 
 ## Overview
 
-This skill analyzes text and produces a **bullshit factor score** (0-100) with detailed breakdown by detection dimension. Use it to quantify AI slop before deciding whether to rewrite.
+This skill analyzes text and produces a **slop score score** (0-100) with detailed breakdown by detection dimension. Use it to quantify AI slop before deciding whether to rewrite.
 
 **Core principle:** Detection is read-only. This skill flags patterns but does not rewrite. Use `eliminating-ai-slop` for active rewriting.
 
@@ -54,7 +54,7 @@ The skill auto-detects content type from context and applies type-specific patte
 When analyzing text, produce this structured output:
 
 ```
-Bullshit Factor: 73/100
+Slop Score: 73/100
 
 Breakdown:
 ├── Lexical:      28/40  (14 patterns in 500 words)
@@ -741,7 +741,7 @@ Slop Detection Metrics
 Session Stats:
 ├── Documents analyzed: 12
 ├── Total patterns found: 156
-├── Average bullshit factor: 43/100
+├── Average slop score: 43/100
 └── Patterns by category:
     ├── Lexical: 89 (57%)
     ├── Structural: 34 (22%)
@@ -787,7 +787,7 @@ Exports `.slop-metrics.json` in machine-readable format for analysis.
     "documents_analyzed": 347,
     "patterns_found": 4231,
     "patterns_fixed": 3892,
-    "average_bullshit_factor": 43
+    "average_slop_score": 43
   },
   "by_category": {
     "lexical": 2412,
@@ -826,7 +826,7 @@ Exports `.slop-metrics.json` in machine-readable format for analysis.
 **Analysis:**
 
 ```
-Bullshit Factor: 82/100
+Slop Score: 82/100
 
 Breakdown:
 ├── Lexical:      32/40  (16 patterns)

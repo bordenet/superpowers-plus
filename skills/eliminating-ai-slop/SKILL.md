@@ -428,11 +428,11 @@ Skill:
 ```
 User: "Make 'leverage' a high-priority pattern"
 Skill: Updated 'leverage' weight: 1.0 → 1.5
-       This pattern will now contribute 50% more to the bullshit factor.
+       This pattern will now contribute 50% more to the slop score.
 
 User: "Lower priority for 'furthermore'"
 Skill: Updated 'furthermore' weight: 1.0 → 0.5
-       This pattern will contribute half as much to the bullshit factor.
+       This pattern will contribute half as much to the slop score.
 ```
 
 ---
@@ -514,7 +514,7 @@ When processing resumes, **detect but do not rewrite**. Resumes are external mat
 
 ```
 User: "Analyze this resume for AI slop"
-Skill: [Uses detecting-ai-slop, returns bullshit factor and flags]
+Skill: [Uses detecting-ai-slop, returns slop score and flags]
        Note: Resume is external content. Displaying analysis only, no rewrites offered.
 ```
 
