@@ -27,6 +27,16 @@ The install script:
 
 Use `./install.sh --verbose` for detailed output or `./install.sh --force` to reinstall superpowers.
 
+### Upgrading
+
+To pull the latest updates from obra/superpowers:
+
+```bash
+./upgrade.sh
+```
+
+This fetches the latest from obra/superpowers and reinstalls all personal skills. Use `--force` to discard any local changes before upgrading.
+
 ## Perplexity MCP Integration
 
 The `perplexity-research` skill enables AI assistants to automatically consult Perplexity when stuck.
@@ -371,6 +381,7 @@ superpowers-plus/
 ├── TODO.md                         # Task tracking
 ├── LICENSE
 ├── install.sh                      # Install superpowers and skills
+├── upgrade.sh                      # Pull latest from obra/superpowers
 ├── slop-sync                       # Cross-machine dictionary sync script
 ├── .gitignore
 ├── docs/
