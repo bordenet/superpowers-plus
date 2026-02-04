@@ -34,6 +34,27 @@ User can always force invocation with:
 
 ## Invocation Protocol
 
+### Step 0: Try Free Tools First (MANDATORY)
+
+<EXTREMELY_IMPORTANT>
+**Before ANY Perplexity call, you MUST try free alternatives first.**
+
+1. **Use `web-search`** for the query
+2. **Use `web-fetch`** to read any promising URLs
+3. **Evaluate**: Did you find what you need? If YES → STOP (no Perplexity needed)
+4. **Only escalate** if results are ≥50% worse than expected
+
+**You MUST state explicitly before calling Perplexity:**
+> "web-search returned [X]. This is insufficient because [reason]. Escalating to Perplexity."
+
+**Never use Perplexity for:**
+- Simple company lookups
+- Checking if a URL is live
+- Finding a company's website
+- Basic fact-checking
+- Reading documentation pages
+</EXTREMELY_IMPORTANT>
+
 ### Step 1: Announce
 
 **ALWAYS** announce before invoking:
@@ -41,6 +62,8 @@ User can always force invocation with:
 ```
 🔍 **Consulting Perplexity**: [Brief description of what I'm researching]
 Reason: [Which trigger condition was met]
+Free tools tried: [web-search result summary]
+Why escalating: [specific insufficiency]
 ```
 
 ### Step 2: Generate Rich Prompt
@@ -50,6 +73,7 @@ Craft a detailed prompt for Perplexity that includes:
 - **Specific question**: The exact information needed
 - **Constraints**: Any requirements (language, version, platform)
 - **What you've tried**: Failed approaches (if applicable)
+- **What web-search found**: Summary of free tool results
 
 ### Step 3: Dispatch to Perplexity
 
@@ -195,14 +219,21 @@ Reset stats: `echo '{"total_invocations":0,"successful":0,"unsuccessful":0,"succ
    - `perplexity_reason_perplexity` - Complex reasoning (most expensive)
 4. **Fallback to web-search** - When Perplexity is unavailable or for simple lookups
 
-### Decision Framework
+### Decision Framework (Cost-Conscious)
 
 ```
-Is this a high-value use case?
-├── YES → Is Perplexity available?
-│         ├── YES → Use appropriate Perplexity tool
-│         └── NO → Fallback to web-search + web-fetch
-└── NO → Use alternative (web-search, codebase-retrieval, training data)
+Step 1: Try web-search first (FREE)
+├── Found what I need? → STOP (no Perplexity)
+└── Insufficient? → Continue
+
+Step 2: Try web-fetch on promising URLs (FREE)
+├── Found what I need? → STOP (no Perplexity)
+└── Still insufficient? → Continue
+
+Step 3: Evaluate - Is this a high-value use case?
+├── NO → Use alternative (codebase-retrieval, training data)
+└── YES → State: "web-search returned [X]. Insufficient because [Y]. Escalating."
+          └── Use appropriate Perplexity tool
 ```
 
 ### API Unavailability
@@ -215,10 +246,12 @@ If Perplexity returns 401/403/5xx errors:
 
 ## Key Principles
 
-1. **ALWAYS announce** - User must know when Perplexity is being consulted
-2. **Track everything** - Stats enable tuning and improvement
-3. **Rich prompts** - Better prompts = better results
-4. **Broad scope** - Technical AND domain questions are valid
-5. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
-6. **Cost awareness** - Use efficiently; prefer alternatives for simple lookups
+1. **FREE FIRST** - Always try web-search and web-fetch before Perplexity
+2. **ALWAYS announce** - User must know when Perplexity is being consulted
+3. **Justify escalation** - State what web-search found and why it's insufficient
+4. **Track everything** - Stats enable tuning and improvement
+5. **Rich prompts** - Better prompts = better results
+6. **Broad scope** - Technical AND domain questions are valid
+7. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
+8. **Cost awareness** - Perplexity costs real money; use only when free tools fail
 
