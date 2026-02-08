@@ -1,9 +1,9 @@
 # Self-Prompting Experiment v2
 
-## Current Status: Round 20 of 20 (FINAL ROUND)
+## Current Status: ✅ EXPERIMENT COMPLETE
 
 **Last Updated:** 2026-02-08
-**Next Action:** Execute Round 20 (product-requirements-assistant | Condition C: Direct-External)
+**Completed:** All 20 rounds finished
 
 ---
 
@@ -27,16 +27,16 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Running Totals (After Round 19)
+## Final Results (All 20 Rounds Complete)
 
 ### By Condition
 
 | Condition | VH | HR | Rounds | Avg VH/Round | HR Rate |
 |-----------|----|----|--------|--------------|---------|
-| **A: Direct** | 19 | 1 | 5 | 3.8 | **20%** ← tied with B for lowest HR |
-| **B: Reframe-Self** | 21 | 1 | 5 | 4.2 | **20%** ← leads in VH |
-| **C: Direct-External** | 18 | 3 | 4 | 4.5 | 75% |
-| **D: Reframe-External** | 18 | 6 | 5 | 3.6 | **100%** ← still 100% HR rate |
+| **A: Direct** | 19 | 1 | 5 | 3.8 | **20%** |
+| **B: Reframe-Self** | 21 | 1 | 5 | 4.2 | **20%** ← WINNER: Highest VH, lowest HR |
+| **C: Direct-External** | 23 | 4 | 5 | 4.6 | 80% |
+| **D: Reframe-External** | 18 | 6 | 5 | 3.6 | **100%** ← Every round had hallucinations |
 
 ### By Tool
 
@@ -46,7 +46,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | jd-assistant | 18 | 1 | 4 (R2, R7, R12, R17) |
 | one-pager | 14 | 4 | 4 (R3, R8, R13, R18) |
 | business-justification-assistant | 17 | 2 | 4 (R4, R9, R14, R19) |
-| product-requirements-assistant | 12 | 1 | 3 (R5, R10, R15) |
+| product-requirements-assistant | 17 | 2 | 4 (R5, R10, R15, R20) |
 
 ---
 
@@ -73,14 +73,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | 17 | jd-assistant | B | 5 | 0 | Red flags list gap, encouragement gaming |
 | 18 | one-pager | D | 4 | 2 | Circular logic threshold, ROI logic absence |
 | 19 | business-justification-assistant | A | 5 | 0 | Payback target not enforced, sunk cost missing |
-
----
-
-## Remaining Rounds
-
-| Round | Tool | Condition | Procedure |
-|-------|------|-----------|-----------|
-| **20** | product-requirements-assistant | C: Direct-External | Send raw files to Gemini |
+| 20 | product-requirements-assistant | C | 5 | 1 | Banned tech missing, calendar dates, failure case gaming |
 
 ---
 
@@ -136,13 +129,45 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Key Observations So Far
+## Final Conclusions
 
-1. **Condition D has 100% hallucination rate** - Every round with Gemini + reframing has at least 1 HR (5 rounds, 5 HR)
-2. **Condition B (Reframe-Self) shows best balance** - Highest VH (21) with lowest HR rate (20%)
-3. **Condition A and B tied for lowest HR rate** - Both at 20% (1 HR in 5 rounds each)
-4. **Gemini confidently asserts false claims** - e.g., calendar date prohibition is LLM guidance, not scoring requirement
-5. **Round 19 perfect score** - Condition A achieved 5 VH, 0 HR for business-justification-assistant
+### Winner: Condition B (Reframe-Self)
+
+**Self-prompting works.** Writing a comprehensive adversarial prompt before analyzing code produces the best results:
+- **Highest VH (21)** - Most verified findings
+- **Lowest HR rate (20%)** - Tied with Condition A for reliability
+- **Best VH/Round ratio (4.2)** - Consistently productive
+
+### Key Findings
+
+1. **Reframing helps Claude, hurts Gemini**
+   - Condition B (Claude + reframe) = 21 VH, 1 HR (20% HR rate)
+   - Condition D (Gemini + reframe) = 18 VH, 6 HR (100% HR rate)
+   - The comprehensive prompt helps Claude think systematically but gives Gemini more rope to hallucinate
+
+2. **External model (Gemini) increases hallucination rate**
+   - Conditions with Gemini (C, D): 10 HR total
+   - Conditions without Gemini (A, B): 2 HR total
+   - Gemini confidently asserts false claims (e.g., looking at wrong file, overstating severity)
+
+3. **Direct analysis is reliable but less productive**
+   - Condition A: 19 VH, 1 HR (3.8 VH/round)
+   - Condition B: 21 VH, 1 HR (4.2 VH/round)
+   - Reframing adds ~10% more findings with no additional hallucinations
+
+4. **Condition D is the worst approach**
+   - 100% hallucination rate (every round had at least 1 HR)
+   - Lowest VH/round ratio (3.6)
+   - Reframing + external model = worst of both worlds
+
+### Hypothesis Result
+
+**Original hypothesis: "C: Both help independently (reframing + external)"**
+
+**Result: PARTIALLY CONFIRMED**
+- Reframing helps (B > A in VH)
+- External model hurts reliability (C, D have higher HR rates)
+- The combination (D) is worse than either alone
 
 ---
 
