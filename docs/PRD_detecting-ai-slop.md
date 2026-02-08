@@ -1,148 +1,188 @@
-# PRD: detecting-ai-slop Skill
+# PRD: AI Slop Detection Superpower Skill
 
 > **Parent Document**: [Vision_PRD.md](./Vision_PRD.md)
 > **Sibling Document**: [PRD_eliminating-ai-slop.md](./PRD_eliminating-ai-slop.md)
-> **Guidelines**: [CLAUDE.md](../CLAUDE.md)
+> **Implementation**: [../skills/detecting-ai-slop/SKILL.md](../skills/detecting-ai-slop/SKILL.md)
+> **Last Updated**: 2026-02-08
 
 ## 1. Purpose
 
-Analyze any text to produce a "slop score" score quantifying AI-generated patterns. This skill performs read-only analysis—it detects and reports but does not modify text.
+### Problem Statement
+
+AI-generated text produces detectable patterns ("slop") across four dimensions: lexical (overused phrases like "leverage," "delve"), structural (formulaic templates), semantic (hollow examples), and stylometric (uniform sentence lengths). Users need to quantify slop density before deciding whether to edit.
+
+### Solution
+
+The `detecting-ai-slop` skill analyzes text and produces a **slop score** (0-100) with breakdown by dimension. It performs read-only analysis—detecting and reporting but never modifying text.
+
+**Core Principle**: Detection is read-only. Use `eliminating-ai-slop` for active rewriting.
 
 ## 2. Use Cases
 
-| Use Case | Example | Output |
-|----------|---------|--------|
-| Screen external documents | "What's the slop score on this CV?" | Score + pattern breakdown |
-| Exploratory review | "How much slop is in this draft?" | Score + flagged sections |
-| Pre-rewrite assessment | "Should I clean this up?" | Score helps user decide |
+| Use Case | Example Prompt | Output |
+|----------|----------------|--------|
+| Screen CVs/resumes | "What's the slop score on this CV?" | Score + CV-specific flags |
+| Pre-rewrite assessment | "How much slop is in this draft?" | Score + dimension breakdown |
 | Email review | "Check this email before I send" | Score + email-specific flags |
-| LinkedIn post check | "Is this post too sloppy?" | Score + engagement bait flags |
-| SMS tone check | "Does this text sound too corporate?" | Formality mismatch flags |
-| Teams message review | "Is this chat message appropriate?" | Register mismatch flags |
+| LinkedIn post check | "Is this post too AI-sounding?" | Score + engagement bait flags |
+| Compare versions | "Score before and after versions" | Comparative scores |
+| Triage documents | "Which of these needs the most cleanup?" | Ranked scores |
 
 ## 3. Functional Requirements
 
-### FR1: Lexical Pattern Detection
+### FR1: Slop Score Scoring Algorithm
 
-Detect slop phrases across 5 categories during analysis.
+Produce a composite score (0-100) summarizing AI-likeness.
 
-**Categories** (from Vision_PRD §6.1 FR1):
-1. Generic boosters (25+ patterns)
-2. Buzzwords (25+ patterns)
-3. Filler phrases (25+ patterns)
-4. Hedge patterns (15+ patterns)
-5. Sycophantic phrases (15+ patterns)
+**Score Components** (implemented):
 
-**Acceptance Criteria**:
-- [ ] Detect ≥90% of listed phrases in analyzed text
-- [ ] Report count per category
-- [ ] Highlight exact locations in source text
-- [ ] Calculate density (patterns per 1000 words)
+| Dimension | Max Points | Calculation |
+|-----------|------------|-------------|
+| Lexical | 40 | `min(40, pattern_count * 2)` |
+| Structural | 25 | `5 * structural_patterns_found` |
+| Semantic | 20 | `5 * semantic_patterns_found` |
+| Stylometric | 15 | `5 * stylometric_flags` |
 
-### FR2: Structural Pattern Detection
+**Score Interpretation**:
 
-Identify formulaic document structures.
+| Score | Interpretation |
+|-------|----------------|
+| 0-20 | Clean: minimal AI patterns detected |
+| 21-40 | Light: some patterns, minor editing needed |
+| 41-60 | Moderate: noticeable AI fingerprint, edit recommended |
+| 61-80 | Heavy: significant slop, substantial rewrite needed |
+| 81-100 | Severe: text reads as unedited AI output |
 
-**Patterns** (from Vision_PRD §6.1 FR2):
-1. Formulaic introductions
-2. Template section progressions
-3. Excessive signposting
-4. Uniform paragraph rhythm
+**Output Format** (implemented):
 
-**Acceptance Criteria**:
-- [ ] Detect formulaic introduction pattern
-- [ ] Detect ≥3 template section patterns
-- [ ] Count signposting phrases
-- [ ] Measure paragraph length variance
-
-### FR3: Semantic Pattern Detection
-
-Identify hollow specificity, artificial balance, and missing constraints.
-
-**Patterns** (from Vision_PRD §6.1 FR3):
-1. Hollow specificity (examples lacking concrete details)
-2. Symmetric coverage (artificially balanced structures)
-3. Absent constraints (absolute claims without limitations)
-
-**Acceptance Criteria**:
-- [ ] Flag examples lacking ≥2 concrete details
-- [ ] Detect artificially symmetric structures
-- [ ] Identify absolute claims
-
-### FR4: Stylometric Pattern Detection
-
-Detect statistical anomalies indicating AI generation.
-
-**Metrics** (from Vision_PRD §6.1 FR4):
-1. Sentence length variance (SD across document)
-2. Type-token ratio (per 100-word window)
-3. Hapax legomena rate (unique words / total unique)
-
-**Acceptance Criteria**:
-- [ ] Calculate all three metrics
-- [ ] Compare against calibrated thresholds
-- [ ] Flag if ≥2 metrics indicate AI generation
-- [ ] Report raw measurements for transparency
-
-### FR5: Slop Score Scoring
-
-Produce a single composite score summarizing AI-likeness.
-
-**Score Components**:
-- Lexical density (weighted)
-- Structural pattern count (weighted)
-- Semantic pattern count (weighted)
-- Stylometric deviation (weighted)
-
-**Output Format**:
 ```
 Slop Score: 73/100
 
 Breakdown:
-- Lexical:      28/40  (14 patterns in 500 words)
-- Structural:   18/25  (formulaic intro, template sections)
-- Semantic:     12/20  (3 hollow examples, 1 absolute claim)
-- Stylometric:  15/15  (low sentence variance, flat TTR)
+├── Lexical:      28/40  (14 patterns in 500 words)
+├── Structural:   18/25  (formulaic intro, template sections)
+├── Semantic:     12/20  (3 hollow examples, 1 absolute claim)
+└── Stylometric:  15/15  (low sentence variance, flat TTR)
 
-Top Offenders:
-1. "incredibly powerful" (line 12) - Generic booster
-2. "leverage synergies" (line 34) - Buzzword cluster
-3. "it's important to note" (line 56) - Filler phrase
-...
+Top Offenders (showing 10 of 23):
+ 1. Line 12: "incredibly powerful" [Generic booster]
+ 2. Line 34: "leverage synergies" [Buzzword cluster]
+ ...
+
+Stylometric Measurements:
+├── Sentence length σ: 7.3 words (target: >15.0) ⚠️
+├── Paragraph length SD: 18 words (target: >25) ⚠️
+├── Type-token ratio: 0.48 (target: 0.50-0.70) ⚠️
+└── Hapax rate: 31% (target: >40% or user baseline) ⚠️
 ```
 
 **Acceptance Criteria**:
-- [ ] Score range 0-100 (0 = human-like, 100 = obvious AI)
-- [ ] Breakdown by dimension
-- [ ] Top 10 flagged patterns with locations
-- [ ] Score comparable across documents of different lengths
+- [x] Score range 0-100
+- [x] Breakdown by dimension
+- [x] Top offenders with line numbers
+- [x] Stylometric measurements displayed
+- [x] Score comparable across document lengths
+
+### FR2: Lexical Pattern Detection
+
+Detect slop phrases across 6 categories (150+ patterns implemented).
+
+**Categories**:
+1. **Generic boosters** (25 patterns): incredibly, extremely, delve, tapestry, multifaceted, myriad, plethora
+2. **Buzzwords** (50 patterns): leverage, synergy, robust, seamless, comprehensive, scalable, game-changing
+3. **Filler phrases** (40 patterns): "it's important to note," "let's dive in," "in today's world"
+4. **Hedge patterns** (27 patterns): "of course," "naturally," "to some extent," "seems to"
+5. **Sycophantic phrases** (20 patterns): "Great question!", "Happy to help!", "Excellent point!"
+6. **Transitional filler** (27 patterns): "Furthermore," "Moreover," "Moving forward"
+
+**Acceptance Criteria**:
+- [x] Each pattern found adds 2 points to lexical score
+- [x] Report count per category
+- [x] Show exact line locations
+- [x] Patterns from dictionary merged with built-in
+
+### FR3: Structural Pattern Detection
+
+Identify formulaic document structures.
+
+**Patterns Detected** (implemented):
+| Pattern | Points | Detection |
+|---------|--------|-----------|
+| Formulaic intro | +5 | Topic restatement → importance → overview promise |
+| Template sections | +5 | Overview → Key Points → Best Practices → Conclusion |
+| Over-signposting | +5 | "In this section," "Let's now turn to" (max 2 counted) |
+| Staccato paragraphs | +5 | >50% of paragraphs are 1-2 sentences |
+| Symmetric coverage | +5 | Equal weight to all options without prioritization |
+
+**Acceptance Criteria**:
+- [x] Each structural pattern adds 5 points
+- [x] Maximum 25 points from structural dimension
+
+### FR4: Semantic Pattern Detection
+
+Identify hollow specificity and missing constraints.
+
+**Patterns Detected** (implemented):
+| Pattern | Points | Example |
+|---------|--------|---------|
+| Hollow specificity | +5 | "Many companies have seen significant improvements" |
+| Absent constraints | +5 | "This solution works perfectly for all use cases" |
+| Balanced to a fault | +5 | Every pro has matching con of equal weight |
+| Circular reasoning | +5 | Restates thesis without new evidence |
+
+**Acceptance Criteria**:
+- [x] Each semantic pattern adds 5 points (max 2 counted per type)
+- [x] Maximum 20 points from semantic dimension
+
+### FR5: Stylometric Pattern Detection
+
+Detect statistical AI fingerprints based on research (StyloAI, Desaire et al.).
+
+**Metrics** (implemented):
+
+| Metric | Formula | Flag If | Target |
+|--------|---------|---------|--------|
+| Sentence length σ | `σ = sqrt(Σ(x - μ)² / n)` | σ < 15.0 | σ > 15.0 |
+| Paragraph length SD | Standard deviation words/paragraph | SD < 25 | SD > 25 |
+| Type-Token Ratio | Unique words / Total (per 100-word window) | TTR < 0.50 or > 0.70 | 0.50-0.70 |
+| Hapax legomena rate | Words appearing once / Total unique | Below baseline | ≥40% |
+
+**Research Foundation**:
+- StyloAI (Opara, 2024): 81-98% accuracy on AI detection using these features
+- Desaire et al. (2023): Paragraph variance threshold validated at 99% accuracy
+
+**Acceptance Criteria**:
+- [x] Calculate all four metrics
+- [x] Display raw measurements with pass/fail status
+- [x] Each failed metric adds 5 points (max 15 total)
 
 ### FR6: Content-Type Detection
 
-Identify the content type and apply type-specific slop patterns.
+Auto-detect content type and apply type-specific patterns.
 
-**Supported Content Types**:
+**Implemented Content Types**:
 
-| Type | Detection Triggers | Specific Patterns |
-|------|-------------------|-------------------|
-| Document | Default, .md files, long-form prose | All standard patterns |
-| Email | "email", "subject:", signature blocks | Email-specific slop (FR6.1) |
-| LinkedIn | "LinkedIn", "post", hashtag presence | Engagement bait patterns (FR6.2) |
-| SMS | "text", "SMS", very short length | Formality mismatches (FR6.3) |
-| Teams/Slack | "Teams", "Slack", "chat", "@mentions" | Chat register mismatches (FR6.4) |
-| CLAUDE.md | "CLAUDE.md", agent instructions | Agent instruction slop (FR6.5) |
-| README | "README", repository documentation | README-specific slop (FR6.6) |
-| PRD | "PRD", "requirements", product spec | PRD-specific slop (FR6.7) |
-| Design Doc | "design", "architecture", "spec" | Design doc slop (FR6.8) |
-| Test Plan | "test plan", "test cases", "QA" | Test plan slop (FR6.9) |
-| CV/Resume | "CV", "resume", "experience" | CV-specific slop (FR6.10) |
-| Cover Letter | "cover letter", "application" | Cover letter slop (FR6.11) |
+| Type | Detection Signals | Type-Specific Patterns |
+|------|-------------------|------------------------|
+| Document | Default fallback | Universal patterns only |
+| Email | "email", "to:", "subject:" | Corporate filler, buried leads |
+| LinkedIn | "linkedin", "post", "connections" | Engagement bait, humble brags |
+| SMS | "text", "sms", short length | Formality mismatch |
+| Teams/Slack | "teams", "slack", "channel" | Email-in-chat patterns |
+| CLAUDE.md | Filename contains "CLAUDE" | Vague instructions |
+| README | Filename is "README" | Marketing language, missing quickstart |
+| PRD | "requirements", "PRD", "product" | Vague requirements |
+| Design Doc | "design", "architecture" | Decision avoidance |
+| Test Plan | "test plan", "test cases" | Vague test cases |
+| CV/Resume | "resume", "cv", "experience" | Responsibilities vs achievements |
+| Cover Letter | "cover letter", "dear hiring" | Generic openings |
+
+**Override**: User can specify: "Analyze this as a [type]: [text]"
 
 **Acceptance Criteria**:
-- [ ] Auto-detect content type from context clues
-- [ ] User can override: "Analyze this as an email"
-- [ ] Apply type-specific patterns in addition to universal patterns
-- [ ] Score weights adjusted per content type
+- [x] Auto-detect from context clues
+- [x] User override supported
+- [x] Type-specific patterns applied in addition to universal
 
 #### FR6.1: Email-Specific Slop Patterns
 
@@ -489,65 +529,204 @@ Cover letters should demonstrate fit, not restate the CV.
 
 ### FR7: Dictionary Integration (Read-Only)
 
-Use shared persistent dictionary for pattern matching.
+Use shared persistent dictionary for custom pattern matching.
+
+**Dictionary Location**: `{workspace_root}/.slop-dictionary.json`
+
+**Dictionary Schema (v2)** (implemented):
+
+```json
+{
+  "version": "2.0",
+  "last_modified": "2026-01-25T10:30:00Z",
+  "patterns": {
+    "leverage": {
+      "pattern": "leverage",
+      "category": "buzzword",
+      "weight": 1.0,
+      "count": 47,
+      "timestamp": "2026-01-25T10:30:00Z",
+      "source": "built-in",
+      "exception": false
+    }
+  },
+  "exceptions": {
+    "robust": {
+      "pattern": "robust",
+      "scope": "permanent",
+      "added": "2026-01-23T09:15:00Z",
+      "reason": "Technical term in my domain"
+    }
+  },
+  "calibration": {
+    "samples_provided": 3,
+    "baseline_ttr": 0.58,
+    "baseline_hapax": 0.45,
+    "baseline_sentence_sd": 12.3,
+    "calibrated_at": "2026-01-20T16:00:00Z"
+  }
+}
+```
 
 **Behavior**:
-- Read patterns from workspace dictionary
-- Do not modify dictionary (eliminating-ai-slop handles mutations)
-- Fall back to built-in patterns if dictionary unavailable
-- Content-type-specific patterns stored in separate dictionary sections
+- Read patterns from workspace dictionary (if exists)
+- Merge with 150+ built-in patterns
+- Respect exception list (patterns marked for skip)
+- Weight affects scoring: `score = base_score * weight`
+- Higher count patterns reported first in "Top Offenders"
+
+**Note**: This skill reads from dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
 
 **Acceptance Criteria**:
-- [ ] Load dictionary from workspace root
-- [ ] Merge built-in patterns with user-added patterns
-- [ ] Respect exception list (patterns marked "don't flag")
-- [ ] Load content-type-specific patterns when relevant
+- [x] Load dictionary from `{workspace_root}/.slop-dictionary.json`
+- [x] Merge built-in patterns with user-added
+- [x] Respect exception list
+- [x] Fall back to built-in if dictionary unavailable
 
-### FR8: Metrics Contribution
+### FR8: Detection Heuristics
 
-Contribute detection metrics to shared tracking.
+Quick tests applied during analysis to identify AI writing patterns.
 
-**Tracked Metrics**:
-- Documents analyzed (count, by content type)
-- Patterns detected (count, by category, by content type)
-- Average slop score (rolling, by content type)
-- Highest-scoring patterns (frequency, by content type)
-- Content type distribution (what types user analyzes most)
+**Implemented Heuristics**:
 
-**Acceptance Criteria**:
-- [ ] Increment counters after each analysis
-- [ ] Metrics persist across sessions
-- [ ] Metrics queryable: "Show detection stats"
-- [ ] Metrics filterable by content type: "Show email slop stats"
+| Heuristic | Description | Example |
+|-----------|-------------|---------|
+| Specificity Test | Does text name specific tools, versions, tradeoffs? | Slop: "Focus on clear communication" / Real: "Use Slack threads for async decisions" |
+| Asymmetry Test | Does text commit to rankings or preferences? | Slop: "Both options have merits" / Real: "Use Postgres. SQLite if prototyping." |
+| Constraint Test | Does text acknowledge costs, politics, messy reality? | Slop: "Adopt microservices" / Real: "Microservices add 3x ops overhead" |
+| First-Person Test | Can you insert "in my experience" naturally? | Slop: Generic / Real: Grounded in context |
+| Predictability Test | Can you predict next 3+ words? | Slop: "In today's fast-paced [world]..." / Real: "The deploy broke at 3am" |
+
+### FR9: Calibration Mode
+
+Allow users to calibrate thresholds using their own writing samples.
+
+**Calibration Workflow**:
+1. User provides 3-5 samples of authentic writing (300+ words each)
+2. Skill calculates personal baselines for stylometric metrics
+3. Baselines stored in dictionary calibration section
+4. Future analysis uses personalized thresholds
+
+**Calibration Output**:
+
+```
+Calibration Complete
+
+Your Writing Profile:
+├── Sentence length σ: 12.3 words (AI baseline: <15)
+├── TTR range: 0.55-0.62 (AI baseline: <0.50)
+├── Hapax rate: 45% (AI baseline: <40%)
+└── Paragraph variance: High (characteristic of your style)
+
+Adjusted Thresholds:
+├── Sentence σ flag: <10 (personalized from your 12.3 baseline)
+├── TTR flag: <0.52 (personalized from your 0.55 low)
+└── Hapax flag: <42% (personalized from your 45% baseline)
+```
+
+### FR10: Metrics Commands
+
+Provide visibility into detection statistics.
+
+**Commands** (implemented):
+- `"Show slop detection stats"` - Session and all-time statistics
+- `"Export slop metrics"` - Export to `.slop-metrics.json`
+
+**Metrics Output**:
+
+```
+Slop Detection Metrics
+
+Session Stats:
+├── Documents analyzed: 12
+├── Total patterns found: 156
+├── Average slop score: 43/100
+└── Patterns by category:
+    ├── Lexical: 89 (57%)
+    ├── Structural: 34 (22%)
+    ├── Semantic: 21 (13%)
+    └── Stylometric: 12 (8%)
+
+Top 5 Patterns (by frequency):
+ 1. "leverage" - 47 times
+ 2. "comprehensive" - 39 times
+ 3. "it's important to note" - 31 times
+ ...
+```
+
+**Metrics Location**: `{workspace_root}/.slop-metrics.json`
 
 ## 4. Non-Functional Requirements
 
-| Requirement | Target |
-|-------------|--------|
-| Analysis time | <5 seconds for 2000-word document |
-| Accuracy | ≥90% of listed patterns detected |
-| False positive rate | <5% of flags confirmed incorrect |
+| Requirement | Target | Status |
+|-------------|--------|--------|
+| Analysis time | <5 seconds for 2000-word document | Implemented |
+| Pattern accuracy | ≥90% of listed patterns detected | Implemented |
+| False positive rate | <5% of flags confirmed incorrect | Target |
 
 ## 5. Out of Scope
 
-- Rewriting or modifying text (see eliminating-ai-slop)
-- Adding/removing patterns from dictionary (see eliminating-ai-slop)
-- Background/automatic activation (see eliminating-ai-slop)
+**Handled by `eliminating-ai-slop` skill**:
+- Rewriting or modifying text
+- Adding/removing patterns from dictionary
+- GVR loop (Generate-Verify-Refine)
+- Background/automatic activation during prose generation
+
+**Not Implemented**:
+- Negative Constraint Injection (NCI) - aspirational feature
+- Cloud-based dictionary sync - use git manually
+- Multi-language support - US English only
+- Machine learning inference - heuristic only
 
 ## 6. Dependencies
 
-- Shared dictionary (workspace root)
-  - Universal patterns section
-  - Email patterns section
-  - LinkedIn patterns section
-  - SMS patterns section
-  - Teams/Slack patterns section
-- Shared metrics store (workspace root)
-- Pattern definitions (built-in + dictionary)
-- Content type detection heuristics
+| Dependency | Location | Purpose |
+|------------|----------|---------|
+| Dictionary | `{workspace_root}/.slop-dictionary.json` | Custom patterns and exceptions |
+| Metrics | `{workspace_root}/.slop-metrics.json` | Detection statistics |
+| CLI tool | `scripts/slop-dictionary.js` | Dictionary management |
+| Sync script | `scripts/slop-infrastructure.sh` | Cross-machine sync |
+
+## 7. CLI Tools
+
+### slop-dictionary.js
+
+Command-line tool for dictionary management.
+
+```bash
+# Add pattern
+node slop-dictionary.js add "synergize" buzzword
+
+# Add exception
+node slop-dictionary.js except "leverage" permanent
+
+# List patterns
+node slop-dictionary.js list [category]
+
+# Show top patterns by frequency
+node slop-dictionary.js top 10
+```
+
+### Cross-Machine Sync
+
+Dictionary can be synchronized across machines using git:
+
+```bash
+slop-sync push    # Upload dictionary to GitHub
+slop-sync pull    # Download latest dictionary
+slop-sync status  # Show sync state
+```
+
+## 8. Related Skills
+
+| Skill | Purpose | Relationship |
+|-------|---------|--------------|
+| `eliminating-ai-slop` | Active rewriting and dictionary mutations | Uses same dictionary; handles writes |
+| `reviewing-ai-text` | (Deprecated) Original combined skill | Superseded by this skill |
 
 ---
 
-*Derived from Vision_PRD.md v2.0*
-*Status: Draft*
+*Implementation: [../skills/detecting-ai-slop/SKILL.md](../skills/detecting-ai-slop/SKILL.md)*
+*Status: Implemented*
+*Last Updated: 2026-02-08*
 
