@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "status": "IN_PROGRESS",
+  "hypothesis": "C: Both help independently (reframing + external)",
+  "design": "2x2 Factorial",
+  "created": "2026-02-08",
+  "currentRound": 1,
+  "totalRounds": 20,
+  "randomizedOrder": [
+    {"round": 1, "tool": "pr-faq-assistant", "condition": "A", "reframe": false, "external": false},
+    {"round": 2, "tool": "jd-assistant", "condition": "C", "reframe": false, "external": true},
+    {"round": 3, "tool": "one-pager", "condition": "B", "reframe": true, "external": false},
+    {"round": 4, "tool": "business-justification-assistant", "condition": "D", "reframe": true, "external": true},
+    {"round": 5, "tool": "product-requirements-assistant", "condition": "A", "reframe": false, "external": false},
+    {"round": 6, "tool": "pr-faq-assistant", "condition": "B", "reframe": true, "external": false},
+    {"round": 7, "tool": "jd-assistant", "condition": "D", "reframe": true, "external": true},
+    {"round": 8, "tool": "one-pager", "condition": "A", "reframe": false, "external": false},
+    {"round": 9, "tool": "business-justification-assistant", "condition": "C", "reframe": false, "external": true},
+    {"round": 10, "tool": "product-requirements-assistant", "condition": "B", "reframe": true, "external": false},
+    {"round": 11, "tool": "pr-faq-assistant", "condition": "D", "reframe": true, "external": true},
+    {"round": 12, "tool": "jd-assistant", "condition": "A", "reframe": false, "external": false},
+    {"round": 13, "tool": "one-pager", "condition": "C", "reframe": false, "external": true},
+    {"round": 14, "tool": "business-justification-assistant", "condition": "B", "reframe": true, "external": false},
+    {"round": 15, "tool": "product-requirements-assistant", "condition": "D", "reframe": true, "external": true},
+    {"round": 16, "tool": "pr-faq-assistant", "condition": "C", "reframe": false, "external": true},
+    {"round": 17, "tool": "jd-assistant", "condition": "B", "reframe": true, "external": false},
+    {"round": 18, "tool": "one-pager", "condition": "D", "reframe": true, "external": true},
+    {"round": 19, "tool": "business-justification-assistant", "condition": "A", "reframe": false, "external": false},
+    {"round": 20, "tool": "product-requirements-assistant", "condition": "C", "reframe": false, "external": true}
+  ],
+  "completedRounds": [],
+  "metrics": {
+    "byCondition": {
+      "A": {"verifiedHits": 0, "hallucinations": 0, "rounds": []},
+      "B": {"verifiedHits": 0, "hallucinations": 0, "rounds": []},
+      "C": {"verifiedHits": 0, "hallucinations": 0, "rounds": []},
+      "D": {"verifiedHits": 0, "hallucinations": 0, "rounds": []}
+    },
+    "byTool": {}
+  }
+}
+
