@@ -1,9 +1,9 @@
 # Self-Prompting Experiment v2
 
-## Current Status: Round 15 of 20
+## Current Status: Round 16 of 20
 
 **Last Updated:** 2026-02-08
-**Next Action:** Execute Round 15 (product-requirements-assistant | Condition D: Reframe-External)
+**Next Action:** Execute Round 16 (pr-faq-assistant | Condition C: Direct-External)
 
 ---
 
@@ -27,7 +27,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Running Totals (After Round 14)
+## Running Totals (After Round 15)
 
 ### By Condition
 
@@ -36,7 +36,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | **A: Direct** | 14 | 1 | 4 | 3.5 | 25% |
 | **B: Reframe-Self** | 16 | 1 | 4 | 4.0 | **25%** |
 | **C: Direct-External** | 13 | 2 | 3 | 4.3 | 67% |
-| **D: Reframe-External** | 10 | 3 | 3 | 3.3 | **100%** |
+| **D: Reframe-External** | 14 | 4 | 4 | 3.5 | **100%** |
 
 ### By Tool
 
@@ -46,7 +46,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | jd-assistant | 13 | 1 | 3 (R2, R7, R12) |
 | one-pager | 10 | 2 | 3 (R3, R8, R13) |
 | business-justification-assistant | 12 | 2 | 3 (R4, R9, R14) |
-| product-requirements-assistant | 8 | 0 | 2 (R5, R10) |
+| product-requirements-assistant | 12 | 1 | 3 (R5, R10, R15) |
 
 ---
 
@@ -68,6 +68,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | 12 | jd-assistant | A | 4 | 0 | Missing red flags, no de-duplication check |
 | 13 | one-pager | C | 4 | 1 | Circular logic threshold, measurable gaming |
 | 14 | business-justification-assistant | B | 5 | 0 | ROI formula gaming, payback target not enforced |
+| 15 | product-requirements-assistant | D | 4 | 1 | Kill switch gaming, failure case gaming |
 
 ---
 
@@ -75,8 +76,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 | Round | Tool | Condition | Procedure |
 |-------|------|-----------|-----------|
-| **15** | product-requirements-assistant | D: Reframe-External | Claude writes prompt, send to Gemini |
-| 16 | pr-faq-assistant | C: Direct-External | Send raw files to Gemini |
+| **16** | pr-faq-assistant | C: Direct-External | Send raw files to Gemini |
 | 17 | jd-assistant | B: Reframe-Self | Claude writes prompt, answers self |
 | 18 | one-pager | D: Reframe-External | Claude writes prompt, send to Gemini |
 | 19 | business-justification-assistant | A: Direct | Claude analyzes directly |
@@ -138,10 +138,10 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ## Key Observations So Far
 
-1. **Condition D has 100% hallucination rate** - Every round with Gemini + reframing has at least 1 HR
-2. **Condition B (Reframe-Self) shows best balance** - High VH (11) with low HR (1)
-3. **product-requirements-assistant has 0 hallucinations** - Most reliable tool for analysis
-4. **Gemini confidently asserts false claims** - e.g., "no mechanism detection" when it clearly exists
+1. **Condition D has 100% hallucination rate** - Every round with Gemini + reframing has at least 1 HR (4 rounds, 4 HR)
+2. **Condition B (Reframe-Self) shows best balance** - High VH (16) with low HR (1)
+3. **Condition A and B tied for lowest HR rate** - Both at 25% (1 HR in 4 rounds each)
+4. **Gemini confidently asserts false claims** - e.g., calendar date prohibition is LLM guidance, not scoring requirement
 
 ---
 
