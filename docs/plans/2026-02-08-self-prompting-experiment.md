@@ -1,13 +1,156 @@
-# Self-Prompting Experiment: Scientific Bake-Off
+# Self-Prompting Experiment: Scientific Bake-Off (v2)
 
-> **For Claude:** This is a CRASH-RESILIENT experiment plan. If session is lost, read this file + `experiment-state.json` + any `experiment-results/round-NN.md` files to resume.
+> **For Claude:** This is a CRASH-RESILIENT experiment plan. If session is lost, read this file + `experiment-state.json` + any `experiment-results-v2/round-NN.md` files to resume.
 
-**Goal:** Scientifically test whether self-prompting (creating comprehensive prompts and feeding them back to myself) produces better results than external LLM review (Gemini) or direct analysis.
-
-**Hypothesis:** The act of creating a context-free prompt forces externalization of reasoning, complete problem structuring, and removal of ambiguity - which may produce insights even when fed back to the same model.
+**Goal:** Scientifically test whether self-reframing and/or external models improve analysis quality.
 
 **Created:** 2026-02-08
-**Status:** NOT_STARTED
+**Revised:** 2026-02-08 (v2 - clean experiment after methodology errors in v1)
+**Status:** IN_PROGRESS
+
+---
+
+## V1 Experiment Post-Mortem
+
+The original experiment (v1) had critical methodology errors:
+
+1. **Truncated input to Gemini**: The adversarial review prompts sent to Gemini contained incomplete data (e.g., 17 masculine-coded words instead of 26 in phase1.md)
+2. **False attribution**: Claimed "Gemini made factual errors" when Gemini correctly analyzed the truncated input I provided
+3. **Inflated metrics**: "17 novel insights" and "69% accuracy" were artifacts of comparing apples to oranges
+4. **Invalid conclusions**: "Sub-agents find things external models miss" was not supported by evidence
+
+**V1 results are INVALID and should not be cited.**
+
+---
+
+## V2 Hypothesis
+
+**Core Question:** Can I (Claude) achieve better outcomes by stepping back and reframing problems, or do I need an external model?
+
+**Hypothesis C (selected by user):** Both help independently
+- Self-reframing helps (the act of writing a comprehensive prompt improves analysis)
+- External models add value on top of that (different model finds different things)
+
+**Sub-hypotheses to test:**
+- H1: Writing a comprehensive prompt and reading it back improves MY analysis vs. direct analysis
+- H2: An external model (Gemini) finds things I miss, given IDENTICAL input
+- H3: The combination (reframe + external) is better than either alone
+
+---
+
+## V2 Experimental Design: 2x2 Factorial
+
+### Independent Variables
+
+| Variable | Levels |
+|----------|--------|
+| **Reframing** | No (direct) / Yes (write comprehensive prompt first) |
+| **External Model** | No (Claude only) / Yes (send to Gemini) |
+
+### Four Conditions
+
+| Condition | Reframe? | External? | Description |
+|-----------|----------|-----------|-------------|
+| **A: Direct** | ❌ No | ❌ No | I analyze the code directly, no prompt writing |
+| **B: Reframe-Self** | ✅ Yes | ❌ No | I write comprehensive prompt, then answer it myself |
+| **C: Direct-External** | ❌ No | ✅ Yes | Send raw files to Gemini without reframing |
+| **D: Reframe-External** | ✅ Yes | ✅ Yes | I write comprehensive prompt, send to Gemini |
+
+### What Each Condition Tests
+
+- **A vs B**: Does reframing help ME? (H1)
+- **A vs C**: Does external model help with raw input? (H2 partial)
+- **B vs D**: Does external model add value AFTER reframing? (H2)
+- **B vs C**: Is my reframing better than external model with raw input?
+- **A vs D**: Is the full combination better than nothing? (H3)
+- **B+C vs D**: Is combination better than either alone? (H3)
+
+### Tools (5 total, all 4 conditions each = 20 rounds)
+
+| Tool | Has Existing Gemini? | Notes |
+|------|---------------------|-------|
+| pr-faq-assistant | ✅ Yes (but truncated input) | Need to re-run with complete input |
+| business-justification-assistant | ✅ Yes (but truncated input) | Need to re-run with complete input |
+| product-requirements-assistant | ✅ Yes (git history) | Need to verify input completeness |
+| jd-assistant | ✅ Yes (but truncated input) | Known issue: 17 vs 26 words |
+| one-pager | ❌ No | Fresh - no prior Gemini review |
+
+### Experimental Matrix (20 Rounds)
+
+| Round | Tool | Condition | Reframe? | External? |
+|-------|------|-----------|----------|-----------|
+| 1 | pr-faq-assistant | A: Direct | ❌ | ❌ |
+| 2 | pr-faq-assistant | B: Reframe-Self | ✅ | ❌ |
+| 3 | pr-faq-assistant | C: Direct-External | ❌ | ✅ |
+| 4 | pr-faq-assistant | D: Reframe-External | ✅ | ✅ |
+| 5 | business-justification-assistant | A: Direct | ❌ | ❌ |
+| 6 | business-justification-assistant | B: Reframe-Self | ✅ | ❌ |
+| 7 | business-justification-assistant | C: Direct-External | ❌ | ✅ |
+| 8 | business-justification-assistant | D: Reframe-External | ✅ | ✅ |
+| 9 | product-requirements-assistant | A: Direct | ❌ | ❌ |
+| 10 | product-requirements-assistant | B: Reframe-Self | ✅ | ❌ |
+| 11 | product-requirements-assistant | C: Direct-External | ❌ | ✅ |
+| 12 | product-requirements-assistant | D: Reframe-External | ✅ | ✅ |
+| 13 | jd-assistant | A: Direct | ❌ | ❌ |
+| 14 | jd-assistant | B: Reframe-Self | ✅ | ❌ |
+| 15 | jd-assistant | C: Direct-External | ❌ | ✅ |
+| 16 | jd-assistant | D: Reframe-External | ✅ | ✅ |
+| 17 | one-pager | A: Direct | ❌ | ❌ |
+| 18 | one-pager | B: Reframe-Self | ✅ | ❌ |
+| 19 | one-pager | C: Direct-External | ❌ | ✅ |
+| 20 | one-pager | D: Reframe-External | ✅ | ✅ |
+
+**Total time estimate:** 10 hours (20 rounds × 30 min)
+
+---
+
+## V2 Methodology (from Gemini Review)
+
+### Ground Truth: Blind Jury Approach
+
+Every finding must be:
+1. **Functional Bug** - Reproducible with a test case, OR
+2. **Format/Style Violation** - Linter-verifiable
+
+**Oracle Judge:** Use a 3rd model (GPT-4o or fresh Gemini session) as blind judge. Give the finding + code, ask "Is this claim true?" without revealing which condition generated it.
+
+### Information Boundary (Fixing v1 Error)
+
+| Condition | Source Files | Instruction |
+|-----------|--------------|-------------|
+| A: Direct | Full files (byte-for-byte) | None - I analyze directly |
+| B: Reframe-Self | Full files (byte-for-byte) | Custom reframed prompt (I answer) |
+| C: Direct-External | Full files (byte-for-byte) | Generic: "Analyze for logic errors" |
+| D: Reframe-External | Full files (byte-for-byte) | Custom reframed prompt (Gemini answers) |
+
+**Critical:** Raw source files must be IDENTICAL across all conditions. Only the instruction changes.
+
+### Metrics
+
+| Metric | Definition | Measures |
+|--------|------------|----------|
+| **Verified Hit (VH)** | Finding confirmed by Oracle judge | True Positives |
+| **Hallucination Rate (HR)** | Finding that is factually incorrect | Noise/False Positives |
+| **Unique Delta (UD)** | VH in D but NOT in B | External model's unique value |
+| **Reframing Lift (RL)** | VH(B) minus VH(A) | Power of self-reframing |
+
+### Order Effects: Zero-Context Reset
+
+**Problem:** If I analyze Tool X in Condition A, I'm "primed" for Condition B.
+
+**Solution:**
+1. Shuffle tools - don't do all 4 conditions for one tool consecutively
+2. Randomize sequence: e.g., Tool1(A), Tool2(C), Tool3(B), Tool1(D)
+3. Each condition starts fresh - act as if never seen the code before
+
+### V1 Traps to Avoid
+
+| Trap | How to Avoid |
+|------|--------------|
+| **Prompt Leakage** | Reframe must be a QUERY, not contain the answer |
+| **Temperature Variance** | Set all models to same temperature (0.0 for reproducibility) |
+| **Labeling Bias** | Don't tell Gemini "I'm doing an experiment" |
+| **Information Asymmetry** | Gemini gets ONLY the prompt, not my thought process |
 
 ---
 
