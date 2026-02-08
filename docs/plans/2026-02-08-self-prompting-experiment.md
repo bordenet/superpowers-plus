@@ -1,12 +1,38 @@
 # Self-Prompting Experiment: Scientific Bake-Off (v2)
 
-> **For Claude:** This is a CRASH-RESILIENT experiment plan. If session is lost, read this file + `experiment-state.json` + any `experiment-results-v2/round-NN.md` files to resume.
+> **For Claude:** This is a CRASH-RESILIENT experiment plan. If session is lost, read this file + `experiment-state-v2.json` + any `experiment-results-v2/round-NN.md` files to resume.
 
 **Goal:** Scientifically test whether self-reframing and/or external models improve analysis quality.
 
 **Created:** 2026-02-08
-**Revised:** 2026-02-08 (v2 - clean experiment after methodology errors in v1)
-**Status:** IN_PROGRESS
+**Completed:** 2026-02-08
+**Status:** ✅ COMPLETE (all 20 rounds finished)
+
+---
+
+## 🏆 Final Results Summary
+
+### Winner: Condition B (Reframe-Self)
+
+| Condition | VH | HR | Rounds | Avg VH/Round | HR Rate |
+|-----------|----|----|--------|--------------|---------|
+| **A: Direct** | 19 | 1 | 5 | 3.8 | 20% |
+| **B: Reframe-Self** | 21 | 1 | 5 | **4.2** | **20%** ← WINNER |
+| **C: Direct-External** | 23 | 4 | 5 | 4.6 | 80% |
+| **D: Reframe-External** | 18 | 6 | 5 | 3.6 | **100%** |
+
+### Key Conclusions
+
+1. **Self-prompting works** - Writing a comprehensive adversarial prompt before analyzing code produces the best results
+2. **Reframing helps Claude, hurts Gemini** - B (Claude+reframe): 21 VH, 1 HR vs D (Gemini+reframe): 18 VH, 6 HR
+3. **External model increases hallucination rate** - With Gemini (C,D): 10 HR total; Without (A,B): 2 HR total
+4. **Condition D is worst approach** - 100% hallucination rate across all 5 rounds
+
+### Skill Created
+
+The winning methodology (Condition B) has been codified as the **`self-prompting`** skill at `~/.codex/skills/self-prompting/SKILL.md`.
+
+See `experiment-results-v2/README.md` for detailed round-by-round results.
 
 ---
 

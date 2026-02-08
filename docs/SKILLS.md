@@ -201,3 +201,74 @@ This skill is deprecated. It has been superseded by the more capable slop detect
 - Cross-machine dictionary sync
 - "Add this to [file]"
 
+---
+
+## self-prompting
+
+**Goal:** Gain fresh perspective and discover hidden issues by writing comprehensive, context-free prompts before analyzing complex systems.
+
+**Scientific Basis:** Validated through 20-round 2x2 factorial experiment comparing reframing × external model conditions. Condition B (Reframe-Self) won with highest VH (21) and lowest HR rate (20%).
+
+**Success Criteria:**
+- [ ] Comprehensive prompt written before analysis
+- [ ] Prompt is context-free (any engineer could pick it up cold)
+- [ ] Each finding verified with grep/code inspection
+- [ ] False positive rate <30% (expect some hallucinations)
+- [ ] VH count higher than direct analysis baseline
+
+**Expected Outcomes:**
+1. User requests complex analysis → skill prompts reframe first
+2. Comprehensive prompt captures problem, context, task, and verification requirements
+3. Analysis produces ~10% more verified findings than direct approach
+4. Hallucination rate matches direct analysis (no increase)
+
+**Failure Modes:**
+- ❌ Skipping reframe step (defeats purpose)
+- ❌ Prompt contains answers (defeats purpose)
+- ❌ Accepting findings without verification (inflates metrics)
+- ❌ Using with external model (increases hallucinations)
+
+**Key Findings from Experiment:**
+- Reframing helps Claude think systematically
+- Reframing hurts external models (Gemini hallucinates more with detailed prompts)
+- Direct analysis is reliable but 10% less productive
+- Never use reframe + external model (100% hallucination rate)
+
+**Invoke:** When reviewing complex systems, stuck on a problem, or need independent verification.
+
+---
+
+## think-twice
+
+**Goal:** Break through blockers by distilling problems into comprehensive briefs and dispatching to sub-agents for fresh perspective.
+
+**Relationship to self-prompting:** Think-twice is a *different methodology* from self-prompting. Both use sub-agents with context-free prompts, but:
+- **self-prompting**: Focuses on code analysis with adversarial review prompts
+- **think-twice**: Focuses on getting unstuck with consultation prompts + scoring
+
+**Success Criteria:**
+- [ ] Auto-detects stuck signals (2+ failed attempts, circular reasoning)
+- [ ] Consultation prompt is fully self-contained (<2000 tokens)
+- [ ] Sub-agent response scored on 4 dimensions (relevance, novelty, specificity, feasibility)
+- [ ] Retry logic triggers when score <50
+- [ ] User confirms recommendation resolved blocker
+
+**Expected Outcomes:**
+1. User stuck on problem → skill suggests Think Twice
+2. Consultation prompt captures problem, context, what was tried, constraints
+3. Sub-agent response scored and synthesized
+4. Suggested next step resolves blocker in ≥60% of cases
+
+**Failure Modes:**
+- ❌ Over-triggering on easy problems (wastes resources)
+- ❌ Consultation prompt too vague (unhelpful responses)
+- ❌ Sub-agent response not scored (no quality signal)
+- ❌ Infinite retries (max 1 retry)
+
+**Explicit Triggers:**
+- "think twice" / "get unstuck" / "I'm stuck"
+- "try a different approach" / "second opinion"
+- "fresh eyes" / "phone a friend"
+
+**Invoke:** When stuck on coding/technical problems, or when user says "think twice".
+
