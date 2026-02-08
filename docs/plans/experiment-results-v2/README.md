@@ -1,9 +1,9 @@
 # Self-Prompting Experiment v2
 
-## Current Status: Round 16 of 20
+## Current Status: Round 17 of 20
 
 **Last Updated:** 2026-02-08
-**Next Action:** Execute Round 16 (pr-faq-assistant | Condition C: Direct-External)
+**Next Action:** Execute Round 17 (jd-assistant | Condition B: Reframe-Self)
 
 ---
 
@@ -27,7 +27,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Running Totals (After Round 15)
+## Running Totals (After Round 16)
 
 ### By Condition
 
@@ -35,14 +35,14 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 |-----------|----|----|--------|--------------|---------|
 | **A: Direct** | 14 | 1 | 4 | 3.5 | 25% |
 | **B: Reframe-Self** | 16 | 1 | 4 | 4.0 | **25%** |
-| **C: Direct-External** | 13 | 2 | 3 | 4.3 | 67% |
+| **C: Direct-External** | 18 | 3 | 4 | 4.5 | 75% |
 | **D: Reframe-External** | 14 | 4 | 4 | 3.5 | **100%** |
 
 ### By Tool
 
 | Tool | VH | HR | Rounds |
 |------|----|----|--------|
-| pr-faq-assistant | 10 | 2 | 3 (R1, R6, R11) |
+| pr-faq-assistant | 15 | 3 | 4 (R1, R6, R11, R16) |
 | jd-assistant | 13 | 1 | 3 (R2, R7, R12) |
 | one-pager | 10 | 2 | 3 (R3, R8, R13) |
 | business-justification-assistant | 12 | 2 | 3 (R4, R9, R14) |
@@ -69,6 +69,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | 13 | one-pager | C | 4 | 1 | Circular logic threshold, measurable gaming |
 | 14 | business-justification-assistant | B | 5 | 0 | ROI formula gaming, payback target not enforced |
 | 15 | product-requirements-assistant | D | 4 | 1 | Kill switch gaming, failure case gaming |
+| 16 | pr-faq-assistant | C | 5 | 1 | Banned word penalty cap, mechanism gaming |
 
 ---
 
@@ -76,7 +77,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 | Round | Tool | Condition | Procedure |
 |-------|------|-----------|-----------|
-| **16** | pr-faq-assistant | C: Direct-External | Send raw files to Gemini |
+| **17** | jd-assistant | B: Reframe-Self | Claude writes prompt, answers itself |
 | 17 | jd-assistant | B: Reframe-Self | Claude writes prompt, answers self |
 | 18 | one-pager | D: Reframe-External | Claude writes prompt, send to Gemini |
 | 19 | business-justification-assistant | A: Direct | Claude analyzes directly |

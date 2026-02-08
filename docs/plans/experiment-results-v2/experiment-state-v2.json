@@ -4,7 +4,7 @@
   "hypothesis": "C: Both help independently (reframing + external)",
   "design": "2x2 Factorial",
   "created": "2026-02-08",
-  "currentRound": 16,
+  "currentRound": 17,
   "totalRounds": 20,
   "randomizedOrder": [
     {"round": 1, "tool": "pr-faq-assistant", "condition": "A", "reframe": false, "external": false},
@@ -28,16 +28,16 @@
     {"round": 19, "tool": "business-justification-assistant", "condition": "A", "reframe": false, "external": false},
     {"round": 20, "tool": "product-requirements-assistant", "condition": "C", "reframe": false, "external": true}
   ],
-  "completedRounds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  "completedRounds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
   "metrics": {
     "byCondition": {
       "A": {"verifiedHits": 14, "hallucinations": 1, "rounds": [1, 5, 8, 12]},
       "B": {"verifiedHits": 16, "hallucinations": 1, "rounds": [3, 6, 10, 14]},
-      "C": {"verifiedHits": 13, "hallucinations": 2, "rounds": [2, 9, 13]},
+      "C": {"verifiedHits": 18, "hallucinations": 3, "rounds": [2, 9, 13, 16]},
       "D": {"verifiedHits": 14, "hallucinations": 4, "rounds": [4, 7, 11, 15]}
     },
     "byTool": {
-      "pr-faq-assistant": {"verifiedHits": 10, "hallucinations": 2, "rounds": [1, 6, 11]},
+      "pr-faq-assistant": {"verifiedHits": 15, "hallucinations": 3, "rounds": [1, 6, 11, 16]},
       "jd-assistant": {"verifiedHits": 13, "hallucinations": 1, "rounds": [2, 7, 12]},
       "one-pager": {"verifiedHits": 10, "hallucinations": 2, "rounds": [3, 8, 13]},
       "business-justification-assistant": {"verifiedHits": 12, "hallucinations": 2, "rounds": [4, 9, 14]},
