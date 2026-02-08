@@ -203,38 +203,31 @@ This skill is deprecated. It has been superseded by the more capable slop detect
 
 ---
 
-## self-prompting
+## experimental-self-prompting ⚠️ EXPERIMENTAL
+
+> **WARNING**: This skill is in the experimental section. See `skills/experimental/README.md` for usage guidelines.
 
 **Goal:** Gain fresh perspective and discover hidden issues by writing comprehensive, context-free prompts before analyzing complex systems.
 
+**Status:** Validated in 20-round experiment, but NOT production-ready.
+
+**Location:** `skills/experimental/experimental-self-prompting/SKILL.md`
+
 **Scientific Basis:** Validated through 20-round 2x2 factorial experiment comparing reframing × external model conditions. Condition B (Reframe-Self) won with highest VH (21) and lowest HR rate (20%).
 
-**Success Criteria:**
-- [ ] Comprehensive prompt written before analysis
-- [ ] Prompt is context-free (any engineer could pick it up cold)
-- [ ] Each finding verified with grep/code inspection
-- [ ] False positive rate <30% (expect some hallucinations)
-- [ ] VH count higher than direct analysis baseline
+**Known Limitations:**
+- ⚠️ Only tested on 5 genesis-tools projects
+- ⚠️ ~20% false positive rate (target: <15%)
+- ⚠️ No automated verification pipeline
+- ⚠️ DO NOT use with external models (100% HR rate)
 
-**Expected Outcomes:**
-1. User requests complex analysis → skill prompts reframe first
-2. Comprehensive prompt captures problem, context, task, and verification requirements
-3. Analysis produces ~10% more verified findings than direct approach
-4. Hallucination rate matches direct analysis (no increase)
+**Graduation Criteria:**
+- [ ] Tested on 10+ diverse codebases
+- [ ] False positive rate consistently <15%
+- [ ] Automated verification integrated
+- [ ] User feedback loop established
 
-**Failure Modes:**
-- ❌ Skipping reframe step (defeats purpose)
-- ❌ Prompt contains answers (defeats purpose)
-- ❌ Accepting findings without verification (inflates metrics)
-- ❌ Using with external model (increases hallucinations)
-
-**Key Findings from Experiment:**
-- Reframing helps Claude think systematically
-- Reframing hurts external models (Gemini hallucinates more with detailed prompts)
-- Direct analysis is reliable but 10% less productive
-- Never use reframe + external model (100% hallucination rate)
-
-**Invoke:** When reviewing complex systems, stuck on a problem, or need independent verification.
+**Invoke:** `Use the experimental-self-prompting skill to analyze [system]`
 
 ---
 
