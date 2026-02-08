@@ -154,9 +154,9 @@ create_dir() {
     fi
 }
 
-# Check if superpowers is installed
+# Check if superpowers is installed (v4.2.0+ uses skills/ directory, not superpowers-codex)
 check_superpowers() {
-    if [[ -d "$SUPERPOWERS_DIR" ]] && [[ -f "$SUPERPOWERS_DIR/.codex/superpowers-codex" ]]; then
+    if [[ -d "$SUPERPOWERS_DIR" ]] && [[ -d "$SUPERPOWERS_DIR/skills" ]]; then
         return 0
     fi
     return 1
@@ -175,20 +175,29 @@ install_superpowers() {
         rm -rf "${SUPERPOWERS_DIR:?}"
     fi
 
+    # If directory exists but not forced, try to update instead
+    if [[ -d "$SUPERPOWERS_DIR" ]]; then
+        if [[ -d "$SUPERPOWERS_DIR/.git" ]]; then
+            log_info "Superpowers already installed, updating..."
+            update_superpowers
+            return $?
+        else
+            log_warn "Superpowers directory exists but is not a git repo"
+            log_warn "Use --force to reinstall"
+            return 1
+        fi
+    fi
+
     # Clone the repository directly to ~/.codex/superpowers
     log_verbose "Cloning from $SUPERPOWERS_REPO to $SUPERPOWERS_DIR"
     if ! git clone --depth 1 "$SUPERPOWERS_REPO" "$SUPERPOWERS_DIR" 2>&1; then
         error_exit "Failed to clone superpowers repository"
     fi
 
-    # Verify installation
-    if [[ ! -f "$SUPERPOWERS_DIR/.codex/superpowers-codex" ]]; then
-        error_exit "superpowers-codex not found after installation"
+    # Verify installation (v4.2.0+ uses skills/ directory)
+    if [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
+        error_exit "skills directory not found after installation"
     fi
-
-    # Make superpowers-codex executable
-    chmod +x "$SUPERPOWERS_DIR/.codex/superpowers-codex" || \
-        log_warn "Failed to make superpowers-codex executable"
 
     log_success "obra/superpowers installed successfully"
 }
@@ -219,9 +228,9 @@ install_skill() {
 
     log_verbose "Installing skill: $skill_name"
 
-    # Check if SKILL.md exists
-    if [[ ! -f "$skill_dir/SKILL.md" ]]; then
-        log_warn "Skipping $skill_name: No SKILL.md found"
+    # Check if SKILL.md or skill.md exists
+    if [[ ! -f "$skill_dir/SKILL.md" ]] && [[ ! -f "$skill_dir/skill.md" ]]; then
+        log_warn "Skipping $skill_name: No SKILL.md or skill.md found"
         return 1
     fi
 
@@ -267,7 +276,7 @@ install_skills() {
     fi
 
     if [[ $failed -gt 0 ]]; then
-        log_warn "Skipped $failed item(s) (no SKILL.md)"
+        log_warn "Skipped $failed item(s) (no skill.md or SKILL.md)"
     fi
 }
 
@@ -277,26 +286,26 @@ validate_installation() {
 
     local errors=0
 
-    # Check superpowers-codex
-    if [[ ! -f "$SUPERPOWERS_DIR/.codex/superpowers-codex" ]]; then
-        log_error "superpowers-codex not found"
+    # Check superpowers skills directory (v4.2.0+ uses skills/ directory)
+    if [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
+        log_error "superpowers skills directory not found"
         ((errors++)) || true
     else
-        log_verbose "superpowers-codex: OK"
+        log_verbose "superpowers skills directory: OK"
     fi
 
-    # Check skills directory
+    # Check personal skills directory
     if [[ ! -d "$SKILLS_DIR" ]]; then
-        log_error "Skills directory not found"
+        log_error "Personal skills directory not found"
         ((errors++)) || true
     else
-        log_verbose "Skills directory: OK"
+        log_verbose "Personal skills directory: OK"
     fi
 
-    # Count installed skills
+    # Count installed personal skills (check both SKILL.md and skill.md)
     local skill_count=0
     for skill_dir in "$SKILLS_DIR/"*/; do
-        if [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]]; then
+        if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
             ((skill_count++)) || true
         fi
     done
@@ -307,11 +316,11 @@ validate_installation() {
         log_verbose "Found $skill_count personal skill(s)"
     fi
 
-    # Count superpowers skills
+    # Count superpowers skills (check both SKILL.md and skill.md)
     local sp_skill_count=0
     if [[ -d "$SUPERPOWERS_DIR/skills" ]]; then
         for skill_dir in "$SUPERPOWERS_DIR/skills/"*/; do
-            if [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]]; then
+            if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
                 ((sp_skill_count++)) || true
             fi
         done
@@ -336,10 +345,10 @@ print_summary() {
     echo ""
     echo "Personal skills:"
     for skill_dir in "$SKILLS_DIR/"*/; do
-        [[ -d "$skill_dir" ]] && [[ -f "$skill_dir/SKILL.md" ]] && echo "  • $(basename "$skill_dir")"
+        [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; } && echo "  • $(basename "$skill_dir")"
     done
     echo ""
-    echo "Usage: ~/.codex/superpowers/.codex/superpowers-codex use-skill <skill-name>"
+    echo "Usage: For Codex, skills auto-load. For Augment, run install-augment-superpowers.sh"
     echo ""
 }
 
