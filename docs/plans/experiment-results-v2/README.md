@@ -1,9 +1,9 @@
 # Self-Prompting Experiment v2
 
-## Current Status: Round 12 of 20
+## Current Status: Round 13 of 20
 
 **Last Updated:** 2026-02-08
-**Next Action:** Execute Round 12 (jd-assistant | Condition A: Direct)
+**Next Action:** Execute Round 13 (one-pager | Condition C: Direct-External)
 
 ---
 
@@ -27,13 +27,13 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Running Totals (After Round 11)
+## Running Totals (After Round 12)
 
 ### By Condition
 
 | Condition | VH | HR | Rounds | Avg VH/Round | HR Rate |
 |-----------|----|----|--------|--------------|---------|
-| **A: Direct** | 10 | 1 | 3 | 3.3 | 33% |
+| **A: Direct** | 14 | 1 | 4 | 3.5 | 25% |
 | **B: Reframe-Self** | 11 | 1 | 3 | 3.7 | 33% |
 | **C: Direct-External** | 9 | 1 | 2 | 4.5 | 50% |
 | **D: Reframe-External** | 10 | 3 | 3 | 3.3 | **100%** |
@@ -43,7 +43,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | Tool | VH | HR | Rounds |
 |------|----|----|--------|
 | pr-faq-assistant | 10 | 2 | 3 (R1, R6, R11) |
-| jd-assistant | 9 | 1 | 2 (R2, R7) |
+| jd-assistant | 13 | 1 | 3 (R2, R7, R12) |
 | one-pager | 6 | 1 | 2 (R3, R8) |
 | business-justification-assistant | 7 | 2 | 2 (R4, R9) |
 | product-requirements-assistant | 8 | 0 | 2 (R5, R10) |
@@ -65,6 +65,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | 9 | business-justification-assistant | C | 4 | 1 | Ratio check missing, stakeholder keyword stuffing |
 | 10 | product-requirements-assistant | B | 5 | 0 | Implementation details gap, traceability gaming |
 | 11 | pr-faq-assistant | D | 3 | 1 | Quote type gap, dateline false positive |
+| 12 | jd-assistant | A | 4 | 0 | Missing red flags, no de-duplication check |
 
 ---
 
@@ -72,8 +73,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 | Round | Tool | Condition | Procedure |
 |-------|------|-----------|-----------|
-| **12** | jd-assistant | A: Direct | Claude analyzes directly |
-| 13 | one-pager | C: Direct-External | Send raw files to Gemini |
+| **13** | one-pager | C: Direct-External | Send raw files to Gemini |
 | 14 | business-justification-assistant | B: Reframe-Self | Claude writes prompt, answers self |
 | 15 | product-requirements-assistant | D: Reframe-External | Claude writes prompt, send to Gemini |
 | 16 | pr-faq-assistant | C: Direct-External | Send raw files to Gemini |
