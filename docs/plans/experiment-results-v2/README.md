@@ -1,9 +1,9 @@
 # Self-Prompting Experiment v2
 
-## Current Status: Round 19 of 20
+## Current Status: Round 20 of 20 (FINAL ROUND)
 
 **Last Updated:** 2026-02-08
-**Next Action:** Execute Round 19 (business-justification-assistant | Condition A: Direct)
+**Next Action:** Execute Round 20 (product-requirements-assistant | Condition C: Direct-External)
 
 ---
 
@@ -27,14 +27,14 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ---
 
-## Running Totals (After Round 18)
+## Running Totals (After Round 19)
 
 ### By Condition
 
 | Condition | VH | HR | Rounds | Avg VH/Round | HR Rate |
 |-----------|----|----|--------|--------------|---------|
-| **A: Direct** | 14 | 1 | 4 | 3.5 | 25% |
-| **B: Reframe-Self** | 21 | 1 | 5 | 4.2 | **20%** ← leads in VH, lowest HR rate |
+| **A: Direct** | 19 | 1 | 5 | 3.8 | **20%** ← tied with B for lowest HR |
+| **B: Reframe-Self** | 21 | 1 | 5 | 4.2 | **20%** ← leads in VH |
 | **C: Direct-External** | 18 | 3 | 4 | 4.5 | 75% |
 | **D: Reframe-External** | 18 | 6 | 5 | 3.6 | **100%** ← still 100% HR rate |
 
@@ -45,7 +45,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | pr-faq-assistant | 15 | 3 | 4 (R1, R6, R11, R16) |
 | jd-assistant | 18 | 1 | 4 (R2, R7, R12, R17) |
 | one-pager | 14 | 4 | 4 (R3, R8, R13, R18) |
-| business-justification-assistant | 12 | 2 | 3 (R4, R9, R14) |
+| business-justification-assistant | 17 | 2 | 4 (R4, R9, R14, R19) |
 | product-requirements-assistant | 12 | 1 | 3 (R5, R10, R15) |
 
 ---
@@ -72,6 +72,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 | 16 | pr-faq-assistant | C | 5 | 1 | Banned word penalty cap, mechanism gaming |
 | 17 | jd-assistant | B | 5 | 0 | Red flags list gap, encouragement gaming |
 | 18 | one-pager | D | 4 | 2 | Circular logic threshold, ROI logic absence |
+| 19 | business-justification-assistant | A | 5 | 0 | Payback target not enforced, sunk cost missing |
 
 ---
 
@@ -79,8 +80,7 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 | Round | Tool | Condition | Procedure |
 |-------|------|-----------|-----------|
-| **19** | business-justification-assistant | A: Direct | Claude analyzes directly |
-| 20 | product-requirements-assistant | C: Direct-External | Send raw files to Gemini |
+| **20** | product-requirements-assistant | C: Direct-External | Send raw files to Gemini |
 
 ---
 
@@ -138,10 +138,11 @@ This is a scientific experiment testing "self-prompting" - the technique of writ
 
 ## Key Observations So Far
 
-1. **Condition D has 100% hallucination rate** - Every round with Gemini + reframing has at least 1 HR (4 rounds, 4 HR)
-2. **Condition B (Reframe-Self) shows best balance** - High VH (16) with low HR (1)
-3. **Condition A and B tied for lowest HR rate** - Both at 25% (1 HR in 4 rounds each)
+1. **Condition D has 100% hallucination rate** - Every round with Gemini + reframing has at least 1 HR (5 rounds, 5 HR)
+2. **Condition B (Reframe-Self) shows best balance** - Highest VH (21) with lowest HR rate (20%)
+3. **Condition A and B tied for lowest HR rate** - Both at 20% (1 HR in 5 rounds each)
 4. **Gemini confidently asserts false claims** - e.g., calendar date prohibition is LLM guidance, not scoring requirement
+5. **Round 19 perfect score** - Condition A achieved 5 VH, 0 HR for business-justification-assistant
 
 ---
 
