@@ -1,0 +1,36 @@
+{
+  "experimentId": "self-prompting-bakeoff-2026-02-08",
+  "planFile": "2026-02-08-self-prompting-experiment.md",
+  "createdAt": "2026-02-08T00:00:00Z",
+  "lastUpdatedAt": "2026-02-08T10:00:00Z",
+  "currentRound": 1,
+  "totalRounds": 15,
+  "status": "COMPLETE",
+  "rounds": [
+    { "round": 1, "tool": "pr-faq-assistant", "condition": "B", "status": "COMPLETE", "resultsFile": "round-01.md", "metrics": {"totalFindings": 6, "truePositives": 6, "falsePositives": 0, "novelInsights": 2, "accuracyRate": 100} },
+    { "round": 2, "tool": "pr-faq-assistant", "condition": "C", "status": "COMPLETE", "resultsFile": "round-02.md", "metrics": {"totalFindings": 5, "truePositives": 5, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 3, "tool": "pr-faq-assistant", "condition": "D", "status": "COMPLETE", "resultsFile": "round-03.md", "metrics": {"totalFindings": 5, "truePositives": 4, "falsePositives": 0, "novelInsights": 2, "geminiCorrections": 2, "accuracyRate": 100} },
+    { "round": 4, "tool": "business-justification-assistant", "condition": "B", "status": "COMPLETE", "resultsFile": "round-04.md", "metrics": {"totalFindings": 5, "truePositives": 2, "falsePositives": 3, "novelInsights": 1, "accuracyRate": 40} },
+    { "round": 5, "tool": "business-justification-assistant", "condition": "C", "status": "COMPLETE", "resultsFile": "round-05.md", "metrics": {"totalFindings": 2, "truePositives": 2, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 6, "tool": "business-justification-assistant", "condition": "D", "status": "COMPLETE", "resultsFile": "round-06.md", "metrics": {"totalFindings": 3, "truePositives": 2, "falsePositives": 0, "novelInsights": 0, "geminiCorrections": 1, "accuracyRate": 100} },
+    { "round": 7, "tool": "product-requirements-assistant", "condition": "B", "status": "COMPLETE", "resultsFile": "round-07.md", "metrics": {"totalFindings": 5, "truePositives": 3, "falsePositives": 2, "novelInsights": 3, "accuracyRate": 60} },
+    { "round": 8, "tool": "product-requirements-assistant", "condition": "C", "status": "COMPLETE", "resultsFile": "round-08.md", "metrics": {"totalFindings": 3, "truePositives": 3, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 9, "tool": "product-requirements-assistant", "condition": "D", "status": "COMPLETE", "resultsFile": "round-09.md", "metrics": {"totalFindings": 4, "truePositives": 4, "falsePositives": 0, "novelInsights": 1, "accuracyRate": 100} },
+    { "round": 10, "tool": "jd-assistant", "condition": "B", "status": "COMPLETE", "resultsFile": "round-10.md", "metrics": {"totalFindings": 5, "truePositives": 4, "falsePositives": 1, "novelInsights": 4, "accuracyRate": 80} },
+    { "round": 11, "tool": "jd-assistant", "condition": "C", "status": "COMPLETE", "resultsFile": "round-11.md", "metrics": {"totalFindings": 4, "truePositives": 4, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 12, "tool": "jd-assistant", "condition": "D", "status": "COMPLETE", "resultsFile": "round-12.md", "metrics": {"totalFindings": 4, "truePositives": 4, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 13, "tool": "one-pager", "condition": "B", "status": "COMPLETE", "resultsFile": "round-13.md", "metrics": {"totalFindings": 5, "truePositives": 3, "falsePositives": 2, "novelInsights": 3, "accuracyRate": 60} },
+    { "round": 14, "tool": "one-pager", "condition": "C", "status": "COMPLETE", "resultsFile": "round-14.md", "metrics": {"totalFindings": 3, "truePositives": 3, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} },
+    { "round": 15, "tool": "one-pager", "condition": "D", "status": "COMPLETE", "resultsFile": "round-15.md", "metrics": {"totalFindings": 3, "truePositives": 3, "falsePositives": 0, "novelInsights": 0, "accuracyRate": 100} }
+  ],
+  "aggregateMetrics": {
+    "conditionB": { "totalFindings": 0, "truePositives": 0, "falsePositives": 0, "novelInsights": 0, "totalMinutes": 0 },
+    "conditionC": { "totalFindings": 0, "truePositives": 0, "falsePositives": 0, "novelInsights": 0, "totalMinutes": 0 },
+    "conditionD": { "totalFindings": 0, "truePositives": 0, "falsePositives": 0, "novelInsights": 0, "totalMinutes": 0 }
+  },
+  "notes": [
+    "Perplexity available as emergency option (costs $$$, use sparingly)",
+    "Queued post-experiment: Use One-Pager LLM prompts for self-improvement"
+  ]
+}
+
