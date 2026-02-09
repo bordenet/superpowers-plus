@@ -147,3 +147,58 @@ This tool has ALREADY been reviewed by Gemini and fixes were applied. The sub-ag
 - Verification of findings: 5 min
 - Total: ~15 min
 
+---------------------------------------------------------------------
+
+Gemini response:
+
+The results from **Round 04 (Condition B)** provide a fascinating look at the "Diminishing Returns" of AI analysis on mature codebases. Because the `business-justification-assistant` had already been hardened by previous Gemini reviews, the Sub-agent's high False Positive (FP) rate suggests it was "hallucinating depth" to meet the perceived requirements of your prompt.
+
+However, the **Novel Insight** regarding verb forms is a masterclass in why we use diverse models/approaches.
+
+---
+
+## 1. The "Verb Form" Breakthrough (Finding 1)
+
+The Sub-agent identified a **linguistic blind spot** that static analysis often misses.
+
+* **Gemini's Bias:** Usually looks for structural alignment (Section A exists, Metric B is present).
+* **Sub-agent's Value:** It simulated the *writer's* persona. A human writing a narrative justification is highly likely to use "breaks even" (verb) rather than "break-even" (noun/adjective).
+* **The Technical Gap:** The `.?` in `/break.?even/` only accounts for a space or a hyphen, not a suffix.
+* **Fix:** `/\bbreak(s|ing)?[\s-]?even\b/gi`
+
+
+
+---
+
+## 2. Why the 60% False Positive Rate?
+
+The high FP rate in this round is actually a sign of **Model Over-Fitting to the Task**.
+
+1. **The "Patched Codebase" Trap:** Since the major "Structure & Hook" gaps were already closed in earlier rounds, the Sub-agent likely felt "pressured" to find critical failures where only minor optimizations remained.
+2. **Regex Complexity Misjudgment:** In Finding 3, the Sub-agent failed to parse the nested logic of the capture groups `\([^)]+[-−–][^)]+\)`. This suggests that while sub-agents are better at *writing* prompts, they can still struggle with *reading* complex regular expressions compared to a direct-external model that might just "run" a mental simulation of the string.
+
+---
+
+## 3. Revised 2x2 Factorial Design (Refining for Round 05)
+
+Based on these results, you should adjust the "Reframe" step to focus on **Semantic Edge Cases** rather than structural ones.
+
+| Condition | Modification for Round 05 |
+| --- | --- |
+| **B: Reframe-Self** | Force yourself to write a "Writer's Persona" prompt (e.g., "How would a non-technical manager word this?") |
+| **D: Reframe-External** | Explicitly ask the external model to find **Linguistic Bypasses** (like the 'breaks even' find). |
+
+---
+
+## 4. What Would Invalidate the Next Round?
+
+The biggest risk now is **"Verification Fatigue."** As the findings move from "The whole section is missing" (Easy to verify) to "This specific verb form fails" (Hard to verify), you are at risk of:
+
+* **Confirmation Bias:** Trusting the Sub-agent because it found one "cool" thing (Finding 1).
+* **Negative Information:** If the Sub-agent claims a file exists that doesn't, it indicates the sub-agent is losing track of the **Ground Truth** provided in the context.
+
+---
+
+## Next Step
+
+**Would you like me to draft a "Negative Test Suite" for the `validator.js`?** I can provide 5 strings that use "Natural Language" (like the "breaks even" example) to see if we can intentionally trigger more True Positives that the current regexes miss.

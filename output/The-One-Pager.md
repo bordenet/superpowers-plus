@@ -85,7 +85,7 @@ A compelling One-Pager is more than just a brain dump. It tells a clear and conc
 ### Writing Tips
 
   * **Be Ruthlessly Concise:** Use bullet points and simple language. If a sentence doesn't add critical value, cut it.
-  * **Focus on the Why:** Start with the problem. If the "why" isn't compelling, the "what" and "how" don't matter. See [What vs. How](Understanding_What_vs_How.md) for guidance on keeping outcomes and implementation properly separated.
+  * **Focus on the Why:** Start with the problem. If the "why" isn't compelling, the "what" and "how" don't matter. Keep outcomes and implementation properly separated.
   * **Use Visuals Sparingly:** A simple diagram or chart can be effective, but don't clutter the page.
   * **Collaborate:** Write it with key stakeholders to build early alignment.
 
@@ -109,7 +109,7 @@ The failure patterns repeat across organizations. Here are the mistakes that kil
 
 **Problem:** Using fuzzy terms like "improve user experience" or "increase efficiency."
 
-**Fix:** Define success with specific, measurable, and time-bound goals. (e.g., "Increase user engagement, measured by daily active users, by 15% in Q3."). See [Avoiding Weasel Words](../Culture/Weasel_Words.md) for more on precise communication.
+**Fix:** Define success with specific, measurable, and time-bound goals. (e.g., "Increase user engagement, measured by daily active users, by 15% in Q3."). Avoid weasel words and vague language.
 
 ### Mistake 4: Confusing Features with Benefits
 
@@ -152,15 +152,12 @@ The discipline of the One-Pager pays off: clearer proposals, faster decisions, f
 
 **Quick Links:** [🔝 Back to Top](#-distilling-clarity-the-one-pager) | [📚 Additional Reading](#additional-reading) | [💬 Feedback](https://github.com/bordenet/Engineering_Culture/issues/new)
 
-**Related in This Series:**
-- [Project Planning Documents](./Project_Planning_Mechanisms:_Documents.md) - *Choosing the right document type*
-- [The PR-FAQ Mechanism](./The_PR-FAQ.md) - *Working backwards from customer value*
-- [Understanding What vs How](./Understanding_What_vs_How.md) - *Foundational thinking for clear communication*
-
 **Related Topics:**
-- [Professional Writing Tips](../Culture/Professional_Writing_Tips.md) - *Writing techniques for maximum impact*
-- [Weasel Words](../Culture/Weasel_Words.md) - *Clear, actionable language*
-- [Building an AI-First Engineering Culture](../AIEngineering/Building_an_AI-First_Engineering_Culture.md) - *See genesis one-pager tool in action*
+- Project Planning Documents - *Choosing the right document type*
+- The PR-FAQ Mechanism - *Working backwards from customer value*
+- Understanding What vs How - *Foundational thinking for clear communication*
+- Professional Writing Tips - *Writing techniques for maximum impact*
+- Weasel Words - *Clear, actionable language*
 
 ---
 
