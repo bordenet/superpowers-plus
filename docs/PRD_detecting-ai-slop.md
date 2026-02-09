@@ -1,5 +1,11 @@
 # AI Slop Detection Skill
 
+> **Status:** ✅ Complete
+> **Implementation:** [`skills/detecting-ai-slop/SKILL.md`](../skills/detecting-ai-slop/SKILL.md)
+> **Completed:** 2026-01-25
+
+---
+
 ## 1. Executive Summary
 
 AI coding assistants (Claude, Copilot, Gemini) generate prose that contains detectable machine-like patterns—overused phrases, formulaic structure, uniform sentence lengths. Users need to quantify this "slop density" before deciding whether to edit. This skill provides a **slop score (0-100)** with dimension breakdown, enabling users to triage documents by AI-likeness and focus editing effort where it matters most. Target: reduce time spent manually identifying AI patterns from 5+ minutes per document to <10 seconds.
