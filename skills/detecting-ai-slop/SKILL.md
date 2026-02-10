@@ -432,6 +432,34 @@ Overused phrases that signal template-driven or AI-generated content.
 
 **Note:** One use of a cliché may be acceptable if intentional. Two or more in the same document is a strong AI signal.
 
+### Category 9: Redundancy and Repetition
+
+AI-generated text often repeats phrases, creating a "chattering parrot" effect that damages credibility.
+
+**Detection rules:**
+
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| Same 3+ word phrase appears 2+ times | intra-doc-repetition | Medium |
+| Same 4+ word phrase appears 2+ times | intra-doc-repetition | High |
+| Identical bullet points across sections | structural-repetition | High |
+| Copy/paste between related documents | cross-doc-duplication | High |
+
+**Context awareness rule:** Before any prose edit, scan ±50 lines for similar phrasing. If you're about to write something that echoes nearby text, vary the language.
+
+**The Parrot Test:**
+1. Extract all 3-word phrases from the document
+2. Count occurrences of each phrase
+3. Flag any phrase appearing 3+ times (excluding common phrases like "in the", "of the")
+4. For each flagged phrase, check if repetition is intentional (e.g., a defined term) or lazy
+
+**Cross-document check:** When editing related documents (e.g., a README and its successor project's README), verify you're not copy/pasting content. Even when conveying the same concepts, vary the language.
+
+**Scoring:**
+- 2 repetitions of same phrase: +2 points
+- 3+ repetitions: +5 points
+- Cross-document copy/paste: +10 points
+
 ---
 
 ## Structural Patterns (25 points max)

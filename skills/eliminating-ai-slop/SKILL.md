@@ -593,6 +593,34 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
   - Simple pause → comma: "it worked, but barely"
 - **Clichés**: "state of the art", "game changer" → use direct language or delete
 
+### Redundancy Patterns (the "chattering parrot" problem)
+
+Before writing or editing prose, scan ±50 lines for similar phrasing. Repetition damages credibility.
+
+**Detection:**
+1. Search for 3+ word phrases that appear multiple times
+2. Check if you're about to echo something you just wrote
+3. For related documents, verify you're not copy/pasting
+
+**Elimination strategies:**
+- **Same phrase twice**: Rewrite one instance with different words
+- **Parallel structure overuse**: Vary sentence openings ("First... Second... Third..." → mix with other transitions)
+- **Cross-document duplication**: When successor docs reference originals, summarize differently rather than copying
+- **Bullet point echo**: If bullets sound alike, consolidate or differentiate
+
+**Example:**
+```
+BEFORE (parrot):
+- Architecture first, AI second
+- Define structure upfront, let AI handle implementation
+- Architecture-first design beats conformity tooling
+
+AFTER (varied):
+- Architecture first, AI second
+- Let AI handle implementation once structure is defined
+- Upfront design outperforms post-hoc conformity tools
+```
+
 ---
 
 ## Example: Full Interactive Workflow
