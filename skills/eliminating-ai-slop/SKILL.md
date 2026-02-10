@@ -585,6 +585,14 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 - **Balanced to a fault**: "Both have merits" → Make a recommendation
 - **Circular reasoning**: Restates without adding → Add new information
 
+### Typographic Patterns (replace punctuation)
+- **Em-dash (—)**: HIGH PRIORITY. Replace with comma, semicolon, colon, or parentheses
+  - Parenthetical → parentheses: "the project (started in 2024) succeeded"
+  - Contrast → semicolon: "it worked; the maintenance burden compounded"
+  - List intro → colon: "three things: speed, quality, cost"
+  - Simple pause → comma: "it worked, but barely"
+- **Clichés**: "state of the art", "game changer" → use direct language or delete
+
 ---
 
 ## Example: Full Interactive Workflow

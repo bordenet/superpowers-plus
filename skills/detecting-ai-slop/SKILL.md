@@ -383,6 +383,55 @@ Overused transitions that pad word count.
 | Moving forward | transition-filler |
 | Going forward | transition-filler |
 
+### Category 7: Typographic Tells
+
+AI-generated text often uses specific punctuation patterns that humans rarely use in casual or professional writing.
+
+| Pattern | Category | Notes |
+|---------|----------|-------|
+| — (em-dash) | typographic-tell | Replace with comma, semicolon, colon, or parentheses |
+| … (ellipsis character) | typographic-tell | Use three periods (...) or rewrite |
+| " " (smart quotes) | typographic-tell | Context-dependent; flag if inconsistent with document |
+
+**Em-dash detection is HIGH PRIORITY.** Em-dashes are a dead giveaway for AI-generated text. Humans writing quickly use commas, semicolons, or parentheses. The em-dash (—) is a stylistic choice that AI models overuse dramatically.
+
+**Detection:** Search for Unicode character U+2014 (—). Each instance adds 3 points (higher weight than standard lexical patterns).
+
+**Replacement guidance:**
+- Parenthetical aside → use parentheses: "the project (started in 2024) succeeded"
+- Contrast or pivot → use semicolon: "it worked; the maintenance burden compounded"
+- List introduction → use colon: "three things: speed, quality, cost"
+- Simple pause → use comma: "it worked, but barely"
+
+### Category 8: Clichés and Stock Phrases
+
+Overused phrases that signal template-driven or AI-generated content.
+
+| Phrase | Category |
+|--------|----------|
+| state of the art | cliche |
+| at the end of the day | cliche |
+| think outside the box | cliche |
+| move the needle | cliche |
+| low-hanging fruit | cliche |
+| deep dive | cliche |
+| circle back | cliche |
+| touch base | cliche |
+| on the same page | cliche |
+| hit the ground running | cliche |
+| paradigm shift | cliche |
+| synergy | cliche |
+| value proposition | cliche |
+| core competency | cliche |
+| best of breed | cliche |
+| mission critical | cliche |
+| bleeding edge | cliche |
+| game changer | cliche |
+| disruptive | cliche |
+| scalable | cliche |
+
+**Note:** One use of a cliché may be acceptable if intentional. Two or more in the same document is a strong AI signal.
+
 ---
 
 ## Structural Patterns (25 points max)
