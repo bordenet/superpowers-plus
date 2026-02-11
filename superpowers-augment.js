@@ -80,8 +80,10 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+        // Handle both directories and symlinks to directories
         const skillDir = path.join(dir, entry.name);
+        const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
@@ -202,4 +204,3 @@ switch (command) {
         console.log('  node superpowers-augment.js find-skills    # List all available skills');
         break;
 }
-
