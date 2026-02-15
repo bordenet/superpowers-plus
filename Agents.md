@@ -6,98 +6,63 @@
 > **Type**: cli-tools
 
 Self-contained. Minimal high-signal tokens.
-
+<!-- GOLDEN:self-manage:start -->
+## ⚠️ Before ANY Task
+1. Load `.ai-guidance/invariants.md` — contains critical rules
+2. After editing ANY guidance file, check: `wc -l Agents.md .ai-guidance/*.md 2>/dev/null`
+   - `Agents.md` >150 lines → refactor into `.ai-guidance/`
+   - Any `.ai-guidance/*.md` >50 lines → split into sub-directory
+<!-- GOLDEN:self-manage:end -->
 <!-- GOLDEN:framework:start -->
 
 ---
 
-## Superpowers Integration
+## Quality Gates (MANDATORY)
 
-At the START of every conversation, run:
-
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
-```
-
-### Key Skills
-
-| Skill | When to Invoke |
-|-------|---------------|
-| `superpowers:brainstorming` | Before creative/feature work |
-| `superpowers:systematic-debugging` | Before fixing bugs |
-| `superpowers:test-driven-development` | Before writing implementation |
-| `superpowers:verification-before-completion` | Before committing, creating PRs, or claiming done |
-| `superpowers:writing-plans` | Before multi-step tasks |
-| `superpowers:requesting-code-review` | Before creating PRs or merging to main |
-| `superpowers:finishing-a-development-branch` | When completing work (merge/PR/cleanup decisions) |
-
-**The Rule**: IF A SKILL APPLIES (even 1% chance), YOU MUST INVOKE IT.
-
----
-
-## Communication Standards
-
-- **No flattery** - Skip "Great question!" or "Excellent point!"
-- **No hype words** - Avoid "revolutionary", "game-changing", "cutting-edge"
-- **Evidence-based** - Cite sources, provide data, or qualify as opinion
-- **Direct** - State facts without embellishment
-
-### Banned Phrases
-
-| Category | Avoid |
-|----------|-------|
-| Self-Promotion | production-grade, world-class, enterprise-ready |
-| Filler | incredibly, extremely, very, really, truly |
-| AI Tells | leverage, utilize, facilitate, streamline, optimize |
-| Sycophancy | Happy to help!, Absolutely!, I appreciate... |
-
----
-
-## Quality Gates
-
-### Before Committing
-
+Before ANY commit:
 1. **Lint**: `shellcheck *.sh`
 2. **Build**: `bash -n *.sh`
 3. **Test**: `bats test/`
 4. **Coverage**: Minimum N/A%
 
-### Before Pushing
-
-- [ ] All tests pass
-- [ ] No linting errors
-- [ ] No secrets in code
-- [ ] Commit messages are descriptive
-
-### Before Deploying
-
-- [ ] CI shows green checkmark
-- [ ] Security scan passed
-- [ ] Documentation updated
+**Order matters.** Lint → Build → Test. Never skip steps.
 
 ---
 
-## Language Quick Reference
+## Communication Rules
 
-### Shell
+- **No flattery** - Skip "Great question!" or "Excellent point!"
+- **No hype** - Avoid "revolutionary", "game-changing", "seamless"
+- **Evidence-based** - Cite sources or qualify as opinion
+- **Direct** - State facts without embellishment
 
-- Run `shellcheck` on all scripts before committing
-- Use `set -euo pipefail` at script start
-- Quote all variables: `"$var"` not `$var`
+**Banned phrases**: production-grade, world-class, leverage, utilize, incredibly, extremely, Happy to help!
 
 ---
 
-## Quick Commands
+## 🚨 Progressive Module Loading
+
+**STOP and load the relevant module BEFORE these actions:**
+
+### Language Modules (🔴 Required)
+- 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `$HOME/.golden-agents/templates/languages/shell.md`
+
+### Workflow Modules (🔴 Required)
+- 🔴 **BEFORE any commit, PR, push, or merge**: Read `$HOME/.golden-agents/templates/workflows/security.md`
+- 🔴 **WHEN tests fail OR after 2+ failed fix attempts**: Read `$HOME/.golden-agents/templates/workflows/testing.md`
+- 🔴 **WHEN build fails OR lint errors appear**: Read `$HOME/.golden-agents/templates/workflows/build-hygiene.md`
+- 🟡 **BEFORE deploying to any environment**: Read `$HOME/.golden-agents/templates/workflows/deployment.md`
+- 🟡 **WHEN conversation exceeds 50 exchanges**: Read `$HOME/.golden-agents/templates/workflows/context-management.md`
+
+### Project type guidance:
+- Read `$HOME/.golden-agents/templates/project-types/cli-tools.md`
+
+### Optional: Superpowers integration
+
+If [superpowers](https://github.com/obra/superpowers) is installed, run at session start:
 
 ```bash
-# Lint
-shellcheck *.sh
-
-# Build
-bash -n *.sh
-
-# Test
-bats test/
+node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ```
 
 <!-- GOLDEN:framework:end -->
@@ -151,4 +116,3 @@ You MUST state explicitly:
 - Technical questions requiring reasoning
 - When user explicitly requests Perplexity
 </EXTREMELY_IMPORTANT>
-
