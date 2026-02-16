@@ -43,3 +43,4 @@ npm-debug.log*
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+.DS_Store
