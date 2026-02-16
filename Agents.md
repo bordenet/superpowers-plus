@@ -11,7 +11,7 @@ Self-contained. Minimal high-signal tokens.
 1. Load `.ai-guidance/invariants.md` — contains critical rules
 2. After editing ANY guidance file, check: `wc -l Agents.md .ai-guidance/*.md 2>/dev/null`
    - `Agents.md` >150 lines → refactor into `.ai-guidance/`
-   - Any `.ai-guidance/*.md` >50 lines → split into sub-directory
+   - Any `.ai-guidance/*.md` >250 lines → split into sub-directory
 <!-- GOLDEN:self-manage:end -->
 <!-- GOLDEN:framework:start -->
 
