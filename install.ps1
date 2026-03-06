@@ -17,6 +17,50 @@ Write-Host "superpowers-plus Installer (PowerShell Wrapper)" -ForegroundColor Cy
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Platform detection - $IsWindows, $IsMacOS, $IsLinux are automatic in PowerShell Core (6+)
+# For Windows PowerShell 5.1, these don't exist, so we default to Windows
+$runningOnWindows = $true
+$platformName = "Windows"
+
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    if ($IsMacOS) {
+        $runningOnWindows = $false
+        $platformName = "macOS"
+    } elseif ($IsLinux) {
+        $runningOnWindows = $false
+        $platformName = "Linux"
+    }
+}
+
+# On macOS/Linux, just run bash directly - no WSL needed
+if (-not $runningOnWindows) {
+    Write-Host "Detected: $platformName" -ForegroundColor Green
+    Write-Host "Running: bash ./install.sh" -ForegroundColor Gray
+    Write-Host ""
+
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    Push-Location $scriptDir
+    try {
+        bash ./install.sh
+        $exitCode = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+
+    if ($exitCode -eq 0) {
+        Write-Host ""
+        Write-Host "Installation complete!" -ForegroundColor Green
+    } else {
+        Write-Host ""
+        Write-Host "Installation failed with exit code $exitCode" -ForegroundColor Red
+    }
+    exit $exitCode
+}
+
+# === Windows-specific logic below ===
+Write-Host "Detected: Windows (using WSL)" -ForegroundColor Gray
+Write-Host ""
+
 # Check if WSL is available
 $wslInstalled = $false
 try {
