@@ -44,7 +44,41 @@ if (-not $wslInstalled) {
     exit 1
 }
 
-Write-Host "WSL detected." -ForegroundColor Green
+# Check if a Linux distribution is installed (WSL exists but no distro = bash won't work)
+Write-Host "Checking for Linux distribution..." -ForegroundColor Gray
+$distroList = wsl --list --quiet 2>$null
+if ([string]::IsNullOrWhiteSpace($distroList)) {
+    Write-Host "ERROR: WSL is installed but no Linux distribution found." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "You need to install a Linux distribution:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Option 1 - Install Ubuntu (recommended):" -ForegroundColor White
+    Write-Host "  wsl --install -d Ubuntu" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Option 2 - See available distributions:" -ForegroundColor White
+    Write-Host "  wsl --list --online" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "After installation, restart your terminal and run this script again." -ForegroundColor Gray
+    Write-Host ""
+    exit 1
+}
+
+# Verify bash actually works
+$bashTest = wsl bash -c "echo ok" 2>&1
+if ($bashTest -ne "ok") {
+    Write-Host "ERROR: WSL bash is not working properly." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Error details: $bashTest" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Try these fixes:" -ForegroundColor Yellow
+    Write-Host "  1. Restart WSL: wsl --shutdown" -ForegroundColor Cyan
+    Write-Host "  2. Open a WSL terminal manually to complete setup" -ForegroundColor Gray
+    Write-Host "  3. If still broken, reinstall: wsl --unregister Ubuntu && wsl --install -d Ubuntu" -ForegroundColor Gray
+    Write-Host ""
+    exit 1
+}
+
+Write-Host "WSL detected with working Linux distribution." -ForegroundColor Green
 
 # Get the script directory and convert to WSL path
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
