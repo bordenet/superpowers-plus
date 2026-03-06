@@ -268,6 +268,11 @@ install_dependency() {
                     ;;
             esac
             ;;
+        windows)
+            log_error "Auto-install not supported on native Windows."
+            log_error "Please install '$pkg' manually (e.g., 'winget install $pkg')"
+            return 1
+            ;;
         *)
             log_error "Unsupported platform: $PLATFORM"
             return 1
@@ -283,7 +288,7 @@ check_dependencies() {
     [[ -n "$LINUX_DISTRO" ]] && log_verbose "Linux distribution: $LINUX_DISTRO"
 
     local missing=()
-    local required_deps=("git")
+    local required_deps=("git" "node")
 
     for dep in "${required_deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
@@ -496,6 +501,35 @@ install_skill() {
     return 0
 }
 
+# Install the superpowers-augment adapter
+install_adapter() {
+    log_info "Installing superpowers-augment adapter..."
+
+    local adapter_src="$SCRIPT_DIR/superpowers-augment.js"
+    local adapter_dest_dir="${CODEX_DIR}/superpowers-augment"
+    local adapter_dest="${adapter_dest_dir}/superpowers-augment.js"
+
+    # Verify adapter source exists
+    if [[ ! -f "$adapter_src" ]]; then
+        log_warn "Adapter source not found: $adapter_src"
+        return 1
+    fi
+
+    # Create destination directory
+    create_dir "$adapter_dest_dir"
+
+    # Check if already installed and identical (skip copy for idempotency)
+    if [[ -f "$adapter_dest" ]] && cmp -s "$adapter_src" "$adapter_dest"; then
+        log_verbose "Adapter already up to date"
+        return 0
+    fi
+
+    # Copy adapter (no chmod +x needed - run via 'node script.js')
+    cp "$adapter_src" "$adapter_dest" || error_exit "Failed to copy adapter to $adapter_dest"
+
+    log_success "Adapter installed: $adapter_dest"
+}
+
 # Install all skills from this repository (supports domain-based structure)
 install_skills() {
     log_info "Installing skills from superpowers-plus..."
@@ -696,6 +730,7 @@ main() {
         upgrade_existing
         # Reinstall personal skills after upgrade
         install_skills
+        install_adapter
         validate_installation
         print_summary
         return
@@ -716,6 +751,9 @@ main() {
 
     # Install skills
     install_skills
+
+    # Install adapter
+    install_adapter
 
     # Validate
     validate_installation
