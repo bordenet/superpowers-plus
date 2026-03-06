@@ -20,9 +20,14 @@ Write-Host ""
 # Check if WSL is available
 $wslInstalled = $false
 try {
-    $wslVersion = wsl --version 2>$null
+    # 'wsl --status' is more reliable than 'wsl --version' for checking if WSL is active/installed
+    $null = wsl --status 2>$null
     if ($LASTEXITCODE -eq 0) {
         $wslInstalled = $true
+    } else {
+        # Fallback to simple command check
+        $null = Get-Command wsl -ErrorAction SilentlyContinue
+        $wslInstalled = $?
     }
 } catch {
     $wslInstalled = $false
@@ -82,7 +87,24 @@ Write-Host "WSL detected with working Linux distribution." -ForegroundColor Gree
 
 # Get the script directory and convert to WSL path
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$wslPath = $scriptDir -replace '\\', '/' -replace '^([A-Za-z]):', '/mnt/$1'.ToLower()
+
+# Use wslpath tool if available for most reliable conversion
+$wslPath = $null
+try {
+    # Escape backslashes for bash consumption
+    $escapedPath = $scriptDir -replace '\\', '\\\\'
+    $wslPath = (wsl bash -c "wslpath -u '$escapedPath'" 2>$null).Trim()
+    if ($LASTEXITCODE -ne 0) { $wslPath = $null }
+} catch {
+    $wslPath = $null
+}
+
+if ([string]::IsNullOrWhiteSpace($wslPath)) {
+    # Fallback to manual regex if wslpath fails or isn't available
+    $wslPath = ($scriptDir -replace '\\', '/' -replace '^([A-Za-z]):', '/mnt/$1').ToLower()
+}
+
+Write-Host "WSL Path: $wslPath" -ForegroundColor DarkGray
 
 Write-Host "Running install.sh through WSL..." -ForegroundColor Yellow
 Write-Host ""
