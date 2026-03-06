@@ -69,21 +69,36 @@ if ([string]::IsNullOrWhiteSpace($distroList)) {
 }
 
 # Verify bash actually works
-$bashTest = wsl bash -c "echo ok" 2>&1
+Write-Host "Testing WSL bash..." -ForegroundColor Gray
+try {
+    $bashTest = wsl bash -c "echo ok" 2>&1 | Out-String
+    $bashTest = $bashTest.Trim()
+} catch {
+    $bashTest = "Exception: $_"
+}
+
 if ($bashTest -ne "ok") {
+    Write-Host ""
     Write-Host "ERROR: WSL bash is not working properly." -ForegroundColor Red
     Write-Host ""
-    Write-Host "Error details: $bashTest" -ForegroundColor Gray
+    Write-Host "Error details:" -ForegroundColor Gray
+    Write-Host $bashTest -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "Try these fixes:" -ForegroundColor Yellow
-    Write-Host "  1. Restart WSL: wsl --shutdown" -ForegroundColor Cyan
-    Write-Host "  2. Open a WSL terminal manually to complete setup" -ForegroundColor Gray
-    Write-Host "  3. If still broken, reinstall: wsl --unregister Ubuntu && wsl --install -d Ubuntu" -ForegroundColor Gray
+    Write-Host "This usually means your Linux distro needs initialization." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Fix: Open WSL manually FIRST to complete setup:" -ForegroundColor White
+    Write-Host "  1. Open Start Menu, search for 'Ubuntu' (or your distro)" -ForegroundColor Cyan
+    Write-Host "  2. Let it finish 'Installing...' and create your username/password" -ForegroundColor Cyan
+    Write-Host "  3. Then run this script again" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Other options:" -ForegroundColor White
+    Write-Host "  - Restart WSL: wsl --shutdown" -ForegroundColor Gray
+    Write-Host "  - Reinstall distro: wsl --unregister Ubuntu && wsl --install -d Ubuntu" -ForegroundColor Gray
     Write-Host ""
     exit 1
 }
 
-Write-Host "WSL detected with working Linux distribution." -ForegroundColor Green
+Write-Host "WSL bash working." -ForegroundColor Green
 
 # Get the script directory and convert to WSL path
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
