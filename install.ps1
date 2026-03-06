@@ -100,21 +100,35 @@ Write-Host "Checking for Linux distribution..." -ForegroundColor Gray
 $distroListRaw = wsl --list --quiet 2>&1 | Out-String
 $distroList = ($distroListRaw -split "`n" | Where-Object { $_.Trim() -ne "" } | ForEach-Object { $_.Trim() -replace "`0", "" })
 
-if ($distroList.Count -eq 0) {
-    Write-Host "ERROR: WSL is installed but no Linux distribution found." -ForegroundColor Red
+# Filter out Docker's internal WSL distros (they don't have bash)
+$dockerDistros = @("docker-desktop", "docker-desktop-data")
+$usableDistros = $distroList | Where-Object { $_ -notin $dockerDistros }
+$skippedDocker = $distroList | Where-Object { $_ -in $dockerDistros }
+
+if ($skippedDocker.Count -gt 0) {
+    Write-Host "Skipping Docker distros (no bash): $($skippedDocker -join ', ')" -ForegroundColor DarkGray
+}
+
+if ($usableDistros.Count -eq 0) {
     Write-Host ""
-    Write-Host "You need to install a Linux distribution:" -ForegroundColor Yellow
+    Write-Host "ERROR: No usable Linux distribution found." -ForegroundColor Red
     Write-Host ""
-    Write-Host "Option 1 - Install Ubuntu (recommended):" -ForegroundColor White
+    if ($skippedDocker.Count -gt 0) {
+        Write-Host "You have Docker Desktop's WSL distros, but these don't include bash." -ForegroundColor Yellow
+        Write-Host "You need to install a full Linux distribution:" -ForegroundColor Yellow
+    } else {
+        Write-Host "You need to install a Linux distribution:" -ForegroundColor Yellow
+    }
+    Write-Host ""
+    Write-Host "Run this command in PowerShell (as Administrator):" -ForegroundColor White
     Write-Host "  wsl --install -d Ubuntu" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Option 2 - See available distributions:" -ForegroundColor White
-    Write-Host "  wsl --list --online" -ForegroundColor Cyan
+    Write-Host "Then restart your computer and run this script again." -ForegroundColor Gray
     Write-Host ""
     exit 1
 }
 
-Write-Host "Found distros: $($distroList -join ', ')" -ForegroundColor DarkGray
+Write-Host "Found distros: $($usableDistros -join ', ')" -ForegroundColor DarkGray
 
 # Find a working distro - prefer Ubuntu, then any that works
 $workingDistro = $null
@@ -122,7 +136,7 @@ $preferredOrder = @("Ubuntu", "Ubuntu-22.04", "Ubuntu-20.04", "Debian", "openSUS
 
 # Try preferred distros first
 foreach ($preferred in $preferredOrder) {
-    foreach ($distro in $distroList) {
+    foreach ($distro in $usableDistros) {
         if ($distro -like "*$preferred*") {
             Write-Host "Testing distro: $distro" -ForegroundColor DarkGray
             $testResult = wsl -d $distro -- /bin/bash -c "echo ok" 2>&1 | Out-String
@@ -137,7 +151,7 @@ foreach ($preferred in $preferredOrder) {
 
 # If no preferred distro works, try all of them
 if (-not $workingDistro) {
-    foreach ($distro in $distroList) {
+    foreach ($distro in $usableDistros) {
         Write-Host "Testing distro: $distro" -ForegroundColor DarkGray
         $testResult = wsl -d $distro -- /bin/bash -c "echo ok" 2>&1 | Out-String
         if ($testResult.Trim() -eq "ok") {
