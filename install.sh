@@ -87,6 +87,33 @@ if [[ "$PLATFORM" == "linux" ]] || [[ "$PLATFORM" == "wsl" ]]; then
     LINUX_DISTRO=$(detect_linux_distro)
 fi
 
+# WSL-specific checks
+if [[ "$PLATFORM" == "wsl" ]]; then
+    # Check if running from Windows filesystem (common mistake, causes permission issues)
+    if [[ "$PWD" == /mnt/* ]]; then
+        echo ""
+        echo -e "${YELLOW}[WARN]${NC} Running from Windows filesystem ($PWD)"
+        echo ""
+        echo "This may cause permission issues. For best results:"
+        echo "  1. Clone the repo to WSL filesystem: ~/GitHub/superpowers-plus"
+        echo "  2. Run from there: cd ~/GitHub/superpowers-plus && ./install.sh"
+        echo ""
+        echo "Continuing anyway..."
+        echo ""
+    fi
+
+    # Check if HOME is set correctly (not a Windows path)
+    if [[ "$HOME" == /mnt/* ]]; then
+        echo -e "${RED}[ERROR]${NC} \$HOME is set to a Windows path: $HOME"
+        echo "This will cause installation to fail."
+        echo ""
+        echo "Fix: Set HOME to a WSL path in ~/.bashrc:"
+        echo "  export HOME=/home/\$(whoami)"
+        echo ""
+        exit 1
+    fi
+fi
+
 # Options
 FORCE=false
 VERBOSE=false
@@ -472,6 +499,14 @@ install_skill() {
 # Install all skills from this repository (supports domain-based structure)
 install_skills() {
     log_info "Installing skills from superpowers-plus..."
+
+    # Verify skills directory exists and is readable
+    if [[ ! -d "$SCRIPT_DIR/skills" ]]; then
+        error_exit "Skills directory not found: $SCRIPT_DIR/skills"
+    fi
+    if [[ ! -r "$SCRIPT_DIR/skills" ]]; then
+        error_exit "Skills directory not readable: $SCRIPT_DIR/skills (check permissions)"
+    fi
 
     # Create all skills directories
     create_dir "$SKILLS_DIR"
