@@ -6,11 +6,20 @@ Skills extending [obra/superpowers](https://github.com/obra/superpowers) for Cla
 
 **Prerequisite:** Install [obra/superpowers](https://github.com/obra/superpowers) first — this repo extends it.
 
+**macOS / Linux / WSL Terminal:**
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
 ./install.sh
 ```
+
+**Windows PowerShell:**
+```powershell
+git clone https://github.com/bordenet/superpowers-plus.git
+cd superpowers-plus
+.\install.ps1
+```
+> ⚠️ **Windows users:** Run `.\install.ps1` (not `.\install.sh`). The PowerShell wrapper handles WSL detection and setup.
 
 Skills install to `~/.codex/skills/` and `~/.augment/skills/`. Verify:
 
