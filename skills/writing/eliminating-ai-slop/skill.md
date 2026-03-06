@@ -8,7 +8,7 @@ description: Use when writing or editing prose to actively prevent and remove AI
 # Eliminating AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-01-25
+> **Last Updated:** 2026-03-06
 
 ## Overview
 
@@ -510,6 +510,50 @@ Calibration saved. GVR loop now uses your personalized thresholds.
 | "in terms of" | Rewrite directly: "for performance" → "performance improved by 12%" |
 | "the fact that" | Delete; rephrase sentence |
 
+### Time Estimates (Deflation Required)
+
+AI-generated documentation defaults to pre-AI manual labor timeframes. With modern tooling and AI assistants, most tasks take 3-5x less time than stated.
+
+**The Deflation Rule:** Before publishing ANY time estimate, ask:
+1. Is this based on manual work from 2020?
+2. With AI assistance + modern scripts, what's the ACTUAL time?
+3. If estimate is >3x realistic, deflate it.
+
+| Slop Estimate | Realistic Rewrite |
+|---------------|-------------------|
+| "10-15 minutes" for install | "3-5 minutes" (scripted) |
+| "30-45 minutes" for WSL setup | "5-10 minutes (longer only if WSL needs first-time install)" |
+| "Allow 2-3 hours" for feature | "30-60 minutes with AI assistance" |
+| "This will take a few days" | Specify actual complexity; most features are hours |
+| "Plan for a week" | Break down: "Day 1: X, Day 2: Y" or just "1-2 days" |
+| "15-30 minutes" for config | "2-5 minutes" |
+
+**Context-sensitive deflation:**
+
+| Task Type | Slop Range | Realistic Range |
+|-----------|------------|-----------------|
+| Clone + install script | 10-15 min | **3-5 min** |
+| WSL first-time setup | 30-45 min | **5-10 min** |
+| API key configuration | 15-30 min | **2-5 min** |
+| Single feature implementation | 4-8 hours | **30 min - 2 hours** |
+| Bug fix with clear repro | 2-4 hours | **15-60 min** |
+| Documentation page | 1-2 hours | **15-30 min** |
+
+**Red flags in time estimates:**
+- Estimates that could apply to any task ("allow sufficient time")
+- Inflated ranges that hedge ("15-45 minutes" → pick one)
+- No acknowledgment of AI-assisted speedup
+- Copy/pasted from pre-2024 documentation
+
+**Example rewrite:**
+```
+BEFORE (slop):
+"Allow 30-45 minutes for the complete setup process."
+
+AFTER (realistic):
+"Setup takes 3-5 minutes (clone + run install.sh). First-time WSL users: add 5-10 minutes for Ubuntu setup."
+```
+
 ### CV/Resume (Detect-Only)
 
 When processing resumes, **detect but do not rewrite**. Resumes are external materials.
@@ -594,6 +638,12 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
   - List intro → colon: "three things: speed, quality, cost"
   - Simple pause → comma: "it worked, but barely"
 - **Clichés**: "state of the art", "game changer" → use direct language or delete
+
+### Time Estimate Patterns (deflate aggressively)
+- **Inflated install times**: "10-15 min" → "3-5 min" (with modern scripts)
+- **WSL setup inflation**: "30-45 min" → "5-10 min"
+- **Feature work inflation**: "2-3 hours" → "30-60 min with AI"
+- **Multi-day estimates**: Break down or compress to hours
 
 ### Redundancy Patterns (the "chattering parrot" problem)
 

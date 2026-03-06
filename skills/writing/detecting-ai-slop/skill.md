@@ -8,7 +8,7 @@ description: Use when analyzing text to calculate a slop score (0-100) that meas
 # Detecting AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-01-25
+> **Last Updated:** 2026-03-06
 
 ## Overview
 
@@ -434,7 +434,44 @@ Overused phrases that signal template-driven or AI-generated content.
 
 **Note:** One use of a cliché may be acceptable if intentional. Two or more in the same document is a strong AI signal.
 
-### Category 9: Redundancy and Repetition
+### Category 9: Time Estimate Inflation
+
+AI-generated documentation frequently contains wildly inflated time estimates originating from pre-AI training data. With AI coding assistants, most tasks that took hours now take minutes.
+
+**Why this happens:** AI models were trained on documentation written when tasks required manual labor. The estimates reflect 2020-era workflows, not AI-assisted 2025+ development.
+
+| Pattern | Category | Signal |
+|---------|----------|--------|
+| "10-15 minutes" for simple install | time-inflation | Should be 3-5 min with scripts |
+| "30-45 minutes" for setup | time-inflation | Should be 5-10 min max |
+| "Allow 2-3 hours" for feature work | time-inflation | 30-60 min with AI assistance |
+| "This will take a few days" | time-inflation | Most features are hours, not days |
+| "Plan for a week" | time-inflation | Unless truly complex, likely inflated |
+| "Expect 15-30 minutes" for config | time-inflation | Modern tooling: 2-5 min |
+
+**Detection heuristics:**
+
+| Stated Estimate | Flag If | Realistic Range (AI-assisted) |
+|-----------------|---------|-------------------------------|
+| Install/setup | > 10 min | 3-5 min (scripted), 5-10 min (manual) |
+| Configuration | > 15 min | 2-5 min |
+| Single feature | > 4 hours | 30 min - 2 hours |
+| Bug fix | > 2 hours | 15-60 min |
+| Documentation page | > 1 hour | 15-30 min |
+
+**Context matters:** Complex multi-service deployments or greenfield architecture may legitimately take longer. Flag estimates that seem disconnected from the actual task complexity.
+
+**The sanity check:**
+1. Is this estimate based on pre-AI manual work?
+2. With an AI coding assistant, how long would this ACTUALLY take?
+3. If the estimate is >3x the AI-assisted time, flag it for review.
+
+**Scoring:**
+- Mild inflation (2-3x realistic): +3 points
+- Moderate inflation (3-5x realistic): +5 points
+- Severe inflation (>5x realistic): +8 points
+
+### Category 10: Redundancy and Repetition
 
 AI-generated text often repeats phrases, creating a "chattering parrot" effect that damages credibility.
 
