@@ -5,6 +5,10 @@
 .slop-dictionary.json
 .slop-metrics.json
 
+# Profanity patterns - root-level file is for local overrides (not tracked)
+# scripts/.profanity-patterns.txt IS tracked - it's the reference list
+/.profanity-patterns.txt
+
 # MacOS specific files
 .DS_Store
 .AppleDouble

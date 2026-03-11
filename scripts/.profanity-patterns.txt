@@ -1,0 +1,90 @@
+# Profanity patterns for content moderation
+# One pattern per line, case-insensitive word-boundary matching
+# Lines starting with # are comments
+#
+# Categories:
+# - Category A: Sexual/explicit terms
+# - Category B: Scatological terms
+# - Category C: Religious profanity
+# - Category D: Body part vulgarities
+# - Category E: Gendered slurs
+# - Category F: Internet shorthand
+# - Category G: Crude descriptors
+#
+# Pattern count target: ~40-50 patterns
+# Include variants: -ing, -ed, -er, -s forms
+
+# Category A: Sexual/explicit terms (f-word family)
+fuck
+fucking
+fucked
+fucker
+fuckers
+fucks
+fuckup
+fuckups
+motherfucker
+motherfucking
+
+# Category B: Scatological terms (s-word family)
+shit
+shitty
+shits
+shitting
+bullshit
+horseshit
+dipshit
+shitstorm
+
+# Category C: Religious profanity
+damn
+damned
+goddamn
+goddamned
+goddam
+hell
+# Note: "hell" may have legitimate uses - context matters
+
+# Category D: Body part vulgarities (a-word family)
+ass
+asses
+asshole
+assholes
+badass
+dumbass
+jackass
+
+# Category E: Gendered slurs (b-word family)
+bitch
+bitches
+bitching
+bitchy
+bastard
+bastards
+
+# Category F: Internet shorthand
+wtf
+stfu
+lmfao
+lmao
+omfg
+
+# Category G: Crude descriptors and compounds
+crap
+crappy
+sucks
+sucky
+pissed
+piss
+pissing
+screwed
+dick
+dicks
+
+# Additional crude terms
+idiot
+idiotic
+moron
+moronic
+stupid
+
