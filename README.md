@@ -123,7 +123,7 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 
 | Domain | Skills | Description |
 |--------|--------|-------------|
-| **writing/** | 4 | Detect and eliminate AI slop, README authoring |
+| **writing/** | 5 | Detect/eliminate AI slop, profanity audit, README authoring |
 | **typescript/** | 5 | Strict mode, complexity refactoring, Vitest patterns |
 | **issue-tracking/** | 5 | Issue authoring/editing/verification (Linear, GitHub, Jira, ADO adapters) |
 | **wiki/** | 7 | Wiki editing, authoring, verification, debunking |
@@ -139,6 +139,7 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 ### writing/
 - `detecting-ai-slop` — Score text for AI patterns (0-100), 300+ patterns across 13 content types
 - `eliminating-ai-slop` — Rewrite AI-like text using Generate-Verify-Refine loop
+- `professional-language-audit` — **HARD GATE** for profanity before wiki/commit
 - `readme-authoring` — Structure READMEs for <5 minute onboarding
 - `reviewing-ai-text` — (Deprecated) Use detecting/eliminating-ai-slop instead
 
