@@ -91,9 +91,9 @@ Invoke this skill when:
 
 **Internal wiki URL pattern:** `https://your-wiki.example.com/doc/{slug}`
 
-```bash
-# MCP approach (preferred)
-get_document_outline(id: "slug-from-url")
+```
+# Use your wiki adapter's get_page operation
+adapter.get_page(id: "slug-from-url")
 
 # Verify response has content
 # If error or empty → link is broken
@@ -103,23 +103,15 @@ get_document_outline(id: "slug-from-url")
 
 ---
 
-## Azure DevOps Link Verification
+## Repository Link Verification
 
-**PR URL pattern:** `https://dev.azure.com/YourOrg/{Project}/_git/{Repo}/pullrequest/{PR-ID}`
+Use your repository adapter to verify PR and repo links exist.
 
-```
-repo_get_pull_request_by_id_azure-devops
-  repositoryId: "repo-uuid-or-name"
-  pullRequestId: 1234
-```
+**PR verification:** Use adapter's `get_pull_request` operation with the PR ID.
 
-**Repo URL pattern:** `https://dev.azure.com/YourOrg/{Project}/_git/{Repo}`
+**Repo verification:** Use adapter's `get_repository` operation with the repo name/ID.
 
-```
-repo_get_repo_by_name_or_id_azure-devops
-  project: "Your Project"
-  repositoryNameOrId: "voice-service"
-```
+See `skills/issue-tracking/_adapters/` for platform-specific tools.
 
 ---
 

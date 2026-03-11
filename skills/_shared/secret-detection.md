@@ -16,12 +16,11 @@ These patterns have very low false-positive rates and should ALWAYS trigger a bl
 | API Key Assignment | `api_key=sk_live_...` | 🔴 HIGH |
 | Private Key Block | `-----BEGIN RSA PRIVATE KEY-----` | 🔴 HIGH |
 | AWS Access Key | `AKIA...` (20 chars) | 🔴 HIGH |
-| Outline Token | `ol_api_...` | 🔴 HIGH |
-| Issue Tracker Token | `[tracker-token]` | 🔴 HIGH |
 | OpenAI Key | `sk-...` (32+ chars) | 🔴 HIGH |
 | GitHub Token | `ghp_...`, `gho_...`, `ghu_...` | 🔴 HIGH |
 | Slack Token | `xoxb-...`, `xoxp-...` | 🔴 HIGH |
 | Stripe Key | `sk_live_...` | 🔴 HIGH |
+| Platform API Tokens | `[platform]_api_...` | 🔴 HIGH |
 
 ---
 
@@ -79,9 +78,9 @@ For each match, ask:
 
 ## 🔒 MCP Server Hard Block (P0)
 
-The Outline MCP server (v5.9.0+) has a built-in secret scanner that:
-- Blocks `createDocument`, `updateDocument`, `pushDocument` if secrets are detected
-- Returns a detailed error message with line numbers and pattern names
+Some wiki MCP servers have built-in secret scanners that:
+- Block `createPage`, `updatePage`, `pushPage` if secrets are detected
+- Return detailed error messages with line numbers and pattern names
 - Cannot be bypassed — content with secrets WILL NOT be published
 
 This is the **last line of defense**. The checklist above should catch secrets BEFORE hitting this block.
@@ -109,7 +108,6 @@ Server=mydb.database.windows.net;User Id=admin;Password=[REDACTED: production SQ
 
 ## 📚 Related
 
-- **MCP Server Implementation:** `mcp-servers/outline/src/utils/secretScanner.ts`
-- **Unit Tests:** `mcp-servers/outline/test/secretScanner.test.ts`
-- **Incident Wiki Page:** `/doc/example-incident-page-xyz789` (credentials since removed)
+- **Skill:** `skills/wiki/wiki-secret-audit/skill.md`
+- **Detection patterns:** See regex section above
 
