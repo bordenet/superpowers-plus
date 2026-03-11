@@ -8,6 +8,7 @@ description: Use when creating or updating wiki pages — the default entry poin
 # Wiki Orchestrator
 
 > **Purpose:** Enforce quality pipeline for ALL wiki authoring
+> **Platform:** Outline (see `_adapters/outline.md` for other platforms)
 > **Last Updated:** 2026-02-28
 > **Philosophy:** Make quality control unavoidable, not optional
 

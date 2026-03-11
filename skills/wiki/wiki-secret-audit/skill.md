@@ -7,6 +7,7 @@ description: Use when scanning wiki pages for exposed secrets, after security in
 
 # Wiki Secret Audit
 
+> **Platform:** Outline (see `_adapters/outline.md` for other platforms)
 > **Security Incident 2026-02-24:** SQL Server credentials were published to wiki.
 > This skill enables retroactive scanning of existing wiki pages for exposed secrets.
 

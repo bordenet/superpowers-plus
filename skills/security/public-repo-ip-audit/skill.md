@@ -1,16 +1,11 @@
-# public-repo-ip-audit
+---
+name: public-repo-ip-audit
+source: superpowers-plus
+triggers: ["commit to public repo", "push to GitHub", "extract to public", "migrate to public", "create public repo", "before committing to public"]
+description: Audit public repositories for proprietary IP before commit/push. Prevents leakage of internal references, URLs, ticket IDs, and confidential content to public GitHub repositories.
+---
 
-## METADATA
-description: "Audit public repositories for proprietary IP before commit/push. Prevents leakage of internal references, URLs, ticket IDs, and confidential content to public GitHub repositories."
-version: 1.0.0
-triggers:
-  - "commit to public repo"
-  - "push to GitHub"
-  - "extract to public"
-  - "migrate to public"
-  - "create public repo"
-  - "before committing"
-  - "before pushing"
+# public-repo-ip-audit
 
 ## CONTEXT
 When working with proprietary codebases (internal repos, private company code), content may need to be extracted or migrated to public repositories. This skill ensures NO proprietary intellectual property (IP) leaks to public repositories.
