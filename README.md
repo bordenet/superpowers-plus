@@ -13,13 +13,28 @@ cd superpowers-plus
 ./install.sh
 ```
 
-**Windows PowerShell:**
+**Windows (WSL — Recommended):**
+```bash
+# In Ubuntu terminal (not PowerShell)
+git clone https://github.com/bordenet/superpowers-plus.git
+cd superpowers-plus
+./install.sh
+```
+
+> 💡 **Windows users:** We strongly recommend using **Ubuntu on WSL** and running all commands from the Ubuntu terminal. This avoids path translation issues, permission quirks, and VS Code integration bugs that plague cross-environment workflows. Install WSL + Ubuntu with `wsl --install -d Ubuntu` from an admin PowerShell, then do all superpowers work inside the Ubuntu terminal.
+
+<details>
+<summary>Alternative: PowerShell wrapper (not recommended)</summary>
+
 ```powershell
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
 .\install.ps1
 ```
-> ⚠️ **Windows users:** Run `.\install.ps1` (not `.\install.sh`). The PowerShell wrapper handles WSL detection and setup.
+
+The PowerShell wrapper attempts to run `install.sh` through WSL, but path translation between Windows and WSL can cause subtle issues. For reliable results, clone and install directly within WSL.
+
+</details>
 
 Skills install to `~/.codex/skills/` and `~/.augment/skills/`. Verify:
 
@@ -49,8 +64,30 @@ All paths lead to the same superpowers. The install.sh deploys skills to standar
 | Linux (Debian/Ubuntu) | ✅ Supported | apt-get for dependencies |
 | Linux (RHEL/Fedora/CentOS) | ✅ Supported | dnf/yum for dependencies |
 | Linux (Arch) | ✅ Supported | pacman for dependencies |
-| Windows (WSL) | ✅ Supported | Same as underlying Linux distro |
+| Windows (WSL/Ubuntu) | ✅ Supported | Use Ubuntu terminal — see below |
 | Windows (native) | ❌ Not supported | Use WSL |
+
+### Windows/WSL Best Practices
+
+**Use Ubuntu as your WSL distro** and run everything from the Ubuntu terminal:
+
+```bash
+# Install Ubuntu (run once from admin PowerShell)
+wsl --install -d Ubuntu
+
+# Then always work from Ubuntu terminal
+ubuntu
+cd ~
+git clone https://github.com/bordenet/superpowers-plus.git
+```
+
+**Why Ubuntu terminal instead of PowerShell?**
+- Path translation between Windows and WSL causes subtle bugs
+- File permissions behave unexpectedly across the boundary
+- VS Code's WSL integration has edge cases that break workflows
+- `~/.codex/` and `~/.augment/` paths resolve correctly in Ubuntu
+
+> 🛠️ **Power user tip:** If you hit VS Code + WSL issues (remote connection failures, extension problems, terminal weirdness), paste the error into ChatGPT or Claude. These tools excel at debugging Windows/WSL/VS Code integration quirks and can save hours of frustration.
 
 **Prerequisites:**
 - `git` — installed automatically if missing (prompts for confirmation)
