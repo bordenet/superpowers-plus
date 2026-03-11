@@ -87,6 +87,8 @@ git clone https://github.com/bordenet/superpowers-plus.git
 - VS Code's WSL integration has edge cases that break workflows
 - `~/.codex/` and `~/.augment/` paths resolve correctly in Ubuntu
 
+> 🛠️ **Power user tip:** If you hit VS Code + WSL issues (remote connection failures, extension problems, terminal weirdness), paste the error into ChatGPT or Claude. These tools excel at debugging Windows/WSL/VS Code integration quirks and can save hours of frustration.
+
 **Prerequisites:**
 - `git` — installed automatically if missing (prompts for confirmation)
 - [obra/superpowers](https://github.com/obra/superpowers) — install first
