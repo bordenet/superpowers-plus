@@ -1,16 +1,8 @@
 ---
 name: providing-code-review
 source: superpowers-plus
-triggers: [
-  "review this PR", "review these changes", "code review", "provide feedback",
-  "check this implementation", "review the PR",
-  "review his", "review her", "review their",
-  "Pending Review", "ready for review", "needs review",
-  "look at this PR", "check this PR"
-]
-description: |
-  Code review gate: Apply the same engineering rigor when reviewing others' work.
-  Trace data flow, check blast radius, verify integration points — don't rubber-stamp.
+triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
+description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
 ---
 
 # Providing Code Review

@@ -1,15 +1,8 @@
 ---
 name: engineering-rigor
 source: superpowers-plus
-triggers: [
-  "engineering rigor", "implement this feature", "add a new field",
-  "before creating PR", "before marking done"
-]
-description: |
-  Hub skill for engineering rigor. Points to three operational skills:
-  - pre-commit-gate: Run lint → typecheck → test LOCALLY before committing
-  - blast-radius-check: Search for ALL usages before modifying code
-  - providing-code-review: Apply same rigor when reviewing others' work
+triggers: ["engineering rigor", "implement this feature", "add a new field", "before creating PR", "before marking done"]
+description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
 ---
 
 # Engineering Rigor

@@ -127,11 +127,11 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 | **typescript/** | 5 | Strict mode, complexity refactoring, Vitest patterns |
 | **issue-tracking/** | 5 | Issue authoring/editing/verification (Linear, GitHub, Jira, ADO adapters) |
 | **wiki/** | 7 | Wiki editing, authoring, verification, debunking |
-| **engineering/** | 4 | Engineering rigor, pre-commit gates, blast radius checks, code review |
+| **engineering/** | 5 | Engineering rigor, pre-commit gates, blast radius checks, code review (providing + receiving) |
 | **observability/** | 4 | Skill firing tracker, audit validation, completeness checks |
 | **productivity/** | 4 | TODO management, think-twice, golden-agents, style enforcement |
 | **research/** | 2 | Perplexity integration, incorporating external research |
-| **security/** | 1 | CVE scanning and dependency upgrades |
+| **security/** | 2 | CVE scanning, dependency upgrades, public repo IP audit |
 | **experimental/** | 1 | Self-prompting (not production-ready) |
 
 ## Skill Reference
@@ -188,12 +188,14 @@ Requires `WIKI_PLATFORM` in `.env`. See `skills/wiki/_adapters/` for platform se
 
 ### security/
 - `security-upgrade` — Scan for CVEs, upgrade dependencies one at a time
+- `public-repo-ip-audit` — Audit public repos for proprietary IP before commit/push
 
 ### engineering/
 - `engineering-rigor` — Hub skill for engineering rigor philosophy and cross-references
 - `pre-commit-gate` — Run lint → typecheck → test locally before every commit
 - `blast-radius-check` — Search for ALL usages before modifying existing code
 - `providing-code-review` — Apply engineering rigor when reviewing others' PRs
+- `receiving-code-review` — Technical evaluation of code review feedback before implementing
 
 ### experimental/
 - `experimental-self-prompting` — Write context-free prompts for fresh perspective (not production-ready)
