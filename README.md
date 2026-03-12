@@ -38,13 +38,6 @@ cd superpowers-plus
 
 This installs obra/superpowers automatically as a dependency.
 
-### Claude Code (Marketplace)
-
-Once accepted into the official marketplace:
-```bash
-/plugin install superpowers-plus@claude-plugin-directory
-```
-
 ### MCP Server (Any Claude-Compatible Client)
 
 For clients supporting Model Context Protocol:
