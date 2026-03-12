@@ -4,7 +4,7 @@ How superpowers-plus skills work and how to extend them.
 
 ## Framework Integration
 
-superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers), a skill framework for AI coding assistants.
+superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
 
 ```
 ~/.codex/
