@@ -21,7 +21,7 @@ Every time you invoke a skill via `use-skill`, append to the log:
 
 ```bash
 # $SUPERPOWERS_DIR/.skill-metrics/fired.jsonl
-{"timestamp":"2026-02-28T07:23:45Z","skill":"superpowers:resume-screening","trigger":"user shared resume PDF","session":"abc123"}
+{"timestamp":"2026-02-28T07:23:45Z","skill":"superpowers:systematic-debugging","trigger":"user reported test failure","session":"abc123"}
 ```
 
 ### 2. Log SHOULD_HAVE_FIRED Events (Manual Detection)
@@ -30,7 +30,7 @@ When you realize a skill SHOULD have been invoked but wasn't:
 
 ```bash
 # $SUPERPOWERS_DIR/.skill-metrics/missed.jsonl
-{"timestamp":"2026-02-28T07:30:12Z","skill":"superpowers:candidate-tracker","trigger":"processed resume without checking duplicates","user_phrase":"screen this resume","session":"abc123"}
+{"timestamp":"2026-02-28T07:30:12Z","skill":"superpowers:blast-radius-check","trigger":"modified shared function without checking callers","user_phrase":"refactor this function","session":"abc123"}
 ```
 
 ### 3. Session Boundary Marker
@@ -39,7 +39,7 @@ At conversation end, write:
 
 ```bash
 # $SUPERPOWERS_DIR/.skill-metrics/sessions.jsonl
-{"session":"abc123","started":"2026-02-28T07:00:00Z","ended":"2026-02-28T08:15:00Z","skills_fired":["resume-screening","phone-screen-prep"],"skills_missed":["candidate-tracker"]}
+{"session":"abc123","started":"2026-02-28T07:00:00Z","ended":"2026-02-28T08:15:00Z","skills_fired":["systematic-debugging","test-driven-development"],"skills_missed":["blast-radius-check"]}
 ```
 
 ## Data Location
@@ -76,10 +76,10 @@ Certain action patterns indicate a skill miss. The tracker looks for:
 | Pattern Detected | Missed Skill |
 |------------------|--------------|
 | Wiki edit without `wiki-orchestrator` | `wiki-orchestrator` |
-| Resume text processed without `resume-screening` | `resume-screening` |
+| Shared function modified without checking callers | `blast-radius-check` |
 | Issue comment posted without `issue-comment-debunker` | `issue-comment-debunker` |
 | Commit prepared without `link-verification` | `link-verification` |
-| Interview notes processed without `interview-synthesis` | `interview-synthesis` |
+| Bug fix without reproducing first | `systematic-debugging` |
 
 ## Integration Points
 
