@@ -9,6 +9,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-03-12
+
+### Fixed
+- `version-sync.yml` now handles "no changes to commit" gracefully
+
 ## [2.1.1] - 2026-03-12
 
 ### Added

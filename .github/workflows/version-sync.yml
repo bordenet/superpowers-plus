@@ -68,19 +68,22 @@ jobs:
 
       - name: Commit version sync
         if: steps.tag_check.outputs.TAG_EXISTS == 'false'
+        id: commit
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          
-          # Check if there are changes to commit
-          if git diff --quiet .claude-plugin/; then
-            echo "No version changes to commit"
+
+          # Stage changes first, then check if there's anything to commit
+          git add .claude-plugin/
+          if git diff --cached --quiet; then
+            echo "No version changes to commit (already in sync)"
+            echo "CHANGES=false" >> $GITHUB_OUTPUT
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add .claude-plugin/
             git commit -m "chore: sync version $VERSION to plugin files [skip ci]"
             git push
             echo "Committed version sync"
+            echo "CHANGES=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Create and push tag
