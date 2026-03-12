@@ -7,58 +7,152 @@ description: Comprehensive guide to ALL superpowers skills — both core (obra/s
 
 # 🦸 Your Superpowers
 
-You have **55 skills** available across two skill libraries:
+You have **106 skills** available across two skill libraries:
 
 | Library | Skills | Purpose |
 |---------|--------|---------|
-| **[obra/superpowers](https://github.com/obra/superpowers)** | 14 | Core workflows: TDD, debugging, planning, code review |
+| **[obra/superpowers](https://github.com/obra/superpowers)** | 65 | Core workflows + specialized domains |
 | **[superpowers-plus](https://github.com/bordenet/superpowers-plus)** | 41 | Extended domains: wiki, issues, security, TypeScript, AI writing |
 
 Skills fire **automatically** based on triggers. If there's even a 1% chance a skill applies, **invoke it**.
 
 ---
 
-## Core Skills (obra/superpowers) — 14 skills
+## obra/superpowers — 65 skills
 
-These are the foundational workflows by Jesse Vincent. **Prerequisite for superpowers-plus.**
+### 🧠 Core Development Workflow (8 skills)
 
-### Development Workflow
+| Skill | When to Use |
+|-------|-------------|
+| **brainstorming** | Starting ANY new work — refines ideas through questions |
+| **writing-plans** | After design approval — breaks work into 2-5 min tasks |
+| **executing-plans** | With approved plan — batch execution with checkpoints |
+| **subagent-driven-development** | Dispatches fresh subagent per task |
+| **using-git-worktrees** | Creates isolated workspace on new branch |
+| **finishing-a-development-branch** | Verifies tests, presents merge/PR options |
+| **implementation-tracker** | Tracks progress across multiple sessions |
+| **dispatching-parallel-agents** | Concurrent subagent workflows |
 
-| Skill | When to Use | Key Behavior |
-|-------|-------------|--------------|
-| **brainstorming** | Starting ANY new work | Refines ideas through questions, presents design in digestible chunks, saves design doc |
-| **writing-plans** | After design approval | Breaks work into 2-5 min tasks with exact file paths, complete code, verification steps |
-| **executing-plans** | With approved plan | Batch execution with human checkpoints |
-| **subagent-driven-development** | With approved plan | Dispatches fresh subagent per task, two-stage review |
-| **using-git-worktrees** | After design approval | Creates isolated workspace on new branch, verifies clean test baseline |
-| **finishing-a-development-branch** | When tasks complete | Verifies tests, presents merge/PR/keep/discard options, cleans up |
+### 🧪 Testing & Debugging (3 skills)
 
-### Testing & Debugging
+| Skill | When to Use |
+|-------|-------------|
+| **test-driven-development** | RED-GREEN-REFACTOR before implementation |
+| **systematic-debugging** | 4-phase root cause process |
+| **verification-before-completion** | Before claiming "done" |
 
-| Skill | When to Use | Key Behavior |
-|-------|-------------|--------------|
-| **test-driven-development** | During implementation | RED-GREEN-REFACTOR: failing test → minimal code → pass → commit. **Deletes code written before tests.** |
-| **systematic-debugging** | Fixing bugs | 4-phase root cause process: gather → hypothesize → test → fix |
-| **verification-before-completion** | Before claiming "done" | Ensures fix actually works, not just "looks right" |
+### 👥 Code Review (3 skills)
 
-### Collaboration
+| Skill | When to Use |
+|-------|-------------|
+| **providing-code-review** | Reviewing PRs |
+| **receiving-code-review** | Implementing review feedback |
+| **requesting-code-review** | Between tasks, before merging |
 
-| Skill | When to Use | Key Behavior |
-|-------|-------------|--------------|
-| **requesting-code-review** | Between tasks | Reviews against plan, reports issues by severity, blocks on critical |
-| **receiving-code-review** | When review feedback arrives | How to respond to and implement feedback |
-| **dispatching-parallel-agents** | Multiple independent tasks | Concurrent subagent workflows |
+### 📋 Linear Issue Tracking (5 skills)
 
-### Meta
+| Skill | When to Use |
+|-------|-------------|
+| **linear-issue-authoring** | Creating Linear issues |
+| **linear-issue-editing** | Updating Linear issues |
+| **linear-issue-verify** | Referencing issues in commits/PRs |
+| **linear-link-verification** | Adding URLs to Linear |
+| **linear-comment-debunker** | Before posting comments |
 
-| Skill | When to Use | Key Behavior |
-|-------|-------------|--------------|
-| **using-superpowers** | Session start | How to find and invoke skills — **invoke before ANY response** |
-| **writing-skills** | Creating new skills | Best practices for skill authoring |
+### 📖 Wiki (6 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **outline-wiki-editing** | Editing Outline wiki pages |
+| **wiki-orchestrator** | Creating/updating wiki pages |
+| **wiki-authoring** | Structuring wiki content |
+| **wiki-verify** | Verifying codebase references |
+| **wiki-debunker** | Fact-checking wiki content |
+| **wiki-secret-audit** | Scanning for exposed secrets |
+
+### 🔗 Link Verification (1 skill)
+
+| Skill | When to Use |
+|-------|-------------|
+| **link-verification** | HARD GATE before wiki writes |
+
+### 👔 Recruiting Pipeline (14 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **resume-screening** | Reviewing resumes, screening candidates |
+| **cv-review-external** | PARANOID review for direct-apply candidates |
+| **cv-review-agency** | Trusting review for recruiter-sourced |
+| **candidate-tracker** | Check for duplicates, fraud rings |
+| **candidate-outcome** | Recording hire/reject/fraud outcomes |
+| **agency-batch-triage** | Processing multiple agency candidates |
+| **phone-screen-prep** | Preparing phone screen call script |
+| **phone-screen-synthesis** | Synthesizing call into BLUF debrief |
+| **interview-prep** | Preparing behavioral interview loop |
+| **interview-sheet-prep** | Hiring manager interview sheet |
+| **interview-synthesis** | Creating debrief from interview |
+| **loop-prep** | Preparing 1-hour loop session |
+| **loop-synthesis** | Synthesizing loop into debrief |
+| **fathom-meeting-notes** | Retrieving meeting transcripts |
+
+### 📊 Plan-of-Record (PoR) (4 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **por-project-registry** | Managing PoR project mappings |
+| **por-linear-triage** | Classifying issues into PoR projects |
+| **por-stakeholder-report** | Generating stakeholder summaries |
+| **por-work-audit** | Validating completed work |
+
+### 🔧 Engineering Quality (6 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **blast-radius-check** | Before modifying existing code |
+| **engineering-rigor** | Code quality gates |
+| **pre-commit-gate** | Pre-commit checks |
+| **engineering-changelog-enrichment** | Generating weekly changelogs |
+| **exhaustive-audit-validation** | Before claiming audits complete |
+| **skill-firing-tracker** | Logging skill invocations |
+
+### 📘 TypeScript (4 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **cognitive-complexity-refactoring** | High complexity warnings |
+| **field-rename-verification** | Renaming fields, API changes |
+| **typescript-project-conventions** | Import ordering, file size |
+| **typescript-strict-mode** | Type errors, strict checks |
+| **vitest-testing-patterns** | Mock issues, test failures |
+
+### ✍️ Writing Quality (1 skill)
+
+| Skill | When to Use |
+|-------|-------------|
+| **professional-language-audit** | Scanning for profanity |
+
+### 🤔 Meta & Productivity (4 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **using-superpowers** | Session start — find and use skills |
+| **writing-skills** | Creating new skills |
+| **think-twice** | Stuck on problems, need fresh approach |
+| **todo-management** | Capturing tasks, tracking work |
+
+### 🏢 CallBox-Specific (5 skills)
+
+| Skill | When to Use |
+|-------|-------------|
+| **cari-data-flow-verification** | Modifying Cari Scheduler |
+| **core-boards** | Creating internal announcements |
+| **smr-portal-validation** | Checking SMR portal health |
+| **mb-scratchpad-wiki-sync** | Before committing to mb_scratchpad |
+| **skills-hierarchy-tuning** | Reviewing skill organization |
 
 ---
 
-## Extended Skills (superpowers-plus) — 41 skills
+## superpowers-plus — 41 skills
 
 ### 🔧 Engineering (5 skills)
 
@@ -227,11 +321,15 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 | "Build a new feature" | brainstorming → writing-plans → subagent-driven-development |
 | "Fix this bug" | systematic-debugging → test-driven-development |
 | "Review this PR" | providing-code-review |
-| "Create an issue" | issue-authoring → issue-link-verification |
-| "Update the wiki" | wiki-orchestrator → wiki-editing → link-verification |
+| "Create a Linear issue" | linear-issue-authoring → linear-link-verification |
+| "Update the wiki" | wiki-orchestrator → outline-wiki-editing → link-verification |
+| "Screen this resume" | candidate-tracker → cv-review-external (or cv-review-agency) |
+| "Prep phone screen" | phone-screen-prep |
+| "Synthesize interview" | phone-screen-synthesis (or loop-synthesis) |
 | "Check my AI writing" | detecting-ai-slop → eliminating-ai-slop |
 | "Upgrade dependencies" | security-upgrade |
 | "Refactor complex code" | cognitive-complexity-refactoring → blast-radius-check |
+| "What shipped this week" | engineering-changelog-enrichment → por-stakeholder-report |
 
 ---
 
