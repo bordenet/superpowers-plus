@@ -12,7 +12,7 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.1.0
+# VERSION: 2.3.0
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
