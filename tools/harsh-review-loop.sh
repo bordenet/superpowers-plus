@@ -24,12 +24,12 @@ if [[ -t 1 ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[0;33m'
-    BLUE='\033[0;34m'
+
     CYAN='\033[0;36m'
     BOLD='\033[1m'
     NC='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
+    RED='' GREEN='' YELLOW='' CYAN='' BOLD='' NC=''
 fi
 
 # Argument parsing
@@ -98,14 +98,18 @@ run_harsh_review() {
     else
         output=$("$SCRIPT_DIR/harsh-review.sh" 2>&1) || exit_code=$?
     fi
-    [[ "$VERBOSE" == "true" ]] && echo "$output" | sed 's/^/  /'
+    if [[ "$VERBOSE" == "true" ]]; then
+        while IFS= read -r line; do echo "  $line"; done <<< "$output"
+    fi
     return $exit_code
 }
 
 run_skill_validator() {
     local output exit_code=0
     output=$("$SCRIPT_DIR/skill-trigger-validator.sh" audit 2>&1) || exit_code=$?
-    [[ "$VERBOSE" == "true" ]] && echo "$output" | sed 's/^/  /'
+    if [[ "$VERBOSE" == "true" ]]; then
+        while IFS= read -r line; do echo "  $line"; done <<< "$output"
+    fi
     return $exit_code
 }
 
