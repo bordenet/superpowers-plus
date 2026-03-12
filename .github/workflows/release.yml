@@ -1,0 +1,92 @@
+# GitHub Actions workflow for creating releases
+# Triggers on version tags (v*.*.*)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract section for this version from CHANGELOG.md
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          # Use awk to extract the section between version headers
+          NOTES=$(awk -v ver="$VERSION" '
+            /^## \['"$VERSION"'\]/ { capture=1; next }
+            /^## \[/ && capture { exit }
+            capture { print }
+          ' CHANGELOG.md)
+          
+          # If no changelog found, use a default message
+          if [ -z "$NOTES" ]; then
+            NOTES="Release v${VERSION}"
+          fi
+          
+          # Write to file for multiline handling
+          echo "$NOTES" > release_notes.md
+          
+      - name: Verify release artifacts
+        run: |
+          echo "Verifying release..."
+          
+          # Check version in install.sh matches tag
+          SCRIPT_VERSION=$(grep '^VERSION=' install.sh | cut -d'"' -f2)
+          TAG_VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          if [ "$SCRIPT_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch: install.sh has $SCRIPT_VERSION but tag is v$TAG_VERSION"
+            exit 1
+          fi
+          
+          # Run harsh-review
+          chmod +x tools/harsh-review.sh
+          ./tools/harsh-review.sh || {
+            echo "::error::harsh-review.sh failed"
+            exit 1
+          }
+          
+          echo "✓ All release checks passed"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release v${{ steps.version.outputs.VERSION }} created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Install:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "git clone https://github.com/bordenet/superpowers-plus.git" >> $GITHUB_STEP_SUMMARY
+          echo "cd superpowers-plus && ./install.sh" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+

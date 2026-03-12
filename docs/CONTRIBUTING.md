@@ -181,3 +181,51 @@ This will automatically fix file endings.
    - Example trigger scenario
    - Example output
 6. Complete the PR checklist (auto-populated from template)
+
+---
+
+## Versioning
+
+superpowers-plus uses [Semantic Versioning](https://semver.org/):
+
+| Change Type | Version Bump | Example |
+|-------------|--------------|---------|
+| Bug fixes, minor updates | PATCH | 2.1.0 → 2.1.1 |
+| New skills, features | MINOR | 2.1.0 → 2.2.0 |
+| Breaking changes | MAJOR | 2.1.0 → 3.0.0 |
+
+### Creating a Release
+
+1. **Update version in `install.sh`:**
+   ```bash
+   VERSION="2.2.0"
+   ```
+
+2. **Update CHANGELOG.md:**
+   - Move `[Unreleased]` items to new version section
+   - Add date: `## [2.2.0] - YYYY-MM-DD`
+   - Add version link at bottom
+
+3. **Update skill version (if applicable):**
+   ```bash
+   # Update superpowers-help skill
+   # > **Version:** 2.2.0
+   ```
+
+4. **Commit and tag:**
+   ```bash
+   git add -A
+   git commit -m "chore: release v2.2.0"
+   git tag v2.2.0
+   git push origin main --tags
+   ```
+
+5. **GitHub Actions creates release automatically** from tag.
+
+### Version Check
+
+Users can verify their installed version:
+```bash
+./install.sh --version
+# install.sh version 2.2.0
+```
