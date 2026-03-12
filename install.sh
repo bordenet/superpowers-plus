@@ -129,10 +129,11 @@ SYNOPSIS
     install.sh [OPTIONS]
 
 DESCRIPTION
-    Installs obra/superpowers (if not present) and all personal skills from
-    this repository to ~/.codex/skills/. Safe to run multiple times.
+    superpowers-plus extends obra/superpowers by Jesse Vincent with additional
+    skills for wiki editing, issue tracking, security audits, and AI text quality.
 
-    If superpowers is already installed, automatically updates it.
+    This installer clones obra/superpowers (if not present) and deploys all
+    superpowers-plus skills to ~/.codex/skills/. Safe to run multiple times.
 
 OPTIONS
     -h, --help

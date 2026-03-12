@@ -2,6 +2,8 @@
 
 All notable changes to superpowers-plus are documented here.
 
+superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent.
+
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

@@ -1,8 +1,8 @@
 # superpowers-plus
 
-Extended domain skills for [obra/superpowers](https://github.com/obra/superpowers) — wiki editing, issue tracking, security audits, and more.
+Extended domain skills for [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent — wiki editing, issue tracking, security audits, and more.
 
-**⚠️ Prerequisite:** This extends obra/superpowers. Install that first, then install superpowers-plus alongside it.
+**⚠️ Prerequisite:** This extends obra/superpowers (installed automatically by our installer).
 
 ## Installation
 
