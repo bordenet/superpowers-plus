@@ -35,7 +35,7 @@ The skill will check for this variable on first use and prompt you to configure 
 
 ## Overview
 
-Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags with recruiting taxonomy, and provides queryable history.
+Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags based on context, and provides queryable history.
 
 **Announce at start:** "I'm using the todo-management skill."
 
@@ -49,7 +49,7 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | "Show my tasks" | Display P1 → P2 → P3 |
 | "Complete [ID or fragment]" | Mark done, prompt for notes |
 | "What did I do [timeframe]?" | Query history |
-| "What did I do for recruiting?" | Filter by #recruiting-* tags |
+| "What did I do for engineering?" | Filter by #engineering-* tags |
 | "What should I work on?" | Brainstorm mode |
 | "Triage" | Review active tasks |
 
@@ -69,15 +69,15 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ## Tagging Taxonomy
 
-### Recruiting Tags (auto-inferred from keywords)
+### Engineering Tags (auto-inferred from keywords)
 
 | Tag | Trigger Keywords |
 |-----|------------------|
-| `#recruiting-sourcer` | source, outreach, LinkedIn, pipeline, candidate search |
-| `#recruiting-scheduler` | schedule, calendar, Zoom, interview time, availability |
-| `#recruiting-admin` | offer, letter, system, ATS, paperwork |
-| `#recruiting-interviewer` | interview, prep, feedback, scorecard, debrief |
-| `#recruiting-hr` | comp, compensation, policy, HR, benefits |
+| `#engineering-frontend` | UI, component, CSS, React, layout, styling |
+| `#engineering-backend` | API, database, server, endpoint, migration |
+| `#engineering-infra` | deploy, CI, pipeline, Docker, Kubernetes, terraform |
+| `#engineering-testing` | test, coverage, unit, integration, QA |
+| `#engineering-docs` | documentation, README, wiki, spec, ADR |
 
 ### General Tags (auto-inferred from context)
 
@@ -102,7 +102,7 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
   - Note: Context or blocker info
 
 ## P2 - This Week
-- [ ] [20250204-02] Follow up on candidate pipeline #recruiting-sourcer
+- [ ] [20250204-02] Review PR for auth refactor #engineering-backend
   - Added: 2025-02-04
 
 ## P3 - Backlog
@@ -114,9 +114,9 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 # HISTORY
 
 ## 2025-02-04
-- [x] [20250203-05] Completed interview #recruiting-interviewer
+- [x] [20250203-05] Fixed flaky test in CI pipeline #engineering-testing
   - Done: 2025-02-04T10:30:00
-  - Progress: Strong hire recommendation submitted
+  - Progress: Root cause was race condition in async mock
 
 ---
 
@@ -178,7 +178,7 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ### 3. Query History
 
-**Input:** "What did I do [yesterday/last week/on Monday/for recruiting]?"
+**Input:** "What did I do [yesterday/last week/on Monday/for engineering]?"
 
 **Process:**
 1. Parse timeframe
