@@ -93,4 +93,3 @@ if (hasError) {
   console.log('\nAll skills passed validation. MCP server ready.');
   process.exit(0);
 }
-

@@ -1,6 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 39 skills for wiki management, issue tracking, TypeScript tooling, and security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 36 skills for wiki management, issue tracking, and security.
 
 **Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
 
@@ -14,14 +14,13 @@ cd superpowers-plus
 
 ## What's Included
 
-**41 skills** across 10 domains:
+**36 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | wiki | 7 | Page management, link checks, credential scanning |
 | issue-tracking | 5 | Create, update, verify tickets |
 | writing | 5 | Slop detection, profanity gates |
-| typescript | 5 | Strict mode, complexity reduction, Vitest mocks |
 | engineering | 5 | Pre-commit gates, blast radius, PR review |
 | productivity | 5 | TODO tracking, style enforcement |
 | observability | 4 | Invocation logging, completeness checks |
@@ -144,15 +143,6 @@ Copy `.env.example` to `.env` for optional integrations:
 | professional-language-audit | Blocks profanity |
 | readme-authoring | Structures documentation |
 | reviewing-ai-text | Evaluates generated content |
-
-### typescript/
-| Skill | What it does |
-|-------|--------------|
-| typescript-strict-mode | Eliminates `any` and `!` |
-| cognitive-complexity-refactoring | Simplifies dense functions |
-| vitest-testing-patterns | SDK mocking patterns |
-| typescript-project-conventions | Import ordering |
-| field-rename-verification | Cross-file rename safety |
 
 ### engineering/
 | Skill | What it does |
