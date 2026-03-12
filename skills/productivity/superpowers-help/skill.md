@@ -11,23 +11,23 @@ description: Dynamically enumerates ALL installed superpowers skills at runtime.
 
 **DO NOT rely on any hardcoded skill lists.** Skills change frequently. You MUST enumerate dynamically.
 
-### Step 1: Count and List ALL Installed Skills
+### Step 1: Count and List ALL Installed Skills (De-duplicated)
 
-Run this command to get the current skill inventory:
+Run this command to get the **unique** skill inventory across all install locations:
 
 ```bash
-echo "=== INSTALLED SKILLS ===" && \
+echo "=== UNIQUE INSTALLED SKILLS ===" && \
+{ \
+  ls -1 ~/.codex/superpowers/skills/ 2>/dev/null; \
+  ls -1 ~/.codex/skills/ 2>/dev/null; \
+  ls -1 ~/.claude/commands/ 2>/dev/null; \
+} | grep -v "^_" | sort -u && \
 echo "" && \
-echo "--- obra/superpowers (core) ---" && \
-ls -1 ~/.codex/superpowers/skills/ 2>/dev/null | grep -v "^_" | sort && \
-echo "" && \
-echo "--- Personal skills ---" && \
-ls -1 ~/.codex/skills/ 2>/dev/null | grep -v "^_" | sort && \
-echo "" && \
-echo "=== COUNTS ===" && \
-echo "Core skills: $(ls -1 ~/.codex/superpowers/skills/ 2>/dev/null | grep -v '^_' | wc -l | tr -d ' ')" && \
-echo "Personal skills: $(ls -1 ~/.codex/skills/ 2>/dev/null | grep -v '^_' | wc -l | tr -d ' ')"
+echo "=== TOTAL UNIQUE SKILLS ===" && \
+echo "Count: $({ ls -1 ~/.codex/superpowers/skills/ 2>/dev/null; ls -1 ~/.codex/skills/ 2>/dev/null; ls -1 ~/.claude/commands/ 2>/dev/null; } | grep -v '^_' | sort -u | wc -l | tr -d ' ')"
 ```
+
+**Why de-duplicate?** Skills may be installed for multiple platforms (Claude Code, Augment, Cursor, etc.). The same skill name in different locations is ONE skill, not multiple.
 
 ### Step 2: Get Skill Details (Optional)
 
