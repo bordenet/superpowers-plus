@@ -190,7 +190,7 @@ For Perplexity MCP setup: `./setup/mcp-perplexity.sh`
 | **wiki/** | 7 | Wiki editing, authoring, verification, debunking |
 | **engineering/** | 5 | Engineering rigor, pre-commit gates, blast radius checks, code review (providing + receiving) |
 | **observability/** | 4 | Skill firing tracker, audit validation, completeness checks |
-| **productivity/** | 4 | TODO management, think-twice, golden-agents, style enforcement |
+| **productivity/** | 5 | TODO management, think-twice, golden-agents, style enforcement, superpowers-help |
 | **research/** | 2 | Perplexity integration, incorporating external research |
 | **security/** | 2 | CVE scanning, dependency upgrades, public repo IP audit |
 | **experimental/** | 1 | Self-prompting (not production-ready) |
