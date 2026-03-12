@@ -134,7 +134,7 @@ Before publishing, report to user:
 
 ### What Happens If You Skip This
 
-- **Hallucinated GitHub URLs** — `github.com/your-org/*` doesn't exist; YourOrg code is in Azure DevOps
+- **Hallucinated repository URLs** — AI models frequently fabricate repo URLs
 - **Broken internal links** — Document IDs change; verify before publishing
 - **404 errors for readers** — Erodes trust in documentation quality
 - **Cleanup debt** — Someone has to find and fix broken links later
