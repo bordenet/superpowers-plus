@@ -25,7 +25,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use PAT to bypass branch protection for version sync commits
+          token: ${{ secrets.MARKETPLACE_DISPATCH_TOKEN }}
 
       - name: Extract version from install.sh
         id: version
