@@ -1,13 +1,84 @@
 # superpowers-plus
 
-Skills extending [obra/superpowers](https://github.com/obra/superpowers) for Claude, Augment, and other AI coding assistants.
+Extended domain skills for [obra/superpowers](https://github.com/obra/superpowers) — wiki editing, issue tracking, security audits, and more.
 
-## Quick Start
+**⚠️ Prerequisite:** This extends obra/superpowers. Install that first, then install superpowers-plus alongside it.
 
-**Prerequisite:** Install [obra/superpowers](https://github.com/obra/superpowers) first — this repo extends it.
+## Installation
 
-**macOS / Linux / WSL Terminal:**
+**Note:** Installation differs by platform. Claude Code and Cursor have built-in plugin marketplaces. Codex and OpenCode require manual setup.
+
+### Claude Code (via Plugin Marketplace)
+
+Register the marketplace, then install **both** plugins:
+
 ```bash
+# One-time: Register the marketplace
+/plugin marketplace add bordenet/superpowers-plus
+
+# Install prerequisite (obra/superpowers)
+/plugin install superpowers@superpowers-plus
+
+# Install extended skills
+/plugin install superpowers-plus@superpowers-plus
+```
+
+> ⚠️ **Untested:** This plugin marketplace flow has not been end-to-end validated. If you encounter issues, use the Manual Installation method below.
+
+### Cursor (via Plugin Marketplace)
+
+In Cursor Agent chat:
+
+```text
+/add-plugin superpowers-plus
+```
+
+Or search for "superpowers-plus" in the plugin marketplace.
+
+**Note:** You must also install obra/superpowers separately for the full experience.
+
+### Codex
+
+Tell Codex:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/refs/heads/main/.codex/INSTALL.md
+```
+
+**Detailed docs:** [.codex/INSTALL.md](.codex/INSTALL.md)
+
+### OpenCode
+
+Tell OpenCode:
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/refs/heads/main/.opencode/INSTALL.md
+```
+
+**Detailed docs:** [.opencode/INSTALL.md](.opencode/INSTALL.md)
+
+### Gemini CLI
+
+> **Note:** Gemini CLI support is based on obra/superpowers documentation. Verify current syntax with `gemini --help`.
+
+```bash
+# Install prerequisite first
+gemini extensions install https://github.com/obra/superpowers
+
+# Then install superpowers-plus
+gemini extensions install https://github.com/bordenet/superpowers-plus
+```
+
+### Manual Installation (Shell Script)
+
+For environments without plugin marketplaces:
+
+**macOS / Linux / WSL:**
+```bash
+# Install prerequisite (if not already installed)
+git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+
+# Install superpowers-plus
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
 ./install.sh
@@ -21,39 +92,17 @@ cd superpowers-plus
 ./install.sh
 ```
 
-> 💡 **Windows users:** We strongly recommend using **Ubuntu on WSL** and running all commands from the Ubuntu terminal. This avoids path translation issues, permission quirks, and VS Code integration bugs that plague cross-environment workflows. Install WSL + Ubuntu with `wsl --install -d Ubuntu` from an admin PowerShell, then do all superpowers work inside the Ubuntu terminal.
+> 💡 **Windows users:** Use **Ubuntu on WSL** (`wsl --install -d Ubuntu`). Native PowerShell has path translation issues.
 
-<details>
-<summary>Alternative: PowerShell wrapper (not recommended)</summary>
+### Verify Installation
 
-```powershell
-git clone https://github.com/bordenet/superpowers-plus.git
-cd superpowers-plus
-.\install.ps1
-```
-
-The PowerShell wrapper attempts to run `install.sh` through WSL, but path translation between Windows and WSL can cause subtle issues. For reliable results, clone and install directly within WSL.
-
-</details>
-
-Skills install to `~/.codex/skills/` and `~/.augment/skills/`. Verify:
+For manual installations, verify skills are installed:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
-## Augment.ai Clients
-
-**Any Augment client works.** Choose what fits your workflow:
-
-| Client | Installation |
-|--------|--------------|
-| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
-| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
-| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
-| **Cursor Extension** | Extensions → search "Augment" → Install |
-
-All paths lead to the same superpowers. The install.sh deploys skills to standard paths that all clients read.
+Then start a new session and ask for something that should trigger a skill (e.g., "help me write a wiki page" or "check this issue for problems"). The agent should automatically invoke the relevant skill.
 
 ## Platform Support
 
@@ -64,44 +113,54 @@ All paths lead to the same superpowers. The install.sh deploys skills to standar
 | Linux (Debian/Ubuntu) | ✅ Supported | apt-get for dependencies |
 | Linux (RHEL/Fedora/CentOS) | ✅ Supported | dnf/yum for dependencies |
 | Linux (Arch) | ✅ Supported | pacman for dependencies |
-| Windows (WSL/Ubuntu) | ✅ Supported | Use Ubuntu terminal — see below |
+| Windows (WSL/Ubuntu) | ✅ Supported | Use Ubuntu terminal |
 | Windows (native) | ❌ Not supported | Use WSL |
 
-### Windows/WSL Best Practices
+## Augment.ai Clients
 
-**Use Ubuntu as your WSL distro** and run everything from the Ubuntu terminal:
+**Any Augment client works.** The install.sh deploys skills to standard paths that all clients read.
 
+| Client | Installation |
+|--------|--------------|
+| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
+| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
+| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
+| **Cursor Extension** | Extensions → search "Augment" → Install |
+
+## What You Get
+
+**From obra/superpowers (prerequisite):**
+- Core workflow: brainstorming, writing-plans, executing-plans
+- Testing: test-driven-development
+- Debugging: systematic-debugging, verification-before-completion
+- Collaboration: subagent-driven-development, using-git-worktrees
+
+**From superpowers-plus (this repo):**
+- Wiki: editing, authoring, verification, debunking, secret audit
+- Issue Tracking: authoring, editing, verification (Linear, GitHub, Jira, ADO adapters)
+- Security: secret-detection, public-repo-ip-audit
+- TypeScript: strict mode, complexity refactoring, Vitest patterns
+- Writing: AI slop detection, professional language audit
+- Engineering: pre-commit gates, blast radius checks, code review
+
+## Updating
+
+**Plugin marketplaces:**
 ```bash
-# Install Ubuntu (run once from admin PowerShell)
-wsl --install -d Ubuntu
-
-# Then always work from Ubuntu terminal
-ubuntu
-cd ~
-git clone https://github.com/bordenet/superpowers-plus.git
+/plugin update superpowers
+/plugin update superpowers-plus
 ```
 
-**Why Ubuntu terminal instead of PowerShell?**
-- Path translation between Windows and WSL causes subtle bugs
-- File permissions behave unexpectedly across the boundary
-- VS Code's WSL integration has edge cases that break workflows
-- `~/.codex/` and `~/.augment/` paths resolve correctly in Ubuntu
-
-> 🛠️ **Power user tip:** If you hit VS Code + WSL issues (remote connection failures, extension problems, terminal weirdness), paste the error into ChatGPT or Claude. These tools excel at debugging Windows/WSL/VS Code integration quirks and can save hours of frustration.
-
-**Prerequisites:**
-- `git` — installed automatically if missing (prompts for confirmation)
-- [obra/superpowers](https://github.com/obra/superpowers) — install first
-
-## Getting Started
-
-After installation, add this bootstrap command to your project's `AGENTS.md`:
-
+**Manual installations:**
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+cd ~/.codex/superpowers && git pull
+cd ~/.codex/superpowers-plus && git pull
+
+# Or use install.sh with upgrade flag
+cd ~/superpowers-plus && ./install.sh --upgrade --verbose
 ```
 
-This loads the skill system at conversation start. See [obra/superpowers](https://github.com/obra/superpowers) for details.
+See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Configuration
 
@@ -199,14 +258,6 @@ Requires `WIKI_PLATFORM` in `.env`. See `skills/wiki/_adapters/` for platform se
 
 ### experimental/
 - `experimental-self-prompting` — Write context-free prompts for fresh perspective (not production-ready)
-
-## Upgrading
-
-```bash
-./install.sh --upgrade --verbose
-```
-
-See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Trigger Validation
 
