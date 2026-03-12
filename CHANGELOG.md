@@ -9,11 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-03-12
+
 ### Added
+- Automated marketplace version sync (#20)
+  - `version-sync.yml` dispatches to `superpowers-plus-marketplace` on release
+  - Marketplace repo receives dispatch and updates `marketplace.json`
 - `superpowers-help` skill for listing available skills and invocation methods
 
 ### Changed
 - `install.sh --help` now shows all installation methods (direct, curl, releases)
+- README: standalone marketplace is now Option A (recommended)
 
 ## [2.1.0] - 2026-03-12
 
