@@ -224,4 +224,3 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "  3. Run: cd superpowers-plus && ./install.sh" -ForegroundColor Cyan
     exit $LASTEXITCODE
 }
-
