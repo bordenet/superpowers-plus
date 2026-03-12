@@ -142,19 +142,54 @@ jobs:
           echo "Checking required files..."
           REQUIRED="README.md AGENTS.md CLAUDE.md docs/CONTRIBUTING.md docs/ARCHITECTURE.md .editorconfig"
           ERRORS=0
-          
+
           for file in $REQUIRED; do
             if [[ ! -f "$file" ]]; then
               echo "❌ Missing required file: $file"
               ERRORS=$((ERRORS + 1))
             fi
           done
-          
+
           if [[ $ERRORS -gt 0 ]]; then
             echo "::error::$ERRORS required file(s) are missing"
             exit 1
           fi
           echo "✓ All required files present"
+
+      - name: Check version consistency
+        run: |
+          echo "Checking version consistency..."
+          ERRORS=0
+
+          # Get version from install.sh (source of truth)
+          INSTALL_VERSION=$(grep '^VERSION=' install.sh | cut -d'"' -f2)
+          echo "install.sh version: $INSTALL_VERSION"
+
+          # Check plugin.json
+          if [ -f ".claude-plugin/plugin.json" ]; then
+            PLUGIN_VERSION=$(python3 -c "import json; print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+            if [ "$PLUGIN_VERSION" != "$INSTALL_VERSION" ]; then
+              echo "❌ plugin.json version ($PLUGIN_VERSION) differs from install.sh ($INSTALL_VERSION)"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✓ plugin.json version matches"
+            fi
+          fi
+
+          # Check CHANGELOG.md has entry for this version
+          if ! grep -q "## \[$INSTALL_VERSION\]" CHANGELOG.md; then
+            echo "❌ CHANGELOG.md missing entry for version $INSTALL_VERSION"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✓ CHANGELOG.md has entry for $INSTALL_VERSION"
+          fi
+
+          if [[ $ERRORS -gt 0 ]]; then
+            echo ""
+            echo "::warning::Version inconsistency detected. Run version-sync workflow or update manually."
+            # Warning only, not blocking - version-sync.yml will fix on merge
+          fi
+          echo "✓ Version consistency check complete"
 
       - name: Summary
         if: always()

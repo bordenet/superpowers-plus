@@ -1,7 +1,7 @@
 {
   "name": "superpowers-plus",
   "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more. Requires obra/superpowers as prerequisite.",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "author": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"

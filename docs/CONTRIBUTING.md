@@ -196,6 +196,8 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
 
 ### Creating a Release
 
+**Most steps are now automated.** You only need to:
+
 1. **Update version in `install.sh`:**
    ```bash
    VERSION="2.2.0"
@@ -206,21 +208,29 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
    - Add date: `## [2.2.0] - YYYY-MM-DD`
    - Add version link at bottom
 
-3. **Update skill version (if applicable):**
-   ```bash
-   # Update superpowers-help skill
-   # > **Version:** 2.2.0
-   ```
-
-4. **Commit and tag:**
+3. **Commit and push to main:**
    ```bash
    git add -A
    git commit -m "chore: release v2.2.0"
-   git tag v2.2.0
-   git push origin main --tags
+   git push origin main
    ```
 
-5. **GitHub Actions creates release automatically** from tag.
+**Automation handles the rest:**
+
+| Step | Automated By |
+|------|--------------|
+| Sync version to `plugin.json` | `version-sync.yml` |
+| Sync version to `marketplace.json` | `version-sync.yml` |
+| Create git tag `v2.2.0` | `version-sync.yml` |
+| Create GitHub Release | `release.yml` (triggered by tag) |
+
+### What's Still Manual
+
+| Task | Why |
+|------|-----|
+| Update CHANGELOG.md | Human judgment needed for categorization |
+| Update `superpowers-help` skill version | Displayed to users, verify accuracy |
+| PR to `obra/superpowers-marketplace` | External repo, requires Jesse's approval |
 
 ### Version Check
 
@@ -229,3 +239,7 @@ Users can verify their installed version:
 ./install.sh --version
 # install.sh version 2.2.0
 ```
+
+### CI Version Consistency Check
+
+CI will warn (not fail) if versions are inconsistent across files. The `version-sync.yml` workflow automatically fixes this on merge to main.
