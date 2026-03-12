@@ -1,0 +1,154 @@
+name: Harsh Review
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff against main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Check file endings
+        run: |
+          echo "Checking file endings (single newline at EOF)..."
+          ERRORS=0
+          
+          for file in $(find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" \) | grep -v node_modules | grep -v .git); do
+            if [[ ! -f "$file" ]]; then continue; fi
+            
+            # Check for extra blank lines
+            if tail -c 2 "$file" | xxd -p | grep -q "0a0a"; then
+              echo "❌ $file: extra blank line at EOF"
+              ERRORS=$((ERRORS + 1))
+            fi
+            
+            # Check for missing newline
+            if [[ $(tail -c 1 "$file" | wc -l) -eq 0 ]]; then
+              echo "❌ $file: missing final newline"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo ""
+            echo "::error::$ERRORS file(s) have incorrect endings"
+            exit 1
+          fi
+          echo "✓ All files have correct endings"
+
+      - name: Check shell scripts syntax
+        run: |
+          echo "Checking shell script syntax..."
+          ERRORS=0
+          
+          for file in $(find . -name "*.sh" | grep -v node_modules | grep -v .git); do
+            if ! bash -n "$file" 2>/dev/null; then
+              echo "❌ $file: bash syntax error"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "::error::$ERRORS shell script(s) have syntax errors"
+            exit 1
+          fi
+          echo "✓ All shell scripts have valid syntax"
+
+      - name: Check shebang consistency
+        run: |
+          echo "Checking shebang consistency..."
+          ERRORS=0
+          
+          for file in $(find . -name "*.sh" | grep -v node_modules | grep -v .git); do
+            shebang=$(head -n1 "$file")
+            if [[ "$shebang" == "#!/bin/bash" ]]; then
+              echo "❌ $file: use '#!/usr/bin/env bash' instead of '#!/bin/bash'"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "::error::$ERRORS shell script(s) have non-portable shebangs"
+            exit 1
+          fi
+          echo "✓ All shebangs are portable"
+
+      - name: Run shellcheck
+        run: |
+          echo "Running shellcheck..."
+          ERRORS=0
+          
+          for file in $(find . -name "*.sh" | grep -v node_modules | grep -v .git); do
+            if ! shellcheck -e SC1091,SC2034 "$file"; then
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "::error::$ERRORS shell script(s) have shellcheck violations"
+            exit 1
+          fi
+          echo "✓ All shell scripts pass shellcheck"
+
+      - name: Check JSON syntax
+        run: |
+          echo "Checking JSON syntax..."
+          ERRORS=0
+          
+          for file in $(find . -name "*.json" | grep -v node_modules | grep -v .git); do
+            if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+              echo "❌ $file: invalid JSON"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "::error::$ERRORS JSON file(s) have syntax errors"
+            exit 1
+          fi
+          echo "✓ All JSON files are valid"
+
+      - name: Check required files
+        run: |
+          echo "Checking required files..."
+          REQUIRED="README.md AGENTS.md CLAUDE.md docs/CONTRIBUTING.md docs/ARCHITECTURE.md .editorconfig"
+          ERRORS=0
+          
+          for file in $REQUIRED; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Missing required file: $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "::error::$ERRORS required file(s) are missing"
+            exit 1
+          fi
+          echo "✓ All required files present"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "=============================================="
+          echo "  HARSH REVIEW COMPLETE"
+          echo "=============================================="
+
