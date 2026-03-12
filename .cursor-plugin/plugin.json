@@ -1,8 +1,8 @@
 {
   "name": "superpowers-plus",
   "displayName": "Superpowers Plus",
-  "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more. Requires obra/superpowers.",
-  "version": "1.0.0",
+  "description": "36 skills for wiki editing, issue tracking, security audits, AI slop detection. Requires obra/superpowers.",
+  "version": "2.4.1",
   "author": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"
@@ -15,7 +15,7 @@
     "wiki",
     "issue-tracking",
     "security",
-    "typescript",
+    "slop-detection",
     "observability",
     "extensions"
   ]

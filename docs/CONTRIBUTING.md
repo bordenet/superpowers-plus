@@ -11,8 +11,8 @@ mkdir -p skills/{domain}/{skill-name}
 ```
 
 Use an existing domain or create a new one. Current domains:
-- `writing/` — text quality
-- `typescript/` — TypeScript development
+- `writing/` — text quality, AI slop detection
+- `engineering/` — code review, pre-commit gates
 - `issue-tracking/` — issue management
 - `wiki/` — documentation
 - `observability/` — auditing and tracking
