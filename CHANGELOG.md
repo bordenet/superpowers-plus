@@ -123,13 +123,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
-| 2.1.0 | 2026-03-12 | 39 | Enforcement system, marketplace support |
+| 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
+| 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
+| 2.1.0 | 2026-03-12 | 41 | Enforcement system, marketplace support |
 | 2.0.0 | 2026-03-10 | 39 | Platform-agnostic refactor |
 | 1.5.0 | 2026-03-05 | 37 | Profanity detection, code review |
 | 1.4.0 | 2026-03-01 | 35 | Windows/WSL support |
 | 1.0.0 | 2026-02-15 | 35 | Initial release |
 
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/bordenet/superpowers-plus/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/bordenet/superpowers-plus/compare/v2.1.2...v2.2.0
+[2.1.2]: https://github.com/bordenet/superpowers-plus/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/bordenet/superpowers-plus/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/bordenet/superpowers-plus/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/bordenet/superpowers-plus/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/bordenet/superpowers-plus/compare/v1.4.0...v1.5.0
