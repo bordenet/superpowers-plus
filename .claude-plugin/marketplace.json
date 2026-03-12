@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Extended skills for superpowers - wiki, issue tracking, security, and more",
-    "version": "2.1.0"
+    "version": "2.1.2"
   },
   "plugins": [
     {
@@ -26,7 +26,7 @@
         "url": "https://github.com/bordenet/superpowers-plus.git"
       },
       "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more",
-      "version": "2.1.0",
+      "version": "2.1.2",
       "strict": true
     }
   ]
