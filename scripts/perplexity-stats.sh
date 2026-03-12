@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # perplexity-stats.sh - Safe stats file updater for perplexity-research skill
 # Prevents JSON corruption from manual AI edits
 #

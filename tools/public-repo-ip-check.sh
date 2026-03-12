@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # public-repo-ip-check.sh
 #
 # Audit a public repository for proprietary IP before commit/push.
