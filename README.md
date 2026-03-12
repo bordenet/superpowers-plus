@@ -10,19 +10,7 @@ Extended domain skills for [obra/superpowers](https://github.com/obra/superpower
 
 ### Claude Code (via Plugin Marketplace)
 
-**Option A: Via obra/superpowers-marketplace** (if accepted)
-
-If superpowers-plus is listed in Jesse Vincent's official marketplace:
-
-```bash
-/plugin marketplace add obra/superpowers-marketplace
-/plugin install superpowers@superpowers-marketplace
-/plugin install superpowers-plus@superpowers-marketplace
-```
-
-**Option B: Via standalone marketplace**
-
-Using our dedicated marketplace:
+**Option A: Via standalone marketplace** (recommended)
 
 ```bash
 /plugin marketplace add bordenet/superpowers-plus-marketplace
@@ -30,7 +18,15 @@ Using our dedicated marketplace:
 /plugin install superpowers-plus@superpowers-plus-marketplace
 ```
 
-> ⚠️ **Status:** Marketplace integration is pending. Use Manual Installation below for guaranteed results.
+**Option B: Via obra/superpowers-marketplace** (pending approval)
+
+If [PR #20](https://github.com/obra/superpowers-marketplace/pull/20) is merged:
+
+```bash
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+/plugin install superpowers-plus@superpowers-marketplace
+```
 
 ### Cursor (via Plugin Marketplace)
 
