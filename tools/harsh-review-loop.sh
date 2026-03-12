@@ -114,20 +114,69 @@ run_skill_validator() {
 }
 
 check_version_consistency() {
-    local install_version plugin_version marketplace_version
-    install_version=$(grep '^VERSION=' install.sh | cut -d'"' -f2)
+    # Source of truth: install.sh VERSION variable
+    local sot_version
+    sot_version=$(grep '^VERSION=' install.sh | cut -d'"' -f2)
+
+    local errors=0
+    local checks=()
+
+    # 1. install.sh header comment (caused PR #32)
+    local header_version
+    header_version=$(grep '# VERSION:' install.sh | awk '{print $3}' || echo "")
+    if [[ "$header_version" != "$sot_version" ]]; then
+        checks+=("install.sh header: $header_version (expected $sot_version)")
+        ((errors++)) || true
+    fi
+
+    # 2. plugin.json
+    local plugin_version
     plugin_version=$(jq -r '.version' .claude-plugin/plugin.json 2>/dev/null || echo "")
-    marketplace_version=$(jq -r '.plugins[] | select(.name == "superpowers-plus") | .version' \
+    if [[ "$plugin_version" != "$sot_version" ]]; then
+        checks+=("plugin.json: $plugin_version")
+        ((errors++)) || true
+    fi
+
+    # 3. marketplace.json metadata.version
+    local meta_version
+    meta_version=$(jq -r '.metadata.version' .claude-plugin/marketplace.json 2>/dev/null || echo "")
+    if [[ "$meta_version" != "$sot_version" ]]; then
+        checks+=("marketplace.json metadata: $meta_version")
+        ((errors++)) || true
+    fi
+
+    # 4. marketplace.json plugin entry version
+    local entry_version
+    entry_version=$(jq -r '.plugins[] | select(.name == "superpowers-plus") | .version' \
         .claude-plugin/marketplace.json 2>/dev/null || echo "")
-    if [[ "$install_version" != "$plugin_version" ]] || \
-       [[ "$install_version" != "$marketplace_version" ]]; then
-        echo -e "${RED}Version mismatch:${NC}"
-        echo "  install.sh:       $install_version"
-        echo "  plugin.json:      $plugin_version"
-        echo "  marketplace.json: $marketplace_version"
+    if [[ "$entry_version" != "$sot_version" ]]; then
+        checks+=("marketplace.json plugin: $entry_version")
+        ((errors++)) || true
+    fi
+
+    # 5. CHANGELOG.md has entry for current version
+    if ! grep -q "## \[$sot_version\]" CHANGELOG.md 2>/dev/null; then
+        checks+=("CHANGELOG.md: missing ## [$sot_version] section")
+        ((errors++)) || true
+    fi
+
+    # 6. CHANGELOG.md [Unreleased] link points to current version
+    local unreleased_target
+    unreleased_target=$(grep '\[Unreleased\]:' CHANGELOG.md 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || echo "")
+    if [[ "$unreleased_target" != "v$sot_version" ]]; then
+        checks+=("CHANGELOG [Unreleased] link: $unreleased_target (expected v$sot_version)")
+        ((errors++)) || true
+    fi
+
+    if [[ $errors -gt 0 ]]; then
+        echo -e "${RED}Version mismatch (source: install.sh = $sot_version):${NC}"
+        for check in "${checks[@]}"; do
+            echo "  ✗ $check"
+        done
         return 1
     fi
-    [[ "$VERBOSE" == "true" ]] && echo -e "  Version: ${GREEN}$install_version${NC}"
+
+    [[ "$VERBOSE" == "true" ]] && echo -e "  Version: ${GREEN}$sot_version${NC} (6 locations verified)"
     return 0
 }
 
