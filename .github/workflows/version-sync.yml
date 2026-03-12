@@ -51,20 +51,22 @@ jobs:
         if: steps.tag_check.outputs.TAG_EXISTS == 'false'
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          
+
           # Update plugin.json
           if [ -f ".claude-plugin/plugin.json" ]; then
             jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > tmp.json
             mv tmp.json .claude-plugin/plugin.json
             echo "Updated .claude-plugin/plugin.json to $VERSION"
           fi
-          
-          # Update marketplace.json (superpowers-plus entry only)
+
+          # Update marketplace.json (both metadata.version AND superpowers-plus plugin entry)
           if [ -f ".claude-plugin/marketplace.json" ]; then
-            jq --arg v "$VERSION" '(.plugins[] | select(.name == "superpowers-plus")).version = $v' \
-              .claude-plugin/marketplace.json > tmp.json
+            jq --arg v "$VERSION" '
+              .metadata.version = $v |
+              (.plugins[] | select(.name == "superpowers-plus")).version = $v
+            ' .claude-plugin/marketplace.json > tmp.json
             mv tmp.json .claude-plugin/marketplace.json
-            echo "Updated .claude-plugin/marketplace.json to $VERSION"
+            echo "Updated .claude-plugin/marketplace.json to $VERSION (metadata + plugin entry)"
           fi
 
       - name: Commit version sync

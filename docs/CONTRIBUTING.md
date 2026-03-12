@@ -254,7 +254,7 @@ Once the tag is pushed, automation handles everything else:
 Users can verify their installed version:
 ```bash
 ./install.sh --version
-# install.sh version 2.2.0
+# install.sh version 2.3.0
 ```
 
 ### CI Version Consistency Check
