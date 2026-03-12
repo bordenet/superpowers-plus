@@ -148,7 +148,7 @@ function resolveSkillPath(skillName) {
 
 // Create the MCP server
 const server = new Server(
-  { name: 'superpowers-plus', version: '2.4.0' },
+  { name: 'superpowers-plus', version: '2.4.1' },
   { capabilities: { tools: {} } }
 );
 
