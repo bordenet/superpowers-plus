@@ -54,8 +54,8 @@ Maintain a checklist showing status of EVERY item:
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | resume-screening/skill.md | ✅ Fixed | Added triggers |
-| 2 | phone-screen-prep/skill.md | ✅ Fixed | Added triggers |
+| 1 | wiki-orchestrator/skill.md | ✅ Fixed | Added triggers |
+| 2 | detecting-ai-slop/skill.md | ✅ Fixed | Added triggers |
 | 3 | vitest-testing-patterns/skill.md | ❌ TODO | Missing YAML |
 | ... | ... | ... | ... |
 

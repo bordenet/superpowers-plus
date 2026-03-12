@@ -121,13 +121,10 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 | "Review this PR" | providing-code-review |
 | "Create a Linear issue" | linear-issue-authoring → linear-link-verification |
 | "Update the wiki" | wiki-orchestrator → outline-wiki-editing → link-verification |
-| "Screen this resume" | candidate-tracker → cv-review-external (or cv-review-agency) |
-| "Prep phone screen" | phone-screen-prep |
-| "Synthesize interview" | phone-screen-synthesis (or loop-synthesis) |
 | "Check my AI writing" | detecting-ai-slop → eliminating-ai-slop |
 | "Upgrade dependencies" | security-upgrade |
 | "Refactor complex code" | cognitive-complexity-refactoring → blast-radius-check |
-| "What shipped this week" | engineering-changelog-enrichment → por-stakeholder-report |
+| "Write a README" | readme-authoring → professional-language-audit |
 
 ---
 
