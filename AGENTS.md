@@ -9,14 +9,38 @@ Self-contained. Minimal high-signal tokens.
 
 ---
 
-## Quality Gates (MANDATORY)
+## Quality Gates (MANDATORY + ENFORCED)
 
-Before ANY commit:
-1. **Lint**: `shellcheck *.sh` (all shell scripts)
-2. **Build**: `bash -n *.sh` (syntax check)
-3. **File endings**: All files must end with exactly one newline (`0a`, not `0a0a`)
+> **These checks are enforced by pre-commit hooks and CI. You cannot merge without passing.**
 
-**Order matters.** Lint → Build → Verify. Never skip steps.
+### Pre-Commit Enforcement
+
+Before ANY commit, run:
+```bash
+./tools/harsh-review.sh
+```
+
+Or install the pre-commit hook (recommended):
+```bash
+./tools/install-hooks.sh
+```
+
+### Automated Checks (CI Blocks Merge on Failure)
+
+| Check | Tool | Failure = Block |
+|-------|------|-----------------|
+| File endings | `harsh-review.sh` | ✅ Yes |
+| Shell syntax | `bash -n *.sh` | ✅ Yes |
+| Shell lint | `shellcheck` | ✅ Yes |
+| Shebang format | Must be `#!/usr/bin/env bash` | ✅ Yes |
+| JSON syntax | `python3 -c "import json..."` | ✅ Yes |
+| Required files | README.md, AGENTS.md, etc. | ✅ Yes |
+
+### File Ending Standard
+
+All files must end with **exactly one newline** (`0a`), not zero, not two (`0a0a`).
+
+Auto-fix: `./tools/harsh-review.sh --fix`
 
 ---
 

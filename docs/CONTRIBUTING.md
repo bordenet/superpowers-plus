@@ -122,10 +122,50 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
 
 ## Submitting Changes
 
+### Before Committing
+
+**Install the pre-commit hook** (recommended):
+```bash
+./tools/install-hooks.sh
+```
+
+This will automatically block commits that violate quality standards.
+
+**Or manually run the harsh review:**
+```bash
+./tools/harsh-review.sh
+```
+
+### Quality Requirements (Enforced by CI)
+
+All PRs must pass these checks:
+
+| Check | Requirement |
+|-------|-------------|
+| File endings | Exactly one newline at EOF (`0a`) |
+| Shell scripts | `#!/usr/bin/env bash` shebang |
+| Shell scripts | Pass `bash -n` and `shellcheck` |
+| JSON files | Valid syntax |
+| Required files | README.md, AGENTS.md, etc. must exist |
+
+**CI will block merge if any check fails.**
+
+### Auto-Fix Available
+
+```bash
+./tools/harsh-review.sh --fix
+```
+
+This will automatically fix file endings.
+
+### Pull Request Process
+
 1. Fork the repository
 2. Create a feature branch
 3. Add your skill
-4. Submit a pull request with:
+4. Run `./tools/harsh-review.sh` (must pass)
+5. Submit a pull request with:
    - Skill name and purpose
    - Example trigger scenario
    - Example output
+6. Complete the PR checklist (auto-populated from template)
