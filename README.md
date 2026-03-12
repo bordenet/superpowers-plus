@@ -1,8 +1,8 @@
 # superpowers-plus
 
-Extended skills for AI coding assistants: wiki editing, issue tracking, security audits, TypeScript patterns, and writing quality tools.
+Skills for AI coding assistants: wiki management, issue tracking, security scanning, TypeScript tooling, and prose quality.
 
-**Requires [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically by `./install.sh`.
+**Requires [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically.
 
 ## Quick Start
 
@@ -12,26 +12,24 @@ cd superpowers-plus
 ./install.sh
 ```
 
-The installer handles prerequisites, detects your platform, and deploys to all supported AI assistants.
-
 ## What's Included
 
 **41 skills** across 10 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
-| wiki | 7 | Editing, verification, secret audit, fact-checking |
-| issue-tracking | 5 | Authoring, editing, link verification |
-| writing | 5 | AI slop detection, professional language audit |
-| typescript | 5 | Strict mode, complexity refactoring, Vitest patterns |
-| engineering | 5 | Pre-commit gates, blast radius checks, code review |
-| productivity | 5 | TODO management, think-twice, style enforcement |
-| observability | 4 | Skill firing tracker, audit validation |
+| wiki | 7 | Page management, link checks, credential scanning |
+| issue-tracking | 5 | Create, update, verify tickets |
+| writing | 5 | Slop detection, profanity gates |
+| typescript | 5 | Strict mode, complexity reduction, Vitest mocks |
+| engineering | 5 | Pre-commit gates, blast radius, PR review |
+| productivity | 5 | TODO tracking, style enforcement |
+| observability | 4 | Invocation logging, completeness checks |
 | research | 2 | Perplexity integration |
-| security | 2 | CVE scanning, IP audit |
+| security | 2 | CVE scanning, IP protection |
 | experimental | 1 | Self-prompting |
 
-## Platform Installation
+## Installation
 
 ### Claude Code
 
@@ -68,7 +66,7 @@ cd superpowers-plus
 ./install.sh
 ```
 
-Windows users: Use WSL (`wsl --install -d Ubuntu`).
+Windows: Use WSL (`wsl --install -d Ubuntu`).
 
 ## Configuration
 
@@ -78,7 +76,7 @@ Copy `.env.example` to `.env` for optional integrations:
 |----------|---------|
 | `ISSUE_TRACKER_TYPE` | `linear`, `github`, `jira`, or `azure-devops` |
 | `WIKI_PLATFORM` | `outline` (see `skills/wiki/_adapters/`) |
-| `PERPLEXITY_API_KEY` | Research skill integration |
+| `PERPLEXITY_API_KEY` | Deep research fallback |
 
 ## Updating
 
@@ -86,92 +84,92 @@ Copy `.env.example` to `.env` for optional integrations:
 ./install.sh --upgrade
 ```
 
-## Skill Reference
+## Skills
 
 ### wiki/
-| Skill | Purpose |
-|-------|---------|
-| wiki-orchestrator | Route wiki tasks to appropriate skills |
-| wiki-editing | Safe wiki updates with backup |
-| wiki-authoring | Create new wiki pages |
-| wiki-verify | Validate wiki links and structure |
-| wiki-debunker | Fact-check wiki content |
-| wiki-secret-audit | Scan for leaked credentials |
-| link-verification | Validate internal/external URLs |
+| Skill | What it does |
+|-------|--------------|
+| wiki-orchestrator | Routes tasks to the right handler |
+| wiki-editing | Safe updates with backup |
+| wiki-authoring | Creates new pages |
+| wiki-verify | Checks links and structure |
+| wiki-debunker | Fact-checks content |
+| wiki-secret-audit | Finds leaked credentials |
+| link-verification | Confirms URLs resolve |
 
 ### issue-tracking/
-| Skill | Purpose |
-|-------|---------|
-| issue-authoring | Write issues with acceptance criteria |
-| issue-editing | Update existing issues safely |
-| issue-verify | Validate issue links and references |
-| issue-link-verification | Check URLs in issue content |
-| issue-comment-debunker | Verify claims before posting comments |
+| Skill | What it does |
+|-------|--------------|
+| issue-authoring | Writes tickets with acceptance criteria |
+| issue-editing | Updates existing tickets safely |
+| issue-verify | Confirms references exist |
+| issue-link-verification | Tests URLs in ticket content |
+| issue-comment-debunker | Fact-checks before posting |
 
 ### writing/
-| Skill | Purpose |
-|-------|---------|
-| detecting-ai-slop | Score text for AI patterns (0-100) |
-| eliminating-ai-slop | Rewrite AI-like text |
-| professional-language-audit | Gate for profanity before wiki/commit |
-| readme-authoring | Structure READMEs |
-| reviewing-ai-text | Review AI-generated content |
+| Skill | What it does |
+|-------|--------------|
+| detecting-ai-slop | Scores text 0-100 for machine patterns |
+| eliminating-ai-slop | Rewrites stilted prose |
+| professional-language-audit | Blocks profanity |
+| readme-authoring | Structures documentation |
+| reviewing-ai-text | Evaluates generated content |
 
 ### typescript/
-| Skill | Purpose |
-|-------|---------|
-| typescript-strict-mode | Enforce strict TypeScript |
-| cognitive-complexity-refactoring | Reduce complexity scores |
-| vitest-testing-patterns | SDK mocking for Vitest |
-| typescript-project-conventions | Import organization |
-| field-rename-verification | Cross-file rename validation |
+| Skill | What it does |
+|-------|--------------|
+| typescript-strict-mode | Eliminates `any` and `!` |
+| cognitive-complexity-refactoring | Simplifies dense functions |
+| vitest-testing-patterns | SDK mocking patterns |
+| typescript-project-conventions | Import ordering |
+| field-rename-verification | Cross-file rename safety |
 
 ### engineering/
-| Skill | Purpose |
-|-------|---------|
-| engineering-rigor | Engineering quality philosophy |
-| pre-commit-gate | Lint → typecheck → test before commit |
-| blast-radius-check | Find all usages before modifying code |
-| providing-code-review | Review others' PRs |
-| receiving-code-review | Evaluate review feedback |
+| Skill | What it does |
+|-------|--------------|
+| engineering-rigor | Quality philosophy hub |
+| pre-commit-gate | Runs lint → typecheck → test |
+| blast-radius-check | Finds all callers before edits |
+| providing-code-review | Structured PR feedback |
+| receiving-code-review | Evaluates incoming feedback |
 
 ### productivity/
-| Skill | Purpose |
-|-------|---------|
-| think-twice | Sub-agent review when blocked |
-| todo-management | Parse and track TODOs |
-| golden-agents | Initialize AGENTS.md |
-| enforce-style-guide | Validate against style guides |
-| superpowers-help | List available skills |
+| Skill | What it does |
+|-------|--------------|
+| think-twice | Spawns sub-agent for fresh perspective |
+| todo-management | Parses and tracks tasks |
+| golden-agents | Bootstraps AGENTS.md |
+| enforce-style-guide | Applies project conventions |
+| superpowers-help | Lists available skills |
 
 ### observability/
-| Skill | Purpose |
-|-------|---------|
-| skill-firing-tracker | Log skill invocations |
-| exhaustive-audit-validation | Validate audit checklists |
-| holistic-repo-verification | Check all CI workflows |
-| completeness-check | Verify work is complete |
+| Skill | What it does |
+|-------|--------------|
+| skill-firing-tracker | Logs which skills ran |
+| exhaustive-audit-validation | Confirms checklist coverage |
+| holistic-repo-verification | Checks all CI paths |
+| completeness-check | Confirms work is done |
 
 ### research/
-| Skill | Purpose |
-|-------|---------|
-| perplexity-research | Auto-invoke Perplexity when stuck |
-| incorporating-research | Integrate external research |
+| Skill | What it does |
+|-------|--------------|
+| perplexity-research | Escalates when stuck |
+| incorporating-research | Merges external findings |
 
 ### security/
-| Skill | Purpose |
-|-------|---------|
-| security-upgrade | Scan CVEs, upgrade dependencies |
-| public-repo-ip-audit | Audit for proprietary IP |
+| Skill | What it does |
+|-------|--------------|
+| security-upgrade | Scans CVEs, upgrades deps |
+| public-repo-ip-audit | Detects proprietary content |
 
 ### experimental/
-| Skill | Purpose |
-|-------|---------|
-| experimental-self-prompting | Context-free prompts (not production-ready) |
+| Skill | What it does |
+|-------|--------------|
+| experimental-self-prompting | Context-free analysis (unstable) |
 
 ## Extending
 
-Organizations can layer custom skills on top:
+Layer organization-specific skills on top:
 
 ```
 obra/superpowers (framework)
@@ -179,15 +177,15 @@ obra/superpowers (framework)
             └── your-org-skills
 ```
 
-See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md) for patterns.
+See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
 ## Troubleshooting
 
 | Error | Fix |
 |-------|-----|
 | "Tool not found: perplexity_*" | Run `./setup/mcp-perplexity.sh` |
-| Issue tracking skills fail | Set `ISSUE_TRACKER_TYPE` in `.env` |
-| Wiki skills fail | Set `WIKI_PLATFORM` in `.env` |
+| Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
+| Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
 
 ## Documentation
 
