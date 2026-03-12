@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # Script: slop-infrastructure.sh
 # PURPOSE: Manage shared infrastructure for AI slop detection and elimination.
