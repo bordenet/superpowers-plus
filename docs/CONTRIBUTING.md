@@ -196,41 +196,58 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
 
 ### Creating a Release
 
-**Most steps are now automated.** You only need to:
+**Most steps are automated, but tag creation requires a manual step due to branch protection.**
+
+#### Step 1: Prepare the Release
 
 1. **Update version in `install.sh`:**
    ```bash
-   VERSION="2.2.0"
+   VERSION="2.3.0"
    ```
 
 2. **Update CHANGELOG.md:**
    - Move `[Unreleased]` items to new version section
-   - Add date: `## [2.2.0] - YYYY-MM-DD`
-   - Add version link at bottom
+   - Add date: `## [2.3.0] - YYYY-MM-DD`
 
-3. **Commit and push to main:**
+3. **Create PR and merge to main:**
    ```bash
+   git checkout -b chore/release-2.3.0
    git add -A
-   git commit -m "chore: release v2.2.0"
-   git push origin main
+   git commit -m "chore: release v2.3.0"
+   git push origin chore/release-2.3.0
+   # Create PR, wait for CI, merge
    ```
 
-**Automation handles the rest:**
+#### Step 2: Create and Push Tag (Manual)
 
-| Step | Automated By |
-|------|--------------|
-| Sync version to `plugin.json` | `version-sync.yml` |
-| Sync version to `marketplace.json` | `version-sync.yml` |
-| Create git tag `v2.2.0` | `version-sync.yml` |
-| Create GitHub Release | `release.yml` (triggered by tag) |
+After the PR is merged to main:
 
-### What's Still Manual
+```bash
+git checkout main
+git pull origin main
+git tag -a v2.3.0 -m "Release v2.3.0"
+git push origin v2.3.0
+```
+
+> **Why manual?** Branch protection requires PRs for all pushes to `main`. PATs cannot bypass this without disabling protection entirely. The 5-second manual tag step preserves branch security.
+
+#### Step 3: Automation Takes Over
+
+Once the tag is pushed, automation handles everything else:
+
+| Step | Automated By | Trigger |
+|------|--------------|---------|
+| Create GitHub Release | `release.yml` | Tag push (`v*`) |
+| Dispatch to standalone marketplace | `release.yml` | Tag push |
+| Update `marketplace.json` to new version | marketplace `version-sync.yml` | `repository_dispatch` |
+
+#### What's Still Manual
 
 | Task | Why |
 |------|-----|
 | Update CHANGELOG.md | Human judgment needed for categorization |
-| Update `superpowers-help` skill version | Displayed to users, verify accuracy |
-| PR to `obra/superpowers-marketplace` | External repo, requires Jesse's approval |
+| Create and push git tag | Branch protection prevents automated pushes |
+| PR to `obra/superpowers-marketplace` | External repo, requires maintainer approval |
 
 ### Version Check
 
