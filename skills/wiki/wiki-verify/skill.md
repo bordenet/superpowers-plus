@@ -43,8 +43,6 @@ repos:
 files:
   - backend-service/package.json#dependencies
   - settings-service/src/integrations/**
-azure-devops:
-  - project: Your Project
 -->
 
 *🔄 AI-maintained — invoke wiki-verify skill to update*
@@ -72,12 +70,12 @@ If neither exists, STOP and report:
 
 | Claim Type | Example in Wiki | How to Verify |
 |------------|-----------------|---------------|
-| **Version numbers** | "Deepgram SDK v3.2.1" | Check `package.json` or `requirements.txt` |
-| **Repo existence** | "backend-service repo" | Azure DevOps API or git |
-| **File paths** | "`src/integrations/twilio.ts`" | Git file existence check |
-| **Vendor names** | "We use Twilio for SMS" | Grep codebase for imports/configs |
+| **Version numbers** | "SDK v3.2.1" | Check `package.json` or `requirements.txt` |
+| **Repo existence** | "backend-service repo" | Repository adapter or git |
+| **File paths** | "`src/integrations/service.ts`" | Git file existence check |
+| **Vendor names** | "We use Service X for Y" | Grep codebase for imports/configs |
 | **Config values** | "Default timeout: 30s" | Check config files |
-| **PR/commit refs** | "Fixed in PR #25008" | Azure DevOps API |
+| **PR/commit refs** | "Fixed in PR #123" | Repository adapter |
 | **Dates** | "Added in January 2026" | Git history |
 
 ## Verification Process
@@ -147,7 +145,7 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 | Source Type | How to Access |
 |-------------|---------------|
 | **Git repos** | `git show`, `git log`, file reads |
-| **Azure DevOps** | Azure DevOps MCP or REST API |
+| **Repository platform** | Use your repository adapter |
 | **package.json** | Parse JSON, check `dependencies`/`devDependencies` |
 | **requirements.txt** | Parse pinned versions |
 | **Config files** | Parse YAML/JSON/TOML configs |
