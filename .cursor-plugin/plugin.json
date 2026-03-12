@@ -18,7 +18,5 @@
     "typescript",
     "observability",
     "extensions"
-  ],
-  "skills": "./skills/"
+  ]
 }
-

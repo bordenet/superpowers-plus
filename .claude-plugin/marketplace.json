@@ -1,5 +1,5 @@
 {
-  "name": "superpowers-plus-marketplace",
+  "name": "superpowers-plus",
   "owner": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"
@@ -16,19 +16,17 @@
         "url": "https://github.com/obra/superpowers.git"
       },
       "description": "PREREQUISITE: Core workflow skills (TDD, debugging, collaboration) by Jesse Vincent",
-      "version": "5.0.1",
       "strict": true
     },
     {
       "name": "superpowers-plus",
-      "source": "./",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/bordenet/superpowers-plus.git"
+      },
       "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more",
       "version": "1.0.0",
-      "author": {
-        "name": "Matt Bordenet",
-        "email": "bordenet@users.noreply.github.com"
-      }
+      "strict": true
     }
   ]
 }
-

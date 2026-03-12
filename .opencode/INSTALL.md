@@ -18,7 +18,7 @@ Check if superpowers is already installed:
 ls ~/.config/opencode/superpowers/skills 2>/dev/null && echo "✓ superpowers installed" || echo "✗ superpowers not found"
 ```
 
-**If not installed**, follow the [superpowers OpenCode installation](https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md):
+**If not installed**, follow the [superpowers OpenCode installation](https://github.com/obra/superpowers/blob/main/.opencode/INSTALL.md):
 
 ```bash
 # Clone superpowers
@@ -112,4 +112,3 @@ rm -rf ~/.config/opencode/superpowers
 
 - superpowers-plus: https://github.com/bordenet/superpowers-plus/issues
 - obra/superpowers: https://github.com/obra/superpowers/issues
-

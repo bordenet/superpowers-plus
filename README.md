@@ -17,11 +17,13 @@ Register the marketplace, then install **both** plugins:
 /plugin marketplace add bordenet/superpowers-plus
 
 # Install prerequisite (obra/superpowers)
-/plugin install superpowers@superpowers-plus-marketplace
+/plugin install superpowers@superpowers-plus
 
 # Install extended skills
-/plugin install superpowers-plus@superpowers-plus-marketplace
+/plugin install superpowers-plus@superpowers-plus
 ```
+
+> ⚠️ **Untested:** This plugin marketplace flow has not been end-to-end validated. If you encounter issues, use the Manual Installation method below.
 
 ### Cursor (via Plugin Marketplace)
 
@@ -56,6 +58,8 @@ Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/su
 **Detailed docs:** [.opencode/INSTALL.md](.opencode/INSTALL.md)
 
 ### Gemini CLI
+
+> **Note:** Gemini CLI support is based on obra/superpowers documentation. Verify current syntax with `gemini --help`.
 
 ```bash
 # Install prerequisite first
@@ -92,7 +96,36 @@ cd superpowers-plus
 
 ### Verify Installation
 
-Start a new session and ask for something that should trigger a skill (e.g., "help me write a wiki page" or "check this issue for problems"). The agent should automatically invoke the relevant skill.
+For manual installations, verify skills are installed:
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
+```
+
+Then start a new session and ask for something that should trigger a skill (e.g., "help me write a wiki page" or "check this issue for problems"). The agent should automatically invoke the relevant skill.
+
+## Platform Support
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| macOS (Intel) | ✅ Supported | Homebrew for dependencies |
+| macOS (Apple Silicon) | ✅ Supported | Homebrew for dependencies |
+| Linux (Debian/Ubuntu) | ✅ Supported | apt-get for dependencies |
+| Linux (RHEL/Fedora/CentOS) | ✅ Supported | dnf/yum for dependencies |
+| Linux (Arch) | ✅ Supported | pacman for dependencies |
+| Windows (WSL/Ubuntu) | ✅ Supported | Use Ubuntu terminal |
+| Windows (native) | ❌ Not supported | Use WSL |
+
+## Augment.ai Clients
+
+**Any Augment client works.** The install.sh deploys skills to standard paths that all clients read.
+
+| Client | Installation |
+|--------|--------------|
+| **Auggie CLI** (terminal-first) | `npm install -g @augmentcode/auggie && auggie login` |
+| **VS Code Extension** | Extensions → search "Augment" → Install → SSO |
+| **Rider/JetBrains Plugin** | Settings → Plugins → "Augment" → Install |
+| **Cursor Extension** | Extensions → search "Augment" → Install |
 
 ## What You Get
 
@@ -122,7 +155,12 @@ Start a new session and ask for something that should trigger a skill (e.g., "he
 ```bash
 cd ~/.codex/superpowers && git pull
 cd ~/.codex/superpowers-plus && git pull
+
+# Or use install.sh with upgrade flag
+cd ~/superpowers-plus && ./install.sh --upgrade --verbose
 ```
+
+See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Configuration
 
@@ -220,14 +258,6 @@ Requires `WIKI_PLATFORM` in `.env`. See `skills/wiki/_adapters/` for platform se
 
 ### experimental/
 - `experimental-self-prompting` — Write context-free prompts for fresh perspective (not production-ready)
-
-## Upgrading
-
-```bash
-./install.sh --upgrade --verbose
-```
-
-See [UPGRADING.md](./UPGRADING.md) for details.
 
 ## Trigger Validation
 

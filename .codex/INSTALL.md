@@ -32,20 +32,7 @@ git clone https://github.com/bordenet/superpowers-plus.git ~/.codex/superpowers-
 ln -sf ~/.codex/superpowers-plus/skills ~/.agents/skills/superpowers-plus
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-# Step 1: Install superpowers if not present
-if (-not (Test-Path "$env:USERPROFILE\.codex\superpowers")) {
-    git clone https://github.com/obra/superpowers.git "$env:USERPROFILE\.codex\superpowers"
-    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agents\skills"
-    cmd /c mklink /J "$env:USERPROFILE\.agents\skills\superpowers" "$env:USERPROFILE\.codex\superpowers\skills"
-}
-
-# Step 2: Install superpowers-plus
-git clone https://github.com/bordenet/superpowers-plus.git "$env:USERPROFILE\.codex\superpowers-plus"
-cmd /c mklink /J "$env:USERPROFILE\.agents\skills\superpowers-plus" "$env:USERPROFILE\.codex\superpowers-plus\skills"
-```
+> **Windows users:** Use Ubuntu on WSL (`wsl --install -d Ubuntu`) and run commands from the Ubuntu terminal. Native PowerShell has path translation issues.
 
 ### Step 3: Restart Codex
 
@@ -100,4 +87,3 @@ rm -rf ~/.codex/superpowers
 
 - superpowers-plus issues: https://github.com/bordenet/superpowers-plus/issues
 - obra/superpowers issues: https://github.com/obra/superpowers/issues
-
