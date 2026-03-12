@@ -37,4 +37,3 @@ Each adapter specifies the URL pattern for link verification:
 ## Authentication
 
 Each adapter documents required environment variables for authentication.
-

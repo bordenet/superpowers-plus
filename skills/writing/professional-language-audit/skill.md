@@ -179,4 +179,3 @@ node scripts/slop-dictionary.js list profanity
 
 - **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
 - **pre-commit-gate** — Integrates this skill into commit workflow
-

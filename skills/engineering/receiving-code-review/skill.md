@@ -152,4 +152,3 @@ When feedback IS correct:
 Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 
 No performative agreement. Technical rigor always.
-

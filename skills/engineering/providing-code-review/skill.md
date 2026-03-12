@@ -132,4 +132,3 @@ When providing code review, structure feedback as:
 - `pre-commit-gate` — Before committing changes
 - `blast-radius-check` — Before modifying existing code
 - `engineering-rigor` — Philosophy and overview
-

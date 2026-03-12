@@ -168,4 +168,3 @@ else
     echo "To fix, run: ./setup/install-perplexity-skill.sh"
     exit 1
 fi
-

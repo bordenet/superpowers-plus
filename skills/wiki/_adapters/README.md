@@ -58,4 +58,3 @@ wiki/
 | `wiki-secret-audit` | Generic | Security scanning |
 | `link-verification` | Uses adapter | URL patterns from adapter |
 | `wiki-editing` | Generic (uses adapters) | Workflow and API operations |
-

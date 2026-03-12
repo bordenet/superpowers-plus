@@ -55,4 +55,3 @@ General philosophy refresh?     → You're here (engineering-rigor)
 
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist
-

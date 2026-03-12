@@ -98,4 +98,3 @@ curl -s -X POST "https://wiki.example.com/api/documents.info" \
 | Custom formatting | May not survive round-trip |
 
 See `wiki-editing` skill for detailed workarounds.
-

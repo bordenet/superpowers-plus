@@ -31,4 +31,3 @@ See the adapter documentation for your platform:
 ## Adding New Adapters
 
 See [adapter-interface.md](./adapter-interface.md) for the required operations.
-

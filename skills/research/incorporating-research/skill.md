@@ -223,4 +223,3 @@ Concerns:
 | [CLAUDE.md](../../CLAUDE.md) | Writing standards (no AI slop) |
 | `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
 | `detecting-ai-slop` | Score research quality before incorporating |
-

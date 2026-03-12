@@ -129,4 +129,3 @@ cat << EOF
 
 To reset metrics: \`rm $METRICS_DIR/*.jsonl\`
 EOF
-

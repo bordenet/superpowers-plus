@@ -102,4 +102,3 @@ Final Score = (Relevance × 0.30) + (Novelty × 0.25) + (Specificity × 0.25) + 
 - Specificity: [X]/100
 - Feasibility: [X]/100
 ```
-

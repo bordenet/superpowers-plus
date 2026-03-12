@@ -163,4 +163,3 @@ echo "  1. Ensure Perplexity MCP is configured: ./setup/mcp-perplexity.sh"
 echo "  2. Bootstrap superpowers in your AI session"
 echo "  3. The skill will auto-invoke on 2+ failures or uncertainty"
 echo ""
-

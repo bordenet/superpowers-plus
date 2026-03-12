@@ -63,4 +63,3 @@ When MCP tools are unavailable, adapters should document:
 - curl command equivalents
 - Required headers and authentication
 - Response parsing
-

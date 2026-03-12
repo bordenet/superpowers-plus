@@ -1,20 +1,18 @@
 # Guidance Directory
 
-> **Note**: Templates have moved to [golden-agents](https://github.com/bordenet/golden-agents).
+> ⚠️ **This is NOT the project's AI guidance.** See [/AGENTS.md](/AGENTS.md) for superpowers-plus project rules.
 
-This directory contains the Golden Agents Framework for generating project-specific AI guidance files.
+This directory contains **templates and tools** for generating AI guidance files in other projects. It's part of the [golden-agents](https://github.com/bordenet/golden-agents) framework.
 
-## AI Guidance Files
-
-This directory has its own AI guidance (eating our own dog food):
+## What's Here
 
 | File | Purpose |
 |------|---------|
-| `AGENTS.md` | AI guidance for this directory |
-| `CLAUDE.md` | Redirect → AGENTS.md (Claude Code) |
-| `CODEX.md` | Redirect → AGENTS.md (OpenAI Codex CLI) |
-| `GEMINI.md` | Redirect → AGENTS.md (Google Gemini) |
-| `COPILOT.md` | Redirect → AGENTS.md (GitHub Copilot) |
+| `TEMPLATE-full.md` | Full template with placeholders |
+| `TEMPLATE-minimal.md` | Minimal template (~100 lines) |
+| `migrate-agents.sh` | Migrate existing AGENTS.md to Golden Agents format |
+| `EVALUATION-REPORT.md` | Framework testing documentation |
+| `AGENTS.md`, etc. | Example guidance files for this directory (demonstration) |
 
 ## Generate AGENTS.md for other projects
 
@@ -40,4 +38,3 @@ This directory has its own AI guidance (eating our own dog food):
 
 - [golden-agents](https://github.com/bordenet/golden-agents) - Public repo with all templates
 - [obra/superpowers](https://github.com/obra/superpowers) - AI skill framework
-

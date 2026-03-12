@@ -189,4 +189,3 @@ Before posting ANY your issue tracker comment:
 4. HEDGE — Am I marking uncertainty appropriately?
 5. CHECK — Does this look like fabricated analysis?
 ```
-

@@ -44,4 +44,3 @@ Example: `https://github.com/my-org/my-repo/issues/123`
 1. Create PAT: GitHub Settings → Developer settings → Personal access tokens
 2. Grant `repo` scope for private repos, `public_repo` for public
 3. Configure MCP server with GitHub integration
-

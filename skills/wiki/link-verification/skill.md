@@ -227,4 +227,3 @@ Before writing ANY link:
 3. CONFIRM — Check exact name, case, existence
 4. LINK — Only then write the URL
 ```
-

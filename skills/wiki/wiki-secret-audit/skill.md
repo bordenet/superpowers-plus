@@ -149,4 +149,3 @@ When secrets are found:
 
 - **Shared Module:** `skills/_shared/secret-detection.md`
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
-
