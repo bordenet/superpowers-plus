@@ -91,4 +91,3 @@ If users report install failures:
 - [ ] Verify current PR requirements (check open PRs for examples)
 - [ ] Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
 - [ ] Confirm obra/superpowers dependency installs correctly
-
