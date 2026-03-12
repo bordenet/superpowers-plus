@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-03-12
+
+### Changed
+- **superpowers-help**: Complete rewrite with accurate skill enumeration
+  - Now lists ALL 55 skills (14 core + 41 extended)
+  - Added "what are my superpowers" as primary trigger
+  - Added missing Experimental category
+  - Fixed incorrect counts (was claiming 54/40, now correctly 55/41)
+  - Added Quick Reference section mapping common tasks to skills
+  - Organized core skills by workflow phase
+
 ## [2.2.0] - 2026-03-12
 
 ### Added

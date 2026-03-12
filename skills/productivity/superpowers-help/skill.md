@@ -7,12 +7,12 @@ description: Comprehensive guide to ALL superpowers skills — both core (obra/s
 
 # 🦸 Your Superpowers
 
-You have **54 skills** available across two skill libraries:
+You have **55 skills** available across two skill libraries:
 
 | Library | Skills | Purpose |
 |---------|--------|---------|
 | **[obra/superpowers](https://github.com/obra/superpowers)** | 14 | Core workflows: TDD, debugging, planning, code review |
-| **[superpowers-plus](https://github.com/bordenet/superpowers-plus)** | 40 | Extended domains: wiki, issues, security, TypeScript, AI writing |
+| **[superpowers-plus](https://github.com/bordenet/superpowers-plus)** | 41 | Extended domains: wiki, issues, security, TypeScript, AI writing |
 
 Skills fire **automatically** based on triggers. If there's even a 1% chance a skill applies, **invoke it**.
 
@@ -58,7 +58,7 @@ These are the foundational workflows by Jesse Vincent. **Prerequisite for superp
 
 ---
 
-## Extended Skills (superpowers-plus) — 40 skills
+## Extended Skills (superpowers-plus) — 41 skills
 
 ### 🔧 Engineering (5 skills)
 
@@ -69,6 +69,12 @@ These are the foundational workflows by Jesse Vincent. **Prerequisite for superp
 | **pre-commit-gate** | Pre-commit checks, lint/typecheck/test | Gate commits on quality checks |
 | **providing-code-review** | Reviewing PRs, code review requests | Structured review methodology |
 | **receiving-code-review** | Implementing review feedback | Systematic feedback integration |
+
+### 🧪 Experimental (1 skill)
+
+| Skill | Triggers On | Purpose |
+|-------|-------------|---------|
+| **experimental-self-prompting** | Complex analysis tasks | Write context-free prompts before analyzing code |
 
 ### 📋 Issue Tracking (5 skills)
 
