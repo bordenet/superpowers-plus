@@ -9,8 +9,11 @@ description: Lists all superpowers-plus skills by category with invocation examp
 
 > **Repository:** https://github.com/bordenet/superpowers-plus
 > **Version:** 2.1.0
+> **Built on:** [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent
 
-## Available Skills (39 total)
+superpowers-plus extends the [obra/superpowers](https://github.com/obra/superpowers) framework with additional skills for wiki editing, issue tracking, security audits, and AI text quality. The core superpowers framework (brainstorming, systematic-debugging, TDD, etc.) is installed as a prerequisite.
+
+## Available Skills (40 total)
 
 ### Engineering (5 skills)
 
