@@ -72,8 +72,10 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
 
-          # Stage changes first, then check if there's anything to commit
-          git add .claude-plugin/
+          # Stage changes (|| true prevents failure if nothing to add)
+          git add .claude-plugin/ || true
+
+          # Check if there's anything staged to commit
           if git diff --cached --quiet; then
             echo "No version changes to commit (already in sync)"
             echo "CHANGES=false" >> $GITHUB_OUTPUT
