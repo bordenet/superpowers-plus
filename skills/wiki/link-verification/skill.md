@@ -27,7 +27,7 @@ When called by orchestrator, extract ALL links from content and verify each:
 | # | Link Text | URL | Type | Status | Notes |
 |---|-----------|-----|------|--------|-------|
 | 1 | Deployment Guide | /doc/deployment-xyz | Internal Wiki | ✅ PASS | Resolves to "Deployment Guide" |
-| 2 | voice-service | dev.azure.com/... | Azure DevOps | ✅ PASS | Repo exists |
+| 2 | service-repo | [your-repo-host]/... | Repository | ✅ PASS | Repo exists |
 | 3 | Old Page | /doc/old-page-123 | Internal Wiki | ❌ FAIL | 404 - not found |
 | 4 | Example.com | https://example.com | External | ⚠️ WARN | 503 - may be temporary |
 
@@ -40,8 +40,8 @@ When called by orchestrator, extract ALL links from content and verify each:
 | Link Type | On Failure | Reason |
 |-----------|------------|--------|
 | Internal Wiki (`/doc/...`) | **HARD BLOCK** | Readers get 404, unacceptable |
-| Azure DevOps Repo | **HARD BLOCK** | Likely hallucinated |
-| Issue Reference | **WARN** | May be private (verify org urlKey is `your-team`) |
+| Repository Link | **HARD BLOCK** | Likely hallucinated |
+| Issue Reference | **WARN** | May be private |
 | External URL | **WARN** | Sites have downtime |
 
 ### Link Extraction Pattern
@@ -80,10 +80,8 @@ Invoke when:
 
 | Pattern | Reality | Action |
 |---------|---------|--------|
-| `github.com/your-org/*` | **DOES NOT EXIST** | ❌ Never use — always hallucinated |
-| `github.com/YourOrg/*` | **DOES NOT EXIST** | ❌ Never use — always hallucinated |
-| `dev.azure.com/YourOrg/*` | ✅ Real repos | Query Azure DevOps API to verify repo exists |
-| `github.com/bordenet/*` | Matt's personal repos | ✅ Allowed — verify exists via GitHub API |
+| `github.com/assumed-org/*` | **MAY NOT EXIST** | ⚠️ Verify — often hallucinated |
+| `[your-repo-host]/org/*` | Verify via API | Query your repo host API to verify |
 
 </EXTREMELY_IMPORTANT>
 
@@ -96,28 +94,20 @@ Before writing ANY repository link:
 - [ ] **Query the API** — Confirm repo exists before writing URL
 - [ ] **Get exact repo name** — Case-sensitive, from API response
 - [ ] **Construct URL from API response** — Not from assumption
-- [ ] **For Azure DevOps** — URL-encode special characters in project name (e.g., `Your%20Project`)
+- [ ] **URL-encode special characters** — Spaces, special characters in project/org names
 
 ---
 
 ## How to Verify
 
-### YourOrg Repos (Azure DevOps)
+### Using Your Repository Adapter
 
 ```
-# List all repos in a project
-repo_list_repos_by_project_azure-devops
-  project: "Your Project"
-
-# Get specific repo
-repo_get_repo_by_name_or_id_azure-devops
-  project: "Your Project"
-  repositoryNameOrId: "voice-service"
+# Use your repository adapter to verify the repo exists
+# See skills/issue-tracking/_adapters/ for platform-specific tools
 ```
 
-**URL Format:** `https://dev.azure.com/YourOrg/Your%20Project/_git/{repo-name}`
-
-### GitHub Repos (Personal or External)
+### GitHub Repos
 
 ```
 # Verify repo exists
@@ -152,19 +142,11 @@ AI assistants commonly hallucinate these patterns because they're common in trai
 
 Use the wiki platform adapter for verification. See `skills/wiki/_adapters/` for platform-specific setup.
 
-**Using MCP (preferred):**
+**Using adapter:**
 ```
-get_document_outline(id: "PAGE_SLUG_HERE")
-```
-
-**Using curl (fallback):**
-```bash
-# See skills/wiki/_adapters/outline.md for environment setup
-source .env
-curl -s -X POST "$OUTLINE_BASE_URL/api/documents.info" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "PAGE_SLUG_HERE"}' | jq '.ok, .data.title // .error'
+# Use your wiki adapter's get_page operation
+# See skills/wiki/_adapters/ for platform-specific tools
+adapter.get_page(id: "PAGE_SLUG_HERE")
 ```
 
 **Expected output for existing page:**
@@ -212,7 +194,7 @@ When adding a "Code References" section to wiki pages:
 
 | File | Purpose | Repository |
 |------|---------|------------|
-| `src/path/to/file.ts` | Brief description | [repo-name](https://dev.azure.com/YourOrg/Project/_git/repo-name) |
+| `src/path/to/file.ts` | Brief description | [repo-name]([your-repo-url]) |
 ```
 
 ---
@@ -221,9 +203,8 @@ When adding a "Code References" section to wiki pages:
 
 | Date | Page | Issue | Resolution |
 |------|------|-------|------------|
-| 2026-02-18 | Speech: Deepgram | 6 fake `github.com/your-org/*` links | Fixed to `dev.azure.com/YourOrg/*` |
-| 2026-02-18 | Telephony: Telnyx | 5 fake GitHub links + 1 non-existent repo | Fixed links, removed `phone-service` reference |
-| 2026-02-20 | Getting Started with superpowers-plus | Hallucinated internal wiki link `/doc/example-page-xyz789` | Fixed to `/doc/correct-page-abc123` |
+| Example | Example Page | Fake repository links | Fixed to verified repo URLs |
+| Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
 
 ---
 

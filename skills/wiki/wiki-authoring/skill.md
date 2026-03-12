@@ -1,25 +1,25 @@
 ---
 name: wiki-authoring
 source: superpowers-plus
-triggers: ["fix wiki formatting", "structure this wiki page", "improve readability", "Outline markdown rules"]
+triggers: ["fix wiki formatting", "structure this wiki page", "improve readability", "wiki markdown rules"]
 description: Use when structuring wiki content, fixing wiki formatting issues, or ensuring platform compatibility. Enforces semantic headings, spacing rules, anchor format, and no-HTML constraints. Companion to wiki-editing (workflow) and wiki-orchestrator (pipeline). See skills/wiki/_adapters/ for platform-specific rules.
 ---
 
 # Wiki Authoring
 
 > **Companion skill:** `wiki-editing` handles download-before-edit workflow.
+> **Adapter:** See `skills/wiki/_adapters/` for platform-specific formatting rules.
 > **This skill:** Focuses on content structure and formatting.
-> **Last Updated:** 2026-02-18
 
 ## Overview
 
-Outline stores content in standard Markdown, but has specific constraints. This skill ensures reliable rendering and easy parsing.
+Wiki platforms store content in Markdown with platform-specific constraints. This skill ensures reliable rendering and easy parsing.
 
 **Core principles:**
 
 - Semantic headings (H1 once, H2/H3 max 2-3 levels)
 - Consistent spacing (one blank line between elements)
-- No inline HTML (Outline escapes it)
+- No inline HTML (most platforms escape it)
 - Code blocks always specify language
 
 ---
@@ -69,9 +69,9 @@ Outline stores content in standard Markdown, but has specific constraints. This 
 ✅ Password=[REDACTED: production SQL password]
 ```
 
-### MCP Server Hard Block (v5.9.0+)
+### MCP Server Hard Block
 
-The Outline MCP server will **automatically block** content containing:
+Some wiki MCP servers will **automatically block** content containing:
 - SQL connection strings with passwords
 - Database URLs with credentials
 - API keys (AWS, OpenAI, GitHub, Slack, etc.)
@@ -91,14 +91,14 @@ The Outline MCP server will **automatically block** content containing:
 
 **The workflow is: VERIFY → FIX → PUBLISH. Never PUBLISH → VERIFY.**
 
-Before calling `create_document_outline` or `update_document_outline`, you MUST complete this checklist:
+Before calling your adapter's `create_page` or `update_page` operation, you MUST complete this checklist:
 
 ### Pre-Publish Checklist
 
 - [ ] **Extracted all URLs** from content
 - [ ] **Verified each external URL** returns valid response (`web-fetch`)
-- [ ] **Verified each internal wiki link** resolves (`get_document_outline`)
-- [ ] **Verified each Azure DevOps link** points to real repo/path (queried API)
+- [ ] **Verified each internal wiki link** resolves (adapter's `get_page`)
+- [ ] **Verified each repository link** points to real repo/path (queried API)
 - [ ] **Verified each issue link** points to real issue (queried API)
 - [ ] **All factual claims have source citations** (linked, not just mentioned)
 - [ ] **No AI slop detected** (see detection criteria below)
@@ -111,10 +111,9 @@ Before calling `create_document_outline` or `update_document_outline`, you MUST 
 | URL Pattern | Verification Tool | Expected Result |
 |-------------|-------------------|-----------------|
 | `https://...` (external) | `web-fetch` | 200 OK, or 401/403 for auth-required sites |
-| `/doc/...` (internal wiki) | `get_document_outline` | Document resolves with content |
-| `dev.azure.com/YourOrg/...` | `repo_list_repos_by_project_azure-devops` | Repo exists in project |
-| `[your-tracker-url]` | `issue tracker search` or issue tracker query | Issue exists |
-| `your-wiki.example.com/doc/...` | `get_document_outline` | Document resolves |
+| `/doc/...` (internal wiki) | Adapter's `get_page` | Document resolves with content |
+| Repository URL | Repo adapter verification | Repo exists |
+| Issue tracker URL | Issue adapter search | Issue exists |
 
 ### Verification Report Format
 
@@ -127,7 +126,7 @@ Before publishing, report to user:
 |-----------|-----|--------|-------|
 | Example Link | https://example.com | ✅ Valid | 200 OK |
 | Wiki Page | /doc/page-id | ✅ Valid | Resolves to "Page Title" |
-| Repo Link | dev.azure.com/... | ❌ BROKEN | Project not found |
+| Repo Link | [repo-url] | ❌ BROKEN | Repo not found |
 
 **Broken links fixed:** [list fixes]
 **Ready to publish:** Yes/No
@@ -154,11 +153,11 @@ Before publishing, report to user:
 
 | Claim Type | Required Citation | Example |
 |------------|-------------------|---------|
-| Code references | Azure DevOps file/line link | `[voice-service](https://dev.azure.com/YourOrg/...)` |
-| Process claims | Wiki page, issue, or Core ticket | `[Deployment process](/doc/deployment-xyz)` |
+| Code references | Repository file/line link | `[service-name]([your-repo-url])` |
+| Process claims | Wiki page, issue, or ticket | `[Deployment process](/doc/deployment-xyz)` |
 | External facts | Authoritative source (docs, Goodreads, etc.) | `[Principles](https://goodreads.com/book/...)` |
 | Metrics/numbers | Source dashboard or document | `[Cost data](/doc/cost-analysis-abc)` |
-| Quotes | Original source with page/section | `— Ray Dalio, *Principles* (2017)` |
+| Quotes | Original source with page/section | `— Author Name, *Book Title* (Year)` |
 
 ### ❌ Unacceptable
 
@@ -169,7 +168,7 @@ Before publishing, report to user:
 ### ✅ Acceptable
 
 - "According to [our deployment process](/doc/deployment-guide-abc)..."
-- "The [`handleVoiceCommand` function](https://dev.azure.com/YourOrg/...) does X..."
+- "The [`handleCommand` function]([your-repo-url]/path/to/file) does X..."
 - "Per [Google's SRE book](https://sre.google/sre-book/)..."
 
 </EXTREMELY_IMPORTANT>
@@ -214,41 +213,23 @@ Before publishing, ask:
 
 Invoke when:
 
-- Creating new Outline wiki pages
+- Creating new wiki pages
 - Editing existing wiki content
 - Reviewing wiki page formatting
 - User says: "Create wiki page", "Fix wiki formatting", "Improve readability"
 
 ---
 
-## Outline-Specific Constraints
+## Platform-Specific Constraints
 
-### ❌ Features Outline Does NOT Support
-
-| Feature | What Happens | Alternative |
-|---------|--------------|-------------|
-| `<details>` / `<summary>` | Rendered as literal text | Use H3/H4 headings |
-| `> [!info]` callout syntax | Escaped as `\[!info\]` | Use bold text or H4 |
-| Inline HTML | Escaped or stripped | Pure markdown only |
-| `<table>` HTML | May render incorrectly | Use markdown tables |
-| Custom CSS | Ignored | N/A |
-
-### ✅ Anchor Format
-
-Outline uses `#h-section-name` format (not `#section-name`).
-
-```markdown
-## Table of Contents
-
-1. [Project Overview](#h-project-overview)
-2. [Tech Stack](#h-tech-stack)
-
-[↑ Back to top](#h-table-of-contents)
-```
+See your adapter in `skills/wiki/_adapters/` for platform-specific rules including:
+- Unsupported HTML features
+- Anchor format (varies by platform)
+- Special syntax handling
 
 ### ✅ Content Start Rule
 
-Outline displays document title in UI. **Do NOT start with `# Title`**.
+Most wiki platforms display document title in UI. **Do NOT start with `# Title`**.
 
 **Wrong:**
 ```markdown
@@ -338,18 +319,18 @@ More text.
 
 Keep tables narrow (<80 chars) for mobile readability.
 
-### ⚠️ Column Widths Are Editor Metadata
+### ⚠️ Column Widths May Be Lost
 
-Outline lets users drag-resize table columns in the UI, but **these widths are stored as ProseMirror editor metadata, NOT in markdown**.
+Some wiki platforms store custom column widths as editor metadata, NOT in markdown.
 
-**Impact:** When content is pushed via API, all custom column widths reset to auto.
+**Impact:** When content is pushed via API, custom column widths may reset to auto.
 
-| What's Preserved | What's Lost |
-|------------------|-------------|
+| What's Preserved | What May Be Lost |
+|------------------|------------------|
 | Table content, alignment | Custom column widths |
 | Row/column structure | Drag-resized proportions |
 
-**Workaround:** After API updates, manually adjust column widths in Outline UI if needed.
+**Workaround:** After API updates, manually adjust column widths in the wiki UI if needed.
 
 ---
 
@@ -459,16 +440,14 @@ Use `---` between major sections only, not between every subsection.
 
 Before publishing any wiki page:
 
-- [ ] **No H1** — Document title is in Outline UI
+- [ ] **No H1** — Document title is typically shown in wiki UI
 - [ ] **No HTML tags** — All content is pure markdown
-- [ ] **Anchors use `#h-`** — e.g., `#h-section-name`
+- [ ] **Check anchor format** — Varies by platform (see adapter)
 - [ ] **Blank lines** — Around all tables, code blocks, lists
 - [ ] **Horizontal rules** — Have blank lines before AND after
 - [ ] **Code blocks** — All have language specified
 - [ ] **Links** — Descriptive text, no bare URLs
 - [ ] **Headings** — Sequential (H2 → H3 → H4), no skipping
-
----
 
 ---
 
@@ -481,13 +460,13 @@ Install the **markdownlint** extension from David Anson (5M+ installs) — lints
 **Setup Steps:**
 
 1. Open VS Code → Extensions (`Ctrl/Cmd+Shift+X`) → Search "markdownlint" → Install
-2. Export Outline page to Markdown (via API or export) → Open `.md` file → Linting activates automatically
+2. Export wiki page to Markdown (via API or export) → Open `.md` file → Linting activates automatically
 3. Fix issues: Hover wavy underlines for details; `Ctrl/Cmd + .` quick-fixes many rules
 
 **Workflow Tips:**
 
-- Use VS Code's Markdown preview (`Ctrl/Cmd+Shift+V`) alongside Outline for WYSIWYG edits
-- Sync edits back via Outline API (export/import cycle)
+- Use VS Code's Markdown preview (`Ctrl/Cmd+Shift+V`) alongside wiki for WYSIWYG edits
+- Sync edits back via wiki API (export/import cycle)
 
 ### CLI Usage
 
@@ -512,10 +491,10 @@ npx markdownlint "**/*.md"
 | **remark-lint** | JS | CI/CD pipelines, custom rules, remark ecosystem |
 | **mdformat** | Python | Pre-commit hooks, auto-formatting |
 | **textlint** | JS | Grammar + style (typos, passive voice) |
-| **Mega-Linter** | GitHub Action | All-in-one CI for repos with Outline exports |
+| **Mega-Linter** | GitHub Action | All-in-one CI for repos with wiki exports |
 | **Quickmark** | Rust (LSP) | Real-time feedback in VS Code/Neovim/JetBrains |
 
-### Outline-Specific Configuration
+### Wiki-Specific Configuration
 
 Create `.markdownlint.json` in project root or wiki export folder (VS Code auto-detects):
 
@@ -532,9 +511,9 @@ Create `.markdownlint.json` in project root or wiki export folder (VS Code auto-
 
 | Rule | Setting | Reason |
 |------|---------|--------|
-| MD013 (line length) | `code_blocks: false` | Allow long code lines; Outline wraps prose |
+| MD013 (line length) | `code_blocks: false` | Allow long code lines; wiki wraps prose |
 | MD033 (inline HTML) | `allowed_elements` | Permit `<ins>`/`<del>` if needed |
-| MD041 (first line H1) | `false` | Outline shows title in UI |
+| MD041 (first line H1) | `false` | Wiki shows title in UI |
 | MD024 (duplicate headings) | `siblings_only` | Allow same H3 under different H2s |
 | MD040 (fenced code language) | `true` | Enforce syntax highlighting |
 
