@@ -53,4 +53,3 @@ Example: `https://dev.azure.com/my-org/my-project/_workitems/edit/123`
 1. Create PAT: Azure DevOps → User Settings → Personal access tokens
 2. Grant Work Items (Read, Write) scope
 3. Configure MCP server with Azure DevOps integration
-

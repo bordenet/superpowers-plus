@@ -129,4 +129,3 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
    - Skill name and purpose
    - Example trigger scenario
    - Example output
-

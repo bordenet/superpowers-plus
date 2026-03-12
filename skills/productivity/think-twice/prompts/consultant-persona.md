@@ -82,4 +82,3 @@ Your response is successful if:
 - It's grounded in web research (cite sources)
 - It addresses the specific ask in the brief
 - It can be acted upon immediately
-

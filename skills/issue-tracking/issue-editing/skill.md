@@ -133,4 +133,3 @@ Before EVERY update:
 - **issue-authoring**: Standards for creating issues
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments
-

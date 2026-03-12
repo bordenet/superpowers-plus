@@ -647,4 +647,3 @@ Use consistent emoji for assessments:
 - **link-verification**: Verify repository links BEFORE writing (REQUIRED for Code References sections)
 - **readme-authoring**: For README.md files (different constraints)
 - **eliminating-ai-slop**: Clean, human prose (REQUIRED before pushing)
-

@@ -220,4 +220,3 @@ If tests fail after an upgrade, the correct response is:
 ## Related Tools
 
 If security fixes require budget approval or stakeholder buy-in, use [docforge-ai business-justification](https://bordenet.github.io/docforge-ai/assistant/?type=business-justification) — adversarial review scores ROI, risk quantification, and alternatives analysis.
-

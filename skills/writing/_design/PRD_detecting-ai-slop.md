@@ -800,4 +800,3 @@ Top 5 Patterns (by frequency):
 
 *Implementation: [../skills/detecting-ai-slop/SKILL.md](../skills/detecting-ai-slop/SKILL.md)*
 *Status: Implemented*
-

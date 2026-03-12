@@ -154,4 +154,3 @@ If any workflow is failing:
 ---
 
 **Remember**: When someone says "make CI green" or "fix the build," they mean the ENTIRE repository should show a healthy status, not just one specific workflow.
-

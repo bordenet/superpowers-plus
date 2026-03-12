@@ -522,4 +522,3 @@ Some wiki platforms store table column widths as **editor metadata**, NOT in the
 - [ ] Included YAML frontmatter with: document_id, title, url, deleted_at, collection_id, parent_document_id
 - [ ] **Verified backup file exists and contains content**
 - [ ] Only then called adapter's `delete_page` or `archive_page`
-

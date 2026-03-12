@@ -244,4 +244,3 @@ If Perplexity returns 401/403/5xx errors:
 6. **Broad scope** - Technical AND domain questions are valid
 7. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
 8. **Cost awareness** - Perplexity costs real money; use only when free tools fail
-

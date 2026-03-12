@@ -133,4 +133,3 @@ case "${1:-show}" in
     reset) reset_stats ;;
     *) echo "Usage: perplexity-stats.sh {add|show|reset}" >&2; exit 1 ;;
 esac
-

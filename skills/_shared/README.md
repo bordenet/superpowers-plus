@@ -11,4 +11,3 @@ Reusable components shared across multiple skills.
 ## Usage
 
 Skills can reference shared modules inline or import patterns as needed. These are not standalone skills — they don't have `skill.md` files.
-

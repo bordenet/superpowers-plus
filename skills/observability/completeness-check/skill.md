@@ -146,4 +146,3 @@ Summary:
 ---
 
 **Remember**: AI assistants leave incomplete work more often than we realize. This skill makes that work visible.
-

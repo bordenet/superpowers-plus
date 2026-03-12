@@ -44,4 +44,3 @@ Example: `https://linear.app/my-team/issue/PROJ-123`
 1. Get API key: Linear Settings → API → Personal API keys
 2. Find team key: Your Linear URL `linear.app/[team-key]/...`
 3. Configure MCP server with Linear integration
-

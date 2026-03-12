@@ -165,4 +165,3 @@ Before committing to public repo:
 ✅ Zero proprietary IP in public repository git history
 ✅ Design documents remain in private repositories
 ✅ Audit trail of verification before each commit
-

@@ -34,4 +34,3 @@ After editing ANY guidance file, run: `wc -l AGENTS.md .ai-guidance/*.md 2>/dev/
 4. Verify: each file ≤250 lines
 
 **Recovery:** If verification fails, restore from `/tmp/original.md`
-
