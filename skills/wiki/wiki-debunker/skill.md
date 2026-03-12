@@ -2,7 +2,7 @@
 name: wiki-debunker
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
-description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, Fathom transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
+description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, meeting transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
 ---
 
 # Wiki Debunker
@@ -32,10 +32,10 @@ When called by orchestrator, produce this summary:
 
 | # | Claim | Type | Suggested Source | Action |
 |---|-------|------|------------------|--------|
-| 1 | "We decided to use Telnyx in Q4 2025" | Decision + Timeline | Issue Tracker, Git | ⚠️ Find ticket/PR |
-| 2 | "Matt proposed the WebSocket approach" | Attribution | PR #47 | ⚠️ Verify author |
+| 1 | "We decided to use Vendor X in Q4 2025" | Decision + Timeline | Issue Tracker, Git | ⚠️ Find ticket/PR |
+| 2 | "Person proposed the WebSocket approach" | Attribution | PR #47 | ⚠️ Verify author |
 | 3 | "Performance improved significantly" | Vague metric | Benchmarks | ⚠️ Add numbers |
-| 4 | "Based on team discussion" | Meeting ref | Fathom | ⚠️ Find transcript |
+| 4 | "Based on team discussion" | Meeting ref | Meeting transcript | ⚠️ Find transcript |
 
 ### Verified Claims
 
@@ -90,10 +90,10 @@ Invoke when wiki content contains:
 
 | Claim Type | Required Source | How to Verify |
 |------------|-----------------|---------------|
-| Decision made | issue ticket, PR, meeting notes | Query issue tracker API, git log, Fathom |
+| Decision made | issue ticket, PR, meeting notes | Query issue tracker API, git log, meeting adapter |
 | Timeline/date | Git commits, deploy logs | `git log --since --until` |
 | Attribution | PR author, ticket assignee | Git blame, issue assignee field |
-| Quote | Meeting transcript, ticket comment | Fathom API, issue comment |
+| Quote | Meeting transcript, ticket comment | Meeting adapter, issue comment |
 | Incident reference | Incident doc, postmortem | Wiki search, git history |
 
 **If you cannot find a source, the claim is SUSPECT until verified.**
@@ -123,7 +123,7 @@ Parse wiki content for verifiable claims. Flag any statement containing:
 │ Code decision       │ PR description      │ git log    │
 │ Architecture choice │ ADR, issue ticket  │ meeting    │
 │ Timeline/shipping   │ git tags, deploys   │ Issues     │
-│ Verbal agreement    │ Fathom transcript   │ none*      │
+│ Verbal agreement    │ Meeting transcript  │ none*      │
 │ Incident details    │ postmortem doc      │ wiki hist  │
 └─────────────────────────────────────────────────────────┘
 * Verbal claims without recording = UNVERIFIABLE
@@ -143,25 +143,26 @@ git blame path/to/file.ts
 git log --since="2026-01-01" --until="2026-02-01" --oneline
 ```
 
-**issue tracker API:**
+**Issue Tracker:**
 ```
-issue tracker query: "Find tickets mentioning 'Telnyx migration'"
-issue tracker query: "Get comments on DEL-123"
+# Use your issue tracker adapter
+issue_search(query: "Find tickets mentioning 'migration'")
+issue_get_comments(issue_id: "ISSUE-123")
 ```
 
-**Azure DevOps:**
+**Repository:**
 ```
-repo_search_commits_azure-devops
-  project: "Your Project"
-  repository: "voice-service"
+# Use your repository adapter to search commits
+repo_search_commits(
+  repository: "your-service"
   searchText: "websocket refactor"
+)
 ```
 
-**Fathom (when available):**
-```bash
-curl -H "X-Api-Key: $FATHOM_API_KEY" \
-  "https://api.fathom.ai/external/v1/meetings?include_transcript=true" | \
-  jq '.items[] | .transcript[] | select(.text | test("KEYWORD"; "i"))'
+**Meeting Transcripts (if available):**
+```
+# Use your meeting transcript adapter if configured
+meeting_search(query: "KEYWORD")
 ```
 
 ### Step 4: Evaluate Match Quality
@@ -227,16 +228,18 @@ git log --merges --oneline --since="2026-01-01"
 ### PR as Decision Record
 
 PRs with descriptions are decision artifacts:
-```bash
-# Get PR info from Azure DevOps
-repo_get_pull_request_by_id_azure-devops
-  repositoryId: "voice-service"
+```
+# Use your repository adapter to get PR details
+repo_get_pull_request(
+  repository: "your-service"
   pullRequestId: 47
+)
 
-# Get PR threads (discussion)
-repo_list_pull_request_threads_azure-devops
-  repositoryId: "voice-service"
+# Get PR discussion threads
+repo_get_pull_request_threads(
+  repository: "your-service"
   pullRequestId: 47
+)
 ```
 
 ---
@@ -271,36 +274,32 @@ Decision: Use Telnyx WebSocket API [[DEL-89](https://[your-tracker]/DEL-89)]
 
 ---
 
-## Azure DevOps Verification
+## Work Item / Issue Verification
 
 Use when claims involve builds, deployments, work items, or PR decisions.
 
 ### Work Item Queries
 
 ```
-wit_get_work_item_azure-devops
-  id: 1234
-  project: "Your Project"
-
-wit_list_work_item_comments_azure-devops
-  project: "Your Project"
-  workItemId: 1234
+# Use your issue tracker adapter
+issue_get(id: 1234)
+issue_get_comments(id: 1234)
 ```
 
 ### Build/Deploy History
 
 ```
-# Search commits
-repo_search_commits_azure-devops
-  project: "Your Project"
-  repository: "voice-service"
+# Search commits using your repository adapter
+repo_search_commits(
+  repository: "your-service"
   searchText: "deploy"
+)
 
 # Find PR by branch
-repo_list_pull_requests_by_repo_or_project_azure-devops
-  project: "Your Project"
-  repositoryId: "voice-service"
-  sourceRefName: "refs/heads/feature/websocket-refactor"
+repo_list_pull_requests(
+  repository: "your-service"
+  sourceBranch: "feature/websocket-refactor"
+)
 ```
 
 ---
@@ -320,7 +319,7 @@ repo_list_pull_requests_by_repo_or_project_azure-devops
 
 | Pattern | Reality Check |
 |---------|---------------|
-| "After extensive discussion..." | Was there a meeting? Check Fathom |
+| "After extensive discussion..." | Was there a meeting? Check transcripts |
 | "The team evaluated multiple options..." | Where's the comparison doc? |
 | "Based on performance testing..." | Where are the test results? |
 | "Following best practices..." | Which practices? Cite source |
@@ -336,29 +335,23 @@ repo_list_pull_requests_by_repo_or_project_azure-devops
 
 ---
 
-## Fathom Transcript Verification
+## Meeting Transcript Verification
 
 Use when claims reference meeting discussions, verbal agreements, or spoken quotes.
 
-### API Access
+### Using Your Meeting Adapter
 
-```bash
-# Set API key (from superpowers-plus/.env or a.Technology/backups/.env)
-export FATHOM_API_KEY="your-key-here"
+If you have a meeting transcript service (like Fathom, Otter, or similar), use your adapter:
 
-# List recent meetings with transcripts
-curl -s -H "X-Api-Key: $FATHOM_API_KEY" \
-  "https://api.fathom.ai/external/v1/meetings?limit=10&include_transcript=true" | jq '.'
-
-# Search transcript for keyword (client-side filter)
-curl -s -H "X-Api-Key: $FATHOM_API_KEY" \
-  "https://api.fathom.ai/external/v1/meetings?include_transcript=true" | \
-  jq '.items[] | {title, share_url, matches: [.transcript[]? | select(.text | test("KEYWORD"; "i"))]} | select(.matches | length > 0)'
+```
+# Use your meeting transcript adapter to search
+meeting_search(query: "KEYWORD")
+meeting_list(limit: 10, include_transcript: true)
 ```
 
 ### Timestamp Deep Links
 
-Fathom supports timestamp anchors using `#t={seconds}` format:
+Many transcript services support timestamp anchors using `#t={seconds}` format:
 
 ```
 share_url#t=645  →  jumps to 10:45 in recording
@@ -372,44 +365,44 @@ Example: `00:10:45` → `10*60 + 45` = `645`
 
 **Inline:**
 ```markdown
-As discussed in the [Your Team Triage @ 10:45](https://fathom.video/share/xyz#t=645) ⏵
+As discussed in the [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
 ```
 
 **Block quote:**
 ```markdown
-> "Let's prioritize the Telnyx integration first."
-> — Matt Bordenet, [Your Team Triage @ 10:45](https://fathom.video/share/xyz#t=645) ⏵
+> "Let's prioritize the vendor integration first."
+> — Person Name, [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
 ```
 
 ### Share URL Accessibility
 
-**TESTED 2026-02-19:** Share URLs require Fathom authentication.
+Note: Meeting share URLs may require authentication.
 
 | URL Type | Behavior |
 |----------|----------|
-| `share_url` | Redirects to sign-in with share token |
-| `url` (direct) | Requires Fathom account |
+| `share_url` | May redirect to sign-in |
+| `direct_url` | Typically requires account |
 
-**Implication:** Share links work for team members with Fathom access. External readers without Fathom accounts cannot view.
+**Implication:** Share links may only work for team members with meeting service access.
 
 ### Red Flags
 
 | Signal | Action |
 |--------|--------|
-| Claim about meeting >30 days ago | May exceed Fathom retention — verify |
+| Claim about meeting >30 days ago | May exceed transcript retention — verify |
 | Quote but no transcript match | Possible fabrication — search all meetings |
-| Speaker attribution mismatch | Cross-check `speaker.display_name` in API |
+| Speaker attribution mismatch | Cross-check `speaker` field in API |
 | Meeting "discussed X" but no transcript hit | May be paraphrased or wrong meeting |
 
-### Transcript Structure
+### Transcript Structure (Example)
 
 ```json
 {
   "transcript": [
     {
-      "speaker": { "display_name": "Matt Bordenet" },
+      "speaker": { "display_name": "Person Name" },
       "timestamp": "00:10:45",
-      "text": "Let's prioritize the Telnyx integration first."
+      "text": "Let's prioritize the vendor integration first."
     }
   ]
 }
@@ -421,8 +414,8 @@ As discussed in the [Your Team Triage @ 10:45](https://fathom.video/share/xyz#t=
 
 - [ ] **Extract claims** — List all factual assertions
 - [ ] **Categorize** — Decision? Timeline? Attribution? Quote?
-- [ ] **Identify source** — Git, issue tracker, ADO, Fathom, wiki?
-- [ ] **Query source** — Use appropriate API/command
+- [ ] **Identify source** — Git, issue tracker, meeting transcript, wiki?
+- [ ] **Query source** — Use appropriate adapter/API
 - [ ] **Evaluate match** — Exact? Paraphrase? Contradiction?
 - [ ] **Add citation** — Inline link to source
 - [ ] **Flag unverified** — Mark suspect claims with ⚠️

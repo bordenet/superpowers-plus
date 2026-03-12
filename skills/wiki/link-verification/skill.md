@@ -76,7 +76,7 @@ Invoke when:
 
 **VERIFY BEFORE YOU WRITE. Evidence before assertion.**
 
-**YourOrg source code lives EXCLUSIVELY in Azure DevOps, not GitHub.**
+**AI models frequently hallucinate repository URLs. Always verify before linking.**
 
 | Pattern | Reality | Action |
 |---------|---------|--------|
@@ -182,10 +182,10 @@ Real page: `/doc/correct-page-abc123`.
 
 When adding a "Code References" section to wiki pages:
 
-1. **List repos first** — Query Azure DevOps to see what repos exist
+1. **List repos first** — Query your repository adapter to see what repos exist
 2. **Use relative paths** — `src/file.ts` not `repo/src/file.ts` (repo is in link)
 3. **Verify files exist** — Confirm file paths via API before linking
-4. **Column header = "Repository"** — Not "GitHub" (platform-agnostic naming)
+4. **Column header = "Repository"** — Platform-agnostic naming
 
 ### Template
 
@@ -223,7 +223,7 @@ When adding a "Code References" section to wiki pages:
 Before writing ANY link:
 
 1. STOP — Do not assume the repo/URL exists
-2. QUERY — Use Azure DevOps MCP or github-api to verify
+2. QUERY — Use your repository adapter or github-api to verify
 3. CONFIRM — Check exact name, case, existence
 4. LINK — Only then write the URL
 ```
