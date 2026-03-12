@@ -1,15 +1,14 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to outline"]
+triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki"]
 description: Use when creating or updating wiki pages — the default entry point for all wiki authoring. Automatically invokes de-duplication, link-verification, secret-scan, slop-detection, and fact-check as mandatory pipeline stages.
 ---
 
 # Wiki Orchestrator
 
 > **Purpose:** Enforce quality pipeline for ALL wiki authoring
-> **Platform:** Outline (see `_adapters/outline.md` for other platforms)
-> **Last Updated:** 2026-02-28
+> **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
 > **Philosophy:** Make quality control unavoidable, not optional
 
 ---
@@ -37,7 +36,7 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 - "Update the wiki page for Y"
 - "Document X in the wiki"
 - "Write wiki documentation for..."
-- Any task involving Outline wiki content creation or updates
+- Any task involving wiki content creation or updates
 
 **This skill is the DEFAULT ENTRY POINT for all wiki authoring.**
 
@@ -101,10 +100,11 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 
 ### Stage 1: De-Duplication Check
 
-Before creating ANY new page:
+Before creating ANY new page, use your adapter's search operation:
 
 ```
-search_documents_outline(query: "[page title or topic]")
+# Use your adapter's search_pages operation
+# See skills/wiki/_adapters/{platform}.md for specific tool
 ```
 
 **If matches found:**
@@ -113,7 +113,7 @@ search_documents_outline(query: "[page title or topic]")
 
 | Title | URL | Similarity |
 |-------|-----|------------|
-| Existing Page Name | /doc/slug-xyz | High |
+| Existing Page Name | /path/to/page | High |
 
 **Options:**
 1. Update existing page instead of creating new
@@ -124,10 +124,10 @@ search_documents_outline(query: "[page title or topic]")
 ### Stage 2: Content Generation
 
 Invoke `wiki-authoring` principles:
-- No H1 (Outline shows title in UI)
+- No H1 (most platforms show title in UI)
 - Semantic headings (H2 → H3 → H4)
 - Blank lines around tables, code blocks
-- Outline anchor format (`#h-section-name`)
+- Platform-specific anchor format (see adapter)
 
 ### Stage 3: Link Verification
 
@@ -137,10 +137,10 @@ Invoke `link-verification` in batch mode:
 
 | Link Type | Verification Method | On Failure |
 |-----------|---------------------|------------|
-| `/doc/slug` | `get_document_outline(id)` | ❌ BLOCK |
-| `dev.azure.com/...` | `repo_get_repo_by_name_or_id_azure-devops` | ❌ BLOCK |
-| `[your-tracker-url]` | `issue tracker search` | ⚠️ WARN |
-| `https://...` | `web-fetch` or `curl -I` | ⚠️ WARN |
+| Internal wiki links | Adapter's `get_page` | ❌ BLOCK |
+| Repository links | Repo adapter verification | ❌ BLOCK |
+| Issue tracker links | Issue adapter search | ⚠️ WARN |
+| External URLs | `web-fetch` or `curl -I` | ⚠️ WARN |
 
 **Output format:**
 ```
@@ -148,8 +148,8 @@ Invoke `link-verification` in batch mode:
 
 | Link | Type | Status |
 |------|------|--------|
-| /doc/deployment-guide | Internal | ✅ PASS |
-| /doc/nonexistent-page | Internal | ❌ FAIL |
+| /path/to/page | Internal | ✅ PASS |
+| /path/to/missing | Internal | ❌ FAIL |
 
 **Gate Status:** ❌ BLOCKED (1 broken internal link)
 ```
@@ -163,7 +163,7 @@ Apply patterns from `skills/_shared/secret-detection.md`:
 - Database URLs with credentials (`postgres://user:pass@host`)
 - Password assignments (`password: secret` or `PASSWORD=xyz`)
 - API keys (AWS `AKIA...`, OpenAI `sk-...`, GitHub `ghp_...`, Slack `xoxb-...`)
-- Outline/issue tracker tokens (`ol_api_...`, `lin_api_...`)
+- Platform-specific tokens (wiki, issue tracker, etc.)
 
 **If detected:**
 ```
@@ -231,8 +231,8 @@ Proceed? [Y/n]
 ```
 
 Then invoke `wiki-editing`:
-- `update_document_outline` for existing pages
-- `create_document_outline` for new pages
+- Use adapter's `update_page` for existing pages
+- Use adapter's `create_page` for new pages
 
 ---
 

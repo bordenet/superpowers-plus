@@ -7,36 +7,23 @@ description: Use when editing wiki pages, pushing content to wiki, or managing w
 
 # Wiki Editing
 
-> **Platform:** See `skills/wiki/_adapters/` for platform-specific configuration.
-> **Currently supported:** Outline (more coming)
+> **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration (Outline, Notion, Confluence, etc.)
 
 ## Setup
 
 ### Required Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OUTLINE_API_TOKEN` | API token for Outline wiki | `ol_api_xxxxxxxxxxxx` |
-| `OUTLINE_BASE_URL` | Your Outline instance URL (optional) | `https://wiki.example.com` |
+| Variable | Description |
+|----------|-------------|
+| `WIKI_PLATFORM` | Your wiki platform: `outline`, `notion`, `confluence` |
 
-### Getting Your API Token
-
-1. Log into your Outline wiki instance
-2. Go to **Settings** → **API** (or visit `/settings/tokens`)
-3. Click **Create API Token**
-4. Copy the token (starts with `ol_api_`)
+**Platform-specific variables:** See your adapter file in `skills/wiki/_adapters/` for required tokens and configuration.
 
 ### Configuration
 
-Add to your `.env` file:
-
-```bash
-OUTLINE_API_TOKEN=ol_api_your_token_here
-# Optional: set your Outline wiki base URL
-OUTLINE_BASE_URL=https://your-wiki.example.com
-```
-
-> **See also:** `skills/wiki/_adapters/outline.md` for full platform configuration.
+1. Set `WIKI_PLATFORM` environment variable
+2. Configure platform-specific tokens per your adapter
+3. See adapter file for MCP tools and API endpoints
 
 ---
 
@@ -80,7 +67,7 @@ These phrases invoke THIS skill directly, bypassing orchestrator:
 
 | Phrase | Risk |
 |--------|------|
-| "push to outline" | Skips all quality gates |
+| "push to wiki" | Skips all quality gates |
 | "edit wiki" | Skips all quality gates |
 | "update wiki page" | May skip quality gates |
 | "create wiki document" | Skips de-dup check |
@@ -108,31 +95,29 @@ If user chooses to proceed with bypass, log as potential miss:
 <EXTREMELY_IMPORTANT>
 ## 🎯 PREFER MCP TOOLS OVER CURL
 
-You have Outline MCP tools available. **ALWAYS use MCP tools first** — they handle authentication, error handling, and JSON escaping automatically.
+**ALWAYS use your platform's MCP tools first** — they handle authentication, error handling, and JSON escaping automatically.
 
-### MCP Tools Available
+### Generic Operations → Platform MCP Tools
 
-| MCP Tool | Purpose | Use Instead Of |
-|----------|---------|----------------|
-| `get_document_outline` | Fetch document content | `curl documents.info` |
-| `update_document_outline` | Update document | `curl documents.update` |
-| `create_document_outline` | Create new document | `curl documents.create` |
-| `search_documents_outline` | Search documents | `curl documents.search` |
-| `list_documents_outline` | List documents | `curl documents.list` |
-| `list_collections_outline` | List collections | `curl collections.list` |
-| `ask_documents_outline` | Natural language query | N/A |
-| `sync_to_local_outline` | Download wiki to local | N/A |
-| `push_document_outline` | Push local file to wiki | N/A |
-| `sync_status_outline` | Check local vs wiki | N/A |
+| Operation | Purpose | See Adapter For |
+|-----------|---------|-----------------|
+| `get_page` | Fetch document content | Platform-specific tool |
+| `update_page` | Update document | Platform-specific tool |
+| `create_page` | Create new document | Platform-specific tool |
+| `search_pages` | Search documents | Platform-specific tool |
+| `list_pages` | List documents | Platform-specific tool |
+| `delete_page` | Archive/delete document | Platform-specific tool |
 
-### When to Use MCP vs Curl
+**See `skills/wiki/_adapters/{platform}.md` for your platform's MCP tool mappings.**
+
+### When to Use MCP vs API
 
 | Scenario | Use |
 |----------|-----|
 | **Default** | MCP tools |
-| MCP tool fails or unavailable | Curl fallback |
+| MCP tool fails or unavailable | API fallback |
 | Complex multi-step operations | MCP tools |
-| Debugging API issues | Curl (for raw response) |
+| Debugging API issues | API (for raw response) |
 
 **Violating this preference wastes time on JSON escaping and auth handling.**
 </EXTREMELY_IMPORTANT>
@@ -163,20 +148,17 @@ WIKI_ALLOWED_ROOTS:
 
 **Before ANY write operation:**
 
-1. Get target document info via `get_document_outline(id)` or `documents.info`
+1. Get target document info via your adapter's `get_page` operation
 2. Check if document ID OR any parent in the chain matches an allowed root
 3. If **IN SCOPE** → proceed with write
 4. If **OUT OF SCOPE** → STOP and display warning (see below)
 
 ### How to Check Parent Chain
 
-```bash
-# Fetch document and check collectionId / parentDocumentId
-curl -s -X POST "https://your-wiki.example.com/api/documents.info" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "TARGET_DOC_ID"}' | jq '{id: .data.id, url: .data.url, collectionId: .data.collectionId, parentDocumentId: .data.parentDocumentId}'
-```
+Use your adapter's `get_page` operation to fetch document metadata including:
+- Document ID
+- Collection/space ID
+- Parent document ID
 
 If `collectionId` or any `parentDocumentId` in the chain matches an allowed root → IN SCOPE.
 
@@ -186,7 +168,7 @@ If `collectionId` or any `parentDocumentId` in the chain matches an allowed root
 ⛔ WIKI WRITE BLOCKED — Outside permitted scope
 
 Target: [document title/URL]
-Reason: This document is not within Matt's allowed wiki areas.
+Reason: This document is not within your allowed wiki areas.
 
 Allowed areas:
 - Personal (your name)
@@ -199,17 +181,17 @@ To proceed, the user must explicitly confirm OR edit the page manually in the UI
 
 ### Read Operations Are NOT Restricted
 
-This scope restriction applies ONLY to:
-- `documents.update` / `update_document_outline`
-- `documents.create` / `create_document_outline`
-- `documents.delete`
-- `documents.move` / `move_document_outline`
+This scope restriction applies ONLY to write operations:
+- `update_page`
+- `create_page`
+- `delete_page`
+- `move_page`
 
-**Read operations (`documents.info`, `get_document_outline`, `search_documents_outline`, etc.) remain unrestricted.**
+**Read operations (`get_page`, `search_pages`, `list_pages`, etc.) remain unrestricted.**
 
 ### Why This Exists
 
-On 2026-02-16, wiki cleanup accidentally affected pages outside Matt's ownership. This restriction ensures AI agents cannot accidentally modify other teams' documentation.
+Wiki cleanup can accidentally affect pages outside your ownership. This restriction ensures AI agents cannot accidentally modify other teams' documentation.
 
 **Violating this restriction = STOP and ask for explicit user confirmation.**
 </EXTREMELY_IMPORTANT>
@@ -219,9 +201,9 @@ On 2026-02-16, wiki cleanup accidentally affected pages outside Matt's ownership
 <EXTREMELY_IMPORTANT>
 ## ALWAYS Download Before Editing
 
-Before making ANY edit to an Outline wiki page, you MUST:
+Before making ANY edit to a wiki page, you MUST:
 
-1. **Fetch the current document state** via `get_document_outline` MCP tool (or `documents.info` API)
+1. **Fetch the current document state** via your adapter's `get_page` operation
 2. **Use that fetched content as the base** for all edits
 3. **Always verify** local temp files and memory reflect current wiki state
 
@@ -235,13 +217,12 @@ This prevents race conditions when multiple machines/agents are editing wiki pag
 ## ✅ Preferred Pattern (MCP Tools)
 
 ```
-# Step 1: Fetch current state
-get_document_outline(id: "document-id-or-url-slug")
+# Step 1: Fetch current state using your adapter's get_page operation
+# See skills/wiki/_adapters/{platform}.md for specific tool
 
 # Step 2: Edit content (use save-file to create temp file if needed)
 
-# Step 3: Push update
-update_document_outline(documentId: "document-uuid", text: "new content", publish: true)
+# Step 3: Push update using your adapter's update_page operation
 ```
 
 **Benefits:**
@@ -252,26 +233,20 @@ update_document_outline(documentId: "document-uuid", text: "new content", publis
 
 ---
 
-## 🔄 Fallback Pattern (Curl)
+## 🔄 Fallback Pattern (API)
 
-Only use if MCP tools are unavailable or failing:
+Only use if MCP tools are unavailable or failing. See your adapter for API endpoints:
 
 ```bash
-# Step 1: ALWAYS fetch current state first
-curl -s -X POST "https://your-wiki.example.com/api/documents.info" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "DOCUMENT_ID_OR_URL_SLUG"}' | jq -r '.data.text' > /tmp/wiki-current.md
+# Generic API fallback pattern - see your adapter for specific endpoints
 
-# Step 2: Edit /tmp/wiki-current.md (or create new temp file based on it)
+# Step 1: ALWAYS fetch current state first
+# Use your adapter's get_page API endpoint
+
+# Step 2: Edit the content locally
 
 # Step 3: Push the updated content
-CONTENT=$(cat /tmp/wiki-current.md)
-ESCAPED_CONTENT=$(echo "$CONTENT" | jq -Rs .)
-curl -s -X POST "https://your-wiki.example.com/api/documents.update" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"id\": \"DOCUMENT_UUID\", \"text\": $ESCAPED_CONTENT, \"publish\": true}"
+# Use your adapter's update_page API endpoint
 ```
 
 ---
@@ -297,31 +272,22 @@ EOF
 
 ---
 
-## Outline API Reference (for curl fallback)
+## Platform-Specific API Reference
 
-**Base URL:** `https://your-wiki.example.com/api`
+**See your adapter file in `skills/wiki/_adapters/` for:**
+- Base URL format
+- Authentication headers
+- API endpoints
+- Anchor format (varies by platform)
 
-### Key Endpoints
-
-| Endpoint | Purpose | MCP Equivalent |
-|----------|---------|----------------|
-| `documents.info` | Fetch document content and metadata | `get_document_outline` |
-| `documents.update` | Update document content | `update_document_outline` |
-| `documents.create` | Create new document | `create_document_outline` |
-| `documents.move` | Move document to new parent | `move_document_outline` |
-
-### Anchor Format
-
-Outline uses `#h-section-name` format for anchors (not standard markdown `#section-name`).
-
-Example TOC entry:
+Example TOC entry (syntax varies by platform):
 ```markdown
-1. [Section Name](#h-section-name)
+1. [Section Name](#section-name)
 ```
 
 Back-to-top link:
 ```markdown
-[↑ Back to top](#h-table-of-contents)
+[↑ Back to top](#table-of-contents)
 ```
 
 ---
@@ -334,11 +300,6 @@ When editing wiki pages, use descriptive temp files:
 /tmp/wiki-<descriptive-name>.md
 ```
 
-Or in workspace:
-```
-a.Technology/OutlineWiki/_temp_<descriptive-name>.md
-```
-
 **Always clean up temp files** after successfully pushing to the wiki.
 
 ---
@@ -347,7 +308,7 @@ a.Technology/OutlineWiki/_temp_<descriptive-name>.md
 
 ### ❌ DO NOT Include H1 Title
 
-Outline displays the document title in the UI. **Never start content with `# Title`** — it's redundant.
+Most wiki platforms display the document title in the UI. **Never start content with `# Title`** — it's redundant.
 
 **Wrong:**
 ```markdown
@@ -371,52 +332,33 @@ Start with metadata, intro paragraph, or directly with `## First Section`.
 ## 🚨 CRITICAL: Check for Duplicates Before Creating
 
 <EXTREMELY_IMPORTANT>
-**BEFORE calling `create_document_outline`, ALWAYS check if a page with the same title already exists.**
+**BEFORE calling your adapter's `create_page` operation, ALWAYS check if a page with the same title already exists.**
 
-### ⚠️ Real Failure: 2026-02-10
+### ⚠️ Real Failure
 
-I created **5 duplicate "Azure DevOps MCP Server" pages** under `superpowers-plus-tools` because I didn't check first. 4 had to be manually deleted.
+Duplicate pages were created because the check wasn't performed first. Multiple pages had to be manually deleted.
 
 **This is not theoretical — it happened. Follow this pattern EVERY TIME.**
 
-### MCP Pattern (Required)
+### Pattern (Required)
 
 ```
-# Step 1: List children of parent document
-list_documents_outline(parentDocumentId: "parent-uuid")
+# Step 1: List children of parent document using your adapter's list_pages operation
 
 # Step 2: Check if any child has the same title
-# - If title exists → use update_document_outline instead
-# - If title doesn't exist → safe to call create_document_outline
-```
-
-### Curl Fallback (if MCP unavailable)
-
-```bash
-PARENT_ID="parent-document-uuid"
-TITLE="My New Page Title"
-
-EXISTING=$(curl -s -X POST "https://your-wiki.example.com/api/documents.list" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"parentDocumentId\": \"$PARENT_ID\"}" | jq -r ".data[] | select(.title == \"$TITLE\") | .id")
-
-if [ -n "$EXISTING" ]; then
-  echo "Page already exists: $EXISTING — use update, not create"
-else
-  echo "Safe to create"
-fi
+# - If title exists → use update_page instead
+# - If title doesn't exist → safe to call create_page
 ```
 
 ### Why This Matters
 
 | Problem | Consequence |
 |---------|-------------|
-| Outline allows duplicate titles | Multiple pages with same name under same parent |
+| Many wikis allow duplicate titles | Multiple pages with same name under same parent |
 | Multiple agents/sessions | Race condition creates duplicates |
 | No automatic deduplication | Manual cleanup required |
 
-**This check is MANDATORY before every `create_document_outline` call. No exceptions.**
+**This check is MANDATORY before every `create_page` call. No exceptions.**
 </EXTREMELY_IMPORTANT>
 
 ---
@@ -424,61 +366,44 @@ fi
 ## 🛡️ MANDATORY Pre-Deletion Backup
 
 <EXTREMELY_IMPORTANT>
-**Before calling `documents.delete` or `documents.archive`, you MUST create a local backup.**
+**Before calling your adapter's `delete_page` or `archive_page` operation, you MUST create a local backup.**
 
-### ⚠️ Real Failure: 2026-02-16
+### ⚠️ Real Failure
 
-Both "Rules of Engagement (ROE)" pages were accidentally deleted during duplicate cleanup. While Outline's soft-delete allowed recovery via `documents.restore`, **we should never rely on trash retention**.
+Pages were accidentally deleted during duplicate cleanup. While some platforms support soft-delete recovery, **you should never rely on trash retention**.
 
 **This is not theoretical — it happened. Follow this pattern EVERY TIME before deleting.**
 
 ### Backup Directory
 
-Configure a backup directory that persists across sessions. Examples:
+Configure a backup directory that persists across sessions:
 
 ```bash
-# Option 1: Home directory (recommended)
-$HOME/.outline-backups/
-
-# Option 2: Workspace-relative
-./wiki-backups/
+# Home directory (recommended)
+$HOME/.wiki-backups/
 ```
 
 **Important:** Do not use temporary directories (`/tmp/`) — backups must survive system restarts.
 
 ### Required Steps (MANDATORY)
 
-**Step 1: Fetch full document content**
-
-```
-# MCP
-get_document_outline(id: "document-id")
-
-# Curl fallback
-curl -s -X POST "https://your-wiki.example.com/api/documents.info" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "DOCUMENT_ID"}' | jq '.data'
-```
+**Step 1: Fetch full document content using your adapter's `get_page` operation**
 
 **Step 2: Save backup file with YAML frontmatter**
 
 Filename: `{YYYY-MM-DD}_{document-id}_{url-slug}.md`
 
-Example: `2026-02-16_2e45549a-c351-4f1d-9dab-b9d3f2639ff9_example-page-abc123xyz.md`
-
 **Step 3: Include YAML frontmatter header**
 
 ```yaml
 ---
-document_id: "2e45549a-c351-4f1d-9dab-b9d3f2639ff9"
-title: "Rules of Engagement (ROE)"
-url: "/doc/example-page-abc123xyz"
-deleted_at: "2026-02-16T21:15:05.607Z"
-collection_id: "81283145-644b-4f42-99a7-90018816c6c8"
+document_id: "uuid-here"
+title: "Page Title"
+url: "/path/to/page"
+deleted_at: "ISO-timestamp"
+collection_id: "collection-uuid"
 parent_document_id: null
-created_by: "Zach Nielsen"
-backup_reason: "Pre-deletion backup before duplicate cleanup"
+backup_reason: "Pre-deletion backup"
 ---
 
 [Original document content here]
@@ -486,72 +411,19 @@ backup_reason: "Pre-deletion backup before duplicate cleanup"
 
 **Step 4: Verify backup file exists BEFORE proceeding**
 
-```bash
-# Confirm backup was written successfully
-ls -la "a.Technology/OutlineWiki/_deleted_backups/{filename}.md"
-cat "a.Technology/OutlineWiki/_deleted_backups/{filename}.md" | head -20
-```
-
-**Step 5: Only THEN call delete/archive**
-
-```
-# MCP (if available)
-# Note: No MCP delete tool exists — use curl
-
-# Curl
-curl -s -X POST "https://your-wiki.example.com/api/documents.delete" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "DOCUMENT_ID"}'
-```
+**Step 5: Only THEN call your adapter's `delete_page` operation**
 
 ### Recovery Procedure
 
 If an accidentally deleted page needs to be restored:
 
-**Option 1: Use Outline's Trash (if still available)**
-
-```bash
-curl -s -X POST "https://your-wiki.example.com/api/documents.restore" \
-  -H "Authorization: Bearer $OUTLINE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "DOCUMENT_ID"}'
-```
+**Option 1: Use your platform's trash/restore feature (if available)**
 
 **Option 2: Recreate from Backup File**
 
-```bash
-# 1. Read backup file
-cat "a.Technology/OutlineWiki/_deleted_backups/{filename}.md"
-
-# 2. Extract content (skip YAML frontmatter)
-# 3. Call documents.create with preserved content and metadata
-```
-
-```
-create_document_outline(
-  title: "[from frontmatter]",
-  text: "[content after frontmatter]",
-  collectionId: "[from frontmatter]",
-  parentDocumentId: "[from frontmatter, if not null]",
-  publish: true
-)
-```
-
-### What Gets Preserved
-
-| Field | Source |
-|-------|--------|
-| Document ID (original) | YAML frontmatter |
-| Title | YAML frontmatter |
-| URL slug | YAML frontmatter |
-| Collection | YAML frontmatter |
-| Parent document | YAML frontmatter |
-| Full content | Body after frontmatter |
-| Deletion timestamp | YAML frontmatter |
-| Creator | YAML frontmatter |
-
-**Note:** Restoring via `documents.create` generates a NEW document ID. The original URL slug will NOT be preserved.
+1. Read backup file
+2. Extract content (skip YAML frontmatter)
+3. Call your adapter's `create_page` operation with preserved content
 
 ### Deletion Without Backup = Policy Violation
 
@@ -567,34 +439,22 @@ create_document_outline(
 
 ---
 
-## ⚠️ Table Column Widths Are Lost on API Update
+## ⚠️ Table Column Widths May Be Lost on API Update
 
 <EXTREMELY_IMPORTANT>
-Outline stores table column widths as **ProseMirror editor metadata**, NOT in the markdown text. When you push content via the API, **all custom column widths are reset to auto**.
+Some wiki platforms store table column widths as **editor metadata**, NOT in the markdown text. When you push content via the API, **custom column widths may be reset**.
 
-**The API only accepts the `text` field (markdown) — no width metadata is exposed or accepted.**
+### Before Updating Any Page with Tables
 
-### Before Updating Any Page
-
-1. **Warn the user** that custom table formatting will be lost
+1. **Warn the user** that custom table formatting may be lost
 2. **Ask for confirmation** before proceeding with the update
-3. **After update**, inform user they may need to re-adjust column widths in the Outline UI
+3. **After update**, inform user they may need to re-adjust column widths in the UI
 
 ### Standard Warning Message
 
-Use this before any `documents.update` call:
+> ⚠️ **Formatting Warning:** Pushing content via API may reset custom table column widths. After this update, you may need to re-adjust column widths manually. Proceed?
 
-> ⚠️ **Formatting Warning:** Pushing content via API will reset any custom table column widths you've set in the Outline UI. After this update, you may need to re-adjust column widths manually. Proceed?
-
-### What Gets Lost
-
-| Preserved (in markdown) | Lost (editor metadata) |
-|-------------------------|------------------------|
-| Table content | Column widths |
-| Cell alignment (`|:---|`) | Drag-resized columns |
-| Row/column count | Visual proportions |
-
-**This is a limitation of Outline's architecture, not a bug.**
+**Check your adapter documentation for platform-specific formatting limitations.**
 </EXTREMELY_IMPORTANT>
 
 ---
@@ -602,28 +462,26 @@ Use this before any `documents.update` call:
 ## Checklist
 
 ### Before Creating New Pages
-- [ ] 🚨 **FIRST: Called `list_documents_outline(parentDocumentId)` to check for duplicates**
+- [ ] 🚨 **FIRST: Used adapter's `list_pages` to check for duplicates**
 - [ ] Confirmed no existing page has the same title
 - [ ] 🔒 **SECRET SCAN** — Scanned content for credentials (see below)
-- [ ] Only then called `create_document_outline`
+- [ ] Only then called adapter's `create_page`
 
 ### Before Editing/Pushing Any Wiki Content
-- [ ] **Used MCP tools** (not curl) unless MCP unavailable
-- [ ] Fetched current document state via `get_document_outline`
+- [ ] **Used MCP tools** (not API) unless MCP unavailable
+- [ ] Fetched current document state via adapter's `get_page`
 - [ ] Used fetched content as base for edits (not memory or stale local file)
 - [ ] Verified document ID/UUID is correct
-- [ ] **Content does NOT start with `# Title`** (Outline shows title in UI)
+- [ ] **Content does NOT start with `# Title`** (most platforms show title in UI)
 - [ ] 🔒 **SECRET SCAN** — Scanned content for credentials (see below)
 - [ ] **Warned user about table column width loss** (if page has tables)
 - [ ] 🔗 **VERIFIED ALL LINKS** (see below)
-- [ ] Pushed updated content via `update_document_outline`
+- [ ] Pushed updated content via adapter's `update_page`
 - [ ] Cleaned up temp files
 
 ### 🔒 Secret Detection (MANDATORY)
 
 <EXTREMELY_IMPORTANT>
-
-**Security Incident 2026-02-24:** SQL Server credentials were published to wiki. **This MUST NEVER happen again.**
 
 **Before pushing ANY wiki content, scan for secrets:**
 
@@ -635,10 +493,8 @@ Use this before any `documents.update` call:
 
 **Safe alternatives:**
 - Environment variable: `${DB_PASSWORD}`
-- Redacted marker: `[REDACTED: production SQL password]`
+- Redacted marker: `[REDACTED: production password]`
 - Placeholder: `<YOUR_API_KEY_HERE>`
-
-**MCP Hard Block (v5.9.0+):** The Outline MCP server will **automatically reject** content containing secrets. This is the last line of defense — catch secrets BEFORE hitting this block.
 
 **See:** `_shared/secret-detection.md` for full pattern list.
 
@@ -652,20 +508,18 @@ Use this before any `documents.update` call:
 
 | Link Type | How to Verify |
 |-----------|---------------|
-| Internal wiki (`/doc/slug`) | `documents.info` API — check `.ok == true` |
+| Internal wiki links | Use adapter's `get_page` to verify page exists |
 | External URLs | `curl -s -o /dev/null -w "%{http_code}"` — check 200/302 |
-| Azure DevOps repos | `repo_get_repo_by_name_or_id_azure-devops` |
+| Repository links | Use your repo adapter to verify repo exists |
 
-**Invoke `superpowers:link-verification` skill if adding Code References or multiple links.**
-
-**Incident 2026-02-20:** Hallucinated `/doc/example-page-xyz789` — caught by USER, not agent.
+**Invoke `superpowers:link-verification` skill if adding code references or multiple links.**
 
 </EXTREMELY_IMPORTANT>
 
 ### Before Deleting/Archiving Pages
-- [ ] 🛡️ **FIRST: Fetched full document content via `get_document_outline`**
-- [ ] Created backup file at `a.Technology/OutlineWiki/_deleted_backups/{YYYY-MM-DD}_{id}_{slug}.md`
+- [ ] 🛡️ **FIRST: Fetched full document content via adapter's `get_page`**
+- [ ] Created backup file at `$HOME/.wiki-backups/{YYYY-MM-DD}_{id}_{slug}.md`
 - [ ] Included YAML frontmatter with: document_id, title, url, deleted_at, collection_id, parent_document_id
 - [ ] **Verified backup file exists and contains content**
-- [ ] Only then called `documents.delete` or `documents.archive`
+- [ ] Only then called adapter's `delete_page` or `archive_page`
 

@@ -41,8 +41,8 @@ When called by orchestrator, produce this summary:
 
 | # | Claim | Source | Citation |
 |---|-------|--------|----------|
-| 1 | Telnyx for telephony | [DEL-89]([your-tracker-url]) | ✅ |
-| 2 | Deepgram for STT | [PR #52](dev.azure.com/...) | ✅ |
+| 1 | Vendor A for telephony | [TICKET-89]([your-tracker-url]) | ✅ |
+| 2 | Vendor B for STT | [PR #52]([your-repo-url]) | ✅ |
 | ... | ... | ... | ... |
 
 **Gate Status:** ⚠️ WARNING (4 uncited claims)
@@ -177,13 +177,13 @@ curl -H "X-Api-Key: $FATHOM_API_KEY" \
 
 **Inline citation format:**
 ```markdown
-We decided to use Telnyx for telephony [[DEL-89](https://[your-tracker]/DEL-89)].
+We decided to use Vendor A for telephony [[TICKET-89](https://[your-tracker]/TICKET-89)].
 ```
 
 **Block citation for key decisions:**
 ```markdown
-> "Let's go with Telnyx — their WebSocket API is cleaner."
-> — Matt Bordenet, [PR #47](https://dev.azure.com/YourOrg/Your-Project/_git/telephony/pullrequest/47), 2026-01-15
+> "Let's go with Vendor A — their WebSocket API is cleaner."
+> — Team Member, [PR #47]([your-repo-url]/pullrequest/47), 2026-01-15
 ```
 
 ---

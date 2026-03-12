@@ -7,8 +7,7 @@ description: Use when scanning wiki pages for exposed secrets, after security in
 
 # Wiki Secret Audit
 
-> **Platform:** Outline (see `_adapters/outline.md` for other platforms)
-> **Security Incident 2026-02-24:** SQL Server credentials were published to wiki.
+> **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
 > This skill enables retroactive scanning of existing wiki pages for exposed secrets.
 
 ## When to Use
@@ -25,24 +24,24 @@ Invoke this skill when:
 
 ### Step 1: Define Scope
 
-Determine which pages to scan:
+Determine which pages to scan using your adapter's operations:
 
 ```
 # Option A: Single page
-get_document_outline(id: "page-id-or-slug")
+# Use adapter's get_page operation
 
 # Option B: Collection (all pages)
-list_documents_outline(collectionId: "collection-id")
+# Use adapter's list_pages operation
 
 # Option C: Search by keyword (high-risk content)
-search_documents_outline(query: "password OR connection string OR api key")
+# Use adapter's search_pages operation with query: "password OR connection string OR api key"
 ```
 
 ### Step 2: Fetch and Scan Each Page
 
 For each page in scope:
 
-1. **Fetch content** via `get_document_outline(id)`
+1. **Fetch content** via adapter's `get_page` operation
 2. **Search for secret patterns** (see patterns below)
 3. **Log findings** in the report format below
 
@@ -104,9 +103,7 @@ Bearer\s+[A-Za-z0-9_-]{20,}
 # AWS Keys
 AKIA[0-9A-Z]{16}
 
-# Known Service Tokens
-ol_api_[A-Za-z0-9]{20,}     # Outline
-lin_api_[A-Za-z0-9]{20,}    # Issue tracker
+# Known Service Tokens (add your platform-specific patterns)
 sk-[A-Za-z0-9]{32,}         # OpenAI
 gh[pousr]_[A-Za-z0-9]{30,}  # GitHub
 xox[baprs]-[A-Za-z0-9-]{10,} # Slack
@@ -151,6 +148,5 @@ When secrets are found:
 ## Related Resources
 
 - **Shared Module:** `skills/_shared/secret-detection.md`
-- **MCP Scanner:** `mcp-servers/outline/src/utils/secretScanner.ts`
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
 
