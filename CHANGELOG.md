@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-12
+
+### Added
+- Full end-to-end automated version propagation
+  - Version bump in `install.sh` triggers complete automation chain
+  - Standalone marketplace auto-updates via `repository_dispatch`
+
+### Fixed
+- Marketplace workflow registration (GitHub quirk requiring successful run)
+- YAML syntax error in marketplace commit message
+
 ## [2.1.2] - 2026-03-12
 
 ### Fixed
