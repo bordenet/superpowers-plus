@@ -105,8 +105,8 @@ rm -rf ~/.config/opencode/superpowers
 - Wiki: wiki-authoring, wiki-verify, link-verification
 - Issue Tracking: issue-authoring, issue-link-verification
 - Security: secret-detection, public-repo-ip-audit
-- TypeScript: TS-specific patterns
-- Writing: AI slop detection
+- Writing: AI slop detection, professional language audit
+- Engineering: pre-commit gates, blast radius checks
 
 ## Getting Help
 
