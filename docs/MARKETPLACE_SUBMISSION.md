@@ -6,14 +6,14 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| `.claude-plugin/plugin.json` exists | ✅ PASS | Created with v2.4.0 |
+| `.claude-plugin/plugin.json` exists | ✅ PASS | Created with v2.4.1 |
 | `plugin.json` has required fields | ✅ PASS | name, description, version, author |
 | `plugin.json` NO category/source keys | ✅ PASS | Avoided known bug |
 | `components.skills` declared | ✅ PASS | Points to `skills/` |
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 41/41 skills validated |
+| Skills have SKILL.md with frontmatter | ✅ PASS | 36/36 skills validated |
 
 ## Draft Submission
 
@@ -24,10 +24,10 @@
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 39 skills for wiki, issue tracking, TypeScript, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 36 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 41 domain skills across 10 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
@@ -36,12 +36,12 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 41 domain skills 
 **Additional Domains:**
 - Wiki management (7 skills): authoring, editing, link verification, secret scanning
 - Issue tracking (5 skills): Linear/GitHub/Jira/Azure DevOps adapters
-- TypeScript (5 skills): strict mode migration, complexity refactoring, Vitest patterns
 - Engineering (5 skills): pre-commit gates, blast radius checks, PR review
-- Security (2 skills): CVE scanning, public repo IP audit
-- Observability (4 skills): skill firing tracking, completeness checks
-- Research (2 skills): Perplexity integration
 - Productivity (5 skills): TODO management, style enforcement
+- Observability (4 skills): skill firing tracking, completeness checks
+- Security (2 skills): CVE scanning, public repo IP audit
+- Research (2 skills): Perplexity integration
+- Experimental (1 skill): self-prompting
 
 ### Installation Command
 ```
@@ -71,8 +71,8 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 39 skills for wiki, issue tracking, TypeScript, security",
-     "version": "2.4.0",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 36 skills for wiki, issue tracking, security",
+     "version": "2.4.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "source": "https://github.com/bordenet/superpowers-plus.git",
      "author": {

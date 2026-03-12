@@ -1,6 +1,6 @@
 {
   "name": "superpowers-plus-marketplace",
-  "description": "Marketplace for superpowers-plus: AI slop detection/elimination plus 39 skills for wiki, issue tracking, TypeScript, security",
+  "description": "Marketplace for superpowers-plus: AI slop detection/elimination plus 36 skills for wiki, issue tracking, security",
   "owner": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"
@@ -14,8 +14,8 @@
     },
     {
       "name": "superpowers-plus",
-      "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR loop) plus wiki, issue tracking, TypeScript, security skills",
-      "version": "2.4.0",
+      "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR loop) plus wiki, issue tracking, security skills",
+      "version": "2.4.1",
       "source": "./"
     }
   ]
