@@ -1,0 +1,111 @@
+# GitHub Actions workflow for version synchronization and auto-tagging
+# Triggers when install.sh is modified on main branch
+# 1. Syncs VERSION to plugin.json and marketplace.json
+# 2. Creates git tag if it doesn't exist
+# 3. Tag creation triggers release.yml workflow
+
+name: Version Sync & Auto-Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'install.sh'
+
+permissions:
+  contents: write
+
+jobs:
+  version-sync:
+    name: Sync Versions & Tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from install.sh
+        id: version
+        run: |
+          VERSION=$(grep '^VERSION=' install.sh | cut -d'"' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Check if tag already exists
+        id: tag_check
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION already exists"
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION does not exist"
+          fi
+
+      - name: Sync version to plugin.json
+        if: steps.tag_check.outputs.TAG_EXISTS == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          # Update plugin.json
+          if [ -f ".claude-plugin/plugin.json" ]; then
+            jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > tmp.json
+            mv tmp.json .claude-plugin/plugin.json
+            echo "Updated .claude-plugin/plugin.json to $VERSION"
+          fi
+          
+          # Update marketplace.json (superpowers-plus entry only)
+          if [ -f ".claude-plugin/marketplace.json" ]; then
+            jq --arg v "$VERSION" '(.plugins[] | select(.name == "superpowers-plus")).version = $v' \
+              .claude-plugin/marketplace.json > tmp.json
+            mv tmp.json .claude-plugin/marketplace.json
+            echo "Updated .claude-plugin/marketplace.json to $VERSION"
+          fi
+
+      - name: Commit version sync
+        if: steps.tag_check.outputs.TAG_EXISTS == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          # Check if there are changes to commit
+          if git diff --quiet .claude-plugin/; then
+            echo "No version changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .claude-plugin/
+            git commit -m "chore: sync version $VERSION to plugin files [skip ci]"
+            git push
+            echo "Committed version sync"
+          fi
+
+      - name: Create and push tag
+        if: steps.tag_check.outputs.TAG_EXISTS == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+          echo "Created and pushed tag v$VERSION"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          TAG_EXISTS="${{ steps.tag_check.outputs.TAG_EXISTS }}"
+          
+          echo "## Version Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$TAG_EXISTS" == "true" ]; then
+            echo "- **Status:** Tag v$VERSION already exists, no action taken" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status:** Synced versions and created tag v$VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- **Next:** release.yml workflow will create GitHub Release" >> $GITHUB_STEP_SUMMARY
+          fi
+
