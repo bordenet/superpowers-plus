@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "superpowers-plus": {
+      "command": "node",
+      "args": ["./mcp/superpowers-mcp.js"]
+    }
+  }
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "superpowers-plus-mcp",
+  "version": "2.4.0",
+  "description": "MCP server exposing superpowers-plus skills as tools for Claude-compatible clients",
+  "type": "module",
+  "main": "superpowers-mcp.js",
+  "scripts": {
+    "start": "node superpowers-mcp.js",
+    "test": "node smoke-test.js"
+  },
+  "keywords": [
+    "mcp",
+    "superpowers",
+    "claude",
+    "skills",
+    "slop-detection"
+  ],
+  "author": "Matt Bordenet <bordenet@users.noreply.github.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1"
+  }
+}
+

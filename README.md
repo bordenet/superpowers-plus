@@ -1,8 +1,8 @@
 # superpowers-plus
 
-Skills for AI coding assistants: wiki management, issue tracking, security scanning, TypeScript tooling, and prose quality.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 39 skills for wiki management, issue tracking, TypeScript tooling, and security.
 
-**Requires [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically.
+**Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
 
 ## Quick Start
 
@@ -31,18 +31,48 @@ cd superpowers-plus
 
 ## Installation
 
-### Claude Code
+### Claude Code (Direct)
 
 ```bash
-/plugin marketplace add bordenet/superpowers-plus-marketplace
-/plugin install superpowers@superpowers-plus-marketplace
-/plugin install superpowers-plus@superpowers-plus-marketplace
+/plugin install https://github.com/bordenet/superpowers-plus
 ```
 
-### Cursor
+This installs obra/superpowers automatically as a dependency.
 
-```text
-/add-plugin superpowers-plus
+### Claude Code (Marketplace)
+
+Once accepted into the official marketplace:
+```bash
+/plugin install superpowers-plus@claude-plugin-directory
+```
+
+### MCP Server (Any Claude-Compatible Client)
+
+For clients supporting Model Context Protocol:
+
+1. Install dependencies:
+   ```bash
+   cd mcp && npm install
+   ```
+
+2. Add to your client's MCP config (e.g., `~/.claude/settings.json`):
+   ```json
+   {
+     "mcpServers": {
+       "superpowers-plus": {
+         "command": "node",
+         "args": ["/path/to/superpowers-plus/mcp/superpowers-mcp.js"]
+       }
+     }
+   }
+   ```
+
+3. Restart your client. Use `find_skills` to list available skills.
+
+### Augment Code
+
+```bash
+./install-augment-superpowers.sh
 ```
 
 ### Codex / OpenCode

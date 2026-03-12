@@ -1,33 +1,22 @@
 {
-  "name": "superpowers-plus",
+  "name": "superpowers-plus-marketplace",
+  "description": "Marketplace for superpowers-plus: AI slop detection/elimination plus 39 skills for wiki, issue tracking, TypeScript, security",
   "owner": {
     "name": "Matt Bordenet",
     "email": "bordenet@users.noreply.github.com"
   },
-  "metadata": {
-    "description": "Extended skills for superpowers - wiki, issue tracking, security, and more",
-    "version": "2.3.0"
-  },
   "plugins": [
     {
       "name": "superpowers",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/obra/superpowers.git"
-      },
       "description": "PREREQUISITE: Core workflow skills (TDD, debugging, collaboration) by Jesse Vincent",
-      "version": "5.0.1",
-      "strict": true
+      "version": "5.0.2",
+      "source": "./"
     },
     {
       "name": "superpowers-plus",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/bordenet/superpowers-plus.git"
-      },
-      "description": "Extended domain skills for wiki editing, issue tracking, security audits, and more",
-      "version": "2.3.0",
-      "strict": true
+      "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR loop) plus wiki, issue tracking, TypeScript, security skills",
+      "version": "2.4.0",
+      "source": "./"
     }
   ]
 }
