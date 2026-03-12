@@ -85,46 +85,15 @@ See [UPGRADING.md](./UPGRADING.md) for upgrade commands. Quick: `./install.sh --
 
 <!-- Add project-specific guidance below this line -->
 
-## 💰 COST-CONSCIOUS SEARCH POLICY (GLOBAL)
+### Skill File Structure
 
-<EXTREMELY_IMPORTANT>
-**Perplexity API calls cost real money from personal funds. Always use free tools first.**
+Skills may use a multi-file structure for maintainability:
 
-### Escalation Path
+```
+skills/{domain}/{skill-name}/
+├── skill.md        # REQUIRED: Core skill with YAML frontmatter and triggers
+├── examples.md     # OPTIONAL: Extended examples (loaded on demand)
+└── reference.md    # OPTIONAL: Detailed reference material
+```
 
-1. **Step 1 (FREE):** Use `web-search` for all lookups
-2. **Step 2 (FREE):** Use `web-fetch` to check URLs or read pages directly
-3. **Step 3 (EVALUATE):** Ask yourself — did I find what I need? If YES → STOP
-4. **Step 4 (PAID):** Only if results are ≥50% worse than expected, escalate to Perplexity
-
-### Before Calling Perplexity
-
-You MUST state explicitly:
-> "web-search returned [X]. This is insufficient because [reason]. Escalating to Perplexity."
-
-### Cost Reference
-
-| Tool | Cost | Use When |
-|------|------|----------|
-| `web-search` | FREE | Always first |
-| `web-fetch` | FREE | Checking URLs, reading pages |
-| `perplexity_ask_perplexity` | ~$0.001/query | Simple questions after web-search fails |
-| `perplexity_search_perplexity` | ~$0.005/query | Search after web-search fails |
-| `perplexity_reason_perplexity` | ~$0.01/query | Complex reasoning (rare) |
-| `perplexity_research_perplexity` | ~$0.05/query | Deep research (very rare, ask first) |
-
-### Never Call Perplexity For
-
-- Simple company lookups
-- Checking if a URL is live
-- Finding a company's website
-- Basic fact-checking
-- Reading documentation pages
-
-### Acceptable Perplexity Use Cases
-
-- Complex multi-source synthesis after web-search fails
-- Current events/news that web-search can't find
-- Technical questions requiring reasoning
-- When user explicitly requests Perplexity
-</EXTREMELY_IMPORTANT>
+The `skill.md` file MUST contain all trigger conditions. Auxiliary files are loaded when the skill references them.
