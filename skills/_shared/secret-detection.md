@@ -110,4 +110,3 @@ Server=mydb.database.windows.net;User Id=admin;Password=[REDACTED: production SQ
 
 - **Skill:** `skills/wiki/wiki-secret-audit/skill.md`
 - **Detection patterns:** See regex section above
-

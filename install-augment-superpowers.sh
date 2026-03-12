@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # Script: install-augment-superpowers.sh
-# PURPOSE: Install the superpowers skill system for Augment Code
+# PURPOSE: STANDALONE installer for superpowers with Augment Code
+#          (Self-contained, can be run via curl-pipe-bash without cloning repo)
 # USAGE: ./install-augment-superpowers.sh [-v|--verbose] [-h|--help]
-#        curl -fsSL https://...install-augment-superpowers.sh | bash
+#        curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 # PLATFORM: macOS, Linux, WSL
+# NOTE: For full superpowers-plus installation (all skills), use install.sh instead
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -43,7 +45,7 @@ NAME
 
 SYNOPSIS
     install-augment-superpowers.sh [OPTIONS]
-    curl -fsSL https://raw.githubusercontent.com/bordenet/scripts/main/install-augment-superpowers.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 
 DESCRIPTION
     Installs the superpowers skill system (from obra/superpowers) and configures
@@ -80,7 +82,7 @@ EXAMPLES
     ./install-augment-superpowers.sh --verbose
 
     # Install via curl (one-liner)
-    curl -fsSL https://raw.githubusercontent.com/bordenet/scripts/main/install-augment-superpowers.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 
 POST-INSTALLATION
     1. Restart Augment (or start a new conversation)

@@ -253,4 +253,3 @@ case "${1:-audit}" in
         exit 1
         ;;
 esac
-

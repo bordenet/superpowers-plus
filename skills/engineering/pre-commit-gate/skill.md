@@ -96,4 +96,3 @@ If NO to any → DO NOT COMMIT
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
-

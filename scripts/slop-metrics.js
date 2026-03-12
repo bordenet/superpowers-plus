@@ -193,4 +193,3 @@ switch (command) {
     console.log('  summary                                Show metrics summary');
     console.log('  reset                                  Reset all metrics to zero');
 }
-

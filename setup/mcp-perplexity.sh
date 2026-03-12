@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # Script: mcp-perplexity.sh
 # PURPOSE: Configure Perplexity MCP server for AI assistants. Sets up the
@@ -207,4 +207,3 @@ main() {
 }
 
 main
-

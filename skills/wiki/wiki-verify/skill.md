@@ -172,4 +172,3 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 
 When adding new wiki pages with codebase dependencies, add them to this registry.
-

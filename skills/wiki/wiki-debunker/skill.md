@@ -441,4 +441,3 @@ Before writing ANY factual claim:
 4. CITE — Add inline citation or flag as unverified
 5. MARK — If unverifiable, add ⚠️ UNVERIFIED tag
 ```
-

@@ -154,10 +154,9 @@ Then start a new session and ask for something that should trigger a skill (e.g.
 **Manual installations:**
 ```bash
 cd ~/.codex/superpowers && git pull
-cd ~/.codex/superpowers-plus && git pull
 
-# Or use install.sh with upgrade flag
-cd ~/superpowers-plus && ./install.sh --upgrade --verbose
+# From your superpowers-plus clone directory
+./install.sh --upgrade --verbose
 ```
 
 See [UPGRADING.md](./UPGRADING.md) for details.

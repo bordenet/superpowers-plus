@@ -146,4 +146,3 @@ If this skill is skipped:
 4. Trust eroded
 
 **This skill exists because the agent claimed "first-pass complete" on 2026-02-28 while 12 of 27 skills were unfixed.**
-

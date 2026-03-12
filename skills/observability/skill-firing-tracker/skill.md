@@ -108,4 +108,3 @@ echo '{"timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","skill":"'"$SKILL"'","tr
 # Generate weekly report
 $SUPERPOWERS_DIR/tools/skill-metrics-analyzer.sh > "$SUPERPOWERS_DIR/.skill-metrics/weekly-report.md"
 ```
-

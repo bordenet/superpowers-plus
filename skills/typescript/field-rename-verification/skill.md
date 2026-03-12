@@ -137,4 +137,3 @@ Skip any step = incomplete work
 - `verification-before-completion` - General verification discipline
 - `systematic-debugging` - When the field mismatch causes runtime errors
 - `link-verification` - For verifying API endpoint URLs still exist
-

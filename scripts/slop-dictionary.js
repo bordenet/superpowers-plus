@@ -334,4 +334,3 @@ switch (command) {
     console.log('\nCategories:', CATEGORIES.join(', '));
     console.log('\nProfanity patterns: Place .profanity-patterns.txt in scripts/ or repo root');
 }
-
