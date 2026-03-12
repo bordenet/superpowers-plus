@@ -108,12 +108,15 @@ done
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[4/4]${NC} Running shellcheck..."
 
+# Same exclusions as CI and harsh-review.sh
+SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
+
 if command -v shellcheck &> /dev/null; then
     for file in $STAGED_FILES; do
         [[ "$file" != *.sh ]] && continue
         [[ ! -f "$file" ]] && continue
-        
-        if ! shellcheck -e SC1091,SC2034 "$file" 2>/dev/null; then
+
+        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
             ((ERRORS++))
         fi

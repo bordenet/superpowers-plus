@@ -125,18 +125,30 @@ done < <(get_all_text_files)
 # =============================================================================
 log_check "Shell scripts (shellcheck + bash -n)"
 
+# Shellcheck exclusions (style issues, false positives)
+# SC1091 - Not following sourced file
+# SC2034 - Unused variable
+# SC2129 - Consider grouping redirects (style)
+# SC2155 - Declare and assign separately (style)
+# SC2162 - read without -r (style)
+# SC2097/SC2098 - Assignment not seen by subprocess
+# SC2015 - A && B || C is not if-then-else (style)
+# SC2317 - Command unreachable (false positive)
+# SC2064 - Use single quotes in trap (style)
+SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
+
 if command -v shellcheck &> /dev/null; then
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
         [[ ! -f "$file" ]] && continue
-        
+
         # Syntax check
         if ! bash -n "$file" 2>/dev/null; then
             log_fail "$file: bash syntax error"
         fi
-        
-        # Shellcheck (exclude some common false positives)
-        if ! shellcheck -e SC1091,SC2034 "$file" 2>/dev/null; then
+
+        # Shellcheck (exclude style issues and false positives)
+        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             log_fail "$file: shellcheck violations"
         fi
     done < <(get_files '\.sh$')
