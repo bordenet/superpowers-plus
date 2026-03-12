@@ -93,19 +93,29 @@ jobs:
           git push origin "v$VERSION"
           echo "Created and pushed tag v$VERSION"
 
+      - name: Dispatch to standalone marketplace
+        if: steps.tag_check.outputs.TAG_EXISTS == 'false'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.MARKETPLACE_DISPATCH_TOKEN }}
+          repository: bordenet/superpowers-plus-marketplace
+          event-type: version-update
+          client-payload: '{"version": "${{ steps.version.outputs.VERSION }}", "source": "superpowers-plus"}'
+
       - name: Summary
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           TAG_EXISTS="${{ steps.tag_check.outputs.TAG_EXISTS }}"
-          
+
           echo "## Version Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "$TAG_EXISTS" == "true" ]; then
             echo "- **Status:** Tag v$VERSION already exists, no action taken" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Status:** Synced versions and created tag v$VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- **Dispatched:** Version update to superpowers-plus-marketplace" >> $GITHUB_STEP_SUMMARY
             echo "- **Next:** release.yml workflow will create GitHub Release" >> $GITHUB_STEP_SUMMARY
           fi
 
