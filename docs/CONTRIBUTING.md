@@ -21,11 +21,23 @@ Use an existing domain or create a new one. Current domains:
 - `security/` — vulnerability scanning
 - `experimental/` — unstable skills
 
-### 2. Create skill.md
+### 2. Create Skill Directory Structure
 
 ```bash
+mkdir -p skills/{domain}/{skill-name}
 touch skills/{domain}/{skill-name}/skill.md
 ```
+
+**Multi-file skills (for skills >200 lines):**
+
+```
+skills/{domain}/{skill-name}/
+├── skill.md        # REQUIRED: Core skill with YAML frontmatter
+├── examples.md     # OPTIONAL: Extended examples (loaded on demand)
+└── reference.md    # OPTIONAL: Detailed reference material
+```
+
+The `skill.md` file MUST contain all trigger conditions. Auxiliary files are loaded when the skill references them with `See also:` links.
 
 ### 3. Write the Skill
 
