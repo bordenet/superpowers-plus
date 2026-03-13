@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **ADR-001**: Formal taxonomy distinguishing superpowers (auto-triggered) from explicit skills
+- `find-skills superpowers` and `find-skills explicit` filter modes in `superpowers-augment.js`
+- `EXPLICIT_SKILLS` array in `skill-trigger-validator.sh` for intentionally trigger-less skills
+
+### Changed
+- **superpowers-augment.js**: Now extracts `triggers` from frontmatter and categorizes skills
+- **superpowers-help**: Updated to distinguish superpowers vs explicit skills in output
+- **ARCHITECTURE.md**: Added "Terminology" section documenting the taxonomy
+- **CONTRIBUTING.md**: Added guidance on when to use triggers vs explicit skills
+- **README.md**: Updated skill counts and added type indicators (🦸/🔧)
+
 ## [2.3.0] - 2026-03-12
 
 ### Changed
