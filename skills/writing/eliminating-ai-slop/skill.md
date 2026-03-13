@@ -1,8 +1,8 @@
 ---
 name: eliminating-ai-slop
 source: superpowers-plus
-triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI"]
-description: Use when writing or editing prose to actively prevent and remove AI slop patterns - operates in interactive mode (confirms before rewriting user text) or automatic mode (silently prevents slop during generation using GVR loop).
+triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text"]
+description: Use when writing or editing prose to actively prevent and remove AI slop patterns - operates in interactive mode (confirms before rewriting user text) or automatic mode (silently prevents slop during generation using GVR loop). Also fires when writing tooltip definitions, documentation prose, or any user-facing text.
 ---
 
 # Eliminating AI Slop
