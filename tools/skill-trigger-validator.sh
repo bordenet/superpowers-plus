@@ -24,6 +24,33 @@ log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
+# -----------------------------------------------------------------------------
+# EXPLICIT SKILLS — Intentionally have no triggers (invoke by name only)
+# These are meta-tools, observability, or skills that shouldn't auto-fire.
+# Add new explicit skills here to avoid "weak trigger coverage" warnings.
+# -----------------------------------------------------------------------------
+EXPLICIT_SKILLS=(
+    "superpowers-help"              # Meta: lists available skills
+    "think-twice"                   # Meta: user explicitly wants second opinion
+    "skill-firing-tracker"          # Observability: tracks other skills
+    "completeness-check"            # Observability: audit tool
+    "exhaustive-audit-validation"   # Observability: audit tool
+    "golden-agents"                 # Meta: generates AGENTS.md
+    "experimental-self-prompting"   # Experimental: unstable
+    "security-upgrade"              # Explicit: has side effects (upgrades packages)
+    "public-repo-ip-audit"          # Explicit: security audit on demand
+)
+
+is_explicit_skill() {
+    local skill_name="$1"
+    for explicit in "${EXPLICIT_SKILLS[@]}"; do
+        if [[ "$skill_name" == "$explicit" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Extract triggers from skill.md YAML frontmatter
 # Looks for: triggers: ["phrase1", "phrase2"] or description with "Triggers on" / "Use when"
 extract_triggers() {
@@ -186,35 +213,52 @@ detect_overlaps() {
     fi
 }
 
-# Find skills with missing or weak trigger definitions  
+# Find skills with missing or weak trigger definitions
 find_missing() {
-    log_info "Checking for skills with missing triggers..."
+    log_info "Checking for superpowers with weak trigger coverage..."
+    log_info "(Explicit skills are intentionally trigger-less and excluded)"
     echo ""
-    
+
     local missing=0
-    
+    local explicit_count=0
+    local superpower_count=0
+
     while IFS= read -r skill_file; do
         local skill_name
         skill_name=$(basename "$(dirname "$skill_file")")
         local domain
         domain=$(basename "$(dirname "$(dirname "$skill_file")")")
-        
+
+        # Skip explicit skills — they intentionally have no triggers
+        if is_explicit_skill "$skill_name"; then
+            log_info "$domain/$skill_name: explicit skill (no triggers by design)"
+            ((explicit_count++)) || true
+            continue
+        fi
+
         local triggers
         triggers=$(extract_triggers "$skill_file")
         local count
         count=$(echo "$triggers" | grep -c . || echo 0)
-        
+
         if [[ $count -lt 2 ]]; then
-            log_warn "$domain/$skill_name: only $count trigger(s) defined"
+            log_warn "$domain/$skill_name: only $count trigger(s) — should be a superpower or marked explicit"
             ((missing++)) || true
+        else
+            ((superpower_count++)) || true
         fi
     done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)
-    
+
     echo ""
+    log_info "Summary: $superpower_count superpowers, $explicit_count explicit skills"
     if [[ $missing -eq 0 ]]; then
-        log_success "All skills have adequate trigger definitions"
+        log_success "All superpowers have adequate trigger definitions"
     else
         log_warn "$missing skill(s) have weak trigger coverage"
+        echo ""
+        echo "Fix options:"
+        echo "  1. Add triggers: [...] to make it a superpower"
+        echo "  2. Add skill name to EXPLICIT_SKILLS array in this script"
     fi
 }
 
