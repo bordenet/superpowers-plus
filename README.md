@@ -14,19 +14,20 @@ cd superpowers-plus
 
 ## What's Included
 
-**36 skills** across 9 domains:
+**36 skills** (28 superpowers + 8 explicit) across 8 domains:
 
-| Domain | Count | Examples |
-|--------|-------|----------|
-| wiki | 7 | Page management, link checks, credential scanning |
-| issue-tracking | 5 | Create, update, verify tickets |
-| writing | 5 | Slop detection, profanity gates |
-| engineering | 5 | Pre-commit gates, blast radius, PR review |
-| productivity | 5 | TODO tracking, style enforcement |
-| observability | 4 | Invocation logging, completeness checks |
-| research | 2 | Perplexity integration |
-| security | 2 | CVE scanning, IP protection |
-| experimental | 1 | Self-prompting |
+| Domain | Count | Type | Examples |
+|--------|-------|------|----------|
+| wiki | 7 | 🦸 auto | Page management, link checks, credential scanning |
+| engineering | 6 | 🦸 auto | Pre-commit gates, blast radius, PR review |
+| issue-tracking | 5 | 🦸 auto | Create, update, verify tickets |
+| writing | 5 | 🦸 auto | Slop detection, profanity gates |
+| productivity | 5 | mixed | TODO tracking, style enforcement |
+| observability | 4 | 🔧 explicit | Invocation logging, completeness checks |
+| research | 2 | 🦸 auto | Perplexity integration |
+| security | 2 | 🔧 explicit | CVE scanning, IP protection |
+
+**Legend:** 🦸 = auto-triggered (superpowers), 🔧 = invoke by name (explicit skills)
 
 ## Installation
 
@@ -137,7 +138,7 @@ Copy `.env.example` to `.env` for optional integrations:
 | readme-authoring | Structures documentation |
 | reviewing-ai-text | Evaluates generated content |
 
-### engineering/
+### engineering/ (🦸 superpowers)
 | Skill | What it does |
 |-------|--------------|
 | engineering-rigor | Quality philosophy hub |
@@ -145,17 +146,18 @@ Copy `.env.example` to `.env` for optional integrations:
 | blast-radius-check | Finds all callers before edits |
 | providing-code-review | Structured PR feedback |
 | receiving-code-review | Evaluates incoming feedback |
+| verification-before-completion | Final checks before claiming done |
 
-### productivity/
-| Skill | What it does |
-|-------|--------------|
-| think-twice | Spawns sub-agent for fresh perspective |
-| todo-management | Parses and tracks tasks |
-| golden-agents | Bootstraps AGENTS.md |
-| enforce-style-guide | Applies project conventions |
-| superpowers-help | Lists available skills |
+### productivity/ (mixed)
+| Skill | Type | What it does |
+|-------|------|--------------|
+| think-twice | 🔧 | Spawns sub-agent for fresh perspective |
+| todo-management | 🦸 | Parses and tracks tasks |
+| golden-agents | 🔧 | Bootstraps AGENTS.md |
+| enforce-style-guide | 🦸 | Applies project conventions |
+| superpowers-help | 🔧 | Lists available skills |
 
-### observability/
+### observability/ (🔧 explicit)
 | Skill | What it does |
 |-------|--------------|
 | skill-firing-tracker | Logs which skills ran |
@@ -163,19 +165,19 @@ Copy `.env.example` to `.env` for optional integrations:
 | holistic-repo-verification | Checks all CI paths |
 | completeness-check | Confirms work is done |
 
-### research/
+### research/ (🦸 superpowers)
 | Skill | What it does |
 |-------|--------------|
 | perplexity-research | Escalates when stuck |
 | incorporating-research | Merges external findings |
 
-### security/
+### security/ (🔧 explicit)
 | Skill | What it does |
 |-------|--------------|
 | security-upgrade | Scans CVEs, upgrades deps |
 | public-repo-ip-audit | Detects proprietary content |
 
-### experimental/
+### experimental/ (🦸 superpower)
 | Skill | What it does |
 |-------|--------------|
 | experimental-self-prompting | Context-free analysis (unstable) |

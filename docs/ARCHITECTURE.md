@@ -2,6 +2,22 @@
 
 How superpowers-plus skills work and how to extend them.
 
+## Terminology: Skills vs Superpowers
+
+| Term | Definition | Frontmatter | Example |
+|------|------------|-------------|---------|
+| **Skill** | Generic term for any procedural module (a `skill.md` file) | Any | All of them |
+| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-editing` |
+| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `think-twice` |
+
+**Key distinction:**
+- **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
+- **Explicit skills** have no triggers → AI only invokes when user explicitly requests by name
+
+This distinction matters for user queries:
+- "What are my superpowers?" → List only auto-triggered skills
+- "What skills do I have?" → List all skills (both types)
+
 ## Framework Integration
 
 superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
@@ -9,7 +25,7 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 ```
 ~/.codex/
 ├── superpowers/          # obra/superpowers (cloned by install.sh)
-│   └── skills/           # Core framework skills
+│   └── skills/           # Core framework skills (mostly superpowers)
 ├── skills/               # Your personal skills (this repo)
 └── superpowers-augment/  # Wrapper script for skill discovery
 ```
@@ -63,9 +79,40 @@ description: One-line description of what the skill does.
 |-------|----------|-------------|
 | `name` | Yes | Skill identifier (must match directory name) |
 | `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
-| `triggers` | Yes | Array of phrases that should invoke this skill |
+| `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
 | `description` | Yes | One-line description for skill discovery |
 | `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
+
+### Superpower vs Explicit Skill Examples
+
+**Superpower (auto-triggered):**
+```yaml
+---
+name: wiki-editing
+source: superpowers-plus
+triggers: ["update wiki page", "push to wiki", "edit wiki"]
+description: Use when editing wiki pages.
+---
+```
+
+**Explicit Skill (manual invocation):**
+```yaml
+---
+name: think-twice
+source: superpowers-plus
+triggers: []  # Empty array = explicit
+description: Use when stuck on a problem.
+---
+```
+
+Or simply omit triggers entirely:
+```yaml
+---
+name: superpowers-help
+source: superpowers-plus
+description: Lists available skills.
+---
+```
 
 ### Downstream Override Declaration
 
