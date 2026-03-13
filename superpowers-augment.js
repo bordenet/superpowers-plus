@@ -44,6 +44,7 @@ function extractFrontmatter(filePath) {
         let inFrontmatter = false;
         let name = '';
         let description = '';
+        let triggers = [];
         for (const line of lines) {
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
@@ -51,6 +52,13 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
+                // Check for triggers array
+                const triggersMatch = line.match(/^triggers:\s*\[(.+)\]/);
+                if (triggersMatch) {
+                    // Extract quoted strings from the array
+                    const triggerStr = triggersMatch[1];
+                    triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                }
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
                     const key = match[1];
@@ -60,9 +68,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description };
+        return { name, description, triggers };
     } catch (error) {
-        return { name: '', description: '' };
+        return { name: '', description: '', triggers: [] };
     }
 }
 
@@ -87,9 +95,12 @@ function findSkillsInDir(dir, sourceType) {
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
+            const hasTriggers = meta.triggers && meta.triggers.length > 0;
             skills.push({
                 name: meta.name || entry.name,
                 description: meta.description || '',
+                triggers: meta.triggers || [],
+                isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
                 skillFile,
                 skillDir
@@ -117,31 +128,75 @@ function stripFrontmatter(content) {
     return contentLines.join('\n').trim();
 }
 
-function findSkills() {
-    console.log('Available skills:');
-    console.log('==================\n');
+function findSkills(filterMode = 'all') {
     const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
     const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
     const allSkills = [...personalSkills, ...superpowersSkills];
     const seen = new Set();
+    const deduped = [];
     for (const skill of allSkills) {
-        const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
         if (seen.has(skill.name)) continue;
         seen.add(skill.name);
-        console.log(displayName);
-        if (skill.description) {
-            console.log('  ' + skill.description + '\n');
-        } else {
+        deduped.push(skill);
+    }
+    // Categorize
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+
+    if (filterMode === 'superpowers') {
+        console.log('🦸 Superpowers (auto-triggered):');
+        console.log('=================================\n');
+        console.log('These skills activate automatically when trigger phrases are detected.\n');
+        for (const skill of superpowers) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description);
+            if (skill.triggers.length > 0) {
+                console.log('  Triggers: ' + skill.triggers.slice(0, 3).map(t => `"${t}"`).join(', ') + (skill.triggers.length > 3 ? '...' : ''));
+            }
             console.log();
+        }
+        console.log(`Total: ${superpowers.length} superpowers\n`);
+    } else if (filterMode === 'explicit') {
+        console.log('🔧 Explicit Skills (invoke by name):');
+        console.log('=====================================\n');
+        console.log('These skills must be explicitly invoked — they do not auto-trigger.\n');
+        for (const skill of explicitSkills) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
+        }
+        console.log(`Total: ${explicitSkills.length} explicit skills\n`);
+    } else {
+        // Default: show both categories
+        console.log('🦸 SUPERPOWERS (auto-triggered)');
+        console.log('================================\n');
+        for (const skill of superpowers) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
+        }
+        console.log('🔧 EXPLICIT SKILLS (invoke by name)');
+        console.log('====================================\n');
+        for (const skill of explicitSkills) {
+            const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
+            console.log(displayName);
+            if (skill.description) console.log('  ' + skill.description + '\n');
+            else console.log();
         }
     }
     console.log('Usage:');
-    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill\n');
-    console.log('Skill naming:');
-    console.log('  Superpowers skills: superpowers:skill-name (from ~/.codex/superpowers/skills/)');
-    console.log('  Personal skills: skill-name (from ~/.codex/skills/)');
+    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill');
+    console.log('  superpowers-augment find-skills              # List all skills');
+    console.log('  superpowers-augment find-skills superpowers  # List only superpowers (auto-triggered)');
+    console.log('  superpowers-augment find-skills explicit     # List only explicit skills\n');
+    console.log('Naming convention:');
+    console.log('  superpowers:skill-name  → from ~/.codex/superpowers/skills/ (obra/superpowers)');
+    console.log('  skill-name              → from ~/.codex/skills/ (personal/superpowers-plus)');
     console.log('  Personal skills override superpowers skills when names match.\n');
-    console.log('Note: All skills are disclosed at session start via bootstrap.');
+    console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
 function useSkill(skillName) {
@@ -195,12 +250,18 @@ const args = process.argv.slice(3);
 switch (command) {
     case 'bootstrap': bootstrap(); break;
     case 'use-skill': useSkill(args[0]); break;
-    case 'find-skills': findSkills(); break;
+    case 'find-skills': findSkills(args[0] || 'all'); break;
+    case 'list-superpowers': findSkills('superpowers'); break;
+    case 'list-skills': findSkills('explicit'); break;
     default:
         console.log('Superpowers for Augment\n');
         console.log('Usage:');
-        console.log('  node superpowers-augment.js bootstrap      # Initialize session with skills');
-        console.log('  node superpowers-augment.js use-skill <n>  # Load a specific skill');
-        console.log('  node superpowers-augment.js find-skills    # List all available skills');
+        console.log('  node superpowers-augment.js bootstrap              # Initialize session');
+        console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
+        console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
+        console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
+        console.log('  node superpowers-augment.js list-superpowers       # Alias for find-skills superpowers');
+        console.log('  node superpowers-augment.js list-skills            # Alias for find-skills explicit');
         break;
 }
