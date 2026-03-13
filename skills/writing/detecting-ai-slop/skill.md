@@ -1,8 +1,8 @@
 ---
 name: detecting-ai-slop
 source: superpowers-plus
-triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "slop density", "is this AI generated"]
-description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, or any text where you need to quantify machine-generated patterns before deciding whether to edit.
+triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "slop density", "is this AI generated", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text"]
+description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density - invoke for CVs, cover letters, marketing copy, drafts, tooltip definitions, documentation prose, or any text where you need to quantify machine-generated patterns before deciding whether to edit.
 ---
 
 # Detecting AI Slop
