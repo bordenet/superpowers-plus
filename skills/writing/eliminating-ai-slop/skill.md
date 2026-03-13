@@ -1,14 +1,14 @@
 ---
 name: eliminating-ai-slop
 source: superpowers-plus
-triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text"]
-description: Use when writing or editing prose to actively prevent and remove AI slop patterns - operates in interactive mode (confirms before rewriting user text) or automatic mode (silently prevents slop during generation using GVR loop). Also fires when writing tooltip definitions, documentation prose, or any user-facing text.
+triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "teams message", "slack message", "discord message", "chat message", "email draft", "email reply", "composing email", "linkedin post", "linkedin message", "twitter post", "social media post", "wiki page", "readme", "commit message", "pr description", "meeting notes", "status update", "ticket description", "jira ticket", "linear issue"]
+description: Use when writing or editing ANY prose a human will read. Covers messaging (Teams, Slack, Discord), email, social/professional (LinkedIn, Twitter), documentation (wiki, README, commits, PRs), and business writing (meeting notes, status updates, tickets). Operates in interactive mode (confirms before rewriting) or automatic mode (GVR loop). Does NOT fire for AI-to-AI content (prompts, system instructions, agent config).
 ---
 
 # Eliminating AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-03-13
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
 
 ## Overview
@@ -19,6 +19,33 @@ This skill actively rewrites text to eliminate AI slop patterns. It operates in 
 2. **Automatic Mode**: Skill prevents slop during prose generation using **GVR loop**
 
 **Core principle:** Preserve meaning while increasing specificity and varying structure.
+
+---
+
+## When This Skill Fires
+
+| Context Category | Examples | Fires? |
+|------------------|----------|--------|
+| **Messaging** | Teams, Slack, Discord, chat | ✅ Yes |
+| **Email** | Drafts, replies, forwards | ✅ Yes |
+| **Social/Professional** | LinkedIn posts, Twitter, social media | ✅ Yes |
+| **Documentation** | Wiki pages, READMEs, commit messages, PR descriptions | ✅ Yes |
+| **Business Writing** | Meeting notes, status updates, ticket descriptions | ✅ Yes |
+| **Any human-readable prose** | Tooltips, definitions, announcements | ✅ Yes |
+
+---
+
+## When This Skill Does NOT Fire
+
+| Context | Why Excluded |
+|---------|--------------|
+| **Prompts for AI agents** | AI-to-AI communication optimizes for clarity and precision, not natural flow |
+| **System prompts** | Structured instructions benefit from explicit phrasing |
+| **Agent configuration** | Technical directives, not prose |
+| **Tool/function parameters** | Machine-readable, not human-readable |
+| **Few-shot examples in prompts** | Intentional patterns for model guidance |
+
+**Rationale:** Slop patterns like "It's important to note" are problematic for human readers but may be neutral or useful in agent prompts where explicit signaling aids comprehension.
 
 ---
 
