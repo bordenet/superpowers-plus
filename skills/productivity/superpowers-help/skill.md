@@ -141,6 +141,7 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 | Task | Type | Skill(s) |
 |------|------|----------|
 | "Build a new feature" | 🦸 auto | brainstorming → writing-plans → subagent-driven-development |
+| "What's the boldest move?" | 🦸 auto | innovation → brainstorming → writing-plans |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
 | "Create a Linear issue" | 🦸 auto | linear-issue-authoring → linear-link-verification |
