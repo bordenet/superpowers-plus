@@ -96,3 +96,18 @@ If NO to any → DO NOT COMMIT
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
+
+---
+
+## Commit Gate Coordination
+
+Multiple skills fire on "before commit". Execute in this order:
+
+| Order | Skill | Purpose | Scope |
+|-------|-------|---------|-------|
+| 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
+| 2 | `enforce-style-guide` | Code style compliance | All commits |
+| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+
+**Rationale:** Technical checks first (fast feedback), then style, then content gates.

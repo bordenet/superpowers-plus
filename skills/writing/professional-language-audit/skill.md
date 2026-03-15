@@ -179,3 +179,18 @@ node scripts/slop-dictionary.js list profanity
 
 - **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
 - **pre-commit-gate** — Integrates this skill into commit workflow
+
+---
+
+## Commit Gate Coordination
+
+Multiple skills fire on "before commit". Execute in this order:
+
+| Order | Skill | Purpose | Scope |
+|-------|-------|---------|-------|
+| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
+| 2 | `enforce-style-guide` | Code style compliance | All commits |
+| 3 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
+| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+
+**Rationale:** Technical checks first (fast feedback), then style, then content gates.
