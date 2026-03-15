@@ -14,7 +14,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**36 skills** (28 superpowers + 8 explicit) across 8 domains:
+**38 skills** (30 superpowers + 8 explicit) across 8 domains:
 
 | Domain | Count | Type | Examples |
 |--------|-------|------|----------|
@@ -22,8 +22,8 @@ cd superpowers-plus
 | engineering | 6 | 🦸 auto | Pre-commit gates, blast radius, PR review |
 | issue-tracking | 5 | 🦸 auto | Create, update, verify tickets |
 | writing | 5 | 🦸 auto | Slop detection, profanity gates |
-| productivity | 5 | mixed | TODO tracking, style enforcement |
-| observability | 5 | mixed | Outcome tracking, completeness checks |
+| productivity | 6 | mixed | Innovation, TODO tracking, style enforcement |
+| observability | 5 | mixed | Skill effectiveness, completeness checks |
 | research | 2 | 🦸 auto | Perplexity integration |
 | security | 2 | 🔧 explicit | CVE scanning, IP protection |
 
@@ -151,6 +151,7 @@ Copy `.env.example` to `.env` for optional integrations:
 ### productivity/ (mixed)
 | Skill | Type | What it does |
 |-------|------|--------------|
+| innovation | 🦸 | Radical, high-impact thinking beyond incremental fixes |
 | think-twice | 🔧 | Spawns sub-agent for fresh perspective |
 | todo-management | 🦸 | Parses and tracks tasks |
 | golden-agents | 🔧 | Bootstraps AGENTS.md |
