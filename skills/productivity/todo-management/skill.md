@@ -1,18 +1,95 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list"]
-description: Use when capturing tasks, tracking work, triaging priorities, or querying task history.
+triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist"]
+description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 ---
 
 # TODO Management
 
 > **File location:** `$TODO_FILE_PATH` (see Configuration below)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
+> **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
 ---
 
-## Configuration
+## Multi-Step Plan Tracking
+
+When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms:
+
+1. **TODO.md file** (PRIMARY) — Persist all plan steps to disk for resilience
+2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
+
+### Why Both?
+
+| Mechanism | Purpose | Survives |
+|-----------|---------|----------|
+| **TODO.md** | Persistence, recovery, cross-session continuity | Context compaction, crashes, session switches |
+| **MCP tools** | Real-time UI visibility for user | Current session only |
+
+**Default behavior:** Write to TODO.md first, then mirror to MCP tools if available.
+
+### Workflow: Executing a Multi-Step Plan
+
+When user says "implement this plan", "execute these steps", etc.:
+
+1. **Name the effort** — Derive identifier from plan title (kebab-case) or ask user if ambiguous
+   - "Implement the config refactor" → `config-refactor`
+   - "Fix the auth bug" → `auth-fix`
+   - If unclear: "What should I call this effort?"
+2. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan-<identifier>` tag
+3. **Mirror to MCP** — Create parent task for the plan, add steps as children using `parent_task_id`
+4. **Track progress** — Update both systems as you complete steps
+5. **Verify** — Filter by `#plan-<identifier>` to check completion
+
+### Example: Executing a 4-Step Plan
+
+```
+User: "Implement the config refactor: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
+
+Agent:
+1. Derive effort identifier: "config refactor" → config-refactor
+2. Write 4 tasks to TODO.md as P1 #plan-config-refactor #engineering
+3. Call add_tasks: create parent "Plan: Config Refactor", add steps as children
+4. For each step:
+   - Mark IN_PROGRESS in both systems
+   - Do the work
+   - Mark COMPLETE in both systems
+5. Verify: Filter #plan-config-refactor in TODO.md, call view_tasklist
+6. Report "Config refactor complete"
+```
+
+### Querying by Effort
+
+| Query | Action |
+|-------|--------|
+| "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
+| "Show my active plans" | List unique `#plan-*` tags with task counts |
+| "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
+| "Switch to auth-fix" | Set current context for subsequent completion commands |
+
+### MCP Tool Reference (Supplementary)
+
+| Tool | Purpose | When to Call |
+|------|---------|--------------|
+| `add_tasks` | Create parent task + children | After writing to TODO.md |
+| `update_tasks` | Sync state changes | After updating TODO.md |
+| `view_tasklist` | Quick status check | In addition to reading TODO.md |
+
+### When MCP Tools Are Unavailable
+
+If MCP tools are not available, **TODO.md is sufficient**. The file provides:
+- Full persistence
+- Recovery from interruptions
+- Cross-session continuity
+- Queryable history ("what did I do?")
+- Effort isolation via `#plan-<identifier>` tags
+
+MCP tools are a convenience layer, not a requirement.
+
+---
+
+## Configuration (File-Based TODO.md)
 
 **REQUIRED:** Set the `TODO_FILE_PATH` environment variable before using this skill.
 
@@ -30,6 +107,27 @@ export TODO_FILE_PATH="$HOME/Documents/TODO.md"
 ```
 
 The skill will check for this variable on first use and prompt you to configure it if missing.
+
+### Getting Started
+
+1. Copy the template: `cp ~/.codex/templates/TODO.md ~/Documents/TODO.md`
+2. Set the environment variable in your shell profile
+3. Source your profile or restart your terminal
+
+---
+
+## ⚠️ CRITICAL: Always Check Persistent TODO.md First
+
+When user asks "show my TODOs", "what are my tasks", or any task query:
+
+1. **ALWAYS read `$TODO_FILE_PATH` FIRST** — This is the source of truth
+2. **MCP tools are supplementary** — `view_tasklist` shows session context only
+3. **Never imply completeness** from MCP state alone
+
+**Why this matters:**
+- MCP tasks are session-only (lost on context compaction)
+- TODO.md persists across sessions
+- Showing only MCP tasks gives a false "all done" impression
 
 ---
 
@@ -87,6 +185,30 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
 | `#product` | "product", "feature", "roadmap" |
 | `#process` | "process", "workflow", "documentation" |
+
+### Plan Tags (effort-scoped)
+
+Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
+
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `#plan-<identifier>` | Group tasks by effort | `#plan-auth-fix`, `#plan-config-refactor` |
+| `#plan` | ⚠️ **Deprecated** | Use `#plan-<identifier>` for effort isolation |
+
+**Identifier derivation:**
+- Derive from plan title: "Config Refactor" → `config-refactor`
+- Use kebab-case: lowercase, hyphens instead of spaces
+- Keep short but descriptive: 2-4 words max
+- If ambiguous, ask: "What should I call this effort?"
+
+**Example TODO.md with multiple efforts:**
+```markdown
+## P1 - Today
+- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering
+- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering
+- [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
+- [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
+```
 
 ---
 
