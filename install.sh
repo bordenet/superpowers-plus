@@ -629,6 +629,80 @@ install_skills() {
     fi
 }
 
+# Install rules from rules/ directory
+install_rules() {
+    log_info "Installing rules from superpowers-plus..."
+
+    # Rules directory in source
+    local rules_src="$SCRIPT_DIR/rules"
+    if [[ ! -d "$rules_src" ]]; then
+        log_verbose "No rules directory found, skipping"
+        return
+    fi
+
+    # Augment rules go to ~/.augment/rules/
+    local augment_rules_dir="${HOME}/.augment/rules"
+    create_dir "$augment_rules_dir"
+
+    local installed=0
+
+    for rule_file in "$rules_src"/*.md; do
+        [[ ! -f "$rule_file" ]] && continue
+        local rule_name
+        rule_name=$(basename "$rule_file")
+
+        # Copy rule file
+        if [[ "$FORCE" == "true" ]] || [[ ! -f "$augment_rules_dir/$rule_name" ]]; then
+            cp "$rule_file" "$augment_rules_dir/$rule_name"
+            log_verbose "Installed rule: $rule_name"
+            ((installed++)) || true
+        else
+            log_verbose "Rule already exists (use --force to overwrite): $rule_name"
+        fi
+    done
+
+    if [[ $installed -gt 0 ]]; then
+        log_success "Installed $installed rule(s) to $augment_rules_dir"
+    fi
+}
+
+# Install templates from templates/ directory
+install_templates() {
+    log_info "Installing templates from superpowers-plus..."
+
+    # Templates directory in source
+    local templates_src="$SCRIPT_DIR/templates"
+    if [[ ! -d "$templates_src" ]]; then
+        log_verbose "No templates directory found, skipping"
+        return
+    fi
+
+    # Templates go to ~/.codex/templates/
+    local templates_dir="${CODEX_DIR}/templates"
+    create_dir "$templates_dir"
+
+    local installed=0
+
+    for template_file in "$templates_src"/*; do
+        [[ ! -f "$template_file" ]] && continue
+        local template_name
+        template_name=$(basename "$template_file")
+
+        # Copy template file
+        if [[ "$FORCE" == "true" ]] || [[ ! -f "$templates_dir/$template_name" ]]; then
+            cp "$template_file" "$templates_dir/$template_name"
+            log_verbose "Installed template: $template_name"
+            ((installed++)) || true
+        else
+            log_verbose "Template already exists (use --force to overwrite): $template_name"
+        fi
+    done
+
+    if [[ $installed -gt 0 ]]; then
+        log_success "Installed $installed template(s) to $templates_dir"
+    fi
+}
+
 # Validate the installation
 validate_installation() {
     log_info "Validating installation..."
@@ -761,8 +835,10 @@ main() {
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
         upgrade_existing
-        # Reinstall personal skills after upgrade
+        # Reinstall personal skills, rules, templates after upgrade
         install_skills
+        install_rules
+        install_templates
         install_adapter
         validate_installation
         print_summary
@@ -784,6 +860,12 @@ main() {
 
     # Install skills
     install_skills
+
+    # Install rules
+    install_rules
+
+    # Install templates
+    install_templates
 
     # Install adapter
     install_adapter
