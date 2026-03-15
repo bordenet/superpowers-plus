@@ -111,11 +111,13 @@ Skills activate automatically when your request matches their trigger phrases. Y
 
 | You say... | Skill triggered | What happens |
 |------------|-----------------|--------------|
-| "I'm stuck on this bug" | think-twice | Spawns fresh perspective analysis |
+| "You're stuck in a loop!" | think-twice | AI pauses, consults fresh sub-agent |
 | "Create a wiki page for X" | wiki-orchestrator | Runs full wiki authoring pipeline |
 | "Review this PR" | providing-code-review | Structured feedback with checklist |
 | "Is this done?" | completeness-check | Audits for incomplete work |
 | "Check for security issues" | security-upgrade | Scans CVEs and suggests upgrades |
+
+> **Note:** `think-twice` also auto-detects when the AI itself is spiraling (repeated failures, circular reasoning) and suggests pausing for fresh perspective.
 
 **CLI matching** (for debugging):
 
@@ -156,7 +158,7 @@ Works offline using local TF-IDF. No API keys required.
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Radical, high-impact thinking |
 | | superpowers-help | Lists available skills |
-| | think-twice | Spawns sub-agent for fresh perspective |
+| | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
