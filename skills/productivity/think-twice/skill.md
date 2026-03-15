@@ -1,8 +1,15 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["think twice", "I'm stuck", "hitting a wall", "need fresh eyes", "different perspective", "second opinion", "why isn't this working", "help me debug this"]
+triggers: ["think twice", "I'm stuck", "hitting a wall", "need fresh eyes", "different perspective", "second opinion", "why isn't this working", "help me debug this", "stuck:reasoning", "stuck:perspective"]
 description: Use when stuck on a coding or technical problem, hitting a wall, or needing a fresh perspective. Generates context-free sub-agent consultation for independent analysis.
+coordination:
+  group: stuck-escalation
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: ["perplexity-research"]
+  internal: false
 ---
 
 # Think Twice

@@ -200,6 +200,46 @@ Works offline using local TF-IDF. No API keys required.
 |-------|--------------|
 | experimental-self-prompting | Context-free analysis (unstable) |
 
+## Skill Coordination
+
+Skills can be coordinated into pipelines with explicit dependencies. View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
+
+```mermaid
+graph LR
+  subgraph commit-gates["Commit Gates"]
+    pre_commit_gate["pre-commit-gate"] --> enforce_style_guide["enforce-style-guide"]
+    enforce_style_guide --> professional_language_audit["professional-language-audit"]
+    professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
+  end
+
+  subgraph wiki-pipeline["Wiki Pipeline"]
+    wiki_orchestrator["wiki-orchestrator"] --> link_verification["link-verification"]
+    link_verification --> wiki_editing["wiki-editing"]
+  end
+
+  subgraph stuck-escalation["Stuck Escalation"]
+    think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
+  end
+```
+
+| Group | Purpose |
+|-------|---------|
+| Commit Gates | Quality checks before `git commit` (build → style → language → IP audit) |
+| Wiki Pipeline | Wiki authoring quality pipeline (orchestrator → links → edit) |
+| Stuck Escalation | Getting unstuck (reasoning first → research if needed) |
+
+### Namespaced Triggers
+
+Skills support namespaced triggers (`domain:action`) for disambiguation:
+
+| Domain | Triggers |
+|--------|----------|
+| `commit:` | `commit:pre-check`, `commit:style`, `commit:language`, `commit:ip-audit` |
+| `wiki:` | `wiki:create`, `wiki:update`, `wiki:edit-internal` |
+| `stuck:` | `stuck:reasoning`, `stuck:research` |
+
+Regenerate the graph: `node tools/generate-skill-dag.js`
+
 ## Extending
 
 Layer organization-specific skills on top:
