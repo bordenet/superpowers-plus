@@ -44,6 +44,48 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 
 Each skill is identified by its directory name, not the filename.
 
+## Semantic Skill Matching
+
+Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** that matches natural language queries to skills based on meaning, not just keywords.
+
+### Usage
+
+```bash
+# Find skills matching a natural language query
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
+
+# Force TF-IDF (local, no API) or embedding (OpenAI) method
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --tfidf "review this PR"
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --embedding "stuck on a bug"
+```
+
+### How It Works
+
+The router uses a **hybrid TF-IDF + Intent Pattern** approach:
+
+| Component | Purpose |
+|-----------|---------|
+| **TF-IDF Engine** | Matches query terms to skill descriptions using term frequency-inverse document frequency |
+| **Stemming** | Reduces words to roots (e.g., "failing" → "fail") for better matching |
+| **Query Expansion** | Maps domain concepts (e.g., "stuck" → "think-twice", "debug") |
+| **Intent Patterns** | Boosts skills when high-confidence phrases are detected (e.g., "resume" → cv-review skills) |
+
+### Default Behavior
+
+- **Local-first**: Uses TF-IDF by default (no external API calls)
+- **Optional enhancement**: If `OPENAI_API_KEY` is set, embeddings are available via `--embedding` flag
+- **100% offline**: Works without network connectivity
+
+### Architecture
+
+```
+lib/skill-router.js
+├── buildTfIdfIndex()      # Builds document index from skill descriptions
+├── matchSkillsTfIdf()     # Local TF-IDF matching with intent boosts
+├── matchSkillsEmbedding() # OpenAI embedding matching (optional)
+└── matchSkills()          # Unified interface (auto-selects method)
+```
+
 ## Skill Structure
 
 A skill is a directory containing `skill.md`:

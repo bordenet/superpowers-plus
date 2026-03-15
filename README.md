@@ -101,6 +101,21 @@ Copy `.env.example` to `.env` for optional integrations:
 | `ISSUE_TRACKER_TYPE` | `linear`, `github`, `jira`, or `azure-devops` |
 | `WIKI_PLATFORM` | `outline` (see `skills/wiki/_adapters/`) |
 | `PERPLEXITY_API_KEY` | Deep research fallback |
+| `OPENAI_API_KEY` | Optional: Enhanced semantic skill matching |
+
+## Semantic Skill Matching
+
+Find skills by describing what you need:
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
+# → systematic-debugging, think-twice, vitest-testing-patterns
+
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "review this candidate's resume"
+# → cv-review-external, cv-review-agency, resume-screening
+```
+
+Works offline using local TF-IDF. No API keys required.
 
 ## Updating
 
