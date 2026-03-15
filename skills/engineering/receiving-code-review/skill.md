@@ -37,11 +37,11 @@ AFTER implementing all items:
 
      4. VERIFY the GOAL is achieved, not just the checklist
 ### Why This Exists
-**Incident 2026-03-09 (DELTA-1216):**
-- Reviewer identified 3 layers of silent `laborType` defaults
+**Common failure pattern:**
+- Reviewer identified 3 instances of a problematic pattern
 - Agent fixed all 3 listed items ✓
 - Agent claimed "Done!" ✓
-- CSV import (4th layer) still silently defaulted to 'C'
+- A 4th instance existed that wasn't in the reviewer's list
 - Only caught by adversarial self-review asking "are there OTHER places?"
 
 **Root cause:** Treated feedback as finite checklist, not systemic issue.
@@ -55,17 +55,17 @@ BEFORE claiming code review changes are complete:
 
 If ANY box is unchecked → you're not done
 ### Example
-Reviewer says: "Remove defaults at lines 96, 127, and 81"
+Reviewer says: "Remove hardcoded defaults at lines 96, 127, and 81"
 
 ❌ WRONG: Fix lines 96, 127, 81 → "Done!"
 
 ✅ RIGHT:
-     1. Goal: "No silent defaults for laborType"
-     2. Search: grep -rn "laborType.*||.*'C'" .
+     1. Goal: "No hardcoded defaults for userRole"
+     2. Search: grep -rn "userRole.*||.*'guest'" .
      3. Find: Lines 96, 127, 81 (listed) + line 2199 (NOT listed)
      4. Fix ALL four
      5. Verify: grep returns nothing
-     6. "Done - fixed 4 instances (3 listed + 1 additional in CSV import)"
+     6. "Done - fixed 4 instances (3 listed + 1 additional in data import)"
 ## Forbidden Responses
 **NEVER:**
 - "You're absolutely right!" (performative)
