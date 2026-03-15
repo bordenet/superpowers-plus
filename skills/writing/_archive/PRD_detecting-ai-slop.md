@@ -1,7 +1,7 @@
 # AI Slop Detection Skill
 
 > **Status:** ✅ Complete
-> **Implementation:** [`skills/detecting-ai-slop/SKILL.md`](../skills/detecting-ai-slop/SKILL.md)
+> **Implementation:** [`skills/writing/detecting-ai-slop/skill.md`](../detecting-ai-slop/skill.md)
 > **Completed:** 2026-01-25
 
 ---
@@ -798,5 +798,5 @@ Top 5 Patterns (by frequency):
 
 ---
 
-*Implementation: [../skills/detecting-ai-slop/SKILL.md](../skills/detecting-ai-slop/SKILL.md)*
+*Implementation: [../detecting-ai-slop/skill.md](../detecting-ai-slop/skill.md)*
 *Status: Implemented*

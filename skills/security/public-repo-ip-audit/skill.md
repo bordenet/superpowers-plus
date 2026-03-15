@@ -1,8 +1,8 @@
 ---
 name: public-repo-ip-audit
 source: superpowers-plus
-triggers: ["commit to public repo", "push to GitHub", "extract to public", "migrate to public", "create public repo", "before committing to public"]
-description: Audit public repositories for proprietary IP before commit/push. Prevents leakage of internal references, URLs, ticket IDs, and confidential content to public GitHub repositories.
+triggers: ["commit to public repo", "push to public repo", "push to public", "extract to public", "migrate to public", "create public repo", "before committing to public", "open source release", "releasing to open source", "publishing open source"]
+description: Audit public repositories for proprietary IP before commit/push. Prevents leakage of internal references, URLs, ticket IDs, and confidential content to public repositories regardless of hosting platform (GitHub, GitLab, Bitbucket, Codeberg, SourceHut, self-hosted, etc.).
 ---
 
 # public-repo-ip-audit
@@ -79,8 +79,66 @@ Define proprietary patterns for each organization. Example:
 # Example patterns (customize for your organization)
 PATTERNS="TICKET-[0-9]+|YourCompany|yourcompany|ProductName"
 PATTERNS+="|internal-service|Team Name|wiki\.internal\.yourco\.net"
-PATTERNS+="|dev\.azure\.com/YourOrg|linear\.app/your-team"
 PATTERNS+="|username@yourcompany\.com"
+
+# === Git Hosting Platforms (internal/private instances) ===
+
+# Cloud-hosted (private orgs)
+PATTERNS+="|github\.com/YourPrivateOrg"             # Private GitHub org
+PATTERNS+="|gitlab\.com/YourPrivateOrg"             # Private GitLab group
+PATTERNS+="|bitbucket\.org/YourOrg"                 # Bitbucket Cloud
+
+# Self-hosted / Enterprise
+PATTERNS+="|dev\.azure\.com/YourOrg"                # Azure DevOps
+PATTERNS+="|gitlab\.yourcompany\.com"               # Self-hosted GitLab
+PATTERNS+="|bitbucket\.yourcompany\.com"            # Bitbucket Server/Data Center
+PATTERNS+="|github\.yourcompany\.com"               # GitHub Enterprise Server
+PATTERNS+="|gitea\.yourcompany\.com"                # Gitea (self-hosted)
+PATTERNS+="|gogs\.yourcompany\.com"                 # Gogs (self-hosted)
+PATTERNS+="|forgejo\.yourcompany\.com"              # Forgejo (Gitea fork)
+PATTERNS+="|rhodecode\.yourcompany\.com"            # RhodeCode
+PATTERNS+="|gerrit\.yourcompany\.com"               # Gerrit code review
+PATTERNS+="|phabricator\.yourcompany\.com"          # Phabricator/Phorge
+PATTERNS+="|gitbucket\.yourcompany\.com"            # GitBucket
+
+# Cloud provider source control
+PATTERNS+="|codecommit\.[a-z0-9-]+\.amazonaws\.com" # AWS CodeCommit
+PATTERNS+="|source\.cloud\.google\.com"             # Google Cloud Source Repos
+PATTERNS+="|ssh\.dev\.azure\.com"                   # Azure Repos SSH
+
+# Legacy/other platforms
+PATTERNS+="|sourceforge\.net/p/YourProject"         # SourceForge
+PATTERNS+="|launchpad\.net/YourProject"             # Launchpad
+PATTERNS+="|codeberg\.org/YourOrg"                  # Codeberg
+PATTERNS+="|sr\.ht/~YourUser"                       # SourceHut
+PATTERNS+="|perforce\.yourcompany\.com"             # Perforce Helix Core
+
+# === Issue Trackers ===
+
+PATTERNS+="|linear\.app/your-team"                  # Linear
+PATTERNS+="|yourcompany\.atlassian\.net"            # Jira/Confluence Cloud
+PATTERNS+="|jira\.yourcompany\.com"                 # Jira Server/Data Center
+PATTERNS+="|youtrack\.yourcompany\.com"             # JetBrains YouTrack
+PATTERNS+="|asana\.com/0/[0-9]+"                    # Asana (project IDs)
+PATTERNS+="|app\.shortcut\.com/yourorg"             # Shortcut (fka Clubhouse)
+PATTERNS+="|monday\.com/boards/[0-9]+"              # Monday.com
+PATTERNS+="|trello\.com/b/[a-zA-Z0-9]+"             # Trello boards
+PATTERNS+="|notion\.so/yourorg"                     # Notion workspace
+PATTERNS+="|plane\.yourcompany\.com"                # Plane (self-hosted)
+PATTERNS+="|height\.app/[a-zA-Z0-9-]+"              # Height
+PATTERNS+="|clickup\.com/t/[a-z0-9]+"               # ClickUp
+
+# === CI/CD Systems ===
+
+PATTERNS+="|circleci\.com/gh/YourOrg"               # CircleCI
+PATTERNS+="|app\.circleci\.com/pipelines/github/YourOrg"
+PATTERNS+="|travis-ci\.com/YourOrg"                 # Travis CI
+PATTERNS+="|jenkins\.yourcompany\.com"              # Jenkins
+PATTERNS+="|teamcity\.yourcompany\.com"             # TeamCity
+PATTERNS+="|buildkite\.com/yourorg"                 # Buildkite
+PATTERNS+="|drone\.yourcompany\.com"                # Drone CI
+PATTERNS+="|concourse\.yourcompany\.com"            # Concourse CI
+PATTERNS+="|app\.harness\.io/[a-zA-Z0-9]+"          # Harness
 ```
 
 ## VERIFICATION SCRIPT
@@ -130,7 +188,9 @@ echo "✅ PASS: No proprietary IP detected"
 5. ❌ Design documents present in public repo
 6. ❌ Internal URLs present (wiki, ticketing, CI/CD)
 7. ❌ Internal email addresses present
-8. ❌ Ticket/issue references present (JIRA, Linear, ADO)
+8. ❌ Ticket/issue references present (Jira, Linear, Azure DevOps, YouTrack, Shortcut, etc.)
+9. ❌ Git hosting URLs present (private GitHub/GitLab/Bitbucket orgs, self-hosted instances)
+10. ❌ CI/CD URLs present (Jenkins, CircleCI, TeamCity, Buildkite, etc.)
 
 ## INCIDENT REFERENCE
 
@@ -153,9 +213,11 @@ Before committing to public repo:
 - [ ] Design documents created in PRIVATE repo only
 - [ ] Ran full-repo grep (not just target directory)
 - [ ] Ran git history grep on all unpushed commits
-- [ ] Verified no internal URLs (wiki, ticketing, CI/CD)
+- [ ] Verified no internal wiki URLs
 - [ ] Verified no internal email addresses
-- [ ] Verified no ticket/issue references
+- [ ] Verified no ticket/issue tracker references (Jira, Linear, ADO, YouTrack, Shortcut, etc.)
+- [ ] Verified no private git hosting URLs (GitHub Enterprise, GitLab, Bitbucket, Gitea, etc.)
+- [ ] Verified no CI/CD system URLs (Jenkins, CircleCI, TeamCity, Buildkite, etc.)
 - [ ] Verified no company names or product names
 - [ ] Verification script passed with exit code 0
 
