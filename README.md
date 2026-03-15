@@ -154,7 +154,9 @@ Works offline using local TF-IDF. No API keys required.
 | readme-authoring | Structures documentation |
 | reviewing-ai-text | Evaluates generated content |
 
-### engineering/ (🦸 superpowers)
+### engineering/
+🦸 superpowers
+
 | Skill | What it does |
 |-------|--------------|
 | engineering-rigor | Quality philosophy hub |
@@ -164,7 +166,9 @@ Works offline using local TF-IDF. No API keys required.
 | receiving-code-review | Evaluates incoming feedback |
 | verification-before-completion | Final checks before claiming done |
 
-### productivity/ (mixed)
+### productivity/
+🔧 explicit + 🦸 auto
+
 | Skill | Type | What it does |
 |-------|------|--------------|
 | innovation | 🦸 | Radical, high-impact thinking beyond incremental fixes |
@@ -174,7 +178,9 @@ Works offline using local TF-IDF. No API keys required.
 | enforce-style-guide | 🦸 | Applies project conventions |
 | superpowers-help | 🔧 | Lists available skills |
 
-### observability/ (🔧 explicit + 🦸 auto)
+### observability/
+🔧 explicit + 🦸 auto
+
 | Skill | Type | What it does |
 |-------|------|--------------|
 | skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
@@ -183,19 +189,25 @@ Works offline using local TF-IDF. No API keys required.
 | holistic-repo-verification | 🔧 | Checks all CI paths |
 | completeness-check | 🦸 | Confirms work is done |
 
-### research/ (🦸 superpowers)
+### research/
+🦸 superpowers
+
 | Skill | What it does |
 |-------|--------------|
 | perplexity-research | Escalates when stuck |
 | incorporating-research | Merges external findings |
 
-### security/ (🔧 explicit)
+### security/
+🔧 explicit
+
 | Skill | What it does |
 |-------|--------------|
 | security-upgrade | Scans CVEs, upgrades deps |
 | public-repo-ip-audit | Detects proprietary content |
 
-### experimental/ (🦸 superpower)
+### experimental/
+🦸 superpower
+
 | Skill | What it does |
 |-------|--------------|
 | experimental-self-prompting | Context-free analysis (unstable) |
