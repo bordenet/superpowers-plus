@@ -541,6 +541,8 @@ install_adapter() {
     local adapter_src="$SCRIPT_DIR/superpowers-augment.js"
     local adapter_dest_dir="${CODEX_DIR}/superpowers-augment"
     local adapter_dest="${adapter_dest_dir}/superpowers-augment.js"
+    local lib_src="$SCRIPT_DIR/lib"
+    local lib_dest="${adapter_dest_dir}/lib"
 
     # Verify adapter source exists
     if [[ ! -f "$adapter_src" ]]; then
@@ -554,13 +556,18 @@ install_adapter() {
     # Check if already installed and identical (skip copy for idempotency)
     if [[ -f "$adapter_dest" ]] && cmp -s "$adapter_src" "$adapter_dest"; then
         log_verbose "Adapter already up to date"
-        return 0
+    else
+        # Copy adapter (no chmod +x needed - run via 'node script.js')
+        cp "$adapter_src" "$adapter_dest" || error_exit "Failed to copy adapter to $adapter_dest"
+        log_success "Adapter installed: $adapter_dest"
     fi
 
-    # Copy adapter (no chmod +x needed - run via 'node script.js')
-    cp "$adapter_src" "$adapter_dest" || error_exit "Failed to copy adapter to $adapter_dest"
-
-    log_success "Adapter installed: $adapter_dest"
+    # Copy lib/ directory (contains learning-state.js)
+    if [[ -d "$lib_src" ]]; then
+        rm -rf "$lib_dest" 2>/dev/null
+        cp -r "$lib_src" "$lib_dest" || error_exit "Failed to copy lib/ to $lib_dest"
+        log_verbose "Installed lib/ directory"
+    fi
 }
 
 # Install all skills from this repository (supports domain-based structure)
