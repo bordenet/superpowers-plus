@@ -15,7 +15,7 @@
     {
       "name": "superpowers-plus",
       "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR loop) plus 38 skills for wiki, issue tracking, security",
-      "version": "2.4.1",
+      "version": "2.4.2",
       "source": "./"
     }
   ]
