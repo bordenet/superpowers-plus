@@ -133,47 +133,49 @@ Works offline using local TF-IDF. No API keys required.
 
 ## Skills
 
-| Domain | Skill | Type | What it does |
-|--------|-------|------|--------------|
-| engineering | blast-radius-check | 🦸 | Finds all callers before edits |
-| engineering | engineering-rigor | 🦸 | Quality philosophy hub |
-| engineering | pre-commit-gate | 🦸 | Runs lint → typecheck → test |
-| engineering | providing-code-review | 🦸 | Structured PR feedback |
-| engineering | receiving-code-review | 🦸 | Evaluates incoming feedback |
-| engineering | verification-before-completion | 🦸 | Final checks before claiming done |
-| experimental | experimental-self-prompting | 🦸 | Context-free analysis (unstable) |
-| issue-tracking | issue-authoring | 🦸 | Writes tickets with acceptance criteria |
-| issue-tracking | issue-comment-debunker | 🦸 | Fact-checks before posting |
-| issue-tracking | issue-editing | 🦸 | Updates existing tickets safely |
-| issue-tracking | issue-link-verification | 🦸 | Tests URLs in ticket content |
-| issue-tracking | issue-verify | 🦸 | Confirms references exist |
-| observability | completeness-check | 🦸 | Confirms work is done |
-| observability | exhaustive-audit-validation | 🦸 | Confirms checklist coverage |
-| observability | holistic-repo-verification | 🦸 | Checks all CI paths |
-| observability | skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
-| observability | skill-firing-tracker | 🦸 | Logs which skills ran |
-| productivity | enforce-style-guide | 🦸 | Applies project conventions |
-| productivity | golden-agents | 🦸 | Bootstraps AGENTS.md |
-| productivity | innovation | 🦸 | Radical, high-impact thinking |
-| productivity | superpowers-help | 🦸 | Lists available skills |
-| productivity | think-twice | 🦸 | Spawns sub-agent for fresh perspective |
-| productivity | todo-management | 🦸 | Parses and tracks tasks |
-| research | incorporating-research | 🦸 | Merges external findings |
-| research | perplexity-research | 🦸 | Escalates when stuck |
-| security | public-repo-ip-audit | 🦸 | Detects proprietary content |
-| security | security-upgrade | 🦸 | Scans CVEs, upgrades deps |
-| wiki | link-verification | 🦸 | Confirms URLs resolve |
-| wiki | wiki-authoring | 🦸 | Creates new pages |
-| wiki | wiki-debunker | 🦸 | Fact-checks content |
-| wiki | wiki-editing | 🔧 | Safe updates with backup (internal) |
-| wiki | wiki-orchestrator | 🦸 | Routes tasks to the right handler |
-| wiki | wiki-secret-audit | 🦸 | Finds leaked credentials |
-| wiki | wiki-verify | 🦸 | Checks links and structure |
-| writing | detecting-ai-slop | 🦸 | Scores text 0-100 for machine patterns |
-| writing | eliminating-ai-slop | 🦸 | Rewrites stilted prose |
-| writing | professional-language-audit | 🦸 | Blocks profanity |
-| writing | readme-authoring | 🦸 | Structures documentation |
-| writing | reviewing-ai-text | 🦸 | Evaluates generated content |
+| Domain | Skill | What it does |
+|--------|-------|--------------|
+| engineering | blast-radius-check | Finds all callers before edits |
+| | engineering-rigor | Quality philosophy hub |
+| | pre-commit-gate | Runs lint → typecheck → test |
+| | providing-code-review | Structured PR feedback |
+| | receiving-code-review | Evaluates incoming feedback |
+| | verification-before-completion | Final checks before claiming done |
+| experimental | experimental-self-prompting | Context-free analysis (unstable) |
+| issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
+| | issue-comment-debunker | Fact-checks before posting |
+| | issue-editing | Updates existing tickets safely |
+| | issue-link-verification | Tests URLs in ticket content |
+| | issue-verify | Confirms references exist |
+| observability | completeness-check | Confirms work is done |
+| | exhaustive-audit-validation | Confirms checklist coverage |
+| | holistic-repo-verification | Checks all CI paths |
+| | skill-effectiveness | Tracks outcomes, learns trigger improvements |
+| | skill-firing-tracker | Logs which skills ran |
+| productivity | enforce-style-guide | Applies project conventions |
+| | golden-agents | Bootstraps AGENTS.md |
+| | innovation | Radical, high-impact thinking |
+| | superpowers-help | Lists available skills |
+| | think-twice | Spawns sub-agent for fresh perspective |
+| | todo-management | Parses and tracks tasks |
+| research | incorporating-research | Merges external findings |
+| | perplexity-research | Escalates when stuck |
+| security | public-repo-ip-audit | Detects proprietary content |
+| | security-upgrade | Scans CVEs, upgrades deps |
+| wiki | link-verification | Confirms URLs resolve |
+| | wiki-authoring | Creates new pages |
+| | wiki-debunker | Fact-checks content |
+| | wiki-editing | Safe updates with backup |
+| | wiki-orchestrator | Routes tasks to the right handler |
+| | wiki-secret-audit | Finds leaked credentials |
+| | wiki-verify | Checks links and structure |
+| writing | detecting-ai-slop | Scores text 0-100 for machine patterns |
+| | eliminating-ai-slop | Rewrites stilted prose |
+| | professional-language-audit | Blocks profanity |
+| | readme-authoring | Structures documentation |
+| | reviewing-ai-text | Evaluates generated content |
+
+> **Note:** All skills are auto-triggered (🦸) except `wiki-editing`, which is internal and invoked by `wiki-orchestrator`.
 
 ## Skill Coordination
 
