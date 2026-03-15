@@ -23,7 +23,7 @@ cd superpowers-plus
 | issue-tracking | 5 | 🦸 auto | Create, update, verify tickets |
 | writing | 5 | 🦸 auto | Slop detection, profanity gates |
 | productivity | 5 | mixed | TODO tracking, style enforcement |
-| observability | 4 | 🔧 explicit | Invocation logging, completeness checks |
+| observability | 5 | mixed | Outcome tracking, completeness checks |
 | research | 2 | 🦸 auto | Perplexity integration |
 | security | 2 | 🔧 explicit | CVE scanning, IP protection |
 
@@ -157,12 +157,13 @@ Copy `.env.example` to `.env` for optional integrations:
 | enforce-style-guide | 🦸 | Applies project conventions |
 | superpowers-help | 🔧 | Lists available skills |
 
-### observability/ (🔧 explicit)
-| Skill | What it does |
-|-------|--------------|
-| skill-firing-tracker | Logs which skills ran |
-| exhaustive-audit-validation | Confirms checklist coverage |
-| holistic-repo-verification | Checks all CI paths |
+### observability/ (🔧 explicit + 🦸 auto)
+| Skill | Type | What it does |
+|-------|------|--------------|
+| skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
+| skill-firing-tracker | 🔧 | Logs which skills ran |
+| exhaustive-audit-validation | 🔧 | Confirms checklist coverage |
+| holistic-repo-verification | 🔧 | Checks all CI paths |
 | completeness-check | Confirms work is done |
 
 ### research/ (🦸 superpowers)
