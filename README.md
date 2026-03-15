@@ -179,7 +179,7 @@ Works offline using local TF-IDF. No API keys required.
 
 ## Skill Coordination
 
-Skills can be coordinated into pipelines with explicit dependencies. View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
+Skills can be coordinated into pipelines with explicit dependencies. Arrows show **execution order**: A → B means "A must complete before B runs."
 
 ```mermaid
 graph LR
@@ -199,11 +199,13 @@ graph LR
   end
 ```
 
-| Group | Purpose |
-|-------|---------|
-| Commit Gates | Quality checks before `git commit` (build → style → language → IP audit) |
-| Wiki Pipeline | Wiki authoring quality pipeline (orchestrator → links → edit) |
-| Stuck Escalation | Getting unstuck (reasoning first → research if needed) |
+| Group | Flow | Purpose |
+|-------|------|---------|
+| Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
+| Wiki Pipeline | orchestrator → links → edit | Wiki authoring with validation gates |
+| Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
+
+View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
 
 ### Namespaced Triggers
 
