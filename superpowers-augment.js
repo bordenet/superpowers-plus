@@ -328,6 +328,7 @@ function showLearningInsights() {
 
     console.log('\n---\n');
     console.log('📊 **Learning Insights**\n');
+    console.log('Based on recorded outcomes. Use `record-outcome <skill> success|failure` after skill-guided work.\n');
 
     // Low performers (< 70% success rate with at least 3 fires)
     const lowPerformers = metrics.filter(([_, m]) => m.success_rate < 0.7 && m.total_fires >= 3);
