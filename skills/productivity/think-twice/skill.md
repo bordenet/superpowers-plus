@@ -205,6 +205,35 @@ Options:
 - `references/heuristic-signals.md` — Auto-detection criteria
 - `prompts/consultant-persona.md` — Sub-agent persona and constraints
 
+---
+
+## "I'm Stuck" Escalation Path
+
+Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this decision tree:
+
+```
+"I'm stuck"
+    │
+    ├─► Is this a REASONING problem?
+    │   (logic, approach, design, architecture)
+    │   └─► Use think-twice FIRST (free, internal)
+    │       └─► Still stuck? → Escalate to perplexity-research
+    │
+    └─► Is this a KNOWLEDGE problem?
+        (API docs, error codes, library versions, facts)
+        └─► Use perplexity-research FIRST (external knowledge)
+            └─► Still stuck? → Use think-twice for fresh reasoning
+```
+
+**Default order:** `think-twice` → `perplexity-research`
+- Think-twice is free and instant
+- Perplexity costs money and requires justification
+- Try internal reasoning before external research
+
+**See also:** `perplexity-research` skill for knowledge-based research
+
+---
+
 ## Version
 
 - **Current:** 0.1.0 (MVP)
