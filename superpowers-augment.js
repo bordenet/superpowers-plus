@@ -9,7 +9,15 @@ const path = require('path');
 const os = require('os');
 
 // Learning state for skill effectiveness tracking
-const { readState, recordOutcome, getMetricsSummary, addSuggestion } = require('./lib/learning-state');
+const {
+  readState,
+  recordOutcome,
+  getMetricsSummary,
+  addSuggestion,
+  recordPattern,
+  getSkillsNeedingAttention,
+  generateTriggerReport
+} = require('./lib/learning-state');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -403,6 +411,57 @@ switch (command) {
         console.log(`Outcomes recorded: ${state.outcomes.length}`);
         console.log(`Skills tracked: ${Object.keys(state.trigger_metrics).length}`);
         console.log(`Pending suggestions: ${state.skill_suggestions.filter(s => s.status === 'pending').length}`);
+        console.log(`Patterns observed: ${state.pattern_observations.length}`);
+        break;
+    }
+
+    case 'record-pattern': {
+        const pattern = args[0];
+        const potentialSkill = args[1] || 'unknown';
+        if (!pattern) {
+            console.error('Usage: record-pattern "pattern description" [potential-skill-name]');
+            process.exit(1);
+        }
+        recordPattern(pattern, potentialSkill);
+        console.log(`📝 Pattern recorded: "${pattern}"`);
+        console.log(`   Potential skill: ${potentialSkill}`);
+        break;
+    }
+
+    case 'learning-report': {
+        const report = generateTriggerReport();
+        console.log('# Skill Effectiveness Report\n');
+        console.log(`Generated: ${report.generated_at}\n`);
+
+        console.log('## Overall Stats\n');
+        console.log(`Total skill fires: ${report.overall.total_fires}`);
+        console.log(`Successes: ${report.overall.total_successes}`);
+        console.log(`Failures: ${report.overall.total_failures}`);
+        console.log(`Success rate: ${(report.overall.success_rate * 100).toFixed(1)}%\n`);
+
+        const issues = getSkillsNeedingAttention();
+        if (issues.length > 0) {
+            console.log('## ⚠️ Skills Needing Attention\n');
+            for (const issue of issues) {
+                console.log(`- ${issue.message}`);
+            }
+            console.log();
+        }
+
+        if (report.patterns.length > 0) {
+            console.log('## 🔮 Emerging Patterns (potential new skills)\n');
+            for (const p of report.patterns) {
+                console.log(`- "${p.pattern}" (${p.frequency}x) → ${p.potential_skill}`);
+            }
+            console.log();
+        }
+
+        if (report.suggestions.length > 0) {
+            console.log('## 💡 Pending Suggestions\n');
+            for (const s of report.suggestions) {
+                console.log(`- [${s.type}] ${s.skill}: "${s.suggested}" (${s.evidence_count} observations)`);
+            }
+        }
         break;
     }
 
@@ -417,8 +476,10 @@ switch (command) {
         console.log('');
         console.log('Learning System:');
         console.log('  node superpowers-augment.js record-outcome <skill> <success|failure> [evidence]');
-        console.log('  node superpowers-augment.js analyze-triggers       # Show effectiveness report');
+        console.log('  node superpowers-augment.js analyze-triggers       # Show trigger effectiveness');
         console.log('  node superpowers-augment.js suggest-trigger <skill> <phrase>');
+        console.log('  node superpowers-augment.js record-pattern <pattern> [skill]  # Track recurring patterns');
+        console.log('  node superpowers-augment.js learning-report        # Full effectiveness report');
         console.log('  node superpowers-augment.js learning-status        # Show learning state info');
         break;
 }
