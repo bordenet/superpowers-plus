@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.4.2"
+VERSION="2.5.0"
 
 # Colors for output (disabled if not a terminal)
 if [[ -t 1 ]]; then

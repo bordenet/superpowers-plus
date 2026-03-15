@@ -9,6 +9,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-03-15
+
+### Changed
+- **BREAKING**: Semantic skill router now defaults to local TF-IDF matching
+  - Eliminates OpenAI API dependency for skill discovery
+  - Works offline with zero external calls
+  - OpenAI embeddings still available as optional enhanced mode when `OPENAI_API_KEY` is set
+
+### Added
+- **TF-IDF Engine**: Custom implementation with Porter-style stemming and stop-word filtering
+- **Query Expansion**: `CONCEPT_EXPANSIONS` map bridges semantic gaps (e.g., "failing" → "debug")
+- **Intent Patterns**: `INTENT_PATTERNS` provide high-confidence routing for domain-specific phrases
+- `--tfidf` and `--embedding` flags for `match-skills` command to force specific method
+
+### Fixed
+- Prototype pollution bug with `constructor` term causing NaN scores and corrupted sort results
+- Trigger boost accumulation (now takes best partial match only, not sum of all matches)
+
 ## [2.4.2] - 2026-03-15
 
 ### Added
