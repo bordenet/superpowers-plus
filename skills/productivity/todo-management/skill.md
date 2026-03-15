@@ -1,18 +1,64 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list"]
-description: Use when capturing tasks, tracking work, triaging priorities, or querying task history.
+triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist"]
+description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 ---
 
 # TODO Management
 
 > **File location:** `$TODO_FILE_PATH` (see Configuration below)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
+> **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
 ---
 
-## Configuration
+## Integration with MCP Task Tools
+
+When MCP task management tools are available (`add_tasks`, `update_tasks`, `view_tasklist`), use them for **in-conversation task tracking**. The file-based `TODO.md` is for **persistent tasks that span sessions**.
+
+### When to Use Each System
+
+| System | Use When | Persistence |
+|--------|----------|-------------|
+| **MCP Tools** (`add_tasks`, etc.) | Tracking steps in current conversation | Session only |
+| **TODO.md file** | Tasks that span multiple sessions | Permanent |
+
+### MCP Task Workflow (3+ Step Plans)
+
+When creating or executing a multi-step plan:
+
+1. **Create tasks** — Call `add_tasks` with plan steps BEFORE starting work
+2. **Track progress** — Mark `IN_PROGRESS` when starting each step
+3. **Mark complete** — Mark `COMPLETE` immediately when done (don't batch)
+4. **Verify** — Call `view_tasklist` before claiming work is done
+
+### MCP Tool Reference
+
+| Tool | Purpose | When to Call |
+|------|---------|--------------|
+| `add_tasks` | Create task list from plan | After creating/receiving multi-step plan |
+| `update_tasks` | Change task state or details | When starting step (IN_PROGRESS) or finishing (COMPLETE) |
+| `view_tasklist` | See current task status | Before claiming work is done |
+
+### Example: Executing a 4-Step Plan
+
+```
+User: "Implement these changes: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
+
+Agent:
+1. Call add_tasks with 4 tasks
+2. Mark "Update config" IN_PROGRESS → do work → mark COMPLETE
+3. Mark "Add validation" IN_PROGRESS → do work → mark COMPLETE
+4. Mark "Write tests" IN_PROGRESS → do work → mark COMPLETE
+5. Mark "Update docs" IN_PROGRESS → do work → mark COMPLETE
+6. Call view_tasklist to verify all complete
+7. Report "All tasks complete"
+```
+
+---
+
+## Configuration (File-Based TODO.md)
 
 **REQUIRED:** Set the `TODO_FILE_PATH` environment variable before using this skill.
 
