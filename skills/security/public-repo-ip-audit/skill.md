@@ -227,3 +227,18 @@ Before committing to public repo:
 ✅ Zero proprietary IP in public repository git history
 ✅ Design documents remain in private repositories
 ✅ Audit trail of verification before each commit
+
+---
+
+## Commit Gate Coordination
+
+Multiple skills fire on commit-related triggers. When pushing to a **public repository**, execute in this order:
+
+| Order | Skill | Purpose | Scope |
+|-------|-------|---------|-------|
+| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
+| 2 | `enforce-style-guide` | Code style compliance | All commits |
+| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 4 | **public-repo-ip-audit** (this skill) | Proprietary content check | **Public repos only** |
+
+**Note:** This skill only applies to public repositories. For private/internal repos, skip this gate.
