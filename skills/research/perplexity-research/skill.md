@@ -1,8 +1,15 @@
 ---
 name: perplexity-research
 source: superpowers-plus
-triggers: ["research this", "use perplexity", "I'm stuck", "need to research", "look this up"]
+triggers: ["research this", "use perplexity", "I'm stuck", "need to research", "look this up", "stuck:research", "stuck:knowledge"]
 description: Invoke when stuck (2+ failed attempts, uncertainty, or guessing) OR manually to research technical/domain questions via Perplexity MCP. ALWAYS announce invocation and track stats.
+coordination:
+  group: stuck-escalation
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Perplexity Research

@@ -1,8 +1,15 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki"]
+triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish"]
 description: Use when creating or updating wiki pages — the default entry point for all wiki authoring. Automatically invokes de-duplication, link-verification, secret-scan, slop-detection, and fact-check as mandatory pipeline stages.
+coordination:
+  group: wiki-pipeline
+  order: 1
+  requires: []
+  enables: ["link-verification", "wiki-editing"]
+  escalates_to: []
+  internal: false
 ---
 
 # Wiki Orchestrator
