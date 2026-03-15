@@ -316,4 +316,3 @@ git commit -m "feat(skill): add skill-effectiveness observability skill"
 - [ ] `node superpowers-augment.js analyze-triggers` — shows trigger report
 - [ ] `node superpowers-augment.js bootstrap` — shows learning insights section
 - [ ] Recording multiple outcomes updates success_rate correctly
-

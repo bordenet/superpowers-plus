@@ -100,4 +100,3 @@ Create a learning system that tracks skill outcomes (not just invocations), lear
 | 3 | Trigger metrics aggregated correctly | Check success_rate after 5 outcomes |
 | 4 | Bootstrap shows learning insights | Run bootstrap, see "Learning insights" section |
 | 5 | End-to-end demo | Full workflow from fire → outcome → suggestion |
-
