@@ -110,6 +110,21 @@ The skill will check for this variable on first use and prompt you to configure 
 
 ---
 
+## ⚠️ CRITICAL: Always Check Persistent TODO.md First
+
+When user asks "show my TODOs", "what are my tasks", or any task query:
+
+1. **ALWAYS read `$TODO_FILE_PATH` FIRST** — This is the source of truth
+2. **MCP tools are supplementary** — `view_tasklist` shows session context only
+3. **Never imply completeness** from MCP state alone
+
+**Why this matters:**
+- MCP tasks are session-only (lost on context compaction)
+- TODO.md persists across sessions
+- Showing only MCP tasks gives a false "all done" impression
+
+---
+
 ## Overview
 
 Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags based on context, and provides queryable history.
