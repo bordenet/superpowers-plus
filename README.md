@@ -14,7 +14,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**38 skills** (30 superpowers + 8 explicit) across 8 domains:
+**39 skills** (30 superpowers + 9 explicit) across 9 domains:
 
 | Domain | Count | Type | Examples |
 |--------|-------|------|----------|
@@ -26,6 +26,7 @@ cd superpowers-plus
 | observability | 5 | mixed | Skill effectiveness, completeness checks |
 | research | 2 | 🦸 auto | Perplexity integration |
 | security | 2 | 🔧 explicit | CVE scanning, IP protection |
+| experimental | 1 | 🔧 explicit | Self-prompting patterns |
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = invoke by name (explicit skills)
 
