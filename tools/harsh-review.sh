@@ -277,7 +277,7 @@ log_check "README skill count consistency"
 ACTUAL_TOTAL=$(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
 
 # Count explicit skills from EXPLICIT_SKILLS array in skill-trigger-validator.sh
-ACTUAL_EXPLICIT=$(grep -A50 "^EXPLICIT_SKILLS=" tools/skill-trigger-validator.sh 2>/dev/null | grep '^\s*"' | wc -l | tr -d ' ')
+ACTUAL_EXPLICIT=$(grep -A50 "^EXPLICIT_SKILLS=" tools/skill-trigger-validator.sh 2>/dev/null | grep -c '^\s*"' || echo 0)
 ACTUAL_SUPERPOWERS=$((ACTUAL_TOTAL - ACTUAL_EXPLICIT))
 
 # Count domains (directories under skills/ that contain skill files)
