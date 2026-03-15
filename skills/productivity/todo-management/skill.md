@@ -108,6 +108,12 @@ export TODO_FILE_PATH="$HOME/Documents/TODO.md"
 
 The skill will check for this variable on first use and prompt you to configure it if missing.
 
+### Getting Started
+
+1. Copy the template: `cp ~/.codex/templates/TODO.md ~/Documents/TODO.md`
+2. Set the environment variable in your shell profile
+3. Source your profile or restart your terminal
+
 ---
 
 ## ⚠️ CRITICAL: Always Check Persistent TODO.md First
