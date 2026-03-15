@@ -204,7 +204,7 @@ graph LR
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
-| Wiki Pipeline | orchestrator → links → edit | Wiki authoring with validation gates |
+| Wiki Pipeline | orchestrator → links → edit | Content generated → links verified → published |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
 
 View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
