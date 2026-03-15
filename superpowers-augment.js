@@ -19,6 +19,9 @@ const {
   generateTriggerReport
 } = require('./lib/learning-state');
 
+// Semantic skill routing
+const { matchSkills: semanticMatch, embedSkills } = require('./lib/skill-router');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
@@ -466,6 +469,76 @@ switch (command) {
         break;
     }
 
+    case 'match-skills': {
+        const query = args.join(' ');
+        if (!query) {
+            console.error('Usage: match-skills <query>');
+            console.error('Example: match-skills "my tests keep failing randomly"');
+            process.exit(1);
+        }
+        // Gather all skills for matching
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+        const seen = new Set();
+        const skills = allSkills.filter(s => {
+            if (seen.has(s.name)) return false;
+            seen.add(s.name);
+            return true;
+        });
+
+        semanticMatch(query, skills, 5)
+            .then(matches => {
+                console.log(`# Semantic Skill Match\n`);
+                console.log(`Query: "${query}"\n`);
+                console.log('| Rank | Skill | Score | Type |');
+                console.log('|------|-------|-------|------|');
+                for (let i = 0; i < matches.length; i++) {
+                    const m = matches[i];
+                    const type = m.isSuperpower ? 'superpower' : 'explicit';
+                    console.log(`| ${i + 1} | ${m.name} | ${(m.score * 100).toFixed(1)}% | ${type} |`);
+                }
+                console.log(`\nTop match: **${matches[0]?.name}**`);
+                console.log(`\nTo use: \`superpowers-augment use-skill ${matches[0]?.name}\``);
+            })
+            .catch(err => {
+                console.error('Error:', err.message);
+                if (err.message.includes('OPENAI_API_KEY')) {
+                    console.error('\nSet your API key: export OPENAI_API_KEY=sk-...');
+                }
+                process.exit(1);
+            });
+        break;
+    }
+
+    case 'embed-skills': {
+        // Pre-embed all skills (useful for initial setup)
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+        const seen = new Set();
+        const skills = allSkills.filter(s => {
+            if (seen.has(s.name)) return false;
+            seen.add(s.name);
+            return true;
+        });
+
+        const forceRefresh = args.includes('--force');
+        console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
+
+        embedSkills(skills, forceRefresh)
+            .then(cache => {
+                const count = Object.keys(cache.embeddings).length;
+                console.log(`\n✅ Embedded ${count} skills`);
+                console.log(`Cache: ~/.codex/.skill-embeddings.json`);
+            })
+            .catch(err => {
+                console.error('Error:', err.message);
+                process.exit(1);
+            });
+        break;
+    }
+
     default:
         console.log('Superpowers for Augment\n');
         console.log('Usage:');
@@ -474,6 +547,10 @@ switch (command) {
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
+        console.log('');
+        console.log('Semantic Routing (BETA):');
+        console.log('  node superpowers-augment.js match-skills <query>   # Find skills by intent');
+        console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed all skills');
         console.log('');
         console.log('Learning System:');
         console.log('  node superpowers-augment.js record-outcome <skill> <success|failure> [evidence]');
