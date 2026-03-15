@@ -12,11 +12,11 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.4.1
+# VERSION: 2.4.2
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.4.1"
+VERSION="2.4.2"
 
 # Colors for output (disabled if not a terminal)
 if [[ -t 1 ]]; then
