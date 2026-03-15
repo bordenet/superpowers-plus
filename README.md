@@ -181,7 +181,7 @@ Works offline using local TF-IDF. No API keys required.
 | skill-firing-tracker | 🔧 | Logs which skills ran |
 | exhaustive-audit-validation | 🔧 | Confirms checklist coverage |
 | holistic-repo-verification | 🔧 | Checks all CI paths |
-| completeness-check | Confirms work is done |
+| completeness-check | 🦸 | Confirms work is done |
 
 ### research/ (🦸 superpowers)
 | Skill | What it does |
