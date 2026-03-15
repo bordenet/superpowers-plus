@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 36/36 skills validated |
+| Skills have SKILL.md with frontmatter | ✅ PASS | 38/38 skills validated |
 
 ## Draft Submission
 
@@ -24,10 +24,10 @@
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 36 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 38 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 38 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
@@ -37,8 +37,8 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 36 domain skills 
 - Wiki management (7 skills): authoring, editing, link verification, secret scanning
 - Issue tracking (5 skills): Linear/GitHub/Jira/Azure DevOps adapters
 - Engineering (5 skills): pre-commit gates, blast radius checks, PR review
-- Productivity (5 skills): TODO management, style enforcement
-- Observability (4 skills): skill firing tracking, completeness checks
+- Productivity (6 skills): innovation, TODO management, style enforcement
+- Observability (5 skills): skill effectiveness, firing tracking, completeness checks
 - Security (2 skills): CVE scanning, public repo IP audit
 - Research (2 skills): Perplexity integration
 - Experimental (1 skill): self-prompting
