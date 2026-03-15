@@ -13,33 +13,30 @@ description: Use when capturing tasks, tracking work, triaging priorities, query
 
 ---
 
-## Integration with MCP Task Tools
+## Multi-Step Plan Tracking
 
-When MCP task management tools are available (`add_tasks`, `update_tasks`, `view_tasklist`), use them for **in-conversation task tracking**. The file-based `TODO.md` is for **persistent tasks that span sessions**.
+When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms:
 
-### When to Use Each System
+1. **TODO.md file** (PRIMARY) — Persist all plan steps to disk for resilience
+2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
 
-| System | Use When | Persistence |
-|--------|----------|-------------|
-| **MCP Tools** (`add_tasks`, etc.) | Tracking steps in current conversation | Session only |
-| **TODO.md file** | Tasks that span multiple sessions | Permanent |
+### Why Both?
 
-### MCP Task Workflow (3+ Step Plans)
+| Mechanism | Purpose | Survives |
+|-----------|---------|----------|
+| **TODO.md** | Persistence, recovery, cross-session continuity | Context compaction, crashes, session switches |
+| **MCP tools** | Real-time UI visibility for user | Current session only |
 
-When creating or executing a multi-step plan:
+**Default behavior:** Write to TODO.md first, then mirror to MCP tools if available.
 
-1. **Create tasks** — Call `add_tasks` with plan steps BEFORE starting work
-2. **Track progress** — Mark `IN_PROGRESS` when starting each step
-3. **Mark complete** — Mark `COMPLETE` immediately when done (don't batch)
-4. **Verify** — Call `view_tasklist` before claiming work is done
+### Workflow: Executing a Multi-Step Plan
 
-### MCP Tool Reference
+When user says "implement this plan", "execute these steps", etc.:
 
-| Tool | Purpose | When to Call |
-|------|---------|--------------|
-| `add_tasks` | Create task list from plan | After creating/receiving multi-step plan |
-| `update_tasks` | Change task state or details | When starting step (IN_PROGRESS) or finishing (COMPLETE) |
-| `view_tasklist` | See current task status | Before claiming work is done |
+1. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan` tag
+2. **Mirror to MCP** — Call `add_tasks` for real-time visibility (if available)
+3. **Track progress** — Update both systems as you complete steps
+4. **Verify** — Check TODO.md AND `view_tasklist` before claiming done
 
 ### Example: Executing a 4-Step Plan
 
@@ -47,14 +44,33 @@ When creating or executing a multi-step plan:
 User: "Implement these changes: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
 
 Agent:
-1. Call add_tasks with 4 tasks
-2. Mark "Update config" IN_PROGRESS → do work → mark COMPLETE
-3. Mark "Add validation" IN_PROGRESS → do work → mark COMPLETE
-4. Mark "Write tests" IN_PROGRESS → do work → mark COMPLETE
-5. Mark "Update docs" IN_PROGRESS → do work → mark COMPLETE
-6. Call view_tasklist to verify all complete
-7. Report "All tasks complete"
+1. Write 4 tasks to TODO.md as P1 #plan #engineering
+2. Call add_tasks with same 4 tasks (for UI visibility)
+3. For each step:
+   - Mark IN_PROGRESS in both systems
+   - Do the work
+   - Mark COMPLETE in both systems
+4. Verify: Check TODO.md shows all complete, call view_tasklist
+5. Report "All tasks complete"
 ```
+
+### MCP Tool Reference (Supplementary)
+
+| Tool | Purpose | When to Call |
+|------|---------|--------------|
+| `add_tasks` | Mirror plan to conversation UI | After writing to TODO.md |
+| `update_tasks` | Sync state changes | After updating TODO.md |
+| `view_tasklist` | Quick status check | In addition to reading TODO.md |
+
+### When MCP Tools Are Unavailable
+
+If MCP tools are not available, **TODO.md is sufficient**. The file provides:
+- Full persistence
+- Recovery from interruptions
+- Cross-session continuity
+- Queryable history ("what did I do?")
+
+MCP tools are a convenience layer, not a requirement.
 
 ---
 

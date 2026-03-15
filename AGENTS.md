@@ -67,34 +67,45 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
 ## Planning and Task Management
 
-You have access to task management tools (`add_tasks`, `update_tasks`, `view_tasklist`).
-Use these **frequently** to track multi-step work and give the user visibility into progress.
+For multi-step plans (3+ steps), use **both** persistence mechanisms:
+
+1. **TODO.md file** (PRIMARY) — Persist to disk for resilience against context loss
+2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
 
 ### When to Use Task Management
 
 | Situation | Action |
 |-----------|--------|
-| Creating a plan with 3+ steps | Call `add_tasks` BEFORE starting work |
-| User says "implement", "execute", or "work through" a plan | Create tasks immediately |
-| Starting work on a step | Mark task `IN_PROGRESS` |
-| Completing a step | Mark task `COMPLETE` immediately (don't batch) |
-| Before claiming work is done | Call `view_tasklist` to verify all tasks complete |
+| Creating a plan with 3+ steps | Write to TODO.md, then call `add_tasks` |
+| User says "implement", "execute", or "work through" a plan | Persist steps immediately |
+| Starting work on a step | Mark `IN_PROGRESS` in both systems |
+| Completing a step | Mark `COMPLETE` immediately in both (don't batch) |
+| Before claiming work is done | Check TODO.md AND `view_tasklist` |
 
 ### Task Lifecycle (MANDATORY for 3+ step plans)
 
-1. **Create** — Use `add_tasks` when creating or receiving a multi-step plan
-2. **Track** — Mark `IN_PROGRESS` when starting each step
-3. **Complete** — Mark `COMPLETE` immediately when done (never batch multiple completions)
-4. **Verify** — Use `view_tasklist` before claiming work is done
+1. **Persist** — Write plan steps to TODO.md as P1 tasks with `#plan` tag
+2. **Mirror** — Call `add_tasks` to sync to MCP for real-time visibility
+3. **Track** — Mark `IN_PROGRESS` when starting each step (both systems)
+4. **Complete** — Mark `COMPLETE` immediately when done (both systems)
+5. **Verify** — Check TODO.md and `view_tasklist` before claiming done
+
+### Why File Persistence Matters
+
+| Risk | Without TODO.md | With TODO.md |
+|------|-----------------|--------------|
+| Context window compaction | Plan steps lost | Recoverable from disk |
+| Session crash/timeout | Progress lost | Resume from last state |
+| User switches tasks | No continuity | Pick up where you left off |
 
 ### Anti-Patterns to Avoid
 
 | Anti-Pattern | Why It's Bad | Correct Behavior |
 |--------------|--------------|------------------|
+| MCP-only tracking | Lost on context compaction | Always persist to TODO.md first |
 | Skipping task creation for "simple" plans | Loses visibility | Create tasks for any 3+ step plan |
 | Batching task completions | User can't track progress | Mark COMPLETE immediately after each step |
-| Forgetting `IN_PROGRESS` state | No visibility during work | Update state when starting each step |
-| Not verifying before claiming done | May miss incomplete steps | Always `view_tasklist` before claiming done |
+| Not verifying before claiming done | May miss incomplete steps | Check both TODO.md and `view_tasklist` |
 
 ---
 
