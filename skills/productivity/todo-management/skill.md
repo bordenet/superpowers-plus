@@ -33,32 +33,46 @@ When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms
 
 When user says "implement this plan", "execute these steps", etc.:
 
-1. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan` tag
-2. **Mirror to MCP** — Call `add_tasks` for real-time visibility (if available)
-3. **Track progress** — Update both systems as you complete steps
-4. **Verify** — Check TODO.md AND `view_tasklist` before claiming done
+1. **Name the effort** — Derive identifier from plan title (kebab-case) or ask user if ambiguous
+   - "Implement the config refactor" → `config-refactor`
+   - "Fix the auth bug" → `auth-fix`
+   - If unclear: "What should I call this effort?"
+2. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan-<identifier>` tag
+3. **Mirror to MCP** — Create parent task for the plan, add steps as children using `parent_task_id`
+4. **Track progress** — Update both systems as you complete steps
+5. **Verify** — Filter by `#plan-<identifier>` to check completion
 
 ### Example: Executing a 4-Step Plan
 
 ```
-User: "Implement these changes: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
+User: "Implement the config refactor: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
 
 Agent:
-1. Write 4 tasks to TODO.md as P1 #plan #engineering
-2. Call add_tasks with same 4 tasks (for UI visibility)
-3. For each step:
+1. Derive effort identifier: "config refactor" → config-refactor
+2. Write 4 tasks to TODO.md as P1 #plan-config-refactor #engineering
+3. Call add_tasks: create parent "Plan: Config Refactor", add steps as children
+4. For each step:
    - Mark IN_PROGRESS in both systems
    - Do the work
    - Mark COMPLETE in both systems
-4. Verify: Check TODO.md shows all complete, call view_tasklist
-5. Report "All tasks complete"
+5. Verify: Filter #plan-config-refactor in TODO.md, call view_tasklist
+6. Report "Config refactor complete"
 ```
+
+### Querying by Effort
+
+| Query | Action |
+|-------|--------|
+| "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
+| "Show my active plans" | List unique `#plan-*` tags with task counts |
+| "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
+| "Switch to auth-fix" | Set current context for subsequent completion commands |
 
 ### MCP Tool Reference (Supplementary)
 
 | Tool | Purpose | When to Call |
 |------|---------|--------------|
-| `add_tasks` | Mirror plan to conversation UI | After writing to TODO.md |
+| `add_tasks` | Create parent task + children | After writing to TODO.md |
 | `update_tasks` | Sync state changes | After updating TODO.md |
 | `view_tasklist` | Quick status check | In addition to reading TODO.md |
 
@@ -69,6 +83,7 @@ If MCP tools are not available, **TODO.md is sufficient**. The file provides:
 - Recovery from interruptions
 - Cross-session continuity
 - Queryable history ("what did I do?")
+- Effort isolation via `#plan-<identifier>` tags
 
 MCP tools are a convenience layer, not a requirement.
 
@@ -149,6 +164,30 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
 | `#product` | "product", "feature", "roadmap" |
 | `#process` | "process", "workflow", "documentation" |
+
+### Plan Tags (effort-scoped)
+
+Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
+
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `#plan-<identifier>` | Group tasks by effort | `#plan-auth-fix`, `#plan-config-refactor` |
+| `#plan` | ⚠️ **Deprecated** | Use `#plan-<identifier>` for effort isolation |
+
+**Identifier derivation:**
+- Derive from plan title: "Config Refactor" → `config-refactor`
+- Use kebab-case: lowercase, hyphens instead of spaces
+- Keep short but descriptive: 2-4 words max
+- If ambiguous, ask: "What should I call this effort?"
+
+**Example TODO.md with multiple efforts:**
+```markdown
+## P1 - Today
+- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering
+- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering
+- [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
+- [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
+```
 
 ---
 
