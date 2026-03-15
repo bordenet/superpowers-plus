@@ -118,6 +118,18 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
 ```
 
+Learning System (track skill effectiveness):
+```bash
+# Record outcome after skill-guided work
+node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> <success|failure> [evidence]
+
+# View trigger effectiveness metrics
+node ~/.codex/superpowers-augment/superpowers-augment.js analyze-triggers
+
+# Full effectiveness report
+node ~/.codex/superpowers-augment/superpowers-augment.js learning-report
+```
+
 ### Cursor
 
 ```bash
@@ -151,6 +163,7 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 | "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
 | "Upgrade dependencies" | 🔧 explicit | security-upgrade (runs on request) |
 | "Refactor complex code" | 🦸 auto | cognitive-complexity-refactoring → blast-radius-check |
+| "Track skill outcomes" | 🦸 auto | skill-effectiveness (record success/failure) |
 
 ---
 
