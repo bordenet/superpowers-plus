@@ -9,6 +9,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-03-15
+
 ### Added
 - **innovation**: New superpower for radical, high-impact thinking beyond incremental improvements
   - Triggers: "innovate", "moonshot", "10x improvement", "breakthrough idea", etc.
@@ -24,7 +26,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **superpowers-help**: Updated to distinguish superpowers vs explicit skills in output
 - **ARCHITECTURE.md**: Added "Terminology" section documenting the taxonomy
 - **CONTRIBUTING.md**: Added guidance on when to use triggers vs explicit skills
-- **README.md**: Updated skill counts and added type indicators (🦸/🔧)
+- **README.md**: Updated skill counts (38 skills: 30 superpowers + 8 explicit) and added type indicators (🦸/🔧)
 
 ## [2.3.0] - 2026-03-12
 
@@ -140,6 +142,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
+| 2.4.2 | 2026-03-15 | 38 | Innovation skill, skill-effectiveness, taxonomy |
 | 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
 | 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
 | 2.1.0 | 2026-03-12 | 41 | Enforcement system, marketplace support |
@@ -148,7 +151,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 | 1.4.0 | 2026-03-01 | 35 | Windows/WSL support |
 | 1.0.0 | 2026-02-15 | 35 | Initial release |
 
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...v2.4.2
 [2.3.0]: https://github.com/bordenet/superpowers-plus/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/bordenet/superpowers-plus/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/bordenet/superpowers-plus/compare/v2.1.1...v2.1.2
