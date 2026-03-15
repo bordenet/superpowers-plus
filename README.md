@@ -1,6 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 39 skills for wiki management, issue tracking, and security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 40 skills for wiki management, issue tracking, and security.
 
 **Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
 
@@ -14,16 +14,16 @@ cd superpowers-plus
 
 ## What's Included
 
-**39 skills** (30 superpowers + 9 explicit) across 9 domains:
+**40 skills** (31 superpowers + 9 explicit) across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | wiki | 7 | Page management, link checks, credential scanning |
 | engineering | 6 | Pre-commit gates, blast radius, PR review |
 | productivity | 6 | Innovation, TODO tracking, style enforcement |
+| writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 5 | Skill effectiveness, completeness checks |
-| writing | 5 | Slop detection, profanity gates |
 | research | 2 | Perplexity integration |
 | security | 2 | CVE scanning, IP protection |
 | experimental | 1 | Self-prompting patterns |
@@ -173,6 +173,7 @@ Works offline using local TF-IDF. No API keys required.
 | | wiki-verify | Checks links and structure |
 | writing | detecting-ai-slop | Scores text 0-100 for machine patterns |
 | | eliminating-ai-slop | Rewrites stilted prose |
+| | markdown-table-discipline | Enforces table best practices |
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 | | reviewing-ai-text | Evaluates generated content |
