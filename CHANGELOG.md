@@ -10,6 +10,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **innovation**: New superpower for radical, high-impact thinking beyond incremental improvements
+  - Triggers: "innovate", "moonshot", "10x improvement", "breakthrough idea", etc.
+  - Generates 3-5 ranked transformative ideas across categories (technical, UX, architectural)
+  - Integrates with brainstorming (downstream) and think-twice (fallback when stuck)
+- **skill-effectiveness**: Tracks skill outcomes and learns trigger improvements
 - **ADR-001**: Formal taxonomy distinguishing superpowers (auto-triggered) from explicit skills
 - `find-skills superpowers` and `find-skills explicit` filter modes in `superpowers-augment.js`
 - `EXPLICIT_SKILLS` array in `skill-trigger-validator.sh` for intentionally trigger-less skills
