@@ -20,7 +20,7 @@ const {
 } = require('./lib/learning-state');
 
 // Semantic skill routing
-const { matchSkills: semanticMatch, embedSkills } = require('./lib/skill-router');
+const { matchSkills: semanticMatch, embedSkills, getRouterInfo, matchSkillsTfIdf } = require('./lib/skill-router');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -470,13 +470,23 @@ switch (command) {
     }
 
     case 'match-skills': {
-        const query = args.join(' ');
+        // Parse options: --tfidf, --embedding, or auto
+        const useEmbedding = args.includes('--embedding');
+        const useTfidf = args.includes('--tfidf');
+        const queryArgs = args.filter(a => !a.startsWith('--'));
+        const query = queryArgs.join(' ');
+
         if (!query) {
-            console.error('Usage: match-skills <query>');
+            console.error('Usage: match-skills [--tfidf|--embedding] <query>');
             console.error('Example: match-skills "my tests keep failing randomly"');
+            console.error('\nOptions:');
+            console.error('  --tfidf      Force TF-IDF mode (fast, offline)');
+            console.error('  --embedding  Force OpenAI embeddings (requires OPENAI_API_KEY)');
+            console.error('  (default)    Auto-select best available method');
             process.exit(1);
         }
-        // Gather all skills for matching
+
+        // Gather all skills
         const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
         const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
         const allSkills = [...personalSkills, ...superpowersSkills];
@@ -487,32 +497,51 @@ switch (command) {
             return true;
         });
 
-        semanticMatch(query, skills, 5)
+        // Determine method
+        let method = 'auto';
+        if (useTfidf) method = 'tfidf';
+        if (useEmbedding) method = 'embedding';
+
+        const routerInfo = getRouterInfo();
+        const actualMethod = method === 'auto' ? routerInfo.default : method;
+
+        semanticMatch(query, skills, { topN: 5, method })
             .then(matches => {
-                console.log(`# Semantic Skill Match\n`);
-                console.log(`Query: "${query}"\n`);
+                console.log(`# Skill Match Results\n`);
+                console.log(`Query: "${query}"`);
+                console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
                 console.log('| Rank | Skill | Score | Type |');
                 console.log('|------|-------|-------|------|');
                 for (let i = 0; i < matches.length; i++) {
                     const m = matches[i];
                     const type = m.isSuperpower ? 'superpower' : 'explicit';
-                    console.log(`| ${i + 1} | ${m.name} | ${(m.score * 100).toFixed(1)}% | ${type} |`);
+                    const scoreDisplay = actualMethod === 'tfidf'
+                        ? m.score.toFixed(2)
+                        : (m.score * 100).toFixed(1) + '%';
+                    console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
                 }
                 console.log(`\nTop match: **${matches[0]?.name}**`);
                 console.log(`\nTo use: \`superpowers-augment use-skill ${matches[0]?.name}\``);
             })
             .catch(err => {
                 console.error('Error:', err.message);
-                if (err.message.includes('OPENAI_API_KEY')) {
-                    console.error('\nSet your API key: export OPENAI_API_KEY=sk-...');
-                }
                 process.exit(1);
             });
         break;
     }
 
+    case 'router-info': {
+        const info = getRouterInfo();
+        console.log('# Skill Router Info\n');
+        console.log('Available methods:');
+        console.log(`  • TF-IDF: ${info.tfidf.available ? '✅' : '❌'} ${info.tfidf.description}`);
+        console.log(`  • Embedding: ${info.embedding.available ? '✅' : '❌'} ${info.embedding.description}`);
+        console.log(`\nDefault method: ${info.default.toUpperCase()}`);
+        break;
+    }
+
     case 'embed-skills': {
-        // Pre-embed all skills (useful for initial setup)
+        // Pre-embed all skills (optional, for embedding mode)
         const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
         const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
         const allSkills = [...personalSkills, ...superpowersSkills];
@@ -525,6 +554,7 @@ switch (command) {
 
         const forceRefresh = args.includes('--force');
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
+        console.log('(Requires OPENAI_API_KEY)\n');
 
         embedSkills(skills, forceRefresh)
             .then(cache => {
@@ -534,6 +564,10 @@ switch (command) {
             })
             .catch(err => {
                 console.error('Error:', err.message);
+                if (err.message.includes('OPENAI_API_KEY')) {
+                    console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
+                    console.error('Run: match-skills --tfidf "your query"');
+                }
                 process.exit(1);
             });
         break;
@@ -548,9 +582,12 @@ switch (command) {
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
         console.log('');
-        console.log('Semantic Routing (BETA):');
-        console.log('  node superpowers-augment.js match-skills <query>   # Find skills by intent');
-        console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed all skills');
+        console.log('Skill Matching (find skills by intent):');
+        console.log('  node superpowers-augment.js match-skills <query>   # Auto-select best method');
+        console.log('  node superpowers-augment.js match-skills --tfidf <query>  # Fast offline mode');
+        console.log('  node superpowers-augment.js match-skills --embedding <query>  # OpenAI (optional)');
+        console.log('  node superpowers-augment.js router-info            # Show available methods');
+        console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed (optional)');
         console.log('');
         console.log('Learning System:');
         console.log('  node superpowers-augment.js record-outcome <skill> <success|failure> [evidence]');
