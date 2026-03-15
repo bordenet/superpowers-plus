@@ -1,6 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 36 skills for wiki management, issue tracking, and security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 39 skills for wiki management, issue tracking, and security.
 
 **Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
 
@@ -16,19 +16,19 @@ cd superpowers-plus
 
 **39 skills** (30 superpowers + 9 explicit) across 9 domains:
 
-| Domain | Count | Type | Examples |
-|--------|-------|------|----------|
-| wiki | 7 | 🦸 auto | Page management, link checks, credential scanning |
-| engineering | 6 | 🦸 auto | Pre-commit gates, blast radius, PR review |
-| issue-tracking | 5 | 🦸 auto | Create, update, verify tickets |
-| writing | 5 | 🦸 auto | Slop detection, profanity gates |
-| productivity | 6 | mixed | Innovation, TODO tracking, style enforcement |
-| observability | 5 | mixed | Skill effectiveness, completeness checks |
-| research | 2 | 🦸 auto | Perplexity integration |
-| security | 2 | 🔧 explicit | CVE scanning, IP protection |
-| experimental | 1 | 🔧 explicit | Self-prompting patterns |
+| Domain | Count | Examples |
+|--------|-------|----------|
+| wiki | 7 | Page management, link checks, credential scanning |
+| engineering | 6 | Pre-commit gates, blast radius, PR review |
+| productivity | 6 | Innovation, TODO tracking, style enforcement |
+| issue-tracking | 5 | Create, update, verify tickets |
+| observability | 5 | Skill effectiveness, completeness checks |
+| writing | 5 | Slop detection, profanity gates |
+| research | 2 | Perplexity integration |
+| security | 2 | CVE scanning, IP protection |
+| experimental | 1 | Self-prompting patterns |
 
-**Legend:** 🦸 = auto-triggered (superpowers), 🔧 = invoke by name (explicit skills)
+**Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
 ## Installation
 
@@ -105,14 +105,22 @@ Copy `.env.example` to `.env` for optional integrations:
 
 ## Semantic Skill Matching
 
-Find skills by describing what you need:
+Skills activate automatically when your request matches their trigger phrases. You don't need to remember exact commands — just describe what you want.
+
+**Examples:**
+
+| You say... | Skill triggered | What happens |
+|------------|-----------------|--------------|
+| "I'm stuck on this bug" | think-twice | Spawns fresh perspective analysis |
+| "Create a wiki page for X" | wiki-orchestrator | Runs full wiki authoring pipeline |
+| "Review this PR" | providing-code-review | Structured feedback with checklist |
+| "Is this done?" | completeness-check | Audits for incomplete work |
+| "Check for security issues" | security-upgrade | Scans CVEs and suggests upgrades |
+
+**CLI matching** (for debugging):
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
-# → systematic-debugging, think-twice, vitest-testing-patterns
-
-node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "review this candidate's resume"
-# → cv-review-external, cv-review-agency, resume-screening
 ```
 
 Works offline using local TF-IDF. No API keys required.
@@ -125,92 +133,47 @@ Works offline using local TF-IDF. No API keys required.
 
 ## Skills
 
-### wiki/
-| Skill | What it does |
-|-------|--------------|
-| wiki-orchestrator | Routes tasks to the right handler |
-| wiki-editing | Safe updates with backup |
-| wiki-authoring | Creates new pages |
-| wiki-verify | Checks links and structure |
-| wiki-debunker | Fact-checks content |
-| wiki-secret-audit | Finds leaked credentials |
-| link-verification | Confirms URLs resolve |
-
-### issue-tracking/
-| Skill | What it does |
-|-------|--------------|
-| issue-authoring | Writes tickets with acceptance criteria |
-| issue-editing | Updates existing tickets safely |
-| issue-verify | Confirms references exist |
-| issue-link-verification | Tests URLs in ticket content |
-| issue-comment-debunker | Fact-checks before posting |
-
-### writing/
-| Skill | What it does |
-|-------|--------------|
-| detecting-ai-slop | Scores text 0-100 for machine patterns |
-| eliminating-ai-slop | Rewrites stilted prose |
-| professional-language-audit | Blocks profanity |
-| readme-authoring | Structures documentation |
-| reviewing-ai-text | Evaluates generated content |
-
-### engineering/
-🦸 superpowers
-
-| Skill | What it does |
-|-------|--------------|
-| engineering-rigor | Quality philosophy hub |
-| pre-commit-gate | Runs lint → typecheck → test |
-| blast-radius-check | Finds all callers before edits |
-| providing-code-review | Structured PR feedback |
-| receiving-code-review | Evaluates incoming feedback |
-| verification-before-completion | Final checks before claiming done |
-
-### productivity/
-🔧 explicit + 🦸 auto
-
-| Skill | Type | What it does |
-|-------|------|--------------|
-| innovation | 🦸 | Radical, high-impact thinking beyond incremental fixes |
-| think-twice | 🔧 | Spawns sub-agent for fresh perspective |
-| todo-management | 🦸 | Parses and tracks tasks |
-| golden-agents | 🔧 | Bootstraps AGENTS.md |
-| enforce-style-guide | 🦸 | Applies project conventions |
-| superpowers-help | 🔧 | Lists available skills |
-
-### observability/
-🔧 explicit + 🦸 auto
-
-| Skill | Type | What it does |
-|-------|------|--------------|
-| skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
-| skill-firing-tracker | 🔧 | Logs which skills ran |
-| exhaustive-audit-validation | 🔧 | Confirms checklist coverage |
-| holistic-repo-verification | 🔧 | Checks all CI paths |
-| completeness-check | 🦸 | Confirms work is done |
-
-### research/
-🦸 superpowers
-
-| Skill | What it does |
-|-------|--------------|
-| perplexity-research | Escalates when stuck |
-| incorporating-research | Merges external findings |
-
-### security/
-🔧 explicit
-
-| Skill | What it does |
-|-------|--------------|
-| security-upgrade | Scans CVEs, upgrades deps |
-| public-repo-ip-audit | Detects proprietary content |
-
-### experimental/
-🦸 superpower
-
-| Skill | What it does |
-|-------|--------------|
-| experimental-self-prompting | Context-free analysis (unstable) |
+| Domain | Skill | Type | What it does |
+|--------|-------|------|--------------|
+| engineering | blast-radius-check | 🦸 | Finds all callers before edits |
+| engineering | engineering-rigor | 🦸 | Quality philosophy hub |
+| engineering | pre-commit-gate | 🦸 | Runs lint → typecheck → test |
+| engineering | providing-code-review | 🦸 | Structured PR feedback |
+| engineering | receiving-code-review | 🦸 | Evaluates incoming feedback |
+| engineering | verification-before-completion | 🦸 | Final checks before claiming done |
+| experimental | experimental-self-prompting | 🦸 | Context-free analysis (unstable) |
+| issue-tracking | issue-authoring | 🦸 | Writes tickets with acceptance criteria |
+| issue-tracking | issue-comment-debunker | 🦸 | Fact-checks before posting |
+| issue-tracking | issue-editing | 🦸 | Updates existing tickets safely |
+| issue-tracking | issue-link-verification | 🦸 | Tests URLs in ticket content |
+| issue-tracking | issue-verify | 🦸 | Confirms references exist |
+| observability | completeness-check | 🦸 | Confirms work is done |
+| observability | exhaustive-audit-validation | 🦸 | Confirms checklist coverage |
+| observability | holistic-repo-verification | 🦸 | Checks all CI paths |
+| observability | skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
+| observability | skill-firing-tracker | 🦸 | Logs which skills ran |
+| productivity | enforce-style-guide | 🦸 | Applies project conventions |
+| productivity | golden-agents | 🦸 | Bootstraps AGENTS.md |
+| productivity | innovation | 🦸 | Radical, high-impact thinking |
+| productivity | superpowers-help | 🦸 | Lists available skills |
+| productivity | think-twice | 🦸 | Spawns sub-agent for fresh perspective |
+| productivity | todo-management | 🦸 | Parses and tracks tasks |
+| research | incorporating-research | 🦸 | Merges external findings |
+| research | perplexity-research | 🦸 | Escalates when stuck |
+| security | public-repo-ip-audit | 🦸 | Detects proprietary content |
+| security | security-upgrade | 🦸 | Scans CVEs, upgrades deps |
+| wiki | link-verification | 🦸 | Confirms URLs resolve |
+| wiki | wiki-authoring | 🦸 | Creates new pages |
+| wiki | wiki-debunker | 🦸 | Fact-checks content |
+| wiki | wiki-editing | 🔧 | Safe updates with backup (internal) |
+| wiki | wiki-orchestrator | 🦸 | Routes tasks to the right handler |
+| wiki | wiki-secret-audit | 🦸 | Finds leaked credentials |
+| wiki | wiki-verify | 🦸 | Checks links and structure |
+| writing | detecting-ai-slop | 🦸 | Scores text 0-100 for machine patterns |
+| writing | eliminating-ai-slop | 🦸 | Rewrites stilted prose |
+| writing | professional-language-audit | 🦸 | Blocks profanity |
+| writing | readme-authoring | 🦸 | Structures documentation |
+| writing | reviewing-ai-text | 🦸 | Evaluates generated content |
 
 ## Skill Coordination
 
