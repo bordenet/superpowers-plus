@@ -146,4 +146,3 @@ When patterns reach sufficient frequency, they become candidates for new skills:
 3. User refines triggers and content → new skill deployed
 
 This closes the feedback loop: **usage → outcomes → patterns → new skills → usage**.
-
