@@ -65,6 +65,39 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
 ---
 
+## Planning and Task Management
+
+You have access to task management tools (`add_tasks`, `update_tasks`, `view_tasklist`).
+Use these **frequently** to track multi-step work and give the user visibility into progress.
+
+### When to Use Task Management
+
+| Situation | Action |
+|-----------|--------|
+| Creating a plan with 3+ steps | Call `add_tasks` BEFORE starting work |
+| User says "implement", "execute", or "work through" a plan | Create tasks immediately |
+| Starting work on a step | Mark task `IN_PROGRESS` |
+| Completing a step | Mark task `COMPLETE` immediately (don't batch) |
+| Before claiming work is done | Call `view_tasklist` to verify all tasks complete |
+
+### Task Lifecycle (MANDATORY for 3+ step plans)
+
+1. **Create** — Use `add_tasks` when creating or receiving a multi-step plan
+2. **Track** — Mark `IN_PROGRESS` when starting each step
+3. **Complete** — Mark `COMPLETE` immediately when done (never batch multiple completions)
+4. **Verify** — Use `view_tasklist` before claiming work is done
+
+### Anti-Patterns to Avoid
+
+| Anti-Pattern | Why It's Bad | Correct Behavior |
+|--------------|--------------|------------------|
+| Skipping task creation for "simple" plans | Loses visibility | Create tasks for any 3+ step plan |
+| Batching task completions | User can't track progress | Mark COMPLETE immediately after each step |
+| Forgetting `IN_PROGRESS` state | No visibility during work | Update state when starting each step |
+| Not verifying before claiming done | May miss incomplete steps | Always `view_tasklist` before claiming done |
+
+---
+
 ## Optional: golden-agents Integration
 
 If [golden-agents](https://github.com/bordenet/golden-agents) is installed, load templates before these actions:
