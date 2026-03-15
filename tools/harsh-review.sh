@@ -269,6 +269,71 @@ for skill_dir in skills/*/; do
 done
 
 # =============================================================================
+# CHECK 9: README Skill Count Drift Detection
+# =============================================================================
+log_check "README skill count consistency"
+
+# Count actual skills
+ACTUAL_TOTAL=$(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
+
+# Count explicit skills from EXPLICIT_SKILLS array in skill-trigger-validator.sh
+ACTUAL_EXPLICIT=$(grep -A50 "^EXPLICIT_SKILLS=" tools/skill-trigger-validator.sh 2>/dev/null | grep '^\s*"' | wc -l | tr -d ' ')
+ACTUAL_SUPERPOWERS=$((ACTUAL_TOTAL - ACTUAL_EXPLICIT))
+
+# Count domains (directories under skills/ that contain skill files)
+ACTUAL_DOMAINS=0
+for domain_dir in skills/*/; do
+    [[ ! -d "$domain_dir" ]] && continue
+    [[ "$(basename "$domain_dir")" == _* ]] && continue  # Skip _shared, _design, etc.
+    # Check if domain has any skill files
+    if find "$domain_dir" -name "skill.md" -o -name "SKILL.md" 2>/dev/null | grep -q .; then
+        ((ACTUAL_DOMAINS++)) || true
+    fi
+done
+
+# Extract counts from README.md
+# Line format: **39 skills** (30 superpowers + 9 explicit) across 9 domains:
+README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1)
+
+if [[ -n "$README_LINE" ]]; then
+    # Use sed for cross-platform compatibility (no grep -P on macOS)
+    README_TOTAL=$(echo "$README_LINE" | sed -E 's/.*\*\*([0-9]+) skills.*/\1/')
+    README_SUPERPOWERS=$(echo "$README_LINE" | sed -E 's/.*\(([0-9]+) superpowers.*/\1/')
+    README_EXPLICIT=$(echo "$README_LINE" | sed -E 's/.*\+ ([0-9]+) explicit.*/\1/')
+    README_DOMAINS=$(echo "$README_LINE" | sed -E 's/.*across ([0-9]+) domains.*/\1/')
+
+    DRIFT_FOUND=false
+    DRIFT_MSG=""
+
+    if [[ "$README_TOTAL" != "$ACTUAL_TOTAL" ]]; then
+        DRIFT_MSG+="  - Total: README says $README_TOTAL, actual is $ACTUAL_TOTAL\n"
+        DRIFT_FOUND=true
+    fi
+
+    if [[ "$README_SUPERPOWERS" != "$ACTUAL_SUPERPOWERS" ]]; then
+        DRIFT_MSG+="  - Superpowers: README says $README_SUPERPOWERS, actual is $ACTUAL_SUPERPOWERS\n"
+        DRIFT_FOUND=true
+    fi
+
+    if [[ "$README_EXPLICIT" != "$ACTUAL_EXPLICIT" ]]; then
+        DRIFT_MSG+="  - Explicit: README says $README_EXPLICIT, actual is $ACTUAL_EXPLICIT\n"
+        DRIFT_FOUND=true
+    fi
+
+    if [[ "$README_DOMAINS" != "$ACTUAL_DOMAINS" ]]; then
+        DRIFT_MSG+="  - Domains: README says $README_DOMAINS, actual is $ACTUAL_DOMAINS\n"
+        DRIFT_FOUND=true
+    fi
+
+    if [[ "$DRIFT_FOUND" == "true" ]]; then
+        log_fail "README skill count drift detected:"
+        echo -e "$DRIFT_MSG"
+    fi
+else
+    log_warn "Could not parse skill count line from README.md"
+fi
+
+# =============================================================================
 # SUMMARY
 # =============================================================================
 echo ""
