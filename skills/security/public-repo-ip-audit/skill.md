@@ -1,8 +1,15 @@
 ---
 name: public-repo-ip-audit
 source: superpowers-plus
-triggers: ["commit to public repo", "push to public repo", "push to public", "extract to public", "migrate to public", "create public repo", "before committing to public", "open source release", "releasing to open source", "publishing open source"]
+triggers: ["commit to public repo", "push to public repo", "push to public", "extract to public", "migrate to public", "create public repo", "before committing to public", "open source release", "releasing to open source", "publishing open source", "commit:ip-audit", "commit:public"]
 description: Audit public repositories for proprietary IP before commit/push. Prevents leakage of internal references, URLs, ticket IDs, and confidential content to public repositories regardless of hosting platform (GitHub, GitLab, Bitbucket, Codeberg, SourceHut, self-hosted, etc.).
+coordination:
+  group: commit-gates
+  order: 4
+  requires: ["professional-language-audit"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # public-repo-ip-audit
