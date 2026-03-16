@@ -10,6 +10,11 @@ coordination:
   enables: ["wiki-editing"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [verified-links]
+  capabilities: [validates-links]
+  priority: 20
 ---
 
 # Link Verification
