@@ -19,8 +19,10 @@ set -euo pipefail
 
 VERSION="2.5.1"
 
-# Colors for output (disabled if not a terminal)
-if [[ -t 1 ]]; then
+# Colors for output (disabled if not a terminal, unless FORCE_COLOR=1)
+# FORCE_COLOR=1 allows parent scripts (e.g., mb_scratchpad) to preserve colors
+# when calling this script through a pipe/tee.
+if [[ -t 1 ]] || [[ "${FORCE_COLOR:-}" == "1" ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[0;33m'
@@ -276,10 +278,27 @@ error_exit() {
     exit 1
 }
 
+# Map command names to distro-specific package names
+# e.g., the 'node' command is provided by the 'nodejs' package on Linux
+get_package_name() {
+    local cmd="$1"
+    case "$cmd" in
+        node)
+            case "$PLATFORM" in
+                macos) echo "node" ;;       # Homebrew uses 'node'
+                *)     echo "nodejs" ;;     # apt, dnf, yum, pacman, zypper use 'nodejs'
+            esac
+            ;;
+        *) echo "$cmd" ;;  # git, curl, etc. are the same everywhere
+    esac
+}
+
 # Install a single dependency using the appropriate package manager
 install_dependency() {
-    local pkg="$1"
-    log_info "Installing $pkg..."
+    local cmd="$1"
+    local pkg
+    pkg=$(get_package_name "$cmd")
+    log_info "Installing $pkg (provides '$cmd')..."
 
     case "$PLATFORM" in
         macos)
@@ -374,6 +393,57 @@ check_dependencies() {
     done
 
     log_verbose "All dependencies installed"
+
+    # Verify Node.js version is sufficient
+    check_node_version
+}
+
+# Verify Node.js version meets minimum requirement (v18+)
+check_node_version() {
+    local min_version=18
+    local node_version_full node_major
+
+    node_version_full=$(node -v 2>/dev/null || echo "")
+    if [[ -z "$node_version_full" ]]; then
+        # node command not found after install — install_dependency should have caught this
+        return 0
+    fi
+
+    # Extract major version: v20.11.0 → 20
+    node_major=$(echo "$node_version_full" | sed 's/^v//' | cut -d. -f1)
+
+    if [[ "$node_major" -ge "$min_version" ]] 2>/dev/null; then
+        log_verbose "Node.js $node_version_full (>= v${min_version}) ✓"
+        return 0
+    fi
+
+    log_warn "Node.js $node_version_full is too old (need v${min_version}+)"
+
+    case "$PLATFORM" in
+        macos)
+            log_warn "Run: brew upgrade node"
+            ;;
+        linux|wsl)
+            case "$LINUX_DISTRO" in
+                ubuntu|debian|pop|linuxmint)
+                    log_warn "Ubuntu/Debian ship old Node.js. Install a modern version:"
+                    log_warn "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+                    log_warn "  sudo apt-get install -y nodejs"
+                    ;;
+                fedora)
+                    log_warn "Run: sudo dnf module install -y nodejs:20"
+                    ;;
+                *)
+                    log_warn "Install Node.js v${min_version}+ from: https://nodejs.org/en/download"
+                    ;;
+            esac
+            ;;
+        *)
+            log_warn "Install Node.js v${min_version}+ from: https://nodejs.org/en/download"
+            ;;
+    esac
+
+    error_exit "Node.js v${min_version}+ is required. Found: $node_version_full"
 }
 
 # Create directory with error handling
