@@ -1,6 +1,11 @@
 ---
 name: verification-before-completion
 source: superpowers-plus
+overrides: superpowers/verification-before-completion
+# Override rationale: Adds auto-fire triggers table (explicit list of phrases that
+# MUST trigger this skill), adds PR creation verification pattern, adds incident
+# history tracking, and refines rationalization prevention. obra's version lacks
+# the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
 triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always.
 ---
