@@ -1,6 +1,11 @@
 ---
 name: receiving-code-review
 source: superpowers-plus
+overrides: superpowers/receiving-code-review
+# Override rationale: Adds Systemic Verification gate (search for OTHER instances
+# of same pattern beyond reviewer's checklist), adds triggers array for auto-fire,
+# and refines implementation order with systemic check step. obra's version lacks
+# the "fix the disease not the symptoms" workflow.
 triggers: ["received code review", "PR feedback", "reviewer commented", "code review feedback", "implement review suggestions", "address review comments"]
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 ---

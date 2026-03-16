@@ -49,7 +49,7 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 38 domain skills 
 ```
 
 ### Prerequisite
-Requires `obra/superpowers` (installed automatically via marketplace.json dependency).
+Requires `obra/superpowers`. The Claude marketplace does not have a dependency resolution mechanism — `install.sh` handles cloning obra/superpowers as a prerequisite. Users installing via `/plugin install` should install obra/superpowers first, or use `install.sh` which handles both.
 
 ## Known Bug: category/source Key Contamination
 
@@ -90,4 +90,4 @@ If users report install failures:
 - [ ] Monitor Anthropic's plugin directory submission form: https://clau.de/plugin-directory-submission
 - [ ] Verify current PR requirements (check open PRs for examples)
 - [ ] Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
-- [ ] Confirm obra/superpowers dependency installs correctly
+- [ ] Confirm obra/superpowers prerequisite is documented clearly (no auto-install via marketplace)
