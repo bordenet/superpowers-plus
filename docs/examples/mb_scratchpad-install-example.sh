@@ -113,7 +113,7 @@ install_superpowers_plus() {
         info "Updating existing installation..."
         if ! (cd "$SUPERPOWERS_PLUS_DIR" && git fetch origin && git reset --hard origin/main) 2>&1; then
             warn "Update failed, reinstalling fresh..."
-            rm -rf "$SUPERPOWERS_PLUS_DIR"
+            rm -rf "${SUPERPOWERS_PLUS_DIR:?}"
         fi
     fi
     
@@ -123,7 +123,7 @@ install_superpowers_plus() {
     fi
     
     # Run the superpowers-plus installer (non-interactive)
-    if ! "$SUPERPOWERS_PLUS_DIR/install.sh" --force 2>&1; then
+    if ! "$SUPERPOWERS_PLUS_DIR/install.sh" --yes 2>&1; then
         fail "superpowers-plus installation failed. See log: $LOG_FILE"
     fi
     
@@ -140,7 +140,7 @@ install_mb_scratchpad() {
             [[ -d "$skill_dir" ]] || continue
             local skill_name
             skill_name=$(basename "$skill_dir")
-            rm -rf "$HOME/.codex/skills/$skill_name" 2>/dev/null || true
+            rm -rf "${HOME:?}/.codex/skills/${skill_name:?}" 2>/dev/null || true
             cp -r "$skill_dir" "$HOME/.codex/skills/$skill_name"
         done
     fi
