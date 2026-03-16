@@ -1,8 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 41 skills for wiki management, issue tracking, and security.
-
-**Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
+41 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
