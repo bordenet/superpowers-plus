@@ -3,13 +3,6 @@ name: wiki-editing
 source: superpowers-plus
 triggers: ["wiki-editing:execute", "delete wiki page", "wiki:edit-internal", "wiki:delete"]
 description: "INTERNAL SKILL — Invoked by wiki-orchestrator as Stage 7. Do NOT invoke directly. Enforces download-before-edit pattern, MCP-first tooling, and write scope restrictions. Platform-specific setup in skills/wiki/_adapters/."
-coordination:
-  group: wiki-pipeline
-  order: 7
-  requires: ["wiki-orchestrator", "link-verification"]
-  enables: []
-  escalates_to: []
-  internal: true
 composition:
   consumes: [verified-links, sanitized-content]
   produces: [published-page]
