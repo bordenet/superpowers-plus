@@ -67,9 +67,15 @@ I'll help create a TypeScript strict mode skill.
 Want me to generate the full skill.md?
 ```
 
-### Detailed Guide
+### Validation Checklist
 
-See [modules/from-description.md](./modules/from-description.md)
+Before presenting the draft:
+- [ ] Name is kebab-case, unique, descriptive
+- [ ] Triggers don't overlap with existing skills
+- [ ] Description starts with "Use when..."
+- [ ] Process has actionable steps
+- [ ] At least one concrete example
+- [ ] Domain is appropriate
 
 ---
 
@@ -102,9 +108,7 @@ This shows patterns observed 3+ times that haven't been synthesized yet.
 When you see a candidate worth codifying, tell the AI:
 > "Turn this pattern into a skill: [pattern description]"
 
-### Detailed Guide
-
-See [modules/from-patterns.md](./modules/from-patterns.md)
+The pattern description contains the "what" — extract trigger conditions, actions, and outcomes, then expand into the full skill structure.
 
 ---
 
@@ -129,9 +133,14 @@ See [modules/from-patterns.md](./modules/from-patterns.md)
 | Commit history | Recurring commit types |
 | TODOs/FIXMEs | Pain points to address |
 
-### Detailed Guide
+### Output Format
 
-See [modules/from-codebase.md](./modules/from-codebase.md)
+For each recommended skill:
+1. **Name** — Suggested skill name
+2. **Evidence** — What in the codebase suggests this
+3. **Value** — Why this skill would help
+4. **Complexity** — Low/Medium/High
+5. **Priority** — P1/P2/P3
 
 ---
 
@@ -170,8 +179,6 @@ composition:
 
 <Concrete usage examples>
 ```
-
-See [modules/skill-template.md](./modules/skill-template.md) for full template.
 
 ---
 
