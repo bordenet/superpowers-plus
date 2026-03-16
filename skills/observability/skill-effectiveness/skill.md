@@ -90,6 +90,16 @@ When a skill should have fired but didn't:
 node ~/.codex/superpowers-augment/superpowers-augment.js suggest-trigger <skill> <phrase>
 ```
 
+### Check Synthesis Candidates
+
+Find patterns ready to become skills (frequency ≥ 3):
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js check-synthesis-candidates
+```
+
+When candidates exist, invoke `skill-authoring` Mode 2 to create the skill.
+
 ---
 
 ## Integration with Workflow
@@ -137,12 +147,33 @@ This persists across sessions and enables cross-session learning.
 
 ---
 
-## Future: Skill Synthesis (Phase C)
+## Skill Synthesis (Phase C) ✅
 
 When patterns reach sufficient frequency, they become candidates for new skills:
 
 1. Pattern observed 3+ times → flagged as "emerging"
-2. User confirms pattern is valuable → skill skeleton generated
-3. User refines triggers and content → new skill deployed
+2. Run `check-synthesis-candidates` to review candidates
+3. User confirms pattern is valuable → invoke `skill-authoring` Mode 2
+4. User refines triggers and content → new skill deployed
+
+### Check for Synthesis Candidates
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js check-synthesis-candidates
+```
+
+This displays patterns with frequency ≥ 3 that haven't been synthesized yet:
+
+| # | Pattern | Freq | Suggested Name | Last Seen |
+|---|---------|------|----------------|-----------|
+| 1 | Always run lint before commit | 5x | pre-commit-lint | 2026-03-15 |
+| 2 | Check for API key exposure... | 3x | secret-diff-check | 2026-03-14 |
+
+### Create a Skill from a Pattern
+
+When you see a good candidate, tell the AI:
+> "Turn this pattern into a skill: [pattern description]"
+
+This invokes `skill-authoring` Mode 2 (from-patterns), which guides you through skill creation.
 
 This closes the feedback loop: **usage → outcomes → patterns → new skills → usage**.

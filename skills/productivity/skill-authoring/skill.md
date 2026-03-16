@@ -79,18 +79,28 @@ See [modules/from-description.md](./modules/from-description.md)
 
 ### Process
 
-1. **Read patterns** — Check `~/.codex/.learning-state.json`
-2. **Filter candidates** — Patterns with frequency ≥ 3
-3. **Propose synthesis** — Show top candidates with evidence
+1. **Check candidates** — Run `check-synthesis-candidates` command
+2. **Review patterns** — Patterns with frequency ≥ 3 shown in table
+3. **Select pattern** — Choose one to synthesize
 4. **Generate draft** — Create skill.md from pattern description
 
-### Check for Pattern Candidates
+### Find Synthesis Candidates
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js learning-report
+node ~/.codex/superpowers-augment/superpowers-augment.js check-synthesis-candidates
 ```
 
-Look for the "Emerging Patterns" section — patterns with 3+ observations.
+This shows patterns observed 3+ times that haven't been synthesized yet.
+
+**Example output:**
+| # | Pattern | Freq | Suggested Name | Last Seen |
+|---|---------|------|----------------|-----------|
+| 1 | Always run lint before commit | 5x | pre-commit-lint | 2026-03-15 |
+
+### Synthesize a Pattern
+
+When you see a candidate worth codifying, tell the AI:
+> "Turn this pattern into a skill: [pattern description]"
 
 ### Detailed Guide
 
