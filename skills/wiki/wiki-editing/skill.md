@@ -1,8 +1,14 @@
 ---
 name: wiki-editing
 source: superpowers-plus
-triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document", "delete wiki page"]
-description: Use when editing wiki pages, pushing content to wiki, or managing wiki documents. Enforces download-before-edit pattern, MCP-first tooling, and write scope restrictions. Platform-specific setup in skills/wiki/_adapters/.
+triggers: ["wiki-editing:execute", "delete wiki page", "wiki:edit-internal", "wiki:delete"]
+description: "INTERNAL SKILL — Invoked by wiki-orchestrator as Stage 7. Do NOT invoke directly. Enforces download-before-edit pattern, MCP-first tooling, and write scope restrictions. Platform-specific setup in skills/wiki/_adapters/."
+composition:
+  consumes: [verified-links, sanitized-content]
+  produces: [published-page]
+  capabilities: [publishes-wiki]
+  priority: 100
+  requires_all: true
 ---
 
 # Wiki Editing

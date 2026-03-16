@@ -1,8 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 36 skills for wiki management, issue tracking, and security.
-
-**Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
+41 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -14,21 +12,21 @@ cd superpowers-plus
 
 ## What's Included
 
-**39 skills** (30 superpowers + 9 explicit) across 9 domains:
+**41 skills** (32 superpowers + 9 explicit) across 9 domains:
 
-| Domain | Count | Type | Examples |
-|--------|-------|------|----------|
-| wiki | 7 | 🦸 auto | Page management, link checks, credential scanning |
-| engineering | 6 | 🦸 auto | Pre-commit gates, blast radius, PR review |
-| issue-tracking | 5 | 🦸 auto | Create, update, verify tickets |
-| writing | 5 | 🦸 auto | Slop detection, profanity gates |
-| productivity | 6 | mixed | Innovation, TODO tracking, style enforcement |
-| observability | 5 | mixed | Skill effectiveness, completeness checks |
-| research | 2 | 🦸 auto | Perplexity integration |
-| security | 2 | 🔧 explicit | CVE scanning, IP protection |
-| experimental | 1 | 🔧 explicit | Self-prompting patterns |
+| Domain | Count | Examples |
+|--------|-------|----------|
+| wiki | 7 | Page management, link checks, credential scanning |
+| engineering | 6 | Pre-commit gates, blast radius, PR review |
+| productivity | 7 | Innovation, TODO tracking, style enforcement, skill synthesis |
+| writing | 6 | Slop detection, profanity gates, table discipline |
+| issue-tracking | 5 | Create, update, verify tickets |
+| observability | 5 | Skill effectiveness, completeness checks |
+| research | 2 | Perplexity integration |
+| security | 2 | CVE scanning, IP protection |
+| experimental | 1 | Self-prompting patterns |
 
-**Legend:** 🦸 = auto-triggered (superpowers), 🔧 = invoke by name (explicit skills)
+**Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
 ## Installation
 
@@ -101,6 +99,31 @@ Copy `.env.example` to `.env` for optional integrations:
 | `ISSUE_TRACKER_TYPE` | `linear`, `github`, `jira`, or `azure-devops` |
 | `WIKI_PLATFORM` | `outline` (see `skills/wiki/_adapters/`) |
 | `PERPLEXITY_API_KEY` | Deep research fallback |
+| `OPENAI_API_KEY` | Optional: Enhanced semantic skill matching |
+
+## Semantic Skill Matching
+
+Skills activate automatically when your request matches their trigger phrases. You don't need to remember exact commands — just describe what you want.
+
+**Examples:**
+
+| You say... | Skill triggered | What happens |
+|------------|-----------------|--------------|
+| "You're stuck in a loop!" | think-twice | AI pauses, consults fresh sub-agent |
+| "Create a wiki page for X" | wiki-orchestrator | Runs full wiki authoring pipeline |
+| "Review this PR" | providing-code-review | Structured feedback with checklist |
+| "Is this done?" | completeness-check | Audits for incomplete work |
+| "Check for security issues" | security-upgrade | Scans CVEs and suggests upgrades |
+
+> **Note:** `think-twice` also auto-detects when the AI itself is spiraling (repeated failures, circular reasoning) and suggests pausing for fresh perspective.
+
+**CLI matching** (for debugging):
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
+```
+
+Works offline using local TF-IDF. No API keys required.
 
 ## Updating
 
@@ -110,80 +133,93 @@ Copy `.env.example` to `.env` for optional integrations:
 
 ## Skills
 
-### wiki/
-| Skill | What it does |
-|-------|--------------|
-| wiki-orchestrator | Routes tasks to the right handler |
-| wiki-editing | Safe updates with backup |
-| wiki-authoring | Creates new pages |
-| wiki-verify | Checks links and structure |
-| wiki-debunker | Fact-checks content |
-| wiki-secret-audit | Finds leaked credentials |
-| link-verification | Confirms URLs resolve |
+| Domain | Skill | What it does |
+|--------|-------|--------------|
+| engineering | blast-radius-check | Finds all callers before edits |
+| | engineering-rigor | Quality philosophy hub |
+| | pre-commit-gate | Runs lint → typecheck → test |
+| | providing-code-review | Structured PR feedback |
+| | receiving-code-review | Evaluates incoming feedback |
+| | verification-before-completion | Final checks before claiming done |
+| experimental | experimental-self-prompting | Context-free analysis (unstable) |
+| issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
+| | issue-comment-debunker | Fact-checks before posting |
+| | issue-editing | Updates existing tickets safely |
+| | issue-link-verification | Tests URLs in ticket content |
+| | issue-verify | Confirms references exist |
+| observability | completeness-check | Confirms work is done |
+| | exhaustive-audit-validation | Confirms checklist coverage |
+| | holistic-repo-verification | Checks all CI paths |
+| | skill-effectiveness | Tracks outcomes, learns trigger improvements |
+| | skill-firing-tracker | Logs which skills ran |
+| productivity | enforce-style-guide | Applies project conventions |
+| | golden-agents | Bootstraps AGENTS.md |
+| | innovation | Radical, high-impact thinking |
+| | skill-authoring | 🦸 Creates new skills from descriptions/patterns |
+| | superpowers-help | Lists available skills |
+| | think-twice | Breaks AI out of spirals via fresh sub-agent |
+| | todo-management | Parses and tracks tasks |
+| research | incorporating-research | Merges external findings |
+| | perplexity-research | Escalates when stuck |
+| security | public-repo-ip-audit | Detects proprietary content |
+| | security-upgrade | Scans CVEs, upgrades deps |
+| wiki | link-verification | Confirms URLs resolve |
+| | wiki-authoring | Creates new pages |
+| | wiki-debunker | Fact-checks content |
+| | wiki-editing | Safe updates with backup |
+| | wiki-orchestrator | Routes tasks to the right handler |
+| | wiki-secret-audit | Finds leaked credentials |
+| | wiki-verify | Checks links and structure |
+| writing | detecting-ai-slop | Scores text 0-100 for machine patterns |
+| | eliminating-ai-slop | Rewrites stilted prose |
+| | markdown-table-discipline | Enforces table best practices |
+| | professional-language-audit | Blocks profanity |
+| | readme-authoring | Structures documentation |
+| | reviewing-ai-text | Evaluates generated content |
 
-### issue-tracking/
-| Skill | What it does |
-|-------|--------------|
-| issue-authoring | Writes tickets with acceptance criteria |
-| issue-editing | Updates existing tickets safely |
-| issue-verify | Confirms references exist |
-| issue-link-verification | Tests URLs in ticket content |
-| issue-comment-debunker | Fact-checks before posting |
+> **Note:** All skills are auto-triggered (🦸) except `wiki-editing`, which is internal and invoked by `wiki-orchestrator`.
 
-### writing/
-| Skill | What it does |
-|-------|--------------|
-| detecting-ai-slop | Scores text 0-100 for machine patterns |
-| eliminating-ai-slop | Rewrites stilted prose |
-| professional-language-audit | Blocks profanity |
-| readme-authoring | Structures documentation |
-| reviewing-ai-text | Evaluates generated content |
+## Skill Coordination
 
-### engineering/ (🦸 superpowers)
-| Skill | What it does |
-|-------|--------------|
-| engineering-rigor | Quality philosophy hub |
-| pre-commit-gate | Runs lint → typecheck → test |
-| blast-radius-check | Finds all callers before edits |
-| providing-code-review | Structured PR feedback |
-| receiving-code-review | Evaluates incoming feedback |
-| verification-before-completion | Final checks before claiming done |
+Skills can be coordinated into pipelines with explicit dependencies. Arrows show **execution order**: A → B means "A must complete before B runs."
 
-### productivity/ (mixed)
-| Skill | Type | What it does |
-|-------|------|--------------|
-| innovation | 🦸 | Radical, high-impact thinking beyond incremental fixes |
-| think-twice | 🔧 | Spawns sub-agent for fresh perspective |
-| todo-management | 🦸 | Parses and tracks tasks |
-| golden-agents | 🔧 | Bootstraps AGENTS.md |
-| enforce-style-guide | 🦸 | Applies project conventions |
-| superpowers-help | 🔧 | Lists available skills |
+```mermaid
+graph LR
+  subgraph commit-gates["Commit Gates"]
+    pre_commit_gate["pre-commit-gate"] --> enforce_style_guide["enforce-style-guide"]
+    enforce_style_guide --> professional_language_audit["professional-language-audit"]
+    professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
+  end
 
-### observability/ (🔧 explicit + 🦸 auto)
-| Skill | Type | What it does |
-|-------|------|--------------|
-| skill-effectiveness | 🦸 | Tracks outcomes, learns trigger improvements |
-| skill-firing-tracker | 🔧 | Logs which skills ran |
-| exhaustive-audit-validation | 🔧 | Confirms checklist coverage |
-| holistic-repo-verification | 🔧 | Checks all CI paths |
-| completeness-check | Confirms work is done |
+  subgraph wiki-pipeline["Wiki Pipeline"]
+    wiki_orchestrator["wiki-orchestrator"] --> link_verification["link-verification"]
+    link_verification --> wiki_editing["wiki-editing"]
+  end
 
-### research/ (🦸 superpowers)
-| Skill | What it does |
-|-------|--------------|
-| perplexity-research | Escalates when stuck |
-| incorporating-research | Merges external findings |
+  subgraph stuck-escalation["Stuck Escalation"]
+    think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
+  end
+```
 
-### security/ (🔧 explicit)
-| Skill | What it does |
-|-------|--------------|
-| security-upgrade | Scans CVEs, upgrades deps |
-| public-repo-ip-audit | Detects proprietary content |
+| Group | Flow | Purpose |
+|-------|------|---------|
+| Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
+| Wiki Pipeline | orchestrator → links → edit | Content generated → links verified → published |
+| Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
 
-### experimental/ (🦸 superpower)
-| Skill | What it does |
-|-------|--------------|
-| experimental-self-prompting | Context-free analysis (unstable) |
+View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
+
+### Namespaced Triggers
+
+Skills support namespaced triggers (`domain:action`) for disambiguation:
+
+| Domain | Triggers |
+|--------|----------|
+| `commit:` | `commit:pre-check`, `commit:style`, `commit:language`, `commit:ip-audit` |
+| `wiki:` | `wiki:create`, `wiki:update`, `wiki:edit-internal` |
+| `stuck:` | `stuck:reasoning`, `stuck:research` |
+
+Regenerate the graph: `node tools/generate-skill-dag.js`
 
 ## Extending
 

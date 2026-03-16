@@ -19,8 +19,17 @@ const {
   generateTriggerReport
 } = require('./lib/learning-state');
 
-// Semantic skill routing
-const { matchSkills: semanticMatch, embedSkills, getRouterInfo, matchSkillsTfIdf } = require('./lib/skill-router');
+// Semantic skill routing and auto-composition
+const {
+  matchSkills: semanticMatch,
+  embedSkills,
+  getRouterInfo,
+  matchSkillsTfIdf,
+  buildPipeline,
+  explainPipeline,
+  pipelineToMermaid,
+  getComposition
+} = require('./lib/skill-router');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -56,9 +65,13 @@ function extractFrontmatter(filePath) {
         const content = fs.readFileSync(filePath, 'utf8');
         const lines = content.split('\n');
         let inFrontmatter = false;
+        let inComposition = false;
         let name = '';
         let description = '';
         let triggers = [];
+        let composition = null;
+        let compositionLines = [];
+
         for (const line of lines) {
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
@@ -66,10 +79,37 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
+                // Check for composition block start
+                if (line.match(/^composition:/)) {
+                    inComposition = true;
+                    composition = {};
+                    continue;
+                }
+                // Parse composition fields (indented with 2 spaces)
+                if (inComposition && line.match(/^  \w+:/)) {
+                    const compMatch = line.match(/^  (\w+):\s*(.+)?$/);
+                    if (compMatch) {
+                        const key = compMatch[1];
+                        let value = compMatch[2] || '';
+                        // Parse array values
+                        if (value.startsWith('[')) {
+                            value = value.replace(/[\[\]]/g, '').split(',').map(v => v.trim().replace(/"/g, '')).filter(v => v);
+                        } else if (value === 'true') {
+                            value = true;
+                        } else if (value === 'false') {
+                            value = false;
+                        } else if (!isNaN(value) && value !== '') {
+                            value = parseInt(value, 10);
+                        }
+                        composition[key] = value;
+                    }
+                } else if (inComposition && !line.match(/^  /)) {
+                    inComposition = false; // End of composition block
+                }
+
                 // Check for triggers array
                 const triggersMatch = line.match(/^triggers:\s*\[(.+)\]/);
                 if (triggersMatch) {
-                    // Extract quoted strings from the array
                     const triggerStr = triggersMatch[1];
                     triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
                 }
@@ -82,9 +122,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description, triggers };
+        return { name, description, triggers, composition };
     } catch (error) {
-        return { name: '', description: '', triggers: [] };
+        return { name: '', description: '', triggers: [], composition: null };
     }
 }
 
@@ -114,6 +154,7 @@ function findSkillsInDir(dir, sourceType) {
                 name: meta.name || entry.name,
                 description: meta.description || '',
                 triggers: meta.triggers || [],
+                composition: meta.composition || null,
                 isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
                 skillFile,
@@ -457,7 +498,7 @@ switch (command) {
             for (const p of report.patterns) {
                 console.log(`- "${p.pattern}" (${p.frequency}x) → ${p.potential_skill}`);
             }
-            console.log();
+            console.log('\n💡 Run `superpowers-augment check-synthesis-candidates` to create skills from patterns.\n');
         }
 
         if (report.suggestions.length > 0) {
@@ -466,6 +507,110 @@ switch (command) {
                 console.log(`- [${s.type}] ${s.skill}: "${s.suggested}" (${s.evidence_count} observations)`);
             }
         }
+        break;
+    }
+
+    case 'check-synthesis-candidates': {
+        const state = readState();
+        const candidates = state.pattern_observations.filter(
+            p => p.frequency >= 3 && p.status !== 'synthesized'
+        );
+
+        console.log('# Skill Synthesis Candidates\n');
+
+        if (candidates.length === 0) {
+            console.log('No synthesis candidates found.\n');
+            console.log('Candidates appear when patterns are recorded 3+ times.');
+            console.log('Record patterns with: `superpowers-augment record-pattern "description" potential-skill-name`\n');
+            break;
+        }
+
+        console.log('These patterns have been observed frequently and may be worth codifying as skills:\n');
+        console.log('| # | Pattern | Freq | Suggested Name | Last Seen |');
+        console.log('|---|---------|------|----------------|-----------|');
+
+        for (let i = 0; i < candidates.length; i++) {
+            const p = candidates[i];
+            const lastSeen = new Date(p.last_seen).toLocaleDateString();
+            const truncPattern = p.pattern.length > 50 ? p.pattern.slice(0, 47) + '...' : p.pattern;
+            console.log(`| ${i + 1} | ${truncPattern} | ${p.frequency}x | ${p.potential_skill} | ${lastSeen} |`);
+        }
+
+        console.log('\n## Next Steps\n');
+        console.log('To create a skill from a pattern:\n');
+        console.log('1. Review the pattern description above');
+        console.log('2. Invoke skill-authoring Mode 2:');
+        console.log('   ```');
+        console.log('   "Turn this pattern into a skill: [pattern description]"');
+        console.log('   ```');
+        console.log('3. The skill-authoring skill will guide you through synthesis\n');
+
+        if (candidates.length > 0) {
+            const top = candidates[0];
+            console.log(`**Top candidate:** "${top.pattern}" (${top.frequency}x)`);
+            console.log(`\nTo synthesize this now, tell me:`);
+            console.log(`> "Turn this pattern into a skill: ${top.pattern}"`);
+        }
+        break;
+    }
+
+    case 'compose-pipeline': {
+        const capability = args[0];
+        if (!capability) {
+            console.error('Usage: compose-pipeline <target-capability>');
+            console.error('Example: compose-pipeline publishes-wiki');
+            console.error('\nAvailable capabilities:');
+            console.error('  publishes-wiki     - Full wiki authoring pipeline');
+            console.error('  validates-links    - Link verification only');
+            console.error('  generates-content  - Content generation only');
+            console.error('  detects-secrets    - Secret scanning only');
+            process.exit(1);
+        }
+
+        // Gather all skills with composition metadata
+        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+        const allSkills = [...personalSkills, ...superpowersSkills];
+
+        // Filter to skills with composition blocks
+        const composableSkills = allSkills.filter(s => s.composition !== null);
+
+        if (composableSkills.length === 0) {
+            console.log('No skills with composition: blocks found.');
+            process.exit(1);
+        }
+
+        console.log(`# Auto-Composition Pipeline\n`);
+        console.log(`Target capability: ${capability}`);
+        console.log(`Composable skills: ${composableSkills.length}\n`);
+
+        // Build the pipeline
+        const result = buildPipeline(capability, composableSkills, ['user-intent']);
+
+        if (result.error) {
+            console.log(`Error: ${result.error}\n`);
+            console.log('Resolution trace:');
+            console.log(result.explanation.join('\n'));
+            process.exit(1);
+        }
+
+        console.log('## Pipeline Order\n');
+        console.log('| Step | Skill | Consumes | Produces |');
+        console.log('|------|-------|----------|----------|');
+        result.pipeline.forEach((skill, i) => {
+            const comp = skill.composition || {};
+            const consumes = (comp.consumes || []).join(', ');
+            const produces = (comp.produces || []).join(', ');
+            console.log(`| ${i + 1} | ${skill.name} | ${consumes} | ${produces} |`);
+        });
+
+        console.log('\n## Mermaid Diagram\n');
+        console.log('```mermaid');
+        console.log(pipelineToMermaid(result.pipeline));
+        console.log('```');
+
+        console.log('\n## Resolution Trace\n');
+        console.log(result.explanation.join('\n'));
         break;
     }
 
@@ -588,6 +733,7 @@ switch (command) {
         console.log('  node superpowers-augment.js match-skills --embedding <query>  # OpenAI (optional)');
         console.log('  node superpowers-augment.js router-info            # Show available methods');
         console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed (optional)');
+        console.log('  node superpowers-augment.js compose-pipeline <capability>  # Build auto-composition pipeline');
         console.log('');
         console.log('Learning System:');
         console.log('  node superpowers-augment.js record-outcome <skill> <success|failure> [evidence]');
@@ -596,5 +742,6 @@ switch (command) {
         console.log('  node superpowers-augment.js record-pattern <pattern> [skill]  # Track recurring patterns');
         console.log('  node superpowers-augment.js learning-report        # Full effectiveness report');
         console.log('  node superpowers-augment.js learning-status        # Show learning state info');
+        console.log('  node superpowers-augment.js check-synthesis-candidates  # Find patterns ready for skill synthesis');
         break;
 }
