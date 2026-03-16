@@ -92,6 +92,9 @@ migrate_todo_skill_overrides() {
 # Fix: Scan known locations, report findings, suggest consolidation. Never delete.
 detect_orphaned_todo_files() {
     local default_path="$HOME/.codex/TODO.md"
+    # Source ~/.codex/.env to pick up TODO_FILE_PATH if configured there
+    # shellcheck disable=SC1091
+    source "$HOME/.codex/.env" 2>/dev/null || true
     local env_path="${TODO_FILE_PATH:-}"
     local -a candidates=()
     local -a found=()
@@ -143,7 +146,7 @@ detect_orphaned_todo_files() {
     echo ""
     echo "  To consolidate, you can:"
     echo "    1. Move:  mv <old-path> $default_path"
-    echo "    2. Point: export TODO_FILE_PATH=\"<old-path>\"  (add to ~/.zshrc or ~/.bashrc)"
+    echo "    2. Point: add TODO_FILE_PATH=\"<old-path>\" to ~/.codex/.env"
     echo "    3. Ignore: leave as-is (agents will use $default_path going forward)"
     echo ""
 }
