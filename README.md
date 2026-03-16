@@ -1,6 +1,6 @@
 # superpowers-plus
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 40 skills for wiki management, issue tracking, and security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop, 11 strategies) plus 41 skills for wiki management, issue tracking, and security.
 
 **Extends [obra/superpowers](https://github.com/obra/superpowers)** — installed automatically as dependency.
 
@@ -14,13 +14,13 @@ cd superpowers-plus
 
 ## What's Included
 
-**40 skills** (31 superpowers + 9 explicit) across 9 domains:
+**41 skills** (32 superpowers + 9 explicit) across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | wiki | 7 | Page management, link checks, credential scanning |
 | engineering | 6 | Pre-commit gates, blast radius, PR review |
-| productivity | 6 | Innovation, TODO tracking, style enforcement |
+| productivity | 7 | Innovation, TODO tracking, style enforcement, skill synthesis |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 5 | Skill effectiveness, completeness checks |
@@ -157,6 +157,7 @@ Works offline using local TF-IDF. No API keys required.
 | productivity | enforce-style-guide | Applies project conventions |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Radical, high-impact thinking |
+| | skill-authoring | 🦸 Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | todo-management | Parses and tracks tasks |
