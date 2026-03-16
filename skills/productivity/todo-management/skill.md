@@ -182,7 +182,11 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ## Tagging Taxonomy
 
-### Engineering Tags (auto-inferred from keywords)
+Tags are auto-inferred from keywords in the task description. The taxonomy below
+covers common domains. **Customize for your organization** by adding domain-specific
+tags (e.g., replace `#team` with your team name like `#delta-team`).
+
+### Engineering Tags
 
 | Tag | Trigger Keywords |
 |-----|------------------|
@@ -192,13 +196,23 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | `#engineering-testing` | test, coverage, unit, integration, QA |
 | `#engineering-docs` | documentation, README, wiki, spec, ADR |
 
+### Recruiting Tags
+
+| Tag | Trigger Keywords |
+|-----|------------------|
+| `#recruiting-sourcer` | source, outreach, LinkedIn, pipeline, candidate search |
+| `#recruiting-scheduler` | schedule, calendar, Zoom, interview time, availability |
+| `#recruiting-admin` | offer, letter, system, ATS, paperwork |
+| `#recruiting-interviewer` | interview, prep, feedback, scorecard, debrief |
+| `#recruiting-hr` | comp, compensation, policy, HR, benefits |
+
 ### General Tags (auto-inferred from context)
 
 | Tag | Trigger Context |
 |-----|-----------------|
-| `#team` | Team member names, "team", "direct report" |
+| `#team` | Team member names, "team", "direct report" (customize: `#delta-team`, `#your-team`) |
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
-| `#product` | "product", "feature", "roadmap" |
+| `#product` | "product", "feature", "roadmap" (customize: `#[product]`, `#your-product`) |
 | `#process` | "process", "workflow", "documentation" |
 
 ### Plan Tags (effort-scoped)
