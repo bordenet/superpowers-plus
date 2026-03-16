@@ -34,6 +34,22 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 
 Skills from both directories are discovered by `superpowers-augment.js`.
 
+### Installer Architecture
+
+`install.sh` is a thin orchestrator (~380 lines) that sources 6 modules from `lib/install/`:
+
+```
+lib/install/
+├── logging.sh       # Colors, log_*, error_exit, create_dir
+├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
+├── deps.sh          # Package manager detection, dependency install, Node.js version check
+├── superpowers.sh   # obra/superpowers clone, update, upgrade, version check
+├── deploy.sh        # Skill, adapter, rule, template deployment to 3 target dirs
+└── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
+```
+
+Modules are sourced in dependency order: `logging` → `platform` → `deps` → `superpowers` → `deploy` → `migrate`. Globals (`VERBOSE`, `FORCE`, `SKILLS_DIR`, etc.) are shared via shell environment.
+
 ## Skill Discovery
 
 The wrapper script finds skills by scanning for `skill.md` files:
@@ -195,7 +211,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 
 ## Multi-Target Deployment
 
-`install.sh` deploys skills to three locations for different AI tools:
+`install.sh` (via `lib/install/deploy.sh`) deploys skills to three locations for different AI tools:
 
 | Tool | Install Path | Notes |
 |------|--------------|-------|
