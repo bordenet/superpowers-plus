@@ -18,6 +18,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Skill auto-composition engine (RFC-001) (#82)
 - `markdown-table-discipline` skill (#81)
 - Skill dependency graph with coordination schema and DAG visualization (#73)
+- **wiki-verify**: Bulk Operations Protocol — 5-page chunking for multi-page wiki operations (#95)
 
 ### Fixed
 - **todo-management**: Deterministic default path (`$HOME/.codex/TODO.md`) with hard gate (#90)
@@ -27,9 +28,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Node.js package names on Linux (`node` → `nodejs`), added version check (#89)
 - Critical audit findings — wire composition, remove dead code (#86)
 - README quality, skill priority disambiguation, repository quality audit (#71-79)
+- **perplexity-research**: Replace Augment-specific tool names with platform-agnostic descriptions (#95)
 
 ### Changed
 - Version sync workflow: plugin files now updated in-PR instead of direct push (#94)
+- **install.sh**: Decomposed from 1,163 lines into 380-line orchestrator + 6 modules in `lib/install/` (#97)
 
 ## [2.5.0] - 2026-03-15
 
