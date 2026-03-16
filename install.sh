@@ -8,15 +8,16 @@
 # USAGE: ./install.sh [options]
 #        -h, --help      Show help message
 #        -v, --verbose   Enable verbose output
+#        -y, --yes       Auto-accept prompts (non-interactive mode)
 #        --force         Overwrite existing skills without prompting
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.4.2
+# VERSION: 2.5.1
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.0"
+VERSION="2.5.1"
 
 # Colors for output (disabled if not a terminal)
 if [[ -t 1 ]]; then
@@ -118,6 +119,12 @@ fi
 FORCE=false
 VERBOSE=false
 UPGRADE=false
+YES=false
+
+# Auto-detect non-interactive context (piped input, curl | bash, etc.)
+if ! [[ -t 0 ]]; then
+    YES=true
+fi
 
 # --- Help ---
 show_help() {
@@ -151,6 +158,11 @@ OPTIONS
         Without --upgrade: Remove and re-clone superpowers from scratch.
         With --upgrade: Reset local changes (git reset --hard, git clean -fd)
         before pulling latest updates.
+
+    -y, --yes
+        Auto-accept all prompts (e.g., dependency installation) without
+        asking for confirmation. Also enabled automatically when stdin is
+        not a TTY (e.g., when called from another script or via pipe).
 
     --version
         Display version information and exit
@@ -223,6 +235,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help) show_help ;;
         -v|--verbose) VERBOSE=true; shift ;;
+        -y|--yes) YES=true; shift ;;
         --force) FORCE=true; shift ;;
         --upgrade) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
@@ -341,21 +354,24 @@ check_dependencies() {
         error_exit "Cannot auto-install on unknown platform. Please install: ${missing[*]}"
     fi
 
-    # Offer to install
-    echo ""
-    read -r -p "Install missing dependencies? [Y/n] " response
-    case "$response" in
-        [nN][oO]|[nN])
-            error_exit "Cannot continue without: ${missing[*]}"
-            ;;
-        *)
-            for dep in "${missing[@]}"; do
-                if ! install_dependency "$dep"; then
-                    error_exit "Failed to install $dep"
-                fi
-            done
-            ;;
-    esac
+    # Auto-accept or prompt for confirmation
+    if [[ "$YES" == "true" ]]; then
+        log_info "Auto-installing missing dependencies (--yes or non-interactive mode)"
+    else
+        echo ""
+        read -r -p "Install missing dependencies? [Y/n] " response
+        case "$response" in
+            [nN][oO]|[nN])
+                error_exit "Cannot continue without: ${missing[*]}"
+                ;;
+        esac
+    fi
+
+    for dep in "${missing[@]}"; do
+        if ! install_dependency "$dep"; then
+            error_exit "Failed to install $dep"
+        fi
+    done
 
     log_verbose "All dependencies installed"
 }
