@@ -3,6 +3,12 @@ name: wiki-debunker
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
 description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, meeting transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
+composition:
+  consumes: [markdown-content]
+  produces: [verified-facts]
+  capabilities: [validates-facts]
+  priority: 30
+  optional: true
 ---
 
 # Wiki Debunker
