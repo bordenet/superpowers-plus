@@ -3,7 +3,7 @@
 > **For:** Adopters of superpowers-plus who have a local `todo-management` override
 > (e.g., mb_scratchpad, other proprietary skill repos)
 > **Date:** 2026-03-16
-> **Affects:** superpowers-plus v2.6.0+
+> **Affects:** superpowers-plus v2.5.1+
 
 ## Problem
 
@@ -23,11 +23,12 @@ The `todo-management` skill had a broken deployment state:
 
 ## What superpowers-plus Now Does Automatically
 
-As of v2.6.0, `superpowers-plus/install.sh` runs post-install migrations:
+The `superpowers-plus/install.sh` installer runs post-install migrations:
 
-- **`migrate_todo_skill_overrides()`** — Detects stale overrides in
-  `~/.codex/superpowers/skills/todo-management/` by checking the `source:` field.
-  If it came from an adopter (not obra/superpowers/superpowers-plus), removes it.
+- **`migrate_todo_skill_overrides()`** — Detects stale overrides in both
+  `~/.codex/superpowers/skills/todo-management/` and `~/.codex/skills/todo-management/`
+  by checking the `source:` field. If it came from an adopter
+  (not obra/superpowers/superpowers-plus), removes it.
 
 - **`detect_orphaned_todo_files()`** — Scans common locations for TODO.md files
   outside the default path, reports them with consolidation instructions.
