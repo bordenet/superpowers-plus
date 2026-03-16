@@ -1,12 +1,13 @@
-# GitHub Actions workflow for version synchronization and auto-tagging
+# GitHub Actions workflow for auto-tagging and marketplace dispatch
 # Triggers when install.sh is modified on main branch
-# 1. Syncs VERSION to plugin.json and marketplace.json (if needed)
+# 1. Verifies plugin files match VERSION (fails if drift detected)
 # 2. Creates git tag if it doesn't exist
 # 3. Tag creation triggers release.yml workflow
+# 4. Dispatches version update to standalone marketplace repo
 #
-# This workflow is IDEMPOTENT: it handles both cases gracefully:
-# - Manual version sync: files already updated, just create tag
-# - Automated sync: update files, commit, then create tag
+# IMPORTANT: Plugin files (.claude-plugin/plugin.json, marketplace.json)
+# must be updated in the SAME PR that bumps VERSION in install.sh.
+# This workflow does NOT commit — branch protection requires PRs.
 
 name: Version Sync & Auto-Tag
 
@@ -21,7 +22,7 @@ permissions:
 
 jobs:
   version-sync:
-    name: Sync Versions & Tag
+    name: Verify, Tag & Dispatch
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +30,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Use PAT to bypass branch protection for version sync commits
           token: ${{ secrets.MARKETPLACE_DISPATCH_TOKEN }}
 
       - name: Extract version from install.sh
@@ -51,81 +51,45 @@ jobs:
             echo "Tag v$VERSION does not exist"
           fi
 
-      - name: Sync version to plugin files
+      - name: Verify plugin files match VERSION
         if: steps.tag_check.outputs.TAG_EXISTS == 'false'
-        id: sync
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          SYNCED_FILES=""
+          ERRORS=0
 
-          # Update plugin.json only if version differs
+          # Check plugin.json
           if [ -f ".claude-plugin/plugin.json" ]; then
             CURRENT=$(jq -r '.version' .claude-plugin/plugin.json)
             if [ "$CURRENT" != "$VERSION" ]; then
-              jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > tmp.json
-              mv tmp.json .claude-plugin/plugin.json
-              echo "Updated plugin.json: $CURRENT → $VERSION"
-              SYNCED_FILES="$SYNCED_FILES plugin.json"
+              echo "::error::plugin.json has version $CURRENT but install.sh has $VERSION"
+              echo "::error::Update plugin.json in the same PR that bumps VERSION"
+              ERRORS=$((ERRORS + 1))
             else
-              echo "plugin.json already at $VERSION"
+              echo "✓ plugin.json version matches: $VERSION"
             fi
           fi
 
-          # Update marketplace.json plugin entry only if version differs
-          # Note: Our marketplace.json does NOT have .metadata.version, only plugin entries
+          # Check marketplace.json
           if [ -f ".claude-plugin/marketplace.json" ]; then
             CURRENT=$(jq -r '(.plugins[] | select(.name == "superpowers-plus")).version' .claude-plugin/marketplace.json)
             if [ "$CURRENT" != "$VERSION" ]; then
-              jq --arg v "$VERSION" '(.plugins[] | select(.name == "superpowers-plus")).version = $v' .claude-plugin/marketplace.json > tmp.json
-              mv tmp.json .claude-plugin/marketplace.json
-              echo "Updated marketplace.json: $CURRENT → $VERSION"
-              SYNCED_FILES="$SYNCED_FILES marketplace.json"
+              echo "::error::marketplace.json has version $CURRENT but install.sh has $VERSION"
+              echo "::error::Update marketplace.json in the same PR that bumps VERSION"
+              ERRORS=$((ERRORS + 1))
             else
-              echo "marketplace.json already at $VERSION"
+              echo "✓ marketplace.json version matches: $VERSION"
             fi
           fi
 
-          # Output which files were synced (if any)
-          if [ -n "$SYNCED_FILES" ]; then
-            echo "SYNCED=true" >> $GITHUB_OUTPUT
-            echo "SYNCED_FILES=$SYNCED_FILES" >> $GITHUB_OUTPUT
-          else
-            echo "SYNCED=false" >> $GITHUB_OUTPUT
-            echo "All files already at correct version"
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::Version drift detected. Plugin files must be updated in the same PR as install.sh VERSION bump."
+            exit 1
           fi
 
-      - name: Commit version sync (if needed)
-        if: steps.tag_check.outputs.TAG_EXISTS == 'false'
-        id: commit
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-
-          # Stage changes (|| true prevents failure if nothing to add)
-          git add .claude-plugin/ || true
-
-          # Check if there's anything staged to commit
-          if git diff --cached --quiet; then
-            echo "No version changes to commit (already in sync)"
-            echo "COMMITTED=false" >> $GITHUB_OUTPUT
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: sync version $VERSION to plugin files [skip ci]"
-            git push
-            echo "Committed version sync"
-            echo "COMMITTED=true" >> $GITHUB_OUTPUT
-          fi
-
-      # Tag creation runs regardless of whether commit step made changes
-      # This is the key fix: decoupling tag from commit
       - name: Create and push tag
         if: steps.tag_check.outputs.TAG_EXISTS == 'false'
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-
-          # Pull any commits made by the sync step to ensure we tag the right commit
-          git pull --rebase origin main || true
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "Release v$VERSION"
@@ -145,8 +109,6 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           TAG_EXISTS="${{ steps.tag_check.outputs.TAG_EXISTS }}"
-          SYNCED="${{ steps.sync.outputs.SYNCED }}"
-          COMMITTED="${{ steps.commit.outputs.COMMITTED }}"
 
           echo "## Version Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -155,20 +117,7 @@ jobs:
           if [ "$TAG_EXISTS" == "true" ]; then
             echo "- **Status:** Tag v$VERSION already exists, no action taken" >> $GITHUB_STEP_SUMMARY
           else
-            # Report sync status
-            if [ "$SYNCED" == "true" ]; then
-              echo "- **Sync:** Updated plugin files to $VERSION" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- **Sync:** Plugin files already at correct version" >> $GITHUB_STEP_SUMMARY
-            fi
-
-            # Report commit status
-            if [ "$COMMITTED" == "true" ]; then
-              echo "- **Commit:** Pushed version sync commit" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- **Commit:** No commit needed (files already in sync)" >> $GITHUB_STEP_SUMMARY
-            fi
-
+            echo "- **Plugin files:** Verified in sync" >> $GITHUB_STEP_SUMMARY
             echo "- **Tag:** Created v$VERSION" >> $GITHUB_STEP_SUMMARY
             echo "- **Dispatched:** Version update to superpowers-plus-marketplace" >> $GITHUB_STEP_SUMMARY
             echo "- **Next:** release.yml workflow will create GitHub Release" >> $GITHUB_STEP_SUMMARY
