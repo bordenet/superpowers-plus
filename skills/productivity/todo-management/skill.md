@@ -7,7 +7,7 @@ description: Use when capturing tasks, tracking work, triaging priorities, query
 
 # TODO Management
 
-> **File location:** `$HOME/.codex/TODO.md` (default) or `$TODO_FILE_PATH` (if set)
+> **File location:** Resolved from `TODO_FILE_PATH` in `~/.codex/.env` (falls back to `$HOME/.codex/TODO.md`)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
 > **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
@@ -93,13 +93,21 @@ MCP tools are a convenience layer, not a requirement.
 
 **Before ANY task operation** (add, complete, query, triage), you MUST resolve the TODO.md path:
 
-1. Run in the shell: `echo "${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"`
-2. Use the output as the file path for ALL subsequent operations
-3. If the file does not exist, create it from the template (see Implementation Workflow)
-4. **NEVER proceed with MCP-only tracking** — MCP state is lost on context compaction
+1. Source the environment file to load `TODO_FILE_PATH`:
+   ```bash
+   source ~/.codex/.env 2>/dev/null
+   ```
+2. Resolve the path (falls back to default if unset):
+   ```bash
+   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
+   echo "$TODO_PATH"
+   ```
+3. Verify the file exists: `ls -la "$TODO_PATH"`
+4. If the file does not exist, create it from the template (see Implementation Workflow)
+5. **NEVER proceed with MCP-only tracking** — MCP state is lost on context compaction
 
-**Default path:** `$HOME/.codex/TODO.md`
-**Override:** Set `TODO_FILE_PATH` in your shell profile to use a custom location.
+**Configuration:** `TODO_FILE_PATH` is set in `~/.codex/.env` (the canonical environment file).
+**Default path:** `$HOME/.codex/TODO.md` (used only if `TODO_FILE_PATH` is not set in `~/.codex/.env`).
 
 ### Why This Gate Exists
 
@@ -108,26 +116,27 @@ is session-scoped — it is lost on context compaction, crashes, or session swit
 This causes hallucinated task state where the agent fabricates TODO items from
 context fragments. The file is the source of truth. No file = no task operations.
 
-### Configuration (Optional Override)
+### Why Source `~/.codex/.env`?
+
+`TODO_FILE_PATH` is configured in `~/.codex/.env`, not in the user's shell profile.
+If you skip the `source` step, the variable will be unset and you'll read/write to
+the wrong file (`$HOME/.codex/TODO.md` instead of the user's actual TODO location).
+
+### Configuration
+
+Set `TODO_FILE_PATH` in `~/.codex/.env`:
 
 ```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.) to override the default
-
-# macOS example:
-export TODO_FILE_PATH="$HOME/Documents/TODO.md"
-
-# Windows/WSL example:
-export TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"
-
-# Linux example:
-export TODO_FILE_PATH="$HOME/Documents/TODO.md"
+# Example entries in ~/.codex/.env:
+TODO_FILE_PATH="$HOME/OneDrive/Documents/TODO.md"
+TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"  # WSL
 ```
 
 ### Getting Started
 
-1. The default location (`~/.codex/TODO.md`) works out of the box — no setup needed
-2. Optionally copy the template: `cp ~/.codex/templates/TODO.md ~/.codex/TODO.md`
-3. Optionally set `TODO_FILE_PATH` in your shell profile for a custom location
+1. Add `TODO_FILE_PATH="<path-to-your-TODO.md>"` to `~/.codex/.env`
+2. Or use the default location (`~/.codex/TODO.md`) — no setup needed
+3. Optionally copy the template: `cp ~/.codex/templates/TODO.md "$TODO_FILE_PATH"`
 
 ---
 
@@ -377,13 +386,16 @@ Before EVERY write to TODO.md:
 
 ### On First Use (HARD GATE)
 
-1. Resolve the file path by running in the shell:
+1. Source the environment and resolve the file path:
    ```bash
+   source ~/.codex/.env 2>/dev/null
    TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
    echo "$TODO_PATH"
    ```
 
-2. If the file does not exist, create it:
+2. Verify the file exists: `ls -la "$TODO_PATH"`
+
+3. If the file does not exist, create it:
    ```bash
    mkdir -p "$(dirname "$TODO_PATH")"
    ```
