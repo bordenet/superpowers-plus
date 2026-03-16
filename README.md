@@ -12,7 +12,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**41 skills** (32 superpowers + 9 explicit) across 9 domains:
+**41 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|

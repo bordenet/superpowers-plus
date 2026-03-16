@@ -292,14 +292,13 @@ for domain_dir in skills/*/; do
 done
 
 # Extract counts from README.md
-# Line format: **39 skills** (30 superpowers + 9 explicit) across 9 domains:
+# Line format: **41 skills** across 9 domains:
+# Legacy format also supported: **41 skills** (32 superpowers + 9 explicit) across 9 domains:
 README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1)
 
 if [[ -n "$README_LINE" ]]; then
     # Use sed for cross-platform compatibility (no grep -P on macOS)
     README_TOTAL=$(echo "$README_LINE" | sed -E 's/.*\*\*([0-9]+) skills.*/\1/')
-    README_SUPERPOWERS=$(echo "$README_LINE" | sed -E 's/.*\(([0-9]+) superpowers.*/\1/')
-    README_EXPLICIT=$(echo "$README_LINE" | sed -E 's/.*\+ ([0-9]+) explicit.*/\1/')
     README_DOMAINS=$(echo "$README_LINE" | sed -E 's/.*across ([0-9]+) domains.*/\1/')
 
     DRIFT_FOUND=false
@@ -307,16 +306,6 @@ if [[ -n "$README_LINE" ]]; then
 
     if [[ "$README_TOTAL" != "$ACTUAL_TOTAL" ]]; then
         DRIFT_MSG+="  - Total: README says $README_TOTAL, actual is $ACTUAL_TOTAL\n"
-        DRIFT_FOUND=true
-    fi
-
-    if [[ "$README_SUPERPOWERS" != "$ACTUAL_SUPERPOWERS" ]]; then
-        DRIFT_MSG+="  - Superpowers: README says $README_SUPERPOWERS, actual is $ACTUAL_SUPERPOWERS\n"
-        DRIFT_FOUND=true
-    fi
-
-    if [[ "$README_EXPLICIT" != "$ACTUAL_EXPLICIT" ]]; then
-        DRIFT_MSG+="  - Explicit: README says $README_EXPLICIT, actual is $ACTUAL_EXPLICIT\n"
         DRIFT_FOUND=true
     fi
 
