@@ -273,6 +273,13 @@ function useSkill(skillName) {
         const superpowersFile = findSkillFile(superpowersDir);
         if (superpowersFile) skillFile = superpowersFile;
     }
+    // Fallback: if superpowers: prefix was used but skill not found in superpowers dir,
+    // check personal dir too (personal skills with triggers are listed as superpowers)
+    if (!skillFile && forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) skillFile = personalFile;
+    }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         console.error('Run "superpowers-augment find-skills" to see available skills');
