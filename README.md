@@ -12,7 +12,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**41 skills** (32 superpowers + 9 explicit) across 9 domains:
+**41 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -29,6 +29,36 @@ cd superpowers-plus
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
 ## Installation
+
+### Ubuntu / Debian / WSL (One-Liner)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
+```
+
+This installs the core superpowers framework. For the full 41-skill suite, use the git clone method below.
+
+### Ubuntu / Debian / WSL (Full Install)
+
+```bash
+git clone https://github.com/bordenet/superpowers-plus.git
+cd superpowers-plus
+./install.sh
+```
+
+The installer auto-detects your platform and offers to install missing dependencies (git, node).
+
+### macOS
+
+```bash
+git clone https://github.com/bordenet/superpowers-plus.git
+cd superpowers-plus
+./install.sh
+```
+
+### Windows
+
+Use WSL first: `wsl --install -d Ubuntu`, then follow Ubuntu instructions.
 
 ### Claude Code (Direct)
 
@@ -61,12 +91,6 @@ For clients supporting Model Context Protocol:
 
 3. Restart your client. Use `find_skills` to list available skills.
 
-### Augment Code
-
-```bash
-./install-augment-superpowers.sh
-```
-
 ### Codex / OpenCode
 
 ```text
@@ -80,15 +104,9 @@ gemini extensions install https://github.com/obra/superpowers
 gemini extensions install https://github.com/bordenet/superpowers-plus
 ```
 
-### Manual (macOS/Linux/WSL)
+### Using as a Dependency
 
-```bash
-git clone https://github.com/bordenet/superpowers-plus.git
-cd superpowers-plus
-./install.sh
-```
-
-Windows: Use WSL (`wsl --install -d Ubuntu`).
+If you maintain a repo that extends superpowers-plus, see [docs/examples/mb_scratchpad-install-example.sh](docs/examples/mb_scratchpad-install-example.sh) for a robust install script template designed for non-technical users.
 
 ## Configuration
 

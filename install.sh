@@ -8,18 +8,21 @@
 # USAGE: ./install.sh [options]
 #        -h, --help      Show help message
 #        -v, --verbose   Enable verbose output
+#        -y, --yes       Auto-accept prompts (non-interactive mode)
 #        --force         Overwrite existing skills without prompting
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.4.2
+# VERSION: 2.5.1
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.0"
+VERSION="2.5.1"
 
-# Colors for output (disabled if not a terminal)
-if [[ -t 1 ]]; then
+# Colors for output (disabled if not a terminal, unless FORCE_COLOR=1)
+# FORCE_COLOR=1 allows parent scripts (e.g., mb_scratchpad) to preserve colors
+# when calling this script through a pipe/tee.
+if [[ -t 1 ]] || [[ "${FORCE_COLOR:-}" == "1" ]]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[0;33m'
@@ -118,6 +121,12 @@ fi
 FORCE=false
 VERBOSE=false
 UPGRADE=false
+YES=false
+
+# Auto-detect non-interactive context (piped input, curl | bash, etc.)
+if ! [[ -t 0 ]]; then
+    YES=true
+fi
 
 # --- Help ---
 show_help() {
@@ -151,6 +160,11 @@ OPTIONS
         Without --upgrade: Remove and re-clone superpowers from scratch.
         With --upgrade: Reset local changes (git reset --hard, git clean -fd)
         before pulling latest updates.
+
+    -y, --yes
+        Auto-accept all prompts (e.g., dependency installation) without
+        asking for confirmation. Also enabled automatically when stdin is
+        not a TTY (e.g., when called from another script or via pipe).
 
     --version
         Display version information and exit
@@ -223,6 +237,7 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help) show_help ;;
         -v|--verbose) VERBOSE=true; shift ;;
+        -y|--yes) YES=true; shift ;;
         --force) FORCE=true; shift ;;
         --upgrade) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
@@ -263,10 +278,27 @@ error_exit() {
     exit 1
 }
 
+# Map command names to distro-specific package names
+# e.g., the 'node' command is provided by the 'nodejs' package on Linux
+get_package_name() {
+    local cmd="$1"
+    case "$cmd" in
+        node)
+            case "$PLATFORM" in
+                macos) echo "node" ;;       # Homebrew uses 'node'
+                *)     echo "nodejs" ;;     # apt, dnf, yum, pacman, zypper use 'nodejs'
+            esac
+            ;;
+        *) echo "$cmd" ;;  # git, curl, etc. are the same everywhere
+    esac
+}
+
 # Install a single dependency using the appropriate package manager
 install_dependency() {
-    local pkg="$1"
-    log_info "Installing $pkg..."
+    local cmd="$1"
+    local pkg
+    pkg=$(get_package_name "$cmd")
+    log_info "Installing $pkg (provides '$cmd')..."
 
     case "$PLATFORM" in
         macos)
@@ -341,23 +373,77 @@ check_dependencies() {
         error_exit "Cannot auto-install on unknown platform. Please install: ${missing[*]}"
     fi
 
-    # Offer to install
-    echo ""
-    read -r -p "Install missing dependencies? [Y/n] " response
-    case "$response" in
-        [nN][oO]|[nN])
-            error_exit "Cannot continue without: ${missing[*]}"
+    # Auto-accept or prompt for confirmation
+    if [[ "$YES" == "true" ]]; then
+        log_info "Auto-installing missing dependencies (--yes or non-interactive mode)"
+    else
+        echo ""
+        read -r -p "Install missing dependencies? [Y/n] " response
+        case "$response" in
+            [nN][oO]|[nN])
+                error_exit "Cannot continue without: ${missing[*]}"
+                ;;
+        esac
+    fi
+
+    for dep in "${missing[@]}"; do
+        if ! install_dependency "$dep"; then
+            error_exit "Failed to install $dep"
+        fi
+    done
+
+    log_verbose "All dependencies installed"
+
+    # Verify Node.js version is sufficient
+    check_node_version
+}
+
+# Verify Node.js version meets minimum requirement (v18+)
+check_node_version() {
+    local min_version=18
+    local node_version_full node_major
+
+    node_version_full=$(node -v 2>/dev/null || echo "")
+    if [[ -z "$node_version_full" ]]; then
+        # node command not found after install — install_dependency should have caught this
+        return 0
+    fi
+
+    # Extract major version: v20.11.0 → 20
+    node_major=$(echo "$node_version_full" | sed 's/^v//' | cut -d. -f1)
+
+    if [[ "$node_major" -ge "$min_version" ]] 2>/dev/null; then
+        log_verbose "Node.js $node_version_full (>= v${min_version}) ✓"
+        return 0
+    fi
+
+    log_warn "Node.js $node_version_full is too old (need v${min_version}+)"
+
+    case "$PLATFORM" in
+        macos)
+            log_warn "Run: brew upgrade node"
+            ;;
+        linux|wsl)
+            case "$LINUX_DISTRO" in
+                ubuntu|debian|pop|linuxmint)
+                    log_warn "Ubuntu/Debian ship old Node.js. Install a modern version:"
+                    log_warn "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+                    log_warn "  sudo apt-get install -y nodejs"
+                    ;;
+                fedora)
+                    log_warn "Run: sudo dnf module install -y nodejs:20"
+                    ;;
+                *)
+                    log_warn "Install Node.js v${min_version}+ from: https://nodejs.org/en/download"
+                    ;;
+            esac
             ;;
         *)
-            for dep in "${missing[@]}"; do
-                if ! install_dependency "$dep"; then
-                    error_exit "Failed to install $dep"
-                fi
-            done
+            log_warn "Install Node.js v${min_version}+ from: https://nodejs.org/en/download"
             ;;
     esac
 
-    log_verbose "All dependencies installed"
+    error_exit "Node.js v${min_version}+ is required. Found: $node_version_full"
 }
 
 # Create directory with error handling
@@ -830,6 +916,149 @@ print_summary() {
     echo ""
 }
 
+# =============================================================================
+# POST-INSTALL MIGRATIONS
+# Runs after install_skills to clean up known issues from previous versions.
+# All migrations are idempotent (safe to run multiple times).
+# =============================================================================
+
+post_install_migrations() {
+    log_verbose "Running post-install migrations..."
+    migrate_todo_skill_overrides
+    detect_orphaned_todo_files
+}
+
+# Migration: Clean stale todo-management overrides from ~/.codex/superpowers/skills/
+#
+# Problem: mb_scratchpad (and potentially other adopters) copied a stale
+# todo-management override into ~/.codex/superpowers/skills/, which is meant to
+# be managed by obra/superpowers only. This stale copy lacks the deterministic
+# default path and dual-persistence fixes. When the skill loader sees both copies,
+# it may use the wrong one.
+#
+# Fix: If ~/.codex/superpowers/skills/todo-management/skill.md exists AND its
+# source field says it came from something other than obra/superpowers, remove it.
+# The authoritative copy at ~/.codex/skills/todo-management/ (deployed by this
+# installer) will take precedence.
+migrate_todo_skill_overrides() {
+    local obra_skill="$SUPERPOWERS_DIR/skills/todo-management/skill.md"
+
+    # Only act if the file exists
+    [[ -f "$obra_skill" ]] || return 0
+
+    # Check if it's a stale override (source != superpowers, not obra-native)
+    local source_field
+    source_field=$(grep -m1 '^source:' "$obra_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
+
+    case "$source_field" in
+        ""|superpowers|obra|superpowers-plus)
+            # This is a legitimate obra/superpowers skill or one we deployed — leave it
+            return 0
+            ;;
+        *)
+            # This is a stale override from an adopter (e.g., mb_scratchpad)
+            log_warn "Found stale todo-management override in obra directory (source: $source_field)"
+            log_info "Removing stale override from $SUPERPOWERS_DIR/skills/todo-management/"
+            rm -rf "${SUPERPOWERS_DIR:?}/skills/todo-management" || {
+                log_warn "Could not remove stale override (permission denied?)"
+                return 0
+            }
+            log_success "Cleaned stale todo-management override"
+            ;;
+    esac
+
+    # Also check personal skills directory (~/.codex/skills/) for stale overrides.
+    # Defense-in-depth: if an adopter previously deployed a stale copy here,
+    # clean it before this installer deploys the correct version.
+    local personal_skill="$SKILLS_DIR/todo-management/skill.md"
+    [[ -f "$personal_skill" ]] || return 0
+
+    local personal_source
+    personal_source=$(grep -m1 '^source:' "$personal_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
+
+    case "$personal_source" in
+        ""|superpowers|obra|superpowers-plus)
+            # Legitimate — leave it (will be overwritten by this installer anyway)
+            return 0
+            ;;
+        *)
+            log_warn "Found stale todo-management override in personal skills (source: $personal_source)"
+            log_info "Removing stale override from $SKILLS_DIR/todo-management/"
+            rm -rf "${SKILLS_DIR:?}/todo-management" || {
+                log_warn "Could not remove stale override (permission denied?)"
+                return 0
+            }
+            log_success "Cleaned stale todo-management override from personal skills"
+            ;;
+    esac
+}
+
+# Migration: Detect orphaned TODO.md files from previous installs
+#
+# Problem: Before the deterministic default ($HOME/.codex/TODO.md), agents guessed
+# paths from the skill examples (~/Documents/TODO.md) or workspace roots
+# (~/GitHub/*/TODO.md). These files may contain real task data that won't be found
+# by the new default path.
+#
+# Fix: Scan known locations, report findings, suggest consolidation. Never delete.
+detect_orphaned_todo_files() {
+    local default_path="$HOME/.codex/TODO.md"
+    local env_path="${TODO_FILE_PATH:-}"
+    local -a candidates=()
+    local -a found=()
+
+    # Candidate locations where agents may have created TODO.md
+    candidates=(
+        "$HOME/Documents/TODO.md"
+        "$HOME/TODO.md"
+    )
+
+    # Also check common workspace roots (non-recursive, fast)
+    local git_dir
+    for git_dir in "$HOME/GitHub"/*/ "$HOME/Projects"/*/ "$HOME/repos"/*/; do
+        [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+    done
+
+    # Check each candidate
+    for candidate in "${candidates[@]}"; do
+        # Skip the default path and the env path — those aren't orphaned
+        [[ "$candidate" == "$default_path" ]] && continue
+        [[ -n "$env_path" ]] && [[ "$candidate" == "$env_path" ]] && continue
+        # Skip template files
+        [[ "$candidate" == *"/templates/"* ]] && continue
+        [[ "$candidate" == *"/superpowers-plus/"* ]] && continue
+        # Skip files inside .codex (skill-internal TODO.md files)
+        [[ "$candidate" == *"/.codex/"* ]] && continue
+
+        if [[ -f "$candidate" ]]; then
+            found+=("$candidate")
+        fi
+    done
+
+    # Nothing found — all clean
+    [[ ${#found[@]} -eq 0 ]] && return 0
+
+    # Report findings
+    echo ""
+    log_warn "Found TODO.md file(s) outside the default location:"
+    echo ""
+    for f in "${found[@]}"; do
+        local size
+        size=$(wc -c < "$f" 2>/dev/null | tr -d ' ')
+        local lines
+        lines=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
+        echo "  📄 $f ($lines lines, $size bytes)"
+    done
+    echo ""
+    echo "  The default TODO.md location is now: $default_path"
+    echo ""
+    echo "  To consolidate, you can:"
+    echo "    1. Move:  mv <old-path> $default_path"
+    echo "    2. Point: export TODO_FILE_PATH=\"<old-path>\"  (add to ~/.zshrc or ~/.bashrc)"
+    echo "    3. Ignore: leave as-is (agents will use $default_path going forward)"
+    echo ""
+}
+
 # Main installation flow
 main() {
     echo ""
@@ -844,6 +1073,7 @@ main() {
         upgrade_existing
         # Reinstall personal skills, rules, templates after upgrade
         install_skills
+        post_install_migrations
         install_rules
         install_templates
         install_adapter
@@ -867,6 +1097,9 @@ main() {
 
     # Install skills
     install_skills
+
+    # Run migrations (clean stale overrides, detect orphaned TODO.md)
+    post_install_migrations
 
     # Install rules
     install_rules
