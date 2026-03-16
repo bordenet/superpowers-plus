@@ -9,6 +9,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-03-16
+
+### Added
+- `--yes`/`-y` flag for non-interactive installs; auto-detects piped stdin (#88)
+- Ubuntu installation instructions and dependency install template (#87)
+- `skill-authoring` skill for skill synthesis (#83)
+- Skill auto-composition engine (RFC-001) (#82)
+- `markdown-table-discipline` skill (#81)
+- Skill dependency graph with coordination schema and DAG visualization (#73)
+
+### Fixed
+- **todo-management**: Deterministic default path (`$HOME/.codex/TODO.md`) with hard gate (#90)
+- **todo-management**: Migration now cleans personal skills dir (`~/.codex/skills/`) (#92)
+- **todo-management**: Migration cleanup + upstream recruiting tags (#91)
+- Documentation accuracy audit — 8 corrections (#93)
+- Node.js package names on Linux (`node` → `nodejs`), added version check (#89)
+- Critical audit findings — wire composition, remove dead code (#86)
+- README quality, skill priority disambiguation, repository quality audit (#71-79)
+
+### Changed
+- Version sync workflow: plugin files now updated in-PR instead of direct push (#94)
+
 ## [2.5.0] - 2026-03-15
 
 ### Changed
