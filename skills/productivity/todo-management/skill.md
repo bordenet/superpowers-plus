@@ -7,7 +7,7 @@ description: Use when capturing tasks, tracking work, triaging priorities, query
 
 # TODO Management
 
-> **File location:** `$TODO_FILE_PATH` (see Configuration below)
+> **File location:** `$HOME/.codex/TODO.md` (default) or `$TODO_FILE_PATH` (if set)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
 > **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
@@ -89,12 +89,29 @@ MCP tools are a convenience layer, not a requirement.
 
 ---
 
-## Configuration (File-Based TODO.md)
+## ⛔ HARD GATE: File Path Resolution
 
-**REQUIRED:** Set the `TODO_FILE_PATH` environment variable before using this skill.
+**Before ANY task operation** (add, complete, query, triage), you MUST resolve the TODO.md path:
+
+1. Run in the shell: `echo "${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"`
+2. Use the output as the file path for ALL subsequent operations
+3. If the file does not exist, create it from the template (see Implementation Workflow)
+4. **NEVER proceed with MCP-only tracking** — MCP state is lost on context compaction
+
+**Default path:** `$HOME/.codex/TODO.md`
+**Override:** Set `TODO_FILE_PATH` in your shell profile to use a custom location.
+
+### Why This Gate Exists
+
+Without a resolved file path, the agent falls back to MCP tools only. MCP task state
+is session-scoped — it is lost on context compaction, crashes, or session switches.
+This causes hallucinated task state where the agent fabricates TODO items from
+context fragments. The file is the source of truth. No file = no task operations.
+
+### Configuration (Optional Override)
 
 ```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.) to override the default
 
 # macOS example:
 export TODO_FILE_PATH="$HOME/Documents/TODO.md"
@@ -106,13 +123,11 @@ export TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"
 export TODO_FILE_PATH="$HOME/Documents/TODO.md"
 ```
 
-The skill will check for this variable on first use and prompt you to configure it if missing.
-
 ### Getting Started
 
-1. Copy the template: `cp ~/.codex/templates/TODO.md ~/Documents/TODO.md`
-2. Set the environment variable in your shell profile
-3. Source your profile or restart your terminal
+1. The default location (`~/.codex/TODO.md`) works out of the box — no setup needed
+2. Optionally copy the template: `cp ~/.codex/templates/TODO.md ~/.codex/TODO.md`
+3. Optionally set `TODO_FILE_PATH` in your shell profile for a custom location
 
 ---
 
@@ -120,7 +135,7 @@ The skill will check for this variable on first use and prompt you to configure 
 
 When user asks "show my TODOs", "what are my tasks", or any task query:
 
-1. **ALWAYS read `$TODO_FILE_PATH` FIRST** — This is the source of truth
+1. **ALWAYS read the resolved TODO.md path FIRST** — This is the source of truth
 2. **MCP tools are supplementary** — `view_tasklist` shows session context only
 3. **Never imply completeness** from MCP state alone
 
@@ -346,19 +361,17 @@ Before EVERY write to TODO.md:
 
 ## Implementation Workflow
 
-### On First Use
+### On First Use (HARD GATE)
 
-1. Check that `$TODO_FILE_PATH` is set:
+1. Resolve the file path by running in the shell:
    ```bash
-   if [ -z "$TODO_FILE_PATH" ]; then
-     echo "ERROR: TODO_FILE_PATH not set. See skill Configuration section."
-     exit 1
-   fi
+   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
+   echo "$TODO_PATH"
    ```
 
-2. If TODO.md doesn't exist at `$TODO_FILE_PATH`, create it:
+2. If the file does not exist, create it:
    ```bash
-   mkdir -p "$(dirname "$TODO_FILE_PATH")"
+   mkdir -p "$(dirname "$TODO_PATH")"
    ```
 
 3. Initialize with empty section structure:
@@ -387,11 +400,11 @@ Before EVERY write to TODO.md:
 ### On Task Add
 
 ```bash
-# 1. Read current TODO.md
-cat "$TODO_FILE_PATH"
+# 1. Read current TODO.md (use resolved path from HARD GATE)
+cat "$TODO_PATH"
 
 # 2. Backup
-cp "$TODO_FILE_PATH" "$TODO_FILE_PATH.$(date +%Y%m%d-%H%M%S).bak"
+cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"
 
 # 3. Parse task, infer priority/tags
 # 4. Generate ID: YYYYMMDD-NN
