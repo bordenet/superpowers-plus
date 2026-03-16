@@ -353,7 +353,7 @@ check_prerequisites() {
     log_success "skills available: $skill_count"
 
     # Deployment targets
-    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR" "$AUGMENT_SKILLS_DIR"; do
         if [[ -d "$target" ]]; then
             log_success "target: $target (exists)"
         else
