@@ -198,7 +198,7 @@ validate_installation() {
     # Check superpowers skills directory (v4.2.0+ uses skills/ directory)
     if [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
         log_error "superpowers skills directory not found"
-        ((errors++)) || true
+        errors=$((errors + 1))
     else
         log_verbose "superpowers skills directory: OK"
     fi
@@ -206,7 +206,7 @@ validate_installation() {
     # Check Augment skills directory (~/.codex/skills)
     if [[ ! -d "$SKILLS_DIR" ]]; then
         log_error "Augment skills directory not found: $SKILLS_DIR"
-        ((errors++)) || true
+        errors=$((errors + 1))
     else
         log_verbose "Augment skills directory: OK"
     fi
@@ -214,7 +214,7 @@ validate_installation() {
     # Check Claude Code skills directory (~/.claude/skills)
     if [[ ! -d "$CLAUDE_SKILLS_DIR" ]]; then
         log_error "Claude Code skills directory not found: $CLAUDE_SKILLS_DIR"
-        ((errors++)) || true
+        errors=$((errors + 1))
     else
         log_verbose "Claude Code skills directory: OK"
     fi
@@ -223,7 +223,7 @@ validate_installation() {
     local skill_count=0
     for skill_dir in "$SKILLS_DIR/"*/; do
         if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
-            ((skill_count++)) || true
+            skill_count=$((skill_count + 1))
         fi
     done
 
@@ -237,7 +237,7 @@ validate_installation() {
     local claude_skill_count=0
     for skill_dir in "$CLAUDE_SKILLS_DIR/"*/; do
         if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
-            ((claude_skill_count++)) || true
+            claude_skill_count=$((claude_skill_count + 1))
         fi
     done
     log_verbose "Found $claude_skill_count personal skill(s) in Claude Code location"
@@ -247,7 +247,7 @@ validate_installation() {
     if [[ -d "$SUPERPOWERS_DIR/skills" ]]; then
         for skill_dir in "$SUPERPOWERS_DIR/skills/"*/; do
             if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
-                ((sp_skill_count++)) || true
+                sp_skill_count=$((sp_skill_count + 1))
             fi
         done
         log_verbose "Found $sp_skill_count superpowers skill(s)"
