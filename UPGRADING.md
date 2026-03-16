@@ -131,5 +131,5 @@ Users may request upgrades with phrases like:
 | "superpowers not installed" | Run `./install.sh` (without --upgrade) first |
 | "not a git repository" | Run `./install.sh --force` to reinstall |
 | "Fast-forward pull failed" | Run `./install.sh --upgrade --force` |
-| Skills not loading | Check `~/.codex/superpowers/skills/` exists |
+| Skills not loading | Check `~/.codex/skills/` and `~/.codex/superpowers/skills/` exist |
 | Wrong skill count | Run `./install.sh` to reinstall personal skills |
