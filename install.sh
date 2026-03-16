@@ -463,6 +463,34 @@ check_superpowers() {
     return 1
 }
 
+# --- Version coordination ---
+# Minimum obra/superpowers commit date (Unix timestamp) that this version of
+# superpowers-plus is known to work with. Update this when obra/superpowers
+# makes breaking changes that require a newer checkout.
+# Current value: 2025-06-01 00:00:00 UTC (baseline — no known breaking change)
+MIN_OBRA_COMMIT_EPOCH=1748736000
+
+# Verify obra/superpowers is recent enough for this version of superpowers-plus
+check_obra_version() {
+    if [[ ! -d "$SUPERPOWERS_DIR/.git" ]]; then
+        log_verbose "Cannot check obra version: not a git repository"
+        return 0
+    fi
+    local obra_epoch
+    obra_epoch=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%ct' HEAD 2>/dev/null || echo "0")
+    if [[ "$obra_epoch" -lt "$MIN_OBRA_COMMIT_EPOCH" ]]; then
+        local obra_date
+        obra_date=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%ci' HEAD 2>/dev/null || echo "unknown")
+        log_warn "obra/superpowers checkout is older than expected"
+        log_warn "  Installed commit date: $obra_date"
+        log_warn "  Minimum required: $(date -r "$MIN_OBRA_COMMIT_EPOCH" '+%Y-%m-%d' 2>/dev/null || date -d "@$MIN_OBRA_COMMIT_EPOCH" '+%Y-%m-%d' 2>/dev/null || echo 'unknown')"
+        log_warn "  Run: ./install.sh --upgrade --force   to update"
+        return 1
+    fi
+    log_verbose "obra/superpowers version check: OK (commit epoch $obra_epoch >= $MIN_OBRA_COMMIT_EPOCH)"
+    return 0
+}
+
 # Install obra/superpowers
 install_superpowers() {
     log_info "Installing obra/superpowers..."
@@ -512,9 +540,13 @@ update_superpowers() {
         return 1
     fi
 
-    log_verbose "Pulling latest changes"
-    if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only 2>&1); then
+    log_verbose "Pulling latest changes from origin main"
+    if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only origin main 2>&1); then
+        local checkout_age
+        checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
         log_warn "Failed to update superpowers (may have local changes)"
+        log_warn "Local checkout last updated: $checkout_age"
+        log_warn "You may be running a stale version of obra/superpowers"
         return 1
     fi
 
@@ -860,6 +892,11 @@ validate_installation() {
         log_verbose "Found $sp_skill_count superpowers skill(s)"
     fi
 
+    # Check obra/superpowers version is recent enough
+    if ! check_obra_version; then
+        log_warn "obra/superpowers may be too old for this version of superpowers-plus"
+    fi
+
     if [[ $errors -gt 0 ]]; then
         error_exit "Validation failed with $errors error(s)"
     fi
@@ -1091,8 +1128,12 @@ main() {
         install_superpowers
     else
         log_success "obra/superpowers already installed"
-        # Try to update
-        update_superpowers || true
+        # Try to update — warn prominently if update fails
+        if ! update_superpowers; then
+            local checkout_age
+            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
+            log_warn "Continuing with existing obra/superpowers (last updated: $checkout_age)"
+        fi
     fi
 
     # Install skills
