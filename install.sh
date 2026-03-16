@@ -966,6 +966,31 @@ migrate_todo_skill_overrides() {
             log_success "Cleaned stale todo-management override"
             ;;
     esac
+
+    # Also check personal skills directory (~/.codex/skills/) for stale overrides.
+    # Defense-in-depth: if an adopter previously deployed a stale copy here,
+    # clean it before this installer deploys the correct version.
+    local personal_skill="$SKILLS_DIR/todo-management/skill.md"
+    [[ -f "$personal_skill" ]] || return 0
+
+    local personal_source
+    personal_source=$(grep -m1 '^source:' "$personal_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
+
+    case "$personal_source" in
+        ""|superpowers|obra|superpowers-plus)
+            # Legitimate — leave it (will be overwritten by this installer anyway)
+            return 0
+            ;;
+        *)
+            log_warn "Found stale todo-management override in personal skills (source: $personal_source)"
+            log_info "Removing stale override from $SKILLS_DIR/todo-management/"
+            rm -rf "${SKILLS_DIR:?}/todo-management" || {
+                log_warn "Could not remove stale override (permission denied?)"
+                return 0
+            }
+            log_success "Cleaned stale todo-management override from personal skills"
+            ;;
+    esac
 }
 
 # Migration: Detect orphaned TODO.md files from previous installs
