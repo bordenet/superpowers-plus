@@ -10,6 +10,12 @@ coordination:
   enables: []
   escalates_to: []
   internal: true
+composition:
+  consumes: [verified-links, sanitized-content]
+  produces: [published-page]
+  capabilities: [publishes-wiki]
+  priority: 100
+  requires_all: true
 ---
 
 # Wiki Editing
