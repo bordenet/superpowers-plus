@@ -112,18 +112,18 @@ install_skills() {
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             if install_skill "$domain_or_skill"; then
-                ((installed++)) || true
+                installed=$((installed + 1))
             else
-                ((skipped++)) || true
+                skipped=$((skipped + 1))
             fi
         else
             for skill_dir in "$domain_or_skill"*/; do
                 [[ ! -d "$skill_dir" ]] && continue
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
                     if install_skill "$skill_dir"; then
-                        ((installed++)) || true
+                        installed=$((installed + 1))
                     else
-                        ((skipped++)) || true
+                        skipped=$((skipped + 1))
                     fi
                 fi
             done
@@ -165,7 +165,7 @@ install_rules() {
         if [[ "$FORCE" == "true" ]] || [[ ! -f "$augment_rules_dir/$rule_name" ]]; then
             cp "$rule_file" "$augment_rules_dir/$rule_name"
             log_verbose "Installed rule: $rule_name"
-            ((installed++)) || true
+            installed=$((installed + 1))
         else
             log_verbose "Rule already exists (use --force to overwrite): $rule_name"
         fi
@@ -199,7 +199,7 @@ install_templates() {
         if [[ "$FORCE" == "true" ]] || [[ ! -f "$templates_dir/$template_name" ]]; then
             cp "$template_file" "$templates_dir/$template_name"
             log_verbose "Installed template: $template_name"
-            ((installed++)) || true
+            installed=$((installed + 1))
         else
             log_verbose "Template already exists (use --force to overwrite): $template_name"
         fi
