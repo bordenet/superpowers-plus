@@ -457,7 +457,7 @@ switch (command) {
             for (const p of report.patterns) {
                 console.log(`- "${p.pattern}" (${p.frequency}x) → ${p.potential_skill}`);
             }
-            console.log();
+            console.log('\n💡 Run `superpowers-augment check-synthesis-candidates` to create skills from patterns.\n');
         }
 
         if (report.suggestions.length > 0) {
@@ -465,6 +465,50 @@ switch (command) {
             for (const s of report.suggestions) {
                 console.log(`- [${s.type}] ${s.skill}: "${s.suggested}" (${s.evidence_count} observations)`);
             }
+        }
+        break;
+    }
+
+    case 'check-synthesis-candidates': {
+        const state = readState();
+        const candidates = state.pattern_observations.filter(
+            p => p.frequency >= 3 && p.status !== 'synthesized'
+        );
+
+        console.log('# Skill Synthesis Candidates\n');
+
+        if (candidates.length === 0) {
+            console.log('No synthesis candidates found.\n');
+            console.log('Candidates appear when patterns are recorded 3+ times.');
+            console.log('Record patterns with: `superpowers-augment record-pattern "description" potential-skill-name`\n');
+            break;
+        }
+
+        console.log('These patterns have been observed frequently and may be worth codifying as skills:\n');
+        console.log('| # | Pattern | Freq | Suggested Name | Last Seen |');
+        console.log('|---|---------|------|----------------|-----------|');
+
+        for (let i = 0; i < candidates.length; i++) {
+            const p = candidates[i];
+            const lastSeen = new Date(p.last_seen).toLocaleDateString();
+            const truncPattern = p.pattern.length > 50 ? p.pattern.slice(0, 47) + '...' : p.pattern;
+            console.log(`| ${i + 1} | ${truncPattern} | ${p.frequency}x | ${p.potential_skill} | ${lastSeen} |`);
+        }
+
+        console.log('\n## Next Steps\n');
+        console.log('To create a skill from a pattern:\n');
+        console.log('1. Review the pattern description above');
+        console.log('2. Invoke skill-authoring Mode 2:');
+        console.log('   ```');
+        console.log('   "Turn this pattern into a skill: [pattern description]"');
+        console.log('   ```');
+        console.log('3. The skill-authoring skill will guide you through synthesis\n');
+
+        if (candidates.length > 0) {
+            const top = candidates[0];
+            console.log(`**Top candidate:** "${top.pattern}" (${top.frequency}x)`);
+            console.log(`\nTo synthesize this now, tell me:`);
+            console.log(`> "Turn this pattern into a skill: ${top.pattern}"`);
         }
         break;
     }
@@ -596,5 +640,6 @@ switch (command) {
         console.log('  node superpowers-augment.js record-pattern <pattern> [skill]  # Track recurring patterns');
         console.log('  node superpowers-augment.js learning-report        # Full effectiveness report');
         console.log('  node superpowers-augment.js learning-status        # Show learning state info');
+        console.log('  node superpowers-augment.js check-synthesis-candidates  # Find patterns ready for skill synthesis');
         break;
 }
