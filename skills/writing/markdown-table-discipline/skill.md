@@ -1,8 +1,8 @@
 ---
 name: markdown-table-discipline
 source: superpowers-plus
-triggers: ["writing markdown", "creating a table", "README", "wiki page", "documentation", "skill.md", "markdown table", "adding rows", "table formatting"]
-description: Enforces best practices for Markdown table construction. Auto-triggers when writing tables in README, wiki, or documentation files. Prevents visual noise, redundancy, and accessibility issues.
+triggers: ["creating a table", "markdown table", "table formatting", "table vs list", "format as table"]
+description: Enforces best practices for Markdown table construction. Invoke when deciding table vs list format, or when formatting multi-column data. Prevents visual noise, redundancy, and accessibility issues.
 options:
   allow_primary_column_blank_runs: true
   max_columns: 5
