@@ -39,6 +39,7 @@ AUGMENT_SKILLS_DIR="${HOME}/.augment/skills"
 FORCE=false
 VERBOSE=false
 UPGRADE=false
+CHECK=false
 YES=false
 
 # Auto-detect non-interactive context (piped input, curl | bash, etc.)
@@ -98,6 +99,10 @@ OPTIONS
         Without --upgrade: Remove and re-clone superpowers from scratch.
         With --upgrade: Reset local changes (git reset --hard, git clean -fd)
         before pulling latest updates.
+
+    --check
+        Validate prerequisites without installing anything. Reports the
+        status of Node.js, git, obra/superpowers, and skill counts.
 
     -y, --yes
         Auto-accept all prompts (e.g., dependency installation) without
@@ -176,6 +181,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help) show_help ;;
         -v|--verbose) VERBOSE=true; shift ;;
         -y|--yes) YES=true; shift ;;
+        --check) CHECK=true; shift ;;
         --force) FORCE=true; shift ;;
         --upgrade) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
@@ -314,11 +320,72 @@ print_summary() {
     echo ""
 }
 
+# Check mode — validate prerequisites without installing
+check_prerequisites() {
+    log_info "Checking prerequisites for superpowers-plus..."
+    local ok=0
+    local fail=0
+
+    # git
+    if command -v git &>/dev/null; then
+        log_success "git: $(git --version | head -1)"
+        ok=$((ok + 1))
+    else
+        log_warn "git: NOT FOUND"
+        fail=$((fail + 1))
+    fi
+
+    # Node.js
+    if command -v node &>/dev/null; then
+        log_success "node: $(node -v)"
+        ok=$((ok + 1))
+    else
+        log_warn "node: NOT FOUND"
+        fail=$((fail + 1))
+    fi
+
+    # obra/superpowers
+    if check_superpowers; then
+        log_success "obra/superpowers: installed at $SUPERPOWERS_DIR"
+        ok=$((ok + 1))
+    else
+        log_warn "obra/superpowers: NOT INSTALLED (will be installed)"
+    fi
+
+    # Skills
+    local skill_count
+    skill_count=$(find "$SCRIPT_DIR/skills" -name "skill.md" 2>/dev/null | wc -l | tr -d ' ')
+    log_success "skills available: $skill_count"
+
+    # Deployment targets
+    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR" "$AUGMENT_SKILLS_DIR"; do
+        if [[ -d "$target" ]]; then
+            log_success "target: $target (exists)"
+        else
+            log_verbose "target: $target (will be created)"
+        fi
+    done
+
+    echo ""
+    if [[ $fail -eq 0 ]]; then
+        log_success "All prerequisites met ($ok checks passed)"
+        return 0
+    else
+        log_warn "$fail prerequisite(s) missing ($ok passed)"
+        return 1
+    fi
+}
+
 # Main installation flow
 main() {
     echo ""
     log_info "superpowers-plus installer"
     echo ""
+
+    if [[ "$CHECK" == "true" ]]; then
+        check_prerequisites
+        exit $?
+    fi
 
     # Check dependencies
     check_dependencies
