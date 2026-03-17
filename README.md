@@ -1,6 +1,6 @@
 # superpowers-plus
 
-41 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,18 +12,18 @@ cd superpowers-plus
 
 ## What's Included
 
-**41 skills** across 9 domains:
+**47 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
+| engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
+| productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
 | wiki | 7 | Page management, link checks, credential scanning |
-| engineering | 6 | Pre-commit gates, blast radius, PR review |
-| productivity | 7 | Innovation, TODO tracking, style enforcement, skill synthesis |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
-| observability | 5 | Skill effectiveness, completeness checks |
+| observability | 3 | Completeness checks, audit validation, repo verification |
+| security | 3 | CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
-| security | 2 | CVE scanning, IP protection |
 | experimental | 1 | Self-prompting patterns |
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
@@ -154,11 +154,16 @@ Works offline using local TF-IDF. No API keys required.
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
+| | cognitive-complexity-refactoring | Reduces function complexity scores |
 | | engineering-rigor | Quality philosophy hub |
+| | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
+| | typescript-project-conventions | Import paths, file organization |
+| | typescript-strict-mode | Eliminates `any`, `!`, `unknown` |
 | | verification-before-completion | Final checks before claiming done |
+| | vitest-testing-patterns | Mock patterns, SDK constructors |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
 | | issue-comment-debunker | Fact-checks before posting |
@@ -168,19 +173,20 @@ Works offline using local TF-IDF. No API keys required.
 | observability | completeness-check | Confirms work is done |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
-| | skill-effectiveness | Tracks outcomes, learns trigger improvements |
-| | skill-firing-tracker | Logs which skills ran |
-| productivity | enforce-style-guide | Applies project conventions |
+| productivity | adversarial-search | Defeats confirmation bias in investigations |
+| | enforce-style-guide | Applies project conventions |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Radical, high-impact thinking |
 | | skill-authoring | 🦸 Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
+| | thinking-orchestrator | Hub router for all metacognition skills |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
 | security | public-repo-ip-audit | Detects proprietary content |
 | | security-upgrade | Scans CVEs, upgrades deps |
+| | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-authoring | Creates new pages |
 | | wiki-debunker | Fact-checks content |
