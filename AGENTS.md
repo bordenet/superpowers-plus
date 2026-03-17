@@ -87,8 +87,20 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 | **PRIMARY** | `view` / `str-replace-editor` on `TODO_PATH` | Persistent task storage | ✅ Yes |
 | **SUPPLEMENTARY** | `add_tasks` / `update_tasks` / `view_tasklist` | Real-time UI visibility | ❌ No |
 
-**Correct sequence:** Write to TODO.md FIRST → then mirror to MCP tools.
+**Correct sequence:** Acquire lock → write to TODO.md → release lock → mirror to MCP tools.
 **Wrong sequence:** Use MCP tools only → tasks lost on compaction.
+
+### 🔒 Write Locking
+
+TODO.md may be shared across machines via OneDrive. Wrap ALL writes in a lock:
+
+```bash
+~/.codex/superpowers-plus/tools/todo-lock.sh acquire   # before write
+# ... backup + write ...
+~/.codex/superpowers-plus/tools/todo-lock.sh release   # after write
+```
+
+Reads (`view`, `cat`) do NOT need locks. Lock auto-expires after 120s if agent crashes.
 
 ### When to Use Task Management
 
