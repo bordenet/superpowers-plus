@@ -58,21 +58,6 @@ IF A SKILL APPLIES TO YOUR TASK (even 1% chance), YOU MUST INVOKE IT.
 
 This is not optional. Skills exist to ensure quality and consistency.
 
-## Skill Outcome Tracking (MANDATORY)
-
-After completing work guided by a skill, you MUST record the outcome:
-
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill-name> <success|failure> "brief evidence"
-```
-
-**Examples:**
-- `record-outcome systematic-debugging success "root cause found, fix verified"`
-- `record-outcome think-twice success "fresh perspective broke the deadlock"`
-- `record-outcome brainstorming failure "design rejected, had to restart"`
-
-This is not optional. Without outcome data, we cannot detect broken skills or improve triggers.
-
 ## Why This Matters
 
 Without loading skills:
