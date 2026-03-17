@@ -12,6 +12,7 @@ const os = require('os');
 const {
   readState,
   recordOutcome,
+  recordFire,
   getMetricsSummary,
   addSuggestion,
   recordPattern,
@@ -290,6 +291,13 @@ function useSkill(skillName) {
     const transformed = transformOutput(stripped);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
+
+    // Auto-log skill fire for analytics
+    try {
+        recordFire(actualName);
+    } catch (e) {
+        // Don't let tracking failures break skill loading
+    }
 }
 
 function bootstrap() {
@@ -307,6 +315,13 @@ function bootstrap() {
 
     // Show learning insights
     showLearningInsights();
+
+    // Session tracking reminder
+    console.log('⏱️ **Session Tracking:** Before context exhaustion, run:');
+    console.log('```');
+    console.log('node ~/.codex/superpowers-augment/superpowers-augment.js session-summary');
+    console.log('```');
+    console.log('');
 }
 
 /**
@@ -375,9 +390,17 @@ function showLearningInsights() {
     const state = readState();
     const metrics = Object.entries(state.trigger_metrics);
 
-    if (metrics.length === 0) return;
-
     console.log('\n---\n');
+    if (metrics.length === 0) {
+        console.log('📊 **Skill Analytics**\n');
+        console.log('No skill outcomes recorded yet. After completing skill-guided work, run:');
+        console.log('```');
+        console.log('node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> success|failure "evidence"');
+        console.log('```');
+        console.log('This builds effectiveness data to improve skill triggers over time.\n');
+        return;
+    }
+
     console.log('📊 **Learning Insights**\n');
     console.log('Based on recorded outcomes. Use `record-outcome <skill> success|failure` after skill-guided work.\n');
 
@@ -404,8 +427,10 @@ function showLearningInsights() {
     // Total stats
     const totalFires = metrics.reduce((sum, [_, m]) => sum + m.total_fires, 0);
     const totalSuccesses = metrics.reduce((sum, [_, m]) => sum + m.successes, 0);
-    const overallRate = totalFires > 0 ? ((totalSuccesses / totalFires) * 100).toFixed(0) : 0;
-    console.log(`📈 Overall: ${totalFires} skill fires, ${overallRate}% success rate`);
+    const totalFailures = metrics.reduce((sum, [_, m]) => sum + m.failures, 0);
+    const totalExplicit = totalSuccesses + totalFailures;
+    const overallRate = totalExplicit > 0 ? ((totalSuccesses / totalExplicit) * 100).toFixed(0) : 'N/A';
+    console.log(`📈 Overall: ${totalFires} skill fires, ${totalExplicit} outcomes recorded, ${overallRate}${overallRate !== 'N/A' ? '%' : ''} success rate`);
     console.log('   Run `superpowers-augment analyze-triggers` for detailed analysis\n');
 }
 
@@ -440,9 +465,40 @@ switch (command) {
         break;
     }
 
+    case 'record-fire': {
+        const skill = args[0];
+        const trigger = args.slice(1).join(' ') || '';
+        if (!skill) {
+            console.error('Usage: record-fire <skill> [trigger-phrase]');
+            process.exit(1);
+        }
+        const id = recordFire(skill, trigger);
+        console.log(`🔥 Recorded fire for ${skill}`);
+        console.log(`   ID: ${id}`);
+        break;
+    }
+
     case 'analyze-triggers':
         analyzeTriggers();
         break;
+
+    case 'session-summary': {
+        const state = readState();
+        const sessionStart = state.last_session_start || state.last_updated;
+        const sessionOutcomes = state.outcomes.filter(o => o.timestamp >= sessionStart);
+        const fired = sessionOutcomes.filter(o => o.outcome === 'fired');
+        const successes = sessionOutcomes.filter(o => o.outcome === 'success');
+        const failures = sessionOutcomes.filter(o => o.outcome === 'failure');
+
+        console.log('# Session Summary\n');
+        console.log(`Skills fired: ${fired.length}`);
+        if (fired.length > 0) {
+            console.log(`  ${fired.map(o => o.skill).join(', ')}`);
+        }
+        console.log(`Outcomes recorded: ${successes.length} success, ${failures.length} failure`);
+        console.log(`\nFull report: superpowers-augment learning-report`);
+        break;
+    }
 
     case 'suggest-trigger': {
         const skill = args[0];
