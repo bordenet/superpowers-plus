@@ -89,4 +89,3 @@ jobs:
           echo "git clone https://github.com/bordenet/superpowers-plus.git" >> $GITHUB_STEP_SUMMARY
           echo "cd superpowers-plus && ./install.sh" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-
