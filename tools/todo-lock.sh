@@ -121,7 +121,20 @@ _is_stale() {
 }
 
 _force_remove() {
-  rm -rf "$LOCK_DIR" 2>/dev/null || true
+  # Safety: validate LOCK_DIR before rm -rf
+  if [[ -z "${LOCK_DIR:-}" ]]; then
+    echo "[todo-lock] BUG: LOCK_DIR is empty — refusing rm -rf" >&2
+    return 1
+  fi
+  if [[ "$LOCK_DIR" != */"$LOCK_DIR_NAME" ]]; then
+    echo "[todo-lock] BUG: LOCK_DIR doesn't end with $LOCK_DIR_NAME — refusing rm -rf" >&2
+    echo "[todo-lock] LOCK_DIR=$LOCK_DIR" >&2
+    return 1
+  fi
+  if [[ ! -d "$LOCK_DIR" ]]; then
+    return 0  # nothing to remove
+  fi
+  rm -rf "${LOCK_DIR:?}" 2>/dev/null || true
 }
 
 # --- Commands ---
