@@ -1,8 +1,8 @@
 ---
 name: adversarial-search
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure"]
-description: Use when investigating bugs, inconsistencies, or conducting any search/grep task. Fires BEFORE declaring negative findings ("no issue found", "already correct"). Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists. Also fires when user reports a problem and agent is about to dismiss it.
+triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "full analysis", "harsh review", "evaluate", "assess"]
+description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Fires BEFORE declaring negative findings ("no issue found", "already correct"). Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists. Also fires when user reports a problem and agent is about to dismiss it.
 ---
 
 # Adversarial Search
@@ -133,6 +133,45 @@ Conclusion: [finding with evidence]
 ```
 
 **You cannot report results without this template filled with actual commands and outputs.**
+
+</EXTREMELY_IMPORTANT>
+
+## Depth Challenge Gate
+
+> **This section fires when the user asks for rigor, depth, or thorough analysis — not just search tasks.**
+
+When routing from `thinking-orchestrator` with a rigor/depth trigger, the problem is NOT about grep scope. It's about ANALYSIS depth. Apply these checks:
+
+### Before Responding to a Rigor Request
+
+1. **Enumerate dimensions.** List ALL angles the problem could be analyzed from (technical, operational, user-facing, security, performance, maintainability, etc.). If you only considered < 3 dimensions, you are being shallow.
+
+2. **Enumerate items.** If the request covers multiple items (e.g., "review these skills"), list ALL items. Check each one. Do not review 2 of 5 and declare "looks good."
+
+3. **Challenge your conclusions.** For EVERY conclusion you are about to state, ask: "What evidence contradicts this?" If you can't think of any, you haven't thought hard enough.
+
+4. **Check for scope reduction.** Did you silently drop part of the user's request? If the user asked for A, B, and C, and you only analyzed A — you failed. Either analyze all three or explicitly flag what you are deferring and why.
+
+5. **Check response proportionality.** If the user asked for "rigorous, in-depth analysis" and your response is < 500 words, you are almost certainly being shallow. Depth requires detail.
+
+### Depth Challenge Report
+
+<EXTREMELY_IMPORTANT>
+
+Before reporting analysis results when the user asked for rigor, fill this out:
+
+```
+DEPTH CHALLENGE REPORT
+User's request: [exact words]
+Rigor keywords found: [list]
+Dimensions analyzed: [list at least 3]
+Items in scope: [N total, N examined]
+Conclusions challenged: [yes/no — did I argue against my own findings?]
+Scope fully covered: [yes/no — did I address everything the user asked?]
+Response proportional to request: [yes/no]
+```
+
+**You cannot report results without this template filled.**
 
 </EXTREMELY_IMPORTANT>
 
