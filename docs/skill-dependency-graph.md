@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-03-15
+> **Last updated:** 2026-03-17
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -16,24 +16,37 @@ graph TD
     public_repo_ip_audit["public-repo-ip-audit"]
   end
 
+  subgraph completion-gate["Completion Gate"]
+    exhaustive_audit_validation["exhaustive-audit-validation"]
+    verification_before_completion["verification-before-completion"]
+  end
+
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"]
     perplexity_research["perplexity-research"]
   end
 
-  subgraph wiki-pipeline["Wiki Pipeline"]
-    wiki_orchestrator["wiki-orchestrator"]
-    link_verification["link-verification"]
-    wiki_editing["wiki-editing [internal]"]
+  subgraph thinking["Thinking"]
+    thinking_orchestrator["thinking-orchestrator"]
   end
 
-  pre_commit_gate -->|then| enforce_style_guide
+  subgraph wiki-pipeline["Wiki Pipeline"]
+    wiki_orchestrator["wiki-orchestrator"]
+  end
+
+  pre_commit_gate -->|enables| enforce_style_guide
+  pre_commit_gate -->|enables| professional_language_audit
+  exhaustive_audit_validation -->|enables| verification_before_completion
+  enforce_style_guide -->|enables| professional_language_audit
   think_twice ==>|escalates to| perplexity_research
+  thinking_orchestrator -->|enables| adversarial_search
+  thinking_orchestrator -->|enables| think_twice
+  thinking_orchestrator -->|enables| verification_before_completion
+  thinking_orchestrator -->|enables| exhaustive_audit_validation
+  thinking_orchestrator -->|enables| completeness_check
   professional_language_audit -->|then| public_repo_ip_audit
-  wiki_orchestrator -->|then| link_verification
-  wiki_orchestrator -->|then| wiki_editing
-  link_verification -->|then| wiki_editing
-  enforce_style_guide -->|then| professional_language_audit
+  wiki_orchestrator -->|enables| link_verification
+  wiki_orchestrator -->|enables| wiki_editing
 ```
 
 ## Coordination Groups
@@ -41,8 +54,10 @@ graph TD
 | Group | Skills | Purpose |
 |-------|--------|---------|
 | Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `public-repo-ip-audit`, `professional-language-audit` | Quality checks before git commit |
+| Completion Gate | `verification-before-completion`, `exhaustive-audit-validation` | Verification before claiming done |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
-| Wiki Pipeline | `link-verification`, `wiki-editing`, `wiki-orchestrator` | Wiki authoring quality pipeline |
+| Thinking | `thinking-orchestrator` | Metacognition and thinking orchestration |
+| Wiki Pipeline | `wiki-orchestrator` | Wiki authoring quality pipeline |
 
 ## Legend
 
