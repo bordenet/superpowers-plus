@@ -67,10 +67,28 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
 ## Planning and Task Management
 
-For multi-step plans (3+ steps), use **both** persistence mechanisms:
+### ⛔ TODO Superpower: Mandatory Invocation
 
-1. **TODO.md file** (PRIMARY) — Persist to disk for resilience against context loss
-2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
+**When user says ANY of these:** "add task", "add a TODO", "show my tasks", "show my TODOs",
+"what are my TODOs", "what are my tasks", "TODOs today", "what should I work on", "triage",
+"process TODOs", "my P1s", "backlog", "complete [task]", "what did I do", "today's priorities",
+"task list"
+
+**YOU MUST:**
+1. Invoke the `todo-management` skill: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management`
+2. Run the preflight script: `~/.codex/superpowers-plus/tools/todo-preflight.sh`
+3. Use the resolved `TODO_PATH` for ALL file operations
+4. **NEVER skip to MCP tools (`add_tasks`, `view_tasklist`) without completing steps 1-3**
+
+### File-First Architecture
+
+| Layer | Tool | Purpose | Survives Context Compaction? |
+|-------|------|---------|------------------------------|
+| **PRIMARY** | `view` / `str-replace-editor` on `TODO_PATH` | Persistent task storage | ✅ Yes |
+| **SUPPLEMENTARY** | `add_tasks` / `update_tasks` / `view_tasklist` | Real-time UI visibility | ❌ No |
+
+**Correct sequence:** Write to TODO.md FIRST → then mirror to MCP tools.
+**Wrong sequence:** Use MCP tools only → tasks lost on compaction.
 
 ### When to Use Task Management
 
@@ -84,27 +102,20 @@ For multi-step plans (3+ steps), use **both** persistence mechanisms:
 
 ### Task Lifecycle (MANDATORY for 3+ step plans)
 
-1. **Name** — Derive effort identifier from plan title (e.g., "Auth Fix" → `auth-fix`)
-2. **Persist** — Write plan steps to TODO.md as P1 tasks with `#plan-<identifier>` tag
-3. **Mirror** — Create parent task for plan, add steps as children via `parent_task_id`
-4. **Track** — Mark `IN_PROGRESS` when starting each step (both systems)
-5. **Complete** — Mark `COMPLETE` immediately when done (both systems)
-6. **Verify** — Filter by `#plan-<identifier>` in TODO.md, check `view_tasklist`
-
-### Why File Persistence Matters
-
-| Risk | Without TODO.md | With TODO.md |
-|------|-----------------|--------------|
-| Context window compaction | Plan steps lost | Recoverable from disk |
-| Session crash/timeout | Progress lost | Resume from last state |
-| User switches tasks | No continuity | Pick up where you left off |
-| Parallel efforts | Tasks get mixed up | Isolated by `#plan-<identifier>` |
+1. **Preflight** — Run `~/.codex/superpowers-plus/tools/todo-preflight.sh` to get `TODO_PATH`
+2. **Name** — Derive effort identifier from plan title (e.g., "Auth Fix" → `auth-fix`)
+3. **Persist** — Write plan steps to TODO.md as P1 tasks with `#plan-<identifier>` tag
+4. **Mirror** — Create parent task for plan, add steps as children via `parent_task_id`
+5. **Track** — Mark `IN_PROGRESS` when starting each step (both systems)
+6. **Complete** — Mark `COMPLETE` immediately when done (both systems)
+7. **Verify** — Filter by `#plan-<identifier>` in TODO.md, check `view_tasklist`
 
 ### Anti-Patterns to Avoid
 
 | Anti-Pattern | Why It's Bad | Correct Behavior |
 |--------------|--------------|------------------|
-| MCP-only tracking | Lost on context compaction | Always persist to TODO.md first |
+| **MCP-only tracking** | **Lost on context compaction** | **Always persist to TODO.md first** |
+| Skipping preflight | Wrong file path, wrong file | Run `todo-preflight.sh` every time |
 | Generic `#plan` tag | Can't distinguish parallel efforts | Use `#plan-<identifier>` for isolation |
 | Skipping task creation for "simple" plans | Loses visibility | Create tasks for any 3+ step plan |
 | Batching task completions | User can't track progress | Mark COMPLETE immediately after each step |
