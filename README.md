@@ -215,6 +215,14 @@ graph LR
     professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
   end
 
+  subgraph completion-gate["Completion Gate"]
+    exhaustive_audit_validation["exhaustive-audit-validation"] --> verification_before_completion["verification-before-completion"]
+  end
+
+  subgraph thinking["Thinking"]
+    thinking_orchestrator["thinking-orchestrator"]
+  end
+
   subgraph wiki-pipeline["Wiki Pipeline"]
     wiki_orchestrator["wiki-orchestrator"] --> link_verification["link-verification"]
     link_verification --> wiki_editing["wiki-editing"]
@@ -223,11 +231,19 @@ graph LR
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
   end
+
+  thinking_orchestrator -->|enables| adversarial_search["adversarial-search"]
+  thinking_orchestrator -->|enables| think_twice
+  thinking_orchestrator -->|enables| verification_before_completion
+  thinking_orchestrator -->|enables| exhaustive_audit_validation
+  thinking_orchestrator -->|enables| completeness_check["completeness-check"]
 ```
 
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
+| Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
+| Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → links → edit | Content generated → links verified → published |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
 
