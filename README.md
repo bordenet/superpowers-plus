@@ -1,6 +1,6 @@
 # superpowers-plus
 
-49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,7 +12,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**49 skills** across 9 domains:
+**47 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -21,7 +21,7 @@ cd superpowers-plus
 | wiki | 7 | Page management, link checks, credential scanning |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
-| observability | 5 | Skill effectiveness, completeness checks |
+| observability | 3 | Completeness checks, audit validation, repo verification |
 | security | 3 | CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
@@ -173,8 +173,6 @@ Works offline using local TF-IDF. No API keys required.
 | observability | completeness-check | Confirms work is done |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
-| | skill-effectiveness | Tracks outcomes, learns trigger improvements |
-| | skill-firing-tracker | Logs which skills ran |
 | productivity | adversarial-search | Defeats confirmation bias in investigations |
 | | enforce-style-guide | Applies project conventions |
 | | golden-agents | Bootstraps AGENTS.md |
