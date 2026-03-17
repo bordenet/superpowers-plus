@@ -39,9 +39,9 @@ detect_linux_distro() {
     fi
 }
 
-# Run detection and set globals
+# Run detection and set globals (consumed by parent installer)
 PLATFORM=$(detect_platform)
-LINUX_DISTRO=""
+export LINUX_DISTRO=""
 if [[ "$PLATFORM" == "linux" ]] || [[ "$PLATFORM" == "wsl" ]]; then
     LINUX_DISTRO=$(detect_linux_distro)
 fi
