@@ -1,0 +1,32 @@
+# known-good-commands.txt
+# These commands MUST NOT match any blocklist pattern.
+# If any line matches, the test fails (false positive detected).
+
+rm -f /tmp/cache.txt
+rm /tmp/old-file.txt
+git push --force-with-lease origin feature
+git push --force-if-includes origin main
+git push origin main
+git reset --soft HEAD~1
+cat README.md
+curl https://api.example.com/data
+curl -s https://api.example.com/status | jq .
+pip install requests
+npm install express
+echo "Hello, World!"
+sh -c "echo hello"
+sh -c "ls -la"
+sudo apt install vim
+chmod 644 README.md
+chmod 755 script.sh
+chown matt:staff file.txt
+docker run -it ubuntu bash
+find . -name "*.log" -type f
+find /tmp -name "*.cache" -mtime +7
+python3 -c "print('hello')"
+ruby -e "puts 'hello'"
+perl -e "print 'hello\n'"
+export PATH="/usr/local/bin:$PATH"
+export NODE_ENV="production"
+cat ~/.bashrc
+scp file.txt remote:/tmp/
