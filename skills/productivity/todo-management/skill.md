@@ -127,8 +127,33 @@ because MCP tools are easier. **This is the #1 cause of TODO system failures.**
 
 The correct sequence is ALWAYS:
 1. Run preflight → get `TODO_PATH`
-2. Read/write `TODO_PATH` with `view` / `str-replace-editor` / `launch-process`
-3. THEN optionally mirror to MCP tools for UI visibility
+2. **For WRITES:** Acquire lock → backup → write → release lock
+3. Read `TODO_PATH` with `view` (no lock needed for reads)
+4. THEN optionally mirror to MCP tools for UI visibility
+
+### 🔒 Write Locking (Concurrent Access Protection)
+
+TODO.md lives on OneDrive and may be accessed by multiple agent sessions across
+multiple machines. **All WRITE operations must be wrapped in a lock:**
+
+```bash
+# Acquire lock (blocks up to 8s if another agent is writing)
+~/.codex/superpowers-plus/tools/todo-lock.sh acquire
+
+# ... perform backup + write operations ...
+
+# Release lock immediately after write completes
+~/.codex/superpowers-plus/tools/todo-lock.sh release
+```
+
+**Lock behavior:**
+- Lock is a directory (`.TODO.md.lock/`) alongside TODO.md — visible across OneDrive
+- Auto-expires after 120 seconds (TTL) if agent crashes without releasing
+- Detects dead processes on the same machine via PID check
+- If lock acquisition fails (timeout), warn the user and skip the write
+
+**READ operations (`view`, `cat`) do NOT need locks.** Only `str-replace-editor`,
+`cp` (backup), and any write to TODO.md require locking.
 
 ### Configuration
 
@@ -407,23 +432,32 @@ and creates it from the template if missing. The output includes:
 # 1. Read current TODO.md (use resolved path from HARD GATE)
 cat "$TODO_PATH"
 
-# 2. Backup
+# 2. Parse task, infer priority/tags, generate ID: YYYYMMDD-NN
+
+# 3. ACQUIRE LOCK before writing
+~/.codex/superpowers-plus/tools/todo-lock.sh acquire
+
+# 4. Backup
 cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"
 
-# 3. Parse task, infer priority/tags
-# 4. Generate ID: YYYYMMDD-NN
-# 5. Insert into appropriate section
-# 6. Write back to TODO.md
+# 5. Insert into appropriate section (str-replace-editor or launch-process)
+
+# 6. RELEASE LOCK after write completes
+~/.codex/superpowers-plus/tools/todo-lock.sh release
 ```
 
 ### On Task Complete
 
 ```bash
-# 1. Find task by ID or title fragment
-# 2. Remove from ACTIVE section
-# 3. Add to HISTORY under today's date header
-# 4. Add completion timestamp
-# 5. Write back to TODO.md
+# 1. Find task by ID or title fragment (READ — no lock needed)
+
+# 2. ACQUIRE LOCK before writing
+~/.codex/superpowers-plus/tools/todo-lock.sh acquire
+
+# 3. Remove from ACTIVE section, add to HISTORY, add completion timestamp
+
+# 4. RELEASE LOCK after write completes
+~/.codex/superpowers-plus/tools/todo-lock.sh release
 ```
 
 ---
