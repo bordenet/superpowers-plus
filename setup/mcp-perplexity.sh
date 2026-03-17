@@ -44,7 +44,7 @@ echo ""
 if [[ -z "${PERPLEXITY_API_KEY:-}" ]]; then
     echo -e "${YELLOW}Get your API key from:${NC} https://www.perplexity.ai/settings/api"
     echo ""
-    read -sp "Enter your Perplexity API key: " PERPLEXITY_API_KEY
+    read -rsp "Enter your Perplexity API key: " PERPLEXITY_API_KEY
     echo ""
     echo ""
 fi
@@ -139,7 +139,7 @@ configure_claude_code() {
     log_info "Configuring Claude Code CLI..."
     
     # Use claude mcp add command with environment variable
-    PERPLEXITY_API_KEY="$PERPLEXITY_API_KEY" claude mcp add perplexity \
+    claude mcp add perplexity \
         npx "$MCP_PACKAGE" \
         --scope user \
         --env PERPLEXITY_API_KEY="$PERPLEXITY_API_KEY" 2>/dev/null || {
