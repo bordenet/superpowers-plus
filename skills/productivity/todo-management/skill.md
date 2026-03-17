@@ -1,7 +1,7 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "what should I work on", "show my tasks", "complete [task]", "what did I do", "triage", "mark done", "my P1s", "backlog", "today's priorities", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist"]
+triggers: ["add task", "add a TODO", "add TODO", "what should I work on", "show my tasks", "show my TODOs", "what are my TODOs", "what are my tasks", "complete [task]", "what did I do", "triage", "process TODOs", "mark done", "my P1s", "backlog", "today's priorities", "TODOs today", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist"]
 description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 ---
 
@@ -89,38 +89,46 @@ MCP tools are a convenience layer, not a requirement.
 
 ---
 
-## ⛔ HARD GATE: File Path Resolution
+## ⛔ HARD GATE: File Path Resolution (MANDATORY — No Exceptions)
 
-**Before ANY task operation** (add, complete, query, triage), you MUST resolve the TODO.md path:
+**Before ANY task operation** (add, complete, query, triage), run the preflight script:
 
-1. Source the environment file to load `TODO_FILE_PATH`:
-   ```bash
-   source ~/.codex/.env 2>/dev/null
-   ```
-2. Resolve the path (falls back to default if unset):
-   ```bash
-   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
-   echo "$TODO_PATH"
-   ```
-3. Verify the file exists: `ls -la "$TODO_PATH"`
-4. If the file does not exist, create it from the template (see Implementation Workflow)
-5. **NEVER proceed with MCP-only tracking** — MCP state is lost on context compaction
+```bash
+~/.codex/superpowers-plus/tools/todo-preflight.sh
+```
 
-**Configuration:** `TODO_FILE_PATH` is set in `~/.codex/.env` (the canonical environment file).
-**Default path:** `$HOME/.codex/TODO.md` (used only if `TODO_FILE_PATH` is not set in `~/.codex/.env`).
+This single command does everything:
+1. Sources `~/.codex/.env` to load `TODO_FILE_PATH`
+2. Resolves the path (falls back to `$HOME/.codex/TODO.md` if unset)
+3. Verifies the file exists
+4. Outputs `TODO_PATH=<resolved-path>` — use this path for ALL subsequent file operations
 
-### Why This Gate Exists
+**If preflight fails** (file doesn't exist), run with `--create-if-missing`:
+```bash
+~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing
+```
 
-Without a resolved file path, the agent falls back to MCP tools only. MCP task state
-is session-scoped — it is lost on context compaction, crashes, or session switches.
-This causes hallucinated task state where the agent fabricates TODO items from
-context fragments. The file is the source of truth. No file = no task operations.
+### The Gate
 
-### Why Source `~/.codex/.env`?
+| ✅ PASS | ❌ FAIL |
+|---------|---------|
+| Preflight returns `FILE_EXISTS=true` | Preflight returns `FILE_EXISTS=false` |
+| Use `TODO_PATH` for all file operations | **STOP. Do NOT proceed.** |
+| MCP tools (`add_tasks`) are supplementary | **NEVER use MCP-only tracking** |
 
-`TODO_FILE_PATH` is configured in `~/.codex/.env`, not in the user's shell profile.
-If you skip the `source` step, the variable will be unset and you'll read/write to
-the wrong file (`$HOME/.codex/TODO.md` instead of the user's actual TODO location).
+**If you skip this gate:** MCP task state is session-scoped. It is lost on context
+compaction, crashes, or session switches. This causes hallucinated task state where
+the agent fabricates TODO items from context fragments.
+
+### ⚠️ Common Agent Failure Mode
+
+Agents frequently skip the preflight and jump straight to `add_tasks` / `view_tasklist`
+because MCP tools are easier. **This is the #1 cause of TODO system failures.**
+
+The correct sequence is ALWAYS:
+1. Run preflight → get `TODO_PATH`
+2. Read/write `TODO_PATH` with `view` / `str-replace-editor` / `launch-process`
+3. THEN optionally mirror to MCP tools for UI visibility
 
 ### Configuration
 
@@ -132,11 +140,7 @@ TODO_FILE_PATH="$HOME/OneDrive/Documents/TODO.md"
 TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"  # WSL
 ```
 
-### Getting Started
-
-1. Add `TODO_FILE_PATH="<path-to-your-TODO.md>"` to `~/.codex/.env`
-2. Or use the default location (`~/.codex/TODO.md`) — no setup needed
-3. Optionally copy the template: `cp ~/.codex/templates/TODO.md "$TODO_FILE_PATH"`
+**Default path:** `$HOME/.codex/TODO.md` (used only if `TODO_FILE_PATH` is not set)
 
 ---
 
@@ -386,42 +390,16 @@ Before EVERY write to TODO.md:
 
 ### On First Use (HARD GATE)
 
-1. Source the environment and resolve the file path:
-   ```bash
-   source ~/.codex/.env 2>/dev/null
-   TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
-   echo "$TODO_PATH"
-   ```
+Run the preflight script to resolve the path and verify the file:
+```bash
+~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing
+```
 
-2. Verify the file exists: `ls -la "$TODO_PATH"`
-
-3. If the file does not exist, create it:
-   ```bash
-   mkdir -p "$(dirname "$TODO_PATH")"
-   ```
-
-3. Initialize with empty section structure:
-   ```markdown
-   # ACTIVE TASKS
-
-   ## P1 - Today
-
-   ## P2 - This Week
-
-   ## P3 - Backlog
-
-   ---
-
-   # HISTORY
-
-   ---
-
-   # DEFERRED
-
-   ---
-
-   # METRICS
-   ```
+This resolves `TODO_FILE_PATH` from `~/.codex/.env`, verifies the file exists,
+and creates it from the template if missing. The output includes:
+- `TODO_PATH=<resolved-path>` — use this for all subsequent operations
+- `FILE_EXISTS=true/false` — confirms file is accessible
+- `SOURCE=env/default` — shows where the path came from
 
 ### On Task Add
 
