@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 # lib/install/deploy.sh
 # PURPOSE: Skill, adapter, rule, and template deployment to platform-specific
-#          directories (~/.codex/skills/, ~/.claude/skills/, ~/.augment/skills/).
+#          directories (~/.codex/skills/, ~/.claude/skills/).
 # SOURCED BY: install.sh — do not run directly.
-# GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_SKILLS_DIR,
+# GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR,
 #               CODEX_DIR, FORCE, VERBOSE
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
@@ -39,15 +39,6 @@ install_skill() {
     fi
     cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/$skill_name" || \
         error_exit "Failed to install skill: $skill_name (Claude Code)"
-
-    # --- Deploy to Augment Agent (~/.augment/skills/) ---
-    mkdir -p "$AUGMENT_SKILLS_DIR"
-    if [[ -d "$AUGMENT_SKILLS_DIR/$skill_name" ]]; then
-        rm -rf "${AUGMENT_SKILLS_DIR:?}/${skill_name:?}" || \
-            error_exit "Failed to remove existing skill: $skill_name (Augment)"
-    fi
-    cp -r "$skill_dir" "$AUGMENT_SKILLS_DIR/$skill_name" || \
-        error_exit "Failed to install skill: $skill_name (Augment)"
 
     log_success "Installed: $skill_name"
     return 0
@@ -97,8 +88,6 @@ install_skills() {
 
     create_dir "$SKILLS_DIR"
     create_dir "$CLAUDE_SKILLS_DIR"
-    create_dir "$AUGMENT_SKILLS_DIR"
-
     local installed=0
     local skipped=0
 
