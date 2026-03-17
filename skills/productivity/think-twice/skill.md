@@ -52,6 +52,8 @@ Monitor for stuck signals. When cumulative score ≥ 7, **suggest** Think Twice:
 | "Let me try a completely different approach" without rationale | 2 |
 | Conversation > 80% context window, no resolution | 2 |
 
+**Calibration note:** These weights are heuristic estimates, not empirically calibrated. Use `skill-effectiveness` to record outcomes after Think Twice invocations and adjust weights based on which signals best predict genuine stuck states vs. false positives.
+
 **Suggested prompt when threshold met:**
 
 ```
