@@ -8,6 +8,13 @@ overrides: superpowers/verification-before-completion
 # the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
 triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always.
+coordination:
+  group: completion-gate
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Verification Before Completion
@@ -19,6 +26,15 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 **Core principle:** Evidence before claims, always.
 
 **Violating the letter of this rule is violating the spirit of this rule.**
+
+## Completion-Gate Coordination
+
+**BEFORE running this skill's gate function, check:**
+
+| Task Type | Action |
+|-----------|--------|
+| Bulk edit, audit, or refactoring | Invoke `exhaustive-audit-validation` FIRST, then return here |
+| Single fix, feature, or bug fix | Continue directly with this skill |
 
 ## The Iron Law
 

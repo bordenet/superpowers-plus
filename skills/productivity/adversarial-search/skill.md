@@ -1,7 +1,7 @@
 ---
 name: adversarial-search
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search"]
+triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure"]
 description: Use when investigating bugs, inconsistencies, or conducting any search/grep task. Fires BEFORE declaring negative findings ("no issue found", "already correct"). Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists. Also fires when user reports a problem and agent is about to dismiss it.
 ---
 
@@ -87,6 +87,11 @@ Never stop at the first clean scope. Search ALL of these:
 
 **Anti-pattern:** Using `--include='*.ts' --include='*.md'` and missing `.env` files (no extension). This is EXACTLY what caused the `OUTLINE_API_TOKEN` miss.
 
+**Scope Justification Gate:** Before running ANY search command, state:
+1. What am I searching for? (the BAD value, per Step 1)
+2. What scopes am I searching? (must cover ALL rows in the table above)
+3. Am I using `--include`? If yes, justify why — or drop it.
+
 ### Step 3: Adversarial Self-Review
 
 Before reporting ANY negative finding, answer these questions:
@@ -99,6 +104,37 @@ Before reporting ANY negative finding, answer these questions:
 6. **Am I about to tell the user their observed behavior is wrong?** (It almost never is.)
 
 **If you answer YES to any of 2-6, or NO to 1: DO NOT report "no issue." Search again.**
+
+### Premature Closure Check
+
+This also applies to POSITIVE findings. Finding 3 issues doesn't mean there are only 3. Before reporting results:
+
+7. **Did I search ALL scopes from Step 2, or stop after the first hit?**
+8. **Could there be MORE instances in scopes I haven't checked?**
+9. **Am I reporting a partial result as a complete result?**
+
+### Mandatory Investigation Report
+
+<EXTREMELY_IMPORTANT>
+
+Before reporting ANY investigation result (positive or negative), fill this out:
+
+```
+INVESTIGATION REPORT
+Searched for: [exact bad value/pattern]
+Inverted search: [yes/no — did I search for the WRONG thing?]
+Scopes completed:
+  repo source (no --include): [command run] → [result]
+  gitignored files:            [command run] → [result]
+  deployed copies (~/.codex/): [command run] → [result]
+  other repos (if applicable): [command run] → [result]
+Scopes skipped: [list with justification]
+Conclusion: [finding with evidence]
+```
+
+**You cannot report results without this template filled with actual commands and outputs.**
+
+</EXTREMELY_IMPORTANT>
 
 ## The Cardinal Rule
 
