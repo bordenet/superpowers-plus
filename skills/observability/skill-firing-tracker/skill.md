@@ -44,12 +44,18 @@ At conversation end, write:
 
 ## Data Location
 
-```
-$SUPERPOWERS_DIR/.skill-metrics/
-├── fired.jsonl         # Every skill invocation
-├── missed.jsonl        # Detected misses (manual + automated)
-├── sessions.jsonl      # Session summaries
-└── weekly-report.md    # Generated analysis
+**Single source of truth:** `~/.codex/.learning-state.json`
+
+All skill fires, outcomes, suggestions, and patterns are stored in one JSON file
+managed by `learning-state.js`. The shell wrapper `skill-fire-logger.sh` delegates
+to the same storage via the `superpowers-augment` CLI.
+
+```bash
+# View current state
+node ~/.codex/superpowers-augment/superpowers-augment.js learning-status
+
+# Full report
+node ~/.codex/superpowers-augment/superpowers-augment.js learning-report
 ```
 
 ## Weekly Analysis Process
