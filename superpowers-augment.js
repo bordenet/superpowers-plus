@@ -290,6 +290,13 @@ function useSkill(skillName) {
     const transformed = transformOutput(stripped);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
+
+    // Auto-log skill fire for analytics
+    try {
+        recordOutcome(actualName, 'success', 'auto-logged: skill loaded via use-skill');
+    } catch (e) {
+        // Don't let tracking failures break skill loading
+    }
 }
 
 function bootstrap() {
@@ -375,9 +382,17 @@ function showLearningInsights() {
     const state = readState();
     const metrics = Object.entries(state.trigger_metrics);
 
-    if (metrics.length === 0) return;
-
     console.log('\n---\n');
+    if (metrics.length === 0) {
+        console.log('📊 **Skill Analytics**\n');
+        console.log('No skill outcomes recorded yet. After completing skill-guided work, run:');
+        console.log('```');
+        console.log('node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> success|failure "evidence"');
+        console.log('```');
+        console.log('This builds effectiveness data to improve skill triggers over time.\n');
+        return;
+    }
+
     console.log('📊 **Learning Insights**\n');
     console.log('Based on recorded outcomes. Use `record-outcome <skill> success|failure` after skill-guided work.\n');
 
