@@ -57,7 +57,7 @@ source "${INSTALL_LIB_DIR}/deps.sh"          # check_dependencies, check_node_ve
 # shellcheck source=lib/install/superpowers.sh
 source "${INSTALL_LIB_DIR}/superpowers.sh"   # install/update/upgrade_superpowers
 # shellcheck source=lib/install/deploy.sh
-source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates
+source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates/tools
 # shellcheck source=lib/install/migrate.sh
 source "${INSTALL_LIB_DIR}/migrate.sh"       # post_install_migrations
 
@@ -393,6 +393,7 @@ main() {
         post_install_migrations
         install_rules
         install_templates
+        install_tools
         install_adapter
         validate_installation
         print_summary
@@ -427,6 +428,9 @@ main() {
 
     # Install templates
     install_templates
+
+    # Install tools (todo-preflight.sh, todo-lock.sh, etc.)
+    install_tools
 
     # Install adapter
     install_adapter
