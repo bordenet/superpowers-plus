@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Removed
+- `lib/learning-state.js` — skill metrics tracking (zero organic data produced) (#113)
+- `tools/skill-fire-logger.sh` — shell fire logging wrapper (#113)
+- `skills/observability/skill-firing-tracker/` — fire tracking skill (#113)
+- `skills/observability/skill-effectiveness/` — outcome tracking skill (#113)
+- 12 metrics CLI commands from `superpowers-augment.js` (#113)
+- MANDATORY Skill Outcome Tracking from bootstrap rule (#113)
+- Skill count: 49 → 47
+
 ## [2.5.1] - 2026-03-16
 
 ### Added
