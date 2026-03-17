@@ -9,6 +9,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `tools/todo-preflight.sh` — Single-command TODO.md path resolution and validation (#117)
+- `AGENTS.md` — `⛔ TODO Superpower: Mandatory Invocation` section with explicit trigger routing (#117)
+- New trigger phrases: "add a TODO", "what are my TODOs", "what are my tasks", "process TODOs", "TODOs today" (#117)
+
+### Fixed
+- **todo-management**: HARD GATE rewritten to use preflight script (eliminates multi-step bash fragility) (#117)
+- **todo-management**: TOOL_MAPPINGS now enforce file-first pattern instead of MCP-only (#117)
+- **install-augment-superpowers.sh**: Embedded adapter synced with latest TOOL_MAPPINGS (#117)
+- **MIGRATION-todo-management.md**: Updated with preflight script instructions, fixed env file reference (#117)
+
 ### Removed
 - `lib/learning-state.js` — skill metrics tracking (zero organic data produced) (#113)
 - `tools/skill-fire-logger.sh` — shell fire logging wrapper (#113)
