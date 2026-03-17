@@ -27,19 +27,20 @@
 AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 47 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 38 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 47 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
 - `eliminating-ai-slop`: Generate-Verify-Refine (GVR) loop prevents slop during prose generation. 11 rewriting strategies, interactive and automatic modes, dictionary management.
 
 **Additional Domains:**
+- Engineering (11 skills): pre-commit gates, blast radius checks, PR review, TypeScript strict mode, cognitive complexity
+- Productivity (9 skills): innovation, TODO management, style enforcement, adversarial search, thinking orchestrator
 - Wiki management (7 skills): authoring, editing, link verification, secret scanning
+- Writing (6 skills): slop detection/elimination, profanity gates, table discipline
 - Issue tracking (5 skills): Linear/GitHub/Jira/Azure DevOps adapters
-- Engineering (5 skills): pre-commit gates, blast radius checks, PR review
-- Productivity (6 skills): innovation, TODO management, style enforcement
-- Observability (5 skills): skill effectiveness, firing tracking, completeness checks
-- Security (2 skills): CVE scanning, public repo IP audit
+- Observability (3 skills): completeness checks, audit validation, repo verification
+- Security (3 skills): CVE scanning, IP protection, instruction guard
 - Research (2 skills): Perplexity integration
 - Experimental (1 skill): self-prompting
 
@@ -72,7 +73,7 @@ If users report install failures:
    {
      "name": "superpowers-plus",
      "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 47 skills for wiki, issue tracking, security",
-     "version": "2.4.1",
+     "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "source": "https://github.com/bordenet/superpowers-plus.git",
      "author": {

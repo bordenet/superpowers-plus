@@ -160,4 +160,3 @@ else
   echo "[dangerous-pattern-scan] ✅ Clean — no dangerous patterns found."
   exit 0
 fi
-
