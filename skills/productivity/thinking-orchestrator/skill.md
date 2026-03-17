@@ -1,7 +1,7 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "stuck:reasoning", "stuck:perspective", "work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "audit complete", "done with refactoring", "finished updating", "bulk edit done", "is this done", "check for incomplete work"]
+triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "stuck:reasoning", "stuck:perspective", "work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "audit complete", "done with refactoring", "finished updating", "bulk edit done", "is this done", "check for incomplete work", "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "don't cut corners", "full analysis", "harsh review", "analyze", "evaluate", "assess", "review in detail", "leave no stone unturned"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
 coordination:
   group: thinking
@@ -40,6 +40,12 @@ What is happening right now?
 |   |
 |   --> think-twice (pause, spawn fresh sub-agent with zero context)
 |
++-- USER ASKS FOR RIGOR/DEPTH ("rigorous", "thorough", "comprehensive",
+|   "in-depth", "deep dive", "harsh review", "full analysis", "evaluate")
+|   |
+|   --> adversarial-search (Depth Challenge Gate)
+|   +-- Before responding, run Shallow Response Check
+|
 +-- CLAIMING DONE (about to say "shipped", "fixed", "complete")
 |   |
 |   +-- Was this a bulk edit, audit, or refactoring?
@@ -52,7 +58,9 @@ What is happening right now?
 |       --> completeness-check
 |
 +-- NONE OF THE ABOVE
-    --> No thinking skill needed. Proceed normally.
+    --> PAUSE. Ask: "Am I about to give a shallow or narrow answer?"
+        If yes --> Route to adversarial-search (Depth Challenge Gate)
+        If genuinely no --> Proceed. Document WHY no thinking skill applies.
 ```
 
 ## Routing Table (Quick Reference)
@@ -99,6 +107,34 @@ If your current context matches more than one route:
 1. **Investigation + Completion**: Run `adversarial-search` first (verify findings), then `verification-before-completion` (verify the fix)
 2. **Stuck + Investigation**: Run `think-twice` first (get unstuck), then `adversarial-search` (investigate properly)
 3. **Bulk completion**: Always `exhaustive-audit-validation` before `verification-before-completion`
+
+4. **Rigor + Completion**: Run `adversarial-search` Depth Challenge first, then `verification-before-completion`
+
+## Shallow Response Check
+
+<EXTREMELY_IMPORTANT>
+
+Before delivering ANY analysis, evaluation, or review that the user requested with rigor keywords, answer ALL of these:
+
+1. **Did the user ask for depth?** Check for: "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "harsh review", "full analysis", "evaluate", "assess", "leave no stone unturned"
+2. **How many dimensions of the problem did I consider?** If < 3, you are being shallow.
+3. **Did I challenge my own conclusions?** If not, you are exhibiting confirmation bias.
+4. **Would the user say "you only pursued part of it"?** If yes, STOP and expand scope.
+5. **Am I about to deliver a short answer to a complex question?** Short != rigorous.
+
+**If ANY answer is concerning, go back and deepen the analysis before responding.**
+
+### Common Shallow Analysis Patterns
+
+| Pattern | What You Did | What You Should Have Done |
+|---------|-------------|--------------------------|
+| Surface scan | Looked at 2 of 5 files and said "looks good" | Examined all 5 files systematically |
+| Premature conclusion | Found one issue and stopped | Asked "are there MORE issues?" |
+| Narrow framing | Analyzed from one angle | Analyzed from multiple angles (user, technical, operational) |
+| Scope reduction | Silently dropped part of the request | Addressed every part, or explicitly flagged what was deferred |
+| Confident ignorance | Declared "no problem" without evidence | Searched exhaustively before concluding |
+
+</EXTREMELY_IMPORTANT>
 
 ## Related Skills
 
