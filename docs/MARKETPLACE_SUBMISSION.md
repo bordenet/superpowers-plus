@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 47/47 skills validated |
+| Skills have SKILL.md with frontmatter | ✅ PASS | 48/48 skills validated |
 
 ## Draft Submission
 
@@ -24,10 +24,10 @@
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 47 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 48 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 47 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 48 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
@@ -72,7 +72,7 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 47 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 48 skills for wiki, issue tracking, security",
      "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "source": "https://github.com/bordenet/superpowers-plus.git",
