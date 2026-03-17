@@ -49,6 +49,8 @@ skills/productivity/todo-management/skill.md
 - Deterministic default path (`$HOME/.codex/TODO.md`)
 - Dual-persistence (TODO.md + MCP tools)
 - Hard gate (no file = no task operations)
+- **Preflight script** (`tools/todo-preflight.sh`) — single-command path resolution
+- Extended trigger phrases ("add a TODO", "what are my TODOs", "process TODOs", etc.)
 
 If you had custom tags not covered above, add them to the upstream skill via PR.
 
@@ -62,10 +64,18 @@ directory is managed by obra/superpowers and should not be modified by adopters.
 ### Step 3: Set TODO_FILE_PATH (optional)
 
 The default path (`$HOME/.codex/TODO.md`) works out of the box. If you want a
-custom location, set in your shell profile:
+custom location, set in `~/.codex/.env`:
 
 ```bash
-export TODO_FILE_PATH="$HOME/your/preferred/path/TODO.md"
+# In ~/.codex/.env (NOT your shell profile — the preflight script sources this file)
+TODO_FILE_PATH="$HOME/your/preferred/path/TODO.md"
+```
+
+The `todo-preflight.sh` script sources `~/.codex/.env` automatically. You can
+verify your path resolves correctly:
+
+```bash
+~/.codex/superpowers-plus/tools/todo-preflight.sh
 ```
 
 ### Step 4: Consolidate orphaned TODO.md files
