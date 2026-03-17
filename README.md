@@ -36,7 +36,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 47-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 48-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
