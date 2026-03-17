@@ -4,7 +4,7 @@
 # PURPOSE: Install superpowers-plus skills with platform detection, dependency
 #          management, and multi-target deployment. Clones/updates obra/superpowers
 #          as a prerequisite, validates environment variables, and deploys skills
-#          to ~/.codex/skills/, ~/.claude/skills/, and ~/.augment/skills/.
+#          to ~/.codex/skills/ and ~/.claude/skills/.
 # USAGE: ./install.sh [options]
 #        -h, --help      Show help message
 #        -v, --verbose   Enable verbose output
@@ -32,8 +32,6 @@ SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
 CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 # Augment Agent: superpowers-augment.js reads from ~/.codex/skills/ (SKILLS_DIR above)
-#                Also deploy to ~/.augment/skills/ for potential future use
-AUGMENT_SKILLS_DIR="${HOME}/.augment/skills"
 
 # Options (set before sourcing modules so they can read these)
 FORCE=false
@@ -116,8 +114,6 @@ WHAT GETS INSTALLED
     ~/.codex/superpowers/   obra/superpowers core (cloned from GitHub)
     ~/.codex/skills/        Personal skills for Augment (via superpowers-augment.js)
     ~/.claude/skills/       Personal skills for Claude Code (native Skill tool)
-    ~/.augment/skills/      Personal skills for Augment (alternative location)
-
 EXAMPLES
     # Install with default settings (or update if already present)
     ./install.sh
@@ -286,7 +282,6 @@ print_summary() {
     echo ""
     echo "  Augment Agent:     $SKILLS_DIR"
     echo "                     (superpowers-augment.js)"
-    echo "                     $AUGMENT_SKILLS_DIR"
     echo ""
     echo "Personal skills:"
     for skill_dir in "$SKILLS_DIR/"*/; do
@@ -358,7 +353,7 @@ check_prerequisites() {
     log_success "skills available: $skill_count"
 
     # Deployment targets
-    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR" "$AUGMENT_SKILLS_DIR"; do
+    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
         if [[ -d "$target" ]]; then
             log_success "target: $target (exists)"
         else
