@@ -8,18 +8,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Learning state for skill effectiveness tracking
-const {
-  readState,
-  recordOutcome,
-  recordFire,
-  getMetricsSummary,
-  addSuggestion,
-  recordPattern,
-  getSkillsNeedingAttention,
-  generateTriggerReport
-} = require('./lib/learning-state');
-
 // Semantic skill routing and auto-composition
 const {
   matchSkills: semanticMatch,
@@ -292,12 +280,6 @@ function useSkill(skillName) {
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
 
-    // Auto-log skill fire for analytics
-    try {
-        recordFire(actualName);
-    } catch (e) {
-        // Don't let tracking failures break skill loading
-    }
 }
 
 function bootstrap() {
@@ -313,126 +295,9 @@ function bootstrap() {
     }
     findSkills();
 
-    // Show learning insights
-    showLearningInsights();
-
-    // Session tracking reminder
-    console.log('⏱️ **Session Tracking:** Before context exhaustion, run:');
-    console.log('```');
-    console.log('node ~/.codex/superpowers-augment/superpowers-augment.js session-summary');
-    console.log('```');
-    console.log('');
 }
 
-/**
- * Analyze trigger effectiveness across all skills
- */
-function analyzeTriggers() {
-    const state = readState();
-    console.log('# Trigger Effectiveness Analysis\n');
 
-    const skills = Object.entries(state.trigger_metrics);
-    if (skills.length === 0) {
-        console.log('No data yet. Record outcomes with:');
-        console.log('  superpowers-augment record-outcome <skill> <success|failure> [evidence]\n');
-        return;
-    }
-
-    // Sort by total fires descending
-    skills.sort((a, b) => b[1].total_fires - a[1].total_fires);
-
-    console.log('| Skill | Fires | Success | Fail | Rate | Status |');
-    console.log('|-------|-------|---------|------|------|--------|');
-
-    for (const [skill, m] of skills) {
-        const rate = (m.success_rate * 100).toFixed(0);
-        let status;
-        if (m.success_rate >= 0.8) status = '✅ Healthy';
-        else if (m.success_rate >= 0.5) status = '🟡 Monitor';
-        else status = '🔴 Needs work';
-
-        console.log(`| ${skill} | ${m.total_fires} | ${m.successes} | ${m.failures} | ${rate}% | ${status} |`);
-    }
-
-    // Show common triggers
-    console.log('\n## Common Trigger Phrases\n');
-    for (const [skill, m] of skills) {
-        if (m.common_triggers.length > 0) {
-            console.log(`**${skill}:** ${m.common_triggers.slice(0, 5).map(t => `"${t}"`).join(', ')}`);
-        }
-    }
-
-    // Show suggestions
-    const suggestions = state.skill_suggestions.filter(s => s.status === 'pending');
-    if (suggestions.length > 0) {
-        console.log('\n## Suggested Improvements\n');
-        for (const s of suggestions) {
-            console.log(`- [${s.type}] Add "${s.suggested}" to ${s.skill} (${s.evidence_count} observations)`);
-        }
-    }
-
-    // Recent outcomes
-    const recent = state.outcomes.slice(-5).reverse();
-    if (recent.length > 0) {
-        console.log('\n## Recent Outcomes\n');
-        for (const o of recent) {
-            const icon = o.outcome === 'success' ? '✅' : '❌';
-            const date = new Date(o.timestamp).toLocaleDateString();
-            console.log(`${icon} ${o.skill} (${date}): ${o.evidence || 'no evidence'}`);
-        }
-    }
-}
-
-/**
- * Show learning insights during bootstrap
- */
-function showLearningInsights() {
-    const state = readState();
-    const metrics = Object.entries(state.trigger_metrics);
-
-    console.log('\n---\n');
-    if (metrics.length === 0) {
-        console.log('📊 **Skill Analytics**\n');
-        console.log('No skill outcomes recorded yet. After completing skill-guided work, run:');
-        console.log('```');
-        console.log('node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> success|failure "evidence"');
-        console.log('```');
-        console.log('This builds effectiveness data to improve skill triggers over time.\n');
-        return;
-    }
-
-    console.log('📊 **Learning Insights**\n');
-    console.log('Based on recorded outcomes. Use `record-outcome <skill> success|failure` after skill-guided work.\n');
-
-    // Low performers (< 70% success rate with at least 3 fires)
-    const lowPerformers = metrics.filter(([_, m]) => m.success_rate < 0.7 && m.total_fires >= 3);
-    if (lowPerformers.length > 0) {
-        console.log('⚠️ Skills needing attention (<70% success):');
-        for (const [skill, m] of lowPerformers) {
-            console.log(`  - ${skill}: ${(m.success_rate * 100).toFixed(0)}% success (${m.total_fires} fires)`);
-        }
-        console.log();
-    }
-
-    // Top performers (>= 90% success rate with at least 5 fires)
-    const topPerformers = metrics.filter(([_, m]) => m.success_rate >= 0.9 && m.total_fires >= 5);
-    if (topPerformers.length > 0) {
-        console.log('✅ Top performing skills (90%+ success):');
-        for (const [skill, m] of topPerformers) {
-            console.log(`  - ${skill}: ${(m.success_rate * 100).toFixed(0)}% success (${m.total_fires} fires)`);
-        }
-        console.log();
-    }
-
-    // Total stats
-    const totalFires = metrics.reduce((sum, [_, m]) => sum + m.total_fires, 0);
-    const totalSuccesses = metrics.reduce((sum, [_, m]) => sum + m.successes, 0);
-    const totalFailures = metrics.reduce((sum, [_, m]) => sum + m.failures, 0);
-    const totalExplicit = totalSuccesses + totalFailures;
-    const overallRate = totalExplicit > 0 ? ((totalSuccesses / totalExplicit) * 100).toFixed(0) : 'N/A';
-    console.log(`📈 Overall: ${totalFires} skill fires, ${totalExplicit} outcomes recorded, ${overallRate}${overallRate !== 'N/A' ? '%' : ''} success rate`);
-    console.log('   Run `superpowers-augment analyze-triggers` for detailed analysis\n');
-}
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -444,178 +309,15 @@ switch (command) {
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
 
-    // Learning system commands
-    case 'record-outcome': {
-        const skill = args[0];
-        const outcome = args[1]; // success | failure
-        const evidence = args.slice(2).join(' ') || '';
-        if (!skill || !outcome || !['success', 'failure'].includes(outcome)) {
-            console.error('Usage: record-outcome <skill> <success|failure> [evidence]');
-            console.error('Example: record-outcome systematic-debugging success "bug fixed, tests pass"');
-            process.exit(1);
-        }
-        const id = recordOutcome(skill, outcome, evidence);
-        const icon = outcome === 'success' ? '✅' : '❌';
-        console.log(`${icon} Recorded ${outcome} for ${skill}`);
-        console.log(`   ID: ${id}`);
-        const metrics = getMetricsSummary()[skill];
-        if (metrics) {
-            console.log(`   Success rate: ${(metrics.success_rate * 100).toFixed(0)}% (${metrics.total_fires} total)`);
-        }
-        break;
-    }
 
-    case 'record-fire': {
-        const skill = args[0];
-        const trigger = args.slice(1).join(' ') || '';
-        if (!skill) {
-            console.error('Usage: record-fire <skill> [trigger-phrase]');
-            process.exit(1);
-        }
-        const id = recordFire(skill, trigger);
-        console.log(`🔥 Recorded fire for ${skill}`);
-        console.log(`   ID: ${id}`);
-        break;
-    }
 
-    case 'analyze-triggers':
-        analyzeTriggers();
-        break;
 
-    case 'session-summary': {
-        const state = readState();
-        const sessionStart = state.last_session_start || state.last_updated;
-        const sessionOutcomes = state.outcomes.filter(o => o.timestamp >= sessionStart);
-        const fired = sessionOutcomes.filter(o => o.outcome === 'fired');
-        const successes = sessionOutcomes.filter(o => o.outcome === 'success');
-        const failures = sessionOutcomes.filter(o => o.outcome === 'failure');
 
-        console.log('# Session Summary\n');
-        console.log(`Skills fired: ${fired.length}`);
-        if (fired.length > 0) {
-            console.log(`  ${fired.map(o => o.skill).join(', ')}`);
-        }
-        console.log(`Outcomes recorded: ${successes.length} success, ${failures.length} failure`);
-        console.log(`\nFull report: superpowers-augment learning-report`);
-        break;
-    }
 
-    case 'suggest-trigger': {
-        const skill = args[0];
-        const trigger = args.slice(1).join(' ');
-        if (!skill || !trigger) {
-            console.error('Usage: suggest-trigger <skill> <trigger-phrase>');
-            process.exit(1);
-        }
-        addSuggestion('new_trigger', skill, trigger, 1);
-        console.log(`💡 Suggestion recorded: Add "${trigger}" to ${skill}`);
-        break;
-    }
 
-    case 'learning-status': {
-        const state = readState();
-        console.log('# Learning State Status\n');
-        console.log(`Last updated: ${state.last_updated}`);
-        console.log(`Outcomes recorded: ${state.outcomes.length}`);
-        console.log(`Skills tracked: ${Object.keys(state.trigger_metrics).length}`);
-        console.log(`Pending suggestions: ${state.skill_suggestions.filter(s => s.status === 'pending').length}`);
-        console.log(`Patterns observed: ${state.pattern_observations.length}`);
-        break;
-    }
 
-    case 'record-pattern': {
-        const pattern = args[0];
-        const potentialSkill = args[1] || 'unknown';
-        if (!pattern) {
-            console.error('Usage: record-pattern "pattern description" [potential-skill-name]');
-            process.exit(1);
-        }
-        recordPattern(pattern, potentialSkill);
-        console.log(`📝 Pattern recorded: "${pattern}"`);
-        console.log(`   Potential skill: ${potentialSkill}`);
-        break;
-    }
 
-    case 'learning-report': {
-        const report = generateTriggerReport();
-        console.log('# Skill Effectiveness Report\n');
-        console.log(`Generated: ${report.generated_at}\n`);
 
-        console.log('## Overall Stats\n');
-        console.log(`Total skill fires: ${report.overall.total_fires}`);
-        console.log(`Successes: ${report.overall.total_successes}`);
-        console.log(`Failures: ${report.overall.total_failures}`);
-        console.log(`Success rate: ${(report.overall.success_rate * 100).toFixed(1)}%\n`);
-
-        const issues = getSkillsNeedingAttention();
-        if (issues.length > 0) {
-            console.log('## ⚠️ Skills Needing Attention\n');
-            for (const issue of issues) {
-                console.log(`- ${issue.message}`);
-            }
-            console.log();
-        }
-
-        if (report.patterns.length > 0) {
-            console.log('## 🔮 Emerging Patterns (potential new skills)\n');
-            for (const p of report.patterns) {
-                console.log(`- "${p.pattern}" (${p.frequency}x) → ${p.potential_skill}`);
-            }
-            console.log('\n💡 Run `superpowers-augment check-synthesis-candidates` to create skills from patterns.\n');
-        }
-
-        if (report.suggestions.length > 0) {
-            console.log('## 💡 Pending Suggestions\n');
-            for (const s of report.suggestions) {
-                console.log(`- [${s.type}] ${s.skill}: "${s.suggested}" (${s.evidence_count} observations)`);
-            }
-        }
-        break;
-    }
-
-    case 'check-synthesis-candidates': {
-        const state = readState();
-        const candidates = state.pattern_observations.filter(
-            p => p.frequency >= 3 && p.status !== 'synthesized'
-        );
-
-        console.log('# Skill Synthesis Candidates\n');
-
-        if (candidates.length === 0) {
-            console.log('No synthesis candidates found.\n');
-            console.log('Candidates appear when patterns are recorded 3+ times.');
-            console.log('Record patterns with: `superpowers-augment record-pattern "description" potential-skill-name`\n');
-            break;
-        }
-
-        console.log('These patterns have been observed frequently and may be worth codifying as skills:\n');
-        console.log('| # | Pattern | Freq | Suggested Name | Last Seen |');
-        console.log('|---|---------|------|----------------|-----------|');
-
-        for (let i = 0; i < candidates.length; i++) {
-            const p = candidates[i];
-            const lastSeen = new Date(p.last_seen).toLocaleDateString();
-            const truncPattern = p.pattern.length > 50 ? p.pattern.slice(0, 47) + '...' : p.pattern;
-            console.log(`| ${i + 1} | ${truncPattern} | ${p.frequency}x | ${p.potential_skill} | ${lastSeen} |`);
-        }
-
-        console.log('\n## Next Steps\n');
-        console.log('To create a skill from a pattern:\n');
-        console.log('1. Review the pattern description above');
-        console.log('2. Invoke skill-authoring Mode 2:');
-        console.log('   ```');
-        console.log('   "Turn this pattern into a skill: [pattern description]"');
-        console.log('   ```');
-        console.log('3. The skill-authoring skill will guide you through synthesis\n');
-
-        if (candidates.length > 0) {
-            const top = candidates[0];
-            console.log(`**Top candidate:** "${top.pattern}" (${top.frequency}x)`);
-            console.log(`\nTo synthesize this now, tell me:`);
-            console.log(`> "Turn this pattern into a skill: ${top.pattern}"`);
-        }
-        break;
-    }
 
     case 'compose-pipeline': {
         const capability = args[0];
@@ -797,14 +499,6 @@ switch (command) {
         console.log('  node superpowers-augment.js router-info            # Show available methods');
         console.log('  node superpowers-augment.js embed-skills [--force] # Pre-embed (optional)');
         console.log('  node superpowers-augment.js compose-pipeline <capability>  # Build auto-composition pipeline');
-        console.log('');
-        console.log('Learning System:');
-        console.log('  node superpowers-augment.js record-outcome <skill> <success|failure> [evidence]');
-        console.log('  node superpowers-augment.js analyze-triggers       # Show trigger effectiveness');
-        console.log('  node superpowers-augment.js suggest-trigger <skill> <phrase>');
-        console.log('  node superpowers-augment.js record-pattern <pattern> [skill]  # Track recurring patterns');
-        console.log('  node superpowers-augment.js learning-report        # Full effectiveness report');
-        console.log('  node superpowers-augment.js learning-status        # Show learning state info');
-        console.log('  node superpowers-augment.js check-synthesis-candidates  # Find patterns ready for skill synthesis');
+
         break;
 }
