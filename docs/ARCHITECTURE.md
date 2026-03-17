@@ -28,8 +28,9 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 │   └── skills/           # Core framework skills (mostly superpowers)
 ├── skills/               # Your personal skills (this repo)
 ├── superpowers-augment/  # Wrapper script for skill discovery
-│   └── lib/              # Shared modules (learning-state.js)
-└── .learning-state.json  # Persistent learning data (auto-created)
+│   └── lib/              # Shared modules
+└── superpowers-plus/
+    └── tools/            # Utility scripts (todo-lock.sh, dangerous-pattern-scan.sh, etc.)
 ```
 
 Skills from both directories are discovered by `superpowers-augment.js`.
@@ -213,13 +214,14 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 
 `install.sh` (via `lib/install/deploy.sh`) deploys skills to three locations for different AI tools:
 
-| Tool | Install Path | Notes |
-|------|--------------|-------|
+| Target | Install Path | Notes |
+|--------|--------------|-------|
 | Augment Agent | `~/.codex/skills/` | Primary path for superpowers-augment.js |
 | Claude Code | `~/.claude/skills/` | Native Skill tool path |
 | Augment (alt) | `~/.augment/skills/` | Alternative Augment location |
+| Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
-Note: `superpowers-augment.js` scans `~/.codex/skills/` and `~/.codex/superpowers/skills/`.
+Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
 
 ## Shared Modules
 
@@ -277,47 +279,6 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 |----------|---------|---------|
 | `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select adapter: `linear`, `github`, `jira`, `azure-devops` |
 | `PERPLEXITY_API_KEY` | research/perplexity-research | Perplexity MCP authentication |
-
-## Learning System
-
-The skill effectiveness feedback loop tracks outcomes to improve the system over time.
-
-### Architecture
-
-```
-lib/learning-state.js          # Core learning state manager
-~/.codex/.learning-state.json  # Persistent state (auto-created)
-```
-
-### State Structure
-
-```json
-{
-  "version": "1.0.0",
-  "outcomes": [],              // Success/failure records with evidence
-  "trigger_metrics": {},       // Aggregated per-skill success rates
-  "skill_suggestions": [],     // Pending trigger improvements
-  "pattern_observations": []   // Recurring behaviors for new skills
-}
-```
-
-### CLI Commands
-
-| Command | Purpose |
-|---------|---------|
-| `record-outcome <skill> <success\|failure> [evidence]` | Track skill outcomes |
-| `analyze-triggers` | View trigger effectiveness metrics |
-| `suggest-trigger <skill> <phrase>` | Propose new trigger phrases |
-| `record-pattern <pattern> [skill]` | Capture recurring behaviors |
-| `learning-report` | Full effectiveness report |
-| `learning-status` | Learning state summary |
-
-### Bootstrap Integration
-
-At session start, `bootstrap` shows learning insights if outcome data exists:
-- Skills needing attention (<70% success rate)
-- Top performers (90%+ success rate)
-- Overall success statistics
 
 ## Bootstrapping
 

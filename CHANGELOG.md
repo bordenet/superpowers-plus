@@ -10,11 +10,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `tools/dangerous-pattern-scan.sh` — Pre-commit scanner for `rm -rf`, `chmod 777`, `curl|bash`, `dd`, `mkfs`, `git push --force` (#123)
+- `tools/todo-lock.sh` — Advisory file locking for TODO.md with cross-machine support via OneDrive (#120)
 - `tools/todo-preflight.sh` — Single-command TODO.md path resolution and validation (#117)
 - `AGENTS.md` — `⛔ TODO Superpower: Mandatory Invocation` section with explicit trigger routing (#117)
+- `AGENTS.md` — Write locking section for TODO.md (#120)
 - New trigger phrases: "add a TODO", "what are my TODOs", "what are my tasks", "process TODOs", "TODOs today" (#117)
+- `install_tools()` in `lib/install/deploy.sh` — deploys tools/ to `~/.codex/superpowers-plus/tools/` (#121)
 
 ### Fixed
+- **todo-lock.sh**: Added `rm -rf` safeguards — validates LOCK_DIR is non-empty and ends with expected suffix before removal (#122)
+- **deploy.sh**: Added `:?` guard to `$lib_dest` rm -rf (#122)
+- **todo-lock.sh**: Use `$PPID` instead of `$$` for PID tracking (prevents false stale detection) (#121)
+- **todo-lock.sh**: Cross-platform hardening — `hostname -s` fallback, `envsubst` fallback, atomic metadata writes (#121)
+- **pre-commit-gate**: Added Step 0 dangerous pattern scan before lint/typecheck/test (#123)
 - **todo-management**: HARD GATE rewritten to use preflight script (eliminates multi-step bash fragility) (#117)
 - **todo-management**: TOOL_MAPPINGS now enforce file-first pattern instead of MCP-only (#117)
 - **install-augment-superpowers.sh**: Embedded adapter synced with latest TOOL_MAPPINGS (#117)
@@ -208,8 +217,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
-| 2.5.1 | 2026-03-17 | 47 | Thinking-orchestrator, adversarial-search improvements, depth challenge gate |
-| 2.4.2 | 2026-03-15 | 38 | Innovation skill, skill-effectiveness, taxonomy |
+| 2.5.1 | 2026-03-16 | 47 | Non-interactive install, skill-authoring, auto-composition, install.sh modularization |
+| 2.4.2 | 2026-03-15 | 49 | Innovation skill, skill-effectiveness, taxonomy |
 | 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
 | 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
 | 2.1.0 | 2026-03-12 | 41 | Enforcement system, marketplace support |
@@ -218,7 +227,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 | 1.4.0 | 2026-03-01 | 35 | Windows/WSL support |
 | 1.0.0 | 2026-02-15 | 35 | Initial release |
 
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/bordenet/superpowers-plus/compare/v2.4.2...v2.5.1
 [2.4.2]: https://github.com/bordenet/superpowers-plus/compare/v2.3.0...v2.4.2
 [2.3.0]: https://github.com/bordenet/superpowers-plus/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/bordenet/superpowers-plus/compare/v2.1.2...v2.2.0

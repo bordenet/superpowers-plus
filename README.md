@@ -36,7 +36,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 41-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 47-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -201,7 +201,7 @@ Works offline using local TF-IDF. No API keys required.
 | | readme-authoring | Structures documentation |
 | | reviewing-ai-text | Evaluates generated content |
 
-> **Note:** All skills are auto-triggered (🦸) except `wiki-editing`, which is internal and invoked by `wiki-orchestrator`.
+> **Note:** Skills marked 🦸 (superpowers) are auto-triggered by semantic matching. Explicit skills are invoked by name or as dependencies of other skills (e.g., `wiki-editing` is invoked by `wiki-orchestrator`, `link-verification` is invoked by `wiki-editing`).
 
 ## Skill Coordination
 
@@ -273,6 +273,23 @@ obra/superpowers (framework)
 
 See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
+## Tools
+
+Utility scripts deployed to `~/.codex/superpowers-plus/tools/` by `install.sh`:
+
+| Tool | Purpose |
+|------|---------|
+| `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash`, etc. |
+| `todo-preflight.sh` | Resolves `TODO_FILE_PATH` from `~/.codex/.env` |
+| `todo-lock.sh` | Advisory file locking for TODO.md (cross-machine via OneDrive) |
+| `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
+| `harsh-review-loop.sh` | Iterative harsh review until clean |
+| `public-repo-ip-check.sh` | Scans for proprietary content before public push |
+| `install-hooks.sh` | Installs git hooks for pre-commit checks |
+| `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
+| `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
+| `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
+
 ## Troubleshooting
 
 | Error | Fix |
@@ -280,12 +297,16 @@ See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 | "Tool not found: perplexity_*" | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
+| Skills not loading after install | Check `~/.codex/skills/` exists; re-run `./install.sh` |
+| Wrong skill count | Run `./install.sh` to reinstall; verify with `find-skills` |
+| `todo-lock.sh` timeout | Another agent holds the lock; run `todo-lock.sh steal` |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Upgrading](UPGRADING.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
