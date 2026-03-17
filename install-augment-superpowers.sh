@@ -193,8 +193,8 @@ const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skil
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 
 const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'add_tasks/update_tasks'],
-    [/\bTodoRead\b/g, 'view_tasklist'],
+    [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
+    [/\bTodoRead\b/g, 'view tool on TODO.md (run todo-preflight.sh first to get path), then optionally view_tasklist for UI'],
     [/\bTask\b tool with subagents/g, 'Note: Augment does not have subagents - do the work directly'],
     [/\bTask\b tool/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
