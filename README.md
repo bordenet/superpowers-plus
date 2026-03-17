@@ -1,6 +1,6 @@
 # superpowers-plus
 
-48 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,12 +12,12 @@ cd superpowers-plus
 
 ## What's Included
 
-**48 skills** across 9 domains:
+**49 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
-| productivity | 8 | Innovation, TODO tracking, adversarial search, skill synthesis |
+| productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
 | wiki | 7 | Page management, link checks, credential scanning |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -182,6 +182,7 @@ Works offline using local TF-IDF. No API keys required.
 | | skill-authoring | 🦸 Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
+| | thinking-orchestrator | Hub router for all metacognition skills |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
