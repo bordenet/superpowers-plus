@@ -66,6 +66,9 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 │  2. CONTENT GENERATION                                          │
 │     └─ Apply wiki-authoring formatting rules                   │
 │                                                                 │
+│  2.5 CONTENT COHERENCE                             [ADVISORY]   │
+│     └─ Detect intra-page duplication & structural defects      │
+│                                                                 │
 │  3. LINK VERIFICATION                          [HARD GATE] ❌   │
 │     └─ Verify ALL hyperlinks (internal wiki = BLOCK on fail)   │
 │                                                                 │
@@ -96,6 +99,7 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 | Gate | Condition | Action |
 |------|-----------|--------|
 | **De-duplication** | Similar page exists | Warn user, suggest update instead |
+| **Content Coherence** | Duplicate sections or structural defects | Show report; HIGH severity → user review |
 | **Slop Detection** | High slop score | Show score, suggest improvements |
 | **Fact-Check** | Uncited claims found | List claims, suggest sources |
 
@@ -135,6 +139,20 @@ Invoke `wiki-authoring` principles:
 - Semantic headings (H2 → H3 → H4)
 - Blank lines around tables, code blocks
 - Platform-specific anchor format (see adapter)
+
+### Stage 2.5: Content Coherence
+
+Invoke `wiki-content-coherence` to detect duplication and structural defects:
+
+- Parses page into sections, computes TF-IDF topic fingerprints
+- Flags duplicate section pairs (Jaccard similarity ≥ 0.40)
+- Checks heading nesting, orphaned sections, length anomalies
+- Produces Content Inventory Table + Coherence Report
+
+**If HIGH severity issues found:** Present report to user before continuing.
+**Otherwise:** Log report and proceed to Stage 3.
+
+See `wiki-content-coherence` skill for full algorithm details.
 
 ### Stage 3: Link Verification
 
@@ -298,6 +316,7 @@ digraph wiki_orchestrator {
 |-------|--------------|------|-------------------|
 | 1 | De-duplication | WARN | Suggest update instead |
 | 2 | wiki-authoring | — | Format guidance |
+| 2.5 | wiki-content-coherence | ADVISORY | Show report; HIGH → user review |
 | 3 | link-verification | **BLOCK** | Fix links |
 | 4 | secret-detection | **BLOCK** | Remove secrets |
 | 5 | eliminating-ai-slop | ADVISORY | Suggestions |
@@ -322,6 +341,7 @@ digraph wiki_orchestrator {
 | Skill | Role in Pipeline |
 |-------|------------------|
 | `wiki-authoring` | Stage 2: Content structure & formatting |
+| `wiki-content-coherence` | Stage 2.5: Duplication & structural defect detection |
 | `link-verification` | Stage 3: URL verification (HARD GATE) |
 | `secret-detection` | Stage 4: Credential scanning (HARD GATE) |
 | `eliminating-ai-slop` | Stage 5: Prose quality |

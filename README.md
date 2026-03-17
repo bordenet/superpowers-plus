@@ -1,6 +1,6 @@
 # superpowers-plus
 
-47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+48 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,13 +12,13 @@ cd superpowers-plus
 
 ## What's Included
 
-**47 skills** across 9 domains:
+**48 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
 | productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
-| wiki | 7 | Page management, link checks, credential scanning |
+| wiki | 8 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 3 | Completeness checks, audit validation, repo verification |
@@ -189,6 +189,7 @@ Works offline using local TF-IDF. No API keys required.
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-authoring | Creates new pages |
+| | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content |
 | | wiki-editing | Safe updates with backup |
 | | wiki-orchestrator | Routes tasks to the right handler |
@@ -224,7 +225,8 @@ graph LR
   end
 
   subgraph wiki-pipeline["Wiki Pipeline"]
-    wiki_orchestrator["wiki-orchestrator"] --> link_verification["link-verification"]
+    wiki_orchestrator["wiki-orchestrator"] --> wiki_content_coherence["wiki-content-coherence"]
+    wiki_content_coherence --> link_verification["link-verification"]
     link_verification --> wiki_editing["wiki-editing"]
   end
 
@@ -244,7 +246,7 @@ graph LR
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → links → edit | Content generated → links verified → published |
+| Wiki Pipeline | orchestrator → coherence → links → edit | Content generated → coherence checked → links verified → published |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
 
 View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
