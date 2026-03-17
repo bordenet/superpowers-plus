@@ -118,8 +118,10 @@ show_status() {
     
     # Dictionary status
     if [ -f "$DICTIONARY_FILE" ]; then
-        local pattern_count=$(jq '.patterns | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
-        local exception_count=$(jq '.exceptions | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
+        local pattern_count
+        pattern_count=$(jq '.patterns | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
+        local exception_count
+        exception_count=$(jq '.exceptions | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
         echo -e "${GREEN}Dictionary:${NC} $DICTIONARY_FILE"
         echo "  Patterns: $pattern_count"
         echo "  Exceptions: $exception_count"
@@ -131,11 +133,16 @@ show_status() {
     
     # Metrics status
     if [ -f "$METRICS_FILE" ]; then
-        local docs_analyzed=$(jq '.detection.documents_analyzed' "$METRICS_FILE" 2>/dev/null || echo "0")
-        local patterns_found=$(jq '.detection.total_patterns_found' "$METRICS_FILE" 2>/dev/null || echo "0")
-        local docs_processed=$(jq '.elimination.documents_processed' "$METRICS_FILE" 2>/dev/null || echo "0")
-        local patterns_fixed=$(jq '.elimination.patterns_fixed' "$METRICS_FILE" 2>/dev/null || echo "0")
-        local avg_bf=$(jq '.detection.average_slop_score' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local docs_analyzed
+        docs_analyzed=$(jq '.detection.documents_analyzed' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local patterns_found
+        patterns_found=$(jq '.detection.total_patterns_found' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local docs_processed
+        docs_processed=$(jq '.elimination.documents_processed' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local patterns_fixed
+        patterns_fixed=$(jq '.elimination.patterns_fixed' "$METRICS_FILE" 2>/dev/null || echo "0")
+        local avg_bf
+        avg_bf=$(jq '.detection.average_slop_score' "$METRICS_FILE" 2>/dev/null || echo "0")
         
         echo -e "${GREEN}Metrics:${NC} $METRICS_FILE"
         echo "  Detection:"
