@@ -69,7 +69,7 @@ install_adapter() {
     fi
 
     if [[ -d "$lib_src" ]]; then
-        rm -rf "$lib_dest" 2>/dev/null
+        rm -rf "${lib_dest:?}" 2>/dev/null
         cp -r "$lib_src" "$lib_dest" || error_exit "Failed to copy lib/ to $lib_dest"
         log_verbose "Installed lib/ directory"
     fi
