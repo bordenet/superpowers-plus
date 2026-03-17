@@ -188,6 +188,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | Version | Date | Skills | Highlights |
 |---------|------|--------|------------|
+| 2.5.1 | 2026-03-17 | 49 | Thinking-orchestrator, adversarial-search improvements, 7 new skills |
 | 2.4.2 | 2026-03-15 | 38 | Innovation skill, skill-effectiveness, taxonomy |
 | 2.3.0 | 2026-03-12 | 41 | superpowers-help rewrite, accurate skill counts |
 | 2.2.0 | 2026-03-12 | 41 | Full automation chain, marketplace sync |
