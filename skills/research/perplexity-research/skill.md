@@ -181,6 +181,7 @@ Reset stats: `~/.codex/perplexity-stats.sh reset`
 - **superpowers:systematic-debugging**: Invoke Perplexity when debugging hits a wall
 - **superpowers:brainstorming**: Use for research during design exploration
 - **superpowers:verification-before-completion**: Verify facts before claiming done
+- **incorporating-research**: Use AFTER Perplexity returns results and user wants to merge findings into an existing document. Handles triage, voice-matching, and artifact stripping.
 
 ## Cost Efficiency (CRITICAL)
 

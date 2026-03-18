@@ -18,8 +18,18 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 | `pre-commit-gate` | Before committing code | "before commit", "git commit" |
 | `blast-radius-check` | Before modifying existing code | "refactor", "modify existing", "fix bug" |
 | `providing-code-review` | When reviewing others' PRs | "review this PR", "code review" |
+| `receiving-code-review` | When handling PR feedback | "received code review", "PR feedback" |
 
-**These skills fire automatically on their triggers.** You don't need to remember to load them.
+**TypeScript/testing skills (in superpowers-example-org — proprietary):**
+
+| Skill | When to Use | Trigger |
+|-------|-------------|---------|
+| `typescript-project-conventions` | Import order, file splits | "import order wrong", "file too long" |
+| `typescript-strict-mode` | Strict TS errors | "noExplicitAny error", "strictNullChecks" |
+| `cognitive-complexity-refactoring` | Complex functions | "cognitive complexity too high", "too many nested ifs" |
+| `vitest-testing-patterns` | Mock/test issues | "vi.mock not working", "test is flaky" |
+
+**All skills fire automatically on their triggers.** You don't need to remember to load them.
 
 ---
 
