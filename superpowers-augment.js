@@ -23,6 +23,30 @@ const {
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
+
+// Session staleness threshold: 4 hours (sessions don't last longer than this)
+const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
+
+function writeSessionMarker() {
+    try {
+        fs.writeFileSync(SESSION_FILE, JSON.stringify({
+            bootstrapped: new Date().toISOString(),
+            pid: process.ppid || process.pid
+        }));
+    } catch (_) { /* non-fatal */ }
+}
+
+function checkBootstrap() {
+    try {
+        if (!fs.existsSync(SESSION_FILE)) return false;
+        const data = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+        const age = Date.now() - new Date(data.bootstrapped).getTime();
+        return age < SESSION_MAX_AGE_MS;
+    } catch (_) {
+        return false;
+    }
+}
 
 const TOOL_MAPPINGS = [
     [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
@@ -249,6 +273,26 @@ function useSkill(skillName) {
         console.error('Usage: superpowers-augment use-skill <skill-name>');
         process.exit(1);
     }
+
+    // Enforce bootstrap-first discipline
+    if (!checkBootstrap()) {
+        console.error('');
+        console.error('⚠️  BOOTSTRAP NOT RUN — Skills are degraded without session context.');
+        console.error('');
+        console.error('You MUST bootstrap before using skills. Run this FIRST:');
+        console.error('');
+        console.error('  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap');
+        console.error('');
+        console.error('Then retry: use-skill ' + skillName);
+        console.error('');
+        console.error('WHY: Bootstrap loads the using-superpowers skill which governs');
+        console.error('skill invocation discipline, priority ordering, and red-flag');
+        console.error('detection. Without it, skills fire in isolation without the');
+        console.error('meta-framework that makes them effective.');
+        console.error('');
+        // Don't block — still load the skill, but the warning is impossible to miss
+    }
+
     const forceSuperpowers = skillName.startsWith('superpowers:');
     const actualName = forceSuperpowers ? skillName.replace(/^superpowers:/, '') : skillName;
     let skillFile = null;
@@ -285,6 +329,7 @@ function useSkill(skillName) {
 function bootstrap() {
     console.log('# Superpowers Bootstrap\n');
     console.log('Loading skill system for Augment Code...\n');
+    writeSessionMarker();
     const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
     if (usingSuperpowersFile) {
         const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
