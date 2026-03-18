@@ -66,4 +66,3 @@ $(dirname $TODO_FILE_PATH)/todo-archives/
 - Duplicate task IDs skipped (idempotent)
 - Post-archive integrity check (task count reconciliation)
 - Uses existing `todo-lock.sh` for concurrency safety
-
