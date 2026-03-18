@@ -8,7 +8,7 @@
 # -----------------------------------------------------------------------------
 
 # Colors for output (disabled if not a terminal, unless FORCE_COLOR=1)
-# FORCE_COLOR=1 allows parent scripts (e.g., mb_scratchpad) to preserve colors
+# FORCE_COLOR=1 allows parent scripts (e.g., adopter installers) to preserve colors
 # when calling this script through a pipe/tee.
 if [[ -t 1 ]] || [[ "${FORCE_COLOR:-}" == "1" ]]; then
     RED='\033[0;31m'

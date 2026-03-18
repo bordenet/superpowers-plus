@@ -22,7 +22,7 @@ composition:
 
 > **Purpose:** Detect content duplication, obsolescence, and structural defects in wiki pages
 > **Gate type:** ADVISORY with escalation (HIGH severity → user review before publish)
-> **Spec:** https://wiki.int.callbox.net/doc/skill-spec-wiki-content-coherence-bE26VSHMP6
+> **Spec:** See your organization's wiki for the skill specification
 
 ---
 

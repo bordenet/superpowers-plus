@@ -106,7 +106,7 @@ gemini extensions install https://github.com/bordenet/superpowers-plus
 
 ### Using as a Dependency
 
-If you maintain a repo that extends superpowers-plus, see [docs/examples/mb_scratchpad-install-example.sh](docs/examples/mb_scratchpad-install-example.sh) for a robust install script template designed for non-technical users.
+If you maintain a repo that extends superpowers-plus, see [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-example.sh) for a robust install script template designed for non-technical users.
 
 ## Configuration
 
