@@ -86,7 +86,8 @@ INDEX_FILE="$ARCHIVE_DIR/INDEX.md"
 } > "$INDEX_FILE"
 echo "📇 Updated $INDEX_FILE"
 
-# --- Rebuild TODO.md ---
+# --- Rebuild TODO.md (write to temp first, validate before overwriting) ---
+REBUILD_TMP="${TODO_PATH}.rebuild.tmp"
 {
   head -n "$HISTORY_START" "$BACKUP_PATH"
   echo ""
@@ -96,7 +97,35 @@ echo "📇 Updated $INDEX_FILE"
   if [[ "$HISTORY_END" -lt $(wc -l < "$BACKUP_PATH") ]]; then
     tail -n "+$((HISTORY_END + 1))" "$BACKUP_PATH"
   fi
-} > "$TODO_PATH"
+} > "$REBUILD_TMP"
+
+# --- SAFETY GATE: refuse to write catastrophically small files ---
+REBUILD_LINES=$(wc -l < "$REBUILD_TMP" | tr -d ' ')
+MIN_SAFE_LINES=50  # TODO.md should never be smaller than this
+
+if [[ "$REBUILD_LINES" -lt "$MIN_SAFE_LINES" ]]; then
+  echo ""
+  echo "🛑 ABORT: Rebuilt file is only $REBUILD_LINES lines (minimum: $MIN_SAFE_LINES)"
+  echo "   This indicates a bug in the archive logic. TODO.md has NOT been modified."
+  echo "   Backup preserved at: $BACKUP_PATH"
+  echo "   Archive files were written but TODO.md is UNCHANGED."
+  rm -f "$REBUILD_TMP"
+  exit 1
+fi
+
+# Also check we didn't lose more than 50% of the file (sanity bound)
+HALF_ORIGINAL=$((TODO_LINES / 2))
+if [[ "$REBUILD_LINES" -lt "$HALF_ORIGINAL" ]]; then
+  echo ""
+  echo "🛑 ABORT: Rebuilt file ($REBUILD_LINES lines) is less than half the original ($TODO_LINES lines)"
+  echo "   This indicates a bug in the archive logic. TODO.md has NOT been modified."
+  echo "   Backup preserved at: $BACKUP_PATH"
+  rm -f "$REBUILD_TMP"
+  exit 1
+fi
+
+# Safe to overwrite
+mv "$REBUILD_TMP" "$TODO_PATH"
 
 # --- Integrity check ---
 POST_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')
