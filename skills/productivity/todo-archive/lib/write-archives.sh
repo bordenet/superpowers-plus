@@ -148,4 +148,3 @@ if [[ "$POST_HISTORY" -ne "$EXPECTED_REMAINING" ]]; then
 else
   echo "   Integrity check: ✅ PASS ($POST_HISTORY remaining = $PRE_HISTORY - $TOTAL_ARCHIVED)"
 fi
-
