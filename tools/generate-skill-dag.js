@@ -140,6 +140,16 @@ function generateMermaid(skills) {
       }
     }
 
+    // enables: arrow FROM this skill TO enabled skill
+    for (const en of skill.coordination.enables || []) {
+      const enId = en.replace(/-/g, '_');
+      const edge = fromId + ' --> ' + enId;
+      if (!edges[edge]) {
+        lines.push('  ' + fromId + ' -->|enables| ' + enId);
+        edges[edge] = true;
+      }
+    }
+
     // escalates_to: thick arrow FROM this skill TO fallback
     for (const esc of skill.coordination.escalates_to || []) {
       const escId = esc.replace(/-/g, '_');
@@ -158,6 +168,8 @@ function getGroupPurpose(group) {
     'commit-gates': 'Quality checks before git commit',
     'wiki-pipeline': 'Wiki authoring quality pipeline',
     'stuck-escalation': 'Getting unstuck when blocked',
+    'completion-gate': 'Verification before claiming done',
+    'thinking': 'Metacognition and thinking orchestration',
   };
   return purposes[group] || 'Coordinated skill group';
 }

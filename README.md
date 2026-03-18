@@ -1,6 +1,6 @@
 # superpowers-plus
 
-47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+48 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,13 +12,13 @@ cd superpowers-plus
 
 ## What's Included
 
-**47 skills** across 9 domains:
+**48 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
 | productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
-| wiki | 7 | Page management, link checks, credential scanning |
+| wiki | 8 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 3 | Completeness checks, audit validation, repo verification |
@@ -36,7 +36,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 41-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 48-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -189,6 +189,7 @@ Works offline using local TF-IDF. No API keys required.
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-authoring | Creates new pages |
+| | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content |
 | | wiki-editing | Safe updates with backup |
 | | wiki-orchestrator | Routes tasks to the right handler |
@@ -201,7 +202,7 @@ Works offline using local TF-IDF. No API keys required.
 | | readme-authoring | Structures documentation |
 | | reviewing-ai-text | Evaluates generated content |
 
-> **Note:** All skills are auto-triggered (🦸) except `wiki-editing`, which is internal and invoked by `wiki-orchestrator`.
+> **Note:** Skills marked 🦸 (superpowers) are auto-triggered by semantic matching. Explicit skills are invoked by name or as dependencies of other skills (e.g., `wiki-editing` is invoked by `wiki-orchestrator`, `link-verification` is invoked by `wiki-editing`).
 
 ## Skill Coordination
 
@@ -215,20 +216,37 @@ graph LR
     professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
   end
 
+  subgraph completion-gate["Completion Gate"]
+    exhaustive_audit_validation["exhaustive-audit-validation"] --> verification_before_completion["verification-before-completion"]
+  end
+
+  subgraph thinking["Thinking"]
+    thinking_orchestrator["thinking-orchestrator"]
+  end
+
   subgraph wiki-pipeline["Wiki Pipeline"]
-    wiki_orchestrator["wiki-orchestrator"] --> link_verification["link-verification"]
+    wiki_orchestrator["wiki-orchestrator"] --> wiki_content_coherence["wiki-content-coherence"]
+    wiki_content_coherence --> link_verification["link-verification"]
     link_verification --> wiki_editing["wiki-editing"]
   end
 
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
   end
+
+  thinking_orchestrator -->|enables| adversarial_search["adversarial-search"]
+  thinking_orchestrator -->|enables| think_twice
+  thinking_orchestrator -->|enables| verification_before_completion
+  thinking_orchestrator -->|enables| exhaustive_audit_validation
+  thinking_orchestrator -->|enables| completeness_check["completeness-check"]
 ```
 
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
-| Wiki Pipeline | orchestrator → links → edit | Content generated → links verified → published |
+| Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
+| Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
+| Wiki Pipeline | orchestrator → coherence → links → edit | Content generated → coherence checked → links verified → published |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity if needed |
 
 View the full [Skill Dependency Graph](docs/skill-dependency-graph.md).
@@ -257,6 +275,23 @@ obra/superpowers (framework)
 
 See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
+## Tools
+
+Utility scripts deployed to `~/.codex/superpowers-plus/tools/` by `install.sh`:
+
+| Tool | Purpose |
+|------|---------|
+| `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash`, etc. |
+| `todo-preflight.sh` | Resolves `TODO_FILE_PATH` from `~/.codex/.env` |
+| `todo-lock.sh` | Advisory file locking for TODO.md (cross-machine via OneDrive) |
+| `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
+| `harsh-review-loop.sh` | Iterative harsh review until clean |
+| `public-repo-ip-check.sh` | Scans for proprietary content before public push |
+| `install-hooks.sh` | Installs git hooks for pre-commit checks |
+| `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
+| `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
+| `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
+
 ## Troubleshooting
 
 | Error | Fix |
@@ -264,12 +299,16 @@ See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 | "Tool not found: perplexity_*" | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
+| Skills not loading after install | Check `~/.codex/skills/` exists; re-run `./install.sh` |
+| Wrong skill count | Run `./install.sh` to reinstall; verify with `find-skills` |
+| `todo-lock.sh` timeout | Another agent holds the lock; run `todo-lock.sh steal` |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Upgrading](UPGRADING.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 

@@ -69,10 +69,43 @@ install_adapter() {
     fi
 
     if [[ -d "$lib_src" ]]; then
-        rm -rf "$lib_dest" 2>/dev/null
+        rm -rf "${lib_dest:?}" 2>/dev/null
         cp -r "$lib_src" "$lib_dest" || error_exit "Failed to copy lib/ to $lib_dest"
         log_verbose "Installed lib/ directory"
     fi
+}
+
+# Install tools from tools/ directory (todo-preflight.sh, todo-lock.sh, etc.)
+install_tools() {
+    log_info "Installing tools from superpowers-plus..."
+
+    local tools_src="$SCRIPT_DIR/tools"
+    if [[ ! -d "$tools_src" ]]; then
+        log_verbose "No tools directory found, skipping"
+        return
+    fi
+
+    local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
+    create_dir "$tools_dest"
+
+    local count=0
+    for tool in "$tools_src"/*.sh; do
+        [[ ! -f "$tool" ]] && continue
+        local basename
+        basename=$(basename "$tool")
+        local dest="${tools_dest}/${basename}"
+
+        if [[ -f "$dest" ]] && cmp -s "$tool" "$dest"; then
+            log_verbose "Tool already up to date: $basename"
+        else
+            cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
+            chmod +x "$dest"
+            log_verbose "Installed tool: $basename"
+        fi
+        count=$((count + 1))
+    done
+
+    log_success "Installed $count tools to $tools_dest"
 }
 
 # Install all skills from this repository (supports domain-based structure)

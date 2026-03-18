@@ -1,57 +1,45 @@
-# Environment secrets (keep .env.example, ignore .env)
-.env
 
-# Slop detection workspace files
+._*
+.apdisk
+.AppleDouble
+.cache/
+.DS_Store
+.env
+.fseventsd
+.github/instructions/codacy.instructions.md
+.idea/
+.LSOverride
 .slop-dictionary.json
 .slop-metrics.json
-
-# Profanity patterns - root-level file is for local overrides (not tracked)
-# scripts/.profanity-patterns.txt IS tracked - it's the reference list
-/.profanity-patterns.txt
-
-# MacOS specific files
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# MacOS directory preferences
-Icon
 .Spotlight-V100
+.superpowers-session
 .Trashes
-
-# MacOS resource forks
-*.swp
-*~
-
-# Thumbnail cache
-.fseventsd
-.apdisk
-
-# IDE and editor files
-.idea/
 .vscode/
+*.backup
+*.bak
 *.sublime-project
 *.sublime-workspace
-
+*.swp
+*.temp
+*.tmp
+*~
+/.profanity-patterns.txt
+# Backup files
+# Environment secrets (keep .env.example, ignore .env)
+# IDE and editor files
+# MacOS directory preferences
+# MacOS resource forks
+# MacOS specific files
 # Node.js (in case of local testing)
+# Profanity patterns - root-level file is for local overrides (not tracked)
+# scripts/.profanity-patterns.txt IS tracked - it's the reference list
+# Slop detection workspace files
+# Temporary files
+# Thumbnail cache
+# wiki-instruction-guard local domain allowlist (org-specific, never committed)
+#Ignore vscode AI rules
+Icon
 node_modules/
 npm-debug.log*
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Backup files
-*.bak
-*.backup
-
-
-#Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
-.DS_Store
-
-# wiki-instruction-guard local domain allowlist (org-specific, never committed)
-skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 Nv,f8H811
+skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
