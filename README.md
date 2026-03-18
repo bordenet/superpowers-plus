@@ -1,6 +1,6 @@
 # superpowers-plus
 
-48 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,7 +12,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**48 skills** across 9 domains:
+**49 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -22,7 +22,7 @@ cd superpowers-plus
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 3 | Completeness checks, audit validation, repo verification |
-| security | 3 | CVE scanning, IP protection, instruction guard |
+| security | 4 | Repo security scanning, CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
 
@@ -36,7 +36,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 48-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 49-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -131,7 +131,7 @@ Skills activate automatically when your request matches their trigger phrases. Y
 | "Create a wiki page for X" | wiki-orchestrator | Runs full wiki authoring pipeline |
 | "Review this PR" | providing-code-review | Structured feedback with checklist |
 | "Is this done?" | completeness-check | Audits for incomplete work |
-| "Check for security issues" | security-upgrade | Scans CVEs and suggests upgrades |
+| "Check for security issues" | repo-security-scan | Full security scan (secrets, deps, patterns, config) |
 
 > **Note:** `think-twice` also auto-detects when the AI itself is spiraling (repeated failures, circular reasoning) and suggests pausing for fresh perspective.
 
@@ -184,7 +184,8 @@ Works offline using local TF-IDF. No API keys required.
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
-| security | public-repo-ip-audit | Detects proprietary content |
+| security | repo-security-scan | Full repo security scan (4 categories) |
+| | public-repo-ip-audit | Detects proprietary content |
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
