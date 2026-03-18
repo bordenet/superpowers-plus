@@ -9,7 +9,7 @@ description: The genesis capability — create new skills from natural language 
 
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
-> **See also:** [skill-effectiveness](../../observability/skill-effectiveness/skill.md) for pattern recording
+
 
 **Announce at start:** "I'm using the **skill-authoring** skill to help create a new skill."
 
@@ -186,7 +186,6 @@ composition:
 
 | Skill | How skill-authoring Uses It |
 |-------|----------------------------|
-| skill-effectiveness | Reads pattern_observations for synthesis |
 | golden-agents | Similar scaffolding UX pattern |
 | brainstorming | Could be invoked for skill design |
 | readme-authoring | Generates README alongside skill.md |

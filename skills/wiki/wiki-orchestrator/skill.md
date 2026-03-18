@@ -101,6 +101,7 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 | **De-duplication** | Similar page exists | Warn user, suggest update instead |
 | **Content Coherence** | Duplicate sections or structural defects | Show report; HIGH severity → user review |
 | **Slop Detection** | High slop score | Show score, suggest improvements |
+| **Table Discipline** | Malformed or misused tables | Show violations, suggest fix |
 | **Fact-Check** | Uncited claims found | List claims, suggest sources |
 
 </EXTREMELY_IMPORTANT>
@@ -320,6 +321,7 @@ digraph wiki_orchestrator {
 | 3 | link-verification | **BLOCK** | Fix links |
 | 4 | secret-detection | **BLOCK** | Remove secrets |
 | 5 | eliminating-ai-slop | ADVISORY | Suggestions |
+| 5.5 | markdown-table-discipline | ADVISORY | Fix tables |
 | 6 | wiki-debunker | WARN | Flag uncited |
 | 7 | wiki-editing | — | Publish |
 
