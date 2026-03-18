@@ -11,6 +11,7 @@
 set -euo pipefail
 
 # --- Resolve paths ---
+# shellcheck source=/dev/null
 source ~/.codex/.env 2>/dev/null || true
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
@@ -67,7 +68,11 @@ case "$COMMAND" in
     else
       echo "ℹ️  No archive found for $MONTH"
       echo "   Available archives:"
-      ls "$ARCHIVE_DIR"/*.md 2>/dev/null | grep -v INDEX.md | xargs -I{} basename {} .md | sed 's/^/   - /'
+      for f in "$ARCHIVE_DIR"/*.md; do
+        [ -f "$f" ] || continue
+        [[ "$(basename "$f")" == "INDEX.md" ]] && continue
+        echo "   - $(basename "$f" .md)"
+      done
     fi
     ;;
 
@@ -125,7 +130,7 @@ case "$COMMAND" in
     echo "📋 $N Most Recently Archived Tasks"
     echo "---"
     # Search all archive files, extract task lines with Done dates, sort by date, take N
-    for f in $(ls -r "$ARCHIVE_DIR"/*.md 2>/dev/null | grep -v INDEX.md | head -3); do
+    for f in $(find "$ARCHIVE_DIR" -maxdepth 1 -name '*.md' ! -name 'INDEX.md' -print 2>/dev/null | sort -r | head -3); do
       grep -E '^\- \[(x|-)\]' "$f" 2>/dev/null | head -"$N"
     done | head -"$N"
     ;;

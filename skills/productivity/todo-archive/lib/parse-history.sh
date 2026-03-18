@@ -23,7 +23,7 @@ fi
 
 HISTORY_BLOCK=$(sed -n "$((HISTORY_START + 1)),${HISTORY_END}p" "$TODO_PATH")
 
-if [[ -z "$(echo "$HISTORY_BLOCK" | grep -E '^\- \[(x|-)' 2>/dev/null)" ]]; then
+if ! echo "$HISTORY_BLOCK" | grep -qE '^\- \[(x|-)' 2>/dev/null; then
   echo "ℹ️  No completed/cancelled tasks in HISTORY. Nothing to archive."
   exit 0
 fi
