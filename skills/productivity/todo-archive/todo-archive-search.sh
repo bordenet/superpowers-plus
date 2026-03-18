@@ -86,11 +86,11 @@ case "$COMMAND" in
     for f in "$ARCHIVE_DIR"/*.md; do
       [[ "$(basename "$f")" == "INDEX.md" ]] && continue
       fname=$(basename "$f" .md)
-      if [[ "$fname" >= "$START_MONTH" ]] && [[ "$fname" <= "$END_MONTH" ]]; then
+      if [[ ! "$fname" < "$START_MONTH" ]] && [[ ! "$fname" > "$END_MONTH" ]]; then
         grep -A5 -E "^\- \[(x|-)\]" "$f" 2>/dev/null | while IFS= read -r line; do
           if [[ "$line" =~ Done:[[:space:]]*([0-9]{4}-[0-9]{2}-[0-9]{2}) ]]; then
             done_date="${BASH_REMATCH[1]}"
-            if [[ "$done_date" >= "$START" ]] && [[ "$done_date" <= "$END" ]]; then
+            if [[ ! "$done_date" < "$START" ]] && [[ ! "$done_date" > "$END" ]]; then
               echo "  [match]"
             fi
           fi
