@@ -52,6 +52,7 @@ WARNINGS=0
 FIXES=0
 
 log_check() { echo -e "${BLUE}[CHECK]${NC} $1"; }
+# shellcheck disable=SC2329  # Used by callers that source this file
 log_pass()  { echo -e "${GREEN}[PASS]${NC} $1"; }
 log_fail()  { echo -e "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }

@@ -150,7 +150,7 @@ echo ""
 # 15 < 20 → flagged
 
 WORD_COUNTS=(15 120 130 125 800)
-sorted=($(printf '%s\n' "${WORD_COUNTS[@]}" | sort -n))
+mapfile -t sorted < <(printf '%s\n' "${WORD_COUNTS[@]}" | sort -n)
 mid=$(( ${#sorted[@]} / 2 ))
 median=${sorted[$mid]}
 
