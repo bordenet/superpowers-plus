@@ -10,6 +10,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `skills/productivity/todo-archive/` — Archive completed tasks from TODO.md to monthly satellite files (YYYY-MM.md) with search, dry-run, and integrity verification (#133)
 - `tools/dangerous-pattern-scan.sh` — Pre-commit scanner for `rm -rf`, `chmod 777`, `curl|bash`, `dd`, `mkfs`, `git push --force` (#123)
 - `tools/todo-lock.sh` — Advisory file locking for TODO.md with cross-machine support via OneDrive (#120)
 - `tools/todo-preflight.sh` — Single-command TODO.md path resolution and validation (#117)
@@ -36,7 +37,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `skills/observability/skill-effectiveness/` — outcome tracking skill (#113)
 - 12 metrics CLI commands from `superpowers-augment.js` (#113)
 - MANDATORY Skill Outcome Tracking from bootstrap rule (#113)
-- Skill count: 49 → 47
+- Skill count: 49 → 47 (removals), +1 todo-archive → 48 net (actual count: 50 including additions across multiple PRs)
 
 ## [2.5.1] - 2026-03-16
 
