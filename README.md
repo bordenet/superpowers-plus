@@ -1,6 +1,6 @@
 # superpowers-plus
 
-49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+51 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,12 +12,12 @@ cd superpowers-plus
 
 ## What's Included
 
-**49 skills** across 9 domains:
+**51 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
-| productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
+| productivity | 11 | Innovation, TODO tracking/archiving, adversarial search, thinking orchestrator, domain design, skill synthesis |
 | wiki | 8 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -28,6 +28,21 @@ cd superpowers-plus
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
+## How This Grows
+
+Skills in this repo are extracted from real work, not built during dedicated tooling sprints. The operating model:
+
+1. You're doing a real task (investigating call review data, designing a new domain, writing a wiki page)
+2. You notice a repeatable pattern (a 10-phase design process, a verification checklist, a slop detection heuristic)
+3. You extract it into a `skill.md` file and push
+4. The next person doing similar work gets that skill automatically
+
+This creates a flywheel: daily work produces skills → skills accelerate daily work → accelerated work produces more skills.
+
+**Concrete example:** The Call Review Domain (March 2026) needed 3 data-query skills (`call-lookup`, `[tracker]-lookup`, `call-search`). Building them required a structured process — research 5 systems, brainstorm candidates, run 3 rounds of harsh review, verify database permissions with real queries, prioritize into tiers, build a walking skeleton, document everything. That 10-phase process was itself extracted into two meta-skills: `domain-design` (orchestrates the research-to-documentation cycle) and `domain-build` (executes the build-deploy-document cycle). The next domain design — Billing, Provisioning, whatever — starts at Phase 1 with a proven methodology instead of a blank page.
+
+The skills table below is the current output of this flywheel. It will be larger next time you look.
+
 ## Installation
 
 ### Ubuntu / Debian / WSL (One-Liner)
@@ -36,7 +51,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 49-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 50-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -174,6 +189,7 @@ Works offline using local TF-IDF. No API keys required.
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
 | productivity | adversarial-search | Defeats confirmation bias in investigations |
+| | domain-design | Orchestrates 10-phase domain design: research → brainstorm → harsh review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Radical, high-impact thinking |
@@ -181,6 +197,7 @@ Works offline using local TF-IDF. No API keys required.
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for all metacognition skills |
+| | todo-archive | Archives completed tasks to monthly satellite files |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
