@@ -1,7 +1,6 @@
 # Migration Guide: todo-management Skill Cleanup
 
 > **For:** Adopters of superpowers-plus who have a local `todo-management` override
-> (e.g., mb_scratchpad, other proprietary skill repos)
 > **Date:** 2026-03-16
 > **Affects:** superpowers-plus v2.5.1+
 
@@ -9,7 +8,7 @@
 
 The `todo-management` skill had a broken deployment state:
 
-1. **Stale override wins:** Adopter repos (like mb_scratchpad) copied a stale
+1. **Stale override wins:** Adopter repos copied a stale
    `todo-management` override into `~/.codex/skills/` and `~/.codex/superpowers/skills/`,
    overwriting the superpowers-plus version that has critical fixes (deterministic
    default path, dual-persistence, hard gate).
@@ -86,23 +85,6 @@ files it finds. For each one:
 1. **Check if it has real task data** — `cat <path>`
 2. **If yes:** Move it to the default location or set `TODO_FILE_PATH`
 3. **If no:** Delete it (it was likely created by an agent guessing paths)
-
-## For mb_scratchpad Specifically
-
-### Files to delete:
-```
-skills/productivity/todo-management/skill.md
-skills/productivity/todo-management/PRD.md       (if exists)
-skills/productivity/todo-management/examples.md  (if exists)
-```
-
-### Changes to skills/install.sh:
-- Remove any logic that copies skills to `~/.codex/superpowers/skills/`
-- Only deploy to `~/.codex/skills/` (superpowers-plus manages the rest)
-
-### Changes to AGENTS.md:
-- Remove any `TODO_FILE_PATH` references that say "REQUIRED"
-- Update to mention the default `$HOME/.codex/TODO.md`
 
 ## Verification
 

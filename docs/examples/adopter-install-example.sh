@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# mb_scratchpad Installer - Designed for non-technical users
+# Adopter Installer - Designed for non-technical users
 # 
 # USAGE: ./install.sh
 # PLATFORM: Ubuntu 20.04+, Debian 11+, WSL2
@@ -10,7 +10,7 @@ set -euo pipefail
 # --- Configuration ---
 SUPERPOWERS_PLUS_REPO="https://github.com/bordenet/superpowers-plus.git"
 SUPERPOWERS_PLUS_DIR="$HOME/.codex/superpowers-plus"
-LOG_FILE="$HOME/.mb_scratchpad_install.log"
+LOG_FILE="$HOME/.my-org-skills_install.log"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MIN_NODE_VERSION=18
 
@@ -23,7 +23,7 @@ fi
 
 # --- Logging ---
 exec > >(tee -a "$LOG_FILE") 2>&1
-echo "=== mb_scratchpad install started at $(date) ===" >> "$LOG_FILE"
+echo "=== my-org-skills install started at $(date) ===" >> "$LOG_FILE"
 
 info()    { echo -e "${BLUE}▶${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
@@ -130,9 +130,9 @@ install_superpowers_plus() {
     success "superpowers-plus installed"
 }
 
-# --- Install mb_scratchpad extensions ---
-install_mb_scratchpad() {
-    info "Installing mb_scratchpad skills and rules..."
+# --- Install my-org-skills extensions ---
+install_my-org-skills() {
+    info "Installing my-org-skills skills and rules..."
     
     # Install skills
     if [[ -d "$SCRIPT_DIR/skills" ]]; then
@@ -151,7 +151,7 @@ install_mb_scratchpad() {
         cp "$SCRIPT_DIR/rules/"*.md "$HOME/.augment/rules/" 2>/dev/null || true
     fi
     
-    success "mb_scratchpad extensions installed"
+    success "my-org-skills extensions installed"
 }
 
 # --- Verify installation ---
@@ -179,7 +179,7 @@ verify_installation() {
 main() {
     echo ""
     echo "╔══════════════════════════════════════════════╗"
-    echo "║     mb_scratchpad Installer                  ║"
+    echo "║     Adopter Installer                  ║"
     echo "╚══════════════════════════════════════════════╝"
     echo ""
     
@@ -187,7 +187,7 @@ main() {
     check_network
     install_dependencies
     install_superpowers_plus
-    install_mb_scratchpad
+    install_my-org-skills
     verify_installation
     
     echo ""

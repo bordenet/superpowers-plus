@@ -196,7 +196,7 @@ When the user says "you're doing X," they watched it happen. If your search does
 **Date:** 2026-03-17
 **Report:** "You are using `OUTLINE_API_TOKEN` instead of `OUTLINE_API_KEY`"
 **Wrong response:** Searched for `OUTLINE_API_KEY`, found it everywhere, declared "No inconsistency. No changes needed."
-**What was missed:** `tools/mb_scratchpad/.env` line 31 had `OUTLINE_API_TOKEN` — a gitignored `.env` file excluded by `--include` patterns.
+**What was missed:** `tools/my-project/.env` line 31 had `OUTLINE_API_TOKEN` — a gitignored `.env` file excluded by `--include` patterns.
 **Root cause:** Confirmation bias + narrow scope + `--include` excluding extensionless files.
 **Cost:** 20 minutes of unnecessary back-and-forth instead of a 2-minute fix.
 

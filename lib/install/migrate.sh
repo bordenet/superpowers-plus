@@ -19,7 +19,7 @@ post_install_migrations() {
 
 # Migration: Clean stale todo-management overrides from ~/.codex/superpowers/skills/
 #
-# Problem: mb_scratchpad (and potentially other adopters) copied a stale
+# Problem: Adopter repos sometimes copy a stale
 # todo-management override into ~/.codex/superpowers/skills/, which is meant to
 # be managed by obra/superpowers only. This stale copy lacks the deterministic
 # default path and dual-persistence fixes. When the skill loader sees both copies,
@@ -45,7 +45,7 @@ migrate_todo_skill_overrides() {
             return 0
             ;;
         *)
-            # This is a stale override from an adopter (e.g., mb_scratchpad)
+            # This is a stale override from an adopter
             log_warn "Found stale todo-management override in obra directory (source: $source_field)"
             log_info "Removing stale override from $SUPERPOWERS_DIR/skills/todo-management/"
             rm -rf "${SUPERPOWERS_DIR:?}/skills/todo-management" || {
