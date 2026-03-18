@@ -169,4 +169,3 @@ show archived todos from 2026-02-01 to 2026-03-15
 | Archive file already has entries for that day | Append under existing date header (no duplicate header) |
 | HISTORY section is empty | No-op, report "No completed tasks to archive" |
 | No HISTORY section exists | No-op, report "No HISTORY section found" |
-
