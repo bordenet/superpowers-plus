@@ -78,7 +78,7 @@ INDEX_FILE="$ARCHIVE_DIR/INDEX.md"
   echo ""
   echo "| Month | Tasks | File |"
   echo "|-------|-------|------|"
-  for f in $(ls -r "$ARCHIVE_DIR"/*.md 2>/dev/null | grep -v INDEX.md); do
+  for f in $(find "$ARCHIVE_DIR" -maxdepth 1 -name '*.md' ! -name 'INDEX.md' -print 2>/dev/null | sort -r); do
     fname=$(basename "$f" .md)
     fcount=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || echo 0)
     echo "| $fname | $fcount | [${fname}.md](${fname}.md) |"
