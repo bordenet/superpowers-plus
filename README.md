@@ -1,6 +1,6 @@
 # superpowers-plus
 
-49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+50 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,12 +12,12 @@ cd superpowers-plus
 
 ## What's Included
 
-**49 skills** across 9 domains:
+**50 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
-| productivity | 9 | Innovation, TODO tracking, adversarial search, thinking orchestrator, skill synthesis |
+| productivity | 10 | Innovation, TODO tracking/archiving, adversarial search, thinking orchestrator, skill synthesis |
 | wiki | 8 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -36,7 +36,7 @@ cd superpowers-plus
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 49-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 50-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -181,6 +181,7 @@ Works offline using local TF-IDF. No API keys required.
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for all metacognition skills |
+| | todo-archive | Archives completed tasks to monthly satellite files |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
