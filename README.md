@@ -1,6 +1,6 @@
 # superpowers-plus
 
-51 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+46 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -12,19 +12,21 @@ cd superpowers-plus
 
 ## What's Included
 
-**51 skills** across 9 domains:
+**46 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
-| engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
+| engineering | 7 | Pre-commit gates, blast radius, PR review, engineering-rigor hub |
 | productivity | 11 | Innovation, TODO tracking/archiving, adversarial search, thinking orchestrator, domain design, skill synthesis |
 | wiki | 8 | Page management, link checks, credential scanning, content coherence |
-| writing | 6 | Slop detection, profanity gates, table discipline |
+| writing | 5 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 3 | Completeness checks, audit validation, repo verification |
 | security | 4 | Repo security scanning, CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
+
+> **Note:** TypeScript-specific skills (`typescript-project-conventions`, `typescript-strict-mode`, `cognitive-complexity-refactoring`, `vitest-testing-patterns`) have been migrated to [superpowers-example-org](https://gitlab.int.example-org.net/mbordenet/superpowers-example-org) (proprietary).
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
@@ -51,7 +53,7 @@ The skills table below is the current output of this flywheel. It will be larger
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 50-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 46-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -169,16 +171,12 @@ Works offline using local TF-IDF. No API keys required.
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
-| | cognitive-complexity-refactoring | Reduces function complexity scores |
-| | engineering-rigor | Quality philosophy hub |
+| | engineering-rigor | Quality philosophy hub (routes to TS skills in example-org) |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
-| | typescript-project-conventions | Import paths, file organization |
-| | typescript-strict-mode | Eliminates `any`, `!`, `unknown` |
 | | verification-before-completion | Final checks before claiming done |
-| | vitest-testing-patterns | Mock patterns, SDK constructors |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
 | | issue-comment-debunker | Fact-checks before posting |
@@ -218,7 +216,6 @@ Works offline using local TF-IDF. No API keys required.
 | | markdown-table-discipline | Enforces table best practices |
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
-| | reviewing-ai-text | Evaluates generated content |
 
 > **Note:** Skills marked 🦸 (superpowers) are auto-triggered by semantic matching. Explicit skills are invoked by name or as dependencies of other skills (e.g., `wiki-editing` is invoked by `wiki-orchestrator`, `link-verification` is invoked by `wiki-editing`).
 
