@@ -15,6 +15,7 @@ STALE_THRESHOLD=30 # Days before staleness rule forces archive
 LINE_THRESHOLD=400 # Soft limit triggering auto-archive
 
 # --- Resolve paths (BEFORE arg parsing to avoid .env clobbering flags) ---
+# shellcheck source=/dev/null
 source ~/.codex/.env 2>/dev/null || true
 
 # --- Parse arguments (AFTER .env to prevent .env from overwriting flags) ---
