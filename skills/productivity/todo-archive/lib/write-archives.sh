@@ -113,16 +113,17 @@ if [[ "$REBUILD_LINES" -lt "$MIN_SAFE_LINES" ]]; then
   exit 1
 fi
 
-# Also check we didn't lose more than 50% of the file (sanity bound)
-HALF_ORIGINAL=$((TODO_LINES / 2))
-if [[ "$REBUILD_LINES" -lt "$HALF_ORIGINAL" ]]; then
-  echo ""
-  echo "🛑 ABORT: Rebuilt file ($REBUILD_LINES lines) is less than half the original ($TODO_LINES lines)"
-  echo "   This indicates a bug in the archive logic. TODO.md has NOT been modified."
-  echo "   Backup preserved at: $BACKUP_PATH"
-  rm -f "$REBUILD_TMP"
-  exit 1
-fi
+# Verify all major sections survived the rebuild
+for section in "# ACTIVE" "# HISTORY" "# DEFERRED" "# METRICS"; do
+  if grep -q "^$section" "$BACKUP_PATH" && ! grep -q "^$section" "$REBUILD_TMP"; then
+    echo ""
+    echo "🛑 ABORT: Section '$section' exists in original but missing from rebuild"
+    echo "   This indicates a bug in the archive logic. TODO.md has NOT been modified."
+    echo "   Backup preserved at: $BACKUP_PATH"
+    rm -f "$REBUILD_TMP"
+    exit 1
+  fi
+done
 
 # Safe to overwrite
 mv "$REBUILD_TMP" "$TODO_PATH"
