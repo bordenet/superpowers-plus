@@ -108,4 +108,3 @@ while IFS= read -r line; do
   fi
 done <<< "$HISTORY_BLOCK"
 process_task  # flush last task
-
