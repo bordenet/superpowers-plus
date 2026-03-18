@@ -139,4 +139,3 @@ Before delivering ANY analysis, evaluation, or review that the user requested wi
 ## Related Skills
 
 - `engineering-rigor` -- Hub for engineering process (pre-commit, blast radius, code review)
-- `skill-effectiveness` -- Track outcomes of thinking skill invocations
