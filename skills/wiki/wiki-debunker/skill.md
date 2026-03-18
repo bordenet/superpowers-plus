@@ -14,8 +14,8 @@ composition:
 # Wiki Debunker
 
 > **Purpose:** Detect and prevent hallucinated facts in wiki documentation
-> **Scope:** Claims about what happened, when, who decided, why — NOT version numbers (see wiki-verify)
-> **Last Updated:** 2026-02-28
+> **Scope:** Claims about what happened, when, who decided, who owns what — NOT version numbers (see wiki-verify)
+> **Last Updated:** 2026-03-18
 
 ---
 
@@ -30,9 +30,17 @@ When called by orchestrator, produce this summary:
 ```
 ## Fact-Check Report
 
-**Claims Analyzed:** 12
-**With Citations:** 8 (67%)
-**Uncited Claims:** 4
+**Claims Analyzed:** 14
+**Verified:** 8 (57%)
+**Sourced but Unverified:** 2 (14%)
+**Uncited:** 4 (29%)
+
+### Sourced but Unverified (cite from wrong authority)
+
+| # | Claim | Type | Source Used | Authoritative Source | Action |
+|---|-------|------|------------|---------------------|--------|
+| 1 | "Junyi's funnel metrics queries" | Task ownership | Wiki plan table | Issue tracker assignee | ⚠️🔄 Verify in Linear |
+| 2 | "Ships in Sprint 2 per v1 Plan" | Timeline | Wiki roadmap | Git tags, CI deploys | ⚠️🔄 Check actual sprint |
 
 ### Uncited Claims (require attention)
 
@@ -51,8 +59,8 @@ When called by orchestrator, produce this summary:
 | 2 | Vendor B for STT | [PR #52]([your-repo-url]) | ✅ |
 | ... | ... | ... | ... |
 
-**Gate Status:** ⚠️ WARNING (4 uncited claims)
-**Recommendation:** Add citations or mark claims as speculative
+**Gate Status:** ⚠️ WARNING (4 uncited, 2 sourced-but-unverified)
+**Recommendation:** Verify sourced-but-unverified claims against authoritative sources; add citations for uncited claims
 ```
 
 ### Citation Detection
@@ -70,6 +78,9 @@ Flag these if no citation follows within 2 sentences:
 - "[Person] proposed/suggested/built..."
 - "After the [incident/meeting/discussion]..."
 - Specific numbers without source
+- **"[Person]'s [task/work]"** — possessive attribution (e.g., "Junyi's queries", "Thomas's fix")
+- **"[Person] handles/owns/is responsible for [task]"** — task ownership claims
+- **"assigned to [Person]" or "[Person] will do [task]"** — assignment claims from non-authoritative sources
 
 ---
 
@@ -99,10 +110,64 @@ Invoke when wiki content contains:
 | Decision made | issue ticket, PR, meeting notes | Query issue tracker API, git log, meeting adapter |
 | Timeline/date | Git commits, deploy logs | `git log --since --until` |
 | Attribution | PR author, ticket assignee | Git blame, issue assignee field |
+| **Task ownership** | **Issue tracker assignee field** | **Query issue tracker for current assignee — wiki plan tables are NOT authoritative** |
 | Quote | Meeting transcript, ticket comment | Meeting adapter, issue comment |
 | Incident reference | Incident doc, postmortem | Wiki search, git history |
 
 **If you cannot find a source, the claim is SUSPECT until verified.**
+
+</EXTREMELY_IMPORTANT>
+
+---
+
+## ⚠️ Source Authority Matrix
+
+<EXTREMELY_IMPORTANT>
+
+**Not all citations are equal.** A claim can be "sourced" from a wiki page and still be wrong. The source must be **authoritative for the specific type of claim** being made.
+
+### The Problem: Source Laundering
+
+When content from one system (e.g., a wiki planning table) is treated as fact in another system (e.g., a new wiki page), the original source's limitations are erased. The claim gains the appearance of being verified simply because it has a provenance — even though that provenance isn't authoritative.
+
+**Real incident (2026-03-18):** A wiki Pilot Operational Plan contained a day-by-day table with `Day 2 | Junyi | Write SQL queries for funnel metrics`. This was an EM's aspirational plan, not a current assignment. An agent read this table and wrote "Junyi's funnel metrics queries (Pilot Plan Week 1 Day 2)" in a new wiki page. The claim appeared sourced (it referenced the Pilot Plan), but the Pilot Plan is not authoritative for who currently owns what — Linear is.
+
+### The Matrix
+
+| Claim Type | Authoritative Source | NON-Authoritative (requires verification) |
+|------------|---------------------|-------------------------------------------|
+| **Task ownership / assignment** | Issue tracker assignee field | Wiki plan tables, meeting notes, sprint schedules |
+| **Code authorship** | `git blame`, PR author | Wiki mentions, verbal claims, plan tables |
+| **Decision made** | Issue ticket, PR description, meeting transcript | Wiki summaries, secondhand accounts |
+| **Timeline / shipping date** | Git tags, deploy logs, CI timestamps | Wiki plan schedules, roadmap tables |
+| **Current system state** | Live config, API response, dashboard | Wiki architecture docs (may be stale) |
+
+### Verification Status Categories
+
+| Status | Meaning | Report Symbol |
+|--------|---------|---------------|
+| **VERIFIED** | Claim confirmed against authoritative source | ✅ |
+| **SOURCED BUT UNVERIFIED** | Claim references a source, but that source is not authoritative for this claim type | ⚠️🔄 |
+| **UNCITED** | No source referenced at all | ⚠️ |
+| **CONTRADICTED** | Authoritative source contradicts the claim | ❌ |
+
+### When You See "SOURCED BUT UNVERIFIED"
+
+The claim isn't necessarily wrong — but it hasn't been verified against the right system. Actions:
+
+1. **Query the authoritative source** (e.g., check Linear for task assignment)
+2. **If confirmed:** Upgrade to VERIFIED and optionally add authoritative citation
+3. **If contradicted:** Flag as CONTRADICTED — the non-authoritative source is stale
+4. **If unverifiable:** Remove the attribution or add qualifier: "per wiki plan, unverified in Linear"
+
+### Detection Patterns for Source Laundering
+
+Flag these as "SOURCED BUT UNVERIFIED" when the source is a wiki plan/schedule:
+
+- "[Person]'s [task]" where ownership comes from a wiki plan table, not issue tracker
+- "assigned to [Person] (per [Plan Page])" — plan pages describe intent, not current state
+- "[Person] will [do task] by [date]" sourced from a schedule, not an active ticket
+- "per the sprint plan / operational plan / roadmap" used as authority for who owns what
 
 </EXTREMELY_IMPORTANT>
 
@@ -129,10 +194,12 @@ Parse wiki content for verifiable claims. Flag any statement containing:
 │ Code decision       │ PR description      │ git log    │
 │ Architecture choice │ ADR, issue ticket  │ meeting    │
 │ Timeline/shipping   │ git tags, deploys   │ Issues     │
-│ Verbal agreement    │ Meeting transcript  │ none*      │
+│ Task ownership      │ Issue tracker       │ wiki plan* │
+│ Verbal agreement    │ Meeting transcript  │ none**     │
 │ Incident details    │ postmortem doc      │ wiki hist  │
 └─────────────────────────────────────────────────────────┘
-* Verbal claims without recording = UNVERIFIABLE
+*  Wiki plan tables are NOT authoritative for task ownership — verify in issue tracker
+** Verbal claims without recording = UNVERIFIABLE
 ```
 
 ### Step 3: Query Sources
@@ -339,6 +406,25 @@ repo_list_pull_requests(
 | "After the January incident..." | Find incident doc from January |
 | "We migrated from A to B" | Find commits removing A, adding B |
 
+### Source Laundering (Wiki-to-Wiki Attribution)
+
+**This is the most dangerous pattern because the claim appears sourced.**
+
+| Pattern | Example | Red Flag |
+|---------|---------|----------|
+| Possessive attribution from wiki plan | "Junyi's funnel metrics queries" | Does the issue tracker show Junyi assigned to this? |
+| Task ownership from sprint schedule | "Thomas handles the businessHours fix (Day 2)" | Is this a current Linear assignment or an aspirational plan? |
+| Timeline from roadmap table | "Ships in Sprint 2 per the v1 Plan" | Is this the current sprint assignment in the tracker, or a planning artifact? |
+| Competence claim from plan | "Junyi will write the SQL queries" | Was this ever assigned, or is it a plan table entry? |
+
+**Key principle:** Wiki plan tables, sprint schedules, and roadmaps describe *intent*. Issue tracker assignee fields describe *current state*. When writing about who owns what, verify against current state.
+
+**Real incident (2026-03-18):**
+- Wiki Pilot Plan table said: `Day 2 | Junyi | Write SQL queries for funnel metrics`
+- Agent wrote in new wiki page: "Junyi's funnel metrics queries (Pilot Plan Week 1 Day 2)"
+- Reality: No such task was assigned to Junyi in Linear
+- Root cause: Agent treated wiki plan (aspirational) as authoritative for task ownership
+
 ---
 
 ## Meeting Transcript Verification
@@ -419,12 +505,13 @@ Note: Meeting share URLs may require authentication.
 ## Verification Checklist
 
 - [ ] **Extract claims** — List all factual assertions
-- [ ] **Categorize** — Decision? Timeline? Attribution? Quote?
-- [ ] **Identify source** — Git, issue tracker, meeting transcript, wiki?
+- [ ] **Categorize** — Decision? Timeline? Attribution? Task ownership? Quote?
+- [ ] **Check source authority** — Is the source authoritative for this claim type? (see [Source Authority Matrix](#h-source-authority-matrix))
+- [ ] **Identify authoritative source** — Git, issue tracker, meeting transcript? (NOT wiki plan tables for ownership)
 - [ ] **Query source** — Use appropriate adapter/API
-- [ ] **Evaluate match** — Exact? Paraphrase? Contradiction?
-- [ ] **Add citation** — Inline link to source
-- [ ] **Flag unverified** — Mark suspect claims with ⚠️
+- [ ] **Evaluate match** — Exact? Paraphrase? Contradiction? Sourced-but-unverified?
+- [ ] **Add citation** — Inline link to authoritative source
+- [ ] **Flag appropriately** — ⚠️ UNCITED, ⚠️🔄 SOURCED BUT UNVERIFIED, or ❌ CONTRADICTED
 
 ---
 
@@ -442,8 +529,10 @@ Note: Meeting share URLs may require authentication.
 Before writing ANY factual claim:
 
 1. IDENTIFY — What type of claim is this?
-2. SOURCE — What primary source would contain evidence?
-3. QUERY — Search that source for corroboration
-4. CITE — Add inline citation or flag as unverified
-5. MARK — If unverifiable, add ⚠️ UNVERIFIED tag
+2. AUTHORITY — Is my source authoritative for this claim type?
+   (Wiki plan table ≠ authoritative for task ownership)
+3. SOURCE — What PRIMARY source would contain evidence?
+4. QUERY — Search that source for corroboration
+5. CITE — Add inline citation or flag appropriately
+6. MARK — ✅ VERIFIED, ⚠️🔄 SOURCED BUT UNVERIFIED, ⚠️ UNCITED, or ❌ CONTRADICTED
 ```
