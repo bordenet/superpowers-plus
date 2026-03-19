@@ -1,45 +1,69 @@
+# =============================================================================
+# OneDrive / cloud sync artifacts
+# =============================================================================
+# OneDrive creates random-named temp/conflict files (commas, tildes, hashes)
+*,*
+*#*#
+~$*
+~*
+*~
+*.tmp
+*.temp
+.~lock.*
 
-._*
-.apdisk
-.AppleDouble
-.cache/
+# =============================================================================
+# macOS
+# =============================================================================
 .DS_Store
-.env
-.fseventsd
-.github/instructions/codacy.instructions.md
-.idea/
+._*
+.AppleDouble
 .LSOverride
-.slop-dictionary.json
-.slop-metrics.json
 .Spotlight-V100
-.superpowers-session
 .Trashes
+.fseventsd
+.apdisk
+Icon?
+Thumbs.db
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.idea/
 .vscode/
-*.backup
-*.bak
+*.swp
+*.swo
 *.sublime-project
 *.sublime-workspace
-*.swp
-*.temp
-*.tmp
-*~
-/.profanity-patterns.txt
-# Backup files
-# Environment secrets (keep .env.example, ignore .env)
-# IDE and editor files
-# MacOS directory preferences
-# MacOS resource forks
-# MacOS specific files
-# Node.js (in case of local testing)
-# Profanity patterns - root-level file is for local overrides (not tracked)
-# scripts/.profanity-patterns.txt IS tracked - it's the reference list
-# Slop detection workspace files
-# Temporary files
-# Thumbnail cache
-# wiki-instruction-guard local domain allowlist (org-specific, never committed)
-#Ignore vscode AI rules
-Icon
+.github/instructions/codacy.instructions.md
+
+# =============================================================================
+# Environment / secrets
+# =============================================================================
+.env
+
+# =============================================================================
+# Build / runtime artifacts
+# =============================================================================
 node_modules/
 npm-debug.log*
-Nv,f8H811
+*.log
+*.backup
+*.bak
+.cache/
+
+# =============================================================================
+# Project-specific
+# =============================================================================
+# Profanity patterns - root-level file is for local overrides (not tracked)
+# scripts/.profanity-patterns.txt IS tracked - it's the reference list
+/.profanity-patterns.txt
+
+# Slop detection workspace files
+.slop-dictionary.json
+.slop-metrics.json
+
+# Session state
+.superpowers-session
+
+# wiki-instruction-guard local domain allowlist (org-specific, never committed)
 skills/security/wiki-instruction-guard/references/domain-allowlist-local.md

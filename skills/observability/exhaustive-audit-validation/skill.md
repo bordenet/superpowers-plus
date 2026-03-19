@@ -63,7 +63,7 @@ Maintain a checklist showing status of EVERY item:
 |---|------|--------|-------|
 | 1 | wiki-orchestrator/skill.md | ✅ Fixed | Added triggers |
 | 2 | detecting-ai-slop/skill.md | ✅ Fixed | Added triggers |
-| 3 | vitest-testing-patterns/skill.md | ❌ TODO | Missing YAML |
+| 3 | vitest-testing-patterns/skill.md | ✅ Migrated | Moved to overlay repo |
 | ... | ... | ... | ... |
 
 **Status options:**

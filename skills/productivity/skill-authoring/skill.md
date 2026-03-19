@@ -9,7 +9,7 @@ description: The genesis capability — create new skills from natural language 
 
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
-> **See also:** [skill-effectiveness](../../observability/skill-effectiveness/skill.md) for pattern recording
+
 
 **Announce at start:** "I'm using the **skill-authoring** skill to help create a new skill."
 
@@ -79,33 +79,20 @@ Before presenting the draft:
 
 ---
 
-## Mode 2: From Recorded Patterns
+## Mode 2: From Observed Patterns
 
 **Triggers:** "turn this pattern into a skill", "synthesize skill from patterns"
 
 ### Process
 
-1. **Check candidates** — Run `check-synthesis-candidates` command
-2. **Review patterns** — Patterns with frequency ≥ 3 shown in table
-3. **Select pattern** — Choose one to synthesize
-4. **Generate draft** — Create skill.md from pattern description
+1. **Identify pattern** — User describes a recurring workflow or behavior they want codified
+2. **Review scope** — Determine if the pattern is distinct enough to warrant its own skill
+3. **Generate draft** — Create skill.md from pattern description
+4. **Validate** — Run through the quality checklist (see below)
 
-### Find Synthesis Candidates
+### Example
 
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js check-synthesis-candidates
-```
-
-This shows patterns observed 3+ times that haven't been synthesized yet.
-
-**Example output:**
-| # | Pattern | Freq | Suggested Name | Last Seen |
-|---|---------|------|----------------|-----------|
-| 1 | Always run lint before commit | 5x | pre-commit-lint | 2026-03-15 |
-
-### Synthesize a Pattern
-
-When you see a candidate worth codifying, tell the AI:
+When you notice a recurring pattern worth codifying, tell the AI:
 > "Turn this pattern into a skill: [pattern description]"
 
 The pattern description contains the "what" — extract trigger conditions, actions, and outcomes, then expand into the full skill structure.
@@ -186,7 +173,6 @@ composition:
 
 | Skill | How skill-authoring Uses It |
 |-------|----------------------------|
-| skill-effectiveness | Reads pattern_observations for synthesis |
 | golden-agents | Similar scaffolding UX pattern |
 | brainstorming | Could be invoked for skill design |
 | readme-authoring | Generates README alongside skill.md |

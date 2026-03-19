@@ -1,6 +1,20 @@
 # superpowers-plus
 
-51 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+
+## ⚠️ Token Consumption Advisory
+
+These skills are designed for **depth over efficiency**. Each skill loads context, invokes sub-agents, cross-references other skills, and runs multi-step verification pipelines. A single wiki edit might trigger link verification, content coherence checks, slop detection, and post-update validation — each consuming tokens.
+
+**This is by design.** The quality ceiling is dramatically higher when an AI assistant can draw on 47 specialized skills, but the cost floor is higher too. Superpowers-plus is best suited for environments where token budgets are generous or unlimited (enterprise plans, high-volume API keys, self-hosted models).
+
+If you're on a metered plan and watching costs:
+
+- **Skill chaining** — one skill can invoke others, compounding consumption
+- **Reference loading** — skills with `references/` subdirectories pull additional context on demand
+- **Verification loops** — many skills re-read their output to confirm correctness
+
+If there's sufficient interest, I'll add configuration knobs to control consumption — skill-level opt-in/opt-out, reference loading toggles, and verification depth settings. Open an issue or start a discussion if this matters to you.
 
 ## Quick Start
 
@@ -12,19 +26,21 @@ cd superpowers-plus
 
 ## What's Included
 
-**51 skills** across 9 domains:
+**47 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
-| engineering | 11 | Pre-commit gates, blast radius, PR review, TypeScript strict mode |
+| engineering | 7 | Pre-commit gates, blast radius, PR review, engineering-rigor hub |
 | productivity | 11 | Innovation, TODO tracking/archiving, adversarial search, thinking orchestrator, domain design, skill synthesis |
 | wiki | 8 | Page management, link checks, credential scanning, content coherence |
-| writing | 6 | Slop detection, profanity gates, table discipline |
+| writing | 5 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
-| observability | 3 | Completeness checks, audit validation, repo verification |
+| observability | 4 | Completeness checks, audit validation, repo verification, superpowers-doctor |
 | security | 4 | Repo security scanning, CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
+
+> **Note:** TypeScript-specific skills (`typescript-project-conventions`, `typescript-strict-mode`, `cognitive-complexity-refactoring`, `vitest-testing-patterns`) have been migrated to a private overlay repo. See the overlay mechanism in `superpowers-augment.js` (`spc:` prefix).
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
@@ -51,7 +67,7 @@ The skills table below is the current output of this flywheel. It will be larger
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 50-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 47-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
@@ -169,16 +185,12 @@ Works offline using local TF-IDF. No API keys required.
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
-| | cognitive-complexity-refactoring | Reduces function complexity scores |
-| | engineering-rigor | Quality philosophy hub |
+| | engineering-rigor | Quality philosophy hub (routes to TS skills in overlay repo) |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
-| | typescript-project-conventions | Import paths, file organization |
-| | typescript-strict-mode | Eliminates `any`, `!`, `unknown` |
 | | verification-before-completion | Final checks before claiming done |
-| | vitest-testing-patterns | Mock patterns, SDK constructors |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
 | | issue-comment-debunker | Fact-checks before posting |
@@ -218,7 +230,6 @@ Works offline using local TF-IDF. No API keys required.
 | | markdown-table-discipline | Enforces table best practices |
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
-| | reviewing-ai-text | Evaluates generated content |
 
 > **Note:** Skills marked 🦸 (superpowers) are auto-triggered by semantic matching. Explicit skills are invoked by name or as dependencies of other skills (e.g., `wiki-editing` is invoked by `wiki-orchestrator`, `link-verification` is invoked by `wiki-editing`).
 
