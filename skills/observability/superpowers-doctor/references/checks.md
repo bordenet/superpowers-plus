@@ -242,13 +242,21 @@ Timestamp comparison is **insufficient** — a corrupted file can have a newer t
 **Overlay-aware:** When a skill exists in BOTH superpowers-plus AND superpowers-example-org,
 the example-org version takes precedence. Compare installed against the **highest-priority source**.
 
+Uses the same discovery as the `spp:`/`spc:` namespace prefixes in `superpowers-augment.js`:
+- `SP_PLUS_DIR` → env `SPP_SOURCE_DIR` or well-known path
+- `SP_CALLBOX_DIR` → env `SPC_SOURCE_DIR` or well-known path
+- Priority: example-org > plus (last match wins)
+
 ```bash
-# Build priority map: example-org overrides plus
+# Build priority map using namespace-aware discovery (example-org overrides plus)
+# SOURCE_DIRS order: [plus, example-org] — last wins, so example-org takes precedence
 declare -A PRIORITY_SOURCE
-for dir in "${SOURCE_DIRS[@]}"; do
-  find "$dir" -name "skill.md" -not -path "*/references/*" | while read src; do
+for dir in "$SP_PLUS_DIR" "$SP_CALLBOX_DIR"; do
+  [[ -z "$dir" ]] && continue
+  local search_root="$dir"
+  [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  find "$search_root" -name "skill.md" -not -path "*/references/*" | while read src; do
     skill=$(basename "$(dirname "$src")")
-    # ExampleOrg entries overwrite plus entries (last wins, example-org scanned last)
     PRIORITY_SOURCE[$skill]="$src"
   done
 done
@@ -489,13 +497,17 @@ done
 - Stale reference files (content has diverged between source and installed)
 
 **Overlay-aware:** Same as Check 9 — compare installed references against the
-**highest-priority source** (example-org overrides plus).
+**highest-priority source** (example-org overrides plus). Uses same `SP_PLUS_DIR`/`SP_CALLBOX_DIR`
+namespace-aware discovery.
 
 ```bash
 # Build priority map for reference files (example-org overrides plus)
 declare -A REF_PRIORITY
-for dir in "${SOURCE_DIRS[@]}"; do
-  find "$dir" -path "*/references/*.md" | while read src_ref; do
+for dir in "$SP_PLUS_DIR" "$SP_CALLBOX_DIR"; do
+  [[ -z "$dir" ]] && continue
+  local search_root="$dir"
+  [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  find "$search_root" -path "*/references/*.md" | while read src_ref; do
     skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
     ref_name=$(basename "$src_ref")
     key="${skill_dir}/${ref_name}"
