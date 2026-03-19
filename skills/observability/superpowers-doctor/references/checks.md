@@ -153,25 +153,52 @@ done
 
 **Fix:** `rm -rf ~/.codex/skills/<orphan>` or re-add to source repo.
 
-### Check 9: Source-Install Drift
+### Check 9: Source-Install Content Drift
 
-**What:** Source skill.md is newer than the installed copy.
+**What:** Content-diff every installed skill.md against its git source. Catches:
+- Content regression (installed has older/simpler version)
+- Content corruption (installed file contains unrelated content)
+- Bidirectional drift (source and installed diverged independently)
+
+Timestamp comparison is **insufficient** — a corrupted file can have a newer timestamp.
 
 ```bash
 for dir in "${SOURCE_DIRS[@]}"; do
   find "$dir" -name "skill.md" -not -path "*/references/*" | while read src; do
     skill=$(basename "$(dirname "$src")")
     installed="$INSTALLED_DIR/$skill/skill.md"
-    if [[ -f "$installed" ]] && [[ "$src" -nt "$installed" ]]; then
-      src_date=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$src" 2>/dev/null || stat -c "%y" "$src" 2>/dev/null | cut -d. -f1)
-      inst_date=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$installed" 2>/dev/null || stat -c "%y" "$installed" 2>/dev/null | cut -d. -f1)
-      echo "ERROR: $skill — source ($src_date) newer than installed ($inst_date)"
+    [[ ! -f "$installed" ]] && continue
+
+    # Content diff (not timestamp)
+    if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
+      src_lines=$(wc -l < "$src" | tr -d ' ')
+      inst_lines=$(wc -l < "$installed" | tr -d ' ')
+      # Check for corruption: do the files share at least 30% of lines?
+      common=$(comm -12 <(sort "$src") <(sort "$installed") | wc -l | tr -d ' ')
+      total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
+      if [[ "$total" -gt 0 ]]; then
+        overlap_pct=$(( common * 100 / total ))
+      else
+        overlap_pct=0
+      fi
+
+      if [[ "$overlap_pct" -lt 30 ]]; then
+        echo "CRITICAL: $skill — content CORRUPTION (${overlap_pct}% overlap, likely wrong file)"
+        echo "  Source: $src ($src_lines lines)"
+        echo "  Installed: $installed ($inst_lines lines)"
+        echo "  Fix: cp \"$src\" \"$installed\""
+      else
+        echo "ERROR: $skill — content drift ($src_lines src vs $inst_lines installed, ${overlap_pct}% overlap)"
+        echo "  Fix: Run ./install.sh or cp \"$src\" \"$installed\""
+      fi
     fi
   done
 done
 ```
 
-**Fix:** Run `./install.sh` to sync.
+**Severity:** CRITICAL if <30% content overlap (corruption). ERROR if content differs but is recognizably the same skill.
+
+**Fix:** `cp "$src" "$installed"` or run `./install.sh`. For corruption, investigate how the wrong content got there.
 
 ---
 
@@ -329,3 +356,70 @@ done
 ```
 
 **Fix:** Add missing sections. See `skill-authoring` skill for the recommended template.
+
+---
+
+## 🔴 CRITICAL — Content Integrity
+
+### Check 16: Reference File Integrity
+
+**What:** Content-diff every installed `references/*.md` against its git source. Catches:
+- Missing reference files (source has them, installed doesn't — or vice versa)
+- Corrupted reference files (installed contains unrelated content, e.g., a bash script in a checks.md)
+- Stale reference files (content has diverged between source and installed)
+
+```bash
+for dir in "${SOURCE_DIRS[@]}"; do
+  find "$dir" -path "*/references/*.md" | while read src_ref; do
+    skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
+    ref_name=$(basename "$src_ref")
+    installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
+
+    if [[ ! -f "$installed_ref" ]]; then
+      echo "ERROR: $skill_dir — missing installed reference: references/$ref_name"
+      echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+      continue
+    fi
+
+    if ! diff -q "$src_ref" "$installed_ref" > /dev/null 2>&1; then
+      src_lines=$(wc -l < "$src_ref" | tr -d ' ')
+      inst_lines=$(wc -l < "$installed_ref" | tr -d ' ')
+      # Corruption check: do they share meaningful content?
+      common=$(comm -12 <(sort "$src_ref") <(sort "$installed_ref") | wc -l | tr -d ' ')
+      total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
+      overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
+
+      if [[ "$overlap_pct" -lt 30 ]]; then
+        echo "CRITICAL: $skill_dir/references/$ref_name — CORRUPTION (${overlap_pct}% overlap)"
+        echo "  Installed file may contain content from a DIFFERENT file"
+        echo "  Source: $src_lines lines | Installed: $inst_lines lines"
+        echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+      else
+        echo "ERROR: $skill_dir/references/$ref_name — content drift (${overlap_pct}% overlap)"
+        echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+      fi
+    fi
+  done
+done
+
+# Reverse check: installed references not in source
+for inst_ref in $(find "$INSTALLED_DIR" -path "*/references/*.md" 2>/dev/null); do
+  skill_dir=$(basename "$(dirname "$(dirname "$inst_ref")")")
+  ref_name=$(basename "$inst_ref")
+  found=false
+  for dir in "${SOURCE_DIRS[@]}"; do
+    src_skill=$(find "$dir" -maxdepth 3 -type d -name "$skill_dir" 2>/dev/null | head -1)
+    if [[ -n "$src_skill" ]] && [[ -f "$src_skill/references/$ref_name" ]]; then
+      found=true
+      break
+    fi
+  done
+  if ! $found; then
+    echo "WARNING: $skill_dir/references/$ref_name — installed but not in any source repo (orphaned reference)"
+  fi
+done
+```
+
+**Real incident (2026-03-19):** `superpowers-doctor/references/checks.md` installed copy contained `write-archives.sh` bash script content instead of the 331-line check procedures. 0% content overlap. Went undetected because no check compared file content — only timestamps.
+
+**Fix:** `cp "$src_ref" "$installed_ref"`. For corruption, investigate the install pipeline for copy errors.
