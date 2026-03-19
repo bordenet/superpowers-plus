@@ -2,7 +2,7 @@
 name: superpowers-doctor
 source: superpowers-plus
 triggers: ["superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
-description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 15 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, and structural defects. Modeled after brew doctor."
+description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 16 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, and structural defects. Modeled after brew doctor."
 ---
 
 # Superpowers Doctor
@@ -10,7 +10,7 @@ description: "Industrial-grade integrity check for the local skill ecosystem. It
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-19
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 15 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 16 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
@@ -33,11 +33,11 @@ INSTALLED_DIR=~/.codex/skills
 
 Build a **skill registry** — for each installed skill, record: name, installed path, source path (if found), line count, YAML fields present, trigger list.
 
-### Step 1: Run All 15 Checks
+### Step 1: Run All 16 Checks
 
 Run every check from `references/checks.md` against every skill in the registry. Collect all findings into a structured results array.
 
-**The 15 checks by severity tier:**
+**The 16 checks by severity tier:**
 
 | # | Tier | Check | What It Catches |
 |---|------|-------|-----------------|
@@ -49,13 +49,14 @@ Run every check from `references/checks.md` against every skill in the registry.
 | 6 | 🟠 ERROR | Oversized skills | >250 lines — truncated in context windows |
 | 7 | 🟠 ERROR | Missing description | Skill router can't discover or match it |
 | 8 | 🟠 ERROR | Orphaned installs | Installed but absent from all source repos |
-| 9 | 🟠 ERROR | Source-install drift | Source newer than installed copy |
+| 9 | 🔴 CRITICAL | Source-install content drift | Content-diff skill.md (not just timestamps). Detects corruption (<30% overlap) and regression |
 | 10 | 🟡 WARNING | Missing triggers | No triggers array AND not in EXPLICIT_SKILLS |
 | 11 | 🟡 WARNING | Trigger overlap | Two+ skills share identical trigger phrases |
 | 12 | 🟡 WARNING | Deprecated but active | "deprecated"/"replaced by" text + active triggers |
 | 13 | 🟡 WARNING | Dead external refs | Wiki URLs, file paths, or links that don't resolve |
 | 14 | 🔵 INFO | Junk files | Non-skill files in repo roots |
 | 15 | 🔵 INFO | Structure quality | Missing "When to Use", no examples, no failure modes |
+| 16 | 🔴 CRITICAL | Reference file integrity | Content-diff all references/*.md. Catches corruption, missing files, orphaned refs |
 
 **See `references/checks.md` for detailed procedures for each check.**
 
@@ -106,7 +107,7 @@ Print in `brew doctor` style — worst problems first, clean checks last.
 If all checks pass:
 ```
 🩺 Superpowers Doctor — 87 skills scanned
-✅ All 15 checks passed. Your superpowers are in perfect health.
+✅ All 16 checks passed. Your superpowers are in perfect health.
 ```
 
 ## Severity Guide
