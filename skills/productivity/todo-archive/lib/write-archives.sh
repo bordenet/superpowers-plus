@@ -5,6 +5,13 @@
 #   TODO_PATH, TODO_LINES, ARCHIVE_DIR, TASKS_TO_ARCHIVE, TASK_COUNT,
 #   KEPT_LINES, HISTORY_START, HISTORY_END, HISTORY_BLOCK
 
+# --- Bash 4+ required for declare -A ---
+if ((BASH_VERSINFO[0] < 4)); then
+  echo "ERROR: todo-archive requires bash 4+. You have bash ${BASH_VERSION}" >&2
+  echo "  macOS fix: brew install bash" >&2
+  exit 1
+fi
+
 # --- Backup ---
 BACKUP_PATH="${TODO_PATH}.$(date +%Y%m%d-%H%M%S).bak"
 cp "$TODO_PATH" "$BACKUP_PATH"
