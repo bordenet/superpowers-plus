@@ -45,6 +45,21 @@ if ! [[ -t 0 ]]; then
     YES=true
 fi
 
+# --- CRLF self-heal (WSL + Windows git clone with core.autocrlf=true) ---
+# If this script or its modules have Windows line endings, bash will fail with
+# cryptic errors like "syntax error near unexpected token `$'\r'". Fix them
+# before sourcing anything.
+if grep -q $'\r' "${BASH_SOURCE[0]}" 2>/dev/null; then
+    # Fix this script and all lib modules in-place
+    find "$SCRIPT_DIR" -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+    echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
+    echo "       Re-run: $0 $*"
+    echo ""
+    echo "       To prevent this, configure git:"
+    echo "         git config --global core.autocrlf input"
+    exit 0
+fi
+
 # --- Source modules in dependency order ---
 INSTALL_LIB_DIR="${SCRIPT_DIR}/lib/install"
 

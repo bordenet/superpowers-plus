@@ -11,6 +11,24 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+dangerous-pattern-scan.sh — Scan shell scripts for dangerous patterns
+
+USAGE
+  ./tools/dangerous-pattern-scan.sh [--all]
+
+OPTIONS
+  --all    Scan all .sh files in the repo (default: staged files only)
+  --help   Show this help message
+
+DESCRIPTION
+  Scans for destructive commands (rm -rf ~/, force pushes, etc.) in staged
+  shell scripts as a pre-commit safety gate. Exit 0 = clean, 1 = found.
+HELP
+  exit 0
+fi
+
 MODE="staged"
 [[ "${1:-}" == "--all" ]] && MODE="all"
 
