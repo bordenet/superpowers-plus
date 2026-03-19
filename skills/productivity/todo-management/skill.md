@@ -42,23 +42,6 @@ When user says "implement this plan", "execute these steps", etc.:
 4. **Track progress** — Update both systems as you complete steps
 5. **Verify** — Filter by `#plan-<identifier>` to check completion
 
-### Example: Executing a 4-Step Plan
-
-```
-User: "Implement the config refactor: 1) Update config, 2) Add validation, 3) Write tests, 4) Update docs"
-
-Agent:
-1. Derive effort identifier: "config refactor" → config-refactor
-2. Write 4 tasks to TODO.md as P1 #plan-config-refactor #engineering
-3. Call add_tasks: create parent "Plan: Config Refactor", add steps as children
-4. For each step:
-   - Mark IN_PROGRESS in both systems
-   - Do the work
-   - Mark COMPLETE in both systems
-5. Verify: Filter #plan-config-refactor in TODO.md, call view_tasklist
-6. Report "Config refactor complete"
-```
-
 ### Querying by Effort
 
 | Query | Action |
@@ -66,26 +49,11 @@ Agent:
 | "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
 | "Show my active plans" | List unique `#plan-*` tags with task counts |
 | "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
-| "Switch to auth-fix" | Set current context for subsequent completion commands |
 
-### MCP Tool Reference (Supplementary)
+### MCP Tools (Supplementary)
 
-| Tool | Purpose | When to Call |
-|------|---------|--------------|
-| `add_tasks` | Create parent task + children | After writing to TODO.md |
-| `update_tasks` | Sync state changes | After updating TODO.md |
-| `view_tasklist` | Quick status check | In addition to reading TODO.md |
-
-### When MCP Tools Are Unavailable
-
-If MCP tools are not available, **TODO.md is sufficient**. The file provides:
-- Full persistence
-- Recovery from interruptions
-- Cross-session continuity
-- Queryable history ("what did I do?")
-- Effort isolation via `#plan-<identifier>` tags
-
-MCP tools are a convenience layer, not a requirement.
+MCP tools (`add_tasks`, `update_tasks`, `view_tasklist`) provide real-time UI visibility
+but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if available.
 
 ---
 
@@ -189,8 +157,6 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 | "What should I work on?" | Brainstorm mode |
 | "Triage" | Review active tasks |
 
----
-
 ## Priority Framework
 
 | Priority | Label | Max | Definition |
@@ -232,6 +198,45 @@ See `references/file-format-and-operations.md` for:
 
 ---
 
+## ♻️ Housekeeping (MANDATORY — Every Session)
+
+**Completed tasks rot.** If `[x]` items accumulate in ACTIVE, TODO.md becomes bloated
+and unusable. This check runs on EVERY session where todo-management is invoked.
+
+### On Every Task Completion
+
+When marking a task `[x]`, **move it to HISTORY immediately** — do NOT leave `[x]` items
+in the ACTIVE section. The correct completion flow is:
+
+1. Remove the `[x]` task block from its P1/P2/P3 section
+2. Add it under `# HISTORY` → `## YYYY-MM-DD` (today's date)
+3. Add `  - Done: YYYY-MM-DD` if not already present
+
+### Post-Session Archive Check
+
+After completing work (before signing off), check if archiving is needed:
+
+```bash
+TODO_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')
+STALE=$(sed -n '/^# HISTORY/,/^# DEFERRED/p' "$TODO_PATH" | grep -c '^\- \[x\]' || echo 0)
+echo "TODO.md: $TODO_LINES lines, $STALE completed tasks in HISTORY"
+```
+
+**Archive triggers (any match = run archive):**
+
+| Condition | Action |
+|-----------|--------|
+| HISTORY has ≥5 completed tasks | Run `~/.codex/skills/todo-archive/todo-archive.sh --force` |
+| TODO.md exceeds 200 lines | Run archive |
+| HISTORY entries are >7 days old | Run archive |
+
+**Companion skill:** `todo-archive` handles the actual archival to monthly satellite files
+in `todo-archives/YYYY-MM.md`. Invoke it or run the script directly.
+
+**Anti-pattern:** `[x]` items left in P1/P2/P3 sections. Only `[ ]` tasks belong in ACTIVE.
+
+---
+
 ## Backup Policy
 
 Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
@@ -240,5 +245,5 @@ Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
 
 ## Reference Files
 
-- [`references/taxonomy.md`](references/taxonomy.md) — Full tagging taxonomy (engineering, recruiting, general, plan tags), customization guidance
-- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format template, task ID format, core operations, implementation workflow, weekly feedback
+- [`references/taxonomy.md`](references/taxonomy.md) — Full tagging taxonomy, customization guidance
+- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format, task ID format, core operations, implementation workflow
