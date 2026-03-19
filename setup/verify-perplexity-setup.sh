@@ -16,6 +16,24 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+verify-perplexity-setup.sh — Verify Perplexity MCP + skill setup
+
+USAGE
+  ./setup/verify-perplexity-setup.sh
+
+DESCRIPTION
+  Runs 5 verification tests:
+    1. Superpowers framework installed
+    2. Perplexity skill installed and discoverable
+    3. Stats file exists and valid
+    4. Perplexity MCP configured (Claude Desktop, Claude Code, or Augment)
+    5. API key configured (without revealing it)
+HELP
+  exit 0
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
