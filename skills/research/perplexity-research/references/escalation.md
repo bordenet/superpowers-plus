@@ -27,4 +27,3 @@ Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this de
 - For pure reasoning problems, external research won't help
 
 **See also:** `think-twice` skill for fresh perspective via sub-agent consultation
-

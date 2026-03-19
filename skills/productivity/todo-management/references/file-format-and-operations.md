@@ -154,4 +154,3 @@ When user provides feedback:
 Prompt: "Weekly TODO check-in: What's working? What's frustrating? Any feature requests?"
 
 Collect: effectiveness rating (1-5), friction points, feature requests, tagging corrections. Store in METRICS section.
-
