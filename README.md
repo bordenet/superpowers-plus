@@ -12,7 +12,7 @@ cd superpowers-plus
 
 ## What's Included
 
-**46 skills** across 9 domains:
+**47 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -21,7 +21,7 @@ cd superpowers-plus
 | wiki | 8 | Page management, link checks, credential scanning, content coherence |
 | writing | 5 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
-| observability | 3 | Completeness checks, audit validation, repo verification |
+| observability | 4 | Completeness checks, audit validation, repo verification, superpowers-doctor |
 | security | 4 | Repo security scanning, CVE scanning, IP protection, instruction guard |
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
