@@ -56,4 +56,3 @@ Phase 4: VERIFY
 | Editing from memory without fresh fetch | Overwrites concurrent edits |
 | One API call per page with no batching plan | Context exhaustion on page 15 of 30 |
 | Pushing all pages then verifying | Can't roll back; broken links cascade |
-
