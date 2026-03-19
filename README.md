@@ -2,6 +2,20 @@
 
 47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
+## ⚠️ Token Consumption Advisory
+
+These skills are designed for **depth over efficiency**. Each skill loads context, invokes sub-agents, cross-references other skills, and runs multi-step verification pipelines. A single wiki edit might trigger link verification, content coherence checks, slop detection, and post-update validation — each consuming tokens.
+
+**This is by design.** The quality ceiling is dramatically higher when an AI assistant can draw on 47 specialized skills, but the cost floor is higher too. Superpowers-plus is best suited for environments where token budgets are generous or unlimited (enterprise plans, high-volume API keys, self-hosted models).
+
+If you're on a metered plan and watching costs:
+
+- **Skill chaining** — one skill can invoke others, compounding consumption
+- **Reference loading** — skills with `references/` subdirectories pull additional context on demand
+- **Verification loops** — many skills re-read their output to confirm correctness
+
+If there's sufficient interest, I'll add configuration knobs to control consumption — skill-level opt-in/opt-out, reference loading toggles, and verification depth settings. Open an issue or start a discussion if this matters to you.
+
 ## Quick Start
 
 ```bash
