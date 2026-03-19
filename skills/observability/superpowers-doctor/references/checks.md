@@ -239,37 +239,44 @@ fi
 
 Timestamp comparison is **insufficient** — a corrupted file can have a newer timestamp.
 
+**Overlay-aware:** When a skill exists in BOTH superpowers-plus AND superpowers-callbox,
+the callbox version takes precedence. Compare installed against the **highest-priority source**.
+
 ```bash
+# Build priority map: callbox overrides plus
+declare -A PRIORITY_SOURCE
 for dir in "${SOURCE_DIRS[@]}"; do
   find "$dir" -name "skill.md" -not -path "*/references/*" | while read src; do
     skill=$(basename "$(dirname "$src")")
-    installed="$INSTALLED_DIR/$skill/skill.md"
-    [[ ! -f "$installed" ]] && continue
-
-    # Content diff (not timestamp)
-    if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
-      src_lines=$(wc -l < "$src" | tr -d ' ')
-      inst_lines=$(wc -l < "$installed" | tr -d ' ')
-      # Check for corruption: do the files share at least 30% of lines?
-      common=$(comm -12 <(sort "$src") <(sort "$installed") | wc -l | tr -d ' ')
-      total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
-      if [[ "$total" -gt 0 ]]; then
-        overlap_pct=$(( common * 100 / total ))
-      else
-        overlap_pct=0
-      fi
-
-      if [[ "$overlap_pct" -lt 30 ]]; then
-        echo "CRITICAL: $skill — content CORRUPTION (${overlap_pct}% overlap, likely wrong file)"
-        echo "  Source: $src ($src_lines lines)"
-        echo "  Installed: $installed ($inst_lines lines)"
-        echo "  Fix: cp \"$src\" \"$installed\""
-      else
-        echo "ERROR: $skill — content drift ($src_lines src vs $inst_lines installed, ${overlap_pct}% overlap)"
-        echo "  Fix: Run ./install.sh or cp \"$src\" \"$installed\""
-      fi
-    fi
+    # Callbox entries overwrite plus entries (last wins, callbox scanned last)
+    PRIORITY_SOURCE[$skill]="$src"
   done
+done
+
+for skill in "${!PRIORITY_SOURCE[@]}"; do
+  src="${PRIORITY_SOURCE[$skill]}"
+  installed="$INSTALLED_DIR/$skill/skill.md"
+  [[ ! -f "$installed" ]] && continue
+
+  # Content diff (not timestamp)
+  if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
+    src_lines=$(wc -l < "$src" | tr -d ' ')
+    inst_lines=$(wc -l < "$installed" | tr -d ' ')
+    # Check for corruption: do the files share at least 30% of lines?
+    common=$(comm -12 <(sort "$src") <(sort "$installed") | wc -l | tr -d ' ')
+    total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
+    overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
+
+    if [[ "$overlap_pct" -lt 30 ]]; then
+      echo "CRITICAL: $skill — content CORRUPTION (${overlap_pct}% overlap, likely wrong file)"
+      echo "  Source: $src ($src_lines lines)"
+      echo "  Installed: $installed ($inst_lines lines)"
+      echo "  Fix: cp \"$src\" \"$installed\""
+    else
+      echo "ERROR: $skill — content drift ($src_lines src vs $inst_lines installed, ${overlap_pct}% overlap)"
+      echo "  Fix: Run ./install.sh or cp \"$src\" \"$installed\""
+    fi
+  fi
 done
 ```
 
@@ -277,7 +284,7 @@ done
 
 **Fix:** `cp "$src" "$installed"` or run `./install.sh`. For corruption, investigate how the wrong content got there.
 
-**Auto-fix:** ✅ Safe — copy source skill.md over installed copy.
+**Auto-fix:** ✅ Safe — copy highest-priority source skill.md over installed copy.
 
 ```bash
 # --fix mode: sync source → installed for skill.md
@@ -481,54 +488,59 @@ done
 - Corrupted reference files (installed contains unrelated content, e.g., a bash script in a checks.md)
 - Stale reference files (content has diverged between source and installed)
 
+**Overlay-aware:** Same as Check 9 — compare installed references against the
+**highest-priority source** (callbox overrides plus).
+
 ```bash
+# Build priority map for reference files (callbox overrides plus)
+declare -A REF_PRIORITY
 for dir in "${SOURCE_DIRS[@]}"; do
   find "$dir" -path "*/references/*.md" | while read src_ref; do
     skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
     ref_name=$(basename "$src_ref")
-    installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
-
-    if [[ ! -f "$installed_ref" ]]; then
-      echo "ERROR: $skill_dir — missing installed reference: references/$ref_name"
-      echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
-      continue
-    fi
-
-    if ! diff -q "$src_ref" "$installed_ref" > /dev/null 2>&1; then
-      src_lines=$(wc -l < "$src_ref" | tr -d ' ')
-      inst_lines=$(wc -l < "$installed_ref" | tr -d ' ')
-      # Corruption check: do they share meaningful content?
-      common=$(comm -12 <(sort "$src_ref") <(sort "$installed_ref") | wc -l | tr -d ' ')
-      total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
-      overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
-
-      if [[ "$overlap_pct" -lt 30 ]]; then
-        echo "CRITICAL: $skill_dir/references/$ref_name — CORRUPTION (${overlap_pct}% overlap)"
-        echo "  Installed file may contain content from a DIFFERENT file"
-        echo "  Source: $src_lines lines | Installed: $inst_lines lines"
-        echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
-      else
-        echo "ERROR: $skill_dir/references/$ref_name — content drift (${overlap_pct}% overlap)"
-        echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
-      fi
-    fi
+    key="${skill_dir}/${ref_name}"
+    REF_PRIORITY[$key]="$src_ref"
   done
 done
 
-# Reverse check: installed references not in source
+for key in "${!REF_PRIORITY[@]}"; do
+  src_ref="${REF_PRIORITY[$key]}"
+  skill_dir="${key%%/*}"
+  ref_name="${key##*/}"
+  installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
+
+  if [[ ! -f "$installed_ref" ]]; then
+    echo "ERROR: $skill_dir — missing installed reference: references/$ref_name"
+    echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+    continue
+  fi
+
+  if ! diff -q "$src_ref" "$installed_ref" > /dev/null 2>&1; then
+    src_lines=$(wc -l < "$src_ref" | tr -d ' ')
+    inst_lines=$(wc -l < "$installed_ref" | tr -d ' ')
+    common=$(comm -12 <(sort "$src_ref") <(sort "$installed_ref") | wc -l | tr -d ' ')
+    total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
+    overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
+
+    if [[ "$overlap_pct" -lt 30 ]]; then
+      echo "CRITICAL: $skill_dir/references/$ref_name — CORRUPTION (${overlap_pct}% overlap)"
+      echo "  Installed file may contain content from a DIFFERENT file"
+      echo "  Source: $src_lines lines | Installed: $inst_lines lines"
+      echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+    else
+      echo "ERROR: $skill_dir/references/$ref_name — content drift (${overlap_pct}% overlap)"
+      echo "  Fix: cp \"$src_ref\" \"$installed_ref\""
+    fi
+  fi
+done
+
+# Reverse check: installed references not in any priority source
 for inst_ref in $(find "$INSTALLED_DIR" -path "*/references/*.md" 2>/dev/null); do
   skill_dir=$(basename "$(dirname "$(dirname "$inst_ref")")")
   ref_name=$(basename "$inst_ref")
-  found=false
-  for dir in "${SOURCE_DIRS[@]}"; do
-    src_skill=$(find "$dir" -maxdepth 3 -type d -name "$skill_dir" 2>/dev/null | head -1)
-    if [[ -n "$src_skill" ]] && [[ -f "$src_skill/references/$ref_name" ]]; then
-      found=true
-      break
-    fi
-  done
-  if ! $found; then
-    echo "WARNING: $skill_dir/references/$ref_name — installed but not in any source repo (orphaned reference)"
+  key="${skill_dir}/${ref_name}"
+  if [[ -z "${REF_PRIORITY[$key]}" ]]; then
+    echo "WARNING: $skill_dir/references/$ref_name — installed but not in any source repo (orphaned)"
   fi
 done
 ```
