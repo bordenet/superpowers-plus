@@ -1,6 +1,6 @@
 # superpowers-plus
 
-46 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
+47 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with domain-specific capabilities including AI slop detection/elimination, link verification, and skill auto-composition.
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ The skills table below is the current output of this flywheel. It will be larger
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-This installs the core superpowers framework. For the full 46-skill suite, use the git clone method below.
+This installs the core superpowers framework. For the full 47-skill suite, use the git clone method below.
 
 ### Ubuntu / Debian / WSL (Full Install)
 
