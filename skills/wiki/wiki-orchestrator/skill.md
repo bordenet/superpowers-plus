@@ -108,76 +108,21 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 
 ---
 
-## Pipeline Execution
+## Stage Details
 
-### Stage 1: De-Duplication Check
+| Stage | Skill | Gate | Notes |
+|-------|-------|------|-------|
+| 1 | De-duplication | WARN | Search for similar pages; offer update if match |
+| 2 | `wiki-authoring` | — | No H1, semantic headings, platform anchors |
+| 2.5 | `wiki-content-coherence` | ADVISORY | Jaccard ≥0.40 flags duplication; HIGH → user review |
+| 3 | `link-verification` | **BLOCK** | Internal wiki + repo links block on failure |
+| 4 | `secret-detection` | **BLOCK** | Block if credentials detected |
+| 5 | `eliminating-ai-slop` | ADVISORY | GVR slop scoring |
+| 5.5 | `markdown-table-discipline` | ADVISORY | Table format checks |
+| 6 | `wiki-debunker` | WARN | Count cited vs uncited claims |
+| 7 | `wiki-editing` | — | Confirm with user, then publish via MCP |
 
-Search for existing pages with similar title/topic using adapter's search operation. If matches found, offer: update existing, proceed with new (confirm different scope), or cancel.
-
-### Stage 2: Content Generation
-
-Invoke `wiki-authoring`: no H1, semantic headings, blank lines around tables/code, platform-specific anchors.
-
-### Stage 2.5: Content Coherence
-
-Invoke `wiki-content-coherence` — TF-IDF fingerprints, Jaccard similarity ≥ 0.40 flags duplicates, checks heading nesting. HIGH severity → user review before continuing.
-
-### Stage 3: Link Verification (HARD GATE)
-
-Extract all links, verify each. Internal wiki + repo links → **BLOCK** on failure. Issue tracker + external → WARN.
-
-### Stage 4: Secret Scan (HARD GATE)
-
-Apply `skills/_shared/secret-detection.md` patterns. **BLOCK if detected.**
-
-### Stage 5: Slop Detection (Advisory)
-
-Apply GVR from `eliminating-ai-slop`. Advisory only.
-
-### Stage 6: Fact-Check (Advisory)
-
-Invoke `wiki-debunker`. Count cited vs uncited claims.
-
-### Stage 7: Publish
-
-Confirm with user (show advisory warnings), then invoke `wiki-editing`.
-
-> See `references/stage-output-examples.md` for output templates for all stages.
-
----
-
-## Decision Flowchart
-
-See `references/decision-flowchart.md` for the full Graphviz DOT diagram showing the pipeline flow with decision points and blocking gates.
-
----
-
-## Quick Reference
-
-### Pipeline Summary
-
-| Stage | Skill/Module | Gate | Action on Failure |
-|-------|--------------|------|-------------------|
-| 1 | De-duplication | WARN | Suggest update instead |
-| 2 | wiki-authoring | — | Format guidance |
-| 2.5 | wiki-content-coherence | ADVISORY | Show report; HIGH → user review |
-| 3 | link-verification | **BLOCK** | Fix links |
-| 4 | secret-detection | **BLOCK** | Remove secrets |
-| 5 | eliminating-ai-slop | ADVISORY | Suggestions |
-| 5.5 | markdown-table-discipline | ADVISORY | Fix tables |
-| 6 | wiki-debunker | WARN | Flag uncited |
-| 7 | wiki-editing | — | Publish |
-
-### Commands
-
-```bash
-# Full orchestrated workflow (default)
-"Create a wiki page about the auth middleware"
-
-# Skip to specific stage (for debugging)
-"Verify links in this wiki content"  # link-verification only
-"Fact-check this wiki page"          # wiki-debunker only
-```
+> See `references/stage-output-examples.md` for output templates.
 
 ---
 
@@ -235,6 +180,5 @@ The task list preserves state. Resume by:
 
 ## Reference Files
 
-- [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates for link verification, secret scan, slop detection, fact-check, and publish stages
-- [`references/decision-flowchart.md`](references/decision-flowchart.md) — Graphviz DOT diagram of the full pipeline flow
-- [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow (Discover/Plan/Execute/Verify), chunking rules, anti-patterns
+- [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates for all pipeline stages
+- [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow, chunking rules, anti-patterns

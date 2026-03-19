@@ -86,48 +86,12 @@ These skills are typically meta-tools (help, observability) or tools that should
 
 ---
 
-## Platform Invocation
+## Namespace Shorthands
 
-### Claude Code
-
-Superpowers auto-trigger via natural language. Explicit skills via slash commands:
-```
-"help me debug this"              → systematic-debugging auto-fires
-/think-twice                      → explicit skill, must invoke
-```
-
-### Augment
-
-Bootstrap at session start:
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
-```
-
-Commands:
-```bash
-# List all (categorized as superpowers vs explicit)
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-
-# List only superpowers (auto-triggered)
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers
-
-# List only explicit skills
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
-
-# Load a specific skill
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
-```
-
-Namespace shorthands (fewer keystrokes):
-```bash
-# sp- expands to superpowers- (normal resolution)
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill sp-doctor
-
-# spp: or spp- loads from superpowers-plus source repo
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spp-doctor
-
-# spc: or spc- loads from overlay source repo (requires SPC_SOURCE_DIR env var)
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spc:skill-name
+sp-doctor    # expands to superpowers-doctor (normal resolution)
+spp-doctor   # loads from superpowers-plus source repo directly
+spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 ```
 
 ---
