@@ -49,7 +49,7 @@ fi
 # If this script or its modules have Windows line endings, bash will fail with
 # cryptic errors like "syntax error near unexpected token `$'\r'". Fix them
 # before sourcing anything.
-if grep -qP '\r$' "${BASH_SOURCE[0]}" 2>/dev/null; then
+if grep -q $'\r' "${BASH_SOURCE[0]}" 2>/dev/null; then
     # Fix this script and all lib modules in-place
     find "$SCRIPT_DIR" -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
     echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
