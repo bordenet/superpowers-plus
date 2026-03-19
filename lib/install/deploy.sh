@@ -99,7 +99,9 @@ install_tools() {
             log_verbose "Tool already up to date: $basename"
         else
             cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
-            [[ "$basename" == *.sh ]] && chmod +x "$dest"
+            if [[ "$basename" == *.sh ]]; then
+                chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
+            fi
             log_verbose "Installed tool: $basename"
         fi
         count=$((count + 1))
