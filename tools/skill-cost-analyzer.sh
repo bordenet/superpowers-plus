@@ -116,6 +116,25 @@ done < <(find "$SKILLS_DIR" -name "skill.md" -not -path "*/_*/*" -exec dirname {
 # Sort by cost score (last field) descending
 sorted=$(echo "$results" | sort -t$'\t' -k9 -rn)
 
+# Always generate high-cost skills JSON for runtime warnings
+high_cost_json="$REPO_ROOT/tools/high-cost-skills.json"
+high_cost_names=()
+while IFS=$'\t' read -r d s sz ax rf ch vr sa cs; do
+  [[ -z "$d" ]] && continue
+  if echo "$cs" | grep -q "(high)"; then
+    high_cost_names+=("$s")
+  fi
+done <<< "$sorted"
+printf '[\n' > "$high_cost_json"
+for i in "${!high_cost_names[@]}"; do
+  if (( i < ${#high_cost_names[@]} - 1 )); then
+    printf '  "%s",\n' "${high_cost_names[$i]}" >> "$high_cost_json"
+  else
+    printf '  "%s"\n' "${high_cost_names[$i]}" >> "$high_cost_json"
+  fi
+done
+printf ']\n' >> "$high_cost_json"
+
 if [[ "$OUTPUT_MD" == "--markdown" ]]; then
   outfile="$REPO_ROOT/docs/SKILL_TOKEN_COSTS.md"
   {
