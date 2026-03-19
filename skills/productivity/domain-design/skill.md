@@ -246,4 +246,4 @@ Before reporting "design complete," verify ALL downstream documentation is curre
 
 The 10-phase structure is domain-agnostic — only research targets, personas, and infrastructure connections change per domain. The architecture pattern choice and blocker ticket system may also vary.
 
-**Proof:** The Call Review Domain (March 2026) executed this exact process: 5 systems researched, 12 candidates generated, 75% attrition, 3 P0 shipped, Phase 7 caught internal-service-prod permission denials that blocked 4 skills. See [Tracking Page](https://wiki.int.example-org.net/doc/call-review-domain-design-workflow-tracking-HD5xgXNPoI).
+**Proof:** A real domain design (March 2026) executed this exact process: 5 systems researched, 12 candidates generated, 75% attrition, 3 P0 shipped, Phase 7 caught production permission denials that blocked 4 skills.
