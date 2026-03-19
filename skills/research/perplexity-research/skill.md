@@ -183,64 +183,10 @@ Reset stats: `~/.codex/perplexity-stats.sh reset`
 - **superpowers:verification-before-completion**: Verify facts before claiming done
 - **incorporating-research**: Use AFTER Perplexity returns results and user wants to merge findings into an existing document. Handles triage, voice-matching, and artifact stripping.
 
-## Cost Efficiency (CRITICAL)
+## Cost Efficiency
 
-> ⚠️ **Perplexity API calls are NOT free.** Use efficiently but DO use when confident it will help.
-
-### High-Value Use Cases (DO use Perplexity)
-
-| Use Case | Why It's Worth It |
-|----------|-------------------|
-| **Deep research before major feature work** | Prevents costly rework |
-| **PRD/design review and refinement** | High-value feedback on architecture |
-| **State-of-the-art research in specialized domains** | Training data may be outdated |
-| **Validating architectural decisions** | Industry standards evolve |
-| **Complex debugging after 2+ failures** | Time saved > API cost |
-
-### Low-Value Use Cases (Use alternatives instead)
-
-| Use Case | Better Alternative |
-|----------|-------------------|
-| Simple factual lookups | `web-search` tool |
-| Code examples | `codebase-retrieval` or documentation |
-| General knowledge questions | Rely on training data |
-| Iterative refinement | Batch questions into single call |
-
-### Efficiency Tactics
-
-1. **Batch related questions** - Combine multiple questions into one call
-2. **Use `strip_thinking: true`** - Reduces token usage for research/reason tools
-3. **Choose the right tool**:
-   - `perplexity_search_perplexity` - Quick facts (cheapest)
-   - `perplexity_ask_perplexity` - How-to questions (moderate)
-   - `perplexity_research_perplexity` - Deep dives (expensive)
-   - `perplexity_reason_perplexity` - Complex reasoning (most expensive)
-4. **Fallback to web-search** - When Perplexity is unavailable or for simple lookups
-
-### Decision Framework (Cost-Conscious)
-
-```
-Step 1: Try web-search first (FREE)
-├── Found what I need? → STOP (no Perplexity)
-└── Insufficient? → Continue
-
-Step 2: Try web-fetch on promising URLs (FREE)
-├── Found what I need? → STOP (no Perplexity)
-└── Still insufficient? → Continue
-
-Step 3: Evaluate - Is this a high-value use case?
-├── NO → Use alternative (codebase-retrieval, training data)
-└── YES → State: "web-search returned [X]. Insufficient because [Y]. Escalating."
-          └── Use appropriate Perplexity tool
-```
-
-### API Unavailability
-
-If Perplexity returns 401/403/5xx errors:
-1. **Limit retries to 1** - Preserve time for alternative approaches
-2. **Fallback to `web-search`** - Often sufficient for targeted queries
-3. **Use `web-fetch`** - To get full content from authoritative sources
-4. **Inform user** - "Perplexity unavailable, using web search fallback"
+> ⚠️ **Perplexity API calls cost real money.** Always try free tools first (Step 0).
+> See `references/cost-reference.md` for high/low-value use cases, efficiency tactics, and the full cost-conscious decision framework.
 
 ## Key Principles
 
@@ -249,33 +195,17 @@ If Perplexity returns 401/403/5xx errors:
 3. **Justify escalation** - State what web-search found and why it's insufficient
 4. **Track everything** - Stats enable tuning and improvement
 5. **Rich prompts** - Better prompts = better results
-6. **Broad scope** - Technical AND domain questions are valid
-7. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
-8. **Cost awareness** - Perplexity costs real money; use only when free tools fail
+6. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
+7. **Cost awareness** - Perplexity costs real money; use only when free tools fail
 
 ---
 
 ## "I'm Stuck" Escalation Path
 
-Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this decision tree:
+Default order: `think-twice` (free, reasoning) → `perplexity-research` (paid, knowledge).
+See `references/escalation.md` for the full decision tree.
 
-```
-"I'm stuck"
-    │
-    ├─► Is this a KNOWLEDGE problem?
-    │   (API docs, error codes, library versions, facts)
-    │   └─► Use perplexity-research FIRST (external knowledge)
-    │       └─► Still stuck? → Use think-twice for fresh reasoning
-    │
-    └─► Is this a REASONING problem?
-        (logic, approach, design, architecture)
-        └─► Use think-twice FIRST (free, internal)
-            └─► Still stuck? → Escalate to perplexity-research
-```
+## Reference Files
 
-**Default order:** `think-twice` → `perplexity-research`
-- Think-twice is free and instant
-- Perplexity costs money and requires justification (Step 0: try free tools first)
-- For pure reasoning problems, external research won't help
-
-**See also:** `think-twice` skill for fresh perspective via sub-agent consultation
+- [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
+- [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
