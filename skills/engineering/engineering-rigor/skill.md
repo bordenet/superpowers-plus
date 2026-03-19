@@ -20,7 +20,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 | `providing-code-review` | When reviewing others' PRs | "review this PR", "code review" |
 | `receiving-code-review` | When handling PR feedback | "received code review", "PR feedback" |
 
-**TypeScript/testing skills (in superpowers-callbox — proprietary):**
+**TypeScript/testing skills (in overlay repo — install via `spc:` prefix):**
 
 | Skill | When to Use | Trigger |
 |-------|-------------|---------|

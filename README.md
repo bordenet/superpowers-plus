@@ -40,7 +40,7 @@ cd superpowers-plus
 | research | 2 | Perplexity integration |
 | experimental | 1 | Self-prompting patterns |
 
-> **Note:** TypeScript-specific skills (`typescript-project-conventions`, `typescript-strict-mode`, `cognitive-complexity-refactoring`, `vitest-testing-patterns`) have been migrated to [superpowers-callbox](https://gitlab.int.callbox.net/mbordenet/superpowers-callbox) (proprietary).
+> **Note:** TypeScript-specific skills (`typescript-project-conventions`, `typescript-strict-mode`, `cognitive-complexity-refactoring`, `vitest-testing-patterns`) have been migrated to a private overlay repo. See the overlay mechanism in `superpowers-augment.js` (`spc:` prefix).
 
 **Legend:** 🦸 = auto-triggered (superpowers), 🔧 = internal/invoke by name
 
@@ -185,7 +185,7 @@ Works offline using local TF-IDF. No API keys required.
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
-| | engineering-rigor | Quality philosophy hub (routes to TS skills in callbox) |
+| | engineering-rigor | Quality philosophy hub (routes to TS skills in overlay repo) |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
