@@ -41,12 +41,12 @@ Use the same discovery logic as `superpowers-augment.js` namespace prefixes:
 ```bash
 # Env var override → well-known paths → find fallback
 SP_PLUS_DIR="${SPP_SOURCE_DIR:-$(find ~/GitHub -maxdepth 4 -type d -name 'superpowers-plus' 2>/dev/null | head -1)}"
-SP_CALLBOX_DIR="${SPC_SOURCE_DIR:-$(find ~/GitHub -maxdepth 4 -type d -name 'superpowers-callbox' 2>/dev/null | head -1)}"
+SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"  # Set SPC_SOURCE_DIR env var if you have an overlay repo
 INSTALLED_DIR=~/.codex/skills
 FIX_MODE=false  # set to "true" if --fix flag passed
 ```
 
-Build a **skill registry** — for each installed skill, record: name, installed path, source path (with overlay priority: callbox > plus), line count, YAML fields present, trigger list.
+Build a **skill registry** — for each installed skill, record: name, installed path, source path (with overlay priority: overlay > plus), line count, YAML fields present, trigger list.
 
 ### Step 1: Run All 16 Checks
 

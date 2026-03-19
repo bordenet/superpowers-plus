@@ -162,7 +162,7 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 | "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
 | "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
 | "Upgrade dependencies" | 🔧 explicit | security-upgrade (runs on request) |
-| "Refactor complex code" | 🦸 auto | cognitive-complexity-refactoring → blast-radius-check *(in superpowers-callbox)* |
+| "Refactor complex code" | 🦸 auto | cognitive-complexity-refactoring → blast-radius-check *(in overlay repo)* |
 
 ---
 
