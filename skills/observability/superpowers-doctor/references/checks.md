@@ -130,7 +130,7 @@ all_skills=()
 for dir in "${SOURCE_DIRS[@]}"; do
   for skill_dir in $(find "$dir" -name "skill.md" -not -path "*/references/*" -exec dirname {} \;); do
     name=$(basename "$skill_dir")
-    source=$(echo "$skill_dir" | grep -oE "(superpowers-plus|superpowers-example-org)")
+    source=$(basename "$dir")
     all_skills+=("$name|$source")
   done
 done
@@ -141,7 +141,7 @@ echo "${all_skills[@]}" | tr ' ' '\n' | cut -d'|' -f1 | sort | uniq -d | while r
 done
 ```
 
-**Fix:** Remove from one repo. superpowers-example-org overrides superpowers-plus by convention.
+**Fix:** Remove from one repo. The overlay repo overrides superpowers-plus by convention.
 
 **Auto-fix:** ❌ Manual only — requires human decision on which repo to keep.
 
@@ -239,19 +239,19 @@ fi
 
 Timestamp comparison is **insufficient** — a corrupted file can have a newer timestamp.
 
-**Overlay-aware:** When a skill exists in BOTH superpowers-plus AND superpowers-example-org,
-the example-org version takes precedence. Compare installed against the **highest-priority source**.
+**Overlay-aware:** When a skill exists in BOTH superpowers-plus AND an overlay repo,
+the overlay version takes precedence. Compare installed against the **highest-priority source**.
 
 Uses the same discovery as the `spp:`/`spc:` namespace prefixes in `superpowers-augment.js`:
 - `SP_PLUS_DIR` → env `SPP_SOURCE_DIR` or well-known path
-- `SP_[COMPANY]_DIR` → env `SPC_SOURCE_DIR` or well-known path
-- Priority: example-org > plus (last match wins)
+- `SP_OVERLAY_DIR` → env `SPC_SOURCE_DIR` or empty (no overlay)
+- Priority: overlay > plus (last match wins)
 
 ```bash
-# Build priority map using namespace-aware discovery (example-org overrides plus)
-# SOURCE_DIRS order: [plus, example-org] — last wins, so example-org takes precedence
+# Build priority map using namespace-aware discovery (overlay overrides plus)
+# SOURCE_DIRS order: [plus, overlay] — last wins, so overlay takes precedence
 declare -A PRIORITY_SOURCE
-for dir in "$SP_PLUS_DIR" "$SP_[COMPANY]_DIR"; do
+for dir in "$SP_PLUS_DIR" "$SP_OVERLAY_DIR"; do
   [[ -z "$dir" ]] && continue
   local search_root="$dir"
   [[ -d "$dir/skills" ]] && search_root="$dir/skills"
@@ -388,7 +388,7 @@ done
 for f in $(find "$INSTALLED_DIR" -name "skill.md" -not -path "*/references/*"); do
   skill=$(basename "$(dirname "$f")")
   # Extract wiki URLs
-  grep -oE 'https://wiki\.int\.example-org\.net/doc/[a-zA-Z0-9_-]+' "$f" | while read url; do
+  grep -oE 'https?://[a-zA-Z0-9._-]+/doc/[a-zA-Z0-9_-]+' "$f" | while read url; do
     slug=$(echo "$url" | sed 's|.*/doc/||')
     # Use Outline MCP or curl to verify
     echo "CHECK: $skill — wiki link $slug (verify with get_document_outline)"
@@ -497,13 +497,13 @@ done
 - Stale reference files (content has diverged between source and installed)
 
 **Overlay-aware:** Same as Check 9 — compare installed references against the
-**highest-priority source** (example-org overrides plus). Uses same `SP_PLUS_DIR`/`SP_[COMPANY]_DIR`
+**highest-priority source** (overlay overrides plus). Uses same `SP_PLUS_DIR`/`SP_OVERLAY_DIR`
 namespace-aware discovery.
 
 ```bash
-# Build priority map for reference files (example-org overrides plus)
+# Build priority map for reference files (overlay overrides plus)
 declare -A REF_PRIORITY
-for dir in "$SP_PLUS_DIR" "$SP_[COMPANY]_DIR"; do
+for dir in "$SP_PLUS_DIR" "$SP_OVERLAY_DIR"; do
   [[ -z "$dir" ]] && continue
   local search_root="$dir"
   [[ -d "$dir/skills" ]] && search_root="$dir/skills"
