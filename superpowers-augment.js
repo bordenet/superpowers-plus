@@ -46,8 +46,7 @@ const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
 ]);
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
-    '~/GitHub/ExampleOrg/tools/superpowers-example-org',
-    '~/superpowers-example-org',
+    // Set SPC_SOURCE_DIR env var to point to your overlay repo
 ]);
 
 /**
@@ -322,12 +321,12 @@ function findSkills(filterMode = 'all') {
     console.log('');
     console.log('Namespace prefixes (resolve to source repos, not installed dir):');
     console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
-    console.log('  spc:skill-name          → superpowers-example-org source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  spc:skill-name          → overlay source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
     console.log('');
     console.log('Dash shorthands (sp- expands to superpowers-):');
     console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
     console.log('  spp-doctor              → superpowers-doctor from superpowers-plus source');
-    console.log('  spc-doctor              → superpowers-doctor from superpowers-example-org source\n');
+    console.log('  spc-doctor              → superpowers-doctor from overlay source\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
@@ -360,8 +359,8 @@ function useSkill(skillName) {
     // Namespace prefix resolution
     // superpowers:name → obra/superpowers skills only
     // spp:name         → superpowers-plus source repo only
-    // spc:name         → superpowers-example-org source repo only
-    // name (no prefix) → installed dir (example-org overrides plus) → obra
+    // spc:name         → overlay source repo only (set SPC_SOURCE_DIR)
+    // name (no prefix) → installed dir (overlay overrides plus) → obra
     //
     // Dash shorthand (prefix expansion for fewer keystrokes):
     // sp-X   → expands to superpowers-X, normal resolution
@@ -403,15 +402,15 @@ function useSkill(skillName) {
         }
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
     } else if (forceSpc) {
-        // spc: → search superpowers-example-org source repo only
+        // spc: → search overlay source repo only
         if (!SPC_SOURCE_DIR) {
-            console.error('Error: spc: prefix used but superpowers-example-org source repo not found.');
-            console.error('Set SPC_SOURCE_DIR env var or clone to ~/GitHub/ExampleOrg/tools/superpowers-example-org');
+            console.error('Error: spc: prefix used but overlay source repo not found.');
+            console.error('Set SPC_SOURCE_DIR env var to point to your overlay skill repo');
             process.exit(1);
         }
         skillFile = findSkillInSourceRepo(SPC_SOURCE_DIR, actualName);
     } else if (!forceSuperpowers) {
-        // No prefix → personal/installed dir first (example-org overrides plus)
+        // No prefix → personal/installed dir first (overlay overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
         const personalFile = findSkillFile(personalDir);
         if (personalFile) skillFile = personalFile;
@@ -433,7 +432,7 @@ function useSkill(skillName) {
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpc) console.error('Searched superpowers-example-org source: ' + SPC_SOURCE_DIR);
+        if (forceSpc) console.error('Searched overlay source: ' + SPC_SOURCE_DIR);
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
@@ -654,7 +653,7 @@ switch (command) {
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
         console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
         console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
-        console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from superpowers-example-org source');
+        console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from overlay source repo');
         console.log('  node superpowers-augment.js use-skill spp-<name>  # spp-X from superpowers-plus source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
