@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["innovate", "innovation mode", "what's the boldest move", "radical improvement", "breakthrough idea", "game-changing", "most impactful change", "10x improvement", "transform this project", "moonshot", "blue sky thinking", "disruptive idea", "reimagine", "step-change", "new business model", "greenfield idea", "what if we started from scratch", "rethink architecture", "paradigm shift", "new product idea", "strategic pivot", "what would a world-class team do"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
 description: INVOKE when user explicitly seeks transformative, 10x-level ideas — product innovations, architectural paradigm shifts, or new business models. NOT for incremental improvements, bug fixes, or feature requests. Outputs ranked ideas with effort/impact scores and concrete next-week prototypes.
+version: 2.0
 ---
 
 # Innovation
@@ -142,36 +143,7 @@ For each idea, calculate:
 
 ### Step 5: Present Ideas with Actionable Next Steps
 
-For each idea, provide:
-
-```markdown
-## Idea [N]: [Title] — Score: [X]/35
-
-**What it is:** [1-2 sentence description]
-
-**Why it's transformative:** [Why 10x, not 10%]
-
-**Impact × Feasibility:**
-| Dimension | Score | Rationale |
-|-----------|-------|-----------|
-| Impact | [1-5] | [why] |
-| Feasibility | [1-5] | [why] |
-| Alignment | [1-5] | [why] |
-| Uniqueness | [1-5] | [why] |
-
-**What it would require:**
-- [Major prerequisite 1]
-- [Major prerequisite 2]
-- Estimated effort: [1 week / 1 sprint / 1 quarter]
-
-**Risks & Unknowns:**
-- [Risk 1]
-- [Risk 2]
-
-**🧪 Next-Week Prototype:**
-[Concrete experiment that validates the idea in ≤5 days]
-Example: "Build a Slack bot that handles 3 specific request types to validate demand"
-```
+For each idea, use the template in `references/output-template.md` (includes scoring table, risks, and next-week prototype format).
 
 ### Step 6: If Stuck — Invoke Think-Twice or Research
 
@@ -190,43 +162,7 @@ If you cannot generate compelling ideas:
 
 ## Output Format
 
-```markdown
-# Innovation Analysis: [Project Name]
-
-**Input context:** [What user provided — PRD snippet, pain points, code folder]
-
-**Current state:** [Brief summary of project today]
-
-**Core question:** What's the single smartest, most radically innovative,
-accretive, useful, and compelling addition I could make right now?
-
----
-
-## Idea 1: [Title] ⭐ Recommended — Score: X/35
-
-[Full idea format from Step 5 with scoring table and next-week prototype]
-
-## Idea 2: [Title] — Score: X/35
-
-[Full idea format]
-
-## Idea 3: [Title] — Score: X/35
-
-[Full idea format]
-
----
-
-## Recommended Path Forward
-
-**Top recommendation:** Idea [N] because [reason]
-
-**This week:** [Concrete next-week experiment]
-
-**If you want to go deeper:** I can turn Idea [N] into:
-- [ ] A one-pager / RFC
-- [ ] An experiment plan with success criteria
-- [ ] A prototype implementation
-```
+See `references/output-template.md` for the full output format including per-idea scoring tables and the recommended path forward section.
 
 ---
 
@@ -267,7 +203,6 @@ After presenting ideas, always offer:
 
 ---
 
-## Version
+## Reference Files
 
-- **v2.0** — 2026-03-15: Added scoring system, next-week prototypes, input context step
-- **v1.0** — Initial release
+- [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and full output format. Load when generating innovation analysis output.
