@@ -25,6 +25,61 @@ const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skil
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 
+// Source repo directories for namespace prefix resolution (spp:, spc:)
+// These point to git source repos, NOT installed directories.
+// Discovery order: env var → well-known paths → null (prefix unavailable)
+function discoverSourceDir(envVar, wellKnownPaths) {
+    if (process.env[envVar]) {
+        const dir = process.env[envVar];
+        if (fs.existsSync(dir)) return dir;
+    }
+    for (const p of wellKnownPaths) {
+        const resolved = p.replace(/^~/, homeDir);
+        if (fs.existsSync(resolved)) return resolved;
+    }
+    return null;
+}
+
+const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
+    '~/GitHub/Personal/superpowers-plus',
+    '~/superpowers-plus',
+]);
+
+const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
+    '~/GitHub/CallBox/tools/superpowers-callbox',
+    '~/superpowers-callbox',
+]);
+
+/**
+ * Find a skill.md in a source repo by searching domain subdirectories.
+ * Source repos use {domain}/{skill-name}/skill.md layout.
+ * Returns the skill file path or null.
+ */
+function findSkillInSourceRepo(repoDir, skillName) {
+    if (!repoDir) return null;
+    // Check skills/ subdirectory first (superpowers-plus layout)
+    const skillsSubdir = path.join(repoDir, 'skills');
+    const searchRoots = fs.existsSync(skillsSubdir) ? [skillsSubdir] : [repoDir];
+    for (const root of searchRoots) {
+        try {
+            const domains = fs.readdirSync(root, { withFileTypes: true });
+            for (const domain of domains) {
+                if (!domain.isDirectory()) continue;
+                if (domain.name.startsWith('_') || domain.name === 'node_modules' || domain.name === '.git' || domain.name === 'lib') continue;
+                const skillDir = path.join(root, domain.name, skillName);
+                const skillFile = findSkillFile(skillDir);
+                if (skillFile) return skillFile;
+                // Also check direct child (flat layout: repoDir/skillName/)
+            }
+            // Direct child of root (non-domain layout)
+            const directDir = path.join(root, skillName);
+            const directFile = findSkillFile(directDir);
+            if (directFile) return directFile;
+        } catch (_) { /* directory not readable */ }
+    }
+    return null;
+}
+
 // Session staleness threshold: 4 hours (sessions don't last longer than this)
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 
@@ -263,7 +318,12 @@ function findSkills(filterMode = 'all') {
     console.log('Naming convention:');
     console.log('  superpowers:skill-name  → from ~/.codex/superpowers/skills/ (obra/superpowers)');
     console.log('  skill-name              → from ~/.codex/skills/ (personal/superpowers-plus)');
-    console.log('  Personal skills override superpowers skills when names match.\n');
+    console.log('  Personal skills override superpowers skills when names match.');
+    console.log('');
+    console.log('Namespace prefixes (resolve to source repos, not installed dir):');
+    console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  spc:skill-name          → superpowers-callbox source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  Use spp:/spc: to load the specific repo version of overlay skills.\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
@@ -293,15 +353,47 @@ function useSkill(skillName) {
         // Don't block — still load the skill, but the warning is impossible to miss
     }
 
+    // Namespace prefix resolution
+    // superpowers:name → obra/superpowers skills only
+    // spp:name         → superpowers-plus source repo only
+    // spc:name         → superpowers-callbox source repo only
+    // name (no prefix) → installed dir (callbox overrides plus) → obra
     const forceSuperpowers = skillName.startsWith('superpowers:');
-    const actualName = forceSuperpowers ? skillName.replace(/^superpowers:/, '') : skillName;
+    const forceSpp = skillName.startsWith('spp:');
+    const forceSpc = skillName.startsWith('spc:');
+    let actualName;
+    if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+    else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+    else if (forceSpc) actualName = skillName.replace(/^spc:/, '');
+    else actualName = skillName;
+
     let skillFile = null;
-    if (!forceSuperpowers) {
+
+    if (forceSpp) {
+        // spp: → search superpowers-plus source repo only
+        if (!SPP_SOURCE_DIR) {
+            console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
+            console.error('Set SPP_SOURCE_DIR env var or clone to ~/GitHub/Personal/superpowers-plus');
+            process.exit(1);
+        }
+        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
+    } else if (forceSpc) {
+        // spc: → search superpowers-callbox source repo only
+        if (!SPC_SOURCE_DIR) {
+            console.error('Error: spc: prefix used but superpowers-callbox source repo not found.');
+            console.error('Set SPC_SOURCE_DIR env var or clone to ~/GitHub/CallBox/tools/superpowers-callbox');
+            process.exit(1);
+        }
+        skillFile = findSkillInSourceRepo(SPC_SOURCE_DIR, actualName);
+    } else if (!forceSuperpowers) {
+        // No prefix → personal/installed dir first (callbox overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
         const personalFile = findSkillFile(personalDir);
         if (personalFile) skillFile = personalFile;
     }
-    if (!skillFile) {
+
+    if (!skillFile && !forceSpp && !forceSpc) {
+        // Fall through to obra/superpowers
         const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
         const superpowersFile = findSkillFile(superpowersDir);
         if (superpowersFile) skillFile = superpowersFile;
@@ -315,6 +407,8 @@ function useSkill(skillName) {
     }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
+        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
+        if (forceSpc) console.error('Searched superpowers-callbox source: ' + SPC_SOURCE_DIR);
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
@@ -533,6 +627,8 @@ switch (command) {
         console.log('Usage:');
         console.log('  node superpowers-augment.js bootstrap              # Initialize session');
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
+        console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from superpowers-callbox source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
