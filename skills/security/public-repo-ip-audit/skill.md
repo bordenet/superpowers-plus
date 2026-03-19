@@ -247,5 +247,4 @@ Multiple skills fire on commit-related triggers. When pushing to a **public repo
 | 2 | `enforce-style-guide` | Code style compliance | All commits |
 | 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
 | 4 | **public-repo-ip-audit** (this skill) | Proprietary content check | **Public repos only** |
-
 **Note:** This skill only applies to public repositories. For private/internal repos, skip this gate.
