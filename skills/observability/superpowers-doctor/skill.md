@@ -36,14 +36,17 @@ All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS/` befor
 
 ### Step 0: Discover Paths
 
+Use the same discovery logic as `superpowers-augment.js` namespace prefixes:
+
 ```bash
-SP_PLUS_DIR=$(find ~/GitHub -maxdepth 4 -type d -name "superpowers-plus" 2>/dev/null | head -1)
-SP_[COMPANY]_DIR=$(find ~/GitHub -maxdepth 4 -type d -name "superpowers-example-org" 2>/dev/null | head -1)
+# Env var override → well-known paths → find fallback
+SP_PLUS_DIR="${SPP_SOURCE_DIR:-$(find ~/GitHub -maxdepth 4 -type d -name 'superpowers-plus' 2>/dev/null | head -1)}"
+SP_[COMPANY]_DIR="${SPC_SOURCE_DIR:-$(find ~/GitHub -maxdepth 4 -type d -name 'superpowers-example-org' 2>/dev/null | head -1)}"
 INSTALLED_DIR=~/.codex/skills
 FIX_MODE=false  # set to "true" if --fix flag passed
 ```
 
-Build a **skill registry** — for each installed skill, record: name, installed path, source path (if found), line count, YAML fields present, trigger list.
+Build a **skill registry** — for each installed skill, record: name, installed path, source path (with overlay priority: example-org > plus), line count, YAML fields present, trigger list.
 
 ### Step 1: Run All 16 Checks
 
