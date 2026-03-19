@@ -77,9 +77,13 @@
 
 **Process:**
 1. Match task (disambiguate if multiple matches)
-2. Move to HISTORY under today's date
-3. Add completion timestamp
-4. Prompt for optional progress notes
+2. **REMOVE from ACTIVE section** — do NOT just flip `[ ]` to `[x]` in place
+3. **ADD to HISTORY** under `## YYYY-MM-DD` (today's date) with `[x]` prefix
+4. Add `  - Done: YYYY-MM-DD` timestamp
+5. Prompt for optional progress notes
+
+⚠️ **Common agent failure:** Marking `[x]` in the ACTIVE section without moving.
+This causes unbounded file growth. Only `[ ]` tasks belong in ACTIVE.
 
 **Response:** "Completed: [title]. Notes?"
 
