@@ -22,7 +22,7 @@ coordination:
 
 This skill enforces:
 - Repository-specific style guides in `docs/` or root directory
-- Shell script standards from https://github.com/bordenet/scripts/STYLE_GUIDE.md
+- Shell script standards from https://github.com/bordenet/scripts/blob/main/STYLE_GUIDE.md
 - Language-specific standards
 - Architectural patterns
 
