@@ -65,11 +65,11 @@ function findSkillInSourceRepo(repoDir, skillName) {
             const domains = fs.readdirSync(root, { withFileTypes: true });
             for (const domain of domains) {
                 if (!domain.isDirectory()) continue;
-                if (domain.name.startsWith('_') || domain.name === 'node_modules' || domain.name === '.git' || domain.name === 'lib') continue;
+                const skip = new Set(['node_modules', '.git', '.github', 'lib', 'docs', 'tools', 'mcp', 'setup', 'references']);
+                if (domain.name.startsWith('_') || domain.name.startsWith('.') || skip.has(domain.name)) continue;
                 const skillDir = path.join(root, domain.name, skillName);
                 const skillFile = findSkillFile(skillDir);
                 if (skillFile) return skillFile;
-                // Also check direct child (flat layout: repoDir/skillName/)
             }
             // Direct child of root (non-domain layout)
             const directDir = path.join(root, skillName);
@@ -327,7 +327,7 @@ function findSkills(filterMode = 'all') {
     console.log('Dash shorthands (sp- expands to superpowers-):');
     console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
     console.log('  spp-doctor              → superpowers-doctor from superpowers-plus source');
-    console.log('  spc-help                → superpowers-help from superpowers-example-org source\n');
+    console.log('  spc-doctor              → superpowers-doctor from superpowers-example-org source\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
@@ -655,7 +655,7 @@ switch (command) {
         console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
         console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
         console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from superpowers-example-org source');
-        console.log('  node superpowers-augment.js use-skill spp-<name>  # sp-X from superpowers-plus source');
+        console.log('  node superpowers-augment.js use-skill spp-<name>  # spp-X from superpowers-plus source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
