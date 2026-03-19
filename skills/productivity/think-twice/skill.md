@@ -52,7 +52,9 @@ Monitor for stuck signals. When cumulative score ≥ 7, **suggest** Think Twice:
 | "Let me try a completely different approach" without rationale | 2 |
 | Conversation > 80% context window, no resolution | 2 |
 
-**Calibration note:** These weights are heuristic estimates, not empirically calibrated. Record outcomes after Think Twice invocations and adjust weights based on which signals best predict genuine stuck states vs. false positives.
+**Detection keywords:** Exhaustion ("I've tried everything", "I'm out of ideas", "I'm stuck") | Uncertainty ("I'm not sure why", "this should work but", "for some reason") | Scope creep ("let me try a completely different approach", "let's start over")
+
+**Rules:** Never auto-invoke — always ask user first. Reset counters on success. Track per-problem. Explicit triggers ("think twice") override scores.
 
 **Suggested prompt when threshold met:**
 
@@ -60,11 +62,9 @@ Monitor for stuck signals. When cumulative score ≥ 7, **suggest** Think Twice:
 I'm detecting signs we might be stuck on this problem:
 - [list matched signals]
 
-Would you like me to **Think Twice**? I'll distill the problem into a 
+Would you like me to **Think Twice**? I'll distill the problem into a
 comprehensive brief and consult a fresh sub-agent for a different perspective.
 ```
-
-See `references/heuristic-signals.md` for full detection criteria.
 
 ## The Process
 

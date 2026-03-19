@@ -36,18 +36,12 @@ for arg in "$@"; do
   esac
 done
 
-# Step 1: Source environment to get TODO_FILE_PATH
-ENV_FILE="$HOME/.codex/.env"
-ENV_SOURCED=false
-if [[ -f "$ENV_FILE" ]]; then
-  # shellcheck source=/dev/null
-  source "$ENV_FILE" 2>/dev/null && ENV_SOURCED=true
-fi
-
-# Step 2: Resolve path (with fallback)
-TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
-# Expand ~ and $HOME in the path
-TODO_PATH=$(eval echo "$TODO_PATH" 2>/dev/null || echo "$TODO_PATH")
+# Step 1-2: Source environment and resolve path (shared utility)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=resolve-env-path.sh
+source "$SCRIPT_DIR/resolve-env-path.sh"
+resolve_env
+TODO_PATH=$(resolve_path "TODO_FILE_PATH" "$HOME/.codex/TODO.md")
 
 # Step 3: Check file existence
 FILE_EXISTS=false
