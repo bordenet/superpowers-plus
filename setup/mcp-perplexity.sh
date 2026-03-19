@@ -13,6 +13,23 @@
 
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+mcp-perplexity.sh — Configure Perplexity MCP server for AI assistants
+
+USAGE
+  ./setup/mcp-perplexity.sh
+
+DESCRIPTION
+  Sets up Perplexity MCP server for Claude Desktop (macOS), Claude Code
+  CLI, and Augment Code. Requires PERPLEXITY_API_KEY env var or prompts
+  interactively.
+
+  Get API key: https://www.perplexity.ai/settings/api
+HELP
+  exit 0
+fi
+
 # Colors
 if [[ -t 1 ]]; then
     RED='\033[0;31m'

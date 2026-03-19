@@ -9,8 +9,12 @@
 # shellcheck disable=SC2044  # find loops are safe here — skill paths never contain spaces
 set -uo pipefail
 
-INSTALLED_DIR="$HOME/.codex/skills"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/compat.sh
+source "${SCRIPT_DIR}/compat.sh"
+require_bash4
+
+INSTALLED_DIR="$HOME/.codex/skills"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 FIX_MODE=false
@@ -66,11 +70,7 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
     echo "🔴 CRITICAL: $dir_name — name: '$yaml_name' ≠ directory '$dir_name'"; ((CRITICAL++))
     if [[ "$FIX_MODE" == "true" ]]; then
       backup_skill "$(dirname "$f")"
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s/^name:.*$/name: $dir_name/" "$f"
-      else
-        sed -i "s/^name:.*$/name: $dir_name/" "$f"
-      fi
+      sed_inplace "s/^name:.*$/name: $dir_name/" "$f"
       echo "  ✅ FIXED: name → '$dir_name'"; ((FIXED++))
     fi
   fi
