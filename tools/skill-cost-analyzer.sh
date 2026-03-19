@@ -22,7 +22,7 @@ OUTPUT_MD="${1:---stdout}"
 
 # All known skill names for chaining detection
 mapfile -t ALL_SKILLS < <(find "$SKILLS_DIR" -name "skill.md" -not -path "*/._*" -not -path "*/_*/*" \
-  -exec dirname {} \; | xargs -I{} basename {} | sort)
+  -exec dirname {} \; | while IFS= read -r d; do basename "$d"; done | sort)
 
 analyze_skill() {
   local skill_dir="$1"
