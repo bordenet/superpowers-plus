@@ -112,200 +112,43 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 
 ### Stage 1: De-Duplication Check
 
-Before creating ANY new page, use your adapter's search operation:
-
-```
-# Use your adapter's search_pages operation
-# See skills/wiki/_adapters/{platform}.md for specific tool
-```
-
-**If matches found:**
-```
-⚠️ DUPLICATE CHECK: Similar pages found
-
-| Title | URL | Similarity |
-|-------|-----|------------|
-| Existing Page Name | /path/to/page | High |
-
-**Options:**
-1. Update existing page instead of creating new
-2. Proceed with new page (confirm different scope)
-3. Cancel and review existing content
-```
+Search for existing pages with similar title/topic using adapter's search operation. If matches found, offer: update existing, proceed with new (confirm different scope), or cancel.
 
 ### Stage 2: Content Generation
 
-Invoke `wiki-authoring` principles:
-- No H1 (most platforms show title in UI)
-- Semantic headings (H2 → H3 → H4)
-- Blank lines around tables, code blocks
-- Platform-specific anchor format (see adapter)
+Invoke `wiki-authoring`: no H1, semantic headings, blank lines around tables/code, platform-specific anchors.
 
 ### Stage 2.5: Content Coherence
 
-Invoke `wiki-content-coherence` to detect duplication and structural defects:
+Invoke `wiki-content-coherence` — TF-IDF fingerprints, Jaccard similarity ≥ 0.40 flags duplicates, checks heading nesting. HIGH severity → user review before continuing.
 
-- Parses page into sections, computes TF-IDF topic fingerprints
-- Flags duplicate section pairs (Jaccard similarity ≥ 0.40)
-- Checks heading nesting, orphaned sections, length anomalies
-- Produces Content Inventory Table + Coherence Report
+### Stage 3: Link Verification (HARD GATE)
 
-**If HIGH severity issues found:** Present report to user before continuing.
-**Otherwise:** Log report and proceed to Stage 3.
+Extract all links, verify each. Internal wiki + repo links → **BLOCK** on failure. Issue tracker + external → WARN.
 
-See `wiki-content-coherence` skill for full algorithm details.
+### Stage 4: Secret Scan (HARD GATE)
 
-### Stage 3: Link Verification
+Apply `skills/_shared/secret-detection.md` patterns. **BLOCK if detected.**
 
-Invoke `link-verification` in batch mode:
+### Stage 5: Slop Detection (Advisory)
 
-**Extract all links from content, verify each:**
+Apply GVR from `eliminating-ai-slop`. Advisory only.
 
-| Link Type | Verification Method | On Failure |
-|-----------|---------------------|------------|
-| Internal wiki links | Adapter's `get_page` | ❌ BLOCK |
-| Repository links | Repo adapter verification | ❌ BLOCK |
-| Issue tracker links | Issue adapter search | ⚠️ WARN |
-| External URLs | `web-fetch` or `curl -I` | ⚠️ WARN |
+### Stage 6: Fact-Check (Advisory)
 
-**Output format:**
-```
-## Link Verification Report
-
-| Link | Type | Status |
-|------|------|--------|
-| /path/to/page | Internal | ✅ PASS |
-| /path/to/missing | Internal | ❌ FAIL |
-
-**Gate Status:** ❌ BLOCKED (1 broken internal link)
-```
-
-### Stage 4: Secret Scan
-
-Apply patterns from `skills/_shared/secret-detection.md`:
-
-**Scan for HIGH-confidence patterns:**
-- SQL connection strings (`Server=...;Password=xyz`)
-- Database URLs with credentials (`postgres://user:pass@host`)
-- Password assignments (`password: secret` or `PASSWORD=xyz`)
-- API keys (AWS `AKIA...`, OpenAI `sk-...`, GitHub `ghp_...`, Slack `xoxb-...`)
-- Platform-specific tokens (wiki, issue tracker, etc.)
-
-**If detected:**
-```
-🛑 SECRET DETECTED — Publishing blocked
-
-| Line | Pattern | Match |
-|------|---------|-------|
-| 47 | SQL Password | Password=j69K... |
-
-**Action Required:** Remove or redact before publishing
-```
-
-### Stage 5: Slop Detection
-
-Apply GVR principles from `eliminating-ai-slop`:
-
-**Calculate:**
-- Sentence length variance
-- Slop phrase count
-- Specificity score
-
-**Output:**
-```
-## Slop Analysis
-
-**Score:** 23/100 (Good)
-**Flagged phrases:** 2
-
-| Phrase | Line | Suggestion |
-|--------|------|------------|
-| "leveraging cutting-edge" | 15 | State specific technology |
-| "industry best practices" | 28 | Name the practices |
-
-**Gate Status:** ⚠️ ADVISORY (minor suggestions)
-```
-
-### Stage 6: Fact-Check
-
-Invoke `wiki-debunker` analysis:
-
-**Output:**
-```
-## Fact-Check Summary
-
-**Claims:** 8 total | 6 cited | 2 uncited
-
-**Uncited claims requiring attention:**
-1. "We decided to use Telnyx in Q4" — needs ticket/PR reference
-2. "Performance improved by 40%" — needs benchmark source
-
-**Gate Status:** ⚠️ WARNING (2 uncited claims)
-```
+Invoke `wiki-debunker`. Count cited vs uncited claims.
 
 ### Stage 7: Publish
 
-If all hard gates pass:
+Confirm with user (show advisory warnings), then invoke `wiki-editing`.
 
-```
-# Confirm with user
-Ready to publish with warnings:
-- 2 uncited claims (advisory)
-- 1 slop phrase (advisory)
-
-Proceed? [Y/n]
-```
-
-Then invoke `wiki-editing`:
-- Use adapter's `update_page` for existing pages
-- Use adapter's `create_page` for new pages
+> See `references/stage-output-examples.md` for output templates for all stages.
 
 ---
 
 ## Decision Flowchart
 
-```dot
-digraph wiki_orchestrator {
-    rankdir=TB;
-    node [shape=box];
-
-    start [label="User: Create/Update Wiki Page" shape=ellipse];
-    dedup [label="1. De-duplication Check"];
-    dedup_result [label="Similar page exists?" shape=diamond];
-    confirm_new [label="User confirms new page"];
-    content [label="2. Generate Content\n(wiki-authoring)"];
-    links [label="3. Link Verification"];
-    links_fail [label="Internal link broken?" shape=diamond];
-    block_links [label="❌ BLOCKED\nFix broken links" shape=box style=filled fillcolor=lightcoral];
-    secrets [label="4. Secret Scan"];
-    secrets_fail [label="Secrets detected?" shape=diamond];
-    block_secrets [label="❌ BLOCKED\nRemove credentials" shape=box style=filled fillcolor=lightcoral];
-    slop [label="5. Slop Detection\n(advisory)"];
-    facts [label="6. Fact-Check\n(advisory)"];
-    summary [label="7. Summary + Confirm"];
-    publish [label="8. Publish via MCP"];
-    done [label="✅ Published" shape=ellipse];
-
-    start -> dedup;
-    dedup -> dedup_result;
-    dedup_result -> confirm_new [label="yes"];
-    dedup_result -> content [label="no"];
-    confirm_new -> content;
-    content -> links;
-    links -> links_fail;
-    links_fail -> block_links [label="yes"];
-    links_fail -> secrets [label="no"];
-    block_links -> links [label="fixed"];
-    secrets -> secrets_fail;
-    secrets_fail -> block_secrets [label="yes"];
-    secrets_fail -> slop [label="no"];
-    block_secrets -> secrets [label="fixed"];
-    slop -> facts;
-    facts -> summary;
-    summary -> publish;
-    publish -> done;
-}
-```
+See `references/decision-flowchart.md` for the full Graphviz DOT diagram showing the pipeline flow with decision points and blocking gates.
 
 ---
 
@@ -372,61 +215,9 @@ The task list preserves state. Resume by:
 
 ## Batch Operations (Multi-Page Edits)
 
-<EXTREMELY_IMPORTANT>
+**When editing 3+ wiki pages in one task**, use the batch workflow (Discover → Plan → Execute in chunks → Verify). See `references/batch-operations.md` for the full workflow, key rules, and anti-patterns.
 
-**When editing 3+ wiki pages in one task (cross-references, bulk updates, terminology standardization), use the batch workflow — NOT individual API calls per page.**
-
-### Why Batch Matters
-
-| Approach | API Calls | Risk |
-|----------|-----------|------|
-| Individual: fetch → edit → push × N pages | 3N calls | Rate limits, context exhaustion, partial updates |
-| Batch: sync all → grep locally → plan → push chunk | N+1 calls | Fast discovery, atomic planning, fewer failures |
-
-### Batch Workflow
-
-```
-Phase 1: DISCOVER (zero API calls)
-  └─ sync_to_local_outline              # Download entire wiki (or collection)
-  └─ grep/rg locally for target terms   # Find all pages that need changes
-  └─ Build change manifest              # Page → planned edits
-
-Phase 2: PLAN (zero API calls)
-  └─ Review manifest with user
-  └─ Group into chunks of 5-10 pages
-  └─ Identify link dependencies (edit targets before sources)
-
-Phase 3: EXECUTE (chunked API calls)
-  └─ For each chunk:
-     ├─ get_document_outline × N        # Fetch FRESH content (mandatory)
-     ├─ Apply planned edits
-     ├─ Run pipeline gates (links, secrets, slop)
-     └─ update_document_outline × N     # Push chunk
-  └─ Verify chunk before proceeding to next
-
-Phase 4: VERIFY
-  └─ Spot-check 2-3 pages via get_document_outline
-  └─ Scan for \[ or broken rendering
-  └─ Report summary to user
-```
-
-### Key Rules
-
-1. **NEVER skip the fresh fetch in Phase 3.** The local sync is for *discovery only* — always fetch current content before editing.
-2. **Group by dependency order.** If page A will link to an anchor on page B, edit page B first (create the anchor), then page A (add the link).
-3. **Chunk size: 5-10 pages.** Larger chunks risk context exhaustion. Smaller chunks waste round-trips.
-4. **Use task management** to track which chunks are complete. Mark each chunk COMPLETE before starting the next.
-
-### Anti-Patterns
-
-| Anti-Pattern | Why It Fails |
-|--------------|-------------|
-| `search_documents_outline` × 20 queries | Slow, expensive, misses pages |
-| Editing from memory without fresh fetch | Overwrites concurrent edits |
-| One API call per page with no batching plan | Context exhaustion on page 15 of 30 |
-| Pushing all pages then verifying | Can't roll back; broken links cascade |
-
-</EXTREMELY_IMPORTANT>
+**Critical rule:** Always fetch FRESH content before editing — local sync is for discovery only.
 
 ---
 
@@ -441,3 +232,9 @@ Phase 4: VERIFY
 | "I'll verify links after publishing" | That's backwards — verify BEFORE |
 
 **If you think any skill doesn't apply, you're wrong. Run the full pipeline.**
+
+## Reference Files
+
+- [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates for link verification, secret scan, slop detection, fact-check, and publish stages
+- [`references/decision-flowchart.md`](references/decision-flowchart.md) — Graphviz DOT diagram of the full pipeline flow
+- [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow (Discover/Plan/Execute/Verify), chunking rules, anti-patterns
