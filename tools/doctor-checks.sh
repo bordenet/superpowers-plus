@@ -6,6 +6,7 @@
 #   ./doctor-checks.sh --fix        # Run checks + auto-fix safe issues
 #   ./doctor-checks.sh --fix --yes  # Auto-fix without confirmation
 
+# shellcheck disable=SC2044  # find loops are safe here — skill paths never contain spaces
 set -uo pipefail
 
 INSTALLED_DIR="$HOME/.codex/skills"
@@ -65,7 +66,11 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
     echo "🔴 CRITICAL: $dir_name — name: '$yaml_name' ≠ directory '$dir_name'"; ((CRITICAL++))
     if [[ "$FIX_MODE" == "true" ]]; then
       backup_skill "$(dirname "$f")"
-      sed -i '' "s/^name:.*$/name: $dir_name/" "$f"
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/^name:.*$/name: $dir_name/" "$f"
+      else
+        sed -i "s/^name:.*$/name: $dir_name/" "$f"
+      fi
       echo "  ✅ FIXED: name → '$dir_name'"; ((FIXED++))
     fi
   fi
@@ -202,7 +207,7 @@ done
 
 # --- Check 14: Junk Files ---
 for dir in "${SOURCE_DIRS[@]}"; do
-  root=$(echo "$dir" | sed 's|/skills$||')
+  root="${dir%/skills}"
   find "$root" -maxdepth 1 -type f \
     ! -name "*.md" ! -name "*.sh" ! -name "*.js" ! -name "*.json" \
     ! -name "*.yaml" ! -name "*.yml" ! -name "*.txt" \
