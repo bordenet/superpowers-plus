@@ -169,21 +169,6 @@ TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"  # WSL
 
 ---
 
-## ⚠️ CRITICAL: Always Check Persistent TODO.md First
-
-When user asks "show my TODOs", "what are my tasks", or any task query:
-
-1. **ALWAYS read the resolved TODO.md path FIRST** — This is the source of truth
-2. **MCP tools are supplementary** — `view_tasklist` shows session context only
-3. **Never imply completeness** from MCP state alone
-
-**Why this matters:**
-- MCP tasks are session-only (lost on context compaction)
-- TODO.md persists across sessions
-- Showing only MCP tasks gives a false "all done" impression
-
----
-
 ## Overview
 
 Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags based on context, and provides queryable history.
@@ -220,160 +205,20 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ## Tagging Taxonomy
 
-Tags are auto-inferred from keywords in the task description. The taxonomy below
-covers common domains. **Customize for your organization** by adding domain-specific
-tags (e.g., replace `#team` with your team name like `#delta-team`).
+Tags are auto-inferred from keywords. See `references/taxonomy.md` for the full taxonomy (engineering, recruiting, general, plan tags) and customization guidance.
 
-### Engineering Tags
-
-| Tag | Trigger Keywords |
-|-----|------------------|
-| `#engineering-frontend` | UI, component, CSS, React, layout, styling |
-| `#engineering-backend` | API, database, server, endpoint, migration |
-| `#engineering-infra` | deploy, CI, pipeline, Docker, Kubernetes, terraform |
-| `#engineering-testing` | test, coverage, unit, integration, QA |
-| `#engineering-docs` | documentation, README, wiki, spec, ADR |
-
-### Recruiting Tags
-
-| Tag | Trigger Keywords |
-|-----|------------------|
-| `#recruiting-sourcer` | source, outreach, LinkedIn, pipeline, candidate search |
-| `#recruiting-scheduler` | schedule, calendar, Zoom, interview time, availability |
-| `#recruiting-admin` | offer, letter, system, ATS, paperwork |
-| `#recruiting-interviewer` | interview, prep, feedback, scorecard, debrief |
-| `#recruiting-hr` | comp, compensation, policy, HR, benefits |
-
-### General Tags (auto-inferred from context)
-
-| Tag | Trigger Context |
-|-----|-----------------|
-| `#team` | Team member names, "team", "direct report" (customize: `#delta-team`, `#your-team`) |
-| `#1on1` | "1:1", "one-on-one", "sync with [name]" |
-| `#product` | "product", "feature", "roadmap" (customize: `#cari`, `#your-product`) |
-| `#process` | "process", "workflow", "documentation" |
-
-### Plan Tags (effort-scoped)
-
-Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
-
-| Pattern | Purpose | Example |
-|---------|---------|---------|
-| `#plan-<identifier>` | Group tasks by effort | `#plan-auth-fix`, `#plan-config-refactor` |
-| `#plan` | ⚠️ **Deprecated** | Use `#plan-<identifier>` for effort isolation |
-
-**Identifier derivation:**
-- Derive from plan title: "Config Refactor" → `config-refactor`
-- Use kebab-case: lowercase, hyphens instead of spaces
-- Keep short but descriptive: 2-4 words max
-- If ambiguous, ask: "What should I call this effort?"
-
-**Example TODO.md with multiple efforts:**
-```markdown
-## P1 - Today
-- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering
-- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering
-- [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
-- [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
-```
+**Key pattern:** Use `#plan-<identifier>` (kebab-case) to group tasks by effort for parallel work isolation.
 
 ---
 
-## File Format
+## File Format & Operations
 
-```markdown
-# ACTIVE TASKS
-
-## P1 - Today
-- [ ] [20250204-01] Task description #tag1 #tag2
-  - Added: 2025-02-04
-  - Due: 2025-02-04
-  - Note: Context or blocker info
-
-## P2 - This Week
-- [ ] [20250204-02] Review PR for auth refactor #engineering-backend
-  - Added: 2025-02-04
-
-## P3 - Backlog
-- [ ] [20250204-03] Document onboarding process #process
-  - Added: 2025-02-04
-
----
-
-# HISTORY
-
-## 2025-02-04
-- [x] [20250203-05] Fixed flaky test in CI pipeline #engineering-testing
-  - Done: 2025-02-04T10:30:00
-  - Progress: Root cause was race condition in async mock
-
----
-
-# DEFERRED
-- [ ] [20250201-03] Research competitor #product
-  - Deferred: 2025-02-04
-  - Reason: Blocked on access
-
----
-
-# METRICS
-- Week of 2025-02-03:
-  - Tasks created: 12
-  - Tasks completed: 9
-  - Task failure rate: 8%
-  - P1 overload warnings: 1
-  - Tagging accuracy: 92%
-```
-
----
-
-## Task ID Format
-
-**Pattern:** `YYYYMMDD-NN` (e.g., `20250204-01`)
-
-- Date = creation date
-- NN = sequential counter for that day (01, 02, 03...)
-- Guarantees uniqueness; human-readable
-
----
-
-## Core Operations
-
-### 1. Add Task
-
-**Input:** "Add task: [description]" or natural language variant
-
-**Process:**
-1. Parse task description
-2. Infer priority (default P2 unless urgency signals)
-3. Infer tags from keywords
-4. Generate task ID
-5. Write to TODO.md under appropriate section
-6. Confirm in ≤20 words
-
-**Response:** "Added: [title] as P[N] #tags. [ID]"
-
-### 2. Complete Task
-
-**Input:** "Complete [ID or title fragment]"
-
-**Process:**
-1. Match task (disambiguate if multiple matches)
-2. Move to HISTORY under today's date
-3. Add completion timestamp
-4. Prompt for optional progress notes
-
-**Response:** "Completed: [title]. Notes?"
-
-### 3. Query History
-
-**Input:** "What did I do [yesterday/last week/on Monday/for engineering]?"
-
-**Process:**
-1. Parse timeframe
-2. Filter HISTORY section
-3. Apply tag filter if specified
-4. Return results in ≤30 seconds
+See `references/file-format-and-operations.md` for:
+- Full TODO.md file format (ACTIVE TASKS, HISTORY, DEFERRED, METRICS sections)
+- Task ID format (`YYYYMMDD-NN`)
+- Core operations (Add, Complete, Query History)
+- Implementation workflow (lock acquire → backup → write → lock release)
+- Self-improvement pipeline and weekly feedback
 
 ---
 
@@ -387,107 +232,13 @@ Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
 
 ---
 
-## Proactive Prompts (Weekdays Only)
-
-| Time (PST) | Prompt |
-|------------|--------|
-| 07:00 | Morning triage |
-| 10:00 | Mid-morning check |
-| 13:00 | Post-lunch reset |
-| 15:00 | Afternoon focus |
-| 16:45 | End-of-day wrap |
-| 17:00 Fri | Weekly feedback + stale P3 review |
-
-**Skippable:** "later", "skip", "busy" → 2-hour delay
-
----
-
 ## Backup Policy
 
-Before EVERY write to TODO.md:
-1. Copy current file to `TODO.md.YYYYMMDD-HHMMSS.bak`
-2. Write new content
-3. Validate Markdown structure
+Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
 
 ---
 
-## Implementation Workflow
+## Reference Files
 
-### On First Use (HARD GATE)
-
-Run the preflight script to resolve the path and verify the file:
-```bash
-~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing
-```
-
-This resolves `TODO_FILE_PATH` from `~/.codex/.env`, verifies the file exists,
-and creates it from the template if missing. The output includes:
-- `TODO_PATH=<resolved-path>` — use this for all subsequent operations
-- `FILE_EXISTS=true/false` — confirms file is accessible
-- `SOURCE=env/default` — shows where the path came from
-
-### On Task Add
-
-```bash
-# 1. Read current TODO.md (use resolved path from HARD GATE)
-cat "$TODO_PATH"
-
-# 2. Parse task, infer priority/tags, generate ID: YYYYMMDD-NN
-
-# 3. ACQUIRE LOCK before writing
-~/.codex/superpowers-plus/tools/todo-lock.sh acquire
-
-# 4. Backup
-cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"
-
-# 5. Insert into appropriate section (str-replace-editor or launch-process)
-
-# 6. RELEASE LOCK after write completes
-~/.codex/superpowers-plus/tools/todo-lock.sh release
-```
-
-### On Task Complete
-
-```bash
-# 1. Find task by ID or title fragment (READ — no lock needed)
-
-# 2. ACQUIRE LOCK before writing
-~/.codex/superpowers-plus/tools/todo-lock.sh acquire
-
-# 3. Remove from ACTIVE section, add to HISTORY, add completion timestamp
-
-# 4. RELEASE LOCK after write completes
-~/.codex/superpowers-plus/tools/todo-lock.sh release
-```
-
----
-
-## Self-Improvement Pipeline
-
-When user provides feedback:
-1. Propose skill modification
-2. Wait for user approval
-3. Edit skill.md with changes
-4. Provide git commands:
-   ```bash
-   # From your TODO file directory
-   git add -A && git commit -m "[description]"
-   git push origin main
-   cd skills && ./install.sh
-   ```
-5. Remind user to pull on other machines
-
----
-
-## Weekly Feedback (Friday 17:00 PST)
-
-Prompt:
-> "Weekly TODO check-in: What's working? What's frustrating? Any feature requests?"
-
-Collect:
-- Effectiveness rating (1-5)
-- Friction points
-- Feature requests
-- Tagging corrections made this week
-
-Store in METRICS section.
+- [`references/taxonomy.md`](references/taxonomy.md) — Full tagging taxonomy (engineering, recruiting, general, plan tags), customization guidance
+- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format template, task ID format, core operations, implementation workflow, weekly feedback
