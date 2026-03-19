@@ -118,33 +118,17 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
 ```
 
-Learning System (track skill effectiveness):
+Namespace shorthands (fewer keystrokes):
 ```bash
-# Record outcome after skill-guided work
-node ~/.codex/superpowers-augment/superpowers-augment.js record-outcome <skill> <success|failure> [evidence]
+# sp- expands to superpowers- (normal resolution)
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill sp-doctor
 
-# View trigger effectiveness metrics
-node ~/.codex/superpowers-augment/superpowers-augment.js analyze-triggers
+# spp: or spp- loads from superpowers-plus source repo
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spp-doctor
 
-# Full effectiveness report
-node ~/.codex/superpowers-augment/superpowers-augment.js learning-report
+# spc: or spc- loads from overlay source repo (requires SPC_SOURCE_DIR env var)
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spc:skill-name
 ```
-
-### Cursor
-
-```bash
-superpowers-cursor bootstrap
-```
-
-### Codex (OpenAI)
-
-```bash
-superpowers-codex bootstrap
-```
-
-### Gemini CLI
-
-Skills activate via `activate_skill` tool. Gemini loads skill metadata at session start.
 
 ---
 
@@ -152,17 +136,14 @@ Skills activate via `activate_skill` tool. Gemini loads skill metadata at sessio
 
 | Task | Type | Skill(s) |
 |------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → writing-plans → subagent-driven-development |
-| "What's the boldest move?" | 🦸 auto | innovation → brainstorming → writing-plans |
+| "Build a new feature" | 🦸 auto | brainstorming → writing-plans |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
-| "Create a Linear issue" | 🦸 auto | linear-issue-authoring → linear-link-verification |
 | "Update the wiki" | 🦸 auto | wiki-orchestrator → outline-wiki-editing → link-verification |
 | "Check my AI writing" | 🦸 auto | detecting-ai-slop → eliminating-ai-slop |
 | "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
 | "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
-| "Upgrade dependencies" | 🔧 explicit | security-upgrade (runs on request) |
-| "Refactor complex code" | 🦸 auto | cognitive-complexity-refactoring → blast-radius-check *(in overlay repo)* |
+| "Check skill health" | 🦸 auto | superpowers-doctor (sp-doctor) |
 
 ---
 
