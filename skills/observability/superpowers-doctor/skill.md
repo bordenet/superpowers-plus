@@ -21,6 +21,17 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - After install.sh to verify deployment integrity
 - When skills behave unexpectedly (wrong triggers, missing content)
 
+## Modes
+
+| Mode | Behavior |
+|------|----------|
+| Default (no flags) | Report-only — detect and display all findings |
+| `--fix` | Detect + auto-fix safe issues. Prompts for confirmation before applying. |
+| `--fix --yes` | Detect + auto-fix without confirmation prompt. |
+
+**5 checks are auto-fixable** (3, 8, 9, 14, 16). The remaining 11 require human judgment.
+All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS/` before modifying anything.
+
 ## How to Execute
 
 ### Step 0: Discover Paths
@@ -29,6 +40,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 SP_PLUS_DIR=$(find ~/GitHub -maxdepth 4 -type d -name "superpowers-plus" 2>/dev/null | head -1)
 SP_CALLBOX_DIR=$(find ~/GitHub -maxdepth 4 -type d -name "superpowers-example-org" 2>/dev/null | head -1)
 INSTALLED_DIR=~/.codex/skills
+FIX_MODE=false  # set to "true" if --fix flag passed
 ```
 
 Build a **skill registry** — for each installed skill, record: name, installed path, source path (if found), line count, YAML fields present, trigger list.
@@ -108,6 +120,15 @@ If all checks pass:
 ```
 🩺 Superpowers Doctor — 87 skills scanned
 ✅ All 16 checks passed. Your superpowers are in perfect health.
+```
+
+With `--fix`:
+```
+🔧 Fix Report
+  ✅ Fixed: 3 issues
+  🔧 Manual: 2 issues require human intervention
+  ⏭️  Skipped: 4 issues (unsafe to auto-fix)
+  📁 Backups: ~/.codex/doctor-backups/2026-03-19_22-30-00
 ```
 
 ## Severity Guide
