@@ -61,4 +61,3 @@ If Perplexity returns 401/403/5xx errors:
 2. **Fallback to `web-search`** - Often sufficient for targeted queries
 3. **Use `web-fetch`** - To get full content from authoritative sources
 4. **Inform user** - "Perplexity unavailable, using web search fallback"
-

@@ -60,4 +60,3 @@ We decided to use Vendor A for telephony [[TICKET-89](https://[your-tracker]/TIC
 ```markdown
 As discussed in the [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
 ```
-

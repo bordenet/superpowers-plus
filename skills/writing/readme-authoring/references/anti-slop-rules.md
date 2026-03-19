@@ -43,4 +43,3 @@
 
 **After (slop score: 12):**
 > "SuperTool runs your tests in parallel across 8 cores. Install in 10 seconds: `npm i -g supertool`"
-

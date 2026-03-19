@@ -180,4 +180,3 @@ detect_type() {
     echo "cli-tools"  # Default
 }
 ```
-
