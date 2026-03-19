@@ -60,4 +60,3 @@ More text
 3. Verify CI will pass
 
 **If you skip linting, you WILL break CI.**
-

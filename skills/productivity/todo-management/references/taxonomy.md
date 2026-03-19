@@ -57,4 +57,3 @@ Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
 - [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
 - [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
 ```
-

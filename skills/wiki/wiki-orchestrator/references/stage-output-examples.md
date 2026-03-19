@@ -75,4 +75,3 @@ Proceed? [Y/n]
 Then invoke `wiki-editing`:
 - Use adapter's `update_page` for existing pages
 - Use adapter's `create_page` for new pages
-

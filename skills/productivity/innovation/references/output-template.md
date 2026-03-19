@@ -77,4 +77,3 @@ accretive, useful, and compelling addition I could make right now?
 - [ ] An experiment plan with success criteria
 - [ ] A prototype implementation
 ```
-

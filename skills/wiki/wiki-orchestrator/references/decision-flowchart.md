@@ -47,4 +47,3 @@ digraph wiki_orchestrator {
     publish -> done;
 }
 ```
-
