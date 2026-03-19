@@ -323,7 +323,11 @@ function findSkills(filterMode = 'all') {
     console.log('Namespace prefixes (resolve to source repos, not installed dir):');
     console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
     console.log('  spc:skill-name          → superpowers-example-org source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
-    console.log('  Use spp:/spc: to load the specific repo version of overlay skills.\n');
+    console.log('');
+    console.log('Dash shorthands (sp- expands to superpowers-):');
+    console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
+    console.log('  spp-doctor              → superpowers-doctor from superpowers-plus source');
+    console.log('  spc-help                → superpowers-help from superpowers-example-org source\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
@@ -358,14 +362,35 @@ function useSkill(skillName) {
     // spp:name         → superpowers-plus source repo only
     // spc:name         → superpowers-example-org source repo only
     // name (no prefix) → installed dir (example-org overrides plus) → obra
-    const forceSuperpowers = skillName.startsWith('superpowers:');
-    const forceSpp = skillName.startsWith('spp:');
-    const forceSpc = skillName.startsWith('spc:');
+    //
+    // Dash shorthand (prefix expansion for fewer keystrokes):
+    // sp-X   → expands to superpowers-X, normal resolution
+    // spp-X  → expands to superpowers-X, spp: resolution
+    // spc-X  → expands to superpowers-X, spc: resolution
+    let forceSuperpowers = skillName.startsWith('superpowers:');
+    let forceSpp = skillName.startsWith('spp:');
+    let forceSpc = skillName.startsWith('spc:');
     let actualName;
-    if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
-    else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-    else if (forceSpc) actualName = skillName.replace(/^spc:/, '');
-    else actualName = skillName;
+
+    // Dash shorthand expansion: spp-X → spp:superpowers-X, spc-X → spc:superpowers-X, sp-X → superpowers-X
+    if (!forceSuperpowers && !forceSpp && !forceSpc) {
+        if (skillName.startsWith('spp-')) {
+            forceSpp = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('spc-')) {
+            forceSpc = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('sp-')) {
+            actualName = 'superpowers-' + skillName.slice(3);
+        }
+    }
+
+    if (!actualName) {
+        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+        else if (forceSpc) actualName = skillName.replace(/^spc:/, '');
+        else actualName = skillName;
+    }
 
     let skillFile = null;
 
@@ -627,8 +652,10 @@ switch (command) {
         console.log('Usage:');
         console.log('  node superpowers-augment.js bootstrap              # Initialize session');
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
         console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
         console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from superpowers-example-org source');
+        console.log('  node superpowers-augment.js use-skill spp-<name>  # sp-X from superpowers-plus source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');
         console.log('  node superpowers-augment.js find-skills explicit   # List explicit-invoke only');
