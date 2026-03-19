@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/compat.sh
+source "${SCRIPT_DIR}/compat.sh"
+require_bash4
+
 PASS=0
 FAIL=0
 TOTAL=0

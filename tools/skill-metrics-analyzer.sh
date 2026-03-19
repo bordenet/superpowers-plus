@@ -12,6 +12,24 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+skill-metrics-analyzer.sh — Generate skill firing reports
+
+USAGE
+  ./tools/skill-metrics-analyzer.sh [--json]
+
+OPTIONS
+  --json   Output JSON format (default: markdown)
+  --help   Show this help message
+
+DESCRIPTION
+  Analyzes skill invocations, missed triggers, and session data from
+  $SUPERPOWERS_DIR/.skill-metrics/ to produce weekly reports.
+HELP
+  exit 0
+fi
+
 METRICS_DIR="${SUPERPOWERS_DIR:-.}/.skill-metrics"
 FIRED_LOG="$METRICS_DIR/fired.jsonl"
 MISSED_LOG="$METRICS_DIR/missed.jsonl"

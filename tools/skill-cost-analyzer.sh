@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/compat.sh
+source "${SCRIPT_DIR}/compat.sh"
+require_bash4
+
 # skill-cost-analyzer.sh — Estimates relative token cost of each skill
 #
 # Metrics:
@@ -15,7 +20,6 @@ set -euo pipefail
 #   ./tools/skill-cost-analyzer.sh              # Print table to stdout
 #   ./tools/skill-cost-analyzer.sh --markdown   # Output as markdown file
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKILLS_DIR="$REPO_ROOT/skills"
 OUTPUT_MD="${1:---stdout}"

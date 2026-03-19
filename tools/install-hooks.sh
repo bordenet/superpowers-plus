@@ -6,6 +6,23 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat << 'HELP'
+install-hooks.sh — Install git hooks for superpowers-plus
+
+USAGE
+  ./tools/install-hooks.sh
+
+DESCRIPTION
+  Installs pre-commit hook to .git/hooks/ that validates file endings,
+  shell syntax, and JSON syntax before each commit. Backs up any
+  existing pre-commit hook to .bak.
+
+  To bypass: git commit --no-verify
+HELP
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOOKS_DIR="$REPO_ROOT/.git/hooks"

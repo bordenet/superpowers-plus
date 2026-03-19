@@ -7,6 +7,13 @@
 # Sets these variables for caller:
 #   HISTORY_START, HISTORY_END, HISTORY_BLOCK, TASKS_TO_ARCHIVE, TASK_COUNT, KEPT_LINES
 
+# --- Bash 4+ required for declare -A ---
+if ((BASH_VERSINFO[0] < 4)); then
+  echo "ERROR: todo-archive requires bash 4+. You have bash ${BASH_VERSION}" >&2
+  echo "  macOS fix: brew install bash" >&2
+  exit 1
+fi
+
 # --- Locate HISTORY section ---
 HISTORY_START=$(grep -n "^# HISTORY" "$TODO_PATH" | head -1 | cut -d: -f1)
 if [[ -z "$HISTORY_START" ]]; then
