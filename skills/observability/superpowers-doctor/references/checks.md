@@ -2,6 +2,49 @@
 
 Each check runs iteratively across EVERY installed skill. No exceptions, no shortcuts.
 
+## Auto-Fix Infrastructure
+
+When running with `--fix`, set these variables before executing checks:
+
+```bash
+FIX_MODE="${1:-false}"  # "true" if --fix flag passed
+CONFIRM="${2:-true}"    # "false" if --yes flag passed (skip confirmation)
+BACKUP_DIR=~/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)
+
+# Backup function — called before ANY destructive fix
+backup_skill() {
+  local target="$1"
+  local skill_name=$(basename "$target")
+  local backup_path="$BACKUP_DIR/$skill_name"
+  mkdir -p "$backup_path"
+  cp -r "$target"/* "$backup_path/" 2>/dev/null
+}
+
+# Counters
+FIXED=0; MANUAL=0; SKIPPED=0
+```
+
+**Auto-fix summary by check:**
+
+| Check | Auto-fixable? | Strategy |
+|-------|--------------|----------|
+| 1. Malformed YAML | ❌ | Manual — requires human judgment |
+| 2. Empty/stub | ❌ | Manual — can't generate content |
+| 3. Name mismatch | ✅ | Update `name:` field to match directory |
+| 4. Duplicate names | ❌ | Manual — human decides which repo |
+| 5. Broken refs | ❌ | Manual — can't generate missing files |
+| 6. Oversized | ❌ | Manual — human decides what to extract |
+| 7. Missing description | ❌ | Manual — can't generate description |
+| 8. Orphaned installs | ✅ | Backup + `rm -rf` orphaned dir |
+| 9. Content drift | ✅ | Copy source → installed |
+| 10. Missing triggers | ❌ | Manual — human chooses triggers |
+| 11. Trigger overlap | ❌ | Manual — may be intentional |
+| 12. Deprecated | ❌ | Manual — human decides |
+| 13. Dead refs | ❌ | Manual — can't fix URLs |
+| 14. Junk files | ✅ | Delete + add to .gitignore |
+| 15. Structure quality | ❌ | Manual — can't generate sections |
+| 16. Reference drift | ✅ | Copy source refs → installed |
+
 ---
 
 ## 🔴 CRITICAL — Skill is broken
@@ -34,6 +77,8 @@ done
 
 **Fix:** Add proper `---` delimiters and required `name:` + `description:` fields.
 
+**Auto-fix:** ❌ Manual only — requires human judgment on correct YAML values.
+
 ### Check 2: Empty/Stub Skills
 
 **What:** Skills under 10 lines provide zero agent guidance.
@@ -45,6 +90,8 @@ find "$INSTALLED_DIR" -name "skill.md" -not -path "*/references/*" -exec sh -c \
 ```
 
 **Fix:** Write actual skill content or delete the skill.
+
+**Auto-fix:** ❌ Manual only — can't generate meaningful skill content.
 
 ### Check 3: Name Mismatch
 
@@ -61,6 +108,17 @@ done
 ```
 
 **Fix:** Align `name:` field with directory name (rename one or the other).
+
+**Auto-fix:** ✅ Safe — update `name:` field in YAML to match directory name.
+
+```bash
+# --fix mode: rewrite name: field to match directory
+if [[ "$FIX_MODE" == "true" && -n "$yaml_name" && "$yaml_name" != "$dir_name" ]]; then
+  backup_skill "$f"
+  sed -i '' "s/^name:.*$/name: $dir_name/" "$f"
+  echo "  FIXED: name: '$yaml_name' → '$dir_name'"
+fi
+```
 
 ### Check 4: Duplicate Skill Names
 
@@ -85,6 +143,8 @@ done
 
 **Fix:** Remove from one repo. superpowers-example-org overrides superpowers-plus by convention.
 
+**Auto-fix:** ❌ Manual only — requires human decision on which repo to keep.
+
 ### Check 5: Broken Internal References
 
 **What:** skill.md references files that don't exist on disk.
@@ -104,6 +164,8 @@ done
 
 **Fix:** Create the missing file or remove the reference.
 
+**Auto-fix:** ❌ Manual only — can't generate missing reference content.
+
 ---
 
 ## 🟠 ERROR — Skill is degraded
@@ -120,6 +182,8 @@ find "$INSTALLED_DIR" -name "skill.md" -not -path "*/references/*" -exec sh -c \
 
 **Fix:** Split into `skill.md` (core ≤250) + `references/*.md` for detailed procedures.
 
+**Auto-fix:** ❌ Manual only — requires human judgment on what to extract.
+
 ### Check 7: Missing Description
 
 **What:** No `description:` field in YAML frontmatter. The skill router uses this for discovery.
@@ -133,6 +197,8 @@ done
 ```
 
 **Fix:** Add `description: "Use when..."` to YAML frontmatter.
+
+**Auto-fix:** ❌ Manual only — can't generate meaningful description.
 
 ### Check 8: Orphaned Installs
 
@@ -152,6 +218,17 @@ done
 ```
 
 **Fix:** `rm -rf ~/.codex/skills/<orphan>` or re-add to source repo.
+
+**Auto-fix:** ✅ Safe — remove orphaned install directory (with backup).
+
+```bash
+# --fix mode: backup and remove orphaned install
+if [[ "$FIX_MODE" == "true" ]]; then
+  backup_skill "$installed"
+  rm -rf "$installed"
+  echo "  FIXED: removed orphaned install $skill (backup in $BACKUP_DIR)"
+fi
+```
 
 ### Check 9: Source-Install Content Drift
 
@@ -200,6 +277,17 @@ done
 
 **Fix:** `cp "$src" "$installed"` or run `./install.sh`. For corruption, investigate how the wrong content got there.
 
+**Auto-fix:** ✅ Safe — copy source skill.md over installed copy.
+
+```bash
+# --fix mode: sync source → installed for skill.md
+if [[ "$FIX_MODE" == "true" ]]; then
+  backup_skill "$installed"
+  cp "$src" "$installed"
+  echo "  FIXED: copied source → installed for $skill"
+fi
+```
+
 ---
 
 ## 🟡 WARNING — Quality/hygiene issue
@@ -227,6 +315,8 @@ done
 
 **Fix:** Add `triggers: [...]` to YAML or add skill to EXPLICIT_SKILLS in `skill-trigger-validator.sh`.
 
+**Auto-fix:** ❌ Manual only — requires human judgment on appropriate triggers.
+
 ### Check 11: Trigger Overlap
 
 **What:** Two or more skills share an identical trigger phrase, causing ambiguous routing.
@@ -251,6 +341,8 @@ done
 
 **Fix:** Differentiate triggers or document intentional overlap in both skills.
 
+**Auto-fix:** ❌ Manual only — intentional overlap is valid; requires human decision.
+
 ### Check 12: Deprecated But Active
 
 **What:** Skill body contains "deprecated" or "replaced by" but still has active triggers.
@@ -270,6 +362,8 @@ done
 ```
 
 **Fix:** Remove triggers from deprecated skill, or remove the deprecation language if skill is actually active.
+
+**Auto-fix:** ❌ Manual only — requires human decision on whether skill is truly deprecated.
 
 ### Check 13: Dead External References
 
@@ -296,6 +390,8 @@ done
 
 **Fix:** Update or remove dead links.
 
+**Auto-fix:** ❌ Manual only — can't determine correct replacement URLs.
+
 ---
 
 ## 🔵 INFO — Recommendations
@@ -321,6 +417,21 @@ done
 ```
 
 **Fix:** Delete the junk file and add to `.gitignore` if it recurs.
+
+**Auto-fix:** ✅ Safe — delete junk file and add to .gitignore.
+
+```bash
+# --fix mode: delete junk file and gitignore it
+if [[ "$FIX_MODE" == "true" ]]; then
+  junk_name=$(basename "$junk")
+  rm -f "$junk"
+  gitignore="$root/.gitignore"
+  if ! grep -qF "$junk_name" "$gitignore" 2>/dev/null; then
+    echo "$junk_name" >> "$gitignore"
+  fi
+  echo "  FIXED: deleted $junk_name and added to .gitignore"
+fi
+```
 
 ### Check 15: Skill Structure Quality
 
@@ -356,6 +467,8 @@ done
 ```
 
 **Fix:** Add missing sections. See `skill-authoring` skill for the recommended template.
+
+**Auto-fix:** ❌ Manual only — can't generate meaningful section content.
 
 ---
 
@@ -423,3 +536,46 @@ done
 **Real incident (2026-03-19):** `superpowers-doctor/references/checks.md` installed copy contained `write-archives.sh` bash script content instead of the 331-line check procedures. 0% content overlap. Went undetected because no check compared file content — only timestamps.
 
 **Fix:** `cp "$src_ref" "$installed_ref"`. For corruption, investigate the install pipeline for copy errors.
+
+**Auto-fix:** ✅ Safe — copy source reference files over installed copies; create missing dirs.
+
+```bash
+# --fix mode: sync source → installed for reference files
+if [[ "$FIX_MODE" == "true" ]]; then
+  if [[ ! -f "$installed_ref" ]]; then
+    mkdir -p "$(dirname "$installed_ref")"
+    cp "$src_ref" "$installed_ref"
+    echo "  FIXED: created missing $skill_dir/references/$ref_name"
+  else
+    backup_skill "$INSTALLED_DIR/$skill_dir"
+    cp "$src_ref" "$installed_ref"
+    echo "  FIXED: synced $skill_dir/references/$ref_name from source"
+  fi
+fi
+```
+
+
+---
+
+## Fix Report (--fix mode only)
+
+After all checks complete, print a summary:
+
+```bash
+if [[ "$FIX_MODE" == "true" ]]; then
+  echo ""
+  echo "🔧 Fix Report"
+  echo "  ✅ Fixed: $FIXED issues"
+  echo "  🔧 Manual: $MANUAL issues require human intervention"
+  echo "  ⏭️  Skipped: $SKIPPED issues (unsafe to auto-fix)"
+  if [[ "$FIXED" -gt 0 ]]; then
+    echo "  📁 Backups: $BACKUP_DIR"
+  fi
+  echo ""
+  if [[ "$MANUAL" -gt 0 ]]; then
+    echo "Run without --fix to see full details on manual issues."
+  fi
+fi
+```
+
+**Idempotency:** Running `--fix` twice should produce `Fixed: 0` on the second run.
