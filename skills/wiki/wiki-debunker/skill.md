@@ -25,62 +25,13 @@ This skill is invoked by `wiki-orchestrator` as an **ADVISORY** check (warning, 
 
 ### Fact-Check Report Format
 
-When called by orchestrator, produce this summary:
+See `references/report-format.md` for the full report template and citation formats.
 
-```
-## Fact-Check Report
-
-**Claims Analyzed:** 14
-**Verified:** 8 (57%)
-**Sourced but Unverified:** 2 (14%)
-**Uncited:** 4 (29%)
-
-### Sourced but Unverified (cite from wrong authority)
-
-| # | Claim | Type | Source Used | Authoritative Source | Action |
-|---|-------|------|------------|---------------------|--------|
-| 1 | "Junyi's funnel metrics queries" | Task ownership | Wiki plan table | Issue tracker assignee | ⚠️🔄 Verify in Linear |
-| 2 | "Ships in Sprint 2 per v1 Plan" | Timeline | Wiki roadmap | Git tags, CI deploys | ⚠️🔄 Check actual sprint |
-
-### Uncited Claims (require attention)
-
-| # | Claim | Type | Suggested Source | Action |
-|---|-------|------|------------------|--------|
-| 1 | "We decided to use Vendor X in Q4 2025" | Decision + Timeline | Issue Tracker, Git | ⚠️ Find ticket/PR |
-| 2 | "Person proposed the WebSocket approach" | Attribution | PR #47 | ⚠️ Verify author |
-| 3 | "Performance improved significantly" | Vague metric | Benchmarks | ⚠️ Add numbers |
-| 4 | "Based on team discussion" | Meeting ref | Meeting transcript | ⚠️ Find transcript |
-
-### Verified Claims
-
-| # | Claim | Source | Citation |
-|---|-------|--------|----------|
-| 1 | Vendor A for telephony | [TICKET-89]([your-tracker-url]) | ✅ |
-| 2 | Vendor B for STT | [PR #52]([your-repo-url]) | ✅ |
-| ... | ... | ... | ... |
-
-**Gate Status:** ⚠️ WARNING (4 uncited, 2 sourced-but-unverified)
-**Recommendation:** Verify sourced-but-unverified claims against authoritative sources; add citations for uncited claims
-```
-
-### Citation Detection
-
-Look for inline citations in these formats:
-- `[text](url)` — markdown link
-- `[[TICKET-123](url)]` — ticket reference
-- `— Author, [Source](url)` — block quote attribution
+**Verification statuses:** ✅ VERIFIED | ⚠️🔄 SOURCED BUT UNVERIFIED | ⚠️ UNCITED | ❌ CONTRADICTED
 
 ### Uncited Claim Patterns
 
-Flag these if no citation follows within 2 sentences:
-- "We decided/chose/agreed..."
-- "In [quarter/month/year]..."
-- "[Person] proposed/suggested/built..."
-- "After the [incident/meeting/discussion]..."
-- Specific numbers without source
-- **"[Person]'s [task/work]"** — possessive attribution (e.g., "Junyi's queries", "Thomas's fix")
-- **"[Person] handles/owns/is responsible for [task]"** — task ownership claims
-- **"assigned to [Person]" or "[Person] will do [task]"** — assignment claims from non-authoritative sources
+Flag if no citation within 2 sentences: "We decided/chose/agreed...", "In [quarter/year]...", "[Person] proposed/built...", "[Person]'s [task]" (possessive attribution), "[Person] handles/owns [task]", specific numbers without source.
 
 ---
 
@@ -204,61 +155,18 @@ Parse wiki content for verifiable claims. Flag any statement containing:
 
 ### Step 3: Query Sources
 
-**Git History:**
-```bash
-# Find commits mentioning topic
-git log --all --grep="keyword" --oneline
+Use git, issue tracker, repository, and meeting adapters. See `references/verification-commands.md` for all commands.
 
-# Find who changed a file
-git blame path/to/file.ts
+### Step 4: Evaluate & Cite
 
-# Find commits in date range
-git log --since="2026-01-01" --until="2026-02-01" --oneline
-```
+| Match | Action |
+|-------|--------|
+| Exact quote found | ✅ Add citation |
+| Paraphrase matches | ✅ Add citation, note "paraphrased" |
+| Topic discussed, different conclusion | ⚠️ Flag CONTRADICTION |
+| No relevant source found | ❌ Mark UNVERIFIED |
 
-**Issue Tracker:**
-```
-# Use your issue tracker adapter
-issue_search(query: "Find tickets mentioning 'migration'")
-issue_get_comments(issue_id: "ISSUE-123")
-```
-
-**Repository:**
-```
-# Use your repository adapter to search commits
-repo_search_commits(
-  repository: "your-service"
-  searchText: "websocket refactor"
-)
-```
-
-**Meeting Transcripts (if available):**
-```
-# Use your meeting transcript adapter if configured
-meeting_search(query: "KEYWORD")
-```
-
-### Step 4: Evaluate Match Quality
-
-| Match | Confidence | Action |
-|-------|------------|--------|
-| **Exact quote found** | ✅ HIGH | Add citation |
-| **Paraphrase matches** | ✅ MEDIUM | Add citation, note "paraphrased" |
-| **Topic discussed, different conclusion** | ⚠️ CONTRADICTION | Flag for review |
-| **No relevant source found** | ❌ UNVERIFIED | Mark suspect or remove |
-
-### Step 5: Add Citations
-
-**Inline citation format:**
-```markdown
-We decided to use Vendor A for telephony [[TICKET-89](https://[your-tracker]/TICKET-89)].
-```
-
-**Block citation for key decisions:**
-```markdown
-> "Let's go with Vendor A — their WebSocket API is cleaner."
-> — Team Member, [PR #47]([your-repo-url]/pullrequest/47), 2026-01-15
-```
+See `references/report-format.md` for citation formats.
 
 ---
 
@@ -266,239 +174,18 @@ We decided to use Vendor A for telephony [[TICKET-89](https://[your-tracker]/TIC
 
 | Signal | Action |
 |--------|--------|
-| Specific date but no commit/ticket from that date | ⚠️ Verify date |
-| Quote attributed to someone but no source | ⚠️ Find transcript or remove |
+| Precise date but no commit/ticket from that date | ⚠️ Verify date |
+| Quote without attribution | ⚠️ Find transcript or remove |
 | "We decided" without ticket/PR reference | ⚠️ Find decision record |
-| Incident reference but no postmortem link | ⚠️ Find incident doc |
-| Causal claim ("because X") without evidence | ⚠️ Verify causation |
-| Highly specific details (exact percentages, counts) | ⚠️ Find data source |
+| Exact percentages without data source | ⚠️ Find benchmark |
+| "After extensive discussion..." / "Based on testing..." | ⚠️ Find meeting/test results |
+| Possessive attribution from wiki plan ("Junyi's queries") | ⚠️🔄 Verify in issue tracker |
 
----
+### Source Laundering (Most Dangerous)
 
-## Git History Verification
+Wiki plan tables describe *intent*. Issue tracker assignee fields describe *current state*. When writing about who owns what, verify against current state — not wiki plans.
 
-Use when claims involve code changes, architecture decisions, or shipping dates.
-
-### Commands
-
-```bash
-# Who introduced a concept?
-git log --all --oneline --grep="websocket" | head -10
-
-# When was file last changed?
-git log -1 --format="%ci %an" -- src/telephony/websocket.ts
-
-# What changed in a date range?
-git log --since="2026-01-01" --until="2026-01-31" --oneline
-
-# Who's responsible for specific lines?
-git blame -L 50,60 src/config.ts
-
-# Find merge commits (decisions)
-git log --merges --oneline --since="2026-01-01"
-```
-
-### PR as Decision Record
-
-PRs with descriptions are decision artifacts:
-```
-# Use your repository adapter to get PR details
-repo_get_pull_request(
-  repository: "your-service"
-  pullRequestId: 47
-)
-
-# Get PR discussion threads
-repo_get_pull_request_threads(
-  repository: "your-service"
-  pullRequestId: 47
-)
-```
-
----
-
-## Issue Tracker Verification
-
-Use when claims involve feature decisions, bug reports, or team agreements.
-
-### Query Patterns
-
-```
-# Find ticket by topic
-issue tracker query: "Search issues mentioning 'Telnyx' in Your Team"
-
-# Get specific ticket with comments
-issue tracker query: "Get issue TICKET-123 with all comments"
-
-# Find decisions in comments
-issue tracker query: "Get comments on TICKET-89 containing 'decided'"
-```
-
-### Citation Format
-
-```markdown
-Decision: Use Telnyx WebSocket API [[TICKET-89](https://[your-tracker]/TICKET-89)]
-```
-
-**Verify before citing:**
-- Does ticket exist?
-- Does it actually contain the claimed decision?
-- Is the attribution correct (assignee vs commenter)?
-
----
-
-## Work Item / Issue Verification
-
-Use when claims involve builds, deployments, work items, or PR decisions.
-
-### Work Item Queries
-
-```
-# Use your issue tracker adapter
-issue_get(id: 1234)
-issue_get_comments(id: 1234)
-```
-
-### Build/Deploy History
-
-```
-# Search commits using your repository adapter
-repo_search_commits(
-  repository: "your-service"
-  searchText: "deploy"
-)
-
-# Find PR by branch
-repo_list_pull_requests(
-  repository: "your-service"
-  sourceBranch: "feature/websocket-refactor"
-)
-```
-
----
-
-## Hallucination Patterns to Detect
-
-### Specific but Unverifiable Claims
-
-| Pattern | Example | Red Flag |
-|---------|---------|----------|
-| Precise dates without source | "On January 15th, we decided..." | Query git/issue tracker for that date |
-| Exact percentages | "Performance improved 47%" | Find benchmark data |
-| Quote without attribution | '"This is the best approach"' | Who said it? When? |
-| Unanimous agreement | "The team agreed unanimously" | Check for dissent in discussion |
-
-### Common AI Fabrication Patterns
-
-| Pattern | Reality Check |
-|---------|---------------|
-| "After extensive discussion..." | Was there a meeting? Check transcripts |
-| "The team evaluated multiple options..." | Where's the comparison doc? |
-| "Based on performance testing..." | Where are the test results? |
-| "Following best practices..." | Which practices? Cite source |
-| "Industry standard approach..." | Citation needed |
-
-### Temporal Impossibilities
-
-| Claim | Check |
-|-------|-------|
-| "In Q4 2025 we shipped X" | `git log --since=2025-10-01 --until=2026-01-01` |
-| "After the January incident..." | Find incident doc from January |
-| "We migrated from A to B" | Find commits removing A, adding B |
-
-### Source Laundering (Wiki-to-Wiki Attribution)
-
-**This is the most dangerous pattern because the claim appears sourced.**
-
-| Pattern | Example | Red Flag |
-|---------|---------|----------|
-| Possessive attribution from wiki plan | "Junyi's funnel metrics queries" | Does the issue tracker show Junyi assigned to this? |
-| Task ownership from sprint schedule | "Thomas handles the businessHours fix (Day 2)" | Is this a current Linear assignment or an aspirational plan? |
-| Timeline from roadmap table | "Ships in Sprint 2 per the v1 Plan" | Is this the current sprint assignment in the tracker, or a planning artifact? |
-| Competence claim from plan | "Junyi will write the SQL queries" | Was this ever assigned, or is it a plan table entry? |
-
-**Key principle:** Wiki plan tables, sprint schedules, and roadmaps describe *intent*. Issue tracker assignee fields describe *current state*. When writing about who owns what, verify against current state.
-
-**Real incident (2026-03-18):**
-- Wiki Pilot Plan table said: `Day 2 | Junyi | Write SQL queries for funnel metrics`
-- Agent wrote in new wiki page: "Junyi's funnel metrics queries (Pilot Plan Week 1 Day 2)"
-- Reality: No such task was assigned to Junyi in Linear
-- Root cause: Agent treated wiki plan (aspirational) as authoritative for task ownership
-
----
-
-## Meeting Transcript Verification
-
-Use when claims reference meeting discussions, verbal agreements, or spoken quotes.
-
-### Using Your Meeting Adapter
-
-If you have a meeting transcript service (like Fathom, Otter, or similar), use your adapter:
-
-```
-# Use your meeting transcript adapter to search
-meeting_search(query: "KEYWORD")
-meeting_list(limit: 10, include_transcript: true)
-```
-
-### Timestamp Deep Links
-
-Many transcript services support timestamp anchors using `#t={seconds}` format:
-
-```
-share_url#t=645  →  jumps to 10:45 in recording
-```
-
-**Conversion:** `HH:MM:SS` → `HH*3600 + MM*60 + SS` = seconds
-
-Example: `00:10:45` → `10*60 + 45` = `645`
-
-### Citation Formats
-
-**Inline:**
-```markdown
-As discussed in the [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
-```
-
-**Block quote:**
-```markdown
-> "Let's prioritize the vendor integration first."
-> — Person Name, [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
-```
-
-### Share URL Accessibility
-
-Note: Meeting share URLs may require authentication.
-
-| URL Type | Behavior |
-|----------|----------|
-| `share_url` | May redirect to sign-in |
-| `direct_url` | Typically requires account |
-
-**Implication:** Share links may only work for team members with meeting service access.
-
-### Red Flags
-
-| Signal | Action |
-|--------|--------|
-| Claim about meeting >30 days ago | May exceed transcript retention — verify |
-| Quote but no transcript match | Possible fabrication — search all meetings |
-| Speaker attribution mismatch | Cross-check `speaker` field in API |
-| Meeting "discussed X" but no transcript hit | May be paraphrased or wrong meeting |
-
-### Transcript Structure (Example)
-
-```json
-{
-  "transcript": [
-    {
-      "speaker": { "display_name": "Person Name" },
-      "timestamp": "00:10:45",
-      "text": "Let's prioritize the vendor integration first."
-    }
-  ]
-}
-```
+See `references/verification-commands.md` for meeting transcript verification, git commands, and issue tracker queries.
 
 ---
 
@@ -515,24 +202,15 @@ Note: Meeting share URLs may require authentication.
 
 ---
 
-## Related Skills
-
-- **wiki-verify**: Version/config drift verification
-- **link-verification**: URL hallucination prevention  
-- **verification-before-completion**: General verification discipline
-
----
-
 ## Quick Reference
 
-```
-Before writing ANY factual claim:
+Before writing ANY factual claim: **IDENTIFY** type → **AUTHORITY** check (wiki plan ≠ authoritative for ownership) → **SOURCE** primary evidence → **QUERY** that source → **CITE** inline → **MARK** (✅/⚠️🔄/⚠️/❌)
 
-1. IDENTIFY — What type of claim is this?
-2. AUTHORITY — Is my source authoritative for this claim type?
-   (Wiki plan table ≠ authoritative for task ownership)
-3. SOURCE — What PRIMARY source would contain evidence?
-4. QUERY — Search that source for corroboration
-5. CITE — Add inline citation or flag appropriately
-6. MARK — ✅ VERIFIED, ⚠️🔄 SOURCED BUT UNVERIFIED, ⚠️ UNCITED, or ❌ CONTRADICTED
-```
+## Related Skills
+
+- **wiki-verify**: Version/config drift | **link-verification**: URL hallucination | **verification-before-completion**: General verification
+
+## Reference Files
+
+- [`references/report-format.md`](references/report-format.md) — Full fact-check report template, citation formats
+- [`references/verification-commands.md`](references/verification-commands.md) — Git, issue tracker, repository, and meeting transcript verification commands

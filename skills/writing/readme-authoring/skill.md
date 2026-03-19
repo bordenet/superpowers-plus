@@ -113,72 +113,17 @@ your-tool input.txt --format=json --verbose
 [Screenshot/GIF of output if applicable]
 ```
 
-### 6. Why This Project? (optional but recommended)
+### 6-12. Remaining Sections
 
-```markdown
-## Why project-name?
-
-| vs Alternative | Advantage |
-|----------------|-----------|
-| Tool A         | 3x faster |
-| Tool B         | No config required |
-```
-
-No fluff; link whitepaper/demo if available.
-
-### 7. Configuration / API
-
-```markdown
-## Configuration
-
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--port` | int | 8080 | Server port |
-
-Full schema: [config.md](./docs/config.md)
-```
-
-Keep brief - link to full docs.
-
-### 8. Features/What It Does
-
-Bullet list. No adjectives. Each feature links to docs or example.
-
-**Bad:** "Incredibly powerful detection engine"
-**Good:** "Detects 300+ AI slop patterns across 13 content types"
-
-### 9. Directory Structure (optional - if complex)
-
-ASCII tree for projects with >10 files.
-
-### 10. Contributing / Development
-
-```markdown
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-### Development
-
-\`\`\`bash
-npm run dev
-npm test
-\`\`\`
-```
-
-### 11. Support / Community
-
-```markdown
-## Support
-
-- 🚨 Bug reports: [Issues](https://github.com/org/project/issues)
-- 💬 Discussions: [Discussions](https://github.com/org/project/discussions)
-- 📖 Docs: [docs.project.io](https://docs.project.io)
-```
-
-### 12. License
-
-Single line: "MIT" or "Apache 2.0" with link to LICENSE file.
+| # | Section | Notes |
+|---|---------|-------|
+| 6 | Why This Project? | Optional. Comparison table vs alternatives |
+| 7 | Configuration/API | Brief table of flags; link to full docs |
+| 8 | Features | Bullet list, no adjectives, link to docs |
+| 9 | Directory Structure | Optional. ASCII tree for >10 files |
+| 10 | Contributing | Link to CONTRIBUTING.md + dev commands |
+| 11 | Support/Community | Bug reports, discussions, docs links |
+| 12 | License | Single line: "MIT" with link to LICENSE |
 
 ---
 
@@ -195,113 +140,19 @@ Single line: "MIT" or "Apache 2.0" with link to LICENSE file.
 
 ---
 
-## Anti-Slop Rules for READMEs
+## Anti-Slop Rules
 
-### Delete These Words
+Delete marketing language. Target slop score <20. See `references/anti-slop-rules.md` for the full word/phrase blocklist and replacement table.
 
-| Word/Phrase | Replacement |
-|-------------|-------------|
-| comprehensive | list what's covered |
-| cutting-edge | name the technology |
-| world-class | delete entirely |
-| seamless/seamlessly | describe the mechanism |
-| robust | specify failure handling |
-| powerful | quantify capability |
-| innovative | describe what's new |
-| state-of-the-art | cite the paper/version |
-| elegant | delete entirely |
-| intuitive | show a 3-second example |
-
-### Delete These Phrases
-
-- "In today's fast-paced world"
-- "It's important to note that"
-- "Let's dive into"
-- "This project aims to"
-- "We believe that"
-
-### Replace Vague Claims
-
-| Vague | Concrete |
-|-------|----------|
-| "Fast" | "Responds in <50ms" |
-| "Scalable" | "Tested to 10K concurrent users" |
-| "Easy to use" | Show a 3-line example |
-| "Flexible" | List the configuration options |
-| "Secure" | Name the security measures |
+**Auto-invoke:** Use GVR loop from `eliminating-ai-slop` when generating README content.
 
 ---
 
 ## Markdown Linting (REQUIRED)
 
-**Before committing ANY markdown changes, run the linter.**
-
-### Common Lint Errors
-
-| Rule | Error | Fix |
-|------|-------|-----|
-| MD058 | Tables need blank lines | Add blank line before AND after every table |
-| MD009 | Trailing spaces | Remove trailing whitespace |
-| MD012 | Multiple blank lines | Use single blank lines only |
-| MD022 | Headers need blank lines | Add blank line before AND after headers |
-| MD031 | Fenced code needs blank lines | Add blank line before AND after code blocks |
-| MD032 | Lists need blank lines | Add blank line before AND after lists |
-| MD047 | File should end with newline | Add trailing newline |
-
-### Pre-Commit Check
-
-```bash
-# If markdownlint-cli2 is available
-npx markdownlint-cli2 "README.md"
-
-# Or with markdownlint
-npx markdownlint README.md --fix
-```
-
-### Table Formatting (MD058)
-
-**Wrong:**
-
-```markdown
-Some text
-| Column | Column |
-|--------|--------|
-| data   | data   |
-More text
-```
-
-**Correct:**
-
-```markdown
-Some text
-
-| Column | Column |
-|--------|--------|
-| data   | data   |
-
-More text
-```
-
-### Self-Check Before Commit
-
-1. Run linter: `npx markdownlint-cli2 "README.md"`
-2. Fix all errors (no exceptions)
-3. Verify CI will pass
+Run `npx markdownlint-cli2 "README.md"` before every commit. See `references/linting-rules.md` for common errors (MD058, MD009, etc.) and formatting examples.
 
 **If you skip linting, you WILL break CI.**
-
----
-
-## Integration with AI Slop Detection
-
-Before finalizing any README:
-
-1. Run `detecting-ai-slop` on the content
-2. Target slop score: **<20** for READMEs
-3. Fix all flagged patterns
-4. Verify sentence variance (σ >12)
-
-**Auto-invoke:** When generating README content, use GVR loop from `eliminating-ai-slop`.
 
 ---
 
@@ -346,54 +197,6 @@ Markdown lint: PASS (0 errors)
 
 ---
 
-## Example: Rewriting a Bad Opening
-
-**Before (slop score: 67):**
-> "SuperTool is a comprehensive, cutting-edge solution that seamlessly integrates into your workflow to provide powerful capabilities for modern development teams."
-
-**After (slop score: 12):**
-> "SuperTool runs your tests in parallel across 8 cores. Install in 10 seconds: `npm i -g supertool`"
-
----
-
-## Automation (Recommended)
-
-Set up GitHub Actions for:
-
-1. **Markdown lint** - markdownlint on PRs
-2. **Link checker** - Detect dead links automatically
-3. **Badge updates** - Auto-update coverage/version badges
-
-Example workflow:
-
-```yaml
-# .github/workflows/docs.yml
-name: Docs
-on: [push, pull_request]
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npx markdownlint-cli2 "**/*.md"
-```
-
----
-
-## Resources
-
-Based on patterns from:
-
-- [matiassingers/awesome-readme](https://github.com/matiassingers/awesome-readme)
-- [Art of README](https://github.com/hackergrrl/art-of-readme)
-- [Make a README](https://www.makeareadme.com/)
-- [jehna/readme-best-practices](https://github.com/jehna/readme-best-practices)
-- [othneildrew/Best-README-Template](https://github.com/othneildrew/Best-README-Template)
-
-Exemplars: Kubernetes (actionable), Google Style Guides (minimalist).
-
----
-
 ## Related Skills
 
 - **detecting-ai-slop**: Analyze README for slop score
@@ -403,3 +206,9 @@ Exemplars: Kubernetes (actionable), Google Style Guides (minimalist).
 ## Related Tools
 
 For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
+
+## Reference Files
+
+- [`references/anti-slop-rules.md`](references/anti-slop-rules.md) — Word/phrase blocklist, vague→concrete replacements, rewriting examples
+- [`references/linting-rules.md`](references/linting-rules.md) — Common lint errors (MD058, MD009, etc.), table formatting, pre-commit checks
+- [`references/automation-resources.md`](references/automation-resources.md) — GitHub Actions workflow, link checker setup, exemplar READMEs
