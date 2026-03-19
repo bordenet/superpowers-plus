@@ -139,4 +139,3 @@ All scan results are appended to `~/.codex/wiki-guard-audit.log` (append-only):
 ```
 
 The audit log is a **detective control** (not preventive). It records override decisions but does not prevent them.
-

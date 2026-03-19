@@ -106,4 +106,3 @@ Many transcript services support `#t={seconds}` format:
 | Meeting "discussed X" but no transcript hit | May be paraphrased or wrong meeting |
 
 Note: Meeting share URLs may require authentication (redirect to sign-in).
-

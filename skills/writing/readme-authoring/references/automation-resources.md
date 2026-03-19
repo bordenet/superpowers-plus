@@ -38,4 +38,3 @@ Based on patterns from:
 - [othneildrew/Best-README-Template](https://github.com/othneildrew/Best-README-Template)
 
 Exemplars: Kubernetes (actionable), Google Style Guides (minimalist).
-
