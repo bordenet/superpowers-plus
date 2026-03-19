@@ -21,20 +21,12 @@ DEFAULT_TIMEOUT=8        # total seconds to wait for lock (retry window)
 RETRY_INTERVAL=2         # seconds between retries
 LOCK_DIR_NAME=".TODO.md.lock"
 
-# --- Resolve TODO path (same logic as todo-preflight.sh) ---
-ENV_FILE="$HOME/.codex/.env"
-if [[ -f "$ENV_FILE" ]]; then
-  # shellcheck source=/dev/null
-  source "$ENV_FILE" 2>/dev/null || true
-fi
-TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
-# Expand $HOME in the path. Use envsubst if available (safe), fall back to eval (needed for $HOME).
-if command -v envsubst &>/dev/null; then
-  TODO_PATH=$(echo "$TODO_PATH" | envsubst)
-else
-  # shellcheck disable=SC2116
-  TODO_PATH=$(eval echo "$TODO_PATH" 2>/dev/null || echo "$TODO_PATH")
-fi
+# --- Resolve TODO path (shared utility) ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=resolve-env-path.sh
+source "$SCRIPT_DIR/resolve-env-path.sh"
+resolve_env
+TODO_PATH=$(resolve_path "TODO_FILE_PATH" "$HOME/.codex/TODO.md")
 
 TODO_DIR="$(dirname "$TODO_PATH")"
 LOCK_DIR="${TODO_DIR}/${LOCK_DIR_NAME}"

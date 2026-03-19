@@ -20,61 +20,19 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 **Do not try to handle thinking tasks yourself.** Use the routing table below to dispatch to the right skill, then follow that skill's process.
 
-## Routing Decision Tree
+## Routing Table
 
-```
-What is happening right now?
-|
-+-- INVESTIGATING something (search, grep, bug report, inconsistency)
-|   |
-|   +-- About to report "no issue found" or "already correct"?
-|   |   --> adversarial-search (MANDATORY before any negative finding)
-|   |
-|   +-- About to report search results?
-|   |   --> adversarial-search (fill Mandatory Investigation Report)
-|   |
-|   +-- User says something is wrong and you disagree?
-|       --> adversarial-search (search for the BAD value, not the good one)
-|
-+-- STUCK (looping, circular reasoning, same fix tried 3+ times)
-|   |
-|   --> think-twice (pause, spawn fresh sub-agent with zero context)
-|
-+-- USER ASKS FOR RIGOR/DEPTH ("rigorous", "thorough", "comprehensive",
-|   "in-depth", "deep dive", "harsh review", "full analysis", "evaluate")
-|   |
-|   --> adversarial-search (Depth Challenge Gate)
-|   +-- Before responding, run Shallow Response Check
-|
-+-- CLAIMING DONE (about to say "shipped", "fixed", "complete")
-|   |
-|   +-- Was this a bulk edit, audit, or refactoring?
-|   |   --> exhaustive-audit-validation FIRST, then verification-before-completion
-|   |
-|   +-- Was this a single fix, feature, or bug fix?
-|   |   --> verification-before-completion
-|   |
-|   +-- Taking over a repo or auditing for incomplete work?
-|       --> completeness-check
-|
-+-- NONE OF THE ABOVE
-    --> PAUSE. Ask: "Am I about to give a shallow or narrow answer?"
-        If yes --> Route to adversarial-search (Depth Challenge Gate)
-        If genuinely no --> Proceed. Document WHY no thinking skill applies.
-```
-
-## Routing Table (Quick Reference)
-
-| Context Signal | Route To | Why |
-|----------------|----------|-----|
-| "no issue found", "already correct", "looks fine" | `adversarial-search` | Prevent confirmation bias |
-| User reports bug/inconsistency | `adversarial-search` | Search for the BAD value |
+| Context | Route To | Why |
+|---------|----------|-----|
+| About to report "no issue found" / "already correct" | `adversarial-search` | Prevent confirmation bias |
+| User reports bug/inconsistency you disagree with | `adversarial-search` | Search for the BAD value, not the good one |
 | Running grep/find/search | `adversarial-search` | Scope justification gate |
-| Stuck in loop, circular reasoning | `think-twice` | Fresh perspective via sub-agent |
-| Same fix attempted 3+ times | `think-twice` | Break the cycle |
-| "done", "shipped", "fixed", "complete" | `verification-before-completion` | Evidence before assertions |
-| Bulk edit/audit/refactoring done | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
+| User asks for rigor/depth | `adversarial-search` (Depth Challenge) | Shallow Response Check before delivering |
+| Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
+| Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
+| Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
+| None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
 
 ## Child Skills
 
