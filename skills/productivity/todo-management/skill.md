@@ -59,81 +59,21 @@ but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if
 
 ## ⛔ HARD GATE: File Path Resolution (MANDATORY — No Exceptions)
 
-**Before ANY task operation** (add, complete, query, triage), run the preflight script:
+**Before ANY task operation**, run preflight → use returned `TODO_PATH` for all file ops:
 
 ```bash
-~/.codex/superpowers-plus/tools/todo-preflight.sh
+~/.codex/superpowers-plus/tools/todo-preflight.sh              # resolve path
+~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing  # create if needed
 ```
 
-This single command does everything:
-1. Sources `~/.codex/.env` to load `TODO_FILE_PATH`
-2. Resolves the path (falls back to `$HOME/.codex/TODO.md` if unset)
-3. Verifies the file exists
-4. Outputs `TODO_PATH=<resolved-path>` — use this path for ALL subsequent file operations
+**If `FILE_EXISTS=false`: STOP. Do NOT proceed. Do NOT fall back to MCP-only tracking.**
 
-**If preflight fails** (file doesn't exist), run with `--create-if-missing`:
-```bash
-~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing
-```
+See **[AGENTS.md § Planning and Task Management](../../../AGENTS.md#planning-and-task-management)** for the full hard gate, locking protocol, anti-patterns, and configuration.
 
-### The Gate
-
-| ✅ PASS | ❌ FAIL |
-|---------|---------|
-| Preflight returns `FILE_EXISTS=true` | Preflight returns `FILE_EXISTS=false` |
-| Use `TODO_PATH` for all file operations | **STOP. Do NOT proceed.** |
-| MCP tools (`add_tasks`) are supplementary | **NEVER use MCP-only tracking** |
-
-**If you skip this gate:** MCP task state is session-scoped. It is lost on context
-compaction, crashes, or session switches. This causes hallucinated task state where
-the agent fabricates TODO items from context fragments.
-
-### ⚠️ Common Agent Failure Mode
-
-Agents frequently skip the preflight and jump straight to `add_tasks` / `view_tasklist`
-because MCP tools are easier. **This is the #1 cause of TODO system failures.**
-
-The correct sequence is ALWAYS:
+**Quick reference — correct write sequence:**
 1. Run preflight → get `TODO_PATH`
-2. **For WRITES:** Acquire lock → backup → write → release lock
-3. Read `TODO_PATH` with `view` (no lock needed for reads)
-4. THEN optionally mirror to MCP tools for UI visibility
-
-### 🔒 Write Locking (Concurrent Access Protection)
-
-TODO.md lives on OneDrive and may be accessed by multiple agent sessions across
-multiple machines. **All WRITE operations must be wrapped in a lock:**
-
-```bash
-# Acquire lock (blocks up to 8s if another agent is writing)
-~/.codex/superpowers-plus/tools/todo-lock.sh acquire
-
-# ... perform backup + write operations ...
-
-# Release lock immediately after write completes
-~/.codex/superpowers-plus/tools/todo-lock.sh release
-```
-
-**Lock behavior:**
-- Lock is a directory (`.TODO.md.lock/`) alongside TODO.md — visible across OneDrive
-- Auto-expires after 120 seconds (TTL) if agent crashes without releasing
-- Detects dead processes on the same machine via PID check
-- If lock acquisition fails (timeout), warn the user and skip the write
-
-**READ operations (`view`, `cat`) do NOT need locks.** Only `str-replace-editor`,
-`cp` (backup), and any write to TODO.md require locking.
-
-### Configuration
-
-Set `TODO_FILE_PATH` in `~/.codex/.env`:
-
-```bash
-# Example entries in ~/.codex/.env:
-TODO_FILE_PATH="$HOME/OneDrive/Documents/TODO.md"
-TODO_FILE_PATH="/mnt/c/Users/YourName/Documents/TODO.md"  # WSL
-```
-
-**Default path:** `$HOME/.codex/TODO.md` (used only if `TODO_FILE_PATH` is not set)
+2. `todo-lock.sh acquire` → backup → write → `todo-lock.sh release`
+3. Optionally mirror to MCP tools for UI visibility
 
 ---
 
@@ -200,46 +140,14 @@ See `references/file-format-and-operations.md` for:
 
 ## ♻️ Housekeeping (MANDATORY — Every Session)
 
-**Completed tasks rot.** If `[x]` items accumulate in ACTIVE, TODO.md becomes bloated
-and unusable. This check runs on EVERY session where todo-management is invoked.
+**On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
 
-### On Every Task Completion
+**Post-session archive check** — run archive (`todo-archive` skill or `~/.codex/skills/todo-archive/todo-archive.sh --force`) when any of these are true:
+- HISTORY has ≥5 completed tasks
+- TODO.md exceeds 200 lines
+- HISTORY entries are >7 days old
 
-When marking a task `[x]`, **move it to HISTORY immediately** — do NOT leave `[x]` items
-in the ACTIVE section. The correct completion flow is:
-
-1. Remove the `[x]` task block from its P1/P2/P3 section
-2. Add it under `# HISTORY` → `## YYYY-MM-DD` (today's date)
-3. Add `  - Done: YYYY-MM-DD` if not already present
-
-### Post-Session Archive Check
-
-After completing work (before signing off), check if archiving is needed:
-
-```bash
-TODO_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')
-STALE=$(sed -n '/^# HISTORY/,/^# DEFERRED/p' "$TODO_PATH" | grep -c '^\- \[x\]' || echo 0)
-echo "TODO.md: $TODO_LINES lines, $STALE completed tasks in HISTORY"
-```
-
-**Archive triggers (any match = run archive):**
-
-| Condition | Action |
-|-----------|--------|
-| HISTORY has ≥5 completed tasks | Run `~/.codex/skills/todo-archive/todo-archive.sh --force` |
-| TODO.md exceeds 200 lines | Run archive |
-| HISTORY entries are >7 days old | Run archive |
-
-**Companion skill:** `todo-archive` handles the actual archival to monthly satellite files
-in `todo-archives/YYYY-MM.md`. Invoke it or run the script directly.
-
-**Anti-pattern:** `[x]` items left in P1/P2/P3 sections. Only `[ ]` tasks belong in ACTIVE.
-
----
-
-## Backup Policy
-
-Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
+**Backup:** Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
 
 ---
 

@@ -66,19 +66,4 @@ Structure your response as:
 [Links to relevant documentation, issues, or discussions you found]
 ```
 
-## Anti-Patterns to Avoid
-
-- ❌ Repeating what was already tried without adding new insight
-- ❌ Suggesting approaches that violate stated constraints
-- ❌ Vague advice without concrete steps
-- ❌ Assuming context that wasn't provided
-- ❌ Skipping web research
-
-## Success Criteria
-
-Your response is successful if:
-- It suggests at least one approach NOT already tried
-- It includes concrete, implementable steps
-- It's grounded in web research (cite sources)
-- It addresses the specific ask in the brief
-- It can be acted upon immediately
+**Success criteria:** Suggests at least one new approach not already tried, includes concrete implementable steps, cites web sources, can be acted upon immediately.
