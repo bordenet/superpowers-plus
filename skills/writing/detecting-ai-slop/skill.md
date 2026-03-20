@@ -176,3 +176,10 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection
+
+
+## Common Failure Modes
+
+- **False positives on domain jargon:** Flagging legitimate technical terms (e.g., "robust" in a load-testing context) as slop
+- **Score inflation:** Giving a passing score to text with subtle but pervasive AI patterns
+- **Detection without action:** Scoring text as sloppy but not invoking `eliminating-ai-slop` to fix it

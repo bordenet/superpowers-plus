@@ -19,6 +19,13 @@ coordination:
 
 # Verification Before Completion
 
+## When to Use
+
+- Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim
+- Before creating or merging a PR
+- Before closing a ticket or marking a task complete
+- After fixing a bug — verify the fix AND verify no regressions
+
 ## Overview
 
 Claiming work is complete without verification is dishonesty, not efficiency.

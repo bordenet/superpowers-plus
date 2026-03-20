@@ -18,6 +18,13 @@ coordination:
 > **Root Cause:** Agent claimed audit complete without exhaustive validation
 > **Incident:** 2026-02-28 — "First-pass audit" missed 12 of 27 skills needing fixes
 
+## When to Use
+
+- Before claiming any audit, bulk-edit, or refactoring task is complete
+- After a first-pass fix — verify you found ALL instances, not just the obvious ones
+- When upgrading, migrating, or transforming a set of files/skills/configs
+- Any task where "done" means "every item in the scope was processed"
+
 ---
 
 ## The Problem This Skill Solves

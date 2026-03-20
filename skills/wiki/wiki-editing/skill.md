@@ -16,6 +16,12 @@ composition:
 > **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration (Outline, Notion, Confluence, etc.)
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (incidents)
 
+## When to Use
+
+- Editing, creating, moving, or deleting any wiki page via API or MCP tools
+- Applying content updates from another skill (wiki-orchestrator Stage 7)
+- Performing bulk wiki operations (multi-page edits)
+
 ## Setup
 
 ### Required Environment Variables
@@ -216,3 +222,22 @@ Some platforms store table widths as editor metadata, not markdown. Warn user be
 
 - **wiki-orchestrator**: Full quality pipeline
 - **wiki-authoring**: Content formatting
+
+
+## Common Failure Modes
+
+- **Editing without fetching:** Overwriting concurrent changes by skipping `get_document_outline` before `update_document_outline`
+- **Broken embeds:** API updates destroy ProseMirror embed metadata — warn user before pushing pages with embeds
+- **Scope violation:** Writing to a wiki section outside allowed write roots
+
+## Example: Fetch-Before-Edit Pattern
+
+```bash
+# 1. Fetch current state
+get_document_outline(id: "document-id")
+# 2. Make edits to the fetched content
+# 3. Push update
+update_document_outline(documentId: "uuid", text: "...", publish: true)
+# 4. Verify
+get_document_outline(id: "document-id")  # confirm no rendering errors
+```

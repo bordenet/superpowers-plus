@@ -10,6 +10,13 @@ triggers: ["received code review", "PR feedback", "reviewer commented", "code re
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 ---
 # Code Review Reception
+
+## When to Use
+
+- After receiving PR/MR review comments from any reviewer
+- When review feedback seems unclear, contradictory, or technically questionable
+- Before implementing any suggested changes from code review
+
 ## Overview
 Code review requires technical evaluation, not emotional performance.
 
@@ -157,3 +164,20 @@ When feedback IS correct:
 Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 
 No performative agreement. Technical rigor always.
+
+
+## Common Failure Modes
+
+- **Blind implementation:** Implementing every suggestion without evaluating whether it's correct for THIS codebase
+- **Performative agreement:** Saying "great catch!" instead of technically verifying the feedback is accurate
+- **Fixing symptoms only:** Addressing the specific line a reviewer flagged without checking for the same pattern elsewhere
+
+## Example: Systemic Check After Review
+
+```bash
+# Reviewer says: "This null check is missing"
+# WRONG: Add null check to just this line
+# RIGHT: Search for ALL similar patterns in the codebase
+grep -rn "\.getData()" --include="*.ts" src/ | grep -v "?." | grep -v "!= null"
+# Then fix ALL instances, not just the one the reviewer spotted
+```
