@@ -203,7 +203,7 @@ See `references/output-templates.md` for all output templates:
 - Non-Overridable Block (social engineering)
 - Warn + Confirm (curl-pipe allowlisted, sudo, prose)
 - Clean Scan
-- Audit log format (`~/.codex/wiki-guard-audit.log`)
+- Audit log format (`~/.codex/wiki-guard-audit.log`) <!-- doctor-ignore -->
 
 **Verdict escalation:** Standard → `(P)roceed`. High severity (Cat 1-3) → type `PROCEED`. Social engineering (Cat 7) → non-overridable.
 

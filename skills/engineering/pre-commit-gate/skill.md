@@ -45,7 +45,7 @@ git push origin <branch>
 
 > **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
 > `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
-> (e.g., `rm -rf ~/.codex/something`) produce warnings, not blocks.
+> (e.g., `rm -rf ~/.codex/something`) produce warnings, not blocks. <!-- doctor-ignore -->
 > Use `--all` flag to scan the entire repo: `dangerous-pattern-scan.sh --all`
 
 ## Why This Gate Exists
