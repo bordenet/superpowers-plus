@@ -491,12 +491,37 @@ function bootstrap() {
     if (usingSuperpowersFile) {
         const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
         const stripped = stripFrontmatter(content);
-        const transformed = transformOutput(stripped);
+        // Strip DOT graph blocks (```dot ... ```) — not renderable in text
+        const noDotGraph = stripped.replace(/```dot[\s\S]*?```/g, '');
+        const transformed = transformOutput(noDotGraph);
         console.log(transformed);
         console.log('\n---\n');
     }
-    findSkills();
+    // Compact catalog: names only (descriptions available via find-skills)
+    findSkillsCompact();
 
+}
+
+function findSkillsCompact() {
+    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
+    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
+    const allSkills = [...personalSkills, ...superpowersSkills];
+    const seen = new Set();
+    const deduped = [];
+    for (const skill of allSkills) {
+        if (seen.has(skill.name)) continue;
+        seen.add(skill.name);
+        deduped.push(skill);
+    }
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+
+    console.log(`🦸 ${superpowers.length} superpowers (auto-triggered): ` +
+        superpowers.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
+    console.log(`\n🔧 ${explicitSkills.length} explicit skills: ` +
+        explicitSkills.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
+    console.log('\nUse `find-skills` for descriptions. Use `use-skill <name>` to load a skill.');
+    console.log(`\nSummary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
 
