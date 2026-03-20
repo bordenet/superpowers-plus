@@ -1,51 +1,21 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki"]
-description: Use when creating or updating wiki pages — the default entry point for all wiki authoring. Automatically invokes de-duplication, link-verification, secret-scan, slop-detection, and fact-check as mandatory pipeline stages.
+triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "Outline markdown rules", "update wiki page", "push to outline", "edit wiki", "create wiki document", "delete wiki page"]
+description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces wiki-editing, wiki-authoring, and outline-wiki-editing."
 coordination:
   group: wiki-pipeline
   order: 1
   requires: []
-  enables: ["link-verification", "wiki-editing"]
+  enables: ["link-verification"]
   escalates_to: []
   internal: false
 ---
 
 # Wiki Orchestrator
 
-> **Purpose:** Enforce quality pipeline for ALL wiki authoring
-> **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
-> **Philosophy:** Make quality control unavoidable, not optional
-
----
-
-## ⚠️ THIS IS THE ENTRY POINT — NOT wiki-editing
-
-<EXTREMELY_IMPORTANT>
-
-**When you want to create or update wiki content:**
-- ✅ Use `wiki-orchestrator` (this skill) — runs full quality pipeline
-- ❌ Do NOT go directly to `wiki-editing` — bypasses quality gates
-
-**`wiki-editing` is Stage 7 of THIS pipeline.** It should only be invoked BY this orchestrator, not directly.
-
-If you find yourself about to invoke `wiki-editing` directly, STOP and use this skill instead.
-
-</EXTREMELY_IMPORTANT>
-
----
-
-## When to Use
-
-**Automatic triggers:**
-- "Create a wiki page about X"
-- "Update the wiki page for Y"
-- "Document X in the wiki"
-- "Write wiki documentation for..."
-- Any task involving wiki content creation or updates
-
-**This skill is the DEFAULT ENTRY POINT for all wiki authoring.**
+> **Purpose:** Enforce quality pipeline for ALL wiki authoring, editing, and publishing.
+> **Philosophy:** Make quality control unavoidable, not optional.
 
 ---
 
@@ -55,130 +25,101 @@ If you find yourself about to invoke `wiki-editing` directly, STOP and use this 
 
 **Every wiki operation MUST pass through this pipeline. No exceptions.**
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    WIKI ORCHESTRATOR PIPELINE                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. DE-DUPLICATION CHECK                              [WARN]    │
-│     └─ Search for existing pages with similar title/topic      │
-│                                                                 │
-│  2. CONTENT GENERATION                                          │
-│     └─ Apply wiki-authoring formatting rules                   │
-│                                                                 │
-│  2.5 CONTENT COHERENCE                             [ADVISORY]   │
-│     └─ Detect intra-page duplication & structural defects      │
-│                                                                 │
-│  3. LINK VERIFICATION                          [HARD GATE] ❌   │
-│     └─ Verify ALL hyperlinks (internal wiki = BLOCK on fail)   │
-│                                                                 │
-│  4. SECRET SCAN                                [HARD GATE] ❌   │
-│     └─ Block if credentials detected (see _shared/secret-detection.md) │
-│                                                                 │
-│  5. SLOP DETECTION                                    [ADVISORY]│
-│     └─ Calculate slop score, suggest improvements              │
-│                                                                 │
-│  6. FACT-CHECK                                        [WARN]    │
-│     └─ Count uncited claims, flag for attention                │
-│                                                                 │
-│  7. PUBLISH                                                     │
-│     └─ Push via wiki-editing MCP tools                         │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Stage | Gate | What Happens |
+|-------|------|-------------|
+| 1. De-duplication | WARN | Search for similar pages; offer update if match |
+| 2. Content Generation | — | Apply formatting rules (see Content Formatting below) |
+| 2.5 Content Coherence | ADVISORY | `wiki-content-coherence`: Jaccard ≥0.40 flags duplication |
+| 3. Link Verification | **BLOCK** | `link-verification`: Internal wiki + repo links block on failure |
+| 4. Secret Scan | **BLOCK** | Search for `password`, `secret`, `token`, `api_key`, `credential`, `private_key` |
+| 5. Slop Detection | ADVISORY | `eliminating-ai-slop`: GVR slop scoring |
+| 5.5 Table Discipline | ADVISORY | `markdown-table-discipline` |
+| 6. Fact-Check | WARN | `wiki-debunker`: Count cited vs uncited claims |
+| 7. Publish | — | Execute via MCP tools (see Publishing Rules below) |
 
-### Hard Gates (Publishing Blocked If Failed)
-
-| Gate | Failure Condition | Why It Blocks |
-|------|-------------------|---------------|
-| **Link Verification** | Internal wiki link returns 404 | Readers get broken links |
-| **Secret Scan** | Credentials detected in content | Security incident |
-
-### Advisory Gates (Warning, Does Not Block)
-
-| Gate | Condition | Action |
-|------|-----------|--------|
-| **De-duplication** | Similar page exists | Warn user, suggest update instead |
-| **Content Coherence** | Duplicate sections or structural defects | Show report; HIGH severity → user review |
-| **Slop Detection** | High slop score | Show score, suggest improvements |
-| **Table Discipline** | Malformed or misused tables | Show violations, suggest fix |
-| **Fact-Check** | Uncited claims found | List claims, suggest sources |
-
+**Hard gates block publishing.** Advisory gates warn but don't block.
 </EXTREMELY_IMPORTANT>
 
 ---
 
-## Stage Details
+## Content Formatting (Stage 2)
 
-| Stage | Skill | Gate | Notes |
-|-------|-------|------|-------|
-| 1 | De-duplication | WARN | Search for similar pages; offer update if match |
-| 2 | `wiki-authoring` | — | No H1, semantic headings, platform anchors |
-| 2.5 | `wiki-content-coherence` | ADVISORY | Jaccard ≥0.40 flags duplication; HIGH → user review |
-| 3 | `link-verification` | **BLOCK** | Internal wiki + repo links block on failure |
-| 4 | `secret-detection` | **BLOCK** | Block if credentials detected |
-| 5 | `eliminating-ai-slop` | ADVISORY | GVR slop scoring |
-| 5.5 | `markdown-table-discipline` | ADVISORY | Table format checks |
-| 6 | `wiki-debunker` | WARN | Count cited vs uncited claims |
-| 7 | `wiki-editing` | — | Confirm with user, then publish via MCP |
-
-> See `references/stage-output-examples.md` for output templates.
+- **No H1** — Outline renders title in UI. Start body with `##` or summary paragraph.
+- **Anchors:** `#h-section-name` (not `#section-name`) — Outline-specific format.
+- **No HTML** — `<details>`, `&nbsp;`, callouts (`> [!info]`), inline HTML all break.
+- **Tables:** Keep narrow (<80 chars). Column widths are ProseMirror metadata — lost on API update.
+- **Code blocks:** Always specify language.
+- **Table cells:** No `[ ]` checkboxes (escaped to `\[`), no `&nbsp;` (rendered as literal text). Use `Yes/No` or `✓/✗`.
+- **Heading hierarchy:** H1 once (title only), then H2/H3. Max depth H3 for readability.
 
 ---
 
-## Related Skills
+## Publishing Rules (Stage 7)
 
-| Skill | Role in Pipeline |
-|-------|------------------|
-| `wiki-authoring` | Stage 2: Content structure & formatting |
-| `wiki-content-coherence` | Stage 2.5: Duplication & structural defect detection |
-| `link-verification` | Stage 3: URL verification (HARD GATE) |
-| `secret-detection` | Stage 4: Credential scanning (HARD GATE) |
-| `eliminating-ai-slop` | Stage 5: Prose quality |
-| `wiki-debunker` | Stage 6: Fact-checking |
-| `wiki-editing` | Stage 7: MCP publish |
-| `wiki-verify` | Post-publish: Version drift |
+<EXTREMELY_IMPORTANT>
+
+### MCP Tools First
+Always use `get_document_outline`, `update_document_outline`, `create_document_outline`. Curl is fallback only.
+
+### Download Before Editing
+Fetch current state via `get_document_outline` BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
+
+### Write Scope Restriction
+Only write to allowed roots. Walk the parent chain to verify:
+- `matt-bordenet-OUENQSb8BE` (Matt Bordenet personal)
+- `team-delta-cari-phone-assist-PmmvNP0Pha` (Team Delta)
+- `cari-WaniaoGMuW` (Cari product pages)
+
+If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
+
+### Check for Duplicates Before Creating
+`list_documents_outline(parentDocumentId)` → check if child with same title exists → use `update` if so.
+
+### Pre-Deletion Backup
+Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YYYY-MM-DD}_{id}_{slug}.md` with YAML frontmatter → verify backup exists → only then delete.
+
+### Post-Update Verification
+After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, empty hrefs, malformed tables. Fix before reporting success.
+</EXTREMELY_IMPORTANT>
+
+---
+
+## Checklists
+
+**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_document_outline`
+**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about column widths → `update_document_outline` → Verify result
+**Before Deleting:** Fetch full content → Backup with frontmatter → Verify backup → Search for inbound links → Delete
 
 ---
 
 ## Failure Recovery
 
-### If Context Exhausted Mid-Pipeline
+- **Context exhausted mid-pipeline:** Task list preserves state. Resume from last completed stage.
+- **Hard gate blocks:** Fix the issue (broken link, secret), re-run from that stage. Do NOT skip.
 
-The task list preserves state. Resume by:
-1. Check task list for last completed stage
-2. Resume from that stage forward
-3. Content is NOT lost (still in context or temp file)
+## Batch Operations
 
-### If Hard Gate Blocks
-
-1. Fix the blocking issue (broken link, secret)
-2. Re-run from that stage
-3. Do NOT skip the gate — it exists for a reason
-
----
-
-## Batch Operations (Multi-Page Edits)
-
-**When editing 3+ wiki pages in one task**, use the batch workflow (Discover → Plan → Execute in chunks → Verify). See `references/batch-operations.md` for the full workflow, key rules, and anti-patterns.
-
-**Critical rule:** Always fetch FRESH content before editing — local sync is for discovery only.
-
----
+**3+ pages:** Discover → Plan → Execute in chunks → Verify. Always fetch FRESH content before editing. See `references/batch-operations.md`.
 
 ## Rationalizations to Reject
 
 | Excuse | Reality |
 |--------|---------|
-| "This is a quick update, skip verification" | Quick updates break links too |
-| "I already know the links are correct" | Memory is unreliable, verify anyway |
-| "Fact-checking is overkill for this page" | Every page can have hallucinations |
-| "The slop score is just advisory" | Advisory means "read it, not ignore it" |
-| "I'll verify links after publishing" | That's backwards — verify BEFORE |
+| "Quick update, skip verification" | Quick updates break links too |
+| "I know the links are correct" | Memory is unreliable, verify anyway |
+| "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-**If you think any skill doesn't apply, you're wrong. Run the full pipeline.**
+## Related Skills
+
+| Skill | Role |
+|-------|------|
+| `wiki-content-coherence` | Stage 2.5: Duplication detection |
+| `link-verification` | Stage 3: URL verification (HARD GATE) |
+| `eliminating-ai-slop` | Stage 5: Prose quality |
+| `wiki-debunker` | Stage 6: Fact-checking |
+| `wiki-verify` | Post-publish: Version drift |
 
 ## Reference Files
 
-- [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates for all pipeline stages
-- [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow, chunking rules, anti-patterns
+- [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
+- [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
