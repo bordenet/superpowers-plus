@@ -138,13 +138,21 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 4: Duplicate Skill Names ---
+# Skills with "overrides:" in YAML frontmatter are intentional overlays, not duplicates.
 declare -A seen_skills
 for dir in "${SOURCE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   for skill_dir in $(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null); do
     name=$(basename "$skill_dir"); source_name=$(basename "$dir")
     if [[ -n "${seen_skills[$name]:-}" && "${seen_skills[$name]}" != *"$source_name"* ]]; then
-      echo "🔴 CRITICAL: $name — exists in: ${seen_skills[$name]} AND $source_name"; ((CRITICAL++))
+      # Check if the overlay version declares "overrides:" — intentional override
+      skill_file="$skill_dir/skill.md"
+      yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$skill_file")
+      if echo "$yaml_block" | grep -q "^overrides:"; then
+        : # Intentional overlay — skip duplicate warning
+      else
+        echo "🔴 CRITICAL: $name — exists in: ${seen_skills[$name]} AND $source_name"; ((CRITICAL++))
+      fi
     fi
     seen_skills[$name]="${seen_skills[$name]:-}${seen_skills[$name]:+, }$source_name"
   done
@@ -158,19 +166,32 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
   skill=$(basename "$(dirname "$f")"); skill_dir=$(dirname "$f")
   # 1. Structural paths (references/, modules/) — any mention outside code blocks
   #    Also skips opt-in files (lines containing "Opt-in" or "Create" before the reference)
-  awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} {print}' "$f" \
+  #    For modules/: also checks _shared/ dirs and installed modules dir as fallback.
+  while read -r ref; do
+    [[ -f "$skill_dir/$ref" ]] && continue
+    # For modules/: check shared module locations (e.g., _shared/module.md, installed modules/)
+    if [[ "$ref" == modules/* ]]; then
+      mod_name="${ref#modules/}"
+      found_shared=false
+      for sdir in "${SOURCE_DIRS[@]}"; do
+        [[ -f "$sdir/_shared/$mod_name" ]] && { found_shared=true; break; }
+      done
+      [[ -f "$INSTALLED_DIR/../modules/$mod_name" ]] && found_shared=true
+      [[ "$found_shared" == "true" ]] && continue
+    fi
+    echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++))
+  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} {print}' "$f" \
     | grep -oE '(references/[a-zA-Z0-9_-]+\.md|modules/[a-zA-Z0-9_-]+\.md)' 2>/dev/null \
-    | sort -u | while read -r ref; do
-      [[ ! -f "$skill_dir/$ref" ]] && echo "🔴 CRITICAL: $skill — references '$ref' but file missing"
-    done
+    | sort -u)
   # 2. Peer files (examples.md, reference.md) — only markdown link syntax [text](file.md)
   #    Excludes inline code (backticks), prose mentions, and substring matches
-  awk '/^```/{c=!c;next} c{next} /[├└│]/{next} {print}' "$f" \
+  while read -r ref; do
+    [[ -z "$ref" ]] && continue
+    [[ ! -f "$skill_dir/$ref" ]] && { echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++)); }
+  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} {print}' "$f" \
     | grep -oE '\]\((examples\.md|reference\.md)\)' 2>/dev/null \
     | grep -oE '(examples\.md|reference\.md)' \
-    | sort -u | while read -r ref; do
-      [[ ! -f "$skill_dir/$ref" ]] && echo "🔴 CRITICAL: $skill — references '$ref' but file missing"
-    done
+    | sort -u)
 done
 
 # --- Check 6: Oversized Skills ---
@@ -205,11 +226,17 @@ for installed in $(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/
 done
 
 # --- Check 9: Source-Install Content Drift ---
+# Tracks priority source (overlay wins over base) AND base source for overlay-aware comparison.
 declare -A PRIORITY_SOURCE
+declare -A BASE_SOURCE
 for dir in "$SP_PLUS_DIR" ${SP_OVERLAY_DIR:+"$SP_OVERLAY_DIR"}; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
     skill=$(basename "$(dirname "$src")")
+    # If this is the base (plus) dir, record it separately
+    if [[ "$dir" == "$SP_PLUS_DIR" ]]; then
+      BASE_SOURCE[$skill]="$src"
+    fi
     PRIORITY_SOURCE[$skill]="$src"
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
 done
@@ -217,12 +244,21 @@ for skill in "${!PRIORITY_SOURCE[@]}"; do
   src="${PRIORITY_SOURCE[$skill]}"; installed="$INSTALLED_DIR/$skill/skill.md"
   [[ ! -f "$installed" ]] && continue
   if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
+    # If overlay has "overrides:" and installed matches the base source, that's OK
+    yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$src")
+    if echo "$yaml_block" | grep -q "^overrides:" && [[ -n "${BASE_SOURCE[$skill]:-}" ]]; then
+      if diff -q "${BASE_SOURCE[$skill]}" "$installed" > /dev/null 2>&1; then
+        continue  # Installed matches base, overlay is intentional — no drift
+      fi
+    fi
     src_lines=$(wc -l < "$src" | tr -d ' ')
     # Count changed lines (additions + deletions) from unified diff
     changed=$(diff -u "$src" "$installed" | grep -c '^[+-][^+-]' || true)
     total=$(( src_lines > 0 ? src_lines : 1 ))
     change_pct=$(( changed * 100 / total ))
-    if [[ "$change_pct" -gt 70 ]]; then
+    if [[ "$change_pct" -eq 0 ]]; then
+      : # Trivial diff (whitespace/metadata only) — not actionable
+    elif [[ "$change_pct" -gt 70 ]]; then
       echo "🔴 CRITICAL: $skill — CORRUPTION (${change_pct}% changed)"; ((CRITICAL++))
     else
       echo "🟠 ERROR: $skill — content drift (${change_pct}% changed)"; ((ERRORS++))
@@ -237,7 +273,7 @@ done
 # --- Check 10: Missing Triggers ---
 VALIDATOR="$SP_PLUS_DIR/tools/skill-trigger-validator.sh"
 EXPLICIT_LIST=""
-[[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(grep -A50 "^EXPLICIT_SKILLS=" "$VALIDATOR" 2>/dev/null | grep '^\s*"' | tr -d ' "' || echo "")
+[[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(grep -A50 "^EXPLICIT_SKILLS=" "$VALIDATOR" 2>/dev/null | grep '^\s*"' | sed 's/#.*//' | tr -d ' "' || echo "")
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
   yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
@@ -269,6 +305,10 @@ KNOWN_COLLISION_GROUPS=(
   "resume-screening cv-review-external"
   # PR verification: complementary pre-PR checks
   "holistic-repo-verification engineering-rigor"
+  # Meeting notes: fetching recordings vs writing prose
+  "fathom-meeting-notes eliminating-ai-slop"
+  # Security: vulnerability scanning vs repo secret scanning
+  "security-upgrade repo-security-scan"
 )
 
 # Build a lookup: for each skill, which group index it belongs to
@@ -347,12 +387,19 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 13: Dead File Path References ---
+# Lines containing "doctor-ignore" are suppressed (runtime-only paths, examples, etc.)
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
-  grep -oE '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)' "$f" 2>/dev/null | while read -r path; do
-    expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
-    [[ ! -e "$expanded" ]] && echo "🟡 WARNING: $skill — path '$path' does not exist"
-  done
+  # Extract all lines with paths, excluding doctor-ignore lines and code blocks
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    echo "$line" | grep -qi "doctor-ignore" && continue
+    while read -r path; do
+      [[ -z "$path" ]] && continue
+      expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
+      [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
+    done < <(echo "$line" | grep -oE '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)')
+  done < <(grep -E '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)' "$f" 2>/dev/null)
 done
 
 # --- Check 14: Junk Files ---
@@ -384,20 +431,57 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 16: Reference File Integrity ---
+# Track which reference files come from overlay vs base for overlay-aware comparison.
 declare -A REF_PRIORITY
+declare -A REF_IS_OVERLAY_ONLY  # Track refs that only exist in overlay, not base
+declare -A REF_IS_BASE_ONLY     # Track refs that only exist in base, not overlay
+declare -A OVERLAY_SOURCE       # Track overlay skill.md paths for comparison
 for dir in "$SP_PLUS_DIR" ${SP_OVERLAY_DIR:+"$SP_OVERLAY_DIR"}; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src_ref; do
     skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
     ref_name=$(basename "$src_ref")
-    REF_PRIORITY["${skill_dir}/${ref_name}"]="$src_ref"
+    key="${skill_dir}/${ref_name}"
+    if [[ "$dir" != "$SP_PLUS_DIR" && -z "${REF_PRIORITY[$key]:-}" ]]; then
+      REF_IS_OVERLAY_ONLY[$key]="true"
+    elif [[ "$dir" == "$SP_PLUS_DIR" ]]; then
+      REF_IS_OVERLAY_ONLY[$key]=""  # Exists in base, not overlay-only
+      REF_IS_BASE_ONLY[$key]="true" # Tentatively base-only (cleared if overlay also has it)
+    fi
+    if [[ "$dir" != "$SP_PLUS_DIR" ]]; then
+      REF_IS_BASE_ONLY[$key]=""  # Overlay also has it — not base-only
+    fi
+    REF_PRIORITY[$key]="$src_ref"
   done < <(find "$search_root" -path "*/references/*.md" 2>/dev/null)
+  # Track overlay skill.md paths
+  if [[ "$dir" != "$SP_PLUS_DIR" ]]; then
+    while IFS= read -r src; do
+      skill=$(basename "$(dirname "$src")")
+      OVERLAY_SOURCE[$skill]="$src"
+    done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
+  fi
 done
 for key in "${!REF_PRIORITY[@]}"; do
   src_ref="${REF_PRIORITY[$key]}"
   skill_dir="${key%%/*}"; ref_name="${key##*/}"
   installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
   if [[ ! -f "$installed_ref" ]]; then
+    # If this ref only exists in overlay and the installed skill matches the base, skip it
+    if [[ -n "${REF_IS_OVERLAY_ONLY[$key]:-}" ]]; then
+      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      base_skill="${BASE_SOURCE[$skill_dir]:-}"
+      if [[ -n "$base_skill" && -f "$installed_skill" ]] && diff -q "$base_skill" "$installed_skill" > /dev/null 2>&1; then
+        continue  # Installed skill is base version, overlay-only ref not expected
+      fi
+    fi
+    # If this ref only exists in base and the installed skill matches the overlay, skip it
+    if [[ -n "${REF_IS_BASE_ONLY[$key]:-}" ]]; then
+      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      overlay_skill="${OVERLAY_SOURCE[$skill_dir]:-}"
+      if [[ -n "$overlay_skill" && -f "$installed_skill" ]] && diff -q "$overlay_skill" "$installed_skill" > /dev/null 2>&1; then
+        continue  # Installed skill is overlay version, base-only ref not expected
+      fi
+    fi
     echo "🟠 ERROR: $skill_dir — missing installed reference: $ref_name"; ((ERRORS++))
     if can_fix safe; then
       mkdir -p "$(dirname "$installed_ref")"; cp "$src_ref" "$installed_ref"
