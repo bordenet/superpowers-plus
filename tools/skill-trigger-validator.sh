@@ -39,6 +39,9 @@ EXPLICIT_SKILLS=(
     "experimental-self-prompting"   # Experimental: unstable
     "security-upgrade"              # Explicit: has side effects (upgrades packages)
     "public-repo-ip-audit"          # Explicit: security audit on demand
+    "phone-screen-prep"             # Recruiting: invoked by pipeline orchestrator
+    "phone-screen-synthesis"        # Recruiting: invoked by pipeline orchestrator
+    "wiki-instruction-guard"        # Security: explicit invocation only (no automatic triggers)
 )
 
 is_explicit_skill() {

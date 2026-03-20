@@ -2,15 +2,15 @@
 name: superpowers-doctor
 source: superpowers-plus
 triggers: ["superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
-description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 16 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, and structural defects. Modeled after brew doctor."
+description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 18 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, and structural defects. Modeled after brew doctor."
 ---
 
 # Superpowers Doctor
 
 > **Modeled after:** `brew doctor` — but meaner.
-> **Created:** 2026-03-18 | **Upgraded:** 2026-03-19
+> **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 16 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 18 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
@@ -20,24 +20,34 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - Periodic deep-clean audit
 - After install.sh to verify deployment integrity
 - When skills behave unexpectedly (wrong triggers, missing content)
+- After cloning on Windows/WSL to detect CRLF or BOM issues
 
 ## Modes
 
 | Mode | Behavior |
 |------|----------|
 | Default (no flags) | Report-only — detect and display all findings |
-| `--fix` | Detect + auto-fix safe issues. Prompts for confirmation before applying. |
-| `--fix --yes` | Detect + auto-fix without confirmation prompt. |
+| `--fix-safe` | Fix non-destructive issues only (sync drift, CRLF, BOM, name mismatch) |
+| `--fix` | Detect + auto-fix all issues including destructive (orphan removal, junk cleanup) |
+| `--fix --yes` | Auto-fix all without confirmation prompt |
+| `--summary-only` | One-line pass/fail (used by post-install hook) |
 
-**5 checks are auto-fixable** (3, 8, 9, 14, 16). The remaining 11 require human judgment.
-All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS/` before modifying anything.
+**8 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18). The remaining 10 require human judgment.
+
+**Graduated intervention:**
+- `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM) — non-destructive
+- `--fix` adds: 8 (orphan removal), 12 (deprecated triggers), 14 (junk removal) — destructive
+
+All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` before modifying anything. Backups are verified for completeness before any fix is applied. <!-- doctor-ignore -->
 
 ## How to Execute
 
 ```bash
 # Run from superpowers-plus repo root
-./tools/doctor-checks.sh          # Diagnose only
-./tools/doctor-checks.sh --fix    # Diagnose + auto-fix safe issues
+./tools/doctor-checks.sh              # Diagnose only
+./tools/doctor-checks.sh --fix-safe   # Fix non-destructive issues
+./tools/doctor-checks.sh --fix        # Fix all auto-fixable issues
+./tools/doctor-checks.sh --fix --yes  # Fix all without prompts
 ```
 
 The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` env vars or well-known paths. See `references/checks.md` for the full check summary table.
@@ -51,6 +61,12 @@ The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` e
 | 🟡 WARNING | Quality/hygiene issue | Fix when convenient |
 | 🔵 INFO | Recommendation | Consider improving |
 
+## Cross-Platform Notes
+
+- **WSL/Windows:** Doctor detects CRLF line endings (Check 17) and UTF-8 BOM (Check 18). Both are auto-fixable.
+- **NTFS mounts:** Doctor warns when skills are installed on `/mnt/c/...` where `chmod` is silently ignored.
+- **Prevention:** The repo includes `.gitattributes` enforcing LF line endings. Configure `git config --global core.autocrlf input` on Windows.
+
 ## Failure Modes
 
 | Failure | Recovery |
@@ -58,3 +74,5 @@ The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` e
 | No source repos found | Set `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` env vars |
 | YAML parsing fails | The parse failure IS the finding (Check 1) |
 | Network unavailable | Check 13 skipped — re-run when online |
+| Backup fails | Fix is skipped automatically — resolve disk space or permissions |
+| Skills on NTFS mount | Move to native Linux path (WSL only) |
