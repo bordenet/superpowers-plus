@@ -17,6 +17,12 @@ composition:
 > **Scope:** Claims about what happened, when, who decided, who owns what — NOT version numbers (see wiki-verify)
 > **Last Updated:** 2026-03-18
 
+## When to Use
+
+- Wiki content contains factual claims about decisions, timelines, or who-said-what
+- Reviewing documentation that cites meetings, PRs, or architectural decisions
+- Any wiki edit where fabricated history could mislead future readers
+
 ---
 
 ## Orchestrator Integration
@@ -40,7 +46,7 @@ Flag if no citation within 2 sentences: "We decided/chose/agreed...", "In [quart
 Invoke when wiki content contains:
 
 - Claims about decisions ("We decided to use X")
-- Attributions ("Matt proposed Y")  
+- Attributions ("Matt proposed Y")
 - Timelines ("In Q4 2025 we shipped Z")
 - Quotes ("As discussed in the meeting...")
 - Causal claims ("Because of incident X, we changed to Y")
@@ -209,6 +215,22 @@ Before writing ANY factual claim: **IDENTIFY** type → **AUTHORITY** check (wik
 ## Related Skills
 
 - **wiki-verify**: Version/config drift | **link-verification**: URL hallucination | **verification-before-completion**: General verification
+
+## Common Failure Modes
+
+- **Source laundering:** Citing an AI-generated summary as "evidence" — always trace to primary source (git log, PR, meeting transcript)
+- **Confirmation search:** Looking only for evidence that supports the claim instead of also searching for contradictions
+- **Skipping git history:** Accepting "we decided X in Q4" without checking git blame or commit messages for that timeframe
+
+## Example: Verification Query
+
+```bash
+# Verify a "decided in Sprint 23" claim
+git log --since="2026-01-15" --until="2026-01-29" --grep="feature-name" --oneline
+# Cross-check with issue tracker
+search_issues_linear(query: "feature-name", status: "Done")
+```
+
 
 ## Reference Files
 

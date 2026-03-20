@@ -154,3 +154,10 @@ When secrets are found:
 
 - **Shared Module:** `skills/_shared/secret-detection.md`
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
+
+
+## Common Failure Modes
+
+- **Regex-only scanning:** Relying solely on pattern matching without checking for encoded/obfuscated secrets (base64, URL-encoded)
+- **Ignoring wiki history:** Checking only the current page content but not previous revisions where a secret may have been exposed
+- **False negatives on tokens:** API tokens that don't match common patterns (e.g., custom-format internal tokens)

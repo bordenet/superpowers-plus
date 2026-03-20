@@ -203,6 +203,13 @@ After presenting ideas, always offer:
 
 ---
 
+## Common Failure Modes
+
+- **Idea inflation:** Scoring every idea high to avoid rejecting anything — use the rubric honestly
+- **Feasibility blindness:** Proposing brilliant ideas that require unavailable infrastructure or permissions
+- **Skipping Step 0 (scope):** Brainstorming without defining constraints produces unusable output
+
+
 ## Reference Files
 
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and full output format. Load when generating innovation analysis output.

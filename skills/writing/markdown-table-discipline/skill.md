@@ -15,6 +15,12 @@ options:
 
 Enforces best practices for Markdown table construction. This skill auto-triggers when the AI is writing or editing Markdown documents (README.md, wiki pages, skill.md files, documentation).
 
+## When to Use
+
+- Creating or editing any Markdown table in documentation, wiki, README, or skill files
+- Deciding between table vs. list format for structured data
+- Reviewing content that contains tables for formatting quality
+
 ---
 
 ## Decision Gate: Table vs. List
@@ -209,3 +215,9 @@ When tables render to HTML:
 | Timeout | 30 seconds |
 | Retries | 3 |
 ```
+
+## Common Failure Modes
+
+- **Table when list suffices:** Using a 2-row table for data that reads better as a bullet list
+- **Too many columns:** Tables wider than 5 columns become unreadable in most renderers
+- **Redundant header column:** First column repeats information already in the section heading

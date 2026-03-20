@@ -11,6 +11,12 @@ description: Use when updating issues in your project tracker. Enforces fetch-be
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+## When to Use
+
+- Updating status, assignee, labels, or any field on an existing issue/ticket
+- Editing issue descriptions or titles after initial creation
+- Bulk-updating issues (apply fetch-before-edit to each one)
+
 ---
 
 ## ALWAYS Fetch Before Edit
@@ -127,6 +133,12 @@ Before EVERY update:
 ```
 
 ---
+
+## Common Failure Modes
+
+- **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
+- **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh
+- **Field type mismatch:** Passing a label name instead of a label UUID (platform-specific)
 
 ## Related Skills
 

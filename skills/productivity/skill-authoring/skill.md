@@ -220,3 +220,10 @@ Before finalizing any generated skill:
 3. **Run harsh-review.sh** — Verify formatting
 4. **Update README.md** — Add to skills table if needed
 5. **Commit and deploy** — `./install.sh` to activate
+
+
+## Common Failure Modes
+
+- **Oversized skill:** Exceeding 250-line limit — extract reference material to `references/` directory
+- **Missing frontmatter:** Forgetting required `---` delimiters, `description:`, or `triggers:` fields
+- **Trigger collision:** Using a trigger phrase already claimed by another skill — check with doctor before committing

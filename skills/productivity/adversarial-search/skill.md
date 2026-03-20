@@ -223,3 +223,10 @@ USER SAYS SOMETHING IS WRONG
          ▼
     STILL not found? → Your search is wrong, not the user
 ```
+
+
+## Common Failure Modes
+
+- **Premature "not found":** Giving up after 2 search attempts instead of exhausting all codebase-retrieval, grep, and view strategies
+- **Same query repeated:** Retrying the exact same search terms — vary keywords, try synonyms, search for callers instead of definitions
+- **Confirmation bias:** Finding one result and stopping instead of searching for contradictory evidence

@@ -7,6 +7,13 @@ description: Use when renaming fields, changing API contracts, or refactoring da
 
 # Field Rename Verification
 
+## When to Use
+
+- Renaming a field, column, or property across one or more services
+- Changing an API contract (request/response shape, query parameters, headers)
+- Refactoring a data model that crosses service boundaries
+- Splitting or merging fields (e.g., `trackingLine` → `inboundLine`/`outboundLine`)
+
 ## Overview
 
 Field renames and API contract changes are the #1 source of production incidents from "complete" work that wasn't actually complete.
