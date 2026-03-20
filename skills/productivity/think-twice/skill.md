@@ -211,7 +211,6 @@ Options:
 
 - `references/consultation-prompt-template.md` — The prompt template
 - `references/scoring-rubric.md` — Scoring dimensions and weights
-- `references/heuristic-signals.md` — Auto-detection criteria
 - `prompts/consultant-persona.md` — Sub-agent persona and constraints
 
 ---

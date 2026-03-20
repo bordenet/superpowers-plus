@@ -90,11 +90,26 @@ for dir in "${SOURCE_DIRS[@]}"; do
 done
 
 # --- Check 5: Broken Internal References ---
+# Skips: fenced code blocks, directory tree diagrams, and inline prose mentions.
+# For examples.md/reference.md: only flags action directives (See/Read/Load/view/link syntax).
+# For references/*.md and modules/*.md: flags any non-code-block mention.
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")"); skill_dir=$(dirname "$f")
-  grep -oE '(references/[a-zA-Z0-9_-]+\.md|modules/[a-zA-Z0-9_-]+\.md|examples\.md|reference\.md)' "$f" 2>/dev/null | while read -r ref; do
-    [[ ! -f "$skill_dir/$ref" ]] && echo "🔴 CRITICAL: $skill — references '$ref' but file missing"
-  done
+  # 1. Structural paths (references/, modules/) — any mention outside code blocks
+  #    Also skips opt-in files (lines containing "Opt-in" or "Create" before the reference)
+  awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} {print}' "$f" \
+    | grep -oE '(references/[a-zA-Z0-9_-]+\.md|modules/[a-zA-Z0-9_-]+\.md)' 2>/dev/null \
+    | sort -u | while read -r ref; do
+      [[ ! -f "$skill_dir/$ref" ]] && echo "🔴 CRITICAL: $skill — references '$ref' but file missing"
+    done
+  # 2. Peer files (examples.md, reference.md) — only markdown link syntax [text](file.md)
+  #    Excludes inline code (backticks), prose mentions, and substring matches
+  awk '/^```/{c=!c;next} c{next} /[├└│]/{next} {print}' "$f" \
+    | grep -oE '\]\((examples\.md|reference\.md)\)' 2>/dev/null \
+    | grep -oE '(examples\.md|reference\.md)' \
+    | sort -u | while read -r ref; do
+      [[ ! -f "$skill_dir/$ref" ]] && echo "🔴 CRITICAL: $skill — references '$ref' but file missing"
+    done
 done
 
 # --- Check 6: Oversized Skills ---
@@ -187,10 +202,20 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 12: Deprecated But Active ---
+# Only flag skills where deprecation is structural (frontmatter or prominent body marker),
+# not incidental mentions of the word "deprecated" in unrelated content.
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
-  if tail -n +2 "$f" | grep -qi "deprecated\|replaced by\|superseded by"; then
-    yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
+  yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
+  # Check frontmatter for deprecated: true
+  is_deprecated=false
+  echo "$yaml_block" | grep -qi "^deprecated:" && is_deprecated=true
+  # Check first 10 lines after frontmatter for prominent deprecation markers
+  if [[ "$is_deprecated" == "false" ]]; then
+    body_start=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{found++; print NR; exit}' "$f")
+    [[ -n "$body_start" ]] && head -n $((body_start + 10)) "$f" | tail -n 10 | grep -qiE '^\s*>.*deprecated|^#.*deprecated|replaced by|superseded by' && is_deprecated=true
+  fi
+  if [[ "$is_deprecated" == "true" ]]; then
     has_triggers=$(echo "$yaml_block" | grep "^triggers:" | grep -v 'triggers: \[\]' || true)
     [[ -n "$has_triggers" ]] && { echo "🟡 WARNING: $skill — deprecated but has triggers"; ((WARNINGS++)); }
   fi
