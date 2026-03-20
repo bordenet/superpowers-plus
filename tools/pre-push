@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Pre-push hook for superpowers-plus
+# PURPOSE: Block pushes that contain proprietary IP in unpushed commits
+# INSTALL: ./tools/install-hooks.sh
+# -----------------------------------------------------------------------------
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+else
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+fi
+
+cd "$REPO_ROOT"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+IP_PATTERNS_FILE="$REPO_ROOT/.ip-patterns"
+if [[ ! -f "$IP_PATTERNS_FILE" ]]; then
+    echo -e "${GREEN}No .ip-patterns file — skipping IP scan.${NC}"
+    exit 0
+fi
+
+IP_PATTERNS=$(cat "$IP_PATTERNS_FILE" | head -1)
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  PRE-PUSH: Scanning for proprietary IP..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+ERRORS=0
+
+# Read push info from stdin (pre-push hook protocol)
+while read -r local_ref local_sha remote_ref remote_sha; do
+    if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
+        continue  # Branch deletion, skip
+    fi
+
+    if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]]; then
+        # New branch — check all commits
+        RANGE="$local_sha"
+    else
+        RANGE="$remote_sha..$local_sha"
+    fi
+
+    echo "Checking commits: $RANGE"
+
+    # Check commit diffs
+    MATCHES=$(git log -p "$RANGE" 2>/dev/null | grep -cE "$IP_PATTERNS" || true)
+    if [[ "$MATCHES" -gt 0 ]]; then
+        echo -e "${RED}❌ FAIL: $MATCHES proprietary IP matches in commits${NC}"
+        git log -p "$RANGE" | grep -nE "$IP_PATTERNS" | head -10
+        ((ERRORS++))
+    fi
+
+    # Check author/committer emails
+    BAD_EMAILS=$(git log "$RANGE" --format='%ae%n%ce' 2>/dev/null | sort -u | grep -iE "@callbox\.com" || true)
+    if [[ -n "$BAD_EMAILS" ]]; then
+        echo -e "${RED}❌ FAIL: CallBox email in commit metadata: $BAD_EMAILS${NC}"
+        ((ERRORS++))
+    fi
+done
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [[ $ERRORS -gt 0 ]]; then
+    echo -e "${RED}  PUSH BLOCKED: Proprietary IP detected in commits${NC}"
+    echo ""
+    echo "  Fix the content, amend/rebase, then push again."
+    echo "  DO NOT use --no-verify."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+else
+    echo -e "${GREEN}  All commits clean. Push allowed.${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi

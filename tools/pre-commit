@@ -43,7 +43,7 @@ ERRORS=0
 # -----------------------------------------------------------------------------
 # CHECK 1: File endings (single newline at EOF)
 # -----------------------------------------------------------------------------
-echo -e "${YELLOW}[1/4]${NC} Checking file endings..."
+echo -e "${YELLOW}[1/5]${NC} Checking file endings..."
 
 for file in $STAGED_FILES; do
     [[ ! -f "$file" ]] && continue
@@ -69,7 +69,7 @@ done
 # -----------------------------------------------------------------------------
 # CHECK 2: Shell script syntax
 # -----------------------------------------------------------------------------
-echo -e "${YELLOW}[2/4]${NC} Checking shell scripts..."
+echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 
 for file in $STAGED_FILES; do
     [[ "$file" != *.sh ]] && continue
@@ -91,7 +91,7 @@ done
 # -----------------------------------------------------------------------------
 # CHECK 3: JSON syntax
 # -----------------------------------------------------------------------------
-echo -e "${YELLOW}[3/4]${NC} Checking JSON files..."
+echo -e "${YELLOW}[3/5]${NC} Checking JSON files..."
 
 for file in $STAGED_FILES; do
     [[ "$file" != *.json ]] && continue
@@ -106,7 +106,7 @@ done
 # -----------------------------------------------------------------------------
 # CHECK 4: Shellcheck (if available)
 # -----------------------------------------------------------------------------
-echo -e "${YELLOW}[4/4]${NC} Running shellcheck..."
+echo -e "${YELLOW}[4/5]${NC} Running shellcheck..."
 
 # Same exclusions as CI and harsh-review.sh
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
@@ -123,6 +123,31 @@ if command -v shellcheck &> /dev/null; then
     done
 else
     echo -e "  (shellcheck not installed, skipping)"
+fi
+
+# -----------------------------------------------------------------------------
+# CHECK 5: Proprietary IP scan (if .ip-patterns exists)
+# -----------------------------------------------------------------------------
+echo -e "${YELLOW}[5/5]${NC} Checking for proprietary IP..."
+
+IP_PATTERNS_FILE="$REPO_ROOT/.ip-patterns"
+if [[ -f "$IP_PATTERNS_FILE" ]]; then
+    IP_PATTERNS=$(cat "$IP_PATTERNS_FILE" | head -1)
+    for file in $STAGED_FILES; do
+        [[ ! -f "$file" ]] && continue
+        # Skip binary files and the IP check script itself
+        if file "$file" | grep -q "binary"; then continue; fi
+        if [[ "$file" == *"public-repo-ip-check.sh"* ]]; then continue; fi
+        if [[ "$file" == *".ip-patterns"* ]]; then continue; fi
+
+        if grep -qE "$IP_PATTERNS" "$file" 2>/dev/null; then
+            echo -e "${RED}  ✗ $file: contains proprietary IP references${NC}"
+            grep -nE "$IP_PATTERNS" "$file" | head -5
+            ((ERRORS++))
+        fi
+    done
+else
+    echo -e "  (no .ip-patterns file found, skipping IP scan)"
 fi
 
 # -----------------------------------------------------------------------------

@@ -44,9 +44,20 @@ cp "$SCRIPT_DIR/pre-commit" "$HOOKS_DIR/pre-commit"
 chmod +x "$HOOKS_DIR/pre-commit"
 echo "✓ Installed pre-commit hook"
 
+# Install pre-push hook
+if [[ -f "$HOOKS_DIR/pre-push" ]]; then
+    echo "⚠️  Existing pre-push hook found. Backing up to pre-push.bak"
+    mv "$HOOKS_DIR/pre-push" "$HOOKS_DIR/pre-push.bak"
+fi
+
+cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
+chmod +x "$HOOKS_DIR/pre-push"
+echo "✓ Installed pre-push hook"
+
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax"
+echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax, IP scan"
+echo "  • pre-push: Scans unpushed commits for proprietary IP"
 echo ""
 echo "To bypass hooks (not recommended): git commit --no-verify"
 echo ""
