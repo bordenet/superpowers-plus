@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 16 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 18 superpowers-doctor diagnostic checks
 #
 # Usage:
-#   ./doctor-checks.sh              # Run all checks
-#   ./doctor-checks.sh --fix        # Run checks + auto-fix safe issues
-#   ./doctor-checks.sh --fix --yes  # Auto-fix without confirmation
+#   ./doctor-checks.sh                # Run all checks (report only)
+#   ./doctor-checks.sh --fix-safe     # Fix non-destructive issues only (sync, CRLF, BOM)
+#   ./doctor-checks.sh --fix          # Fix all auto-fixable issues
+#   ./doctor-checks.sh --fix --yes    # Auto-fix without confirmation
+#   ./doctor-checks.sh --summary-only # One-line pass/fail (for post-install)
 
 # shellcheck disable=SC2044  # find loops are safe here — skill paths never contain spaces
 set -uo pipefail
@@ -21,9 +23,18 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
 
+# Fix modes: none < safe < moderate (--fix)
+# --fix-safe:  Non-destructive only (sync drift, CRLF, BOM, name mismatch, ref sync)
+# --fix:       All fixes including destructive (orphan removal, junk removal, deprecated trigger clear)
 FIX_MODE=false
+FIX_SAFE=false
+SUMMARY_ONLY=false
 for arg in "$@"; do
-  case "$arg" in --fix) FIX_MODE=true ;; esac
+  case "$arg" in
+    --fix-safe)     FIX_SAFE=true; FIX_MODE=true ;;
+    --fix)          FIX_MODE=true ;;
+    --summary-only) SUMMARY_ONLY=true ;;
+  esac
 done
 
 SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
@@ -31,16 +42,48 @@ SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 [[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && SOURCE_DIRS+=("$SP_OVERLAY_DIR")
 
-BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)"
+BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
+
+# Helper: should we fix this check?
+# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM)
+# Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk)
+can_fix() {
+  [[ "$FIX_MODE" != "true" ]] && return 1
+  [[ "$FIX_SAFE" != "true" ]] && return 0  # --fix allows everything
+  # --fix-safe: only allow safe checks (caller passes "safe" or "moderate")
+  [[ "$1" == "safe" ]] && return 0
+  return 1
+}
 
 backup_skill() {
   local target="$1"
-  mkdir -p "$BACKUP_DIR/$(basename "$target")"
-  cp -r "$target"/* "$BACKUP_DIR/$(basename "$target")/" 2>/dev/null || true
+  local backup_path
+  backup_path="$BACKUP_DIR/$(basename "$target")"
+  mkdir -p "$backup_path"
+  # -P preserves symlinks, -R recursive (don't follow symlinks into backup)
+  cp -PR "$target"/* "$backup_path/" 2>/dev/null || {
+    echo "  ⚠️  Backup failed for $(basename "$target"). Skipping fix."
+    return 1
+  }
+  # Verify backup has at least as many files as source
+  local src_count
+  local bak_count
+  src_count=$(find "$target" -type f 2>/dev/null | wc -l | tr -d ' ')
+  bak_count=$(find "$backup_path" -type f 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$bak_count" -lt "$src_count" ]]; then
+    echo "  ⚠️  Backup incomplete ($bak_count/$src_count files). Skipping fix."
+    return 1
+  fi
 }
 
 TOTAL_SKILLS=$(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null | wc -l | tr -d ' ')
+
+# In --summary-only mode, suppress individual findings (redirect to /dev/null)
+if [[ "$SUMMARY_ONLY" == "true" ]]; then
+  exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
+fi
+
 echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned"
 echo ""
 
@@ -72,7 +115,7 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
   yaml_name=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
   if [[ -n "$yaml_name" && "$yaml_name" != "$dir_name" ]]; then
     echo "🔴 CRITICAL: $dir_name — name: '$yaml_name' ≠ directory '$dir_name'"; ((CRITICAL++))
-    if [[ "$FIX_MODE" == "true" ]]; then
+    if can_fix safe; then
       backup_skill "$(dirname "$f")"
       sed_inplace "s/^name:.*$/name: $dir_name/" "$f"
       echo "  ✅ FIXED: name → '$dir_name'"; ((FIXED++))
@@ -140,7 +183,7 @@ for installed in $(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/
   done
   if [[ "$found" == "false" ]]; then
     echo "🟠 ERROR: $skill — orphaned install"; ((ERRORS++))
-    if [[ "$FIX_MODE" == "true" ]]; then
+    if can_fix moderate; then
       backup_skill "$installed"; rm -rf "$installed"
       echo "  ✅ FIXED: removed orphan $skill"; ((FIXED++))
     fi
@@ -169,7 +212,7 @@ for skill in "${!PRIORITY_SOURCE[@]}"; do
     else
       echo "🟠 ERROR: $skill — content drift (${overlap_pct}% overlap)"; ((ERRORS++))
     fi
-    if [[ "$FIX_MODE" == "true" ]]; then
+    if can_fix safe; then
       backup_skill "$(dirname "$installed")"; cp "$src" "$installed"
       echo "  ✅ FIXED: synced $skill"; ((FIXED++))
     fi
@@ -190,6 +233,48 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 11: Trigger Overlap ---
+# Known collision groups: skills that intentionally share triggers.
+# Collisions within a group are expected and suppressed.
+KNOWN_COLLISION_GROUPS=(
+  # Hub→child: thinking-orchestrator delegates to specialized skills
+  "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review"
+  # Generic→Linear: platform-agnostic vs Linear-specific pairs
+  "issue-editing linear-issue-editing"
+  "issue-authoring linear-issue-authoring"
+  "issue-comment-debunker linear-comment-debunker"
+  "issue-link-verification linear-link-verification"
+  "issue-verify linear-issue-verify"
+  # Detect→Fix: complementary slop detection and elimination
+  "detecting-ai-slop eliminating-ai-slop"
+  # Pre-commit chain: ordered sequential checks before commit
+  "professional-language-audit pre-commit-gate enforce-style-guide"
+  # Wiki pipeline: orchestration, editing, verification
+  "wiki-editing outline-wiki-editing wiki-orchestrator link-verification"
+  # Resume screening: generic vs source-specific
+  "resume-screening cv-review-external"
+  # PR verification: complementary pre-PR checks
+  "holistic-repo-verification engineering-rigor"
+)
+
+# Build a lookup: for each skill, which group index it belongs to
+declare -A skill_group
+for i in "${!KNOWN_COLLISION_GROUPS[@]}"; do
+  for s in ${KNOWN_COLLISION_GROUPS[$i]}; do
+    skill_group[$s]="${skill_group[$s]:-}${skill_group[$s]:+ }$i"
+  done
+done
+
+# Check if two skills share a collision group
+in_same_group() {
+  local a="$1" b="$2"
+  for ga in ${skill_group[$a]:-}; do
+    for gb in ${skill_group[$b]:-}; do
+      [[ "$ga" == "$gb" ]] && return 0
+    done
+  done
+  return 1
+}
+
 declare -A trigger_map
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
@@ -199,7 +284,21 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
     [[ -z "$trigger" ]] && continue
     lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
     if [[ -n "${trigger_map[$lt]:-}" ]]; then
-      echo "🟡 WARNING: trigger '$trigger' shared by: ${trigger_map[$lt]} AND $skill"; ((WARNINGS++))
+      existing="${trigger_map[$lt]}"
+      # Skip self-collisions (same skill, case-insensitive trigger variants)
+      if [[ "$existing" == "$skill" ]]; then
+        continue
+      fi
+      # Check if all colliding skills are in the same known group
+      all_known=true
+      for prev_skill in $(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//'); do
+        if ! in_same_group "$prev_skill" "$skill"; then
+          all_known=false; break
+        fi
+      done
+      if [[ "$all_known" == "false" ]]; then
+        echo "🟡 WARNING: trigger '$trigger' shared by: $existing AND $skill"; ((WARNINGS++))
+      fi
     fi
     trigger_map["$lt"]="${trigger_map[$lt]:-}${trigger_map[$lt]:+, }$skill"
   done <<< "$triggers"
@@ -221,7 +320,14 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
   fi
   if [[ "$is_deprecated" == "true" ]]; then
     has_triggers=$(echo "$yaml_block" | grep "^triggers:" | grep -v 'triggers: \[\]' || true)
-    [[ -n "$has_triggers" ]] && { echo "🟡 WARNING: $skill — deprecated but has triggers"; ((WARNINGS++)); }
+    if [[ -n "$has_triggers" ]]; then
+      echo "🟡 WARNING: $skill — deprecated but has triggers"; ((WARNINGS++))
+      if can_fix moderate; then
+        backup_skill "$(dirname "$f")" || continue
+        sed_inplace 's/^triggers:.*/triggers: []/' "$f"
+        echo "  ✅ FIXED: cleared triggers on deprecated $skill"; ((FIXED++))
+      fi
+    fi
   fi
 done
 
@@ -237,15 +343,20 @@ done
 # --- Check 14: Junk Files ---
 for dir in "${SOURCE_DIRS[@]}"; do
   root="${dir%/skills}"
-  find "$root" -maxdepth 1 -type f \
+  while IFS= read -r junk; do
+    [[ -z "$junk" ]] && continue
+    echo "🔵 INFO: junk file in $(basename "$root")/: $(basename "$junk")"
+    if can_fix moderate; then
+      rm -f "$junk"
+      echo "  ✅ FIXED: removed $(basename "$junk")"; ((FIXED++))
+    fi
+  done < <(find "$root" -maxdepth 1 -type f \
     ! -name "*.md" ! -name "*.sh" ! -name "*.js" ! -name "*.json" \
     ! -name "*.yaml" ! -name "*.yml" ! -name "*.txt" \
     ! -name "CODEOWNERS" ! -name ".gitignore" ! -name ".gitattributes" \
     ! -name ".editorconfig" ! -name ".env*" ! -name "LICENSE" \
     ! -name ".DS_Store" ! -name "Makefile" ! -name "package.json" \
-    2>/dev/null | while read -r junk; do
-      echo "🔵 INFO: junk file in $(basename "$root")/: $(basename "$junk")"
-    done
+    2>/dev/null)
 done
 
 # --- Check 15: Structure Quality ---
@@ -273,7 +384,7 @@ for key in "${!REF_PRIORITY[@]}"; do
   installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
   if [[ ! -f "$installed_ref" ]]; then
     echo "🟠 ERROR: $skill_dir — missing installed reference: $ref_name"; ((ERRORS++))
-    if [[ "$FIX_MODE" == "true" ]]; then
+    if can_fix safe; then
       mkdir -p "$(dirname "$installed_ref")"; cp "$src_ref" "$installed_ref"
       echo "  ✅ FIXED: created $skill_dir/references/$ref_name"; ((FIXED++))
     fi
@@ -289,19 +400,71 @@ for key in "${!REF_PRIORITY[@]}"; do
     else
       echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${overlap_pct}% overlap)"; ((ERRORS++))
     fi
-    if [[ "$FIX_MODE" == "true" ]]; then
+    if can_fix safe; then
       backup_skill "$INSTALLED_DIR/$skill_dir"; cp "$src_ref" "$installed_ref"
       echo "  ✅ FIXED: synced $skill_dir/references/$ref_name"; ((FIXED++))
     fi
   fi
 done
 
+# --- Check 17: CRLF Line Ending Detection ---
+for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
+  skill=$(basename "$(dirname "$f")")
+  if grep -q $'\r' "$f" 2>/dev/null; then
+    echo "🟠 ERROR: $skill — CRLF line endings detected"; ((ERRORS++))
+    if can_fix safe; then
+      backup_skill "$(dirname "$f")" || continue
+      sed_inplace 's/\r$//' "$f"
+      echo "  ✅ FIXED: converted $skill to LF"; ((FIXED++))
+    fi
+  fi
+done
+# Also check reference files
+for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/null); do
+  skill=$(basename "$(dirname "$(dirname "$f")")")
+  ref_name=$(basename "$f")
+  if grep -q $'\r' "$f" 2>/dev/null; then
+    echo "🟠 ERROR: $skill/references/$ref_name — CRLF line endings"; ((ERRORS++))
+    if can_fix safe; then
+      backup_skill "$INSTALLED_DIR/$skill" || continue
+      sed_inplace 's/\r$//' "$f"
+      echo "  ✅ FIXED: converted $skill/references/$ref_name to LF"; ((FIXED++))
+    fi
+  fi
+done
+
+# --- Check 18: UTF-8 BOM Detection ---
+for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
+  skill=$(basename "$(dirname "$f")")
+  # Check for BOM bytes (EF BB BF) at start of file
+  if [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]]; then
+    echo "🟡 WARNING: $skill — UTF-8 BOM detected (breaks YAML parsing)"; ((WARNINGS++))
+    if can_fix safe; then
+      backup_skill "$(dirname "$f")" || continue
+      # Strip BOM: skip first 3 bytes
+      tail -c +4 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+      echo "  ✅ FIXED: stripped BOM from $skill"; ((FIXED++))
+    fi
+  fi
+done
+
 # --- Summary ---
+# Restore stdout if it was redirected for --summary-only
+if [[ "$SUMMARY_ONLY" == "true" ]]; then
+  exec 1>&3 3>&-  # Restore stdout from fd 3
+fi
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
-if [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 16 checks passed. Your superpowers are in perfect health."
+if [[ "$SUMMARY_ONLY" == "true" ]]; then
+  if [[ "$TOTAL" -eq 0 ]]; then
+    echo "✅ Doctor: all 18 checks passed"
+  else
+    echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
+  fi
+elif [[ "$TOTAL" -eq 0 ]]; then
+  echo "✅ All 18 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
