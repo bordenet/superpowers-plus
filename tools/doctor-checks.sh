@@ -87,6 +87,20 @@ fi
 echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned"
 echo ""
 
+# --- Pre-check: WSL + NTFS mount detection ---
+# On WSL, skills installed under /mnt/c/... are on NTFS where chmod is silently
+# ignored and file permissions may not work as expected.
+if [[ -f /proc/version ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+  case "$INSTALLED_DIR" in
+    /mnt/[a-z]/*)
+      echo "🟡 WARNING: Skills installed on NTFS mount ($INSTALLED_DIR)"
+      echo "   chmod is silently ignored on NTFS. Move skills to a native Linux path."
+      echo "   Recommended: ~/.codex/skills/ on ext4 (e.g., ~/)"
+      ((WARNINGS++))
+      ;;
+  esac
+fi
+
 # --- Check 1: Malformed YAML Frontmatter ---
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
@@ -203,14 +217,15 @@ for skill in "${!PRIORITY_SOURCE[@]}"; do
   src="${PRIORITY_SOURCE[$skill]}"; installed="$INSTALLED_DIR/$skill/skill.md"
   [[ ! -f "$installed" ]] && continue
   if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
-    src_lines=$(wc -l < "$src" | tr -d ' '); inst_lines=$(wc -l < "$installed" | tr -d ' ')
-    common=$(comm -12 <(sort "$src") <(sort "$installed") | wc -l | tr -d ' ')
-    total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
-    overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
-    if [[ "$overlap_pct" -lt 30 ]]; then
-      echo "🔴 CRITICAL: $skill — CORRUPTION (${overlap_pct}% overlap)"; ((CRITICAL++))
+    src_lines=$(wc -l < "$src" | tr -d ' ')
+    # Count changed lines (additions + deletions) from unified diff
+    changed=$(diff -u "$src" "$installed" | grep -c '^[+-][^+-]' || true)
+    total=$(( src_lines > 0 ? src_lines : 1 ))
+    change_pct=$(( changed * 100 / total ))
+    if [[ "$change_pct" -gt 70 ]]; then
+      echo "🔴 CRITICAL: $skill — CORRUPTION (${change_pct}% changed)"; ((CRITICAL++))
     else
-      echo "🟠 ERROR: $skill — content drift (${overlap_pct}% overlap)"; ((ERRORS++))
+      echo "🟠 ERROR: $skill — content drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
       backup_skill "$(dirname "$installed")"; cp "$src" "$installed"
@@ -351,7 +366,7 @@ for dir in "${SOURCE_DIRS[@]}"; do
       echo "  ✅ FIXED: removed $(basename "$junk")"; ((FIXED++))
     fi
   done < <(find "$root" -maxdepth 1 -type f \
-    ! -name "*.md" ! -name "*.sh" ! -name "*.js" ! -name "*.json" \
+    ! -name "*.md" ! -name "*.sh" ! -name "*.ps1" ! -name "*.js" ! -name "*.json" \
     ! -name "*.yaml" ! -name "*.yml" ! -name "*.txt" \
     ! -name "CODEOWNERS" ! -name ".gitignore" ! -name ".gitattributes" \
     ! -name ".editorconfig" ! -name ".env*" ! -name "LICENSE" \
@@ -391,14 +406,14 @@ for key in "${!REF_PRIORITY[@]}"; do
     continue
   fi
   if ! diff -q "$src_ref" "$installed_ref" > /dev/null 2>&1; then
-    src_lines=$(wc -l < "$src_ref" | tr -d ' '); inst_lines=$(wc -l < "$installed_ref" | tr -d ' ')
-    common=$(comm -12 <(sort "$src_ref") <(sort "$installed_ref") | wc -l | tr -d ' ')
-    total=$(( src_lines > inst_lines ? src_lines : inst_lines ))
-    overlap_pct=$(( total > 0 ? common * 100 / total : 0 ))
-    if [[ "$overlap_pct" -lt 30 ]]; then
-      echo "🔴 CRITICAL: $skill_dir/references/$ref_name — CORRUPTION (${overlap_pct}% overlap)"; ((CRITICAL++))
+    src_lines=$(wc -l < "$src_ref" | tr -d ' ')
+    changed=$(diff -u "$src_ref" "$installed_ref" | grep -c '^[+-][^+-]' || true)
+    total=$(( src_lines > 0 ? src_lines : 1 ))
+    change_pct=$(( changed * 100 / total ))
+    if [[ "$change_pct" -gt 70 ]]; then
+      echo "🔴 CRITICAL: $skill_dir/references/$ref_name — CORRUPTION (${change_pct}% changed)"; ((CRITICAL++))
     else
-      echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${overlap_pct}% overlap)"; ((ERRORS++))
+      echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
       backup_skill "$INSTALLED_DIR/$skill_dir"; cp "$src_ref" "$installed_ref"
