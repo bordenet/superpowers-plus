@@ -245,3 +245,59 @@ Deep comparison of always-rules vs skills revealed LESS overlap than expected:
 | Wiki skill loads (typical) | ~4,140 tokens (3 skills) | ~1,625 tokens (1 skill) | **-2,515 tokens (-61%)** |
 | Total unconditional overhead | ~12,857 tokens | ~6,352 tokens | **-50.6%** |
 | Total per-wiki-operation | ~17,000 tokens | ~7,977 tokens | **-53%** |
+
+---
+
+## Phase 4 Results (2026-03-20)
+
+### 4A: KEEP-ALWAYS Rules Slimmed
+
+| Rule | Before | After |
+|------|--------|-------|
+| humility | ~200 words | ~120 words |
+| superpowers-bootstrap | ~350 words | ~200 words |
+| verify-before-documenting | ~200 words | ~120 words |
+
+### 4B+4C: Top 9 Skills Slimmed
+
+| Skill | Before (lines) | After (lines) | Reduction |
+|-------|---------------|--------------|-----------|
+| domain-design | 251 | 64 | 75% |
+| adversarial-search | 233 | 54 | 77% |
+| wiki-debunker | 239 | 54 | 77% |
+| wiki-content-coherence | 229 | 54 | 76% |
+| innovation | 216 | 40 | 81% |
+| repo-security-scan | 208 | 181 | 13% |
+| think-twice | 249 | 44 | 82% |
+| public-repo-ip-audit | 247 | 48 | 81% |
+| eliminating-ai-slop | 228 | 56 | 75% |
+
+---
+
+## Phase 5 Results (2026-03-20)
+
+### 5A: Bootstrap Catalog Compacted
+
+Changed `findSkills()` in bootstrap to `findSkillsCompact()` — outputs skill names only (comma-separated list) instead of 96 entries with full descriptions.
+
+| Metric | Before | After | Reduction |
+|--------|--------|-------|-----------|
+| Bootstrap words | 2,825 | 712 | **75%** |
+| Bootstrap lines | 407 | 96 | **76%** |
+
+### 5B: DOT Graph Stripped
+
+Stripped un-renderable `\`\`\`dot` graph blocks from `using-superpowers` during bootstrap output.
+
+---
+
+## Final Results
+
+| Component | Original | Final | Savings |
+|-----------|----------|-------|---------|
+| Always-rules | ~9,110 tokens | ~1,885 tokens | **-79%** |
+| Bootstrap output | ~3,767 tokens | ~949 tokens | **-75%** |
+| **Total unconditional** | **~12,877 tokens** | **~2,834 tokens** | **-78%** |
+| Per-skill fire (avg top 9) | ~1,700 words | ~438 words | **-74%** |
+
+**~10,043 tokens saved per conversation** from unconditional overhead alone.
