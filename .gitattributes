@@ -1,0 +1,18 @@
+# Normalize all text files to LF on commit, prevent CRLF from entering repo.
+# Critical for WSL/Windows users with core.autocrlf=true.
+* text=auto eol=lf
+
+# Explicitly mark known text file types
+*.md text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.txt text eol=lf
+
+# Binary files (don't touch)
+*.png binary
+*.jpg binary
+*.gif binary
