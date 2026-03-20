@@ -130,28 +130,28 @@ upgrade_existing() {
     before_sha=$(git rev-parse --short HEAD)
     log_verbose "Current version: $before_sha"
 
-    # If --force, reset local changes first
-    if [[ "$FORCE" == "true" ]]; then
-        log_info "Resetting local changes (--force)..."
-        git reset --hard HEAD || error_exit "Failed to reset local changes"
-        git clean -fd || error_exit "Failed to clean untracked files"
-    fi
-
-    # Fetch and pull
+    # Fetch first — we need fresh remote refs regardless of strategy
     log_verbose "Fetching from origin..."
     if ! git fetch origin 2>&1; then
         error_exit "Failed to fetch from origin"
     fi
 
-    log_verbose "Pulling latest changes..."
-    if ! git pull --ff-only origin main 2>&1; then
-        # --ff-only failed — try reset to origin/main (handles upstream history rewrites)
-        log_warn "Fast-forward pull failed — attempting reset to origin/main..."
-        if git reset --hard origin/main 2>&1; then
-            log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
-        else
-            log_warn "Reset failed. Run with --upgrade --force to discard local changes and upgrade."
-            exit 1
+    # If --force, reset directly to origin/main (handles divergent history + local changes)
+    if [[ "$FORCE" == "true" ]]; then
+        log_info "Resetting to origin/main (--force)..."
+        git reset --hard origin/main || error_exit "Failed to reset to origin/main"
+        git clean -fd || error_exit "Failed to clean untracked files"
+    else
+        log_verbose "Pulling latest changes..."
+        if ! git pull --ff-only origin main 2>&1; then
+            # --ff-only failed — try reset to origin/main (handles upstream history rewrites)
+            log_warn "Fast-forward pull failed — attempting reset to origin/main..."
+            if git reset --hard origin/main 2>&1; then
+                log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
+            else
+                log_warn "Reset failed. Run with --upgrade --force to discard local changes and upgrade."
+                exit 1
+            fi
         fi
     fi
 
