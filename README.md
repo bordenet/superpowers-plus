@@ -144,7 +144,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | observability | completeness-check | Confirms work is done |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
-| | superpowers-doctor | Runs 16-check diagnostic across all skills |
+| | superpowers-doctor | Runs 18-check diagnostic across all skills |
 | productivity | adversarial-search | Defeats confirmation bias |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |

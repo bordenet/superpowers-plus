@@ -103,7 +103,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep -c "
 
 **Expected results:**
 - Bootstrap should complete without errors
-- Skill count should be 58+ (46 from this repo + 12 from obra/superpowers framework, varies as skills are added)
+- Skill count should be 59+ (47 from this repo + 12 from obra/superpowers framework, varies as skills are added)
 
 ---
 
