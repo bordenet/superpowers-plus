@@ -94,12 +94,18 @@ update_superpowers() {
 
     log_verbose "Pulling latest changes from origin main"
     if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only origin main 2>&1); then
-        local checkout_age
-        checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
-        log_warn "Failed to update superpowers (may have local changes)"
-        log_warn "Local checkout last updated: $checkout_age"
-        log_warn "You may be running a stale version of obra/superpowers"
-        return 1
+        # --ff-only failed — likely divergent history (upstream rewrite) or local changes
+        log_warn "Fast-forward pull failed — attempting recovery..."
+        if (cd "$SUPERPOWERS_DIR" && git fetch origin 2>&1 && git reset --hard origin/main 2>&1); then
+            log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
+        else
+            local checkout_age
+            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
+            log_warn "Failed to update superpowers (may have local changes)"
+            log_warn "Local checkout last updated: $checkout_age"
+            log_warn "You may be running a stale version of obra/superpowers"
+            return 1
+        fi
     fi
 
     log_success "obra/superpowers updated"
@@ -139,9 +145,14 @@ upgrade_existing() {
 
     log_verbose "Pulling latest changes..."
     if ! git pull --ff-only origin main 2>&1; then
-        log_warn "Fast-forward pull failed. You may have local changes."
-        log_warn "Run with --upgrade --force to discard local changes and upgrade."
-        exit 1
+        # --ff-only failed — try reset to origin/main (handles upstream history rewrites)
+        log_warn "Fast-forward pull failed — attempting reset to origin/main..."
+        if git reset --hard origin/main 2>&1; then
+            log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
+        else
+            log_warn "Reset failed. Run with --upgrade --force to discard local changes and upgrade."
+            exit 1
+        fi
     fi
 
     # Get after SHA and report
