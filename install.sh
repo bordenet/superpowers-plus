@@ -453,6 +453,12 @@ main() {
     # Validate
     validate_installation
 
+    # Post-install health check (report only, non-blocking)
+    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" ]]; then
+        log_info "Running post-install health check..."
+        "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
+    fi
+
     # Print summary
     print_summary
 }
