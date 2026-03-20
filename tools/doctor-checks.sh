@@ -407,6 +407,14 @@ for dir in "${SOURCE_DIRS[@]}"; do
   root="${dir%/skills}"
   while IFS= read -r junk; do
     [[ -z "$junk" ]] && continue
+
+    # If the repo intentionally ignores this file, don't surface it as a doctor finding.
+    # This helps avoid repeated noise for local artifacts that are already excluded.
+    if [[ -d "$root/.git" ]]; then
+      rel="${junk#"$root"/}"
+      git -C "$root" check-ignore -q "$rel" 2>/dev/null && continue
+    fi
+
     echo "🔵 INFO: junk file in $(basename "$root")/: $(basename "$junk")"
     if can_fix moderate; then
       rm -f "$junk"
