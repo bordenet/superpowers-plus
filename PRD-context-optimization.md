@@ -220,3 +220,28 @@ Deep comparison of always-rules vs skills revealed LESS overlap than expected:
 | **Total unconditional** | **~12,857** | **~6,352** | **-50.6%** |
 
 **Phase 2 exceeded expectations:** Achieved 71% reduction in always-rules (vs 38-49% estimate) by raising altitude aggressively while preserving all unique content.
+
+
+---
+
+## Phase 3 Results (2026-03-20)
+
+### Wiki Skill Consolidation
+
+| Action | Files Before | Files After | Token Savings (when wiki fires) |
+|--------|-------------|-------------|--------------------------------|
+| Merged `wiki-editing` into `wiki-orchestrator` | 244 lines | 0 (absorbed) | ~1,511 tokens |
+| Merged `wiki-authoring` into `wiki-orchestrator` | 92 lines | 0 (absorbed) | ~1,328 tokens |
+| Deleted `outline-wiki-editing` | 112 lines | 0 (absorbed) | ~650 tokens |
+| Net orchestrator growth | 185 → 125 lines | — | -60 lines (leaner) |
+
+**Result:** When wiki tasks trigger skills, 1 skill loads instead of 3-4. Saves ~2,800-3,500 tokens per wiki operation.
+
+### Cumulative Optimization Results
+
+| Component | Original | After Phase 2+3 | Total Savings |
+|-----------|----------|-----------------|---------------|
+| Always-rules | ~9,110 tokens | ~2,605 tokens | **-6,505 tokens (-71%)** |
+| Wiki skill loads (typical) | ~4,140 tokens (3 skills) | ~1,625 tokens (1 skill) | **-2,515 tokens (-61%)** |
+| Total unconditional overhead | ~12,857 tokens | ~6,352 tokens | **-50.6%** |
+| Total per-wiki-operation | ~17,000 tokens | ~7,977 tokens | **-53%** |
