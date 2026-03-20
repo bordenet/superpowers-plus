@@ -120,3 +120,9 @@ Before referencing ANY issue key:
 
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
+
+## Common Failure Modes
+
+- **Skipping URL verification:** Assuming all links in the issue body are valid without fetching them
+- **Checking only title/description:** Missing label, assignee, or priority validation
+- **Trusting memory:** Verifying against what you remember the issue said instead of re-fetching it

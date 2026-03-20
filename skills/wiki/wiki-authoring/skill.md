@@ -16,6 +16,12 @@ composition:
 > **Adapter:** See `skills/wiki/_adapters/` for platform-specific formatting rules.
 > **See also:** [reference.md](./reference.md) (formatting), [examples.md](./examples.md) (patterns)
 
+## When to Use
+
+- Structuring a new wiki page from scratch
+- Fixing formatting issues (broken headings, table rendering, spacing)
+- Ensuring wiki content meets platform-specific Markdown constraints
+
 ## Overview
 
 Wiki platforms store content in Markdown with platform-specific constraints. This skill ensures reliable rendering and easy parsing.
@@ -210,3 +216,19 @@ Before publishing any wiki page:
 - **wiki-editing**: Download-before-edit workflow
 - **wiki-orchestrator**: Quality pipeline
 - **wiki-verify**: Link verification
+
+
+## Common Failure Modes
+
+- **HTML in Markdown:** Using `&nbsp;` or HTML entities in table cells — Outline renders them as literal text
+- **Checkbox syntax in tables:** `[ ]` inside table cells gets escaped to `\[` — use `Yes/No` or `✓/✗` instead
+- **H1 duplication:** Multiple `# Title` headings on one page — use H1 once, then H2/H3
+
+## Example: Correct Heading Hierarchy
+
+```markdown
+# Page Title          ← H1 (once only)
+## Major Section      ← H2
+### Subsection        ← H3 (max depth for readability)
+## Another Section    ← H2
+```

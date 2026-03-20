@@ -10,6 +10,13 @@ description: Blast radius analysis - search for ALL usages before modifying any 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
+## When to Use
+
+- Before modifying any existing function, method, type, or API contract
+- Refactoring shared utilities, base classes, or cross-cutting concerns
+- Applying a "quick fix" or hotfix to production code
+- Changing configuration, feature flags, or environment variables used by multiple services
+
 ## The Rule
 
 **SCOPE YOUR IMPACT BEFORE YOU SCOPE YOUR FIX.**

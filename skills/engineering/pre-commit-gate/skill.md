@@ -17,6 +17,13 @@ coordination:
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
+## When to Use
+
+- Before every `git commit` — run local lint, typecheck, and tests first
+- Before pushing to any remote branch (CI should confirm, not discover)
+- After resolving merge conflicts to verify nothing broke
+- When preparing a hotfix under time pressure (especially then)
+
 ## The Rule
 
 **RUN THESE LOCALLY BEFORE EVERY `git commit`.** Not after CI fails — BEFORE you commit.

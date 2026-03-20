@@ -16,6 +16,13 @@ description: Code review gate - apply engineering rigor when reviewing PRs. Trac
 
 When reviewing a PR, check changes, or provide feedback on someone else's implementation, apply the same analytical rigor — not rubber-stamp approval.
 
+## When to Use
+
+- Reviewing a PR, merge request, or diff someone else authored
+- Asked to "check," "review," or "approve" code changes
+- Pair-reviewing changes before merge in a shared branch workflow
+- Evaluating a dependency upgrade or third-party contribution
+
 ## Why This Gate Exists
 
 **Failure Pattern:** Reviewing PRs superficially because "it's their code" — looking at the diff in isolation without:

@@ -11,6 +11,13 @@ description: Use when designing a new superpowers skill family from scratch — 
 > **Origin:** Codified from the Call Review Domain design (21-step, 10-phase methodology, March 2026).
 > **Output:** Prioritized skill roster, architecture decision, infrastructure map, wiki design doc + tracking page.
 
+## When to Use
+
+- Designing a brand-new superpowers skill family from scratch
+- Planning which skills should exist for a new domain (e.g., "call review," "recruiting")
+- Running a structured brainstorm → prioritize → document cycle for skill architecture
+- Evaluating whether an existing domain needs restructuring or new sub-skills
+
 **Announce at start:** "I'm using the **domain-design** skill to structure this domain design exercise."
 
 ## ⛔ TODO.md Persistence — MANDATORY (Before Phase 1)
@@ -241,9 +248,3 @@ Before reporting "design complete," verify ALL downstream documentation is curre
 - [ ] Commit and push to GitHub (with user permission)
 
 **Do not report "design complete" with any unchecked item above.**
-
-## Scaling & Proof
-
-The 10-phase structure is domain-agnostic — only research targets, personas, and infrastructure connections change per domain. The architecture pattern choice and blocker ticket system may also vary.
-
-**Proof:** A real domain design (March 2026) executed this exact process: 5 systems researched, 12 candidates generated, 75% attrition, 3 P0 shipped, Phase 7 caught production permission denials that blocked 4 skills.
