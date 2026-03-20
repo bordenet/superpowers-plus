@@ -363,3 +363,27 @@ AI-generated documentation frequently contains inflated time estimates.
 - Mild inflation (2-3x realistic): +3 points
 - Moderate inflation (3-5x realistic): +5 points
 - Severe inflation (>5x realistic): +8 points
+
+---
+
+## Fabricated Calendar Timelines
+
+AI-generated plans frequently assign calendar periods to phases with zero basis. The AI has no information about team capacity, competing priorities, or actual task duration — yet confidently writes "Weeks 1-2", "Sprint 1", "Q3 target."
+
+**Detection patterns:**
+
+| Pattern | Example | Score |
+|---------|---------|-------|
+| Phase + calendar period | "Phase 2 (Weeks 1-2)" | +8 points |
+| Sprint numbering | "Sprint 1: schema extraction" | +5 points |
+| Quarter/month targets | "Target: Q3 2026" | +5 points |
+| Week-numbered milestones | "By Week 3, we should have..." | +8 points |
+| Duration estimates for multi-step plans | "Timeline: 4-6 weeks" | +5 points |
+
+**Why this is slop:** The AI is performing the *appearance* of project management without any of the inputs that make project management useful (team size, velocity, competing work, holidays, dependencies on external teams). The result looks professional but is meaningless.
+
+**What to use instead:** Dependency ordering + exit criteria. "Phase 2 depends on Phase 1 being complete. Exit criterion: X is true." This is honest — it says what must happen without pretending to know when.
+
+**Scoring:**
+- Any calendar-period assignment to a phase: +8 points (severe — it's fabrication)
+- Duration estimate without basis: +5 points

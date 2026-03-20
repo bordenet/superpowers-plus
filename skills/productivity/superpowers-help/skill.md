@@ -7,6 +7,12 @@ description: Dynamically enumerates ALL installed skills at runtime, distinguish
 
 # 🦸 Superpowers & Skills
 
+## When to Use
+
+- User asks "what can you do?" or "what skills do you have?"
+- Need to enumerate available superpowers or explicit skills at runtime
+- Debugging whether a specific skill is installed and active
+
 ## Understanding the Distinction
 
 | Term | Definition | How It Works |
@@ -130,6 +136,12 @@ cd superpowers-plus
 ```
 
 ---
+
+## Common Failure Modes
+
+- **Stale enumeration:** Reporting skills from memory instead of running the runtime discovery command
+- **Missing overlay skills:** Forgetting that `SPC_SOURCE_DIR` overlay adds skills not in the base superpowers-plus install
+- **Confusing superpowers vs explicit:** A skill with triggers is a superpower (auto-fires); without triggers it must be explicitly invoked
 
 ## Documentation
 

@@ -102,6 +102,23 @@ AI-generated documentation defaults to pre-AI manual labor timeframes. With mode
 
 ---
 
+## Fabricated Calendar Timelines (Elimination)
+
+When you catch yourself writing "Phase 2 (Weeks 1-2)" or "Sprint 1" or "Target: Q3":
+
+**STOP.** You have no basis for calendar assignments. Replace with dependency ordering:
+
+| Slop | Fix |
+|------|-----|
+| "Phase 2 (Weeks 1-2): Build schema docs" | "Phase 2: Build schema docs — **depends on**: nothing, can start immediately. **Exit criterion**: docs exist for all 9 tables." |
+| "Sprint 1: Extract schema" | "Step 1: Extract schema — **exit criterion**: `CREATE TABLE`-equivalent docs generated for all target tables" |
+| "Timeline: 4-6 weeks" | *(delete — you don't know)* |
+| "By Week 3, validation complete" | "Validation — **depends on**: schema docs complete. **Exit criterion**: AI reviewer flags synthetic test PR correctly." |
+
+**The rule:** Express *what depends on what* and *what "done" looks like*. Never express *when*.
+
+---
+
 ## Content-Type-Specific Strategies
 
 | Content Type | Strategy |

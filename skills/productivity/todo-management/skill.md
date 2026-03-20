@@ -11,6 +11,13 @@ description: Use when capturing tasks, tracking work, triaging priorities, query
 > **PRD:** See `PRD.md` in this skill folder for full requirements
 > **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
 
+## When to Use
+
+- Capturing, tracking, or triaging tasks during any work session
+- Executing a multi-step plan (3+ steps) that needs persistent tracking
+- Querying "what are my TODOs?" or "what's next?"
+- Closing out a session and ensuring no work is lost
+
 ---
 
 ## Multi-Step Plan Tracking
