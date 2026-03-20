@@ -38,7 +38,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM) — non-destructive
 - `--fix` adds: 8 (orphan removal), 12 (deprecated triggers), 14 (junk removal) — destructive
 
-All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` before modifying anything. Backups are verified for completeness before any fix is applied.
+All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` before modifying anything. Backups are verified for completeness before any fix is applied. <!-- doctor-ignore -->
 
 ## How to Execute
 
