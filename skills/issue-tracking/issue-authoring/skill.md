@@ -141,3 +141,10 @@ Before creating issue:
 ## Related Tools
 
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
+
+
+## Common Failure Modes
+
+- **Vague titles:** "Fix bug" or "Update thing" — titles must be specific and actionable (max 80 chars)
+- **Missing acceptance criteria:** Issue created without clear definition of done
+- **Unverified links:** Including URLs in description without checking they resolve (see link-verification skill)

@@ -199,3 +199,10 @@ When scanning multiple repos, process each sequentially through all four phases.
 | `public-repo-ip-audit` | Complementary — IP leakage, not security vulnerabilities |
 | `wiki-secret-audit` | Complementary — wiki content, not code repos |
 | `verification-before-completion` | **REQUIRED** for post-fix verification |
+
+
+## Common Failure Modes
+
+- **Scanning only tracked files:** Missing secrets in `.gitignore`'d files, build artifacts, or untracked configs
+- **Fixing secret without rotating:** Removing a leaked credential from code but not rotating it in the service
+- **Single-tool reliance:** Using only one detection tool when different tools catch different patterns (regex vs entropy)

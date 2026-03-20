@@ -16,6 +16,12 @@ composition:
 > **Last Updated:** 2026-03-13
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
 
+## When to Use
+
+- Writing or editing ANY prose a human will read (wiki, README, email, Slack, PR description)
+- Reviewing AI-generated text before publishing
+- Rewriting content flagged by `detecting-ai-slop` as having a high slop score
+
 ## Overview
 
 This skill actively rewrites text to eliminate AI slop patterns. It operates in two modes:
@@ -208,6 +214,12 @@ This skill owns dictionary mutations. The detecting-ai-slop skill reads; this sk
 | GVR thresholds met? | Are stylometric metrics in target range? |
 
 ---
+
+## Common Failure Modes
+
+- **Over-correction:** Stripping so much that the text becomes terse and loses nuance
+- **Voice mismatch:** Rewriting in a different voice than the rest of the document
+- **Introducing new slop:** Ironically adding AI patterns while removing others — always self-check
 
 ## Related Skills
 

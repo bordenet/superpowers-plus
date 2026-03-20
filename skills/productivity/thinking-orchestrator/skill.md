@@ -18,6 +18,12 @@ coordination:
 
 This is the **hub skill** for metacognition and thinking quality. It routes to the correct child skill based on what you are doing right now.
 
+## When to Use
+
+- When ANY thinking-related trigger fires (confirmation bias, stuck loops, completion claims, thoroughness requests)
+- When unsure which thinking skill applies — this orchestrator will route correctly
+- Before claiming "no problem found" or "looks fine" — check for premature closure
+
 **Do not try to handle thinking tasks yourself.** Use the routing table below to dispatch to the right skill, then follow that skill's process.
 
 ## Routing Table
@@ -93,6 +99,12 @@ Before delivering ANY analysis, evaluation, or review that the user requested wi
 | Confident ignorance | Declared "no problem" without evidence | Searched exhaustively before concluding |
 
 </EXTREMELY_IMPORTANT>
+
+## Common Failure Modes
+
+- **Wrong child skill:** Routing to `verification-before-completion` when `adversarial-search` was needed (check the routing table)
+- **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate
+- **Trigger saturation:** Multiple thinking triggers fire simultaneously — pick the highest-priority match from the routing table
 
 ## Related Skills
 

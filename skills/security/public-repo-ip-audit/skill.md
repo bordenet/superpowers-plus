@@ -14,6 +14,13 @@ coordination:
 
 # public-repo-ip-audit
 
+## When to Use
+
+- Before committing or pushing to any public repository (GitHub, GitLab, Bitbucket, etc.)
+- Extracting or migrating code from an internal repo to a public repo
+- Preparing an open-source release of previously private code
+- Creating a public fork or mirror of internal tooling
+
 ## CONTEXT
 When working with proprietary codebases (internal repos, private company code), content may need to be extracted or migrated to public repositories. This skill ensures NO proprietary intellectual property (IP) leaks to public repositories.
 
@@ -237,14 +244,4 @@ Before committing to public repo:
 
 ---
 
-## Commit Gate Coordination
-
-Multiple skills fire on commit-related triggers. When pushing to a **public repository**, execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | **public-repo-ip-audit** (this skill) | Proprietary content check | **Public repos only** |
-**Note:** This skill only applies to public repositories. For private/internal repos, skip this gate.
+**Commit gate order for public repos:** `pre-commit-gate` → `enforce-style-guide` → `professional-language-audit` → **this skill**.

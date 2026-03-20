@@ -223,3 +223,10 @@ Concerns:
 | [CLAUDE.md](../../CLAUDE.md) | Writing standards (no AI slop) |
 | `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
 | `detecting-ai-slop` | Score research quality before incorporating |
+
+
+## Common Failure Modes
+
+- **Copy-paste without attribution:** Incorporating research text verbatim without citing the source
+- **Stale sources:** Using outdated research findings without checking publication date or currency
+- **AI-slop injection:** Pasting AI-generated research summaries that introduce filler phrases into the document
