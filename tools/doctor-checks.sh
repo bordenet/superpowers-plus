@@ -17,6 +17,10 @@ require_bash4
 INSTALLED_DIR="$HOME/.codex/skills"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Source .env for overlay path (SPC_SOURCE_DIR) and other config
+# shellcheck source=/dev/null
+[[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
+
 FIX_MODE=false
 for arg in "$@"; do
   case "$arg" in --fix) FIX_MODE=true ;; esac
