@@ -50,7 +50,7 @@ The installer auto-detects your platform and offers to install missing dependenc
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework. For the full 48-skill suite, use git clone above.
+Installs the core superpowers framework. For the full 46-skill suite, use git clone above.
 
 ### Claude Code
 
@@ -149,7 +149,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
 | | golden-agents | Bootstraps AGENTS.md |
-| | innovation | Radical, high-impact thinking |
+| | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | skill-authoring | Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
@@ -163,16 +163,15 @@ Skills activate automatically when your request matches their triggers. Describe
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
-| | wiki-authoring | Creates new pages |
 | | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content |
-| | wiki-editing | Safe updates with backup |
-| | wiki-orchestrator | Routes tasks to the right handler |
+| | wiki-orchestrator | Routes wiki tasks (authoring, editing, review) |
 | | wiki-secret-audit | Finds leaked credentials |
 | | wiki-verify | Checks links and structure |
 | writing | detecting-ai-slop | Scores text 0-100 for machine patterns |
 | | eliminating-ai-slop | Rewrites stilted prose |
 | | markdown-table-discipline | Enforces table best practices |
+| | plan-quality-gates | Prevents fabricated timelines in plans |
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 
@@ -201,7 +200,7 @@ graph LR
   subgraph wiki-pipeline["Wiki Pipeline"]
     wiki_orchestrator["wiki-orchestrator"] --> wiki_content_coherence["wiki-content-coherence"]
     wiki_content_coherence --> link_verification["link-verification"]
-    link_verification --> wiki_editing["wiki-editing"]
+    link_verification --> wiki_verify["wiki-verify"]
   end
 
   subgraph stuck-escalation["Stuck Escalation"]
@@ -220,7 +219,7 @@ graph LR
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → coherence → links → edit | Generate → check → verify → publish |
+| Wiki Pipeline | orchestrator → coherence → links → verify | Generate → check → validate → confirm |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity |
 
 Full graph: [docs/skill-dependency-graph.md](docs/skill-dependency-graph.md) · Regenerate: `node tools/generate-skill-dag.js`
