@@ -173,6 +173,13 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 - **readme-authoring**: After setting up AI guidance, update README
 - **superpowers:verification-before-completion**: Verify files before committing
 
+## Common Failure Modes
+
+- **Skipping detection:** Starting a workflow without first running Phase 1 detection to confirm what repos/agents exist
+- **Wrong workflow type:** Using "new repo" workflow when "upgrade" was needed (always detect first)
+- **Missing redirect files:** Forgetting Phase 3 redirect files, leaving old config paths broken
+
+
 ## Reference Files
 
 - [`references/workflows.md`](references/workflows.md) — Phase 2 workflow templates (new/upgrade/migrate), Phase 3 redirect file templates, language detection scripts. Load when executing a workflow.

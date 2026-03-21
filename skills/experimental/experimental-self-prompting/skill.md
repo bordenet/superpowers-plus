@@ -150,3 +150,10 @@ This skill will be promoted to production when:
 - Full experiment: `superpowers-plus/docs/plans/experiment-results-v2/`
 - Statistical analysis: `superpowers-plus/docs/plans/experiment-results-v2/STATISTICAL_ANALYSIS.md`
 - Skill comparison: `superpowers-plus/docs/SKILL_COMPARISON_self-prompting_vs_think-twice.md`
+
+
+## Common Failure Modes
+
+- **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 rounds)
+- **Prompt drift:** Self-generated prompts gradually diverge from the original goal — anchor each round to the user's request
+- **Overhead without value:** Some tasks don't benefit from self-prompting — simple factual lookups, mechanical edits

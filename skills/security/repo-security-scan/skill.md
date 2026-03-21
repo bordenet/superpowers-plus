@@ -168,34 +168,14 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 
 ---
 
-## Red Flags — You're Doing It Wrong
+## Rules
 
-- Writing a bash script to `/tmp/` or anywhere → **STOP.** The commands in this skill are your script.
-- Skipping a phase because "this repo probably doesn't have X" → **Run all four phases.**
-- Dismissing all matches as false positives without reviewing → **Triage each match.**
-- Using `npm audit fix --force` without checking for regressions → **Always run tests after.**
-- Thinking "I'll write a Python/Node script to automate this" → **This skill IS the automation.**
-
-| Excuse | Reality |
-|--------|---------|
-| "I need a custom script for this" | No. The inline commands cover all stacks. Custom scripts are unmaintained and create tech debt. |
-| "The existing security-upgrade skill only does deps" | Correct — this skill adds the other three categories. Use both. |
-| "I'll just grep for a few patterns" | Partial scans miss issues. Use the full pattern list from each phase. |
-| "This repo is too simple to scan" | Simple repos leak secrets too. Complexity is irrelevant to secret exposure. |
-| "Time pressure — a script would be faster" | Running these inline commands takes the same time. The skill exists so you don't waste time writing scripts. |
-| "I'll combine the phases into one command" | Each phase has different patterns and tools. Don't merge them. |
-
----
-
-## Multi-Repo Scanning
-
-When scanning multiple repos, process each sequentially through all four phases.
+- **Never write custom scanning scripts.** The inline commands above ARE the automation.
+- **Run all four phases.** Don't skip because "this repo probably doesn't have X."
+- **Triage each match.** Don't dismiss all as false positives without reviewing context.
+- **Re-run full scan after fixes** to confirm zero remaining issues.
+- **Multi-repo:** Process each repo sequentially through all four phases.
 
 ## Related Skills
 
-| Skill | Relationship |
-|-------|-------------|
-| `security-upgrade` | **SUB-SKILL** for Phase 2 (dependency vulnerabilities) |
-| `public-repo-ip-audit` | Complementary — IP leakage, not security vulnerabilities |
-| `wiki-secret-audit` | Complementary — wiki content, not code repos |
-| `verification-before-completion` | **REQUIRED** for post-fix verification |
+`security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)

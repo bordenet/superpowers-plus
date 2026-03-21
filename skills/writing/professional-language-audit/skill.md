@@ -201,3 +201,10 @@ Multiple skills fire on "before commit". Execute in this order:
 | 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
 **Rationale:** Technical checks first (fast feedback), then style, then content gates.
+
+
+## Common Failure Modes
+
+- **Over-flagging technical terms:** Words like "kill," "abort," "master" in engineering contexts are often appropriate
+- **Missing context-dependent profanity:** Profanity in quoted user feedback or log output may be intentional — flag but don't auto-remove
+- **Ignoring non-English content:** Profanity in other languages in multilingual codebases

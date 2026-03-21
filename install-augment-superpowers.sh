@@ -159,7 +159,13 @@ if [[ -d ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
-    git pull --quiet origin main 2>/dev/null || git pull --quiet origin master 2>/dev/null || warn "Could not update superpowers"
+    if ! git pull --ff-only --quiet origin main 2>/dev/null; then
+        # --ff-only failed — try reset (handles upstream history rewrites and divergent branches)
+        verbose "Fast-forward failed, resetting to origin/main..."
+        git fetch --quiet origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
+            || git pull --quiet origin master 2>/dev/null \
+            || warn "Could not update superpowers"
+    fi
     popd > /dev/null
     success "Superpowers updated"
 else

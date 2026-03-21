@@ -11,198 +11,30 @@ version: 2.0
 
 > **Core question:** What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?
 
-**Announce at start:** "I'm using the **innovation** skill to generate transformative ideas."
-
----
-
-## Overview
-
-This skill shifts thinking from "what's the next incremental fix" to "what's the transformative leap." It produces **shippable innovation outputs**: ranked ideas with effort/impact scores, risk assessments, and concrete next-week experiments.
-
-**This is NOT for:**
-- Bug fixes → use `systematic-debugging`
-- Incremental features → use `brainstorming`
-- Mid-implementation questions → use `engineering-rigor`
-- Crisis stabilization → stabilize first, then innovate
-
-**This IS for:**
-- Product capability step-changes
-- Architectural paradigm shifts
-- New business model exploration
-- Service boundary rethinking
-- Internal tool/process innovation
-
----
-
-## When to Invoke
-
-### ✅ Invoke Immediately (Explicit Triggers)
-
-| User Says | Why It's Innovation |
-|-----------|---------------------|
-| "What's the boldest move here?" | Seeking transformative leap |
-| "How could this be 10x better?" | Magnitude thinking |
-| "Reimagine this from scratch" | Paradigm shift |
-| "What would a world-class team do?" | Best-in-class benchmark |
-| "Moonshot" / "blue sky thinking" | Explicit innovation language |
-| "New business model" / "strategic pivot" | Business transformation |
-| "Rethink the architecture" | Structural innovation |
-| "Step-change improvement" | Beyond incremental |
-
-### ❌ Do NOT Invoke (Anti-Triggers)
-
-| User Says | Use Instead |
-|-----------|-------------|
-| "Fix this bug" | `systematic-debugging` |
-| "Add this feature" | `brainstorming` |
-| "Small refactor" / "cleanup" | `engineering-rigor` |
-| "Incremental improvement" | `brainstorming` |
-| "Quick win" | Direct implementation |
-| "Update the docs" | `wiki-editing` |
-
-### 🤔 Propose (Don't Auto-Invoke)
-
-Consider **suggesting** innovation mode when:
-- Project has stabilized and user says "what's next?"
-- User is choosing between multiple architectures
-- Conversation reveals systemic limitations
-- Long-term planning without clear direction
-
-**Suggested prompt:**
-```
-The project seems stable. Would you like me to run **Innovation** mode?
-I'll analyze the current state and propose 3-5 radical but feasible ideas
-ranked by impact × feasibility, each with a concrete next-week experiment.
-```
-
----
+**NOT for:** bug fixes (`systematic-debugging`), incremental features (`brainstorming`), cleanup (`engineering-rigor`).
+**IS for:** product step-changes, architectural paradigm shifts, new business models, internal tool innovation.
 
 ## The Process
 
-### Step 0: Gather Input Context (NEW)
-
-Before generating ideas, ask for or identify:
-
-1. **PRD/RFC snippet** — If the user has planning docs, request a paste
-2. **Code folder** — Identify the relevant `src/` or service directory
-3. **User pain points** — What's frustrating about the current state?
-4. **Constraints** — Budget, timeline, team size, tech stack limits
-
-If missing, ask **briefly** (one question):
-```
-Before I run innovation mode, can you share:
-(a) a PRD/RFC snippet or current architecture diagram, OR
-(b) the top 1-2 pain points you're experiencing?
-```
-
-### Step 1: Analyze Current State
-
-Gather context from repo:
-- What does this project do today? (Read README, main entry points)
-- What are its current limitations? (Check issues, TODOs, tech debt)
-- What adjacent problems exist? (Dependencies, integrations)
-- Who uses it and what do they struggle with? (User feedback, analytics if available)
-- What patterns are architectural constraints vs. historical accidents?
-
-### Step 2: Ask the Core Question
-
-Explicitly ask yourself:
-
-> "What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?"
-
-Key dimensions:
-- **Radically innovative** — Not incremental; a leap (10x, not 10%)
-- **Accretive** — Builds on existing strengths, not orthogonal
-- **Useful** — Solves real problems (not novelty for its own sake)
-- **Compelling** — Would make people excited to use/build
-
-### Step 3: Generate 3-5 Radical Ideas
-
-Evaluate across these innovation categories:
-
-| Category | What to Consider | Example |
-|----------|------------------|---------|
-| **Technical Innovation** | Performance breakthroughs, novel algorithms | "Replace batch processing with streaming for 50x latency improvement" |
-| **UX Breakthrough** | Zero-friction interfaces | "Eliminate login entirely with device-based auth" |
-| **Architectural Shift** | Enable new capabilities | "Split monolith into event-driven services" |
-| **Novel Integration** | Unexpected combinations | "Connect to Slack to automate 80% of routine tasks" |
-| **Paradigm Shift** | Redefine what this is | "Turn the tool into a platform" |
-
-### Step 4: Score and Rank Ideas
-
-For each idea, calculate:
-
-| Dimension | Score (1-5) | Weight |
-|-----------|-------------|--------|
-| **Impact** | How transformative? | 3x |
-| **Feasibility** | Can we build it? | 2x |
-| **Alignment** | Fits project direction? | 1x |
-| **Uniqueness** | Only we can do this? | 1x |
-
-**Formula:** `(Impact × 3) + (Feasibility × 2) + Alignment + Uniqueness`
-
-### Step 5: Present Ideas with Actionable Next Steps
-
-For each idea, use the template in `references/output-template.md` (includes scoring table, risks, and next-week prototype format).
-
-### Step 6: If Stuck — Invoke Think-Twice or Research
-
-If you cannot generate compelling ideas:
-
-1. **Use `perplexity-research`** to explore adjacent domains:
-   ```
-   "What are the most innovative approaches in [adjacent domain] that could be
-   adapted to [this problem space]? Looking for paradigm shifts, not incremental
-   improvements."
-   ```
-
-2. **Or invoke `think-twice`** for a fresh perspective from a sub-agent
-
----
-
-## Output Format
-
-See `references/output-template.md` for the full output format including per-idea scoring tables and the recommended path forward section.
-
----
-
-## Integration with Other Skills
-
-| Skill | Relationship |
-|-------|--------------|
-| `brainstorming` | Innovation → bold direction; brainstorming → refines into design |
-| `think-twice` | Fallback when stuck generating ideas |
-| `perplexity-research` | Research support for unfamiliar domains |
-| `writing-plans` | After idea selected → create implementation plan |
-| `engineering-rigor` | After plan approved → implementation guidance |
-
-**Typical flow:**
-```
-innovation → user selects → brainstorming → writing-plans → implementation
-```
-
----
+1. **Gather context:** Ask for PRD/RFC snippet or top 1-2 pain points. Read README, issues, tech debt.
+2. **Generate 3-5 radical ideas** across: Technical Innovation, UX Breakthrough, Architectural Shift, Novel Integration, Paradigm Shift.
+3. **Score each:** `(Impact×3) + (Feasibility×2) + Alignment + Uniqueness` (each 1-5).
+4. **Present** with risks and a concrete next-week experiment per idea. See `references/output-template.md`.
+5. **If stuck:** invoke `perplexity-research` for adjacent domain exploration or `think-twice` for fresh perspective.
 
 ## Key Principles
 
-1. **Bold over safe** — Accept risk for transformative upside
-2. **Feasible over fantasy** — Radical ≠ impossible; must be buildable
-3. **Accretive over orthogonal** — Build on existing strengths
-4. **Concrete over abstract** — Every idea needs a next-week experiment
-5. **One direction at a time** — Multiple ideas for selection, pursue one
+- **Bold over safe** — 10x, not 10%
+- **Feasible over fantasy** — radical ≠ impossible
+- **Accretive** — build on existing strengths
+- **Concrete** — every idea needs a next-week experiment
 
----
+## Follow-Up
 
-## Follow-Up Offers
+After presenting: offer to draft RFC, create experiment plan, or deep-dive on specific aspect.
 
-After presenting ideas, always offer:
-
-1. **Turn into RFC** — "Want me to draft a one-pager for Idea X?"
-2. **Prototype plan** — "Want me to create an experiment plan with success criteria?"
-3. **Deep dive** — "Want me to research [specific aspect] further?"
-
----
+**Flow:** `innovation → user selects → brainstorming → writing-plans → implementation`
 
 ## Reference Files
 
-- [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and full output format. Load when generating innovation analysis output.
+- [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
