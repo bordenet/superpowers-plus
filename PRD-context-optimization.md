@@ -291,7 +291,7 @@ Stripped un-renderable `\`\`\`dot` graph blocks from `using-superpowers` during 
 
 ---
 
-## Final Results
+## Final Results (Phases 1-5)
 
 | Component | Original | Final | Savings |
 |-----------|----------|-------|---------|
@@ -301,3 +301,37 @@ Stripped un-renderable `\`\`\`dot` graph blocks from `using-superpowers` during 
 | Per-skill fire (avg top 9) | ~1,700 words | ~438 words | **-74%** |
 
 **~10,043 tokens saved per conversation** from unconditional overhead alone.
+
+---
+
+## Phase 6 Results (2026-03-21)
+
+### AGENTS.md + Conditional Rules Optimization
+
+Phase 6 targeted the remaining unconditional overhead: AGENTS.md files and always-rules that should be conditional.
+
+| Action | Before | After | Savings |
+|--------|--------|-------|---------|
+| P1: Root AGENTS.md | 1,445 words | 380 words | **-73%** |
+| P2: superpowers-plus AGENTS.md | 871 words | 221 words | **-74%** |
+| P3: outline-wiki always-rule | 438 words | 50 words | **-89%** |
+| P3: linear always-rule | 229 words | 58 words | **-75%** |
+| P3: fathom always-rule | 102 words | 29 words | **-72%** |
+
+P3 created 3 new on-demand skills to hold the migrated content:
+- `wiki/outline-wiki-guardrails` (454 words) — platform guardrails, loaded via TF-IDF
+- `linear/linear-guardrails` (214 words) — core gates, comment hygiene, workflow state IDs
+- `fathom-api` (123 words) — API endpoint, curl examples, synthesis pattern
+
+### Cumulative Results (All Phases)
+
+| Component | Original (Phase 1) | After Phase 5 | After Phase 6 | Total Savings |
+|-----------|-------------------|---------------|---------------|---------------|
+| Always-rules | ~9,110 tokens | ~1,885 tokens | ~1,042 tokens | **-89%** |
+| Bootstrap output | ~3,767 tokens | ~949 tokens | ~949 tokens | **-75%** |
+| AGENTS.md files | ~3,088 tokens | ~3,088 tokens | ~801 tokens | **-74%** |
+| **Total unconditional** | **~12,877 tokens** | **~5,922 tokens** | **~2,792 tokens** | **-78%** |
+
+### Behavioral Regression
+
+8/8 scenarios pass — module loading, ADO identity, schema docs, TODO management, wiki URL verification, Linear fetch-first, Fathom API endpoint all functional.
