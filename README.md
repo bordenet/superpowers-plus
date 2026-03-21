@@ -1,6 +1,6 @@
 # superpowers-plus
 
-48 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
+46 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
 
 > **⚠️ Token Consumption:** These skills prioritize depth over efficiency. Skills chain into each other, load reference files, and run verification loops — a single wiki edit can trigger 4+ skills. Token consumption is higher by design. Best suited for generous or unlimited token budgets.
 
@@ -14,14 +14,14 @@ cd superpowers-plus
 
 ## What's Included
 
-**48 skills** across 9 domains:
+**46 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|------:|----------|
 | engineering | 7 | Pre-commit gates, blast radius, PR review |
 | productivity | 11 | TODO tracking, adversarial search, domain design, skill synthesis |
-| wiki | 8 | Page management, link checks, credential scanning, content coherence |
-| writing | 5 | Slop detection/elimination, profanity gates, table discipline |
+| wiki | 6 | Page management, link checks, credential scanning, content coherence |
+| writing | 6 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
 | observability | 4 | Completeness checks, audit validation, repo verification, diagnostics |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |

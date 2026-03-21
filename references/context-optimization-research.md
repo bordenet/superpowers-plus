@@ -87,4 +87,3 @@
 | Event-driven reminders | ⚠️ Partial | Requires platform support; can approximate with trigger refinement |
 | Altitude raising | ✅ Yes | Replace checklists with heuristics + 1 example |
 | Cost tiering | ✅ Yes | Skip expensive skills when confidence is low |
-
