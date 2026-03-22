@@ -150,6 +150,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | productivity | adversarial-search | Defeats confirmation bias |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
+| | fallback-planning | Machine-agnostic contingency TODOs |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | skill-authoring | Creates new skills from descriptions/patterns |
@@ -157,7 +158,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for metacognition skills |
 | | todo-archive | Archives completed tasks to monthly files |
-| | fallback-planning | Machine-agnostic contingency TODOs |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
