@@ -19,12 +19,40 @@
 
 # --- Bash Version Guard ---
 
+# Usage: require_bash4 "$@"
+# Pass the calling script's "$@" so re-exec preserves original arguments.
 require_bash4() {
   if ((BASH_VERSINFO[0] < 4)); then
-    echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
-    echo "  macOS fix: brew install bash" >&2
-    echo "  Then ensure /opt/homebrew/bin or /usr/local/bin is in PATH" >&2
-    exit 1
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      if command -v brew &>/dev/null; then
+        echo "INFO: bash ${BASH_VERSION} is too old (need 4+). Installing via Homebrew..." >&2
+        brew install bash
+        # Find the brew-installed bash and re-exec the CALLING script under it
+        local brew_bash=""
+        for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+          if [[ -x "$candidate" ]] && "$candidate" -c '((BASH_VERSINFO[0] >= 4))' 2>/dev/null; then
+            brew_bash="$candidate"
+            break
+          fi
+        done
+        if [[ -n "$brew_bash" ]]; then
+          echo "INFO: Re-executing under $brew_bash" >&2
+          exec "$brew_bash" "${BASH_SOURCE[-1]}" "$@"
+        else
+          echo "ERROR: brew install bash succeeded but could not find bash 4+ binary" >&2
+          exit 1
+        fi
+      else
+        echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
+        echo "  macOS fix: brew install bash" >&2
+        echo "  Install Homebrew first: https://brew.sh" >&2
+        exit 1
+      fi
+    else
+      echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
+      echo "  Install bash 4+ via your package manager (e.g., apt install bash)" >&2
+      exit 1
+    fi
   fi
 }
 

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/compat.sh
 source "${SCRIPT_DIR}/compat.sh"
-require_bash4
+require_bash4 "$@"
 
 # skill-cost-analyzer.sh — Estimates relative token cost of each skill
 #
