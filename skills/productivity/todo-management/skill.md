@@ -135,6 +135,21 @@ See `references/file-format-and-operations.md` for:
 
 ---
 
+## Context-Aware TODO Standard (Plan-Level Tasks)
+
+When creating tasks that represent meaningful work units (not mechanical sub-steps), enforce these fields:
+
+| Field | Required Content | Skip For |
+|-------|-----------------|----------|
+| **Purpose** | WHY this task exists — what problem does completing it solve? | Sub-steps that share parent context |
+| **Trinity** | **WHY** (rationale), **WHAT** (deliverable), **HOW** (approach + file paths) | Trivial tasks (< 5 min) |
+| **Success Criteria** | Binary done/not-done — verifiable by command or state check | Sub-steps with obvious completion |
+| **Handoff State** | Branch, last commit, partial work, gotchas — enough for a fresh agent | Tasks that won't span sessions |
+
+**When to enforce:** Any TODO tagged with `#plan-*` that could be picked up by a different agent. If a sub-step shares context with its parent, the parent carries the context fields.
+
+---
+
 ## Guardrails
 
 | Condition | Action |
@@ -142,6 +157,7 @@ See `references/file-format-and-operations.md` for:
 | P1 count > 5 | Warn and offer to demote |
 | P3 task > 14 days old | Friday sweep: "Kill or Keep?" |
 | Multi-day task | Ask "What did you accomplish? What remains?" |
+| Plan-level task missing Context-Aware fields | Warn: "This task needs Purpose/Success Criteria for handoff" |
 
 ---
 
