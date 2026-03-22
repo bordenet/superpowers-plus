@@ -31,7 +31,7 @@ Tags are auto-inferred from keywords in the task description. **Customize for yo
 |-----|-----------------|
 | `#team` | Team member names, "team", "direct report" (customize: `#delta-team`, `#your-team`) |
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
-| `#product` | "product", "feature", "roadmap" (customize: `#[product]`, `#your-product`) |
+| `#product` | "product", "feature", "roadmap" (customize: `#your-product`) |
 | `#process` | "process", "workflow", "documentation" |
 
 ## Plan Tags (effort-scoped)
