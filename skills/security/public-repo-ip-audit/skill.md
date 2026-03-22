@@ -14,13 +14,17 @@ coordination:
 
 # public-repo-ip-audit
 
-## Mandatory Gates (run in order)
+## Mandatory Gates (run in order, block push)
 
-1. **History audit** — Before ANY work, scan target repo's full git history: `git log -p --all | grep -E "$PATTERNS"`. If contaminated, STOP and clean history first.
-2. **Design docs in PRIVATE repo** — Planning/extraction docs NEVER go in the public repo.
-3. **Full-repo grep** — Search entire repo (`grep -rE "$PATTERNS" repo/`), not just the target directory.
-4. **Staged + history check** — `git diff --staged | grep -E "$PATTERNS"` AND `git log -p origin/main..HEAD | grep -E "$PATTERNS"`
-5. **Pre-push verification** — All of the above must pass before every push.
+1. **Working tree scan** — `grep -rE "$PATTERNS" .` across all tracked files.
+2. **Staged changes** — `git diff --staged | grep -E "$PATTERNS"`.
+3. **Unpushed commits** — `git log -p origin/main..HEAD | grep -E "$PATTERNS"`.
+4. **Design docs in PRIVATE repo** — Planning/extraction docs NEVER go in the public repo.
+5. **Pre-push verification** — Gates 1-4 must pass before every push.
+
+## Advisory: Full History Audit (opt-in, non-blocking)
+
+Run `tools/public-repo-ip-check.sh --history` to scan full git history. This is **diagnostic** — it may flag old commits that predate pattern adoption. Rewriting published history is destructive for forks/clones and is NOT required. Use it to identify what was historically exposed, not as a push gate.
 
 ## IP Pattern Registry
 
@@ -39,7 +43,7 @@ PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 
 ## Blocking Conditions
 
-**DO NOT commit/push if:** pattern match in working tree, staged changes, unpushed commits, or git history. Also block on: design docs in public repo, internal URLs, internal emails, ticket references, private git hosting URLs, CI/CD URLs.
+**DO NOT commit/push if:** pattern match in working tree, staged changes, or unpushed commits. Also block on: design docs in public repo, internal URLs, internal emails, ticket references, private git hosting URLs, CI/CD URLs. Full history hits are advisory — document and triage, do not block.
 
 ## Incident Reference
 

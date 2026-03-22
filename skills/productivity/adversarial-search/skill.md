@@ -28,7 +28,7 @@ Search ALL of these — never stop at the first clean scope:
 
 ⛔ **HARD GATE — IP/Redaction:**
 - **Out-of-repo search requires explicit user permission.** If permission is not granted, **do not proceed** — limit search to the current repo only.
-- **Never paste match context.** Report only: filename + high-level description (e.g., "found token present in `~/.env` (redacted)").
+- **Never paste match context.** Report only: filename + high-level description (e.g., "found token present in `~/.env` (redacted)"). <!-- doctor-ignore -->
 - **Never paste** proprietary code, config values, tokens, or credentials into responses.
 - If unsure whether content is proprietary, **treat it as proprietary and redact.**
 
