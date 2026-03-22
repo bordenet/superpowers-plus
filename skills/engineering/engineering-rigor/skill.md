@@ -61,7 +61,22 @@ Am I reviewing someone's PR?    → providing-code-review
 General philosophy refresh?     → You're here (engineering-rigor)
 ```
 
+## Architecture Testing (Pre-Implementation Gate)
+
+Before writing feature code, validate the architectural approach:
+
+| Question | Red Flag |
+|----------|----------|
+| Does it scale to 10x current load/complexity? | "It works for now" |
+| Can a new engineer understand the boundaries? | Requires tribal knowledge to navigate |
+| Follows existing patterns or introduces new? | New pattern without documented justification |
+| What breaks if the adjacent system changes? | Tight coupling without interface boundaries |
+
+If any question surfaces a red flag, address it BEFORE implementation. Use `design-triad` for structured design evaluation.
+
 ## Related Skills
 
+- `design-triad` — Structured design evaluation with 3+ options
+- `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist

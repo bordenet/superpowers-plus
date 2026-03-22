@@ -270,6 +270,19 @@ for skill_dir in skills/*/; do
 done
 
 # =============================================================================
+# CHECK 8b: Skill File Length Limit
+# =============================================================================
+log_check "Skill file length (max 250 lines)"
+
+MAX_SKILL_LINES=250
+while IFS= read -r skill_file; do
+    line_count=$(wc -l < "$skill_file" | tr -d ' ')
+    if [[ "$line_count" -gt "$MAX_SKILL_LINES" ]]; then
+        log_error "$(basename "$(dirname "$skill_file")")/skill.md: ${line_count} lines (max ${MAX_SKILL_LINES})"
+    fi
+done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
+
+# =============================================================================
 # CHECK 9: README Skill Count Drift Detection
 # =============================================================================
 log_check "README skill count consistency"
