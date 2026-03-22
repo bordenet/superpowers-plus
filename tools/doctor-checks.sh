@@ -391,15 +391,25 @@ done
 for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
   skill=$(basename "$(dirname "$f")")
   # Extract all lines with paths, excluding doctor-ignore lines and code blocks
+  in_code_block=false
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
+    # Toggle code block state on fenced code markers
+    if echo "$line" | grep -qE '^```'; then
+      if [[ "$in_code_block" == true ]]; then in_code_block=false; else in_code_block=true; fi
+      continue
+    fi
+    [[ "$in_code_block" == true ]] && continue
     echo "$line" | grep -qi "doctor-ignore" && continue
+    # Skip lines where paths appear only inside inline backticks (documentation references)
+    # or inside table cells with backtick-wrapped commands
+    echo "$line" | grep -qE '`[^`]*~/[a-zA-Z0-9_./-]+[^`]*`' && continue
     while read -r path; do
       [[ -z "$path" ]] && continue
       expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
       [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
     done < <(echo "$line" | grep -oE '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)')
-  done < <(grep -E '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)' "$f" 2>/dev/null)
+  done < "$f"
 done
 
 # --- Check 14: Junk Files ---

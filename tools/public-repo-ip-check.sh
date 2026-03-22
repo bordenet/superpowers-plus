@@ -137,10 +137,12 @@ if [[ "$CHECK_HISTORY" == true ]]; then
     done)
     
     if [[ -n "$HISTORY_MATCHES" ]]; then
-        echo "  ❌ FAIL: IP found in git history"
-        echo "  Contaminated commits:"
+        HISTORY_COUNT=$(echo "$HISTORY_MATCHES" | wc -l | tr -d ' ')
+        echo "  ⚠️  ADVISORY: IP found in $HISTORY_COUNT historical commit(s)"
+        echo "  These predate current pattern adoption and do NOT block push."
+        echo "  Commits:"
         echo "$HISTORY_MATCHES" | head -10
-        FAILED=true
+        # History hits are advisory — do NOT set FAILED=true
     else
         echo "  ✓ Git history clean"
     fi

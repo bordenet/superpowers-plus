@@ -178,7 +178,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 
-Most skills are auto-triggered by semantic matching. Explicit skills (`superpowers-help`, `think-twice`, `security-upgrade`, etc.) are invoked by name or as dependencies.
+Most skills are auto-triggered by semantic matching. Explicit skills (`superpowers-help`, `security-upgrade`, etc.) are invoked by name or as dependencies.
 
 ## Skill Coordination
 

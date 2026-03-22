@@ -31,7 +31,6 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 # -----------------------------------------------------------------------------
 EXPLICIT_SKILLS=(
     "superpowers-help"              # Meta: lists available skills
-    "think-twice"                   # Meta: user explicitly wants second opinion
     "skill-firing-tracker"          # Observability: tracks other skills
     "completeness-check"            # Observability: audit tool
     "exhaustive-audit-validation"   # Observability: audit tool
