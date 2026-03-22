@@ -133,7 +133,7 @@ prune_stale_managed_skills() {
         while IFS= read -r stale_skill; do
             [[ -z "$stale_skill" ]] && continue
             if [[ -z "${current_skill_map[$stale_skill]:-}" ]] && [[ -d "$target_dir/$stale_skill" ]]; then
-                rm -rf "$target_dir/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
+                rm -rf "${target_dir:?}/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
                 log_verbose "Removed stale skill: $stale_skill"
             fi
         done < "$manifest"

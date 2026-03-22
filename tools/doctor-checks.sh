@@ -410,6 +410,7 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
     echo "$line" | grep -qi "doctor-ignore" && continue
     # Skip lines where paths appear only inside inline backticks (documentation references)
     # or inside table cells with backtick-wrapped commands
+    # shellcheck disable=SC2016  # regex intentionally matches literal backtick-wrapped ~/paths
     echo "$line" | grep -qE '`[^`]*~/[a-zA-Z0-9_./-]+[^`]*`' && continue
     while read -r path; do
       [[ -z "$path" ]] && continue
