@@ -26,11 +26,11 @@ Search ALL of these — never stop at the first clean scope:
 
 **Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `OUTLINE_API_TOKEN` miss (2026-03-17).
 
-⛔ **IP/Redaction Guardrail:**
-- **Ask permission** before searching outside the current repo.
+⛔ **HARD GATE — IP/Redaction:**
+- **Out-of-repo search requires explicit user permission.** If permission is not granted, **do not proceed** — limit search to the current repo only.
+- **Never paste match context.** Report only: filename + high-level description (e.g., "found token present in `~/.env` (redacted)").
 - **Never paste** proprietary code, config values, tokens, or credentials into responses.
-- **Report redacted findings only:** e.g., "found token present in `~/.env` (redacted)" — not the raw value.
-- If unsure whether content is proprietary, treat it as proprietary.
+- If unsure whether content is proprietary, **treat it as proprietary and redact.**
 
 ### Step 3: Adversarial Self-Review
 

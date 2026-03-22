@@ -91,7 +91,9 @@ When two requirements conflict:
 ### Contradictions Found
 - R4 vs R6: [description of conflict]
   - Resolution options: A / B / C / D
-  - Stakeholder decision: PENDING
+  - Decision owner: [name/role — or PENDING (ask user)]
+  - Chosen option: [A/B/C/D — or PENDING]
+  - Rationale: [1 sentence — or PENDING]
 ```
 
 ## Common Failure Patterns
