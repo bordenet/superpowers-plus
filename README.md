@@ -1,6 +1,6 @@
 # superpowers-plus
 
-46 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
+49 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
 
 > **⚠️ Token Consumption:** These skills prioritize depth over efficiency. Skills chain into each other, load reference files, and run verification loops — a single wiki edit can trigger 4+ skills. Token consumption is higher by design. Best suited for generous or unlimited token budgets.
 
@@ -14,12 +14,12 @@ cd superpowers-plus
 
 ## What's Included
 
-**46 skills** across 9 domains:
+**49 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 7 | Pre-commit gates, blast radius, PR review |
-| productivity | 11 | TODO tracking, adversarial search, domain design, skill synthesis |
+| engineering | 9 | Pre-commit gates, blast radius, PR review, design triad, requirements validation |
+| productivity | 12 | TODO tracking, adversarial search, domain design, fallback planning |
 | wiki | 6 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -50,7 +50,7 @@ The installer auto-detects your platform and offers to install missing dependenc
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework. For the full 46-skill suite, use git clone above.
+Installs the core superpowers framework. For the full 49-skill suite, use git clone above.
 
 ### Claude Code
 
@@ -129,11 +129,13 @@ Skills activate automatically when your request matches their triggers. Describe
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
+| | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Quality hub (routes to TS skills in overlay) |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
+| | requirements-validation | Tests requirements for falsifiability, contradictions |
 | | verification-before-completion | Final checks before claiming done |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
@@ -148,6 +150,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | productivity | adversarial-search | Defeats confirmation bias |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
+| | fallback-planning | Machine-agnostic contingency TODOs |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | skill-authoring | Creates new skills from descriptions/patterns |
@@ -158,8 +161,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
-| security | repo-security-scan | Full repo security scan (4 categories) |
-| | public-repo-ip-audit | Detects proprietary content |
+| security | public-repo-ip-audit | Detects proprietary content |
+| | repo-security-scan | Full repo security scan (4 categories) |
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
