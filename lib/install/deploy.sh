@@ -75,6 +75,81 @@ install_adapter() {
     fi
 }
 
+register_source_repo() {
+    local env_file="${HOME}/.codex/.env"
+    local var_name="SPP_SOURCE_DIR"
+    local source_path="$SCRIPT_DIR"
+
+    create_dir "${HOME}/.codex"
+    [[ -f "$env_file" ]] || touch "$env_file"
+
+    if grep -q "^${var_name}=" "$env_file" 2>/dev/null; then
+        local escaped_path
+        escaped_path=$(printf '%s' "$source_path" | sed 's/[&/\\]/\\&/g')
+        sed -i.bak "s|^${var_name}=.*|${var_name}=\"${escaped_path}\"|" "$env_file"
+        rm -f "${env_file}.bak"
+    else
+        echo "${var_name}=\"${source_path}\"" >> "$env_file"
+    fi
+
+    log_verbose "Registered source repo: $var_name=$source_path"
+}
+
+get_install_state_dir() {
+    local state_dir="${CODEX_DIR}/superpowers-plus/install-state"
+    mkdir -p "$state_dir"
+    printf '%s\n' "$state_dir"
+}
+
+skill_manifest_path() {
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    printf '%s\n' "${state_dir}/skills.manifest"
+}
+
+managed_skill_source_matches() {
+    local skill_dir="$1"
+    local skill_file=""
+
+    [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+    [[ -z "$skill_file" && -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+    [[ -z "$skill_file" ]] && return 1
+
+    grep -q '^source: superpowers-plus$' "$skill_file" 2>/dev/null
+}
+
+prune_stale_managed_skills() {
+    local target_dir="$1"
+    local manifest="$2"
+    shift 2
+    local current_skill_names=("$@")
+    declare -A current_skill_map=()
+    local skill_name
+    for skill_name in "${current_skill_names[@]}"; do
+        [[ -n "$skill_name" ]] && current_skill_map["$skill_name"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        while IFS= read -r stale_skill; do
+            [[ -z "$stale_skill" ]] && continue
+            if [[ -z "${current_skill_map[$stale_skill]:-}" ]] && [[ -d "$target_dir/$stale_skill" ]]; then
+                rm -rf "$target_dir/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
+                log_verbose "Removed stale skill: $stale_skill"
+            fi
+        done < "$manifest"
+        return
+    fi
+
+    for installed_dir in "$target_dir"/*/; do
+        [[ -d "$installed_dir" ]] || continue
+        skill_name=$(basename "$installed_dir")
+        if [[ -z "${current_skill_map[$skill_name]:-}" ]] && managed_skill_source_matches "$installed_dir"; then
+            rm -rf "$installed_dir" || log_warn "Failed to remove stale managed skill: $skill_name"
+            log_verbose "Removed stale managed skill (source fallback): $skill_name"
+        fi
+    done
+}
+
 # Install tools from tools/ directory (todo-preflight.sh, todo-lock.sh, etc.)
 install_tools() {
     log_info "Installing tools from superpowers-plus..."
@@ -86,10 +161,31 @@ install_tools() {
     fi
 
     local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    local manifest="${state_dir}/tools.manifest"
     create_dir "$tools_dest"
 
     local count=0
-    for tool in "$tools_src"/*.sh "$tools_src"/*.json; do
+    declare -A current_tools=()
+    for tool in "$tools_src"/*; do
+        [[ ! -f "$tool" ]] && continue
+        local basename
+        basename=$(basename "$tool")
+        current_tools["$basename"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        while IFS= read -r stale_tool; do
+            [[ -z "$stale_tool" ]] && continue
+            if [[ -z "${current_tools[$stale_tool]:-}" ]] && [[ -e "$tools_dest/$stale_tool" ]]; then
+                rm -f "$tools_dest/$stale_tool" || log_warn "Failed to remove stale tool: $stale_tool"
+                log_verbose "Removed stale tool: $stale_tool"
+            fi
+        done < "$manifest"
+    fi
+
+    for tool in "$tools_src"/*; do
         [[ ! -f "$tool" ]] && continue
         local basename
         basename=$(basename "$tool")
@@ -99,13 +195,19 @@ install_tools() {
             log_verbose "Tool already up to date: $basename"
         else
             cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
-            if [[ "$basename" == *.sh ]]; then
+            if [[ "$basename" == *.sh ]] || [[ "$basename" == "pre-commit" ]] || [[ "$basename" == "pre-push" ]]; then
                 chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
             fi
             log_verbose "Installed tool: $basename"
         fi
         count=$((count + 1))
     done
+
+    if [[ ${#current_tools[@]} -gt 0 ]]; then
+        printf '%s\n' "${!current_tools[@]}" | sort > "$manifest"
+    else
+        : > "$manifest"
+    fi
 
     log_success "Installed $count tools to $tools_dest"
 }
@@ -123,8 +225,34 @@ install_skills() {
 
     create_dir "$SKILLS_DIR"
     create_dir "$CLAUDE_SKILLS_DIR"
+    local manifest
+    manifest=$(skill_manifest_path)
     local installed=0
     local skipped=0
+    local current_skill_names=()
+
+    for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
+        [[ ! -d "$domain_or_skill" ]] && continue
+        local dir_name
+        dir_name=$(basename "$domain_or_skill")
+
+        [[ "$dir_name" == "_shared" ]] && continue
+        [[ "$dir_name" == "_archive" ]] && continue
+
+        if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
+            current_skill_names+=("$(basename "$domain_or_skill")")
+        else
+            for skill_dir in "$domain_or_skill"*/; do
+                [[ ! -d "$skill_dir" ]] && continue
+                if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
+                    current_skill_names+=("$(basename "$skill_dir")")
+                fi
+            done
+        fi
+    done
+
+    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
 
     for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
         [[ ! -d "$domain_or_skill" ]] && continue
@@ -163,6 +291,12 @@ install_skills() {
     if [[ $skipped -gt 0 ]] && [[ "$VERBOSE" == "true" ]]; then
         log_verbose "Skipped $skipped item(s)"
     fi
+
+    if [[ ${#current_skill_names[@]} -gt 0 ]]; then
+        printf '%s\n' "${current_skill_names[@]}" | sort -u > "$manifest"
+    else
+        : > "$manifest"
+    fi
 }
 
 
@@ -177,23 +311,46 @@ install_rules() {
     fi
 
     local augment_rules_dir="${HOME}/.augment/rules"
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    local manifest="${state_dir}/rules.manifest"
     create_dir "$augment_rules_dir"
 
     local installed=0
+    declare -A current_rules=()
+
+    for rule_file in "$rules_src"/*.md; do
+        [[ ! -f "$rule_file" ]] && continue
+        local rule_name
+        rule_name=$(basename "$rule_file")
+        current_rules["$rule_name"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        while IFS= read -r stale_rule; do
+            [[ -z "$stale_rule" ]] && continue
+            if [[ -z "${current_rules[$stale_rule]:-}" ]] && [[ -e "$augment_rules_dir/$stale_rule" ]]; then
+                rm -f "$augment_rules_dir/$stale_rule" || log_warn "Failed to remove stale rule: $stale_rule"
+                log_verbose "Removed stale rule: $stale_rule"
+            fi
+        done < "$manifest"
+    fi
 
     for rule_file in "$rules_src"/*.md; do
         [[ ! -f "$rule_file" ]] && continue
         local rule_name
         rule_name=$(basename "$rule_file")
 
-        if [[ "$FORCE" == "true" ]] || [[ ! -f "$augment_rules_dir/$rule_name" ]]; then
-            cp "$rule_file" "$augment_rules_dir/$rule_name"
-            log_verbose "Installed rule: $rule_name"
-            installed=$((installed + 1))
-        else
-            log_verbose "Rule already exists (use --force to overwrite): $rule_name"
-        fi
+        cp "$rule_file" "$augment_rules_dir/$rule_name" || error_exit "Failed to install rule: $rule_name"
+        log_verbose "Installed rule: $rule_name"
+        installed=$((installed + 1))
     done
+
+    if [[ ${#current_rules[@]} -gt 0 ]]; then
+        printf '%s\n' "${!current_rules[@]}" | sort > "$manifest"
+    else
+        : > "$manifest"
+    fi
 
     if [[ $installed -gt 0 ]]; then
         log_success "Installed $installed rule(s) to $augment_rules_dir"
@@ -211,23 +368,46 @@ install_templates() {
     fi
 
     local templates_dir="${CODEX_DIR}/templates"
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    local manifest="${state_dir}/templates.manifest"
     create_dir "$templates_dir"
 
     local installed=0
+    declare -A current_templates=()
+
+    for template_file in "$templates_src"/*; do
+        [[ ! -f "$template_file" ]] && continue
+        local template_name
+        template_name=$(basename "$template_file")
+        current_templates["$template_name"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        while IFS= read -r stale_template; do
+            [[ -z "$stale_template" ]] && continue
+            if [[ -z "${current_templates[$stale_template]:-}" ]] && [[ -e "$templates_dir/$stale_template" ]]; then
+                rm -f "$templates_dir/$stale_template" || log_warn "Failed to remove stale template: $stale_template"
+                log_verbose "Removed stale template: $stale_template"
+            fi
+        done < "$manifest"
+    fi
 
     for template_file in "$templates_src"/*; do
         [[ ! -f "$template_file" ]] && continue
         local template_name
         template_name=$(basename "$template_file")
 
-        if [[ "$FORCE" == "true" ]] || [[ ! -f "$templates_dir/$template_name" ]]; then
-            cp "$template_file" "$templates_dir/$template_name"
-            log_verbose "Installed template: $template_name"
-            installed=$((installed + 1))
-        else
-            log_verbose "Template already exists (use --force to overwrite): $template_name"
-        fi
+        cp "$template_file" "$templates_dir/$template_name" || error_exit "Failed to install template: $template_name"
+        log_verbose "Installed template: $template_name"
+        installed=$((installed + 1))
     done
+
+    if [[ ${#current_templates[@]} -gt 0 ]]; then
+        printf '%s\n' "${!current_templates[@]}" | sort > "$manifest"
+    else
+        : > "$manifest"
+    fi
 
     if [[ $installed -gt 0 ]]; then
         log_success "Installed $installed template(s) to $templates_dir"
