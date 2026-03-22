@@ -286,6 +286,13 @@ done
 # --- Check 11: Trigger Overlap ---
 # Known collision groups: skills that intentionally share triggers.
 # Collisions within a group are expected and suppressed.
+#
+# NOTE FOR OVERLAY/PRIVATE REPO OPERATORS:
+# This list covers only PUBLIC superpowers-plus skills. If your private
+# overlay installs additional skills (e.g., org-specific guardrails,
+# API wrappers) that share triggers with public skills, you will see
+# trigger-sharing warnings from this doctor. Those are NOT public repo
+# bugs — add the overlay collision groups to your private repo's config.
 KNOWN_COLLISION_GROUPS=(
   # Hub→child: thinking-orchestrator delegates to specialized skills
   "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review"
