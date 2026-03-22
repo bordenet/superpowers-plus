@@ -14,7 +14,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/compat.sh
 source "${SCRIPT_DIR}/compat.sh"
-require_bash4
+require_bash4 "$@"
 
 INSTALLED_DIR="$HOME/.codex/skills"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
