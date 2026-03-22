@@ -29,16 +29,19 @@ Each fallback TODO must be **machine-agnostic** — a different agent in a fresh
 
 **Trigger:** If [specific condition that indicates the risk has materialized].
 
-**Purpose:** [Why this fallback exists — what problem does it solve that the primary plan cannot?]
+**Purpose:** [1 line — what problem does it solve that the primary plan cannot?]
 
-**The Trinity:**
-- **WHY:** [Business/technical rationale for switching to this approach]
-- **WHAT:** [Concrete deliverable — what does the fallback produce?]
-- **HOW:** [Implementation approach — file paths, key decisions, integration points]
+**The Trinity:** (1 bullet each)
+- **WHY:** [Business/technical rationale for switching]
+- **WHAT:** [Concrete deliverable]
+- **HOW:** [Implementation approach — file paths, key decisions]
 
-**Success Criteria:** [Binary done/not-done — verifiable by running a command or checking a state]
+**Success Criteria:** [1 bullet — binary done/not-done, verifiable by command or state check]
 
-**Handoff State:** [Context for cold-start: branch name, which primary plan tasks completed, what artifacts exist, known gotchas from the primary attempt]
+**Handoff State:** (3 bullets max)
+- Branch/commit state
+- Which primary plan tasks completed vs. remaining
+- Known gotchas from the primary attempt
 
 **Estimated Scope:** [Relative to primary plan — "similar effort" / "larger" / "smaller" — NOT calendar time]
 ```

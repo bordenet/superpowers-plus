@@ -37,13 +37,13 @@ If neither has been done, complete them first or explicitly acknowledge the risk
 Produce **minimum THREE** options. Each must be:
 - **Genuinely different** — not superficial variations (different data model, different decomposition, different integration pattern)
 - **Implementable** — within current constraints, not fantasy
-- **Summarized** — approach, key trade-off, risk profile (3-5 sentences each)
+- **Compact** — max 3 bullet points per option: approach, key trade-off, risk profile
 
 ⛔ **HARD GATE:** If you can only think of one approach, invoke `think-twice` for a fresh perspective before proceeding. Two straw men and one real option is a violation.
 
 ## Step 2: Compare
 
-Build a comparison matrix:
+Build a comparison matrix. **Constraint: max 5 words per cell.**
 
 | Criterion | Option A | Option B | Option C |
 |-----------|----------|----------|----------|
@@ -53,11 +53,11 @@ Build a comparison matrix:
 | Risk | | | |
 | Fit with existing patterns | | | |
 
-State your recommendation with explicit rationale. If only one option is viable, the matrix documents WHY the others don't work — that documentation has value.
+State your recommendation with explicit rationale (2-3 sentences). If only one option is viable, the matrix documents WHY the others don't work — that documentation has value.
 
 ## Step 3: Harsh Review (Red Team)
 
-For the selected design, answer ALL of these:
+For the selected design, answer ALL of these (**max 1 sentence per answer**):
 1. What's the weakest assumption?
 2. What failure mode hasn't been considered?
 3. What would a hostile code reviewer attack?
@@ -68,7 +68,7 @@ For the selected design, answer ALL of these:
 
 ## Step 4: Edge Cases
 
-One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. Not a full re-design — focused on:
+One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap: 10 edge cases max.** Not a full re-design — focused on:
 - Failure modes that need handling
 - Boundary conditions that need tests
 - Integration points that need defensive code
@@ -79,6 +79,7 @@ One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. Not a 
 - **Exit when:** No new material issues found in a review round
 - **Escalate when:** 3 iterations completed without convergence — summarize blockers, escalate to human
 - **Do NOT:** Continue beyond 3 iterations — diminishing returns
+- **Delta-only:** Each iteration documents ONLY what changed since the previous round, not the full design
 
 ## Output
 

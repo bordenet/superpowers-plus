@@ -1,8 +1,8 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "second opinion", "try a different approach", "stuck:reasoning", "stuck:perspective"]
-description: Helps the AI coding assistant break out of spirals and stuck loops. Auto-detects circular reasoning, repeated failures, or exhaustion signals. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+triggers: ["second opinion", "try a different approach", "phone a friend", "fresh sub-agent"]
+description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
 coordination:
   group: stuck-escalation
   order: 1

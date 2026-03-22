@@ -11,9 +11,17 @@ description: Use when validating feature requirements before design or implement
 
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
 
+## Input Contract
+
+Before running the three tests, normalize requirements into a numbered list:
+- **Format:** `R1: [requirement text]`, `R2: [requirement text]`, etc.
+- If the input is prose, extract discrete requirements and number them.
+- If the input is already numbered, preserve the numbering.
+- Each `R#` must be a single, atomic requirement (split compound requirements).
+
 ## The Three Tests
 
-For EACH requirement, apply all three:
+For EACH numbered requirement, apply all three:
 
 ### 1. Falsifiability Test
 **Question:** Can you write a test that would FAIL if this requirement isn't met?
@@ -53,7 +61,11 @@ When two requirements conflict:
    - Option B: Prioritize R7 (drop R3 or modify it)
    - Option C: Split into phases (R3 in v1, R7 in v2)
    - Option D: Merge into a new requirement that satisfies both constraints
-4. **Get stakeholder decision.** Do NOT proceed until resolved.
+4. **Record the decision:**
+   - **Decision owner:** [name or role]
+   - **Chosen option:** A / B / C / D
+   - **Rationale:** [1 sentence]
+5. **Do NOT proceed until recorded.** Unresolved contradictions block Phase 2.
 
 ## Output Format
 

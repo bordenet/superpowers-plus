@@ -1,8 +1,8 @@
 ---
 name: adversarial-search
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "full analysis", "harsh review", "evaluate", "assess"]
-description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Fires BEFORE declaring negative findings ("no issue found", "already correct"). Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists. Also fires when user reports a problem and agent is about to dismiss it.
+triggers: ["adversarial search", "investigation inversion", "search for the wrong thing", "confirmation bias check"]
+description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Routed to by thinking-orchestrator for confirmation-bias, negative-finding, and depth-challenge triggers. Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists.
 ---
 
 # Adversarial Search
