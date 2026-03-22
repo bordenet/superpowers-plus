@@ -454,9 +454,16 @@ main() {
     validate_installation
 
     # Post-install health check (report only, non-blocking)
-    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" ]]; then
-        log_info "Running post-install health check..."
-        "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
+    # Skip if no skills are installed — doctor would report vacuous 0/0/0
+    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" && -d "$HOME/.codex/skills" ]]; then
+        local skill_count
+        skill_count=$(find "$HOME/.codex/skills" -maxdepth 2 -name "skill.md" 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "$skill_count" -gt 0 ]]; then
+            log_info "Running post-install health check..."
+            "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
+        else
+            log_info "Skipping health check — no skills installed yet"
+        fi
     fi
 
     # Print summary
