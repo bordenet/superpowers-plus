@@ -1,7 +1,7 @@
 ---
 name: requirements-validation
 source: superpowers-plus
-triggers: ["validate requirements", "requirements review", "are these requirements valid", "contradictory requirements", "conflicting requirements", "requirements testing", "acceptance criteria", "testable requirements"]
+triggers: ["validate requirements", "requirements review", "are these requirements valid", "contradictory requirements", "conflicting requirements", "requirements testing", "testable requirements", "requirements falsifiability", "check requirements for contradictions"]
 description: Use when validating feature requirements before design or implementation. Tests each requirement for falsifiability, measurability, and independence. Detects contradictions and guides resolution without resolving silently.
 ---
 
