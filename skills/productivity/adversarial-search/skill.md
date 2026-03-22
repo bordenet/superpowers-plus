@@ -1,8 +1,8 @@
 ---
 name: adversarial-search
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "full analysis", "harsh review", "evaluate", "assess"]
-description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Fires BEFORE declaring negative findings ("no issue found", "already correct"). Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists. Also fires when user reports a problem and agent is about to dismiss it.
+triggers: ["adversarial search", "investigation inversion", "search for the wrong thing", "confirmation bias check"]
+description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Routed to by thinking-orchestrator for confirmation-bias, negative-finding, and depth-challenge triggers. Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists.
 ---
 
 # Adversarial Search
@@ -20,11 +20,17 @@ Search for the BAD thing, not the good thing. If user says "you're using X inste
 Search ALL of these — never stop at the first clean scope:
 - Repo source code (drop `--include` — catches `.env`, `.sample`, config files)
 - Gitignored files (`.env` files contain real config)
-- Deployed/installed copies (`~/.codex/`, `~/.augment/`)
-- Other repos (monorepo/multi-repo setups)
-- Home directory configs
+- Deployed/installed copies (`~/.codex/`, `~/.augment/`) — **only after in-repo search is exhausted**
+- Other repos (monorepo/multi-repo setups) — **only with explicit user permission**
+- Home directory configs — **only with explicit user permission**
 
 **Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `OUTLINE_API_TOKEN` miss (2026-03-17).
+
+⛔ **HARD GATE — IP/Redaction:**
+- **Out-of-repo search requires explicit user permission.** If permission is not granted, **do not proceed** — limit search to the current repo only.
+- **Never paste match context.** Report only: filename + high-level description (e.g., "found token present in `~/.env` (redacted)").
+- **Never paste** proprietary code, config values, tokens, or credentials into responses.
+- If unsure whether content is proprietary, **treat it as proprietary and redact.**
 
 ### Step 3: Adversarial Self-Review
 
