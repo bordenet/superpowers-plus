@@ -52,3 +52,23 @@ composition:
 
 - [`references/report-format.md`](references/report-format.md) — Report template, citation formats
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands
+
+
+## When to Use
+
+- When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")
+- When wiki-orchestrator pipeline triggers fact-check stage
+- When reviewing pages that reference meetings, PRs, or historical context
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| No authoritative source found for a claim | Mark as UNVERIFIED with citation-needed tag — don't guess |
+| Git history doesn't go back far enough | Check meeting transcripts (Fathom), ticket history, PR comments |
+| Agent fabricates a plausible-sounding citation | Every citation must include a verifiable URL or commit SHA |
+
+```bash
+# Example: invoke debunker on a wiki page
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-debunker
+```
