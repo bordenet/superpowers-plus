@@ -24,7 +24,8 @@ DEFAULT_PATTERNS="INTERNAL-[0-9]+|internal\.company\.com|@company\.com"
 # Load org-specific patterns from local file (gitignored, never committed)
 IP_PATTERNS_FILE=".ip-check-patterns"
 if [[ -f "$IP_PATTERNS_FILE" ]]; then
-    ORG_PATTERNS=$(cat "$IP_PATTERNS_FILE" | grep -v '^#' | grep -v '^\s*$' | tr '\n' '|' | sed 's/|$//')
+    ORG_PATTERNS=$(grep -v '^#' "$IP_PATTERNS_FILE" | grep -v '^[[:space:]]*$' | tr '\n' '|')
+    ORG_PATTERNS="${ORG_PATTERNS%|}"
     if [[ -n "$ORG_PATTERNS" ]]; then
         DEFAULT_PATTERNS="${DEFAULT_PATTERNS}|${ORG_PATTERNS}"
     fi
@@ -77,18 +78,24 @@ echo ""
 
 FAILED=false
 
+indent_output() {
+    while IFS= read -r line; do
+        printf '    %s\n' "$line"
+    done
+}
+
 # Exclusions: never scan local pattern files or the audit script itself
-EXCLUDE_ARGS="--exclude=.ip-check-patterns --exclude=.ip-patterns --exclude=public-repo-ip-check.sh"
+EXCLUDE_ARGS=(--exclude=.ip-check-patterns --exclude=.ip-patterns --exclude=public-repo-ip-check.sh)
 
 # Check 1: Working tree (file paths only by default — never leak matching content)
 echo "▶ Checking working tree..."
-TREE_HITS=$(grep -rlE $EXCLUDE_ARGS --exclude-dir=.git "$PATTERNS" . 2>/dev/null || true)
+TREE_HITS=$(grep -rlE "${EXCLUDE_ARGS[@]}" --exclude-dir=.git "$PATTERNS" . 2>/dev/null || true)
 if [[ -n "$TREE_HITS" ]]; then
     echo "  ❌ FAIL: IP found in working tree"
-    echo "$TREE_HITS" | sed 's/^/    /'
+    printf '%s\n' "$TREE_HITS" | indent_output
     if [[ "$VERBOSE" == true ]]; then
         echo "  --- verbose output (may contain sensitive identifiers) ---"
-        grep -rE $EXCLUDE_ARGS --exclude-dir=.git "$PATTERNS" . 2>/dev/null | sed 's/^/    /' || true
+        grep -rE "${EXCLUDE_ARGS[@]}" --exclude-dir=.git "$PATTERNS" . 2>/dev/null | indent_output || true
     fi
     FAILED=true
 else
