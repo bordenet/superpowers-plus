@@ -41,6 +41,8 @@ SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
 SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 [[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && SOURCE_DIRS+=("$SP_OVERLAY_DIR")
+COMPARE_DIRS=("$SP_PLUS_DIR")
+[[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && COMPARE_DIRS+=("$SP_OVERLAY_DIR")
 
 BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
@@ -229,7 +231,7 @@ done
 # Tracks priority source (overlay wins over base) AND base source for overlay-aware comparison.
 declare -A PRIORITY_SOURCE
 declare -A BASE_SOURCE
-for dir in "$SP_PLUS_DIR" ${SP_OVERLAY_DIR:+"$SP_OVERLAY_DIR"}; do
+for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
     skill=$(basename "$(dirname "$src")")
@@ -296,27 +298,25 @@ done
 KNOWN_COLLISION_GROUPS=(
   # Hub→child: thinking-orchestrator delegates to specialized skills
   "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review"
-  # Generic→Linear: platform-agnostic vs Linear-specific pairs
-  "issue-editing linear-issue-editing"
-  "issue-authoring linear-issue-authoring"
-  "issue-comment-debunker linear-comment-debunker"
-  "issue-link-verification linear-link-verification"
-  "issue-verify linear-issue-verify"
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
   # Pre-commit chain: ordered sequential checks before commit
   "professional-language-audit pre-commit-gate enforce-style-guide"
-  # Wiki pipeline: orchestration, editing, verification
-  "wiki-editing outline-wiki-editing wiki-orchestrator link-verification"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
   # PR verification: complementary pre-PR checks
   "holistic-repo-verification engineering-rigor"
-  # Meeting notes: fetching recordings vs writing prose
-  "fathom-meeting-notes eliminating-ai-slop"
   # Security: vulnerability scanning vs repo secret scanning
   "security-upgrade repo-security-scan"
 )
+
+OVERLAY_COLLISION_GROUPS_FILE="${SP_OVERLAY_DIR:-}/tools/doctor-known-collision-groups.txt"
+if [[ -n "${SP_OVERLAY_DIR:-}" && -f "$OVERLAY_COLLISION_GROUPS_FILE" ]]; then
+  while IFS= read -r group; do
+    [[ -z "$group" || "$group" =~ ^# ]] && continue
+    KNOWN_COLLISION_GROUPS+=("$group")
+  done < "$OVERLAY_COLLISION_GROUPS_FILE"
+fi
 
 # Build a lookup: for each skill, which group index it belongs to
 declare -A skill_group
@@ -458,10 +458,24 @@ done
 # --- Check 16: Reference File Integrity ---
 # Track which reference files come from overlay vs base for overlay-aware comparison.
 declare -A REF_PRIORITY
+declare -A REF_OWNER_DIR
 declare -A REF_IS_OVERLAY_ONLY  # Track refs that only exist in overlay, not base
 declare -A REF_IS_BASE_ONLY     # Track refs that only exist in base, not overlay
 declare -A OVERLAY_SOURCE       # Track overlay skill.md paths for comparison
-for dir in "$SP_PLUS_DIR" ${SP_OVERLAY_DIR:+"$SP_OVERLAY_DIR"}; do
+declare -A INSTALLED_MATCH_DIR
+
+for dir in "${COMPARE_DIRS[@]}"; do
+  search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  while IFS= read -r src; do
+    skill=$(basename "$(dirname "$src")")
+    installed_skill="$INSTALLED_DIR/$skill/skill.md"
+    if [[ -f "$installed_skill" ]] && diff -q "$src" "$installed_skill" > /dev/null 2>&1; then
+      INSTALLED_MATCH_DIR[$skill]="$dir"
+    fi
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
+done
+
+for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src_ref; do
     skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
@@ -476,6 +490,7 @@ for dir in "$SP_PLUS_DIR" ${SP_OVERLAY_DIR:+"$SP_OVERLAY_DIR"}; do
     if [[ "$dir" != "$SP_PLUS_DIR" ]]; then
       REF_IS_BASE_ONLY[$key]=""  # Overlay also has it — not base-only
     fi
+    REF_OWNER_DIR[$key]="$dir"
     REF_PRIORITY[$key]="$src_ref"
   done < <(find "$search_root" -path "*/references/*.md" 2>/dev/null)
   # Track overlay skill.md paths
@@ -489,6 +504,11 @@ done
 for key in "${!REF_PRIORITY[@]}"; do
   src_ref="${REF_PRIORITY[$key]}"
   skill_dir="${key%%/*}"; ref_name="${key##*/}"
+  matched_dir="${INSTALLED_MATCH_DIR[$skill_dir]:-}"
+  ref_owner_dir="${REF_OWNER_DIR[$key]:-}"
+  if [[ -n "$matched_dir" && -n "$ref_owner_dir" && "$matched_dir" != "$ref_owner_dir" ]]; then
+    continue
+  fi
   installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
   if [[ ! -f "$installed_ref" ]]; then
     # If this ref only exists in overlay and the installed skill matches the base, skip it
