@@ -11,6 +11,12 @@ description: Use when validating feature requirements before design or implement
 
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
 
+## When to Use
+
+- Before design work — validate that requirements are testable and non-contradictory
+- When stakeholder requirements seem vague, compound, or conflicting
+- When acceptance criteria need to be derived from prose requirements
+
 ## Input Contract
 
 Before running the three tests, normalize requirements into a numbered list:

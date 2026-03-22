@@ -11,7 +11,11 @@ description: Use when a primary implementation plan has identified risks that co
 
 **Announce at start:** "I'm using the **fallback-planning** skill to generate contingency plans."
 
-**Prereq:** A primary plan exists (via `writing-plans`) with identified risks (via `design-triad` harsh review).
+## When to Use
+
+- After a primary plan has been created and risks identified (via `design-triad` harsh review)
+- When the cost of restarting from scratch exceeds the cost of pre-building a contingency
+- When a different agent or session may need to pick up fallback execution cold
 
 ## Process
 

@@ -11,8 +11,11 @@ description: Use when selecting a design approach for a feature or significant c
 
 **Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
 
-**NOT for:** Initial idea exploration (`brainstorming`), execution planning (`writing-plans`), bug fixing (`systematic-debugging`).
-**IS for:** Any decision where the wrong design choice would cost significant rework.
+## When to Use
+
+- Any design decision where the wrong choice would cost significant rework
+- Choosing between architectural approaches, data models, or integration patterns
+- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans`), bug fixing (`systematic-debugging`)
 
 ## Preflight
 
