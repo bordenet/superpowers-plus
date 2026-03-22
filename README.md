@@ -161,8 +161,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
-| security | repo-security-scan | Full repo security scan (4 categories) |
-| | public-repo-ip-audit | Detects proprietary content |
+| security | public-repo-ip-audit | Detects proprietary content |
+| | repo-security-scan | Full repo security scan (4 categories) |
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
