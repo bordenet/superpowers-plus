@@ -400,6 +400,9 @@ main() {
     # Check dependencies
     check_dependencies
 
+    # Register the source repo path for doctor/source-aware tooling.
+    register_source_repo
+
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
         upgrade_existing

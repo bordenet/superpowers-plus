@@ -44,10 +44,12 @@ function discoverSourceDir(envVar, wellKnownPaths) {
 const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
     '~/GitHub/Personal/superpowers-plus',
     '~/superpowers-plus',
+    '~/.codex/superpowers-plus',
 ]);
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
-    // Set SPC_SOURCE_DIR env var to point to your overlay repo
+    '~/GitHub/CallBox/Tools/superpowers-callbox',
+    '~/superpowers-callbox',
 ]);
 
 /**
