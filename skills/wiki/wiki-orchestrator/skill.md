@@ -120,3 +120,16 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
+
+
+## When to Use
+
+- For ALL wiki authoring, editing, and publishing operations — no exceptions
+- When creating new wiki pages from scratch
+- When updating existing wiki content
+- When reviewing wiki pages for quality
+
+```bash
+# Example: create a wiki page through the orchestrator pipeline
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestrator
+```

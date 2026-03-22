@@ -50,3 +50,18 @@ PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 **2026-03-06:** Design doc created in public repo; sanitization only checked subdirectory; history not audited. Resolution: full git history rewrite (orphan branch).
 
 **Gate order:** `pre-commit-gate` → `enforce-style-guide` → `professional-language-audit` → **this skill**.
+
+
+## When to Use
+
+- Before EVERY commit/push to a public repository
+- When moving code between private and public repos
+- When creating new public repos from existing private codebases
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Audit skipped because "it's just a README" | ALL files in public repos get audited, no exceptions |
+| Internal URL patterns not in deny list | Update deny list with new internal domains immediately |
+| Agent rationalizes "it's not really sensitive" | Hard block — any match requires explicit user override |

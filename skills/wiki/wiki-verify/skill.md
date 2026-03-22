@@ -172,3 +172,19 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 
 When adding new wiki pages with codebase dependencies, add them to this registry.
+
+
+## When to Use
+
+- After wiki pages referencing code/configs are updated
+- During periodic wiki health reviews
+- When a service version or dependency is upgraded
+- When wiki-orchestrator pipeline triggers verification stage
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Verification source is also stale | Cross-reference multiple sources (repo, docs, API) |
+| UNVERIFIABLE claims left unmarked | Flag and tag for human review — don't silently skip |
+| False positive STALE on intentionally pinned versions | Check for `pinned:` or version lock annotations |

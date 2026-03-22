@@ -54,3 +54,23 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 ## Related Skills
 
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
+
+
+## When to Use
+
+- When authoring any human-readable prose (docs, email, messages, tickets)
+- When wiki-orchestrator pipeline triggers slop detection stage
+- When reviewing AI-generated content before publishing
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Over-correction strips personality from writing | Preserve author voice — only target known slop patterns |
+| False positive on legitimate hedging language | Context matters — "it's worth noting" in a risk section is fine |
+| Slop patterns evolve faster than the deny list | Update pattern list quarterly from real examples |
+
+```bash
+# Example: invoke slop detection
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill eliminating-ai-slop
+```

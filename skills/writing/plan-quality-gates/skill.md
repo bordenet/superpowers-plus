@@ -139,3 +139,9 @@ These patterns in plan output indicate this skill was not followed:
 | Duration estimate without basis | +5 | Fabrication |
 | Missing exit criteria | +3 | Incomplete |
 | Missing dependency statement | +3 | Incomplete |
+
+## When to Use
+
+- When writing plans, roadmaps, or any phased work
+- Automatically co-activated with `writing-plans` skill
+- When reviewing existing plans for quality and completeness
