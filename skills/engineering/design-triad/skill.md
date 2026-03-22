@@ -1,7 +1,7 @@
 ---
 name: design-triad
 source: superpowers-plus
-triggers: ["design options", "three options", "compare approaches", "design comparison", "triad", "evaluate designs", "which approach", "design review", "design alternatives", "red team the design", "harsh design review"]
+triggers: ["design options", "three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "design alternatives", "red team the design", "harsh design review", "generate design options"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
 ---
 
@@ -16,7 +16,11 @@ description: Use when selecting a design approach for a feature or significant c
 
 ## Preflight
 
-Requires validated requirements (Phase 1) and architectural approach (Phase 2) from the Feature Development Engine. If those don't exist, complete them first or acknowledge the risk of designing without validated requirements.
+Before generating design options, confirm:
+1. **Requirements validated** — use `requirements-validation` to test for falsifiability, measurability, and contradictions.
+2. **Architecture assessed** — use `engineering-rigor` (Architecture Testing section) to validate scalability, maintainability, and pattern fit.
+
+If neither has been done, complete them first or explicitly acknowledge the risk of designing without validated inputs.
 
 ## The Process (5 Steps)
 

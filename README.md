@@ -50,7 +50,7 @@ The installer auto-detects your platform and offers to install missing dependenc
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework. For the full 46-skill suite, use git clone above.
+Installs the core superpowers framework. For the full 49-skill suite, use git clone above.
 
 ### Claude Code
 
@@ -129,11 +129,13 @@ Skills activate automatically when your request matches their triggers. Describe
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
+| | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Quality hub (routes to TS skills in overlay) |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
+| | requirements-validation | Tests requirements for falsifiability, contradictions |
 | | verification-before-completion | Final checks before claiming done |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
@@ -155,6 +157,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for metacognition skills |
 | | todo-archive | Archives completed tasks to monthly files |
+| | fallback-planning | Machine-agnostic contingency TODOs |
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |

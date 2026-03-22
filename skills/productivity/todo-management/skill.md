@@ -157,7 +157,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 | P1 count > 5 | Warn and offer to demote |
 | P3 task > 14 days old | Friday sweep: "Kill or Keep?" |
 | Multi-day task | Ask "What did you accomplish? What remains?" |
-| Plan-level task missing Context-Aware fields | Warn: "This task needs Purpose/Success Criteria for handoff" |
+| Plan-level task missing Context-Aware fields | Warn: "This task needs Purpose/Trinity/Success Criteria/Handoff State for handoff" |
 
 ---
 

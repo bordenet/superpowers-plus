@@ -171,7 +171,7 @@ detect_overlaps() {
     # Build trigger -> skill mapping using temp file (more portable than associative arrays)
     local temp_file
     temp_file=$(mktemp)
-    trap 'rm -f "$temp_file"' EXIT
+    trap 'rm -f "${temp_file:-}"' EXIT
 
     local overlaps=0
     local allowed_overlaps=0
