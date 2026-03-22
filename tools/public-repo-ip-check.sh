@@ -17,8 +17,17 @@
 
 set -euo pipefail
 
-# Default patterns (generic - customize for your organization)
+# Default patterns (generic - customize via --patterns flag or .ip-check-patterns file)
 DEFAULT_PATTERNS="INTERNAL-[0-9]+|internal\.company\.com|@company\.com"
+
+# Load org-specific patterns from local file (gitignored, never committed)
+IP_PATTERNS_FILE=".ip-check-patterns"
+if [[ -f "$IP_PATTERNS_FILE" ]]; then
+    ORG_PATTERNS=$(cat "$IP_PATTERNS_FILE" | grep -v '^#' | grep -v '^\s*$' | tr '\n' '|' | sed 's/|$//')
+    if [[ -n "$ORG_PATTERNS" ]]; then
+        DEFAULT_PATTERNS="${DEFAULT_PATTERNS}|${ORG_PATTERNS}"
+    fi
+fi
 
 PATTERNS="${DEFAULT_PATTERNS}"
 CHECK_HISTORY=false

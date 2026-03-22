@@ -68,10 +68,12 @@ When two requirements conflict:
    - Option C: Split into phases (R3 in v1, R7 in v2)
    - Option D: Merge into a new requirement that satisfies both constraints
 4. **Record the decision:**
-   - **Decision owner:** [name or role]
+   - **Decision owner:** [name or role — must be a real person who provided the decision. If unknown, write `PENDING (ask user)` and STOP.]
    - **Chosen option:** A / B / C / D
    - **Rationale:** [1 sentence]
 5. **Do NOT proceed until recorded.** Unresolved contradictions block Phase 2.
+
+⛔ **Never invent a decision owner.** If no stakeholder has weighed in, the decision is PENDING. Do not fabricate a name or role to unblock yourself.
 
 ## Output Format
 

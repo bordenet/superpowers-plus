@@ -1,7 +1,7 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "grep", "search for", "find all", "investigate", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "stuck:reasoning", "stuck:perspective", "work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "audit complete", "done with refactoring", "finished updating", "bulk edit done", "is this done", "check for incomplete work", "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "don't cut corners", "full analysis", "harsh review", "analyze", "evaluate", "assess", "review in detail", "leave no stone unturned"]
+triggers: ["no issue found", "no inconsistency", "already correct", "looks fine", "nothing to fix", "no changes needed", "no problem found", "everything is consistent", "user reports bug", "user reports inconsistency", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "stuck:reasoning", "stuck:perspective", "work complete", "ready to merge", "ready for review", "claiming completion", "audit complete", "done with refactoring", "finished updating", "bulk edit done", "is this done", "check for incomplete work", "rigorous review", "thorough analysis", "comprehensive review", "in-depth analysis", "deep dive", "don't cut corners", "full analysis", "harsh review", "leave no stone unturned"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
 coordination:
   group: thinking
@@ -80,7 +80,7 @@ If your current context matches more than one route:
 
 Before delivering ANY analysis, evaluation, or review that the user requested with rigor keywords, answer ALL of these:
 
-1. **Did the user ask for depth?** Check for: "rigorous", "thorough", "comprehensive", "in-depth", "deep dive", "harsh review", "full analysis", "evaluate", "assess", "leave no stone unturned"
+1. **Did the user ask for depth?** Check for: "rigorous review", "thorough analysis", "comprehensive review", "in-depth analysis", "deep dive", "harsh review", "full analysis", "leave no stone unturned"
 2. **How many dimensions of the problem did I consider?** If < 3, you are being shallow.
 3. **Did I challenge my own conclusions?** If not, you are exhibiting confirmation bias.
 4. **Would the user say "you only pursued part of it"?** If yes, STOP and expand scope.

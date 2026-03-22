@@ -20,11 +20,17 @@ Search for the BAD thing, not the good thing. If user says "you're using X inste
 Search ALL of these — never stop at the first clean scope:
 - Repo source code (drop `--include` — catches `.env`, `.sample`, config files)
 - Gitignored files (`.env` files contain real config)
-- Deployed/installed copies (`~/.codex/`, `~/.augment/`)
-- Other repos (monorepo/multi-repo setups)
-- Home directory configs
+- Deployed/installed copies (`~/.codex/`, `~/.augment/`) — **only after in-repo search is exhausted**
+- Other repos (monorepo/multi-repo setups) — **only with explicit user permission**
+- Home directory configs — **only with explicit user permission**
 
 **Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `OUTLINE_API_TOKEN` miss (2026-03-17).
+
+⛔ **IP/Redaction Guardrail:**
+- **Ask permission** before searching outside the current repo.
+- **Never paste** proprietary code, config values, tokens, or credentials into responses.
+- **Report redacted findings only:** e.g., "found token present in `~/.env` (redacted)" — not the raw value.
+- If unsure whether content is proprietary, treat it as proprietary.
 
 ### Step 3: Adversarial Self-Review
 
