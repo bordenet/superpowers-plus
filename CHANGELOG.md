@@ -10,6 +10,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Feature Development Engine** — 4-phase workflow for pre-code validation (#182)
+  - `skills/engineering/design-triad/` — Enforces 3+ design options with comparison matrix and harsh review
+  - `skills/engineering/requirements-validation/` — Tests requirements for falsifiability, detects contradictions
+  - `skills/productivity/fallback-planning/` — Generates contingency TODOs from identified risks
 - `skills/security/wiki-instruction-guard/` — Blocks prompt injection in wiki content (#104)
 - `skills/productivity/adversarial-search/` — Defeats confirmation bias in analysis (#107)
 - `skills/productivity/thinking-orchestrator/` — Hub router for metacognition skills (#110)
@@ -31,6 +35,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - wiki-debunker Source Authority Matrix for source-laundered attributions (#138)
 
 ### Changed
+- `engineering-rigor` — Added Architecture Testing section (#182)
+- `todo-management` — Added Context-Aware TODO Standard with length limits (#182)
+- `adversarial-search` — Triggers deduplicated (orchestrator owns shared triggers); IP/Redaction hard gate added (#182)
+- `think-twice` — Reclassified from explicit to auto-triggered; triggers narrowed to 4 unique phrases (#182)
+- `thinking-orchestrator` — Dropped 25+ generic triggers to reduce token overhead from misfires (#182)
+- `harsh-review.sh` — Added CHECK 8b: fails if any skill.md exceeds 250 lines (#182)
+- `public-repo-ip-check.sh` — Prints file paths only by default; `--verbose` opt-in; loads `.ip-check-patterns`; history audit reclassified as advisory (#182)
+- `skill-trigger-validator.sh` — Pipeline guards for `set -euo pipefail`; temp file cleanup fix (#182)
+- `public-repo-ip-audit` skill — History audit reclassified from mandatory gate to advisory diagnostic (#182)
 - 9 oversized skills split to ≤250 lines with `references/` directories (#143)
 - Efficiency optimization across 6 skills — net −794 lines (#162)
 - README overhauled: updated counts, reduced length 18%, eliminated duplication (#158)
