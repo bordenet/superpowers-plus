@@ -1,7 +1,7 @@
 ---
 name: todo-archive
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
-description: Archive completed tasks from TODO.md to monthly satellite files. Preserves operational history while keeping TODO.md under 500 lines. Companion to todo-management (upstream).
+description: Low-level archive engine for completed tasks in TODO.md. Companion to todo-management; routine housekeeping should usually go through todo-maintenance.sh.
 summary: "Use when: archiving completed TODO items from TODO.md."
 ---
 
@@ -18,6 +18,7 @@ summary: "Use when: archiving completed TODO items from TODO.md."
 | Trigger | Action |
 |---------|--------|
 | User says "archive todos" | Run full archive of all HISTORY entries |
+| Routine housekeeping run via `todo-maintenance.sh` | Use this archive engine when maintenance thresholds trigger |
 | TODO.md exceeds 400 lines | Auto-archive HISTORY entries ≥7 days old |
 | HISTORY has entries >30 days old | Archive regardless of line count (staleness rule) |
 | User says "search archived todos for X" | Search across archive files |
