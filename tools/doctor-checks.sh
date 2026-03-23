@@ -673,7 +673,14 @@ check_dirty_checkout() {
       # Stash user changes with a descriptive message before any destructive action
       local stash_msg
       stash_msg="doctor-backup-$(date +%Y%m%d-%H%M%S)"
+      # git stash push requires git 2.13+; fall back to git stash save
+      local stash_ok=false
       if git -C "$dir" stash push -m "$stash_msg" --include-untracked 2>/dev/null; then
+        stash_ok=true
+      elif git -C "$dir" stash save "$stash_msg" 2>/dev/null; then
+        stash_ok=true
+      fi
+      if [[ "$stash_ok" == "true" ]]; then
         echo "  ✅ FIXED: stashed local changes as '$stash_msg'"
         echo "  📦 Recover with: git -C $dir stash pop"; ((FIXED++))
       else
@@ -700,7 +707,7 @@ done
 # Catches regressions where a small-but-valid TODO with archivable history fails
 # to archive correctly or produces a result exceeding expected size.
 MAINT_SCRIPT="$SCRIPT_DIR/todo-maintenance.sh"
-if [[ -x "$MAINT_SCRIPT" ]] || [[ -f "$MAINT_SCRIPT" ]]; then
+if { [[ -x "$MAINT_SCRIPT" ]] || [[ -f "$MAINT_SCRIPT" ]]; } && command -v python3 &>/dev/null; then
   _doctor_todo_smoke() {
     local fixture_root fixture_todo fixture_env result_json line_count
     fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-todo-smoke-XXXXXX")
