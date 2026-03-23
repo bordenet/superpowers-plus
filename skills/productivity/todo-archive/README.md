@@ -39,8 +39,8 @@ Move completed tasks to monthly archive files (`YYYY-MM.md`) in a `todo-archives
 # By keyword
 ./todo-archive-search.sh keyword "alarm tuning"
 
-# By Linear issue
-./todo-archive-search.sh linear PROJ-$1
+# By issue ID
+./todo-archive-search.sh issue PROJ-$1
 
 # By month
 ./todo-archive-search.sh month 2026-03

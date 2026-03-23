@@ -60,7 +60,7 @@ Do not handle it inline. The child skills have process steps you will miss.
 ## Anti-Patterns
 
 1. **"I'll just quickly check"** -- No. Load the child skill. It has steps you will skip otherwise.
-2. **"This is a simple case"** -- The OUTLINE_API_TOKEN incident was "simple" too. Route anyway.
+2. **"This is a simple case"** -- The `WIKI_API_TOKEN` incident was "simple" too. Route anyway.
 3. **"I already know the answer"** -- That is confirmation bias. Route to adversarial-search.
 4. **Handling two contexts at once** -- If you are both investigating AND claiming done, run BOTH routes sequentially.
 

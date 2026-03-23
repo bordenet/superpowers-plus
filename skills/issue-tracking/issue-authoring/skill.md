@@ -16,7 +16,7 @@ description: Use when creating issues in your project tracker. Enforces formatti
 
 Before using this skill, configure your issue tracker:
 
-1. Set `ISSUE_TRACKER_TYPE`: `linear`, `github`, `jira`, or `azure-devops`
+1. Set `ISSUE_TRACKER_TYPE` to your configured issue-tracker adapter key
 2. See `skills/issue-tracking/_adapters/` for platform-specific setup
 3. Ensure required MCP tools are available for your platform
 

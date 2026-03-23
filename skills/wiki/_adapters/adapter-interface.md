@@ -52,10 +52,10 @@ Each adapter maps operations to available MCP tools:
 
 | Generic Operation | MCP Tool (example) |
 |-------------------|-------------------|
-| `create_page` | `create_document_outline` |
-| `update_page` | `update_document_outline` |
-| `get_page` | `get_document_outline` |
-| `search_pages` | `search_documents_outline` |
+| `create_page` | `platform_create_page` |
+| `update_page` | `platform_update_page` |
+| `get_page` | `platform_get_page` |
+| `search_pages` | `platform_search_pages` |
 
 ## Fallback Behavior
 
