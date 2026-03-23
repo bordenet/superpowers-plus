@@ -8,7 +8,7 @@ coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check"]
+  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state"]
   escalates_to: []
   internal: false
 ---
@@ -35,6 +35,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | User reports bug/inconsistency you disagree with | `adversarial-search` | Search for the BAD value, not the good one |
 | Running grep/find/search | `adversarial-search` | Scope justification gate |
 | User asks for rigor/depth | `adversarial-search` (Depth Challenge) | Shallow Response Check before delivering |
+| Debugging a bug, starting/resuming investigation | `investigation-state` | Persist hypotheses, evidence, eliminated approaches |
 | Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
 | Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
@@ -50,6 +51,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `exhaustive-audit-validation` | Bulk completion | Item-by-item tracking for audits/refactors |
 | `verification-before-completion` | All completion | Evidence-based completion claims |
 | `completeness-check` | Repo audit | Detect incomplete/abandoned work |
+| `investigation-state` | Debugging | Persist investigation context across sessions |
 
 ## The Iron Law
 
