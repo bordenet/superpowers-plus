@@ -19,7 +19,7 @@ cd superpowers-plus
 | Domain | Count | Examples |
 |--------|------:|----------|
 | engineering | 11 | Pre-commit gates, blast radius, PR review, design triad, requirements validation, investigation state, feature development |
-| productivity | 12 | TODO tracking, adversarial search, domain design, fallback planning |
+| productivity | 14 | TODO tracking, adversarial search, domain design, fallback planning |
 | wiki | 6 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -31,6 +31,8 @@ cd superpowers-plus
 > TypeScript-specific skills have been migrated to a private overlay repo. See the `spc:` prefix in `superpowers-augment.js`.
 
 ## Installation
+
+Current distribution channels: git clone + `install.sh`, Augment Agent one-liner, Claude Code plugin install, MCP server, Codex native skills, OpenCode native skills, and Gemini CLI.
 
 ### All Platforms (Git Clone)
 
@@ -44,13 +46,13 @@ The installer auto-detects your platform and offers to install missing dependenc
 
 **Windows:** Run `wsl --install -d Ubuntu` first, then use the commands above.
 
-### One-Liner (Ubuntu / Debian / WSL)
+### Augment Agent (One-Liner: Ubuntu / Debian / WSL)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework. For the full 51-skill suite, use git clone above.
+Installs the core superpowers framework plus the Augment adapter. For the full 53-skill suite and all client-specific install paths, use git clone above.
 
 ### Claude Code
 
@@ -74,10 +76,16 @@ Installs the core superpowers framework. For the full 51-skill suite, use git cl
    ```
 3. Restart your client. Use `find_skills` to list available skills.
 
-### Codex / OpenCode
+### Codex
 
 ```text
 Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/main/.codex/INSTALL.md
+```
+
+### OpenCode
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/main/.opencode/INSTALL.md
 ```
 
 ### Gemini CLI
@@ -180,7 +188,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 
-Most skills are auto-triggered by semantic matching. Explicit skills (`superpowers-help`, `security-upgrade`, etc.) are invoked by name or as dependencies.
+The 53 skills in this repo are auto-triggered by semantic matching. When installed alongside `obra/superpowers`, some framework skills may still be explicit and invoked by name or as dependencies.
 
 ## Skill Coordination
 
