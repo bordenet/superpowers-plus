@@ -19,7 +19,7 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 4. **Spec compliance review** — dispatch spec reviewer subagent. Issues? → implementer fixes → re-review until ✅
 5. **Code quality review** — dispatch quality reviewer subagent. Issues? → implementer fixes → re-review until ✅
 6. **Mark task complete** → next task
-7. **After all tasks** — dispatch final code reviewer for entire implementation
+7. **After all tasks** — Dispatch final sub-agent-code-reviewer for entire implementation
 8. **Finish** — invoke `superpowers:finishing-a-development-branch`
 
 ## Model Selection
