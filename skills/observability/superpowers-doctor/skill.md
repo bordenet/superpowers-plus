@@ -2,7 +2,7 @@
 name: superpowers-doctor
 source: superpowers-plus
 triggers: ["superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
-description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 18 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, and structural defects. Modeled after brew doctor."
+description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 22 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, structural defects, stale/dirty managed checkouts, TODO archive regressions, and reviewer-dispatch rendering issues. Modeled after brew doctor."
 summary: "Use when: diagnosing skill installation or configuration issues."
 ---
 
@@ -11,7 +11,7 @@ summary: "Use when: diagnosing skill installation or configuration issues."
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 18 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 22 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
@@ -28,16 +28,16 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 | Mode | Behavior |
 |------|----------|
 | Default (no flags) | Report-only — detect and display all findings |
-| `--fix-safe` | Fix non-destructive issues only (sync drift, CRLF, BOM, name mismatch) |
+| `--fix-safe` | Fix non-destructive issues only (sync drift, CRLF, BOM, name mismatch, stale checkout) |
 | `--fix` | Detect + auto-fix all issues including destructive (orphan removal, junk cleanup) |
 | `--fix --yes` | Auto-fix all without confirmation prompt |
 | `--summary-only` | One-line pass/fail (used by post-install hook) |
 
-**8 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18). The remaining 10 require human judgment.
+**10 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18, 19, 20). The remaining 12 require human judgment.
 
 **Graduated intervention:**
-- `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM) — non-destructive
-- `--fix` adds: 8 (orphan removal), 12 (deprecated triggers), 14 (junk removal) — destructive
+- `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout pull) — non-destructive
+- `--fix` adds: 8 (orphan removal), 12 (deprecated triggers), 14 (junk removal), 20 (dirty checkout stash+clean) — destructive
 
 All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` before modifying anything. Backups are verified for completeness before any fix is applied. <!-- doctor-ignore -->
 
@@ -74,6 +74,9 @@ The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` e
 |---------|----------|
 | No source repos found | Set `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` env vars |
 | YAML parsing fails | The parse failure IS the finding (Check 1) |
-| Network unavailable | Check 13 skipped — re-run when online |
+| Network unavailable | Checks 13, 19 skipped — re-run when online |
 | Backup fails | Fix is skipped automatically — resolve disk space or permissions |
 | Skills on NTFS mount | Move to native Linux path (WSL only) |
+| python3 not found | Check 21 (TODO smoke test) skipped |
+| node not found | Check 22 (reviewer-dispatch) skipped |
+| git < 2.13 | Check 20 stash fallback uses `git stash save` |

@@ -1,10 +1,10 @@
 # Superpowers Doctor — Check Reference
 
-All 18 checks are implemented in `tools/doctor-checks.sh`.
+All 22 checks are implemented in `tools/doctor-checks.sh`.
 
 ```bash
 ./tools/doctor-checks.sh              # Diagnose only
-./tools/doctor-checks.sh --fix-safe   # Fix non-destructive issues (sync, CRLF, BOM)
+./tools/doctor-checks.sh --fix-safe   # Fix non-destructive issues (sync, CRLF, BOM, stale pull)
 ./tools/doctor-checks.sh --fix        # Fix all auto-fixable issues
 ./tools/doctor-checks.sh --fix --yes  # Fix all without prompts
 ./tools/doctor-checks.sh --summary-only  # One-line pass/fail
@@ -32,6 +32,10 @@ All 18 checks are implemented in `tools/doctor-checks.sh`.
 | 16 | 🔴 CRITICAL | Reference drift | Installed references ≠ source (corruption check) | ✅ | safe |
 | 17 | 🟠 ERROR | CRLF line endings | Windows line endings in skill.md or references | ✅ | safe |
 | 18 | 🟡 WARNING | UTF-8 BOM | Byte order mark breaks YAML parsing | ✅ | safe |
+| 19 | 🟠 ERROR | Stale checkout | Managed `~/.codex/superpowers-plus` behind origin/main | ✅ | safe |
+| 20 | 🟠 ERROR | Dirty checkout | Uncommitted changes in managed checkout | ✅ | moderate |
+| 21 | 🟠 ERROR | TODO archive smoke | Small-but-valid TODO fails to archive or produces bloated result | ❌ | — |
+| 22 | 🟡 WARNING | Reviewer-dispatch | Stale code-reviewer rendering patterns in installed skills | ❌ | — |
 
 **Pre-check:** WSL + NTFS mount detection — warns when skills are on `/mnt/c/...` where `chmod` is silently ignored.
 
@@ -39,8 +43,8 @@ All 18 checks are implemented in `tools/doctor-checks.sh`.
 
 | Tier | Flag | Checks Fixed | Risk |
 |------|------|-------------|------|
-| Safe | `--fix-safe` | 3, 9, 16, 17, 18 | Non-destructive (sync, normalize) |
-| Moderate | `--fix` | All of safe + 8, 12, 14 | Destructive (removal, clearing) |
+| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19 | Non-destructive (sync, normalize, pull) |
+| Moderate | `--fix` | All of safe + 8, 12, 14, 20 | Destructive (removal, stash, clearing) |
 
 ## Severity Guide
 
@@ -59,3 +63,17 @@ All 18 checks are implemented in `tools/doctor-checks.sh`.
 - Idempotent: running `--fix` twice produces `Fixed: 0` on second run
 - Overlay-aware: compares installed against highest-priority source (overlay > plus)
 - Diff-based drift detection (replaces comm-based overlap for accuracy)
+
+
+## Platform Compatibility
+
+| Platform | Notes |
+|----------|-------|
+| macOS (Homebrew) | All checks work. `timeout` via coreutils; falls back gracefully if absent |
+| macOS (vanilla) | All checks work. Fetch timeout skipped if `timeout`/`gtimeout` unavailable |
+| Linux (Ubuntu/Debian) | All checks work. `git stash push` requires git 2.13+; fallback to `git stash save` |
+| WSL (Ubuntu) | All checks work. Same as Linux; also detects NTFS mount issues (pre-check) |
+
+**Optional dependencies for checks 21–22:**
+- `python3` — required for Check 21 (TODO archive smoke test). Skipped with INFO if absent.
+- `node` — required for Check 22 (reviewer-dispatch verification). Skipped with WARNING if absent.
