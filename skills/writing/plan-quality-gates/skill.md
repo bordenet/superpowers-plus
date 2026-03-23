@@ -1,7 +1,7 @@
 ---
 name: plan-quality-gates
 source: superpowers-plus
-triggers: ["write plan", "create plan", "brainstorm", "design plan", "roadmap", "implementation plan", "phased plan", "write roadmap", "project plan"]
+triggers: ["write plan", "create plan", "design plan", "roadmap", "implementation plan", "phased plan", "write roadmap", "project plan"]
 description: Use when writing plans, roadmaps, or phased work to enforce quality gates — prevents fabricated timelines, ensures dependency ordering, and requires exit criteria.
 summary: "Use when: writing plans or roadmaps. Prevents fabricated timelines."
 ---
@@ -9,12 +9,12 @@ summary: "Use when: writing plans or roadmaps. Prevents fabricated timelines."
 # Plan Quality Gates
 
 > **Last Updated:** 2026-03-20
-> **Fires alongside:** `superpowers:writing-plans`, `superpowers:brainstorming` — this skill is ADDITIVE, not a replacement
+> **Fires alongside:** `superpowers:writing-plans` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
 > **See also:** [detecting-ai-slop reference](../detecting-ai-slop/reference.md) § Fabricated Calendar Timelines
 
 ## Purpose
 
-Enforce quality constraints on plans at creation time. The upstream `writing-plans` and `brainstorming` skills handle plan structure and creative exploration. This skill prevents specific failure modes that those skills do not guard against.
+Enforce quality constraints on plans at creation time. The upstream `writing-plans` skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
 
 **Announce at start:** "Using plan-quality-gates to enforce timeline and exit-criteria discipline."
 

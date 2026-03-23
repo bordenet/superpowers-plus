@@ -273,4 +273,3 @@ else
   [[ "$SKIP" -gt 0 ]] && local_summary="$local_summary ($SKIP skipped)"
   echo "$local_summary"
 fi
-
