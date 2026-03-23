@@ -58,3 +58,25 @@ When user asks for rigor/thorough/comprehensive analysis:
 | "I searched and didn't find it" | Wrong scope or wrong term |
 | "All files use the correct value" | You confirmed correctness, not disproved the bug |
 | "No changes needed" | The user just told you something is broken. It is. |
+
+
+## When to Use
+
+- When investigating bugs, inconsistencies, or suspected incorrect values
+- BEFORE declaring negative findings ("no issue found", "already correct")
+- When user reports a problem and you're about to dismiss it
+- When user requests rigorous, thorough, or comprehensive analysis
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Confirmation bias — searched for correct value, not incorrect one | Invert the search: grep for the BAD thing |
+| Narrow scope — `--include='*.ts'` missed `.env` files | Drop file-type filters, search ALL files |
+| Single-repo search in multi-repo system | Enumerate ALL repos that could contain the value |
+
+```bash
+# Example: adversarial search — hunt for the WRONG value
+grep -r "OUTLINE_API_TOKEN" ~/GitHub/ --include='*' | head -20
+# NOT: grep -r "OUTLINE_API_KEY" (that just confirms the right thing exists)
+```
