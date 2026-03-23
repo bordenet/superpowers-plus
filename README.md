@@ -217,6 +217,8 @@ graph LR
   thinking_orchestrator -->|enables| verification_before_completion
   thinking_orchestrator -->|enables| exhaustive_audit_validation
   thinking_orchestrator -->|enables| completeness_check["completeness-check"]
+  thinking_orchestrator -->|enables| investigation_state["investigation-state"]
+  thinking_orchestrator -->|enables| feature_development["feature-development"]
 ```
 
 | Group | Flow | Purpose |

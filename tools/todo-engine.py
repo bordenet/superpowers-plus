@@ -277,9 +277,10 @@ def cmd_add(args, todo_path: str, json_mode: bool) -> None:
     task_line = f"- [ ] [{task_id}] {args.description}{tags}"
     sub_lines = [f"  - Added: {today}"]
     if args.note:
-        # Support multiline notes — each line gets its own sub-item
-        for note_line in args.note.split("\\n"):
-            sub_lines.append(f"  - {note_line}")
+        # Support multiline notes — split on real newlines and escaped \n
+        for note_line in args.note.replace("\\n", "\n").split("\n"):
+            if note_line.strip():
+                sub_lines.append(f"  - {note_line.strip()}")
 
     task_block = "\n".join([task_line] + sub_lines)
 
@@ -318,7 +319,10 @@ def cmd_complete(args, todo_path: str, json_mode: bool) -> None:
     today = datetime.date.today().strftime("%Y-%m-%d")
     note_line = f"\n  - Done: {today}"
     if args.note:
-        note_line += f"\n  - Progress: {args.note}"
+        # Indent each line of multiline notes as a metadata bullet
+        for part in args.note.replace("\\n", "\n").split("\n"):
+            if part.strip():
+                note_line += f"\n  - Progress: {part.strip()}"
     task_text += note_line
 
     # Find HISTORY section
@@ -464,7 +468,10 @@ def cmd_defer(args, todo_path: str, json_mode: bool) -> None:
     today = datetime.date.today().strftime("%Y-%m-%d")
     task_text += f"\n  - Deferred: {today}"
     if args.reason:
-        task_text += f"\n  - Reason: {args.reason}"
+        # Indent each line of multiline reasons as a metadata bullet
+        for part in args.reason.replace("\\n", "\n").split("\n"):
+            if part.strip():
+                task_text += f"\n  - Reason: {part.strip()}"
 
     # Find DEFERRED section
     deferred = RE_DEFERRED.search(content)
