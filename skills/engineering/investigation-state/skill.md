@@ -77,7 +77,7 @@ On every session start where this skill fires, check for stale investigations:
 ### Status Transitions
 
 - **ACTIVE → PAUSED:** Session ending. Auto-generate markdown export. Record next steps.
-- **ACTIVE → RESOLVED:** Root cause confirmed. Create fix task in TODO tagged `#investigation-<short-id>`. Record resolution.
+- **ACTIVE → RESOLVED:** Root cause confirmed. If a fix is needed, create fix task in TODO tagged `#investigation-<short-id>` (first 8 chars of UUID). If no fix is needed (e.g., config error, user error, external issue), record resolution without creating a TODO.
 - **ACTIVE → ABANDONED:** User confirms investigation is no longer needed. Record reason.
 - **PAUSED → ACTIVE:** Resume. Load JSON state, display markdown summary, continue from next steps.
 
@@ -208,6 +208,7 @@ Generate this on demand for cross-session handoff. A fresh agent can resume from
 - `verdict: null` renders as `ACTIVE`
 - The hypothesis matching `currentTheory` gets `← CURRENT THEORY` suffix
 - Empty arrays render as "(none)"
+- Markdown is generated **on demand** (pause, handoff, or user request) — it is NOT auto-synced with JSON
 
 ---
 
@@ -226,9 +227,7 @@ When an investigation needs specialized approaches:
 | Skill | Integration |
 |-------|-------------|
 | `thinking-orchestrator` | Routes "debugging a bug, starting investigation" here |
-| `think-twice` | If active investigation exists, include markdown export in consultation prompt |
-| `todo-management` | On resolution, create fix task tagged `#investigation-<short-id>` |
-| `adversarial-search` | Log evidence from adversarial searches to active investigation |
+| `todo-management` | On resolution (if fix needed), create fix task tagged `#investigation-<short-id>` |
 
 ---
 
