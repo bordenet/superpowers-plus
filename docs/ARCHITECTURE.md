@@ -242,7 +242,7 @@ The `issue-tracking/` domain uses adapters to support multiple platforms:
 skills/issue-tracking/
 ├── _adapters/
 │   ├── README.md         # Adapter overview
-│   ├── linear.md         # Linear.app configuration
+│   ├── platform-template.md # Provider-neutral adapter template
 │   ├── github-issues.md  # GitHub Issues configuration
 │   ├── jira.md           # Jira configuration
 │   └── azure-devops.md   # Azure DevOps configuration
@@ -277,7 +277,7 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 
 | Variable | Used By | Purpose |
 |----------|---------|---------|
-| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select adapter: `linear`, `github`, `jira`, `azure-devops` |
+| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select the configured issue-tracker adapter |
 | `PERPLEXITY_API_KEY` | research/perplexity-research | Perplexity MCP authentication |
 
 ## Bootstrapping

@@ -103,8 +103,8 @@ Copy `.env.example` to `.env` for optional integrations:
 
 | Variable | Purpose |
 |----------|---------|
-| `ISSUE_TRACKER_TYPE` | `linear`, `github`, `jira`, or `azure-devops` |
-| `WIKI_PLATFORM` | `outline` (see `skills/wiki/_adapters/`) |
+| `ISSUE_TRACKER_TYPE` | Configured issue-tracker adapter key |
+| `WIKI_PLATFORM` | Configured wiki adapter key |
 | `PERPLEXITY_API_KEY` | Deep research fallback |
 | `OPENAI_API_KEY` | Optional: enhanced semantic skill matching |
 
