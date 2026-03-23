@@ -9,4 +9,3 @@ This loads the skill framework and catalog. Individual skills are paged in on de
 
 ## TODO.md
 For multi-step tasks (3+ steps): write tasks to `$TODO_FILE_PATH` (default `~/.codex/TODO.md`) before starting work.
-
