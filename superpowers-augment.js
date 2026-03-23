@@ -225,6 +225,7 @@ function findSkillsInDir(dir, sourceType) {
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
             const hasTriggers = meta.triggers && meta.triggers.length > 0;
+            const fileSize = fs.statSync(skillFile).size;
             skills.push({
                 name: meta.name || entry.name,
                 description: meta.description || '',
@@ -233,7 +234,8 @@ function findSkillsInDir(dir, sourceType) {
                 isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
                 skillFile,
-                skillDir
+                skillDir,
+                tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
             });
         }
     }
@@ -273,13 +275,20 @@ function findSkills(filterMode = 'all') {
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
 
+    // Token cost tier helper
+    function tokenTier(tokens) {
+        if (tokens >= 2000) return '🔴';  // HIGH
+        if (tokens >= 1000) return '🟡';  // MEDIUM
+        return '🟢';                       // LOW
+    }
+
     if (filterMode === 'superpowers') {
         console.log('🦸 Superpowers (auto-triggered):');
         console.log('=================================\n');
         console.log('These skills activate automatically when trigger phrases are detected.\n');
         for (const skill of superpowers) {
             const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
-            console.log(displayName);
+            console.log(`${displayName} ${tokenTier(skill.tokens)} ~${skill.tokens} tokens`);
             if (skill.description) console.log('  ' + skill.description);
             if (skill.triggers.length > 0) {
                 console.log('  Triggers: ' + skill.triggers.slice(0, 3).map(t => `"${t}"`).join(', ') + (skill.triggers.length > 3 ? '...' : ''));
@@ -293,7 +302,7 @@ function findSkills(filterMode = 'all') {
         console.log('These skills must be explicitly invoked — they do not auto-trigger.\n');
         for (const skill of explicitSkills) {
             const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
-            console.log(displayName);
+            console.log(`${displayName} ${tokenTier(skill.tokens)} ~${skill.tokens} tokens`);
             if (skill.description) console.log('  ' + skill.description + '\n');
             else console.log();
         }
@@ -316,6 +325,13 @@ function findSkills(filterMode = 'all') {
             if (skill.description) console.log('  ' + skill.description + '\n');
             else console.log();
         }
+    }
+    // Token budget summary
+    const totalTokens = deduped.reduce((sum, s) => sum + (s.tokens || 0), 0);
+    const highCost = deduped.filter(s => s.tokens >= 2000);
+    console.log(`Token budget: ${deduped.length} skills, ${totalTokens.toLocaleString()} tokens total installed`);
+    if (highCost.length > 0) {
+        console.log(`  🔴 ${highCost.length} high-cost skills (≥2000 tokens): ${highCost.map(s => s.name).join(', ')}`);
     }
     console.log('Usage:');
     console.log('  node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>   # Load a specific skill');
@@ -485,8 +501,11 @@ function useSkill(skillName, options = {}) {
     const content = fs.readFileSync(skillFile, 'utf8');
 
     if (options.probe) {
-        // Probe mode: output only the summary field from frontmatter
+        // Probe mode: output summary + token cost before loading
         const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        const fileSize = fs.statSync(skillFile).size;
+        const tokens = Math.round(fileSize / 4);
+        const tier = tokens >= 2000 ? '🔴 HIGH' : tokens >= 1000 ? '🟡 MEDIUM' : '🟢 LOW';
         if (fmMatch) {
             const fm = fmMatch[1];
             const summaryMatch = fm.match(/^summary:\s*(.+)$/m) ||
@@ -495,15 +514,16 @@ function useSkill(skillName, options = {}) {
                               fm.match(/^description:\s*"(.+)"$/m);
             const summary = summaryMatch ? (summaryMatch[1] || summaryMatch[2] || '').trim() : null;
             const desc = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : null;
-            console.log(`# Probe: ${skillName}`);
+            console.log(`# Probe: ${skillName}  [${tier} ~${tokens} tokens]`);
             if (summary) {
                 console.log(`\n${summary}`);
             } else if (desc) {
                 console.log(`\n${desc}`);
             } else {
-                console.log('\nNo summary available. Use `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ' + skillName + '` to load full skill.');
+                console.log('\nNo summary available.');
             }
-            console.log(`\nLoad full skill? \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${skillName}\``);
+            console.log(`\nToken cost: ~${tokens} tokens (${tier})`);
+            console.log(`Load full skill? \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${skillName}\``);
         }
         return;
     }
