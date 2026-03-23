@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Integration tests for todo-engine.py — CRUD operations on TODO.md.
 
-Tests cover: path resolution, add, complete, move, defer, list, next-id,
-atomic writes, multiline note handling, and argparse compatibility.
+Tests cover: add, complete, move, defer, list, next-id, whitespace
+normalization, locking, backup, and argparse compatibility.
 
-Run: python3 -m pytest tools/tests/test_todo_engine.py -v
-  or: python3 tools/tests/test_todo_engine.py
+Run: python3 tools/tests/test_todo_engine.py -v
 """
 import contextlib
 import importlib.util
@@ -23,7 +22,11 @@ ENGINE_PATH = Path(__file__).resolve().parents[1] / "todo-engine.py"
 
 
 def load_engine():
+    if not ENGINE_PATH.exists():
+        raise FileNotFoundError(f"todo-engine.py not found at {ENGINE_PATH}")
     spec = importlib.util.spec_from_file_location("todo_engine", ENGINE_PATH)
+    assert spec is not None, f"Failed to create module spec from {ENGINE_PATH}"
+    assert spec.loader is not None, f"Module spec has no loader for {ENGINE_PATH}"
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -90,8 +93,8 @@ class TodoEngineTests(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     eng.main()
 
-    def test_write_file_uses_os_replace_for_atomic_writes(self):
-        """Verify write_file normalizes whitespace and writes correctly."""
+    def test_write_file_normalizes_whitespace(self):
+        """Verify write_file collapses excessive blank lines."""
         eng = self.engine
         content = "line1\n\n\n\n\nline2\n"  # 5 blank lines
         eng.write_file(str(self.todo_path), content)
@@ -101,29 +104,64 @@ class TodoEngineTests(unittest.TestCase):
         self.assertIn("line1", result)
         self.assertIn("line2", result)
 
-    def test_complete_multiline_note_is_sanitized_into_progress_bullets(self):
-        """Verify completion with multiline note produces correct output."""
+    def test_complete_with_note_moves_to_history(self):
+        """Verify completion moves task to HISTORY with note metadata."""
         eng = self.engine
-        args = SimpleNamespace(id="20260323-02", note="Fixed the issue\\nUpdated docs")
-        eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+        args = SimpleNamespace(id="20260323-02", note="Fixed the issue")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
         content = self.todo_path.read_text()
-        # Task should be in HISTORY, not in ACTIVE
-        self.assertNotIn("## P2", content.split("# HISTORY")[0].split("20260323-02")[0]
-                         if "20260323-02" in content.split("# HISTORY")[0] else "")
-        self.assertIn("[x] [20260323-02]", content)
-        self.assertIn("Done: 2026-", content)
+        # Task must be in HISTORY with [x]
+        history = content.split("# HISTORY")[1]
+        self.assertIn("[x] [20260323-02]", history)
+        self.assertIn("Done: 2026-", history)
+        self.assertIn("Fixed the issue", history)
+        # Task must NOT be in ACTIVE
+        active = content.split("# HISTORY")[0]
+        self.assertNotIn("[20260323-02]", active)
 
-    def test_defer_multiline_reason_is_sanitized_into_reason_bullets(self):
-        """Verify defer adds reason metadata."""
+    def test_complete_with_real_multiline_note(self):
+        """Verify completion with actual newline chars includes both lines."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", note="Line one\nLine two")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        history = content.split("# HISTORY")[1]
+        self.assertIn("[x] [20260323-01]", history)
+        self.assertIn("Done: 2026-", history)
+        # Both note lines should appear in the history block
+        task_block = history.split("[x] [20260323-01]")[1].split("\n- [")[0]
+        self.assertIn("Line one", task_block)
+        self.assertIn("Line two", task_block)
+
+    def test_defer_moves_to_deferred_with_reason(self):
+        """Verify defer moves task to DEFERRED section with reason metadata."""
         eng = self.engine
         args = SimpleNamespace(id="20260323-03", reason="Blocked on access")
-        eng.cmd_defer(args, str(self.todo_path), json_mode=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_defer(args, str(self.todo_path), json_mode=False)
         content = self.todo_path.read_text()
-        self.assertIn("Deferred:", content)
-        self.assertIn("Reason: Blocked on access", content)
-        # Task should NOT be in P3 anymore
+        deferred = content.split("# DEFERRED")[1]
+        self.assertIn("20260323-03", deferred)
+        self.assertIn("Deferred:", deferred)
+        self.assertIn("Reason: Blocked on access", deferred)
+        # Task must NOT be in P3 anymore
         p3_section = content.split("## P3")[1].split("---")[0] if "## P3" in content else ""
         self.assertNotIn("20260323-03", p3_section)
+
+    def test_defer_with_real_multiline_reason(self):
+        """Verify defer with actual newline chars includes both reason lines."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-03", reason="Blocked\nNeed credentials")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_defer(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        deferred = content.split("# DEFERRED")[1]
+        self.assertIn("20260323-03", deferred)
+        task_block = deferred.split("[20260323-03]")[1].split("\n- [")[0]
+        self.assertIn("Blocked", task_block)
+        self.assertIn("Need credentials", task_block)
 
     # -- New integration tests --
 
@@ -131,11 +169,11 @@ class TodoEngineTests(unittest.TestCase):
         eng = self.engine
         args = SimpleNamespace(priority="P1", description="Urgent hotfix",
                                tags="#engineering #hotfix", note="")
-        eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
         content = self.todo_path.read_text()
         self.assertIn("Urgent hotfix", content)
         self.assertIn("#engineering #hotfix", content)
-        # Should be in P1 section
         p1_section = content.split("## P1")[1].split("## P2")[0]
         self.assertIn("Urgent hotfix", p1_section)
 
@@ -143,11 +181,49 @@ class TodoEngineTests(unittest.TestCase):
         eng = self.engine
         args = SimpleNamespace(priority="P3", description="Research competitor",
                                tags="#product", note="Check their API docs")
-        eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
         content = self.todo_path.read_text()
         p3_section = content.split("## P3")[1].split("---")[0]
         self.assertIn("Research competitor", p3_section)
         self.assertIn("Check their API docs", p3_section)
+
+    def test_move_task_p3_to_p1(self):
+        """Verify move relocates task between priority sections."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-03", to="P1")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_move(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertIn("20260323-03", p1)
+        p3 = content.split("## P3")[1].split("---")[0]
+        self.assertNotIn("20260323-03", p3)
+
+    def test_move_task_p1_to_p2(self):
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", to="P2")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_move(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p2 = content.split("## P2")[1].split("## P3")[0]
+        self.assertIn("20260323-01", p2)
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertNotIn("20260323-01", p1)
+
+    def test_move_invalid_target_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", to="P4")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(io.StringIO()):
+                eng.cmd_move(args, str(self.todo_path), json_mode=False)
+
+    def test_move_nonexistent_task_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="99990101-99", to="P1")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(io.StringIO()):
+                eng.cmd_move(args, str(self.todo_path), json_mode=False)
 
     def test_list_filter_by_priority(self):
         eng = self.engine
@@ -194,14 +270,32 @@ class TodoEngineTests(unittest.TestCase):
         eng = self.engine
         args = SimpleNamespace(id="99990101-99", note="")
         with self.assertRaises(SystemExit):
-            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_complete(args, str(self.todo_path), json_mode=False)
 
     def test_add_invalid_priority_errors(self):
         eng = self.engine
         args = SimpleNamespace(priority="P4", description="Bad priority",
                                tags="", note="")
         with self.assertRaises(SystemExit):
-            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_add(args, str(self.todo_path), json_mode=False)
+
+    def test_resolve_todo_path_from_env(self):
+        """Verify resolve_todo_path reads TODO_FILE_PATH from environment."""
+        eng = self.engine
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": str(self.todo_path)}, clear=False):
+            resolved = eng.resolve_todo_path()
+            self.assertEqual(resolved, str(self.todo_path))
+
+    def test_resolve_todo_path_env_not_set_uses_default(self):
+        """Verify resolve_todo_path falls back to dotenv or default."""
+        eng = self.engine
+        with mock.patch.dict("os.environ", {}, clear=True):
+            resolved = eng.resolve_todo_path()
+            # Should return some path (dotenv or default), not crash
+            self.assertIsInstance(resolved, str)
+            self.assertTrue(len(resolved) > 0)
 
     def test_locking_and_release(self):
         eng = self.engine
