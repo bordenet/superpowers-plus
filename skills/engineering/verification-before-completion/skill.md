@@ -93,30 +93,28 @@ Skip any step = lying, not verifying
 
 ## Code Review Gate
 
-**If you made code changes, you MUST dispatch `sub-agent-code-reviewer` before claiming completion.**
+**If you made code changes, you MUST get independent code review before claiming completion.**
 
 Self-review is not review. The implementer cannot objectively evaluate their own work —
 the same blind spots that caused the bug will cause the review to miss the same class of issues.
 
 | Condition | Action |
 |-----------|--------|
-| Made code changes (any `.ts`, `.js`, `.py`, etc.) | Dispatch `sub-agent-code-reviewer` with diff context |
+| Made code changes (any `.ts`, `.js`, `.py`, etc.) | Get independent review (see methods below) |
 | Documentation-only changes | Skip code review (still verify links/content) |
 | Config-only changes (env, yaml) | Skip code review unless security-relevant |
-| Reviewer found issues | Fix issues, re-dispatch reviewer |
+| Reviewer found issues | Fix issues, re-review |
 | Reviewer approved | Proceed to completion claim |
 
-**Dispatch template:**
-```
-Provide the reviewer with:
-1. What was implemented (1-2 sentences)
-2. Files changed (list with purpose)
-3. The actual diff or file contents to review
-4. Specific review questions (verifiable, not "is this good?")
-5. Request to run tests independently
-```
+### How to Get Review
 
-**The reviewer loads `providing-code-review` automatically.** You do not need to tell them how to review.
+Use the first method available to you, in priority order:
+
+1. **Sub-agent** (if your tool supports it): Dispatch `sub-agent-code-reviewer` with the diff, file list, and specific review questions. Load `superpowers:requesting-code-review` for the dispatch template.
+2. **File protocol** (works with any AI agent): Load the `code-review` skill and use Mode 1 (Generate Request) to write a structured request to `~/.codex/superpowers-review/active/{scope}/request.md`. Tell the user to hand off to a separate agent session for review.
+3. **Human reviewer**: If no agent-based review is available, tell the user: "This needs code review before I can call it done. Please review or assign a reviewer."
+
+**The reviewer should load `providing-code-review` for the review checklist.** Do not assume they will do this automatically — include the instruction in your review request.
 
 ### Incident History
 
