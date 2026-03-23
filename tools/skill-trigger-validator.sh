@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # skill-trigger-validator.sh
-# PURPOSE: Validate skill triggers - detect overlaps, missing triggers, and
-#          ensure all skills have machine-readable trigger definitions.
+# PURPOSE: Validate repo-source skill triggers - detect overlaps, missing
+#          triggers, and ensure all skills have machine-readable definitions.
 # USAGE: ./tools/skill-trigger-validator.sh [command]
 #        Commands: audit, overlaps, missing, registry
 # -----------------------------------------------------------------------------
@@ -275,6 +275,10 @@ full_audit() {
     echo "========================================"
     echo "  Skill Trigger Validation Audit"
     echo "========================================"
+    echo ""
+    log_info "Scope: repo-source skills only ($SKILLS_DIR)"
+    log_info "This audit does NOT validate installed copies or live match-skills routing."
+    log_info "For shipped-surface validation, refresh the install and run match-skills on every declared trigger."
     echo ""
     
     detect_overlaps
