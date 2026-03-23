@@ -23,45 +23,15 @@ summary: "Use when: managing multi-step tasks. Hard gate for 3+ step tasks."
 
 ## Multi-Step Plan Tracking
 
-When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms:
+For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MCP tools** (supplementary, session-only UI). Write TODO.md first, then mirror to MCP.
 
-1. **TODO.md file** (PRIMARY) — Persist all plan steps to disk for resilience
-2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
+### Workflow
 
-### Why Both?
-
-| Mechanism | Purpose | Survives |
-|-----------|---------|----------|
-| **TODO.md** | Persistence, recovery, cross-session continuity | Context compaction, crashes, session switches |
-| **MCP tools** | Real-time UI visibility for user | Current session only |
-
-**Default behavior:** Write to TODO.md first, then mirror to MCP tools if available.
-
-### Workflow: Executing a Multi-Step Plan
-
-When user says "implement this plan", "execute these steps", etc.:
-
-1. **Name the effort** — Derive identifier from plan title (kebab-case) or ask user if ambiguous
-   - "Implement the config refactor" → `config-refactor`
-   - "Fix the auth bug" → `auth-fix`
-   - If unclear: "What should I call this effort?"
-2. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan-<identifier>` tag
-3. **Mirror to MCP** — Create parent task for the plan, add steps as children using `parent_task_id`
-4. **Track progress** — Update both systems as you complete steps
+1. **Name the effort** — kebab-case from plan title (e.g., `config-refactor`). Ask if ambiguous.
+2. **Persist** — Write steps as P1 tasks with `#plan-<identifier>` tag in TODO.md
+3. **Mirror** — Create parent task + children in MCP via `add_tasks` with `parent_task_id`
+4. **Track** — Update both systems as you complete steps
 5. **Verify** — Filter by `#plan-<identifier>` to check completion
-
-### Querying by Effort
-
-| Query | Action |
-|-------|--------|
-| "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
-| "Show my active plans" | List unique `#plan-*` tags with task counts |
-| "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
-
-### MCP Tools (Supplementary)
-
-MCP tools (`add_tasks`, `update_tasks`, `view_tasklist`) provide real-time UI visibility
-but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if available.
 
 ---
 
