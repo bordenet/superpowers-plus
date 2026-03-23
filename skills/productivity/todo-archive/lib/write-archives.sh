@@ -141,9 +141,9 @@ REBUILD_TMP="${TODO_PATH}.rebuild.tmp"
   fi
 } > "$REBUILD_TMP"
 
-# --- SAFETY GATE: refuse to write catastrophically small files ---
+# --- SAFETY GATE: refuse to write structurally invalid files ---
 REBUILD_LINES=$(wc -l < "$REBUILD_TMP" | tr -d ' ')
-MIN_SAFE_LINES=50  # TODO.md should never be smaller than this
+MIN_SAFE_LINES=10  # catches obviously truncated rebuilds without rejecting small valid TODOs
 
 if [[ "$REBUILD_LINES" -lt "$MIN_SAFE_LINES" ]]; then
   echo ""
@@ -154,6 +154,18 @@ if [[ "$REBUILD_LINES" -lt "$MIN_SAFE_LINES" ]]; then
   rm -f "$REBUILD_TMP"
   exit 1
 fi
+
+count_section_tasks() {
+  local file="$1"
+  local start_marker="$2"
+  local end_marker="$3"
+
+  awk -v start="$start_marker" -v stop="$end_marker" '
+    $0 == start { in_section=1; next }
+    $0 == stop { in_section=0 }
+    in_section { print }
+  ' "$file" | grep -cE '^\- \[([ x/\-])\]' || true
+}
 
 # Verify all major sections survived the rebuild
 for section in "# ACTIVE" "# HISTORY" "# DEFERRED" "# METRICS"; do
@@ -166,6 +178,28 @@ for section in "# ACTIVE" "# HISTORY" "# DEFERRED" "# METRICS"; do
     exit 1
   fi
 done
+
+PRE_ACTIVE_TASKS=$(count_section_tasks "$BACKUP_PATH" "# ACTIVE TASKS" "# HISTORY")
+POST_ACTIVE_TASKS=$(count_section_tasks "$REBUILD_TMP" "# ACTIVE TASKS" "# HISTORY")
+if [[ "$PRE_ACTIVE_TASKS" -ne "$POST_ACTIVE_TASKS" ]]; then
+  echo ""
+  echo "🛑 ABORT: ACTIVE task count changed during archive ($PRE_ACTIVE_TASKS -> $POST_ACTIVE_TASKS)"
+  echo "   Archive should only modify # HISTORY. TODO.md has NOT been modified."
+  echo "   Backup preserved at: $BACKUP_PATH"
+  rm -f "$REBUILD_TMP"
+  exit 1
+fi
+
+PRE_DEFERRED_TASKS=$(count_section_tasks "$BACKUP_PATH" "# DEFERRED" "# METRICS")
+POST_DEFERRED_TASKS=$(count_section_tasks "$REBUILD_TMP" "# DEFERRED" "# METRICS")
+if [[ "$PRE_DEFERRED_TASKS" -ne "$POST_DEFERRED_TASKS" ]]; then
+  echo ""
+  echo "🛑 ABORT: DEFERRED task count changed during archive ($PRE_DEFERRED_TASKS -> $POST_DEFERRED_TASKS)"
+  echo "   Archive should only modify # HISTORY. TODO.md has NOT been modified."
+  echo "   Backup preserved at: $BACKUP_PATH"
+  rm -f "$REBUILD_TMP"
+  exit 1
+fi
 
 # Safe to overwrite
 mv "$REBUILD_TMP" "$TODO_PATH"
