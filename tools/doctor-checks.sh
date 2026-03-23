@@ -110,9 +110,15 @@ while IFS= read -r f; do
   SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
   SKILL_DELIM_COUNT[$skill]=$(head -30 "$f" | grep -c "^---$" || true)
   SKILL_HAS_BOM[$skill]=""
-  [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
+  # Portable BOM detection: xxd may not exist on minimal distros; od is POSIX
+  if command -v xxd &>/dev/null; then
+    [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
+  else
+    [[ "$(head -c 3 "$f" | od -A n -t x1 2>/dev/null | tr -d ' \n')" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
+  fi
   SKILL_HAS_CRLF[$skill]=""
-  grep -qP '\r$' "$f" 2>/dev/null && SKILL_HAS_CRLF[$skill]="yes"
+  # Portable CRLF detection: grep -P is GNU-only; use printf for the \r literal
+  grep -q $'\r' "$f" 2>/dev/null && SKILL_HAS_CRLF[$skill]="yes"
 
   # Parse YAML block (once per skill instead of 6+ times)
   if [[ "${SKILL_FIRST_LINE[$skill]}" == "---" && "${SKILL_DELIM_COUNT[$skill]}" -ge 2 ]]; then
@@ -448,6 +454,7 @@ for skill in "${!SKILL_PATH[@]}"; do
     expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
     [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
   done < <(awk '
+    BEGIN { tilde_re = "~/[a-zA-Z0-9_./-]+"; users_re = "/Users/[a-zA-Z0-9_./-]+" }
     /^```/ { code=!code; next }
     code { next }
     /[Dd]octor-ignore/ { next }
@@ -458,7 +465,7 @@ for skill in "${!SKILL_PATH[@]}"; do
         tmp = line; gsub(/`[^`]*`/, "", tmp)
         if (index(tmp, "~/") == 0 && index(tmp, "/Users/") == 0) next
       }
-      while (match(line, /~\/[a-zA-Z0-9_.\/-]+/) || match(line, /\/Users\/[a-zA-Z0-9_.\/-]+/)) {
+      while (match(line, tilde_re) || match(line, users_re)) {
         p = substr(line, RSTART, RLENGTH)
         if (!(p in seen)) { seen[p]=1; print p }
         line = substr(line, RSTART + RLENGTH)
@@ -615,7 +622,7 @@ done
 for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/null); do
   skill=$(basename "$(dirname "$(dirname "$f")")")
   ref_name=$(basename "$f")
-  if grep -qP '\r$' "$f" 2>/dev/null; then
+  if grep -q $'\r' "$f" 2>/dev/null; then
     echo "🟠 ERROR: $skill/references/$ref_name — CRLF line endings"; ((ERRORS++))
     if can_fix safe; then
       backup_skill "$INSTALLED_DIR/$skill" || continue
