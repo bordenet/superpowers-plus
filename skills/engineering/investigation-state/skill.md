@@ -38,48 +38,23 @@ composition:
 
 ## Core Principles
 
-1. **JSON is authoritative.** Markdown is a generated, read-only export for human review and cold handoff.
-2. **Skills instruct, agents execute.** This skill tells you what to write and where. You execute file operations directly.
-3. **Directory creation is on-demand.** Create `~/.superpowers/investigations/` on first use if it doesn't exist.
-
----
+1. **JSON is authoritative.** Markdown is a read-only export for handoff.
+2. Create `~/.superpowers/investigations/` on first use if it doesn't exist.
 
 ## Session Start: Stale Investigation Check
 
-On every session start where this skill fires, check for stale investigations:
-
-```
-1. List *.json files in ~/.superpowers/investigations/
-2. For each file with "updated" > 7 days ago:
-   → Prompt: "Investigation '[title]' has been inactive for N days. Close, archive, or resume?"
-3. For active investigations updated within 7 days:
-   → If exactly one: "Resuming investigation '[title]'. Last updated [date]."
-   → If multiple: List them and ask user to select.
-```
-
----
+1. List `*.json` in `~/.superpowers/investigations/`
+2. Files with `updated` > 7 days → prompt: "Close, archive, or resume?"
+3. Active within 7 days → auto-resume (one) or list for selection (multiple)
 
 ## Investigation Lifecycle
 
-```
-[new] → ACTIVE → [PAUSED] → RESOLVED | ABANDONED
-                     ↑           |
-                     └───────────┘ (resume)
-```
+States: `active` → `paused` / `resolved` / `abandoned`
 
-| Status | Meaning |
-|--------|---------|
-| `active` | Hypotheses being tested, evidence being gathered |
-| `paused` | Session ending without resolution; markdown handoff generated |
-| `resolved` | Root cause found; resolution recorded (fix TODO if needed) |
-| `abandoned` | Investigation invalid or no longer relevant |
-
-### Status Transitions
-
-- **ACTIVE → PAUSED:** Session ending. Auto-generate markdown export. Record next steps.
-- **ACTIVE → RESOLVED:** Root cause confirmed. If a fix is needed, create fix task in TODO tagged `#investigation-<short-id>` (first 8 chars of UUID). If no fix is needed (e.g., config error, user error, external issue), record resolution without creating a TODO.
-- **ACTIVE → ABANDONED:** User confirms investigation is no longer needed. Record reason.
-- **PAUSED → ACTIVE:** Resume. Load JSON state, display markdown summary, continue from next steps.
+- **→ PAUSED:** Session ending. Generate markdown export. Record next steps.
+- **→ RESOLVED:** Root cause confirmed. Create fix TODO tagged `#investigation-<short-id>` if needed.
+- **→ ABANDONED:** No longer relevant. Record reason.
+- **PAUSED → ACTIVE:** Load JSON, display summary, continue from next steps.
 
 ---
 
@@ -96,29 +71,12 @@ On every session start where this skill fires, check for stale investigations:
 
 ## Hypothesis Tracking
 
-Each hypothesis gets a sequential integer `id`. Track:
+Each hypothesis: `{id, text, evidence: [{source, finding, timestamp}], verdict: null|confirmed|rejected|inconclusive, verdict_reason}`
 
-| Field | Description |
-|-------|-------------|
-| `id` | Sequential integer (1, 2, 3...) |
-| `text` | The hypothesis statement |
-| `evidence` | Array of `{source, finding, timestamp}` entries |
-| `verdict` | `null` (untested), `"confirmed"`, `"rejected"`, `"inconclusive"` |
-| `verdict_reason` | Why this verdict was reached |
+1. State hypothesis → gather evidence → render verdict → update JSON (atomic write)
+2. If > 10 hypotheses: prompt for consolidation (likely scope creep)
 
-### Process
-
-1. **State the hypothesis** clearly before testing it.
-2. **Gather evidence** — log each finding with source and timestamp.
-3. **Render verdict** — confirm, reject, or mark inconclusive with reason.
-4. **Update JSON** after each verdict via atomic write.
-5. **If > 10 hypotheses:** Prompt for consolidation — likely scope creep or multiple bugs.
-
-### Evidence Sources
-
-Use freeform `source` strings: `mssql:staging-db`, `ado:MyProject`, `linear`, `local:grep`, `browser`, etc.
-See `references/cross-tool-patterns.md` for tool-specific evidence gathering patterns.
-See `references/evidence-synthesis.md` for multi-source synthesis technique.
+Evidence sources: freeform strings (`mssql:staging-db`, `ado:MyProject`, `linear`, `local:grep`, etc.)
 
 ---
 
@@ -156,69 +114,13 @@ Update the `updated` timestamp on every write. Schema: see `references/schema.md
 
 ## Concurrent Investigations
 
-Each investigation has a UUID-based filename. To manage multiple:
+UUID-based filenames. One active → auto-resume. Multiple active → list for user selection.
 
-1. List `*.json` files in `~/.superpowers/investigations/`
-2. If only one is `active`: resume it automatically
-3. If multiple are `active`: list titles and ask user to select
-4. New investigations always get a fresh UUID — no conflicts
+## Markdown Export
 
----
+Generate on demand (pause/handoff). Template: `# Investigation: [title]` with sections: Symptoms (observed/expected/reproduction), Hypotheses (H1: text — VERDICT, evidence, verdict_reason), Eliminated Approaches, Next Steps, Tools Consulted, Related TODOs/Tickets.
 
-
-## Markdown Export Template
-
-Generate this on demand for cross-session handoff. A fresh agent can resume from this alone.
-
-```markdown
-# Investigation: [title]
-
-**ID:** [uuid] | **Status:** [status] | **Started:** [created] | **Updated:** [updated]
-
-## Symptoms
-- **Observed:** [observed]
-- **Expected:** [expected]
-- **Reproduction:** [reproduction]
-
-## Hypotheses
-
-### H1: [text] — [REJECTED/CONFIRMED/INCONCLUSIVE/ACTIVE]
-- Evidence: [source] — [finding] ([timestamp])
-- Verdict: [verdict_reason]
-
-### H2: [text] — ACTIVE ← CURRENT THEORY
-- (no evidence yet)
-
-## Eliminated Approaches
-1. [approach] — [reason] ([timestamp])
-
-## Next Steps
-1. [next step 1]
-2. [next step 2]
-
-## Tools Consulted
-[comma-separated list]
-
-## Related
-- TODOs: [related todos]
-- Tickets: [related tickets]
-```
-
-**Rendering rules:**
-- `verdict: null` renders as `ACTIVE`
-- The hypothesis matching `currentTheory` gets `← CURRENT THEORY` suffix
-- Empty arrays render as "(none)"
-- Markdown is generated **on demand** (pause, handoff, or user request) — it is NOT auto-synced with JSON
-
----
-
-## Techniques
-
-When an investigation needs specialized approaches:
-
-- **Multi-source evidence synthesis:** See `references/evidence-synthesis.md`
-- **Cross-tool evidence gathering:** See `references/cross-tool-patterns.md`
-- **Regression hunting:** See `references/git-bisect.md`
+Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suffix. Generated on demand only, not auto-synced.
 
 ---
 

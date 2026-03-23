@@ -587,9 +587,9 @@ function compressSkillContent(text) {
     // 7. Strip "Quick Reference" section (duplicates main content)
     result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
 
-    // 8. Strip "Common Failure Modes" (repeats main content)
-    result = result.replace(/##+ Common Failure Modes[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Common Failure Modes[\s\S]*$/g, '');
+    // 8. Strip "Failure Modes" variants (repeats main content)
+    result = result.replace(/##+ (?:Common )?Failure Modes[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ (?:Common )?Failure Modes[\s\S]*$/g, '');
 
     // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
     result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
