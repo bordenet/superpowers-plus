@@ -3,6 +3,7 @@ name: fallback-planning
 source: superpowers-plus
 triggers: ["fallback plan", "contingency plan", "plan B", "what if this fails", "backup approach", "risk mitigation", "fallback TODO", "alternative plan"]
 description: Use when a primary implementation plan has identified risks that could invalidate the approach. Generates machine-agnostic fallback TODOs for the top 2-3 risks, each with enough context for a different agent to execute cold.
+summary: "Use when: primary plan has identified risks. Creates machine-agnostic fallback TODOs."
 ---
 
 # Fallback Planning

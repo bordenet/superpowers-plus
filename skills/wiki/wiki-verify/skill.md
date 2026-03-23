@@ -3,6 +3,7 @@ name: wiki-verify
 source: superpowers-plus
 triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy"]
 description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and updates stale content interactively.
+summary: "Use when: wiki references codebase details that may have drifted. Skip when: reading wiki only."
 ---
 
 # Skill: wiki-verify
