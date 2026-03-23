@@ -162,7 +162,7 @@ skills/
 │   ├── _adapters/
 │   │   ├── README.md              # Overview of all adapters
 │   │   ├── adapter-interface.md   # Generic interface definition
-│   │   ├── outline.md             # Outline-specific config
+│   │   ├── platform-template.md   # Provider-neutral adapter template
 │   │   ├── confluence.md          # Confluence-specific config
 │   │   └── notion.md              # Notion-specific config
 │   └── wiki-editing/
@@ -175,8 +175,8 @@ Adapters are selected via environment variables in `.env`:
 
 | Variable | Purpose | Example Values |
 |----------|---------|----------------|
-| `WIKI_PLATFORM` | Selects wiki adapter | `outline`, `confluence`, `notion` |
-| `ISSUE_TRACKER_TYPE` | Selects issue tracker | `linear`, `github`, `jira`, `azure-devops` |
+| `WIKI_PLATFORM` | Selects wiki adapter | Your configured adapter key |
+| `ISSUE_TRACKER_TYPE` | Selects issue tracker | Your configured adapter key |
 
 Skills read these at runtime to load the appropriate adapter configuration.
 

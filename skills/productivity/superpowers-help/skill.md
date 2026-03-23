@@ -109,7 +109,7 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 | "Build a new feature" | 🦸 auto | brainstorming → writing-plans |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
-| "Update the wiki" | 🦸 auto | wiki-orchestrator → outline-wiki-editing → link-verification |
+| "Update the wiki" | 🦸 auto | wiki-orchestrator → link-verification |
 | "Check my AI writing" | 🦸 auto | detecting-ai-slop → eliminating-ai-slop |
 | "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
 | "What can you do?" | 🔧 explicit | superpowers-help (this skill) |

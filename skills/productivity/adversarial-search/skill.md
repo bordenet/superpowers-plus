@@ -24,7 +24,7 @@ Search ALL of these — never stop at the first clean scope:
 - Other repos (monorepo/multi-repo setups) — **only with explicit user permission**
 - Home directory configs — **only with explicit user permission**
 
-**Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `OUTLINE_API_TOKEN` miss (2026-03-17).
+**Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `WIKI_API_TOKEN` miss (2026-03-17).
 
 ⛔ **HARD GATE — IP/Redaction:**
 - **Out-of-repo search requires explicit user permission.** If permission is not granted, **do not proceed** — limit search to the current repo only.
