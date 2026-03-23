@@ -313,7 +313,7 @@ function findSkills(filterMode = 'all') {
         }
     }
     console.log('Usage:');
-    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill');
+    console.log('  node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>   # Load a specific skill');
     console.log('  superpowers-augment find-skills              # List all skills');
     console.log('  superpowers-augment find-skills superpowers  # List only superpowers (auto-triggered)');
     console.log('  superpowers-augment find-skills explicit     # List only explicit skills\n');
@@ -373,7 +373,7 @@ function showHighCostWarningOnce(skillName) {
 function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
-        console.error('Usage: superpowers-augment use-skill <skill-name>');
+        console.error('Usage: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>');
         process.exit(1);
     }
 
@@ -386,7 +386,7 @@ function useSkill(skillName, options = {}) {
         console.error('');
         console.error('  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap');
         console.error('');
-        console.error('Then retry: use-skill ' + skillName);
+        console.error('Then retry: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ' + skillName);
         console.error('');
         console.error('WHY: Bootstrap loads the using-superpowers skill which governs');
         console.error('skill invocation discipline, priority ordering, and red-flag');
@@ -496,9 +496,9 @@ function useSkill(skillName, options = {}) {
             } else if (desc) {
                 console.log(`\n${desc}`);
             } else {
-                console.log('\nNo summary available. Use `use-skill ' + skillName + '` to load full skill.');
+                console.log('\nNo summary available. Use `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ' + skillName + '` to load full skill.');
             }
-            console.log(`\nLoad full skill? \`use-skill ${skillName}\``);
+            console.log(`\nLoad full skill? \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${skillName}\``);
         }
         return;
     }
@@ -558,7 +558,8 @@ function findSkillsCompact() {
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
 
     console.log(`🦸 ${superpowers.length} superpowers + 🔧 ${explicitSkills.length} explicit skills = ${deduped.length} total.`);
-    console.log('Use `find-skills` for full catalog. Use `use-skill <name>` to load.');
+    console.log('Use `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` for full catalog.');
+    console.log('Load a skill: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`');
 }
 
 
@@ -700,7 +701,7 @@ switch (command) {
                     console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
                 }
                 console.log(`\nTop match: **${matches[0]?.name}**`);
-                console.log(`\nTo use: \`superpowers-augment use-skill ${matches[0]?.name}\``);
+                console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
             })
             .catch(err => {
                 console.error('Error:', err.message);
