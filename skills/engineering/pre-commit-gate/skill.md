@@ -3,6 +3,7 @@ name: pre-commit-gate
 source: superpowers-plus
 triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push", "commit:pre-check", "commit:gate"]
 description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
+summary: "Use when: about to commit code. Skip when: drafting or exploring."
 coordination:
   group: commit-gates
   order: 1

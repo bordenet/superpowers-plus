@@ -3,6 +3,7 @@ name: engineering-rigor
 source: superpowers-plus
 triggers: ["engineering rigor", "implement this feature", "add a new field", "before creating PR", "before marking done"]
 description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
+summary: "Use when: need hub for pre-commit, blast-radius, or code review skills."
 ---
 
 # Engineering Rigor
