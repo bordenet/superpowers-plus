@@ -125,6 +125,7 @@ const TOOL_MAPPINGS = [
     [/\bcode-reviewer subagent\b/g, 'sub-agent-code-reviewer'],
     [/\bcode reviewer subagent\b/g, 'sub-agent-code-reviewer'],
     [/Dispatch final code-reviewer/g, 'Dispatch final sub-agent-code-reviewer'],
+    [/dispatch final code reviewer/gi, 'Dispatch final sub-agent-code-reviewer'],
     [/\bTask\b tool(?! with superpowers:code-reviewer type| \(superpowers:code-reviewer\))/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
     [/\bWrite\b tool/g, 'save-file tool'],
