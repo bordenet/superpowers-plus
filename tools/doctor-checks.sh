@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 18 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 22 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
-#   ./doctor-checks.sh --fix-safe     # Fix non-destructive issues only (sync, CRLF, BOM)
+#   ./doctor-checks.sh --fix-safe     # Fix non-destructive issues only (sync, CRLF, BOM, pull)
 #   ./doctor-checks.sh --fix          # Fix all auto-fixable issues
 #   ./doctor-checks.sh --fix --yes    # Auto-fix without confirmation
 #   ./doctor-checks.sh --summary-only # One-line pass/fail (for post-install)
@@ -44,12 +44,16 @@ SOURCE_DIRS=("$SP_PLUS_DIR")
 COMPARE_DIRS=("$SP_PLUS_DIR")
 [[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && COMPARE_DIRS+=("$SP_OVERLAY_DIR")
 
+# Managed checkout paths (git repos maintained by install.sh)
+MANAGED_SPP_DIR="$HOME/.codex/superpowers-plus"
+MANAGED_OBRA_DIR="$HOME/.codex/superpowers"
+
 BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
 
 # Helper: should we fix this check?
-# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM)
-# Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk)
+# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout)
+# Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk), 20 (dirty checkout)
 can_fix() {
   [[ "$FIX_MODE" != "true" ]] && return 1
   [[ "$FIX_SAFE" != "true" ]] && return 0  # --fix allows everything
@@ -86,7 +90,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (22 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
@@ -593,6 +597,253 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
   fi
 done
 
+
+# --- Check 19: Stale Managed Checkout ---
+# Detect when ~/.codex/superpowers-plus is behind origin/main.
+# Only runs if the managed checkout exists and is a git repo.
+check_stale_checkout() {
+  local dir="$1" label="$2"
+  [[ -d "$dir/.git" ]] || return 0
+  # Fetch silently (with timeout to avoid hanging on unreachable remotes)
+  local _timeout_cmd=""
+  command -v timeout &>/dev/null && _timeout_cmd="timeout 10"
+  command -v gtimeout &>/dev/null && _timeout_cmd="gtimeout 10"
+  # shellcheck disable=SC2086  # _timeout_cmd must word-split
+  if ! $_timeout_cmd git -C "$dir" fetch origin --quiet 2>/dev/null; then
+    echo "🟡 WARNING: $label — could not fetch origin (network issue?)"; ((WARNINGS++))
+    return 0
+  fi
+  local local_head remote_head ahead behind
+  local_head=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
+  remote_head=$(git -C "$dir" rev-parse origin/main 2>/dev/null || echo "unknown")
+  if [[ "$local_head" == "unknown" || "$remote_head" == "unknown" ]]; then
+    return 0  # Can't compare — skip silently
+  fi
+  if [[ "$local_head" == "$remote_head" ]]; then
+    return 0  # Up to date
+  fi
+  ahead=$(git -C "$dir" rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
+  behind=$(git -C "$dir" rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+  local local_short remote_short
+  local_short="${local_head:0:10}"
+  remote_short="${remote_head:0:10}"
+  if [[ "$behind" -gt 0 ]]; then
+    echo "🟠 ERROR: $label — ${behind} commits behind origin/main"
+    echo "   Local HEAD:  $local_short  Remote HEAD: $remote_short"
+    [[ "$ahead" -gt 0 ]] && echo "   Also ${ahead} commits ahead (diverged)"
+    ((ERRORS++))
+    if can_fix safe && [[ "$ahead" -eq 0 ]]; then
+      if git -C "$dir" pull --ff-only origin main --quiet 2>/dev/null; then
+        echo "  ✅ FIXED: fast-forwarded $label to origin/main"; ((FIXED++))
+      else
+        echo "  ⚠️  Could not fast-forward (local changes?). Run: git -C $dir pull"
+      fi
+    fi
+  fi
+}
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+  managed_dir="${managed_entry%%:*}"
+  managed_label="${managed_entry##*:}"
+  check_stale_checkout "$managed_dir" "$managed_label"
+done
+
+# --- Check 20: Dirty Managed Checkout ---
+# Detect tracked and untracked changes in managed checkouts.
+# Distinguishes safe-to-recreate artifacts from likely user-authored changes.
+SAFE_DIRTY_PATTERNS='node_modules/|__pycache__/|\.pyc$|\.pyo$|\.DS_Store$|\.env\.local$'
+check_dirty_checkout() {
+  local dir="$1" label="$2"
+  [[ -d "$dir/.git" ]] || return 0
+  local porcelain user_changes safe_changes
+  porcelain=$(git -C "$dir" status --porcelain 2>/dev/null || true)
+  [[ -z "$porcelain" ]] && return 0  # Clean
+  safe_changes=$(echo "$porcelain" | grep -E "$SAFE_DIRTY_PATTERNS" || true)
+  user_changes=$(echo "$porcelain" | grep -vE "$SAFE_DIRTY_PATTERNS" || true)
+  local safe_count user_count
+  safe_count=0; [[ -n "$safe_changes" ]] && safe_count=$(echo "$safe_changes" | wc -l | tr -d ' ')
+  user_count=0; [[ -n "$user_changes" ]] && user_count=$(echo "$user_changes" | wc -l | tr -d ' ')
+  if [[ "$user_count" -gt 0 ]]; then
+    echo "🟠 ERROR: $label — $user_count uncommitted change(s) detected"
+    echo "$user_changes" | head -5 | while IFS= read -r line; do
+      echo "   $line"
+    done
+    [[ "$user_count" -gt 5 ]] && echo "   ... and $((user_count - 5)) more"
+    ((ERRORS++))
+    if can_fix moderate; then
+      # Stash user changes with a descriptive message before any destructive action
+      local stash_msg
+      stash_msg="doctor-backup-$(date +%Y%m%d-%H%M%S)"
+      if git -C "$dir" stash push -m "$stash_msg" --include-untracked 2>/dev/null; then
+        echo "  ✅ FIXED: stashed local changes as '$stash_msg'"
+        echo "  📦 Recover with: git -C $dir stash pop"; ((FIXED++))
+      else
+        echo "  ⚠️  Could not stash changes. Resolve manually."
+      fi
+    fi
+  fi
+  if [[ "$safe_count" -gt 0 ]]; then
+    echo "🔵 INFO: $label — $safe_count generated/install artifact(s) (safe to clean)"
+    if can_fix moderate; then
+      git -C "$dir" clean -fdX --quiet 2>/dev/null || true
+      echo "  ✅ FIXED: cleaned generated artifacts"; ((FIXED++))
+    fi
+  fi
+}
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+  managed_dir="${managed_entry%%:*}"
+  managed_label="${managed_entry##*:}"
+  check_dirty_checkout "$managed_dir" "$managed_label"
+done
+
+# --- Check 21: TODO Archive Smoke Test ---
+# Validates the installed TODO maintenance/archive flow using a temporary fixture.
+# Catches regressions where a small-but-valid TODO with archivable history fails
+# to archive correctly or produces a result exceeding expected size.
+MAINT_SCRIPT="$SCRIPT_DIR/todo-maintenance.sh"
+if [[ -x "$MAINT_SCRIPT" ]] || [[ -f "$MAINT_SCRIPT" ]]; then
+  _doctor_todo_smoke() {
+    local fixture_root fixture_todo fixture_env result_json line_count
+    fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-todo-smoke-XXXXXX")
+    mkdir -p "$fixture_root/home/.codex" "$fixture_root/data"
+    fixture_todo="$fixture_root/data/TODO.md"
+    fixture_env="$fixture_root/home/.codex/.env"
+    printf 'TODO_FILE_PATH=%s\n' "$fixture_todo" > "$fixture_env"
+    # Small but structurally valid TODO with archivable history (≥5 done items, >7d old)
+    cat > "$fixture_todo" <<'FIXTURE'
+# ACTIVE TASKS
+
+## P1 - Today
+
+- [ ] [20260322-01] Smoke test active task #doctor
+
+## P2 - This Week
+
+## P3 - Backlog
+
+---
+
+# HISTORY
+
+## 2026-03-01
+- [x] [20260301-01] Archived item one #doctor
+  - Added: 2026-03-01
+  - Done: 2026-03-01T10:00:00
+
+- [x] [20260301-02] Archived item two #doctor
+  - Added: 2026-03-01
+  - Done: 2026-03-01T11:00:00
+
+- [x] [20260301-03] Archived item three #doctor
+  - Added: 2026-03-01
+  - Done: 2026-03-01T12:00:00
+
+- [x] [20260301-04] Archived item four #doctor
+  - Added: 2026-03-01
+  - Done: 2026-03-01T13:00:00
+
+- [x] [20260301-05] Archived item five #doctor
+  - Added: 2026-03-01
+  - Done: 2026-03-01T14:00:00
+
+---
+
+# DEFERRED
+
+---
+
+# METRICS
+FIXTURE
+    # Run maintenance in JSON mode against the fixture
+    if ! result_json=$(HOME="$fixture_root/home" "$MAINT_SCRIPT" --json 2>&1); then
+      echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
+      echo "   Output: $(echo "$result_json" | head -3)"
+      ((ERRORS++))
+      rm -rf "$fixture_root"
+      return
+    fi
+    # Validate: archive should have been performed
+    if ! echo "$result_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+assert data.get('archive_performed') is True, 'archive not performed'
+assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared'
+" 2>/dev/null; then
+      echo "🟠 ERROR: TODO archive smoke test — archive did not complete as expected"
+      ((ERRORS++))
+      rm -rf "$fixture_root"
+      return
+    fi
+    # Validate: resulting file should be under 50 lines (small TODO regression check)
+    line_count=$(wc -l < "$fixture_todo" | tr -d ' ')
+    if (( line_count >= 50 )); then
+      echo "🟠 ERROR: TODO archive smoke test — result is $line_count lines (expected <50)"
+      ((ERRORS++))
+      rm -rf "$fixture_root"
+      return
+    fi
+    # Validate: active task survived
+    if ! grep -q '\[20260322-01\]' "$fixture_todo"; then
+      echo "🟠 ERROR: TODO archive smoke test — active task was lost during archive"
+      ((ERRORS++))
+      rm -rf "$fixture_root"
+      return
+    fi
+    rm -rf "$fixture_root"
+  }
+  _doctor_todo_smoke
+fi
+
+# --- Check 22: Reviewer-Dispatch Rendering Verification ---
+# Verifies that installed skill rendering correctly translates code-reviewer
+# dispatch patterns to the expected sub-agent-code-reviewer output.
+# Detects stale renderings that would cause incorrect reviewer dispatch.
+ADAPTER="$REPO_ROOT/superpowers-augment.js"
+if [[ -f "$ADAPTER" ]] && command -v node &>/dev/null; then
+  _doctor_reviewer_dispatch() {
+    local output stale_patterns stale_found=0
+    # Render the requesting-code-review skill through the adapter
+    output=$(node "$ADAPTER" use-skill requesting-code-review 2>/dev/null || true)
+    if [[ -z "$output" ]]; then
+      echo "🟡 WARNING: reviewer-dispatch — could not render requesting-code-review skill"
+      ((WARNINGS++))
+      return
+    fi
+    # Check for expected output
+    if [[ "$output" != *"sub-agent-code-reviewer"* ]]; then
+      echo "🟡 WARNING: reviewer-dispatch — output missing 'sub-agent-code-reviewer'"
+      ((WARNINGS++))
+    fi
+    # Detect stale/untranslated patterns
+    stale_patterns=(
+      "code-reviewer subagent"
+      "code reviewer subagent"
+      "Dispatch final code-reviewer"
+      "Task tool with superpowers:code-reviewer type"
+    )
+    for pattern in "${stale_patterns[@]}"; do
+      if [[ "$output" == *"$pattern"* ]]; then
+        echo "🟡 WARNING: reviewer-dispatch — stale pattern found: '$pattern'"
+        ((stale_found++))
+      fi
+    done
+    if [[ "$stale_found" -gt 0 ]]; then
+      ((WARNINGS += stale_found))
+    fi
+    # Also check subagent-driven-development skill
+    local sdd_output sdd_lower
+    sdd_output=$(node "$ADAPTER" use-skill subagent-driven-development 2>/dev/null || true)
+    if [[ -n "$sdd_output" ]]; then
+      sdd_lower=$(echo "$sdd_output" | tr '[:upper:]' '[:lower:]')
+      # Detect any variant of "dispatch final code[-]reviewer" that wasn't translated
+      if echo "$sdd_lower" | grep -q "dispatch final code.reviewer" && \
+         ! echo "$sdd_lower" | grep -q "dispatch final sub-agent-code-reviewer"; then
+        echo "🟡 WARNING: reviewer-dispatch — stale final-reviewer pattern in subagent-driven-development"
+        ((WARNINGS++))
+      fi
+    fi
+  }
+  _doctor_reviewer_dispatch
+fi
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
@@ -604,12 +855,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 18 checks passed"
+    echo "✅ Doctor: all 22 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 18 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 22 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
