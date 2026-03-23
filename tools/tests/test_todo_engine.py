@@ -9,6 +9,7 @@ Run: python3 tools/tests/test_todo_engine.py -v
 import contextlib
 import importlib.util
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -203,6 +204,28 @@ class TodoEngineTests(unittest.TestCase):
         self.assertIn("Research competitor", p3_section)
         self.assertIn("Check their API docs", p3_section)
 
+
+    def test_add_task_with_multiline_note(self):
+        """Verify add with real newlines produces indented metadata bullets."""
+        eng = self.engine
+        args = SimpleNamespace(priority="P1", description="Multi-note task",
+                               tags="#test", note="First line\nSecond line")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertIn("Multi-note task", p1)
+        self.assertIn("  - First line", p1)
+        self.assertIn("  - Second line", p1)
+        # No orphan lines in the task block
+        lines = p1.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "Multi-note task" in l)
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break
+            self.assertTrue(line.startswith("  "),
+                            f"Orphan line in add output: {line!r}")
+
     def test_move_task_p3_to_p1(self):
         """Verify move relocates task between priority sections."""
         eng = self.engine
@@ -304,24 +327,50 @@ class TodoEngineTests(unittest.TestCase):
             self.assertEqual(resolved, str(self.todo_path))
 
     def test_resolve_todo_path_env_var_beats_dotenv(self):
-        """Verify env var overrides whatever .codex/.env would provide."""
+        """Verify env var takes precedence over .codex/.env subprocess result."""
         eng = self.engine
-        custom = "/tmp/test-todo-override.md"
-        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": custom}, clear=False):
-            resolved = eng.resolve_todo_path()
-            self.assertEqual(resolved, custom)
+        env_path = "/tmp/from-env-var.md"
+        dotenv_path = "/tmp/from-dotenv.md"
+        # Mock subprocess to simulate .codex/.env returning a different path
+        fake_result = SimpleNamespace(stdout=f"{dotenv_path}\n", returncode=0)
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": env_path}, clear=False):
+            with mock.patch("subprocess.run", return_value=fake_result):
+                resolved = eng.resolve_todo_path()
+                # Env var must win over dotenv
+                self.assertEqual(resolved, env_path)
 
-    def test_resolve_todo_path_no_env_falls_back(self):
-        """Verify fallback to dotenv or default when env var is unset."""
+    def test_resolve_todo_path_dotenv_used_when_env_unset(self):
+        """Verify .codex/.env is consulted when TODO_FILE_PATH env var is empty."""
         eng = self.engine
+        dotenv_path = "/tmp/from-dotenv.md"
+        fake_result = SimpleNamespace(stdout=f"{dotenv_path}\n", returncode=0)
+        fake_env_file = Path(self.tmpdir) / ".codex" / ".env"
+        fake_env_file.parent.mkdir(parents=True)
+        fake_env_file.write_text(f'export TODO_FILE_PATH="{dotenv_path}"\n')
         with mock.patch.dict("os.environ", {"TODO_FILE_PATH": ""}, clear=False):
-            resolved = eng.resolve_todo_path()
-            # Must return a non-empty path (from .codex/.env or default)
-            self.assertIsInstance(resolved, str)
-            self.assertTrue(len(resolved) > 0)
-            # Must end with TODO.md
-            self.assertTrue(resolved.endswith("TODO.md"),
-                            f"Fallback path doesn't end with TODO.md: {resolved}")
+            with mock.patch("pathlib.Path.home", return_value=Path(self.tmpdir)):
+                with mock.patch("subprocess.run", return_value=fake_result):
+                    resolved = eng.resolve_todo_path()
+                    self.assertEqual(resolved, dotenv_path)
+
+    def test_resolve_todo_path_default_when_no_env_no_dotenv(self):
+        """Verify default ~/.codex/TODO.md when env var is empty and no .codex/.env."""
+        eng = self.engine
+        empty_home = Path(self.tmpdir) / "empty_home"
+        empty_home.mkdir()
+        expected = str(empty_home / ".codex" / "TODO.md")
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": ""}, clear=False):
+            # Mock Path.home() so .codex/.env doesn't exist at fake home
+            with mock.patch("pathlib.Path.home", return_value=empty_home):
+                # Mock expanduser so ~ resolves to our fake home
+                orig_expanduser = os.path.expanduser
+                def fake_expanduser(p):
+                    if p.startswith("~"):
+                        return str(empty_home) + p[1:]
+                    return orig_expanduser(p)
+                with mock.patch("os.path.expanduser", side_effect=fake_expanduser):
+                    resolved = eng.resolve_todo_path()
+                    self.assertEqual(resolved, expected)
 
     def test_locking_and_release(self):
         eng = self.engine
