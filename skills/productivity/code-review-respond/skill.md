@@ -79,4 +79,3 @@ F3. [file:line] Description...
 4. **If a review question is unanswerable** from the provided files, say so explicitly — don't guess.
 5. **Be harsh.** The requesting agent asked for adversarial review. Earn it. Call out everything — missed edge cases, broken references, semantic drift, over-cutting, under-cutting, stale data, false claims in the request itself.
 6. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
-

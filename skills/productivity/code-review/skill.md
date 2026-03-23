@@ -101,4 +101,3 @@ Use when: the reviewer has finished and written `response.md`.
 - Archive AFTER the new request is written (crash safety — prevents empty active directory).
 - Archive the final PASS round too (user may want to reference it).
 - Track round number from the response header (`# Code Review Response — Round {N}`), not a separate file.
-
