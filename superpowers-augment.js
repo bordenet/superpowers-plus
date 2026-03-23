@@ -575,20 +575,60 @@ function compressSkillContent(text) {
 
     // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
     result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## When to Use[\s\S]*$/g, '');
     result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
 
     // 5. Strip "Common Rationalizations" tables (lecturing)
-    result = result.replace(/## Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/### Common Rationalizations[\s\S]*?(?=\n## |\n### |\n# |$)/g, '');
+    result = result.replace(/##+ Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
 
     // 6. Strip "Why Order Matters" / "Why This Matters" (philosophical)
-    result = result.replace(/## Why (?:Order|This) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/### Why (?:Order|This) Matters[\s\S]*?(?=\n## |\n### |\n# |$)/g, '');
+    result = result.replace(/##+ Why (?:Order|This|It) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
 
-    // 7. Strip "Quick Reference" at end (duplicates main content)
-    result = result.replace(/## Quick Reference[\s\S]*$/g, '');
+    // 7. Strip "Quick Reference" section (duplicates main content)
+    result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
 
-    // 8. Collapse 3+ consecutive blank lines to 1
+    // 8. Strip "Common Failure Modes" (repeats main content)
+    result = result.replace(/##+ Common Failure Modes[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Common Failure Modes[\s\S]*$/g, '');
+
+    // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
+    result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Related Skills[\s\S]*$/g, '');
+    result = result.replace(/##+ Cross[- ]?References[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Cross[- ]?References[\s\S]*$/g, '');
+    result = result.replace(/##+ Integration with [\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 10. Strip "Reference Files" (just pointers to other files)
+    result = result.replace(/##+ Reference Files[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Reference Files[\s\S]*$/g, '');
+
+    // 11. Strip "When This Skill Fires" (redundant with triggers)
+    result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
+
+    // 12. Strip "When NOT to Use" (handled by anti_triggers)
+    result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 13. Strip "Manual Invocation" (user already knows how to invoke)
+    result = result.replace(/##+ Manual Invocation[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 14. Strip "Incident Log" sections (historical, not procedural)
+    result = result.replace(/##+ Incident Log[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Incident Log[\s\S]*$/g, '');
+
+    // 15. Strip "I'm Stuck Escalation" pointers (generic)
+    result = result.replace(/##+ I'm Stuck[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ I'm Stuck[\s\S]*$/g, '');
+
+    // 16. Strip YAML frontmatter (already parsed by loader)
+    result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
+
+    // 17. Strip horizontal rules (visual only, wastes tokens)
+    result = result.replace(/\n---\n/g, '\n');
+
+    // 18. Strip HTML comments
+    result = result.replace(/<!--[\s\S]*?-->/g, '');
+
+    // 19. Collapse 3+ consecutive blank lines to 1
     result = result.replace(/\n{3,}/g, '\n\n');
 
     return result.trim();
