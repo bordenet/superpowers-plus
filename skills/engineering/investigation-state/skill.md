@@ -71,7 +71,7 @@ On every session start where this skill fires, check for stale investigations:
 |--------|---------|
 | `active` | Hypotheses being tested, evidence being gathered |
 | `paused` | Session ending without resolution; markdown handoff generated |
-| `resolved` | Root cause found, fix identified; linked TODO created |
+| `resolved` | Root cause found; resolution recorded (fix TODO if needed) |
 | `abandoned` | Investigation invalid or no longer relevant |
 
 ### Status Transitions
