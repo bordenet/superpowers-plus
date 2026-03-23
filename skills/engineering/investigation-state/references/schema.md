@@ -48,9 +48,10 @@ Each investigation is a single JSON file named by its UUID.
     }
   ],
   "currentTheory": "integer | null (hypothesis id, or null if no current theory)",
+  "resolution": "null | { type, summary, fixTodo }",
   "nextSteps": ["string (action items for next session)"],
   "toolsConsulted": ["string (freeform tool identifiers)"],
-  "relatedTodos": ["string (TODO references, e.g., #investigation-abc123)"],
+  "relatedTodos": ["string (TODO references, e.g., #investigation-abc12345)"],
   "relatedTickets": ["string (ticket references, e.g., TST-123)"]
 }
 ```
@@ -70,10 +71,31 @@ Each investigation is a single JSON file named by its UUID.
 | `hypotheses` | array | Yes | List of hypotheses (may be empty initially) |
 | `eliminated` | array | Yes | Approaches tried and failed (may be empty) |
 | `currentTheory` | int/null | Yes | `id` of the hypothesis currently being tested, or `null` |
+| `resolution` | object/null | No | Set when status is `resolved`. See Resolution below |
 | `nextSteps` | array | Yes | Action items for the next session (may be empty) |
 | `toolsConsulted` | array | Yes | Tools used during investigation (may be empty) |
-| `relatedTodos` | array | No | TODO references created from this investigation |
+| `relatedTodos` | array | No | TODO references (e.g., `#investigation-abc12345`) |
 | `relatedTickets` | array | No | External ticket references (Linear, ADO, etc.) |
+
+### Short ID
+
+The `<short-id>` used in TODO tags is the **first 8 characters** of the investigation UUID.
+Example: UUID `a1b2c3d4-e5f6-7890-abcd-ef1234567890` → short-id `a1b2c3d4` → tag `#investigation-a1b2c3d4`
+
+### Resolution
+
+Set when `status` is `resolved`. Null otherwise.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | `"fix-needed"`, `"no-fix-needed"`, or `"external"` |
+| `summary` | string | Brief description of the root cause and resolution |
+| `fixTodo` | string/null | TODO tag (e.g., `#investigation-a1b2c3d4`) if `type` is `fix-needed`, null otherwise |
+
+**Resolution types:**
+- `fix-needed` — Code change required. Create a TODO tagged `#investigation-<short-id>`.
+- `no-fix-needed` — Root cause found but no code change needed (config error, user error, data issue).
+- `external` — Issue is outside our control (third-party service, infrastructure).
 
 ### Timestamps
 
