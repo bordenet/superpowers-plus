@@ -32,7 +32,18 @@ try {
     if (fs.existsSync(ENV_FILE)) {
         const envContent = fs.readFileSync(ENV_FILE, 'utf8');
         for (const line of envContent.split('\n')) {
-            const match = line.match(/^([A-Z_]+)="?([^"]*)"?$/);
+            // Support: KEY=val, KEY="val", export KEY=val, inline # comments
+            const cleaned = line.replace(/^\s*export\s+/, '').trim();
+            // Try quoted form first (preserves # inside quotes)
+            const quoted = cleaned.match(/^([A-Za-z_][A-Za-z0-9_]*)="([^"]*)"(\s*#.*)?$/);
+            if (quoted) {
+                if (!process.env[quoted[1]]) process.env[quoted[1]] = quoted[2];
+                continue;
+            }
+            // Unquoted: strip inline comments first, then reject stray quotes
+            const unquoted = cleaned.replace(/\s+#.*$/, '');
+            if (unquoted.includes('"')) continue; // malformed — quotes didn't match quoted form
+            const match = unquoted.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
             if (match && !process.env[match[1]]) {
                 process.env[match[1]] = match[2];
             }
@@ -158,6 +169,7 @@ function extractFrontmatter(filePath) {
         let triggers = [];
         let composition = null;
         let compositionLines = [];
+        let compress = true;
 
         for (const line of lines) {
             if (line.trim() === '---') {
@@ -206,12 +218,13 @@ function extractFrontmatter(filePath) {
                     const value = match[2];
                     if (key === 'name') name = value.trim();
                     if (key === 'description') description = value.trim();
+                    if (key === 'compress' && value.trim() === 'false') compress = false;
                 }
             }
         }
-        return { name, description, triggers, composition };
+        return { name, description, triggers, composition, compress };
     } catch (error) {
-        return { name: '', description: '', triggers: [], composition: null };
+        return { name: '', description: '', triggers: [], composition: null, compress: true };
     }
 }
 
@@ -385,10 +398,9 @@ function useSkill(skillName, options = {}) {
         console.error('');
         console.error('Then retry: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ' + skillName);
         console.error('');
-        console.error('WHY: Bootstrap loads the using-superpowers skill which governs');
-        console.error('skill invocation discipline, priority ordering, and red-flag');
-        console.error('detection. Without it, skills fire in isolation without the');
-        console.error('meta-framework that makes them effective.');
+        console.error('WHY: Bootstrap establishes session context, priority ordering,');
+        console.error('and red-flag detection. Without it, skills fire in isolation');
+        console.error('without the meta-framework that makes them effective.');
         console.error('');
         // Don't block — still load the skill, but the warning is impossible to miss
     }
@@ -504,7 +516,9 @@ function useSkill(skillName, options = {}) {
     }
 
     const stripped = stripFrontmatter(content);
-    const compressed = compressSkillContent(stripped);
+    // Respect per-skill compress: false frontmatter opt-out
+    const fm = extractFrontmatter(skillFile);
+    const compressed = fm.compress === false ? stripped : compressSkillContent(stripped);
     const transformed = transformOutput(compressed);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
@@ -513,15 +527,15 @@ function useSkill(skillName, options = {}) {
 
 /**
  * Compress skill content by stripping repeated boilerplate patterns.
- * These sections appear across many skills but add no unique procedural value:
- * - "When to Use" / "Overview" — the trigger system already handles routing
- * - "Common Rationalizations" tables — lecturing, not procedure
- * - "Why Order Matters" / "Why This Matters" — philosophical arguments
- * - DOT graph blocks — not renderable in text
- * - Verbose examples that restate the procedure in narrative form
- * - Trailing "Quick Reference" that duplicates the main content
- *
- * Preserves: HARD-GATE blocks, checklists, procedures, code examples, tables with data
+ * Strips: DOT graphs, EXTREMELY-IMPORTANT wrappers (keeps inner text),
+ * "When to Use", "Overview", "Common Rationalizations", "Why X Matters",
+ * "Quick Reference", "Related Skills", "Cross-References", "Integration with",
+ * "Reference Files", "When This Skill Fires", "When NOT to Use",
+ * "Manual Invocation", "Incident Log", "I'm Stuck", YAML frontmatter (redundant),
+ * horizontal rules, HTML comments, excessive blank lines.
+ * Preserves: Failure Modes, SUBAGENT-STOP, HARD-GATE blocks, checklists,
+ * procedures, code examples, tables with data.
+ * Per-skill opt-out: add `compress: false` to YAML frontmatter.
  */
 function compressSkillContent(text) {
     let result = text;
@@ -532,13 +546,13 @@ function compressSkillContent(text) {
     // 2. Strip EXTREMELY-IMPORTANT wrappers (keep content)
     result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
 
-    // 3. Compress SUBAGENT-STOP blocks
-    result = result.replace(/<SUBAGENT-STOP>\n?[\s\S]*?<\/SUBAGENT-STOP>/g, '');
+    // 3. Preserve SUBAGENT-STOP blocks (sub-agent dispatch control — never strip)
 
     // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
     result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
     result = result.replace(/## When to Use[\s\S]*$/g, '');
     result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## Overview\n[\s\S]*$/g, '');
 
     // 5. Strip "Common Rationalizations" tables (lecturing)
     result = result.replace(/##+ Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
@@ -549,9 +563,7 @@ function compressSkillContent(text) {
     // 7. Strip "Quick Reference" section (duplicates main content)
     result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
 
-    // 8. Strip "Failure Modes" variants (repeats main content)
-    result = result.replace(/##+ (?:Common )?Failure Modes[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ (?:Common )?Failure Modes[\s\S]*$/g, '');
+    // 8. Preserve "Failure Modes" — may contain operational rules, not just boilerplate
 
     // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
     result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
@@ -566,6 +578,7 @@ function compressSkillContent(text) {
 
     // 11. Strip "When This Skill Fires" (redundant with triggers)
     result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## When This Skill Fires[\s\S]*$/g, '');
 
     // 12. Strip "When NOT to Use" (handled by anti_triggers)
     result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
@@ -612,9 +625,8 @@ Process skills (debugging, brainstorming) before implementation skills.
     emitSkillIndex();
 }
 
-// Skill index: emits ONLY the skill names grouped by type.
-// O(1) token cost — adding 100 more skills adds ~0 tokens to bootstrap.
-// The index is computed at runtime but the OUTPUT is fixed-size.
+// Skill index: emits counts + load command (O(1) token cost).
+// Full skill names written to disk for tooling (find-skills, probe, etc.).
 const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
 
 function buildSkillIndex() {
