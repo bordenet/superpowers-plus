@@ -121,7 +121,7 @@ class TodoEngineTests(unittest.TestCase):
         self.assertNotIn("[20260323-02]", active)
 
     def test_complete_with_real_multiline_note(self):
-        """Verify completion with actual newline chars includes both lines."""
+        """Verify completion with actual newlines produces indented metadata bullets."""
         eng = self.engine
         args = SimpleNamespace(id="20260323-01", note="Line one\nLine two")
         with contextlib.redirect_stdout(io.StringIO()):
@@ -129,11 +129,18 @@ class TodoEngineTests(unittest.TestCase):
         content = self.todo_path.read_text()
         history = content.split("# HISTORY")[1]
         self.assertIn("[x] [20260323-01]", history)
-        self.assertIn("Done: 2026-", history)
-        # Both note lines should appear in the history block
-        task_block = history.split("[x] [20260323-01]")[1].split("\n- [")[0]
-        self.assertIn("Line one", task_block)
-        self.assertIn("Line two", task_block)
+        # Each note line must be a properly indented metadata bullet
+        self.assertIn("  - Progress: Line one", history)
+        self.assertIn("  - Progress: Line two", history)
+        # No orphan lines — find the task block by its [x] line and check metadata
+        lines = history.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "[x] [20260323-01]" in l)
+        # All metadata lines after the task line must be indented "  - "
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break  # end of task block
+            self.assertTrue(line.startswith("  - "),
+                            f"Orphan line (not indented metadata): {line!r}")
 
     def test_defer_moves_to_deferred_with_reason(self):
         """Verify defer moves task to DEFERRED section with reason metadata."""
@@ -151,7 +158,7 @@ class TodoEngineTests(unittest.TestCase):
         self.assertNotIn("20260323-03", p3_section)
 
     def test_defer_with_real_multiline_reason(self):
-        """Verify defer with actual newline chars includes both reason lines."""
+        """Verify defer with actual newlines produces indented metadata bullets."""
         eng = self.engine
         args = SimpleNamespace(id="20260323-03", reason="Blocked\nNeed credentials")
         with contextlib.redirect_stdout(io.StringIO()):
@@ -159,9 +166,17 @@ class TodoEngineTests(unittest.TestCase):
         content = self.todo_path.read_text()
         deferred = content.split("# DEFERRED")[1]
         self.assertIn("20260323-03", deferred)
-        task_block = deferred.split("[20260323-03]")[1].split("\n- [")[0]
-        self.assertIn("Blocked", task_block)
-        self.assertIn("Need credentials", task_block)
+        # Each reason line must be a properly indented metadata bullet
+        self.assertIn("  - Reason: Blocked", deferred)
+        self.assertIn("  - Reason: Need credentials", deferred)
+        # No orphan lines — find the task block and check metadata
+        lines = deferred.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "[20260323-03]" in l)
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break
+            self.assertTrue(line.startswith("  - "),
+                            f"Orphan line (not indented metadata): {line!r}")
 
     # -- New integration tests --
 
@@ -281,21 +296,32 @@ class TodoEngineTests(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()):
                 eng.cmd_add(args, str(self.todo_path), json_mode=False)
 
-    def test_resolve_todo_path_from_env(self):
-        """Verify resolve_todo_path reads TODO_FILE_PATH from environment."""
+    def test_resolve_todo_path_env_var_wins(self):
+        """Verify TODO_FILE_PATH env var takes highest precedence."""
         eng = self.engine
         with mock.patch.dict("os.environ", {"TODO_FILE_PATH": str(self.todo_path)}, clear=False):
             resolved = eng.resolve_todo_path()
             self.assertEqual(resolved, str(self.todo_path))
 
-    def test_resolve_todo_path_env_not_set_uses_default(self):
-        """Verify resolve_todo_path falls back to dotenv or default."""
+    def test_resolve_todo_path_env_var_beats_dotenv(self):
+        """Verify env var overrides whatever .codex/.env would provide."""
         eng = self.engine
-        with mock.patch.dict("os.environ", {}, clear=True):
+        custom = "/tmp/test-todo-override.md"
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": custom}, clear=False):
             resolved = eng.resolve_todo_path()
-            # Should return some path (dotenv or default), not crash
+            self.assertEqual(resolved, custom)
+
+    def test_resolve_todo_path_no_env_falls_back(self):
+        """Verify fallback to dotenv or default when env var is unset."""
+        eng = self.engine
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": ""}, clear=False):
+            resolved = eng.resolve_todo_path()
+            # Must return a non-empty path (from .codex/.env or default)
             self.assertIsInstance(resolved, str)
             self.assertTrue(len(resolved) > 0)
+            # Must end with TODO.md
+            self.assertTrue(resolved.endswith("TODO.md"),
+                            f"Fallback path doesn't end with TODO.md: {resolved}")
 
     def test_locking_and_release(self):
         eng = self.engine
