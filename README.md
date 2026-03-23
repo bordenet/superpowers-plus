@@ -188,7 +188,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 
-The 53 skills in this repo are auto-triggered by semantic matching. When installed alongside `obra/superpowers`, some framework skills may still be explicit and invoked by name or as dependencies.
+Skills are matched semantically where possible. Some activate automatically, while others are invoked explicitly by name or as dependencies.
 
 ## Skill Coordination
 
