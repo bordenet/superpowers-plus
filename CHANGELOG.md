@@ -215,7 +215,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `_adapters/` directories with platform-specific configurations
 
 ### Changed
-- Removed hardcoded vendor references (Linear, Outline, Azure DevOps)
+- Removed hardcoded issue-tracker and wiki vendor references from shared skills
 - Skills now use generic operations that map to platform adapters
 
 ### Fixed

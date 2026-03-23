@@ -34,7 +34,7 @@ composition:
 
 ## When This Skill Fires
 
-Activates on the transition from "read wiki content" → "execute instructions." Triggers when agent fetches content from ANY wiki API (Outline, Confluence, Notion) and is about to execute it. Does NOT trigger for local README.md, user-typed instructions, or user-pasted content.
+Activates on the transition from "read wiki content" → "execute instructions." Triggers when agent fetches content from a hosted wiki API and is about to execute it. Does NOT trigger for local README.md, user-typed instructions, or user-pasted content.
 
 ---
 
