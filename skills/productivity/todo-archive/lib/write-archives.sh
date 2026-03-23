@@ -105,18 +105,26 @@ done
 
 # --- Update INDEX.md ---
 INDEX_FILE="$ARCHIVE_DIR/INDEX.md"
+INDEX_ROWS=""
+INDEX_TOTAL=0
+INDEX_MONTHS=0
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  fname=$(basename "$f" .md)
+  fcount=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || echo 0)
+  INDEX_TOTAL=$((INDEX_TOTAL + fcount))
+  INDEX_MONTHS=$((INDEX_MONTHS + 1))
+  INDEX_ROWS+="| $fname | $fcount | [${fname}.md](${fname}.md) |"$'\n'
+done < <(find "$ARCHIVE_DIR" -maxdepth 1 -name '*.md' ! -name 'INDEX.md' -print 2>/dev/null | sort -r)
+
 {
   echo "# TODO Archive Index"
   echo ""
-  echo "> Total archived: $TOTAL_WRITTEN tasks across ${#MONTH_TASKS[@]} months"
+  echo "> Total archived: $INDEX_TOTAL tasks across $INDEX_MONTHS months"
   echo ""
   echo "| Month | Tasks | File |"
   echo "|-------|-------|------|"
-  for f in $(find "$ARCHIVE_DIR" -maxdepth 1 -name '*.md' ! -name 'INDEX.md' -print 2>/dev/null | sort -r); do
-    fname=$(basename "$f" .md)
-    fcount=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || echo 0)
-    echo "| $fname | $fcount | [${fname}.md](${fname}.md) |"
-  done
+  printf '%s' "$INDEX_ROWS"
 } > "$INDEX_FILE"
 echo "📇 Updated $INDEX_FILE"
 
