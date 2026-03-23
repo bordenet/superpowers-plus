@@ -289,7 +289,7 @@ MAX_SKILL_LINES=250
 while IFS= read -r skill_file; do
     line_count=$(wc -l < "$skill_file" | tr -d ' ')
     if [[ "$line_count" -gt "$MAX_SKILL_LINES" ]]; then
-        log_error "$(basename "$(dirname "$skill_file")")/skill.md: ${line_count} lines (max ${MAX_SKILL_LINES})"
+        log_fail "$(basename "$(dirname "$skill_file")")/skill.md: ${line_count} lines (max ${MAX_SKILL_LINES})"
     fi
 done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
 
