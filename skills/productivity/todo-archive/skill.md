@@ -29,7 +29,9 @@ description: Archive completed tasks from TODO.md to monthly satellite files. Pr
 ### Step 1: Resolve paths
 
 ```bash
+EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
 source ~/.codex/.env 2>/dev/null
+TODO_FILE_PATH="${EXPLICIT_TODO_FILE_PATH:-${TODO_FILE_PATH:-$HOME/.codex/TODO.md}}"
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
 ```
@@ -60,7 +62,7 @@ For each target month file:
    ---
    ```
 
-2. Check for duplicate task IDs (idempotency guard)
+2. Check for duplicate task IDs (idempotency guard) and skip re-appending blocks already present in the month file
 3. Append tasks under `## YYYY-MM-DD` date headers (reverse-chronological)
 4. Compute and add metadata: `Duration:`, `Issue:` (extract ticket IDs from tags/description)
 
@@ -87,7 +89,7 @@ Remove only the archived entries from the HISTORY section. Keep any entries that
 
 ```
 pre_history_count = {N}
-archived_count = {M}
+removed_from_history = {M}
 post_history_count = {N - M}
 ```
 

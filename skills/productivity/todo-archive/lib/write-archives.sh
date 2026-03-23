@@ -49,31 +49,58 @@ if [[ -n "$current_task_block" ]] && [[ -n "$current_month" ]]; then
 fi
 
 # --- Write to monthly archive files ---
-TOTAL_ARCHIVED=0
+TOTAL_WRITTEN=0
+append_unique_task_block() {
+  if [[ -z "$CURRENT_APPEND_BLOCK" ]]; then
+    return
+  fi
+
+  local task_id=""
+  if [[ "$CURRENT_APPEND_BLOCK" =~ \[([0-9]{8}-[0-9]+)\] ]]; then
+    task_id="${BASH_REMATCH[1]}"
+  fi
+
+  if [[ -n "$task_id" ]] && { grep -q "$task_id" "$ARCHIVE_FILE" 2>/dev/null || [[ "$APPEND_TASK_IDS" == *"|$task_id|"* ]]; }; then
+    echo "⏭️  Skipping duplicate: $task_id"
+  else
+    APPEND_BLOCKS+="$CURRENT_APPEND_BLOCK"$'\n'
+    if [[ -n "$task_id" ]]; then
+      APPEND_TASK_IDS+="$task_id|"
+    fi
+    COUNT_WRITTEN=$((COUNT_WRITTEN + 1))
+  fi
+
+  CURRENT_APPEND_BLOCK=""
+}
+
 for month in $(echo "${!MONTH_TASKS[@]}" | tr ' ' '\n' | sort -r); do
   ARCHIVE_FILE="$ARCHIVE_DIR/${month}.md"
   MONTH_NAME=$(date -j -f "%Y-%m" "$month" "+%B %Y" 2>/dev/null || echo "$month")
-  count=${MONTH_COUNTS[$month]:-0}
+  COUNT_WRITTEN=0
+  APPEND_BLOCKS=""
+  APPEND_TASK_IDS="|"
+  CURRENT_APPEND_BLOCK=""
 
   if [[ ! -f "$ARCHIVE_FILE" ]]; then
     printf "# TODO Archive — %s\n\n> Tasks archived from TODO.md\n\n---\n\n" "$MONTH_NAME" > "$ARCHIVE_FILE"
   fi
 
-  # Deduplicate by task ID
-  while IFS= read -r task_line; do
-    if [[ "$task_line" =~ \[([0-9]{8}-[0-9]+)\] ]]; then
-      task_id="${BASH_REMATCH[1]}"
-      if grep -q "$task_id" "$ARCHIVE_FILE" 2>/dev/null; then
-        echo "⏭️  Skipping duplicate: $task_id"
-        count=$((count - 1))
-        continue
-      fi
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^-\ \[(x|-)\] ]]; then
+      append_unique_task_block
+      CURRENT_APPEND_BLOCK="$line"$'\n'
+    elif [[ -n "$CURRENT_APPEND_BLOCK" ]]; then
+      CURRENT_APPEND_BLOCK+="$line"$'\n'
     fi
-  done <<< "$(echo "${MONTH_TASKS[$month]}" | grep -E '^\- \[(x|-)\]')"
+  done <<< "${MONTH_TASKS[$month]}"
+  append_unique_task_block
 
-  echo "${MONTH_TASKS[$month]}" >> "$ARCHIVE_FILE"
-  TOTAL_ARCHIVED=$((TOTAL_ARCHIVED + count))
-  echo "📁 $ARCHIVE_FILE: +$count tasks"
+  if [[ -n "$APPEND_BLOCKS" ]]; then
+    printf '%s' "$APPEND_BLOCKS" >> "$ARCHIVE_FILE"
+  fi
+
+  TOTAL_WRITTEN=$((TOTAL_WRITTEN + COUNT_WRITTEN))
+  echo "📁 $ARCHIVE_FILE: +$COUNT_WRITTEN tasks"
 done
 
 # --- Update INDEX.md ---
@@ -81,7 +108,7 @@ INDEX_FILE="$ARCHIVE_DIR/INDEX.md"
 {
   echo "# TODO Archive Index"
   echo ""
-  echo "> Total archived: $TOTAL_ARCHIVED tasks across ${#MONTH_TASKS[@]} months"
+  echo "> Total archived: $TOTAL_WRITTEN tasks across ${#MONTH_TASKS[@]} months"
   echo ""
   echo "| Month | Tasks | File |"
   echo "|-------|-------|------|"
@@ -144,14 +171,15 @@ echo ""
 echo "✅ Archive complete!"
 echo "   Before: $TODO_LINES lines, $PRE_HISTORY history tasks"
 echo "   After:  $POST_LINES lines, $POST_HISTORY history tasks"
-echo "   Archived: $TOTAL_ARCHIVED tasks"
+echo "   Removed from HISTORY: $TASK_COUNT tasks"
+echo "   New archive writes: $TOTAL_WRITTEN tasks"
 
-EXPECTED_REMAINING=$((PRE_HISTORY - TOTAL_ARCHIVED))
+EXPECTED_REMAINING=$((PRE_HISTORY - TASK_COUNT))
 if [[ "$POST_HISTORY" -ne "$EXPECTED_REMAINING" ]]; then
   echo ""
   echo "⚠️  INTEGRITY WARNING: Expected $EXPECTED_REMAINING remaining, found $POST_HISTORY"
   echo "   Backup preserved at: $BACKUP_PATH"
   echo "   Review manually before deleting backup."
 else
-  echo "   Integrity check: ✅ PASS ($POST_HISTORY remaining = $PRE_HISTORY - $TOTAL_ARCHIVED)"
+  echo "   Integrity check: ✅ PASS ($POST_HISTORY remaining = $PRE_HISTORY - $TASK_COUNT)"
 fi
