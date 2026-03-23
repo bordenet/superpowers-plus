@@ -650,7 +650,7 @@ done
 # --- Check 20: Dirty Managed Checkout ---
 # Detect tracked and untracked changes in managed checkouts.
 # Distinguishes safe-to-recreate artifacts from likely user-authored changes.
-SAFE_DIRTY_PATTERNS='node_modules/|__pycache__/|\.pyc$|\.pyo$|\.DS_Store$|\.env\.local$'
+SAFE_DIRTY_PATTERNS='node_modules/|__pycache__/|\.pyc$|\.pyo$|\.DS_Store$|\.env\.local$|install-state/|modules/'
 check_dirty_checkout() {
   local dir="$1" label="$2"
   [[ -d "$dir/.git" ]] || return 0
