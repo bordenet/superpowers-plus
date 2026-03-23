@@ -68,7 +68,8 @@ backup_skill() {
   backup_path="$BACKUP_DIR/$(basename "$target")"
   mkdir -p "$backup_path"
   # -P preserves symlinks, -R recursive (don't follow symlinks into backup)
-  cp -PR "$target"/* "$backup_path/" 2>/dev/null || {
+  # Use /. to copy all contents including dotfiles (/* misses them and fails on empty dirs)
+  cp -PR "$target"/. "$backup_path/" 2>/dev/null || {
     echo "  ⚠️  Backup failed for $(basename "$target"). Skipping fix."
     return 1
   }
@@ -114,7 +115,7 @@ while IFS= read -r f; do
   if command -v xxd &>/dev/null; then
     [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
   else
-    [[ "$(head -c 3 "$f" | od -A n -t x1 2>/dev/null | tr -d ' \n')" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
+    [[ "$(dd if="$f" bs=1 count=3 2>/dev/null | od -A n -t x1 2>/dev/null | tr -d ' \n')" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
   fi
   SKILL_HAS_CRLF[$skill]=""
   # Portable CRLF detection: grep -P is GNU-only; use printf for the \r literal
@@ -150,7 +151,7 @@ echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (22 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
-if [[ -f /proc/version ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
+if [[ -f /proc/version ]] && grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null; then
   case "$INSTALLED_DIR" in
     /mnt/[a-z]/*)
       echo "🟡 WARNING: Skills installed on NTFS mount ($INSTALLED_DIR)"
@@ -183,9 +184,10 @@ for skill in "${!SKILL_YAML_NAME[@]}"; do
   if [[ -n "$yaml_name" && "$yaml_name" != "$skill" ]]; then
     echo "🔴 CRITICAL: $skill — name: '$yaml_name' ≠ directory '$skill'"; ((CRITICAL++))
     if can_fix safe; then
-      backup_skill "$(dirname "${SKILL_PATH[$skill]}")"
-      sed_inplace "s/^name:.*$/name: $skill/" "${SKILL_PATH[$skill]}"
-      echo "  ✅ FIXED: name → '$skill'"; ((FIXED++))
+      if backup_skill "$(dirname "${SKILL_PATH[$skill]}")"; then
+        sed_inplace "s/^name:.*$/name: $skill/" "${SKILL_PATH[$skill]}"
+        echo "  ✅ FIXED: name → '$skill'"; ((FIXED++))
+      fi
     fi
   fi
 done
@@ -195,7 +197,7 @@ done
 declare -A seen_skills
 for dir in "${SOURCE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
-  for skill_dir in $(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null); do
+  while IFS= read -r skill_dir; do
     name=$(basename "$skill_dir"); source_name=$(basename "$dir")
     if [[ -n "${seen_skills[$name]:-}" && "${seen_skills[$name]}" != *"$source_name"* ]]; then
       # Check if the overlay version declares "overrides:" — intentional override
@@ -208,7 +210,7 @@ for dir in "${SOURCE_DIRS[@]}"; do
       fi
     fi
     seen_skills[$name]="${seen_skills[$name]:-}${seen_skills[$name]:+, }$source_name"
-  done
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null)
 done
 
 # --- Check 5: Broken Internal References ---
@@ -267,17 +269,19 @@ for dir in "${SOURCE_DIRS[@]}"; do
     _source_skill_names[$(basename "$sd")]=1
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null)
 done
-for installed in $(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null); do
+while IFS= read -r installed; do
   skill=$(basename "$installed")
   [[ "$skill" == "_shared" || "$skill" == "doctor-backups" ]] && continue
   if [[ -z "${_source_skill_names[$skill]:-}" ]]; then
     echo "🟠 ERROR: $skill — orphaned install"; ((ERRORS++))
     if can_fix moderate; then
-      backup_skill "$installed"; rm -rf "$installed"
-      echo "  ✅ FIXED: removed orphan $skill"; ((FIXED++))
+      if backup_skill "$installed"; then
+        rm -rf "$installed"
+        echo "  ✅ FIXED: removed orphan $skill"; ((FIXED++))
+      fi
     fi
   fi
-done
+done < <(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null)
 
 # --- Check 9: Source-Install Content Drift ---
 # Tracks priority source (overlay wins over base) AND base source for overlay-aware comparison.
@@ -318,8 +322,9 @@ for skill in "${!PRIORITY_SOURCE[@]}"; do
       echo "🟠 ERROR: $skill — content drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
-      backup_skill "$(dirname "$installed")"; cp "$src" "$installed"
-      echo "  ✅ FIXED: synced $skill"; ((FIXED++))
+      if backup_skill "$(dirname "$installed")" && cp "$src" "$installed"; then
+        echo "  ✅ FIXED: synced $skill"; ((FIXED++))
+      fi
     fi
   fi
 done
@@ -327,7 +332,9 @@ done
 # --- Check 10: Missing Triggers ---
 VALIDATOR="$SP_PLUS_DIR/tools/skill-trigger-validator.sh"
 EXPLICIT_LIST=""
-[[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(grep -A50 "^EXPLICIT_SKILLS=" "$VALIDATOR" 2>/dev/null | grep '^\s*"' | sed 's/#.*//' | tr -d ' "' || echo "")
+# Parse EXPLICIT_SKILLS array from validator using awk (portable, no line-count limit)
+# Match only the closing ')' on its own line (not ')' inside comments like "(upgrades packages)")
+[[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(awk '/^EXPLICIT_SKILLS=/{found=1; next} found && /^[[:space:]]*\)/{exit} found{gsub(/#.*/, ""); gsub(/[[:space:]"]+/, ""); if ($0 != "") print}' "$VALIDATOR" 2>/dev/null || echo "")
 for skill in "${!SKILL_PATH[@]}"; do
   if [[ -z "${SKILL_HAS_TRIGGERS[$skill]:-}" ]] && ! echo "$EXPLICIT_LIST" | grep -q "^${skill}$"; then
     echo "🟡 WARNING: $skill — no triggers and not in EXPLICIT_SKILLS"; ((WARNINGS++))
@@ -402,11 +409,12 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
       fi
       # Check if all colliding skills are in the same known group
       all_known=true
-      for prev_skill in $(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//'); do
+      while IFS= read -r prev_skill; do
+        [[ -z "$prev_skill" ]] && continue
         if ! in_same_group "$prev_skill" "$skill"; then
           all_known=false; break
         fi
-      done
+      done <<< "$(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//')"
       if [[ "$all_known" == "false" ]]; then
         echo "🟡 WARNING: trigger '$trigger' shared by: $existing AND $skill"; ((WARNINGS++))
       fi
@@ -427,7 +435,7 @@ for skill in "${!SKILL_PATH[@]}"; do
   # Check first 10 lines after frontmatter for prominent deprecation markers
   if [[ "$is_deprecated" == "false" ]]; then
     body_start="${SKILL_BODY_START[$skill]:-}"
-    [[ -n "$body_start" ]] && head -n $((body_start + 10)) "$f" | tail -n 10 | grep -qiE '^\s*>.*deprecated|^#.*deprecated|replaced by|superseded by' && is_deprecated=true
+    [[ -n "$body_start" ]] && head -n $((body_start + 10)) "$f" | tail -n 10 | grep -qiE '^[[:space:]]*>.*deprecated|^#.*deprecated|replaced by|superseded by' && is_deprecated=true
   fi
   if [[ "$is_deprecated" == "true" ]]; then
     has_triggers="${SKILL_HAS_TRIGGERS[$skill]:-}"
@@ -451,7 +459,12 @@ for skill in "${!SKILL_PATH[@]}"; do
   # that don't have the path wrapped in backticks
   while IFS= read -r path; do
     [[ -z "$path" ]] && continue
-    expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
+    # Safe tilde expansion without eval (avoids command injection risk)
+    if [[ "$path" == "~/"* ]]; then
+      expanded="$HOME/${path#\~/}"
+    else
+      expanded="$path"
+    fi
     [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
   done < <(awk '
     BEGIN { tilde_re = "~/[a-zA-Z0-9_./-]+"; users_re = "/Users/[a-zA-Z0-9_./-]+" }
@@ -482,9 +495,9 @@ for dir in "${SOURCE_DIRS[@]}"; do
 
     # If the repo intentionally ignores this file, don't surface it as a doctor finding.
     # This helps avoid repeated noise for local artifacts that are already excluded.
-    if [[ -d "$root/.git" ]]; then
+    if [[ -d "$root/.git" ]] && command -v git &>/dev/null; then
       rel="${junk#"$root"/}"
-      git -C "$root" check-ignore -q "$rel" 2>/dev/null && continue
+      git -C "$root" check-ignore -q -- "$rel" 2>/dev/null && continue
     fi
 
     echo "🔵 INFO: junk file in $(basename "$root")/: $(basename "$junk")"
@@ -504,9 +517,9 @@ done
 # --- Check 15: Structure Quality ---
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"; issues=""
-  grep -qi "when to use\|when to invoke" "$f" || issues="${issues}missing 'When to Use'; "
+  grep -Eqi 'when to use|when to invoke' "$f" || issues="${issues}missing 'When to Use'; "
   grep -q '```' "$f" || issues="${issues}no code examples; "
-  grep -qi "failure\|fix:\|recovery\|troubleshoot" "$f" || issues="${issues}no failure modes; "
+  grep -Eqi 'failure|fix:|recovery|troubleshoot' "$f" || issues="${issues}no failure modes; "
   [[ -n "$issues" ]] && echo "🔵 INFO: $skill — $issues"
 done
 
@@ -584,8 +597,9 @@ for key in "${!REF_PRIORITY[@]}"; do
     fi
     echo "🟠 ERROR: $skill_dir — missing installed reference: $ref_name"; ((ERRORS++))
     if can_fix safe; then
-      mkdir -p "$(dirname "$installed_ref")"; cp "$src_ref" "$installed_ref"
-      echo "  ✅ FIXED: created $skill_dir/references/$ref_name"; ((FIXED++))
+      if mkdir -p "$(dirname "$installed_ref")" && cp "$src_ref" "$installed_ref"; then
+        echo "  ✅ FIXED: created $skill_dir/references/$ref_name"; ((FIXED++))
+      fi
     fi
     continue
   fi
@@ -600,8 +614,9 @@ for key in "${!REF_PRIORITY[@]}"; do
       echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
-      backup_skill "$INSTALLED_DIR/$skill_dir"; cp "$src_ref" "$installed_ref"
-      echo "  ✅ FIXED: synced $skill_dir/references/$ref_name"; ((FIXED++))
+      if backup_skill "$INSTALLED_DIR/$skill_dir" && cp "$src_ref" "$installed_ref"; then
+        echo "  ✅ FIXED: synced $skill_dir/references/$ref_name"; ((FIXED++))
+      fi
     fi
   fi
 done
@@ -619,7 +634,7 @@ for skill in "${!SKILL_PATH[@]}"; do
   fi
 done
 # Also check reference files (still need find here — refs aren't in the cache)
-for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/null); do
+while IFS= read -r f; do
   skill=$(basename "$(dirname "$(dirname "$f")")")
   ref_name=$(basename "$f")
   if grep -q $'\r' "$f" 2>/dev/null; then
@@ -630,7 +645,7 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/nu
       echo "  ✅ FIXED: converted $skill/references/$ref_name to LF"; ((FIXED++))
     fi
   fi
-done
+done < <(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/null)
 
 # --- Check 18: UTF-8 BOM Detection ---
 for skill in "${!SKILL_PATH[@]}"; do
@@ -653,6 +668,7 @@ _timeout_cmd=""
 command -v timeout &>/dev/null && _timeout_cmd="timeout 10"
 command -v gtimeout &>/dev/null && _timeout_cmd="gtimeout 10"
 declare -A _fetch_ok=()
+if command -v git &>/dev/null; then
 for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
   managed_dir="${managed_entry%%:*}"
   if [[ -d "$managed_dir/.git" ]]; then
@@ -700,7 +716,7 @@ check_stale_checkout() {
       if git -C "$dir" pull --ff-only origin main --quiet 2>/dev/null; then
         echo "  ✅ FIXED: fast-forwarded $label to origin/main"; ((FIXED++))
       else
-        echo "  ⚠️  Could not fast-forward (local changes?). Run: git -C $dir pull"
+        echo "  ⚠️  Could not fast-forward (local changes?). Run: git -C \"$dir\" pull"
       fi
     fi
   fi
@@ -746,7 +762,7 @@ check_dirty_checkout() {
       fi
       if [[ "$stash_ok" == "true" ]]; then
         echo "  ✅ FIXED: stashed local changes as '$stash_msg'"
-        echo "  📦 Recover with: git -C $dir stash pop"; ((FIXED++))
+        echo "  📦 Recover with: git -C \"$dir\" stash pop"; ((FIXED++))
       else
         echo "  ⚠️  Could not stash changes. Resolve manually."
       fi
@@ -765,13 +781,14 @@ for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra
   managed_label="${managed_entry##*:}"
   check_dirty_checkout "$managed_dir" "$managed_label"
 done
+fi  # end: command -v git guard for checks 19/20
 
 # --- Check 21: TODO Archive Smoke Test ---
 # Validates the installed TODO maintenance/archive flow using a temporary fixture.
 # Catches regressions where a small-but-valid TODO with archivable history fails
 # to archive correctly or produces a result exceeding expected size.
 MAINT_SCRIPT="$SCRIPT_DIR/todo-maintenance.sh"
-if { [[ -x "$MAINT_SCRIPT" ]] || [[ -f "$MAINT_SCRIPT" ]]; } && command -v python3 &>/dev/null; then
+if [[ -f "$MAINT_SCRIPT" ]] && command -v python3 &>/dev/null && command -v mktemp &>/dev/null; then
   _doctor_todo_smoke() {
     local fixture_root fixture_todo fixture_env result_json line_count
     fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-todo-smoke-XXXXXX")
@@ -825,7 +842,7 @@ if { [[ -x "$MAINT_SCRIPT" ]] || [[ -f "$MAINT_SCRIPT" ]]; } && command -v pytho
 # METRICS
 FIXTURE
     # Run maintenance in JSON mode against the fixture
-    if ! result_json=$(HOME="$fixture_root/home" "$MAINT_SCRIPT" --json 2>&1); then
+    if ! result_json=$(HOME="$fixture_root/home" bash "$MAINT_SCRIPT" --json 2>&1); then
       echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
       echo "   Output: $(echo "$result_json" | head -3)"
       ((ERRORS++))
