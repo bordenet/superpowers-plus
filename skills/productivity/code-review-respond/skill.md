@@ -1,14 +1,18 @@
 ---
 name: code-review-respond
-description: Code reviewer file protocol — read a structured review request from ~/.codex/superpowers-review/ and write a findings-based response
-triggers: ["I am the reviewer agent", "read the review request", "read request.md", "reviewer agent protocol", "write review response", "superpowers-review respond"]
+description: Use when acting as the reviewer agent for a ~/.codex/superpowers-review/ request.md → response.md file protocol handoff
+triggers: ["I am the reviewer agent", "read request.md", "reviewer agent protocol", "superpowers-review respond"]
 ---
 
 # Code Review — Reviewer Agent File Protocol
 
 You are the code reviewer. Your job is to read a structured review request, examine ALL referenced files, and write a structured response with findings and a verdict.
 
-**Also load `providing-code-review`** for engineering rigor guidance (data flow tracing, blast radius analysis, integration verification). That skill tells you WHAT to check. This skill tells you WHERE to read/write and HOW to structure your findings.
+**Also load `providing-code-review`** for engineering rigor guidance (data flow tracing, blast radius analysis, integration verification). That skill contributes WHAT to check only. **Do not use its output template here** — this protocol's `response.md` template overrides any other output-format guidance.
+
+**Use these distinctive reviewer-side phrases:** `I am the reviewer agent`, `read request.md`, `reviewer agent protocol`, `superpowers-review respond`.
+
+**Do not rely on generic review prompts here.** Bare phrases like `code review` or `perform code review` are intentionally broader and may route to `providing-code-review` instead.
 
 ---
 
@@ -16,7 +20,8 @@ You are the code reviewer. Your job is to read a structured review request, exam
 
 1. **Locate the request.** The user will tell you the path, e.g.:
    `~/.codex/superpowers-review/active/{scope}/request.md`
-   If not specified, list directories in `~/.codex/superpowers-review/active/` and ask which scope to review.
+   - If the supplied `request.md` path is missing or unreadable, stop and tell the user no review has been requested for that scope/path.
+   - If not specified, list directories in `~/.codex/superpowers-review/active/` and ask which scope to review.
 
 2. **Read `request.md` completely.** Note the round number, response path, and review questions.
 
@@ -79,3 +84,4 @@ F3. [file:line] Description...
 4. **If a review question is unanswerable** from the provided files, say so explicitly — don't guess.
 5. **Be harsh.** The requesting agent asked for adversarial review. Earn it. Call out everything — missed edge cases, broken references, semantic drift, over-cutting, under-cutting, stale data, false claims in the request itself.
 6. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
+7. **Use this file's response template.** `providing-code-review` may inform your checklist, but its output format does not replace `# Code Review Response — Round {N}`.
