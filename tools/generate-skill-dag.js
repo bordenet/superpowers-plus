@@ -168,7 +168,7 @@ function getGroupPurpose(group) {
     'commit-gates': 'Quality checks before git commit',
     'wiki-pipeline': 'Wiki authoring quality pipeline',
     'stuck-escalation': 'Getting unstuck when blocked',
-    'completion-gate': 'Verification before claiming done',
+    'completion-gate': 'Verification and TODO maintenance before claiming done',
     'thinking': 'Metacognition and thinking orchestration',
   };
   return purposes[group] || 'Coordinated skill group';

@@ -125,7 +125,8 @@ For each phase from the plan:
 1. Update README/docs if the feature is user-facing
 2. Prepare PR description linking to plan TODOs (create PR only with user approval)
 3. Run all validation tools (harsh-review, trigger-validator, tests)
-4. **Exit gate:** All checks pass, PR ready for user to create/merge.
+4. Run `~/.codex/superpowers-plus/tools/todo-maintenance.sh`
+5. **Exit gate:** All checks pass, TODO maintenance is clean, PR ready for user to create/merge.
 
 ---
 
