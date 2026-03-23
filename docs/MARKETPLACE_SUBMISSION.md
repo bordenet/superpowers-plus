@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 47/47 skills validated |
+| Skills have SKILL.md with frontmatter | ✅ PASS | 58/58 skills validated |
 
 ## Draft Submission
 
@@ -24,22 +24,22 @@
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 47 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 58 skills for wiki, issue tracking, security.
 
 ### Full Description
-superpowers-plus extends Jesse Vincent's obra/superpowers with 47 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 58 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
 - `eliminating-ai-slop`: Generate-Verify-Refine (GVR) loop prevents slop during prose generation. 11 rewriting strategies, interactive and automatic modes, dictionary management.
 
 **Additional Domains:**
-- Engineering (7 skills): pre-commit gates, blast radius checks, PR review, engineering-rigor hub
-- Productivity (11 skills): innovation, TODO management, style enforcement, adversarial search, thinking orchestrator, domain design, skill authoring
-- Wiki management (8 skills): authoring, editing, link verification, secret scanning, content coherence, orchestrator
-- Writing (5 skills): slop detection/elimination, profanity gates, table discipline, README authoring
+- Engineering (15 skills): blast radius, design triad, TDD, code review, systematic debugging, feature lifecycle
+- Productivity (14 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring
+- Writing (7 skills): slop detection/elimination, profanity gates, table discipline, README authoring, skill file authoring
+- Wiki (6 skills): orchestrator pipeline, link checks, credential scanning, fact-checking, content coherence
 - Issue tracking (5 skills): provider-neutral issue-tracker adapters
-- Observability (3 skills): completeness checks, audit validation, repo verification
+- Observability (4 skills): completeness checks, audit validation, repo verification, diagnostics
 - Security (4 skills): CVE scanning, IP protection, instruction guard, repo security scan
 - Research (2 skills): Perplexity integration
 - Experimental (1 skill): self-prompting
@@ -72,15 +72,15 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 47 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 58 skills for wiki, issue tracking, security",
      "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
-     "source": "https://github.com/bordenet/superpowers-plus.git",
      "author": {
        "name": "Matt Bordenet"
      }
    }
    ```
+   > **Note:** Do NOT include `category` or `source` keys — see Known Bug section above.
 4. Open PR with:
    - Title: `Add superpowers-plus to external plugins`
    - Description: Short summary focusing on slop detection differentiation
