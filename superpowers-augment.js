@@ -167,6 +167,8 @@ function extractFrontmatter(filePath) {
         let name = '';
         let description = '';
         let triggers = [];
+        let requires_mcp = [];
+        let mcp_install_hint = '';
         let composition = null;
         let compositionLines = [];
         let compress = true;
@@ -212,6 +214,11 @@ function extractFrontmatter(filePath) {
                     const triggerStr = triggersMatch[1];
                     triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
                 }
+                // Check for requires_mcp array
+                const mcpMatch = line.match(/^requires_mcp:\s*\[(.+)\]/);
+                if (mcpMatch) {
+                    requires_mcp = mcpMatch[1].match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                }
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
                     const key = match[1];
@@ -219,14 +226,32 @@ function extractFrontmatter(filePath) {
                     if (key === 'name') name = value.trim();
                     if (key === 'description') description = value.trim();
                     if (key === 'compress' && value.trim() === 'false') compress = false;
+                    if (key === 'mcp_install_hint') mcp_install_hint = value.trim();
                 }
             }
         }
-        return { name, description, triggers, composition, compress };
+        return { name, description, triggers, requires_mcp, mcp_install_hint, composition, compress };
     } catch (error) {
-        return { name: '', description: '', triggers: [], composition: null, compress: true };
+        return { name: '', description: '', triggers: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
     }
 }
+
+/**
+ * Check if required MCP servers are registered in ~/.augment/settings.json.
+ * Returns array of missing server names (empty = all good).
+ */
+function checkMcpPrerequisites(requiredServers) {
+    if (!requiredServers || requiredServers.length === 0) return [];
+    const settingsPath = path.join(homeDir, '.augment', 'settings.json');
+    try {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        const registered = Object.keys(settings.mcpServers || {});
+        return requiredServers.filter(s => !registered.includes(s));
+    } catch (_) {
+        return requiredServers; // Can't read settings → assume all missing
+    }
+}
+
 
 function findSkillFile(dir) {
     const candidates = ['SKILL.md', 'skill.md'];
@@ -518,6 +543,21 @@ function useSkill(skillName, options = {}) {
     const stripped = stripFrontmatter(content);
     // Respect per-skill compress: false frontmatter opt-out
     const fm = extractFrontmatter(skillFile);
+
+    // Check MCP prerequisites before loading skill content
+    const missingMcp = checkMcpPrerequisites(fm.requires_mcp);
+    if (missingMcp.length > 0) {
+        console.error('');
+        console.error('⚠️  MISSING MCP SERVER' + (missingMcp.length > 1 ? 'S' : '') + ': ' + missingMcp.join(', '));
+        console.error('This skill requires MCP server' + (missingMcp.length > 1 ? 's' : '') + ' not registered in ~/.augment/settings.json.');
+        if (fm.mcp_install_hint) {
+            console.error('');
+            console.error('Install: bash ' + fm.mcp_install_hint.replace(/^~/, homeDir));
+        }
+        console.error('Then restart your IDE to load the new MCP server.');
+        console.error('');
+    }
+
     const compressed = fm.compress === false ? stripped : compressSkillContent(stripped);
     const transformed = transformOutput(compressed);
     console.log('# Skill: ' + skillName + '\n');
