@@ -408,6 +408,8 @@ main() {
         upgrade_existing
         # Reinstall personal skills, rules, templates after upgrade
         install_skills
+        create_dir "$HOME/.codex/superpowers-review/active"
+        create_dir "$HOME/.codex/superpowers-review/archive"
         post_install_migrations
         install_rules
         install_templates
@@ -437,6 +439,10 @@ main() {
 
     # Install skills
     install_skills
+
+    # Create code review protocol directory
+    create_dir "$HOME/.codex/superpowers-review/active"
+    create_dir "$HOME/.codex/superpowers-review/archive"
 
     # Run migrations (clean stale overrides, detect orphaned TODO.md)
     post_install_migrations
