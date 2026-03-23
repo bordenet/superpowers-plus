@@ -41,8 +41,15 @@ SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
 SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 [[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && SOURCE_DIRS+=("$SP_OVERLAY_DIR")
-COMPARE_DIRS=("$SP_PLUS_DIR")
-[[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && COMPARE_DIRS+=("$SP_OVERLAY_DIR")
+# Auto-discover additional overlay sources: any *_SOURCE_DIR env var in .env
+# (e.g., MYTEAM_SOURCE_DIR="/path/to/superpowers-myteam")
+while IFS='=' read -r varname varval; do
+  [[ "$varname" == "SPP_SOURCE_DIR" || "$varname" == "SPC_SOURCE_DIR" ]] && continue
+  [[ "$varname" =~ _SOURCE_DIR$ ]] || continue
+  _dir="${varval//\"/}"
+  [[ -n "$_dir" && -d "$_dir" ]] && SOURCE_DIRS+=("$_dir")
+done < <(grep '_SOURCE_DIR=' "$HOME/.codex/.env" 2>/dev/null || true)
+COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
 # Managed checkout paths (git repos maintained by install.sh)
 MANAGED_SPP_DIR="$HOME/.codex/superpowers-plus"
@@ -366,13 +373,17 @@ KNOWN_COLLISION_GROUPS=(
   "security-upgrade repo-security-scan"
 )
 
-OVERLAY_COLLISION_GROUPS_FILE="${SP_OVERLAY_DIR:-}/tools/doctor-known-collision-groups.txt"
-if [[ -n "${SP_OVERLAY_DIR:-}" && -f "$OVERLAY_COLLISION_GROUPS_FILE" ]]; then
-  while IFS= read -r group; do
-    [[ -z "$group" || "$group" =~ ^# ]] && continue
-    KNOWN_COLLISION_GROUPS+=("$group")
-  done < "$OVERLAY_COLLISION_GROUPS_FILE"
-fi
+# Load overlay collision groups from all overlay source dirs
+for _overlay_dir in "${SOURCE_DIRS[@]}"; do
+  [[ "$_overlay_dir" == "$SP_PLUS_DIR" ]] && continue  # base, not overlay
+  _cg_file="${_overlay_dir}/tools/doctor-known-collision-groups.txt"
+  if [[ -f "$_cg_file" ]]; then
+    while IFS= read -r group; do
+      [[ -z "$group" || "$group" =~ ^# ]] && continue
+      KNOWN_COLLISION_GROUPS+=("$group")
+    done < "$_cg_file"
+  fi
+done
 
 # Build a lookup: for each skill, which group index it belongs to
 declare -A skill_group
