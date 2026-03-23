@@ -52,6 +52,55 @@ write_large_todo() {
   } > "$path"
 }
 
+write_small_valid_todo() {
+  local path="$1"
+  cat > "$path" <<'EOF'
+# ACTIVE TASKS
+
+## P1 - Today
+
+- [ ] [20260322-10] Keep one active task #misc
+  - Added: 2026-03-22
+
+## P2 - This Week
+
+## P3 - Backlog
+
+---
+
+# HISTORY
+
+## 2026-03-01
+- [x] [20260301-01] Done one #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T10:00:00
+
+- [x] [20260301-02] Done two #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T11:00:00
+
+- [x] [20260301-03] Done three #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T12:00:00
+
+- [x] [20260301-04] Done four #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T13:00:00
+
+- [x] [20260301-05] Done five #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T14:00:00
+
+---
+
+# DEFERRED
+
+---
+
+# METRICS
+EOF
+}
+
 test_duplicate_archive_entries_are_not_readded() {
   local root output todo history_count
   root=$(make_fixture)
@@ -120,7 +169,22 @@ EOF
   [[ "$index_line" == '> Total archived: 4 tasks across 2 months' ]] || fail "unexpected index summary: $index_line"
 }
 
+test_small_valid_todo_archives_successfully() {
+  local root output line_count history_count
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+  output=$(HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) || fail "small valid todo should archive without aborting"
+  [[ "$output" != *'🛑 ABORT'* ]] || fail 'small valid todo should not hit the rebuild size abort'
+  line_count=$(wc -l < "$root/data/default.md" | tr -d ' ')
+  (( line_count < 50 )) || fail "expected archived small TODO to remain under 50 lines, found $line_count"
+  [[ -f "$root/data/todo-archives/INDEX.md" ]] || fail 'archive index should be created for small valid todo'
+  grep -q '\[20260322-10\]' "$root/data/default.md" || fail 'active task should be preserved after archive'
+  history_count=$(awk '/^# HISTORY/{flag=1;next}/^# DEFERRED/{flag=0} flag' "$root/data/default.md" | grep -cE '^- \[(x|-)\]' || true)
+  [[ "$history_count" == "0" ]] || fail "expected 0 history tasks after forced archive, found $history_count"
+}
+
 test_duplicate_archive_entries_are_not_readded
 test_explicit_todo_file_path_overrides_env_default
 test_index_total_counts_all_archive_files
+test_small_valid_todo_archives_successfully
 echo 'PASS: todo-archive regression tests'
