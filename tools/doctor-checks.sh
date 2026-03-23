@@ -83,7 +83,57 @@ backup_skill() {
   fi
 }
 
-TOTAL_SKILLS=$(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null | wc -l | tr -d ' ')
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRE-CACHE: One pass over all installed skills. Parse once, check many times.
+# ═══════════════════════════════════════════════════════════════════════════════
+declare -a ALL_SKILL_FILES=()        # Ordered list of skill.md paths
+declare -A SKILL_PATH=()             # skill name → file path
+declare -A SKILL_YAML=()             # skill name → YAML frontmatter block
+declare -A SKILL_LINES=()            # skill name → line count
+declare -A SKILL_YAML_NAME=()        # skill name → name: value from YAML
+declare -A SKILL_HAS_TRIGGERS=()     # skill name → "yes" | ""
+declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
+declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
+declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
+declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
+declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 30 lines
+declare -A SKILL_BODY_START=()       # skill name → line number where body starts
+declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
+
+while IFS= read -r f; do
+  ALL_SKILL_FILES+=("$f")
+  skill=$(basename "$(dirname "$f")")
+  SKILL_PATH[$skill]="$f"
+
+  # Read file once, extract everything we need
+  SKILL_LINES[$skill]=$(wc -l < "$f" | tr -d ' ')
+  SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
+  SKILL_DELIM_COUNT[$skill]=$(head -30 "$f" | grep -c "^---$" || true)
+  SKILL_HAS_BOM[$skill]=""
+  [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
+  SKILL_HAS_CRLF[$skill]=""
+  grep -qP '\r$' "$f" 2>/dev/null && SKILL_HAS_CRLF[$skill]="yes"
+
+  # Parse YAML block (once per skill instead of 6+ times)
+  if [[ "${SKILL_FIRST_LINE[$skill]}" == "---" && "${SKILL_DELIM_COUNT[$skill]}" -ge 2 ]]; then
+    SKILL_YAML_VALID[$skill]="yes"
+    yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
+    SKILL_YAML[$skill]="$yaml_block"
+    SKILL_YAML_NAME[$skill]=$(echo "$yaml_block" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
+    triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
+    if [[ -n "$triggers_line" ]] && ! echo "$triggers_line" | grep -qE 'triggers: \[\]|triggers:$'; then
+      SKILL_HAS_TRIGGERS[$skill]="yes"
+    fi
+    SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
+    SKILL_BODY_START[$skill]=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{found++; print NR; exit}' "$f")
+  else
+    SKILL_YAML_VALID[$skill]=""
+    SKILL_YAML[$skill]=""
+    SKILL_YAML_NAME[$skill]=""
+  fi
+done < <(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null | sort)
+
+TOTAL_SKILLS=${#ALL_SKILL_FILES[@]}
 
 # In --summary-only mode, suppress individual findings (redirect to /dev/null)
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
@@ -94,8 +144,6 @@ echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (22 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
-# On WSL, skills installed under /mnt/c/... are on NTFS where chmod is silently
-# ignored and file permissions may not work as expected.
 if [[ -f /proc/version ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null; then
   case "$INSTALLED_DIR" in
     /mnt/[a-z]/*)
@@ -108,37 +156,30 @@ if [[ -f /proc/version ]] && grep -qi "microsoft\|wsl" /proc/version 2>/dev/null
 fi
 
 # --- Check 1: Malformed YAML Frontmatter ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  first_line=$(head -1 "$f")
-  if [[ "$first_line" != "---" ]]; then
+for skill in "${!SKILL_PATH[@]}"; do
+  if [[ "${SKILL_FIRST_LINE[$skill]}" != "---" ]]; then
     echo "🔴 CRITICAL: $skill — missing opening --- delimiter"; ((CRITICAL++)); continue
   fi
-  delimiter_count=$(head -30 "$f" | grep -c "^---$" || true)
-  if [[ "$delimiter_count" -lt 2 ]]; then
+  if [[ "${SKILL_DELIM_COUNT[$skill]}" -lt 2 ]]; then
     echo "🔴 CRITICAL: $skill — missing closing --- delimiter"; ((CRITICAL++)); continue
   fi
-  yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
-  echo "$yaml_block" | grep -q "^name:" || { echo "🔴 CRITICAL: $skill — missing name: field"; ((CRITICAL++)); }
+  echo "${SKILL_YAML[$skill]}" | grep -q "^name:" || { echo "🔴 CRITICAL: $skill — missing name: field"; ((CRITICAL++)); }
 done
 
 # --- Check 2: Empty/Stub Skills ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  lines=$(wc -l < "$f" | tr -d ' ')
-  skill=$(basename "$(dirname "$f")")
-  [[ "$lines" -lt 10 ]] && { echo "🔴 CRITICAL: $skill — $lines lines (stub)"; ((CRITICAL++)); }
+for skill in "${!SKILL_LINES[@]}"; do
+  [[ "${SKILL_LINES[$skill]}" -lt 10 ]] && { echo "🔴 CRITICAL: $skill — ${SKILL_LINES[$skill]} lines (stub)"; ((CRITICAL++)); }
 done
 
 # --- Check 3: Name Mismatch ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  dir_name=$(basename "$(dirname "$f")")
-  yaml_name=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
-  if [[ -n "$yaml_name" && "$yaml_name" != "$dir_name" ]]; then
-    echo "🔴 CRITICAL: $dir_name — name: '$yaml_name' ≠ directory '$dir_name'"; ((CRITICAL++))
+for skill in "${!SKILL_YAML_NAME[@]}"; do
+  yaml_name="${SKILL_YAML_NAME[$skill]}"
+  if [[ -n "$yaml_name" && "$yaml_name" != "$skill" ]]; then
+    echo "🔴 CRITICAL: $skill — name: '$yaml_name' ≠ directory '$skill'"; ((CRITICAL++))
     if can_fix safe; then
-      backup_skill "$(dirname "$f")"
-      sed_inplace "s/^name:.*$/name: $dir_name/" "$f"
-      echo "  ✅ FIXED: name → '$dir_name'"; ((FIXED++))
+      backup_skill "$(dirname "${SKILL_PATH[$skill]}")"
+      sed_inplace "s/^name:.*$/name: $skill/" "${SKILL_PATH[$skill]}"
+      echo "  ✅ FIXED: name → '$skill'"; ((FIXED++))
     fi
   fi
 done
@@ -168,8 +209,8 @@ done
 # Skips: fenced code blocks, directory tree diagrams, and inline prose mentions.
 # For examples.md/reference.md: only flags action directives (See/Read/Load/view/link syntax).
 # For references/*.md and modules/*.md: flags any non-code-block mention.
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")"); skill_dir=$(dirname "$f")
+for skill in "${!SKILL_PATH[@]}"; do
+  f="${SKILL_PATH[$skill]}"; skill_dir=$(dirname "$f")
   # 1. Structural paths (references/, modules/) — any mention outside code blocks
   #    Also skips opt-in files (lines containing "Opt-in" or "Create" before the reference)
   #    For modules/: also checks _shared/ dirs and installed modules dir as fallback.
@@ -201,28 +242,29 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
 done
 
 # --- Check 6: Oversized Skills ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  lines=$(wc -l < "$f" | tr -d ' '); skill=$(basename "$(dirname "$f")")
-  [[ "$lines" -gt 250 ]] && { echo "🟠 ERROR: $skill — $lines lines (limit: 250)"; ((ERRORS++)); }
+for skill in "${!SKILL_LINES[@]}"; do
+  [[ "${SKILL_LINES[$skill]}" -gt 250 ]] && { echo "🟠 ERROR: $skill — ${SKILL_LINES[$skill]} lines (limit: 250)"; ((ERRORS++)); }
 done
 
 # --- Check 7: Missing Description ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
-  echo "$yaml_block" | grep -q "^description:" || { echo "🟠 ERROR: $skill — no description:"; ((ERRORS++)); }
+for skill in "${!SKILL_YAML[@]}"; do
+  [[ -z "${SKILL_YAML_VALID[$skill]:-}" ]] && continue
+  echo "${SKILL_YAML[$skill]}" | grep -q "^description:" || { echo "🟠 ERROR: $skill — no description:"; ((ERRORS++)); }
 done
 
 # --- Check 8: Orphaned Installs ---
+# Precompute all source skill names (one find per source dir, not per installed skill)
+declare -A _source_skill_names=()
+for dir in "${SOURCE_DIRS[@]}"; do
+  search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  while IFS= read -r sd; do
+    _source_skill_names[$(basename "$sd")]=1
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null)
+done
 for installed in $(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null); do
   skill=$(basename "$installed")
   [[ "$skill" == "_shared" || "$skill" == "doctor-backups" ]] && continue
-  found=false
-  for dir in "${SOURCE_DIRS[@]}"; do
-    search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
-    find "$search_root" -type d -name "$skill" 2>/dev/null | grep -q . && { found=true; break; }
-  done
-  if [[ "$found" == "false" ]]; then
+  if [[ -z "${_source_skill_names[$skill]:-}" ]]; then
     echo "🟠 ERROR: $skill — orphaned install"; ((ERRORS++))
     if can_fix moderate; then
       backup_skill "$installed"; rm -rf "$installed"
@@ -280,11 +322,8 @@ done
 VALIDATOR="$SP_PLUS_DIR/tools/skill-trigger-validator.sh"
 EXPLICIT_LIST=""
 [[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(grep -A50 "^EXPLICIT_SKILLS=" "$VALIDATOR" 2>/dev/null | grep '^\s*"' | sed 's/#.*//' | tr -d ' "' || echo "")
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
-  has_triggers=$(echo "$yaml_block" | grep "^triggers:" | grep -v 'triggers: \[\]' | grep -v 'triggers:$' || true)
-  if [[ -z "$has_triggers" ]] && ! echo "$EXPLICIT_LIST" | grep -q "^${skill}$"; then
+for skill in "${!SKILL_PATH[@]}"; do
+  if [[ -z "${SKILL_HAS_TRIGGERS[$skill]:-}" ]] && ! echo "$EXPLICIT_LIST" | grep -q "^${skill}$"; then
     echo "🟡 WARNING: $skill — no triggers and not in EXPLICIT_SKILLS"; ((WARNINGS++))
   fi
 done
@@ -342,10 +381,10 @@ in_same_group() {
 }
 
 declare -A trigger_map
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  triggers=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f" | grep "^triggers:" | \
-    sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' || true)
+for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
+  triggers_line="${SKILL_TRIGGERS_RAW[$skill]}"
+  [[ -z "$triggers_line" ]] && continue
+  triggers=$(echo "$triggers_line" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' || true)
   while IFS= read -r trigger; do
     [[ -z "$trigger" ]] && continue
     lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
@@ -373,19 +412,19 @@ done
 # --- Check 12: Deprecated But Active ---
 # Only flag skills where deprecation is structural (frontmatter or prominent body marker),
 # not incidental mentions of the word "deprecated" in unrelated content.
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
+for skill in "${!SKILL_PATH[@]}"; do
+  f="${SKILL_PATH[$skill]}"
+  yaml_block="${SKILL_YAML[$skill]}"
   # Check frontmatter for deprecated: true
   is_deprecated=false
   echo "$yaml_block" | grep -qi "^deprecated:" && is_deprecated=true
   # Check first 10 lines after frontmatter for prominent deprecation markers
   if [[ "$is_deprecated" == "false" ]]; then
-    body_start=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{found++; print NR; exit}' "$f")
+    body_start="${SKILL_BODY_START[$skill]:-}"
     [[ -n "$body_start" ]] && head -n $((body_start + 10)) "$f" | tail -n 10 | grep -qiE '^\s*>.*deprecated|^#.*deprecated|replaced by|superseded by' && is_deprecated=true
   fi
   if [[ "$is_deprecated" == "true" ]]; then
-    has_triggers=$(echo "$yaml_block" | grep "^triggers:" | grep -v 'triggers: \[\]' || true)
+    has_triggers="${SKILL_HAS_TRIGGERS[$skill]:-}"
     if [[ -n "$has_triggers" ]]; then
       echo "🟡 WARNING: $skill — deprecated but has triggers"; ((WARNINGS++))
       if can_fix moderate; then
@@ -399,29 +438,33 @@ done
 
 # --- Check 13: Dead File Path References ---
 # Lines containing "doctor-ignore" are suppressed (runtime-only paths, examples, etc.)
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  # Extract all lines with paths, excluding doctor-ignore lines and code blocks
-  in_code_block=false
-  while IFS= read -r line; do
-    [[ -z "$line" ]] && continue
-    # Toggle code block state on fenced code markers
-    if echo "$line" | grep -qE '^```'; then
-      if [[ "$in_code_block" == true ]]; then in_code_block=false; else in_code_block=true; fi
-      continue
-    fi
-    [[ "$in_code_block" == true ]] && continue
-    echo "$line" | grep -qi "doctor-ignore" && continue
-    # Skip lines where paths appear only inside inline backticks (documentation references)
-    # or inside table cells with backtick-wrapped commands
-    # shellcheck disable=SC2016  # regex intentionally matches literal backtick-wrapped ~/paths
-    echo "$line" | grep -qE '`[^`]*~/[a-zA-Z0-9_./-]+[^`]*`' && continue
-    while read -r path; do
-      [[ -z "$path" ]] && continue
-      expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
-      [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
-    done < <(echo "$line" | grep -oE '(~/[a-zA-Z0-9_./-]+|/Users/[a-zA-Z0-9_./-]+)')
-  done < "$f"
+# Uses a single awk pass per file to extract candidate paths, avoiding per-line subshells.
+for skill in "${!SKILL_PATH[@]}"; do
+  f="${SKILL_PATH[$skill]}"
+  # awk extracts unique ~/... and /Users/... paths from non-code-block, non-ignored lines
+  # that don't have the path wrapped in backticks
+  while IFS= read -r path; do
+    [[ -z "$path" ]] && continue
+    expanded=$(eval echo "$path" 2>/dev/null || echo "$path")
+    [[ ! -e "$expanded" ]] && { echo "🟡 WARNING: $skill — path '$path' does not exist"; ((WARNINGS++)); }
+  done < <(awk '
+    /^```/ { code=!code; next }
+    code { next }
+    /[Dd]octor-ignore/ { next }
+    {
+      line = $0
+      # Skip lines where path appears only inside backtick pairs
+      if (index(line, "`") > 0) {
+        tmp = line; gsub(/`[^`]*`/, "", tmp)
+        if (index(tmp, "~/") == 0 && index(tmp, "/Users/") == 0) next
+      }
+      while (match(line, /~\/[a-zA-Z0-9_.\/-]+/) || match(line, /\/Users\/[a-zA-Z0-9_.\/-]+/)) {
+        p = substr(line, RSTART, RLENGTH)
+        if (!(p in seen)) { seen[p]=1; print p }
+        line = substr(line, RSTART + RLENGTH)
+      }
+    }
+  ' "$f")
 done
 
 # --- Check 14: Junk Files ---
@@ -452,8 +495,8 @@ for dir in "${SOURCE_DIRS[@]}"; do
 done
 
 # --- Check 15: Structure Quality ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")"); issues=""
+for skill in "${!SKILL_PATH[@]}"; do
+  f="${SKILL_PATH[$skill]}"; issues=""
   grep -qi "when to use\|when to invoke" "$f" || issues="${issues}missing 'When to Use'; "
   grep -q '```' "$f" || issues="${issues}no code examples; "
   grep -qi "failure\|fix:\|recovery\|troubleshoot" "$f" || issues="${issues}no failure modes; "
@@ -557,9 +600,9 @@ for key in "${!REF_PRIORITY[@]}"; do
 done
 
 # --- Check 17: CRLF Line Ending Detection ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  if grep -q $'\r' "$f" 2>/dev/null; then
+for skill in "${!SKILL_PATH[@]}"; do
+  if [[ -n "${SKILL_HAS_CRLF[$skill]:-}" ]]; then
+    f="${SKILL_PATH[$skill]}"
     echo "🟠 ERROR: $skill — CRLF line endings detected"; ((ERRORS++))
     if can_fix safe; then
       backup_skill "$(dirname "$f")" || continue
@@ -568,11 +611,11 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/refe
     fi
   fi
 done
-# Also check reference files
+# Also check reference files (still need find here — refs aren't in the cache)
 for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/null); do
   skill=$(basename "$(dirname "$(dirname "$f")")")
   ref_name=$(basename "$f")
-  if grep -q $'\r' "$f" 2>/dev/null; then
+  if grep -qP '\r$' "$f" 2>/dev/null; then
     echo "🟠 ERROR: $skill/references/$ref_name — CRLF line endings"; ((ERRORS++))
     if can_fix safe; then
       backup_skill "$INSTALLED_DIR/$skill" || continue
@@ -583,14 +626,12 @@ for f in $(find "$INSTALLED_DIR" -maxdepth 3 -path "*/references/*.md" 2>/dev/nu
 done
 
 # --- Check 18: UTF-8 BOM Detection ---
-for f in $(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null); do
-  skill=$(basename "$(dirname "$f")")
-  # Check for BOM bytes (EF BB BF) at start of file
-  if [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]]; then
+for skill in "${!SKILL_PATH[@]}"; do
+  if [[ -n "${SKILL_HAS_BOM[$skill]:-}" ]]; then
+    f="${SKILL_PATH[$skill]}"
     echo "🟡 WARNING: $skill — UTF-8 BOM detected (breaks YAML parsing)"; ((WARNINGS++))
     if can_fix safe; then
       backup_skill "$(dirname "$f")" || continue
-      # Strip BOM: skip first 3 bytes
       tail -c +4 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
       echo "  ✅ FIXED: stripped BOM from $skill"; ((FIXED++))
     fi
@@ -600,16 +641,32 @@ done
 
 # --- Check 19: Stale Managed Checkout ---
 # Detect when ~/.codex/superpowers-plus is behind origin/main.
-# Only runs if the managed checkout exists and is a git repo.
+# Parallel pre-fetch: kick off both git fetches concurrently to cut network wait in half
+_timeout_cmd=""
+command -v timeout &>/dev/null && _timeout_cmd="timeout 10"
+command -v gtimeout &>/dev/null && _timeout_cmd="gtimeout 10"
+declare -A _fetch_ok=()
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+  managed_dir="${managed_entry%%:*}"
+  if [[ -d "$managed_dir/.git" ]]; then
+    # shellcheck disable=SC2086
+    $_timeout_cmd git -C "$managed_dir" fetch origin --quiet 2>/dev/null &
+    _fetch_ok[$managed_dir]=$!
+  fi
+done
+# Wait for all fetches to complete
+for dir in "${!_fetch_ok[@]}"; do
+  if ! wait "${_fetch_ok[$dir]}" 2>/dev/null; then
+    _fetch_ok[$dir]="failed"
+  else
+    _fetch_ok[$dir]="ok"
+  fi
+done
+
 check_stale_checkout() {
   local dir="$1" label="$2"
   [[ -d "$dir/.git" ]] || return 0
-  # Fetch silently (with timeout to avoid hanging on unreachable remotes)
-  local _timeout_cmd=""
-  command -v timeout &>/dev/null && _timeout_cmd="timeout 10"
-  command -v gtimeout &>/dev/null && _timeout_cmd="gtimeout 10"
-  # shellcheck disable=SC2086  # _timeout_cmd must word-split
-  if ! $_timeout_cmd git -C "$dir" fetch origin --quiet 2>/dev/null; then
+  if [[ "${_fetch_ok[$dir]:-}" == "failed" ]]; then
     echo "🟡 WARNING: $label — could not fetch origin (network issue?)"; ((WARNINGS++))
     return 0
   fi
