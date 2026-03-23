@@ -52,3 +52,23 @@ composition:
 HIGH severity → present report, ask user before publishing. Otherwise → log and continue pipeline.
 
 **Scope:** Single-page only. Skip pages <500 words. Abort >10,000 words.
+
+
+## When to Use
+
+- Automatically during wiki-orchestrator Stage 2.5 (between Content Generation and Link Verification)
+- When reviewing a wiki page that was assembled from multiple sources
+- When consolidating duplicate wiki pages into one
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Low similarity threshold misses near-duplicates | Tune Jaccard threshold — skill uses 0.40+ (LOW), 0.60+ (MEDIUM), 0.80+ (HIGH) |
+| False positive on intentional repetition (e.g., repeated warnings) | Whitelist known repeated-by-design sections |
+| Structural defects not caught by TF-IDF | Pair with manual review for layout/flow issues |
+
+```bash
+# Example: run coherence check on a wiki page
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-content-coherence
+```

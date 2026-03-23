@@ -38,3 +38,23 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 ## Reference Files
 
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
+
+
+## When to Use
+
+- Before building new features — generate radical alternatives to the obvious approach
+- When brainstorming is yielding incremental ideas — force 10x thinking
+- When evaluating whether to build vs buy vs integrate
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Ideas too abstract to act on | Require concrete "next-week experiment" for each idea |
+| Scoring bias toward familiar approaches | Weight novelty explicitly in impact/feasibility matrix |
+| Innovation theater — big ideas with no follow-through | Gate: each idea must have a testable hypothesis |
+
+```bash
+# Example: invoke innovation for a feature
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill innovation
+```

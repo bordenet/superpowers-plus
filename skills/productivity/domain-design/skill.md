@@ -62,3 +62,22 @@ Three rounds of diverge (brainstorm) → converge (harsh review), bookended by r
 ## Post-Design Gate
 
 Before reporting "design complete": wiki design doc published, tracking page updated, all blocker tickets filed with links in both docs.
+
+## When to Use
+
+- When planning a new superpowers skill family from scratch
+- When evaluating whether a domain needs 1 skill or 5+
+- When designing the architecture of a related skill group
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Design produces too many skills (scope creep) | Enforce P0-only delivery — defer P1+ to backlog |
+| Missing infrastructure requirements (tools, APIs) | Infrastructure map is mandatory output — blockers stop design |
+| Design never converges after harsh review | Cap at 3 review rounds — escalate to user for tiebreak |
+
+```bash
+# Example: design a new skill domain
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill domain-design
+```

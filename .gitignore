@@ -71,3 +71,4 @@ skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 # Local-only IP patterns for pre-commit/pre-push scanning
 .ip-patterns
 .ip-check-patterns
+__pycache__/
