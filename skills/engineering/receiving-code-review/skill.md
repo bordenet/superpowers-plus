@@ -8,6 +8,7 @@ overrides: superpowers/receiving-code-review
 # the "fix the disease not the symptoms" workflow.
 triggers: ["received code review", "PR feedback", "reviewer commented", "code review feedback", "implement review suggestions", "address review comments"]
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+summary: "Use when: implementing PR feedback. Skip when: the feedback is a simple typo fix."
 ---
 # Code Review Reception
 

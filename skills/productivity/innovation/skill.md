@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["innovate", "innovation mode", "what's the boldest move", "radical improvement", "breakthrough idea", "game-changing", "most impactful change", "10x improvement", "transform this project", "moonshot", "blue sky thinking", "disruptive idea", "reimagine", "step-change", "new business model", "greenfield idea", "what if we started from scratch", "rethink architecture", "paradigm shift", "new product idea", "strategic pivot", "what would a world-class team do"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
 description: INVOKE when user explicitly seeks transformative, 10x-level ideas — product innovations, architectural paradigm shifts, or new business models. NOT for incremental improvements, bug fixes, or feature requests. Outputs ranked ideas with effort/impact scores and concrete next-week prototypes.
+summary: "Use when: user seeks transformative 10x ideas. Skip when: incremental improvements or bug fixes."
 version: 2.0
 ---
 

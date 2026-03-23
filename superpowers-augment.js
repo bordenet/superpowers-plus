@@ -370,7 +370,7 @@ function showHighCostWarningOnce(skillName) {
     try { fs.writeFileSync(markerFile, new Date().toISOString()); } catch { /* best effort */ }
 }
 
-function useSkill(skillName) {
+function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
         console.error('Usage: superpowers-augment use-skill <skill-name>');
@@ -478,6 +478,31 @@ function useSkill(skillName) {
     }
     showHighCostWarningOnce(actualName);
     const content = fs.readFileSync(skillFile, 'utf8');
+
+    if (options.probe) {
+        // Probe mode: output only the summary field from frontmatter
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+            const fm = fmMatch[1];
+            const summaryMatch = fm.match(/^summary:\s*(.+)$/m) ||
+                                 fm.match(/^summary:\s*>\s*\n((?:\s+.+\n?)*)/m);
+            const descMatch = fm.match(/^description:\s*(.+)$/m) ||
+                              fm.match(/^description:\s*"(.+)"$/m);
+            const summary = summaryMatch ? (summaryMatch[1] || summaryMatch[2] || '').trim() : null;
+            const desc = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : null;
+            console.log(`# Probe: ${skillName}`);
+            if (summary) {
+                console.log(`\n${summary}`);
+            } else if (desc) {
+                console.log(`\n${desc}`);
+            } else {
+                console.log('\nNo summary available. Use `use-skill ' + skillName + '` to load full skill.');
+            }
+            console.log(`\nLoad full skill? \`use-skill ${skillName}\``);
+        }
+        return;
+    }
+
     const stripped = stripFrontmatter(content);
     const transformed = transformOutput(stripped);
     console.log('# Skill: ' + skillName + '\n');
@@ -487,19 +512,33 @@ function useSkill(skillName) {
 
 function bootstrap() {
     console.log('# Superpowers Bootstrap\n');
-    console.log('Loading skill system for Augment Code...\n');
     writeSessionMarker();
     const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
     if (usingSuperpowersFile) {
         const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
         const stripped = stripFrontmatter(content);
-        // Strip DOT graph blocks (```dot ... ```) — not renderable in text
-        const noDotGraph = stripped.replace(/```dot[\s\S]*?```/g, '');
-        const transformed = transformOutput(noDotGraph);
+        // Strip sections that add context overhead without proportional value:
+        // 1. DOT graph blocks (not renderable in text)
+        // 2. Red Flags table (12 rows of rationalizations — replace with 1-line heuristic)
+        // 3. Platform-specific sections (Claude Code, Gemini CLI) — Augment handles its own tool mapping
+        // 4. EXTREMELY-IMPORTANT wrappers — keep the rule, strip the wrapper
+        // 5. SUBAGENT-STOP block — compress to 1 line
+        let optimized = stripped;
+        optimized = optimized.replace(/```dot[\s\S]*?```/g, '');
+        optimized = optimized.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
+        optimized = optimized.replace(/<SUBAGENT-STOP>\n?[\s\S]*?<\/SUBAGENT-STOP>/g,
+            '> Subagents dispatched for specific tasks: skip this skill.\n');
+        // Replace Red Flags table with compact heuristic
+        optimized = optimized.replace(/## Red Flags[\s\S]*?(?=## Skill Priority)/,
+            '## Red Flags\n\nIf you catch yourself thinking "I don\'t need a skill for this" — that\'s the signal you do. Check first, rationalize never.\n\n');
+        // Strip platform-specific access sections
+        optimized = optimized.replace(/## How to Access Skills[\s\S]*?(?=## Platform Adaptation|# Using Skills)/, '');
+        optimized = optimized.replace(/## Platform Adaptation[\s\S]*?(?=# Using Skills)/, '');
+        const transformed = transformOutput(optimized);
         console.log(transformed);
         console.log('\n---\n');
     }
-    // Compact catalog: names only (descriptions available via find-skills)
+    // Compact catalog: count + pointer only (not 88 names inline)
     findSkillsCompact();
 
 }
@@ -518,12 +557,8 @@ function findSkillsCompact() {
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
 
-    console.log(`🦸 ${superpowers.length} superpowers (auto-triggered): ` +
-        superpowers.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
-    console.log(`\n🔧 ${explicitSkills.length} explicit skills: ` +
-        explicitSkills.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
-    console.log('\nUse `find-skills` for descriptions. Use `use-skill <name>` to load a skill.');
-    console.log(`\nSummary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
+    console.log(`🦸 ${superpowers.length} superpowers + 🔧 ${explicitSkills.length} explicit skills = ${deduped.length} total.`);
+    console.log('Use `find-skills` for full catalog. Use `use-skill <name>` to load.');
 }
 
 
@@ -533,7 +568,12 @@ const args = process.argv.slice(3);
 
 switch (command) {
     case 'bootstrap': bootstrap(); break;
-    case 'use-skill': useSkill(args[0]); break;
+    case 'use-skill': {
+        const probeMode = args[0] === '--probe';
+        const skillArg = probeMode ? args[1] : args[0];
+        useSkill(skillArg, { probe: probeMode });
+        break;
+    }
     case 'find-skills': findSkills(args[0] || 'all'); break;
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;

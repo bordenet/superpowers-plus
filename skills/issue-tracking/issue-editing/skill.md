@@ -3,6 +3,7 @@ name: issue-editing
 source: superpowers-plus
 triggers: ["update ticket", "edit issue", "change status of", "assign issue to", "add label to issue"]
 description: Use when updating issues in your project tracker. Enforces fetch-before-edit workflow to prevent stale updates, validates field changes, detects concurrent modifications.
+summary: "Use when: updating existing issues. Skip when: creating new issues."
 ---
 
 # Issue Editing

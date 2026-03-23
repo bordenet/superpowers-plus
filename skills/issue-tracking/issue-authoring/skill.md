@@ -3,6 +3,7 @@ name: issue-authoring
 source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
+summary: "Use when: creating issues in any tracker. Skip when: updating existing issues."
 ---
 
 # Issue Authoring

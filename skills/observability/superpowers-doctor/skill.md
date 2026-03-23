@@ -3,6 +3,7 @@ name: superpowers-doctor
 source: superpowers-plus
 triggers: ["superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
 description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 18 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, and structural defects. Modeled after brew doctor."
+summary: "Use when: diagnosing skill installation or configuration issues."
 ---
 
 # Superpowers Doctor

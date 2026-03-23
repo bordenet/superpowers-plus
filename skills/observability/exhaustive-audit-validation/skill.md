@@ -3,6 +3,7 @@ name: exhaustive-audit-validation
 source: superpowers-plus
 triggers: ["audit complete", "done with refactoring", "finished updating", "all skills fixed", "bulk edit done"]
 description: Use BEFORE claiming any audit, refactoring, or bulk-edit task is complete. Enforces exhaustive scope enumeration, item-by-item tracking, automated validation, and coverage metrics. Prevents incomplete work from being marked as done.
+summary: "Use when: claiming any audit or bulk-edit is complete. Hard gate."
 coordination:
   group: completion-gate
   order: 1
