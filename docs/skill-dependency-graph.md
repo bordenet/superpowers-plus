@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-03-17
+> **Last updated:** 2026-03-23
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -9,6 +9,14 @@ This document visualizes the coordination relationships between skills in superp
 
 ```mermaid
 graph TD
+  subgraph engineering["Engineering"]
+    feature_development["feature-development"]
+  end
+
+  subgraph debugging["Debugging"]
+    investigation_state["investigation-state"]
+  end
+
   subgraph commit-gates["Commit Gates"]
     pre_commit_gate["pre-commit-gate"]
     enforce_style_guide["enforce-style-guide"]
@@ -32,8 +40,15 @@ graph TD
 
   subgraph wiki-pipeline["Wiki Pipeline"]
     wiki_orchestrator["wiki-orchestrator"]
+    wiki_content_coherence["wiki-content-coherence"]
   end
 
+  feature_development -->|enables| requirements_validation
+  feature_development -->|enables| design_triad
+  feature_development -->|enables| todo_management
+  feature_development ==>|escalates to| thinking_orchestrator
+  investigation_state -->|enables| think_twice
+  investigation_state ==>|escalates to| thinking_orchestrator
   pre_commit_gate -->|enables| enforce_style_guide
   pre_commit_gate -->|enables| professional_language_audit
   exhaustive_audit_validation -->|enables| verification_before_completion
@@ -44,20 +59,26 @@ graph TD
   thinking_orchestrator -->|enables| verification_before_completion
   thinking_orchestrator -->|enables| exhaustive_audit_validation
   thinking_orchestrator -->|enables| completeness_check
+  thinking_orchestrator -->|enables| investigation_state
+  thinking_orchestrator -->|enables| feature_development
   professional_language_audit -->|then| public_repo_ip_audit
+  wiki_authoring -->|then| wiki_content_coherence
+  wiki_content_coherence -->|enables| link_verification
+  wiki_content_coherence ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|enables| link_verification
-  wiki_orchestrator -->|enables| wiki_editing
 ```
 
 ## Coordination Groups
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
+| Engineering | `feature-development` | Coordinated skill group |
+| Debugging | `investigation-state` | Coordinated skill group |
 | Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `public-repo-ip-audit`, `professional-language-audit` | Quality checks before git commit |
-| Completion Gate | `verification-before-completion`, `exhaustive-audit-validation` | Verification before claiming done |
+| Completion Gate | `verification-before-completion`, `exhaustive-audit-validation` | Verification and TODO maintenance before claiming done |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Thinking | `thinking-orchestrator` | Metacognition and thinking orchestration |
-| Wiki Pipeline | `wiki-orchestrator` | Wiki authoring quality pipeline |
+| Wiki Pipeline | `wiki-content-coherence`, `wiki-orchestrator` | Wiki authoring quality pipeline |
 
 ## Legend
 

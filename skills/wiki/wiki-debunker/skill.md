@@ -3,6 +3,7 @@ name: wiki-debunker
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
 description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, meeting transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
+summary: "Use when: posting comments or updates to wiki pages. Evidence before assertion."
 composition:
   consumes: [markdown-content]
   produces: [verified-facts]
@@ -52,3 +53,23 @@ composition:
 
 - [`references/report-format.md`](references/report-format.md) — Report template, citation formats
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands
+
+
+## When to Use
+
+- When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")
+- When wiki-orchestrator pipeline triggers fact-check stage
+- When reviewing pages that reference meetings, PRs, or historical context
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| No authoritative source found for a claim | Mark as UNVERIFIED with citation-needed tag — don't guess |
+| Git history doesn't go back far enough | Check meeting transcripts (Fathom), ticket history, PR comments |
+| Agent fabricates a plausible-sounding citation | Every citation must include a verifiable URL or commit SHA |
+
+```bash
+# Example: invoke debunker on a wiki page
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-debunker
+```

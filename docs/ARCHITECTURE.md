@@ -8,7 +8,7 @@ How superpowers-plus skills work and how to extend them.
 |------|------------|-------------|---------|
 | **Skill** | Generic term for any procedural module (a `skill.md` file) | Any | All of them |
 | **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-editing` |
-| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `think-twice` |
+| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `security-upgrade` |
 
 **Key distinction:**
 - **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
@@ -159,10 +159,10 @@ description: Use when editing wiki pages.
 **Explicit Skill (manual invocation):**
 ```yaml
 ---
-name: think-twice
+name: superpowers-help
 source: superpowers-plus
 triggers: []  # Empty array = explicit
-description: Use when stuck on a problem.
+description: Lists available skills.
 ---
 ```
 
@@ -242,7 +242,7 @@ The `issue-tracking/` domain uses adapters to support multiple platforms:
 skills/issue-tracking/
 ├── _adapters/
 │   ├── README.md         # Adapter overview
-│   ├── linear.md         # Linear.app configuration
+│   ├── platform-template.md # Provider-neutral adapter template
 │   ├── github-issues.md  # GitHub Issues configuration
 │   ├── jira.md           # Jira configuration
 │   └── azure-devops.md   # Azure DevOps configuration
@@ -277,7 +277,7 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 
 | Variable | Used By | Purpose |
 |----------|---------|---------|
-| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select adapter: `linear`, `github`, `jira`, `azure-devops` |
+| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select the configured issue-tracker adapter |
 | `PERPLEXITY_API_KEY` | research/perplexity-research | Perplexity MCP authentication |
 
 ## Bootstrapping

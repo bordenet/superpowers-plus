@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+"""Integration tests for todo-engine.py — CRUD operations on TODO.md.
+
+Tests cover: add, complete, move, defer, list, next-id, whitespace
+normalization, locking, backup, and argparse compatibility.
+
+Run: python3 tools/tests/test_todo_engine.py -v
+"""
+import contextlib
+import importlib.util
+import io
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
+
+# ---------------------------------------------------------------------------
+# Load engine module from file path (avoids package structure requirement)
+# ---------------------------------------------------------------------------
+ENGINE_PATH = Path(__file__).resolve().parents[1] / "todo-engine.py"
+
+
+def load_engine():
+    if not ENGINE_PATH.exists():
+        raise FileNotFoundError(f"todo-engine.py not found at {ENGINE_PATH}")
+    spec = importlib.util.spec_from_file_location("todo_engine", ENGINE_PATH)
+    assert spec is not None, f"Failed to create module spec from {ENGINE_PATH}"
+    assert spec.loader is not None, f"Module spec has no loader for {ENGINE_PATH}"
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+SAMPLE_TODO = """\
+# ACTIVE TASKS
+
+## P1 - Today
+
+- [ ] [20260323-01] Fix critical auth bug #engineering #urgent
+  - Added: 2026-03-23
+
+## P2 - This Week
+
+- [ ] [20260323-02] Review PR for config refactor #engineering
+  - Added: 2026-03-23
+  - Note: Waiting on CI
+
+## P3 - Backlog
+
+- [ ] [20260323-03] Document onboarding process #process
+  - Added: 2026-03-23
+
+---
+
+# HISTORY
+
+## 2026-03-22
+- [x] [20260322-01] Set up test fixtures #engineering
+  - Done: 2026-03-22
+
+---
+
+# DEFERRED
+
+---
+
+# METRICS
+"""
+
+
+class TodoEngineTests(unittest.TestCase):
+    """Integration tests for todo-engine.py CRUD operations."""
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-test-")
+        self.todo_path = Path(self.tmpdir) / "TODO.md"
+        self.todo_path.write_text(SAMPLE_TODO)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    # -- Original 4 tests (recovered from bytecache names) --
+
+    def test_main_avoids_python36_incompatible_add_subparsers_required(self):
+        """Verify argparse setup works (required=True on subparsers needs 3.7+)."""
+        eng = self.engine
+        # Just verify the parser can be constructed and help works
+        with self.assertRaises(SystemExit):
+            with mock.patch("sys.argv", ["todo-engine.py", "--help"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    eng.main()
+
+    def test_write_file_normalizes_whitespace(self):
+        """Verify write_file collapses excessive blank lines."""
+        eng = self.engine
+        content = "line1\n\n\n\n\nline2\n"  # 5 blank lines
+        eng.write_file(str(self.todo_path), content)
+        result = self.todo_path.read_text()
+        # Should collapse 4+ newlines to 3 (2 visual blank lines)
+        self.assertNotIn("\n\n\n\n", result)
+        self.assertIn("line1", result)
+        self.assertIn("line2", result)
+
+    def test_complete_with_note_moves_to_history(self):
+        """Verify completion moves task to HISTORY with note metadata."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-02", note="Fixed the issue")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        # Task must be in HISTORY with [x]
+        history = content.split("# HISTORY")[1]
+        self.assertIn("[x] [20260323-02]", history)
+        self.assertIn("Done: 2026-", history)
+        self.assertIn("Fixed the issue", history)
+        # Task must NOT be in ACTIVE
+        active = content.split("# HISTORY")[0]
+        self.assertNotIn("[20260323-02]", active)
+
+    def test_complete_with_real_multiline_note(self):
+        """Verify completion with actual newlines produces indented metadata bullets."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", note="Line one\nLine two")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        history = content.split("# HISTORY")[1]
+        self.assertIn("[x] [20260323-01]", history)
+        # Each note line must be a properly indented metadata bullet
+        self.assertIn("  - Progress: Line one", history)
+        self.assertIn("  - Progress: Line two", history)
+        # No orphan lines — find the task block by its [x] line and check metadata
+        lines = history.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "[x] [20260323-01]" in l)
+        # All metadata lines after the task line must be indented "  - "
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break  # end of task block
+            self.assertTrue(line.startswith("  - "),
+                            f"Orphan line (not indented metadata): {line!r}")
+
+    def test_defer_moves_to_deferred_with_reason(self):
+        """Verify defer moves task to DEFERRED section with reason metadata."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-03", reason="Blocked on access")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_defer(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        deferred = content.split("# DEFERRED")[1]
+        self.assertIn("20260323-03", deferred)
+        self.assertIn("Deferred:", deferred)
+        self.assertIn("Reason: Blocked on access", deferred)
+        # Task must NOT be in P3 anymore
+        p3_section = content.split("## P3")[1].split("---")[0] if "## P3" in content else ""
+        self.assertNotIn("20260323-03", p3_section)
+
+    def test_defer_with_real_multiline_reason(self):
+        """Verify defer with actual newlines produces indented metadata bullets."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-03", reason="Blocked\nNeed credentials")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_defer(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        deferred = content.split("# DEFERRED")[1]
+        self.assertIn("20260323-03", deferred)
+        # Each reason line must be a properly indented metadata bullet
+        self.assertIn("  - Reason: Blocked", deferred)
+        self.assertIn("  - Reason: Need credentials", deferred)
+        # No orphan lines — find the task block and check metadata
+        lines = deferred.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "[20260323-03]" in l)
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break
+            self.assertTrue(line.startswith("  - "),
+                            f"Orphan line (not indented metadata): {line!r}")
+
+    # -- New integration tests --
+
+    def test_add_task_to_p1(self):
+        eng = self.engine
+        args = SimpleNamespace(priority="P1", description="Urgent hotfix",
+                               tags="#engineering #hotfix", note="")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        self.assertIn("Urgent hotfix", content)
+        self.assertIn("#engineering #hotfix", content)
+        p1_section = content.split("## P1")[1].split("## P2")[0]
+        self.assertIn("Urgent hotfix", p1_section)
+
+    def test_add_task_to_p3_with_note(self):
+        eng = self.engine
+        args = SimpleNamespace(priority="P3", description="Research competitor",
+                               tags="#product", note="Check their API docs")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p3_section = content.split("## P3")[1].split("---")[0]
+        self.assertIn("Research competitor", p3_section)
+        self.assertIn("Check their API docs", p3_section)
+
+
+    def test_add_task_with_multiline_note(self):
+        """Verify add with real newlines produces indented metadata bullets."""
+        eng = self.engine
+        args = SimpleNamespace(priority="P1", description="Multi-note task",
+                               tags="#test", note="First line\nSecond line")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertIn("Multi-note task", p1)
+        self.assertIn("  - First line", p1)
+        self.assertIn("  - Second line", p1)
+        # No orphan lines in the task block
+        lines = p1.split("\n")
+        task_start = next(i for i, l in enumerate(lines) if "Multi-note task" in l)
+        for line in lines[task_start + 1:]:
+            if not line.strip():
+                break
+            self.assertTrue(line.startswith("  "),
+                            f"Orphan line in add output: {line!r}")
+
+    def test_move_task_p3_to_p1(self):
+        """Verify move relocates task between priority sections."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-03", to="P1")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_move(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertIn("20260323-03", p1)
+        p3 = content.split("## P3")[1].split("---")[0]
+        self.assertNotIn("20260323-03", p3)
+
+    def test_move_task_p1_to_p2(self):
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", to="P2")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_move(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p2 = content.split("## P2")[1].split("## P3")[0]
+        self.assertIn("20260323-01", p2)
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        self.assertNotIn("20260323-01", p1)
+
+    def test_move_invalid_target_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", to="P4")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(io.StringIO()):
+                eng.cmd_move(args, str(self.todo_path), json_mode=False)
+
+    def test_move_nonexistent_task_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="99990101-99", to="P1")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stdout(io.StringIO()):
+                eng.cmd_move(args, str(self.todo_path), json_mode=False)
+
+    def test_list_filter_by_priority(self):
+        eng = self.engine
+        args = SimpleNamespace(priority="P1", tag="", show_all=False)
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_list(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertEqual(data["count"], 1)
+        self.assertIn("20260323-01", data["tasks"][0]["id"])
+
+    def test_list_filter_by_tag(self):
+        eng = self.engine
+        args = SimpleNamespace(priority="", tag="#process", show_all=False)
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_list(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["tasks"][0]["id"], "20260323-03")
+
+    def test_next_id_allocates_sequential(self):
+        eng = self.engine
+        content = self.todo_path.read_text()
+        # Use explicit date matching the fixture
+        tid = eng.next_task_id(content, today="20260323")
+        # Already has 20260323-01, -02, -03 so next should be -04
+        self.assertEqual(tid, "20260323-04")
+
+    def test_next_id_json_output(self):
+        eng = self.engine
+        args = SimpleNamespace()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_next_id(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        # next_id is date-dependent; just verify format
+        self.assertRegex(data["next_id"], r"^\d{8}-\d{2}$")
+
+    def test_complete_nonexistent_task_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="99990101-99", note="")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+
+    def test_add_invalid_priority_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(priority="P4", description="Bad priority",
+                               tags="", note="")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_add(args, str(self.todo_path), json_mode=False)
+
+    def test_resolve_todo_path_env_var_wins(self):
+        """Verify TODO_FILE_PATH env var takes highest precedence."""
+        eng = self.engine
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": str(self.todo_path)}, clear=False):
+            resolved = eng.resolve_todo_path()
+            self.assertEqual(resolved, str(self.todo_path))
+
+    def test_resolve_todo_path_env_var_beats_dotenv(self):
+        """Verify env var takes precedence over .codex/.env subprocess result."""
+        eng = self.engine
+        env_path = "/tmp/from-env-var.md"
+        dotenv_path = "/tmp/from-dotenv.md"
+        # Mock subprocess to simulate .codex/.env returning a different path
+        fake_result = SimpleNamespace(stdout=f"{dotenv_path}\n", returncode=0)
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": env_path}, clear=False):
+            with mock.patch("subprocess.run", return_value=fake_result):
+                resolved = eng.resolve_todo_path()
+                # Env var must win over dotenv
+                self.assertEqual(resolved, env_path)
+
+    def test_resolve_todo_path_dotenv_used_when_env_unset(self):
+        """Verify .codex/.env is consulted when TODO_FILE_PATH env var is empty."""
+        eng = self.engine
+        dotenv_path = "/tmp/from-dotenv.md"
+        fake_result = SimpleNamespace(stdout=f"{dotenv_path}\n", returncode=0)
+        fake_env_file = Path(self.tmpdir) / ".codex" / ".env"
+        fake_env_file.parent.mkdir(parents=True)
+        fake_env_file.write_text(f'export TODO_FILE_PATH="{dotenv_path}"\n')
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": ""}, clear=False):
+            with mock.patch("pathlib.Path.home", return_value=Path(self.tmpdir)):
+                with mock.patch("subprocess.run", return_value=fake_result):
+                    resolved = eng.resolve_todo_path()
+                    self.assertEqual(resolved, dotenv_path)
+
+    def test_resolve_todo_path_default_when_no_env_no_dotenv(self):
+        """Verify default ~/.codex/TODO.md when env var is empty and no .codex/.env."""
+        eng = self.engine
+        empty_home = Path(self.tmpdir) / "empty_home"
+        empty_home.mkdir()
+        expected = str(empty_home / ".codex" / "TODO.md")
+        with mock.patch.dict("os.environ", {"TODO_FILE_PATH": ""}, clear=False):
+            # Mock Path.home() so .codex/.env doesn't exist at fake home
+            with mock.patch("pathlib.Path.home", return_value=empty_home):
+                # Mock expanduser so ~ resolves to our fake home
+                orig_expanduser = os.path.expanduser
+                def fake_expanduser(p):
+                    if p.startswith("~"):
+                        return str(empty_home) + p[1:]
+                    return orig_expanduser(p)
+                with mock.patch("os.path.expanduser", side_effect=fake_expanduser):
+                    resolved = eng.resolve_todo_path()
+                    self.assertEqual(resolved, expected)
+
+    def test_locking_and_release(self):
+        eng = self.engine
+        path = str(self.todo_path)
+        # Acquire lock
+        result = eng.acquire_lock(path)
+        self.assertTrue(result)
+        lock_dir = eng._lock_dir(path)
+        self.assertTrue(Path(lock_dir).is_dir())
+        # Release lock
+        eng.release_lock(path)
+        self.assertFalse(Path(lock_dir).exists())
+
+    def test_backup_creates_timestamped_file(self):
+        eng = self.engine
+        bak = eng.backup(str(self.todo_path))
+        self.assertTrue(Path(bak).exists())
+        # Content should match
+        original = self.todo_path.read_text()
+        self.assertEqual(Path(bak).read_text(), original)
+
+    def test_whitespace_normalization(self):
+        eng = self.engine
+        content = "a\n\n\n\n\n\nb\n"  # 6 blank lines
+        result = eng._normalize_whitespace(content)
+        self.assertNotIn("\n\n\n\n", result)
+        self.assertIn("a\n\n\n", result)  # collapsed to 2 blank lines
+
+    def test_find_task_includes_continuation_lines(self):
+        eng = self.engine
+        content = self.todo_path.read_text()
+        loc = eng.find_task(content, "20260323-02")
+        self.assertIsNotNone(loc)
+        start, end = loc
+        block = content[start:end]
+        self.assertIn("20260323-02", block)
+        self.assertIn("Note: Waiting on CI", block)
+
+
+if __name__ == "__main__":
+    unittest.main()

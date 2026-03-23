@@ -1,8 +1,9 @@
 ---
 name: eliminating-ai-slop
 source: superpowers-plus
-triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "teams message", "slack message", "discord message", "chat message", "email draft", "email reply", "composing email", "linkedin post", "linkedin message", "twitter post", "social media post", "wiki page", "readme", "commit message", "pr description", "status update", "ticket description", "jira ticket", "linear issue"]
+triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "teams message", "slack message", "discord message", "chat message", "email draft", "email reply", "composing email", "linkedin post", "linkedin message", "twitter post", "social media post", "wiki page", "readme", "commit message", "pr description", "status update", "ticket description", "jira ticket", "issue tracker ticket"]
 description: Use when writing or editing ANY prose a human will read. Covers messaging (Teams, Slack, Discord), email, social/professional (LinkedIn, Twitter), documentation (wiki, README, commits, PRs), and business writing (meeting notes, status updates, tickets). Operates in interactive mode (confirms before rewriting) or automatic mode (GVR loop). Does NOT fire for AI-to-AI content (prompts, system instructions, agent config).
+summary: "Use when: writing or editing prose a human will read. Skip when: writing AI-to-AI content."
 composition:
   consumes: [markdown-content]
   produces: [quality-prose]
@@ -54,3 +55,23 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 ## Related Skills
 
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
+
+
+## When to Use
+
+- When authoring any human-readable prose (docs, email, messages, tickets)
+- When wiki-orchestrator pipeline triggers slop detection stage
+- When reviewing AI-generated content before publishing
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Over-correction strips personality from writing | Preserve author voice — only target known slop patterns |
+| False positive on legitimate hedging language | Context matters — "it's worth noting" in a risk section is fine |
+| Slop patterns evolve faster than the deny list | Update pattern list quarterly from real examples |
+
+```bash
+# Example: invoke slop detection
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill eliminating-ai-slop
+```

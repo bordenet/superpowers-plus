@@ -121,6 +121,13 @@ detect_orphaned_todo_files() {
         [[ "$candidate" == *"/superpowers-plus/"* ]] && continue
         # Skip files inside .codex (skill-internal TODO.md files)
         [[ "$candidate" == *"/.codex/"* ]] && continue
+        # Skip TODO.md files that live inside a git repo — those are project
+        # files, not orphaned agent TODOs
+        local candidate_dir
+        candidate_dir="$(dirname "$candidate")"
+        if git -C "$candidate_dir" rev-parse --is-inside-work-tree &>/dev/null; then
+            continue
+        fi
 
         if [[ -f "$candidate" ]]; then
             found+=("$candidate")

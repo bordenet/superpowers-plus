@@ -1,6 +1,6 @@
 # superpowers-plus
 
-46 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
+53 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
 
 > **⚠️ Token Consumption:** These skills prioritize depth over efficiency. Skills chain into each other, load reference files, and run verification loops — a single wiki edit can trigger 4+ skills. Token consumption is higher by design. Best suited for generous or unlimited token budgets.
 
@@ -14,12 +14,12 @@ cd superpowers-plus
 
 ## What's Included
 
-**46 skills** across 9 domains:
+**53 skills** across 9 domains:
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 7 | Pre-commit gates, blast radius, PR review |
-| productivity | 11 | TODO tracking, adversarial search, domain design, skill synthesis |
+| engineering | 11 | Pre-commit gates, blast radius, PR review, design triad, requirements validation, investigation state, feature development |
+| productivity | 14 | TODO tracking, adversarial search, domain design, fallback planning |
 | wiki | 6 | Page management, link checks, credential scanning, content coherence |
 | writing | 6 | Slop detection/elimination, profanity gates, table discipline |
 | issue-tracking | 5 | Create, update, verify tickets |
@@ -31,6 +31,8 @@ cd superpowers-plus
 > TypeScript-specific skills have been migrated to a private overlay repo. See the `spc:` prefix in `superpowers-augment.js`.
 
 ## Installation
+
+Current distribution channels: git clone + `install.sh`, Augment Agent one-liner, Claude Code plugin install, MCP server, Codex native skills, OpenCode native skills, and Gemini CLI.
 
 ### All Platforms (Git Clone)
 
@@ -44,13 +46,13 @@ The installer auto-detects your platform and offers to install missing dependenc
 
 **Windows:** Run `wsl --install -d Ubuntu` first, then use the commands above.
 
-### One-Liner (Ubuntu / Debian / WSL)
+### Augment Agent (One-Liner: Ubuntu / Debian / WSL)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework. For the full 46-skill suite, use git clone above.
+Installs the core superpowers framework plus the Augment adapter. For the full 53-skill suite and all client-specific install paths, use git clone above.
 
 ### Claude Code
 
@@ -74,10 +76,16 @@ Installs the core superpowers framework. For the full 46-skill suite, use git cl
    ```
 3. Restart your client. Use `find_skills` to list available skills.
 
-### Codex / OpenCode
+### Codex
 
 ```text
 Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/main/.codex/INSTALL.md
+```
+
+### OpenCode
+
+```text
+Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/superpowers-plus/main/.opencode/INSTALL.md
 ```
 
 ### Gemini CLI
@@ -103,8 +111,8 @@ Copy `.env.example` to `.env` for optional integrations:
 
 | Variable | Purpose |
 |----------|---------|
-| `ISSUE_TRACKER_TYPE` | `linear`, `github`, `jira`, or `azure-devops` |
-| `WIKI_PLATFORM` | `outline` (see `skills/wiki/_adapters/`) |
+| `ISSUE_TRACKER_TYPE` | Configured issue-tracker adapter key |
+| `WIKI_PLATFORM` | Configured wiki adapter key |
 | `PERPLEXITY_API_KEY` | Deep research fallback |
 | `OPENAI_API_KEY` | Optional: enhanced semantic skill matching |
 
@@ -129,11 +137,15 @@ Skills activate automatically when your request matches their triggers. Describe
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
+| | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Quality hub (routes to TS skills in overlay) |
 | | field-rename-verification | Verifies renames across service boundaries |
+| | feature-development | Orchestrates full feature lifecycle from requirements through completion |
+| | investigation-state | Persists debugging investigation context across sessions |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | providing-code-review | Structured PR feedback |
 | | receiving-code-review | Evaluates incoming feedback |
+| | requirements-validation | Tests requirements for falsifiability, contradictions |
 | | verification-before-completion | Final checks before claiming done |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
@@ -148,6 +160,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | productivity | adversarial-search | Defeats confirmation bias |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
+| | fallback-planning | Machine-agnostic contingency TODOs |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | skill-authoring | Creates new skills from descriptions/patterns |
@@ -158,8 +171,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | | todo-management | Parses and tracks tasks |
 | research | incorporating-research | Merges external findings |
 | | perplexity-research | Escalates when stuck |
-| security | repo-security-scan | Full repo security scan (4 categories) |
-| | public-repo-ip-audit | Detects proprietary content |
+| security | public-repo-ip-audit | Detects proprietary content |
+| | repo-security-scan | Full repo security scan (4 categories) |
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
@@ -175,7 +188,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
 
-Most skills are auto-triggered by semantic matching. Explicit skills (`superpowers-help`, `think-twice`, `security-upgrade`, etc.) are invoked by name or as dependencies.
+Skills are matched semantically where possible. Some activate automatically, while others are invoked explicitly by name or as dependencies.
 
 ## Skill Coordination
 
@@ -212,12 +225,14 @@ graph LR
   thinking_orchestrator -->|enables| verification_before_completion
   thinking_orchestrator -->|enables| exhaustive_audit_validation
   thinking_orchestrator -->|enables| completeness_check["completeness-check"]
+  thinking_orchestrator -->|enables| investigation_state["investigation-state"]
+  thinking_orchestrator -->|enables| feature_development["feature-development"]
 ```
 
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
-| Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
+| Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → verify | Generate → check → validate → confirm |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity |

@@ -3,6 +3,7 @@ name: issue-authoring
 source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
+summary: "Use when: creating issues in any tracker. Skip when: updating existing issues."
 ---
 
 # Issue Authoring
@@ -16,7 +17,7 @@ description: Use when creating issues in your project tracker. Enforces formatti
 
 Before using this skill, configure your issue tracker:
 
-1. Set `ISSUE_TRACKER_TYPE`: `linear`, `github`, `jira`, or `azure-devops`
+1. Set `ISSUE_TRACKER_TYPE` to your configured issue-tracker adapter key
 2. See `skills/issue-tracking/_adapters/` for platform-specific setup
 3. Ensure required MCP tools are available for your platform
 

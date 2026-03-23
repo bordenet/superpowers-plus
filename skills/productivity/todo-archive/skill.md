@@ -1,7 +1,8 @@
 ---
 name: todo-archive
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
-description: Archive completed tasks from TODO.md to monthly satellite files. Preserves operational history while keeping TODO.md under 500 lines. Companion to todo-management (upstream).
+description: Low-level archive engine for completed tasks in TODO.md. Companion to todo-management; routine housekeeping should usually go through todo-maintenance.sh.
+summary: "Use when: archiving completed TODO items from TODO.md."
 ---
 
 # TODO Archive System
@@ -17,6 +18,7 @@ description: Archive completed tasks from TODO.md to monthly satellite files. Pr
 | Trigger | Action |
 |---------|--------|
 | User says "archive todos" | Run full archive of all HISTORY entries |
+| Routine housekeeping run via `todo-maintenance.sh` | Use this archive engine when maintenance thresholds trigger |
 | TODO.md exceeds 400 lines | Auto-archive HISTORY entries ≥7 days old |
 | HISTORY has entries >30 days old | Archive regardless of line count (staleness rule) |
 | User says "search archived todos for X" | Search across archive files |
@@ -29,7 +31,9 @@ description: Archive completed tasks from TODO.md to monthly satellite files. Pr
 ### Step 1: Resolve paths
 
 ```bash
+EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
 source ~/.codex/.env 2>/dev/null
+TODO_FILE_PATH="${EXPLICIT_TODO_FILE_PATH:-${TODO_FILE_PATH:-$HOME/.codex/TODO.md}}"
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
 ```
@@ -60,9 +64,9 @@ For each target month file:
    ---
    ```
 
-2. Check for duplicate task IDs (idempotency guard)
+2. Check for duplicate task IDs (idempotency guard) and skip re-appending blocks already present in the month file
 3. Append tasks under `## YYYY-MM-DD` date headers (reverse-chronological)
-4. Compute and add metadata: `Duration:`, `Linear:` (extract DELTA-XXX from tags/description)
+4. Compute and add metadata: `Duration:`, `Issue:` (extract ticket IDs from tags/description)
 
 ### Step 5: Update INDEX.md
 
@@ -73,7 +77,7 @@ Rebuild INDEX.md from all archive files:
 
 > Total archived: {count} tasks across {n} months
 
-| Month | Tasks | Top Tags | Linear Issues |
+| Month | Tasks | Top Tags | Related Issues |
 |-------|-------|----------|---------------|
 | 2026-03 | 42 | #engineering (18) | PROJ-$1, PROJ-$1 |
 | 2026-02 | 38 | #recruiting (12) | PROJ-$1 |
@@ -87,7 +91,7 @@ Remove only the archived entries from the HISTORY section. Keep any entries that
 
 ```
 pre_history_count = {N}
-archived_count = {M}
+removed_from_history = {M}
 post_history_count = {N - M}
 ```
 
@@ -110,7 +114,7 @@ If mismatch → ABORT, restore from backup, report error.
   - Done: 2026-03-18T14:30:00
   - Duration: 3 days
   - Progress: Tuned P1/P2 alarms, added runbook URLs
-  - Linear: PROJ-$1
+  - Issue: PROJ-$1
 
 ## 2026-03-15
 - [x] [20260314-02] Review config PR #engineering-backend
@@ -130,7 +134,7 @@ search archived todos for "alarm tuning"
 → grep -rn "alarm tuning" "$ARCHIVE_DIR"/*.md
 ```
 
-### By Linear issue
+### By issue ID
 ```
 search archived todos for PROJ-$1
 → grep -rn "PROJ-$1" "$ARCHIVE_DIR"/*.md

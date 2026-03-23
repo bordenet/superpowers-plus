@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+"""todo-engine.py — Cross-platform TODO.md CRUD engine.
+
+Handles add, complete, move, list, next-id, defer operations atomically.
+Built-in preflight (path resolution), advisory locking, backup, ID allocation,
+section targeting, and safe multiline content handling.
+
+Usage (typically called via todo-crud.sh wrapper):
+    python3 todo-engine.py add --priority P3 --description "Task" --tags "#foo"
+    python3 todo-engine.py complete --id 20260322-01
+    python3 todo-engine.py move --id 20260322-01 --to P1
+    python3 todo-engine.py list [--priority P1] [--tag "#plan-foo"] [--all]
+    python3 todo-engine.py next-id
+    python3 todo-engine.py defer --id 20260322-01 --reason "Blocked"
+"""
+
+import argparse
+import datetime
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+LOCK_DIR_NAME = ".TODO.md.lock"
+LOCK_TTL = 120  # seconds
+LOCK_TIMEOUT = 8  # seconds
+
+# Section markers (regex patterns)
+RE_P1 = re.compile(r"^## P1\b", re.MULTILINE)
+RE_P2 = re.compile(r"^## P2\b", re.MULTILINE)
+RE_P3 = re.compile(r"^## P3\b", re.MULTILINE)
+RE_HISTORY = re.compile(r"^# HISTORY\b", re.MULTILINE)
+RE_DEFERRED = re.compile(r"^# DEFERRED\b", re.MULTILINE)
+RE_TASK = re.compile(r"^- \[[ x/]\] \[(\d{8}-\d{2,})\]", re.MULTILINE)
+RE_SECTION = re.compile(r"^(?:##? |---)", re.MULTILINE)
+
+PRIORITY_MARKERS = {"P1": RE_P1, "P2": RE_P2, "P3": RE_P3}
+
+# ---------------------------------------------------------------------------
+# Path Resolution
+# ---------------------------------------------------------------------------
+
+def resolve_todo_path() -> str:
+    """Resolve TODO.md path from env or default.
+
+    Priority: 1) Current env var (allows override for testing)
+              2) ~/.codex/.env file
+              3) Default ~/.codex/TODO.md
+    """
+    # 1. Check current environment first (allows export override for testing)
+    env_path = os.environ.get("TODO_FILE_PATH", "").strip()
+    if env_path:
+        return os.path.expanduser(os.path.expandvars(env_path))
+
+    # 2. Try sourcing ~/.codex/.env via shell for full compatibility
+    env_file = Path.home() / ".codex" / ".env"
+    if env_file.exists():
+        try:
+            result = subprocess.run(
+                ["bash", "-c", f"source {env_file} 2>/dev/null && echo $TODO_FILE_PATH"],
+                capture_output=True, text=True, timeout=5
+            )
+            path = result.stdout.strip()
+            if path:
+                return os.path.expanduser(os.path.expandvars(path))
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+    # 3. Default
+    return os.path.expanduser("~/.codex/TODO.md")
+
+
+def ensure_file_exists(path: str) -> None:
+    """Abort if TODO.md doesn't exist."""
+    if not os.path.isfile(path):
+        _error(f"TODO.md does not exist at {path}. "
+               "Run todo-preflight.sh --create-if-missing first.")
+
+# ---------------------------------------------------------------------------
+# Advisory Locking (mkdir-based, compatible with todo-lock.sh)
+# ---------------------------------------------------------------------------
+
+def _lock_dir(todo_path: str) -> str:
+    return os.path.join(os.path.dirname(todo_path), LOCK_DIR_NAME)
+
+
+def _lock_meta(todo_path: str) -> str:
+    return os.path.join(_lock_dir(todo_path), "lock.json")
+
+
+def _lock_age(todo_path: str) -> int:
+    meta = _lock_meta(todo_path)
+    if os.path.isfile(meta):
+        try:
+            with open(meta) as f:
+                data = json.load(f)
+            return int(time.time()) - data.get("epoch", 0)
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return 999999
+    if os.path.isdir(_lock_dir(todo_path)):
+        return 999999  # orphaned lock
+    return 0
+
+
+def acquire_lock(todo_path: str) -> bool:
+    """Acquire advisory lock. Returns True on success."""
+    lock = _lock_dir(todo_path)
+    deadline = time.time() + LOCK_TIMEOUT
+    hostname = os.uname().nodename.split(".")[0]
+    pid = os.getppid()
+
+    while True:
+        try:
+            os.mkdir(lock)
+            # Write metadata
+            meta = {"hostname": hostname, "pid": pid,
+                    "epoch": int(time.time()), "agent": "todo-engine"}
+            tmp = _lock_meta(todo_path) + f".tmp.{os.getpid()}"
+            with open(tmp, "w") as f:
+                json.dump(meta, f)
+            os.replace(tmp, _lock_meta(todo_path))
+            return True
+        except FileExistsError:
+            age = _lock_age(todo_path)
+            if age > LOCK_TTL:
+                shutil.rmtree(lock, ignore_errors=True)
+                continue
+            if time.time() >= deadline:
+                return False
+            time.sleep(1)
+
+
+def release_lock(todo_path: str) -> None:
+    lock = _lock_dir(todo_path)
+    if os.path.isdir(lock):
+        shutil.rmtree(lock, ignore_errors=True)
+
+
+def backup(todo_path: str) -> str:
+    """Create timestamped backup. Returns backup path."""
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    bak = f"{todo_path}.{ts}.bak"
+    shutil.copy2(todo_path, bak)
+    return bak
+
+# ---------------------------------------------------------------------------
+# File Parsing Helpers
+# ---------------------------------------------------------------------------
+
+def read_file(path: str) -> str:
+    with open(path, "r") as f:
+        return f.read()
+
+
+def _normalize_whitespace(content: str) -> str:
+    """Collapse 3+ consecutive blank lines into 2 (one visual gap)."""
+    return re.sub(r"\n{4,}", "\n\n\n", content)
+
+
+def write_file(path: str, content: str) -> None:
+    content = _normalize_whitespace(content)
+    with open(path, "w") as f:
+        f.write(content)
+
+
+def find_section_end(content: str, section_re: re.Pattern) -> int:
+    """Find the end of a priority section (line before next section header).
+
+    Returns the character index where new content should be inserted
+    (just before the next section/heading).
+    """
+    m = section_re.search(content)
+    if not m:
+        return -1
+
+    start = m.end()
+    # Find next section heading (## or #)
+    rest = content[start:]
+    next_match = RE_SECTION.search(rest)
+    if next_match:
+        insert_at = start + next_match.start()
+    else:
+        insert_at = len(content)
+
+    # Back up past trailing whitespace to insert cleanly
+    while insert_at > start and content[insert_at - 1] == "\n":
+        insert_at -= 1
+    return insert_at
+
+
+def next_task_id(content: str, today: str = None) -> str:
+    """Allocate the next task ID for today. Format: YYYYMMDD-NN."""
+    if today is None:
+        today = datetime.date.today().strftime("%Y%m%d")
+    pat = re.compile(r"\[" + re.escape(today) + r"-(\d+)\]")
+    nums = [int(m) for m in pat.findall(content)]
+    next_n = max(nums) + 1 if nums else 1
+    return f"{today}-{next_n:02d}"
+
+
+def find_task(content: str, task_id: str):
+    """Find a task block by ID. Returns (start, end) char indices or None."""
+    # Match the task line
+    pat = re.compile(
+        r"^- \[[ x/]\] \[" + re.escape(task_id) + r"\].*$", re.MULTILINE
+    )
+    m = pat.search(content)
+    if not m:
+        return None
+    start = m.start()
+    end = m.end()
+    # Include continuation lines (indented with 2+ spaces)
+    while end < len(content):
+        next_nl = content.find("\n", end)
+        if next_nl == -1:
+            end = len(content)
+            break
+        next_line_start = next_nl + 1
+        if next_line_start >= len(content):
+            end = next_line_start
+            break
+        next_line = content[next_line_start:]
+        # Continuation: starts with spaces (indented sub-items)
+        if next_line.startswith("  "):
+            line_end = content.find("\n", next_line_start)
+            end = line_end if line_end != -1 else len(content)
+        else:
+            end = next_nl
+            break
+    # Include trailing newline
+    if end < len(content) and content[end] == "\n":
+        end += 1
+    return (start, end)
+
+
+# ---------------------------------------------------------------------------
+# Output Helpers
+# ---------------------------------------------------------------------------
+
+def _output(data: dict, json_mode: bool) -> None:
+    if json_mode:
+        print(json.dumps(data))
+    else:
+        for k, v in data.items():
+            print(f"{k}={v}")
+
+
+def _error(msg: str, code: int = 1) -> None:
+    print(json.dumps({"error": msg}) if "--json" in sys.argv else f"ERROR: {msg}",
+          file=sys.stderr)
+    sys.exit(code)
+
+
+# ---------------------------------------------------------------------------
+# CRUD Operations
+# ---------------------------------------------------------------------------
+
+def cmd_add(args, todo_path: str, json_mode: bool) -> None:
+    """Add a new task to the specified priority section."""
+    content = read_file(todo_path)
+    task_id = next_task_id(content)
+    today = datetime.date.today().strftime("%Y-%m-%d")
+
+    priority = args.priority.upper()
+    if priority not in PRIORITY_MARKERS:
+        _error(f"Invalid priority: {priority}. Use P1, P2, or P3.")
+
+    # Build task text
+    tags = f" {args.tags}" if args.tags else ""
+    task_line = f"- [ ] [{task_id}] {args.description}{tags}"
+    sub_lines = [f"  - Added: {today}"]
+    if args.note:
+        # Support multiline notes — split on real newlines and escaped \n
+        for note_line in args.note.replace("\\n", "\n").split("\n"):
+            if note_line.strip():
+                sub_lines.append(f"  - {note_line.strip()}")
+
+    task_block = "\n".join([task_line] + sub_lines)
+
+    # Find insert point
+    section_re = PRIORITY_MARKERS[priority]
+    insert_at = find_section_end(content, section_re)
+    if insert_at == -1:
+        _error(f"Could not find {priority} section in TODO.md")
+
+    # Insert
+    new_content = content[:insert_at] + "\n\n" + task_block + "\n" + content[insert_at:]
+    write_file(todo_path, new_content)
+
+    _output({"status": "added", "id": task_id, "priority": priority,
+             "description": args.description}, json_mode)
+
+
+def cmd_complete(args, todo_path: str, json_mode: bool) -> None:
+    """Move a task from ACTIVE to HISTORY."""
+    content = read_file(todo_path)
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} not found in TODO.md")
+
+    start, end = loc
+    task_text = content[start:end].rstrip("\n")
+
+    # Remove from active
+    content = content[:start] + content[end:]
+
+    # Mark as done
+    task_text = task_text.replace("- [ ]", "- [x]", 1)
+    task_text = task_text.replace("- [/]", "- [x]", 1)
+
+    # Add completion timestamp
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    note_line = f"\n  - Done: {today}"
+    if args.note:
+        # Indent each line of multiline notes as a metadata bullet
+        for part in args.note.replace("\\n", "\n").split("\n"):
+            if part.strip():
+                note_line += f"\n  - Progress: {part.strip()}"
+    task_text += note_line
+
+    # Find HISTORY section
+    hist = RE_HISTORY.search(content)
+    if not hist:
+        _error("HISTORY section not found in TODO.md")
+
+    # Find or create today's date subsection
+    date_header = f"## {today}"
+    date_pos = content.find(date_header, hist.end())
+
+    if date_pos != -1:
+        # Insert after date header line
+        line_end = content.find("\n", date_pos)
+        if line_end == -1:
+            line_end = len(content)
+        insert_at = line_end
+        content = content[:insert_at] + "\n" + task_text + "\n" + content[insert_at:]
+    else:
+        # Create new date section after HISTORY header
+        hist_line_end = content.find("\n", hist.start())
+        if hist_line_end == -1:
+            hist_line_end = len(content)
+        content = (content[:hist_line_end] + "\n\n" + date_header +
+                   "\n" + task_text + "\n" + content[hist_line_end:])
+
+    write_file(todo_path, content)
+    _output({"status": "completed", "id": args.id, "date": today}, json_mode)
+
+
+def cmd_move(args, todo_path: str, json_mode: bool) -> None:
+    """Move a task to a different priority section."""
+    content = read_file(todo_path)
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} not found in TODO.md")
+
+    target = args.to.upper()
+    if target not in PRIORITY_MARKERS:
+        _error(f"Invalid target priority: {target}. Use P1, P2, or P3.")
+
+    start, end = loc
+    task_text = content[start:end].rstrip("\n")
+
+    # Remove from current location
+    content = content[:start] + content[end:]
+
+    # Find target section insert point
+    insert_at = find_section_end(content, PRIORITY_MARKERS[target])
+    if insert_at == -1:
+        _error(f"Could not find {target} section in TODO.md")
+
+    content = content[:insert_at] + "\n\n" + task_text + "\n" + content[insert_at:]
+    write_file(todo_path, content)
+    _output({"status": "moved", "id": args.id, "to": target}, json_mode)
+
+
+def cmd_list(args, todo_path: str, json_mode: bool) -> None:
+    """List tasks, optionally filtered by priority or tag."""
+    content = read_file(todo_path)
+    tasks = []
+
+    for m in RE_TASK.finditer(content):
+        task_id = m.group(1)
+        line_start = m.start()
+        # Get the full line
+        line_end = content.find("\n", line_start)
+        if line_end == -1:
+            line_end = len(content)
+        line = content[line_start:line_end]
+
+        # Determine priority by position
+        priority = "unknown"
+        for p, marker_re in PRIORITY_MARKERS.items():
+            pm = marker_re.search(content)
+            if pm and pm.start() < line_start:
+                hist = RE_HISTORY.search(content)
+                if not hist or line_start < hist.start():
+                    priority = p
+
+        # Check if it's in history/deferred
+        hist = RE_HISTORY.search(content)
+        deferred = RE_DEFERRED.search(content)
+        if hist and line_start >= hist.start():
+            if args.priority or args.tag:
+                continue  # skip history in filtered views
+            priority = "HISTORY"
+        if deferred and line_start >= deferred.start():
+            priority = "DEFERRED"
+
+        # Filter
+        if args.priority and priority != args.priority.upper():
+            continue
+        if args.tag and args.tag not in line:
+            continue
+        if not args.show_all and priority in ("HISTORY", "DEFERRED"):
+            continue
+
+        # Extract checkbox state
+        state = "open"
+        if "[x]" in line[:20]:
+            state = "done"
+        elif "[/]" in line[:20]:
+            state = "in-progress"
+
+        tasks.append({
+            "id": task_id,
+            "priority": priority,
+            "state": state,
+            "text": line.strip()
+        })
+
+    if json_mode:
+        print(json.dumps({"tasks": tasks, "count": len(tasks)}))
+    else:
+        if not tasks:
+            print("No matching tasks found.")
+        for t in tasks:
+            print(t["text"])
+
+
+def cmd_next_id(args, todo_path: str, json_mode: bool) -> None:
+    """Output the next available task ID for today."""
+    content = read_file(todo_path)
+    tid = next_task_id(content)
+    _output({"next_id": tid}, json_mode)
+
+
+def cmd_defer(args, todo_path: str, json_mode: bool) -> None:
+    """Move a task to DEFERRED section."""
+    content = read_file(todo_path)
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} not found in TODO.md")
+
+    start, end = loc
+    task_text = content[start:end].rstrip("\n")
+
+    # Remove from current location
+    content = content[:start] + content[end:]
+
+    # Add deferred metadata
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    task_text += f"\n  - Deferred: {today}"
+    if args.reason:
+        # Indent each line of multiline reasons as a metadata bullet
+        for part in args.reason.replace("\\n", "\n").split("\n"):
+            if part.strip():
+                task_text += f"\n  - Reason: {part.strip()}"
+
+    # Find DEFERRED section
+    deferred = RE_DEFERRED.search(content)
+    if not deferred:
+        _error("DEFERRED section not found in TODO.md")
+
+    # Insert after DEFERRED header
+    line_end = content.find("\n", deferred.start())
+    if line_end == -1:
+        line_end = len(content)
+    content = content[:line_end] + "\n\n" + task_text + "\n" + content[line_end:]
+
+    write_file(todo_path, content)
+    _output({"status": "deferred", "id": args.id, "reason": args.reason or ""}, json_mode)
+
+
+# ---------------------------------------------------------------------------
+# Main — Argument Parsing
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="TODO.md CRUD engine — cross-platform task management"
+    )
+    parser.add_argument("--json", action="store_true", help="JSON output mode")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # add
+    p_add = sub.add_parser("add", help="Add a new task")
+    p_add.add_argument("--priority", "-p", default="P2", help="P1, P2, or P3")
+    p_add.add_argument("--description", "-d", required=True, help="Task description")
+    p_add.add_argument("--tags", "-t", default="", help="Space-separated tags")
+    p_add.add_argument("--note", "-n", default="", help="Additional note")
+
+    # complete
+    p_complete = sub.add_parser("complete", help="Mark a task done")
+    p_complete.add_argument("--id", required=True, help="Task ID (YYYYMMDD-NN)")
+    p_complete.add_argument("--note", "-n", default="", help="Completion note")
+
+    # move
+    p_move = sub.add_parser("move", help="Move task to different priority")
+    p_move.add_argument("--id", required=True, help="Task ID")
+    p_move.add_argument("--to", required=True, help="Target priority (P1/P2/P3)")
+
+    # list
+    p_list = sub.add_parser("list", help="List tasks")
+    p_list.add_argument("--priority", "-p", default="", help="Filter by priority")
+    p_list.add_argument("--tag", "-t", default="", help="Filter by tag")
+    p_list.add_argument("--all", dest="show_all", action="store_true",
+                        help="Include history and deferred")
+
+    # next-id
+    sub.add_parser("next-id", help="Get next available task ID")
+
+    # defer
+    p_defer = sub.add_parser("defer", help="Defer a task")
+    p_defer.add_argument("--id", required=True, help="Task ID")
+    p_defer.add_argument("--reason", "-r", default="", help="Reason for deferral")
+
+    args = parser.parse_args()
+    json_mode = args.json
+
+    # --- Resolve path ---
+    todo_path = resolve_todo_path()
+    ensure_file_exists(todo_path)
+
+    # --- Read-only commands (no lock needed) ---
+    if args.command in ("list", "next-id"):
+        dispatch = {"list": cmd_list, "next-id": cmd_next_id}
+        dispatch[args.command](args, todo_path, json_mode)
+        return
+
+    # --- Write commands: lock → backup → operate → release ---
+    if not acquire_lock(todo_path):
+        _error("Could not acquire TODO lock. Another session may be writing. "
+               "Try again or run: todo-lock.sh steal")
+
+    try:
+        backup(todo_path)
+        dispatch = {
+            "add": cmd_add,
+            "complete": cmd_complete,
+            "move": cmd_move,
+            "defer": cmd_defer,
+        }
+        dispatch[args.command](args, todo_path, json_mode)
+    finally:
+        release_lock(todo_path)
+
+
+if __name__ == "__main__":
+    main()

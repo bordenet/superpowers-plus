@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # skill-trigger-validator.sh
-# PURPOSE: Validate skill triggers - detect overlaps, missing triggers, and
-#          ensure all skills have machine-readable trigger definitions.
+# PURPOSE: Validate repo-source skill triggers - detect overlaps, missing
+#          triggers, and ensure all skills have machine-readable definitions.
 # USAGE: ./tools/skill-trigger-validator.sh [command]
 #        Commands: audit, overlaps, missing, registry
 # -----------------------------------------------------------------------------
@@ -31,7 +31,6 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 # -----------------------------------------------------------------------------
 EXPLICIT_SKILLS=(
     "superpowers-help"              # Meta: lists available skills
-    "think-twice"                   # Meta: user explicitly wants second opinion
     "skill-firing-tracker"          # Observability: tracks other skills
     "completeness-check"            # Observability: audit tool
     "exhaustive-audit-validation"   # Observability: audit tool
@@ -63,26 +62,26 @@ extract_triggers() {
 
     # Try to extract from 'triggers:' field first (preferred - new format)
     local triggers
-    triggers=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^triggers:" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' | grep -v '^triggers')
+    triggers=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^triggers:" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | { grep -v '^$' || true; } | { grep -v '^triggers' || true; })
 
     if [[ -z "$triggers" ]]; then
         # Fall back to extracting quoted phrases from description
         local desc_line
-        desc_line=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^description:")
+        desc_line=$(sed -n '/^---$/,/^---$/p' "$skill_file" | { grep -E "^description:" || true; })
 
-        if echo "$desc_line" | grep -qE "(Triggers on|Use when|triggers on)"; then
+        if [[ -n "$desc_line" ]] && echo "$desc_line" | grep -qE "(Triggers on|Use when|triggers on)"; then
             # Extract quoted strings after trigger keywords
-            triggers=$(echo "$desc_line" | sed -E 's/.*(Triggers on|Use when|triggers on)//' | grep -oE '"[^"]+"' | tr -d '"' | grep -v '^$')
+            triggers=$(echo "$desc_line" | sed -E 's/.*(Triggers on|Use when|triggers on)//' | { grep -oE '"[^"]+"' || true; } | tr -d '"' | { grep -v '^$' || true; })
         fi
 
         # If still empty, try extracting all quoted strings that look like triggers
         if [[ -z "$triggers" ]]; then
-            triggers=$(echo "$desc_line" | grep -oE "'[^']+'" | tr -d "'" | grep -v '^$' | head -10)
+            triggers=$(echo "$desc_line" | { grep -oE "'[^']+'" || true; } | tr -d "'" | { grep -v '^$' || true; } | head -10)
         fi
     fi
 
     # Filter out any remaining noise
-    echo "$triggers" | grep -v '^description' | grep -v '^name' | grep -v '^\s*$' | head -20
+    echo "$triggers" | { grep -v '^description' || true; } | { grep -v '^name' || true; } | { grep -v '^\s*$' || true; } | head -20
 }
 
 # Build registry of all triggers -> skills
@@ -169,9 +168,10 @@ detect_overlaps() {
     echo ""
 
     # Build trigger -> skill mapping using temp file (more portable than associative arrays)
-    local temp_file
-    temp_file=$(mktemp)
-    trap 'rm -f "$temp_file"' EXIT
+    # Use module-level var so cleanup trap can access it after function returns
+    _TRIGGER_TEMP_FILE=$(mktemp)
+    local temp_file="$_TRIGGER_TEMP_FILE"
+    trap 'rm -f "${_TRIGGER_TEMP_FILE:-}"' EXIT
 
     local overlaps=0
     local allowed_overlaps=0
@@ -275,6 +275,10 @@ full_audit() {
     echo "========================================"
     echo "  Skill Trigger Validation Audit"
     echo "========================================"
+    echo ""
+    log_info "Scope: repo-source skills only ($SKILLS_DIR)"
+    log_info "This audit does NOT validate installed copies or live match-skills routing."
+    log_info "For shipped-surface validation, refresh the install and run match-skills on every declared trigger."
     echo ""
     
     detect_overlaps

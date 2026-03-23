@@ -14,6 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
+# shellcheck source=/dev/null
+[[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
+SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
+
 # Colors
 if [[ -t 1 ]]; then
     RED='\033[0;31m'
@@ -209,9 +213,16 @@ done < <(get_files '\.sh$')
 # =============================================================================
 # CHECK 6: Hardcoded Vendor References (outside _adapters/)
 # =============================================================================
-log_check "Vendor-neutral design (no hardcoded vendors outside _adapters/)"
+log_check "Vendor-neutral design (no hardcoded vendors outside _adapters/ or local overlays)"
 
-VENDOR_PATTERNS="linear\.app|dev\.azure\.com|atlassian|jira\.com|wiki\.int\.|outline"
+VENDOR_PATTERNS="dev\.azure\.com|atlassian|jira\.com|wiki\.int\."
+EXTRA_VENDOR_PATTERNS_FILE="${SP_OVERLAY_DIR:-}/tools/harsh-review-vendor-patterns.txt"
+if [[ -n "${SP_OVERLAY_DIR:-}" && -f "$EXTRA_VENDOR_PATTERNS_FILE" ]]; then
+    while IFS= read -r pattern; do
+        [[ -z "$pattern" || "$pattern" =~ ^# ]] && continue
+        VENDOR_PATTERNS+="|$pattern"
+    done < "$EXTRA_VENDOR_PATTERNS_FILE"
+fi
 
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
@@ -268,6 +279,19 @@ for skill_dir in skills/*/; do
         log_warn "$skill_dir: no skills or README found"
     fi
 done
+
+# =============================================================================
+# CHECK 8b: Skill File Length Limit
+# =============================================================================
+log_check "Skill file length (max 250 lines)"
+
+MAX_SKILL_LINES=250
+while IFS= read -r skill_file; do
+    line_count=$(wc -l < "$skill_file" | tr -d ' ')
+    if [[ "$line_count" -gt "$MAX_SKILL_LINES" ]]; then
+        log_fail "$(basename "$(dirname "$skill_file")")/skill.md: ${line_count} lines (max ${MAX_SKILL_LINES})"
+    fi
+done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
 
 # =============================================================================
 # CHECK 9: README Skill Count Drift Detection

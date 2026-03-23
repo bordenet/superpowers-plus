@@ -3,6 +3,7 @@ name: wiki-verify
 source: superpowers-plus
 triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy"]
 description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and updates stale content interactively.
+summary: "Use when: wiki references codebase details that may have drifted. Skip when: reading wiki only."
 ---
 
 # Skill: wiki-verify
@@ -172,3 +173,19 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 
 When adding new wiki pages with codebase dependencies, add them to this registry.
+
+
+## When to Use
+
+- After wiki pages referencing code/configs are updated
+- During periodic wiki health reviews
+- When a service version or dependency is upgraded
+- When wiki-orchestrator pipeline triggers verification stage
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Verification source is also stale | Cross-reference multiple sources (repo, docs, API) |
+| UNVERIFIABLE claims left unmarked | Flag and tag for human review — don't silently skip |
+| False positive STALE on intentionally pinned versions | Check for `pinned:` or version lock annotations |

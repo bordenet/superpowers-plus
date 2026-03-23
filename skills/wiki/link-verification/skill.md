@@ -3,6 +3,7 @@ name: link-verification
 source: superpowers-plus
 triggers: ["add code reference", "link to repo", "reference the wiki page", "cite the issue ticket", "verify links", "check if URL exists", "verify this URL", "check this link", "wiki:verify-links", "link:verify"]
 description: Use when adding repository links, code references, internal wiki links, or external URLs to documentation. Invoke BEFORE writing any link to prevent hallucination. Also invoked by wiki-orchestrator as HARD GATE (Stage 3, after content generation, before publish).
+summary: "Use when: writing wiki pages with URLs. Hard gate — verify before publish."
 composition:
   consumes: [markdown-content]
   produces: [verified-links]

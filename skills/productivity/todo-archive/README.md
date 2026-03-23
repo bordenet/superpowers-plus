@@ -20,6 +20,18 @@ Move completed tasks to monthly archive files (`YYYY-MM.md`) in a `todo-archives
 
 ## Usage
 
+### Routine maintenance (recommended)
+
+```bash
+# Audit TODO health and auto-archive when housekeeping thresholds are hit
+../../tools/todo-maintenance.sh
+
+# Preview maintenance without modifying files
+../../tools/todo-maintenance.sh --dry-run
+```
+
+`todo-archive.sh` remains the low-level archive engine. Use it directly when you explicitly want archive-only behavior.
+
 ### Archive completed tasks
 
 ```bash
@@ -31,6 +43,9 @@ Move completed tasks to monthly archive files (`YYYY-MM.md`) in a `todo-archives
 
 # Archive ALL history entries regardless of age
 ./todo-archive.sh --force
+
+# Validate on a temp TODO without touching the default path
+TODO_FILE_PATH=/tmp/TODO.md ./todo-archive.sh --dry-run
 ```
 
 ### Search archived tasks
@@ -39,8 +54,8 @@ Move completed tasks to monthly archive files (`YYYY-MM.md`) in a `todo-archives
 # By keyword
 ./todo-archive-search.sh keyword "alarm tuning"
 
-# By Linear issue
-./todo-archive-search.sh linear PROJ-$1
+# By issue ID
+./todo-archive-search.sh issue PROJ-$1
 
 # By month
 ./todo-archive-search.sh month 2026-03
@@ -63,6 +78,7 @@ $(dirname $TODO_FILE_PATH)/todo-archives/
 ## Safety
 
 - Backup created before every modification
-- Duplicate task IDs skipped (idempotent)
-- Post-archive integrity check (task count reconciliation)
+- Explicit `TODO_FILE_PATH` overrides `~/.codex/.env` for safe temp validation
+- Duplicate task IDs skipped without re-appending duplicate blocks (idempotent)
+- Post-archive integrity check reconciles tasks removed from `# HISTORY`
 - Uses existing `todo-lock.sh` for concurrency safety

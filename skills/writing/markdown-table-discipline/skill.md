@@ -3,6 +3,7 @@ name: markdown-table-discipline
 source: superpowers-plus
 triggers: ["creating a table", "markdown table", "table formatting", "table vs list", "format as table"]
 description: Enforces best practices for Markdown table construction. Invoke when deciding table vs list format, or when formatting multi-column data. Prevents visual noise, redundancy, and accessibility issues.
+summary: "Use when: deciding table vs list format or formatting multi-column data."
 options:
   allow_primary_column_blank_runs: true
   max_columns: 5

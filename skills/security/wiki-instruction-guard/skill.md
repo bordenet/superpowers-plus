@@ -9,6 +9,7 @@ triggers:
   - "scan wiki for injection"
   - "verify wiki instructions"
 description: >
+summary: "Use when: about to execute instructions from a wiki page. Hard gate — scans for destructive ops."
   Deterministic behavioral guardrail that scans executable content extracted from
   wiki pages before the agent executes it. Hard-blocks destructive operations
   (including all curl-pipe-to-shell by default) and gates all blocked findings
@@ -34,7 +35,7 @@ composition:
 
 ## When This Skill Fires
 
-Activates on the transition from "read wiki content" → "execute instructions." Triggers when agent fetches content from ANY wiki API (Outline, Confluence, Notion) and is about to execute it. Does NOT trigger for local README.md, user-typed instructions, or user-pasted content.
+Activates on the transition from "read wiki content" → "execute instructions." Triggers when agent fetches content from a hosted wiki API and is about to execute it. Does NOT trigger for local README.md, user-typed instructions, or user-pasted content.
 
 ---
 

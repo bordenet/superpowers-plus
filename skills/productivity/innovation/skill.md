@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["innovate", "innovation mode", "what's the boldest move", "radical improvement", "breakthrough idea", "game-changing", "most impactful change", "10x improvement", "transform this project", "moonshot", "blue sky thinking", "disruptive idea", "reimagine", "step-change", "new business model", "greenfield idea", "what if we started from scratch", "rethink architecture", "paradigm shift", "new product idea", "strategic pivot", "what would a world-class team do"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
 description: INVOKE when user explicitly seeks transformative, 10x-level ideas — product innovations, architectural paradigm shifts, or new business models. NOT for incremental improvements, bug fixes, or feature requests. Outputs ranked ideas with effort/impact scores and concrete next-week prototypes.
+summary: "Use when: user seeks transformative 10x ideas. Skip when: incremental improvements or bug fixes."
 version: 2.0
 ---
 
@@ -38,3 +39,23 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 ## Reference Files
 
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
+
+
+## When to Use
+
+- Before building new features — generate radical alternatives to the obvious approach
+- When brainstorming is yielding incremental ideas — force 10x thinking
+- When evaluating whether to build vs buy vs integrate
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Ideas too abstract to act on | Require concrete "next-week experiment" for each idea |
+| Scoring bias toward familiar approaches | Weight novelty explicitly in impact/feasibility matrix |
+| Innovation theater — big ideas with no follow-through | Gate: each idea must have a testable hypothesis |
+
+```bash
+# Example: invoke innovation for a feature
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill innovation
+```

@@ -1,8 +1,9 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "second opinion", "try a different approach", "stuck:reasoning", "stuck:perspective"]
-description: Helps the AI coding assistant break out of spirals and stuck loops. Auto-detects circular reasoning, repeated failures, or exhaustion signals. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+triggers: ["second opinion", "try a different approach", "phone a friend", "fresh sub-agent"]
+description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+summary: "Use when: stuck in a loop, circular reasoning, or same error 3+ times."
 coordination:
   group: stuck-escalation
   order: 1
@@ -42,3 +43,24 @@ coordination:
 - `references/consultation-prompt-template.md` — Prompt template
 - `references/scoring-rubric.md` — Scoring dimensions
 - `prompts/consultant-persona.md` — Sub-agent persona
+
+
+## When to Use
+
+- When cumulative stuck-signal score reaches 7+ (see auto-detection table)
+- When the same fix has been tried 3+ times without resolution
+- When the agent says "I've tried everything" or "I'm not sure why"
+- When user says: "think twice", "get unstuck", "fresh eyes", "phone a friend"
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Sub-agent inherits same flawed assumptions | Provide raw symptoms only, not prior conclusions |
+| Agent ignores stuck signals and keeps looping | Enforce cumulative score threshold — 7+ is mandatory |
+| Fresh perspective is too shallow | Sub-agent must produce root-cause hypothesis, not just "try X" |
+
+```bash
+# Example: invoke think-twice when stuck
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
+```

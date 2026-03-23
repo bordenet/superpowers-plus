@@ -1,8 +1,9 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "add a TODO", "add TODO", "what should I work on", "show my tasks", "show my TODOs", "what are my TODOs", "what are my tasks", "complete [task]", "what did I do", "triage", "process TODOs", "mark done", "my P1s", "backlog", "today's priorities", "TODOs today", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist", "todo", "todos", "what are our todos", "what's pending", "what's next", "what needs to be done", "open tasks", "outstanding tasks", "what's left", "remaining work", "show todos", "list tasks", "active tasks"]
+triggers: ["add task", "add TODO", "what should I work on", "show my tasks", "list tasks", "what are my tasks", "what's next", "what's pending", "complete [task]", "mark done", "what did I do", "triage", "my P1s", "today's priorities", "backlog", "implement this plan", "execute these steps", "track this work", "todo", "remaining work"]
 description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
+summary: "Use when: managing multi-step tasks. Hard gate for 3+ step tasks."
 ---
 
 # TODO Management
@@ -64,23 +65,61 @@ but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if
 
 ---
 
-## ⛔ HARD GATE: File Path Resolution (MANDATORY — No Exceptions)
+## Primary Interface: `todo-crud.sh`
 
-**Before ANY task operation**, run preflight → use returned `TODO_PATH` for all file ops:
+**Use `todo-crud.sh` for ALL TODO.md write operations.** It handles preflight, locking, backup, and ID allocation automatically in a single call.
 
 ```bash
-~/.codex/superpowers-plus/tools/todo-preflight.sh              # resolve path
-~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing  # create if needed
+# Add a task
+~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P3 --description "Task description" --tags "#tag1 #tag2" --note "Additional context"
+
+# Complete a task
+~/.codex/superpowers-plus/tools/todo-crud.sh complete --id 20260322-01 --note "Resolution notes"
+
+# Move task to different priority
+~/.codex/superpowers-plus/tools/todo-crud.sh move --id 20260322-01 --to P1
+
+# List/filter tasks
+~/.codex/superpowers-plus/tools/todo-crud.sh list --priority P1
+~/.codex/superpowers-plus/tools/todo-crud.sh list --tag "#plan-foo"
+
+# Get next available task ID
+~/.codex/superpowers-plus/tools/todo-crud.sh next-id
+
+# Defer a task
+~/.codex/superpowers-plus/tools/todo-crud.sh defer --id 20260322-01 --reason "Blocked on X"
+
+# JSON output (for machine parsing)
+~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
-**If `FILE_EXISTS=false`: STOP. Do NOT proceed. Do NOT fall back to MCP-only tracking.**
+**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization. Cross-platform (macOS + Linux).
 
-See **[AGENTS.md § Planning and Task Management](../../../AGENTS.md#planning-and-task-management)** for the full hard gate, locking protocol, anti-patterns, and configuration.
+**If TODO.md doesn't exist:** Run `todo-preflight.sh --create-if-missing` first to create from template.
 
-**Quick reference — correct write sequence:**
-1. Run preflight → get `TODO_PATH`
-2. `todo-lock.sh acquire` → backup → write → `todo-lock.sh release`
-3. Optionally mirror to MCP tools for UI visibility
+## Maintenance Interface: `todo-maintenance.sh`
+
+**Use `todo-maintenance.sh` for routine housekeeping.** It resolves/creates `TODO.md`, reports stale `#plan-*` tasks, and runs archive automatically when housekeeping thresholds are hit.
+
+```bash
+# One-command maintenance (recommended after multi-step sessions)
+~/.codex/superpowers-plus/tools/todo-maintenance.sh
+
+# Preview housekeeping actions without modifying TODO.md
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --dry-run
+
+# Machine-readable summary for agents/scripts
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --json
+```
+
+### Legacy Tools (still available, rarely needed)
+
+| Tool | When to use |
+|------|-------------|
+| `todo-preflight.sh` | Create initial TODO.md, or debug path resolution |
+| `todo-lock.sh` | Debug lock issues (`status`, `steal` commands) |
+
+**Anti-pattern:** Do NOT improvise shell/sed/python to write TODO.md. Use `todo-crud.sh`.
 
 ---
 
@@ -135,6 +174,21 @@ See `references/file-format-and-operations.md` for:
 
 ---
 
+## Context-Aware TODO Standard (Plan-Level Tasks)
+
+When creating tasks that represent meaningful work units (not mechanical sub-steps), enforce these fields:
+
+| Field | Required Content | Max Length | Skip For |
+|-------|-----------------|-----------|----------|
+| **Purpose** | WHY this task exists — what problem does completing it solve? | 1 line | Sub-steps that share parent context |
+| **Trinity** | **WHY** (rationale), **WHAT** (deliverable), **HOW** (approach + file paths) | 1 bullet each (3 total) | Trivial tasks (< 5 min) |
+| **Success Criteria** | Binary done/not-done — verifiable by command or state check | 1 bullet | Sub-steps with obvious completion |
+| **Handoff State** | Branch, last commit, partial work, gotchas — enough for a fresh agent | 3 bullets max | Tasks that won't span sessions |
+
+**When to enforce:** Any TODO tagged with `#plan-*` that could be picked up by a different agent. If a sub-step shares context with its parent, the parent carries the context fields.
+
+---
+
 ## Guardrails
 
 | Condition | Action |
@@ -142,6 +196,7 @@ See `references/file-format-and-operations.md` for:
 | P1 count > 5 | Warn and offer to demote |
 | P3 task > 14 days old | Friday sweep: "Kill or Keep?" |
 | Multi-day task | Ask "What did you accomplish? What remains?" |
+| Plan-level task missing Context-Aware fields | Warn: "This task needs Purpose/Trinity/Success Criteria/Handoff State for handoff" |
 
 ---
 
@@ -149,7 +204,7 @@ See `references/file-format-and-operations.md` for:
 
 **On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
 
-**Post-session archive check** — run archive (`todo-archive` skill or `~/.codex/skills/todo-archive/todo-archive.sh --force`) when any of these are true:
+**Post-session maintenance** — run `~/.codex/superpowers-plus/tools/todo-maintenance.sh` after any multi-step session. It will report stale `#plan-*` tasks and run archive automatically when any of these are true:
 - HISTORY has ≥5 completed tasks
 - TODO.md exceeds 200 lines
 - HISTORY entries are >7 days old

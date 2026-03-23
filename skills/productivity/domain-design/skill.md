@@ -3,6 +3,7 @@ name: domain-design
 source: superpowers-plus
 triggers: ["design a new skill domain", "plan a skill family", "what skills should we build for", "domain design for", "design a domain", "new superpowers domain", "skill family design", "plan skills for"]
 description: Use when designing a new superpowers skill family from scratch — orchestrates the full research → brainstorm → harsh review → prioritize → document cycle. Produces a prioritized skill roster, architecture decision, infrastructure map, and blocker list. Does NOT build skills.
+summary: "Use when: designing a new skill family from scratch. Skip when: building skills (use domain-build)."
 ---
 
 # Domain Design Orchestrator
@@ -62,3 +63,22 @@ Three rounds of diverge (brainstorm) → converge (harsh review), bookended by r
 ## Post-Design Gate
 
 Before reporting "design complete": wiki design doc published, tracking page updated, all blocker tickets filed with links in both docs.
+
+## When to Use
+
+- When planning a new superpowers skill family from scratch
+- When evaluating whether a domain needs 1 skill or 5+
+- When designing the architecture of a related skill group
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Design produces too many skills (scope creep) | Enforce P0-only delivery — defer P1+ to backlog |
+| Missing infrastructure requirements (tools, APIs) | Infrastructure map is mandatory output — blockers stop design |
+| Design never converges after harsh review | Cap at 3 review rounds — escalate to user for tiebreak |
+
+```bash
+# Example: design a new skill domain
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill domain-design
+```

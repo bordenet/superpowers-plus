@@ -1,0 +1,159 @@
+# Investigation State — JSON Schema Reference
+
+> Reference material for the `investigation-state` skill.
+> See `skill.md` for core guidance.
+
+## Storage Location
+
+```
+~/.superpowers/investigations/<uuid>.json
+```
+
+Each investigation is a single JSON file named by its UUID.
+
+## Schema
+
+```json
+{
+  "id": "string (UUID v4, lowercase)",
+  "created": "string (ISO-8601 UTC, e.g., 2026-03-23T14:30:00Z)",
+  "updated": "string (ISO-8601 UTC, e.g., 2026-03-23T15:45:00Z)",
+  "status": "string (active | paused | resolved | abandoned)",
+  "title": "string (brief description of the bug being investigated)",
+  "symptoms": {
+    "observed": "string (what actually happens)",
+    "expected": "string (what should happen)",
+    "reproduction": "string (steps to reproduce)"
+  },
+  "hypotheses": [
+    {
+      "id": "integer (sequential, starting at 1)",
+      "text": "string (the hypothesis statement)",
+      "evidence": [
+        {
+          "source": "string (freeform tool identifier)",
+          "finding": "string (what was found)",
+          "timestamp": "string (ISO-8601 UTC)"
+        }
+      ],
+      "verdict": "null | \"confirmed\" | \"rejected\" | \"inconclusive\"",
+      "verdict_reason": "null | string (why this verdict was reached)"
+    }
+  ],
+  "eliminated": [
+    {
+      "approach": "string (what was tried)",
+      "reason": "string (why it didn't work)",
+      "timestamp": "string (ISO-8601 UTC)"
+    }
+  ],
+  "currentTheory": "integer | null (hypothesis id, or null if no current theory)",
+  "resolution": "null | { type, summary, fixTodo }",
+  "nextSteps": ["string (action items for next session)"],
+  "toolsConsulted": ["string (freeform tool identifiers)"],
+  "relatedTodos": ["string (TODO references, e.g., #investigation-abc12345)"],
+  "relatedTickets": ["string (ticket references, e.g., TST-123)"]
+}
+```
+
+## Field Details
+
+### Top-Level Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | UUID v4, lowercase. Generated via `uuidgen \| tr '[:upper:]' '[:lower:]'` |
+| `created` | string | Yes | ISO-8601 UTC timestamp when investigation started |
+| `updated` | string | Yes | ISO-8601 UTC timestamp of last modification. Updated on every write |
+| `status` | string | Yes | One of: `active`, `paused`, `resolved`, `abandoned` |
+| `title` | string | Yes | Brief description of the bug under investigation |
+| `symptoms` | object | Yes | Observed vs expected behavior and reproduction steps |
+| `hypotheses` | array | Yes | List of hypotheses (may be empty initially) |
+| `eliminated` | array | Yes | Approaches tried and failed (may be empty) |
+| `currentTheory` | int/null | Yes | `id` of the hypothesis currently being tested, or `null` |
+| `resolution` | object/null | No | Set when status is `resolved`. See Resolution below |
+| `nextSteps` | array | Yes | Action items for the next session (may be empty) |
+| `toolsConsulted` | array | Yes | Tools used during investigation (may be empty) |
+| `relatedTodos` | array | No | TODO references (e.g., `#investigation-abc12345`) |
+| `relatedTickets` | array | No | External ticket references (Linear, ADO, etc.) |
+
+### Short ID
+
+The `<short-id>` used in TODO tags is the **first 8 characters** of the investigation UUID.
+Example: UUID `a1b2c3d4-e5f6-7890-abcd-ef1234567890` → short-id `a1b2c3d4` → tag `#investigation-a1b2c3d4`
+
+### Resolution
+
+Set when `status` is `resolved`. Null otherwise.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | `"fix-needed"`, `"no-fix-needed"`, or `"external"` |
+| `summary` | string | Brief description of the root cause and resolution |
+| `fixTodo` | string/null | TODO tag (e.g., `#investigation-a1b2c3d4`) if `type` is `fix-needed`, null otherwise |
+
+**Resolution types:**
+- `fix-needed` — Code change required. Create a TODO tagged `#investigation-<short-id>`.
+- `no-fix-needed` — Root cause found but no code change needed (config error, user error, data issue).
+- `external` — Issue is outside our control (third-party service, infrastructure).
+
+### Timestamps
+
+All timestamps are UTC in ISO-8601 format with seconds precision:
+- Format: `YYYY-MM-DDTHH:MM:SSZ`
+- Example: `2026-03-23T14:30:00Z`
+- No milliseconds. No timezone offsets. Always `Z` suffix.
+
+### Status Values
+
+| Value | Meaning | Transitions To |
+|-------|---------|----------------|
+| `active` | Under investigation | `paused`, `resolved`, `abandoned` |
+| `paused` | Session ended, not resolved | `active` |
+| `resolved` | Root cause found, fix identified | (terminal) |
+| `abandoned` | No longer relevant | (terminal) |
+
+### Hypothesis Verdicts
+
+| Value | Meaning | Markdown Rendering |
+|-------|---------|-------------------|
+| `null` | Not yet tested | `ACTIVE` |
+| `"confirmed"` | Evidence supports this hypothesis | `CONFIRMED` |
+| `"rejected"` | Evidence contradicts this hypothesis | `REJECTED` |
+| `"inconclusive"` | Evidence is ambiguous | `INCONCLUSIVE` |
+
+### Evidence Source Format
+
+The `source` field is freeform text. Common patterns:
+
+| Pattern | Example | Meaning |
+|---------|---------|---------|
+| `mssql:<connection>` | `mssql:staging-db` | MSSQL query via named connection |
+| `ado:<project>` | `ado:MyProject` | Azure DevOps (pipelines, work items) |
+| `linear` | `linear` | Linear issue tracker |
+| `outline` | `outline` | Outline wiki |
+| `local:<tool>` | `local:grep` | Local tool (grep, find, cat, etc.) |
+| `browser` | `browser` | Web browser / fetch |
+| `git:<action>` | `git:bisect` | Git operations |
+
+## Validation
+
+Validate a JSON file with:
+
+```bash
+python3 -c "
+import json, sys
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+required = ['id', 'created', 'updated', 'status', 'title', 'symptoms', 'hypotheses', 'eliminated', 'currentTheory', 'nextSteps', 'toolsConsulted']
+missing = [k for k in required if k not in data]
+if missing:
+    print(f'Missing fields: {missing}', file=sys.stderr)
+    sys.exit(1)
+valid_statuses = {'active', 'paused', 'resolved', 'abandoned'}
+if data['status'] not in valid_statuses:
+    print(f'Invalid status: {data[\"status\"]}', file=sys.stderr)
+    sys.exit(1)
+print('Valid')
+" ~/.superpowers/investigations/<uuid>.json
+```
