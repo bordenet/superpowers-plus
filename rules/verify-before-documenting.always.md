@@ -11,7 +11,7 @@ AI assistants commonly hallucinate URLs based on patterns in training data. Befo
 | Pattern | Problem |
 |---------|---------|
 | `github.com/{org}/{repo}` | Repo may not exist |
-| `linear.app/settings/api` | Wrong path structure |
+| `tracker.example.com/settings/api` | Wrong path structure |
 | `docs.example.com/latest` | Version may differ |
 | `api.service.com/v2/...` | API version may not exist |
 
@@ -22,7 +22,7 @@ Before writing any external service URL, query the API to get the correct value.
 | Service | Wrong Approach | Right Approach |
 |---------|----------------|----------------|
 | GitHub | Guess `github.com/org/repo` | Query `/repos/{owner}/{repo}` API |
-| Linear | Guess `linear.app/settings/api` | Query organization settings via API |
+| Issue tracker SaaS | Guess a settings URL | Query organization settings via API |
 | Any API | Assume endpoint path | Check API documentation or query |
 
 ### Before Writing ANY Repository Link

@@ -62,7 +62,7 @@ For each target month file:
 
 2. Check for duplicate task IDs (idempotency guard)
 3. Append tasks under `## YYYY-MM-DD` date headers (reverse-chronological)
-4. Compute and add metadata: `Duration:`, `Linear:` (extract DELTA-XXX from tags/description)
+4. Compute and add metadata: `Duration:`, `Issue:` (extract ticket IDs from tags/description)
 
 ### Step 5: Update INDEX.md
 
@@ -73,7 +73,7 @@ Rebuild INDEX.md from all archive files:
 
 > Total archived: {count} tasks across {n} months
 
-| Month | Tasks | Top Tags | Linear Issues |
+| Month | Tasks | Top Tags | Related Issues |
 |-------|-------|----------|---------------|
 | 2026-03 | 42 | #engineering (18) | PROJ-$1, PROJ-$1 |
 | 2026-02 | 38 | #recruiting (12) | PROJ-$1 |
@@ -110,7 +110,7 @@ If mismatch → ABORT, restore from backup, report error.
   - Done: 2026-03-18T14:30:00
   - Duration: 3 days
   - Progress: Tuned P1/P2 alarms, added runbook URLs
-  - Linear: PROJ-$1
+  - Issue: PROJ-$1
 
 ## 2026-03-15
 - [x] [20260314-02] Review config PR #engineering-backend
@@ -130,7 +130,7 @@ search archived todos for "alarm tuning"
 → grep -rn "alarm tuning" "$ARCHIVE_DIR"/*.md
 ```
 
-### By Linear issue
+### By issue ID
 ```
 search archived todos for PROJ-$1
 → grep -rn "PROJ-$1" "$ARCHIVE_DIR"/*.md

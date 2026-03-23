@@ -6,7 +6,7 @@ Platform-specific configurations for wiki skills.
 
 | Platform | Adapter | Status |
 |----------|---------|--------|
-| [Outline](https://www.getoutline.com/) | [outline.md](outline.md) | ✅ Supported |
+| Your current wiki platform | [platform-template.md](platform-template.md) | ⚙️ Configure locally |
 | Confluence | — | 🔮 Future |
 | Notion | — | 🔮 Future |
 | GitBook | — | 🔮 Future |
@@ -16,7 +16,7 @@ Platform-specific configurations for wiki skills.
 Set `WIKI_PLATFORM` in your `.env` file:
 
 ```bash
-WIKI_PLATFORM=outline
+WIKI_PLATFORM=your-platform
 ```
 
 Each adapter documents its required environment variables and MCP tool mappings.
@@ -37,7 +37,7 @@ wiki/
 ├── _adapters/
 │   ├── README.md              # This file
 │   ├── adapter-interface.md   # Generic interface
-│   └── outline.md             # Outline-specific config
+│   └── platform-template.md   # Provider-neutral adapter template
 ├── wiki-orchestrator/         # Generic (routes to adapter)
 ├── wiki-authoring/            # Generic (formatting rules)
 ├── wiki-verify/               # Generic (fact-checking)
