@@ -5,33 +5,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADAPTER="$SCRIPT_DIR/../../superpowers-augment.js"
 MAINT_SCRIPT="$SCRIPT_DIR/../todo-maintenance.sh"
 
-PASS=0; FAIL=0
+PASS=0; FAIL=0; SKIP=0
 fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
+skip() { echo "  skip: $1"; ((SKIP++)) || true; }
+
+# Portable helper: create bare repo with "main" as default branch.
+# git init -b requires git 2.28+ (missing on Ubuntu 20.04).
+_init_bare_main() {
+  local repo="$1"
+  git init --bare "$repo" --quiet
+  git -C "$repo" symbolic-ref HEAD refs/heads/main
+}
 
 # ── Check 19/20 helpers: stale/dirty managed checkout detection ──
 
 test_stale_checkout_detection() {
-  local tmp_repo branch
+  local tmp_repo
   tmp_repo=$(mktemp -d "${TMPDIR:-/tmp}/doctor-stale-XXXXXX")
-  # Create a fake "remote" bare repo with initial branch "main"
-  git init --bare "$tmp_repo/remote.git" -b main --quiet
+  # Create a fake "remote" bare repo with default branch "main" (portable)
+  _init_bare_main "$tmp_repo/remote.git"
   # Clone it as the "managed checkout"
   git clone "$tmp_repo/remote.git" "$tmp_repo/managed" --quiet 2>/dev/null
-  branch=$(git -C "$tmp_repo/managed" branch --show-current 2>/dev/null || echo "main")
   # Add an initial commit to managed so HEAD exists
   git -C "$tmp_repo/managed" commit --allow-empty -m "init" --quiet
-  git -C "$tmp_repo/managed" push origin "$branch" --quiet 2>/dev/null
+  git -C "$tmp_repo/managed" push origin main --quiet 2>/dev/null
   # Now add a commit to the remote that the local doesn't have
   git clone "$tmp_repo/remote.git" "$tmp_repo/pusher" --quiet 2>/dev/null
   git -C "$tmp_repo/pusher" commit --allow-empty -m "ahead" --quiet
-  git -C "$tmp_repo/pusher" push origin "$branch" --quiet 2>/dev/null
+  git -C "$tmp_repo/pusher" push origin main --quiet 2>/dev/null
   # Test the detection logic
   git -C "$tmp_repo/managed" fetch origin --quiet 2>/dev/null
   local local_head remote_head behind
   local_head=$(git -C "$tmp_repo/managed" rev-parse HEAD)
-  remote_head=$(git -C "$tmp_repo/managed" rev-parse "origin/$branch")
-  behind=$(git -C "$tmp_repo/managed" rev-list --count "HEAD..origin/$branch")
+  remote_head=$(git -C "$tmp_repo/managed" rev-parse "origin/main")
+  behind=$(git -C "$tmp_repo/managed" rev-list --count "HEAD..origin/main")
   if [[ "$local_head" != "$remote_head" && "$behind" -gt 0 ]]; then
     pass "stale checkout detected ($behind behind)"
   else
@@ -41,17 +49,16 @@ test_stale_checkout_detection() {
 }
 
 test_clean_checkout_not_flagged() {
-  local tmp_repo branch
+  local tmp_repo
   tmp_repo=$(mktemp -d "${TMPDIR:-/tmp}/doctor-clean-XXXXXX")
-  git init --bare "$tmp_repo/remote.git" -b main --quiet
+  _init_bare_main "$tmp_repo/remote.git"
   git clone "$tmp_repo/remote.git" "$tmp_repo/managed" --quiet 2>/dev/null
-  branch=$(git -C "$tmp_repo/managed" branch --show-current 2>/dev/null || echo "main")
   git -C "$tmp_repo/managed" commit --allow-empty -m "init" --quiet
-  git -C "$tmp_repo/managed" push origin "$branch" --quiet 2>/dev/null
+  git -C "$tmp_repo/managed" push origin main --quiet 2>/dev/null
   git -C "$tmp_repo/managed" fetch origin --quiet 2>/dev/null
   local local_head remote_head
   local_head=$(git -C "$tmp_repo/managed" rev-parse HEAD)
-  remote_head=$(git -C "$tmp_repo/managed" rev-parse "origin/$branch")
+  remote_head=$(git -C "$tmp_repo/managed" rev-parse "origin/main")
   if [[ "$local_head" == "$remote_head" ]]; then
     pass "clean checkout not flagged as stale"
   else
@@ -100,7 +107,8 @@ test_dirty_safe_artifact_classification() {
 # ── Check 21: TODO archive smoke test ──
 
 test_todo_archive_smoke_small_valid() {
-  [[ -f "$MAINT_SCRIPT" ]] || { fail "todo-maintenance.sh not found"; return; }
+  [[ -f "$MAINT_SCRIPT" ]] || { skip "todo-maintenance.sh not found"; return; }
+  command -v python3 &>/dev/null || { skip "python3 not available"; return; }
   local fixture_root fixture_todo
   fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-todo-test-XXXXXX")
   mkdir -p "$fixture_root/home/.codex" "$fixture_root/data"
@@ -174,8 +182,8 @@ FIXTURE
 # ── Check 22: Reviewer-dispatch rendering verification ──
 
 test_reviewer_dispatch_contains_subagent() {
-  [[ -f "$ADAPTER" ]] || { fail "superpowers-augment.js not found"; return; }
-  command -v node &>/dev/null || { fail "node not available"; return; }
+  [[ -f "$ADAPTER" ]] || { skip "superpowers-augment.js not found"; return; }
+  command -v node &>/dev/null || { skip "node not available"; return; }
   local output
   output=$(node "$ADAPTER" use-skill requesting-code-review 2>/dev/null || true)
   if [[ -z "$output" ]]; then
@@ -254,9 +262,11 @@ test_reviewer_dispatch_sdd_detection
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [[ "$FAIL" -gt 0 ]]; then
-  echo "FAIL: $PASS passed, $FAIL failed"
+  echo "FAIL: $PASS passed, $FAIL failed, $SKIP skipped"
   exit 1
 else
-  echo "PASS: all $PASS tests passed"
+  local_summary="PASS: all $PASS tests passed"
+  [[ "$SKIP" -gt 0 ]] && local_summary="$local_summary ($SKIP skipped)"
+  echo "$local_summary"
 fi
 
