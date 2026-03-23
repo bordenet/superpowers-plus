@@ -32,9 +32,9 @@ If neither has been done, complete them first or explicitly acknowledge the risk
 |------|------|-------------|------|
 | 1. GENERATE | Diverge | Produce ≥3 genuinely distinct design options | ≥3 options, each implementable |
 | 2. COMPARE | Analyze | Structured comparison matrix across 5 criteria | Matrix complete, recommendation stated |
-| 3. HARSH REVIEW | Converge | Red-team the selected design — invoke `adversarial-search` mindset | All weaknesses documented |
+| 3. HARSH REVIEW | Converge | Red-team via **separated reviewer** (sub-agent or explicit role switch) | All weaknesses documented by non-author |
 | 4. EDGE CASES | Diverge | Final brainstorm targeting gaps found in Step 3 | Edge cases cataloged |
-| 5. ITERATE | Loop | Fix issues → re-review until no new material issues OR 3 iterations (then escalate) | Converged or escalated |
+| 5. ITERATE | Loop | Fix → verify fixes landed → re-review (min 2 rounds) | Converged or escalated |
 
 ## Step 1: Generate Options
 
@@ -61,12 +61,19 @@ State your recommendation with explicit rationale (2-3 sentences). If only one o
 
 ## Step 3: Harsh Review (Red Team)
 
-For the selected design, answer ALL of these (**max 1 sentence per answer**):
+⛔ **HARD GATE: Author ≠ Reviewer.** You MUST NOT red-team your own design in the same thinking pass that produced it. Use ONE of:
+- **Sub-agent** (preferred): Dispatch a sub-agent with role "hostile reviewer" and full context of the design
+- **Explicit role switch**: Complete the design, then start a new section with: *"I am now reviewing this as a hostile critic. My job is to find what's WRONG."*
+
+Self-review in the same pass that wrote the design is **a violation** — it produces theater, not adversarial pressure.
+
+For the selected design, the reviewer answers ALL of these (**max 1 sentence per answer**):
 1. What's the weakest assumption?
 2. What failure mode hasn't been considered?
 3. What would a hostile code reviewer attack?
 4. What edge case would break this in production?
 5. What happens if the adjacent system changes?
+6. **Cross-reference check:** Do the design's concrete details (file paths, integration points, claimed behaviors) actually work within the project's real directory structure, existing conventions, and stated constraints?
 
 **REQUIRED:** Invoke `adversarial-search` principles — search for the WRONG thing, not confirmation of the RIGHT thing.
 
@@ -79,11 +86,19 @@ One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap:
 
 ## Step 5: Iterate
 
-`harsh-review → fix → harsh-review` loop:
-- **Exit when:** No new material issues found in a review round
-- **Escalate when:** 3 iterations completed without convergence — summarize blockers, escalate to human
-- **Do NOT:** Continue beyond 3 iterations — diminishing returns
-- **Delta-only:** Each iteration documents ONLY what changed since the previous round, not the full design
+`harsh-review → fix → verify → re-review` loop:
+
+⛔ **HARD GATE: Minimum 2 full review rounds.** Round 1 = the initial harsh review (Step 3). Round 2 = re-review after fixes. You may NOT declare convergence without completing Round 2. Declaring "converged" after only Step 3 is a violation.
+
+Each round has THREE phases:
+1. **Fix:** Address issues found in the previous review
+2. **Verify fixes landed:** Cross-reference each resolution against the actual artifact (spec, code, design doc). Confirm the fix appears in the output, not just in a resolution table. Claimed-but-not-implemented fixes are the #1 failure mode.
+3. **Re-review:** Run harsh review again (Step 3 questions) on the UPDATED artifact
+
+- **Exit when:** Round 2+ finds no new material issues
+- **Escalate when:** 3 rounds completed without convergence — summarize blockers, escalate to human
+- **Do NOT:** Continue beyond 3 rounds — diminishing returns
+- **Delta-only:** Each round documents ONLY what changed since the previous round, not the full design
 
 ## Output
 
@@ -100,5 +115,8 @@ Design document with:
 | "There's only one way to do this" | You haven't thought hard enough. Invoke `think-twice`. |
 | "The other options are obviously wrong" | Document WHY in the matrix. That's the point. |
 | "This is too simple for 3 options" | Simple designs have unexamined assumptions. |
-| "Harsh review found nothing" | You didn't look hard enough. Answer all 5 questions. |
+| "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
 | "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
+| "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
+| "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
+| "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |
