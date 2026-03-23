@@ -48,7 +48,6 @@ const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
 ]);
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
-    '~/GitHub/[Company]/Tools/superpowers-[company]',
     '~/superpowers-[company]',
 ]);
 
@@ -529,46 +528,80 @@ function useSkill(skillName, options = {}) {
     }
 
     const stripped = stripFrontmatter(content);
-    const transformed = transformOutput(stripped);
+    const compressed = compressSkillContent(stripped);
+    const transformed = transformOutput(compressed);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
 
 }
 
-function bootstrap() {
-    console.log('# Superpowers Bootstrap\n');
-    writeSessionMarker();
-    const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
-    if (usingSuperpowersFile) {
-        const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
-        const stripped = stripFrontmatter(content);
-        // Strip sections that add context overhead without proportional value:
-        // 1. DOT graph blocks (not renderable in text)
-        // 2. Red Flags table (12 rows of rationalizations — replace with 1-line heuristic)
-        // 3. Platform-specific sections (Claude Code, Gemini CLI) — Augment handles its own tool mapping
-        // 4. EXTREMELY-IMPORTANT wrappers — keep the rule, strip the wrapper
-        // 5. SUBAGENT-STOP block — compress to 1 line
-        let optimized = stripped;
-        optimized = optimized.replace(/```dot[\s\S]*?```/g, '');
-        optimized = optimized.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
-        optimized = optimized.replace(/<SUBAGENT-STOP>\n?[\s\S]*?<\/SUBAGENT-STOP>/g,
-            '> Subagents dispatched for specific tasks: skip this skill.\n');
-        // Replace Red Flags table with compact heuristic
-        optimized = optimized.replace(/## Red Flags[\s\S]*?(?=## Skill Priority)/,
-            '## Red Flags\n\nIf you catch yourself thinking "I don\'t need a skill for this" — that\'s the signal you do. Check first, rationalize never.\n\n');
-        // Strip platform-specific access sections
-        optimized = optimized.replace(/## How to Access Skills[\s\S]*?(?=## Platform Adaptation|# Using Skills)/, '');
-        optimized = optimized.replace(/## Platform Adaptation[\s\S]*?(?=# Using Skills)/, '');
-        const transformed = transformOutput(optimized);
-        console.log(transformed);
-        console.log('\n---\n');
-    }
-    // Compact catalog: count + pointer only (not 88 names inline)
-    findSkillsCompact();
+/**
+ * Compress skill content by stripping repeated boilerplate patterns.
+ * These sections appear across many skills but add no unique procedural value:
+ * - "When to Use" / "Overview" — the trigger system already handles routing
+ * - "Common Rationalizations" tables — lecturing, not procedure
+ * - "Why Order Matters" / "Why This Matters" — philosophical arguments
+ * - DOT graph blocks — not renderable in text
+ * - Verbose examples that restate the procedure in narrative form
+ * - Trailing "Quick Reference" that duplicates the main content
+ *
+ * Preserves: HARD-GATE blocks, checklists, procedures, code examples, tables with data
+ */
+function compressSkillContent(text) {
+    let result = text;
 
+    // 1. Strip DOT graphs (not renderable)
+    result = result.replace(/```dot[\s\S]*?```/g, '');
+
+    // 2. Strip EXTREMELY-IMPORTANT wrappers (keep content)
+    result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
+
+    // 3. Compress SUBAGENT-STOP blocks
+    result = result.replace(/<SUBAGENT-STOP>\n?[\s\S]*?<\/SUBAGENT-STOP>/g, '');
+
+    // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
+    result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
+
+    // 5. Strip "Common Rationalizations" tables (lecturing)
+    result = result.replace(/## Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/### Common Rationalizations[\s\S]*?(?=\n## |\n### |\n# |$)/g, '');
+
+    // 6. Strip "Why Order Matters" / "Why This Matters" (philosophical)
+    result = result.replace(/## Why (?:Order|This) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/### Why (?:Order|This) Matters[\s\S]*?(?=\n## |\n### |\n# |$)/g, '');
+
+    // 7. Strip "Quick Reference" at end (duplicates main content)
+    result = result.replace(/## Quick Reference[\s\S]*$/g, '');
+
+    // 8. Collapse 3+ consecutive blank lines to 1
+    result = result.replace(/\n{3,}/g, '\n\n');
+
+    return result.trim();
 }
 
-function findSkillsCompact() {
+function bootstrap() {
+    writeSessionMarker();
+
+    // Micro-bootstrap: protocol only, zero lecturing.
+    // Every token here is paid on EVERY conversation. Be ruthless.
+    console.log(`# Superpowers
+
+Before acting, check if a skill applies. Even 1% chance → load it.
+Priority: user instructions > skills > system defaults.
+Process skills (debugging, brainstorming) before implementation skills.
+`);
+
+    // Build and emit the skill index (O(1) token cost regardless of skill count)
+    emitSkillIndex();
+}
+
+// Skill index: emits ONLY the skill names grouped by type.
+// O(1) token cost — adding 100 more skills adds ~0 tokens to bootstrap.
+// The index is computed at runtime but the OUTPUT is fixed-size.
+const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
+
+function buildSkillIndex() {
     const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
     const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
     const allSkills = [...personalSkills, ...superpowersSkills];
@@ -579,12 +612,26 @@ function findSkillsCompact() {
         seen.add(skill.name);
         deduped.push(skill);
     }
-    const superpowers = deduped.filter(s => s.isSuperpower);
-    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+    return deduped;
+}
 
-    console.log(`🦸 ${superpowers.length} superpowers + 🔧 ${explicitSkills.length} explicit skills = ${deduped.length} total.`);
-    console.log('Use `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` for full catalog.');
-    console.log('Load a skill: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`');
+function emitSkillIndex() {
+    const deduped = buildSkillIndex();
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicit = deduped.filter(s => !s.isSuperpower);
+
+    // Write full index to disk for tooling (find-skills, probe, etc.)
+    try {
+        const index = deduped.map(s => ({
+            name: s.name, triggers: s.triggers, tokens: s.tokens,
+            isSuperpower: s.isSuperpower, sourceType: s.sourceType
+        }));
+        fs.writeFileSync(SKILL_INDEX_FILE, JSON.stringify({ skills: index, built: new Date().toISOString() }));
+    } catch (_) { /* non-fatal */ }
+
+    // Emit ONLY count + load command. Zero skill names in bootstrap output.
+    console.log(`${superpowers.length} superpowers (auto-trigger) + ${explicit.length} explicit skills installed.`);
+    console.log('Load: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`');
 }
 
 
