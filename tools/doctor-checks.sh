@@ -460,6 +460,7 @@ for skill in "${!SKILL_PATH[@]}"; do
   while IFS= read -r path; do
     [[ -z "$path" ]] && continue
     # Safe tilde expansion without eval (avoids command injection risk)
+    # shellcheck disable=SC2088  # Intentional literal match, not tilde expansion
     if [[ "$path" == "~/"* ]]; then
       expanded="$HOME/${path#\~/}"
     else
