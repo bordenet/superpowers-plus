@@ -103,7 +103,7 @@ For each phase from the plan:
 2. **Implement:** Write code, following existing conventions
 3. **Test:** Write tests that exercise the success criteria
 4. **Self-review:** Run `adversarial-search` — search for what could be WRONG
-5. **Commit:** Follow pre-commit gates
+5. **Prepare commit:** Stage changes, verify pre-commit gates pass (commit only with user approval)
 6. **Mark TODO complete** with progress note
 7. **Exit gate:** Tests pass, TODO marked complete, no regressions.
 
@@ -114,18 +114,18 @@ For each phase from the plan:
 **Invoke:** `completeness-check` then `verification-before-completion`
 
 1. Run completeness audit (18 detection categories)
-2. Score must be ≥90 (no critical findings)
+2. Score must be ≥90 — this is a **policy choice** stricter than the default ≥70; adjust per team norms
 3. Run verification-before-completion checks
-4. **Exit gate:** Completeness score ≥90, no blocking findings.
+4. **Exit gate:** Completeness score meets threshold, no blocking findings.
 
 ---
 
 ### Phase 6: Complete
 
 1. Update README/docs if the feature is user-facing
-2. Create PR with clear description linking to plan TODOs
+2. Prepare PR description linking to plan TODOs (create PR only with user approval)
 3. Run all validation tools (harsh-review, trigger-validator, tests)
-4. **Exit gate:** PR created, all checks pass, ready for merge.
+4. **Exit gate:** All checks pass, PR ready for user to create/merge.
 
 ---
 
@@ -164,8 +164,8 @@ If a feature was started in a previous session:
 | Design | `design-triad` | ≥3 options, harsh review, selection |
 | Plan | `todo-management` | WHY/WHAT/HOW TODOs with success criteria |
 | Implement | `adversarial-search` | Self-review after each phase |
-| Verify | `completeness-check` | Audit for incomplete work |
-| Complete | `verification-before-completion` | Final gate before claiming done |
+| Verify | `completeness-check`, `verification-before-completion` | Audit + final gate |
+| Complete | (none — user-driven) | PR creation, merge |
 
 ---
 
