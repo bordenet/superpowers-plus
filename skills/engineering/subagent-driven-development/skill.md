@@ -2,6 +2,7 @@
 name: subagent-driven-development
 source: superpowers-plus
 overrides: superpowers/subagent-driven-development
+triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 description: "Use when executing implementation plans with independent tasks in the current session"
 ---
 
