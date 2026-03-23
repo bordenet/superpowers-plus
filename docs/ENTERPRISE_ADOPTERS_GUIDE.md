@@ -40,7 +40,7 @@ superpowers-plus is designed as a **generic base layer** that organizations exte
 │            │ Install 1st              │ Install 2nd             │
 │            ▼                          ▼                         │
 │   ┌─────────────────────────────────────────────────┐          │
-│   │           ~/.augment/skills/                    │          │
+│   │           ~/.codex/skills/ + ~/.claude/skills/  │          │
 │   │  (Later installs OVERRIDE earlier ones)         │          │
 │   └─────────────────────────────────────────────────┘          │
 │                                                                 │
@@ -65,11 +65,11 @@ When an AI agent invokes a skill, it looks in these locations (in order):
 
 | Location | Purpose | Checked |
 |----------|---------|---------|
-| `~/.augment/skills/` | Augment Agent skills | First |
-| `~/.codex/skills/` | Claude Code skills | Second |
-| `~/.codex/superpowers/skills/` | obra/superpowers skills | Third |
+| `~/.codex/skills/` | Primary skills (Augment Agent + superpowers-augment.js) | First |
+| `~/.claude/skills/` | Claude Code native Skill tool path | Second |
+| `~/.codex/superpowers/skills/` | obra/superpowers framework skills | Third |
 
-Your org's `install.sh` should deploy to `~/.augment/skills/` to ensure your overrides take precedence.
+Your org's `install.sh` should deploy to `~/.codex/skills/` and `~/.claude/skills/` to ensure your overrides take precedence.
 
 ---
 
@@ -257,7 +257,7 @@ Rules are **always-active guidance** that apply to ALL conversations, regardless
 | Invocation | Explicitly invoked or triggered | Always active |
 | Purpose | Specific workflows | Global policies |
 | Override | Can be overridden | Cannot be bypassed |
-| Location | `~/.augment/skills/` | `~/.augment/rules/` |
+| Location | `~/.codex/skills/` | `~/.augment/rules/` |
 
 ### Rule File Naming
 
@@ -424,8 +424,8 @@ your-org-skills/
 
 | Directory | Purpose | Installs To |
 |-----------|---------|-------------|
-| `skills/` | Skill implementations | `~/.augment/skills/` |
-| `skills/_shared/` | Shared utilities | `~/.augment/skills/_shared/` |
+| `skills/` | Skill implementations | `~/.codex/skills/` + `~/.claude/skills/` |
+| `skills/_shared/` | Shared utilities | `~/.codex/skills/_shared/` |
 | `rules/` | Always-on rules | `~/.augment/rules/` |
 
 ---
@@ -449,7 +449,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="1.0.0"
 
 # Target directories
-SKILLS_DIR="${HOME}/.augment/skills"
+SKILLS_DIR="${HOME}/.codex/skills"
+CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 RULES_DIR="${HOME}/.augment/rules"
 
 # Colors
@@ -490,13 +491,14 @@ check_env_vars() {
 install_skills() {
     log_info "Installing org skills..."
 
-    mkdir -p "$SKILLS_DIR"
+    mkdir -p "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"
 
     find "$SCRIPT_DIR/skills" -name "skill.md" | while read -r skill_file; do
         skill_dir=$(dirname "$skill_file")
         skill_name=$(basename "$skill_dir")
 
         cp -r "$skill_dir" "$SKILLS_DIR/"
+        cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/"
         log_info "  Installed: $skill_name"
     done
 }
@@ -526,7 +528,7 @@ main() {
     echo ""
     log_info "Installation complete!"
     echo ""
-    echo "Skills installed to: $SKILLS_DIR"
+    echo "Skills installed to: $SKILLS_DIR + $CLAUDE_SKILLS_DIR"
     echo "Rules installed to: $RULES_DIR"
 }
 
@@ -580,7 +582,7 @@ For a senior engineer setting up superpowers-plus for their organization:
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Generic skill runs instead of org-specific | Install order wrong | Run org install.sh AFTER superpowers-plus |
-| Skill not found | Skill not in correct directory | Check `~/.augment/skills/` for your skill |
+| Skill not found | Skill not in correct directory | Check `~/.codex/skills/` for your skill |
 | Rule not applying | Missing `.always.md` suffix | Rename to `*.always.md` |
 | Override not working | Name mismatch | Ensure exact same skill name |
 

@@ -1,40 +1,30 @@
 # superpowers-plus
 
-53 skills for AI coding assistants — wiki management, issue tracking, engineering workflows, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) with AI slop detection, link verification, skill auto-composition, and domain-specific capabilities.
+58 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
-> **⚠️ Token Consumption:** These skills prioritize depth over efficiency. Skills chain into each other, load reference files, and run verification loops — a single wiki edit can trigger 4+ skills. Token consumption is higher by design. Best suited for generous or unlimited token budgets.
-
-## Quick Start
-
-```bash
-git clone https://github.com/bordenet/superpowers-plus.git
-cd superpowers-plus
-./install.sh
-```
+> **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**53 skills** across 9 domains:
+**58 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 11 | Pre-commit gates, blast radius, PR review, design triad, requirements validation, investigation state, feature development |
-| productivity | 14 | TODO tracking, adversarial search, domain design, fallback planning |
-| wiki | 6 | Page management, link checks, credential scanning, content coherence |
-| writing | 6 | Slop detection/elimination, profanity gates, table discipline |
-| issue-tracking | 5 | Create, update, verify tickets |
+| engineering | 15 | Blast radius, design triad, TDD, code review, systematic debugging, feature lifecycle |
+| productivity | 14 | TODO tracking, adversarial search, domain design, think-twice |
+| writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
+| wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
+| issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
 | observability | 4 | Completeness checks, audit validation, repo verification, diagnostics |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
-| research | 2 | Perplexity integration |
+| research | 2 | Perplexity integration, research incorporation |
 | experimental | 1 | Self-prompting patterns |
-
-> TypeScript-specific skills have been migrated to a private overlay repo. See the `spc:` prefix in `superpowers-augment.js`.
 
 ## Installation
 
-Current distribution channels: git clone + `install.sh`, Augment Agent one-liner, Claude Code plugin install, MCP server, Codex native skills, OpenCode native skills, and Gemini CLI.
+**Prerequisites:** bash, git, Node.js 18+. npm required for MCP server setup.
 
-### All Platforms (Git Clone)
+### macOS / Linux / WSL
 
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git
@@ -52,7 +42,7 @@ The installer auto-detects your platform and offers to install missing dependenc
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs the core superpowers framework plus the Augment adapter. For the full 53-skill suite and all client-specific install paths, use git clone above.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 58-skill suite — use git clone above for that.
 
 ### Claude Code
 
@@ -74,7 +64,7 @@ Installs the core superpowers framework plus the Augment adapter. For the full 5
      }
    }
    ```
-3. Restart your client. Use `find_skills` to list available skills.
+3. Restart your client. Use the `find_skills` MCP tool to list available skills.
 
 ### Codex
 
@@ -111,10 +101,11 @@ Copy `.env.example` to `.env` for optional integrations:
 
 | Variable | Purpose |
 |----------|---------|
-| `ISSUE_TRACKER_TYPE` | Configured issue-tracker adapter key |
-| `WIKI_PLATFORM` | Configured wiki adapter key |
-| `PERPLEXITY_API_KEY` | Deep research fallback |
-| `OPENAI_API_KEY` | Optional: enhanced semantic skill matching |
+| `ISSUE_TRACKER_TYPE` | Adapter key — shipped adapters: `github`, `jira`, `azure-devops` |
+| `WIKI_PLATFORM` | Adapter key — see `skills/wiki/_adapters/platform-template.md` to add yours |
+| `PERPLEXITY_API_KEY` | Enables deep research escalation (~$0.01/query) |
+| `THINK_TWICE_USE_PERPLEXITY` | `false` by default; set `true` to let think-twice escalate to Perplexity |
+| `OPENAI_API_KEY` | Enables embedding-based skill matching (optional; TF-IDF works without it) |
 
 ## Semantic Skill Matching
 
@@ -137,15 +128,19 @@ Skills activate automatically when your request matches their triggers. Describe
 | Domain | Skill | What it does |
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
+| | brainstorming | Explores intent, requirements, and design before implementation |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
-| | engineering-rigor | Quality hub (routes to TS skills in overlay) |
+| | engineering-rigor | Hub: routes to pre-commit-gate, blast-radius-check, providing-code-review |
+| | feature-development | Orchestrates full feature lifecycle: requirements → design → implement → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
-| | feature-development | Orchestrates full feature lifecycle from requirements through completion |
-| | investigation-state | Persists debugging investigation context across sessions |
+| | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | pre-commit-gate | Runs lint → typecheck → test |
-| | providing-code-review | Structured PR feedback |
-| | receiving-code-review | Evaluates incoming feedback |
+| | providing-code-review | Structured PR feedback with checklist |
+| | receiving-code-review | Verifies incoming feedback before implementing |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
+| | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
+| | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
+| | test-driven-development | Red → green → refactor cycle enforcement |
 | | verification-before-completion | Final checks before claiming done |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
@@ -153,11 +148,13 @@ Skills activate automatically when your request matches their triggers. Describe
 | | issue-editing | Updates existing tickets safely |
 | | issue-link-verification | Tests URLs in ticket content |
 | | issue-verify | Confirms references exist |
-| observability | completeness-check | Confirms work is done |
+| observability | completeness-check | Detects incomplete work from crashes or context loss |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
-| | superpowers-doctor | Runs 18-check diagnostic across all skills |
-| productivity | adversarial-search | Defeats confirmation bias |
+| | superpowers-doctor | 22-check diagnostic across all installed skills |
+| productivity | adversarial-search | Defeats confirmation bias by searching for counter-evidence |
+| | code-review | File-protocol handoff for inter-agent code review |
+| | code-review-respond | Reviewer-side protocol for file-based review handoff |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
 | | enforce-style-guide | Applies project conventions |
 | | fallback-planning | Machine-agnostic contingency TODOs |
@@ -169,30 +166,29 @@ Skills activate automatically when your request matches their triggers. Describe
 | | thinking-orchestrator | Hub router for metacognition skills |
 | | todo-archive | Archives completed tasks to monthly files |
 | | todo-management | Parses and tracks tasks |
-| research | incorporating-research | Merges external findings |
-| | perplexity-research | Escalates when stuck |
-| security | public-repo-ip-audit | Detects proprietary content |
-| | repo-security-scan | Full repo security scan (4 categories) |
+| research | incorporating-research | Merges external findings into current work |
+| | perplexity-research | Escalates to Perplexity when free tools insufficient |
+| security | public-repo-ip-audit | Detects proprietary content before public push |
+| | repo-security-scan | Full scan: secrets, deps, patterns, config |
 | | security-upgrade | Scans CVEs, upgrades deps |
 | | wiki-instruction-guard | Blocks prompt injection in wiki content |
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-content-coherence | Detects duplication and structural defects |
-| | wiki-debunker | Fact-checks content |
-| | wiki-orchestrator | Routes wiki tasks (authoring, editing, review) |
-| | wiki-secret-audit | Finds leaked credentials |
-| | wiki-verify | Checks links and structure |
-| writing | detecting-ai-slop | Scores text 0-100 for machine patterns |
+| | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
+| | wiki-orchestrator | Entry point for all wiki authoring and editing |
+| | wiki-secret-audit | Finds leaked credentials in wiki pages |
+| | wiki-verify | Checks codebase references for drift |
+| writing | detecting-ai-slop | Scores text 0–100 for machine patterns |
 | | eliminating-ai-slop | Rewrites stilted prose |
-| | markdown-table-discipline | Enforces table best practices |
+| | markdown-table-discipline | Enforces table formatting and readability |
 | | plan-quality-gates | Prevents fabricated timelines in plans |
 | | professional-language-audit | Blocks profanity |
 | | readme-authoring | Structures documentation |
-
-Skills are matched semantically where possible. Some activate automatically, while others are invoked explicitly by name or as dependencies.
+| | writing-skills | Creates, edits, and validates skill files |
 
 ## Skill Coordination
 
-Skills form pipelines with explicit dependencies. Arrows show execution order.
+Skills form pipelines with explicit dependencies. The diagram shows inter-skill coordination; orchestrator-internal stages (de-dup, content generation) are omitted.
 
 ```mermaid
 graph LR
@@ -213,8 +209,14 @@ graph LR
   subgraph wiki-pipeline["Wiki Pipeline"]
     wiki_orchestrator["wiki-orchestrator"] --> wiki_content_coherence["wiki-content-coherence"]
     wiki_content_coherence --> link_verification["link-verification"]
-    link_verification --> wiki_verify["wiki-verify"]
+    link_verification --> wiki_secret_audit["wiki-secret-audit"]
+    wiki_secret_audit --> eliminating_ai_slop["eliminating-ai-slop"]
+    eliminating_ai_slop --> markdown_table_discipline["markdown-table-discipline"]
+    markdown_table_discipline --> wiki_debunker["wiki-debunker"]
+    wiki_debunker --> publish["Publish"]
   end
+
+  publish -.->|post-publish| wiki_verify["wiki-verify"]
 
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
@@ -234,10 +236,8 @@ graph LR
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → coherence → links → verify | Generate → check → validate → confirm |
-| Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity |
-
-Full graph: [docs/skill-dependency-graph.md](docs/skill-dependency-graph.md) · Regenerate: `node tools/generate-skill-dag.js`
+| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
+| Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
 
 ### Namespaced Triggers
 
@@ -245,9 +245,10 @@ Skills support namespaced triggers (`domain:action`) for disambiguation:
 
 | Domain | Triggers |
 |--------|----------|
-| `commit:` | `commit:pre-check`, `commit:style`, `commit:language`, `commit:ip-audit` |
-| `wiki:` | `wiki:create`, `wiki:update`, `wiki:edit-internal` |
-| `stuck:` | `stuck:reasoning`, `stuck:research` |
+| `commit:` | `commit:pre-check`, `commit:gate`, `commit:style`, `commit:lint`, `commit:language`, `commit:ip-audit`, `commit:public` |
+| `wiki:` | `wiki:create`, `wiki:update`, `wiki:publish`, `wiki:verify-links` |
+| `stuck:` | `stuck:research`, `stuck:knowledge` |
+| `link:` | `link:verify` |
 
 ## Extending
 
@@ -261,35 +262,41 @@ See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
 ## Tools
 
-Utility scripts deployed to `~/.codex/superpowers-plus/tools/`:
+Utility scripts in `tools/`:
 
 | Tool | Purpose |
 |------|---------|
+| `doctor-checks.sh` | 22-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
 | `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash` |
-| `install-hooks.sh` | Installs git hooks for pre-commit checks |
+| `install-hooks.sh` | Installs git hooks (pre-commit, pre-push) |
 | `todo-preflight.sh` | Resolves `TODO_FILE_PATH` from `~/.codex/.env` |
 | `todo-lock.sh` | Advisory file locking for TODO.md (cross-machine) |
+| `todo-crud.sh` | TODO.md create/read/update/delete operations |
+| `todo-maintenance.sh` | Archival and cleanup of completed tasks |
 | `public-repo-ip-check.sh` | Scans for proprietary content before public push |
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
+| `skill-cost-analyzer.sh` | Reports token cost per skill |
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
+| `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
 
 ## Troubleshooting
 
-| Error | Fix |
-|-------|-----|
-| "Tool not found: perplexity_*" | Run `./setup/mcp-perplexity.sh` |
+| Problem | Fix |
+|---------|-----|
+| Perplexity tools not found | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
-| Skills not loading after install | Check `~/.codex/skills/` exists; re-run `./install.sh` |
-| Wrong skill count | Run `./install.sh` to reinstall; verify with `find-skills` |
-| `todo-lock.sh` timeout | Another agent holds the lock; run `todo-lock.sh steal` |
+| Skills not loading | Re-run `./install.sh`; check `~/.codex/skills/` exists |
+| Stale skill count | `./install.sh --upgrade`; verify with `find-skills` |
+| TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
+| Doctor reports drift | `./tools/doctor-checks.sh --fix-safe` |
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
 
 ## License
 

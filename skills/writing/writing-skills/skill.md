@@ -1,0 +1,80 @@
+---
+name: writing-skills
+source: superpowers-plus
+overrides: superpowers/writing-skills
+triggers: ["write a skill", "new skill", "edit skill", "skill authoring", "SKILL.md"]
+anti_triggers: ["use skill", "find skill", "load skill"]
+description: "Use when creating new skills, editing existing skills, or verifying skills work before deployment."
+---
+
+# Writing Skills
+
+A **skill** is a reusable reference guide for techniques, patterns, or tools. NOT a narrative about solving a problem once.
+
+## SKILL.md Structure
+
+```yaml
+---
+name: skill-name
+source: superpowers-plus  # or superpowers, or private overlay
+triggers: ["phrase1", "phrase2"]
+anti_triggers: ["not-this"]
+description: "One-line summary starting with 'Use when:'"
+---
+```
+
+Then markdown body: core procedure, checklists, rules. Scale section depth to complexity.
+
+## Skill Types
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| **Technique** | How-to guide | brainstorming, systematic-debugging |
+| **Pattern** | Mental model / guard | eliminating-ai-slop, engineering-rigor |
+| **Reference** | API/tool docs | perplexity-research, todo-management |
+
+## Directory Structure
+
+```
+skills/{domain}/{skill-name}/
+├── skill.md          # Core skill (≤250 lines)
+├── examples.md       # Extended examples (optional)
+└── references/       # Reference material (optional)
+```
+
+Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki`, `issue-tracking`, `observability`, `experimental`.
+
+## Creation Checklist
+
+1. **Test first** — run pressure scenario WITHOUT the skill (baseline)
+2. **Watch it fail** — document exact agent violations/rationalizations
+3. **Write minimal skill** — address those specific failures
+4. **Watch it pass** — verify agent now complies
+5. **Close loopholes** — find new rationalizations → plug → re-verify
+6. **Size check** — `wc -l skill.md` must be ≤250 lines
+
+## Quality Gates
+
+- Every rule has a concrete "what to do" (not just "don't do X")
+- Triggers are specific enough to avoid false positives
+- Anti-triggers prevent firing when not needed
+- Description starts with "Use when:" for search optimization
+- No narrative examples — use checklists and tables
+- No philosophical arguments ("why this matters")
+- Token budget: aim for <1000 compressed tokens
+
+## Where Skills Go
+
+| Repo | Content | Access |
+|------|---------|--------|
+| `superpowers` (obra) | Upstream skills | Read-only |
+| `superpowers-plus` | Open-source enhancements | Public GitLab + GitHub |
+| private overlay | Internal/proprietary | Private repo |
+
+Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spc with same `name`.
+
+## After Creation
+
+1. `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills {name}` — verify discoverable
+2. `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill {name}` — verify loads correctly
+3. Check compressed token count — target <1000

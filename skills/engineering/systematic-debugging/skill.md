@@ -1,0 +1,62 @@
+---
+name: systematic-debugging
+source: superpowers-plus
+overrides: superpowers/systematic-debugging
+triggers: ["debug this", "fix this bug", "test failure", "unexpected behavior", "build failure", "not working", "investigate error", "root cause"]
+description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+---
+
+# Systematic Debugging
+
+**Core principle:** ALWAYS find root cause before attempting fixes.
+
+```
+NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+```
+
+If you haven't completed Phase 1, you cannot propose fixes.
+
+## The Four Phases
+
+### Phase 1: Root Cause Investigation
+
+BEFORE attempting ANY fix:
+
+1. **Read Error Messages Carefully** — stack traces completely, note line numbers, file paths, error codes
+2. **Reproduce Consistently** — exact steps, every time? If not reproducible, gather more data, don't guess
+3. **Check Recent Changes** — git diff, recent commits, new dependencies, config changes
+4. **Gather Evidence in Multi-Component Systems** — for each component boundary: log what enters, log what exits, verify env/config propagation. Run once to find WHERE it breaks.
+5. **Trace Data Flow** — where does bad value originate? Trace up the call stack to find the source. Fix at source, not symptom. See `root-cause-tracing.md` for complete technique.
+
+### Phase 2: Pattern Analysis
+
+1. **Find working examples** in same codebase — what works that's similar to what's broken?
+2. **Compare against references** — read reference implementations COMPLETELY, don't skim
+3. **Identify differences** — list every difference, don't assume "that can't matter"
+4. **Understand dependencies** — components, settings, config, environment, assumptions
+
+### Phase 3: Hypothesis and Testing
+
+1. **Form single hypothesis** — "I think X is the root cause because Y"
+2. **Test minimally** — smallest possible change, one variable at a time
+3. **Verify** — worked → Phase 4. Didn't work → new hypothesis, don't stack fixes.
+
+### Phase 4: Implementation
+
+1. **Create failing test case** — use `superpowers:test-driven-development` skill
+2. **Implement single fix** — ONE change, no "while I'm here" improvements
+3. **Verify** — test passes, no other tests broken
+4. **If 3+ fixes failed** — STOP. Question the architecture. Each fix revealing new problems in different places = wrong architecture, not wrong fix. Discuss with human before continuing.
+
+## Red Flags — STOP, Return to Phase 1
+
+- "Quick fix for now, investigate later"
+- "Just try changing X and see"
+- Proposing solutions before tracing data flow
+- "One more fix attempt" after 2+ failures
+
+## Supporting Techniques
+
+- `root-cause-tracing.md` — trace bugs backward through call stack
+- `defense-in-depth.md` — add validation at multiple layers
+- `condition-based-waiting.md` — replace arbitrary timeouts with condition polling
