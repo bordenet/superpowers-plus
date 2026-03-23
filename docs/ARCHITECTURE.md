@@ -218,7 +218,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 |--------|--------------|-------|
 | Augment Agent | `~/.codex/skills/` | Primary path for superpowers-augment.js |
 | Claude Code | `~/.claude/skills/` | Native Skill tool path |
-| Augment (alt) | `~/.augment/skills/` | Alternative Augment location |
+| Rules | `~/.augment/rules/` | Always-on agent rules |
 | Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
 Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
@@ -288,4 +288,4 @@ At conversation start, AI assistants run:
 node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ```
 
-This loads the `using-superpowers` skill which governs skill invocation.
+This emits the skill invocation rules (priority ordering, 1% chance rule) directly to the conversation.
