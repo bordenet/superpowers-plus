@@ -3,6 +3,7 @@ name: incorporating-research
 source: superpowers-plus
 triggers: ["incorporate research", "merge this research", "add this to the doc", "incorporate findings", "add external research"]
 description: Use when user asks to incorporate, merge, or add external research (from Perplexity, web searches, ChatGPT, etc.) into existing documents - prevents misinterpreting "incorporate" as "review", strips artifacts, preserves document voice, and confirms scope before editing.
+summary: "Use when: merging external research into existing docs. Skip when: writing from scratch."
 ---
 
 # Incorporating Research

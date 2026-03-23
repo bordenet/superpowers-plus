@@ -3,6 +3,7 @@ name: providing-code-review
 source: superpowers-plus
 triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
+summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
 ---
 
 # Providing Code Review

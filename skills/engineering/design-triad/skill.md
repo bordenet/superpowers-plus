@@ -3,6 +3,7 @@ name: design-triad
 source: superpowers-plus
 triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
+summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
 ---
 
 # Design Triad

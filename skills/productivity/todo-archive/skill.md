@@ -2,6 +2,7 @@
 name: todo-archive
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
 description: Archive completed tasks from TODO.md to monthly satellite files. Preserves operational history while keeping TODO.md under 500 lines. Companion to todo-management (upstream).
+summary: "Use when: archiving completed TODO items from TODO.md."
 ---
 
 # TODO Archive System

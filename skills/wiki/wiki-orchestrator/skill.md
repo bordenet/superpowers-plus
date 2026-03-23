@@ -3,6 +3,7 @@ name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "wiki markdown rules", "update wiki page", "edit wiki", "create wiki document", "delete wiki page"]
 description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces standalone wiki editing and authoring flows."
+summary: "Use when: multi-page wiki operations (create, reorganize, archive)."
 coordination:
   group: wiki-pipeline
   order: 1

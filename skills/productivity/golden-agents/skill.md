@@ -3,6 +3,7 @@ name: golden-agents
 source: superpowers-plus
 triggers: ["set up AI guidance", "add AGENTS.md", "initialize repo", "upgrade AI guidance", "add CLAUDE.md"]
 description: Use when initializing a new git repo with AI guidance, upgrading existing repos with inadequate AI guidance, or when user says "set up AI guidance" or "add AGENTS.md" - detects repo state and offers appropriate workflow.
+summary: "Use when: initializing or upgrading AI guidance (AGENTS.md) in a git repo."
 ---
 
 # Golden Agents
