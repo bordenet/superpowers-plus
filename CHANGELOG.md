@@ -10,6 +10,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
+  - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
+  - Check 20: Dirty managed checkout detection (user vs generated artifacts), moderate auto-fix via `--fix`
+  - Check 21: TODO archive fixture-based smoke test (catches small-TODO regression)
+  - Check 22: Reviewer-dispatch rendering verification (detects stale code-reviewer patterns)
+  - Cross-platform: portable `timeout` fallback, `git stash save` fallback for git < 2.13, graceful skip when `python3`/`node` absent
+  - 8 new regression tests in `tools/tests/test_doctor_checks.sh`
+
 - **Feature Development Engine** — 4-phase workflow for pre-code validation (#182)
   - `skills/engineering/design-triad/` — Enforces 3+ design options with comparison matrix and harsh review
   - `skills/engineering/requirements-validation/` — Tests requirements for falsifiability, detects contradictions
