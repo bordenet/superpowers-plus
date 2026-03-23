@@ -179,3 +179,13 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 ## Related Skills
 
 `security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
+
+
+## Failure Modes and Recovery
+
+| Failure | Fix |
+|---------|-----|
+| Scanner tool not installed (gitleaks, npm audit) | Check prerequisites first — install or fallback to manual grep |
+| False positive on test fixtures with dummy secrets | Maintain allowlist of known test fixtures per repo |
+| Scan misses secrets in git history | Run gitleaks with `--log-opts --all` to scan full history |
+| Dependency vuln has no fix available | Document as accepted risk with justification and review date |

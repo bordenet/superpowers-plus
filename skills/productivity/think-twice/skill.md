@@ -42,3 +42,24 @@ coordination:
 - `references/consultation-prompt-template.md` — Prompt template
 - `references/scoring-rubric.md` — Scoring dimensions
 - `prompts/consultant-persona.md` — Sub-agent persona
+
+
+## When to Use
+
+- When cumulative stuck-signal score reaches 7+ (see auto-detection table)
+- When the same fix has been tried 3+ times without resolution
+- When the agent says "I've tried everything" or "I'm not sure why"
+- When user says: "think twice", "get unstuck", "fresh eyes", "phone a friend"
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Sub-agent inherits same flawed assumptions | Provide raw symptoms only, not prior conclusions |
+| Agent ignores stuck signals and keeps looping | Enforce cumulative score threshold — 7+ is mandatory |
+| Fresh perspective is too shallow | Sub-agent must produce root-cause hypothesis, not just "try X" |
+
+```bash
+# Example: invoke think-twice when stuck
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
+```
