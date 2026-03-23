@@ -657,9 +657,10 @@ function emitSkillIndex() {
         fs.writeFileSync(SKILL_INDEX_FILE, JSON.stringify({ skills: index, built: new Date().toISOString() }));
     } catch (_) { /* non-fatal */ }
 
-    // Emit ONLY count + load command. Zero skill names in bootstrap output.
+    // Emit count + load command + disambiguation hint.
     console.log(`${superpowers.length} superpowers (auto-trigger) + ${explicit.length} explicit skills installed.`);
     console.log('Load: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`');
+    console.log('Unsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "your query"`');
 }
 
 
