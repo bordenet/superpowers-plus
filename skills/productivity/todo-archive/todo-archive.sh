@@ -15,8 +15,12 @@ STALE_THRESHOLD=30 # Days before staleness rule forces archive
 LINE_THRESHOLD=400 # Soft limit triggering auto-archive
 
 # --- Resolve paths (BEFORE arg parsing to avoid .env clobbering flags) ---
+EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
 # shellcheck source=/dev/null
 source ~/.codex/.env 2>/dev/null || true
+if [[ -n "$EXPLICIT_TODO_FILE_PATH" ]]; then
+  TODO_FILE_PATH="$EXPLICIT_TODO_FILE_PATH"
+fi
 
 # --- Parse arguments (AFTER .env to prevent .env from overwriting flags) ---
 ARCHIVE_DRY_RUN=false
