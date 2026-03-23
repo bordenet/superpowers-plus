@@ -24,7 +24,7 @@ const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
-const COST_WARNINGS_DIR = path.join(homeDir, '.codex', '.skill-cost-warnings');
+
 
 // Load env file (shell-format KEY="value") into process.env
 const ENV_FILE = path.join(homeDir, '.codex', '.env');
@@ -61,9 +61,7 @@ const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
     '~/.codex/superpowers-plus',
 ]);
 
-const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
-    '~/superpowers-callbox',
-]);
+const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
 
 /**
  * Find a skill.md in a source repo by searching domain subdirectories.
@@ -368,42 +366,6 @@ function findSkills(filterMode = 'all') {
 }
 
 
-// High-cost skill warning (one-time per installation)
-function getHighCostSkills() {
-    // Try installed location first, then source repo
-    const locations = [
-        path.join(homeDir, '.codex', 'superpowers-plus', 'tools', 'high-cost-skills.json'),
-        path.join(__dirname, 'tools', 'high-cost-skills.json'),
-    ];
-    for (const loc of locations) {
-        if (fs.existsSync(loc)) {
-            try { return JSON.parse(fs.readFileSync(loc, 'utf8')); } catch { /* ignore */ }
-        }
-    }
-    return [];
-}
-
-function showHighCostWarningOnce(skillName) {
-    const highCost = getHighCostSkills();
-    // Normalize: strip prefixes to get bare skill name
-    const bare = skillName.replace(/^(superpowers:|spp:|spc:|sp-|spp-|spc-)/, '');
-    if (!highCost.includes(bare)) return;
-
-    // Check if warning already shown
-    try { fs.mkdirSync(COST_WARNINGS_DIR, { recursive: true }); } catch { /* exists */ }
-    const markerFile = path.join(COST_WARNINGS_DIR, bare);
-    if (fs.existsSync(markerFile)) return;
-
-    // Show warning and create marker
-    console.error('');
-    console.error(`⚠️  HIGH TOKEN COST: "${bare}" is a high-cost skill.`);
-    console.error('   It loads references, chains to other skills, or spawns sub-agents.');
-    console.error('   See docs/SKILL_TOKEN_COSTS.md for details.');
-    console.error('   (This warning appears once per skill per installation.)');
-    console.error('');
-    try { fs.writeFileSync(markerFile, new Date().toISOString()); } catch { /* best effort */ }
-}
-
 function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
@@ -510,7 +472,6 @@ function useSkill(skillName, options = {}) {
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
-    showHighCostWarningOnce(actualName);
     const content = fs.readFileSync(skillFile, 'utf8');
 
     if (options.probe) {
