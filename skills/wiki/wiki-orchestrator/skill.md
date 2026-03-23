@@ -1,8 +1,8 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "Outline markdown rules", "update wiki page", "push to outline", "edit wiki", "create wiki document", "delete wiki page"]
-description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces wiki-editing, wiki-authoring, and outline-wiki-editing."
+triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "wiki markdown rules", "update wiki page", "edit wiki", "create wiki document", "delete wiki page"]
+description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces standalone wiki editing and authoring flows."
 coordination:
   group: wiki-pipeline
   order: 1
@@ -44,10 +44,10 @@ coordination:
 
 ## Content Formatting (Stage 2)
 
-- **No H1** — Outline renders title in UI. Start body with `##` or summary paragraph.
-- **Anchors:** `#h-section-name` (not `#section-name`) — Outline-specific format.
-- **No HTML** — `<details>`, `&nbsp;`, callouts (`> [!info]`), inline HTML all break.
-- **Tables:** Keep narrow (<80 chars). Column widths are ProseMirror metadata — lost on API update.
+- **No H1 unless your platform requires it** — many wiki UIs render the title separately. Start body with `##` or a summary paragraph.
+- **Anchors:** Use your adapter's documented anchor format.
+- **No raw HTML unless your platform preserves it** — `<details>`, `&nbsp;`, callouts (`> [!info]`), and inline HTML often break on API round-trips.
+- **Tables:** Keep narrow (<80 chars). Some platforms lose layout metadata on API update.
 - **Code blocks:** Always specify language.
 - **Table cells:** No `[ ]` checkboxes (escaped to `\[`), no `&nbsp;` (rendered as literal text). Use `Yes/No` or `✓/✗`.
 - **Heading hierarchy:** H1 once (title only), then H2/H3. Max depth H3 for readability.
@@ -59,21 +59,18 @@ coordination:
 <EXTREMELY_IMPORTANT>
 
 ### MCP Tools First
-Always use `get_document_outline`, `update_document_outline`, `create_document_outline`. Curl is fallback only.
+Always use your adapter's primary `get_page`, `update_page`, and `create_page` operations. Curl is fallback only.
 
 ### Download Before Editing
-Fetch current state via `get_document_outline` BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
+Fetch current state via your adapter's `get_page` operation BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
 
 ### Write Scope Restriction
-Only write to allowed roots. Walk the parent chain to verify:
-- `matt-bordenet-OUENQSb8BE` (Matt Bordenet personal)
-- `team-delta-[product]-phone-assist-PmmvNP0Pha` (Team Delta)
-- `[product]-WaniaoGMuW` ([Product] product pages)
+Only write to allowed roots defined by the current workspace or local overlay. Walk the parent chain to verify scope before writing.
 
 If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
 
 ### Check for Duplicates Before Creating
-`list_documents_outline(parentDocumentId)` → check if child with same title exists → use `update` if so.
+Use your adapter's list/search operation to check whether a sibling page with the same title already exists before creating a new page.
 
 ### Pre-Deletion Backup
 Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YYYY-MM-DD}_{id}_{slug}.md` with YAML frontmatter → verify backup exists → only then delete.
@@ -86,8 +83,8 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 
 ## Checklists
 
-**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_document_outline`
-**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about column widths → `update_document_outline` → Verify result
+**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_page`
+**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about layout loss → `update_page` → Verify result
 **Before Deleting:** Fetch full content → Backup with frontmatter → Verify backup → Search for inbound links → Delete
 
 ---

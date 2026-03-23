@@ -38,7 +38,7 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 47 domain skills 
 - Productivity (11 skills): innovation, TODO management, style enforcement, adversarial search, thinking orchestrator, domain design, skill authoring
 - Wiki management (8 skills): authoring, editing, link verification, secret scanning, content coherence, orchestrator
 - Writing (5 skills): slop detection/elimination, profanity gates, table discipline, README authoring
-- Issue tracking (5 skills): Linear/GitHub/Jira/Azure DevOps adapters
+- Issue tracking (5 skills): provider-neutral issue-tracker adapters
 - Observability (3 skills): completeness checks, audit validation, repo verification
 - Security (4 skills): CVE scanning, IP protection, instruction guard, repo security scan
 - Research (2 skills): Perplexity integration

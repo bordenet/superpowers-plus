@@ -35,8 +35,8 @@ PATTERNS="TICKET-[0-9]+|YourCompany|ProductName"
 PATTERNS+="|wiki\.internal\.yourco\.net|username@yourcompany\.com"
 # Internal git hosting (GitHub Enterprise, GitLab, Azure DevOps, Gitea, etc.)
 PATTERNS+="|dev\.azure\.com/YourOrg|gitlab\.yourcompany\.com"
-# Issue trackers (Linear, Jira, YouTrack, Shortcut, Asana, etc.)
-PATTERNS+="|linear\.app/your-team|yourcompany\.atlassian\.net"
+# Issue trackers (Jira, YouTrack, Shortcut, Asana, etc.)
+PATTERNS+="|tracker\.yourcompany\.com|yourcompany\.atlassian\.net"
 # CI/CD (Jenkins, CircleCI, TeamCity, Buildkite, etc.)
 PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 ```
