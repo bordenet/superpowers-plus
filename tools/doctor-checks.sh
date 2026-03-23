@@ -37,14 +37,15 @@ for arg in "$@"; do
   esac
 done
 
+# Base source: superpowers-plus (SPP_SOURCE_DIR or this repo)
 SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
-SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
-[[ -n "$SP_OVERLAY_DIR" && -d "$SP_OVERLAY_DIR" ]] && SOURCE_DIRS+=("$SP_OVERLAY_DIR")
-# Auto-discover additional overlay sources: any *_SOURCE_DIR env var in .env
-# (e.g., MYTEAM_SOURCE_DIR="/path/to/superpowers-myteam")
+
+# Auto-discover overlay sources: any *_SOURCE_DIR env var in .env
+# (e.g., SPC_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
+# Each overlay repo registers itself during install via: VARNAME_SOURCE_DIR="/path/to/repo"
 while IFS='=' read -r varname varval; do
-  [[ "$varname" == "SPP_SOURCE_DIR" || "$varname" == "SPC_SOURCE_DIR" ]] && continue
+  [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
   [[ "$varname" =~ _SOURCE_DIR$ ]] || continue
   _dir="${varval//\"/}"
   [[ -n "$_dir" && -d "$_dir" ]] && SOURCE_DIRS+=("$_dir")
