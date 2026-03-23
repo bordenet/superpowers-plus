@@ -34,9 +34,8 @@ main() {
   assert_not_contains "$request_output" "launch-process (or handle directly) with superpowers:code-reviewer type" "requesting-code-review fell back to generic Task tool mapping"
 
   assert_contains "$sdd_output" "Dispatch final sub-agent-code-reviewer for entire implementation" "subagent-driven-development should translate final reviewer graph label"
-  assert_contains "$sdd_output" "[Dispatch final sub-agent-code-reviewer]" "subagent-driven-development should translate final reviewer prompt"
+  assert_not_contains "$sdd_output" "dispatch final code reviewer for entire implementation" "subagent-driven-development left legacy code reviewer wording"
   assert_not_contains "$sdd_output" "Dispatch final code reviewer subagent for entire implementation" "subagent-driven-development left legacy code reviewer subagent wording"
-  assert_not_contains "$sdd_output" "[Dispatch final code-reviewer]" "subagent-driven-development left legacy final code-reviewer prompt"
 
   echo "PASS: code reviewer dispatch translation"
 }
