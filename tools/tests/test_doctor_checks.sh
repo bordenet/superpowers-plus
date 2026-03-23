@@ -92,7 +92,11 @@ test_dirty_safe_artifact_classification() {
   echo "pkg" > "$tmp_repo/managed/node_modules/something.js"
   mkdir -p "$tmp_repo/managed/__pycache__"
   echo "cache" > "$tmp_repo/managed/__pycache__/mod.pyc"
-  local porcelain safe_pat='node_modules/|__pycache__/|\.pyc$|\.pyo$|\.DS_Store$|\.env\.local$'
+  mkdir -p "$tmp_repo/managed/install-state"
+  echo "state" > "$tmp_repo/managed/install-state/last-run"
+  mkdir -p "$tmp_repo/managed/modules"
+  echo "mod" > "$tmp_repo/managed/modules/foo.js"
+  local porcelain safe_pat='node_modules/|__pycache__/|\.pyc$|\.pyo$|\.DS_Store$|\.env\.local$|install-state/|modules/'
   porcelain=$(git -C "$tmp_repo/managed" status --porcelain)
   local user_changes
   user_changes=$(echo "$porcelain" | grep -vE "$safe_pat" || true)
