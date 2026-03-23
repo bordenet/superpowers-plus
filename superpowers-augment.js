@@ -26,6 +26,20 @@ const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 const COST_WARNINGS_DIR = path.join(homeDir, '.codex', '.skill-cost-warnings');
 
+// Load env file (shell-format KEY="value") into process.env
+const ENV_FILE = path.join(homeDir, '.codex', '.env');
+try {
+    if (fs.existsSync(ENV_FILE)) {
+        const envContent = fs.readFileSync(ENV_FILE, 'utf8');
+        for (const line of envContent.split('\n')) {
+            const match = line.match(/^([A-Z_]+)="?([^"]*)"?$/);
+            if (match && !process.env[match[1]]) {
+                process.env[match[1]] = match[2];
+            }
+        }
+    }
+} catch (_) { /* non-fatal */ }
+
 // Source repo directories for namespace prefix resolution (spp:, spc:)
 // These point to git source repos, NOT installed directories.
 // Discovery order: env var → well-known paths → null (prefix unavailable)
