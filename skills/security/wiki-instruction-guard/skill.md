@@ -203,38 +203,10 @@ Opt-in: Create `references/domain-allowlist-local.md` (gitignored). Format: `dom
 
 ---
 
-## User-Facing Output
+## Output
 
-See `references/output-templates.md` for all output templates:
-- Hard Block (standard + high severity)
-- Non-Overridable Block (social engineering)
-- Warn + Confirm (curl-pipe allowlisted, sudo, prose)
-- Clean Scan
-- Audit log format (`~/.codex/wiki-guard-audit.log`) <!-- doctor-ignore -->
+Verdict escalation: Standard → `(P)roceed`. High severity (Cat 1-3) → type `PROCEED`. Social engineering (Cat 7) → non-overridable. See `references/output-templates.md` for templates.
 
-**Verdict escalation:** Standard → `(P)roceed`. High severity (Cat 1-3) → type `PROCEED`. Social engineering (Cat 7) → non-overridable.
+## Limitations
 
----
-
-## Coverage & Limitations
-
-**Obfuscation coverage:** ~70-80% of injection attempts caught. Detects direct destructive commands, curl-pipe variants, base64 decode, aliasing, command substitution, heredoc to sensitive paths.
-
-**Not detected:** Function definitions (`f() { rm -rf ~/; }; f`), variable expansion (`CMD=rm; $CMD -rf ~/`), multi-step assembly, obfuscated Python.
-
-**Known limitations:**
-1. Advisory, not OS-enforced — relies on agent invocation
-2. Static regex, not a shell parser
-3. Self-scan is best-effort
-4. Human can always override (graduated friction only)
-5. Public blocklist — attacker can study gaps
-
-## Common Failure Modes
-
-- **Regex bypass:** Obfuscated commands (base64-encoded, variable interpolation) that evade static regex scanning
-- **False positive on safe commands:** Blocking legitimate `curl` commands that are not pipe-to-shell patterns
-- **Skipping the guard:** Executing wiki instructions directly without loading this skill first
-
-## Reference Files
-
-- [`references/output-templates.md`](references/output-templates.md) — All user-facing output templates and audit log format
+~70-80% obfuscation coverage. **Not detected:** function definitions, variable expansion, multi-step assembly. Advisory only (static regex, not shell parser).
