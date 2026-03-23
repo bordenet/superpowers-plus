@@ -7,7 +7,7 @@ overrides: superpowers/verification-before-completion
 # history tracking, and refines rationalization prevention. obra's version lacks
 # the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
 triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always.
+description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always; for multi-step or TODO-backed sessions, run TODO maintenance before the claim.
 summary: "Use when: about to claim work is done. Skip when: still actively working."
 coordination:
   group: completion-gate
@@ -26,6 +26,7 @@ coordination:
 - Before creating or merging a PR
 - Before closing a ticket or marking a task complete
 - After fixing a bug — verify the fix AND verify no regressions
+- At session end for any multi-step or TODO-backed work, before the final completion claim
 
 ## Overview
 
@@ -79,7 +80,10 @@ BEFORE claiming any status or expressing satisfaction:
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
-5. ONLY THEN: Make the claim
+5. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
+   `~/.codex/superpowers-plus/tools/todo-maintenance.sh`
+   Read the summary and resolve any stale-plan/archive surprises before proceeding.
+6. ONLY THEN: Make the claim
 
 Skip any step = lying, not verifying
 ```
@@ -103,6 +107,7 @@ Skip any step = lying, not verifying
 - Trusting agent success reports
 - Relying on partial verification
 - **Saying "Shipped!" after git push but before verifying PR was created**
+- Finishing a multi-step session without running TODO maintenance
 
 ## Rationalization Prevention
 

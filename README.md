@@ -224,7 +224,7 @@ graph LR
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
-| Completion Gate | exhaustive-audit → verification | Verify completeness before claiming done |
+| Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → verify | Generate → check → validate → confirm |
 | Stuck Escalation | reasoning ⟹ research | Try free reasoning first, escalate to Perplexity |

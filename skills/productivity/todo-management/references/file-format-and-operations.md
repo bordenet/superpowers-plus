@@ -103,6 +103,8 @@ This causes unbounded file growth. Only `[ ]` tasks belong in ACTIVE.
 
 All write operations (add, complete, move, defer) are handled by `todo-crud.sh`, which automatically performs: path resolution → lock acquire → backup → write → lock release → whitespace normalization.
 
+**Maintenance tool:** `~/.codex/superpowers-plus/tools/todo-maintenance.sh` — runs routine housekeeping in one command: preflight/create-if-missing → inspect TODO health → report stale `#plan-*` tasks → archive when housekeeping thresholds are hit.
+
 **Agents should NEVER write TODO.md directly with sed, shell, or inline Python.** Use `todo-crud.sh` subcommands instead.
 
 See `skill.md` § Primary Interface for the full command reference.
