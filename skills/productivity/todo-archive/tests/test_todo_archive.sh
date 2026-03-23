@@ -85,6 +85,42 @@ test_explicit_todo_file_path_overrides_env_default() {
   [[ "$output" == *"$root/data/target.md"* ]] || fail 'explicit TODO_FILE_PATH should take precedence over ~/.codex/.env'
 }
 
+test_index_total_counts_all_archive_files() {
+  local root output index_line
+  root=$(make_fixture)
+  write_large_todo "$root/data/default.md"
+  cat > "$root/data/todo-archives/2026-03.md" <<'EOF'
+# TODO Archive — March 2026
+
+> Tasks archived from TODO.md
+
+---
+
+- [x] [20260322-34] Purge stale DocForge branches while preserving unique work #engineering
+  - Added: 2026-03-22
+  - Done: 2026-03-22T17:00:00
+
+- [x] [20260322-99] Earlier archived task #engineering
+  - Added: 2026-03-22
+  - Done: 2026-03-22T12:00:00
+EOF
+  cat > "$root/data/todo-archives/2026-02.md" <<'EOF'
+# TODO Archive — February 2026
+
+> Tasks archived from TODO.md
+
+---
+
+- [x] [20260228-01] Existing February task #engineering
+  - Added: 2026-02-28
+  - Done: 2026-02-28T11:00:00
+EOF
+  output=$(HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) || fail 'archive command failed unexpectedly'
+  index_line=$(grep '^> Total archived:' "$root/data/todo-archives/INDEX.md")
+  [[ "$index_line" == '> Total archived: 4 tasks across 2 months' ]] || fail "unexpected index summary: $index_line"
+}
+
 test_duplicate_archive_entries_are_not_readded
 test_explicit_todo_file_path_overrides_env_default
+test_index_total_counts_all_archive_files
 echo 'PASS: todo-archive regression tests'
