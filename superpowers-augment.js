@@ -370,7 +370,7 @@ function showHighCostWarningOnce(skillName) {
     try { fs.writeFileSync(markerFile, new Date().toISOString()); } catch { /* best effort */ }
 }
 
-function useSkill(skillName) {
+function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
         console.error('Usage: superpowers-augment use-skill <skill-name>');
@@ -478,6 +478,31 @@ function useSkill(skillName) {
     }
     showHighCostWarningOnce(actualName);
     const content = fs.readFileSync(skillFile, 'utf8');
+
+    if (options.probe) {
+        // Probe mode: output only the summary field from frontmatter
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+            const fm = fmMatch[1];
+            const summaryMatch = fm.match(/^summary:\s*(.+)$/m) ||
+                                 fm.match(/^summary:\s*>\s*\n((?:\s+.+\n?)*)/m);
+            const descMatch = fm.match(/^description:\s*(.+)$/m) ||
+                              fm.match(/^description:\s*"(.+)"$/m);
+            const summary = summaryMatch ? (summaryMatch[1] || summaryMatch[2] || '').trim() : null;
+            const desc = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : null;
+            console.log(`# Probe: ${skillName}`);
+            if (summary) {
+                console.log(`\n${summary}`);
+            } else if (desc) {
+                console.log(`\n${desc}`);
+            } else {
+                console.log('\nNo summary available. Use `use-skill ' + skillName + '` to load full skill.');
+            }
+            console.log(`\nLoad full skill? \`use-skill ${skillName}\``);
+        }
+        return;
+    }
+
     const stripped = stripFrontmatter(content);
     const transformed = transformOutput(stripped);
     console.log('# Skill: ' + skillName + '\n');
@@ -543,7 +568,12 @@ const args = process.argv.slice(3);
 
 switch (command) {
     case 'bootstrap': bootstrap(); break;
-    case 'use-skill': useSkill(args[0]); break;
+    case 'use-skill': {
+        const probeMode = args[0] === '--probe';
+        const skillArg = probeMode ? args[1] : args[0];
+        useSkill(skillArg, { probe: probeMode });
+        break;
+    }
     case 'find-skills': findSkills(args[0] || 'all'); break;
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
