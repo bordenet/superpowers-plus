@@ -20,6 +20,18 @@ Move completed tasks to monthly archive files (`YYYY-MM.md`) in a `todo-archives
 
 ## Usage
 
+### Routine maintenance (recommended)
+
+```bash
+# Audit TODO health and auto-archive when housekeeping thresholds are hit
+../../tools/todo-maintenance.sh
+
+# Preview maintenance without modifying files
+../../tools/todo-maintenance.sh --dry-run
+```
+
+`todo-archive.sh` remains the low-level archive engine. Use it directly when you explicitly want archive-only behavior.
+
 ### Archive completed tasks
 
 ```bash

@@ -97,6 +97,21 @@ but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if
 
 **If TODO.md doesn't exist:** Run `todo-preflight.sh --create-if-missing` first to create from template.
 
+## Maintenance Interface: `todo-maintenance.sh`
+
+**Use `todo-maintenance.sh` for routine housekeeping.** It resolves/creates `TODO.md`, reports stale `#plan-*` tasks, and runs archive automatically when housekeeping thresholds are hit.
+
+```bash
+# One-command maintenance (recommended after multi-step sessions)
+~/.codex/superpowers-plus/tools/todo-maintenance.sh
+
+# Preview housekeeping actions without modifying TODO.md
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --dry-run
+
+# Machine-readable summary for agents/scripts
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --json
+```
+
 ### Legacy Tools (still available, rarely needed)
 
 | Tool | When to use |
@@ -189,7 +204,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 
 **On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
 
-**Post-session archive check** — run archive (`todo-archive` skill or `~/.codex/skills/todo-archive/todo-archive.sh --force`) when any of these are true:
+**Post-session maintenance** — run `~/.codex/superpowers-plus/tools/todo-maintenance.sh` after any multi-step session. It will report stale `#plan-*` tasks and run archive automatically when any of these are true:
 - HISTORY has ≥5 completed tasks
 - TODO.md exceeds 200 lines
 - HISTORY entries are >7 days old
