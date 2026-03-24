@@ -155,16 +155,18 @@ mkdir -p ~/.augment/rules
 success "Directories created"
 
 # Install superpowers (obra/superpowers)
-if [[ -d ~/.codex/superpowers/.git ]]; then
+# Use -e (not -d) to support git worktrees where .git is a file
+if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # --ff-only failed — try reset (handles upstream history rewrites and divergent branches)
-        verbose "Fast-forward failed, resetting to origin/main..."
-        git fetch --quiet origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
-            || git pull --quiet origin master 2>/dev/null \
-            || warn "Could not update superpowers"
+        # --ff-only failed — warn instead of silently resetting (prevents data loss)
+        verbose "Fast-forward failed, trying master branch..."
+        if ! git pull --ff-only --quiet origin master 2>/dev/null; then
+            warn "Could not update superpowers (fast-forward failed)"
+            warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+        fi
     fi
     popd > /dev/null
     success "Superpowers updated"
