@@ -40,8 +40,8 @@ migrate_todo_skill_overrides() {
     source_field=$(grep -m1 '^source:' "$obra_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
 
     case "$source_field" in
-        ""|superpowers|obra|superpowers-plus)
-            # This is a legitimate obra/superpowers skill or one we deployed — leave it
+        ""|superpowers|obra)
+            # This is a legitimate obra/superpowers-native skill — leave it
             return 0
             ;;
         *)
@@ -92,10 +92,16 @@ migrate_todo_skill_overrides() {
 # Fix: Scan known locations, report findings, suggest consolidation. Never delete.
 detect_orphaned_todo_files() {
     local default_path="$HOME/.codex/TODO.md"
-    # Source ~/.codex/.env to pick up TODO_FILE_PATH if configured there
-    # shellcheck disable=SC1091
-    source "$HOME/.codex/.env" 2>/dev/null || true
-    local env_path="${TODO_FILE_PATH:-}"
+    # Extract TODO_FILE_PATH from ~/.codex/.env if configured there.
+    # Source in a subshell to prevent .env from mutating installer shell state.
+    local env_path=""
+    if [[ -f "$HOME/.codex/.env" ]]; then
+        env_path=$(_SPP_ENV_FILE="$HOME/.codex/.env" bash -c '
+            set +u
+            source "$_SPP_ENV_FILE" 2>/dev/null || true
+            printf "%s" "${TODO_FILE_PATH:-}"
+        ' 2>/dev/null) || true
+    fi
     local -a candidates=()
     local -a found=()
 
@@ -106,8 +112,11 @@ detect_orphaned_todo_files() {
     )
 
     # Also check common workspace roots (non-recursive, fast)
+    # Covers both ~/GitHub/repo/ and ~/GitHub/owner/repo/ layouts
     local git_dir
-    for git_dir in "$HOME/GitHub"/*/ "$HOME/Projects"/*/ "$HOME/repos"/*/; do
+    for git_dir in "$HOME/GitHub"/*/ "$HOME/GitHub"/*/*/ \
+                   "$HOME/Projects"/*/ "$HOME/repos"/*/ \
+                   "$HOME/git"/*/; do
         [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
     done
 
@@ -121,11 +130,12 @@ detect_orphaned_todo_files() {
         [[ "$candidate" == *"/superpowers-plus/"* ]] && continue
         # Skip files inside .codex (skill-internal TODO.md files)
         [[ "$candidate" == *"/.codex/"* ]] && continue
-        # Skip TODO.md files that live inside a git repo — those are project
-        # files, not orphaned agent TODOs
+        # Skip TODO.md files that are tracked by git — those are intentional
+        # project files. Untracked TODO.md inside git repos ARE reported
+        # (agents often create these at repo roots).
         local candidate_dir
         candidate_dir="$(dirname "$candidate")"
-        if git -C "$candidate_dir" rev-parse --is-inside-work-tree &>/dev/null; then
+        if git -C "$candidate_dir" ls-files --error-unmatch "$(basename "$candidate")" &>/dev/null; then
             continue
         fi
 
