@@ -7,6 +7,12 @@
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 # Check if a directory IS a git repository root (not just nested inside one).
 # Handles both normal repos (.git is a directory) and worktrees (.git is a file).
 # Also handles safe.directory / dubious-ownership protected repos.

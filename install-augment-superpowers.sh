@@ -10,6 +10,21 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Version Guard ---
+# This script works on bash 3.2+ but provide a clear error if running under
+# something ancient or under /bin/sh by accident.
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. You appear to be running sh or another shell." >&2
+    echo "  Fix: bash install-augment-superpowers.sh" >&2
+    exit 1
+fi
+if [ "${BASH_VERSINFO[0]}" -lt 3 ]; then
+    echo "ERROR: bash ${BASH_VERSION} is too old (need bash 3.2+)." >&2
+    echo "  macOS fix:  brew install bash" >&2
+    echo "  Linux fix:  sudo apt install bash  (or yum/dnf)" >&2
+    exit 1
+fi
+
 # --- Configuration ---
 VERSION="1.0.0"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"

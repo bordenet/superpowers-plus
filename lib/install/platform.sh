@@ -8,6 +8,12 @@
 # REQUIRES: lib/install/logging.sh (for color variables)
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 # --- Platform Detection ---
 
 detect_platform() {

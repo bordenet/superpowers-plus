@@ -11,6 +11,12 @@
 #       once the migration period has elapsed.
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 post_install_migrations() {
     log_verbose "Running post-install migrations..."
     migrate_todo_skill_overrides
