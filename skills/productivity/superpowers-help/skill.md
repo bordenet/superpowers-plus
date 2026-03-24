@@ -88,7 +88,7 @@ These skills are typically meta-tools (help, observability) or tools that should
 ### Priority When Multiple Apply
 
 1. **Process superpowers first** (brainstorming, debugging) — determine HOW to approach
-2. **Implementation superpowers second** (wiki-editing, issue-authoring) — guide execution
+2. **Implementation superpowers second** (wiki-orchestrator, issue-authoring) — guide execution
 3. **Explicit skills on request** — only when user specifically asks
 
 ---

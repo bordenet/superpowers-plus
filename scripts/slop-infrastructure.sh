@@ -62,32 +62,32 @@ DEFAULT_METRICS='{
 }'
 
 init_infrastructure() {
-    echo -e "${GREEN}Initializing slop infrastructure in: $WORKSPACE_ROOT${NC}"
+    printf '%b\n' "${GREEN}Initializing slop infrastructure in: $WORKSPACE_ROOT${NC}"
     
     # Create dictionary if not exists
     if [ ! -f "$DICTIONARY_FILE" ]; then
         echo "$DEFAULT_DICTIONARY" > "$DICTIONARY_FILE"
-        echo -e "  ${GREEN}✓${NC} Created $DICTIONARY_FILE"
+        printf '%b\n' "  ${GREEN}✓${NC} Created $DICTIONARY_FILE"
     else
-        echo -e "  ${YELLOW}→${NC} Dictionary already exists: $DICTIONARY_FILE"
+        printf '%b\n' "  ${YELLOW}→${NC} Dictionary already exists: $DICTIONARY_FILE"
     fi
     
     # Create metrics if not exists
     if [ ! -f "$METRICS_FILE" ]; then
         echo "$DEFAULT_METRICS" > "$METRICS_FILE"
-        echo -e "  ${GREEN}✓${NC} Created $METRICS_FILE"
+        printf '%b\n' "  ${GREEN}✓${NC} Created $METRICS_FILE"
     else
-        echo -e "  ${YELLOW}→${NC} Metrics already exists: $METRICS_FILE"
+        printf '%b\n' "  ${YELLOW}→${NC} Metrics already exists: $METRICS_FILE"
     fi
     
     # Add to gitignore if git repo
     if [ -d "$WORKSPACE_ROOT/.git" ]; then
         add_to_gitignore
     else
-        echo -e "  ${YELLOW}→${NC} Not a git repo, skipping .gitignore"
+        printf '%b\n' "  ${YELLOW}→${NC} Not a git repo, skipping .gitignore"
     fi
     
-    echo -e "\n${GREEN}Infrastructure ready.${NC}"
+    printf '%b\n' "\n${GREEN}Infrastructure ready.${NC}"
 }
 
 add_to_gitignore() {
@@ -102,19 +102,19 @@ add_to_gitignore() {
     for entry in "${entries[@]}"; do
         if ! grep -q "^$entry$" "$GITIGNORE_FILE" 2>/dev/null; then
             echo "$entry" >> "$GITIGNORE_FILE"
-            echo -e "  ${GREEN}✓${NC} Added $entry to .gitignore"
+            printf '%b\n' "  ${GREEN}✓${NC} Added $entry to .gitignore"
             ((added++))
         fi
     done
     
     if [ $added -eq 0 ]; then
-        echo -e "  ${YELLOW}→${NC} .gitignore already configured"
+        printf '%b\n' "  ${YELLOW}→${NC} .gitignore already configured"
     fi
 }
 
 show_status() {
-    echo -e "${GREEN}Slop Infrastructure Status${NC}"
-    echo -e "Workspace: $WORKSPACE_ROOT\n"
+    printf '%b\n' "${GREEN}Slop Infrastructure Status${NC}"
+    printf '%b\n' "Workspace: $WORKSPACE_ROOT\n"
     
     # Dictionary status
     if [ -f "$DICTIONARY_FILE" ]; then
@@ -122,11 +122,11 @@ show_status() {
         pattern_count=$(jq '.patterns | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
         local exception_count
         exception_count=$(jq '.exceptions | length' "$DICTIONARY_FILE" 2>/dev/null || echo "0")
-        echo -e "${GREEN}Dictionary:${NC} $DICTIONARY_FILE"
+        printf '%b\n' "${GREEN}Dictionary:${NC} $DICTIONARY_FILE"
         echo "  Patterns: $pattern_count"
         echo "  Exceptions: $exception_count"
     else
-        echo -e "${RED}Dictionary:${NC} Not found"
+        printf '%b\n' "${RED}Dictionary:${NC} Not found"
     fi
     
     echo ""
@@ -144,7 +144,7 @@ show_status() {
         local avg_bf
         avg_bf=$(jq '.detection.average_slop_score' "$METRICS_FILE" 2>/dev/null || echo "0")
         
-        echo -e "${GREEN}Metrics:${NC} $METRICS_FILE"
+        printf '%b\n' "${GREEN}Metrics:${NC} $METRICS_FILE"
         echo "  Detection:"
         echo "    Documents analyzed: $docs_analyzed"
         echo "    Patterns found: $patterns_found"
@@ -153,14 +153,14 @@ show_status() {
         echo "    Documents processed: $docs_processed"
         echo "    Patterns fixed: $patterns_fixed"
     else
-        echo -e "${RED}Metrics:${NC} Not found"
+        printf '%b\n' "${RED}Metrics:${NC} Not found"
     fi
 }
 
 reset_metrics() {
-    echo -e "${YELLOW}Resetting metrics...${NC}"
+    printf '%b\n' "${YELLOW}Resetting metrics...${NC}"
     echo "$DEFAULT_METRICS" > "$METRICS_FILE"
-    echo -e "${GREEN}✓${NC} Metrics reset to defaults"
+    printf '%b\n' "${GREEN}✓${NC} Metrics reset to defaults"
 }
 
 # Main command handler

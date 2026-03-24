@@ -7,7 +7,7 @@ summary: "Use when: editing wiki pages that cross-reference other pages."
 coordination:
   group: wiki-pipeline
   order: 2.5
-  requires: ["wiki-authoring"]
+  requires: ["wiki-orchestrator"]
   enables: ["link-verification"]
   escalates_to: ["wiki-orchestrator"]
   internal: false

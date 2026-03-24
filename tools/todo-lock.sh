@@ -15,6 +15,12 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 # --- Configuration ---
 DEFAULT_TTL=120          # seconds before lock is considered stale
 DEFAULT_TIMEOUT=8        # total seconds to wait for lock (retry window)

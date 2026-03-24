@@ -9,6 +9,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Installer cross-platform hardening** — 14 bug classes fixed across 6 installer files (#234)
+  - CRLF self-heal: recursive scan of all `.sh` files, `perl` primary + `tr` fallback with permission preservation
+  - `.env` subshell isolation: prevents `.env` from mutating installer shell state (`set -e`, `PATH`, `IFS`)
+  - `_sudo_prefix()`: handles root (no sudo needed), sudo with TTY, `sudo -n` headless, no-sudo-available
+  - Git worktree support: `-e .git` instead of `-d .git` throughout; `_is_git_repo()` validates HEAD
+  - `git reset --hard` guarded: requires `--force` flag to prevent silent data loss
+  - `sed -i` portability: cross-platform BSD/GNU detection + metacharacter escaping
+  - Node version check: enforces v18+ not just presence
+  - Trailing newline ensured before appending to `.env` files
+  - Target matrix: stock macOS (Bash 3.2), Linux containers (root/no-sudo), WSL-Ubuntu, headless CI, git worktrees
+- **Cross-platform portability pass 2** — `echo -e` → `printf`, `xxd` removed, `date` portability (#236)
+- **Defensive driving guards** across all 40 shell scripts (#237)
+  - Shell guard: detect `/bin/sh`, `dash`, `zsh` with fix instructions
+  - Bash version gate: rich box-drawing error with `brew install bash` / `apt install bash`
+  - Early prerequisite check: git + node checked before sourcing modules
+  - Source guard: lib modules detect direct execution and tell you to run `install.sh`
+- **Documentation audit** — purged ghost skill references (`wiki-editing`/`wiki-authoring` → `wiki-orchestrator`), fixed `.codex/INSTALL.md` and `.opencode/INSTALL.md` install mechanisms, updated plugin metadata to 58 skills / v2.5.2 (#238)
+
 ### Added
 - **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
   - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`

@@ -10,6 +10,21 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Version Guard ---
+# This script works on bash 3.2+ but provide a clear error if running under
+# something ancient or under /bin/sh by accident.
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. You appear to be running sh or another shell." >&2
+    echo "  Fix: bash install-augment-superpowers.sh" >&2
+    exit 1
+fi
+if [ "${BASH_VERSINFO[0]}" -lt 3 ]; then
+    echo "ERROR: bash ${BASH_VERSION} is too old (need bash 3.2+)." >&2
+    echo "  macOS fix:  brew install bash" >&2
+    echo "  Linux fix:  sudo apt install bash  (or yum/dnf)" >&2
+    exit 1
+fi
+
 # --- Configuration ---
 VERSION="1.0.0"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
@@ -31,11 +46,11 @@ else
 fi
 
 # --- Logging ---
-info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error()   { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
-verbose() { [[ "$VERBOSE" == true ]] && echo -e "${BLUE}[DEBUG]${NC} $1" || true; }
+info()    { printf '%b\n' "${BLUE}[INFO]${NC} $1"; }
+success() { printf '%b\n' "${GREEN}[OK]${NC} $1"; }
+warn()    { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+error()   { printf '%b\n' "${RED}[ERROR]${NC} $1" >&2; exit 1; }
+verbose() { [[ "$VERBOSE" == true ]] && printf '%b\n' "${BLUE}[DEBUG]${NC} $1" || true; }
 
 # --- Help ---
 show_help() {
@@ -155,16 +170,18 @@ mkdir -p ~/.augment/rules
 success "Directories created"
 
 # Install superpowers (obra/superpowers)
-if [[ -d ~/.codex/superpowers/.git ]]; then
+# Use -e (not -d) to support git worktrees where .git is a file
+if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # --ff-only failed — try reset (handles upstream history rewrites and divergent branches)
-        verbose "Fast-forward failed, resetting to origin/main..."
-        git fetch --quiet origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
-            || git pull --quiet origin master 2>/dev/null \
-            || warn "Could not update superpowers"
+        # --ff-only failed — warn instead of silently resetting (prevents data loss)
+        verbose "Fast-forward failed, trying master branch..."
+        if ! git pull --ff-only --quiet origin master 2>/dev/null; then
+            warn "Could not update superpowers (fast-forward failed)"
+            warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+        fi
     fi
     popd > /dev/null
     success "Superpowers updated"

@@ -9,6 +9,12 @@
 
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="${SCRIPT_DIR}/../skills"
 
@@ -19,10 +25,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
+log_info() { printf '%b\n' "${BLUE}[INFO]${NC} $*"; }
+log_success() { printf '%b\n' "${GREEN}[OK]${NC} $*"; }
+log_warn() { printf '%b\n' "${YELLOW}[WARN]${NC} $*"; }
+log_error() { printf '%b\n' "${RED}[ERROR]${NC} $*"; }
 
 # -----------------------------------------------------------------------------
 # EXPLICIT SKILLS — Intentionally have no triggers (invoke by name only)
@@ -104,7 +110,7 @@ build_registry() {
         triggers=$(extract_triggers "$skill_file")
         
         if [[ -n "$triggers" ]]; then
-            echo -e "${GREEN}$domain/$skill_name${NC}:"
+            printf '%b\n' "${GREEN}$domain/$skill_name${NC}:"
             while IFS= read -r trigger; do
                 if [[ -n "$trigger" ]]; then
                     echo "  - \"$trigger\""
@@ -113,7 +119,7 @@ build_registry() {
             done <<< "$triggers"
             echo ""
         else
-            echo -e "${YELLOW}$domain/$skill_name${NC}: (no triggers found)"
+            printf '%b\n' "${YELLOW}$domain/$skill_name${NC}: (no triggers found)"
             echo ""
         fi
     done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)

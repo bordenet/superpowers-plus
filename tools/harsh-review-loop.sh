@@ -10,6 +10,12 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
@@ -57,7 +63,7 @@ Exit codes:
 EOF
             exit 0
             ;;
-        *) echo -e "${RED}Unknown option: $1${NC}" >&2; exit 2 ;;
+        *) printf '%b\n' "${RED}Unknown option: $1${NC}" >&2; exit 2 ;;
     esac
 done
 
@@ -68,14 +74,14 @@ total_fixes=0
 
 log_header() {
     echo ""
-    echo -e "${BOLD}=== Harsh Review Loop ===${NC}"
-    echo -e "Max iterations: $MAX_ITERATIONS"
-    echo -e "Consecutive clean required: $CONSECUTIVE_CLEAN_REQUIRED"
+    printf '%b\n' "${BOLD}=== Harsh Review Loop ===${NC}"
+    printf '%b\n' "Max iterations: $MAX_ITERATIONS"
+    printf '%b\n' "Consecutive clean required: $CONSECUTIVE_CLEAN_REQUIRED"
     echo ""
 }
 
 log_iteration() {
-    echo -e "${CYAN}Iteration $1:${NC} $2"
+    printf '%b\n' "${CYAN}Iteration $1:${NC} $2"
 }
 
 get_tree_status() {
@@ -169,14 +175,14 @@ check_version_consistency() {
     fi
 
     if [[ $errors -gt 0 ]]; then
-        echo -e "${RED}Version mismatch (source: install.sh = $sot_version):${NC}"
+        printf '%b\n' "${RED}Version mismatch (source: install.sh = $sot_version):${NC}"
         for check in "${checks[@]}"; do
             echo "  ✗ $check"
         done
         return 1
     fi
 
-    [[ "$VERBOSE" == "true" ]] && echo -e "  Version: ${GREEN}$sot_version${NC} (6 locations verified)"
+    [[ "$VERBOSE" == "true" ]] && printf '%b\n' "  Version: ${GREEN}$sot_version${NC} (6 locations verified)"
     return 0
 }
 
@@ -186,7 +192,7 @@ check_version_consistency() {
 
 log_header
 initial_tree_status=$(get_tree_status)
-[[ "$VERBOSE" == "true" ]] && echo -e "Initial working tree: $initial_tree_status"
+[[ "$VERBOSE" == "true" ]] && printf '%b\n' "Initial working tree: $initial_tree_status"
 echo ""
 
 while [[ $iteration -lt $MAX_ITERATIONS ]]; do
@@ -238,30 +244,30 @@ echo ""
 # FINAL VALIDATION
 # =============================================================================
 
-echo -e "${BOLD}=== Final Validation ===${NC}"
+printf '%b\n' "${BOLD}=== Final Validation ===${NC}"
 echo ""
 
 final_errors=0
 
 echo -n "Harsh review:        "
 if run_harsh_review "false"; then
-    echo -e "${GREEN}PASS${NC}"
+    printf '%b\n' "${GREEN}PASS${NC}"
 else
-    echo -e "${RED}FAIL${NC}"
+    printf '%b\n' "${RED}FAIL${NC}"
     ((final_errors++)) || true
 fi
 
 echo -n "Skill triggers:      "
 if run_skill_validator; then
-    echo -e "${GREEN}PASS${NC}"
+    printf '%b\n' "${GREEN}PASS${NC}"
 else
-    echo -e "${RED}FAIL${NC}"
+    printf '%b\n' "${RED}FAIL${NC}"
     ((final_errors++)) || true
 fi
 
 echo -n "Version consistency: "
 if check_version_consistency; then
-    echo -e "${GREEN}PASS${NC}"
+    printf '%b\n' "${GREEN}PASS${NC}"
 else
     ((final_errors++)) || true
 fi
@@ -269,11 +275,11 @@ fi
 echo -n "Working tree:        "
 tree_status=$(get_tree_status)
 if [[ "$tree_status" == "clean" ]]; then
-    echo -e "${GREEN}clean${NC}"
+    printf '%b\n' "${GREEN}clean${NC}"
 else
-    echo -e "${YELLOW}$tree_status${NC}"
+    printf '%b\n' "${YELLOW}$tree_status${NC}"
     echo ""
-    echo -e "${YELLOW}Note: Stage changes before claiming 'ready to push'.${NC}"
+    printf '%b\n' "${YELLOW}Note: Stage changes before claiming 'ready to push'.${NC}"
 fi
 
 echo ""
@@ -282,17 +288,17 @@ echo ""
 # SUMMARY
 # =============================================================================
 
-echo -e "${BOLD}=== Summary ===${NC}"
+printf '%b\n' "${BOLD}=== Summary ===${NC}"
 echo ""
 
 if [[ $consecutive_clean -ge $CONSECUTIVE_CLEAN_REQUIRED ]] && [[ $final_errors -eq 0 ]]; then
-    echo -e "${GREEN}✅ Repository is clean after $iteration iteration(s)${NC}"
-    echo -e "   ($consecutive_clean consecutive clean passes, $total_fixes fix round(s))"
+    printf '%b\n' "${GREEN}✅ Repository is clean after $iteration iteration(s)${NC}"
+    printf '%b\n' "   ($consecutive_clean consecutive clean passes, $total_fixes fix round(s))"
     echo ""
-    echo -e "${GREEN}${BOLD}READY TO PUSH${NC}"
+    printf '%b\n' "${GREEN}${BOLD}READY TO PUSH${NC}"
     exit 0
 elif [[ $iteration -ge $MAX_ITERATIONS ]]; then
-    echo -e "${RED}❌ Failed to reach stable state after $MAX_ITERATIONS iterations${NC}"
+    printf '%b\n' "${RED}❌ Failed to reach stable state after $MAX_ITERATIONS iterations${NC}"
     echo ""
     echo "This usually means:"
     echo "  1. Fixes are introducing new issues"
@@ -302,7 +308,7 @@ elif [[ $iteration -ge $MAX_ITERATIONS ]]; then
     echo "Try running manually: ./tools/harsh-review.sh --fix"
     exit 1
 else
-    echo -e "${RED}❌ Final validation failed with $final_errors error(s)${NC}"
+    printf '%b\n' "${RED}❌ Final validation failed with $final_errors error(s)${NC}"
     echo ""
     echo "Fix the errors above and re-run this script."
     exit 1

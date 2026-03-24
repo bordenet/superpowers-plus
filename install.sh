@@ -13,13 +13,81 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.5.1
+# VERSION: 2.5.2
 # ARCHITECTURE: This file is a thin orchestrator. Implementation lives in
 #               lib/install/*.sh modules, sourced in dependency order below.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.1"
+VERSION="2.5.2"
+
+# --- Shell & Bash Version Guard ---
+# Detect if accidentally run under /bin/sh, dash, zsh, etc.
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash but is running under a different shell." >&2
+    echo "  Fix: bash install.sh $*" >&2
+    exit 1
+fi
+
+# This script requires bash 4+ for associative arrays (declare -A).
+# macOS ships with bash 3.2 (Apple can't update past GPLv2 — frozen since 2007).
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════════════════╗" >&2
+    echo "║  ERROR: bash ${BASH_VERSION} is too old — this installer needs bash 4+     ║" >&2
+    echo "╠══════════════════════════════════════════════════════════════════╣" >&2
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "║  macOS ships bash 3.2 (frozen at GPLv2, circa 2007).           ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  Quick fix (one-time):                                         ║" >&2
+        echo "║    brew install bash                                           ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  Then re-run with:                                             ║" >&2
+        echo "║    /opt/homebrew/bin/bash install.sh                            ║" >&2
+        echo "║  Or:                                                           ║" >&2
+        echo "║    export PATH=\"/opt/homebrew/bin:\$PATH\"                       ║" >&2
+        echo "║    bash install.sh                                             ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  No Homebrew? Install it first:                                ║" >&2
+        echo "║    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"" >&2
+    else
+        echo "║  Install bash 4+ via your package manager:                     ║" >&2
+        echo "║    Ubuntu/Debian:  sudo apt install bash                       ║" >&2
+        echo "║    Fedora/RHEL:    sudo dnf install bash                       ║" >&2
+        echo "║    Alpine:         apk add bash                                ║" >&2
+    fi
+    echo "╚══════════════════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+    exit 1
+fi
+
+# --- Early Prerequisite Check ---
+# Fail fast with actionable messages before we get deep into the installer.
+_missing_cmds=""
+for _cmd in git node; do
+    if ! command -v "$_cmd" &>/dev/null; then
+        _missing_cmds="$_missing_cmds $_cmd"
+    fi
+done
+if [[ -n "$_missing_cmds" ]]; then
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════════════════╗" >&2
+    echo "║  ERROR: Missing required commands:${_missing_cmds}                        " >&2
+    echo "╠══════════════════════════════════════════════════════════════════╣" >&2
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "║  macOS fix:                                                    ║" >&2
+        [[ "$_missing_cmds" == *git* ]]  && echo "║    xcode-select --install   (includes git)                      ║" >&2
+        [[ "$_missing_cmds" == *node* ]] && echo "║    brew install node        (or: https://nodejs.org)             ║" >&2
+    else
+        echo "║  Linux fix:                                                    ║" >&2
+        [[ "$_missing_cmds" == *git* ]]  && echo "║    sudo apt install git     (or yum/dnf/apk)                    ║" >&2
+        [[ "$_missing_cmds" == *node* ]] && echo "║    sudo apt install nodejs  (or: https://nodejs.org)             ║" >&2
+    fi
+    echo "╚══════════════════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+    exit 1
+fi
+unset _missing_cmds _cmd
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -49,9 +117,21 @@ fi
 # If this script or its modules have Windows line endings, bash will fail with
 # cryptic errors like "syntax error near unexpected token `$'\r'". Fix them
 # before sourcing anything.
-if grep -q $'\r' "${BASH_SOURCE[0]}" 2>/dev/null; then
-    # Fix this script and all lib modules in-place
-    find "$SCRIPT_DIR" -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+# Recursively check ALL .sh files in the repo — a CRLF module anywhere
+# (tools/, setup/, lib/) will break sourcing or execution.
+# Use grep -rl (not -lq — -q suppresses -l output, breaking the pipeline).
+if [ -n "$(find "$SCRIPT_DIR" -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null | head -1)" ]; then
+    # Cross-platform in-place CRLF strip: prefer perl, fall back to tr per-file
+    if command -v perl &>/dev/null; then
+        find "$SCRIPT_DIR" -name "*.sh" -exec perl -pi -e 's/\r$//' {} +
+    else
+        # tr fallback: preserve execute bits after rewrite
+        find "$SCRIPT_DIR" -name "*.sh" -print0 | while IFS= read -r -d '' f; do
+            tr -d '\r' < "$f" > "${f}.tmp"
+            [[ -x "$f" ]] && chmod +x "${f}.tmp"
+            mv "${f}.tmp" "$f"
+        done
+    fi
     echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
     echo "       Re-run: $0 $*"
     echo ""
@@ -77,8 +157,22 @@ source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter
 source "${INSTALL_LIB_DIR}/migrate.sh"       # post_install_migrations
 
 # Load .env if present (for optional integrations)
-# shellcheck disable=SC1091
-[[ -f "$SCRIPT_DIR/.env" ]] && source "$SCRIPT_DIR/.env"
+# Source in a subshell to prevent .env from mutating installer shell state
+# (e.g., set +e, PATH changes, IFS changes). Only extract needed variables.
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    _env_vars=$(_SPP_ENV_FILE="$SCRIPT_DIR/.env" bash -c '
+        set +u
+        source "$_SPP_ENV_FILE" 2>/dev/null || true
+        for v in PERPLEXITY_API_KEY WIKI_PLATFORM ISSUE_TRACKER_TYPE; do
+            val="${!v:-}"
+            [[ -n "$val" ]] && printf "%s=%s\n" "$v" "$val"
+        done
+    ' 2>/dev/null) || true
+    while IFS='=' read -r _key _val; do
+        [[ -n "$_key" ]] && export "$_key=$_val"
+    done <<< "$_env_vars"
+    unset _env_vars _key _val
+fi
 
 # --- Help ---
 show_help() {
@@ -197,7 +291,7 @@ while [[ $# -gt 0 ]]; do
         --upgrade) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
-            echo -e "${RED}Error: Unknown option $1${NC}" >&2
+            printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
             echo "Use -h or --help for usage information" >&2
             exit 1
             ;;
@@ -305,17 +399,17 @@ print_summary() {
     echo ""
     echo "Optional integrations:"
     if [[ -n "${PERPLEXITY_API_KEY:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Perplexity research: configured"
+        printf '%b\n' "  ${GREEN}✓${NC} Perplexity research: configured"
     else
         echo "  • Perplexity research: ./setup/mcp-perplexity.sh"
     fi
     if [[ -n "${WIKI_PLATFORM:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Wiki: ${WIKI_PLATFORM}"
+        printf '%b\n' "  ${GREEN}✓${NC} Wiki: ${WIKI_PLATFORM}"
     else
         echo "  • Wiki: set WIKI_PLATFORM in .env (see skills/wiki/_adapters/)"
     fi
     if [[ -n "${ISSUE_TRACKER_TYPE:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Issue tracking: ${ISSUE_TRACKER_TYPE}"
+        printf '%b\n' "  ${GREEN}✓${NC} Issue tracking: ${ISSUE_TRACKER_TYPE}"
     else
         echo "  • Issue tracking: set ISSUE_TRACKER_TYPE in .env"
     fi
@@ -345,19 +439,36 @@ check_prerequisites() {
         fail=$((fail + 1))
     fi
 
-    # Node.js
+    # Node.js (presence + version)
     if command -v node &>/dev/null; then
-        log_success "node: $(node -v)"
-        ok=$((ok + 1))
+        local node_ver
+        node_ver=$(node -v 2>/dev/null || echo "unknown")
+        local node_major
+        node_major=$(echo "$node_ver" | sed 's/^v//' | cut -d. -f1)
+        if [[ "$node_major" -ge 18 ]] 2>/dev/null; then
+            log_success "node: $node_ver (>= v18)"
+            ok=$((ok + 1))
+        else
+            log_warn "node: $node_ver (NEED v18+)"
+            fail=$((fail + 1))
+        fi
     else
         log_warn "node: NOT FOUND"
         fail=$((fail + 1))
     fi
 
-    # obra/superpowers
-    if check_superpowers; then
-        log_success "obra/superpowers: installed at $SUPERPOWERS_DIR"
-        ok=$((ok + 1))
+    # obra/superpowers (presence + git repo + skills/)
+    if [[ -d "$SUPERPOWERS_DIR" ]]; then
+        if ! _is_git_repo "$SUPERPOWERS_DIR"; then
+            log_warn "obra/superpowers: exists but is NOT a git repo (use --force to reinstall)"
+            fail=$((fail + 1))
+        elif [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
+            log_warn "obra/superpowers: git repo exists but skills/ directory is missing (use --force to reinstall)"
+            fail=$((fail + 1))
+        else
+            log_success "obra/superpowers: installed at $SUPERPOWERS_DIR (git repo)"
+            ok=$((ok + 1))
+        fi
     else
         log_warn "obra/superpowers: NOT INSTALLED (will be installed)"
     fi
@@ -427,6 +538,11 @@ main() {
         log_info "Force flag set, reinstalling superpowers..."
         rm -rf "${SUPERPOWERS_DIR:?}"
         install_superpowers
+    elif ! _is_git_repo "$SUPERPOWERS_DIR"; then
+        # Directory exists with skills/ but is not a git repo — cannot update
+        log_warn "obra/superpowers exists but is not a git repo: $SUPERPOWERS_DIR"
+        log_warn "Cannot update or verify version. Run with --force to reinstall."
+        error_exit "Unmanaged obra/superpowers installation detected"
     else
         log_success "obra/superpowers already installed"
         # Try to update — warn prominently if update fails

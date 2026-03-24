@@ -30,8 +30,7 @@ superpowers-plus is designed as a **generic base layer** that organizations exte
 │   │  superpowers-plus   │    │   your-org-skills   │           │
 │   │  (PUBLIC / GENERIC) │    │  (PRIVATE / SPECIFIC)│           │
 │   ├─────────────────────┤    ├─────────────────────┤           │
-│   │ • wiki-editing      │    │ • wiki-editing      │ ← OVERRIDE│
-│   │ • wiki-authoring    │    │ • wiki-authoring    │ ← OVERRIDE│
+│   │ • wiki-orchestrator │    │ • wiki-orchestrator │ ← OVERRIDE│
 │   │ • issue-authoring   │    │ • jira-issue-auth   │ ← EXTEND  │
 │   │ • link-verification │    │ • link-verification │ ← OVERRIDE│
 │   │ • _adapters/        │    │ • rules/*.always.md │           │
@@ -91,13 +90,13 @@ Use this pattern when you need to replace a generic skill with a vendor-specific
 2. **Install your org repo AFTER superpowers-plus**
 3. The generic version is replaced by your version
 
-**Example: Overriding `wiki-editing`**
+**Example: Overriding `wiki-orchestrator`**
 
 Generic version (superpowers-plus):
 ```yaml
-# skills/wiki/wiki-editing/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document"]
 description: Generic wiki editing workflow. See _adapters/ for platform setup.
@@ -106,11 +105,11 @@ description: Generic wiki editing workflow. See _adapters/ for platform setup.
 
 Your org version (your-org-skills):
 ```yaml
-# skills/wiki/wiki-editing/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: your-org-skills
-overrides: superpowers-plus/wiki-editing
+overrides: superpowers-plus/wiki-orchestrator
 triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document"]
 description: Wiki editing for YourWikiPlatform. Includes org-specific scope restrictions.
 ---
@@ -165,7 +164,7 @@ skills/
 │   │   ├── platform-template.md   # Provider-neutral adapter template
 │   │   ├── confluence.md          # Confluence-specific config
 │   │   └── notion.md              # Notion-specific config
-│   └── wiki-editing/
+│   └── wiki-orchestrator/
 │       └── skill.md               # Generic skill, references adapters
 ```
 
@@ -203,10 +202,10 @@ Use this pattern when your org's workflow diverges significantly from the generi
 **Example: Forked skill header**
 
 ```yaml
-# skills/wiki/wiki-authoring/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-authoring
-description: Wiki authoring rules for YourOrg. FORK of superpowers-plus wiki-authoring.
+name: wiki-orchestrator
+description: Wiki authoring rules for YourOrg. FORK of superpowers-plus wiki-orchestrator.
 ---
 
 # Wiki Authoring (YourOrg Fork)
@@ -229,7 +228,7 @@ Create a tracking file in your org repo:
 ```yaml
 # .fork-tracking.yaml
 forks:
-  - skill: wiki-authoring
+  - skill: wiki-orchestrator
     upstream_repo: superpowers-plus
     upstream_version: v2.1.0
     fork_date: 2024-03-01
@@ -263,7 +262,7 @@ Rules are **always-active guidance** that apply to ALL conversations, regardless
 
 ```
 rules/
-├── wiki-editing.always.md      # Always-on wiki guidance
+├── wiki-orchestrator.always.md      # Always-on wiki guidance
 ├── secrets-policy.always.md    # Secret handling policy
 ├── code-review.always.md       # Code review requirements
 └── pii-protection.always.md    # PII handling rules
@@ -337,12 +336,12 @@ cp path/to/superpowers-plus/tools/skill-trigger-validator.sh your-org-skills/too
 
 ### Configuring Intentional Overlaps
 
-Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-editing`). Declare these in the `ALLOWED_OVERLAPS` array in your copy of the validator:
+Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-orchestrator`). Declare these in the `ALLOWED_OVERLAPS` array in your copy of the validator:
 
 ```bash
 # In your-org-skills/tools/skill-trigger-validator.sh
 ALLOWED_OVERLAPS=(
-    "link-verification:wiki-editing"      # Dependency chain
+    "link-verification:wiki-orchestrator"      # Dependency chain
     "link-verification:wiki-orchestrator" # Dependency chain
     "old-skill:new-skill"                 # Deprecated alias
 )
@@ -397,9 +396,9 @@ your-org-skills/
 │   │   └── your-org-utils.md
 │   │
 │   ├── wiki/                 # Wiki skills (override generic)
-│   │   ├── wiki-editing/
+│   │   ├── wiki-orchestrator/
 │   │   │   └── skill.md      # Platform-specific implementation
-│   │   ├── wiki-authoring/
+│   │   ├── wiki-orchestrator/
 │   │   │   └── skill.md      # Org formatting rules
 │   │   └── _adapters/        # Optional: org-specific adapters
 │   │       └── internal-wiki.md
@@ -560,7 +559,7 @@ For a senior engineer setting up superpowers-plus for their organization:
 
 ### Day 2: Core Integrations
 - [ ] Identify which generic skills need overriding
-- [ ] Create org-specific wiki-editing (for your wiki platform)
+- [ ] Create org-specific wiki-orchestrator (for your wiki platform)
 - [ ] Create org-specific issue-authoring (for your issue tracker)
 - [ ] Add adapters for your platforms
 

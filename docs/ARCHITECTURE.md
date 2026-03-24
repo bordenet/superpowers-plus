@@ -7,7 +7,7 @@ How superpowers-plus skills work and how to extend them.
 | Term | Definition | Frontmatter | Example |
 |------|------------|-------------|---------|
 | **Skill** | Generic term for any procedural module (a `skill.md` file) | Any | All of them |
-| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-editing` |
+| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-orchestrator` |
 | **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `security-upgrade` |
 
 **Key distinction:**
@@ -37,7 +37,7 @@ Skills from both directories are discovered by `superpowers-augment.js`.
 
 ### Installer Architecture
 
-`install.sh` is a thin orchestrator (~380 lines) that sources 6 modules from `lib/install/`:
+`install.sh` is an orchestrator (~600 lines) that sources 6 modules from `lib/install/`:
 
 ```
 lib/install/
@@ -149,10 +149,10 @@ description: One-line description of what the skill does.
 **Superpower (auto-triggered):**
 ```yaml
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["update wiki page", "push to wiki", "edit wiki"]
-description: Use when editing wiki pages.
+description: Orchestrates wiki editing workflows — download, edit, publish.
 ---
 ```
 
@@ -208,7 +208,7 @@ The `tools/skill-trigger-validator.sh` script audits triggers across all skills:
 
 ### Intentional Overlaps
 
-Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-editing`). These are declared in the `ALLOWED_OVERLAPS` array in the validator script.
+Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-orchestrator`). These are declared in the `ALLOWED_OVERLAPS` array in the validator script.
 
 ## Multi-Target Deployment
 
