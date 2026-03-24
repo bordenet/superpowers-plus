@@ -21,20 +21,73 @@ set -euo pipefail
 
 VERSION="2.5.2"
 
-# --- Bash version check ---
-# This script requires bash 4+ for associative arrays (declare -A).
-# macOS ships with bash 3.2 (Apple can't update past GPLv2).
-# Install modern bash: brew install bash
-if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
-    echo "[ERROR] bash ${BASH_VERSION} is too old (need bash 4+)." >&2
-    echo "" >&2
-    echo "  macOS ships bash 3.2 due to licensing. Fix:" >&2
-    echo "    brew install bash" >&2
-    echo "" >&2
-    echo "  Then re-run:  bash $0 $*" >&2
-    echo "  Or add /opt/homebrew/bin to PATH before /bin" >&2
+# --- Shell & Bash Version Guard ---
+# Detect if accidentally run under /bin/sh, dash, zsh, etc.
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash but is running under a different shell." >&2
+    echo "  Fix: bash install.sh $*" >&2
     exit 1
 fi
+
+# This script requires bash 4+ for associative arrays (declare -A).
+# macOS ships with bash 3.2 (Apple can't update past GPLv2 — frozen since 2007).
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════════════════╗" >&2
+    echo "║  ERROR: bash ${BASH_VERSION} is too old — this installer needs bash 4+     ║" >&2
+    echo "╠══════════════════════════════════════════════════════════════════╣" >&2
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "║  macOS ships bash 3.2 (frozen at GPLv2, circa 2007).           ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  Quick fix (one-time):                                         ║" >&2
+        echo "║    brew install bash                                           ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  Then re-run with:                                             ║" >&2
+        echo "║    /opt/homebrew/bin/bash install.sh                            ║" >&2
+        echo "║  Or:                                                           ║" >&2
+        echo "║    export PATH=\"/opt/homebrew/bin:\$PATH\"                       ║" >&2
+        echo "║    bash install.sh                                             ║" >&2
+        echo "║                                                                ║" >&2
+        echo "║  No Homebrew? Install it first:                                ║" >&2
+        echo "║    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"" >&2
+    else
+        echo "║  Install bash 4+ via your package manager:                     ║" >&2
+        echo "║    Ubuntu/Debian:  sudo apt install bash                       ║" >&2
+        echo "║    Fedora/RHEL:    sudo dnf install bash                       ║" >&2
+        echo "║    Alpine:         apk add bash                                ║" >&2
+    fi
+    echo "╚══════════════════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+    exit 1
+fi
+
+# --- Early Prerequisite Check ---
+# Fail fast with actionable messages before we get deep into the installer.
+_missing_cmds=""
+for _cmd in git node; do
+    if ! command -v "$_cmd" &>/dev/null; then
+        _missing_cmds="$_missing_cmds $_cmd"
+    fi
+done
+if [[ -n "$_missing_cmds" ]]; then
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════════════════╗" >&2
+    echo "║  ERROR: Missing required commands:${_missing_cmds}                        " >&2
+    echo "╠══════════════════════════════════════════════════════════════════╣" >&2
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "║  macOS fix:                                                    ║" >&2
+        [[ "$_missing_cmds" == *git* ]]  && echo "║    xcode-select --install   (includes git)                      ║" >&2
+        [[ "$_missing_cmds" == *node* ]] && echo "║    brew install node        (or: https://nodejs.org)             ║" >&2
+    else
+        echo "║  Linux fix:                                                    ║" >&2
+        [[ "$_missing_cmds" == *git* ]]  && echo "║    sudo apt install git     (or yum/dnf/apk)                    ║" >&2
+        [[ "$_missing_cmds" == *node* ]] && echo "║    sudo apt install nodejs  (or: https://nodejs.org)             ║" >&2
+    fi
+    echo "╚══════════════════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+    exit 1
+fi
+unset _missing_cmds _cmd
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

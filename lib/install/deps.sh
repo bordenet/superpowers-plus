@@ -8,6 +8,12 @@
 # REQUIRES: lib/install/logging.sh, lib/install/platform.sh
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 # Map command names to distro-specific package names
 # e.g., the 'node' command is provided by the 'nodejs' package on Linux
 get_package_name() {

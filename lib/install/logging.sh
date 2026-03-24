@@ -7,6 +7,12 @@
 # GLOBALS SET: RED, GREEN, YELLOW, BLUE, NC
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 # Colors for output (disabled if not a terminal, unless FORCE_COLOR=1)
 # FORCE_COLOR=1 allows parent scripts (e.g., adopter installers) to preserve colors
 # when calling this script through a pipe/tee.
