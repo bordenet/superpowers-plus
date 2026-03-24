@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have SKILL.md with frontmatter | ✅ PASS | 58/58 skills validated |
+| Skills have skill.md with frontmatter | ✅ PASS | 58/58 skills validated |
 
 ## Draft Submission
 
