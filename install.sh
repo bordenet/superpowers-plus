@@ -13,13 +13,28 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.5.1
+# VERSION: 2.5.2
 # ARCHITECTURE: This file is a thin orchestrator. Implementation lives in
 #               lib/install/*.sh modules, sourced in dependency order below.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.1"
+VERSION="2.5.2"
+
+# --- Bash version check ---
+# This script requires bash 4+ for associative arrays (declare -A).
+# macOS ships with bash 3.2 (Apple can't update past GPLv2).
+# Install modern bash: brew install bash
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+    echo "[ERROR] bash ${BASH_VERSION} is too old (need bash 4+)." >&2
+    echo "" >&2
+    echo "  macOS ships bash 3.2 due to licensing. Fix:" >&2
+    echo "    brew install bash" >&2
+    echo "" >&2
+    echo "  Then re-run:  bash $0 $*" >&2
+    echo "  Or add /opt/homebrew/bin to PATH before /bin" >&2
+    exit 1
+fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
