@@ -55,12 +55,12 @@ ERRORS=0
 WARNINGS=0
 FIXES=0
 
-log_check() { echo -e "${BLUE}[CHECK]${NC} $1"; }
+log_check() { printf '%b\n' "${BLUE}[CHECK]${NC} $1"; }
 # shellcheck disable=SC2329  # Used by callers that source this file
-log_pass()  { echo -e "${GREEN}[PASS]${NC} $1"; }
-log_fail()  { echo -e "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
-log_fix()   { echo -e "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
+log_pass()  { printf '%b\n' "${GREEN}[PASS]${NC} $1"; }
+log_fail()  { printf '%b\n' "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
+log_warn()  { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
+log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
 # Get files to check
 get_files() {
@@ -106,7 +106,7 @@ while IFS= read -r file; do
         else
             log_fail "$file: missing final newline"
         fi
-    elif tail -c 2 "$file" | xxd -p | grep -q "0a0a"; then
+    elif [[ "$(tail -c 2 "$file" | wc -l)" -ge 2 ]]; then
         # File ends with extra blank line
         if [[ "$FIX_MODE" == "true" ]]; then
             # Use Python for reliable cross-platform fix
@@ -341,7 +341,7 @@ if [[ -n "$README_LINE" ]]; then
 
     if [[ "$DRIFT_FOUND" == "true" ]]; then
         log_fail "README skill count drift detected:"
-        echo -e "$DRIFT_MSG"
+        printf '%b\n' "$DRIFT_MSG"
     fi
 else
     log_warn "Could not parse skill count line from README.md"
@@ -357,22 +357,22 @@ echo "=============================================="
 echo ""
 
 if [[ $FIXES -gt 0 ]]; then
-    echo -e "${GREEN}Fixed: $FIXES issues${NC}"
+    printf '%b\n' "${GREEN}Fixed: $FIXES issues${NC}"
 fi
 
 if [[ $WARNINGS -gt 0 ]]; then
-    echo -e "${YELLOW}Warnings: $WARNINGS${NC}"
+    printf '%b\n' "${YELLOW}Warnings: $WARNINGS${NC}"
 fi
 
 if [[ $ERRORS -gt 0 ]]; then
-    echo -e "${RED}Errors: $ERRORS${NC}"
+    printf '%b\n' "${RED}Errors: $ERRORS${NC}"
     echo ""
-    echo -e "${RED}HARSH REVIEW FAILED${NC}"
+    printf '%b\n' "${RED}HARSH REVIEW FAILED${NC}"
     echo "Fix all errors before committing."
     exit 1
 else
-    echo -e "${GREEN}No errors found.${NC}"
+    printf '%b\n' "${GREEN}No errors found.${NC}"
     echo ""
-    echo -e "${GREEN}HARSH REVIEW PASSED${NC}"
+    printf '%b\n' "${GREEN}HARSH REVIEW PASSED${NC}"
     exit 0
 fi

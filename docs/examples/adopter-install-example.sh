@@ -25,13 +25,13 @@ fi
 exec > >(tee -a "$LOG_FILE") 2>&1
 echo "=== my-org-skills install started at $(date) ===" >> "$LOG_FILE"
 
-info()    { echo -e "${BLUE}▶${NC} $1"; }
-success() { echo -e "${GREEN}✓${NC} $1"; }
-warn()    { echo -e "${YELLOW}⚠${NC} $1"; }
+info()    { printf '%b\n' "${BLUE}▶${NC} $1"; }
+success() { printf '%b\n' "${GREEN}✓${NC} $1"; }
+warn()    { printf '%b\n' "${YELLOW}⚠${NC} $1"; }
 fail()    { 
-    echo -e "${RED}✗ ERROR:${NC} $1" >&2
+    printf '%b\n' "${RED}✗ ERROR:${NC} $1" >&2
     echo ""
-    echo -e "${YELLOW}Need help?${NC} Send this file to IT: $LOG_FILE"
+    printf '%b\n' "${YELLOW}Need help?${NC} Send this file to IT: $LOG_FILE"
     exit 1
 }
 
