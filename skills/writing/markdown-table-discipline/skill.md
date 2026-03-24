@@ -185,7 +185,7 @@ When tables render to HTML:
 | | pre-commit-gate | Runs lint checks |
 | | verification | Final checks |
 | wiki | wiki-orchestrator | Routes tasks |
-| | wiki-editing | Safe updates |
+| | wiki-orchestrator | Safe updates |
 ```
 
 ### Bad: Every Domain Repeated
@@ -197,7 +197,7 @@ When tables render to HTML:
 | engineering | pre-commit-gate | Runs lint checks |
 | engineering | verification | Final checks |
 | wiki | wiki-orchestrator | Routes tasks |
-| wiki | wiki-editing | Safe updates |
+| wiki | wiki-orchestrator | Safe updates |
 ```
 
 ### Good: Bullet List Instead of Tiny Table

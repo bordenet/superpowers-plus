@@ -1,5 +1,8 @@
 # Design: Investigation State Management for Debugging
 
+> ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design spec, not documentation of existing functionality.
+
+
 **Status:** Approved
 **Author:** Matt Bordenet (via Augment Agent)
 **Date:** 2026-03-23

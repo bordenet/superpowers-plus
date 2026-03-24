@@ -1,87 +1,67 @@
 # Installing Superpowers Plus for Codex
 
-Extended domain skills for wiki editing, issue tracking, security audits, and more.
+58 domain skills for wiki editing, issue tracking, security audits, and more. Extends [obra/superpowers](https://github.com/obra/superpowers) (14 core workflow skills).
 
 ## Prerequisites
 
-- Git
-- **obra/superpowers** (core workflow skills) - will be installed if missing
+- **bash 4+** — macOS ships bash 3.2; run `brew install bash` first
+- **git** — macOS: `xcode-select --install`
+- **Node.js 18+** — macOS: `brew install node`
+
+The installer detects missing prerequisites and tells you exactly how to fix them.
 
 ## Installation
 
-### Step 1: Install obra/superpowers (Prerequisite)
-
-Check if superpowers is already installed:
-
-```bash
-ls ~/.codex/superpowers/skills 2>/dev/null && echo "✓ superpowers installed" || echo "✗ superpowers not found"
-```
-
-**If not installed**, install it first:
-
-```bash
-git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
-mkdir -p ~/.agents/skills
-ln -sf ~/.codex/superpowers/skills ~/.agents/skills/superpowers
-```
-
-### Step 2: Install superpowers-plus
-
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git ~/.codex/superpowers-plus
-ln -sf ~/.codex/superpowers-plus/skills ~/.agents/skills/superpowers-plus
+cd ~/.codex/superpowers-plus
+bash install.sh
 ```
 
-> **Windows users:** Use Ubuntu on WSL (`wsl --install -d Ubuntu`) and run commands from the Ubuntu terminal. Native PowerShell has path translation issues.
+The installer automatically:
+- Installs obra/superpowers if missing
+- Deploys skills to `~/.codex/skills/` and `~/.claude/skills/`
+- Sets up the bootstrap script and agent configuration
+- Auto-fixes CRLF line endings on Windows/WSL
 
-### Step 3: Restart Codex
-
-Quit and relaunch the CLI to discover the skills.
+> **Windows/WSL:** Run from within WSL-Ubuntu, not Windows cmd/PowerShell.
 
 ## Verify Installation
 
 ```bash
-ls -la ~/.agents/skills/superpowers ~/.agents/skills/superpowers-plus
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
+# Expected: ~72 skills (58 superpowers-plus + 14 obra/superpowers)
 ```
-
-You should see symlinks pointing to both skill directories.
 
 ## Updating
 
 ```bash
-cd ~/.codex/superpowers && git pull
-cd ~/.codex/superpowers-plus && git pull
+cd ~/.codex/superpowers-plus
+bash install.sh --upgrade
 ```
-
-Skills update instantly through the symlinks.
 
 ## Uninstalling
 
 ```bash
-# Remove superpowers-plus only
-rm ~/.agents/skills/superpowers-plus
-rm -rf ~/.codex/superpowers-plus
-
-# Remove superpowers (optional)
-rm ~/.agents/skills/superpowers
-rm -rf ~/.codex/superpowers
+bash install.sh --uninstall
 ```
 
 ## What You Get
 
-**From obra/superpowers (prerequisite):**
+**From obra/superpowers (installed automatically):**
 - brainstorming, writing-plans, executing-plans
 - test-driven-development, systematic-debugging
 - subagent-driven-development, using-git-worktrees
-- 20+ core workflow skills
+- 14 core workflow skills
 
-**From superpowers-plus:**
+**From superpowers-plus (58 skills):**
 - Wiki editing and verification skills
-- Issue tracking patterns
+- Issue tracking patterns (Linear, GitHub, Jira)
 - Security audit skills (secret detection, IP audit)
 - Engineering skills (pre-commit gates, blast radius)
 - Observability and research skills
 - AI slop detection for writing
+- TODO management and archival
 
 ## Getting Help
 
