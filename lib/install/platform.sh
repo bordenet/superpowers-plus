@@ -58,7 +58,7 @@ if [[ "$PLATFORM" == "wsl" ]]; then
     if is_windows_fs "$PWD"; then
         WSL_WINDOWS_FS=true
         echo ""
-        echo -e "${YELLOW}[WARN]${NC} Running from Windows filesystem ($PWD)"
+        printf '%b\n' "${YELLOW}[WARN]${NC} Running from Windows filesystem ($PWD)"
         echo ""
         echo "  NTFS mounts do not support Unix permissions (chmod is a no-op)."
         echo "  For best results:"
@@ -71,7 +71,7 @@ if [[ "$PLATFORM" == "wsl" ]]; then
 
     # Check if HOME is set correctly (not a Windows path)
     if [[ "$HOME" == /mnt/* ]]; then
-        echo -e "${RED}[ERROR]${NC} \$HOME is set to a Windows path: $HOME"
+        printf '%b\n' "${RED}[ERROR]${NC} \$HOME is set to a Windows path: $HOME"
         echo "This will cause installation to fail."
         echo ""
         echo "Fix: Set HOME to a WSL path in ~/.bashrc:"
@@ -82,7 +82,7 @@ if [[ "$PLATFORM" == "wsl" ]]; then
 
     # Check if install targets land on Windows FS (even if repo is on Linux FS)
     if is_windows_fs "${HOME}/.codex"; then
-        echo -e "${YELLOW}[WARN]${NC} Install target (~/.codex) is on Windows filesystem"
+        printf '%b\n' "${YELLOW}[WARN]${NC} Install target (~/.codex) is on Windows filesystem"
         echo "  chmod +x will not work on installed scripts."
         echo "  Consider setting HOME to a WSL-native path."
         echo ""
