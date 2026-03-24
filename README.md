@@ -22,19 +22,28 @@
 
 ## Installation
 
-**Prerequisites:** bash, git, Node.js 18+. npm required for MCP server setup.
+**Prerequisites:** bash 4+, git, Node.js 18+. npm required for MCP server setup.
+
+> **macOS note:** macOS ships bash 3.2 (frozen at GPLv2 since 2007). Install modern bash first: `brew install bash`. The installer will detect the old version and tell you exactly how to fix it.
 
 ### macOS / Linux / WSL
 
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
-./install.sh
+bash install.sh      # use 'bash' explicitly — don't rely on ./install.sh
 ```
 
-The installer auto-detects your platform and offers to install missing dependencies.
+The installer:
+- Detects wrong shell (sh, zsh, dash) and tells you to use bash
+- Detects old bash (3.2) with platform-specific install instructions
+- Checks for missing commands (git, node) with remediation steps
+- Auto-detects your platform and offers to install missing dependencies
+- Auto-fixes Windows CRLF line endings if detected
 
-**Windows:** Run `wsl --install -d Ubuntu` first, then use the commands above.
+**Windows/WSL:** Run `wsl --install -d Ubuntu` first, then use the commands above from within WSL.
+
+**Linux containers (Docker/CI):** Works as root without sudo. The installer detects the environment automatically.
 
 ### Augment Agent (One-Liner: Ubuntu / Debian / WSL)
 
@@ -286,6 +295,10 @@ Utility scripts in `tools/`:
 
 | Problem | Fix |
 |---------|-----|
+| `bash 3.2 is too old` | macOS: `brew install bash`, then `/opt/homebrew/bin/bash install.sh` |
+| `This script requires bash` | You ran with sh or zsh. Use: `bash install.sh` |
+| `Missing required commands: git` | macOS: `xcode-select --install`. Linux: `sudo apt install git` |
+| `Missing required commands: node` | macOS: `brew install node`. Linux: `sudo apt install nodejs` |
 | Perplexity tools not found | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
