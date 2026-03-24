@@ -13,13 +13,28 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.5.1
+# VERSION: 2.5.2
 # ARCHITECTURE: This file is a thin orchestrator. Implementation lives in
 #               lib/install/*.sh modules, sourced in dependency order below.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.1"
+VERSION="2.5.2"
+
+# --- Bash version check ---
+# This script requires bash 4+ for associative arrays (declare -A).
+# macOS ships with bash 3.2 (Apple can't update past GPLv2).
+# Install modern bash: brew install bash
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
+    echo "[ERROR] bash ${BASH_VERSION} is too old (need bash 4+)." >&2
+    echo "" >&2
+    echo "  macOS ships bash 3.2 due to licensing. Fix:" >&2
+    echo "    brew install bash" >&2
+    echo "" >&2
+    echo "  Then re-run:  bash $0 $*" >&2
+    echo "  Or add /opt/homebrew/bin to PATH before /bin" >&2
+    exit 1
+fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -49,9 +64,21 @@ fi
 # If this script or its modules have Windows line endings, bash will fail with
 # cryptic errors like "syntax error near unexpected token `$'\r'". Fix them
 # before sourcing anything.
-if grep -q $'\r' "${BASH_SOURCE[0]}" 2>/dev/null; then
-    # Fix this script and all lib modules in-place
-    find "$SCRIPT_DIR" -name "*.sh" -exec sed -i 's/\r$//' {} + 2>/dev/null || true
+# Recursively check ALL .sh files in the repo — a CRLF module anywhere
+# (tools/, setup/, lib/) will break sourcing or execution.
+# Use grep -rl (not -lq — -q suppresses -l output, breaking the pipeline).
+if [ -n "$(find "$SCRIPT_DIR" -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null | head -1)" ]; then
+    # Cross-platform in-place CRLF strip: prefer perl, fall back to tr per-file
+    if command -v perl &>/dev/null; then
+        find "$SCRIPT_DIR" -name "*.sh" -exec perl -pi -e 's/\r$//' {} +
+    else
+        # tr fallback: preserve execute bits after rewrite
+        find "$SCRIPT_DIR" -name "*.sh" -print0 | while IFS= read -r -d '' f; do
+            tr -d '\r' < "$f" > "${f}.tmp"
+            [[ -x "$f" ]] && chmod +x "${f}.tmp"
+            mv "${f}.tmp" "$f"
+        done
+    fi
     echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
     echo "       Re-run: $0 $*"
     echo ""
@@ -77,8 +104,22 @@ source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter
 source "${INSTALL_LIB_DIR}/migrate.sh"       # post_install_migrations
 
 # Load .env if present (for optional integrations)
-# shellcheck disable=SC1091
-[[ -f "$SCRIPT_DIR/.env" ]] && source "$SCRIPT_DIR/.env"
+# Source in a subshell to prevent .env from mutating installer shell state
+# (e.g., set +e, PATH changes, IFS changes). Only extract needed variables.
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    _env_vars=$(_SPP_ENV_FILE="$SCRIPT_DIR/.env" bash -c '
+        set +u
+        source "$_SPP_ENV_FILE" 2>/dev/null || true
+        for v in PERPLEXITY_API_KEY WIKI_PLATFORM ISSUE_TRACKER_TYPE; do
+            val="${!v:-}"
+            [[ -n "$val" ]] && printf "%s=%s\n" "$v" "$val"
+        done
+    ' 2>/dev/null) || true
+    while IFS='=' read -r _key _val; do
+        [[ -n "$_key" ]] && export "$_key=$_val"
+    done <<< "$_env_vars"
+    unset _env_vars _key _val
+fi
 
 # --- Help ---
 show_help() {
@@ -345,19 +386,36 @@ check_prerequisites() {
         fail=$((fail + 1))
     fi
 
-    # Node.js
+    # Node.js (presence + version)
     if command -v node &>/dev/null; then
-        log_success "node: $(node -v)"
-        ok=$((ok + 1))
+        local node_ver
+        node_ver=$(node -v 2>/dev/null || echo "unknown")
+        local node_major
+        node_major=$(echo "$node_ver" | sed 's/^v//' | cut -d. -f1)
+        if [[ "$node_major" -ge 18 ]] 2>/dev/null; then
+            log_success "node: $node_ver (>= v18)"
+            ok=$((ok + 1))
+        else
+            log_warn "node: $node_ver (NEED v18+)"
+            fail=$((fail + 1))
+        fi
     else
         log_warn "node: NOT FOUND"
         fail=$((fail + 1))
     fi
 
-    # obra/superpowers
-    if check_superpowers; then
-        log_success "obra/superpowers: installed at $SUPERPOWERS_DIR"
-        ok=$((ok + 1))
+    # obra/superpowers (presence + git repo + skills/)
+    if [[ -d "$SUPERPOWERS_DIR" ]]; then
+        if ! _is_git_repo "$SUPERPOWERS_DIR"; then
+            log_warn "obra/superpowers: exists but is NOT a git repo (use --force to reinstall)"
+            fail=$((fail + 1))
+        elif [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
+            log_warn "obra/superpowers: git repo exists but skills/ directory is missing (use --force to reinstall)"
+            fail=$((fail + 1))
+        else
+            log_success "obra/superpowers: installed at $SUPERPOWERS_DIR (git repo)"
+            ok=$((ok + 1))
+        fi
     else
         log_warn "obra/superpowers: NOT INSTALLED (will be installed)"
     fi
@@ -427,6 +485,11 @@ main() {
         log_info "Force flag set, reinstalling superpowers..."
         rm -rf "${SUPERPOWERS_DIR:?}"
         install_superpowers
+    elif ! _is_git_repo "$SUPERPOWERS_DIR"; then
+        # Directory exists with skills/ but is not a git repo — cannot update
+        log_warn "obra/superpowers exists but is not a git repo: $SUPERPOWERS_DIR"
+        log_warn "Cannot update or verify version. Run with --force to reinstall."
+        error_exit "Unmanaged obra/superpowers installation detected"
     else
         log_success "obra/superpowers already installed"
         # Try to update — warn prominently if update fails

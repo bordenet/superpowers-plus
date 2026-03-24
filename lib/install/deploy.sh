@@ -83,14 +83,20 @@ register_source_repo() {
     create_dir "${HOME}/.codex"
     [[ -f "$env_file" ]] || touch "$env_file"
 
+    # Use single quotes to prevent shell expansion of special characters
+    # ($, ", \, spaces) when the .env file is later sourced.
+    local new_line="${var_name}='${source_path//\'/\'\\\'\'}'"
+
     if grep -q "^${var_name}=" "$env_file" 2>/dev/null; then
-        local escaped_path
-        escaped_path=$(printf '%s' "$source_path" | sed 's/[&/\\]/\\&/g')
-        sed -i.bak "s|^${var_name}=.*|${var_name}=\"${escaped_path}\"|" "$env_file"
-        rm -f "${env_file}.bak"
-    else
-        echo "${var_name}=\"${source_path}\"" >> "$env_file"
+        # Remove old line and append new (avoids sed delimiter/escaping issues)
+        grep -v "^${var_name}=" "$env_file" > "${env_file}.tmp" || true
+        mv "${env_file}.tmp" "$env_file"
     fi
+    # Ensure file ends with a newline before appending
+    if [[ -s "$env_file" ]] && [[ "$(tail -c 1 "$env_file" | wc -l)" -eq 0 ]]; then
+        echo "" >> "$env_file"
+    fi
+    echo "$new_line" >> "$env_file"
 
     log_verbose "Registered source repo: $var_name=$source_path"
 }
@@ -195,10 +201,11 @@ install_tools() {
             log_verbose "Tool already up to date: $basename"
         else
             cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
-            if [[ "$basename" == *.sh ]] || [[ "$basename" == "pre-commit" ]] || [[ "$basename" == "pre-push" ]]; then
-                chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
-            fi
             log_verbose "Installed tool: $basename"
+        fi
+        # Always ensure execute bits (repairs broken perms even if content unchanged)
+        if [[ "$basename" == *.sh ]] || [[ "$basename" == "pre-commit" ]] || [[ "$basename" == "pre-push" ]]; then
+            chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
         fi
         count=$((count + 1))
     done

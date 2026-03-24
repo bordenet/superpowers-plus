@@ -23,6 +23,33 @@ get_package_name() {
     esac
 }
 
+# Determine the correct privilege-escalation prefix for package installs.
+# Returns empty string if already root, "sudo" if available, or fails.
+# When no TTY is available (e.g., curl | bash in a container), uses sudo -n
+# to avoid hanging on a password prompt that can never be answered.
+# Note: --yes means "skip installer confirmation prompts" — sudo can still
+# prompt for a password because it reads from the controlling terminal, not stdin.
+_sudo_prefix() {
+    if [[ "$(id -u)" -eq 0 ]]; then
+        echo ""
+    elif ! command -v sudo &>/dev/null; then
+        log_error "Not running as root and 'sudo' is not available."
+        log_error "Run as root or install sudo first."
+        return 1
+    elif ! : < /dev/tty 2>/dev/null; then
+        # No usable controlling terminal (container, cron, detached) — sudo cannot prompt
+        if sudo -n true 2>/dev/null; then
+            echo "sudo -n"
+        else
+            log_error "No terminal available and sudo requires a password."
+            log_error "Run as root or configure passwordless sudo for this environment."
+            return 1
+        fi
+    else
+        echo "sudo"
+    fi
+}
+
 # Install a single dependency using the appropriate package manager
 install_dependency() {
     local cmd="$1"
@@ -40,21 +67,23 @@ install_dependency() {
             brew install "$pkg" || return 1
             ;;
         linux|wsl)
+            local SUDO
+            SUDO=$(_sudo_prefix) || return 1
             case "$LINUX_DISTRO" in
                 ubuntu|debian|pop|linuxmint)
-                    sudo apt-get update -qq && sudo apt-get install -y "$pkg" || return 1
+                    $SUDO apt-get update -qq && $SUDO apt-get install -y "$pkg" || return 1
                     ;;
                 fedora)
-                    sudo dnf install -y "$pkg" || return 1
+                    $SUDO dnf install -y "$pkg" || return 1
                     ;;
                 centos|rhel|rocky|almalinux)
-                    sudo yum install -y "$pkg" || return 1
+                    $SUDO yum install -y "$pkg" || return 1
                     ;;
                 arch|manjaro)
-                    sudo pacman -S --noconfirm "$pkg" || return 1
+                    $SUDO pacman -S --noconfirm "$pkg" || return 1
                     ;;
                 opensuse*|suse*)
-                    sudo zypper install -y "$pkg" || return 1
+                    $SUDO zypper install -y "$pkg" || return 1
                     ;;
                 *)
                     log_error "Unsupported Linux distribution: $LINUX_DISTRO"
@@ -93,6 +122,8 @@ check_dependencies() {
 
     if [[ ${#missing[@]} -eq 0 ]]; then
         log_verbose "All dependencies present"
+        # Still verify Node.js version meets minimum requirement
+        check_node_version
         return 0
     fi
 
@@ -135,8 +166,9 @@ check_node_version() {
 
     node_version_full=$(node -v 2>/dev/null || echo "")
     if [[ -z "$node_version_full" ]]; then
-        # node command not found after install — install_dependency should have caught this
-        return 0
+        log_error "node command not found (even after dependency installation)"
+        log_error "Ensure 'node' is on your PATH, or install Node.js v${min_version}+ manually"
+        return 1
     fi
 
     # Extract major version: v20.11.0 → 20
