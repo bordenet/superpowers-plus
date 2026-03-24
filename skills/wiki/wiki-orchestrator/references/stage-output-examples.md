@@ -72,6 +72,6 @@ Ready to publish with warnings:
 Proceed? [Y/n]
 ```
 
-Then invoke `wiki-editing`:
+Then invoke `wiki-orchestrator`:
 - Use adapter's `update_page` for existing pages
 - Use adapter's `create_page` for new pages

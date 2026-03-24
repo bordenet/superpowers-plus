@@ -1,6 +1,6 @@
 # PRD: Superpowers Context Optimization
 
-**Status:** Active
+**Status:** Draft (partially implemented — not all sections reflect current state)
 **Created:** 2026-03-20
 **Author:** Matt Bordenet + Augment Agent
 **TODO Tag:** `#plan-context-optimization`

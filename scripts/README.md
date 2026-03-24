@@ -44,7 +44,7 @@ node scripts/slop-metrics.js
 Track API usage:
 
 ```bash
-./scripts/perplexity-stats.sh
+bash scripts/perplexity-stats.sh
 ```
 
 ## Categories

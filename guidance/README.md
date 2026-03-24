@@ -19,16 +19,12 @@ This directory contains **templates and tools** for generating AI guidance files
 ```bash
 # Using golden-agents (recommended)
 ~/.golden-agents/generate-agents.sh --language=go --type=cli-tools --path=./my-project
-
-# Using local seed.sh
-./seed.sh --language=shell --type=genesis-tools --path=./my-project
 ```
 
 ## Other Files
 
 | File | Purpose |
 |------|---------|
-| `seed.sh` | Generator script (local copy) |
 | `migrate-agents.sh` | Migrate existing AGENTS.md to Golden Agents format |
 | `TEMPLATE-full.md` | Full template with placeholders |
 | `TEMPLATE-minimal.md` | Minimal template (~100 lines) |
