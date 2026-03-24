@@ -1,5 +1,8 @@
 # Skill Effectiveness Feedback Loop — Implementation Plan
 
+> ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design plan, not documentation of existing functionality. No code has been written for this feature yet.
+
+
 > **For agentic workers:** REQUIRED: Use superpowers:executing-plans to implement this plan.
 
 **Goal:** Add outcome tracking and learning to the superpowers skill system.

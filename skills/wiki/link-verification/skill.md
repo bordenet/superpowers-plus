@@ -216,8 +216,8 @@ When adding a "Code References" section to wiki pages:
 
 ## Related Skills
 
-- **wiki-authoring**: Content structure and formatting
-- **wiki-editing**: Download-before-edit workflow
+- **wiki-orchestrator**: Content structure and formatting
+- **wiki-orchestrator**: Download-before-edit workflow
 - **wiki-verify**: Post-hoc verification of wiki claims
 - **verification-before-completion**: General verification skill
 

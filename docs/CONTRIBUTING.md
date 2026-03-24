@@ -100,7 +100,7 @@ Do NOT invoke when:
 **Use superpowers (with triggers) when:**
 - The skill applies to a common workflow pattern (e.g., "fix this bug")
 - Auto-firing prevents mistakes (e.g., pre-commit checks)
-- The skill is part of a dependency chain (e.g., wiki-editing triggers link-verification)
+- The skill is part of a dependency chain (e.g., wiki-orchestrator triggers link-verification)
 
 **Use explicit skills (no triggers) when:**
 - The skill is a meta-tool (help, observability, metrics)
@@ -279,4 +279,4 @@ Users can verify their installed version:
 
 ### CI Version Consistency Check
 
-CI will warn (not fail) if versions are inconsistent across files. The `version-sync.yml` workflow automatically fixes this on merge to main.
+CI checks version consistency across `install.sh`, `plugin.json`, and `marketplace.json`. If versions are inconsistent, the build will fail. Update all three files when bumping versions.
