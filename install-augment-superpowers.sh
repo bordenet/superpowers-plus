@@ -31,11 +31,11 @@ else
 fi
 
 # --- Logging ---
-info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error()   { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
-verbose() { [[ "$VERBOSE" == true ]] && echo -e "${BLUE}[DEBUG]${NC} $1" || true; }
+info()    { printf '%b\n' "${BLUE}[INFO]${NC} $1"; }
+success() { printf '%b\n' "${GREEN}[OK]${NC} $1"; }
+warn()    { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+error()   { printf '%b\n' "${RED}[ERROR]${NC} $1" >&2; exit 1; }
+verbose() { [[ "$VERBOSE" == true ]] && printf '%b\n' "${BLUE}[DEBUG]${NC} $1" || true; }
 
 # --- Help ---
 show_help() {

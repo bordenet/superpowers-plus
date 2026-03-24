@@ -238,7 +238,7 @@ while [[ $# -gt 0 ]]; do
         --upgrade) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
-            echo -e "${RED}Error: Unknown option $1${NC}" >&2
+            printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
             echo "Use -h or --help for usage information" >&2
             exit 1
             ;;
@@ -346,17 +346,17 @@ print_summary() {
     echo ""
     echo "Optional integrations:"
     if [[ -n "${PERPLEXITY_API_KEY:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Perplexity research: configured"
+        printf '%b\n' "  ${GREEN}✓${NC} Perplexity research: configured"
     else
         echo "  • Perplexity research: ./setup/mcp-perplexity.sh"
     fi
     if [[ -n "${WIKI_PLATFORM:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Wiki: ${WIKI_PLATFORM}"
+        printf '%b\n' "  ${GREEN}✓${NC} Wiki: ${WIKI_PLATFORM}"
     else
         echo "  • Wiki: set WIKI_PLATFORM in .env (see skills/wiki/_adapters/)"
     fi
     if [[ -n "${ISSUE_TRACKER_TYPE:-}" ]]; then
-        echo -e "  ${GREEN}✓${NC} Issue tracking: ${ISSUE_TRACKER_TYPE}"
+        printf '%b\n' "  ${GREEN}✓${NC} Issue tracking: ${ISSUE_TRACKER_TYPE}"
     else
         echo "  • Issue tracking: set ISSUE_TRACKER_TYPE in .env"
     fi

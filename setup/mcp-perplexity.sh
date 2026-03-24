@@ -43,23 +43,23 @@ else
 fi
 
 # Logging
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_info() { printf '%b\n' "${BLUE}[INFO]${NC} $1"; }
+log_success() { printf '%b\n' "${GREEN}[OK]${NC} $1"; }
+log_warn() { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+log_error() { printf '%b\n' "${RED}[ERROR]${NC} $1"; }
 
 # Configuration
 CLAUDE_DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 MCP_PACKAGE="@perplexity-ai/mcp-server"
 
 echo ""
-echo -e "${BOLD}Perplexity MCP Server Setup${NC}"
+printf '%b\n' "${BOLD}Perplexity MCP Server Setup${NC}"
 echo "================================"
 echo ""
 
 # Get API key
 if [[ -z "${PERPLEXITY_API_KEY:-}" ]]; then
-    echo -e "${YELLOW}Get your API key from:${NC} https://www.perplexity.ai/settings/api"
+    printf '%b\n' "${YELLOW}Get your API key from:${NC} https://www.perplexity.ai/settings/api"
     echo ""
     read -rsp "Enter your Perplexity API key: " PERPLEXITY_API_KEY
     echo ""
@@ -171,7 +171,7 @@ configure_claude_code() {
 # --- Augment Code ---
 print_augment_instructions() {
     echo ""
-    echo -e "${BOLD}Augment Code Configuration${NC}"
+    printf '%b\n' "${BOLD}Augment Code Configuration${NC}"
     echo "----------------------------"
     echo ""
     echo "To configure Perplexity MCP for Augment Code:"
@@ -180,7 +180,7 @@ print_augment_instructions() {
     echo "2. Search for 'Augment: Edit MCP Server Configuration'"
     echo "3. Add this configuration:"
     echo ""
-    echo -e "${BLUE}{"
+    printf '%b\n' "${BLUE}{"
     echo '  "perplexity": {'
     echo '    "command": "npx",'
     echo '    "args": ["-y", "@perplexity-ai/mcp-server"],'
@@ -188,7 +188,7 @@ print_augment_instructions() {
     echo "      \"PERPLEXITY_API_KEY\": \"<your-api-key>\""
     echo '    }'
     echo '  }'
-    echo -e "}${NC}"
+    printf '%b\n' "}${NC}"
     echo ""
 }
 
@@ -205,10 +205,10 @@ main() {
 
     # Summary
     echo ""
-    echo -e "${BOLD}Summary${NC}"
+    printf '%b\n' "${BOLD}Summary${NC}"
     echo "-------"
     if [[ ${#configured[@]} -gt 0 ]]; then
-        echo -e "${GREEN}Configured:${NC}"
+        printf '%b\n' "${GREEN}Configured:${NC}"
         for item in "${configured[@]}"; do
             echo "  ✓ $item"
         done
@@ -218,7 +218,7 @@ main() {
     echo ""
     echo "Note: You may need to restart your AI assistant for changes to take effect."
     echo ""
-    echo -e "${YELLOW}Security reminder:${NC} Your API key has been stored in local config files."
+    printf '%b\n' "${YELLOW}Security reminder:${NC} Your API key has been stored in local config files."
     echo "Do not commit these files to version control."
     echo ""
 }
