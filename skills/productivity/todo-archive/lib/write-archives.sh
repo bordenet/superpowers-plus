@@ -75,7 +75,10 @@ append_unique_task_block() {
 
 for month in $(echo "${!MONTH_TASKS[@]}" | tr ' ' '\n' | sort -r); do
   ARCHIVE_FILE="$ARCHIVE_DIR/${month}.md"
-  MONTH_NAME=$(date -j -f "%Y-%m" "$month" "+%B %Y" 2>/dev/null || echo "$month")
+  # Cross-platform month name: macOS uses date -j, Linux uses date -d
+  MONTH_NAME=$(date -j -f "%Y-%m" "$month" "+%B %Y" 2>/dev/null \
+    || date -d "${month}-01" "+%B %Y" 2>/dev/null \
+    || echo "$month")
   COUNT_WRITTEN=0
   APPEND_BLOCKS=""
   APPEND_TASK_IDS="|"

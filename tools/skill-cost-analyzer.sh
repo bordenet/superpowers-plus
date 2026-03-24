@@ -168,7 +168,7 @@ if [[ "$OUTPUT_MD" == "--markdown" ]]; then
   } > "$outfile"
   echo "Written to $outfile"
 else
-  echo -e "$header"
+  printf '%b\n' "$header"
   echo "------------------------------------------------------------------------"
   echo "$sorted"
 fi

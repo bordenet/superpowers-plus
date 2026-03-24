@@ -41,10 +41,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-log_pass() { echo -e "${GREEN}[PASS]${NC} $1"; }
-log_fail() { echo -e "${RED}[FAIL]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_pass() { printf '%b\n' "${GREEN}[PASS]${NC} $1"; }
+log_fail() { printf '%b\n' "${RED}[FAIL]${NC} $1"; }
+log_warn() { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+log_info() { printf '%b\n' "${BLUE}[INFO]${NC} $1"; }
 
 errors=0
 warnings=0

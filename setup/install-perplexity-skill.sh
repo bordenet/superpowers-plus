@@ -49,9 +49,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_info() { printf '%b\n' "${GREEN}[INFO]${NC} $1"; }
+log_warn() { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+log_error() { printf '%b\n' "${RED}[ERROR]${NC} $1"; }
 
 verify_only=false
 if [[ "${1:-}" == "--verify-only" ]]; then
