@@ -9,6 +9,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Installer cross-platform hardening** — 14 bug classes fixed across 6 installer files (#234)
+  - CRLF self-heal: recursive scan of all `.sh` files, `perl` primary + `tr` fallback with permission preservation
+  - `.env` subshell isolation: prevents `.env` from mutating installer shell state (`set -e`, `PATH`, `IFS`)
+  - `_sudo_prefix()`: handles root (no sudo needed), sudo with TTY, `sudo -n` headless, no-sudo-available
+  - Git worktree support: `-e .git` instead of `-d .git` throughout; `_is_git_repo()` validates HEAD
+  - `git reset --hard` guarded: requires `--force` flag to prevent silent data loss
+  - `sed -i` portability: cross-platform BSD/GNU detection + metacharacter escaping
+  - Node version check: enforces v18+ not just presence
+  - Trailing newline ensured before appending to `.env` files
+  - Target matrix: stock macOS (Bash 3.2), Linux containers (root/no-sudo), WSL-Ubuntu, headless CI, git worktrees
+
 ### Added
 - **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
   - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
