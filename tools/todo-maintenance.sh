@@ -7,6 +7,12 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENGINE="$SCRIPT_DIR/todo-maintenance.py"
 
