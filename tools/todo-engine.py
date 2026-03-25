@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """todo-engine.py — Cross-platform TODO.md CRUD engine.
 
-Handles add, complete, move, list, next-id, defer operations atomically.
-Built-in preflight (path resolution), advisory locking, backup, ID allocation,
-section targeting, and safe multiline content handling.
+Handles add, complete, move, list, next-id, defer, claim, unclaim, reap
+operations atomically. Built-in preflight (path resolution), advisory locking,
+backup, ID allocation, section targeting, safe multiline content handling, and
+multi-agent claim coordination with TTL-based expiry.
 
 Usage (typically called via todo-crud.sh wrapper):
     python3 todo-engine.py add --priority P3 --description "Task" --tags "#foo"
@@ -12,6 +13,9 @@ Usage (typically called via todo-crud.sh wrapper):
     python3 todo-engine.py list [--priority P1] [--tag "#plan-foo"] [--all]
     python3 todo-engine.py next-id
     python3 todo-engine.py defer --id 20260322-01 --reason "Blocked"
+    python3 todo-engine.py claim --id 20260322-01 --agent myagent --ttl 30
+    python3 todo-engine.py unclaim --id 20260322-01
+    python3 todo-engine.py reap
 """
 
 import argparse
@@ -40,6 +44,8 @@ RE_HISTORY = re.compile(r"^# HISTORY\b", re.MULTILINE)
 RE_DEFERRED = re.compile(r"^# DEFERRED\b", re.MULTILINE)
 RE_TASK = re.compile(r"^- \[[ x/]\] \[(\d{8}-\d{2,})\]", re.MULTILINE)
 RE_SECTION = re.compile(r"^(?:##? |---)", re.MULTILINE)
+RE_CLAIM = re.compile(r"^  - Claimed: (\S+) by (\S+) ttl=(\d+)$", re.MULTILINE)
+DEFAULT_CLAIM_TTL = 30  # minutes
 
 PRIORITY_MARKERS = {"P1": RE_P1, "P2": RE_P2, "P3": RE_P3}
 
@@ -489,6 +495,169 @@ def cmd_defer(args, todo_path: str, json_mode: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Multi-Agent Claim Operations
+# ---------------------------------------------------------------------------
+
+def _parse_claim_line(line: str):
+    """Parse a Claimed: metadata line. Returns (timestamp_str, agent, ttl_min) or None."""
+    m = RE_CLAIM.match(line)
+    if m:
+        return m.group(1), m.group(2), int(m.group(3))
+    return None
+
+
+def _find_claim_in_block(content: str, task_id: str):
+    """Find claim metadata within a task block. Returns (claim_line_start, claim_line_end, ts, agent, ttl) or None."""
+    loc = find_task(content, task_id)
+    if not loc:
+        return None
+    start, end = loc
+    block = content[start:end]
+    for line in block.split("\n"):
+        parsed = _parse_claim_line(line)
+        if parsed:
+            ts_str, agent, ttl = parsed
+            # Find the line position in the full content
+            line_start = content.find(line, start)
+            line_end = line_start + len(line)
+            # Include the trailing newline if present
+            if line_end < len(content) and content[line_end] == "\n":
+                line_end += 1
+            return line_start, line_end, ts_str, agent, ttl
+    return None
+
+
+def _is_claim_expired(ts_str: str, ttl_min: int) -> bool:
+    """Check if a claim timestamp + TTL has expired."""
+    try:
+        claimed_at = datetime.datetime.fromisoformat(ts_str)
+    except ValueError:
+        return True  # unparseable = expired
+    now = datetime.datetime.now()
+    return now > claimed_at + datetime.timedelta(minutes=ttl_min)
+
+
+def _reap_expired(content: str) -> tuple:
+    """Reap all expired claims. Returns (new_content, reaped_ids)."""
+    reaped = []
+    # Find all claimed tasks (in-progress with Claimed: metadata)
+    for m in RE_TASK.finditer(content):
+        task_id = m.group(1)
+        line_start = m.start()
+        line = content[line_start:content.find("\n", line_start)]
+        if "[/]" not in line[:20]:
+            continue
+        claim = _find_claim_in_block(content, task_id)
+        if not claim:
+            continue
+        _, _, ts_str, _, ttl = claim
+        if _is_claim_expired(ts_str, ttl):
+            reaped.append(task_id)
+    # Process reaped tasks (re-read content each time since indices shift)
+    for tid in reaped:
+        claim = _find_claim_in_block(content, tid)
+        if claim:
+            cl_start, cl_end, _, _, _ = claim
+            content = content[:cl_start] + content[cl_end:]
+        # Revert [/] to [ ]
+        loc = find_task(content, tid)
+        if loc:
+            start, end = loc
+            block = content[start:end]
+            content = content[:start] + block.replace("[/]", "[ ]", 1) + content[end:]
+    return content, reaped
+
+
+def cmd_claim(args, todo_path: str, json_mode: bool) -> None:
+    """Claim a task for this agent with a TTL."""
+    content = read_file(todo_path)
+
+    # Auto-reap expired claims first
+    content, _ = _reap_expired(content)
+
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} not found in TODO.md")
+
+    start, end = loc
+    block = content[start:end]
+
+    # Cannot claim completed tasks
+    if "[x]" in block[:20]:
+        _error(f"Task {args.id} is already completed")
+
+    agent = args.agent
+    ttl = args.ttl
+
+    # Check existing claim
+    existing = _find_claim_in_block(content, args.id)
+    if existing:
+        _, _, _, existing_agent, existing_ttl = existing
+        if existing_agent == agent:
+            # Same agent: refresh the timestamp
+            cl_start, cl_end = existing[0], existing[1]
+            content = content[:cl_start] + content[cl_end:]
+        else:
+            # Different agent, check if expired (already reaped above, so not expired)
+            _error(f"Task {args.id} is claimed by {existing_agent} (not expired)")
+
+    # Re-find task after potential claim line removal
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} lost during claim processing")
+    start, end = loc
+    block = content[start:end]
+
+    # Change [ ] to [/]
+    block = block.replace("[ ]", "[/]", 1)
+
+    # Add claim metadata
+    now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    claim_line = f"  - Claimed: {now} by {agent} ttl={ttl}\n"
+    # Insert claim line after the last metadata line
+    block_rstrip = block.rstrip("\n")
+    block = block_rstrip + "\n" + claim_line
+
+    content = content[:start] + block + content[end:]
+    write_file(todo_path, content)
+    _output({"status": "claimed", "id": args.id, "agent": agent,
+             "ttl": ttl}, json_mode)
+
+
+def cmd_unclaim(args, todo_path: str, json_mode: bool) -> None:
+    """Release a claim on a task."""
+    content = read_file(todo_path)
+    loc = find_task(content, args.id)
+    if not loc:
+        _error(f"Task {args.id} not found in TODO.md")
+
+    # Remove claim metadata line
+    claim = _find_claim_in_block(content, args.id)
+    if claim:
+        cl_start, cl_end, _, _, _ = claim
+        content = content[:cl_start] + content[cl_end:]
+
+    # Revert [/] to [ ]
+    loc = find_task(content, args.id)
+    if loc:
+        start, end = loc
+        block = content[start:end]
+        content = content[:start] + block.replace("[/]", "[ ]", 1) + content[end:]
+
+    write_file(todo_path, content)
+    _output({"status": "unclaimed", "id": args.id}, json_mode)
+
+
+def cmd_reap(args, todo_path: str, json_mode: bool) -> None:
+    """Reap all expired claims, reverting tasks to open."""
+    content = read_file(todo_path)
+    content, reaped = _reap_expired(content)
+    write_file(todo_path, content)
+    _output({"status": "reaped", "reaped": len(reaped),
+             "reaped_ids": reaped}, json_mode)
+
+
+# ---------------------------------------------------------------------------
 # Main — Argument Parsing
 # ---------------------------------------------------------------------------
 
@@ -531,8 +700,32 @@ def main():
     p_defer.add_argument("--id", required=True, help="Task ID")
     p_defer.add_argument("--reason", "-r", default="", help="Reason for deferral")
 
+    # claim
+    p_claim = sub.add_parser("claim", help="Claim a task for this agent")
+    p_claim.add_argument("--id", required=True, help="Task ID (YYYYMMDD-NN)")
+    p_claim.add_argument("--agent", "-a", default=None,
+                         help="Agent identifier (default: AGENT_ID env or hostname:ppid)")
+    p_claim.add_argument("--ttl", type=int, default=DEFAULT_CLAIM_TTL,
+                         help=f"Claim TTL in minutes (default: {DEFAULT_CLAIM_TTL})")
+
+    # unclaim
+    p_unclaim = sub.add_parser("unclaim", help="Release claim on a task")
+    p_unclaim.add_argument("--id", required=True, help="Task ID")
+
+    # reap
+    sub.add_parser("reap", help="Reap all expired claims")
+
     args = parser.parse_args()
     json_mode = args.json
+
+    # --- Resolve agent identity for claim ---
+    if hasattr(args, "agent") and args.agent is None:
+        agent_env = os.environ.get("AGENT_ID", "").strip()
+        if agent_env:
+            args.agent = agent_env
+        else:
+            hostname = os.uname().nodename.split(".")[0]
+            args.agent = f"{hostname}:{os.getppid()}"
 
     # --- Resolve path ---
     todo_path = resolve_todo_path()
@@ -556,6 +749,9 @@ def main():
             "complete": cmd_complete,
             "move": cmd_move,
             "defer": cmd_defer,
+            "claim": cmd_claim,
+            "unclaim": cmd_unclaim,
+            "reap": cmd_reap,
         }
         dispatch[args.command](args, todo_path, json_mode)
     finally:
