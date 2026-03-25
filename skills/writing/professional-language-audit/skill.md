@@ -6,7 +6,7 @@ description: "HARD GATE — Scans content for profanity and unprofessional langu
 summary: "Use when: publishing to wiki or committing user-facing docs. Hard gate for profanity."
 coordination:
   group: commit-gates
-  order: 3
+  order: 4
   requires: ["enforce-style-guide"]
   enables: ["public-repo-ip-audit"]
   escalates_to: []
@@ -197,11 +197,12 @@ Multiple skills fire on "before commit". Execute in this order:
 | Order | Skill | Purpose | Scope |
 |-------|-------|---------|-------|
 | 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 2 | `progressive-code-review-gate` | Harsh adversarial code review loop | All code commits |
+| 3 | `enforce-style-guide` | Code style compliance | All commits |
+| 4 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
+**Rationale:** Technical checks first (fast feedback), then adversarial review, then style, then content gates.
 
 
 ## Common Failure Modes
