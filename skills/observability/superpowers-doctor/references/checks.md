@@ -21,7 +21,7 @@ All 22 checks are implemented in `tools/doctor-checks.sh`.
 | 5 | 🔴 CRITICAL | Broken refs | skill.md cites missing references/ or modules/ | ❌ | — |
 | 6 | 🟠 ERROR | Oversized | >250 lines — truncated in context | ❌ | — |
 | 7 | 🟠 ERROR | Missing description | Router can't discover skill | ❌ | — |
-| 8 | 🟠 ERROR | Orphaned install | Installed but absent from all source repos | ✅ | moderate |
+| 8 | 🟡 WARNING | Orphaned install | Installed but absent from all source repos | ✅ | `--purge-orphans` only |
 | 9 | 🔴 CRITICAL | Content drift | Source ≠ installed (corruption if >70% changed) | ✅ | safe |
 | 10 | 🟡 WARNING | Missing triggers | No triggers AND not in EXPLICIT_SKILLS | ❌ | — |
 | 11 | 🟡 WARNING | Trigger overlap | Two+ skills share identical trigger | ❌ | — |
@@ -44,7 +44,8 @@ All 22 checks are implemented in `tools/doctor-checks.sh`.
 | Tier | Flag | Checks Fixed | Risk |
 |------|------|-------------|------|
 | Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19 | Non-destructive (sync, normalize, pull) |
-| Moderate | `--fix` | All of safe + 8, 12, 14, 20 | Destructive (removal, stash, clearing) |
+| Moderate | `--fix` | All of safe + 12, 14, 20 | Destructive (stash, clearing) |
+| Purge | `--fix --purge-orphans` | All of moderate + 8 | Removes orphaned installs (explicit opt-in) |
 
 ## Severity Guide
 
