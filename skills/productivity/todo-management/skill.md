@@ -59,11 +59,20 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 # Defer a task
 ~/.codex/superpowers-plus/tools/todo-crud.sh defer --id 20260322-01 --reason "Blocked on X"
 
+# Multi-agent: claim a task (marks [/], adds TTL metadata)
+~/.codex/superpowers-plus/tools/todo-crud.sh claim --id 20260322-01 --ttl 30
+
+# Multi-agent: release a claim
+~/.codex/superpowers-plus/tools/todo-crud.sh unclaim --id 20260322-01
+
+# Multi-agent: reap all expired claims (reverts to [ ])
+~/.codex/superpowers-plus/tools/todo-crud.sh reap
+
 # JSON output (for machine parsing)
 ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
-**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization. Cross-platform (macOS + Linux).
+**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization, expired claim reaping. Cross-platform (macOS + Linux).
 
 **If TODO.md doesn't exist:** Run `todo-preflight.sh --create-if-missing` first to create from template.
 
@@ -90,6 +99,26 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 | `todo-lock.sh` | Debug lock issues (`status`, `steal` commands) |
 
 **Anti-pattern:** Do NOT improvise shell/sed/python to write TODO.md. Use `todo-crud.sh`.
+
+---
+
+## Multi-Agent Coordination
+
+When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **claim/unclaim/reap** to prevent duplicate work:
+
+1. **Before starting work:** `claim --id <ID>` — marks `[/]` with TTL metadata
+2. **On completion:** `complete --id <ID>` — moves to HISTORY (claim auto-removed)
+3. **On abandonment:** `unclaim --id <ID>` — reverts to `[ ]` for another agent
+4. **Periodic cleanup:** `reap` — finds expired claims and reverts them
+
+**TTL (default 30 min):** If an agent claims a task and dies/disconnects, the claim expires after TTL minutes. Another agent running `claim` or `reap` will auto-reap it.
+
+**Agent identity:** Set `AGENT_ID` env var for readable names. Falls back to `hostname:ppid`.
+
+**Claim metadata** (single line in task block):
+```
+  - Claimed: 2026-03-25T14:30:00 by augment-session-1 ttl=30
+```
 
 ---
 
