@@ -83,6 +83,8 @@ if [[ "$FILE_EXISTS" == "false" && "$CREATE_IF_MISSING" == "true" ]]; then
 
 # METRICS
 TEMPLATE
+  # Protect the new file — only todo-engine.py can write to it
+  chmod 0444 "$TODO_PATH"
   FILE_EXISTS=true
   CREATED=true
   FILE_SIZE=$(wc -c < "$TODO_PATH" 2>/dev/null | tr -d ' ')
