@@ -170,6 +170,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | fallback-planning | Machine-agnostic contingency TODOs |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
+| | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
 | | skill-authoring | Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
