@@ -52,6 +52,12 @@ coordination:
 - **Code blocks:** Always specify language.
 - **Table cells:** No `[ ]` checkboxes (escaped to `\[`), no `&nbsp;` (rendered as literal text). Use `Yes/No` or `✓/✗`.
 - **Heading hierarchy:** H1 once (title only), then H2/H3. Max depth H3 for readability.
+- **Table of Contents:** The 4-heading threshold is a **global orchestrator rule**, not adapter-specific. If the page has **4+ body H2/H3 headings** (excluding headings inside fenced code blocks):
+  - `toc_behavior=auto`: Do not add manual TOC markup. The platform renders a TOC automatically.
+  - `toc_behavior=manual`: Insert the adapter's `toc_syntax` markup. Placement: after the intro paragraph and before the first H2. If the page has no intro paragraph (starts directly with H2), place the TOC markup on the first line before the first H2.
+  - `toc_behavior=unsupported`: Do not insert any TOC markup. The platform has no TOC support.
+  - **Skip if TOC already exists:** Do not add a TOC if the page already contains the adapter's `toc_syntax` markup, or a heading matching `Contents` or `Table of Contents` (case-insensitive).
+  - Pages with ≤3 H2/H3 headings do not need a TOC.
 
 ---
 
