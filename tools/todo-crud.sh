@@ -36,6 +36,8 @@ show_help() {
 Usage: todo-crud.sh [--json] <command> [options]
 
 Commands:
+  cat        Print TODO.md contents (resolved path — use this to READ)
+  path       Print resolved TODO.md path
   add        Add a new task
   complete   Mark a task as done (moves to HISTORY)
   move       Move a task to a different priority
