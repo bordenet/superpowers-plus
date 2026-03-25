@@ -29,15 +29,17 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 |------|----------|
 | Default (no flags) | Report-only — detect and display all findings |
 | `--fix-safe` | Fix non-destructive issues only (sync drift, CRLF, BOM, name mismatch, stale checkout) |
-| `--fix` | Detect + auto-fix all issues including destructive (orphan removal, junk cleanup) |
-| `--fix --yes` | Auto-fix all without confirmation prompt |
+| `--fix` | Detect + auto-fix all issues including destructive (junk cleanup) — excludes orphan removal |
+| `--fix --yes` | Auto-fix all without confirmation prompt — excludes orphan removal |
+| `--fix --purge-orphans` | Also remove orphaned installs (skills not in any source repo) |
 | `--summary-only` | One-line pass/fail (used by post-install hook) |
 
 **10 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18, 19, 20). The remaining 12 require human judgment.
 
 **Graduated intervention:**
 - `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout pull) — non-destructive
-- `--fix` adds: 8 (orphan removal), 12 (deprecated triggers), 14 (junk removal), 20 (dirty checkout stash+clean) — destructive
+- `--fix` adds: 12 (deprecated triggers), 14 (junk removal), 20 (dirty checkout stash+clean) — destructive
+- `--purge-orphans` adds: 8 (orphan removal) — requires explicit opt-in because locally-created skills are not necessarily garbage
 
 All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` before modifying anything. Backups are verified for completeness before any fix is applied. <!-- doctor-ignore -->
 
