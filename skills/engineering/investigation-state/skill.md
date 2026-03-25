@@ -58,14 +58,36 @@ States: `active` → `paused` / `resolved` / `abandoned`
 
 ---
 
+## Tooling
+
+**Use `investigation-crud.sh` for ALL investigation operations.** It handles directory creation, atomic writes, UUID generation, and state validation automatically.
+
+```bash
+# Core operations
+investigation-crud.sh create --title "Bug title" [--observed OBS] [--expected EXP] [--reproduction REP]
+investigation-crud.sh list [--status active] [--stale]
+investigation-crud.sh show --id UUID
+investigation-crud.sh export --id UUID
+
+# Hypothesis tracking
+investigation-crud.sh add-hypothesis --id UUID --text "Hypothesis text"
+investigation-crud.sh add-evidence --id UUID --hypothesis N --source SRC --finding TEXT
+investigation-crud.sh set-verdict --id UUID --hypothesis N --verdict confirmed|rejected|inconclusive [--reason TEXT]
+
+# Lifecycle
+investigation-crud.sh add-eliminated --id UUID --approach "What was tried" --reason "Why it failed"
+investigation-crud.sh set-status --id UUID --status paused|resolved|abandoned [--resolution-type fix-needed] [--summary TEXT]
+investigation-crud.sh update --id UUID [--next-steps "step1|step2"] [--current-theory N] [--add-ticket TST-123]
+```
+
+**Anti-pattern:** Do NOT write investigation JSON manually with heredocs, jq, or inline Python. Use `investigation-crud.sh`.
+
 ## Starting a New Investigation
 
-1. `mkdir -p ~/.superpowers/investigations`
-2. `INVESTIGATION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')`
-3. Capture symptoms: observed behavior, expected behavior, reproduction steps
-4. Write initial JSON via atomic write (see Persistence below)
-5. `[ -f "$HOME/.superpowers/investigations/.gitignore" ] || echo '*.json' > "$HOME/.superpowers/investigations/.gitignore"`
-6. Form first hypothesis and begin evidence gathering
+1. `investigation-crud.sh create --title "Bug title" --observed "..." --expected "..." --reproduction "..."`
+2. Note the returned `id` and `short_id`
+3. Form first hypothesis: `investigation-crud.sh add-hypothesis --id UUID --text "..."`
+4. Begin evidence gathering
 
 ---
 
@@ -73,8 +95,10 @@ States: `active` → `paused` / `resolved` / `abandoned`
 
 Each hypothesis: `{id, text, evidence: [{source, finding, timestamp}], verdict: null|confirmed|rejected|inconclusive, verdict_reason}`
 
-1. State hypothesis → gather evidence → render verdict → update JSON (atomic write)
-2. If > 10 hypotheses: prompt for consolidation (likely scope creep)
+1. `investigation-crud.sh add-hypothesis --id UUID --text "..."` → gather evidence
+2. `investigation-crud.sh add-evidence --id UUID --hypothesis N --source SRC --finding TEXT`
+3. `investigation-crud.sh set-verdict --id UUID --hypothesis N --verdict confirmed --reason "..."`
+4. If > 10 hypotheses: prompt for consolidation (likely scope creep)
 
 Evidence sources: freeform strings (`mssql:staging-db`, `ado:MyProject`, `linear`, `local:grep`, etc.)
 
@@ -84,31 +108,21 @@ Evidence sources: freeform strings (`mssql:staging-db`, `ado:MyProject`, `linear
 
 Track approaches that were tried and failed (distinct from hypotheses):
 
-```json
-{ "approach": "Restarted the API service", "reason": "Data still stale after restart", "timestamp": "2026-03-23T14:40:00Z" }
+```bash
+investigation-crud.sh add-eliminated --id UUID --approach "Restarted the API service" --reason "Data still stale after restart"
 ```
 
 This prevents future agents from retrying failed approaches.
 
 ---
 
-## Persistence: Atomic JSON Writes
+## Persistence
 
-Use `python3 -c "import json..."` for all writes. **Never use heredocs.** Write to `.tmp.json` first, then `mv` to final `.json`:
-
-```bash
-python3 -c "
-import json, sys
-data = json.loads(sys.argv[1])
-with open(sys.argv[2], 'w') as f:
-    json.dump(data, f, indent=2)
-" '<JSON_STRING>' "$HOME/.superpowers/investigations/${INVESTIGATION_ID}.tmp.json"
-
-mv "$HOME/.superpowers/investigations/${INVESTIGATION_ID}.tmp.json" \
-   "$HOME/.superpowers/investigations/${INVESTIGATION_ID}.json"
-```
-
-Update the `updated` timestamp on every write. Schema: see `references/schema.md`.
+`investigation-crud.sh` handles all persistence automatically:
+- Atomic writes (temp file + `os.replace`)
+- Auto-updates `updated` timestamp on every write
+- Creates `~/.superpowers/investigations/` and `.gitignore` on first use
+- Schema: see `references/schema.md`
 
 ---
 
@@ -118,7 +132,11 @@ UUID-based filenames. One active → auto-resume. Multiple active → list for u
 
 ## Markdown Export
 
-Generate on demand (pause/handoff). Template: `# Investigation: [title]` with sections: Symptoms (observed/expected/reproduction), Hypotheses (H1: text — VERDICT, evidence, verdict_reason), Eliminated Approaches, Next Steps, Tools Consulted, Related TODOs/Tickets.
+Generate on demand for pause/handoff:
+
+```bash
+investigation-crud.sh export --id UUID
+```
 
 Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suffix. Generated on demand only, not auto-synced.
 

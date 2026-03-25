@@ -284,6 +284,7 @@ Utility scripts in `tools/`:
 | `todo-lock.sh` | Advisory file locking for TODO.md (cross-machine) |
 | `todo-crud.sh` | TODO.md create/read/update/delete operations |
 | `todo-maintenance.sh` | Archival and cleanup of completed tasks |
+| `investigation-crud.sh` | Investigation state CRUD (hypotheses, evidence, verdicts) |
 | `public-repo-ip-check.sh` | Scans for proprietary content before public push |
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
 | `skill-cost-analyzer.sh` | Reports token cost per skill |

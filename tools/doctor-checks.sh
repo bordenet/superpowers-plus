@@ -4,8 +4,9 @@
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
 #   ./doctor-checks.sh --fix-safe     # Fix non-destructive issues only (sync, CRLF, BOM, pull)
-#   ./doctor-checks.sh --fix          # Fix all auto-fixable issues
-#   ./doctor-checks.sh --fix --yes    # Auto-fix without confirmation
+#   ./doctor-checks.sh --fix          # Fix all auto-fixable issues (excludes orphan removal)
+#   ./doctor-checks.sh --fix --yes    # Auto-fix without confirmation (excludes orphan removal)
+#   ./doctor-checks.sh --purge-orphans # Explicitly remove orphaned installs (requires --fix)
 #   ./doctor-checks.sh --summary-only # One-line pass/fail (for post-install)
 
 # shellcheck disable=SC2044  # find loops are safe here — skill paths never contain spaces
@@ -29,11 +30,13 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 FIX_MODE=false
 FIX_SAFE=false
 SUMMARY_ONLY=false
+PURGE_ORPHANS=false
 for arg in "$@"; do
   case "$arg" in
-    --fix-safe)     FIX_SAFE=true; FIX_MODE=true ;;
-    --fix)          FIX_MODE=true ;;
-    --summary-only) SUMMARY_ONLY=true ;;
+    --fix-safe)       FIX_SAFE=true; FIX_MODE=true ;;
+    --fix)            FIX_MODE=true ;;
+    --purge-orphans)  PURGE_ORPHANS=true ;;
+    --summary-only)   SUMMARY_ONLY=true ;;
   esac
 done
 
@@ -269,7 +272,11 @@ for skill in "${!SKILL_YAML[@]}"; do
 done
 
 # --- Check 8: Orphaned Installs ---
-# Precompute all source skill names (one find per source dir, not per installed skill)
+# Demoted from ERROR+auto-fix to WARNING+report-only (2026-03-25).
+# Reason: locally-created skills that haven't been committed to a source repo yet
+# were being silently deleted. This destroyed outline-wiki-editing and its
+# Outline API access patterns, causing agents to give up on wiki access entirely.
+# Use --purge-orphans to explicitly opt into orphan removal.
 declare -A _source_skill_names=()
 for dir in "${SOURCE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
@@ -281,8 +288,10 @@ while IFS= read -r installed; do
   skill=$(basename "$installed")
   [[ "$skill" == "_shared" || "$skill" == "doctor-backups" ]] && continue
   if [[ -z "${_source_skill_names[$skill]:-}" ]]; then
-    echo "🟠 ERROR: $skill — orphaned install"; ((ERRORS++))
-    if can_fix moderate; then
+    echo "🟡 WARNING: $skill — orphaned install (not in any source repo)"
+    echo "  ℹ️  To remove: re-run with --fix --purge-orphans"
+    ((WARNINGS++))
+    if [[ "$PURGE_ORPHANS" == "true" ]] && can_fix moderate; then
       if backup_skill "$installed"; then
         rm -rf "$installed"
         echo "  ✅ FIXED: removed orphan $skill"; ((FIXED++))
