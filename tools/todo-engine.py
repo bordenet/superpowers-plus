@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """todo-engine.py — Cross-platform TODO.md CRUD engine.
 
-Handles add, complete, move, list, next-id, defer, claim, unclaim, reap
-operations atomically. Built-in preflight (path resolution), advisory locking,
-backup, ID allocation, section targeting, safe multiline content handling, and
-multi-agent claim coordination with TTL-based expiry.
+Handles add, complete, move, list, next-id, defer, claim, unclaim, reap, cat,
+path operations with built-in preflight (path resolution), advisory locking,
+backup, structural validation, ID allocation, section targeting, safe multiline
+content handling, and multi-agent claim coordination with TTL-based expiry.
 
 Usage (typically called via todo-crud.sh wrapper):
     python3 todo-engine.py add --priority P3 --description "Task" --tags "#foo"
@@ -79,8 +79,15 @@ def resolve_todo_path() -> str:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-    # 3. Default
-    return os.path.expanduser("~/.codex/TODO.md")
+    # 3. Default — WARN loudly so agents notice the misconfiguration
+    default = os.path.expanduser("~/.codex/TODO.md")
+    print(
+        f"WARNING: TODO_FILE_PATH not found in environment or ~/.codex/.env. "
+        f"Falling back to default: {default}. "
+        f"If this is wrong, set TODO_FILE_PATH in ~/.codex/.env",
+        file=sys.stderr,
+    )
+    return default
 
 
 def ensure_file_exists(path: str) -> None:
@@ -170,7 +177,118 @@ def _normalize_whitespace(content: str) -> str:
     return re.sub(r"\n{4,}", "\n\n\n", content)
 
 
+# ---------------------------------------------------------------------------
+# Structural Validation — last-resort safety gate
+# ---------------------------------------------------------------------------
+# Incident 2026-03-23: an agent used save-file to overwrite TODO.md with a raw
+# task list, destroying dozens of unstarted tasks permanently.  This gate
+# refuses to write content that does not match the canonical TODO.md structure.
+
+# Required top-level headers in the order they must appear.
+REQUIRED_HEADERS = ["# ACTIVE TASKS", "# HISTORY", "# DEFERRED", "# METRICS"]
+
+# Required priority subsections under # ACTIVE TASKS, in order.
+REQUIRED_SUBSECTIONS = ["## P1", "## P2", "## P3"]
+
+
+def _find_anchored_headers(lines, headers):
+    """Find line positions of anchored headers. Returns {header: [positions]}."""
+    positions = {h: [] for h in headers}
+    for i, line in enumerate(lines):
+        stripped = line.rstrip()
+        for h in headers:
+            if stripped == h or stripped.startswith(h + " "):
+                positions[h].append(i)
+    return positions
+
+
+def validate_structure(content: str) -> None:
+    """Refuse to write content that lacks required TODO.md structure.
+
+    Checks:
+      1. All required top-level headers present and anchored at line start.
+      2. Headers appear in the correct order (no reordering).
+      3. No duplicate top-level headers.
+      4. Priority subsections (P1/P2/P3) present, unique, and in order.
+      5. Content has at least one non-header, non-separator line (task, date,
+         metadata) to prevent scaffold-only wipes.
+    """
+    lines = content.split("\n")
+
+    # --- 1 & 3: Presence, anchoring, and uniqueness of top-level headers ---
+    header_positions = _find_anchored_headers(lines, REQUIRED_HEADERS)
+
+    missing = [h for h, pos in header_positions.items() if not pos]
+    if missing:
+        _error(
+            f"REFUSED TO WRITE: TODO.md is missing required sections: "
+            f"{', '.join(missing)}. Use todo-crud.sh for writes."
+        )
+
+    duplicates = [h for h, pos in header_positions.items() if len(pos) > 1]
+    if duplicates:
+        _error(
+            f"REFUSED TO WRITE: TODO.md has duplicate headers: "
+            f"{', '.join(duplicates)}. File is malformed."
+        )
+
+    # --- 2: Correct top-level order ---
+    first_positions = [header_positions[h][0] for h in REQUIRED_HEADERS]
+    if first_positions != sorted(first_positions):
+        _error(
+            "REFUSED TO WRITE: TODO.md headers are in the wrong order. "
+            f"Expected: {' → '.join(REQUIRED_HEADERS)}. Use todo-crud.sh."
+        )
+
+    # --- 4: Priority subsections: present, unique, and ordered ---
+    active_start = header_positions["# ACTIVE TASKS"][0]
+    history_start = header_positions["# HISTORY"][0]
+    active_lines = lines[active_start:history_start]
+    sub_positions = _find_anchored_headers(active_lines, REQUIRED_SUBSECTIONS)
+
+    missing_subs = [s for s, pos in sub_positions.items() if not pos]
+    if missing_subs:
+        _error(
+            f"REFUSED TO WRITE: TODO.md ACTIVE TASKS section is missing "
+            f"subsections: {', '.join(missing_subs)}. Use todo-crud.sh."
+        )
+
+    dup_subs = [s for s, pos in sub_positions.items() if len(pos) > 1]
+    if dup_subs:
+        _error(
+            f"REFUSED TO WRITE: TODO.md has duplicate priority subsections: "
+            f"{', '.join(dup_subs)}. File is malformed."
+        )
+
+    sub_first = [sub_positions[s][0] for s in REQUIRED_SUBSECTIONS]
+    if sub_first != sorted(sub_first):
+        _error(
+            "REFUSED TO WRITE: TODO.md priority subsections are in the wrong "
+            f"order. Expected: {' → '.join(REQUIRED_SUBSECTIONS)}. Use todo-crud.sh."
+        )
+
+    # --- 5: Reject scaffold-only wipes ---
+    # A valid TODO.md must contain at least one real artifact: a task line
+    # (- [ ], - [x], - [/], - [-]) or a history date header (## YYYY-MM-DD).
+    # Files with only headers, separators, comments, or arbitrary filler are
+    # rejected.  This catches empty scaffolds, template files, and near-empty
+    # overwrites that would destroy existing content.
+    task_re = re.compile(r"^- \[[ x/\-]\]")
+    date_header_re = re.compile(r"^## \d{4}-\d{2}-\d{2}")
+    has_artifact = any(
+        task_re.match(line.strip()) or date_header_re.match(line.strip())
+        for line in lines
+    )
+    if not has_artifact:
+        _error(
+            "REFUSED TO WRITE: TODO.md contains no task lines (- [ ]/[x]/[/]/[-]) "
+            "and no history date headers (## YYYY-MM-DD). This looks like an "
+            "empty scaffold that would destroy existing content. Use todo-crud.sh."
+        )
+
+
 def write_file(path: str, content: str) -> None:
+    validate_structure(content)
     content = _normalize_whitespace(content)
     with open(path, "w") as f:
         f.write(content)
@@ -457,6 +575,23 @@ def cmd_next_id(args, todo_path: str, json_mode: bool) -> None:
     _output({"next_id": tid}, json_mode)
 
 
+def cmd_cat(args, todo_path: str, json_mode: bool) -> None:
+    """Print TODO.md contents from the resolved path."""
+    content = read_file(todo_path)
+    if json_mode:
+        _output({"path": todo_path, "content": content}, json_mode)
+    else:
+        print(content, end="")
+
+
+def cmd_path(args, todo_path: str, json_mode: bool) -> None:
+    """Print the resolved TODO.md path (bare path in text mode)."""
+    if json_mode:
+        _output({"path": todo_path}, json_mode)
+    else:
+        print(todo_path)
+
+
 def cmd_defer(args, todo_path: str, json_mode: bool) -> None:
     """Move a task to DEFERRED section."""
     content = read_file(todo_path)
@@ -715,6 +850,12 @@ def main():
     # reap
     sub.add_parser("reap", help="Reap all expired claims")
 
+    # cat — print TODO.md contents from resolved path
+    sub.add_parser("cat", help="Print TODO.md contents (resolved path)")
+
+    # path — print resolved path only
+    sub.add_parser("path", help="Print resolved TODO.md path")
+
     args = parser.parse_args()
     json_mode = args.json
 
@@ -729,11 +870,17 @@ def main():
 
     # --- Resolve path ---
     todo_path = resolve_todo_path()
+
+    # path command doesn't need the file to exist
+    if args.command == "path":
+        cmd_path(args, todo_path, json_mode)
+        return
+
     ensure_file_exists(todo_path)
 
     # --- Read-only commands (no lock needed) ---
-    if args.command in ("list", "next-id"):
-        dispatch = {"list": cmd_list, "next-id": cmd_next_id}
+    if args.command in ("list", "next-id", "cat"):
+        dispatch = {"list": cmd_list, "next-id": cmd_next_id, "cat": cmd_cat}
         dispatch[args.command](args, todo_path, json_mode)
         return
 
