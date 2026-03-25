@@ -1,16 +1,16 @@
 # superpowers-plus
 
-58 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+59 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**58 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**59 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 15 | Blast radius, design triad, TDD, code review, systematic debugging, feature lifecycle |
+| engineering | 16 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
 | productivity | 14 | TODO tracking, adversarial search, domain design, think-twice |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
@@ -51,7 +51,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 58-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 59-skill suite — use git clone above for that.
 
 ### Claude Code
 
@@ -144,6 +144,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | field-rename-verification | Verifies renames across service boundaries |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | pre-commit-gate | Runs lint → typecheck → test |
+| | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
@@ -202,7 +203,8 @@ Skills form pipelines with explicit dependencies. The diagram shows inter-skill 
 ```mermaid
 graph LR
   subgraph commit-gates["Commit Gates"]
-    pre_commit_gate["pre-commit-gate"] --> enforce_style_guide["enforce-style-guide"]
+    pre_commit_gate["pre-commit-gate"] --> progressive_code_review_gate["progressive-code-review-gate"]
+    progressive_code_review_gate --> enforce_style_guide["enforce-style-guide"]
     enforce_style_guide --> professional_language_audit["professional-language-audit"]
     professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
   end
@@ -242,7 +244,7 @@ graph LR
 
 | Group | Flow | Purpose |
 |-------|------|---------|
-| Commit Gates | pre-commit → style → language → IP audit | Quality checks before `git commit` |
+| Commit Gates | pre-commit → code review → style → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |

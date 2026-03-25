@@ -8,7 +8,7 @@ coordination:
   group: commit-gates
   order: 1
   requires: []
-  enables: ["enforce-style-guide", "professional-language-audit"]
+  enables: ["progressive-code-review-gate"]
   escalates_to: []
   internal: false
 ---
@@ -132,8 +132,9 @@ Multiple skills fire on "before commit". Execute in this order:
 |-------|-------|---------|-------|
 | 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
 | 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 2 | **progressive-code-review-gate** | Harsh adversarial code review loop | All code commits |
+| 3 | `enforce-style-guide` | Code style compliance | All commits |
+| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style, then content gates.
+**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then adversarial review (catches logic/correctness bugs), then style, then content gates.
