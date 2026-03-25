@@ -1,12 +1,12 @@
 # superpowers-plus
 
-59 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+60 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**59 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**60 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
@@ -17,7 +17,7 @@
 | issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
 | observability | 4 | Completeness checks, audit validation, repo verification, diagnostics |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
-| research | 2 | Perplexity integration, research incorporation |
+| research | 3 | Perplexity integration, research incorporation, expert interviewing |
 | experimental | 1 | Self-prompting patterns |
 
 ## Installation
@@ -51,7 +51,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 59-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 60-skill suite — use git clone above for that.
 
 ### Claude Code
 
@@ -176,7 +176,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | | thinking-orchestrator | Hub router for metacognition skills |
 | | todo-archive | Archives completed tasks to monthly files |
 | | todo-management | Parses and tracks tasks |
-| research | incorporating-research | Merges external findings into current work |
+| research | expert-interviewer | Extracts domain knowledge through structured interviewing |
+| | incorporating-research | Merges external findings into current work |
 | | perplexity-research | Escalates to Perplexity when free tools insufficient |
 | security | public-repo-ip-audit | Detects proprietary content before public push |
 | | repo-security-scan | Full scan: secrets, deps, patterns, config |
