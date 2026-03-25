@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-03-23
+> **Last updated:** 2026-03-25
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -20,6 +20,7 @@ graph TD
   subgraph commit-gates["Commit Gates"]
     pre_commit_gate["pre-commit-gate"]
     enforce_style_guide["enforce-style-guide"]
+    progressive_code_review_gate["progressive-code-review-gate"]
     professional_language_audit["professional-language-audit"]
     public_repo_ip_audit["public-repo-ip-audit"]
   end
@@ -50,9 +51,9 @@ graph TD
   investigation_state -->|enables| think_twice
   investigation_state ==>|escalates to| thinking_orchestrator
   pre_commit_gate -->|enables| enforce_style_guide
-  pre_commit_gate -->|enables| professional_language_audit
+  enforce_style_guide -->|then| progressive_code_review_gate
+  progressive_code_review_gate -->|enables| professional_language_audit
   exhaustive_audit_validation -->|enables| verification_before_completion
-  enforce_style_guide -->|enables| professional_language_audit
   think_twice ==>|escalates to| perplexity_research
   thinking_orchestrator -->|enables| adversarial_search
   thinking_orchestrator -->|enables| think_twice
@@ -62,7 +63,7 @@ graph TD
   thinking_orchestrator -->|enables| investigation_state
   thinking_orchestrator -->|enables| feature_development
   professional_language_audit -->|then| public_repo_ip_audit
-  wiki_authoring -->|then| wiki_content_coherence
+  wiki_orchestrator -->|then| wiki_content_coherence
   wiki_content_coherence -->|enables| link_verification
   wiki_content_coherence ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|enables| link_verification
@@ -74,11 +75,11 @@ graph TD
 |-------|--------|---------|
 | Engineering | `feature-development` | Coordinated skill group |
 | Debugging | `investigation-state` | Coordinated skill group |
-| Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `public-repo-ip-audit`, `professional-language-audit` | Quality checks before git commit |
-| Completion Gate | `verification-before-completion`, `exhaustive-audit-validation` | Verification and TODO maintenance before claiming done |
+| Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
+| Completion Gate | `exhaustive-audit-validation`, `verification-before-completion` | Verification and TODO maintenance before claiming done |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Thinking | `thinking-orchestrator` | Metacognition and thinking orchestration |
-| Wiki Pipeline | `wiki-content-coherence`, `wiki-orchestrator` | Wiki authoring quality pipeline |
+| Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence` | Wiki authoring quality pipeline |
 
 ## Legend
 
