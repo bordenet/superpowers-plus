@@ -410,5 +410,133 @@ class TodoEngineTests(unittest.TestCase):
         self.assertIn("Note: Waiting on CI", block)
 
 
+    # -- Claim/Unclaim/Reap tests --
+
+    def test_claim_marks_task_in_progress(self):
+        """Claim changes [ ] to [/] and adds Claimed: metadata."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", agent="test-agent", ttl=30)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        self.assertIn("[/] [20260323-01]", content)
+        self.assertIn("Claimed:", content)
+        self.assertIn("by test-agent", content)
+        self.assertIn("ttl=30", content)
+
+    def test_claim_already_claimed_by_same_agent_refreshes(self):
+        """Re-claiming by same agent refreshes the timestamp."""
+        eng = self.engine
+        args = SimpleNamespace(id="20260323-01", agent="test-agent", ttl=30)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(args, str(self.todo_path), json_mode=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        # Should have exactly one Claimed: line
+        self.assertEqual(content.count("Claimed:"), 1)
+
+    def test_claim_already_claimed_by_different_agent_errors(self):
+        """Claiming a task held by another agent (not expired) errors."""
+        eng = self.engine
+        args1 = SimpleNamespace(id="20260323-01", agent="agent-a", ttl=30)
+        args2 = SimpleNamespace(id="20260323-01", agent="agent-b", ttl=30)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(args1, str(self.todo_path), json_mode=False)
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_claim(args2, str(self.todo_path), json_mode=False)
+
+    def test_claim_nonexistent_task_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="99990101-99", agent="test", ttl=30)
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_claim(args, str(self.todo_path), json_mode=False)
+
+    def test_unclaim_reverts_to_open(self):
+        """Unclaim changes [/] back to [ ] and removes Claimed: metadata."""
+        eng = self.engine
+        claim_args = SimpleNamespace(id="20260323-01", agent="test-agent", ttl=30)
+        unclaim_args = SimpleNamespace(id="20260323-01")
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(claim_args, str(self.todo_path), json_mode=False)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_unclaim(unclaim_args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        self.assertIn("[ ] [20260323-01]", content)
+        self.assertNotIn("Claimed:", content)
+
+    def test_unclaim_nonexistent_task_errors(self):
+        eng = self.engine
+        args = SimpleNamespace(id="99990101-99")
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_unclaim(args, str(self.todo_path), json_mode=False)
+
+    def test_reap_expired_claims(self):
+        """Reap finds expired claims and reverts them to open."""
+        eng = self.engine
+        # Manually write a claimed task with an expired timestamp
+        content = self.todo_path.read_text()
+        content = content.replace(
+            "- [ ] [20260323-01] Fix critical auth bug #engineering #urgent\n"
+            "  - Added: 2026-03-23",
+            "- [/] [20260323-01] Fix critical auth bug #engineering #urgent\n"
+            "  - Added: 2026-03-23\n"
+            "  - Claimed: 2025-01-01T00:00:00 by old-agent ttl=30"
+        )
+        self.todo_path.write_text(content)
+        args = SimpleNamespace()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_reap(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertGreaterEqual(data["reaped"], 1)
+        content = self.todo_path.read_text()
+        self.assertIn("[ ] [20260323-01]", content)
+        self.assertNotIn("Claimed:", content)
+
+    def test_reap_preserves_active_claims(self):
+        """Reap does not touch claims that are still within TTL."""
+        eng = self.engine
+        # Claim a task (fresh timestamp)
+        claim_args = SimpleNamespace(id="20260323-01", agent="active-agent", ttl=30)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(claim_args, str(self.todo_path), json_mode=False)
+        reap_args = SimpleNamespace()
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_reap(reap_args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        # Task should still be claimed
+        self.assertIn("[/] [20260323-01]", content)
+        self.assertIn("Claimed:", content)
+
+    def test_claim_completed_task_errors(self):
+        """Cannot claim a task that is already completed [x]."""
+        eng = self.engine
+        # The history task is [x]
+        args = SimpleNamespace(id="20260322-01", agent="test", ttl=30)
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.cmd_claim(args, str(self.todo_path), json_mode=False)
+
+    def test_list_shows_claim_info(self):
+        """List output includes claim state for claimed tasks."""
+        eng = self.engine
+        claim_args = SimpleNamespace(id="20260323-01", agent="test-agent", ttl=30)
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_claim(claim_args, str(self.todo_path), json_mode=False)
+        list_args = SimpleNamespace(priority="P1", tag="", show_all=False)
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_list(list_args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["tasks"][0]["state"], "in-progress")
+
+
 if __name__ == "__main__":
     unittest.main()
