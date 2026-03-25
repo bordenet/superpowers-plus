@@ -735,5 +735,98 @@ class TodoEngineTests(unittest.TestCase):
         self.assertEqual(data["tasks"][0]["state"], "in-progress")
 
 
+class FileProtectionTests(unittest.TestCase):
+    """Tests for OS-level chmod write protection (0444 → save-file can't write)."""
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.todo_path = Path(self.tmp.name) / "TODO.md"
+        self.todo_path.write_text(SAMPLE_TODO)
+
+    def tearDown(self):
+        # Ensure file is writable so tempdir cleanup succeeds
+        if self.todo_path.exists():
+            os.chmod(str(self.todo_path), 0o644)
+        self.tmp.cleanup()
+
+    def test_write_file_sets_readonly_after_write(self):
+        """After write_file(), the file should be 0444 (read-only)."""
+        eng = self.engine
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        mode = os.stat(str(self.todo_path)).st_mode & 0o777
+        self.assertEqual(mode, 0o444,
+                         f"Expected 0444, got {oct(mode)}")
+
+    def test_write_file_succeeds_on_already_protected_file(self):
+        """write_file() should work even if the file is already 0444."""
+        eng = self.engine
+        os.chmod(str(self.todo_path), 0o444)
+        # Should not raise — write_file does chmod 0644 first
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        result = self.todo_path.read_text()
+        self.assertIn("# ACTIVE TASKS", result)
+        mode = os.stat(str(self.todo_path)).st_mode & 0o777
+        self.assertEqual(mode, 0o444)
+
+    def test_protected_file_blocks_direct_open(self):
+        """A 0444 file should raise PermissionError on direct open('w')."""
+        eng = self.engine
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        # Now try to write directly — this is what save-file would do
+        with self.assertRaises(PermissionError):
+            with open(str(self.todo_path), "w") as f:
+                f.write("garbage")
+
+    def test_protect_file_is_idempotent(self):
+        """Calling _protect_file multiple times doesn't fail."""
+        eng = self.engine
+        eng._protect_file(str(self.todo_path))
+        eng._protect_file(str(self.todo_path))
+        mode = os.stat(str(self.todo_path)).st_mode & 0o777
+        self.assertEqual(mode, 0o444)
+
+    def test_write_reprotects_after_write_exception(self):
+        """If the actual file write raises, the file is re-protected."""
+        eng = self.engine
+        path_str = str(self.todo_path)
+        os.chmod(path_str, 0o444)  # Start protected
+        # Mock open to raise AFTER unprotect has run
+        with unittest.mock.patch("builtins.open", side_effect=IOError("disk full")):
+            with self.assertRaises(IOError):
+                eng.write_file(path_str, SAMPLE_TODO)
+        # File must be re-protected despite the exception
+        mode = os.stat(path_str).st_mode & 0o777
+        self.assertEqual(mode, 0o444,
+                         f"Expected 0444 after write failure, got {oct(mode)}")
+
+    def test_main_enforces_protection_on_existing_writable_file(self):
+        """main() should re-protect a 0644 file on any invocation."""
+        eng = self.engine
+        path_str = str(self.todo_path)
+        os.chmod(path_str, 0o644)  # Simulate unprotected file
+        # Run a read-only command (list) through dispatch
+        with unittest.mock.patch.dict(os.environ, {"TODO_FILE_PATH": path_str}):
+            with unittest.mock.patch("sys.argv", ["todo-engine.py", "--json", "list"]):
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    eng.main()
+        mode = os.stat(path_str).st_mode & 0o777
+        self.assertEqual(mode, 0o444,
+                         f"Expected 0444 after main(), got {oct(mode)}")
+
+    def test_shell_redirect_fails_on_protected_file(self):
+        """Shell redirect (echo > file) fails on a 0444 file."""
+        eng = self.engine
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        import subprocess
+        result = subprocess.run(
+            ["sh", "-c", f'echo "garbage" > "{self.todo_path}"'],
+            capture_output=True
+        )
+        self.assertNotEqual(result.returncode, 0,
+                            "Shell redirect should fail on 0444 file")
+
+
 if __name__ == "__main__":
     unittest.main()
