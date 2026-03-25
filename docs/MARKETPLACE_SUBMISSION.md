@@ -86,7 +86,10 @@ If users report install failures:
    - Description: Short summary focusing on slop detection differentiation
    - Reference: Link to obra/superpowers as the prerequisite/base
 
-## TODO
+## TODO — DEPRIORITIZED
+
+> **Status:** Indefinitely deferred. Anthropic's plugin marketplace acceptance is unlikely.
+> These items are preserved for reference only — do not actively pursue.
 
 - [ ] Monitor Anthropic's plugin directory submission form: https://clau.de/plugin-directory-submission
 - [ ] Verify current PR requirements (check open PRs for examples)
