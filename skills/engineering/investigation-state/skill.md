@@ -44,14 +44,14 @@ composition:
 ## Session Start: Stale Investigation Check
 
 1. List `*.json` in `~/.superpowers/investigations/`
-2. Files with `updated` > 7 days → prompt: "Close, archive, or resume?"
-3. Active within 7 days → auto-resume (one) or list for selection (multiple)
+2. Files with `updated` > 7 days → prompt: "Resolve, abandon, or resume?"
+3. Active within 7 days → resume (one) or list for selection (multiple)
 
 ## Investigation Lifecycle
 
 States: `active` → `paused` / `resolved` / `abandoned`
 
-- **→ PAUSED:** Session ending. Generate markdown export. Record next steps.
+- **→ PAUSED:** Session ending or blocked. Run `export` manually. Record next steps via `update --next-steps`.
 - **→ RESOLVED:** Root cause confirmed. Create fix TODO tagged `#investigation-<short-id>` if needed.
 - **→ ABANDONED:** No longer relevant. Record reason.
 - **PAUSED → ACTIVE:** Load JSON, display summary, continue from next steps.
@@ -60,7 +60,7 @@ States: `active` → `paused` / `resolved` / `abandoned`
 
 ## Tooling
 
-**Use `investigation-crud.sh` for ALL investigation operations.** It handles directory creation, atomic writes, UUID generation, and state validation automatically.
+**Use `investigation-crud.sh` for ALL investigation operations.** It handles directory creation, atomic writes, UUID generation, advisory locking, backup, and schema validation.
 
 ```bash
 # Core operations
@@ -128,7 +128,7 @@ This prevents future agents from retrying failed approaches.
 
 ## Concurrent Investigations
 
-UUID-based filenames. One active → auto-resume. Multiple active → list for user selection.
+UUID-based filenames. One active → resume. Multiple active → `investigation-crud.sh list --status active`, agent picks one.
 
 ## Markdown Export
 
@@ -157,6 +157,6 @@ Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suff
 |---------|-----|
 | Forgot to update JSON after verdict | Always write JSON immediately after each hypothesis verdict |
 | Retried an eliminated approach | Check `eliminated` array before trying any approach |
-| Lost investigation on session end | Auto-pause with markdown export on session end |
+| Lost investigation on session end | Pause with `set-status --status paused`, then `export` before ending |
 | JSON corruption from interrupted write | Atomic write pattern (temp + mv) prevents this |
 | Investigation scope creep (>10 hypotheses) | Prompt for consolidation — likely multiple bugs |
