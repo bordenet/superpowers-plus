@@ -156,7 +156,7 @@ show archived todos from 2026-02-01 to 2026-03-15
 
 ## Integrity & Safety
 
-- **Locking:** Uses existing `todo-lock.sh` (from todo-management)
+- **Locking:** Does not currently use `todo-lock.sh` (future improvement)
 - **Backup:** TODO.md backed up before any modification (existing mechanism)
 - **Idempotency:** Task IDs checked before appending — duplicates skipped
 - **Dry-run:** Report what would be archived without modifying files
@@ -169,7 +169,7 @@ show archived todos from 2026-02-01 to 2026-03-15
 | Scenario | Resolution |
 |----------|-----------|
 | Task completed then re-opened | Archive entry stays (immutable). New ACTIVE entry with `Reopened from [ID]` |
-| Concurrent archive attempts | `todo-lock.sh` serializes access |
+| Concurrent archive attempts | Not yet guarded — avoid running concurrently with `todo-crud.sh` |
 | Archive file already has entries for that day | Append under existing date header (no duplicate header) |
 | HISTORY section is empty | No-op, report "No completed tasks to archive" |
 | No HISTORY section exists | No-op, report "No HISTORY section found" |

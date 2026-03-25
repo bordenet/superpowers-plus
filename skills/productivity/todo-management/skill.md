@@ -37,33 +37,31 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 ## Primary Interface: `todo-crud.sh`
 
-**Use `todo-crud.sh` for ALL TODO.md write operations.** It handles preflight, locking, backup, and ID allocation automatically in a single call.
+**Use `todo-crud.sh` for ALL TODO.md access** — both reading and writing. It resolves the correct path from `~/.codex/.env` automatically. NEVER `cat` or `view` TODO.md directly.
 
 ```bash
-# Add a task
+# READ — show TODO.md contents (resolved path)
+~/.codex/superpowers-plus/tools/todo-crud.sh cat
+~/.codex/superpowers-plus/tools/todo-crud.sh path      # just the path
+~/.codex/superpowers-plus/tools/todo-crud.sh list       # filtered task list
+
+# WRITE — add, complete, move, defer
 ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P3 --description "Task description" --tags "#tag1 #tag2" --note "Additional context"
-
-# Complete a task
 ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id 20260322-01 --note "Resolution notes"
-
-# Move task to different priority
 ~/.codex/superpowers-plus/tools/todo-crud.sh move --id 20260322-01 --to P1
-
-# List/filter tasks
-~/.codex/superpowers-plus/tools/todo-crud.sh list --priority P1
-~/.codex/superpowers-plus/tools/todo-crud.sh list --tag "#plan-foo"
-
-# Get next available task ID
-~/.codex/superpowers-plus/tools/todo-crud.sh next-id
-
-# Defer a task
 ~/.codex/superpowers-plus/tools/todo-crud.sh defer --id 20260322-01 --reason "Blocked on X"
 
-# JSON output (for machine parsing)
+# Multi-agent: claim a task (marks [/], adds TTL metadata)
+~/.codex/superpowers-plus/tools/todo-crud.sh claim --id 20260322-01 --ttl 30
+~/.codex/superpowers-plus/tools/todo-crud.sh unclaim --id 20260322-01
+~/.codex/superpowers-plus/tools/todo-crud.sh reap
+
+# Utility
+~/.codex/superpowers-plus/tools/todo-crud.sh next-id
 ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
-**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization. Cross-platform (macOS + Linux).
+**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization, expired claim reaping. Cross-platform (macOS + Linux).
 
 **If TODO.md doesn't exist:** Run `todo-preflight.sh --create-if-missing` first to create from template.
 
@@ -89,7 +87,35 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 | `todo-preflight.sh` | Create initial TODO.md, or debug path resolution |
 | `todo-lock.sh` | Debug lock issues (`status`, `steal` commands) |
 
-**Anti-pattern:** Do NOT improvise shell/sed/python to write TODO.md. Use `todo-crud.sh`.
+### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
+
+**NEVER write to TODO.md except through the approved TODO tools** (`todo-crud.sh`, `todo-preflight.sh --create-if-missing`, `todo-maintenance.sh`). This ban includes:
+- ❌ `save-file` / `str-replace-editor` / `echo >` / `cat >` / `sed -i` / inline python
+- ❌ ANY method that bypasses preflight, locking, backup, or structure validation
+
+**Incident 2026-03-23:** An agent used `save-file` to overwrite TODO.md with a raw task list. Dozens of unstarted tasks were permanently destroyed. No backup was created. Recovery was impossible.
+
+`todo-crud.sh` prevents this by: (1) resolving the correct `TODO_FILE_PATH`, (2) acquiring an advisory lock, (3) creating a timestamped backup, (4) validating section structure (required headers in order, priority subsections, and at least one task or history artifact). Bypassing it bypasses ALL of these protections.
+
+---
+
+## Multi-Agent Coordination
+
+When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **claim/unclaim/reap** to prevent duplicate work:
+
+1. **Before starting work:** `claim --id <ID>` — marks `[/]` with TTL metadata
+2. **On completion:** `complete --id <ID>` — moves to HISTORY (claim auto-removed)
+3. **On abandonment:** `unclaim --id <ID>` — reverts to `[ ]` for another agent
+4. **Periodic cleanup:** `reap` — finds expired claims and reverts them
+
+**TTL (default 30 min):** If an agent claims a task and dies/disconnects, the claim expires after TTL minutes. Another agent running `claim` or `reap` will auto-reap it.
+
+**Agent identity:** Set `AGENT_ID` env var for readable names. Falls back to `hostname:ppid`.
+
+**Claim metadata** (single line in task block):
+```
+  - Claimed: 2026-03-25T14:30:00 by augment-session-1 ttl=30
+```
 
 ---
 
@@ -179,7 +205,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 - TODO.md exceeds 200 lines
 - HISTORY entries are >7 days old
 
-**Backup:** Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
+**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
 
 ---
 

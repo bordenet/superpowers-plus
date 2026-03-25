@@ -206,6 +206,23 @@ fi
 
 # Safe to overwrite
 mv "$REBUILD_TMP" "$TODO_PATH"
+chmod 0444 "$TODO_PATH"  # Re-protect after archive rebuild
+
+# Update shadow backup so annihilation detection stays in sync.
+# Best-effort: archive success must not depend on shadow writability.
+SHADOW_DIR="${HOME}/.codex/todo-shadow"
+SHADOW_FILE="${SHADOW_DIR}/TODO.md"
+if [[ -d "$SHADOW_FILE" ]]; then
+  echo "WARNING: Shadow path ${SHADOW_FILE} is a directory (corrupt). Removing." >&2
+  rm -rf "${SHADOW_FILE:?}" 2>/dev/null || true
+fi
+if mkdir -p "$SHADOW_DIR" 2>/dev/null && \
+   cp "$TODO_PATH" "${SHADOW_FILE}.tmp.$$" 2>/dev/null && \
+   mv "${SHADOW_FILE}.tmp.$$" "${SHADOW_FILE}" 2>/dev/null; then
+  : # Shadow updated successfully
+else
+  echo "WARNING: Could not update shadow backup. Annihilation detection may be stale." >&2
+fi
 
 # --- Integrity check ---
 POST_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')

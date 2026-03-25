@@ -8,7 +8,7 @@ coordination:
   group: commit-gates
   order: 2
   requires: ["pre-commit-gate"]
-  enables: ["professional-language-audit"]
+  enables: ["progressive-code-review-gate"]
   escalates_to: []
   internal: false
 ---
@@ -133,22 +133,21 @@ Assistant: "Let me use the /enforce-style-guide skill first"
 # Reports violations
 # Fixes violations
 # Re-audits
-# Only then proceeds with commit
+# Only then proceeds to the next commit gate
 ```
 
-## Integration with Pre-Commit Workflow
+## Integration with Commit-Gates Chain
 
-This skill implements the MANDATORY Step 1 from CLAUDE.md:
+This skill is gate 2 (after `pre-commit-gate`). Style compliance checks:
 
 ```
-1. Verify STYLE_GUIDE.md compliance - DO THIS FIRST
-   - VERIFY: Script has -h/--help flag
-   - VERIFY: Script has -v/--verbose flag
-   - VERIFY: Destructive scripts have --what-if flag
-   - VERIFY: Script uses set -euo pipefail
-   - VERIFY: Script is under 400 lines
-   - VERIFY: ShellCheck passes
-   - If ANY fail, STOP and fix before proceeding
+- VERIFY: Script has -h/--help flag
+- VERIFY: Script has -v/--verbose flag
+- VERIFY: Destructive scripts have --what-if flag
+- VERIFY: Script uses set -euo pipefail
+- VERIFY: Script is under 400 lines
+- VERIFY: ShellCheck passes
+- If ANY fail, STOP and fix before proceeding to gate 3
 ```
 
 ## Skill Behavior
@@ -167,7 +166,7 @@ Skill succeeds when:
 
 ✅ Zero style guide violations
 ✅ All verification commands pass
-✅ Code ready for commit
+✅ Code ready for next commit gate (progressive-code-review-gate)
 
 ## Failure Response
 
@@ -210,7 +209,8 @@ Multiple skills fire on "before commit". Execute in this order:
 |-------|-------|---------|-------|
 | 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
 | 2 | **enforce-style-guide** (this skill) | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 3 | `progressive-code-review-gate` | Harsh adversarial code review loop | All code commits |
+| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
+**Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.

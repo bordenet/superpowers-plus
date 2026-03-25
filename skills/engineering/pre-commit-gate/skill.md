@@ -8,7 +8,7 @@ coordination:
   group: commit-gates
   order: 1
   requires: []
-  enables: ["enforce-style-guide", "professional-language-audit"]
+  enables: ["enforce-style-guide"]
   escalates_to: []
   internal: false
 ---
@@ -29,7 +29,7 @@ coordination:
 
 **RUN THESE LOCALLY BEFORE EVERY `git commit`.** Not after CI fails — BEFORE you commit.
 
-## Required Order: Safety Scan → Lint → Typecheck → Test → Commit → Push
+## This Gate's Checks: Safety Scan → Lint → Typecheck → Test
 
 ```bash
 # 0. Dangerous pattern scan (MUST pass if .sh files are staged)
@@ -43,13 +43,10 @@ npm run typecheck    # or: tsc --noEmit
 
 # 3. Test (MUST pass — excluding known infrastructure failures)
 npm test    # or: vitest --run
-
-# 4. ONLY IF ALL ABOVE PASS:
-git add -A && git commit -m "message"
-
-# 5. Push
-git push origin <branch>
 ```
+
+**After this gate passes, the remaining commit gates run in order:**
+enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5) → commit → push.
 
 > **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
 > `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
@@ -133,7 +130,8 @@ Multiple skills fire on "before commit". Execute in this order:
 | 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
 | 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
 | 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 3 | **progressive-code-review-gate** | Harsh adversarial code review loop | All code commits |
+| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style, then content gates.
+**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.

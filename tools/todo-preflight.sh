@@ -2,8 +2,9 @@
 # -----------------------------------------------------------------------------
 # Script: todo-preflight.sh
 # PURPOSE: Single-command TODO.md file path resolution and validation.
-#          Agents call this ONCE before any TODO operation. Returns the resolved
-#          path and file status. Eliminates multi-step bash fragility.
+#          Used for read-only path queries and initial file creation
+#          (--create-if-missing). CRUD operations use todo-crud.sh, which
+#          handles preflight internally.
 # USAGE: ./todo-preflight.sh [--json] [--create-if-missing]
 #        --json               Output machine-readable JSON (default: human-readable)
 #        --create-if-missing  Create TODO.md from template if file doesn't exist
@@ -82,6 +83,8 @@ if [[ "$FILE_EXISTS" == "false" && "$CREATE_IF_MISSING" == "true" ]]; then
 
 # METRICS
 TEMPLATE
+  # Protect the new file — only todo-engine.py can write to it
+  chmod 0444 "$TODO_PATH"
   FILE_EXISTS=true
   CREATED=true
   FILE_SIZE=$(wc -c < "$TODO_PATH" 2>/dev/null | tr -d ' ')

@@ -6,8 +6,8 @@ description: "HARD GATE — Scans content for profanity and unprofessional langu
 summary: "Use when: publishing to wiki or committing user-facing docs. Hard gate for profanity."
 coordination:
   group: commit-gates
-  order: 3
-  requires: ["enforce-style-guide"]
+  order: 4
+  requires: ["progressive-code-review-gate"]
   enables: ["public-repo-ip-audit"]
   escalates_to: []
   internal: false
@@ -135,17 +135,17 @@ git diff --cached --name-only | grep -E '\.(md)$'
 node scripts/slop-dictionary.js scan-profanity FILE.md
 ```
 
-### Integration with pre-commit-gate skill
+### Integration with commit-gates chain
 
-This skill extends the pre-commit-gate workflow:
+This skill is gate 4 in the commit-gates chain:
 
 ```
-Pre-Commit Gate Checklist:
-1. ✅ Lint (shellcheck, biome)
-2. ✅ Typecheck (tsc)
-3. ✅ Test (vitest/bats)
-4. 🆕 ✅ Professional language audit  ← NEW STEP
-5. ✅ Commit
+1. ✅ pre-commit-gate         — Lint, typecheck, test
+2. ✅ enforce-style-guide     — Code style compliance
+3. ✅ progressive-code-review-gate — Adversarial code review
+4. 🆕 professional-language-audit ← THIS GATE
+5. ✅ public-repo-ip-audit    — IP leakage check (public repos)
+6. ✅ Commit
 ```
 
 ---
@@ -198,10 +198,11 @@ Multiple skills fire on "before commit". Execute in this order:
 |-------|-------|---------|-------|
 | 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
 | 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 3 | `progressive-code-review-gate` | Harsh adversarial code review loop | All code commits |
+| 4 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
+**Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
 
 
 ## Common Failure Modes

@@ -81,4 +81,4 @@ $(dirname $TODO_FILE_PATH)/todo-archives/
 - Explicit `TODO_FILE_PATH` overrides `~/.codex/.env` for safe temp validation
 - Duplicate task IDs skipped without re-appending duplicate blocks (idempotent)
 - Post-archive integrity check reconciles tasks removed from `# HISTORY`
-- Uses existing `todo-lock.sh` for concurrency safety
+- Does not yet use `todo-lock.sh` for concurrency — avoid running concurrently with `todo-crud.sh`
