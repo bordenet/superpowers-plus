@@ -136,9 +136,11 @@ ALLOWED_OVERLAPS=(
     "link-verification:wiki-orchestrator"     # link-verification fires before wiki-orchestrator
     # Research skills - both activate on "stuck" patterns
     "perplexity-research:think-twice"         # Both help when stuck, user chooses approach
-    # Pre-commit quality gates - all fire before commit/PR
+    # Pre-commit quality gates - all fire before commit/PR (same commit-gates chain)
     "enforce-style-guide:pre-commit-gate"     # Both enforce quality before commit
     "pre-commit-gate:professional-language-audit" # Both fire on "before commit"
+    "pre-commit-gate:progressive-code-review-gate" # Both fire on commit/push triggers
+    "professional-language-audit:progressive-code-review-gate" # Both fire on "before commit"
     # PR creation checks
     "engineering-rigor:holistic-repo-verification" # Both fire before creating PR
     # AI slop skills - detecting and eliminating are complementary
