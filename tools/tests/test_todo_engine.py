@@ -12,6 +12,7 @@ import io
 import os
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -97,13 +98,131 @@ class TodoEngineTests(unittest.TestCase):
     def test_write_file_normalizes_whitespace(self):
         """Verify write_file collapses excessive blank lines."""
         eng = self.engine
-        content = "line1\n\n\n\n\nline2\n"  # 5 blank lines
+        # Use full valid structure with excessive blank lines
+        content = (
+            "# ACTIVE TASKS\n\n## P1 - Today\n\n\n\n\n"
+            "- [ ] 20260322-01 | some task #test\n\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
         eng.write_file(str(self.todo_path), content)
         result = self.todo_path.read_text()
-        # Should collapse 4+ newlines to 3 (2 visual blank lines)
         self.assertNotIn("\n\n\n\n", result)
-        self.assertIn("line1", result)
-        self.assertIn("line2", result)
+        self.assertIn("# ACTIVE TASKS", result)
+        self.assertIn("some task", result)
+
+    def test_write_rejects_raw_task_list(self):
+        """Reject raw bullet list with no structure (the 2026-03-23 incident)."""
+        eng = self.engine
+        raw = "- [ ] Do something\n- [ ] Do another thing\n"
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), raw)
+
+    def test_write_rejects_scaffold_only_wipe(self):
+        """Reject content with required headers but no real tasks (empty wipe)."""
+        eng = self.engine
+        skeleton = (
+            "# ACTIVE TASKS\n\n## P1\n\n## P2\n\n## P3\n\n"
+            "# HISTORY\n\n# DEFERRED\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), skeleton)
+
+    def test_write_rejects_wrong_header_order(self):
+        """Reject content where required headers appear out of order."""
+        eng = self.engine
+        wrong_order = (
+            "# HISTORY\n\n## 2026-03-22\n\n"
+            "# ACTIVE TASKS\n\n## P1\n\n## P2\n\n## P3\n\n"
+            "# DEFERRED\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), wrong_order)
+
+    def test_write_rejects_duplicate_headers(self):
+        """Reject content with duplicate top-level headers."""
+        eng = self.engine
+        duped = (
+            "# ACTIVE TASKS\n\n## P1\n\n## P2\n\n## P3\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# ACTIVE TASKS\n\n"
+            "# DEFERRED\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), duped)
+
+    def test_write_rejects_missing_priority_subsections(self):
+        """Reject content missing P1/P2/P3 under ACTIVE TASKS."""
+        eng = self.engine
+        no_p_sections = (
+            "# ACTIVE TASKS\n\n- [ ] orphan task\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), no_p_sections)
+
+    def test_write_rejects_missing_metrics(self):
+        """Reject content missing # METRICS section."""
+        eng = self.engine
+        no_metrics = (
+            "# ACTIVE TASKS\n\n## P1\n\n## P2\n\n## P3\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n"
+            "- [ ] 20260322-01 | some task #test\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), no_metrics)
+
+    def test_write_rejects_scaffold_with_filler(self):
+        """Reject scaffold + arbitrary filler text (no real task artifacts)."""
+        eng = self.engine
+        filler = (
+            "# ACTIVE TASKS\n\n## P1\n\n## P2\n\n## P3\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+            "placeholder filler line\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), filler)
+
+    def test_write_rejects_scaffold_with_comments(self):
+        """Reject scaffold + HTML comments (like a template file)."""
+        eng = self.engine
+        template = (
+            "# ACTIVE TASKS\n\n## P1\n\n<!-- high priority -->\n\n"
+            "## P2\n\n## P3\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), template)
+
+    def test_write_rejects_duplicate_priority_subsections(self):
+        """Reject content with duplicate ## P1 subsections."""
+        eng = self.engine
+        dup_p1 = (
+            "# ACTIVE TASKS\n\n## P1\n\n- [ ] task 1\n\n## P1\n\n"
+            "## P2\n\n## P3\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), dup_p1)
+
+    def test_write_rejects_wrong_priority_order(self):
+        """Reject content where P3 appears before P1."""
+        eng = self.engine
+        wrong_p_order = (
+            "# ACTIVE TASKS\n\n## P3\n\n- [ ] task\n\n## P1\n\n## P2\n\n"
+            "---\n\n# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        with self.assertRaises(SystemExit):
+            with contextlib.redirect_stderr(io.StringIO()):
+                eng.write_file(str(self.todo_path), wrong_p_order)
 
     def test_complete_with_note_moves_to_history(self):
         """Verify completion moves task to HISTORY with note metadata."""
@@ -303,6 +422,84 @@ class TodoEngineTests(unittest.TestCase):
         data = json.loads(output)
         # next_id is date-dependent; just verify format
         self.assertRegex(data["next_id"], r"^\d{8}-\d{2}$")
+
+
+    def test_cmd_path_text_mode_returns_bare_path(self):
+        """cmd_path in text mode prints only the bare path, no key=value."""
+        eng = self.engine
+        args = SimpleNamespace()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_path(args, str(self.todo_path), json_mode=False)
+            output = buf.getvalue().strip()
+        # Should be a bare path, not "path=/some/path"
+        self.assertFalse(output.startswith("path="))
+        self.assertEqual(output, str(self.todo_path))
+
+    def test_cmd_path_json_mode_returns_structured(self):
+        """cmd_path in JSON mode returns {"path": "..."}."""
+        eng = self.engine
+        args = SimpleNamespace()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_path(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertEqual(data["path"], str(self.todo_path))
+
+    def test_cmd_cat_text_mode_returns_file_contents(self):
+        """cmd_cat in text mode prints raw TODO.md contents."""
+        eng = self.engine
+        args = SimpleNamespace()
+        expected = self.todo_path.read_text()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_cat(args, str(self.todo_path), json_mode=False)
+            output = buf.getvalue()
+        self.assertEqual(output, expected)
+
+    def test_cmd_cat_json_mode_returns_structured(self):
+        """cmd_cat in JSON mode returns {"path": "...", "content": "..."}."""
+        eng = self.engine
+        args = SimpleNamespace()
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            eng.cmd_cat(args, str(self.todo_path), json_mode=True)
+            output = buf.getvalue()
+        import json
+        data = json.loads(output)
+        self.assertEqual(data["path"], str(self.todo_path))
+        self.assertIn("# ACTIVE TASKS", data["content"])
+
+    def test_cmd_cat_missing_file_errors(self):
+        """cmd_cat errors when TODO.md doesn't exist (FileNotFoundError)."""
+        eng = self.engine
+        args = SimpleNamespace()
+        missing = str(self.todo_path.parent / "nonexistent.md")
+        with self.assertRaises(FileNotFoundError):
+            eng.cmd_cat(args, missing, json_mode=False)
+
+    def test_fallback_warning_emitted_to_stderr(self):
+        """resolve_todo_path() warns on stderr when falling back to default."""
+        eng = self.engine
+        empty_home = Path(self.tmpdir) / "warn_home"
+        empty_home.mkdir()
+        with io.StringIO() as err_buf:
+            with contextlib.redirect_stderr(err_buf):
+                with unittest.mock.patch.dict(
+                    os.environ, {"TODO_FILE_PATH": ""}, clear=False
+                ):
+                    with unittest.mock.patch(
+                        "pathlib.Path.home", return_value=empty_home
+                    ):
+                        orig_eu = os.path.expanduser
+                        def fake_eu(p):
+                            return str(empty_home) + p[1:] if p.startswith("~") else orig_eu(p)
+                        with unittest.mock.patch(
+                            "os.path.expanduser", side_effect=fake_eu
+                        ):
+                            path = eng.resolve_todo_path()
+            stderr_output = err_buf.getvalue()
+        self.assertIn("WARNING", stderr_output)
+        self.assertIn("TODO_FILE_PATH not found", stderr_output)
+        self.assertIn(".codex/TODO.md", path)
 
     def test_complete_nonexistent_task_errors(self):
         eng = self.engine

@@ -28,9 +28,7 @@ All files must end with **exactly one newline** (`0a`).
 
 **File-first architecture:** TODO.md (via `TODO_FILE_PATH` in `~/.codex/.env`) is PRIMARY persistence. MCP tools (`add_tasks`/`update_tasks`) are supplementary — they don't survive context compaction.
 
-**Mandatory sequence for writes:** `todo-lock.sh acquire` → write TODO.md → `todo-lock.sh release` → mirror to MCP. Lock auto-expires 120s.
-
-**Preflight:** Always run `~/.codex/superpowers-plus/tools/todo-preflight.sh` first to resolve `TODO_PATH`.
+**All writes MUST go through approved tools:** `todo-crud.sh` (task CRUD), `todo-preflight.sh --create-if-missing` (init), `todo-maintenance.sh` (housekeeping). `todo-crud.sh` handles preflight, locking, backup, and structural validation automatically. Use `todo-preflight.sh` only for read-only path queries or one-time initialization (`--create-if-missing`).
 
 Full procedures: `use-skill todo-management`
 
