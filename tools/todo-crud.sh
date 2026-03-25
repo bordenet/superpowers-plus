@@ -11,6 +11,9 @@
 #   todo-crud.sh list [--priority P1] [--tag "#plan-foo"] [--all]
 #   todo-crud.sh next-id
 #   todo-crud.sh defer --id 20260322-01 --reason "Blocked"
+#   todo-crud.sh claim --id 20260322-01 [--agent myagent] [--ttl 30]
+#   todo-crud.sh unclaim --id 20260322-01
+#   todo-crud.sh reap
 #   todo-crud.sh --json <subcommand> [args]   # JSON output mode
 #
 # PLATFORM: macOS, Linux, WSL (requires Python 3.6+)
@@ -39,6 +42,9 @@ Commands:
   list       List/filter tasks
   next-id    Get next available task ID for today
   defer      Defer a task (moves to DEFERRED)
+  claim      Claim a task for this agent (multi-agent coordination)
+  unclaim    Release a claim on a task
+  reap       Reap all expired claims (reverts to open)
 
 Global Options:
   --json     Machine-readable JSON output
@@ -66,6 +72,14 @@ Defer Options:
   --id              Task ID to defer (required)
   --reason, -r      Reason for deferral
 
+Claim Options:
+  --id              Task ID to claim (required)
+  --agent, -a       Agent identifier (default: AGENT_ID env or hostname:ppid)
+  --ttl             Claim TTL in minutes (default: 30)
+
+Unclaim Options:
+  --id              Task ID to unclaim (required)
+
 Environment:
   TODO_FILE_PATH    Path to TODO.md (from ~/.codex/.env)
 
@@ -74,6 +88,9 @@ Examples:
   todo-crud.sh complete --id 20260322-01
   todo-crud.sh list -p P1
   todo-crud.sh --json list --all
+  todo-crud.sh claim --id 20260322-01 --agent "augment-session-1" --ttl 30
+  todo-crud.sh unclaim --id 20260322-01
+  todo-crud.sh reap
 EOF
 }
 
