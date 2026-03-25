@@ -29,6 +29,19 @@ Each adapter documents how generic fields map to platform-specific fields:
 | `url` | Canonical page URL |
 | `url_id` | Short URL identifier |
 
+## Table of Contents
+
+Each adapter must document TOC behavior:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `toc_behavior` | Yes | `auto`, `manual`, or `unsupported` |
+| `toc_syntax` | If `manual` | Markup to insert (e.g., `[[_TOC_]]`) |
+| `toc_placement` | If `manual` | Where to place markup |
+| `toc_anchor_format` | Optional | How heading anchors are generated |
+
+See `platform-template.md` for value definitions.
+
 ## URL Patterns
 
 Each adapter specifies URL patterns for link verification:
