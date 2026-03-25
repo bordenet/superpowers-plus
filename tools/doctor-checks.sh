@@ -374,7 +374,7 @@ KNOWN_COLLISION_GROUPS=(
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
   # Pre-commit chain: ordered sequential checks before commit
-  "professional-language-audit pre-commit-gate enforce-style-guide"
+  "pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
   # PR verification: complementary pre-PR checks
