@@ -478,12 +478,20 @@ if __name__ == "__main__":
     if cmd_name in READ_COMMANDS:
         COMMANDS[cmd_name](sys.argv[2:])
     else:
+        # Validate --id BEFORE any file I/O (lock, backup, or command)
+        if "--id" in sys.argv:
+            try:
+                id_idx = sys.argv.index("--id")
+                validate_id(sys.argv[id_idx + 1])
+            except (ValueError, IndexError):
+                pass  # Missing --id will be caught by the command handler
+
         # Write commands: lock → backup → operate → release
         if not acquire_lock():
             _error("Could not acquire lock. Another session may be writing. "
                    "Try again or remove ~/.superpowers/investigations/.lock/")
         try:
-            # Backup for mutating commands that have an --id
+            # Backup existing file before mutation
             if "--id" in sys.argv:
                 try:
                     id_idx = sys.argv.index("--id")
