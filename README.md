@@ -203,9 +203,9 @@ Skills form pipelines with explicit dependencies. The diagram shows inter-skill 
 ```mermaid
 graph LR
   subgraph commit-gates["Commit Gates"]
-    pre_commit_gate["pre-commit-gate"] --> progressive_code_review_gate["progressive-code-review-gate"]
-    progressive_code_review_gate --> enforce_style_guide["enforce-style-guide"]
-    enforce_style_guide --> professional_language_audit["professional-language-audit"]
+    pre_commit_gate["pre-commit-gate"] --> enforce_style_guide["enforce-style-guide"]
+    enforce_style_guide --> progressive_code_review_gate["progressive-code-review-gate"]
+    progressive_code_review_gate --> professional_language_audit["professional-language-audit"]
     professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
   end
 
@@ -244,7 +244,7 @@ graph LR
 
 | Group | Flow | Purpose |
 |-------|------|---------|
-| Commit Gates | pre-commit → code review → style → language → IP audit | Quality checks before `git commit` |
+| Commit Gates | pre-commit → style → code review → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |

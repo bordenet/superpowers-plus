@@ -50,7 +50,7 @@ PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 
 **2026-03-06:** Design doc created in public repo; sanitization only checked subdirectory; history not audited. Resolution: full git history rewrite (orphan branch).
 
-**Gate order:** `pre-commit-gate` → `progressive-code-review-gate` → `enforce-style-guide` → `professional-language-audit` → **this skill**.
+**Gate order:** `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → **this skill**.
 
 
 ## When to Use

@@ -6,9 +6,9 @@ description: "Use when: committing or pushing code changes. Mandatory progressiv
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
-  order: 2
-  requires: ["pre-commit-gate"]
-  enables: ["enforce-style-guide"]
+  order: 3
+  requires: ["enforce-style-guide"]
+  enables: ["professional-language-audit"]
   escalates_to: []
   internal: false
 ---
@@ -80,7 +80,7 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 ## What This Gate Does NOT Do
 
 - Does not run lint/typecheck/tests (that's `pre-commit-gate`, order 1)
-- Does not check style guides (that's `enforce-style-guide`, order 3)
+- Does not enforce style guides (that's `enforce-style-guide`, order 2 — runs before this gate so style-induced code changes are covered by this review)
 - Does not handle PR-level review (that's `providing-code-review`)
 - Does not review wiki/docs content (that's `professional-language-audit` and wiki skills)
 
@@ -95,5 +95,5 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 ## Commit Gate Chain
 
 ```
-pre-commit-gate (1) → progressive-code-review-gate (2) → enforce-style-guide (3) → professional-language-audit (4) → public-repo-ip-audit (5)
+pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5)
 ```
