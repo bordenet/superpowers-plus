@@ -6,8 +6,8 @@ description: Enforce coding standards before any commit. Checks shebang, error h
 summary: "Use when: about to commit shell scripts. Checks shebang, error handling, ShellCheck."
 coordination:
   group: commit-gates
-  order: 2
-  requires: ["pre-commit-gate"]
+  order: 3
+  requires: ["progressive-code-review-gate"]
   enables: ["professional-language-audit"]
   escalates_to: []
   internal: false
@@ -209,8 +209,9 @@ Multiple skills fire on "before commit". Execute in this order:
 | Order | Skill | Purpose | Scope |
 |-------|-------|---------|-------|
 | 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
-| 2 | **enforce-style-guide** (this skill) | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
+| 2 | `progressive-code-review-gate` | Harsh adversarial code review loop | All code commits |
+| 3 | **enforce-style-guide** (this skill) | Code style compliance | All commits |
+| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
+| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
+**Rationale:** Technical checks first (fast feedback), then adversarial review, then style, then content gates.
