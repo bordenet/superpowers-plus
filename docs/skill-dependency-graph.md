@@ -30,6 +30,10 @@ graph TD
     verification_before_completion["verification-before-completion"]
   end
 
+  subgraph productivity["Productivity"]
+    plan_and_execute["plan-and-execute"]
+  end
+
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"]
     perplexity_research["perplexity-research"]
@@ -54,6 +58,11 @@ graph TD
   enforce_style_guide -->|then| progressive_code_review_gate
   progressive_code_review_gate -->|enables| professional_language_audit
   exhaustive_audit_validation -->|enables| verification_before_completion
+  plan_and_execute -->|enables| brainstorming
+  plan_and_execute -->|enables| think_twice
+  plan_and_execute -->|enables| todo_management
+  plan_and_execute -->|enables| plan_quality_gates
+  plan_and_execute ==>|escalates to| thinking_orchestrator
   think_twice ==>|escalates to| perplexity_research
   thinking_orchestrator -->|enables| adversarial_search
   thinking_orchestrator -->|enables| think_twice
@@ -77,6 +86,7 @@ graph TD
 | Debugging | `investigation-state` | Coordinated skill group |
 | Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion` | Verification and TODO maintenance before claiming done |
+| Productivity | `plan-and-execute` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Thinking | `thinking-orchestrator` | Metacognition and thinking orchestration |
 | Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence` | Wiki authoring quality pipeline |
