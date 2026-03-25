@@ -49,6 +49,12 @@ DEFAULT_CLAIM_TTL = 30  # minutes
 
 PRIORITY_MARKERS = {"P1": RE_P1, "P2": RE_P2, "P3": RE_P3}
 
+# File protection mode — read-only for owner, group, others.
+# This prevents save-file, str-replace-editor, and shell redirects from
+# overwriting TODO.md without going through todo-engine.py.
+FILE_MODE_PROTECTED = 0o444   # r--r--r--
+FILE_MODE_WRITABLE  = 0o644   # rw-r--r--
+
 # ---------------------------------------------------------------------------
 # Path Resolution
 # ---------------------------------------------------------------------------
@@ -287,11 +293,53 @@ def validate_structure(content: str) -> None:
         )
 
 
+def _unprotect_file(path: str) -> None:
+    """Make TODO.md writable (0644). Called before writes.
+
+    Raises RuntimeError if the file exists but chmod fails — silent failure
+    would defeat the entire protection mechanism.
+    """
+    if not os.path.exists(path):
+        return  # File doesn't exist yet; nothing to unprotect
+    try:
+        os.chmod(path, FILE_MODE_WRITABLE)
+    except OSError as exc:
+        raise RuntimeError(
+            f"CRITICAL: Cannot unprotect TODO.md for writing: {exc}. "
+            f"File protection may be broken on this filesystem."
+        ) from exc
+
+
+def _protect_file(path: str) -> None:
+    """Make TODO.md read-only (0444). Called after writes.
+
+    This is the OS-level gate that prevents save-file, str-replace-editor,
+    and shell redirects from overwriting TODO.md. Only todo-engine.py
+    temporarily lifts this protection during validated writes.
+
+    Raises RuntimeError if the file exists but chmod fails — silent failure
+    would mean the file is left writable and unprotected.
+    """
+    if not os.path.exists(path):
+        return  # Nothing to protect
+    try:
+        os.chmod(path, FILE_MODE_PROTECTED)
+    except OSError as exc:
+        raise RuntimeError(
+            f"CRITICAL: Cannot protect TODO.md after write: {exc}. "
+            f"File is LEFT WRITABLE — manual chmod 0444 needed."
+        ) from exc
+
+
 def write_file(path: str, content: str) -> None:
     validate_structure(content)
     content = _normalize_whitespace(content)
-    with open(path, "w") as f:
-        f.write(content)
+    _unprotect_file(path)
+    try:
+        with open(path, "w") as f:
+            f.write(content)
+    finally:
+        _protect_file(path)
 
 
 def find_section_end(content: str, section_re: re.Pattern) -> int:
@@ -877,6 +925,9 @@ def main():
         return
 
     ensure_file_exists(todo_path)
+
+    # --- Enforce file protection (transition: lock down unprotected files) ---
+    _protect_file(todo_path)
 
     # --- Read-only commands (no lock needed) ---
     if args.command in ("list", "next-id", "cat"):
