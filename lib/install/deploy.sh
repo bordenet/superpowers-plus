@@ -150,7 +150,7 @@ prune_stale_managed_skills() {
         [[ -d "$installed_dir" ]] || continue
         skill_name=$(basename "$installed_dir")
         if [[ -z "${current_skill_map[$skill_name]:-}" ]] && managed_skill_source_matches "$installed_dir"; then
-            rm -rf "$installed_dir" || log_warn "Failed to remove stale managed skill: $skill_name"
+            rm -rf "${installed_dir:?}" || log_warn "Failed to remove stale managed skill: $skill_name"
             log_verbose "Removed stale managed skill (source fallback): $skill_name"
         fi
     done

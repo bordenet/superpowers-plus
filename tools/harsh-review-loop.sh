@@ -18,7 +18,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 
 # Configuration
 MAX_ITERATIONS=10

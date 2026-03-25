@@ -293,7 +293,7 @@ while IFS= read -r installed; do
     ((WARNINGS++))
     if [[ "$PURGE_ORPHANS" == "true" ]] && can_fix moderate; then
       if backup_skill "$installed"; then
-        rm -rf "$installed"
+        rm -rf "${installed:?}"
         echo "  ✅ FIXED: removed orphan $skill"; ((FIXED++))
       fi
     fi
@@ -868,7 +868,7 @@ FIXTURE
       echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
       echo "   Output: $(echo "$result_json" | head -3)"
       ((ERRORS++))
-      rm -rf "$fixture_root"
+      rm -rf "${fixture_root:?}"
       return
     fi
     # Validate: archive should have been performed
@@ -880,7 +880,7 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
 " 2>/dev/null; then
       echo "🟠 ERROR: TODO archive smoke test — archive did not complete as expected"
       ((ERRORS++))
-      rm -rf "$fixture_root"
+      rm -rf "${fixture_root:?}"
       return
     fi
     # Validate: resulting file should be under 50 lines (small TODO regression check)
@@ -888,17 +888,17 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
     if (( line_count >= 50 )); then
       echo "🟠 ERROR: TODO archive smoke test — result is $line_count lines (expected <50)"
       ((ERRORS++))
-      rm -rf "$fixture_root"
+      rm -rf "${fixture_root:?}"
       return
     fi
     # Validate: active task survived
     if ! grep -q '\[20260322-01\]' "$fixture_todo"; then
       echo "🟠 ERROR: TODO archive smoke test — active task was lost during archive"
       ((ERRORS++))
-      rm -rf "$fixture_root"
+      rm -rf "${fixture_root:?}"
       return
     fi
-    rm -rf "$fixture_root"
+    rm -rf "${fixture_root:?}"
   }
   _doctor_todo_smoke
 fi
