@@ -1,10 +1,10 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "edit wiki", "delete wiki page", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
-anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan"]
-description: "Orchestrates multi-page wiki operations through a quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). For simple single-page edits, platform-specific editing skills (e.g., outline-wiki-editing) may be used directly."
-summary: "Use when: multi-page wiki operations (create, reorganize, archive, cross-reference). Skip when: single-page edits, URL verification, fact-checking (use dedicated skills)."
+triggers: ["document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
+anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page"]
+description: "Orchestrates BULK and MULTI-PAGE documentation projects — reorganizing multiple pages, cross-referencing across sections, publishing coordinated updates. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). NOT for single-page edits (use platform-specific editing skills like outline-wiki-editing)."
+summary: "Use when: bulk documentation projects, multi-page reorganization, cross-referencing. Skip when: editing one page, creating one page, deleting one page."
 coordination:
   group: wiki-pipeline
   order: 1
