@@ -2,9 +2,9 @@
 name: writing-skills
 source: superpowers-plus
 overrides: superpowers/writing-skills
-triggers: ["write a skill", "new skill", "edit skill", "skill authoring", "SKILL.md"]
-anti_triggers: ["use skill", "find skill", "load skill"]
-description: "Use when creating new skills, editing existing skills, or verifying skills work before deployment."
+triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions"]
+anti_triggers: ["use skill", "find skill", "load skill", "create a skill", "make a skill", "new skill for"]
+description: "Use when reviewing skill files for prose quality, markdown formatting, and style conventions. NOT for creating new skills (use skill-authoring)."
 ---
 
 # Writing Skills

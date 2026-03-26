@@ -1,9 +1,10 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "wiki markdown rules", "update wiki page", "edit wiki", "create wiki document", "delete wiki page"]
-description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces standalone wiki editing and authoring flows."
-summary: "Use when: multi-page wiki operations (create, reorganize, archive)."
+triggers: ["create wiki page", "update wiki", "edit wiki", "delete wiki page", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
+anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan"]
+description: "Orchestrates multi-page wiki operations through a quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). For simple single-page edits, platform-specific editing skills (e.g., outline-wiki-editing) may be used directly."
+summary: "Use when: multi-page wiki operations (create, reorganize, archive, cross-reference). Skip when: single-page edits, URL verification, fact-checking (use dedicated skills)."
 coordination:
   group: wiki-pipeline
   order: 1
@@ -15,8 +16,8 @@ coordination:
 
 # Wiki Orchestrator
 
-> **Purpose:** Enforce quality pipeline for ALL wiki authoring, editing, and publishing.
-> **Philosophy:** Make quality control unavoidable, not optional.
+> **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
+> **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 
 ---
 
