@@ -313,9 +313,34 @@ def _unprotect_file(path: str) -> None:
         os.chmod(path, FILE_MODE_WRITABLE)
     except OSError as exc:
         raise RuntimeError(
-            f"CRITICAL: Cannot unprotect TODO.md for writing: {exc}. "
-            f"File protection may be broken on this filesystem."
+            f"CRITICAL: Cannot chmod TODO.md for writing: {exc}. "
+            f"The file is deliberately read-only (chmod 444). "
+            f"Use todo-crud.sh which handles chmod automatically. "
+            f"NEVER write TODO.md directly or fall back to a different path."
         ) from exc
+
+
+def _validate_canonical_path(path: str) -> None:
+    """Refuse writes if path doesn't match resolved TODO_FILE_PATH.
+
+    Prevents agents from writing to ~/.codex/TODO.md or other stray
+    locations when the real path is elsewhere (e.g., OneDrive).
+
+    Incident 2026-03-26: A sibling agent bypassed todo-crud.sh, hit
+    chmod 444, and fell back to ~/.codex/TODO.md — creating a stray
+    disconnected TODO file. This gate prevents that.
+    """
+    canonical = resolve_todo_path()
+    real_canonical = os.path.realpath(canonical)
+    real_path = os.path.realpath(path)
+    if real_path != real_canonical:
+        _error(
+            f"REFUSED: Write target '{path}' does not match "
+            f"TODO_FILE_PATH '{canonical}'. This looks like a stray write. "
+            f"Use todo-crud.sh which resolves the correct path automatically. "
+            f"NEVER fall back to a different path when the real path is unwritable "
+            f"— the read-only permission is intentional protection."
+        )
 
 
 def _protect_file(path: str) -> None:
@@ -436,6 +461,7 @@ def _check_annihilation(new_content: str) -> None:
 
 
 def write_file(path: str, content: str) -> None:
+    _validate_canonical_path(path)
     validate_structure(content)
     content = _normalize_whitespace(content)
     _check_annihilation(content)
