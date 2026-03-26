@@ -51,7 +51,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=resolve-env-path.sh
 source "$SCRIPT_DIR/resolve-env-path.sh"
 resolve_env
+# Note: don't use $() — it creates a subshell and loses RESOLVE_SOURCE
 TODO_PATH=$(resolve_path "TODO_FILE_PATH" "$HOME/.codex/TODO.md")
+# Re-call resolve_path to set RESOLVE_SOURCE in the current shell
+# (the $() subshell above ate it)
+resolve_path "TODO_FILE_PATH" "$HOME/.codex/TODO.md" > /dev/null
 
 # Step 3: Check file existence
 FILE_EXISTS=false
@@ -96,7 +100,7 @@ fi
 # Step 5: Output results
 if [[ "$JSON_MODE" == "true" ]]; then
   cat << EOF
-{"todo_path":"$TODO_PATH","file_exists":$FILE_EXISTS,"file_size":$FILE_SIZE,"env_sourced":$ENV_SOURCED,"created":$CREATED,"source":"$(if [[ -n "${TODO_FILE_PATH:-}" ]]; then echo "env"; else echo "default"; fi)"}
+{"todo_path":"$TODO_PATH","file_exists":$FILE_EXISTS,"file_size":$FILE_SIZE,"env_sourced":$ENV_SOURCED,"created":$CREATED,"source":"${RESOLVE_SOURCE:-unknown}"}
 EOF
 else
   echo "TODO_PATH=$TODO_PATH"
@@ -104,11 +108,7 @@ else
   echo "FILE_SIZE=$FILE_SIZE"
   echo "ENV_SOURCED=$ENV_SOURCED"
   echo "CREATED=$CREATED"
-  if [[ -n "${TODO_FILE_PATH:-}" ]]; then
-    echo "SOURCE=env (~/.codex/.env)"
-  else
-    echo "SOURCE=default (\$HOME/.codex/TODO.md)"
-  fi
+  echo "SOURCE=${RESOLVE_SOURCE:-unknown}"
   if [[ "$FILE_EXISTS" == "false" ]]; then
     echo ""
     echo "ERROR: TODO.md does not exist at $TODO_PATH"
@@ -123,49 +123,95 @@ if [[ "$DIAGNOSE" == "true" ]]; then
   echo ""
   echo "=== TODO.md Diagnostic Report ==="
   echo "Canonical path: $TODO_PATH"
-  echo "Source: $(if [[ -n "${TODO_FILE_PATH:-}" ]]; then echo "env (TODO_FILE_PATH)"; else echo "default (~/.codex/TODO.md)"; fi)"
+  echo "Source: ${RESOLVE_SOURCE:-unknown} (priority: registry > env > default)"
   echo "File exists: $FILE_EXISTS"
   if [[ "$FILE_EXISTS" == "true" ]]; then
     PERMS=$(stat -f '%Lp' "$TODO_PATH" 2>/dev/null || stat -c '%a' "$TODO_PATH" 2>/dev/null)
     echo "Permissions: $PERMS"
+
+    # Check immutable flag (macOS chflags uchg)
+    IMMUTABLE="unknown"
+    if [[ "$(uname)" == "Darwin" ]]; then
+      # shellcheck disable=SC2312
+      if (( $(stat -f '%f' "$TODO_PATH" 2>/dev/null) & 2 )); then
+        IMMUTABLE="✅ IMMUTABLE (chflags uchg — Operation not permitted for all writes)"
+      else
+        IMMUTABLE="⚠️  NOT IMMUTABLE — chflags uchg not set"
+      fi
+    elif [[ "$(uname)" == "Linux" ]]; then
+      if lsattr "$TODO_PATH" 2>/dev/null | grep -q "i"; then
+        IMMUTABLE="✅ IMMUTABLE (chattr +i)"
+      else
+        IMMUTABLE="⚠️  NOT IMMUTABLE — chattr +i not set (may require sudo)"
+      fi
+    fi
+    echo "Immutability: $IMMUTABLE"
+
     if [[ "$PERMS" == "444" ]]; then
-      echo "Protection: ✅ PROTECTED (read-only, as expected)"
+      echo "chmod: ✅ PROTECTED (read-only)"
     elif [[ "$PERMS" == "644" ]]; then
-      echo "Protection: ⚠️  WRITABLE — file left unprotected (possible incomplete write)"
+      echo "chmod: ⚠️  WRITABLE — file left unprotected (possible incomplete write)"
     else
-      echo "Protection: ❓ UNEXPECTED permissions: $PERMS"
+      echo "chmod: ❓ UNEXPECTED permissions: $PERMS"
     fi
     echo "File size: ${FILE_SIZE} bytes"
   fi
 
-  # Shadow check
-  SHADOW_PATH="$HOME/.codex/todo-shadow/TODO.md"
-  if [[ -f "$SHADOW_PATH" ]]; then
-    SHADOW_SIZE=$(wc -c < "$SHADOW_PATH" 2>/dev/null | tr -d ' ')
-    echo "Shadow exists: ✅ ($SHADOW_SIZE bytes)"
-  else
-    echo "Shadow exists: ❌ (no shadow — first write will create one)"
+  # Shadow ring check
+  SHADOW_DIR="$HOME/.codex/todo-shadow"
+  echo ""
+  echo "--- Shadow Ring Buffer ---"
+  for i in 1 2 3 4 5; do
+    SLOT="$SHADOW_DIR/TODO.shadow.${i}.md"
+    if [[ -f "$SLOT" ]]; then
+      SLOT_SIZE=$(wc -c < "$SLOT" 2>/dev/null | tr -d ' ')
+      echo "  Slot $i: ✅ ($SLOT_SIZE bytes)"
+    else
+      echo "  Slot $i: ❌ (empty)"
+    fi
+  done
+  # Legacy single shadow
+  LEGACY_SHADOW="$SHADOW_DIR/TODO.md"
+  if [[ -f "$LEGACY_SHADOW" ]]; then
+    LEGACY_SIZE=$(wc -c < "$LEGACY_SHADOW" 2>/dev/null | tr -d ' ')
+    echo "  Legacy shadow: ⚠️  ($LEGACY_SIZE bytes — will migrate to slot 1 on next write)"
   fi
 
-  # Stray file detection
-  STRAY_FOUND=false
+  # Timed snapshots
+  echo ""
+  echo "--- Timed Snapshots ---"
+  TIMED_COUNT=$(find "$SHADOW_DIR" -name "TODO.timed.*.md" 2>/dev/null | wc -l | tr -d ' ')
+  echo "  Count: $TIMED_COUNT / 5 max"
+  if [[ "$TIMED_COUNT" -gt 0 ]]; then
+    # shellcheck disable=SC2012
+    NEWEST_TIMED=$(ls -t "$SHADOW_DIR"/TODO.timed.*.md 2>/dev/null | head -1)
+    if [[ -n "$NEWEST_TIMED" ]]; then
+      echo "  Newest: $(basename "$NEWEST_TIMED")"
+    fi
+  fi
+
+  # Honeypot / stray file detection
+  echo ""
   DEFAULT_PATH="$HOME/.codex/TODO.md"
   REAL_CANONICAL=$(realpath "$TODO_PATH" 2>/dev/null || echo "$TODO_PATH")
   REAL_DEFAULT=$(realpath "$DEFAULT_PATH" 2>/dev/null || echo "$DEFAULT_PATH")
   if [[ "$REAL_CANONICAL" != "$REAL_DEFAULT" && -f "$DEFAULT_PATH" ]]; then
-    STRAY_FOUND=true
-    STRAY_SIZE=$(wc -c < "$DEFAULT_PATH" 2>/dev/null | tr -d ' ')
-    echo ""
-    echo "🚨 STRAY TODO.md DETECTED: $DEFAULT_PATH ($STRAY_SIZE bytes)"
-    echo "   Canonical path is: $TODO_PATH"
-    echo "   This stray file was likely created by an agent that couldn't write"
-    echo "   to the canonical path (chmod 444) and fell back to the default."
-    echo "   ACTION: Review contents, merge anything valuable, then delete:"
-    echo "     cat $DEFAULT_PATH"
-    echo "     rm $DEFAULT_PATH"
-  fi
-
-  if [[ "$STRAY_FOUND" == "false" ]]; then
+    # Check if it's our honeypot or a stray
+    if grep -q "THIS IS NOT THE REAL TODO FILE" "$DEFAULT_PATH" 2>/dev/null; then
+      echo "Honeypot: ✅ Deployed at $DEFAULT_PATH"
+      # shellcheck disable=SC2312
+      if (( $(stat -f '%f' "$DEFAULT_PATH" 2>/dev/null) & 2 )); then
+        echo "  Honeypot immutable: ✅ (chflags uchg)"
+      else
+        echo "  Honeypot immutable: ⚠️  NOT LOCKED — run: chflags uchg $DEFAULT_PATH"
+      fi
+    else
+      echo "🚨 STRAY TODO.md DETECTED: $DEFAULT_PATH"
+      STRAY_SIZE=$(wc -c < "$DEFAULT_PATH" 2>/dev/null | tr -d ' ')
+      echo "   Size: $STRAY_SIZE bytes (NOT a honeypot — contains real content)"
+      echo "   ACTION: Review contents, merge anything valuable, then replace with honeypot"
+    fi
+  else
     echo "Stray detection: ✅ No stray TODO.md files found"
   fi
   echo "=== End Diagnostic ==="

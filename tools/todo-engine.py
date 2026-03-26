@@ -184,11 +184,23 @@ def release_lock(todo_path: str) -> None:
         shutil.rmtree(lock, ignore_errors=True)
 
 
+BAK_MAX_KEEP = 10  # Maximum .bak files to keep
+
+
 def backup(todo_path: str) -> str:
-    """Create timestamped backup. Returns backup path."""
+    """Create timestamped backup and rotate old backups. Returns backup path."""
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     bak = f"{todo_path}.{ts}.bak"
     shutil.copy2(todo_path, bak)
+    # Rotate: delete all but newest BAK_MAX_KEEP
+    import glob
+    bak_pattern = f"{todo_path}.*.bak"
+    existing = sorted(glob.glob(bak_pattern))
+    while len(existing) > BAK_MAX_KEEP:
+        try:
+            os.remove(existing.pop(0))
+        except OSError:
+            pass
     return bak
 
 # ---------------------------------------------------------------------------
@@ -319,7 +331,7 @@ def _clear_immutable(path: str) -> None:
     """Clear OS-level immutable flag (chflags/chattr) if present.
 
     macOS: chflags nouchg
-    Linux: chattr -i (may require elevated privileges)
+    Linux: chattr -i (requires CAP_LINUX_IMMUTABLE or root — may silently fail)
     Other: no-op (fall through to chmod)
     """
     try:
@@ -327,17 +339,26 @@ def _clear_immutable(path: str) -> None:
             subprocess.run(["chflags", "nouchg", path],
                            capture_output=True, timeout=5, check=True)
         elif PLATFORM == "linux":
+            # Note: chattr -i requires root or CAP_LINUX_IMMUTABLE.
+            # If this fails, chmod will also fail and raise a clear error.
             subprocess.run(["chattr", "-i", path],
                            capture_output=True, timeout=5, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        pass  # Command not available or failed; fall through to chmod
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"WARNING: Failed to clear immutable flag on {path}: {exc}. "
+            f"Falling back to chmod only.",
+            file=sys.stderr,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Command not available on this platform; fall through to chmod
 
 
 def _set_immutable(path: str) -> None:
     """Set OS-level immutable flag (chflags/chattr) for strongest protection.
 
     macOS: chflags uchg → 'Operation not permitted' for ANY write attempt
-    Linux: chattr +i → same effect (may require elevated privileges)
+    Linux: chattr +i → same effect (requires root — will silently fall back
+           to chmod 444 if insufficient privileges)
     Other: no-op (rely on chmod 444 alone)
 
     Agents' save-file and str-replace-editor CANNOT clear these flags.
@@ -350,8 +371,14 @@ def _set_immutable(path: str) -> None:
         elif PLATFORM == "linux":
             subprocess.run(["chattr", "+i", path],
                            capture_output=True, timeout=5, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        pass  # Best-effort; chmod 444 is the fallback
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"WARNING: Failed to set immutable flag on {path}: {exc}. "
+            f"Relying on chmod 444 only.",
+            file=sys.stderr,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Command not available on this platform; chmod 444 is fallback
 
 
 def _unprotect_file(path: str) -> None:
@@ -425,9 +452,60 @@ def _protect_file(path: str) -> None:
 # Shadow Backup & Annihilation Detection
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Shadow Ring Buffer (5 slots) + Timed Snapshots (30 min, keep 5)
+# ---------------------------------------------------------------------------
+
+RING_SLOTS = 5  # Number of shadow ring buffer slots
+TIMED_INTERVAL_SECONDS = 1800  # 30 minutes between timed snapshots
+TIMED_MAX_SNAPSHOTS = 5  # Maximum timed snapshots to keep
+
+
+def _ring_path(slot: int) -> str:
+    """Return the path for a specific ring buffer slot (1-5)."""
+    return os.path.join(SHADOW_DIR, f"TODO.shadow.{slot}.md")
+
+
 def _shadow_path() -> str:
-    """Return the path to the shadow backup file."""
-    return os.path.join(SHADOW_DIR, "TODO.md")
+    """Return the path to use for annihilation comparison.
+
+    Uses the OLDEST ring buffer entry (most likely to be pre-corruption).
+    Falls back to newest if oldest doesn't exist, then to legacy shadow.
+    """
+    # Check from oldest to newest — oldest is most likely clean
+    for slot in range(RING_SLOTS, 0, -1):
+        path = _ring_path(slot)
+        if os.path.exists(path):
+            return path
+    # Legacy single shadow (pre-ring migration)
+    legacy = os.path.join(SHADOW_DIR, "TODO.md")
+    if os.path.exists(legacy):
+        return legacy
+    return _ring_path(1)  # Will be created on first write
+
+
+def _rotate_ring() -> None:
+    """Rotate the ring buffer: delete slot 5, shift 4→5, 3→4, 2→3, 1→2.
+
+    After rotation, slot 1 is empty and ready for the new shadow.
+    """
+    # Delete oldest slot
+    oldest = _ring_path(RING_SLOTS)
+    if os.path.exists(oldest):
+        os.remove(oldest)
+    # Shift each slot up by one
+    for slot in range(RING_SLOTS - 1, 0, -1):
+        src = _ring_path(slot)
+        dst = _ring_path(slot + 1)
+        if os.path.exists(src):
+            os.rename(src, dst)
+
+
+def _migrate_legacy_shadow() -> None:
+    """Migrate legacy single shadow (TODO.md) to ring slot 1."""
+    legacy = os.path.join(SHADOW_DIR, "TODO.md")
+    if os.path.exists(legacy) and not os.path.exists(_ring_path(1)):
+        os.rename(legacy, _ring_path(1))
 
 
 def _count_active_tasks(content: str) -> int:
@@ -438,29 +516,76 @@ def _count_active_tasks(content: str) -> int:
 
 
 def update_shadow(content: str) -> None:
-    """Write a shadow copy after a successful write (atomic: temp + replace).
+    """Write a shadow copy into ring buffer slot 1 after rotating.
 
     This is a PUBLIC function so that other approved writers (archive,
     maintenance) can update the shadow after they modify TODO.md directly.
 
+    Ring rotation: slot 5 is deleted, 4→5, 3→4, 2→3, 1→2, new→1.
+    This means slot 5 (the oldest) is always the most likely to be
+    pre-corruption, which is what annihilation detection compares against.
+
     Best-effort: warns on failure but does NOT crash the write path.
-    The primary file has already been written successfully at this point.
     """
     try:
         os.makedirs(SHADOW_DIR, exist_ok=True)
-        shadow = _shadow_path()
-        tmp = shadow + f".tmp.{os.getpid()}"
+        _migrate_legacy_shadow()
+        _rotate_ring()
+        slot1 = _ring_path(1)
+        tmp = slot1 + f".tmp.{os.getpid()}"
         with open(tmp, "w") as f:
             f.write(content)
-        os.replace(tmp, shadow)
+        os.replace(tmp, slot1)
     except OSError as exc:
-        print(f"WARNING: Could not update shadow backup: {exc}. "
-              f"Annihilation detection may be stale until next successful shadow write.",
+        print(f"WARNING: Could not update shadow ring: {exc}. "
+              f"Annihilation detection may be stale.",
+              file=sys.stderr)
+
+
+def _maybe_create_timed_snapshot(content: str) -> None:
+    """Create a time-bucketed snapshot if >30 min since last one.
+
+    Timed snapshots are immune to rapid-fire bad writes (they all fall
+    in the same time bucket). Keeps at most 5 snapshots.
+
+    File naming: TODO.timed.YYYYMMDD-HHMM.md
+    """
+    try:
+        os.makedirs(SHADOW_DIR, exist_ok=True)
+        import glob
+        pattern = os.path.join(SHADOW_DIR, "TODO.timed.*.md")
+        existing = sorted(glob.glob(pattern))
+
+        # Check if newest snapshot is old enough
+        if existing:
+            newest_mtime = os.path.getmtime(existing[-1])
+            if time.time() - newest_mtime < TIMED_INTERVAL_SECONDS:
+                return  # Too recent — skip
+
+        # Create new timed snapshot
+        timestamp = time.strftime("%Y%m%d-%H%M")
+        snap_path = os.path.join(SHADOW_DIR, f"TODO.timed.{timestamp}.md")
+        tmp = snap_path + f".tmp.{os.getpid()}"
+        with open(tmp, "w") as f:
+            f.write(content)
+        os.replace(tmp, snap_path)
+
+        # Rotate: delete oldest if count > max
+        existing.append(snap_path)
+        existing = sorted(existing)
+        while len(existing) > TIMED_MAX_SNAPSHOTS:
+            os.remove(existing.pop(0))
+    except OSError as exc:
+        print(f"WARNING: Could not create timed snapshot: {exc}.",
               file=sys.stderr)
 
 
 def _check_annihilation(new_content: str) -> None:
-    """Compare new content against shadow to detect catastrophic data loss.
+    """Compare new content against oldest shadow ring entry to detect loss.
+
+    Uses the OLDEST ring entry (slot 5 or highest existing) because it's
+    the most likely to be pre-corruption. This means even if an agent does
+    4 rapid bad writes (filling slots 1-4), slot 5 still has the clean state.
 
     Checks:
     1. Size drop: new content < 40% of shadow size
@@ -522,6 +647,13 @@ def write_file(path: str, content: str) -> None:
     validate_structure(content)
     content = _normalize_whitespace(content)
     _check_annihilation(content)
+    # Create timed snapshot BEFORE the write (captures pre-write state)
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                _maybe_create_timed_snapshot(f.read())
+        except OSError:
+            pass
     _unprotect_file(path)
     try:
         with open(path, "w") as f:

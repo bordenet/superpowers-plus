@@ -24,12 +24,41 @@ resolve_env() {
 }
 
 # Resolve a path from an environment variable with a fallback default.
+# For TODO_FILE_PATH, checks ~/.codex/.todo-registry first (private path
+# store that agents don't see). Falls back to env var, then default.
 # Expands ~ and $HOME in the resulting path.
 # Args: $1 = variable name, $2 = default value
+# Sets: RESOLVE_SOURCE = "registry" | "env" | "default"
 resolve_path() {
   local var_name="$1"
   local default="$2"
-  local value="${!var_name:-$default}"
+  local value=""
+  RESOLVE_SOURCE="default"
+
+  # Priority 1: Private registry (for TODO_FILE_PATH)
+  if [[ "$var_name" == "TODO_FILE_PATH" ]]; then
+    local registry="$HOME/.codex/.todo-registry"
+    if [[ -f "$registry" ]]; then
+      value="$(head -1 "$registry" 2>/dev/null | tr -d '[:space:]')"
+      if [[ -n "$value" ]]; then
+        RESOLVE_SOURCE="registry"
+      fi
+    fi
+  fi
+
+  # Priority 2: Environment variable (from .env or export)
+  if [[ -z "$value" ]]; then
+    value="${!var_name:-}"
+    if [[ -n "$value" ]]; then
+      RESOLVE_SOURCE="env"
+    fi
+  fi
+
+  # Priority 3: Default
+  if [[ -z "$value" ]]; then
+    value="$default"
+    RESOLVE_SOURCE="default"
+  fi
 
   # Expand $HOME and ~ in the path
   if command -v envsubst &>/dev/null; then

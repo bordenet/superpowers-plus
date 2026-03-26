@@ -125,12 +125,14 @@ if [[ ! -f "$ENGINE" ]]; then
   exit 1
 fi
 
-# --- Source env for TODO_FILE_PATH (only if not already set) ---
-if [[ -z "${TODO_FILE_PATH:-}" && -f "$HOME/.codex/.env" ]]; then
+# --- Path resolution ---
+# The engine reads ~/.codex/.todo-registry for the TODO.md path.
+# We only source .env for other env vars the engine might need.
+# DO NOT export TODO_FILE_PATH here — let the engine resolve it.
+if [[ -f "$HOME/.codex/.env" ]]; then
   # shellcheck source=/dev/null
   source "$HOME/.codex/.env" 2>/dev/null || true
 fi
-export TODO_FILE_PATH="${TODO_FILE_PATH:-}"
 
 # --- Dispatch ---
 case "${1:-}" in
