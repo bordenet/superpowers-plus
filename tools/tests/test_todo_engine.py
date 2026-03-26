@@ -94,6 +94,9 @@ class TodoEngineTests(unittest.TestCase):
             os.environ.pop("TODO_FILE_PATH", None)
         else:
             os.environ["TODO_FILE_PATH"] = self._orig_env
+        # Clear immutable flags before cleanup (chflags uchg blocks rmtree)
+        if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
         shutil.rmtree(self._shadow_tmp, ignore_errors=True)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
@@ -511,7 +514,7 @@ class TodoEngineTests(unittest.TestCase):
                             path = eng.resolve_todo_path()
             stderr_output = err_buf.getvalue()
         self.assertIn("WARNING", stderr_output)
-        self.assertIn("TODO_FILE_PATH not found", stderr_output)
+        self.assertIn("TODO path not found", stderr_output)
         self.assertIn(".codex/TODO.md", path)
 
     def test_complete_nonexistent_task_errors(self):
@@ -770,8 +773,9 @@ class FileProtectionTests(unittest.TestCase):
             os.environ.pop("TODO_FILE_PATH", None)
         else:
             os.environ["TODO_FILE_PATH"] = self._orig_env
-        # Ensure file is writable so tempdir cleanup succeeds
+        # Clear immutable flag + chmod so tempdir cleanup succeeds
         if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
             os.chmod(str(self.todo_path), 0o644)
         self._shadow_tmp.cleanup()
         self.tmp.cleanup()
@@ -901,6 +905,7 @@ class ShadowBackupTests(unittest.TestCase):
         else:
             os.environ["TODO_FILE_PATH"] = self._orig_env
         if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
             os.chmod(str(self.todo_path), 0o644)
         self.tmp.cleanup()
         self.shadow_tmp.cleanup()
