@@ -199,11 +199,21 @@ if [[ "$DIAGNOSE" == "true" ]]; then
     # Check if it's our honeypot or a stray
     if grep -q "THIS IS NOT THE REAL TODO FILE" "$DEFAULT_PATH" 2>/dev/null; then
       echo "Honeypot: ✅ Deployed at $DEFAULT_PATH"
-      # shellcheck disable=SC2312
-      if (( $(stat -f '%f' "$DEFAULT_PATH" 2>/dev/null) & 2 )); then
-        echo "  Honeypot immutable: ✅ (chflags uchg)"
+      if [[ "$(uname)" == "Darwin" ]]; then
+        # shellcheck disable=SC2312
+        if (( $(stat -f '%f' "$DEFAULT_PATH" 2>/dev/null) & 2 )); then
+          echo "  Honeypot immutable: ✅ (chflags uchg)"
+        else
+          echo "  Honeypot immutable: ⚠️  NOT LOCKED — run: chflags uchg $DEFAULT_PATH"
+        fi
+      elif [[ "$(uname)" == "Linux" ]]; then
+        if lsattr "$DEFAULT_PATH" 2>/dev/null | grep -q "i"; then
+          echo "  Honeypot immutable: ✅ (chattr +i)"
+        else
+          echo "  Honeypot immutable: ⚠️  NOT LOCKED — run: sudo chattr +i $DEFAULT_PATH"
+        fi
       else
-        echo "  Honeypot immutable: ⚠️  NOT LOCKED — run: chflags uchg $DEFAULT_PATH"
+        echo "  Honeypot immutable: ℹ️  (immutability check not available on this platform)"
       fi
     else
       echo "🚨 STRAY TODO.md DETECTED: $DEFAULT_PATH"
