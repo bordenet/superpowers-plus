@@ -50,7 +50,7 @@ SOURCE_DIRS=("$SP_PLUS_DIR")
 while IFS='=' read -r varname varval; do
   [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
   [[ "$varname" =~ _SOURCE_DIR$ ]] || continue
-  _dir="${varval//\"/}"
+  _dir="${varval//[\"\']}"
   [[ -n "$_dir" && -d "$_dir" ]] && SOURCE_DIRS+=("$_dir")
 done < <(grep '_SOURCE_DIR=' "$HOME/.codex/.env" 2>/dev/null || true)
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
