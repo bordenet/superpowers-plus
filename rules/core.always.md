@@ -56,23 +56,29 @@ Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and in
 On 2026-03-23, an agent used `save-file` to overwrite TODO.md with a raw task list, destroying dozens of open tasks that had never been started. No backup was created. The tasks were unrecoverable.
 
 ### 🔴 NEVER fall back to a different path
-If `$TODO_FILE_PATH` appears "unwritable" — that is **intentional** (chmod 444 protection). Do NOT write to `~/.codex/TODO.md` or any other path. Use `todo-crud.sh` which handles chmod 644 → write → chmod 444 automatically.
+`~/.codex/TODO.md` is a **honeypot** — writing there does nothing useful. The real file is OS-immutable (`chflags uchg`) and its path is private. Do NOT search for it. Use `todo-crud.sh` exclusively.
 
 Run `todo-preflight.sh --diagnose` to check path, permissions, and detect stray TODO files.
 
-### Enforcement (5 layers — you CANNOT bypass all of them)
+### 🔴 Do NOT look for the file path
+The TODO.md path is NOT in `.env`, NOT in environment variables. It is stored in a private registry that only `todo-crud.sh` and the engine can read. Do NOT try to discover or write to it directly.
+
+### Enforcement (7 layers — you CANNOT bypass all of them)
 1. **Rules** — this ban (you're reading it now)
 2. **Structural validation** — `write_file()` rejects content missing required headers/sections
-3. **OS protection** — TODO.md is `chmod 0444` (read-only); `save-file` gets `PermissionError`
-4. **Shadow + annihilation detection** — pre-write comparison vs `~/.codex/todo-shadow/TODO.md` blocks >60% size drops, all-task wipes, or >5 task losses
-5. **Stray path detection** — `_validate_canonical_path()` refuses writes to any path that doesn't match resolved `$TODO_FILE_PATH`
+3. **OS immutability** — TODO.md is `chflags uchg` (macOS) / `chattr +i` (Linux) — `Operation not permitted` for ALL writes, even chmod attempts
+4. **chmod 444** — secondary protection layer if immutability unavailable
+5. **Shadow + annihilation detection** — pre-write comparison blocks >60% size drops
+6. **Stray path detection** — `_validate_canonical_path()` refuses writes to any non-canonical path
+7. **Path obscuring** — path removed from `.env`, stored in private registry; honeypot at default location
 
 **If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
 
 ### Incidents
 | Date | What Happened |
 |------|---------------|
-| 2026-03-23 | Agent used `save-file` to overwrite TODO.md with raw task list, destroying dozens of open tasks. Unrecoverable. |
-| 2026-03-26 | Sibling agent tried direct write, hit chmod 444, fell back to `~/.codex/TODO.md` — creating a stray disconnected TODO. Fix: added `_validate_canonical_path()`, hardened rules, added `--diagnose` to preflight. |
+| 2026-03-23 | Agent used `save-file` to overwrite TODO.md, destroying dozens of open tasks. Unrecoverable. |
+| 2026-03-26a | Agent hit chmod 444, fell back to `~/.codex/TODO.md` — stray file. Fix: `_validate_canonical_path()`. |
+| 2026-03-26b | GPT-5.4 agent wrote directly to TODO.md despite all rules. Fix: `chflags uchg` + path obscuring + honeypot. |
 
 For multi-step tasks (3+ steps): use `todo-crud.sh add` to persist tasks, then mirror to MCP `add_tasks` for UI.
