@@ -21,19 +21,22 @@ fi
 
 JSON_MODE=false
 CREATE_IF_MISSING=false
+DIAGNOSE=false
 
 for arg in "$@"; do
   case "$arg" in
     --json) JSON_MODE=true ;;
     --create-if-missing) CREATE_IF_MISSING=true ;;
+    --diagnose) DIAGNOSE=true ;;
     --help|-h)
-      echo "Usage: todo-preflight.sh [--json] [--create-if-missing]"
+      echo "Usage: todo-preflight.sh [--json] [--create-if-missing] [--diagnose]"
       echo ""
       echo "Resolves TODO_FILE_PATH from ~/.codex/.env and validates the file."
       echo ""
       echo "Options:"
       echo "  --json               Output JSON (for machine consumption)"
       echo "  --create-if-missing  Create TODO.md from template if not found"
+      echo "  --diagnose           Full diagnostic: path, permissions, shadow, stray detection"
       exit 0
       ;;
     *)
@@ -112,4 +115,58 @@ else
     echo "FIX: Run with --create-if-missing, or create the file manually"
     exit 1
   fi
+fi
+
+
+# --- Diagnose mode ---
+if [[ "$DIAGNOSE" == "true" ]]; then
+  echo ""
+  echo "=== TODO.md Diagnostic Report ==="
+  echo "Canonical path: $TODO_PATH"
+  echo "Source: $(if [[ -n "${TODO_FILE_PATH:-}" ]]; then echo "env (TODO_FILE_PATH)"; else echo "default (~/.codex/TODO.md)"; fi)"
+  echo "File exists: $FILE_EXISTS"
+  if [[ "$FILE_EXISTS" == "true" ]]; then
+    PERMS=$(stat -f '%Lp' "$TODO_PATH" 2>/dev/null || stat -c '%a' "$TODO_PATH" 2>/dev/null)
+    echo "Permissions: $PERMS"
+    if [[ "$PERMS" == "444" ]]; then
+      echo "Protection: ✅ PROTECTED (read-only, as expected)"
+    elif [[ "$PERMS" == "644" ]]; then
+      echo "Protection: ⚠️  WRITABLE — file left unprotected (possible incomplete write)"
+    else
+      echo "Protection: ❓ UNEXPECTED permissions: $PERMS"
+    fi
+    echo "File size: ${FILE_SIZE} bytes"
+  fi
+
+  # Shadow check
+  SHADOW_PATH="$HOME/.codex/todo-shadow/TODO.md"
+  if [[ -f "$SHADOW_PATH" ]]; then
+    SHADOW_SIZE=$(wc -c < "$SHADOW_PATH" 2>/dev/null | tr -d ' ')
+    echo "Shadow exists: ✅ ($SHADOW_SIZE bytes)"
+  else
+    echo "Shadow exists: ❌ (no shadow — first write will create one)"
+  fi
+
+  # Stray file detection
+  STRAY_FOUND=false
+  DEFAULT_PATH="$HOME/.codex/TODO.md"
+  REAL_CANONICAL=$(realpath "$TODO_PATH" 2>/dev/null || echo "$TODO_PATH")
+  REAL_DEFAULT=$(realpath "$DEFAULT_PATH" 2>/dev/null || echo "$DEFAULT_PATH")
+  if [[ "$REAL_CANONICAL" != "$REAL_DEFAULT" && -f "$DEFAULT_PATH" ]]; then
+    STRAY_FOUND=true
+    STRAY_SIZE=$(wc -c < "$DEFAULT_PATH" 2>/dev/null | tr -d ' ')
+    echo ""
+    echo "🚨 STRAY TODO.md DETECTED: $DEFAULT_PATH ($STRAY_SIZE bytes)"
+    echo "   Canonical path is: $TODO_PATH"
+    echo "   This stray file was likely created by an agent that couldn't write"
+    echo "   to the canonical path (chmod 444) and fell back to the default."
+    echo "   ACTION: Review contents, merge anything valuable, then delete:"
+    echo "     cat $DEFAULT_PATH"
+    echo "     rm $DEFAULT_PATH"
+  fi
+
+  if [[ "$STRAY_FOUND" == "false" ]]; then
+    echo "Stray detection: ✅ No stray TODO.md files found"
+  fi
+  echo "=== End Diagnostic ==="
 fi

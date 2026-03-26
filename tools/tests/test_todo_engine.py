@@ -79,6 +79,9 @@ class TodoEngineTests(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp(prefix="todo-test-")
         self.todo_path = Path(self.tmpdir) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Isolate shadow dir so tests don't interfere with each other
         self._shadow_tmp = tempfile.mkdtemp(prefix="todo-shadow-test-")
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -87,6 +90,10 @@ class TodoEngineTests(unittest.TestCase):
     def tearDown(self):
         import shutil
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         shutil.rmtree(self._shadow_tmp, ignore_errors=True)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
@@ -749,6 +756,9 @@ class FileProtectionTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.todo_path = Path(self.tmp.name) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Isolate shadow dir
         self._shadow_tmp = tempfile.TemporaryDirectory()
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -756,6 +766,10 @@ class FileProtectionTests(unittest.TestCase):
 
     def tearDown(self):
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         # Ensure file is writable so tempdir cleanup succeeds
         if self.todo_path.exists():
             os.chmod(str(self.todo_path), 0o644)
@@ -840,6 +854,30 @@ class FileProtectionTests(unittest.TestCase):
                             "Shell redirect should fail on 0444 file")
 
 
+    def test_stray_path_write_refused(self):
+        """write_file() refuses if target path != resolved TODO_FILE_PATH.
+
+        Incident 2026-03-26: agent fell back to ~/.codex/TODO.md when the
+        real path was unwritable (chmod 444). This gate prevents that.
+        """
+        eng = self.engine
+        stray_tmp = tempfile.TemporaryDirectory()
+        stray_path = Path(stray_tmp.name) / "STRAY_TODO.md"
+        stray_path.write_text(SAMPLE_TODO)
+        # TODO_FILE_PATH points at self.todo_path, not stray_path
+        with self.assertRaises(SystemExit) as ctx:
+            eng.write_file(str(stray_path), SAMPLE_TODO)
+        stray_tmp.cleanup()
+
+    def test_canonical_path_write_allowed(self):
+        """write_file() succeeds when target matches TODO_FILE_PATH."""
+        eng = self.engine
+        # TODO_FILE_PATH already set to self.todo_path in setUp
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertEqual(self.todo_path.read_text(), SAMPLE_TODO)
+
+
+
 class ShadowBackupTests(unittest.TestCase):
     """Tests for shadow backup and annihilation detection."""
 
@@ -848,6 +886,9 @@ class ShadowBackupTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.todo_path = Path(self.tmp.name) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Use a temporary shadow dir to avoid polluting ~/.codex
         self.shadow_tmp = tempfile.TemporaryDirectory()
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -855,6 +896,10 @@ class ShadowBackupTests(unittest.TestCase):
 
     def tearDown(self):
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         if self.todo_path.exists():
             os.chmod(str(self.todo_path), 0o644)
         self.tmp.cleanup()
