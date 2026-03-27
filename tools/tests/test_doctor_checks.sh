@@ -45,7 +45,7 @@ test_stale_checkout_detection() {
   else
     fail "stale checkout not detected (local=$local_head remote=$remote_head behind=$behind)"
   fi
-  rm -rf "$tmp_repo"
+  rm -rf "${tmp_repo:?}"
 }
 
 test_clean_checkout_not_flagged() {
@@ -64,7 +64,7 @@ test_clean_checkout_not_flagged() {
   else
     fail "clean checkout incorrectly flagged"
   fi
-  rm -rf "$tmp_repo"
+  rm -rf "${tmp_repo:?}"
 }
 
 test_dirty_checkout_detection() {
@@ -80,7 +80,7 @@ test_dirty_checkout_detection() {
   else
     fail "dirty checkout not detected"
   fi
-  rm -rf "$tmp_repo"
+  rm -rf "${tmp_repo:?}"
 }
 
 test_dirty_safe_artifact_classification() {
@@ -105,7 +105,7 @@ test_dirty_safe_artifact_classification() {
   else
     fail "safe artifacts misclassified as user changes: $user_changes"
   fi
-  rm -rf "$tmp_repo"
+  rm -rf "${tmp_repo:?}"
 }
 
 # ── Check 21: TODO archive smoke test ──
@@ -165,13 +165,13 @@ FIXTURE
   local result_json
   if ! result_json=$(HOME="$fixture_root/home" "$MAINT_SCRIPT" --json 2>&1); then
     fail "TODO smoke test: maintenance script failed: $(echo "$result_json" | head -2)"
-    rm -rf "$fixture_root"; return
+    rm -rf "${fixture_root:?}"; return
   fi
   local archived line_count
   archived=$(echo "$result_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['archive_performed'])" 2>/dev/null || echo "")
   if [[ "$archived" != "True" ]]; then
     fail "TODO smoke test: archive not performed (got: $archived)"
-    rm -rf "$fixture_root"; return
+    rm -rf "${fixture_root:?}"; return
   fi
   line_count=$(wc -l < "$fixture_todo" | tr -d ' ')
   if (( line_count < 50 )); then
@@ -180,7 +180,7 @@ FIXTURE
     fail "TODO smoke test: result $line_count lines (expected <50)"
   fi
   grep -q '\[20260322-01\]' "$fixture_todo" || fail "TODO smoke test: active task lost"
-  rm -rf "$fixture_root"
+  rm -rf "${fixture_root:?}"
 }
 
 # ── Check 22: Reviewer-dispatch rendering verification ──

@@ -158,6 +158,31 @@ function transformOutput(text) {
     return result;
 }
 
+function parseInlineArray(value) {
+    return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+}
+
+function parseYamlList(lines, startIndex) {
+    const values = [];
+    let nextIndex = startIndex;
+
+    for (let i = startIndex + 1; i < lines.length; i++) {
+        const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+        if (itemMatch) {
+            values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+            nextIndex = i;
+            continue;
+        }
+        if (lines[i].trim() === '') {
+            nextIndex = i;
+            continue;
+        }
+        break;
+    }
+
+    return { values, nextIndex };
+}
+
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -173,7 +198,8 @@ function extractFrontmatter(filePath) {
         let compositionLines = [];
         let compress = true;
 
-        for (const line of lines) {
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
                 inFrontmatter = true;
@@ -209,15 +235,22 @@ function extractFrontmatter(filePath) {
                 }
 
                 // Check for triggers array
-                const triggersMatch = line.match(/^triggers:\s*\[(.+)\]/);
+                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
                 if (triggersMatch) {
-                    const triggerStr = triggersMatch[1];
-                    triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                    triggers = parseInlineArray(triggersMatch[1]);
+                } else if (line.match(/^triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    triggers = parsed.values;
+                    i = parsed.nextIndex;
                 }
                 // Check for requires_mcp array
-                const mcpMatch = line.match(/^requires_mcp:\s*\[(.+)\]/);
+                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
                 if (mcpMatch) {
-                    requires_mcp = mcpMatch[1].match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                } else if (line.match(/^requires_mcp:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    requires_mcp = parsed.values;
+                    i = parsed.nextIndex;
                 }
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
