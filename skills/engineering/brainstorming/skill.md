@@ -9,6 +9,12 @@ description: "You MUST use this before any creative work - creating features, bu
 
 # Brainstorming Ideas Into Designs
 
+## When to Use
+
+- Before any creative work: creating features, building components, adding functionality, or modifying behavior
+- User says "design a feature," "build a new," "explore approaches"
+- NOT for: bug fixing (`systematic-debugging`), extracting existing knowledge (`expert-interviewer`), choosing between known options (`design-triad`)
+
 Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
 
 <HARD-GATE>
@@ -65,3 +71,21 @@ Do NOT write any code or take implementation action until you have presented a d
 - **YAGNI ruthlessly** — remove unnecessary features
 - **Explore alternatives** — always 2-3 approaches
 - **Incremental validation** — present, approve, move on
+
+## Example: Design Spec Output
+
+```markdown
+# Design: Feature Name
+## Approach: [Selected approach with rationale]
+## Components: [Architecture, data flow, interfaces]
+## Testing: [Strategy, edge cases]
+## Status: Approved → invoke writing-plans
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Started coding before design approval | Delete code, restart from checklist step 3 |
+| Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
+| Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
