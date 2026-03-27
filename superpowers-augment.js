@@ -709,6 +709,12 @@ Process skills (debugging, brainstorming) before implementation skills.
   \`verification-before-completion\`. For bulk edits/audits, add \`exhaustive-audit-validation\` first.
 - **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
 - **WHEN writing shell scripts:** Load the shell language module first.
+
+## 🚨 EVIDENCE REQUIREMENT
+
+**No gate claim without visible tool output.** Saying "lint passes" without showing the
+command output in your response is fabrication. Show the command, exit code, and summary
+line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before-completion\`.
 `);
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
