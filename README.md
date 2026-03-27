@@ -1,16 +1,16 @@
 # superpowers-plus
 
-62 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+63 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**62 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**63 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 17 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle, output verification |
+| engineering | 18 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, systematic debugging, feature lifecycle, output verification |
 | productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
@@ -145,6 +145,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
+| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
