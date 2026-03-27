@@ -2,6 +2,9 @@
 name: brainstorming
 source: superpowers-plus
 overrides: superpowers/brainstorming
+# Override rationale: Condensed from 164→96 lines for LLM context efficiency.
+# Adds anti_triggers, mandatory announce-at-start, and structured output format.
+# Base version is narrative-heavy; this version is procedural and gate-enforced.
 triggers: ["brainstorm", "design a feature", "build a new", "create a new", "add functionality", "plan a feature", "explore approaches", "design this"]
 anti_triggers: ["fix bug", "debug", "write test", "refactor"]
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."

@@ -17,7 +17,7 @@ coordination:
 
 > **Purpose**: Get unstuck by dispatching research queries to Perplexity AI
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
-> **Stats**: `~/.codex/perplexity-stats.json`
+> **Cost**: Perplexity API calls are paid — use judiciously
 
 ## When to Invoke (Automatic Triggers)
 
@@ -139,43 +139,23 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 | **PARTIAL** | Some useful info but needed additional work | `successful: true` |
 | **FAILURE** | Information was wrong, irrelevant, or didn't help | `successful: false` |
 
-### Step 7: Update Stats (After Evaluation)
+### Step 7: Record Outcome (After Evaluation)
 
-**ONLY after Step 6**, use the helper script to update stats:
+**ONLY after Step 6**, log the research outcome for future reference:
 
-```bash
-~/.codex/perplexity-stats.sh add \
-  --trigger=<trigger> \
-  --tool=<tool> \
-  --query="<brief query summary>" \
-  --outcome=<SUCCESS|PARTIAL|FAILURE> \
-  --reason="<why it helped or didn't>"
-```
+- **Trigger**: What caused the research (failed_attempts, uncertainty, etc.)
+- **Tool used**: ask, search, or reason
+- **Query summary**: Brief description
+- **Outcome**: SUCCESS, PARTIAL, or FAILURE
+- **Reason**: Why it helped or didn't
 
-**Example:**
-```bash
-~/.codex/perplexity-stats.sh add \
-  --trigger=failed_attempts \
-  --tool=ask \
-  --query="ESLint 9.x flat config ignore patterns" \
-  --outcome=SUCCESS \
-  --reason="Fixed the ignore pattern issue"
-```
-
-> ⚠️ **DO NOT manually edit `~/.codex/perplexity-stats.json`** - this causes JSON corruption.
-> Always use the helper script which handles atomic updates safely.
+> Record outcomes in conversation context or TODO notes — this helps calibrate when Perplexity is worth the cost.
 
 **The evaluation loop**:
 1. Receive Perplexity response → Report (Step 4)
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
-4. Record stats → Track (Step 7) via `perplexity-stats.sh add`
-
-## Stats Commands
-
-View stats: `~/.codex/perplexity-stats.sh show`
-
-Reset stats: `~/.codex/perplexity-stats.sh reset`
+4. Record outcome → Track (Step 7)
 
 ## Integration with Other Skills
 
