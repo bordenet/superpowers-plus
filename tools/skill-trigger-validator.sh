@@ -47,6 +47,9 @@ EXPLICIT_SKILLS=(
     "phone-screen-prep"             # Recruiting: invoked by pipeline orchestrator
     "phone-screen-synthesis"        # Recruiting: invoked by pipeline orchestrator
     "wiki-instruction-guard"        # Security: explicit invocation only (no automatic triggers)
+    "feature-development"           # Orchestrator child: dispatched by thinking-orchestrator
+    "plan-and-execute"              # Orchestrator child: dispatched by thinking-orchestrator
+    "investigation-state"           # Orchestrator child: dispatched by thinking-orchestrator
 )
 
 is_explicit_skill() {
