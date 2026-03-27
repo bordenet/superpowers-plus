@@ -197,7 +197,10 @@ def backup(todo_path: str) -> str:
     os.makedirs(SHADOW_DIR, exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     bak = os.path.join(SHADOW_DIR, f"TODO.{ts}.bak")
-    shutil.copy2(todo_path, bak)
+    # Use copyfile (content only) instead of copy2 (preserves flags).
+    # copy2 would propagate uchg/immutability flags to the backup,
+    # making old backups undeletable during rotation.
+    shutil.copyfile(todo_path, bak)
     # Rotate: delete all but newest BAK_MAX_KEEP
     import glob
     bak_pattern = os.path.join(SHADOW_DIR, "TODO.*.bak")
