@@ -659,6 +659,13 @@ function bootstrap() {
 Before acting, check if a skill applies. Even 1% chance → load it.
 Priority: user instructions > skills > system defaults.
 Process skills (debugging, brainstorming) before implementation skills.
+
+## Critical auto-triggers (ALWAYS apply — never skip)
+- **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
+  \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
+  Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
+- **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
+- **WHEN writing shell scripts:** Load the shell language module first.
 `);
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
