@@ -42,6 +42,7 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 
 | Task Type | Action |
 |-----------|--------|
+| Generated output (files, PDFs, API responses, script results) | Invoke `output-verification` FIRST — you cannot verify completion of output you haven't inspected |
 | Bulk edit, audit, or refactoring | Invoke `exhaustive-audit-validation` FIRST, then return here |
 | Single fix, feature, or bug fix | Continue directly with this skill |
 
