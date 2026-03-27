@@ -46,11 +46,11 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 Never force retry without changes. If stuck, something must change.
 
-## Prompt Templates
+## Subagent Roles
 
-- `./implementer-prompt.md` — dispatch implementer
-- `./spec-reviewer-prompt.md` — dispatch spec compliance reviewer
-- `./code-quality-reviewer-prompt.md` — dispatch code quality reviewer
+- **Implementer** — receives full task text + context, implements the change
+- **Spec compliance reviewer** — verifies implementation matches the plan/spec
+- **Code quality reviewer** — checks code quality, patterns, edge cases
 
 ## Rules
 

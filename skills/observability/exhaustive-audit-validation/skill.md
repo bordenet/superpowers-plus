@@ -91,8 +91,8 @@ grep -L "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 # Example: Check for skills without "Use when" pattern
 grep -L "Use when" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 
-# Example: Check for skills without "Triggers on" pattern  
-grep -L "Triggers on" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
+# Example: Check for skills without YAML triggers field
+grep -L "^triggers:" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 
 # Example: Count skills with proper frontmatter
 grep -l "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null | wc -l
@@ -111,7 +111,7 @@ Before marking complete, state:
 **Validation checks passed:**
 - ✅ All skills have YAML frontmatter
 - ✅ All skills have "Use when" pattern
-- ✅ All skills have "Triggers on" phrases
+- ✅ All skills have YAML `triggers:` field
 
 **Remaining gaps:** None
 
@@ -132,7 +132,7 @@ If gaps remain:
 
 | Task Type | Validation Commands |
 |-----------|---------------------|
-| Skill trigger audit | `grep -L "Triggers on" skills/*/*/skill.md` |
+| Skill trigger audit | `grep -L "^triggers:" skills/*/*/skill.md` |
 | YAML frontmatter | `grep -L "^---" skills/*/*/skill.md` |
 | Test coverage | `npm run test:coverage` |
 | Lint fixes | `npm run lint` with zero errors |

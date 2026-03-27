@@ -8,7 +8,7 @@ summary: "Use when: merging external research into existing docs. Skip when: wri
 
 # Incorporating Research
 
-> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Guidelines:** See [CLAUDE.md](../../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-26
 
 ## Overview
@@ -221,7 +221,7 @@ Concerns:
 
 | Resource | Purpose |
 |----------|---------|
-| [CLAUDE.md](../../CLAUDE.md) | Writing standards (no AI slop) |
+| [CLAUDE.md](../../../CLAUDE.md) | Writing standards (no AI slop) |
 | `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
 | `detecting-ai-slop` | Score research quality before incorporating |
 
