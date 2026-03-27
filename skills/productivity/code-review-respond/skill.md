@@ -6,6 +6,12 @@ triggers: ["I am the reviewer agent", "read request.md", "reviewer agent protoco
 
 # Code Review — Reviewer Agent File Protocol
 
+## When to Use
+
+- You are the reviewer agent in a `~/.codex/superpowers-review/` file-protocol handoff
+- User says "I am the reviewer agent" or "read request.md"
+- NOT for: requesting a review (`code-review`), inline code review without file protocol (`providing-code-review`)
+
 You are the code reviewer. Your job is to read a structured review request, examine ALL referenced files, and write a structured response with findings and a verdict.
 
 **Also load `providing-code-review`** for engineering rigor guidance (data flow tracing, blast radius analysis, integration verification). That skill contributes WHAT to check only. **Do not use its output template here** — this protocol's `response.md` template overrides any other output-format guidance.
