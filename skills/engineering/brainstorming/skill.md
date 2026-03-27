@@ -75,11 +75,14 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Example: Design Spec Output
 
 ```markdown
-# Design: Feature Name
-## Approach: [Selected approach with rationale]
-## Components: [Architecture, data flow, interfaces]
-## Testing: [Strategy, edge cases]
-## Status: Approved → invoke writing-plans
+# Design: Retry Logic for API Client
+## Approach A (recommended): Exponential backoff with jitter
+  - Trade-off: More complex, but prevents thundering herd
+## Approach B: Fixed-interval retry
+  - Trade-off: Simpler, but causes coordinated retry storms
+## Selected: A — backoff with jitter
+## Components: RetryPolicy class wrapping HttpClient, configurable max retries
+## Testing: Unit tests for retry count, backoff timing, jitter range
 ```
 
 ## Failure Modes
@@ -89,3 +92,5 @@ Do NOT write any code or take implementation action until you have presented a d
 | Started coding before design approval | Delete code, restart from checklist step 3 |
 | Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
 | Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
+| Invented requirements not stated by user | Ask: "Is [requirement] important to you?" Don't assume |
+| Overdesigned beyond what was asked | Apply YAGNI — cut every feature the user didn't request |
