@@ -605,6 +605,35 @@ class TodoEngineTests(unittest.TestCase):
         original = self.todo_path.read_text()
         self.assertEqual(Path(bak).read_text(), original)
 
+
+    def test_backup_writes_to_shadow_dir_not_alongside_todo(self):
+        """Backup must write to SHADOW_DIR, not next to TODO.md.
+
+        Regression: when TODO.md lives on an immutable filesystem (OneDrive +
+        chflags uchg), writing .bak files alongside it fails with
+        PermissionError.  Backup should use ~/.codex/todo-shadow/ instead.
+        """
+        eng = self.engine
+        bak = eng.backup(str(self.todo_path))
+        bak_path = Path(bak)
+        # Must exist
+        self.assertTrue(bak_path.exists())
+        # Must be in SHADOW_DIR, NOT alongside TODO.md
+        self.assertTrue(
+            str(bak_path).startswith(eng.SHADOW_DIR),
+            f"Backup {bak_path} should be under SHADOW_DIR ({eng.SHADOW_DIR}), "
+            f"not alongside TODO.md ({self.todo_path.parent})"
+        )
+        # Must NOT be alongside TODO.md
+        self.assertNotEqual(
+            bak_path.parent, self.todo_path.parent,
+            "Backup should not be in the same directory as TODO.md"
+        )
+        # Content should match
+        original = self.todo_path.read_text()
+        self.assertEqual(bak_path.read_text(), original)
+
+
     def test_whitespace_normalization(self):
         eng = self.engine
         content = "a\n\n\n\n\n\nb\n"  # 6 blank lines
