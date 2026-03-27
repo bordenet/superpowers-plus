@@ -60,13 +60,10 @@ resolve_path() {
     RESOLVE_SOURCE="default"
   fi
 
-  # Expand $HOME and ~ in the path
-  if command -v envsubst &>/dev/null; then
-    echo "$value" | envsubst
-  else
-    # shellcheck disable=SC2116
-    eval echo "$value" 2>/dev/null || echo "$value"
-  fi
+  # Expand $HOME and ~ in the path (no eval — injection risk)
+  value="${value//\$HOME/$HOME}"
+  value="${value/#\~\//$HOME/}"
+  echo "$value"
 }
 
 # Standalone mode: if called directly (not sourced), resolve and print
