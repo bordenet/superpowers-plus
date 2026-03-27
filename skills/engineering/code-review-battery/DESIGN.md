@@ -1,9 +1,10 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Draft (Brainstorming Phase)
+> **Status**: Shipped (Phase 1e)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
-> **Confidence**: 88/100 (post-validation V1-V5)
+> **Shipped**: 2026-03-27
+> **Confidence**: 92/100 (post-validation V1-V8)
 
 ## Architecture Overview
 
