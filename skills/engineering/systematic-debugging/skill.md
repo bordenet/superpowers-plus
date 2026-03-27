@@ -61,6 +61,25 @@ BEFORE attempting ANY fix:
 - Proposing solutions before tracing data flow
 - "One more fix attempt" after 2+ failures
 
+## Recovery: After 2+ Failed Fix Attempts
+
+When fixes keep failing, the problem is usually misdiagnosed. Don't try a third fix — escalate:
+
+1. **Invoke `think-twice`** — verbalize what you've tried and why each failed
+2. **Question the layer** — are you fixing the right component? Check one layer up and one layer down
+3. **Check assumptions** — list every assumption you've made. Test the least-certain one first
+4. **Ask the human** — "I've tried X and Y, both failed because Z. My current hypothesis is W — does that match your understanding?"
+
+If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
+
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Wrong layer | Fix works locally but breaks integration | Check one layer up: is the caller sending wrong data? |
+| Confirmation bias | Only testing the happy path after fix | Write a test for the original failure case first |
+| Environment mismatch | Works on your machine, fails in CI/prod | Compare env vars, dependency versions, OS differences. Don't assume equivalence |
+
 ## Supporting Techniques
 
 - `root-cause-tracing.md` — trace bugs backward through call stack

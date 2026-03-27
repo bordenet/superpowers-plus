@@ -97,6 +97,16 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 | Skipping re-review after fixes | Fixes can introduce new issues. Always re-review |
 | Running review only when human asks | Review is automatic. Human asks to SKIP, not to START |
 
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
+| Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
+| Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
+| Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
+
 ## Commit Gate Chain
 
 ```
