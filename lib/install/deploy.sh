@@ -27,7 +27,7 @@ _resolve_upstream_dir() {
             upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
             ;;
         *)
-            # Other sources (superpowers-plus, superpowers-callbox, etc.)
+            # Other sources (superpowers-plus, overlay repos, etc.)
             # Search the source repo's skills/ tree for the skill name
             local src_repo="${CODEX_DIR}/${source_name}"
             if [[ -d "$src_repo/skills" ]]; then
@@ -156,6 +156,42 @@ install_adapter() {
         rm -rf "${lib_dest:?}" 2>/dev/null
         cp -r "$lib_src" "$lib_dest" || error_exit "Failed to copy lib/ to $lib_dest"
         log_verbose "Installed lib/ directory"
+    fi
+}
+
+sync_managed_checkout() {
+    local managed_dir="${CODEX_DIR}/superpowers-plus"
+    [[ -d "$managed_dir/.git" ]] || return 0  # No managed checkout — nothing to do
+
+    # If install is running from the managed checkout itself, skip (already current)
+    local managed_real
+    local script_real
+    managed_real=$(cd "$managed_dir" && pwd -P)
+    script_real=$(cd "$SCRIPT_DIR" && pwd -P)
+    if [[ "$managed_real" == "$script_real" ]]; then
+        log_verbose "Running from managed checkout — skip sync"
+        return 0
+    fi
+
+    log_info "Syncing managed checkout at $managed_dir..."
+
+    # Try fast-forward pull from origin
+    local timeout_cmd=""
+    command -v timeout &>/dev/null && timeout_cmd="timeout 15"
+    command -v gtimeout &>/dev/null && timeout_cmd="gtimeout 15"
+
+    if $timeout_cmd git -C "$managed_dir" fetch origin --quiet 2>/dev/null; then
+        if git -C "$managed_dir" merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+            if git -C "$managed_dir" pull --ff-only origin main --quiet 2>/dev/null; then
+                log_success "Managed checkout synced to origin/main"
+            else
+                log_warn "Could not fast-forward managed checkout (local changes?)"
+            fi
+        else
+            log_warn "Managed checkout has diverged from origin/main — skipping sync"
+        fi
+    else
+        log_warn "Could not fetch origin for managed checkout (network issue?)"
     fi
 }
 

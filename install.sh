@@ -526,6 +526,7 @@ main() {
         install_templates
         install_tools
         install_adapter
+        sync_managed_checkout
         validate_installation
         print_summary
         return
@@ -574,6 +575,9 @@ main() {
 
     # Install adapter
     install_adapter
+
+    # Sync managed checkout (~/.codex/superpowers-plus) if it exists
+    sync_managed_checkout
 
     # Validate
     validate_installation
