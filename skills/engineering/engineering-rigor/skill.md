@@ -2,8 +2,8 @@
 name: engineering-rigor
 source: superpowers-plus
 triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done"]
-description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
-summary: "Use when: need hub for pre-commit, blast-radius, or code review skills."
+description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, output-verification, and providing-code-review.
+summary: "Use when: need hub for pre-commit, blast-radius, output-verification, or code review skills."
 ---
 
 # Engineering Rigor
@@ -16,6 +16,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 
 | Skill | When to Use | Trigger |
 |-------|-------------|---------|
+| `output-verification` | Before describing/approving generated output | "verify output", "check pdf", "ready to share" |
 | `pre-commit-gate` | Before committing code | "before commit", "git commit" |
 | `blast-radius-check` | Before modifying existing code | "refactor", "modify existing", "fix bug" |
 | `providing-code-review` | When reviewing others' PRs | "review this PR", "code review" |
@@ -56,10 +57,11 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 ## Quick Reference: Which Skill?
 
 ```
-Am I about to commit?           → pre-commit-gate
-Am I modifying existing code?   → blast-radius-check
-Am I reviewing someone's PR?    → providing-code-review
-General philosophy refresh?     → You're here (engineering-rigor)
+Am I describing generated output? → output-verification
+Am I about to commit?            → pre-commit-gate
+Am I modifying existing code?    → blast-radius-check
+Am I reviewing someone's PR?     → providing-code-review
+General philosophy refresh?      → You're here (engineering-rigor)
 ```
 
 ## Architecture Testing (Pre-Implementation Gate)
@@ -77,6 +79,7 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 
 ## Related Skills
 
+- `output-verification` — Hard gate: no claims about output without inspection
 - `design-triad` — Structured design evaluation with 3+ options
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
