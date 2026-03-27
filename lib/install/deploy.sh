@@ -9,7 +9,42 @@
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
-# Install a single skill to all platform-specific paths
+# Resolve the upstream source directory for a skill with `overrides:` metadata.
+# Input: the overrides value (e.g., "superpowers/test-driven-development")
+# Output: prints the upstream skill directory path, or empty if not found
+_resolve_upstream_dir() {
+    local override_val="$1"
+    # Parse "source/skill-name" format
+    local source_name
+    source_name="${override_val%%/*}"
+    local upstream_skill
+    upstream_skill="${override_val##*/}"
+
+    local upstream_dir=""
+    case "$source_name" in
+        superpowers)
+            # obra/superpowers: flat structure at ~/.codex/superpowers/skills/
+            upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
+            ;;
+        *)
+            # Other sources (superpowers-plus, superpowers-callbox, etc.)
+            # Search the source repo's skills/ tree for the skill name
+            local src_repo="${CODEX_DIR}/${source_name}"
+            if [[ -d "$src_repo/skills" ]]; then
+                upstream_dir=$(find "$src_repo/skills" -maxdepth 2 -name "$upstream_skill" -type d 2>/dev/null | head -1)
+            fi
+            ;;
+    esac
+
+    if [[ -n "$upstream_dir" && -d "$upstream_dir" ]]; then
+        echo "$upstream_dir"
+    fi
+}
+
+# Install a single skill to all platform-specific paths.
+# When a skill declares `overrides:`, stage the upstream companion files first
+# (reference docs, scripts, prompts), then overlay the override's skill.md on
+# top. This ensures companion files from the upstream source survive the override.
 install_skill() {
     local skill_dir="$1"
     local skill_name
@@ -23,22 +58,71 @@ install_skill() {
         return 1
     fi
 
-    # --- Deploy to Augment Agent (~/.codex/skills/) ---
-    if [[ -d "$SKILLS_DIR/$skill_name" ]]; then
-        rm -rf "${SKILLS_DIR:?}/${skill_name:?}" || \
-            error_exit "Failed to remove existing skill: $skill_name (Augment/codex)"
+    # Detect override mode: parse overrides: value from frontmatter
+    local override_val=""
+    local skill_file=""
+    [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+    [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+    if [[ -n "$skill_file" ]]; then
+        override_val=$(grep '^overrides:' "$skill_file" 2>/dev/null \
+            | head -1 | sed 's/^overrides:[[:space:]]*//' | tr -d '"' | tr -d "'") || true
     fi
-    cp -r "$skill_dir" "$SKILLS_DIR/$skill_name" || \
-        error_exit "Failed to install skill: $skill_name (Augment/codex)"
 
-    # --- Deploy to Claude Code (~/.claude/skills/) ---
-    mkdir -p "$CLAUDE_SKILLS_DIR"
-    if [[ -d "$CLAUDE_SKILLS_DIR/$skill_name" ]]; then
-        rm -rf "${CLAUDE_SKILLS_DIR:?}/${skill_name:?}" || \
-            error_exit "Failed to remove existing skill: $skill_name (Claude Code)"
+    # Resolve upstream source directory if override is declared
+    local upstream_dir=""
+    if [[ -n "$override_val" ]]; then
+        upstream_dir=$(_resolve_upstream_dir "$override_val")
+        if [[ -n "$upstream_dir" ]]; then
+            log_verbose "  Override: staging upstream companions from $upstream_dir"
+        else
+            log_verbose "  Override: upstream '$override_val' not found, clean install only"
+        fi
     fi
-    cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/$skill_name" || \
-        error_exit "Failed to install skill: $skill_name (Claude Code)"
+
+    for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+        mkdir -p "$target_dir"
+        local dest="$target_dir/$skill_name"
+
+        # Always start with a clean destination
+        if [[ -d "$dest" ]]; then
+            rm -rf "${dest:?}" || \
+                error_exit "Failed to remove existing skill: $skill_name"
+        fi
+        mkdir -p "$dest"
+
+        # Stage 1: If override, copy upstream companion files first
+        if [[ -n "$upstream_dir" ]]; then
+            # Copy all upstream files EXCEPT the main skill file (SKILL.md/skill.md)
+            local f
+            while IFS= read -r -d '' f; do
+                local base
+                base=$(basename "$f")
+                # Skip the main skill file — the override replaces it
+                [[ "$base" == "SKILL.md" || "$base" == "skill.md" ]] && continue
+                cp "$f" "$dest/" || \
+                    error_exit "Failed to stage upstream file $base for skill: $skill_name"
+            done < <(find "$upstream_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+
+            # Copy upstream subdirectories (scripts/, references/, etc.)
+            local d
+            while IFS= read -r -d '' d; do
+                cp -R "$d" "$dest/" || \
+                    error_exit "Failed to stage upstream dir $(basename "$d") for skill: $skill_name"
+            done < <(find "$upstream_dir" -maxdepth 1 -type d -not -path "$upstream_dir" -print0 2>/dev/null)
+        fi
+
+        # Stage 2: Copy all override files on top (skill.md + any extras)
+        while IFS= read -r -d '' f; do
+            cp "$f" "$dest/" || \
+                error_exit "Failed to install $(basename "$f") for skill: $skill_name"
+        done < <(find "$skill_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+
+        # Copy override subdirectories on top
+        while IFS= read -r -d '' d; do
+            cp -R "$d" "$dest/" || \
+                error_exit "Failed to install dir $(basename "$d") for skill: $skill_name"
+        done < <(find "$skill_dir" -maxdepth 1 -type d -not -path "$skill_dir" -print0 2>/dev/null)
+    done
 
     log_success "Installed: $skill_name"
     return 0
