@@ -110,6 +110,39 @@ After all reviewers return, merge their findings:
 
 ---
 
+## Phase 4: Targeted Re-review (PASS_WITH_NITS)
+
+When the gate verdict is PASS_WITH_NITS and fixes have been applied, run a scoped re-review:
+
+### Scoping Rules
+
+1. **Files**: Only files modified by the nit fixes (`git diff` after fixes)
+2. **Reviewers**: Only the reviewer(s) that produced the nits — do NOT re-run clean reviewers
+3. **Diff**: Re-capture a fresh `git diff` scoped to the fixed files only
+
+### Procedure
+
+1. Identify which reviewer(s) produced the Minor/Important findings that triggered PASS_WITH_NITS
+2. Re-capture the diff: `git diff -- <file1> <file2> ...` (only nit-affected files)
+3. Dispatch only those reviewer(s) with the scoped diff
+4. Aggregate results using Phase 3 rules
+5. Return verdict to the gate (Step 3)
+
+### Example
+
+```
+Round 1: Full battery → 1 Minor from Standards Enforcer → PASS_WITH_NITS
+Fix the nit.
+Round 2 (targeted): Standards Enforcer only, scoped to fixed file → PASS
+Proceed to commit.
+```
+
+### Escalation
+
+If a targeted re-review returns FAIL (nit fix introduced a real issue), escalate to a full re-review (Step 2) with all originally-activated reviewers.
+
+---
+
 ## Error Handling
 
 - If a reviewer sub-agent fails or times out: note it in the report, do NOT retry automatically
