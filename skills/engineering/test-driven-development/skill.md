@@ -2,6 +2,9 @@
 name: test-driven-development
 source: superpowers-plus
 overrides: superpowers/test-driven-development
+# Override rationale: Condensed from 371→97 lines. Enforces strict Red→Green→
+# Refactor cycle with explicit gates at each phase. Removes language-specific
+# examples (handled by golden-agents language modules instead).
 triggers: ["write tests first", "TDD", "test-driven", "write failing test", "red green refactor", "implement with tests"]
 description: Use when implementing any feature or bugfix, before writing implementation code
 ---

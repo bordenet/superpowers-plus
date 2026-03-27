@@ -1,7 +1,8 @@
 ---
 name: progressive-code-review-gate
 source: superpowers-plus
-triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push", "commit and push", "code review before commit"]
+triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
+anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
 description: "Use when: committing or pushing code changes. Mandatory progressive review loop via sub-agent-code-reviewer. Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
