@@ -398,6 +398,8 @@ KNOWN_COLLISION_GROUPS=(
   "holistic-repo-verification engineering-rigor"
   # Security: vulnerability scanning vs repo secret scanning
   "security-upgrade repo-security-scan"
+  # Skill creation: authoring workflow vs writing conventions
+  "skill-authoring writing-skills"
 )
 
 # Load overlay collision groups from all overlay source dirs
