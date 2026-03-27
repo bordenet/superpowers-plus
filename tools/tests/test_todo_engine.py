@@ -79,6 +79,9 @@ class TodoEngineTests(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp(prefix="todo-test-")
         self.todo_path = Path(self.tmpdir) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Isolate shadow dir so tests don't interfere with each other
         self._shadow_tmp = tempfile.mkdtemp(prefix="todo-shadow-test-")
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -87,6 +90,13 @@ class TodoEngineTests(unittest.TestCase):
     def tearDown(self):
         import shutil
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
+        # Clear immutable flags before cleanup (chflags uchg blocks rmtree)
+        if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
         shutil.rmtree(self._shadow_tmp, ignore_errors=True)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
@@ -504,7 +514,7 @@ class TodoEngineTests(unittest.TestCase):
                             path = eng.resolve_todo_path()
             stderr_output = err_buf.getvalue()
         self.assertIn("WARNING", stderr_output)
-        self.assertIn("TODO_FILE_PATH not found", stderr_output)
+        self.assertIn("TODO path not found", stderr_output)
         self.assertIn(".codex/TODO.md", path)
 
     def test_complete_nonexistent_task_errors(self):
@@ -749,6 +759,9 @@ class FileProtectionTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.todo_path = Path(self.tmp.name) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Isolate shadow dir
         self._shadow_tmp = tempfile.TemporaryDirectory()
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -756,8 +769,13 @@ class FileProtectionTests(unittest.TestCase):
 
     def tearDown(self):
         self.engine.SHADOW_DIR = self._orig_shadow_dir
-        # Ensure file is writable so tempdir cleanup succeeds
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
+        # Clear immutable flag + chmod so tempdir cleanup succeeds
         if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
             os.chmod(str(self.todo_path), 0o644)
         self._shadow_tmp.cleanup()
         self.tmp.cleanup()
@@ -840,6 +858,30 @@ class FileProtectionTests(unittest.TestCase):
                             "Shell redirect should fail on 0444 file")
 
 
+    def test_stray_path_write_refused(self):
+        """write_file() refuses if target path != resolved TODO_FILE_PATH.
+
+        Incident 2026-03-26: agent fell back to ~/.codex/TODO.md when the
+        real path was unwritable (chmod 444). This gate prevents that.
+        """
+        eng = self.engine
+        stray_tmp = tempfile.TemporaryDirectory()
+        stray_path = Path(stray_tmp.name) / "STRAY_TODO.md"
+        stray_path.write_text(SAMPLE_TODO)
+        # TODO_FILE_PATH points at self.todo_path, not stray_path
+        with self.assertRaises(SystemExit) as ctx:
+            eng.write_file(str(stray_path), SAMPLE_TODO)
+        stray_tmp.cleanup()
+
+    def test_canonical_path_write_allowed(self):
+        """write_file() succeeds when target matches TODO_FILE_PATH."""
+        eng = self.engine
+        # TODO_FILE_PATH already set to self.todo_path in setUp
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertEqual(self.todo_path.read_text(), SAMPLE_TODO)
+
+
+
 class ShadowBackupTests(unittest.TestCase):
     """Tests for shadow backup and annihilation detection."""
 
@@ -848,6 +890,9 @@ class ShadowBackupTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.todo_path = Path(self.tmp.name) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Use a temporary shadow dir to avoid polluting ~/.codex
         self.shadow_tmp = tempfile.TemporaryDirectory()
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -855,35 +900,82 @@ class ShadowBackupTests(unittest.TestCase):
 
     def tearDown(self):
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
             os.chmod(str(self.todo_path), 0o644)
         self.tmp.cleanup()
         self.shadow_tmp.cleanup()
 
-    def _shadow_path(self):
+    def _shadow_slot(self, slot=1):
+        return os.path.join(self.engine.SHADOW_DIR, f"TODO.shadow.{slot}.md")
+
+    def _legacy_shadow_path(self):
         return os.path.join(self.engine.SHADOW_DIR, "TODO.md")
 
     def test_no_shadow_first_run_creates_shadow(self):
-        """First write with no shadow should succeed and create shadow."""
+        """First write with no shadow should succeed and create ring slot 1."""
         eng = self.engine
-        self.assertFalse(os.path.exists(self._shadow_path()))
+        self.assertFalse(os.path.exists(self._shadow_slot(1)))
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        self.assertTrue(os.path.exists(self._shadow_path()))
+        self.assertTrue(os.path.exists(self._shadow_slot(1)))
 
     def test_shadow_updated_after_write(self):
-        """Shadow content should match the last successful write."""
+        """Shadow slot 1 content should match the last successful write."""
         eng = self.engine
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        shadow_content = Path(self._shadow_path()).read_text()
+        shadow_content = Path(self._shadow_slot(1)).read_text()
         file_content = self.todo_path.read_text()
         self.assertEqual(shadow_content, file_content)
+
+    def test_ring_rotation(self):
+        """5 writes should fill all 5 ring slots."""
+        eng = self.engine
+        for i in range(5):
+            content = SAMPLE_TODO.replace(
+                "Fix critical auth bug", f"Task-write-{i+1}")
+            eng.write_file(str(self.todo_path), content)
+        # All 5 slots should exist
+        for slot in range(1, 6):
+            self.assertTrue(os.path.exists(self._shadow_slot(slot)),
+                            f"Slot {slot} should exist after 5 writes")
+        # Slot 1 = newest (write 5), slot 5 = oldest (write 1)
+        self.assertIn("Task-write-5", Path(self._shadow_slot(1)).read_text())
+        self.assertIn("Task-write-1", Path(self._shadow_slot(5)).read_text())
+
+    def test_ring_rotation_overwrites_oldest(self):
+        """6th write should delete slot 5 content from write 1."""
+        eng = self.engine
+        for i in range(6):
+            content = SAMPLE_TODO.replace(
+                "Fix critical auth bug", f"Task-write-{i+1}")
+            eng.write_file(str(self.todo_path), content)
+        # Slot 5 should now have write 2 (write 1 was evicted)
+        self.assertIn("Task-write-2", Path(self._shadow_slot(5)).read_text())
+        self.assertIn("Task-write-6", Path(self._shadow_slot(1)).read_text())
+
+    def test_legacy_shadow_migrated(self):
+        """Legacy TODO.md shadow should be migrated to slot 1."""
+        eng = self.engine
+        # Create a legacy shadow
+        os.makedirs(eng.SHADOW_DIR, exist_ok=True)
+        legacy = self._legacy_shadow_path()
+        Path(legacy).write_text(SAMPLE_TODO)
+        # Write should migrate legacy to slot 1, then rotate
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertFalse(os.path.exists(legacy), "Legacy shadow should be migrated")
+        self.assertTrue(os.path.exists(self._shadow_slot(1)))
 
     def test_annihilation_blocked_size_drop(self):
         """Block write when new content is <40% of shadow size."""
         eng = self.engine
-        # Create a large shadow
+        # Create a large shadow in ring slot 1 (oldest existing = comparison target)
+        os.makedirs(eng.SHADOW_DIR, exist_ok=True)
         big_content = SAMPLE_TODO + "\n" + ("- [ ] [20260323-99] Filler\n" * 50)
-        Path(self._shadow_path()).write_text(big_content)
+        Path(self._shadow_slot(1)).write_text(big_content)
         # Try to write much smaller content (SAMPLE_TODO is ~40% of big)
         with self.assertRaises(SystemExit):
             eng.write_file(str(self.todo_path), SAMPLE_TODO)
@@ -997,19 +1089,22 @@ class ShadowBackupTests(unittest.TestCase):
             "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
         )
         eng.write_file(str(self.todo_path), big)
-        # Delete shadow (the documented escape hatch)
-        os.remove(self._shadow_path())
+        # Delete all shadow ring slots (the documented escape hatch)
+        for slot in range(1, 6):
+            slot_path = self._shadow_slot(slot)
+            if os.path.exists(slot_path):
+                os.remove(slot_path)
         # Now even a tiny write should succeed
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        self.assertTrue(os.path.exists(self._shadow_path()))
+        self.assertTrue(os.path.exists(self._shadow_slot(1)))
 
 
     def test_unreadable_shadow_warns_and_allows_write(self):
         """Unreadable shadow emits warning to stderr but write succeeds."""
         eng = self.engine
-        # Create shadow then make it unreadable
+        # Create shadow ring entry then make it unreadable
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        shadow = self._shadow_path()
+        shadow = self._shadow_slot(1)
         os.chmod(shadow, 0o000)
         try:
             stderr_buf = io.StringIO()
@@ -1024,25 +1119,27 @@ class ShadowBackupTests(unittest.TestCase):
             os.chmod(shadow, 0o644)  # Restore for cleanup
 
     def test_shadow_dir_as_file_warns_on_update(self):
-        """If shadow file is replaced with a directory, update_shadow warns."""
+        """If shadow slot is replaced with a directory, update_shadow warns."""
         eng = self.engine
-        shadow = self._shadow_path()
-        # Create a file where the shadow dir should be (corrupt state)
+        shadow = self._shadow_slot(1)
         os.makedirs(os.path.dirname(shadow), exist_ok=True)
-        # First normal write to establish shadow
+        # First normal write to establish shadow ring
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        # Now corrupt: replace shadow file with a directory
+        # Now corrupt: replace slot 1 with a directory
         os.remove(shadow)
         os.mkdir(shadow)
-        try:
-            stderr_buf = io.StringIO()
-            with contextlib.redirect_stderr(stderr_buf):
-                # Should warn but not crash
-                eng.write_file(str(self.todo_path), SAMPLE_TODO)
-            stderr_output = stderr_buf.getvalue()
-            self.assertIn("WARNING", stderr_output)
-        finally:
-            os.rmdir(shadow)  # Cleanup
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buf):
+            # Should warn but not crash
+            eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        stderr_output = stderr_buf.getvalue()
+        self.assertIn("WARNING", stderr_output)
+        # Cleanup: rotation may have moved the dir to slot 2
+        import shutil
+        for slot in range(1, 6):
+            sp = self._shadow_slot(slot)
+            if os.path.isdir(sp):
+                shutil.rmtree(sp)
 
 
 if __name__ == "__main__":

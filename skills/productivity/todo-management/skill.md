@@ -103,10 +103,18 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 |-------|-----------|----------------|
 | 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
 | 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
-| 3. OS protection | `chmod 0444` — file is read-only | `save-file`, `str-replace-editor`, shell redirects |
-| 4. Shadow + annihilation | Pre-write comparison vs `~/.codex/todo-shadow/TODO.md` | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
+| 3. OS immutability | `chflags uchg` (macOS) / `chattr +i` (Linux) | ALL direct writes — `Operation not permitted` |
+| 4. chmod 444 | Secondary protection if immutability unavailable | `save-file`, `str-replace-editor`, shell redirects |
+| 5. Shadow + annihilation | Pre-write comparison vs shadow | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
+| 6. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path |
+| 7. Path obscuring | Path in private `.todo-registry`, NOT in `.env` | Agent path discovery; honeypot at `~/.codex/TODO.md` |
 
-**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry. The error message will tell you this.
+**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
+
+**Incidents:**
+- **2026-03-23:** Agent used `save-file` to overwrite TODO.md, destroying dozens of open tasks. Unrecoverable.
+- **2026-03-26a:** Agent hit chmod 444, fell back to `~/.codex/TODO.md` — stray file. Fix: `_validate_canonical_path()`.
+- **2026-03-26b:** GPT-5.4 agent wrote directly despite all rules. Fix: `chflags uchg` + path obscuring + honeypot.
 
 ---
 

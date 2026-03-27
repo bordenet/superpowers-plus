@@ -53,6 +53,9 @@ PRIORITY_MARKERS = {"P1": RE_P1, "P2": RE_P2, "P3": RE_P3}
 # This prevents save-file, str-replace-editor, and shell redirects from
 # overwriting TODO.md without going through todo-engine.py.
 FILE_MODE_PROTECTED = 0o444   # r--r--r--
+
+# Platform detection for immutability flags
+PLATFORM = sys.platform  # 'darwin' (macOS), 'linux', etc.
 FILE_MODE_WRITABLE  = 0o644   # rw-r--r--
 
 # Shadow backup — defense-in-depth annihilation detection.
@@ -68,18 +71,29 @@ ANNIHILATION_TASK_DROP_MAX = 5    # Block if active tasks drop by >5 in one writ
 # ---------------------------------------------------------------------------
 
 def resolve_todo_path() -> str:
-    """Resolve TODO.md path from env or default.
+    """Resolve TODO.md path from private registry, env, or default.
 
-    Priority: 1) Current env var (allows override for testing)
-              2) ~/.codex/.env file
-              3) Default ~/.codex/TODO.md
+    Priority: 1) TODO_FILE_PATH env var (for testing ONLY — not in .env)
+              2) ~/.codex/.todo-registry (private file — agents don't see this)
+              3) ~/.codex/.env TODO_FILE_PATH (backward compat, deprecated)
+              4) Default ~/.codex/TODO.md
+
+    The path is deliberately NOT advertised in .env or rules files.
+    Agents should use todo-crud.sh which calls this function internally.
     """
     # 1. Check current environment first (allows export override for testing)
     env_path = os.environ.get("TODO_FILE_PATH", "").strip()
     if env_path:
         return os.path.expanduser(os.path.expandvars(env_path))
 
-    # 2. Try sourcing ~/.codex/.env via shell for full compatibility
+    # 2. Private registry — the preferred source (agents don't know about this)
+    registry = Path.home() / ".codex" / ".todo-registry"
+    if registry.exists():
+        path = registry.read_text().strip()
+        if path:
+            return os.path.expanduser(os.path.expandvars(path))
+
+    # 3. Backward compat: source ~/.codex/.env (deprecated — migrate to registry)
     env_file = Path.home() / ".codex" / ".env"
     if env_file.exists():
         try:
@@ -93,12 +107,12 @@ def resolve_todo_path() -> str:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-    # 3. Default — WARN loudly so agents notice the misconfiguration
+    # 4. Default — WARN loudly so agents notice the misconfiguration
     default = os.path.expanduser("~/.codex/TODO.md")
     print(
-        f"WARNING: TODO_FILE_PATH not found in environment or ~/.codex/.env. "
+        f"WARNING: TODO path not found in .todo-registry, environment, or .env. "
         f"Falling back to default: {default}. "
-        f"If this is wrong, set TODO_FILE_PATH in ~/.codex/.env",
+        f"Create ~/.codex/.todo-registry with the real path.",
         file=sys.stderr,
     )
     return default
@@ -170,11 +184,23 @@ def release_lock(todo_path: str) -> None:
         shutil.rmtree(lock, ignore_errors=True)
 
 
+BAK_MAX_KEEP = 10  # Maximum .bak files to keep
+
+
 def backup(todo_path: str) -> str:
-    """Create timestamped backup. Returns backup path."""
+    """Create timestamped backup and rotate old backups. Returns backup path."""
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     bak = f"{todo_path}.{ts}.bak"
     shutil.copy2(todo_path, bak)
+    # Rotate: delete all but newest BAK_MAX_KEEP
+    import glob
+    bak_pattern = f"{todo_path}.*.bak"
+    existing = sorted(glob.glob(bak_pattern))
+    while len(existing) > BAK_MAX_KEEP:
+        try:
+            os.remove(existing.pop(0))
+        except OSError:
+            pass
     return bak
 
 # ---------------------------------------------------------------------------
@@ -301,35 +327,117 @@ def validate_structure(content: str) -> None:
         )
 
 
-def _unprotect_file(path: str) -> None:
-    """Make TODO.md writable (0644). Called before writes.
+def _clear_immutable(path: str) -> None:
+    """Clear OS-level immutable flag (chflags/chattr) if present.
 
-    Raises RuntimeError if the file exists but chmod fails — silent failure
-    would defeat the entire protection mechanism.
+    macOS: chflags nouchg
+    Linux: chattr -i (requires CAP_LINUX_IMMUTABLE or root — may silently fail)
+    Other: no-op (fall through to chmod)
+    """
+    try:
+        if PLATFORM == "darwin":
+            subprocess.run(["chflags", "nouchg", path],
+                           capture_output=True, timeout=5, check=True)
+        elif PLATFORM == "linux":
+            # Note: chattr -i requires root or CAP_LINUX_IMMUTABLE.
+            # If this fails, chmod will also fail and raise a clear error.
+            subprocess.run(["chattr", "-i", path],
+                           capture_output=True, timeout=5, check=True)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"WARNING: Failed to clear immutable flag on {path}: {exc}. "
+            f"Falling back to chmod only.",
+            file=sys.stderr,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Command not available on this platform; fall through to chmod
+
+
+def _set_immutable(path: str) -> None:
+    """Set OS-level immutable flag (chflags/chattr) for strongest protection.
+
+    macOS: chflags uchg → 'Operation not permitted' for ANY write attempt
+    Linux: chattr +i → same effect (requires root — will silently fall back
+           to chmod 444 if insufficient privileges)
+    Other: no-op (rely on chmod 444 alone)
+
+    Agents' save-file and str-replace-editor CANNOT clear these flags.
+    Only todo-engine.py knows how to temporarily lift immutability.
+    """
+    try:
+        if PLATFORM == "darwin":
+            subprocess.run(["chflags", "uchg", path],
+                           capture_output=True, timeout=5, check=True)
+        elif PLATFORM == "linux":
+            subprocess.run(["chattr", "+i", path],
+                           capture_output=True, timeout=5, check=True)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"WARNING: Failed to set immutable flag on {path}: {exc}. "
+            f"Relying on chmod 444 only.",
+            file=sys.stderr,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Command not available on this platform; chmod 444 is fallback
+
+
+def _unprotect_file(path: str) -> None:
+    """Make TODO.md writable. Clears immutable flag, then chmod 644.
+
+    Raises RuntimeError if chmod fails after clearing immutability — this
+    means something is seriously wrong with the filesystem.
     """
     if not os.path.exists(path):
         return  # File doesn't exist yet; nothing to unprotect
+    _clear_immutable(path)
     try:
         os.chmod(path, FILE_MODE_WRITABLE)
     except OSError as exc:
         raise RuntimeError(
-            f"CRITICAL: Cannot unprotect TODO.md for writing: {exc}. "
-            f"File protection may be broken on this filesystem."
+            f"CRITICAL: Cannot chmod TODO.md for writing: {exc}. "
+            f"The file is deliberately read-only and immutable. "
+            f"Use todo-crud.sh which handles protection automatically. "
+            f"NEVER write TODO.md directly or fall back to a different path."
         ) from exc
 
 
+def _validate_canonical_path(path: str) -> None:
+    """Refuse writes if path doesn't match resolved TODO_FILE_PATH.
+
+    Prevents agents from writing to ~/.codex/TODO.md or other stray
+    locations when the real path is elsewhere (e.g., OneDrive).
+
+    Incident 2026-03-26: A sibling agent bypassed todo-crud.sh, hit
+    chmod 444, and fell back to ~/.codex/TODO.md — creating a stray
+    disconnected TODO file. This gate prevents that.
+    """
+    canonical = resolve_todo_path()
+    real_canonical = os.path.realpath(canonical)
+    real_path = os.path.realpath(path)
+    if real_path != real_canonical:
+        _error(
+            f"REFUSED: Write target '{path}' does not match "
+            f"TODO_FILE_PATH '{canonical}'. This looks like a stray write. "
+            f"Use todo-crud.sh which resolves the correct path automatically. "
+            f"NEVER fall back to a different path when the real path is unwritable "
+            f"— the read-only permission is intentional protection."
+        )
+
+
 def _protect_file(path: str) -> None:
-    """Make TODO.md read-only (0444). Called after writes.
+    """Make TODO.md read-only (0444) + immutable (chflags uchg / chattr +i).
 
-    This is the OS-level gate that prevents save-file, str-replace-editor,
-    and shell redirects from overwriting TODO.md. Only todo-engine.py
-    temporarily lifts this protection during validated writes.
+    Two layers of protection:
+    1. chmod 444 — blocks normal write attempts (Permission denied)
+    2. chflags uchg — blocks ALL write attempts including chmod changes
+       (Operation not permitted). Agent tools cannot clear this flag.
 
-    Raises RuntimeError if the file exists but chmod fails — silent failure
-    would mean the file is left writable and unprotected.
+    Only todo-engine.py knows to call _clear_immutable() before _unprotect_file().
     """
     if not os.path.exists(path):
         return  # Nothing to protect
+    # Clear any existing immutable flag first (idempotent re-protection)
+    _clear_immutable(path)
     try:
         os.chmod(path, FILE_MODE_PROTECTED)
     except OSError as exc:
@@ -337,15 +445,67 @@ def _protect_file(path: str) -> None:
             f"CRITICAL: Cannot protect TODO.md after write: {exc}. "
             f"File is LEFT WRITABLE — manual chmod 0444 needed."
         ) from exc
+    _set_immutable(path)
 
 
 # ---------------------------------------------------------------------------
 # Shadow Backup & Annihilation Detection
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Shadow Ring Buffer (5 slots) + Timed Snapshots (30 min, keep 5)
+# ---------------------------------------------------------------------------
+
+RING_SLOTS = 5  # Number of shadow ring buffer slots
+TIMED_INTERVAL_SECONDS = 1800  # 30 minutes between timed snapshots
+TIMED_MAX_SNAPSHOTS = 5  # Maximum timed snapshots to keep
+
+
+def _ring_path(slot: int) -> str:
+    """Return the path for a specific ring buffer slot (1-5)."""
+    return os.path.join(SHADOW_DIR, f"TODO.shadow.{slot}.md")
+
+
 def _shadow_path() -> str:
-    """Return the path to the shadow backup file."""
-    return os.path.join(SHADOW_DIR, "TODO.md")
+    """Return the path to use for annihilation comparison.
+
+    Uses the OLDEST ring buffer entry (most likely to be pre-corruption).
+    Falls back to newest if oldest doesn't exist, then to legacy shadow.
+    """
+    # Check from oldest to newest — oldest is most likely clean
+    for slot in range(RING_SLOTS, 0, -1):
+        path = _ring_path(slot)
+        if os.path.exists(path):
+            return path
+    # Legacy single shadow (pre-ring migration)
+    legacy = os.path.join(SHADOW_DIR, "TODO.md")
+    if os.path.exists(legacy):
+        return legacy
+    return _ring_path(1)  # Will be created on first write
+
+
+def _rotate_ring() -> None:
+    """Rotate the ring buffer: delete slot 5, shift 4→5, 3→4, 2→3, 1→2.
+
+    After rotation, slot 1 is empty and ready for the new shadow.
+    """
+    # Delete oldest slot
+    oldest = _ring_path(RING_SLOTS)
+    if os.path.exists(oldest):
+        os.remove(oldest)
+    # Shift each slot up by one
+    for slot in range(RING_SLOTS - 1, 0, -1):
+        src = _ring_path(slot)
+        dst = _ring_path(slot + 1)
+        if os.path.exists(src):
+            os.rename(src, dst)
+
+
+def _migrate_legacy_shadow() -> None:
+    """Migrate legacy single shadow (TODO.md) to ring slot 1."""
+    legacy = os.path.join(SHADOW_DIR, "TODO.md")
+    if os.path.exists(legacy) and not os.path.exists(_ring_path(1)):
+        os.rename(legacy, _ring_path(1))
 
 
 def _count_active_tasks(content: str) -> int:
@@ -356,29 +516,76 @@ def _count_active_tasks(content: str) -> int:
 
 
 def update_shadow(content: str) -> None:
-    """Write a shadow copy after a successful write (atomic: temp + replace).
+    """Write a shadow copy into ring buffer slot 1 after rotating.
 
     This is a PUBLIC function so that other approved writers (archive,
     maintenance) can update the shadow after they modify TODO.md directly.
 
+    Ring rotation: slot 5 is deleted, 4→5, 3→4, 2→3, 1→2, new→1.
+    This means slot 5 (the oldest) is always the most likely to be
+    pre-corruption, which is what annihilation detection compares against.
+
     Best-effort: warns on failure but does NOT crash the write path.
-    The primary file has already been written successfully at this point.
     """
     try:
         os.makedirs(SHADOW_DIR, exist_ok=True)
-        shadow = _shadow_path()
-        tmp = shadow + f".tmp.{os.getpid()}"
+        _migrate_legacy_shadow()
+        _rotate_ring()
+        slot1 = _ring_path(1)
+        tmp = slot1 + f".tmp.{os.getpid()}"
         with open(tmp, "w") as f:
             f.write(content)
-        os.replace(tmp, shadow)
+        os.replace(tmp, slot1)
     except OSError as exc:
-        print(f"WARNING: Could not update shadow backup: {exc}. "
-              f"Annihilation detection may be stale until next successful shadow write.",
+        print(f"WARNING: Could not update shadow ring: {exc}. "
+              f"Annihilation detection may be stale.",
+              file=sys.stderr)
+
+
+def _maybe_create_timed_snapshot(content: str) -> None:
+    """Create a time-bucketed snapshot if >30 min since last one.
+
+    Timed snapshots are immune to rapid-fire bad writes (they all fall
+    in the same time bucket). Keeps at most 5 snapshots.
+
+    File naming: TODO.timed.YYYYMMDD-HHMM.md
+    """
+    try:
+        os.makedirs(SHADOW_DIR, exist_ok=True)
+        import glob
+        pattern = os.path.join(SHADOW_DIR, "TODO.timed.*.md")
+        existing = sorted(glob.glob(pattern))
+
+        # Check if newest snapshot is old enough
+        if existing:
+            newest_mtime = os.path.getmtime(existing[-1])
+            if time.time() - newest_mtime < TIMED_INTERVAL_SECONDS:
+                return  # Too recent — skip
+
+        # Create new timed snapshot
+        timestamp = time.strftime("%Y%m%d-%H%M")
+        snap_path = os.path.join(SHADOW_DIR, f"TODO.timed.{timestamp}.md")
+        tmp = snap_path + f".tmp.{os.getpid()}"
+        with open(tmp, "w") as f:
+            f.write(content)
+        os.replace(tmp, snap_path)
+
+        # Rotate: delete oldest if count > max
+        existing.append(snap_path)
+        existing = sorted(existing)
+        while len(existing) > TIMED_MAX_SNAPSHOTS:
+            os.remove(existing.pop(0))
+    except OSError as exc:
+        print(f"WARNING: Could not create timed snapshot: {exc}.",
               file=sys.stderr)
 
 
 def _check_annihilation(new_content: str) -> None:
-    """Compare new content against shadow to detect catastrophic data loss.
+    """Compare new content against oldest shadow ring entry to detect loss.
+
+    Uses the OLDEST ring entry (slot 5 or highest existing) because it's
+    the most likely to be pre-corruption. This means even if an agent does
+    4 rapid bad writes (filling slots 1-4), slot 5 still has the clean state.
 
     Checks:
     1. Size drop: new content < 40% of shadow size
@@ -436,9 +643,17 @@ def _check_annihilation(new_content: str) -> None:
 
 
 def write_file(path: str, content: str) -> None:
+    _validate_canonical_path(path)
     validate_structure(content)
     content = _normalize_whitespace(content)
     _check_annihilation(content)
+    # Create timed snapshot BEFORE the write (captures pre-write state)
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                _maybe_create_timed_snapshot(f.read())
+        except OSError:
+            pass
     _unprotect_file(path)
     try:
         with open(path, "w") as f:

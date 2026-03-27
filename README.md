@@ -1,17 +1,17 @@
 # superpowers-plus
 
-60 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+61 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**60 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**61 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
 | engineering | 16 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
-| productivity | 14 | TODO tracking, adversarial search, domain design, think-twice |
+| productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
 | issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
@@ -170,6 +170,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | fallback-planning | Machine-agnostic contingency TODOs |
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
+| | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
 | | skill-authoring | Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
