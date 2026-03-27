@@ -2,6 +2,9 @@
 name: writing-skills
 source: superpowers-plus
 overrides: superpowers/writing-skills
+# Override rationale: Condensed from 655→87 lines. Focuses on YAML frontmatter
+# format, prose quality rules, and creation checklist. Base version covers
+# obra/superpowers internals; this version targets superpowers-plus conventions.
 triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions", "review skill file", "skill quality check"]
 anti_triggers: ["use skill", "find skill", "load skill"]
 description: "Use when: creating or reviewing skill files. Covers SKILL.md structure, prose quality, markdown formatting, creation checklist, and quality gates. For the full creation workflow, see skill-authoring (upstream)."
