@@ -697,6 +697,11 @@ Process skills (debugging, brainstorming) before implementation skills.
 - **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
   \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
   Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
+- **BEFORE describing or approving generated output** (files, PDFs, API responses, script results):
+  \`output-verification\` (hard gate) → then \`verification-before-completion\`.
+  You cannot describe output you haven't read. No tool call between generate and describe = fiction.
+- **BEFORE claiming done/complete** (no generated output involved):
+  \`verification-before-completion\`. For bulk edits/audits, add \`exhaustive-audit-validation\` first.
 - **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
 - **WHEN writing shell scripts:** Load the shell language module first.
 `);

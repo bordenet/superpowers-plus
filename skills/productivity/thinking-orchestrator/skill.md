@@ -8,7 +8,7 @@ coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
+  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
   escalates_to: []
   internal: false
 ---
@@ -39,6 +39,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Strategic / structural / ambiguous question (3+ plausible answers, affects long-lived artifacts, involves tradeoffs) | `design-triad` → then `plan-and-execute` if winner has implementation consequences | Prevent shallow recommendations |
 | Debugging a bug, starting/resuming investigation | `investigation-state` | Persist hypotheses, evidence, eliminated approaches |
 | Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
+| Describing/approving generated output (files, PDFs, API responses) | `output-verification` then `verification-before-completion` | No claims about output without inspection |
 | Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
@@ -50,6 +51,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 |-------|--------|---------|
 | `adversarial-search` | Investigation | Counter confirmation bias, enforce exhaustive scope |
 | `think-twice` | Stuck detection | Break loops via fresh sub-agent |
+| `output-verification` | Output inspection | Hard gate: no claims about output without reading it |
 | `exhaustive-audit-validation` | Bulk completion | Item-by-item tracking for audits/refactors |
 | `verification-before-completion` | All completion | Evidence-based completion claims |
 | `completeness-check` | Repo audit | Detect incomplete/abandoned work |
