@@ -84,6 +84,21 @@ grep -rn "functionName" --include="*.ts" .
 - Are there test failures being ignored?
 - Did lint pass?
 
+### 5. Factual Claims Verification
+
+If the PR or associated documentation makes claims about external system state, **verify each claim against the system of record.** Do not treat metadata as stylistic — it is falsifiable.
+
+| Claim Type | Verification Method |
+|------------|---------------------|
+| PR/merge status | Query ADO/GitHub API — ADO `status: 1` = Active, NOT Completed |
+| "Tests pass" | Check CI run status, not just the author's word |
+| Deployment state | Query pipeline or environment APIs |
+| Ticket/issue state | Query issue tracker API |
+| URLs and links | Fetch or query to confirm they resolve |
+| Dependency versions | Check lockfile or manifest directly |
+
+**ADO gotcha:** ADO generates a `lastMergeCommit` for every open PR (preview merge). This does NOT mean the PR is merged. Always check the `status` field: `1=Active, 2=Abandoned, 3=Completed`.
+
 ## The Review Gate Function
 
 ```
@@ -94,6 +109,7 @@ BEFORE approving any PR:
 3. INTEGRATION: Did I verify the changes work at service boundaries?
 4. TESTS: Are there tests for the new functionality?
 5. BUILD: Is CI passing? (Not just "mergeable" — actually green)
+6. FACTS: Did I verify every claim about external state (PR status, deploy status, ticket state, URLs)?
 
 If I can't answer YES to all → don't approve, ask questions or flag gaps
 ```
