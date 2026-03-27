@@ -123,6 +123,17 @@ This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 
 Save to the location specified in F3. If wiki: create in specified collection/parent. If local: save to `docs/` with descriptive naming.
 
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Vague answers | User gives one-word or abstract responses without examples | Ask for a specific scenario: "Can you walk me through a real case where this happened?" |
+| Scope explosion | New topics keep appearing after Q10 | Hard stop. Run synthesis checkpoint. Ask: "Should we narrow scope or split into two artifacts?" |
+| Interviewer bias | Questions consistently lead toward a pre-formed conclusion | See Anti-Patterns section (Phase 3). Actively seek disconfirming evidence |
+| Premature drafting | Starting to write before saturation (Phase 4 criteria not met) | Check all 5 transition criteria. If any fail, continue interviewing |
+| Research-only artifact | Draft cites only research, no interview content | Review each section: does it contain at least one interview-sourced insight? If not, the interview failed to add value — ask more questions |
+| User disengagement | Shorter answers, "I don't know," redirecting to docs | Acknowledge fatigue. Offer: "Should we pause and pick up later, or switch to a different angle?" |
+
 ## Key Differences from Brainstorming
 
 | Dimension | Brainstorming | Expert-Interviewer |
