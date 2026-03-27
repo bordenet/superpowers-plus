@@ -1,7 +1,7 @@
 ---
 name: professional-language-audit
 source: superpowers-plus
-triggers: ["before wiki update", "before commit", "check for profanity", "scan for unprofessional language", "language audit", "professional language check", "commit:language", "commit:profanity"]
+triggers: ["before wiki update", "check for profanity", "scan for unprofessional language", "language audit", "professional language check", "commit:language", "commit:profanity"]
 description: "HARD GATE — Scans content for profanity and unprofessional language before publishing to wiki or committing user-facing documentation."
 summary: "Use when: publishing to wiki or committing user-facing docs. Hard gate for profanity."
 coordination:
