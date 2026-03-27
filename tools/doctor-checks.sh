@@ -139,10 +139,27 @@ while IFS= read -r f; do
     SKILL_YAML[$skill]="$yaml_block"
     SKILL_YAML_NAME[$skill]=$(echo "$yaml_block" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
     triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
-    if [[ -n "$triggers_line" ]] && ! echo "$triggers_line" | grep -qE 'triggers: \[\]|triggers:$'; then
-      SKILL_HAS_TRIGGERS[$skill]="yes"
+    if [[ -n "$triggers_line" ]]; then
+      if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
+        # Inline array with content: triggers: ["foo", "bar"]
+        SKILL_HAS_TRIGGERS[$skill]="yes"
+        SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
+      elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
+        # Inline empty array: triggers: []
+        SKILL_TRIGGERS_RAW[$skill]=""
+      else
+        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
+        multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
+        if [[ -n "$multiline_items" ]]; then
+          SKILL_HAS_TRIGGERS[$skill]="yes"
+          SKILL_TRIGGERS_RAW[$skill]="$multiline_items"
+        else
+          SKILL_TRIGGERS_RAW[$skill]=""
+        fi
+      fi
+    else
+      SKILL_TRIGGERS_RAW[$skill]=""
     fi
-    SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
     SKILL_BODY_START[$skill]=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{found++; print NR; exit}' "$f")
   else
     SKILL_YAML_VALID[$skill]=""
@@ -416,9 +433,16 @@ in_same_group() {
 
 declare -A trigger_map
 for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
-  triggers_line="${SKILL_TRIGGERS_RAW[$skill]}"
-  [[ -z "$triggers_line" ]] && continue
-  triggers=$(echo "$triggers_line" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' || true)
+  triggers_raw="${SKILL_TRIGGERS_RAW[$skill]}"
+  [[ -z "$triggers_raw" ]] && continue
+  # Handle both inline arrays and multi-line items
+  if echo "$triggers_raw" | grep -q '^\s*-'; then
+    # Multi-line format: each line is "  - "value""
+    triggers=$(echo "$triggers_raw" | sed 's/^[[:space:]]*-[[:space:]]*//' | sed 's/^"//;s/"$//' | sed "s/^'//;s/'$//" | grep -v '^$' || true)
+  else
+    # Inline format: triggers: ["foo", "bar"]
+    triggers=$(echo "$triggers_raw" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' || true)
+  fi
   while IFS= read -r trigger; do
     [[ -z "$trigger" ]] && continue
     lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
