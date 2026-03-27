@@ -45,6 +45,31 @@ const skillsDir = PERSONAL_SKILLS_DIR;
 /**
  * Extract YAML frontmatter from a SKILL.md file.
  */
+function parseInlineArray(value) {
+  return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+}
+
+function parseYamlList(lines, startIndex) {
+  const values = [];
+  let nextIndex = startIndex;
+
+  for (let i = startIndex + 1; i < lines.length; i++) {
+    const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+    if (itemMatch) {
+      values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+      nextIndex = i;
+      continue;
+    }
+    if (lines[i].trim() === '') {
+      nextIndex = i;
+      continue;
+    }
+    break;
+  }
+
+  return { values, nextIndex };
+}
+
 function extractFrontmatter(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
@@ -55,7 +80,8 @@ function extractFrontmatter(filePath) {
     let triggers = [];
     let compress = true;
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       if (line.trim() === '---') {
         if (inFrontmatter) break;
         inFrontmatter = true;
@@ -64,11 +90,15 @@ function extractFrontmatter(filePath) {
       if (inFrontmatter) {
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
-        const triggerMatch = line.match(/^triggers:\s*\[(.+)\]/);
+        const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
         if (nameMatch) name = nameMatch[1].trim();
         if (descMatch) description = descMatch[1].trim();
         if (triggerMatch) {
-          triggers = triggerMatch[1].match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+          triggers = parseInlineArray(triggerMatch[1]);
+        } else if (line.match(/^triggers:\s*$/)) {
+          const parsed = parseYamlList(lines, i);
+          triggers = parsed.values;
+          i = parsed.nextIndex;
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }

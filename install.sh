@@ -121,17 +121,17 @@ fi
 # (tools/, setup/, lib/) will break sourcing or execution.
 # Use grep -rl (not -lq — -q suppresses -l output, breaking the pipeline).
 if [ -n "$(find "$SCRIPT_DIR" -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null | head -1)" ]; then
-    # Cross-platform in-place CRLF strip: prefer perl, fall back to tr per-file
-    if command -v perl &>/dev/null; then
-        find "$SCRIPT_DIR" -name "*.sh" -exec perl -pi -e 's/\r$//' {} +
-    else
-        # tr fallback: preserve execute bits after rewrite
-        find "$SCRIPT_DIR" -name "*.sh" -print0 | while IFS= read -r -d '' f; do
-            tr -d '\r' < "$f" > "${f}.tmp"
-            [[ -x "$f" ]] && chmod +x "${f}.tmp"
-            mv "${f}.tmp" "$f"
-        done
-    fi
+    # Cross-platform CRLF strip using explicit temp rewrites to avoid stray in-place temp files.
+    find "$SCRIPT_DIR" -name "*.sh" -print0 | while IFS= read -r -d '' f; do
+        mode="$(stat -f '%Lp' "$f" 2>/dev/null || stat -c '%a' "$f" 2>/dev/null || true)"
+        tr -d '\r' < "$f" > "${f}.tmp"
+        if [[ -n "$mode" ]]; then
+            chmod "$mode" "${f}.tmp"
+        elif [[ -x "$f" ]]; then
+            chmod +x "${f}.tmp"
+        fi
+        mv "${f}.tmp" "$f"
+    done
     echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
     echo "       Re-run: $0 $*"
     echo ""
