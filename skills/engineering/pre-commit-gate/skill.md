@@ -89,6 +89,16 @@ BEFORE EVERY COMMIT:
 If NO to any → DO NOT COMMIT
 ```
 
+## Chain to Next Gate
+
+**When this gate passes, IMMEDIATELY load the next gate in the chain:**
+
+```
+use-skill enforce-style-guide
+```
+
+Then continue: `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit` (gates 4–5 when applicable). Do NOT commit between gates.
+
 ## Post-Commit: Verify Build Status
 
 **DO NOT update ticket status or claim "done" until ALL builds pass.**
