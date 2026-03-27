@@ -17,6 +17,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="${SCRIPT_DIR}/../skills"
+# shellcheck source-path=SCRIPTDIR source=parse-frontmatter.sh
+source "${SCRIPT_DIR}/parse-frontmatter.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -71,7 +73,7 @@ extract_triggers() {
 
     # Try to extract from 'triggers:' field first (preferred - new format)
     local triggers
-    triggers=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^triggers:" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | { grep -v '^$' || true; } | { grep -v '^triggers' || true; })
+    triggers=$(frontmatter_field "$skill_file" "triggers" 2>/dev/null || true)
 
     if [[ -z "$triggers" ]]; then
         # Fall back to extracting quoted phrases from description
