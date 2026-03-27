@@ -44,6 +44,26 @@ If no diff exists in any of these, skip this gate.
 
 ### Step 2: Dispatch the reviewer
 
+**If `code-review-battery` skill is available** (preferred — parallel specialized review):
+
+Follow the `code-review-battery` SKILL.md procedure:
+1. Triage the diff → select relevant reviewers
+2. Dispatch activated reviewers in parallel (each gets the full diff inline)
+3. Aggregate findings into unified report
+
+Map battery output to gate verdicts:
+
+| Battery Severity | Gate Classification | Gate Verdict |
+|-----------------|---------------------|-------------|
+| **Critical** | MUST-FIX | FAIL |
+| **Important** | SHOULD-FIX | FAIL (if ≥2) or PASS_WITH_NITS (if 1) |
+| **Minor** | NIT | PASS_WITH_NITS |
+| All clean (✅) | — | PASS |
+
+On re-review rounds (Round 2+): skip triage, re-dispatch the SAME reviewers from Round 1.
+
+**Otherwise** (fallback — monolithic review):
+
 Invoke `sub-agent-code-reviewer` with a unique name per round (e.g., `review-round-1`):
 
 ```
