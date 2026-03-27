@@ -94,13 +94,28 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 | Verdict | Action |
 |---------|--------|
 | **PASS** | Proceed to commit/push |
-| **PASS_WITH_NITS** | Proceed (fix nits if trivial) |
-| **FAIL** | Fix MUST-FIX and SHOULD-FIX items, then go to step 2 |
+| **PASS_WITH_NITS** | Fix the nits, then go to Step 3a (targeted re-review) |
+| **FAIL** | Fix MUST-FIX and SHOULD-FIX items, then go to Step 2 (full re-review) |
+
+### Step 3a: Targeted re-review (PASS_WITH_NITS loop)
+
+After fixing nits, run a **targeted** battery round:
+
+1. **Scope**: Only the files touched by the nit fixes (not the full original diff)
+2. **Reviewers**: Only the reviewer(s) that produced the nits in the previous round
+3. **Dispatch**: Re-capture `git diff` for just the fixed files, dispatch the scoped reviewers
+4. **Verdict mapping**: Same table as Step 2
+5. **Exit conditions**:
+   - PASS → proceed to commit/push
+   - PASS_WITH_NITS → fix and repeat Step 3a (counts toward Round 5 cap)
+   - FAIL → fix and go to Step 2 (full re-review — nit fix introduced a real issue)
+
+**Why targeted, not full**: Nit fixes are low-risk by definition. Re-reviewing the entire diff wastes time. But nit fixes *can* introduce new issues, so the affected reviewer must verify.
 
 ### Step 4: Track rounds
 
-- Round 1: Initial review
-- Round 2+: Re-review after fixes
+- Round 1: Initial review (Step 2)
+- Round 2+: Re-review after fixes (Step 2 for FAIL, Step 3a for PASS_WITH_NITS)
 - Round 5: STOP. Tell the human: "5 review rounds without clean pass. Please review manually."
 
 ## What This Gate Does NOT Do
