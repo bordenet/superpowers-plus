@@ -15,6 +15,12 @@ coordination:
 
 # Progressive Code Review Gate
 
+## When to Use
+
+- Before every commit or push of code changes (mandatory, fires automatically)
+- When user says "ready to commit," "push this," or "commit and push"
+- NOT for: PR-level review (`providing-code-review`), language/profanity audit (`professional-language-audit`)
+
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
 
@@ -82,7 +88,7 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 - Does not run lint/typecheck/tests (that's `pre-commit-gate`, order 1)
 - Does not enforce style guides (that's `enforce-style-guide`, order 2 — runs before this gate so style-induced code changes are covered by this review)
 - Does not handle PR-level review (that's `providing-code-review`)
-- Does not review wiki/docs content (that's `professional-language-audit` and wiki skills)
+- Does not scan for unprofessional language (that's `professional-language-audit`, order 4)
 
 ## Anti-Patterns
 

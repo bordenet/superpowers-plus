@@ -8,6 +8,12 @@ description: "Use when extracting domain knowledge from a user through structure
 
 # Expert Interviewer
 
+## When to Use
+
+- Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
+- User says "help me document," "capture what I know," or "write up the problem space"
+- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans`)
+
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
 This is NOT brainstorming. Brainstorming explores design alternatives. Expert-interviewing extracts and organizes existing knowledge. Different failure modes, different process.

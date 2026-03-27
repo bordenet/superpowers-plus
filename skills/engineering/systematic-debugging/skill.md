@@ -8,6 +8,12 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 # Systematic Debugging
 
+## When to Use
+
+- Any bug, test failure, or unexpected behavior — before proposing fixes
+- Build failures, runtime errors, or flaky tests
+- NOT for: feature design (`brainstorming`), code review (`providing-code-review`)
+
 **Core principle:** ALWAYS find root cause before attempting fixes.
 
 ```

@@ -6,6 +6,12 @@ triggers: ["send to reviewer agent", "execute reviewer findings", "implement rev
 
 # Code Review — Requesting Agent File Protocol
 
+## When to Use
+
+- Sending completed work to a separate reviewer agent via the file protocol
+- Executing reviewer findings from a `response.md`
+- NOT for: acting as reviewer (`code-review-respond`), pre-commit review (`progressive-code-review-gate`)
+
 This skill handles the **file I/O and structured handoff** for inter-agent code review. It has two modes: **Generate Request** and **Execute Response**.
 
 **Complements these skills (load as needed):**
@@ -110,3 +116,11 @@ Use when: the reviewer has finished and written `response.md`.
 - Clear stale `active/{scope}/response.md` during rollover, and refuse execute mode if request/response round numbers do not match.
 - Archive the final PASS round too (user may want to reference it).
 - Track round number from the response header (`# Code Review Response — Round {N}`), not a separate file.
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Stale `response.md` from previous round executed | Check round numbers match before processing (Step 2 of Execute Response) |
+| Reviewer can't find referenced files | Verify all paths in "Files to Read" exist before generating request |
+| 5+ rounds without PASS | Stop generating rounds, escalate to human review |
