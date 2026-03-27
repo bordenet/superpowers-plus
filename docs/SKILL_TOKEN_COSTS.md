@@ -4,27 +4,28 @@
 
 | Domain | Skill | Size (lines) | Aux (lines) | References | Chains To | Verify Loops | Sub-Agents | Est. Cost |
 |--------|-------|-------------:|------------:|-----------:|----------:|-------------:|-----------:|-----------|
-| engineering | subagent-driven-development | 67 | 0 | 0/0 | 1 | 0 | 14 | 45.3 (high) |
+| engineering | subagent-driven-development | 90 | 0 | 0/0 | 1 | 0 | 17 | 54.8 (high) |
+| productivity | thinking-orchestrator | 121 | 0 | 0/0 | 11 | 0 | 4 | 36.4 (high) |
 | productivity | plan-and-execute | 250 | 0 | 1/98 | 11 | 1 | 2 | 35.9 (high) |
-| productivity | thinking-orchestrator | 116 | 0 | 0/0 | 10 | 0 | 4 | 34.3 (high) |
 | productivity | think-twice | 66 | 0 | 2/116 | 2 | 0 | 8 | 33.0 (high) |
 | engineering | verification-before-completion | 199 | 0 | 0/0 | 3 | 1 | 7 | 31.9 (high) |
 | productivity | superpowers-help | 154 | 0 | 0/0 | 13 | 0 | 0 | 29.0 (high) |
-| engineering | progressive-code-review-gate | 99 | 0 | 0/0 | 6 | 0 | 3 | 22.9 (high) |
+| engineering | progressive-code-review-gate | 105 | 0 | 0/0 | 6 | 0 | 3 | 23.1 (high) |
 | research | perplexity-research | 212 | 0 | 2/92 | 5 | 0 | 2 | 22.0 (high) |
 | engineering | investigation-state | 162 | 0 | 4/528 | 4 | 0 | 0 | 21.8 (high) |
+| engineering | design-triad | 139 | 0 | 0/0 | 4 | 1 | 3 | 20.7 (high) |
 | engineering | feature-development | 180 | 0 | 0/0 | 8 | 1 | 0 | 20.6 (high) |
 | wiki | wiki-orchestrator | 143 | 0 | 2/135 | 6 | 3 | 0 | 20.5 (high) |
-| engineering | design-triad | 127 | 0 | 0/0 | 4 | 1 | 3 | 20.5 (high) |
 | engineering | engineering-rigor | 83 | 0 | 0/0 | 9 | 0 | 0 | 19.6 (high) |
 | writing | detecting-ai-slop | 187 | 572 | 0/0 | 2 | 0 | 0 | 19.1 (high) |
 | engineering | pre-commit-gate | 137 | 0 | 0/0 | 8 | 0 | 0 | 18.7 (high) |
 | writing | professional-language-audit | 212 | 0 | 0/0 | 6 | 0 | 0 | 16.2 (high) |
-| writing | writing-skills | 80 | 0 | 0/0 | 7 | 0 | 0 | 15.6 (high) |
+| writing | writing-skills | 86 | 0 | 0/0 | 7 | 0 | 0 | 15.7 (high) |
 | productivity | innovation | 61 | 129 | 1/79 | 5 | 0 | 0 | 15.3 (high) |
 | writing | eliminating-ai-slop | 78 | 364 | 0/0 | 3 | 0 | 0 | 14.8 (medium) |
 | productivity | enforce-style-guide | 216 | 0 | 0/0 | 5 | 0 | 0 | 14.3 (medium) |
 | security | repo-security-scan | 192 | 0 | 0/0 | 5 | 0 | 0 | 13.8 (medium) |
+| engineering | brainstorming | 91 | 0 | 0/0 | 3 | 0 | 2 | 13.8 (medium) |
 | writing | readme-authoring | 222 | 0 | 3/147 | 3 | 0 | 0 | 13.3 (medium) |
 | productivity | skill-authoring | 230 | 0 | 0/0 | 4 | 0 | 0 | 12.6 (medium) |
 | productivity | domain-design | 84 | 0 | 0/0 | 5 | 0 | 0 | 11.6 (medium) |
@@ -35,10 +36,12 @@
 | issue-tracking | issue-editing | 148 | 0 | 0/0 | 4 | 0 | 0 | 10.9 (medium) |
 | engineering | providing-code-review | 142 | 0 | 0/0 | 4 | 0 | 0 | 10.8 (medium) |
 | wiki | link-verification | 235 | 0 | 0/0 | 3 | 0 | 0 | 10.7 (medium) |
+| productivity | code-review | 126 | 0 | 0/0 | 4 | 0 | 0 | 10.5 (medium) |
 | engineering | blast-radius-check | 126 | 0 | 0/0 | 4 | 0 | 0 | 10.5 (medium) |
 | writing | markdown-table-discipline | 224 | 0 | 0/0 | 3 | 0 | 0 | 10.4 (medium) |
 | issue-tracking | issue-link-verification | 200 | 0 | 0/0 | 3 | 0 | 0 | 10.0 (medium) |
 | issue-tracking | issue-comment-debunker | 192 | 0 | 0/0 | 3 | 0 | 0 | 9.8 (medium) |
+| engineering | systematic-debugging | 68 | 0 | 0/0 | 4 | 0 | 0 | 9.3 (medium) |
 | observability | superpowers-doctor | 84 | 0 | 1/80 | 0 | 0 | 2 | 9.2 (medium) |
 | observability | exhaustive-audit-validation | 163 | 0 | 0/0 | 3 | 0 | 0 | 9.2 (medium) |
 | observability | holistic-repo-verification | 157 | 0 | 0/0 | 3 | 0 | 0 | 9.1 (medium) |
@@ -46,25 +49,22 @@
 | wiki | wiki-debunker | 75 | 0 | 2/170 | 2 | 0 | 0 | 8.9 (medium) |
 | engineering | field-rename-verification | 147 | 0 | 0/0 | 3 | 0 | 0 | 8.9 (medium) |
 | research | incorporating-research | 233 | 0 | 0/0 | 2 | 0 | 0 | 8.6 (medium) |
+| security | wiki-instruction-guard | 220 | 0 | 1/141 | 0 | 1 | 0 | 8.2 (medium) |
 | experimental | experimental-self-prompting | 160 | 0 | 0/0 | 1 | 3 | 0 | 8.2 (medium) |
-| security | wiki-instruction-guard | 212 | 0 | 1/141 | 0 | 1 | 0 | 8.0 (medium) |
-| research | expert-interviewer | 128 | 0 | 0/0 | 1 | 0 | 1 | 7.5 (low) |
+| engineering | test-driven-development | 96 | 0 | 0/0 | 3 | 0 | 0 | 7.9 (low) |
+| research | expert-interviewer | 134 | 0 | 0/0 | 1 | 0 | 1 | 7.6 (low) |
 | issue-tracking | issue-verify | 129 | 0 | 0/0 | 2 | 1 | 0 | 7.5 (low) |
 | writing | plan-quality-gates | 148 | 0 | 0/0 | 2 | 0 | 0 | 6.9 (low) |
 | productivity | adversarial-search | 83 | 0 | 0/0 | 1 | 3 | 0 | 6.6 (low) |
-| productivity | code-review | 112 | 0 | 0/0 | 2 | 0 | 0 | 6.2 (low) |
 | wiki | wiki-verify | 191 | 0 | 0/0 | 1 | 0 | 0 | 5.8 (low) |
-| productivity | code-review-respond | 87 | 0 | 0/0 | 2 | 0 | 0 | 5.7 (low) |
+| productivity | code-review-respond | 93 | 0 | 0/0 | 2 | 0 | 0 | 5.8 (low) |
 | engineering | receiving-code-review | 184 | 0 | 0/0 | 1 | 0 | 0 | 5.6 (low) |
 | wiki | wiki-content-coherence | 75 | 0 | 0/0 | 2 | 0 | 0 | 5.5 (low) |
 | productivity | todo-archive | 175 | 0 | 0/0 | 1 | 0 | 0 | 5.5 (low) |
 | productivity | fallback-planning | 78 | 0 | 0/0 | 2 | 0 | 0 | 5.5 (low) |
 | security | security-upgrade | 223 | 0 | 0/0 | 0 | 0 | 0 | 4.4 (low) |
-| engineering | brainstorming | 67 | 0 | 0/0 | 0 | 0 | 1 | 4.3 (low) |
 | wiki | wiki-secret-audit | 164 | 0 | 0/0 | 0 | 0 | 0 | 3.2 (low) |
-| engineering | systematic-debugging | 62 | 0 | 0/0 | 1 | 0 | 0 | 3.2 (low) |
 | engineering | requirements-validation | 107 | 0 | 0/0 | 0 | 0 | 0 | 2.1 (low) |
-| engineering | test-driven-development | 82 | 0 | 0/0 | 0 | 0 | 0 | 1.6 (low) |
 
 ## Methodology
 

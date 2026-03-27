@@ -207,6 +207,14 @@ Opt-in: Create `references/domain-allowlist-local.md` (gitignored). Format: `dom
 
 Verdict escalation: Standard → `(P)roceed`. High severity (Cat 1-3) → type `PROCEED`. Social engineering (Cat 7) → non-overridable. See `references/output-templates.md` for templates.
 
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Pattern not detected (obfuscation, variable expansion) | Manual review — this is static regex, not a shell parser |
+| False positive blocking safe command | Add domain to `references/domain-allowlist-local.md` or user types `PROCEED` |
+| Wiki content bypasses scan via HTML comments or zero-width chars | Pre-processing (Rule 3) strips these — verify strip ran |
+
 ## Limitations
 
 ~70-80% obfuscation coverage. **Not detected:** function definitions, variable expansion, multi-step assembly. Advisory only (static regex, not shell parser).
