@@ -252,13 +252,60 @@ function extractFrontmatter(filePath) {
         let inFrontmatter = false;
         let name = '';
         let description = '';
-        for (const line of lines) {
+        let triggers = [];
+        let requires_mcp = [];
+
+        function parseInlineArray(value) {
+            return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+        }
+
+        function parseYamlList(lines, startIndex) {
+            const values = [];
+            let nextIndex = startIndex;
+
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+                if (itemMatch) {
+                    values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+                    nextIndex = i;
+                    continue;
+                }
+                if (lines[i].trim() === '') {
+                    nextIndex = i;
+                    continue;
+                }
+                break;
+            }
+
+            return { values, nextIndex };
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
                 inFrontmatter = true;
                 continue;
             }
             if (inFrontmatter) {
+                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
+                if (triggersMatch) {
+                    triggers = parseInlineArray(triggersMatch[1]);
+                } else if (line.match(/^triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+
+                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
+                if (mcpMatch) {
+                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                } else if (line.match(/^requires_mcp:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    requires_mcp = parsed.values;
+                    i = parsed.nextIndex;
+                }
+
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
                     const key = match[1];
@@ -268,9 +315,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description };
+        return { name, description, triggers, requires_mcp };
     } catch (error) {
-        return { name: '', description: '' };
+        return { name: '', description: '', triggers: [], requires_mcp: [] };
     }
 }
 

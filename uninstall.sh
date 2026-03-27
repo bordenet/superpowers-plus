@@ -31,15 +31,16 @@ fi
 # --- CRLF self-heal ---
 _SCRIPT_DIR_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -n "$(find "$_SCRIPT_DIR_EARLY" -maxdepth 1 -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null | head -1)" ]; then
-    if command -v perl &>/dev/null; then
-        find "$_SCRIPT_DIR_EARLY" -maxdepth 1 -name "*.sh" -exec perl -pi -e 's/\r$//' {} +
-    else
-        find "$_SCRIPT_DIR_EARLY" -maxdepth 1 -name "*.sh" -print0 | while IFS= read -r -d '' f; do
-            tr -d '\r' < "$f" > "${f}.tmp"
-            [[ -x "$f" ]] && chmod +x "${f}.tmp"
-            mv "${f}.tmp" "$f"
-        done
-    fi
+    find "$_SCRIPT_DIR_EARLY" -maxdepth 1 -name "*.sh" -print0 | while IFS= read -r -d '' f; do
+        mode="$(stat -f '%Lp' "$f" 2>/dev/null || stat -c '%a' "$f" 2>/dev/null || true)"
+        tr -d '\r' < "$f" > "${f}.tmp"
+        if [[ -n "$mode" ]]; then
+            chmod "$mode" "${f}.tmp"
+        elif [[ -x "$f" ]]; then
+            chmod +x "${f}.tmp"
+        fi
+        mv "${f}.tmp" "$f"
+    done
     exec bash "$0" "$@"
 fi
 unset _SCRIPT_DIR_EARLY
@@ -92,7 +93,7 @@ run_rm() {
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "[DRY-RUN] Would remove: $target"
     else
-        rm -rf -- "$target" 2>/dev/null || log_warn "Failed to remove: $target"
+        rm -rf -- "${target:?}" 2>/dev/null || log_warn "Failed to remove: $target"
         log_verbose "Removed: $target"
     fi
 }
@@ -106,15 +107,30 @@ remove_env_var() {
         log_info "[DRY-RUN] Would remove $var_name from $ENV_FILE"
         return 0
     fi
-    # Safe rewrite: only replace if grep succeeds on a readable file
-    if grep -v "^${var_name}=" "$ENV_FILE" > "${ENV_FILE}.tmp" 2>/dev/null; then
-        mv -- "${ENV_FILE}.tmp" "$ENV_FILE"
-    else
-        # grep failed (file unreadable or all lines matched) — clean up tmp
-        rm -f -- "${ENV_FILE}.tmp" 2>/dev/null
-        log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
+    local tmp_file="${ENV_FILE}.tmp.$$"
+    if ! : > "$tmp_file" 2>/dev/null; then
+        log_warn "Failed to create temp file for $ENV_FILE rewrite"
+        rm -f -- "$tmp_file" 2>/dev/null
         return 1
     fi
+
+    # grep exits 1 when every line is filtered out; that still produces a valid empty file.
+    local grep_status=0
+    grep -v "^${var_name}=" "$ENV_FILE" > "$tmp_file" 2>/dev/null || grep_status=$?
+    case "$grep_status" in
+        0|1)
+            if ! mv -- "$tmp_file" "$ENV_FILE"; then
+                rm -f -- "$tmp_file" 2>/dev/null
+                log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
+                return 1
+            fi
+            ;;
+        *)
+            rm -f -- "$tmp_file" 2>/dev/null
+            log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
+            return 1
+            ;;
+    esac
     log_verbose "Removed $var_name from $ENV_FILE"
 }
 
