@@ -9,6 +9,12 @@ description: "You MUST use this before any creative work - creating features, bu
 
 # Brainstorming Ideas Into Designs
 
+## When to Use
+
+- Before any creative work: creating features, building components, adding functionality, or modifying behavior
+- User says "design a feature," "build a new," "explore approaches"
+- NOT for: bug fixing (`systematic-debugging`), extracting existing knowledge (`expert-interviewer`), choosing between known options (`design-triad`)
+
 Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
 
 <HARD-GATE>
@@ -65,3 +71,26 @@ Do NOT write any code or take implementation action until you have presented a d
 - **YAGNI ruthlessly** — remove unnecessary features
 - **Explore alternatives** — always 2-3 approaches
 - **Incremental validation** — present, approve, move on
+
+## Example: Design Spec Output
+
+```markdown
+# Design: Retry Logic for API Client
+## Approach A (recommended): Exponential backoff with jitter
+  - Trade-off: More complex, but prevents thundering herd
+## Approach B: Fixed-interval retry
+  - Trade-off: Simpler, but causes coordinated retry storms
+## Selected: A — backoff with jitter
+## Components: RetryPolicy class wrapping HttpClient, configurable max retries
+## Testing: Unit tests for retry count, backoff timing, jitter range
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Started coding before design approval | Delete code, restart from checklist step 3 |
+| Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
+| Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
+| Invented requirements not stated by user | Ask: "Is [requirement] important to you?" Don't assume |
+| Overdesigned beyond what was asked | Apply YAGNI — cut every feature the user didn't request |

@@ -188,13 +188,22 @@ BAK_MAX_KEEP = 10  # Maximum .bak files to keep
 
 
 def backup(todo_path: str) -> str:
-    """Create timestamped backup and rotate old backups. Returns backup path."""
+    """Create timestamped backup in SHADOW_DIR and rotate old backups.
+
+    Writes to ~/.codex/todo-shadow/ instead of alongside TODO.md so that
+    backups work even when TODO.md lives on an immutable filesystem
+    (e.g. OneDrive with chflags uchg).  Returns backup path.
+    """
+    os.makedirs(SHADOW_DIR, exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    bak = f"{todo_path}.{ts}.bak"
-    shutil.copy2(todo_path, bak)
+    bak = os.path.join(SHADOW_DIR, f"TODO.{ts}.bak")
+    # Use copyfile (content only) instead of copy2 (preserves flags).
+    # copy2 would propagate uchg/immutability flags to the backup,
+    # making old backups undeletable during rotation.
+    shutil.copyfile(todo_path, bak)
     # Rotate: delete all but newest BAK_MAX_KEEP
     import glob
-    bak_pattern = f"{todo_path}.*.bak"
+    bak_pattern = os.path.join(SHADOW_DIR, "TODO.*.bak")
     existing = sorted(glob.glob(bak_pattern))
     while len(existing) > BAK_MAX_KEEP:
         try:

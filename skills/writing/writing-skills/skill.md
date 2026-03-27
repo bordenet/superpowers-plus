@@ -2,12 +2,18 @@
 name: writing-skills
 source: superpowers-plus
 overrides: superpowers/writing-skills
-triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions"]
-anti_triggers: ["use skill", "find skill", "load skill", "create a skill", "make a skill", "new skill for"]
-description: "Use when reviewing skill files for prose quality, markdown formatting, and style conventions. NOT for creating new skills (use skill-authoring)."
+triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions", "create a skill", "make a skill", "new skill for"]
+anti_triggers: ["use skill", "find skill", "load skill"]
+description: "Use when: creating or reviewing skill files. Covers SKILL.md structure, prose quality, markdown formatting, creation checklist, and quality gates. For the full creation workflow, see skill-authoring (upstream)."
 ---
 
 # Writing Skills
+
+## When to Use
+
+- Creating new skill files (structure, frontmatter, prose style, quality gates)
+- Reviewing existing skill files for compliance with conventions
+- NOT for: using/loading/finding skills at runtime (`using-superpowers`)
 
 A **skill** is a reusable reference guide for techniques, patterns, or tools. NOT a narrative about solving a problem once.
 

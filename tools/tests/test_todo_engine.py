@@ -605,6 +605,103 @@ class TodoEngineTests(unittest.TestCase):
         original = self.todo_path.read_text()
         self.assertEqual(Path(bak).read_text(), original)
 
+
+    def test_backup_writes_to_shadow_dir_not_alongside_todo(self):
+        """Backup must write to SHADOW_DIR, not next to TODO.md.
+
+        Regression: when TODO.md lives on an immutable filesystem (OneDrive +
+        chflags uchg), writing .bak files alongside it fails with
+        PermissionError.  Backup should use ~/.codex/todo-shadow/ instead.
+        """
+        eng = self.engine
+        bak = eng.backup(str(self.todo_path))
+        bak_path = Path(bak)
+        # Must exist
+        self.assertTrue(bak_path.exists())
+        # Must be in SHADOW_DIR, NOT alongside TODO.md
+        self.assertTrue(
+            str(bak_path).startswith(eng.SHADOW_DIR),
+            f"Backup {bak_path} should be under SHADOW_DIR ({eng.SHADOW_DIR}), "
+            f"not alongside TODO.md ({self.todo_path.parent})"
+        )
+        # Must NOT be alongside TODO.md
+        self.assertNotEqual(
+            bak_path.parent, self.todo_path.parent,
+            "Backup should not be in the same directory as TODO.md"
+        )
+        # Content should match
+        original = self.todo_path.read_text()
+        self.assertEqual(bak_path.read_text(), original)
+
+
+    def test_backup_rotation_deletes_old_files(self):
+        """Backup rotation must actually delete old .bak files.
+
+        Regression: shutil.copy2 propagates uchg flags from an immutable
+        source, making backups undeletable and rotation silently broken.
+        Using copyfile (content-only) avoids this.
+        """
+        eng = self.engine
+        import glob
+        # Directly create BAK_MAX_KEEP + 3 fake .bak files with known names
+        os.makedirs(eng.SHADOW_DIR, exist_ok=True)
+        created = []
+        for i in range(eng.BAK_MAX_KEEP + 3):
+            name = os.path.join(eng.SHADOW_DIR, f"TODO.20260101-{i:06d}.bak")
+            Path(name).write_text(f"backup {i}")
+            created.append(name)
+        # Now call backup() which should trigger rotation
+        bak = eng.backup(str(self.todo_path))
+        created.append(bak)
+        # Count .bak files in SHADOW_DIR
+        bak_pattern = os.path.join(eng.SHADOW_DIR, "TODO.*.bak")
+        remaining = glob.glob(bak_pattern)
+        self.assertLessEqual(
+            len(remaining), eng.BAK_MAX_KEEP,
+            f"Expected at most {eng.BAK_MAX_KEEP} backups after rotation, "
+            f"found {len(remaining)}"
+        )
+        # Verify oldest ones were rotated out
+        for old_bak in created[:4]:
+            self.assertFalse(
+                os.path.exists(old_bak),
+                f"Old backup {old_bak} should have been rotated out"
+            )
+
+
+    def test_backup_does_not_inherit_readonly_from_source(self):
+        """Backup file must be writable/deletable even if source is read-only.
+
+        This is the actual regression test for the copy2→copyfile fix.
+        copy2 propagates file permissions/flags; copyfile does not.
+        If this test fails, backup rotation will silently break in production
+        because old .bak files become undeletable.
+        """
+        eng = self.engine
+        # Make source read-only (simulates chmod 444 portion of immutability)
+        self.todo_path.chmod(0o444)
+        try:
+            bak = eng.backup(str(self.todo_path))
+            bak_path = Path(bak)
+            # The backup must exist
+            self.assertTrue(bak_path.exists())
+            # The backup must be writable (not inheriting read-only)
+            self.assertTrue(
+                os.access(bak, os.W_OK),
+                f"Backup {bak} should be writable, but inherited read-only from source"
+            )
+            # The backup must be deletable
+            try:
+                os.remove(bak)
+            except OSError as e:
+                self.fail(f"Backup {bak} should be deletable but got: {e}")
+        finally:
+            # Restore write permission for test cleanup
+            self.todo_path.chmod(0o644)
+
+
+
+
     def test_whitespace_normalization(self):
         eng = self.engine
         content = "a\n\n\n\n\n\nb\n"  # 6 blank lines

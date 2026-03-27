@@ -6,6 +6,12 @@ triggers: ["I am the reviewer agent", "read request.md", "reviewer agent protoco
 
 # Code Review — Reviewer Agent File Protocol
 
+## When to Use
+
+- You are the reviewer agent in a `~/.codex/superpowers-review/` file-protocol handoff
+- User says "I am the reviewer agent" or "read request.md"
+- NOT for: requesting a review (`code-review`), inline code review without file protocol (`providing-code-review`)
+
 You are the code reviewer. Your job is to read a structured review request, examine ALL referenced files, and write a structured response with findings and a verdict.
 
 **Also load `providing-code-review`** for engineering rigor guidance (data flow tracing, blast radius analysis, integration verification). That skill contributes WHAT to check only. **Do not use its output template here** — this protocol's `response.md` template overrides any other output-format guidance.
@@ -79,9 +85,36 @@ F3. [file:line] Description...
 ## Key Rules
 
 1. **Read code, not claims.** The request describes what the author THINKS they did. Your job is to verify what ACTUALLY happened by reading the files.
-2. **Every finding needs a file:line reference.** No vague "the code seems off." Point to the exact location.
-3. **Evidence over opinion.** Show what you found, not what you feel.
-4. **If a review question is unanswerable** from the provided files, say so explicitly — don't guess.
-5. **Be harsh.** The requesting agent asked for adversarial review. Earn it. Call out everything — missed edge cases, broken references, semantic drift, over-cutting, under-cutting, stale data, false claims in the request itself.
-6. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
-7. **Use this file's response template.** `providing-code-review` may inform your checklist, but its output format does not replace `# Code Review Response — Round {N}`.
+2. **Verify facts, not just files.** If the content makes factual claims about external system state — PR status (merged/active/abandoned), deployment status, test results, build status, ticket state — **you MUST verify each claim against the system of record using available API tools.** A wiki page that says "Status: Merged" is a falsifiable claim, not a stylistic choice. One API call catches it. Skipping that call is a CRITICAL review failure.
+3. **Every finding needs a file:line reference OR an API verification reference.** No vague "the code seems off." Point to the exact location or the exact API response that contradicts the claim.
+4. **Evidence over opinion.** Show what you found, not what you feel.
+5. **If a review question is unanswerable** from the provided files, say so explicitly — don't guess.
+6. **Be harsh.** The requesting agent asked for adversarial review. Earn it. Call out everything — missed edge cases, broken references, semantic drift, over-cutting, under-cutting, stale data, false claims in the request itself.
+7. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
+8. **Use this file's response template.** `providing-code-review` may inform your checklist, but its output format does not replace `# Code Review Response — Round {N}`.
+
+## Factual Verification Checklist (MANDATORY)
+
+Before writing your verdict, scan the reviewed content for any claims about external system state. For each claim found:
+
+| Claim Type | How to Verify |
+|------------|---------------|
+| PR status (merged, active, abandoned) | Call ADO/GitHub API — check actual status code, not preview artifacts |
+| Deployment status | Check CI/CD pipeline or environment state |
+| Test results ("all tests pass") | Verify CI run or run tests locally |
+| Ticket/issue state | Query Linear, ADO, or Jira API |
+| URL targets (links to wiki, PRs, docs) | Fetch the URL or query the API — confirm it resolves |
+| Version numbers or dependency claims | Check the actual lockfile or package manifest |
+| "Merged commit" references | Verify the commit exists on the target branch — ADO generates preview merge commits for open PRs that do NOT indicate actual merge |
+
+**If you cannot verify a factual claim** (no API access, no tool available), flag it as a WARNING with the note: "Unverifiable claim — reviewer lacks access to confirm."
+
+**If you skip factual verification entirely**, your review is incomplete. Period.
+
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Malformed `request.md` | Missing round number, no file list, or broken markdown structure | Report as CRITICAL finding. Don't guess intent — tell the requesting agent what's missing |
+| Scope creep into unrelated code | Flagging pre-existing issues not touched by the diff | Restrict findings to changed files and their direct callers. Note pre-existing issues as INFO only |
+| Stale review after fixes | Round N+1 review doesn't re-read files, just checks if Round N findings were "addressed" | Always re-read ALL files from scratch each round. New fixes can introduce new issues |

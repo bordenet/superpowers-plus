@@ -8,6 +8,12 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 # Test-Driven Development (TDD)
 
+## When to Use
+
+- Implementing any feature or bugfix — before writing implementation code
+- User says "write tests first," "TDD," or "red green refactor"
+- NOT for: debugging existing failures (`systematic-debugging`), reviewing others' code (`providing-code-review`)
+
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
 ```
@@ -76,6 +82,14 @@ Can't check all boxes? You skipped TDD. Start over.
 | Don't know how to test | Write wished-for API. Write assertion first. |
 | Test too complicated | Design too complicated. Simplify interface. |
 | Must mock everything | Code too coupled. Use dependency injection. |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Wrote implementation before test | Delete implementation, write failing test first |
+| Test passed immediately (no RED phase) | Test is wrong — it's testing existing behavior, not new behavior |
+| Added features during GREEN phase | Revert extras — GREEN means minimal code to pass, nothing more |
 
 ## Anti-Patterns
 

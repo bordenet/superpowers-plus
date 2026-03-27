@@ -15,6 +15,11 @@ coordination:
 
 # Progressive Code Review Gate
 
+## When to Use
+
+- Fires automatically before every commit or push of code changes
+- NOT for: PR-level review of others' work (`providing-code-review`), file-protocol review (`code-review`)
+
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
 
@@ -82,7 +87,7 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 - Does not run lint/typecheck/tests (that's `pre-commit-gate`, order 1)
 - Does not enforce style guides (that's `enforce-style-guide`, order 2 — runs before this gate so style-induced code changes are covered by this review)
 - Does not handle PR-level review (that's `providing-code-review`)
-- Does not review wiki/docs content (that's `professional-language-audit` and wiki skills)
+- Does not scan for unprofessional language (that's `professional-language-audit`, order 4)
 
 ## Anti-Patterns
 
@@ -91,6 +96,16 @@ If FAIL: list every MUST-FIX and SHOULD-FIX clearly.
 | Committing without review because "it's a small change" | Every code change gets reviewed |
 | Skipping re-review after fixes | Fixes can introduce new issues. Always re-review |
 | Running review only when human asks | Review is automatic. Human asks to SKIP, not to START |
+
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
+| Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
+| Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
+| Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
 
 ## Commit Gate Chain
 

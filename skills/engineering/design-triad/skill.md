@@ -1,7 +1,7 @@
 ---
 name: design-triad
 source: superpowers-plus
-triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad"]
+triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
 summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
 ---
@@ -20,11 +20,13 @@ summary: "Use when: choosing between design approaches. Skip when: implementatio
 
 ## Preflight
 
-Before generating design options, confirm:
-1. **Requirements validated** — use `requirements-validation` to test for falsifiability, measurability, and contradictions.
-2. **Architecture assessed** — use `engineering-rigor` (Architecture Testing section) to validate scalability, maintainability, and pattern fit.
+⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1. Pick ONE:
 
-If neither has been done, complete them first or explicitly acknowledge the risk of designing without validated inputs.
+1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
+2. **Requirements or architecture need investigation** — pause design-triad, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
+3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, skipping requirements/architecture preflight." Then proceed to Step 1. (Note: you are skipping the preflight validation, NOT skipping the design-triad process itself — Steps 1-5 still apply.)
+
+Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.
 
 ## The Process (5 Steps)
 
@@ -58,6 +60,8 @@ Build a comparison matrix. **Constraint: max 5 words per cell.**
 | Fit with existing patterns | | | |
 
 State your recommendation with explicit rationale (2-3 sentences). If only one option is viable, the matrix documents WHY the others don't work — that documentation has value.
+
+⛔ **HARD GATE: Recommendation ≠ Completion.** Stating a recommendation here is Step 2 of 5. You MUST proceed to Step 3 (Harsh Review), Step 4 (Edge Cases), and Step 5 (Iterate) before claiming the design decision is made. Stopping at a recommendation without adversarial review is a violation — it is the single most common failure mode of this skill.
 
 ## Step 3: Harsh Review (Red Team)
 
@@ -108,6 +112,18 @@ Design document with:
 3. Edge-case catalog from Step 4
 4. Harsh review findings and resolutions
 
+## Example: Comparison Matrix Output
+
+```markdown
+| Criterion | A: Event-driven | B: Polling | C: Hybrid |
+|-----------|----------------|------------|-----------|
+| Complexity | Medium, new infra | Low, cron job | High, both paths |
+| Testability | Hard, async | Easy, sync | Medium |
+| Maintainability | Good, decoupled | Good, simple | Poor, two systems |
+| Risk | Message loss | Stale data | Complexity debt |
+| Fit with patterns | Matches existing | New pattern | Mixed |
+```
+
 ## Rationalizations to Reject
 
 | Excuse | Reality |
@@ -118,5 +134,6 @@ Design document with:
 | "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
 | "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
 | "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
+| "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
 | "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
 | "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |

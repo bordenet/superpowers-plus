@@ -8,6 +8,12 @@ description: "Use when executing implementation plans with independent tasks in 
 
 # Subagent-Driven Development
 
+## When to Use
+
+- You have a written implementation plan with independent tasks to execute in the current session
+- You want isolated context per task (fresh subagent = no pollution from prior tasks)
+- NOT for: writing the plan (`writing-plans`), execution across multiple sessions (`executing-plans`)
+
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
 **Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need.
@@ -65,3 +71,20 @@ Never force retry without changes. If stuck, something must change.
 | `superpowers:writing-plans` | Creates the plan this executes |
 | `superpowers:finishing-a-development-branch` | After all tasks complete |
 | `superpowers:executing-plans` | Alternative: parallel session execution |
+
+## Example: Dispatch Prompt
+
+```
+Implement task 3: "Add retry logic to API client."
+Files: src/api/client.ts (main), test/api/client.test.ts (tests).
+Constraints: max 3 retries, exponential backoff, no new dependencies.
+Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Subagent given plan file path instead of full text | Re-dispatch with complete task text inline |
+| Skipped spec compliance review, went straight to quality | Go back — spec compliance THEN quality, order matters |
+| Parallel implementers caused merge conflicts | Never dispatch parallel implementers — sequential only |
