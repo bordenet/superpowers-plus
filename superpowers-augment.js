@@ -694,6 +694,11 @@ Priority: user instructions > skills > system defaults.
 Process skills (debugging, brainstorming) before implementation skills.
 
 ## Critical auto-triggers (ALWAYS apply — never skip)
+- **FOR ANY CODE CHANGE** (features, fixes, refactors, config, skills — anything touching code):
+  Auto-engage \`feature-development\` workflow unless user explicitly opts out ("skip the workflow", "just do it").
+  The workflow: \`brainstorming\` → \`think-twice\` → \`design-triad\` → \`progressive-code-review-gate\` →
+  \`plan-and-execute\` → \`progressive-code-review-gate\` (round 2) → ship.
+  This is NON-NEGOTIABLE. The agent never decides to skip phases. Only the user can opt out.
 - **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
   \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
   Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
