@@ -17,9 +17,8 @@ coordination:
 
 ## When to Use
 
-- Before every commit or push of code changes (mandatory, fires automatically)
-- When user says "ready to commit," "push this," or "commit and push"
-- NOT for: PR-level review (`providing-code-review`), language/profanity audit (`professional-language-audit`)
+- Fires automatically before every commit or push of code changes
+- NOT for: PR-level review of others' work (`providing-code-review`), file-protocol review (`code-review`)
 
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
