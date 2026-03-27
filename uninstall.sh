@@ -330,15 +330,11 @@ main() {
     done
     log_success "Removed $rule_count rule(s)"
 
-    # Step 3: Remove tools
-    log_info "Removing tools..."
-    local tool_count=0
-    local tools_dest="${MANAGED_DIR}/tools"
-    for tool_name in "${tools[@]}"; do
-        [[ -e "${tools_dest}/${tool_name}" ]] && run_rm "${tools_dest}/${tool_name}"
-        tool_count=$((tool_count + 1))
-    done
-    log_success "Removed $tool_count tool(s)"
+    # Step 3: Skip tool removal — tools live in-tree inside the git checkout.
+    # They are only removed if --purge is used (which removes the entire checkout).
+    # Removing individual tools from a git working tree is destructive and breaks
+    # subsequent reinstalls.
+    log_info "Skipping tools (in-tree; removed only with --purge)"
 
     # Step 4: Remove templates
     log_info "Removing templates..."
