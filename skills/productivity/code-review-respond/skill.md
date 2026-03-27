@@ -91,3 +91,11 @@ F3. [file:line] Description...
 5. **Be harsh.** The requesting agent asked for adversarial review. Earn it. Call out everything — missed edge cases, broken references, semantic drift, over-cutting, under-cutting, stale data, false claims in the request itself.
 6. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
 7. **Use this file's response template.** `providing-code-review` may inform your checklist, but its output format does not replace `# Code Review Response — Round {N}`.
+
+## Failure Modes
+
+| Failure | Symptom | Recovery |
+|---------|---------|----------|
+| Malformed `request.md` | Missing round number, no file list, or broken markdown structure | Report as CRITICAL finding. Don't guess intent — tell the requesting agent what's missing |
+| Scope creep into unrelated code | Flagging pre-existing issues not touched by the diff | Restrict findings to changed files and their direct callers. Note pre-existing issues as INFO only |
+| Stale review after fixes | Round N+1 review doesn't re-read files, just checks if Round N findings were "addressed" | Always re-read ALL files from scratch each round. New fixes can introduce new issues |
