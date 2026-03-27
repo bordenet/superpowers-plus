@@ -1,7 +1,7 @@
 ---
 name: code-review-battery
 source: superpowers-plus
-triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers"]
+triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers", "review battery", "five reviewer", "five-agent review"]
 anti_triggers: ["simple review", "quick review", "lint only"]
 description: "Use when: reviewing code changes with parallel specialized reviewers. Dispatches 5 focused agents (defect finder, design critic, guardian, standards enforcer, performance analyst) for deeper analysis than monolithic review."
 summary: "Use when: code review needed. Dispatches parallel specialized reviewer agents for deep, precise findings."
