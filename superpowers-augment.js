@@ -708,6 +708,7 @@ function emitSkillIndex() {
 const command = process.argv[2];
 const args = process.argv.slice(3);
 
+(async () => {
 switch (command) {
     case 'bootstrap': bootstrap(); break;
     case 'use-skill': {
@@ -826,28 +827,27 @@ switch (command) {
         const routerInfo = getRouterInfo();
         const actualMethod = method === 'auto' ? routerInfo.default : method;
 
-        semanticMatch(query, skills, { topN: 5, method })
-            .then(matches => {
-                console.log(`# Skill Match Results\n`);
-                console.log(`Query: "${query}"`);
-                console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
-                console.log('| Rank | Skill | Score | Type |');
-                console.log('|------|-------|-------|------|');
-                for (let i = 0; i < matches.length; i++) {
-                    const m = matches[i];
-                    const type = m.isSuperpower ? 'superpower' : 'explicit';
-                    const scoreDisplay = actualMethod === 'tfidf'
-                        ? m.score.toFixed(2)
-                        : (m.score * 100).toFixed(1) + '%';
-                    console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
-                }
-                console.log(`\nTop match: **${matches[0]?.name}**`);
-                console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
-            })
-            .catch(err => {
-                console.error('Error:', err.message);
-                process.exit(1);
-            });
+        try {
+            const matches = await semanticMatch(query, skills, { topN: 5, method });
+            console.log(`# Skill Match Results\n`);
+            console.log(`Query: "${query}"`);
+            console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
+            console.log('| Rank | Skill | Score | Type |');
+            console.log('|------|-------|-------|------|');
+            for (let i = 0; i < matches.length; i++) {
+                const m = matches[i];
+                const type = m.isSuperpower ? 'superpower' : 'explicit';
+                const scoreDisplay = actualMethod === 'tfidf'
+                    ? m.score.toFixed(2)
+                    : (m.score * 100).toFixed(1) + '%';
+                console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
+            }
+            console.log(`\nTop match: **${matches[0]?.name}**`);
+            console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
+        } catch (err) {
+            console.error('Error:', err.message);
+            process.exit(1);
+        }
         break;
     }
 
@@ -877,20 +877,19 @@ switch (command) {
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
         console.log('(Requires OPENAI_API_KEY)\n');
 
-        embedSkills(skills, forceRefresh)
-            .then(cache => {
-                const count = Object.keys(cache.embeddings).length;
-                console.log(`\n✅ Embedded ${count} skills`);
-                console.log(`Cache: ~/.codex/.skill-embeddings.json`);
-            })
-            .catch(err => {
-                console.error('Error:', err.message);
-                if (err.message.includes('OPENAI_API_KEY')) {
-                    console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
-                    console.error('Run: match-skills --tfidf "your query"');
-                }
-                process.exit(1);
-            });
+        try {
+            const cache = await embedSkills(skills, forceRefresh);
+            const count = Object.keys(cache.embeddings).length;
+            console.log(`\n✅ Embedded ${count} skills`);
+            console.log(`Cache: ~/.codex/.skill-embeddings.json`);
+        } catch (err) {
+            console.error('Error:', err.message);
+            if (err.message.includes('OPENAI_API_KEY')) {
+                console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
+                console.error('Run: match-skills --tfidf "your query"');
+            }
+            process.exit(1);
+        }
         break;
     }
 
@@ -917,3 +916,4 @@ switch (command) {
 
         break;
 }
+})().catch(err => { console.error('Fatal:', err.message); process.exit(1); });
