@@ -9,6 +9,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **design-triad: completion gate** — Added hard gate after Step 2 (Compare) to prevent agents from stopping at a recommendation without completing Steps 3-5 (Harsh Review, Edge Cases, Iterate). This was the single most common failure mode observed in practice.
+- **design-triad: trigger discoverability** — Added 2 validated trigger phrases (`design options with adversarial review`, `generate options compare and red team`) that reliably route to design-triad as top match via embedding-mode match-skills. Removed 5 candidate phrases that routed to wrong skills.
+- **design-triad: rationalization table** — Added "I produced a recommendation" as an explicit rationalization to reject.
+
 ### Fixed
 - **Installer cross-platform hardening** — 14 bug classes fixed across 6 installer files (#234)
   - CRLF self-heal: recursive scan of all `.sh` files, `perl` primary + `tr` fallback with permission preservation
