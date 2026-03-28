@@ -39,13 +39,22 @@ Do NOT report stylistic preferences or hypothetical issues.
 
 ## Output Format
 
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What is wrong (1-2 sentences)
-- **Why**: Why this matters (what breaks, what data is lost, what is insecure)
-- **Fix**: How to fix (if not obvious)
-- **Cross-cutting?**: Yes/No — did this require tracing across multiple files?
+For each finding, use this structured format:
+
+### Finding F\<n\>
+- **file**: \<path\>
+- **line**: \<number\> (or "N/A")
+- **symbol**: \<name\> (omit if not applicable)
+- **severity**: Critical / Important / Minor
+- **confidence**: High (>80%) / Possible (60–80%)
+- **scope**: isolated / systemic
+- **issue**: \<what is wrong — 1–2 sentences\>
+- **why**: \<what breaks, what data is lost, what is insecure\>
+- **fix**: \<how to fix\>
+- **evidence**: \<what you searched, what you found — required\>
+- **cross-cutting**: yes / no
+
+When `scope = systemic`, add an `instances` list with all file:line locations.
 
 If you find NO issues, say:
 "✅ No issues found across any review dimension."

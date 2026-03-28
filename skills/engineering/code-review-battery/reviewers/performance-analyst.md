@@ -35,22 +35,27 @@ Run the git diff command provided to see the changes. Then **read the full sourc
 - "Is there an unnecessary O(n) operation hiding inside an O(n) loop?"
 - "Are expensive operations cached, paginated, or bounded?"
 
-## Confidence Gate
-Only report findings where you are >80% confident there is a real performance or observability issue.
-Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report micro-optimizations that won't affect real-world performance.
 
 ## Output Format
 
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What is inefficient or unobservable (1-2 sentences)
-- **Why**: Why this matters (what degrades, what's invisible to operators)
-- **Fix**: How to fix (specific optimization or logging addition)
+For each finding, use this structured format:
+
+### Finding F\<n\>
+- **file**: \<path\>
+- **line**: \<number\> (or "N/A")
+- **symbol**: \<name\> (omit if not applicable)
+- **severity**: Critical / Important / Minor
+- **confidence**: High (>80%) / Possible (60–80%)
+- **scope**: isolated / systemic
+- **issue**: \<what is inefficient or unobservable — 1–2 sentences\>
+- **why**: \<what degrades, what's invisible to operators\>
+- **fix**: \<how to fix\>
+
+When `scope = systemic`, add an `instances` list with all file:line locations.
 
 If you find NO issues, say:
-"✅ No performance or observability concerns found. Code is efficient and well-instrumented."
+"✅ No performance or observability concerns found."
 
 ## Workspace Access
 

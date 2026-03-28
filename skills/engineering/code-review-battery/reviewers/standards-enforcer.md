@@ -29,12 +29,16 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Do configuration files have matching documentation updates?
 - Are counts, lists, or tables in docs updated to match code changes?
 
-### 4. Test Quality
+### 4. Test Quality & Adequacy
 - Are tests meaningful (testing behavior, not implementation details)?
 - Do assertions check the right things (not just "no error thrown")?
 - Are edge cases covered in tests?
 - Do test names clearly describe what they verify?
 - Are test fixtures/mocks realistic (not trivially always-passing)?
+- New code paths in the diff without corresponding test cases
+- Changed behavior without updated regression tests
+- Test coverage gaps for error/edge-case paths added in the diff
+- Missing integration tests for new cross-component interactions
 
 ### 5. Data Integrity (Internal Consistency)
 - Are data structures internally consistent (e.g., bidirectional mappings complete)?
@@ -50,22 +54,27 @@ Run the git diff command provided to see the changes. Then **read the full sourc
 - "Are docs/comments/tests accurate for the NEW behavior, not the old?"
 - "Are all internal data structures consistent and complete?"
 
-## Confidence Gate
-Only report findings where you are >80% confident there is a real standards violation.
-Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report personal style preferences — only documented or codebase-evident conventions.
 
 ## Output Format
 
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What doesn't conform (1-2 sentences)
-- **Why**: What standard, spec, or convention is violated
-- **Fix**: How to fix (if not obvious)
+For each finding, use this structured format:
+
+### Finding F\<n\>
+- **file**: \<path\>
+- **line**: \<number\> (or "N/A")
+- **symbol**: \<name\> (omit if not applicable)
+- **severity**: Critical / Important / Minor
+- **confidence**: High (>80%) / Possible (60–80%)
+- **scope**: isolated / systemic
+- **issue**: \<what doesn't conform — 1–2 sentences\>
+- **why**: \<what standard, spec, or convention is violated\>
+- **fix**: \<how to fix\>
+
+When `scope = systemic`, add an `instances` list with all file:line locations.
 
 If you find NO issues, say:
-"✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."
+"✅ No standards concerns found."
 
 ## Workspace Access
 
