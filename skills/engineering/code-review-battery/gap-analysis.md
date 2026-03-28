@@ -104,9 +104,9 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 | Metric | Value |
 |--------|-------|
 | Total candidates | 1 |
-| Proposed | 1 |
+| Proposed | 0 |
 | Validated | 0 |
-| Graduated | 0 |
+| Graduated | 1 |
 | Rejected | 0 |
 
-**candidate-001** (proposed 2026-03-28): Defect Finder missed fd leak on error paths in ex-007. Pattern: trace all exit paths when a resource handle is opened early in a function. Status: proposed, awaiting validation against holdout exercises.
+**candidate-001** (graduated 2026-03-28): Resource Handle Leak on Early Return. Defect Finder missed fd leak on error paths in ex-007. Pattern graduated into `defect-finder.md` line 104. Validation: source exercise PASS (ex-007), holdouts PASS (ex-001, ex-004, 0 false positives).
