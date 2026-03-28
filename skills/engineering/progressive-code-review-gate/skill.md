@@ -167,3 +167,4 @@ pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate
 - **pre-commit-gate**: Runs before this gate (lint/tests)
 - **enforce-style-guide**: Runs before this gate (style fixes)
 - **providing-code-review**: Engineering rigor checklist (informs review focus)
+- **progressive-harsh-review**: Progressive review enforcement

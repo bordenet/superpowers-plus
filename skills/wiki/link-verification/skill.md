@@ -237,3 +237,6 @@ curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
 - **wiki-orchestrator**: Content structure and download-before-edit workflow
 - **wiki-verify**: Post-hoc verification of wiki claims
 - **verification-before-completion**: General verification skill
+- **wiki-content-coherence**: Wiki page coherence checks
+- **wiki-debunker**: Wiki claim verification
+- **issue-link-verification**: Issue link checking
