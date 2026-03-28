@@ -29,7 +29,6 @@ coordination:
 - A repeating pattern is identified that should become a reusable skill
 - Skill gap analysis reveals missing capabilities in the skill catalog
 
----
 
 ## Authoring Modes
 
@@ -41,7 +40,6 @@ This skill enables superpowers-plus to extend itself. Three modes:
 | **From Patterns** | learning-state.json observations | Skill candidates |
 | **From Codebase** | Repository analysis | Skill recommendations |
 
----
 
 ## Mode 1: From Natural Language
 
@@ -93,7 +91,6 @@ Before presenting the draft:
 - [ ] At least one concrete example
 - [ ] Domain is appropriate
 
----
 
 ## Mode 2: From Observed Patterns
 
@@ -113,7 +110,6 @@ When you notice a recurring pattern worth codifying, tell the AI:
 
 The pattern description contains the "what" — extract trigger conditions, actions, and outcomes, then expand into the full skill structure.
 
----
 
 ## Mode 3: From Codebase Analysis
 
@@ -145,14 +141,12 @@ For each recommended skill:
 4. **Complexity** — Low/Medium/High
 5. **Priority** — P1/P2/P3
 
----
 
 ## Skill Template
 
 All generated skills follow this structure:
 
 ```yaml
----
 name: <skill-name>
 source: superpowers-plus  # or custom source
 triggers: ["trigger 1", "trigger 2"]
@@ -163,7 +157,6 @@ composition:
   produces: [<artifact>]
   capabilities: [<capability>]
   priority: 50
----
 
 # <Skill Title>
 
@@ -175,7 +168,6 @@ composition:
 - **writing-skills**: Skill file format reference
 - **skill-health-check**: Structural lint for skill files
 - **superpowers-doctor**: Runtime diagnostics after publishing
-
 - **domain-design**: Domain-level skill design
 - **superpowers-help**: Skill discovery
 - **evolution-loop**: Pattern-driven skill creation
@@ -192,7 +184,6 @@ composition:
 <Concrete usage examples>
 ```
 
----
 
 ## Skill Connections
 
@@ -206,7 +197,6 @@ composition:
 
 See [`references/output-location.md`](references/output-location.md) for directory structure and domain selection guide.
 
----
 
 ## Quality Gates
 
@@ -217,7 +207,6 @@ Before finalizing any generated skill:
 3. **Verify domain fit** — Skill belongs in chosen domain
 4. **Run harsh-review.sh** — Must pass before commit
 
----
 
 ## After Generation
 
