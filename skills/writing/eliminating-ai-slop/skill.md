@@ -81,6 +81,9 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
 
 
+- **detecting-ai-slop**: Read-only analysis (this skill is the active rewriter)
+- **readme-authoring**: Slop prevention in READMEs
+- **markdown-table-discipline**: Slop prevention in table content
 ## When to Use
 
 - When authoring any human-readable prose (docs, email, messages, tickets)

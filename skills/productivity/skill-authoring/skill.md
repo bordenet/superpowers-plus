@@ -171,6 +171,8 @@ composition:
 - **skill-health-check**: Structural lint for skill files
 - **superpowers-doctor**: Runtime diagnostics after publishing
 
+- **domain-design**: Domain-level skill design
+- **superpowers-help**: Skill discovery
 ## When to Use
 
 <Triggers and context>
