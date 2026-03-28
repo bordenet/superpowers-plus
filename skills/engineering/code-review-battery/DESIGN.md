@@ -1,10 +1,11 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Shipped (Phase 1e)
+> **Status**: Shipped (Phase 2: Monolith + Learning)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
-> **Shipped**: 2026-03-27
-> **Confidence**: 92/100 (post-validation V1-V8)
+> **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
+> **Phase 2 Shipped**: 2026-03-28 (monolith as 6th member, gap analysis, dashboard, Shadow Lane learning)
+> **Confidence**: 85/100
 
 ## Architecture Overview
 
@@ -17,44 +18,60 @@
                    ▼
 ┌─────────────────────────────────────────────────┐
 │              Triage Coordinator                  │
-│  Analyzes diff → selects relevant reviewers      │
-│  Input: git diff, file list, change metadata     │
-│  Output: list of reviewers to activate           │
+│  Analyzes diff → selects relevant specialists    │
+│  Monolith ALWAYS activates (not triage-gated)    │
 └──────────────────┬──────────────────────────────┘
                    │
-        ┌──────────┼──────────┬──────────┬──────────┐
-        ▼          ▼          ▼          ▼          ▼
-   ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
-   │ Defect  ││ Design  ││Guardian ││Standards││ Perf    │
-   │ Finder  ││ Critic  ││         ││Enforcer ││ Analyst │
-   │         ││         ││         ││         ││         │
-   │ Always  ││Conditnl ││ Always  ││ Always  ││Conditnl │
-   └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
-        │          │          │          │          │
-        └──────────┴──────────┴──────────┴──────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────┐
-│           Aggregation (Coordinator)              │
-│  Merges findings, deduplicates, ranks severity   │
-│  Output: unified review report                   │
-└─────────────────────────────────────────────────┘
+     ┌─────────────┼──────────┬──────────┬──────────┬──────────┐
+     ▼             ▼          ▼          ▼          ▼          ▼
+┌─────────┐ ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
+│ Defect  │ │ Design  ││Guardian ││Standards││ Perf    ││MONOLITH │
+│ Finder  │ │ Critic  ││         ││Enforcer ││ Analyst ││(always) │
+│         │ │         ││         ││         ││         ││         │
+│ Triage  │ │ Triage  ││ Triage  ││ Triage  ││ Triage  ││ ALWAYS  │
+└────┬────┘ └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
+     │           │          │          │          │          │
+     └───────────┴──────────┴──────────┴──────────┘          │
+                            │                                │
+                            ▼                                │
+               ┌────────────────────────┐                    │
+               │ Aggregation (Phase 3)  │                    │
+               │ Unified review report  │                    │
+               └───────────┬────────────┘                    │
+                           │                                 │
+                           ▼                                 ▼
+               ┌─────────────────────────────────────────────┐
+               │          Gap Analysis (Phase 5)             │
+               │  Compare specialist findings vs monolith    │
+               │  Classify gaps → propose candidates         │
+               └───────────┬─────────────────────────────────┘
+                           │
+                           ▼
+               ┌─────────────────────────────────────────────┐
+               │       Update Dashboard (Phase 6)            │
+               │  Wiki: metrics, gaps, learning pipeline     │
+               └─────────────────────────────────────────────┘
 ```
 
 ## File Structure
 
 ```
 ~/.agents/skills/code-review-battery/
-├── SKILL.md                    # Skill entry point with triggers
+├── skill.md                    # Skill entry point with triggers
 ├── PRD.md                      # Product requirements (this file's companion)
 ├── DESIGN.md                   # This file
-├── coordinator.md              # Triage + aggregation prompt template
+├── coordinator.md              # Triage + aggregation + gap analysis + dashboard
 ├── reviewers/
-│   ├── defect-finder.md        # Agent 1 prompt
-│   ├── design-critic.md        # Agent 2 prompt
-│   ├── guardian.md              # Agent 3 prompt
-│   ├── standards-enforcer.md   # Agent 4 prompt
-│   └── performance-analyst.md  # Agent 5 prompt
+│   ├── defect-finder.md        # Specialist 1 prompt
+│   ├── design-critic.md        # Specialist 2 prompt
+│   ├── guardian.md             # Specialist 3 prompt
+│   ├── standards-enforcer.md   # Specialist 4 prompt
+│   ├── performance-analyst.md  # Specialist 5 prompt
+│   ├── monolith.md             # Reviewer 6 — comprehensive (ALWAYS fires)
+│   ├── *-patterns.md           # Active learned patterns per reviewer (graduated)
+│   └── *-patterns.candidate.md # Candidate patterns (Shadow Lane, not active)
+├── checks/                     # Executable check scripts (graduated)
+│   └── candidates/             # Candidate scripts (Shadow Lane)
 └── (no platform-specific files — dispatch uses sub-agent-code-reviewer on Augment,
      subagent()/Task() on Claude Code)
 ```
@@ -192,6 +209,65 @@ No separate aggregation agent — this avoids the serial bottleneck.
    ### Important
    3. [Design Critic] Function exceeds 200 LOC in parser.js:1 — ...
    ```
+
+## Learning System: Shadow Lane
+
+The battery improves automatically after every review via the Shadow Lane model.
+
+### Architecture
+
+```
+Review Run
+  ├─ Specialists (5 agents, triage-gated)  ──┐
+  │                                           ├─→ Aggregation → User-visible report
+  └─ Monolith (always fires)              ──┘
+                                               │
+                                    Gap Analysis (Phase 5)
+                                               │
+                        ┌──────────────────────┴──────────────────────┐
+                        │              For each gap:                   │
+                        │  1. Classify: pattern or script              │
+                        │  2. Generate candidate                       │
+                        │  3. Stage in Shadow Lane (candidate files)   │
+                        └──────────────────────┬──────────────────────┘
+                                               │
+                                    Graduation Pipeline
+                                               │
+                        ┌──────────────────────┴──────────────────────┐
+                        │  Adversarial validation on holdout diffs     │
+                        │  30-day stability window                     │
+                        │  ≥92% precision on 200+ stratified diffs     │
+                        │  → Graduate to active pattern/script         │
+                        └─────────────────────────────────────────────┘
+```
+
+### Candidate Lifecycle
+
+| Stage | Location | Visible to User? | TTL |
+|-------|----------|------------------|-----|
+| Proposed | `*-patterns.candidate.md` or `checks/candidates/` | No | 14 days |
+| Validated | Same, with validation metadata | No | 30 days |
+| Graduated | `*-patterns.md` or `checks/` | Yes (active) | Must revalidate periodically |
+| Quarantined | Removed from active, logged | No | Permanent (lineage blocked) |
+| Retired | Removed from active, logged | No | Permanent |
+
+### Safety Controls (Immutable)
+
+These controls are part of the safety control plane and cannot be modified by the learning system:
+
+1. **Independent evaluator**: Pattern quality is judged using a different prompt than the one that proposed the pattern
+2. **Stratified validation set**: 200+ diffs including a protected "canary pack" of historically tricky cases
+3. **Hard complexity budgets**: Max tokens per pattern file (TBD), max active patterns per reviewer (TBD), max scripts per lineage
+4. **TTL on all learned rules**: Every pattern expires unless revalidated
+5. **Precision floors**: Active patterns below 85% precision → quarantine + lineage blacklist
+6. **Automatic degradation response**: freeze → revert to baseline → quarantine lineage → replay recent history → escalate thresholds → cooldown → require 3 clean passes before re-entry
+
+### Dashboard Integration
+
+All learning metrics are tracked on the wiki dashboard:
+- **Page**: `Code Review Battery — Performance Dashboard`
+- **Outline Document ID**: `66eec34c-5590-4f4f-a370-b4d134cd174e`
+- Updated automatically after every review run (Phase 6)
 
 ## Integration with Existing Skills
 

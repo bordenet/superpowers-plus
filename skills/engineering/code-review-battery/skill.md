@@ -16,9 +16,9 @@ coordination:
 
 # Code Review Battery
 
-Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
+Dispatch 5 specialized reviewer agents + 1 monolithic reviewer in parallel. A triage coordinator selects which specialists to activate based on the diff. The monolith ALWAYS runs. After aggregation, a gap analysis compares battery vs monolith findings and feeds the learning system.
 
-**Why this exists**: A single monolithic reviewer tries to evaluate everything simultaneously, leading to shallow coverage. Specialized reviewers with focused prompts and workspace access produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. Each reviewer uses `sub-agent-code-reviewer` for the same code-execution capability as monolithic review.
+**Why this exists**: Specialized reviewers with focused prompts produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. The monolith runs alongside as both a safety net and a teacher: gaps between battery and monolith findings drive automatic learning that makes the specialists stronger over time.
 
 ## When to Use
 
@@ -61,25 +61,75 @@ Each reviewer instruction MUST include (see `coordinator.md` for the full contra
 
 ### Step 4: Aggregate
 
-After all reviewers return, merge findings following `coordinator.md` Phase 3:
+After all reviewers return (specialists + monolith), merge findings following `coordinator.md` Phase 3:
 
 1. Sort by severity: Critical → Important → Minor
 2. Prefix each finding with `[Reviewer Name]`
 3. Note clean dimensions ("✅ No issues")
 4. Present unified report
 
-## The 5 Reviewers
+### Step 5: Gap Analysis
 
-| # | Reviewer | Mental Model | Dimensions |
-|---|----------|-------------|------------|
-| 1 | Defect Finder | "What breaks this code?" | Correctness, Edge Cases, Error Handling, Concurrency |
-| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design |
-| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat |
-| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity |
-| 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging |
+After aggregation, compare battery findings vs monolith findings. Follow `coordinator.md` Phase 5:
+
+1. For each monolith finding, check if any specialist found the same or equivalent issue
+2. **Monolith-only findings** = gaps (battery missed it)
+3. **Battery-only findings** = specialist depth (monolith missed it)
+4. Classify each gap: pattern-learnable (heuristic) or script-learnable (deterministic)
+5. Generate candidate patterns and/or check scripts
+6. Stage candidates in the Shadow Lane (candidate lane, not baseline)
+7. Record all gaps in the Gap Analysis Log
+
+### Step 6: Update Dashboard
+
+After gap analysis, update the wiki dashboard page:
+- **Wiki page**: `Code Review Battery — Performance Dashboard` (Outline ID: `66eec34c-5590-4f4f-a370-b4d134cd174e`)
+- Add a new row to the **Review-Level Metrics** table
+- Update **Rolling Aggregates** for the current week
+- Update **Learning Pipeline** metrics if candidates were generated
+- Update **Gap Analysis Log** with any new gaps
+
+## The 6 Reviewers
+
+| # | Reviewer | Mental Model | Dimensions | Activation |
+|---|----------|-------------|------------|------------|
+| 1 | Defect Finder | "What breaks this code?" | Correctness, Edge Cases, Error Handling, Concurrency | Triage-gated |
+| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design | Triage-gated |
+| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat | Triage-gated |
+| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity | Triage-gated |
+| 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging | Triage-gated |
+| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **ALWAYS** |
 
 ## Overrides
 
-- `--all`: Force all 5 reviewers regardless of triage
-- `--only=<name>`: Run a single named reviewer
-- `--skip=<name>`: Exclude a specific reviewer from triage selection
+- `--all`: Force all 5 specialists regardless of triage (monolith always runs)
+- `--only=<name>`: Run a single named reviewer (monolith still runs alongside)
+- `--skip=<name>`: Exclude a specific specialist from triage selection (cannot skip monolith)
+- `--skip-monolith`: Explicitly skip the monolith (for speed-only runs; disables learning)
+
+## Learning System
+
+The battery improves automatically after every review. See `coordinator.md` Phase 5-6.
+
+### How It Works (Shadow Lane Model)
+
+```
+Review Run
+  ├─ Baseline Lane (frozen, trusted) ──→ User-visible findings
+  └─ Candidate Lane (shadow, learning) ──→ Gap analysis only
+                                              │
+                                  Compare battery vs monolith
+                                              │
+                              Propose candidate patterns/scripts
+                                              │
+                              Adversarial validation (holdout set)
+                                              │
+                              30-day stability → Graduate to baseline
+```
+
+- **Pattern files**: `reviewers/<name>-patterns.md` — heuristic entries per reviewer
+- **Check scripts**: `checks/<name>.sh` — deterministic detection scripts
+- **Graduation**: Candidates must hit ≥92% precision on 200+ stratified diffs over 30 days
+- **Retirement**: Active patterns that drop below 85% precision are quarantined
+- **TTL**: Every pattern expires unless revalidated
+- **Hard budgets**: Max tokens per pattern file, max active patterns per reviewer
