@@ -144,3 +144,4 @@ mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
 - **code-review-respond**: Reviewer agent side of this protocol
 - **providing-code-review**: Engineering rigor checklist (loaded by reviewer)
 - **receiving-code-review**: Processing feedback from reviews
+- **code-review-battery**: Multi-reviewer code review

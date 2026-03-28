@@ -242,6 +242,9 @@ If tests fail after an upgrade, the correct response is:
 | Skipping transitive/indirect vulnerability fixes | Scan output includes indirect deps — trace and fix the root dependency |
 | Tests pass locally but CI fails due to environment differences | Run full CI after push; don't declare "fixed" until CI confirms |
 
-## Related Tools
+## Scope Exclusions
 
-If security fixes require budget approval or stakeholder buy-in, use [docforge-ai business-justification](https://bordenet.github.io/docforge-ai/assistant/?type=business-justification) — adversarial review scores ROI, risk quantification, and alternatives analysis.
+- Secret/credential scanning → `wiki-secret-audit`
+- General code review → `progressive-code-review-gate`
+
+**Related:** Budget justification for security fixes → [docforge-ai](https://bordenet.github.io/docforge-ai/assistant/?type=business-justification)

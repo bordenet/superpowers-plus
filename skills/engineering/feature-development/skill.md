@@ -209,9 +209,11 @@ npm run lint && npm test
 - Pure bug fixes → `systematic-debugging`
 - Single-file changes → just do them
 
-## Pipeline Skills
+## Companion Skills
 
-- **brainstorming** → **design-triad** → **plan-and-execute** → **progressive-code-review-gate** → ship
-- **test-driven-development**: TDD within feature implementation
-- **plan-and-execute**: Planning phase before implementation
-- **subagent-driven-development**: Sub-agent task dispatch
+- **brainstorming**: Generating options and alternatives
+- **design-triad**: Evaluating design alternatives
+- **plan-and-execute**: Structured planning workflow
+- **progressive-code-review-gate**: Code review enforcement
+- **test-driven-development**: TDD workflow
+- **subagent-driven-development**: Multi-agent development
