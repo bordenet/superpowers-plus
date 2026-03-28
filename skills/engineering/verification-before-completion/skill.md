@@ -34,6 +34,8 @@ coordination:
 - **exhaustive-audit-validation**: Deep audit (heavier)
 - **link-verification**: Link checking step
 - **issue-comment-debunker**: Fact-checking before completion
+- **todo-guardian**: TODO enforcement gate
+- **measurement-integrity**: Metric validation
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim
