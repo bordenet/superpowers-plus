@@ -20,7 +20,6 @@ coordination:
 
 > **Wrong skill?** Pre-commit code quality → `pre-commit-gate`. Output verification → `output-verification`. Completion gate → `verification-before-completion`.
 
-
 ## When to Use
 
 - Before a major release or after large refactoring
@@ -179,10 +178,8 @@ If any workflow is failing:
 
 **DO NOT claim work is complete until ALL workflows pass.**
 
----
 
 **Remember**: When someone says "make CI green" or "fix the build," they mean the ENTIRE repository should show a healthy status, not just one specific workflow.
-
 
 ## Scope Exclusions
 
