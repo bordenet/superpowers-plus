@@ -83,3 +83,11 @@ Fallback TODOs are persisted alongside the primary plan:
 - **In TODO.md:** Tagged with `#fallback-[risk-name]` under the primary plan's tag
 - **In MCP tasks:** As child tasks of the primary plan's root task, marked NOT_STARTED
 - **In design doc:** Referenced in the "Fallback Plan" section
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Fallback plan requires same assumptions as primary plan | Each fallback must be genuinely independent — different approach, not just retry |
+| Fallback TODOs lack enough context for cold execution | Apply the stranger test: could an agent with zero context execute this? |
+| Created fallbacks for low-probability risks only | Prioritize by impact × probability — cover the highest-impact risks first |

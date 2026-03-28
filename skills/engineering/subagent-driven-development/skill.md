@@ -53,6 +53,7 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 2. Reasoning limit → re-dispatch with more capable model
 3. Task too large → break into smaller pieces
 4. Plan is wrong → escalate to human
+5. **Same error 3+ times** → invoke `think-twice` for fresh perspective before re-dispatch
 
 Never force retry without changes. If stuck, something must change.
 
