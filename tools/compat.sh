@@ -99,7 +99,7 @@ resolve_todo_path() {
     p=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
   fi
   # Safe variable expansion (no eval)
-  # shellcheck disable=SC2088
+  # shellcheck disable=SC2088,SC2016
   if [[ "$p" == "~/"* ]]; then
     p="$HOME/${p#\~/}"
   elif [[ "$p" == '$HOME/'* ]]; then
