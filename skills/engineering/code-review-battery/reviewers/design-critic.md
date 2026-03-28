@@ -59,6 +59,8 @@ For each finding:
 - **Issue**: What is poorly structured (1-2 sentences)
 - **Why**: Why this matters (maintenance cost, testing difficulty, extension friction)
 - **Fix**: How to restructure — include exact before/after code when possible (sketch the better design)
+- **Regressions Risked**: What could break if this restructuring is applied? (e.g., "Extracting the helper changes the call contract for 3 existing callers")
+- **Durable Check**: Propose a lint rule, test, or architectural invariant to prevent this design issue from recurring (e.g., "Add linter rule: no file should import from both domain/ and controller/ layers")
 
 If you find NO issues, say:
 "✅ No design concerns found. Code is well-factored, testable, and clear."
