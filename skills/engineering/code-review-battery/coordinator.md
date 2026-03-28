@@ -43,15 +43,17 @@ After analyzing the diff, state your triage decision:
 ## Phase 2: Dispatch
 
 ### On Augment.ai
-Dispatch activated reviewers as parallel sub-agents using `sub-agent-explore`:
+Dispatch activated reviewers as parallel sub-agents using `sub-agent-code-reviewer`:
 - Each sub-agent gets a unique name: `battery-<reviewer-name>`
-- Each sub-agent instruction = reviewer prompt + full diff content
+- Each sub-agent instruction = reviewer prompt + full diff + source context
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
 - Wait for all to complete
 
+**Why `sub-agent-code-reviewer`?** It is the purpose-built sub-agent type for code review tasks in Augment workspaces. It provides workspace access and is pre-configured — no manual setup needed.
+
 ### On Claude Code
 Dispatch activated reviewers using `Task()` or custom subagent files:
-- Each task gets the reviewer prompt + full diff content
+- Each task gets the reviewer prompt + full diff + source context
 - Fire simultaneously where the platform supports it
 
 ### Diff + Source Context Preparation (CRITICAL)
