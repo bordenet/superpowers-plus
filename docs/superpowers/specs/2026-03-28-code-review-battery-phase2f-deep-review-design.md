@@ -369,7 +369,7 @@ Each verification check is a single shell command: <100ms each. Total Phase 2.5 
 
 ---
 
-## Enhancement 3: Investigation Protocol (Reviewer Prompt Enhancement)
+## Enhancement 3: Investigation Protocol (Shared File, Not Embedded)
 
 ### Research Basis
 
@@ -385,7 +385,9 @@ Each reviewer makes one pass. The prompts say "grep -rn to find callers" but the
 
 ### Mechanism
 
-Add an **Investigation Protocol** section to three reviewer prompts:
+Create `investigation-protocol.md` (~259 tokens / ≤300 tok budget) as a shared file. The coordinator loads this file alongside the reviewer prompt when dispatching monolith, defect-finder, or guardian. It is NOT embedded in the reviewer .md files (to keep each reviewer prompt under 800 tokens).
+
+Contents of `investigation-protocol.md`:
 
 ```markdown
 ## Investigation Protocol
@@ -570,43 +572,65 @@ skills/engineering/code-review-battery/
 ├── coordinator.md              # Phases 1-4: triage/dispatch/agg     ≤1,500 tok
 ├── context-expansion.md        # Phase 1.5: symbol graph + context   ≤800 tok   NEW
 ├── verification.md             # Phase 2.5: deterministic checks     ≤600 tok   NEW
+├── investigation-protocol.md   # Shared protocol for 3 reviewers     ≤300 tok   NEW
 ├── gap-analysis.md             # Phases 5-6: gaps + dashboard        ≤1,200 tok EXTRACTED
 ├── DESIGN.md                   # Reference (not a prompt)            exempt
 ├── PRD.md                      # Reference (not a prompt)            exempt
 ├── reviewers/
-│   ├── defect-finder.md        # + Investigation Protocol            ≤800 tok
+│   ├── defect-finder.md        # + structured output format          ≤800 tok
 │   ├── design-critic.md        # + Architectural Layering            ≤800 tok
-│   ├── guardian.md             # + Investigation + Reliability       ≤850 tok
-│   ├── standards-enforcer.md   # + Test Adequacy                     ≤800 tok
-│   ├── performance-analyst.md  # unchanged                           ~640 tok
-│   └── monolith.md             # + Investigation + file history ctx  ≤850 tok
+│   ├── guardian.md             # + Reliability sub-dimension         ≤800 tok
+│   ├── standards-enforcer.md   # + Test Adequacy expansion           ≤800 tok
+│   ├── performance-analyst.md  # + structured output format          ≤750 tok
+│   └── monolith.md             # + file history context              ≤800 tok
 ├── checks/
 │   └── candidates/
 └── (pattern files created lazily)
 ```
 
+**Token math for reviewer prompts (after Phase 2f)**:
+
+| Reviewer | Current | Structured schema (+) | Existing output section (-) | Investigation Protocol | New dimensions | Net estimate |
+|----------|---------|----------------------|---------------------------|----------------------|----------------|-------------|
+| monolith | ~632 | +160 | -80 | loaded separately | — | ~712 |
+| defect-finder | ~645 | +114 | -80 | loaded separately | — | ~679 |
+| guardian | ~654 | +114 | -80 | loaded separately | +55 | ~743 |
+| design-critic | ~580 | +114 | -80 | N/A | +45 | ~659 |
+| standards-enforcer | ~734 | +114 | -80 | N/A | ~30 | ~798 |
+| performance-analyst | ~640 | +114 | -80 | N/A | — | ~674 |
+
+All under 800 tokens. The Investigation Protocol (~259 tokens) is extracted to `investigation-protocol.md` and loaded by the coordinator alongside the reviewer prompt for monolith, defect-finder, and guardian only — it is NOT embedded in the reviewer .md files.
+
 ### Loading Sequence and Runtime Context
 
 `skill.md` directs which files to load at each step:
 
-| Step | File Loaded | When | Tokens |
-|------|------------|------|--------|
+| Step | File Loaded | When | Tokens (coordinator) |
+|------|------------|------|---------------------|
 | 1 (Triage) | `coordinator.md` | Every review | ~1,500 |
-| 1.5 (Context) | `context-expansion.md` | When diff has ≥2 files or ≥20 LOC | ~800 |
-| 2 (Dispatch) | `coordinator.md` (already loaded) | Every review | 0 (cached) |
-| 3 (Collect) | — | Every review | 0 |
+| 1.5 (Context) | `context-expansion.md` | When diff has ≥2 files or ≥20 changed lines | ~800 |
+| 2 (Dispatch) | `coordinator.md` (cached) + `investigation-protocol.md` (for 3 reviewers) | Every review | ~300 new |
 | 2.5 (Verify) | `verification.md` | Every review | ~600 |
-| 4 (Aggregate) | `coordinator.md` (already loaded) | Every review | 0 (cached) |
+| 3 (Aggregate) | `coordinator.md` (cached) | Every review | 0 |
+| 4 (Re-review) | `coordinator.md` (cached) | When targeted re-review needed | 0 |
 | 5 (Gaps) | `gap-analysis.md` | Full reviews only | ~1,200 |
-| 6 (Dashboard) | `gap-analysis.md` (already loaded) | Full reviews only | 0 (cached) |
+| 6 (Dashboard) | `gap-analysis.md` (cached) | Full reviews only | 0 |
 
 **Runtime context accumulation**: All loaded files accumulate in the coordinating agent's context window — splitting files does not reduce total runtime context. The benefits of splitting are:
 
 1. **Conditional loading**: Targeted re-reviews skip context-expansion.md, verification.md, and gap-analysis.md entirely — loading only coordinator.md (~1,500 tokens vs ~4,100 for a full review)
 2. **Signal density per-file**: Each file stays focused on its concern, avoiding attention dilution from unrelated instructions (research shows accuracy degrades when instructions exceed ~2,000 tokens per concern)
-3. **Reviewer sub-agents**: Each reviewer sub-agent reads only its own prompt (~600-850 tok) — they never see coordinator logic
+3. **Reviewer sub-agents are separate LLM calls** — the 1,500 token limit applies to coordinator-loaded files (where instructions compete for attention in one context), NOT to sub-agent dispatch. Each reviewer sub-agent receives its instruction as the primary prompt for a fresh LLM call.
 
-**Worst-case full review**: coordinator (~1,500) + context-expansion (~800) + verification (~600) + gap-analysis (~1,200) = ~4,100 tokens of skill content in the coordinating agent's context. This is above the 2K sweet spot but below the 5.5K degradation cliff for Claude models. The coordinating agent is also seeing diff output, reviewer findings, and user messages — total context will be larger.
+**Reviewer sub-agent instruction size (worst case = monolith with investigation protocol)**:
+- Reviewer prompt: ≤800 tok
+- Investigation protocol: ~259 tok (loaded by coordinator, appended to instruction)
+- Context package: ~300-800 tok (variable, depends on diff complexity)
+- Total monolith instruction: ≤1,859 tok
+
+This exceeds 1,500 but is within the 2,000 token sweet spot — and sub-agent instructions have no competing content (unlike the coordinator which juggles multiple phases). The reviewer sub-agent receives ONLY its instruction + the diff. Acceptable.
+
+**Worst-case coordinator context (full review)**: coordinator (~1,500) + context-expansion (~800) + verification (~600) + gap-analysis (~1,200) = ~4,100 tokens of skill content. This is above the 2K sweet spot but below the 5.5K degradation cliff for Claude models. The coordinating agent is also seeing diff output, reviewer findings, and user messages — total context will be larger.
 
 **Mitigation**: The coordinating agent's instructions are purpose-structured (triage → dispatch → verify → aggregate → learn) — each phase operates on its own section, reducing effective noise. Each individual file stays under 1,500 tokens to maintain signal density within that concern.
 
@@ -637,12 +661,13 @@ skills/engineering/code-review-battery/
 | `gap-analysis.md` | 5 | NEW (extracted from coordinator.md) — Phases 5-6: gap classification, Semgrep YAML rule generation, shell script fallback, Shadow Lane lifecycle, dashboard safe write protocol | ≤1,200 |
 | `DESIGN.md` | 1, 2, 4, 5 | Architecture diagram, file structure, dimensions | exempt |
 | `PRD.md` | 4 | Phase 2f scope, dimension matrix, ACs | exempt |
-| `reviewers/monolith.md` | 2, 3 | Structured output format, Investigation Protocol, file history context | ≤850 |
-| `reviewers/defect-finder.md` | 2, 3 | Structured output format, Investigation Protocol | ≤800 |
-| `reviewers/guardian.md` | 2, 3, 4 | Structured output format, Investigation Protocol, Reliability sub-dimension | ≤850 |
+| `investigation-protocol.md` | 3 | NEW — shared protocol loaded alongside reviewer prompt for monolith/defect-finder/guardian | ≤300 |
+| `reviewers/monolith.md` | 2 | Structured output format, file history context section | ≤800 |
+| `reviewers/defect-finder.md` | 2 | Structured output format | ≤800 |
+| `reviewers/guardian.md` | 2, 4 | Structured output format, Reliability & Resilience sub-dimension | ≤800 |
 | `reviewers/design-critic.md` | 2, 4 | Structured output format, Architectural Layering sub-dimension | ≤800 |
 | `reviewers/standards-enforcer.md` | 2, 4 | Structured output format, Test Quality → Test Quality & Adequacy | ≤800 |
-| `reviewers/performance-analyst.md` | 2 | Structured output format only | ≤700 |
+| `reviewers/performance-analyst.md` | 2 | Structured output format only | ≤750 |
 
 ### Reviewer Prompt Changes (All 6 Reviewers)
 
@@ -654,9 +679,9 @@ Every reviewer prompt requires these changes to support Phase 2f:
 - Add `- **confidence**: High / Possible` (replacing the prose "Possible: ..." prefix)
 - Add `- **scope**: isolated / systemic` with `- **instances**:` list when systemic
 
-**Monolith, Defect Finder, Guardian only**:
-- Add Investigation Protocol section (see Enhancement 3)
-- Add `- **evidence**:` as a required field in finding schema
+**Monolith, Defect Finder, Guardian only** (coordinator-side, NOT in reviewer prompts):
+- Coordinator loads `investigation-protocol.md` alongside the reviewer prompt at dispatch time
+- Add `- **evidence**:` as a required field in finding schema (this IS embedded in the reviewer prompt as part of the structured schema)
 - Replace monolith's `- **Cross-cutting?**: Yes/No` with `- **cross-cutting**: yes / no`
 
 **Guardian only**:
@@ -679,6 +704,14 @@ Every reviewer prompt requires these changes to support Phase 2f:
 | Dimension coverage | 19 sub-dimensions | 21 sub-dimensions | Guardian +1, Design Critic +1 (E4) |
 | Learned rule quality | Shell grep only | Semgrep YAML (AST-aware) + shell fallback (E5) | — |
 
+
+## Migration Risks
+
+1. **Structured output format adoption**: All 6 reviewer prompts change their output format. If a reviewer prompt is updated but the schema parsing in `verification.md` doesn't match, findings will be tagged `[UNSTRUCTURED]` and verification will be bypassed. **Mitigation**: update one reviewer at a time, test against a real diff, verify structured output is parsed correctly before proceeding to the next reviewer.
+2. **coordinator.md extraction**: Moving Phases 5-6 to `gap-analysis.md` could break the phase sequence if the coordinator doesn't correctly load the new file. **Mitigation**: test coordinator with and without gap analysis enabled after extraction.
+3. **Token budget compliance**: The structured schema adds ~114-160 tokens to each reviewer prompt. If current reviewer prompts are near 800 tokens, this may push some over. **Mitigation**: measure actual token counts per-reviewer after changes; trim existing reviewer content if needed (not add new content to compensate).
+4. **Context expansion on large repos**: `grep -rn` across a 50k+ file repo may be slow even with `timeout 10`. If many symbols are changed (e.g., a rename refactor touching 20 symbols), the expansion step could generate a very large context package. **Mitigation**: cap at 10 changed symbols; cap context package at 1,000 tokens; skip expansion on diffs touching >50 files.
+
 ## Open Design Decisions
 
 1. **Context expansion timeout**: Each context-expansion step (grep, find, git log) is wrapped in `timeout 10 <command>`. Test execution (opt-in) uses `timeout 15 <command>`. The coordinator tracks wall-clock time for Phase 1.5; if total exceeds 60s, it stops running remaining steps, reports partial context, and continues to dispatch. These timeouts are implemented by the coordinator using the shell `timeout` command (GNU coreutils), not by LLM self-regulation.
@@ -700,6 +733,6 @@ Every reviewer prompt requires these changes to support Phase 2f:
 | AC34 | Semgrep YAML rules generated from gap analysis on ≥1 real gap; rule passes `semgrep --validate` (if Semgrep available) or YAML parse check | Should Pass |
 | AC35 | Total review time (with context expansion + verification) ≤ 2x monolithic | Must Pass |
 | AC36 | Every prompt-loaded file ≤1,500 tokens after all Phase 2f changes are applied (including structured schema addition to reviewer prompts). Measurement: `wc -w <file>` × 1.33 ≈ token count. Run on all files in the "Summary of All File Changes" table. If any file exceeds budget after implementation, trim content or split further. | Must Pass |
-| AC37 | No single review step loads >1,500 tokens of skill/coordinator content (excluding diff output, context package content, and reviewer findings which are variable-length) | Must Pass |
+| AC37 | No single coordinator-loaded file exceeds 1,500 tokens. Reviewer sub-agent instructions may exceed 1,500 (up to ~2,000) since they are the sole instruction in a fresh LLM call with no competing content. | Must Pass |
 | AC38 | All 6 reviewer prompts updated with structured finding schema; each reviewer produces parseable `### Finding F<n>` blocks on ≥2 real diffs | Must Pass |
 | AC39 | Phase 2.5 verifier correctly tags `[UNSTRUCTURED]` when a reviewer does not follow the schema, without crashing or dropping the finding | Must Pass |
