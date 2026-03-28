@@ -36,24 +36,48 @@ coordination:
 
 5. **If score <50:** Offer retry with refined prompt (max 1 retry) or proceed with best suggestion.
 
+## Stuck-Signal Auto-Detection
+
+Continuously monitor for these signals. When cumulative score ≥ 7, invoke think-twice **automatically**:
+
+| Signal | Weight |
+|--------|--------|
+| Same fix tried 3+ times | 3 |
+| Circular reasoning (referencing own failed output) | 3 |
+| Same error 3+ times after fixes | 3 |
+| Exhaustion language ("I've tried everything") | 3 |
+| Uncertainty hedging ("I'm not sure why") | 2 |
+| Approach change without rationale | 2 |
+
 ## Escalation Path
 
-**Reasoning problem** (logic, approach, design) → think-twice first → escalate to perplexity-research.
-**Knowledge problem** (API docs, error codes, facts) → perplexity-research first → think-twice for fresh reasoning.
+| Problem Type | First | Escalate To |
+|-------------|-------|-------------|
+| Reasoning (logic, approach, design) | `think-twice` | `perplexity-research` |
+| Knowledge (API docs, error codes, facts) | `perplexity-research` | `think-twice` for fresh reasoning |
+| Both (stuck + need facts) | `think-twice` | `perplexity-research` with refined query |
+
+## Consultation Prompt Quality
+
+The prompt sent to the sub-agent determines outcome quality. MUST include:
+
+| Element | Required? | Why |
+|---------|-----------|-----|
+| Problem statement | ✅ | What's broken or stuck |
+| Technical context | ✅ | Stack, versions, constraints |
+| What was tried + outcomes | ✅ | Prevents re-trying failed approaches |
+| Exact error messages | ✅ | Enables pattern matching |
+| Minimal code snippet | ✅ | Concrete not abstract |
+| Constraints | ✅ | What CAN'T change |
+| Specific ask | ✅ | "What else could cause X?" not "help" |
+
+**Total:** <2000 tokens. Self-contained. No references to "above" or "earlier."
 
 ## References
 
 - `references/consultation-prompt-template.md` — Prompt template
 - `references/scoring-rubric.md` — Scoring dimensions
 - `prompts/consultant-persona.md` — Sub-agent persona
-
-
-## When to Use
-
-- When cumulative stuck-signal score reaches 7+ (see auto-detection table)
-- When the same fix has been tried 3+ times without resolution
-- When the agent says "I've tried everything" or "I'm not sure why"
-- When user says: "think twice", "get unstuck", "fresh eyes", "phone a friend"
 
 ## Failure Modes
 
