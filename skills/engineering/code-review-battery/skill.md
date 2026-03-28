@@ -22,6 +22,8 @@ source: superpowers-plus
 
 # Code Review Battery
 
+> **Wrong skill?** File-protocol review handoff → `code-review`. Reviewing a PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`.
+
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
 **Why this exists**: A single reviewer tries to evaluate everything simultaneously, leading to shallow coverage, inconsistent focus, and ~40% false positive rates. Specialized reviewers with focused prompts produce deeper analysis with near-zero false positives.
@@ -178,3 +180,18 @@ Candidates go to `candidates/` for validation before affecting live reviews.
 - Reviewer fails/times out → note in report, do NOT retry
 - Diff >3000 lines → warn user, suggest smaller chunks
 - Empty diff → "No code changes to review"
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Sub-agent returns no findings on complex diff | Verify diff + source context was passed inline — sub-agents have no conversation context |
+| False positives from isolated diff review | Include source context (callers, field readers) per Phase 2 — isolation is the #1 cause |
+| Convergence never reached | Escalate to human after 3 passes |
+| Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
+
+## Companion Skills
+
+- **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
+- **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
+- **code-review**: File-protocol review (alternative dispatch method)
