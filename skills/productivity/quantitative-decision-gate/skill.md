@@ -40,6 +40,21 @@ coordination:
 - When deciding whether to continue, pivot, or stop a task
 - When evaluating trade-offs (speed vs quality, scope vs time)
 
+
+### Example
+
+```bash
+# Example: Deciding between extract-method vs inline
+echo "Decision: refactor approach"
+echo "| Dimension    | Wt   | Extract | Inline |"
+echo "| Impact       | 0.35 | 8       | 4      |"
+echo "| Effort (inv) | 0.25 | 6       | 9      |"
+echo "| Risk (inv)   | 0.25 | 7       | 8      |"
+echo "| Reversible   | 0.15 | 9       | 9      |"
+echo "| Weighted     |      | 7.35    | 6.85   |"
+echo "Margin: 7% -> AUTO-SELECT extract-method"
+```
+
 ## Scope Exclusions
 
 - Genuine requirements clarification -> ask the user directly
