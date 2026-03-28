@@ -39,6 +39,18 @@ coordination:
 - When same mistake occurs 3rd time
 - During deliberate improvement sprints
 
+
+### Example
+
+```bash
+# Example: Pattern detection from failure log
+echo "=== Recurring Patterns ==="
+echo "| Pattern        | Count | Affected Skill | Action          |"
+echo "| File not found | 3     | save-file      | Add path verify |"
+echo "| Wrong branch   | 2     | pre-commit     | Add branch gate |"
+echo "Actions: 2 skill updates queued"
+```
+
 ## Scope Exclusions
 
 - New skill from user request -> skill-authoring
@@ -72,6 +84,15 @@ Failure log, decision log, conversation struggles, recurring TODO deferrals.
 Patterns detected: N . Skills updated: M . New skills: K . Failures eliminated: J
 
 ---
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Over-fitting | Skill for one-time event | Require 2+ occurrences |
+| Metrics-free update | No before/after | Add measurement-integrity |
+| Endless self-improvement | Self-modifies repeatedly | Cap: 1 self-update/session |
+| Ignoring data | Pattern found, no action | Generate PR or TODO |
 
 ## Failure Modes
 
