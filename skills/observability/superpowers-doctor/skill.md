@@ -11,7 +11,7 @@ summary: "Use when: diagnosing skill installation or configuration issues."
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 22 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
