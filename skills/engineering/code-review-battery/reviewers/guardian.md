@@ -40,7 +40,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 
 ## What to Review
 
-Review the diff and ask:
+Run the git diff command provided to see the changes. Then **read the full source files** and **check callers/consumers** — blast radius and security issues often live outside the diff. Ask:
 - "Who else calls this code, and will they break?"
 - "Could an attacker exploit any input path added or modified?"
 - "Are new dependencies safe, pinned, and justified?"
@@ -55,7 +55,7 @@ Do NOT report theoretical risks that require unlikely attack scenarios.
 
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location in the diff
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
 - **Fix**: How to fix (if not obvious)
@@ -63,6 +63,14 @@ For each finding:
 If you find NO issues, say:
 "✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."
 
+## Workspace Access
+
+You have full workspace access. Use it:
+- `cat <file>` to read the complete source file
+- `grep -rn <pattern> <dir>` to find callers, imports, and downstream consumers
+- Check `package.json`, lock files, config files for dependency/version info
+- Verify backwards compatibility by checking how changed APIs are used elsewhere
+
 ---
 
-## DIFF TO REVIEW
+## REVIEW INSTRUCTIONS
