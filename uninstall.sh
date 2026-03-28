@@ -147,7 +147,7 @@ other_repo_provides() {
         [[ -z "$dir" || ! -d "$dir" ]] && continue
         local overlay_name=""
         case "$varname" in
-            SPC_SOURCE_DIR) overlay_name="superpowers-callbox" ;;
+            SPC_SOURCE_DIR) overlay_name="superpowers-private" ;;
             RECRUITING_SOURCE_DIR) overlay_name="superpowers-recruiting" ;;
             CARI_SOURCE_DIR) overlay_name="superpowers-cari" ;;
             *) continue ;;
