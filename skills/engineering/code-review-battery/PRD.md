@@ -1,10 +1,11 @@
 # Code Review Battery — Product Requirements Document
 
-> **Status**: Shipped (Phase 2: Monolith + Learning)
+> **Status**: Phase 2 Shipped (learning pipeline pending real-world validation)
 > **Author**: Matt Bordenet + AI
 > **Created**: 2026-03-27
-> **Phase 1 Shipped**: 2026-03-27
-> **Phase 2 Shipped**: 2026-03-28 (monolith, gap analysis, dashboard, Shadow Lane)
+> **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
+> **Phase 2 Shipped**: 2026-03-28 (monolith, gap analysis, dashboard, Shadow Lane candidate staging)
+> **Phase 2 Pending**: AC24 (graduation validation set), AC25 (safety controls in production)
 > **Confidence**: 85/100
 
 ## Problem Statement
@@ -33,9 +34,9 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 | G4 | Reduce false positives | <5% of findings are noise (vs current ~15-20%) |
 | G5 | Maintain or improve review quality | Battery catches ≥ monolithic issues on same diff |
 | G6 | Triage gating | Only relevant reviewers fire per diff, reducing cost |
-| G7 | Monolith as safety net and teacher | Monolith runs every review; gaps drive automatic learning |
-| G8 | Automatic continuous improvement | Battery specialists get stronger over time without human intervention |
-| G9 | Observable learning metrics | Wiki dashboard tracks every review, gap, and learning event |
+| G7 | Monolith as safety net and teacher | Monolith runs by default on full reviews; gaps drive candidate staging |
+| G8 | Automatic continuous improvement | Battery specialists improve via graduated patterns/scripts (Shadow Lane) |
+| G9 | Observable learning metrics | Wiki dashboard tracks full review runs, gaps, and learning pipeline events |
 
 ## Scope
 
@@ -48,8 +49,8 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 - 16 review dimensions covered across the 5 agents
 
 ### In Scope (Phase 2: Monolith + Learning)
-- Monolith as 6th battery member (always fires, not triage-gated)
-- Gap analysis after every review (battery vs monolith comparison)
+- Monolith as 6th battery member (default on full reviews, skippable with `--skip-monolith`)
+- Gap analysis after full reviews (battery vs monolith comparison)
 - Shadow Lane learning system (candidate patterns + executable checks)
 - Graduation pipeline (adversarial validation, 30-day stability, precision floors)
 - Wiki dashboard for trending metrics over time
@@ -102,7 +103,7 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 ### Agent 6: Monolith (Comprehensive Reviewer)
 **Mental Model**: *"What would a senior engineer catch in a thorough PR review?"*
 **Dimensions**: ALL dimensions + cross-file data flow tracing, type coercion, integration parity
-**Triage**: ALWAYS fires (not triage-gated). Serves as safety net and learning teacher.
+**Triage**: Default on full reviews (not triage-gated). Skippable with `--skip-monolith`. Serves as safety net and learning teacher.
 
 ## Dimension Coverage Matrix
 
@@ -166,18 +167,21 @@ The groupings were determined through a structured process:
 - [x] AC14: Support for `--only=<agent>` and `--skip=<agent>` overrides
 - [ ] AC15: Reviewer-specific configuration per project
 
-### Phase 2: Monolith + Learning (must pass)
-- [x] AC16: Monolith reviewer prompt exists and fires on every review
-- [x] AC17: Monolith is not triage-gated (cannot be skipped by triage rules)
-- [x] AC18: Gap analysis compares battery vs monolith findings after every review
+### Phase 2: Monolith + Learning
+**Shipped** (candidate staging, gap analysis, dashboard):
+- [x] AC16: Monolith reviewer prompt exists and fires by default on full reviews
+- [x] AC17: Monolith can be skipped with `--skip-monolith` (disables learning); not triage-gated otherwise
+- [x] AC18: Gap analysis compares battery vs monolith findings after full reviews
 - [x] AC19: Gaps are classified as pattern-learnable or script-learnable
 - [x] AC20: Candidate patterns staged in `*-patterns.candidate.md` (Shadow Lane)
 - [x] AC21: Candidate scripts staged in `checks/candidates/` (Shadow Lane)
-- [x] AC22: Wiki dashboard updated after every review with metrics
+- [x] AC22: Wiki dashboard updated after full reviews with metrics
 - [x] AC23: Dashboard tracks review-level metrics, learning pipeline, gap log
+- [x] AC26: `--skip-monolith` override disables monolith and learning for speed-only runs
+
+**Pending** (graduation pipeline — needs real-world runs to validate):
 - [ ] AC24: Graduation pipeline validates candidates on 200+ stratified diffs (needs validation set)
 - [ ] AC25: Safety controls prevent false positive amplification (needs real-world runs)
-- [x] AC26: `--skip-monolith` override disables monolith and learning for speed-only runs
 
 ## Risks and Mitigations
 

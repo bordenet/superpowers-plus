@@ -281,9 +281,14 @@ After gap analysis, update the wiki dashboard.
    - Confirm page length ≥ original length
    - Confirm no `\[` / `\]` escape artifacts
    - Confirm no structural damage (duplicate TOC, broken embeds)
-   - **If ANY check fails**: immediately restore `original_content` and log the failure
+   - **If ANY check fails**: immediately restore `original_content`:
+     1. Write `original_content` back to the page
+     2. Re-fetch the page after restore
+     3. Verify restored content matches `original_content` exactly (length, headings, last section)
+     4. If restore verification passes: log "Dashboard update failed, original restored"
+     5. If restore verification ALSO fails: **ESCALATE** — log "CRITICAL: Dashboard restore failed, manual intervention required" and surface to user
 
-> ⚠️ **INVARIANT**: Always re-fetch after write to verify. Restore on failure. See `~/.ai-guidance/invariants.md`.
+> ⚠️ **INVARIANT**: Always re-fetch after write to verify. Restore on failure. Verify restore. See `~/.ai-guidance/invariants.md`.
 > ⚠️ **NEVER truncate**: Dashboard updates are append-only. Existing data is never removed except by explicit archival.
 > ⚠️ **Platform note**: This procedure uses Outline wiki APIs. On platforms without Outline access, skip Phase 6 and log a note. Dashboard updates are not blocking to the review verdict.
 

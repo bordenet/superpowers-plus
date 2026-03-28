@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (parallel specialized reviewers). Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (6 parallel reviewers: 5 specialists + monolith with gap analysis and learning). Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates

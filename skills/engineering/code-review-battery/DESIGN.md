@@ -111,9 +111,9 @@ as Augment dispatch. Parallel execution where the platform supports it.
 ### Graceful Degradation
 
 If parallel dispatch is not available, the `progressive-code-review-gate` defines
-a monolithic fallback path using a single reviewer with all 5 review dimensions
-combined into one checklist. The battery itself does NOT implement this fallback —
-it requires parallel sub-agent dispatch. The gate is the degradation boundary.
+a monolithic fallback path using a single reviewer covering all review dimensions.
+The battery itself does NOT implement this fallback — it requires parallel sub-agent
+dispatch. The gate is the degradation boundary.
 
 ## Triage Coordinator Design
 
@@ -130,22 +130,25 @@ which reviewers to activate.
 
 ### Decision Rules
 
-| Condition | Reviewers Activated |
-|-----------|-------------------|
-| Any code change | Defect Finder, Guardian, Standards Enforcer |
-| Adds/modifies classes, functions, public APIs | + Design Critic |
-| Touches DB, loops, caching, or >500 LOC | + Performance Analyst |
-| Docs-only change | Standards Enforcer only |
-| Config/dependency change only | Guardian only |
-| `--all` flag | All 5 |
-| `--only=<name>` flag | Named reviewer only |
+| Condition | Specialists Activated | Monolith |
+|-----------|----------------------|----------|
+| Any code change | Defect Finder, Guardian, Standards Enforcer | Default on |
+| Adds/modifies classes, functions, public APIs | + Design Critic | Default on |
+| Touches DB, loops, caching, or >500 LOC | + Performance Analyst | Default on |
+| Docs-only change | Standards Enforcer only | Default on |
+| Config/dependency change only | Guardian only | Default on |
+| `--all` flag | All 5 specialists | Default on |
+| `--only=<name>` flag | Named reviewer only | Default on (unless `--skip-monolith`) |
+| `--skip-monolith` | Per triage rules | **OFF** (disables learning) |
+| Targeted re-review (Phase 4) | Nit-producing reviewers only | Only if it produced nits |
 
 ### Output
 A JSON-like selection that the dispatcher uses:
 ```json
 {
-  "activated": ["defect-finder", "guardian", "standards-enforcer", "design-critic"],
-  "skipped": ["performance-analyst"],
+  "specialists_activated": ["defect-finder", "guardian", "standards-enforcer", "design-critic"],
+  "specialists_skipped": ["performance-analyst"],
+  "monolith": "YES",
   "reasoning": "No DB/perf-sensitive code touched. 3 files changed, all in src/."
 }
 ```
@@ -212,7 +215,7 @@ No separate aggregation agent — this avoids the serial bottleneck.
 
 ## Learning System: Shadow Lane
 
-The battery improves automatically after every review via the Shadow Lane model.
+The battery improves via candidate staging after full review rounds (Shadow Lane model).
 
 ### Architecture
 
@@ -220,7 +223,7 @@ The battery improves automatically after every review via the Shadow Lane model.
 Review Run
   ├─ Specialists (5 agents, triage-gated)  ──┐
   │                                           ├─→ Aggregation → User-visible report
-  └─ Monolith (always fires)              ──┘
+  └─ Monolith (default on full reviews)    ──┘
                                                │
                                     Gap Analysis (Phase 5)
                                                │

@@ -16,9 +16,9 @@ coordination:
 
 # Code Review Battery
 
-Dispatch 5 specialized reviewer agents + 1 monolithic reviewer in parallel. A triage coordinator selects which specialists to activate based on the diff. The monolith ALWAYS runs. After aggregation, a gap analysis compares battery vs monolith findings and feeds the learning system.
+Dispatch 5 specialized reviewer agents + 1 monolithic reviewer in parallel. A triage coordinator selects which specialists to activate based on the diff. The monolith runs by default on full review rounds (can be skipped with `--skip-monolith`). After aggregation, a gap analysis compares battery vs monolith findings and feeds the learning system.
 
-**Why this exists**: Specialized reviewers with focused prompts produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. The monolith runs alongside as both a safety net and a teacher: gaps between battery and monolith findings drive automatic learning that makes the specialists stronger over time.
+**Why this exists**: Specialized reviewers with focused prompts produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. The monolith runs alongside as both a safety net and a teacher: gaps between battery and monolith findings drive automatic candidate staging that makes the specialists stronger over time.
 
 ## When to Use
 
@@ -69,9 +69,9 @@ After all reviewers return (specialists + monolith), merge findings following `c
 3. Note clean dimensions ("✅ No issues")
 4. Present unified report
 
-### Step 5: Gap Analysis
+### Step 5: Gap Analysis (full review rounds only)
 
-After aggregation, compare battery findings vs monolith findings. Follow `coordinator.md` Phase 5:
+After aggregation on full review rounds (not targeted re-reviews), compare battery findings vs monolith findings. Follow `coordinator.md` Phase 5. Skip this step if `--skip-monolith` was used or the monolith failed.
 
 1. For each monolith finding, check if any specialist found the same or equivalent issue
 2. **Monolith-only findings** = gaps (battery missed it)
@@ -81,9 +81,9 @@ After aggregation, compare battery findings vs monolith findings. Follow `coordi
 6. Stage candidates in the Shadow Lane (candidate lane, not baseline)
 7. Record all gaps in the Gap Analysis Log
 
-### Step 6: Update Dashboard
+### Step 6: Update Dashboard (full review rounds only)
 
-After gap analysis, update the wiki dashboard page:
+After gap analysis on full review rounds, update the wiki dashboard page. Skip if `--skip-monolith` was used. Dashboard failure does not block the review verdict.
 - **Wiki page**: `Code Review Battery — Performance Dashboard` (Outline ID: `66eec34c-5590-4f4f-a370-b4d134cd174e`)
 - Add a new row to the **Review-Level Metrics** table
 - Update **Rolling Aggregates** for the current week
@@ -136,7 +136,10 @@ Review Run
 
 - **Pattern files**: `reviewers/<name>-patterns.md` — heuristic entries per reviewer
 - **Check scripts**: `checks/<name>.sh` — deterministic detection scripts
-- **Graduation**: Candidates must hit ≥92% precision on 200+ stratified diffs over 30 days
+- **Adjudication**: 3-part verification before candidate staging (disconfirm, evidence, specialist mapping)
+- **Graduation** (requires independent evaluator + validation pipeline): Candidates must hit ≥92% precision on 200+ stratified diffs over 30 days
 - **Retirement**: Active patterns that drop below 85% precision are quarantined
 - **TTL**: Every pattern expires unless revalidated
 - **Hard budgets**: Max tokens per pattern file, max active patterns per reviewer
+
+> ⚠️ Gap analysis stages candidates only. Promotion to active patterns/scripts requires the graduation pipeline (see DESIGN.md Safety Controls). The adjudication step is a pre-filter, not a promotion gate.
