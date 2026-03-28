@@ -43,7 +43,10 @@ Do NOT report micro-optimizations that won't affect real-world performance.
 ## Output Format
 
 For each finding:
-- **Severity**: Critical / Important / Minor
+- **Severity** (use these definitions consistently):
+  - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
+  - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
 - **File:Line**: Exact location in the diff
 - **Issue**: What is inefficient or unobservable (1-2 sentences)
 - **Why**: Why this matters (what degrades, what's invisible to operators)
