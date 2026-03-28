@@ -16,6 +16,14 @@ coordination:
 
 # public-repo-ip-audit
 
+
+## When to Use
+
+- Before pushing code to any public repository
+- After adding new dependencies or vendored code
+- When a private repo is being converted to public
+- Pre-release audit for license compliance
+
 ## Mandatory Gates (run in order, block push)
 
 1. **Working tree scan** — `grep -rE "$PATTERNS" .` across all tracked files.

@@ -44,7 +44,6 @@ coordination:
 
 > **Wrong skill?** Scanning wiki for exposed secrets → `wiki-secret-audit`. Verifying wiki page accuracy → `wiki-verify`. Full wiki editing → `wiki-orchestrator`.
 
-
 ## Scope Exclusions
 
 - Secret scanning → `wiki-secret-audit`
@@ -226,6 +225,14 @@ Opt-in: Create `references/domain-allowlist-local.md` (gitignored). Format: `dom
 ## Output
 
 Verdict escalation: Standard → `(P)roceed`. High severity (Cat 1-3) → type `PROCEED`. Social engineering (Cat 7) → non-overridable. See `references/output-templates.md` for templates.
+
+
+## Example
+
+```bash
+# Scan wiki for dangerous instructions
+grep -rn "rm -rf\|DROP TABLE\|sudo\|chmod 777" wiki/ --include="*.md"
+```
 
 ## Failure Modes
 
