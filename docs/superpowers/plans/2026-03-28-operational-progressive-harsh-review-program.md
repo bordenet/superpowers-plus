@@ -40,19 +40,19 @@ The Perplexity plan introduced several concepts beyond the original battery; som
 7. ~~Add tightening rule~~ ✅ Suppress Minor when total >10 (battery-reviewed: fixed subjective trigger + threshold)
 
 ### Phase 2: Reviewer Specialization
-7. Evaluate Security Guardian split (from current Guardian)
-8. Evaluate Test Guardian split (from current Standards Enforcer)
-9. Update triage table if new reviewers added
+8. Evaluate Security Guardian split (from current Guardian)
+9. Evaluate Test Guardian split (from current Standards Enforcer)
+10. Update triage table if new reviewers added
 
 ### Phase 3: Exercise Catalog & Validation
-10. Build exercise catalog (Levels 1-10) as test fixtures
-11. Run battery against Level 1-5 exercises, measure metrics
-12. Tune reviewer prompts based on exercise results
+11. Build exercise catalog (Levels 1-10) as test fixtures
+12. Run battery against Level 1-5 exercises, measure metrics
+13. Tune reviewer prompts based on exercise results
 
 ### Phase 4: Promotion Pipeline
-13. Implement shadow mode for candidate patterns
-14. Add canary mode infrastructure
-15. Define promotion criteria
+14. Implement shadow mode for candidate patterns
+15. Add canary mode infrastructure
+16. Define promotion criteria
 
 ## Design Decisions
 
@@ -86,7 +86,7 @@ rather than switching to pure JSON. Add JSON as optional `--json` output mode la
 
 ## Metrics Dashboard
 
-Tracked in Outline wiki (internal dashboard — see wiki for live data).
+Tracked in internal metrics dashboard (see wiki for live data).
 
 ## References
 

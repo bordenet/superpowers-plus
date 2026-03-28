@@ -93,12 +93,15 @@ install_skill() {
         # Stage 1: If override, copy upstream companion files first
         if [[ -n "$upstream_dir" ]]; then
             # Copy all upstream files EXCEPT the main skill file (SKILL.md/skill.md)
+            # and process docs (DESIGN.md, PRD.md) — those are repo-only, not runtime
             local f
             while IFS= read -r -d '' f; do
                 local base
                 base=$(basename "$f")
                 # Skip the main skill file — the override replaces it
                 [[ "$base" == "SKILL.md" || "$base" == "skill.md" ]] && continue
+                # Skip process docs — repo-only, not runtime
+                [[ "$base" == "DESIGN.md" || "$base" == "PRD.md" ]] && continue
                 cp "$f" "$dest/" || \
                     error_exit "Failed to stage upstream file $base for skill: $skill_name"
             done < <(find "$upstream_dir" -maxdepth 1 -type f -print0 2>/dev/null)
