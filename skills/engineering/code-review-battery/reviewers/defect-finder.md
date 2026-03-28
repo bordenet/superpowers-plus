@@ -66,6 +66,22 @@ For any code that introduces or modifies state transitions:
 
 **Example**: Adding `userVerified` as a guard for retry-timer means TIMEOUT/CANCEL paths that never set `userVerified` will never get auto-retry — even when they should.
 
+### Interaction-Path Enumeration
+For event-driven or async code, don't trace each path in isolation. Systematically enumerate **event orderings**:
+1. List all external events the code reacts to (transcripts, timeouts, callbacks, user actions)
+2. For each pair of events, ask: "What if B arrives while A is in-flight?"
+3. For timer-based code, ask: "What if the timer fires during a state transition?"
+
+**Example**: A retry timer fires while a new request is being processed — does the retry clobber the new request's state?
+
+### Test Revert-Safety Audit
+When reviewing test changes, ask for EVERY new test: **"Would this test still pass if the production code change were reverted?"**
+- If yes → the test proves nothing. It's a false-confidence test that gives the illusion of coverage.
+- A valid regression test MUST fail on the old code and pass on the new code.
+- Check: does the test exercise the NEW guard/condition/path, or does it just exercise behavior that already existed?
+
+**Example**: A test asserting "silence timer is skipped when no evidence exists" may pass on old code too — if the old code already skipped the timer for a different reason (e.g., `transcriptCount === 0`).
+
 ## What to Review
 
 Review the diff AND the source context provided below. For each file changed, trace through the logic and ask:
@@ -75,6 +91,8 @@ Review the diff AND the source context provided below. For each file changed, tr
 - "Are there race conditions between these operations?"
 - "What UNCHANGED code reads the fields I'm modifying, and does my change break it?"
 - "What code PRODUCES values that cross my new thresholds?"
+- "What if two events INTERLEAVE rather than arriving sequentially?"
+- "Would each new test FAIL if the production change were reverted?"
 
 ## Confidence Gate
 Only report findings where you are >80% confident there is a real defect or risk.

@@ -26,6 +26,15 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Side effects on downstream consumers not visible in the diff
 - **Field consumer trace**: When the diff sets a field to `null`, `0`, `false`, or a reset value, trace ALL code that reads that field. A null assignment in one handler method may disable a guard check in a completely different method. This is the #1 source of subtle cross-cutting regressions.
 
+### 2a. Infrastructure Error Paths
+When the diff calls external services, I/O, or infrastructure APIs (database, network, file system, audio/media, third-party SDKs):
+- What happens if the call **throws**? Is there a try/catch? Does the catch leave state consistent?
+- What happens if the call **hangs** (never resolves)? Is there a timeout?
+- What happens if the call **succeeds silently** but doesn't actually do the work (e.g., `playAudio()` resolves but no audio plays)? Does subsequent code verify the effect?
+- For retry/repeat loops: if the infrastructure call fails, does the loop burn through its budget with empty iterations?
+
+**Example**: An auto-repeat function calls `playTTS()` and assumes it worked. If `playTTS()` fails silently, the repeat counter increments but the user hears nothing — the retry budget is wasted.
+
 ### 3. Dependencies & Configuration
 - New dependencies: justified? version-pinned? license-compatible? actively maintained?
 - Dependency version changes: breaking changes in changelog?
