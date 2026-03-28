@@ -100,6 +100,17 @@ Fallback TODOs are persisted alongside the primary plan:
 - **In MCP tasks:** As child tasks of the primary plan's root task, marked NOT_STARTED
 - **In design doc:** Referenced in the "Fallback Plan" section
 
+
+## Example
+
+```bash
+# Template: document primary + fallback before starting
+echo "PRIMARY: [approach]"
+echo "FALLBACK 1: [if primary fails because X]"
+echo "FALLBACK 2: [if both fail, minimal viable approach]"
+echo "ABORT CRITERIA: [when to stop and escalate]"
+```
+
 ## Failure Modes
 
 | Failure | Fix |

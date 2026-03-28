@@ -176,6 +176,16 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 |------|---------------|--------|
 | 2026-03-27 | Agent skipped brainstorming, think-twice, and harsh review. Created a new skill file, immediately presented a confabulated summary without reading the file back. README table ordering was wrong. Router stems were wrong for the actual stemmer. Thinking-orchestrator routing was overcorrected. Required 2 full hostile review rounds to catch all issues. | Every issue found by hostile reviewers could have been caught if the full workflow had been followed from the start. |
 
+
+## Example
+
+```bash
+# Pre-flight: verify branch, tests pass, no uncommitted changes
+git status --short && npm test 2>&1 | tail -5
+# Post-implementation: run full test suite + lint
+npm run lint && npm test
+```
+
 ## Failure Modes
 
 | Failure | Recovery |

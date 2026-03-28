@@ -111,6 +111,16 @@ On REJECT:
 **Weighted Average: 6.5 → PASS_WITH_FIXES**
 ```
 
+
+## Example
+
+```bash
+# Run the harsh review tool
+cd ~/.codex/superpowers-plus && bash tools/harsh-review.sh
+# Check specific skill
+bash tools/harsh-review.sh skills/engineering/my-skill/skill.md
+```
+
 ## Failure Modes
 
 | Failure | Fix |
