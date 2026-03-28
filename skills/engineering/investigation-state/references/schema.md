@@ -131,7 +131,7 @@ The `source` field is freeform text. Common patterns:
 | `mssql:<connection>` | `mssql:staging-db` | MSSQL query via named connection |
 | `ado:<project>` | `ado:MyProject` | Azure DevOps (pipelines, work items) |
 | `linear` | `linear` | Linear issue tracker |
-| `outline` | `outline` | Outline wiki |
+| `wiki` | `wiki` | Wiki platform |
 | `local:<tool>` | `local:grep` | Local tool (grep, find, cat, etc.) |
 | `browser` | `browser` | Web browser / fetch |
 | `git:<action>` | `git:bisect` | Git operations |
