@@ -22,6 +22,12 @@ coordination:
 
 **Announce at start:** "I'm using the **fallback-planning** skill to generate contingency plans."
 
+## Companion Skills
+
+- **plan-and-execute**: Primary plan creation
+- **brainstorming**: Generating fallback options
+- **design-triad**: Evaluating alternatives
+
 ## When to Use
 
 - After a primary plan has been created and risks identified (via `design-triad` harsh review)

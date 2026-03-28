@@ -17,6 +17,12 @@ coordination:
 
 > **Wrong skill?** Quick research → `perplexity-research`. Incorporating findings → `incorporating-research`. Brainstorming → `brainstorming`.
 
+## Companion Skills
+
+- **perplexity-research**: For factual research queries
+- **incorporating-research**: Merging findings into docs
+- **brainstorming**: Generating hypotheses from interview insights
+
 ## When to Use
 
 - Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)

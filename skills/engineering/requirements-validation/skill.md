@@ -22,6 +22,12 @@ coordination:
 
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
 
+## Companion Skills
+
+- **design-triad**: Evaluating design options from requirements
+- **brainstorming**: Generating approaches that meet requirements
+- **plan-and-execute**: Implementing validated requirements
+
 ## When to Use
 
 - Before design work — validate that requirements are testable and non-contradictory

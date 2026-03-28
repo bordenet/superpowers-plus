@@ -31,6 +31,12 @@ composition:
 
 **Announce at start:** "I'm using the **investigation-state** skill to track this investigation."
 
+## Companion Skills
+
+- **systematic-debugging**: Step-by-step bug investigation
+- **adversarial-search**: Confirmation bias prevention during investigation
+- **think-twice**: When investigation hits a wall
+
 ## When to Use
 
 - Starting a new multi-turn debugging session
