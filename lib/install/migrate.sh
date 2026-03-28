@@ -20,6 +20,7 @@ fi
 post_install_migrations() {
     log_verbose "Running post-install migrations..."
     migrate_todo_skill_overrides
+    deploy_todo_honeypot
     detect_orphaned_todo_files
 }
 
@@ -86,6 +87,126 @@ migrate_todo_skill_overrides() {
             log_success "Cleaned stale todo-management override from personal skills"
             ;;
     esac
+}
+
+# Migration: Deploy honeypot at ~/.codex/TODO.md when the real TODO lives elsewhere
+#
+# Problem: Agents hardcode ~/.codex/TODO.md as the TODO path instead of using
+# todo-crud.sh to resolve it. When the real TODO lives at a custom path (set via
+# TODO_FILE_PATH in ~/.codex/.env or ~/.codex/.todo-registry), agents create a
+# stray file at ~/.codex/TODO.md with raw writes (cat >, save-file, echo >),
+# bypassing locking, backup, and structural validation.
+#
+# Fix: When the resolved TODO path is something OTHER than ~/.codex/TODO.md,
+# deploy a read-only, immutable honeypot at ~/.codex/TODO.md.
+#
+# Skip: If the resolved path IS ~/.codex/TODO.md, do nothing — that's the
+# user's real TODO file.
+#
+# Marker: Uses "THIS IS NOT THE REAL TODO FILE" to match todo-preflight.sh
+# detection logic (tools/todo-preflight.sh:200).
+deploy_todo_honeypot() {
+    local honeypot_path="$HOME/.codex/TODO.md"
+    # Canonical marker — must match tools/todo-preflight.sh honeypot detection
+    local marker="THIS IS NOT THE REAL TODO FILE"
+    local resolved_path=""
+
+    # Resolve TODO path in a SUBSHELL to avoid mutating installer state.
+    # resolve-env-path.sh sources ~/.codex/.env, which can set +u, alter PATH,
+    # or change shell options. Must not leak into the live installer process.
+    local resolver
+    resolver="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tools/resolve-env-path.sh"
+    if [[ -f "$resolver" ]]; then
+        resolved_path=$(bash -c '
+            source "$1" 2>/dev/null || exit 1
+            resolve_env
+            resolve_path "TODO_FILE_PATH" "$2"
+        ' -- "$resolver" "$honeypot_path") || {
+            log_warn "Failed to resolve TODO path — skipping honeypot deployment"
+            return 0
+        }
+    else
+        log_warn "resolve-env-path.sh not found — skipping honeypot deployment"
+        return 0
+    fi
+
+    # If resolved path equals the default, skip — that IS their real file
+    if [[ "$resolved_path" == "$honeypot_path" ]]; then
+        log_verbose "TODO path resolves to default ($honeypot_path) — skipping honeypot"
+        return 0
+    fi
+
+    # If ~/.codex/TODO.md already exists, check what it is
+    if [[ -f "$honeypot_path" ]]; then
+        # Already our honeypot? Done.
+        if grep -q "$marker" "$honeypot_path" 2>/dev/null; then
+            log_verbose "TODO honeypot already deployed at $honeypot_path"
+            return 0
+        fi
+
+        # Non-honeypot file exists — NEVER overwrite. Warn and bail.
+        local line_count
+        line_count=$(wc -l < "$honeypot_path" 2>/dev/null | tr -d ' ')
+        log_warn "Found non-honeypot TODO.md at $honeypot_path ($line_count lines)"
+        log_warn "Real TODO is at: $resolved_path"
+        log_warn "Review and merge manually, then delete $honeypot_path and re-run install"
+        return 0
+    fi
+
+    # Deploy honeypot — file does not exist yet
+    log_info "Deploying TODO honeypot at $honeypot_path (real TODO: $resolved_path)"
+
+    # Write to a temp file, set perms, then move atomically
+    local tmp_honeypot
+    tmp_honeypot="$(mktemp "$HOME/.codex/.TODO-honeypot.XXXXXX")" || {
+        log_warn "Failed to create temp file for honeypot"
+        return 0
+    }
+
+    cat > "$tmp_honeypot" << HONEYPOT_CONTENT
+# 🚨 STOP — WRONG FILE 🚨
+# $marker
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+HONEYPOT_CONTENT
+
+    # Set permissions on temp file before moving
+    chmod 444 "$tmp_honeypot"
+    mv -f "$tmp_honeypot" "$honeypot_path" || {
+        log_warn "Failed to move honeypot into place"
+        rm -f "$tmp_honeypot"
+        return 0
+    }
+
+    # Apply immutability flag (best-effort — may not work on all filesystems)
+    local immutable_set=false
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        chflags uchg "$honeypot_path" 2>/dev/null && immutable_set=true
+    else
+        chattr +i "$honeypot_path" 2>/dev/null && immutable_set=true
+    fi
+
+    if [[ "$immutable_set" == "true" ]]; then
+        log_success "TODO honeypot deployed (chmod 444 + immutable)"
+    else
+        log_success "TODO honeypot deployed (chmod 444 only — immutable flag failed)"
+        log_verbose "  chflags/chattr failed: permission denied, unsupported FS, or missing command"
+    fi
 }
 
 # Migration: Detect orphaned TODO.md files from previous installs

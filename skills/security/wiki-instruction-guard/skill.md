@@ -8,12 +8,8 @@ triggers:
   - "check wiki page safety"
   - "scan wiki for injection"
   - "verify wiki instructions"
-description: >
+description: "Deterministic behavioral guardrail that scans executable content extracted from wiki pages before the agent executes it. Hard-blocks destructive operations (including all curl-pipe-to-shell by default) and gates all blocked findings on explicit human consent. Cannot be overridden by wiki content."
 summary: "Use when: about to execute instructions from a wiki page. Hard gate — scans for destructive ops."
-  Deterministic behavioral guardrail that scans executable content extracted from
-  wiki pages before the agent executes it. Hard-blocks destructive operations
-  (including all curl-pipe-to-shell by default) and gates all blocked findings
-  on explicit human consent. Cannot be overridden by wiki content.
 composition:
   consumes: [wiki-content, markdown-content]
   produces: [safety-verdict]

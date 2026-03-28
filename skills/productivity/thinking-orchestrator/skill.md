@@ -1,14 +1,14 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
+triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
 summary: "Use when: routing to the right thinking skill (brainstorming vs design-triad vs think-twice)."
 coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
+  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
   escalates_to: []
   internal: false
 ---
@@ -39,6 +39,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Strategic / structural / ambiguous question (3+ plausible answers, affects long-lived artifacts, involves tradeoffs) | `design-triad` → then `plan-and-execute` if winner has implementation consequences | Prevent shallow recommendations |
 | Debugging a bug, starting/resuming investigation | `investigation-state` | Persist hypotheses, evidence, eliminated approaches |
 | Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
+| Describing/approving generated output (files, PDFs, API responses) | `output-verification` then `verification-before-completion` | No claims about output without inspection |
 | Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
@@ -50,6 +51,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 |-------|--------|---------|
 | `adversarial-search` | Investigation | Counter confirmation bias, enforce exhaustive scope |
 | `think-twice` | Stuck detection | Break loops via fresh sub-agent |
+| `output-verification` | Output inspection | Hard gate: no claims about output without reading it |
 | `exhaustive-audit-validation` | Bulk completion | Item-by-item tracking for audits/refactors |
 | `verification-before-completion` | All completion | Evidence-based completion claims |
 | `completeness-check` | Repo audit | Detect incomplete/abandoned work |

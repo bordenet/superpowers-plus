@@ -8,12 +8,7 @@ triggers: ["plan and execute", "plan-and-execute", "challenge me", "give me a ch
            "stress-test the plan", "divide into phases", "autonomous phases", "phased TODO",
            "plan phases", "big project", "organize this work", "tackle this problem",
            "let's do this systematically", "multi-phase project"]
-description: >
-  General-purpose orchestrator for challenge → plan → stress-test → phased execution.
-  Produces a plan, stress-tests it with brainstorming + think-twice + progressive harsh review,
-  then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in
-  quality gates. Between phases, runs structured retrospectives that drive improvements into all
-  upcoming TODOs before execution continues.
+description: "General-purpose orchestrator for challenge → plan → stress-test → phased execution. Produces a plan, stress-tests it with brainstorming + think-twice + progressive harsh review, then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in quality gates. Between phases, runs structured retrospectives that drive improvements into all upcoming TODOs before execution continues."
 summary: "Use when: tackling any multi-phase challenge that benefits from structured planning, stress-testing, and continuous improvement during execution."
 coordination:
   group: productivity
@@ -172,7 +167,8 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 2. Execute the work described in the TODO
 3. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
 4. Verify success criteria are met
-5. Mark TODO complete via `todo-crud.sh` with completion notes
+5. **Before committing:** Run the commit gate chain (gates 1–3 always, 4–5 when applicable): `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit`. Your FIXES are new code — they need their own review.
+6. Mark TODO complete via `todo-crud.sh` with completion notes
 
 **If the phase fails** (deliverables don't meet criteria, blockers surface, harsh review finds critical issues): document what went wrong in the TODO note, run a retrospective immediately, and decide whether to retry the phase or trigger mid-execution replanning.
 
@@ -235,16 +231,11 @@ If a project was started in a previous session:
 | Execute | harsh review on deliverables; `progressive-code-review-gate` (if code) | Quality at every step |
 | Replan | (back to Plan + Stress-Test if fundamentally broken) | Course correction |
 
----
-
 ## Failure Modes
 
 | Failure | Fix |
 |---------|-----|
-| Stress-test phase skipped, plan fails during execution | Phase C is mandatory — minimum 2 review rounds |
-| Retrospectives are shallow ("everything was fine") | Template requires concrete findings and changes |
-| TODO improvements are cosmetic | "Substantive" means changes that would alter execution, not wording tweaks |
-| Harsh review on deliverables is skipped | Quality gate is embedded in every TODO — it's not optional |
-| Upcoming TODOs not actually rewritten | Changes must be persisted via todo-crud.sh, not just noted |
-| Plan is broken but execution continues | Use mid-execution replanning — defer remaining TODOs, return to Phase B |
-| Improvements forced into every TODO as filler | Distribute improvements where they add value; skip with justification |
+| Stress-test skipped | Phase C is mandatory — minimum 2 review rounds |
+| Shallow retros / cosmetic TODO improvements | Findings and changes must be concrete and substantive; persist via todo-crud.sh |
+| Harsh review on deliverables skipped | Quality gate is embedded in every TODO and commit gate chain — not optional |
+| Plan broken but execution continues | Mid-execution replanning: defer remaining TODOs, return to Phase B |

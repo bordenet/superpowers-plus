@@ -2,6 +2,9 @@
 name: subagent-driven-development
 source: superpowers-plus
 overrides: superpowers/subagent-driven-development
+# Override rationale: Condensed from 277→91 lines. Adds two-stage review pattern
+# (spec compliance + code quality), inline role descriptions instead of external
+# prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 description: "Use when executing implementation plans with independent tasks in the current session"
 ---
@@ -46,11 +49,11 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 Never force retry without changes. If stuck, something must change.
 
-## Prompt Templates
+## Subagent Roles
 
-- `./implementer-prompt.md` — dispatch implementer
-- `./spec-reviewer-prompt.md` — dispatch spec compliance reviewer
-- `./code-quality-reviewer-prompt.md` — dispatch code quality reviewer
+- **Implementer** — receives full task text + context, implements the change
+- **Spec compliance reviewer** — verifies implementation matches the plan/spec
+- **Code quality reviewer** — checks code quality, patterns, edge cases
 
 ## Rules
 

@@ -81,13 +81,50 @@ enforce-style-guide (2) → progressive-code-review-gate (3) → professional-la
 BEFORE EVERY COMMIT:
 
 0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)
-1. Did I run `npm run lint`? (zero errors)
-2. Did I run `npm run typecheck`? (zero errors)
-3. Did I run `npm test`? (all pass or only pre-existing failures)
+1. Did I run the lint command AND show the output in my response? (zero errors)
+2. Did I run the typecheck command AND show the output? (zero errors)
+3. Did I run the test command AND show the output? (all pass or only pre-existing failures)
 4. Did I review staged changes? (`git diff --staged`)
 
 If NO to any → DO NOT COMMIT
 ```
+
+## 🚨 Evidence Requirements (NON-NEGOTIABLE)
+
+**No gate claim without visible tool output.** Saying "lint passes" without showing
+the command output in your response is fabrication. Show the command invocation, exit
+code, and summary line (pass/fail counts, error counts). For large output, show the
+decisive lines — but the tool call itself MUST be visible.
+
+Each gate step requires evidence matching the gate it covers:
+
+| Gate step | Valid evidence | NOT evidence |
+|-----------|---------------|--------------|
+| Safety scan | `dangerous-pattern-scan.sh` output: 0 blocked patterns | "no dangerous patterns" |
+| Lint | Linter output: 0 errors + exit code 0 | "lint passes" |
+| Typecheck | Type checker output: 0 errors | "no type errors" |
+| Test | Test runner output: pass/fail counts + exit code 0 | "tests pass" |
+| Staged diff | `git diff --staged` output shown and reviewed | "I reviewed the changes" |
+
+**Use the repo's gate command if one exists** (e.g., `./tools/harsh-review.sh`, `npm run lint`,
+`make check`). The commands below are fallbacks when the repo has no defined gate:
+
+| Language | Lint | Typecheck | Test |
+|----------|------|-----------|------|
+| Shell | `shellcheck -x <file>` | `bash -n <file>` | repo-specific |
+| JS/TS | `npm run lint` | `tsc --noEmit` | `npm test` |
+| Python | `ruff check .` / `pylint` | `mypy` | `pytest` |
+| Go | `golangci-lint run` | `go vet ./...` | `go test ./...` |
+
+## Chain to Next Gate
+
+**When this gate passes, IMMEDIATELY load the next gate in the chain:**
+
+```
+use-skill enforce-style-guide
+```
+
+Then continue: `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit` (gates 4–5 when applicable). Do NOT commit between gates.
 
 ## Post-Commit: Verify Build Status
 

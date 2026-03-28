@@ -6,7 +6,7 @@ overrides: superpowers/verification-before-completion
 # MUST trigger this skill), adds PR creation verification pattern, adds incident
 # history tracking, and refines rationalization prevention. obra's version lacks
 # the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
-triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
+triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "claiming completion", "expressing satisfaction"]
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always. If code was changed, dispatch sub-agent-code-reviewer before claiming done (self-review is not review). For multi-step or TODO-backed sessions, run TODO maintenance before the claim.
 summary: "Use when: about to claim work is done. Skip when: still actively working. Code changes require code reviewer dispatch."
 coordination:
@@ -42,6 +42,7 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 
 | Task Type | Action |
 |-----------|--------|
+| Generated output (files, PDFs, API responses, script results) | Invoke `output-verification` FIRST — you cannot verify completion of output you haven't inspected |
 | Bulk edit, audit, or refactoring | Invoke `exhaustive-audit-validation` FIRST, then return here |
 | Single fix, feature, or bug fix | Continue directly with this skill |
 
@@ -77,19 +78,36 @@ BEFORE claiming any status or expressing satisfaction:
 1. IDENTIFY: What command proves this claim?
 2. RUN: Execute the FULL command (fresh, complete)
 3. READ: Full output, check exit code, count failures
-4. VERIFY: Does output confirm the claim?
+4. SHOW: Include the command output in your response (evidence requirement — see below)
+5. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
-5. CODE REVIEW GATE: If you made code changes, dispatch sub-agent-code-reviewer
+6. CODE REVIEW GATE: If you made code changes, dispatch sub-agent-code-reviewer
    BEFORE claiming "Done" or "Fixed". Self-review is not review.
    See "Code Review Gate" section below.
-6. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
+7. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
    `~/.codex/superpowers-plus/tools/todo-maintenance.sh`
    Read the summary and resolve any stale-plan/archive surprises before proceeding.
-7. ONLY THEN: Make the claim
+8. ONLY THEN: Make the claim
 
 Skip any step = lying, not verifying
 ```
+
+## 🚨 Evidence Requirements (NON-NEGOTIABLE)
+
+**No completion claim without visible tool output.** Saying "tests pass" without showing
+the command output in your response is fabrication. Show the command invocation, exit code,
+and summary line. For large output, show the decisive lines — but the tool call itself
+MUST be visible.
+
+| Claim | Required evidence (visible in response) | NOT evidence |
+|-------|----------------------------------------|--------------|
+| "Tests pass" | Test runner output: pass/fail counts + exit code 0 | "I ran the tests" |
+| "Lint clean" | Linter output: 0 errors + exit code 0 | "No lint issues" |
+| "Build succeeds" | Build output: exit code 0 | "Builds fine" |
+| "PR created" | API response: PR number, state=open | "Pushed the branch" |
+| "Code reviewed" | `sub-agent-code-reviewer` dispatch + findings | "I reviewed the code" |
+| "Fixed!" | Test output showing the specific failure now passes | "Should work now" |
 
 ## Code Review Gate
 

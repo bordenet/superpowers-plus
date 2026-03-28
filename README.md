@@ -1,16 +1,16 @@
 # superpowers-plus
 
-61 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+63 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**61 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**63 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 16 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
+| engineering | 18 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, systematic debugging, feature lifecycle, output verification |
 | productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
@@ -51,7 +51,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 60-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the full skill suite — use git clone above for that.
 
 ### Claude Code
 
@@ -139,11 +139,13 @@ Skills activate automatically when your request matches their triggers. Describe
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
-| | engineering-rigor | Hub: routes to pre-commit-gate, blast-radius-check, providing-code-review |
+| | engineering-rigor | Hub: routes to output-verification, pre-commit-gate, blast-radius-check, providing-code-review |
 | | feature-development | Orchestrates full feature lifecycle: requirements → design → implement → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
+| | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
+| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
@@ -212,7 +214,8 @@ graph LR
   end
 
   subgraph completion-gate["Completion Gate"]
-    exhaustive_audit_validation["exhaustive-audit-validation"] --> verification_before_completion["verification-before-completion"]
+    output_verification["output-verification"] -->|generated output| verification_before_completion["verification-before-completion"]
+    exhaustive_audit_validation["exhaustive-audit-validation"] -->|bulk edits| verification_before_completion
   end
 
   subgraph thinking["Thinking"]
@@ -237,6 +240,7 @@ graph LR
 
   thinking_orchestrator -->|enables| adversarial_search["adversarial-search"]
   thinking_orchestrator -->|enables| think_twice
+  thinking_orchestrator -->|enables| output_verification
   thinking_orchestrator -->|enables| verification_before_completion
   thinking_orchestrator -->|enables| exhaustive_audit_validation
   thinking_orchestrator -->|enables| completeness_check["completeness-check"]
@@ -247,7 +251,7 @@ graph LR
 | Group | Flow | Purpose |
 |-------|------|---------|
 | Commit Gates | pre-commit → style → code review → language → IP audit | Quality checks before `git commit` |
-| Completion Gate | exhaustive-audit → verification | Verify completeness and run TODO maintenance before claiming done |
+| Completion Gate | output-verification (generated output) or exhaustive-audit (bulk edits) → verification | Context-dependent gates before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
 | Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |

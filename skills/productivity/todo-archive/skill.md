@@ -1,5 +1,6 @@
 ---
 name: todo-archive
+source: superpowers-plus
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
 description: Low-level archive engine for completed tasks in TODO.md. Companion to todo-management; routine housekeeping should usually go through todo-maintenance.sh.
 summary: "Use when: archiving completed TODO items from TODO.md."
