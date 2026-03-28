@@ -30,7 +30,6 @@ Initialize or upgrade AI guidance in any repository using the [golden-agents](ht
 git clone https://github.com/bordenet/golden-agents.git ~/.golden-agents
 ```
 
----
 
 ## When to Use
 
@@ -40,8 +39,6 @@ Invoke when:
 - Adding AI guidance to an existing repo
 - Upgrading outdated AGENTS.md files
 - User says: "set up AI guidance", "add AGENTS.md", "upgrade AI guidance"
-
----
 
 
 ## Scope Exclusions
@@ -128,7 +125,6 @@ Detected:
 Proceed with these settings? [Y/n/edit]
 ```
 
----
 
 ## Phase 2: Execute Workflow
 
@@ -141,13 +137,11 @@ Based on detection results, run the appropriate workflow from `references/workfl
 | AGENTS.md with markers | 2.3 Upgrade | `generate-agents.sh --upgrade --path=.` |
 | AGENTS.md without markers | 2.4 Migrate | Interactive: Migrate/Replace/Cancel |
 
----
 
 ## Phase 3: Create Redirect Files
 
 After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.md, COPILOT.md) pointing to AGENTS.md. See `references/workflows.md` for templates.
 
----
 
 ## Phase 4: Commit
 
@@ -160,7 +154,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | Upgrade | `chore: Upgrade AI guidance framework` |
 | Migrate | `refactor: Migrate to golden-agents framework` |
 
----
 
 ## Command Reference
 
@@ -173,7 +166,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | `~/.golden-agents/generate-agents.sh --upgrade --apply` | Apply upgrade |
 | `~/.golden-agents/generate-agents.sh --compact` | Generate ~130 line version |
 
----
 
 ## Common Mistakes
 
@@ -184,7 +176,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | Forgetting redirect files | Always create all 4 (CLAUDE, CODEX, GEMINI, COPILOT) |
 | Not syncing before upgrade | Run `--sync` to get latest templates |
 
----
 
 ## Companion Skills
 
@@ -196,7 +187,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 - **Skipping detection:** Starting a workflow without first running Phase 1 detection to confirm what repos/agents exist
 - **Wrong workflow type:** Using "new repo" workflow when "upgrade" was needed (always detect first)
 - **Missing redirect files:** Forgetting Phase 3 redirect files, leaving old config paths broken
-
 
 ## References
 
