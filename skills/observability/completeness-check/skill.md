@@ -20,6 +20,14 @@ coordination:
 
 **MANDATORY**: Use this skill before claiming work is complete on ANY repo, or when auditing accumulated incomplete work.
 
+
+## When to Use
+
+- Quick sanity check that nothing was missed in a changeset
+- Before marking a task as complete
+- After implementing a multi-file change
+- When a code review requests "check all callers"
+
 ## The Core Principle
 
 AI coding assistants frequently leave incomplete work when they:

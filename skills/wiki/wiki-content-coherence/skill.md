@@ -28,6 +28,14 @@ composition:
 
 > **Wrong skill?** Checking links → `link-verification`. Checking for secrets → `wiki-secret-audit`. Full wiki edit workflow → `wiki-orchestrator`.
 
+
+## When to Use
+
+- After bulk wiki updates across multiple pages
+- When the same concept is documented in multiple places
+- Before publishing a new wiki page that overlaps existing content
+- When users report conflicting information across wiki pages
+
 ## Procedure
 
 ### Step 1: Fetch and Parse

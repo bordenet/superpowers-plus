@@ -22,6 +22,14 @@ coordination:
 
 This is the **hub skill** for engineering rigor. For operational guidance, use the specific skill that matches your current task:
 
+
+## When to Use
+
+- Before any non-trivial code change
+- When reviewing design decisions for blast radius
+- As a mental checklist during implementation
+- When you notice shortcuts being taken in code
+
 ## Operational Skills (Use These)
 
 | Skill | When to Use | Trigger |
