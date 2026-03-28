@@ -18,6 +18,12 @@ coordination:
 
 > **Wrong skill?** Checking skill health → `superpowers-doctor`. Writing new skills → `skill-authoring` / `writing-skills`. Updating skills → `update-superpowers`.
 
+## Companion Skills
+
+- **superpowers-doctor**: Runtime diagnostics
+- **skill-authoring**: Creating new skills
+- **skill-health-check**: Structural lint
+
 ## When to Use
 
 - User asks "what can you do?" or "what skills do you have?"

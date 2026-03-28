@@ -50,6 +50,12 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
 
 
+## Companion Skills
+
+- **brainstorming**: Incremental idea generation (this skill is 10x ideas)
+- **design-triad**: Evaluating innovation options
+- **plan-and-execute**: Executing on selected innovations
+
 ## When to Use
 
 - Before building new features — generate radical alternatives to the obvious approach

@@ -169,3 +169,9 @@ Summary:
 | Missing abandoned branches | Check `git branch -a` for stale feature branches |
 | False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
 | Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |
+
+## Companion Skills
+
+- **exhaustive-audit-validation**: Deeper audit (heavier than this skill)
+- **verification-before-completion**: Pre-completion gate
+- **holistic-repo-verification**: Full repo health check

@@ -70,6 +70,12 @@ When user asks for rigor/thorough/comprehensive analysis:
 | "No changes needed" | The user just told you something is broken. It is. |
 
 
+## Companion Skills
+
+- **think-twice**: Escalation when adversarial search isn't enough
+- **systematic-debugging**: For specific bug investigation
+- **verification-before-completion**: Final verification step
+
 ## When to Use
 
 - When investigating bugs, inconsistencies, or suspected incorrect values

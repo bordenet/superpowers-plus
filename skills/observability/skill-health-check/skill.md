@@ -23,6 +23,11 @@ coordination:
 
 **Announce at start:** "I'm running the **skill-health-check** structural lint."
 
+## Companion Skills
+
+- **superpowers-doctor**: Full runtime diagnostics (heavier than this lint)
+- **skill-authoring**: Writing new skill files
+
 ## When to Use
 
 - After creating or modifying skills
