@@ -228,3 +228,4 @@ todo-crud.sh add --priority P2 --tag "#plan-auth-redesign" --title "Phase 1: Mig
 - **requirements-validation**: Validating plan inputs · **plan-quality-gates**: Exit criteria
 - **innovation**: Creative problem-solving · **fallback-planning**: Contingency plans
 - **subagent-driven-development**: Multi-agent task dispatch
+- **autonomous-chain-controller**: Full workflow orchestration
