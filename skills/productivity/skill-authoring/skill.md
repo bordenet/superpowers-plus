@@ -178,6 +178,7 @@ composition:
 
 - **domain-design**: Domain-level skill design
 - **superpowers-help**: Skill discovery
+- **evolution-loop**: Pattern-driven skill creation
 ## When to Use
 
 <Triggers and context>
