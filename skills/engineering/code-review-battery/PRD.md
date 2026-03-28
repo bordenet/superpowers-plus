@@ -1,10 +1,11 @@
 # Code Review Battery — Product Requirements Document
 
-> **Status**: Phase 2 Shipped (learning pipeline pending real-world validation)
+> **Status**: Phase 2f Shipped (deep review enhancements)
 > **Author**: Matt Bordenet + AI
 > **Created**: 2026-03-27
 > **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
 > **Phase 2 Shipped**: 2026-03-28 (monolith, gap analysis, dashboard, Shadow Lane candidate staging)
+> **Phase 2f Shipped**: 2026-03-28 (context expansion, verification, investigation protocol, enhanced dimensions, Semgrep rules, on-demand loading)
 > **Phase 2 Pending**: AC24 (graduation validation set), AC25 (safety controls in production)
 > **Confidence**: 85/100
 
@@ -56,6 +57,14 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 - Wiki dashboard for trending metrics over time
 - Safety controls (TTL, token budgets, precision floors, degradation response)
 
+### In Scope (Phase 2f: Deep Review)
+- Context Expansion Engine (Phase 1.5): symbol extraction, grep call graph, test files, history
+- Deterministic Verification Filter (Phase 2.5): file/line/symbol checks on findings
+- Investigation Protocol: 4-step investigate-before-report discipline
+- Enhanced Dimensions: Guardian +Reliability, Design Critic +Layering, Standards Enforcer expanded Test Adequacy
+- Semgrep-First Rule Generation: Semgrep YAML primary, shell script fallback
+- On-demand file loading: coordinator split into phase-specific files ≤1,500 tokens each
+
 ### Out of Scope (Phase 3: Debugging Parallelization)
 > **⚠️ FUTURE SCOPE — DO NOT FORGET**
 >
@@ -82,17 +91,17 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 
 ### Agent 2: Design Critic
 **Mental Model**: *"Is this code well-structured for humans to understand, extend, and test?"*
-**Dimensions**: Factoring/Composition, Complexity Reduction, Testability, API Design
+**Dimensions**: Factoring/Composition, Complexity Reduction, Testability, API Design, Architectural Layering
 **Triage**: Conditional — when diff adds/modifies classes, functions, or public APIs
 
 ### Agent 3: Guardian
 **Mental Model**: *"What damage can this change cause beyond the diff?"*
-**Dimensions**: Security, Blast Radius, Dependencies/Config, Backwards Compatibility
+**Dimensions**: Security, Blast Radius, Dependencies/Config, Backwards Compatibility, Reliability & Resilience
 **Triage**: Always-on (prevents production incidents)
 
 ### Agent 4: Standards Enforcer
 **Mental Model**: *"Does this code meet the team's and project's documented expectations?"*
-**Dimensions**: Language Standards/Style, Spec Compliance, Documentation Drift, Test Quality
+**Dimensions**: Language Standards/Style, Spec Compliance, Documentation Drift, Test Quality & Adequacy, Data Integrity
 **Triage**: Always-on (conformance checking)
 
 ### Agent 5: Performance Analyst
@@ -121,12 +130,15 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 | 10 | Spec Compliance | Standards Enforcer | ✅ |
 | 11 | Security | Guardian | ✅ |
 | 12 | Blast Radius | Guardian | ✅ |
-| 13 | Test Quality | Standards Enforcer | ✅ |
+| 13 | Test Quality & Adequacy | Standards Enforcer | ✅ |
 | 14 | Documentation Drift | Standards Enforcer | ✅ |
 | 15 | Performance | Performance Analyst | Conditional |
 | 16 | Dependencies & Configuration | Guardian | ✅ |
-| + | Backwards Compatibility | Guardian | ✅ |
-| + | Observability/Logging | Performance Analyst | Conditional |
+| 17 | Backwards Compatibility | Guardian | ✅ |
+| 18 | Observability/Logging | Performance Analyst | Conditional |
+| 19 | Data Integrity | Standards Enforcer | ✅ |
+| 20 | Reliability & Resilience | Guardian | ✅ |
+| 21 | Architectural Layering | Design Critic | Conditional |
 
 
 ## Design Rationale: Why These Groupings?
@@ -183,6 +195,21 @@ The groupings were determined through a structured process:
 - [ ] AC24: Graduation pipeline validates candidates on 200+ stratified diffs (needs validation set)
 - [ ] AC25: Safety controls prevent false positive amplification (needs real-world runs)
 
+### Phase 2f: Deep Review
+- [x] AC27: Context expansion generates structured context package for all reviewers
+- [x] AC28: Context expansion skips for single-file diffs with <20 lines
+- [x] AC29: Verification checks file existence for all structured findings
+- [x] AC30: Verification checks line validity for all structured findings
+- [x] AC31: Investigation protocol loaded for monolith, defect-finder, guardian
+- [x] AC32: Protocol is selective (3 of 6 reviewers, not all)
+- [x] AC33: Dimension count increased from 19 to 21 (Guardian +Reliability, Design Critic +Layering)
+- [x] AC34: Gap analysis emits Semgrep YAML (primary) and shell script (fallback)
+- [x] AC35: Context expansion has 60s wall-clock cap
+- [x] AC36: No prompt-loaded file exceeds 1,500 tokens
+- [x] AC37: No single pipeline step loads >2,500 tokens of prompt
+- [x] AC38: All reviewers use structured finding schema (F<n> format)
+- [x] AC39: Verification checks symbol existence at referenced location
+
 ## Risks and Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -211,7 +238,8 @@ The groupings were determined through a structured process:
 9. **Phase 2c**: Build Shadow Lane learning system (candidate patterns + scripts)
 10. **Phase 2d**: Create wiki dashboard for metrics trending
 11. **Phase 2e**: Validate graduation pipeline on real-world runs
-12. **Phase 3**: Extend pattern to debugging parallelization (separate PRD)
+12. **Phase 2f**: Deep Review — context expansion, verification, investigation protocol, enhanced dimensions
+13. **Phase 3**: Extend pattern to debugging parallelization (separate PRD)
 
 ## Validation Plan
 
