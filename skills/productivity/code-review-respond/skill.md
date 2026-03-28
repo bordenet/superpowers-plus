@@ -4,6 +4,13 @@ source: superpowers-plus
 description: Use when acting as the reviewer agent for a ~/.codex/superpowers-review/ request.md → response.md file protocol handoff
 triggers: ["I am the reviewer agent", "read request.md", "reviewer agent protocol", "superpowers-review respond"]
 anti_triggers: ["send to reviewer", "execute reviewer findings", "review my PR", "pre-commit"]
+coordination:
+  group: code-quality
+  order: 5
+  requires: [receiving-code-review]
+  enables: [pre-commit-gate]
+  escalates_to: [think-twice]
+  internal: false
 ---
 
 # Code Review — Reviewer Agent File Protocol
@@ -124,6 +131,16 @@ cat .code-review/request.md
 # Write findings to response.md with severity tags
 echo "## Round 1 Findings" > .code-review/response.md
 ```
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Ignoring comments | Unresolved threads at merge | Address ALL before requesting re-review |
+| Over-explaining | 10-line justification for style choice | Concise: agree + fix, or disagree + rationale |
+| Passive-aggressive | "If you say so..." | Professional: "Good catch" or "I disagree because X" |
+| Ghost fixes | Fix code but don't reply to comment | Reply "Fixed in [commit]" with evidence |
+| Arguing semantics | Debate wording not substance | Focus on behavior, not terminology |
 
 ## Failure Modes
 
