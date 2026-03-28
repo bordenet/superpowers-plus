@@ -2,10 +2,11 @@
 name: progressive-harsh-review
 source: superpowers-plus
 triggers: ["harsh review", "progressive review", "red team this", "review this harshly",
-           "adversarial review", "hostile review", "critic review", "find what's wrong",
-           "score this work", "quality gate review"]
-description: "Multi-persona adversarial review with escalating severity. Simulates 3 critic personas (JuniorDevNitpicker, SeniorArchCritic, ProdOpsHardass) scoring work on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT with root-cause analysis. Chains to think-twice, design-triad, and plan-and-execute for remediation."
-summary: "Use when: validating any deliverable before shipping. Score <6 = reject and redo."
+           "hostile review", "critic review", "find what's wrong",
+           "score this work"]
+anti_triggers: ["code review", "PR review", "review someone's PR", "design review inside design-triad", "quick feedback"]
+description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after design-triad). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. For code PRs, use progressive-code-review-gate instead."
+summary: "Use when: validating non-code deliverables. For code PRs use progressive-code-review-gate."
 coordination:
   group: quality
   order: 0
@@ -24,10 +25,10 @@ coordination:
 
 ## When to Use
 
-- After completing any significant deliverable (code, design, plan, skill, document)
-- As a quality gate before committing — catches issues pre-commit-gate misses
+- After completing a significant non-code deliverable (plan, skill, document, design)
+- As a quality gate for artifacts that `progressive-code-review-gate` doesn't cover
 - When the user says "review this harshly" or "find what's wrong"
-- NOT for: initial brainstorming (too early), code review of others' PRs (`providing-code-review`)
+- NOT for: code PRs (`progressive-code-review-gate`), design comparison inside `design-triad`, initial brainstorming (too early)
 
 ## The Three Personas
 
@@ -62,16 +63,16 @@ For each persona, answer ALL scoring dimensions:
 | Edge Cases | 20% | What breaks? What wasn't considered? |
 | Security/Perf | 15% | Vulnerabilities? Performance bottlenecks? |
 
-### Step 2: Score
+### Step 2: Score and Aggregate
 
-Each persona scores 1-10 on each dimension. Calculate weighted average per persona.
+Each persona scores 1-10 on each dimension. **Aggregation rule:** take the MINIMUM weighted average across all three personas. This prevents one lenient persona from masking another's concerns.
 
 ### Step 3: Verdict
 
-| Average Score | Verdict | Action |
-|---------------|---------|--------|
+| Minimum Persona Average | Verdict | Action |
+|--------------------------|---------|--------|
 | ≥8 | **PASS** | Ship it |
-| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only |
+| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when minimum ≥8 or Round 2 finds no new issues. |
 | <6 | **REJECT** | Root-cause analysis → remediate → full re-review |
 
 ### Step 4: Remediation (if needed)
@@ -86,7 +87,7 @@ On REJECT:
 
 ### Step 5: Convergence
 
-- **Exit when:** Final round score ≥6, no new material issues
+- **Exit when:** Final round minimum persona average ≥6 AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Scoring Output Format
