@@ -23,52 +23,55 @@ Industry state-of-the-art (CodeRabbit, Qodo, Sourcegraph/Cody) achieves **<10% F
 
 Phase 2f adds two new pipeline stages and enhances four existing ones:
 
+**Naming note**: "Pipeline phases" (1, 1.5, 2, etc.) are coordinator execution steps — distinct from PRD roadmap phases (Phase 1, Phase 2, Phase 2f, Phase 3). The pipeline phase numbers are internal to the coordinator and do not change; they match the existing coordinator.md naming.
+
 ```
 Diff arrives
     │
     ▼
-Phase 1: Triage (unchanged)
+Pipeline Step 1: Triage (unchanged)
     │
     ▼
-Phase 1.5: Context Expansion ──────────────────── NEW
+Pipeline Step 1.5: Context Expansion ──────────── NEW
     │  Extract changed symbols from diff
     │  Find related code (callers, types via grep)
     │  Find related test files
     │  Get recent file history (monolith only)
-    │  Get PR description / commit messages
-    │  Run tests for changed files (if available)
+    │  Get commit messages / PR description
+    │  Run tests for changed files (opt-in only)
     │  Output: structured context package
     │
     ▼
-Phase 2: Dispatch ──────────────────────────────── ENHANCED
+Pipeline Step 2: Dispatch ─────────────────────── ENHANCED
     │  5-part contract (+ context package)
     │  Investigation Protocol in monolith/defect-finder/guardian
     │  Expanded dimensions (reliability, layering, test adequacy)
     │
     ▼
-Phase 3: Collect reviewer output (unchanged)
+Pipeline Step 3: Collect reviewer output (unchanged)
     │
     ▼
-Phase 3.5: Deterministic Verification ─────────── NEW
+Pipeline Step 3.5: Deterministic Verification ─── NEW
+    │  Parse structured finding schema
     │  For each finding: verify file exists, line valid,
-    │  symbol exists, claims true
-    │  Tag: [VERIFIED] or [UNVERIFIED]
+    │  symbol exists in file
+    │  Tag: [VERIFIED], [UNVERIFIED], or [UNSTRUCTURED]
     │
     ▼
-Phase 4: Aggregate ────────────────────────────── ENHANCED
+Pipeline Step 4: Aggregate ────────────────────── ENHANCED
     │  Verified findings first
-    │  Unverified in appendix (not suppressed)
+    │  Unverified + unstructured in appendix
     │
     ▼
-Phase 5: Gap Analysis ─────────────────────────── ENHANCED
+Pipeline Step 5: Gap Analysis ─────────────────── ENHANCED
     │  Semgrep YAML as primary rule format
     │  Shell grep as fallback
     │
     ▼
-Phase 6: Dashboard Update (unchanged)
+Pipeline Step 6: Dashboard Update (unchanged)
 ```
 
-## Enhancement 1: Context Expansion Engine (Phase 1.5)
+## Enhancement 1: Context Expansion Engine (Pipeline Step 1.5)
 
 ### Research Basis
 
@@ -245,17 +248,49 @@ Deterministic verification requires machine-parseable findings. The current revi
 ```
 ### Finding F1
 - **file**: src/auth/validator.ts
-- **line**: 42
-- **symbol**: validateToken
+- **line**: 42 (or "N/A" for findings without a single location)
+- **symbol**: validateToken (or "N/A" for non-symbol findings like doc drift)
 - **severity**: Critical
+- **confidence**: High (>80%) or Possible (60-80%)
+- **scope**: isolated | systemic
 - **issue**: Missing null check on token parameter
 - **why**: Crashes with TypeError when token is undefined
 - **fix**: Add `if (!token) return null;` guard
+- **evidence**: Searched callers with `grep -rn 'validateToken'` — found 3
+  callers, none check for null before passing token. (optional — required
+  when Investigation Protocol is used)
+- **cross-cutting**: yes | no (monolith only — replaces existing Cross-cutting? field)
+- **instances**: (only when scope=systemic — list all locations)
+  - src/auth/validator.ts:42
+  - src/auth/refresh.ts:18
+  - src/api/middleware.ts:91
 ```
 
-The coordinator parses these structured fields via simple line-prefix matching (`- **file**:`, `- **line**:`, `- **symbol**:`). This is more reliable than extracting from prose but does not require JSON. Reviewers can still include free-text explanation in the `issue`, `why`, and `fix` fields.
+#### Schema Rules
 
-If a reviewer does not follow the structured format (e.g., outputs prose instead), verification is skipped for that finding and it is tagged `[UNSTRUCTURED]` in the report.
+| Field | Required | Verifiable | Notes |
+|-------|----------|-----------|-------|
+| `file` | Yes | Check 1 (file exists) | "N/A" for findings without a file (e.g., missing tests entirely) |
+| `line` | Yes | Check 2 (line in range) | "N/A" for file-level or architectural findings |
+| `symbol` | No | Check 3 (symbol in file) | Omit for non-symbol findings |
+| `severity` | Yes | No | Critical / Important / Minor |
+| `confidence` | Yes | No | High (>80%) / Possible (60-80%) |
+| `scope` | Yes | No | "isolated" or "systemic" |
+| `issue` | Yes | No | Free text, may be multiline |
+| `why` | Yes | No | Free text, may be multiline |
+| `fix` | No | No | Free text, may be multiline |
+| `evidence` | Conditional | No | Required when Investigation Protocol is active |
+| `cross-cutting` | Monolith only | No | Replaces current `Cross-cutting?` field |
+| `instances` | Conditional | No | Required when scope=systemic; list all locations |
+
+#### Parsing Rules
+
+The coordinator parses structured fields via line-prefix matching (`- **file**:`, `- **line**:`, etc.):
+- Each finding starts with `### Finding F<n>` (heading signals boundary)
+- Single-line fields: everything after `: ` on the same line
+- Multiline fields (`issue`, `why`, `fix`, `evidence`): all lines until the next `- **` prefix or next `### Finding` heading
+- `instances` block: indented `- file:line` entries until next field or heading
+- If a finding block cannot be parsed (no `### Finding` heading, missing required fields), tag it `[UNSTRUCTURED]` and skip verification
 
 ### Mechanism
 
@@ -575,18 +610,42 @@ skills/engineering/code-review-battery/
 | File | Enhancement | Change | Token Budget |
 |------|-------------|--------|-------------|
 | `skill.md` | 1, 2 | Trimmed, add step sequence with file loading refs | ≤1,200 |
-| `coordinator.md` | 1, 2 | Extract Phases 5-6, add 5-part contract, Phase 3.5 ref | ≤1,500 |
+| `coordinator.md` | 1, 2 | Extract Phases 5-6, add 5-part contract, structured output parsing in aggregation, Phase 3.5 ref | ≤1,500 |
 | `context-expansion.md` | 1, 6 | NEW — Phase 1.5 context package building | ≤800 |
-| `verification.md` | 2 | NEW — Phase 3.5 deterministic verification | ≤600 |
+| `verification.md` | 2 | NEW — Phase 3.5 deterministic verification + structured finding schema | ≤600 |
 | `gap-analysis.md` | 5 | NEW (extracted) — Phases 5-6 + Semgrep rules | ≤1,200 |
 | `DESIGN.md` | 1, 2, 4, 5 | Architecture diagram, file structure, dimensions | exempt |
 | `PRD.md` | 4 | Phase 2f scope, dimension matrix, ACs | exempt |
-| `reviewers/monolith.md` | 3 | Investigation Protocol, file history context | ≤850 |
-| `reviewers/defect-finder.md` | 3 | Investigation Protocol | ≤800 |
-| `reviewers/guardian.md` | 3, 4 | Investigation Protocol, Reliability sub-dimension | ≤850 |
-| `reviewers/design-critic.md` | 4 | Architectural Layering sub-dimension | ≤800 |
-| `reviewers/standards-enforcer.md` | 4 | Test Quality → Test Quality & Adequacy | ≤800 |
-| `reviewers/performance-analyst.md` | — | No changes | ~640 |
+| `reviewers/monolith.md` | 2, 3 | Structured output format, Investigation Protocol, file history context | ≤850 |
+| `reviewers/defect-finder.md` | 2, 3 | Structured output format, Investigation Protocol | ≤800 |
+| `reviewers/guardian.md` | 2, 3, 4 | Structured output format, Investigation Protocol, Reliability sub-dimension | ≤850 |
+| `reviewers/design-critic.md` | 2, 4 | Structured output format, Architectural Layering sub-dimension | ≤800 |
+| `reviewers/standards-enforcer.md` | 2, 4 | Structured output format, Test Quality → Test Quality & Adequacy | ≤800 |
+| `reviewers/performance-analyst.md` | 2 | Structured output format only | ≤700 |
+
+### Reviewer Prompt Changes (All 6 Reviewers)
+
+Every reviewer prompt requires these changes to support Phase 2f:
+
+**All 6 reviewers**:
+- Replace current `## Output Format` section with the structured finding schema (see Enhancement 2)
+- Current format (`**Severity**: ... **File:Line**: ... **Issue**: ...`) → structured block (`### Finding F<n>` with `- **file**:`, `- **line**:`, `- **symbol**:`, `- **severity**:`, etc.)
+- Add `- **confidence**: High / Possible` (replacing the prose "Possible: ..." prefix)
+- Add `- **scope**: isolated / systemic` with `- **instances**:` list when systemic
+
+**Monolith, Defect Finder, Guardian only**:
+- Add Investigation Protocol section (see Enhancement 3)
+- Add `- **evidence**:` as a required field in finding schema
+- Replace monolith's `- **Cross-cutting?**: Yes/No` with `- **cross-cutting**: yes / no`
+
+**Guardian only**:
+- Add sub-dimension `5. Reliability & Resilience` (see Enhancement 4)
+
+**Design Critic only**:
+- Add sub-dimension `5. Architectural Layering` (see Enhancement 4)
+
+**Standards Enforcer only**:
+- Expand sub-dimension 4 from "Test Quality" to "Test Quality & Adequacy" with 4 new check items (see Enhancement 4)
 
 ## Expected Impact
 
@@ -601,10 +660,10 @@ skills/engineering/code-review-battery/
 
 ## Open Design Decisions
 
-1. **Context expansion timeout**: Each context-expansion step (grep, find, git log) gets a 10s timeout. Test execution (opt-in only) gets 15s per command. Total Phase 1.5 hard cap: 60s. If exceeded, report partial context and continue to dispatch.
+1. **Context expansion timeout**: Each context-expansion step (grep, find, git log) is wrapped in `timeout 10 <command>`. Test execution (opt-in) uses `timeout 15 <command>`. The coordinator tracks wall-clock time for Phase 1.5; if total exceeds 60s, it stops running remaining steps, reports partial context, and continues to dispatch. These timeouts are implemented by the coordinator using the shell `timeout` command (GNU coreutils), not by LLM self-regulation.
 2. **Verification depth**: Start with Checks 1-3 only (file/line/symbol), add claim verification (Check 4) incrementally after measuring false-negative rate.
 3. **Semgrep availability**: Optional dependency — generate both formats, use Semgrep when available.
-4. **Investigation round limit**: Soft cap at 5 searches per finding, hard cap at 3 minutes per reviewer total investigation time.
+4. **Investigation round limit**: The Investigation Protocol instructs reviewers to "investigate before reporting" but does not enforce a search limit — reviewers are LLM sub-agents with their own token budgets. In practice, each sub-agent is dispatched with a fixed prompt and returns when done. No external timer is applied. If investigation causes a reviewer to return very large output, the coordinator truncates findings to the first 20 per reviewer during aggregation.
 
 ## Acceptance Criteria (Phase 2f)
 
@@ -619,5 +678,5 @@ skills/engineering/code-review-battery/
 | AC33 | Enhanced dimensions (reliability, layering, test adequacy) fire on relevant diffs | Should Pass |
 | AC34 | Semgrep YAML rules generated from gap analysis on ≥1 real gap; rule passes `semgrep --validate` (if Semgrep available) or YAML parse check | Should Pass |
 | AC35 | Total review time (with context expansion + verification) ≤ 2x monolithic | Must Pass |
-| AC36 | Every prompt-loaded file ≤1,500 tokens. Measurement: `wc -w <file>` gives word count; multiply by 1.33 for approximate token count (markdown with code blocks runs ~1.3-1.5 tokens/word). This is an approximation — use `tiktoken` or Anthropic's tokenizer for exact counts if available. | Must Pass |
-| AC37 | No single review step loads >1,500 tokens of skill/coordinator content | Must Pass |
+| AC36 | Every prompt-loaded file ≤1,500 tokens after all Phase 2f changes are applied (including structured schema addition to reviewer prompts). Measurement: `wc -w <file>` × 1.33 ≈ token count. Run on all files in the "Summary of All File Changes" table. If any file exceeds budget after implementation, trim content or split further. | Must Pass |
+| AC37 | No single review step loads >1,500 tokens of skill/coordinator content (excluding diff output, context package content, and reviewer findings which are variable-length) | Must Pass |
