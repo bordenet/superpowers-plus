@@ -58,7 +58,7 @@ Dispatch activated specialists + monolith as parallel sub-agents using `sub-agen
   3. Reviewer prompt
   4. Instruction to read full source files
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
-- **Full review rounds**: Monolith ALWAYS fires alongside the specialists
+- **Full review rounds**: Monolith fires alongside the specialists by default (unless `--skip-monolith`)
 - **Targeted re-review (Phase 4)**: Monolith does NOT fire unless it produced the nits. Gap analysis (Phase 5) and dashboard update (Phase 6) also skip on targeted re-reviews.
 - Wait for all to complete
 
@@ -66,7 +66,7 @@ Dispatch activated specialists + monolith as parallel sub-agents using `sub-agen
 Dispatch activated specialists + monolith using `subagent()` or `Task()` with tool access:
 - Each sub-agent needs shell access to run `git diff` and `cat` source files
 - Same 4-part instruction contract as Augment dispatch (see below)
-- Same monolith activation rules as Augment (full reviews: always; targeted re-reviews: only if nit-producing)
+- Same monolith activation rules as Augment (full reviews: default on unless `--skip-monolith`; targeted re-reviews: only if nit-producing)
 - Fire simultaneously where the platform supports it
 
 ### Reviewer Instruction Contract

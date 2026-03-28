@@ -3,8 +3,8 @@ name: code-review-battery
 source: superpowers-plus
 triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers", "review battery", "six reviewer", "six-agent review"]
 anti_triggers: ["simple review", "quick review", "lint only"]
-description: "Use when: reviewing code changes with parallel specialized reviewers + monolith. Dispatches 6 agents (5 specialists + 1 monolith) for deep analysis with automatic learning."
-summary: "Use when: code review needed. Dispatches 6 parallel reviewer agents with automatic gap analysis and learning."
+description: "Use when: reviewing code changes with parallel specialized reviewers + monolith. Dispatches 6 agents (5 specialists + 1 monolith) for deep analysis with gap analysis and candidate staging."
+summary: "Use when: code review needed. Dispatches 6 parallel reviewer agents with gap analysis and candidate staging."
 coordination:
   group: code-review
   order: 0
@@ -99,17 +99,17 @@ After gap analysis on full review rounds, update the wiki dashboard page. Skip i
 | 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat | Triage-gated |
 | 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity | Triage-gated |
 | 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging | Triage-gated |
-| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **ALWAYS on full reviews** |
+| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **Default on full reviews** |
 
 ### Monolith Activation Rules
 
-- **Full review rounds** (Step 2): Monolith ALWAYS fires alongside activated specialists
+- **Full review rounds** (Step 2): Monolith fires alongside activated specialists by default (unless `--skip-monolith`)
 - **Targeted re-review** (Step 3a / Phase 4): Monolith does NOT fire unless it was the reviewer that produced the nits. Targeted re-reviews scope to nit-producing reviewers only.
 - Gap analysis (Phase 5) and dashboard update (Phase 6) only run after full review rounds, not targeted re-reviews.
 
 ## Overrides
 
-- `--all`: Force all 5 specialists regardless of triage (monolith always runs on full reviews)
+- `--all`: Force all 5 specialists regardless of triage (monolith still runs by default unless `--skip-monolith`)
 - `--only=<name>`: Run a single named reviewer (monolith still runs alongside on full reviews)
 - `--skip=<name>`: Exclude a specific specialist from triage selection (cannot skip monolith on full reviews)
 - `--skip-monolith`: Explicitly skip the monolith (for speed-only runs; disables learning)
