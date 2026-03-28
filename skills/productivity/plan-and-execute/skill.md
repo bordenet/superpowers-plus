@@ -7,7 +7,7 @@ triggers: ["plan and execute", "plan-and-execute", "challenge me", "give me a ch
            "project plan with phases", "plan with retrospectives", "measure twice cut once",
            "stress-test the plan", "divide into phases", "autonomous phases", "phased TODO",
            "plan phases", "big project", "organize this work", "tackle this problem",
-           "let's do this systematically", "multi-phase project"]
+           "let's do this systematically", "multi-phase project", "plan out this", "plan the implementation", "implementation plan"]
 anti_triggers: ["brainstorm", "design options", "what should we build"]
 description: "General-purpose orchestrator for challenge → plan → stress-test → phased execution. Produces a plan, stress-tests it with brainstorming + think-twice + progressive harsh review, then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in quality gates. Between phases, runs structured retrospectives that drive improvements into all upcoming TODOs before execution continues."
 summary: "Use when: tackling any multi-phase challenge that benefits from structured planning, stress-testing, and continuous improvement during execution."

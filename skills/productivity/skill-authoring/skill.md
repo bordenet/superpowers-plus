@@ -2,7 +2,7 @@
 name: skill-authoring
 source: superpowers-plus
 triggers: ["create a skill", "make a skill", "I need a skill", "new skill for", "skill that", "what skills should", "skill gap analysis", "turn this pattern into a skill", "synthesize skill", "generate skill"]
-anti_triggers: ["check skill health", "diagnose skill", "run doctor"]
+anti_triggers: ["check skill health", "diagnose skill", "run doctor", "what skills are available", "list skills", "which skills", "help with skills"]
 description: The genesis capability — create new skills from natural language descriptions, observed patterns, or codebase analysis. Makes superpowers-plus self-extending.
 summary: "Use when: writing or editing superpowers skill files."
 coordination:
