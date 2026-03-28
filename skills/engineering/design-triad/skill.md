@@ -28,6 +28,8 @@ coordination:
 - **requirements-validation**: Validating requirements before design
 - **plan-and-execute**: Implementing the chosen design
 
+- **innovation**: 10x ideas before evaluation
+- **fallback-planning**: Evaluating fallback alternatives
 ## When to Use
 
 - Any design decision where the wrong choice would cost significant rework
