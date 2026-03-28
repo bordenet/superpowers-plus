@@ -25,7 +25,8 @@ coordination:
 
 <EXTREMELY_IMPORTANT>
 
-**Every wiki operation MUST pass through this pipeline. No exceptions.**
+**Every BULK/MULTI-PAGE wiki operation MUST pass through this pipeline.**
+Single-page edits, creates, and deletes → use Outline API directly.
 
 | Stage | Gate | What Happens |
 |-------|------|-------------|

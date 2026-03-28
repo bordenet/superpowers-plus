@@ -147,11 +147,11 @@ BEFORE claiming a field rename is complete:
 Skip any step = incomplete work
 ```
 
-## Related Skills
+## Companion Skills
 
-- `verification-before-completion` - General verification discipline
-- `systematic-debugging` - When the field mismatch causes runtime errors
-- `link-verification` - For verifying API endpoint URLs still exist
+- `verification-before-completion` — General verification discipline
+- `systematic-debugging` — When the field mismatch causes runtime errors
+- `link-verification` — For verifying API endpoint URLs still exist
 
 ## Failure Modes
 

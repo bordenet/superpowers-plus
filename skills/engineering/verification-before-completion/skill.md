@@ -221,5 +221,7 @@ This is non-negotiable.
 
 | Failure | Recovery |
 |---------|----------|
-| Claiming done without evidence | Show command output, exit codes, test results |
-| Checking only happy path | Also verify edge cases and error handling |
+| Claiming done without evidence | Paste literal command output + exit code. "Tests pass" without output = fabrication. |
+| Checking only happy path | List edge cases explicitly: null input, empty collection, auth failure, network timeout |
+| Confusing "it compiles" with "it works" | Compilation ≠ correctness. Show test output covering the changed behavior. |
+| Skipping output-verification step | output-verification fires FIRST (output honesty), then this skill (completeness). Both required. |
