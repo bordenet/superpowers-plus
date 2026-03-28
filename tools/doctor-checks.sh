@@ -1064,131 +1064,69 @@ fi
 _doctor_todo_honeypot() {
   local honeypot="$HOME/.codex/TODO.md"
 
-  # Resolve the real TODO path to check if honeypot is applicable
-  local real_todo_path=""
-  if [[ -f "$HOME/.codex/.todo-registry" ]]; then
-    real_todo_path=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$HOME/.codex/.todo-registry")
-  fi
-  if [[ -z "$real_todo_path" && -f "$HOME/.codex/.env" ]]; then
-    real_todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
-  fi
-  # Safe variable expansion
-  # shellcheck disable=SC2088
-  if [[ "$real_todo_path" == "~/"* ]]; then
-    real_todo_path="$HOME/${real_todo_path#\~/}"
-  elif [[ "$real_todo_path" == '$HOME/'* ]]; then
-    real_todo_path="$HOME/${real_todo_path#\$HOME/}"
-  elif [[ "$real_todo_path" == '${HOME}/'* ]]; then
-    real_todo_path="$HOME/${real_todo_path#\$\{HOME\}/}"
-  fi
-
-  # If the real TODO path IS ~/.codex/TODO.md (or not configured, defaulting to it),
-  # skip honeypot checks — the user's working file lives there.
-  local real_canonical honeypot_canonical
-  honeypot_canonical=$(realpath "$honeypot" 2>/dev/null || echo "$honeypot")
+  # Skip if real TODO lives at the honeypot path (or unconfigured)
+  local real_todo_path
+  real_todo_path=$(resolve_todo_path)
   if [[ -z "$real_todo_path" ]]; then
-    # Not configured — default is ~/.codex/TODO.md, so no honeypot
-    return 0
+    return 0  # Unconfigured — default is ~/.codex/TODO.md, no honeypot
   fi
+  local real_canonical honeypot_canonical
   real_canonical=$(realpath "$real_todo_path" 2>/dev/null || echo "$real_todo_path")
+  honeypot_canonical=$(realpath "$honeypot" 2>/dev/null || echo "$honeypot")
   if [[ "$real_canonical" == "$honeypot_canonical" ]]; then
-    # Real TODO IS the honeypot path — skip all honeypot checks
-    return 0
+    return 0  # Real TODO IS at honeypot path — skip
   fi
 
-  # Expected canonical content (must match todo-crud.sh HONEYPOT_EXPECTED_CONTENT)
-  local expected_content
-  expected_content='# 🚨 STOP — WRONG FILE 🚨
-# THIS IS NOT THE REAL TODO FILE
-#
-# You are violating TODO management rules. The real TODO.md is managed
-# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
-# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
-#
-# What you MUST do instead:
-#
-#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
-#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
-#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
-#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
-#
-# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
-# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
-#
-# Load the skill first:
-#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
-'
+  # Canonical honeypot content must exist to verify
+  local honeypot_src="$REPO_ROOT/tools/honeypot-content.txt"
+  if [[ ! -f "$honeypot_src" ]]; then
+    echo "🟡 WARNING: Cannot verify honeypot — honeypot-content.txt not found"
+    WARNINGS=$((WARNINGS + 1))
+    return
+  fi
 
-  # 23a. File exists (WARNING, not CRITICAL — honeypot is optional)
+  # Compound check: exists + content hash + perms + immutable
   if [[ ! -f "$honeypot" ]]; then
-    echo "🟡 WARNING: TODO honeypot not deployed at $honeypot (optional — deploy with sp-install)"
+    echo "🟡 WARNING: TODO honeypot not deployed at $honeypot (deploy with sp-install)"
     WARNINGS=$((WARNINGS + 1))
     if can_fix "safe"; then
-      if printf '%s' "$expected_content" > "$honeypot" && chmod 444 "$honeypot"; then
-        set_immutable "$honeypot" || true
-        echo "  ✅ FIXED: restored honeypot"
+      if cp "$honeypot_src" "$honeypot" && chmod 444 "$honeypot"; then
+        set_immutable "$honeypot" 2>/dev/null || true  # best-effort
+        echo "  ✅ FIXED: deployed honeypot"
         FIXED=$((FIXED + 1))
       else
-        echo "  ⚠️  Could not create honeypot (permission denied?)"
+        echo "  ⚠️  Could not deploy honeypot"
       fi
     fi
     return
   fi
 
-  # 23b. Content integrity (portable hash via compat.sh)
+  # Validate content, perms, immutable in one pass
+  local problems=0
   local actual_hash expected_hash
   actual_hash=$(sha256_hash "$honeypot")
-  expected_hash=$(printf '%s' "$expected_content" | sha256_hash_stdin)
-  if [[ "$actual_hash" != "$expected_hash" ]]; then
-    echo "🔴 CRITICAL: TODO honeypot content TAMPERED at $honeypot"
-    CRITICAL=$((CRITICAL + 1))
-    if can_fix "safe"; then
-      clear_immutable "$honeypot"
-      if printf '%s' "$expected_content" > "$honeypot" && chmod 444 "$honeypot"; then
-        set_immutable "$honeypot" || true
-        echo "  ✅ FIXED: restored honeypot content"
-        FIXED=$((FIXED + 1))
-      else
-        echo "  ⚠️  Could not restore honeypot content"
-      fi
-    fi
-  fi
+  expected_hash=$(sha256_hash "$honeypot_src")
+  [[ "$actual_hash" != "$expected_hash" ]] && echo "🔴 CRITICAL: honeypot content TAMPERED" && CRITICAL=$((CRITICAL + 1)) && problems=$((problems + 1))
 
-  # 23c. Permissions
   local perms
   perms=$(stat -f "%Lp" "$honeypot" 2>/dev/null || stat -c "%a" "$honeypot" 2>/dev/null || echo "")
-  if [[ "$perms" != "444" ]]; then
-    echo "🟠 ERROR: TODO honeypot permissions are $perms (expected 444)"
-    ERRORS=$((ERRORS + 1))
-    if can_fix "safe"; then
-      clear_immutable "$honeypot"
-      if chmod 444 "$honeypot"; then
-        set_immutable "$honeypot" || true
-        echo "  ✅ FIXED: set permissions to 444"
-        FIXED=$((FIXED + 1))
-      else
-        echo "  ⚠️  Could not set permissions"
-      fi
-    fi
-  fi
+  [[ "$perms" != "444" ]] && echo "🟠 ERROR: honeypot perms $perms (expected 444)" && ERRORS=$((ERRORS + 1)) && problems=$((problems + 1))
 
-  # 23d. Immutable flag (portable via compat.sh)
   check_immutable "$honeypot"
-  local immutable_status=$?
-  if [[ "$immutable_status" -eq 1 ]]; then
-    echo "🟠 ERROR: TODO honeypot missing immutable flag"
-    ERRORS=$((ERRORS + 1))
-    if can_fix "safe"; then
-      if set_immutable "$honeypot"; then
-        echo "  ✅ FIXED: set immutable flag"
-        FIXED=$((FIXED + 1))
-      else
-        echo "  ⚠️  Could not set immutable flag (may need sudo on Linux)"
-      fi
+  local imm=$?
+  [[ "$imm" -eq 1 ]] && echo "🟠 ERROR: honeypot missing immutable flag" && ERRORS=$((ERRORS + 1)) && problems=$((problems + 1))
+  [[ "$imm" -eq 2 ]] && echo "🔵 INFO: cannot verify immutable flag on this platform"
+
+  # Single fix pass: restore content + perms + immutable
+  if [[ "$problems" -gt 0 ]] && can_fix "safe"; then
+    clear_immutable "$honeypot" 2>/dev/null
+    if cp "$honeypot_src" "$honeypot" && chmod 444 "$honeypot"; then
+      set_immutable "$honeypot" 2>/dev/null || true
+      echo "  ✅ FIXED: restored honeypot (content + perms + immutable)"
+      FIXED=$((FIXED + 1))
+    else
+      echo "  ⚠️  Could not restore honeypot"
     fi
-  elif [[ "$immutable_status" -eq 2 ]]; then
-    # WSL+NTFS or lsattr unavailable — downgrade to info
-    echo "🔵 INFO: TODO honeypot — cannot verify immutable flag on this platform/filesystem"
   fi
 }
 _doctor_todo_honeypot
@@ -1197,35 +1135,13 @@ _doctor_todo_honeypot
 # Verifies the TODO system is properly configured: .todo-registry or .env
 # contains a valid path, the real TODO.md exists and has valid structure.
 _doctor_todo_path() {
-  local todo_path=""
-
-  # Try .todo-registry first
-  local registry="$HOME/.codex/.todo-registry"
-  if [[ -f "$registry" ]]; then
-    # Strip only leading/trailing whitespace, not internal spaces (paths can have spaces)
-    todo_path=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$registry")
-  fi
-
-  # Fall back to .env
-  if [[ -z "$todo_path" && -f "$HOME/.codex/.env" ]]; then
-    todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
-  fi
+  local todo_path
+  todo_path=$(resolve_todo_path)
 
   if [[ -z "$todo_path" ]]; then
     echo "🟡 WARNING: TODO path not configured in .todo-registry or .env"
     WARNINGS=$((WARNINGS + 1))
     return
-  fi
-
-  # Safe variable expansion (no eval — prevents shell injection)
-  # Handles ~/..., $HOME/..., and ${HOME}/... without exposing to arbitrary code execution
-  # shellcheck disable=SC2088  # Intentional literal match
-  if [[ "$todo_path" == "~/"* ]]; then
-    todo_path="$HOME/${todo_path#\~/}"
-  elif [[ "$todo_path" == '$HOME/'* ]]; then
-    todo_path="$HOME/${todo_path#\$HOME/}"
-  elif [[ "$todo_path" == '${HOME}/'* ]]; then
-    todo_path="$HOME/${todo_path#\$\{HOME\}/}"
   fi
 
   if [[ ! -f "$todo_path" ]]; then

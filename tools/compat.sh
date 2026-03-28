@@ -13,11 +13,11 @@
 #   require_bash4    — Exit with helpful message if bash < 4
 #   sed_inplace      — Portable sed -i (macOS vs GNU)
 #   date_to_epoch    — Convert YYYY-MM-DD to Unix epoch
-#   sha256_hash      — Portable SHA-256 (shasum/sha256sum/openssl)
-#   sha256_hash_stdin — Pipe-friendly variant of sha256_hash
+#   sha256_hash      — Portable SHA-256 (shasum/sha256sum/openssl); file or stdin
 #   set_immutable    — Portable chflags uchg / chattr +i
 #   clear_immutable  — Portable chflags nouchg / chattr -i
 #   check_immutable  — Returns 0=immutable, 1=not, 2=unknown
+#   resolve_todo_path — Resolve TODO path from .todo-registry/.env
 #
 # Supported platforms: macOS, Linux, WSL
 # shellcheck disable=SC2034  # Variables may be used by sourcing scripts
@@ -86,29 +86,42 @@ date_to_epoch() {
   fi
 }
 
-# --- Portable SHA-256 Hash ---
-# shasum is macOS/Perl; sha256sum is GNU coreutils (Linux).
-# Returns hex digest only (no filename).
+# --- Resolve TODO Path ---
+# Returns the canonical TODO file path from .todo-registry or .env.
+# Handles ~/..., $HOME/..., ${HOME}/... expansion without eval.
+# Returns empty string if no path configured.
+resolve_todo_path() {
+  local p=""
+  if [[ -f "$HOME/.codex/.todo-registry" ]]; then
+    p=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$HOME/.codex/.todo-registry")
+  fi
+  if [[ -z "$p" && -f "$HOME/.codex/.env" ]]; then
+    p=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
+  fi
+  # Safe variable expansion (no eval)
+  # shellcheck disable=SC2088
+  if [[ "$p" == "~/"* ]]; then
+    p="$HOME/${p#\~/}"
+  elif [[ "$p" == '$HOME/'* ]]; then
+    p="$HOME/${p#\$HOME/}"
+  elif [[ "$p" == '${HOME}/'* ]]; then
+    p="$HOME/${p#\$\{HOME\}/}"
+  fi
+  echo "$p"
+}
 
+# --- Portable SHA-256 Hash ---
+# Usage: sha256_hash FILE        (hash a file)
+#        sha256_hash              (hash stdin)
+#        echo "data" | sha256_hash
+# Returns hex digest only (no filename).
 sha256_hash() {
   if command -v shasum &>/dev/null; then
     shasum -a 256 "$@" | cut -d' ' -f1
   elif command -v sha256sum &>/dev/null; then
     sha256sum "$@" | cut -d' ' -f1
   else
-    # Last resort: openssl (available on most systems)
     openssl dgst -sha256 "$@" 2>/dev/null | sed 's/.*= //'
-  fi
-}
-
-# Pipe-friendly variant: reads from stdin
-sha256_hash_stdin() {
-  if command -v shasum &>/dev/null; then
-    shasum -a 256 | cut -d' ' -f1
-  elif command -v sha256sum &>/dev/null; then
-    sha256sum | cut -d' ' -f1
-  else
-    openssl dgst -sha256 2>/dev/null | sed 's/.*= //'
   fi
 }
 
