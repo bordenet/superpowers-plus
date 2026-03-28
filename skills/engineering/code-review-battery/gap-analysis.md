@@ -103,13 +103,10 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 
 | Metric | Value |
 |--------|-------|
-| Total candidates | 0 |
-| Proposed | 0 |
+| Total candidates | 1 |
+| Proposed | 1 |
 | Validated | 0 |
 | Graduated | 0 |
 | Rejected | 0 |
 
-No gaps have been identified yet. The battery achieved 100% precision and recall on exercises 1-5 (all known-bug exercises). Candidates will be generated when:
-- Level 4-10 exercises reveal gaps
-- Live reviews miss findings that humans catch
-- Monolith-vs-battery comparison shows differential findings
+**candidate-001** (proposed 2026-03-28): Defect Finder missed fd leak on error paths in ex-007. Pattern: trace all exit paths when a resource handle is opened early in a function. Status: proposed, awaiting validation against holdout exercises.
