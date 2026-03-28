@@ -118,14 +118,10 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 
 ## Failure Modes
 
-- **Wrong child skill:** Routing to `verification-before-completion` when `adversarial-search` was needed (check the routing table)
-- **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate
-- **Trigger saturation:** Multiple thinking triggers fire simultaneously — pick the highest-priority match from the routing table
-
-## Failure Modes
-
 | Failure | Recovery |
 |---------|----------|
-| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill. |
-| Wrong routing decision | When two skills match, prefer the more specific one |
-| Missing routing case | If no row matches: PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |
+| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill |
+| Wrong routing — e.g., `verification-before-completion` instead of `adversarial-search` | Check the routing table. When two skills match, prefer the more specific one |
+| Skipping orchestrator — invoking child directly | Check if a different child was more appropriate first |
+| Trigger saturation — multiple triggers fire simultaneously | Pick the highest-priority match from the routing table |
+| Missing routing case | PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |

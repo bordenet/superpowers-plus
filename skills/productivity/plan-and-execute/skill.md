@@ -8,6 +8,7 @@ triggers: ["plan and execute", "plan-and-execute", "challenge me", "give me a ch
            "stress-test the plan", "divide into phases", "autonomous phases", "phased TODO",
            "plan phases", "big project", "organize this work", "tackle this problem",
            "let's do this systematically", "multi-phase project"]
+anti_triggers: ["brainstorm", "design options", "what should we build"]
 description: "General-purpose orchestrator for challenge → plan → stress-test → phased execution. Produces a plan, stress-tests it with brainstorming + think-twice + progressive harsh review, then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in quality gates. Between phases, runs structured retrospectives that drive improvements into all upcoming TODOs before execution continues."
 summary: "Use when: tackling any multi-phase challenge that benefits from structured planning, stress-testing, and continuous improvement during execution."
 coordination:
@@ -25,6 +26,8 @@ composition:
 ---
 
 # Plan and Execute
+
+> **Wrong skill?** Brainstorming ideas → `brainstorming`. Design comparison → `design-triad`. Feature workflow → `feature-development`.
 
 > **Purpose:** Turn any challenge into a stress-tested, phased plan — then execute each phase as an autonomous TODO with built-in quality gates and continuous improvement between phases.
 > **Pattern:** This skill ORCHESTRATES existing skills. It does not replace them.

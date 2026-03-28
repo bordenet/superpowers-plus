@@ -15,11 +15,13 @@ coordination:
 
 # Expert Interviewer
 
+> **Wrong skill?** Quick research → `perplexity-research`. Incorporating findings → `incorporating-research`. Brainstorming → `brainstorming`.
+
 ## When to Use
 
 - Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
 - User says "help me document," "capture what I know," or "write up the problem space"
-- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans`)
+- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans` (upstream))
 
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
@@ -149,4 +151,4 @@ Save to the location specified in F3. If wiki: create in specified collection/pa
 | External research | Minor input | Major input alongside interview |
 | Review focus | Design soundness, YAGNI | Factual accuracy, scope discipline, audience fit |
 | Output | Design spec → implementation plan | Knowledge artifact → publish |
-| Terminal state | `writing-plans` skill | Publish artifact |
+| Terminal state | `writing-plans` (upstream) skill | Publish artifact |

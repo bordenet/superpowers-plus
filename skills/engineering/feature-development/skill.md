@@ -6,6 +6,7 @@ triggers: ["start feature", "new feature", "feature development workflow",
            "full development workflow", "code change", "make changes",
            "fix this", "add this", "modify code", "refactor this",
            "write code", "update the code"]
+anti_triggers: ["fix bug", "debug", "small change", "quick fix", "update docs"]
 description: "DEFAULT WORKFLOW for ANY code change. Orchestrates the full rigorous development lifecycle: brainstorming → think-twice → design-triad → progressive-harsh-review → plan-and-execute → progressive-harsh-review → commit. This fires AUTOMATICALLY for code changes unless the user explicitly opts out. Sequences existing skills so no phase is skipped."
 summary: "Default for ALL code changes. Opt out only if user says 'skip the full workflow' or 'just do it quickly'. Brainstorm → think-twice → design → review → plan → implement → review → ship."
 coordination:
@@ -25,7 +26,9 @@ composition:
   priority: 5
 ---
 
-# Feature Development Workflow
+# Feature Development
+
+> **Wrong skill?** Bug fix → `systematic-debugging`. Design comparison → `design-triad`. Pre-commit checks → `pre-commit-gate`. Workflow
 
 > **Purpose:** Orchestrate the full rigorous development lifecycle so no phase is skipped.
 > **Pattern:** This skill SEQUENCES existing skills — it does not replace them.

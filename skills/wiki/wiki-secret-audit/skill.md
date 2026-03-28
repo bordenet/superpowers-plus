@@ -2,6 +2,7 @@
 name: wiki-secret-audit
 source: superpowers-plus
 triggers: ["scan wiki for secrets", "audit wiki for credentials", "check for exposed API keys", "wiki security scan", "find leaked tokens in wiki"]
+anti_triggers: ["scan code for secrets", "repo security scan", "CVE scan"]
 description: Use when scanning wiki pages for exposed secrets, after security incidents, or during periodic security reviews. Detects credentials, API keys, tokens that may have been published before secret detection.
 summary: "Use when: auditing wiki for exposed secrets, tokens, or credentials."
 composition:

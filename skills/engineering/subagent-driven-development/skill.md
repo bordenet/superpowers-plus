@@ -6,6 +6,7 @@ overrides: superpowers/subagent-driven-development
 # (spec compliance + code quality), inline role descriptions instead of external
 # prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
+anti_triggers: ["simple task", "one file change", "quick fix"]
 description: "Use when executing implementation plans with independent tasks in the current session"
 coordination:
   group: engineering
@@ -18,11 +19,13 @@ coordination:
 
 # Subagent-Driven Development
 
+> **Wrong skill?** Simple single-file changes → just edit directly. Planning without execution → `brainstorming`. Feature workflow → `feature-development`.
+
 ## When to Use
 
 - You have a written implementation plan with independent tasks to execute in the current session
 - You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`writing-plans`), execution across multiple sessions (`executing-plans`)
+- NOT for: writing the plan (`writing-plans` (upstream)), execution across multiple sessions (`plan-and-execute`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 

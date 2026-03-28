@@ -2,6 +2,7 @@
 name: fallback-planning
 source: superpowers-plus
 triggers: ["fallback plan", "contingency plan", "plan B", "what if this fails", "backup approach", "risk mitigation", "fallback TODO", "alternative plan"]
+anti_triggers: ["primary plan", "implement feature", "execute plan"]
 description: Use when a primary implementation plan has identified risks that could invalidate the approach. Generates machine-agnostic fallback TODOs for the top 2-3 risks, each with enough context for a different agent to execute cold.
 summary: "Use when: primary plan has identified risks. Creates machine-agnostic fallback TODOs."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # Fallback Planning
+
+> **Wrong skill?** Primary plan creation → `plan-and-execute`. Feature planning → `brainstorming`. Design comparison → `design-triad`.
 
 > **Core principle:** A plan without fallbacks is a plan that restarts from scratch when things go wrong.
 

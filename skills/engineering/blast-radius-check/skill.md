@@ -16,6 +16,8 @@ coordination:
 
 # Blast Radius Check
 
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Field renames → `field-rename-verification`. Output inspection → `output-verification`.
+
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
@@ -64,7 +66,9 @@ grep -rn "implements InterfaceName\|extends BaseClass" --include="*.ts" .
 - If shared: Do ALL consumers need this change, or just ONE?
 - If one: Should I modify the shared code, or create a new variant?
 
-## Blast Radius Checklist
+## Blast Radius Check
+
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Field renames → `field-rename-verification`. Output inspection → `output-verification`.list
 
 - [ ] How many files/functions call this code? (`grep -c` to count)
 - [ ] Is this a shared utility or single-use code?

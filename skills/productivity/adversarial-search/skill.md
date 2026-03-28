@@ -15,6 +15,8 @@ coordination:
 
 # Adversarial Search
 
+> **Wrong skill?** Getting unstuck on a bug → `think-twice`. Research → `perplexity-research`. Broad brainstorming → `brainstorming`.
+
 > **Never confirm correctness. Hunt for incorrectness.** The user's observed behavior is ground truth. Your grep results are not.
 
 ## The Three Steps
