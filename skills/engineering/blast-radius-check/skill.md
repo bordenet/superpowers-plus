@@ -136,7 +136,7 @@ grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
-
+- **autonomous-chain-controller**: Chain-aware refactoring
 ## Failure Modes
 
 | Failure | Fix |
