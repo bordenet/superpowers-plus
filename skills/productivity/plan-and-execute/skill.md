@@ -38,7 +38,7 @@ composition:
 - Projects where plan quality directly impacts outcome quality
 - When the user says "let's plan this out" or "break this into phases"
 
-## When NOT to Use
+## Scope Exclusions
 
 - Single-step tasks (just do them)
 - Pure bug fixes (use `investigation-state`)

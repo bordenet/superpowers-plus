@@ -151,7 +151,7 @@ When providing code review, structure feedback as:
 
 **If you can't check off all boxes, the review is incomplete.**
 
-## Related Skills
+## Companion Skills
 
 - `pre-commit-gate` — Before committing changes
 - `blast-radius-check` — Before modifying existing code

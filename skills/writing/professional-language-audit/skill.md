@@ -18,7 +18,7 @@ coordination:
 > **Last Updated:** 2026-03-11
 > **Incident:** Profanity found in documentation during audit. AI slop skills didn't catch it.
 
-## Overview
+## Gate Behavior
 
 This skill scans content for profanity and unprofessional language BEFORE it reaches user-facing documentation. It operates as a **HARD GATE** — content with profanity cannot be published.
 
@@ -183,7 +183,7 @@ node scripts/slop-dictionary.js list profanity
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
 - **pre-commit-gate** — Integrates this skill into commit workflow

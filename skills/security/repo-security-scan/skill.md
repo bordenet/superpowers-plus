@@ -18,7 +18,7 @@ coordination:
 > **Purpose:** Systematic security scan of any git repository across four categories.
 > **Last Updated:** 2026-03-18
 
-## Overview
+## Approach
 
 Run a comprehensive security scan on a git repo without creating ad-hoc scripts. This skill orchestrates four scan categories using tools already available on the system.
 
@@ -32,7 +32,7 @@ Run a comprehensive security scan on a git repo without creating ad-hoc scripts.
 - Monthly/quarterly security hygiene checks
 - After onboarding a new repo
 
-## When NOT to Use
+## Scope Exclusions
 
 - Wiki content scanning → use `wiki-secret-audit`
 - Public repo IP leakage → use `public-repo-ip-audit`
@@ -181,7 +181,7 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 - **Re-run full scan after fixes** to confirm zero remaining issues.
 - **Multi-repo:** Process each repo sequentially through all four phases.
 
-## Related Skills
+## Companion Skills
 
 `security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
 

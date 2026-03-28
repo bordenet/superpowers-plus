@@ -127,7 +127,7 @@ Configure workflow states for your platform. Common patterns:
 
 ---
 
-## Quick Reference
+## Pre-Flight Checklist
 
 ```
 Before creating issue:
@@ -140,7 +140,7 @@ Before creating issue:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **issue-editing**: Fetch-before-edit workflow
 - **issue-link-verification**: Verify URLs before posting

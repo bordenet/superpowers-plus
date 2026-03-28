@@ -138,7 +138,7 @@ Summary:
 - Semantic analysis for stale docs
 - Cross-file dependency graphs
 
-## Integration with Other Skills
+## Skill Connections
 
 - `holistic-repo-verification` - Check repo health after fixing incompleteness
 - `superpowers:verification-before-completion` - Use completeness-check first
@@ -161,3 +161,11 @@ Summary:
 - **Self-grading bias:** Claiming 100% completeness without independent verification — always cross-check against the original scope
 - **Scope creep in checklist:** Adding items that weren't in the original request to inflate completeness percentage
 - **Missing edge cases:** Checking happy-path items but skipping error handling, cleanup, and rollback verification
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Surface-level scan (checking filenames only) | Read file contents. Check for TODO, FIXME, incomplete implementations. |
+| Missing abandoned branches | Check `git branch -a` for stale feature branches |
+| False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |

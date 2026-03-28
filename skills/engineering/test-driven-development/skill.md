@@ -26,6 +26,8 @@ coordination:
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
+> **Wrong skill?** Debugging existing failures → `systematic-debugging`. Reviewing others' code → `providing-code-review`.
+
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
@@ -105,7 +107,7 @@ Can't check all boxes? You skipped TDD. Start over.
 
 When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: testing mock behavior instead of real behavior, adding test-only methods to production classes.
 
-## Related Skills
+## Companion Skills
 
 - `design-triad` — when test architecture decisions arise (≥3 approaches to test a complex feature)
 - `systematic-debugging` — when tests fail for non-obvious reasons, switch to root-cause investigation

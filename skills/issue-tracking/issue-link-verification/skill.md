@@ -1,7 +1,7 @@
 ---
 name: issue-link-verification
 source: superpowers-plus
-triggers: ["add link to issue", "post comment with URL", "update description with reference"]
+triggers: ["add link to issue", "post comment with URL", "update description with reference", "link to PR in ticket", "reference commit in issue", "add repo link to ticket"]
 description: Use when adding URLs to issue descriptions or comments. Verifies all links before posting to prevent broken references.
 summary: "Use when: adding URLs to issue descriptions or comments."
 coordination:
@@ -186,7 +186,7 @@ https?://[^\s<>\[\]()]+
 
 ---
 
-## Quick Reference
+## Verification Checklist
 
 ```
 Before posting content with links:
@@ -200,7 +200,7 @@ Before posting content with links:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **link-verification**: General link verification (wiki-focused)
 - **issue-authoring**: Creating issues with proper links

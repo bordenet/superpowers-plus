@@ -221,22 +221,9 @@ When adding a "Code References" section to wiki pages:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **wiki-orchestrator**: Content structure and formatting
 - **wiki-orchestrator**: Download-before-edit workflow
 - **wiki-verify**: Post-hoc verification of wiki claims
 - **verification-before-completion**: General verification skill
-
----
-
-## Quick Reference
-
-```
-Before writing ANY link:
-
-1. STOP — Do not assume the repo/URL exists
-2. QUERY — Use your repository adapter or github-api to verify
-3. CONFIRM — Check exact name, case, existence
-4. LINK — Only then write the URL
-```

@@ -144,3 +144,13 @@ Design document with:
 | "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
 | "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
 | "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Stalling at Preflight (most common) | Set 30-second timer. Pick a route and move to Step 1. |
+| Only 2 options generated (straw man + real) | Invoke `think-twice` for fresh perspective before proceeding |
+| Self-reviewing own design in same pass | VIOLATION: Use sub-agent or explicit role switch for Step 3 |
+| Stopping at recommendation (Step 2) | Step 2 ≠ done. Steps 3-5 still required. Most common skip. |
+| Infinite review loops (>3 rounds) | Cap at 3 rounds. Escalate to user for tiebreak. |
