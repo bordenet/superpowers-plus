@@ -21,7 +21,6 @@ coordination:
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
 
-
 **Announce at start:** "I'm using the **skill-authoring** skill to help create a new skill."
 
 ---
@@ -240,9 +239,12 @@ Before finalizing any generated skill:
 4. **Update README.md** — Add to skills table if needed
 5. **Commit and deploy** — `./install.sh` to activate
 
+**Skip when:** domain design (`domain-design`) · structural lint (`skill-health-check`) · runtime issues (`superpowers-doctor`)
 
 ## Failure Modes
 
-- **Oversized skill:** Exceeding 250-line limit — extract reference material to `references/` directory
-- **Missing frontmatter:** Forgetting required `---` delimiters, `description:`, or `triggers:` fields
-- **Trigger collision:** Using a trigger phrase already claimed by another skill — check with doctor before committing
+| Failure | Fix |
+|---------|-----|
+| Oversized skill (>250L) | Extract reference material to `references/` |
+| Missing frontmatter | Add `---` delimiters, `description:`, `triggers:` |
+| Trigger collision | Run `superpowers-doctor` before committing |
