@@ -47,21 +47,28 @@ Run the git diff command provided to see the changes. Then **read the full sourc
 - "Are there race conditions between these operations?"
 
 ## Confidence Gate
-Only report findings where you are >80% confident there is a real defect or risk.
-Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report stylistic preferences or hypothetical issues.
 
 ## Output Format
 
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What is wrong (1-2 sentences)
-- **Why**: Why this matters (what breaks, what data is lost, what crashes)
-- **Fix**: How to fix (if not obvious)
+For each finding, use this structured format:
+
+### Finding F\<n\>
+- **file**: \<path\>
+- **line**: \<number\> (or "N/A")
+- **symbol**: \<name\> (omit if not applicable)
+- **severity**: Critical / Important / Minor
+- **confidence**: High (>80%) / Possible (60–80%)
+- **scope**: isolated / systemic
+- **issue**: \<what is wrong — 1–2 sentences\>
+- **why**: \<what breaks, what data is lost, what crashes\>
+- **fix**: \<how to fix\>
+- **evidence**: \<what you searched, what you found — required\>
+
+When `scope = systemic`, add an `instances` list with all file:line locations.
 
 If you find NO defects, say:
-"✅ No defects found. Code handles error paths and edge cases appropriately."
+"✅ No defects found."
 
 ## Workspace Access
 

@@ -1,10 +1,11 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Shipped (Phase 2: Monolith + Learning)
+> **Status**: Shipped (Phase 2f: Deep Review)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
 > **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
 > **Phase 2 Shipped**: 2026-03-28 (monolith as 6th member, gap analysis, dashboard, Shadow Lane learning)
+> **Phase 2f Shipped**: 2026-03-28 (context expansion, verification, investigation protocol, enhanced dimensions, Semgrep rules, on-demand loading)
 > **Confidence**: 85/100
 
 ## Architecture Overview
@@ -17,9 +18,14 @@
                    │
                    ▼
 ┌─────────────────────────────────────────────────┐
-│              Triage Coordinator                  │
+│              Triage Coordinator (Phase 1)         │
 │  Analyzes diff → selects relevant specialists    │
-│  Monolith activates on full reviews (default on)  │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────┐
+│         Context Expansion (Phase 1.5)            │
+│  Symbols, grep refs, test files, commit msgs     │
 └──────────────────┬──────────────────────────────┘
                    │
      ┌─────────────┼──────────┬──────────┬──────────┬──────────┐
@@ -35,8 +41,14 @@
                             │                                │
                             ▼                                │
                ┌────────────────────────┐                    │
+               │ Verification (2.5)     │                    │
+               │ File/line/symbol check │                    │
+               └───────────┬────────────┘                    │
+                           │                                 │
+                           ▼                                 │
+               ┌────────────────────────┐                    │
                │ Aggregation (Phase 3)  │                    │
-               │ Unified review report  │                    │
+               │ Verified/unverified    │                    │
                └───────────┬────────────┘                    │
                            │                                 │
                            ▼                                 ▼
@@ -60,7 +72,11 @@
 ├── skill.md                    # Skill entry point with triggers
 ├── PRD.md                      # Product requirements (this file's companion)
 ├── DESIGN.md                   # This file
-├── coordinator.md              # Triage + aggregation + gap analysis + dashboard
+├── coordinator.md              # Triage + dispatch + aggregation (Phases 1-4)
+├── context-expansion.md        # Phase 1.5: symbol graph, grep refs, test files
+├── verification.md             # Phase 2.5: deterministic finding verification
+├── investigation-protocol.md   # Shared investigate-before-report protocol
+├── gap-analysis.md             # Phases 5-6: gap analysis + dashboard update
 ├── reviewers/
 │   ├── defect-finder.md        # Specialist 1 prompt
 │   ├── design-critic.md        # Specialist 2 prompt
@@ -82,7 +98,7 @@
 
 Uses `sub-agent-code-reviewer` with unique names. Activated reviewers fire in parallel:
 
-Each reviewer instruction follows the 4-part contract from `coordinator.md`:
+Each reviewer instruction follows the 5-part contract from `coordinator.md`:
 
 ```
 # Dispatched by the coordinator (the orchestrating agent):
@@ -102,7 +118,7 @@ sub-agent-code-reviewer(
 ### Claude Code (deferred — documented, not yet validated)
 
 Use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell
-access to run `git diff` and `cat` source files. Same 4-part instruction contract
+access to run `git diff` and `cat` source files. Same 5-part instruction contract
 as Augment dispatch. Parallel execution where the platform supports it.
 
 > **Status**: Claude Code dispatch is documented in `skill.md` and `coordinator.md`
@@ -175,22 +191,17 @@ You have full workspace access. Use it:
 - Run tests if they exist for the changed files
 
 ## Your Dimensions
-[LIST OF SPECIFIC DIMENSIONS WITH EXAMPLES]
+[LIST OF SPECIFIC DIMENSIONS — 21 sub-dimensions across 5 specialists]
+[Guardian: +Reliability, Design Critic: +Architectural Layering, Standards: Test Quality & Adequacy]
 
-## Confidence Gate
-Only report findings where you are >80% confident there is a real issue.
-Clearly mark any finding where confidence is 60-80% as "Possible: ..."
+## Output Format (Structured Finding Schema)
+### Finding F<n>
+- **file/line/symbol/severity/confidence/scope/issue/why/fix**
+- monolith/defect-finder/guardian: + **evidence** field
+- monolith: + **cross-cutting** field
+- scope=systemic: + **instances** list
 
-## Output Format
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What is wrong (1-2 sentences)
-- **Why**: Why this matters (impact)
-- **Fix**: How to fix (if not obvious)
-
-If you find NO issues in your domain, say:
-"✅ No [domain] issues found."
+"✅ No [domain] issues found." when clean.
 ```
 
 ## Aggregation Design
@@ -200,18 +211,10 @@ No separate aggregation agent — this avoids the serial bottleneck.
 
 ### Aggregation Rules
 1. Collect all findings from all reviewers
-2. Sort by severity: Critical → Important → Minor
-3. Within same severity, sort by file path (groups related findings)
-4. Flag conflicts: if two reviewers contradict (rare with clean boundaries), note both
-5. Present unified report with reviewer attribution:
-   ```
-   ### Critical
-   1. [Defect Finder] Missing null check in auth.js:42 — ...
-   2. [Guardian] SQL injection in query.js:15 — ...
-
-   ### Important
-   3. [Design Critic] Function exceeds 200 LOC in parser.js:1 — ...
-   ```
+2. Separate by verification tag: `[VERIFIED]` (main body), `[UNVERIFIED]`/`[UNSTRUCTURED]` (appendix)
+3. Sort verified by severity: Critical → Important → Minor
+4. Within same severity, sort by file path
+5. Present unified report: `### Critical` / `### Important` / `### Minor` → `### Appendix`
 
 ## Learning System: Shadow Lane
 

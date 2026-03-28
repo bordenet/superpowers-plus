@@ -38,6 +38,14 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Database migration that cannot be rolled back
 - Protocol or wire format changes
 
+### 5. Reliability & Resilience
+- Missing retry logic for transient failures (network, DB, file I/O)
+- Missing or inadequate timeout handling for external calls
+- Missing circuit breaker or fallback for degraded dependencies
+- No graceful degradation path when dependency is unavailable
+- Missing idempotency for operations that may be retried
+- Crash-on-failure where recovery is possible
+
 ## What to Review
 
 Run the git diff command provided to see the changes. Then **read the full source files** and **check callers/consumers** — blast radius and security issues often live outside the diff. Ask:
@@ -47,21 +55,28 @@ Run the git diff command provided to see the changes. Then **read the full sourc
 - "Can this change be rolled back safely?"
 
 ## Confidence Gate
-Only report findings where you are >80% confident there is a real risk.
-Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report theoretical risks that require unlikely attack scenarios.
 
 ## Output Format
 
-For each finding:
-- **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
-- **Issue**: What is wrong (1-2 sentences)
-- **Why**: Why this matters (who/what breaks, what can be exploited)
-- **Fix**: How to fix (if not obvious)
+For each finding, use this structured format:
+
+### Finding F\<n\>
+- **file**: \<path\>
+- **line**: \<number\> (or "N/A")
+- **symbol**: \<name\> (omit if not applicable)
+- **severity**: Critical / Important / Minor
+- **confidence**: High (>80%) / Possible (60–80%)
+- **scope**: isolated / systemic
+- **issue**: \<what is wrong — 1–2 sentences\>
+- **why**: \<who/what breaks, what can be exploited\>
+- **fix**: \<how to fix\>
+- **evidence**: \<what you searched, what you found — required\>
+
+When `scope = systemic`, add an `instances` list with all file:line locations.
 
 If you find NO issues, say:
-"✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."
+"✅ No guardian concerns found."
 
 ## Workspace Access
 

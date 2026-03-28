@@ -46,58 +46,51 @@ Read `coordinator.md` in this skill directory. Apply the triage decision rules t
 
 State your triage decision before dispatching.
 
+### Step 2.5: Context Expansion (conditional)
+
+If the diff changes ≥2 files or ≥20 lines: read `context-expansion.md` and build the context package. Otherwise skip — reviewers explore manually.
+
 ### Step 3: Dispatch reviewers in parallel
 
 Read the reviewer prompt from `reviewers/<name>.md`. Dispatch ALL activated reviewers simultaneously.
 
-**On Augment** — use `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously. Each reviewer gets the repo path and instructions to run `git diff` and read source files directly.
+**On Augment** — `sub-agent-code-reviewer` with unique names. **On Claude Code** — `subagent()` or `Task()`.
 
-**On Claude Code** — use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell access to run `git diff` and `cat` source files. Use parallel dispatch where supported.
+Each reviewer instruction MUST include the 5-part contract (see `coordinator.md`):
+1. Repo path → 2. Exact diff command → 3. Reviewer prompt → 4. Read full source files → 5. Context package (from Step 2.5)
 
-Each reviewer instruction MUST include (see `coordinator.md` for the full contract):
-1. **Repo path** — so the reviewer can `cd` to the right directory
-2. **Exact diff command** — matching the review scope (e.g., `git diff --cached`, `git diff @{u}..HEAD`, `git diff main..HEAD`)
-3. **Reviewer prompt** — from `reviewers/<name>.md`
-4. **Instruction to read full source files** — not just the diff output
+For monolith, defect-finder, guardian: also load `investigation-protocol.md`.
+
+### Step 3.5: Verify findings
+
+Read `verification.md`. Parse each reviewer's structured findings. Run deterministic checks (file exists, line valid, symbol in file). Tag each finding `[VERIFIED]`, `[UNVERIFIED: <reason>]`, or `[UNSTRUCTURED]`.
 
 ### Step 4: Aggregate
 
-After all reviewers return (specialists + monolith), merge findings following `coordinator.md` Phase 3:
+After verification, merge findings following `coordinator.md` Phase 3:
 
-1. Sort by severity: Critical → Important → Minor
-2. Prefix each finding with `[Reviewer Name]`
-3. Note clean dimensions ("✅ No issues")
-4. Present unified report
+1. Separate verified, unverified, and unstructured findings
+2. Sort verified findings by severity: Critical → Important → Minor
+3. Prefix each with `[Reviewer Name]` and verification tag
+4. Unverified/unstructured → Appendix
+5. Present unified report
 
 ### Step 5: Gap Analysis (full review rounds only)
 
-After aggregation on full review rounds (not targeted re-reviews), compare battery findings vs monolith findings. Follow `coordinator.md` Phase 5. Skip this step if `--skip-monolith` was used or the monolith failed.
-
-1. For each monolith finding, check if any specialist found the same or equivalent issue
-2. **Monolith-only findings** = gaps (battery missed it)
-3. **Battery-only findings** = specialist depth (monolith missed it)
-4. Classify each gap: pattern-learnable (heuristic) or script-learnable (deterministic)
-5. Generate candidate patterns and/or check scripts
-6. Stage candidates in the Shadow Lane (candidate lane, not baseline)
-7. Record all gaps in the Gap Analysis Log
+Load `gap-analysis.md`. Compare battery vs monolith findings. Skip if `--skip-monolith` or monolith failed.
 
 ### Step 6: Update Dashboard (full review rounds only)
 
-After gap analysis on full review rounds, update the wiki dashboard page. Skip if `--skip-monolith` was used. Dashboard failure does not block the review verdict.
-- **Wiki page**: `Code Review Battery — Performance Dashboard` (Outline ID: `66eec34c-5590-4f4f-a370-b4d134cd174e`)
-- Add a new row to the **Review-Level Metrics** table
-- Update **Rolling Aggregates** for the current week
-- Update **Learning Pipeline** metrics if candidates were generated
-- Update **Gap Analysis Log** with any new gaps
+Follow `gap-analysis.md` Phase 6. Skip if `--skip-monolith`. Dashboard failure does not block the review verdict.
 
 ## The 6 Reviewers
 
 | # | Reviewer | Mental Model | Dimensions | Activation |
 |---|----------|-------------|------------|------------|
 | 1 | Defect Finder | "What breaks this code?" | Correctness, Edge Cases, Error Handling, Concurrency | Triage-gated |
-| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design | Triage-gated |
-| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat | Triage-gated |
-| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity | Triage-gated |
+| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design, Architectural Layering | Triage-gated |
+| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat, Reliability | Triage-gated |
+| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality & Adequacy, Data Integrity | Triage-gated |
 | 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging | Triage-gated |
 | 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **Default on full reviews** |
 
@@ -116,30 +109,4 @@ After gap analysis on full review rounds, update the wiki dashboard page. Skip i
 
 ## Learning System
 
-The battery improves via gap analysis on full review rounds (Phase 5-6). See `coordinator.md`.
-
-### How It Works (Shadow Lane Model)
-
-```
-Review Run
-  ├─ Baseline Lane (frozen, trusted) ──→ User-visible findings
-  └─ Candidate Lane (shadow, learning) ──→ Gap analysis only
-                                              │
-                                  Compare battery vs monolith
-                                              │
-                              Propose candidate patterns/scripts
-                                              │
-                              Adversarial validation (holdout set)
-                                              │
-                              30-day stability → Graduate to baseline
-```
-
-- **Pattern files**: `reviewers/<name>-patterns.md` — heuristic entries per reviewer
-- **Check scripts**: `checks/<name>.sh` — deterministic detection scripts
-- **Adjudication**: 3-part verification before candidate staging (disconfirm, evidence, specialist mapping)
-- **Graduation** (requires independent evaluator + validation pipeline): Candidates must hit ≥92% precision on 200+ stratified diffs over 30 days
-- **Retirement**: Active patterns that drop below 85% precision are quarantined
-- **TTL**: Every pattern expires unless revalidated
-- **Hard budgets**: Max tokens per pattern file, max active patterns per reviewer
-
-> ⚠️ Gap analysis stages candidates only. Promotion to active patterns/scripts requires the graduation pipeline (see DESIGN.md Safety Controls). The adjudication step is a pre-filter, not a promotion gate.
+Gap analysis on full review rounds (Steps 5-6) feeds the Shadow Lane learning pipeline. See `gap-analysis.md` and `DESIGN.md` for details.
