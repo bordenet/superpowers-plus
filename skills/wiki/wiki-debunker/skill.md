@@ -10,6 +10,13 @@ composition:
   capabilities: [validates-facts]
   priority: 30
   optional: true
+coordination:
+  group: wiki
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: ['wiki-orchestrator']
+  internal: false
 ---
 
 # Wiki Debunker

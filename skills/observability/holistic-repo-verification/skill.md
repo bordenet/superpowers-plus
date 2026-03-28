@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["repo health", "verify repo", "CI is green", "check all workflows", "before creating PR"]
 description: Verify ALL aspects of repository health before claiming work is complete. Checks CI workflows, GitHub Pages deployment, and any other workflows that affect repo status.
 summary: "Use when: verifying repo health (CI, deployments) before claiming done."
+coordination:
+  group: observability
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # holistic-repo-verification

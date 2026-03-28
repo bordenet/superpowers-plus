@@ -7,6 +7,13 @@ overrides: superpowers/subagent-driven-development
 # prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 description: "Use when executing implementation plans with independent tasks in the current session"
+coordination:
+  group: engineering
+  order: 5
+  requires: ["plan-and-execute"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Subagent-Driven Development

@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["verify issue", "check if ticket exists", "[KEY-XXX] in commit message", "link PR to issue"]
 description: Use when referencing issues in documentation, commits, or PRs. Verifies issue keys exist, validates cross-references.
 summary: "Use when: referencing issues in docs, commits, or PRs."
+coordination:
+  group: issue-tracking
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Verification

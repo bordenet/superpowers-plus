@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["adversarial search", "investigation inversion", "search for the wrong thing", "confirmation bias check"]
 description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Routed to by thinking-orchestrator for confirmation-bias, negative-finding, and depth-challenge triggers. Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists.
 summary: "Use when: investigating bugs or conducting search tasks. Prevents confirmation bias."
+coordination:
+  group: thinking
+  order: 2
+  requires: []
+  enables: ["think-twice", "verification-before-completion"]
+  escalates_to: ["thinking-orchestrator"]
+  internal: false
 ---
 
 # Adversarial Search

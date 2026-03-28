@@ -6,6 +6,13 @@ anti_triggers: ["fix this bug", "small refactor", "add this field", "update the 
 description: INVOKE when user explicitly seeks transformative, 10x-level ideas — product innovations, architectural paradigm shifts, or new business models. NOT for incremental improvements, bug fixes, or feature requests. Outputs ranked ideas with effort/impact scores and concrete next-week prototypes.
 summary: "Use when: user seeks transformative 10x ideas. Skip when: incremental improvements or bug fixes."
 version: 2.0
+coordination:
+  group: thinking
+  order: 5
+  requires: []
+  enables: ["brainstorming", "design-triad"]
+  escalates_to: []
+  internal: false
 ---
 
 # Innovation
@@ -59,3 +66,11 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 # Example: invoke innovation for a feature
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill innovation
 ```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Generated incremental improvements disguised as innovation | Apply the 10x test: would this change the product category? If no, it is not innovation |
+| Scored ideas without concrete next-week prototypes | Every idea must have a prototype action doable in 1 week |
+| Confused technical cleverness with user impact | Score Impact (user-facing value) separately from Feasibility (technical) |

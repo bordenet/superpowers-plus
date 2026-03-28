@@ -5,6 +5,13 @@ triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "sl
 anti_triggers: ["fix slop", "rewrite", "edit this writing", "remove AI slop", "improve AI draft"]
 description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density. Read-only analysis — does NOT rewrite text (use eliminating-ai-slop for rewrites). Invoke for CVs, cover letters, marketing copy, drafts, tooltip definitions, documentation prose, or any text where you need to quantify machine-generated patterns before deciding whether to edit.
 summary: "Use when: analyzing text for AI slop score. Use for CVs, cover letters, documentation prose."
+coordination:
+  group: writing
+  order: 1
+  requires: []
+  enables: ['eliminating-ai-slop']
+  escalates_to: []
+  internal: false
 ---
 
 # Detecting AI Slop
