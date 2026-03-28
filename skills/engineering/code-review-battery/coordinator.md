@@ -40,7 +40,7 @@ After analyzing the diff, state your triage decision:
 
 ---
 
-## Phase 2: Dispatch
+## Phase 2: Source Context + Dispatch
 
 ### On Augment.ai
 Dispatch activated reviewers as parallel sub-agents using `sub-agent-code-reviewer`:

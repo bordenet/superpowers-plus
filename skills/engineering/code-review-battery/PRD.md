@@ -55,7 +55,7 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 > - Must preserve the "one hypothesis at a time" discipline from the existing skill
 > - The battery pattern from Phase 1 provides the dispatch infrastructure
 >
-> **Entry point**: `~/.agents/skills/systematic-debugging/SKILL.md`
+> **Entry point**: `skills/engineering/systematic-debugging/SKILL.md`
 > **Trigger**: After Phase 1 battery is validated and stable
 
 ### Out of Scope (Not Planned)
@@ -135,7 +135,7 @@ The groupings were determined through a structured process:
 - [ ] AC1: All 5 reviewer prompts produce actionable findings on ≥3 real diffs
 - [ ] AC2: Battery catches all Critical/Important issues that monolithic review catches
 - [ ] AC3: Battery false positive rate <5% (measured on 10 review runs)
-- [ ] AC4: Works on Augment.ai via `sub-agent-explore` parallel dispatch
+- [ ] AC4: Works on Augment.ai via `sub-agent-code-reviewer` parallel dispatch
 - [ ] AC5: Works on Claude Code via custom subagent files (`.claude/agents/`)
 - [ ] AC6: Triage coordinator correctly selects relevant subset on ≥80% of test diffs
 - [ ] AC7: Total review time (parallel) ≤ 1.5x monolithic review time
