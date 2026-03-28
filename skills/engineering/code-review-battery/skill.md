@@ -140,7 +140,11 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 
 **Escalation procedure:**
 1. Note the trigger signal in the report
-2. Re-dispatch the specified reviewer with a FOCUSED instruction citing the trigger and relevant Round 1 findings
+2. Re-dispatch the specified reviewer with a FOCUSED instruction that includes:
+   - The relevant diff slice (same diff from Phase 2, or scoped to affected files)
+   - Refreshed source context for the triggered dimension
+   - The trigger signal and relevant Round 1 findings for focus
+   Sub-agents start without context — re-attach diff + source every time.
 3. Append under `### Round 2 Findings`
 
 Skip escalation if: user requested `--round1-only`, all Round 1 clean, or diff <20 lines.
