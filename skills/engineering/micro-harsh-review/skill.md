@@ -38,6 +38,18 @@ coordination:
 - Before pushing to shared branch
 - When editing router patterns or gate thresholds
 
+
+### Example
+
+```bash
+# Example: 3-critic scoring
+echo "=== Micro Harsh Review: router pattern change ==="
+echo "Critic 1 (Nitpick):  8/10 - case sensitivity concern"
+echo "Critic 2 (Arch):     9/10 - minimal scope, pattern-local"
+echo "Critic 3 (Prod):     7/10 - no collision test added"
+echo "Average: 8.0 -> PASS (conditional: add collision test)"
+```
+
 ## Scope Exclusions
 
 - Documentation-only -> progressive-harsh-review
@@ -77,6 +89,15 @@ Average = (Nitpick + Arch + Prod) / 3
 - < 6.0 -> REJECT -> think-twice -> redo
 
 ---
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Rubber-stamp | All scores 9-10, no notes | Find >=1 concern per critic |
+| Inflated scores | Average > 9.0 consistently | Recalibrate with known-bad code |
+| Critics agree | Same findings across all 3 | Force one disagreement |
+| Review > coding time | >15 min for <20 lines | Top 3 risks only |
 
 ## Failure Modes
 
