@@ -109,60 +109,19 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 ### Defense Layers (enforced by `todo-engine.py`)
 
-| Layer | Mechanism | What it catches |
-|-------|-----------|----------------|
-| 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
-| 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
-| 3. OS immutability | `chflags uchg` (macOS) / `chattr +i` (Linux) | ALL direct writes — `Operation not permitted` |
-| 4. chmod 444 | Secondary protection if immutability unavailable | `save-file`, `str-replace-editor`, shell redirects |
-| 5. Shadow + annihilation | Pre-write comparison vs shadow | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
-| 6. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path |
-| 7. Path obscuring | Path in private `.todo-registry`, NOT in `.env` | Agent path discovery; honeypot at `~/.codex/TODO.md` |
-
-**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
-
-**Incidents:**
-- **2026-03-23:** Agent used `save-file` to overwrite TODO.md, destroying dozens of open tasks. Unrecoverable.
-- **2026-03-26a:** Agent hit chmod 444, fell back to `~/.codex/TODO.md` — stray file. Fix: `_validate_canonical_path()`.
-- **2026-03-26b:** GPT-5.4 agent wrote directly despite all rules. Fix: `chflags uchg` + path obscuring + honeypot.
+7 layers: rules → structural validation → OS immutability (`chflags uchg`) → chmod 444 → shadow+annihilation detection → stray path detection → path obscuring (`.todo-registry`). If annihilation blocks a write: delete `~/.codex/todo-shadow/TODO.md` and retry.
 
 ---
 
 ## Multi-Agent Coordination
 
-When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **claim/unclaim/reap** to prevent duplicate work:
-
-1. **Before starting work:** `claim --id <ID>` — marks `[/]` with TTL metadata
-2. **On completion:** `complete --id <ID>` — moves to HISTORY (claim auto-removed)
-3. **On abandonment:** `unclaim --id <ID>` — reverts to `[ ]` for another agent
-4. **Periodic cleanup:** `reap` — finds expired claims and reverts them
-
-**TTL (default 30 min):** If an agent claims a task and dies/disconnects, the claim expires after TTL minutes. Another agent running `claim` or `reap` will auto-reap it.
-
-**Agent identity:** Set `AGENT_ID` env var for readable names. Falls back to `hostname:ppid`.
-
-**Claim metadata** (single line in task block):
-```
-  - Claimed: 2026-03-25T14:30:00 by augment-session-1 ttl=30
-```
+Use `claim --id <ID>` → `complete --id <ID>` (or `unclaim` to abandon). Claims auto-expire after TTL (default 30 min). Run `reap` to clean expired claims. Set `AGENT_ID` env var for readable names.
 
 ---
 
 ## How It Works
 
-Conversational TODO management through AI dialog. Captures tasks in ≤15 seconds, P1/P2/P3 priority, auto-tagged. **Announce at start:** "I'm using the todo-management skill."
-
-## Command Reference
-
-| Command | Action |
-|---------|--------|
-| "Add task: [description]" | Create task with AI-inferred priority + tags |
-| "Show my tasks" | Display P1 → P2 → P3 |
-| "Complete [ID or fragment]" | Mark done, prompt for notes |
-| "What did I do [timeframe]?" | Query history |
-| "What did I do for engineering?" | Filter by #engineering-* tags |
-| "What should I work on?" | Brainstorm mode |
-| "Triage" | Review active tasks |
+Conversational TODO management. Captures tasks in ≤15 seconds, P1/P2/P3 priority, auto-tagged. Commands: "Add task: X", "Show my tasks", "Complete [ID]", "What did I do?", "What should I work on?", "Triage".
 
 ## Priority Framework
 
@@ -176,51 +135,21 @@ Conversational TODO management through AI dialog. Captures tasks in ≤15 second
 
 ---
 
-## Tagging Taxonomy
+## References
 
-Tags are auto-inferred from keywords. See `references/taxonomy.md` for the full taxonomy (engineering, recruiting, general, plan tags) and customization guidance.
-
-**Key pattern:** Use `#plan-<identifier>` (kebab-case) to group tasks by effort for parallel work isolation.
-
----
-
-## File Format & Operations
-
-See `references/file-format-and-operations.md` for:
-- Full TODO.md file format (ACTIVE TASKS, HISTORY, DEFERRED, METRICS sections)
-- Task ID format (`YYYYMMDD-NN`)
-- Core operations (Add, Complete, Query History)
-- Implementation workflow (lock acquire → backup → write → lock release)
-- Self-improvement pipeline and weekly feedback
-
----
-
-## Context-Aware TODO Standard
-
-See [`references/context-aware-standard.md`](references/context-aware-standard.md) for the full field table (Purpose, Trinity, Success Criteria, Handoff State). Enforce on any `#plan-*` task that could be picked up by a different agent.
+- **Tags**: Auto-inferred. Use `#plan-<id>` for parallel work. Full taxonomy: `references/taxonomy.md`
+- **File format**: `references/file-format-and-operations.md` (sections, IDs, operations, lock workflow)
+- **Context-Aware**: `references/context-aware-standard.md` — enforce on `#plan-*` tasks
 
 ## Scope Exclusions
 
-- Archiving completed tasks → `todo-archive`
-- Plan creation → `plan-and-execute`
-- Searching active tasks → query `TODO.md` directly
-
----
+- Archiving → `todo-archive` · Plan creation → `plan-and-execute` · Search → query `TODO.md` directly
 
 ## Guardrails
 
-| Condition | Action |
-|-----------|--------|
-| P1 count > 5 | Warn and offer to demote |
-| P3 task > 14 days old | Friday sweep: "Kill or Keep?" |
-| Multi-day task | Ask "What did you accomplish? What remains?" |
-| Plan-level task missing Context-Aware fields | Warn: "This task needs Purpose/Trinity/Success Criteria/Handoff State for handoff" |
+P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress. Plan tasks without Context-Aware fields → warn.
 
----
-
-## ♻️ Housekeeping (MANDATORY)
-
-Move `[x]` items to `# HISTORY → ## YYYY-MM-DD` immediately. Run `todo-maintenance.sh` after multi-step sessions (auto-archives when ≥5 completed or >200 lines or >7 days old).
+**Housekeeping:** Move `[x]` to HISTORY immediately. Run `todo-maintenance.sh` after multi-step sessions.
 
 ---
 

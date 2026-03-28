@@ -97,93 +97,16 @@ bash -n script.sh
 
 ## Output Format
 
-Report violations in this format:
+Report: file, violation, total count. Format: `❌ [file]: [violation]`. Status: ⛔ MUST FIX or ✅ CLEAN.
 
-```
-STYLE GUIDE VIOLATIONS:
+## Chain Position & Behavior
 
-script.sh:
-  ❌ Missing -v|--verbose flag (MANDATORY)
-  ❌ Missing --what-if flag (destructive script)
-  ❌ ShellCheck warning at line 42: SC2155
-
-another-script.sh:
-  ❌ Exceeds 400 line limit (currently 456 lines)
-  ❌ Missing set -euo pipefail
-
-TOTAL: 5 violations across 2 files
-STATUS: ⛔ MUST FIX BEFORE COMMITTING
-```
-
-## Fixing Non-Compliance
-
-For each violation:
-
-1. **Read the relevant style guide section**
-2. **Understand the requirement**
-3. **Implement the fix**
-4. **Verify with enforcement commands**
-5. **Re-audit until clean**
-
-## Example Usage
-
-```bash
-# Before committing
-User: "I'm ready to commit my changes"
-Assistant: "Let me use the /enforce-style-guide skill first"
-
-# Skill runs audit
-# Reports violations
-# Fixes violations
-# Re-audits
-# Only then proceeds to the next commit gate
-```
-
-## Commit-Gates Chain Position
-
-This skill is gate 2 (after `pre-commit-gate`). Style compliance checks:
-
-```
-- VERIFY: Script has -h/--help flag
-- VERIFY: Script has -v/--verbose flag
-- VERIFY: Destructive scripts have --what-if flag
-- VERIFY: Script uses set -euo pipefail
-- VERIFY: Script is under 400 lines
-- VERIFY: ShellCheck passes
-- If ANY fail, STOP and fix before proceeding to gate 3
-```
-
-## Skill Behavior
-
-**This skill is AGGRESSIVE and UNCOMPROMISING:**
-
-- Reports ALL violations, no matter how minor
-- Does not proceed until 100% compliant
-- Does not accept "good enough"
-- Does not skip checks
-- Does not make exceptions without explicit user approval
-
-## Success Criteria
-
-Skill succeeds when:
-
-✅ Zero style guide violations
-✅ All verification commands pass
-✅ Code ready for next commit gate (progressive-code-review-gate)
-
-## Failure Response
-
-If violations found:
-
-1. Report violations clearly
-2. Offer to fix automatically
-3. Fix violations systematically
+Gate 2 (after `pre-commit-gate`). Checks: -h/--help, -v/--verbose, --what-if (destructive), `set -euo pipefail`, <400 lines, ShellCheck. ANY fail → STOP → fix → re-audit → 100% clean before gate 3.
 4. Re-audit after each fix
 5. Repeat until clean
 
 **DO NOT COMMIT** until this skill reports zero violations.
 
----
 
 ## Reference: Shell Script STYLE_GUIDE.md
 
@@ -198,11 +121,9 @@ Key requirements:
 - Man-page style help
 - INFO-level verbose logging
 
----
 
 **Remember**: This skill exists because 80% of scripts were non-compliant. Never let that happen again.
 
----
 
 ## Commit Gate Coordination
 
@@ -224,7 +145,6 @@ Multiple skills fire on "before commit". Execute in this order:
 |---------|----------|
 | Fixing style issues without re-running lint | Re-run lint after every fix batch |
 | Style fixes breaking functionality | Run tests after style changes |
-
 
 ## Scope Exclusions
 

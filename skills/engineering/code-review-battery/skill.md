@@ -34,7 +34,6 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
 
-
 ## Scope Exclusions
 
 - File-protocol review handoff → `code-review`
@@ -67,36 +66,18 @@ State your triage decision before dispatching:
 
 ### Phase 2: Diff + Source Context + Dispatch
 
-Sub-agents don't inherit your conversation context. Provide diff and source context inline for focused, reliable reviews.
+Sub-agents have NO conversation context. Pass diff + source context inline.
 
-**1. Capture the diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
+**1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**2. Gather source context for ripple analysis** (the #1 cause of missed findings is reviewing the diff in isolation):
-- For every field SET/RESET/NULLED in the diff → grep all READERS of that field
-- For every threshold comparison → grep all PRODUCERS of values crossing it
-- For stateful code → include full state type definition + transitions
-- For changed signatures → include all callers
-- For every cross-module function CALLED in the diff → include the full function body (callee implementation trace — the #1 source of unreproducible findings is assuming callees behave as named). If prompt budget requires compression, the coordinator must still read the full implementation first, then include signature + all branches that mutate state, throw, early-return, or perform cleanup
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation):
+- Fields SET/RESET/NULLED → grep all READERS
+- Threshold comparisons → grep all PRODUCERS of crossing values
+- Stateful code → full state type + transitions
+- Changed signatures → all callers
+- Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained)
 
-```bash
-# Example: find all consumers of a field
-grep -rn "lastUpdatedAt" src/services/**/*.ts
-# Example: find all producers of threshold values
-grep -rn "confidence:" src/services/**/*.ts
-```
-
-Label source context clearly in each reviewer instruction:
-```
-## UNCHANGED SOURCE CONTEXT (for ripple analysis)
-### All readers of `lastUpdatedAt`:
-[paste grep results with surrounding context]
-```
-
-**3. Dispatch ALL activated reviewers simultaneously:**
-- **Augment.ai**: `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.)
-- **Claude Code**: `Task()` calls or `.claude/agents/` subagent files
-
-Each reviewer instruction = reviewer prompt (from `reviewers/<name>.md`) + full diff + source context.
+**3. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context.
 
 ### Phase 3: Aggregate
 
@@ -128,19 +109,7 @@ After all reviewers return:
 
 **Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor (full, or "[N] Minor findings suppressed") → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary (`Findings: [N] Critical, [N] Important, [N] Minor ([N] suppressed) | Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`).
 
-**Live metrics** (computable from current pass only):
-
-| Metric | Target | How to compute |
-|--------|--------|----------------|
-| Durable check rate | ≥50% | Implement findings with durable checks / Implement findings. **N/A if 0 Implement findings.** |
-| Convergent finding count | — | Count of findings flagged by 2+ reviewers (informational, no target) |
-| Unresolved Critical count | 0 | Critical findings not yet addressed |
-
-**Offline evaluation metrics** (tracked externally across reviews, not in individual reports):
-- Precision: Implement findings validated by user / total Implement findings (target: ≥75%, ratchet up with evidence)
-- High-severity precision: validated Critical+Important / total Critical+Important (target: ≥80%)
-- Round 2 incremental yield: findings from escalation passes / total findings (target: ≤20% — if higher, specialists are missing too much)
-
+**Metrics**: Durable check rate (≥50%), convergent finding count, unresolved Critical count (target: 0). Offline: precision ≥75%, high-sev precision ≥80%, Round 2 yield ≤20%.
 
 ### Phase 4: Escalation (Round 2)
 
@@ -153,46 +122,20 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
 | "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
 
-**Escalation procedure:**
-1. Note the trigger signal in the report
-2. Re-dispatch the specified reviewer with a FOCUSED instruction that includes:
-   - The relevant diff slice (same diff from Phase 2, or scoped to affected files)
-   - Refreshed source context for the triggered dimension
-   - The trigger signal and relevant Round 1 findings for focus
-   Sub-agents start without context — re-attach diff + source every time.
-3. Append under `### Round 2 Findings`
+Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 
-Skip escalation if: user requested `--round1-only`, all Round 1 clean, or diff <20 lines.
+### Phase 5: Convergence
 
-### Phase 5: Convergence (multi-round reviews only)
+**STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
+**CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
-Only evaluate convergence starting at pass 2. After pass 1, stop if no escalation trigger fired; otherwise continue to pass 2.
+### Gap Analysis
 
-After each synthesis pass (≥2), evaluate stop criteria. **Escalation takes precedence** — if a trigger fires, run escalation before evaluating convergence.
-
-**STOP** when ALL of:
-- Unresolved Critical count = 0
-- Last 2 passes produced <20% new high-severity findings (compare each pass's high-sev count to total high-sev across all passes; if 0 total, the criterion is met)
-- Durable check rate ≥50% OR no Implement findings (clean pass)
-
-**CONTINUE** if any escalation trigger fires or Critical findings remain.
-
-**ESCALATE TO HUMAN** if not converged after 3 passes (most reviews converge in 2).
-
-### Gap Analysis (post-review)
-
-After each review, check for gaps:
-- If monolith found something no specialist found → propose a candidate pattern (see `gap-analysis.md`)
-- If a known exercise's Expected Finding was missed → propose a candidate pattern
-- If a false positive recurred across 2+ reviews → propose an anti-pattern candidate
-
-Candidates go to `candidates/` for validation before affecting live reviews.
+Monolith found something no specialist found → propose candidate pattern. Known exercise missed → candidate pattern. Recurring false positive → anti-pattern candidate. All go to `candidates/`.
 
 ### Error Handling
 
-- Reviewer fails/times out → note in report, do NOT retry
-- Diff >3000 lines → warn user, suggest smaller chunks
-- Empty diff → "No code changes to review"
+Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Failure Modes
 

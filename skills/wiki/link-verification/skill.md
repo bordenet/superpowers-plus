@@ -27,7 +27,6 @@ coordination:
 
 > **Wrong skill?** Verifying links in issue tickets → `issue-link-verification`. Checking wiki page content accuracy → `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
 
----
 
 ## Orchestrator Integration
 
@@ -72,7 +71,6 @@ Also extract bare URLs:
 https?://[^\s<>\[\]()]+
 ```
 
----
 
 ## When to Use
 
@@ -84,7 +82,6 @@ Invoke when:
 - Any time you're about to write a URL to source code
 - **Adding internal wiki links** (e.g., `/doc/page-slug-xyz123`)
 
----
 
 ## Scope Exclusions
 
@@ -107,79 +104,29 @@ Invoke when:
 
 </EXTREMELY_IMPORTANT>
 
----
 
-## Verification Checklist
+## Verification
 
-Before writing ANY repository link:
-
-- [ ] **Query the API** — Confirm repo exists before writing URL
-- [ ] **Get exact repo name** — Case-sensitive, from API response
-- [ ] **Construct URL from API response** — Not from assumption
-- [ ] **URL-encode special characters** — Spaces, special characters in project/org names
-
----
-
-## How to Verify
-
-### Using Your Repository Adapter
-
-```
-# Use your repository adapter to verify the repo exists
-# See skills/issue-tracking/_adapters/ for platform-specific tools
-```
-
-### GitHub Repos
-
-```
-# Verify repo exists
-github-api GET /repos/{owner}/{repo}
-```
-
-If 404 → **DOES NOT EXIST** → Do not write the link.
-
----
+Before ANY link: query API → get exact name → construct URL from response → URL-encode specials.
+GitHub: `github-api GET /repos/{owner}/{repo}`. 404 = doesn't exist = don't write it.
 
 ## Known Hallucination Patterns
 
-AI assistants commonly hallucinate these patterns because they're common in training data:
+| Pattern | Why Wrong |
+|---------|-----------|
+| `github.com/{company}/{repo}` | AI assumes GitHub universal |
+| Line-number links | File structure changes |
+| `main` branch | May be `master` or other |
+| `/doc/made-up-slug` | Wiki links fabricated without API check |
 
-| Hallucinated Pattern | Why It's Wrong |
-|----------------------|----------------|
-| `github.com/your-org/*` | YourOrg doesn't use GitHub for source code |
-| `github.com/{company}/{repo}` assumed | AI assumes GitHub is universal |
-| Line number links without verification | File structure may have changed |
-| `main` branch assumed | Default branch may be `master` or other |
-| `/doc/made-up-slug-xyz123` | **Internal wiki links fabricated without verification** |
-
----
-
-## Internal Wiki Link Verification
+## Internal Wiki Links
 
 <EXTREMELY_IMPORTANT>
+Wiki links are just as hallucination-prone as external links. Use wiki adapter `get_page(id)` to verify. See `skills/wiki/_adapters/`.
 
-**Internal wiki links (`/doc/slug-xyz123`) are just as likely to be hallucinated as external links.**
-
-### Before Writing ANY Internal Wiki Link
-
-Use the wiki platform adapter for verification. See `skills/wiki/_adapters/` for platform-specific setup.
-
-**Using adapter:**
 ```
-# Use your wiki adapter's get_page operation
-# See skills/wiki/_adapters/ for platform-specific tools
-adapter.get_page(id: "PAGE_SLUG_HERE")
-```
-
-**Expected output for existing page:**
-```
-true
-"Page Title Here"
-```
-
-**Output for non-existent page:**
-```
-false
+# Verify wiki page exists
+adapter.get_page(id: "PAGE_SLUG_HERE")  # true + title = exists, false = hallucinated
 "not_found"
 ```
 
@@ -198,7 +145,6 @@ Real page: `/doc/correct-page-abc123`.
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Code References Section Template
 
@@ -212,7 +158,6 @@ curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
 # 200 → OK. 404 → fix before publishing.
 ```
 
----
 
 ## Incident Log
 
@@ -221,7 +166,6 @@ curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
 | Example | Example Page | Fake repository links | Fixed to verified repo URLs |
 | Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
 
----
 
 ## Failure Modes
 
