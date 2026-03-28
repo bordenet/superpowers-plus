@@ -16,6 +16,8 @@ coordination:
 
 # Think Twice
 
+> **Wrong skill?** Research a topic → `perplexity-research`. Brainstorm solutions → `brainstorming`. Debug a specific error → `systematic-debugging`.
+
 > **Break through blockers by consulting a fresh perspective.**
 
 ## Process

@@ -2,6 +2,7 @@
 name: issue-verify
 source: superpowers-plus
 triggers: ["verify issue", "check if ticket exists", "[KEY-XXX] in commit message", "link PR to issue"]
+anti_triggers: ["create issue", "update issue", "edit ticket"]
 description: Use when referencing issues in documentation, commits, or PRs. Verifies issue keys exist, validates cross-references.
 summary: "Use when: referencing issues in docs, commits, or PRs."
 coordination:

@@ -6,6 +6,7 @@ overrides: superpowers/systematic-debugging
 # discipline with explicit "NO FIXES WITHOUT INVESTIGATION" gate. Removes
 # verbose examples; adds structured hypothesis/evidence tracking format.
 triggers: ["debug this", "fix this bug", "test failure", "unexpected behavior", "build failure", "not working", "investigate error", "root cause"]
+anti_triggers: ["write tests first", "TDD", "implement feature", "create new"]
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 coordination:
   group: engineering

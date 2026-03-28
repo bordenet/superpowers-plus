@@ -2,6 +2,7 @@
 name: perplexity-research
 source: superpowers-plus
 triggers: ["research this", "use perplexity", "I'm stuck", "need to research", "look this up", "stuck:research", "stuck:knowledge"]
+anti_triggers: ["incorporate research", "merge research into doc", "add research findings"]
 description: Invoke when stuck (2+ failed attempts, uncertainty, or guessing) OR manually to research technical/domain questions via Perplexity MCP. ALWAYS announce invocation and track stats.
 summary: "Use when: stuck after 2+ failed attempts or need technical research via Perplexity."
 coordination:

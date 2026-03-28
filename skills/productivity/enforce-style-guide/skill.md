@@ -2,6 +2,7 @@
 name: enforce-style-guide
 source: superpowers-plus
 triggers: ["check style", "enforce coding standards", "lint this", "style guide", "commit:style", "commit:lint"]
+anti_triggers: ["write new code", "implement feature", "create component"]
 description: Enforce coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, line limits, ShellCheck compliance, and syntax validation.
 summary: "Use when: about to commit shell scripts. Checks shebang, error handling, ShellCheck."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # enforce-style-guide
+
+> **Wrong skill?** AI slop in prose → `eliminating-ai-slop`. Profanity check → `professional-language-audit`. Pre-commit checks → `pre-commit-gate`.
 
 **MANDATORY**: Use this skill before ANY commit to ANY repository to ruthlessly enforce coding standards.
 

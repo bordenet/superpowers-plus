@@ -2,6 +2,7 @@
 name: plan-quality-gates
 source: superpowers-plus
 triggers: ["write plan", "create plan", "design plan", "roadmap", "implementation plan", "phased plan", "write roadmap", "project plan"]
+anti_triggers: ["execute plan", "run the plan", "implement this plan"]
 description: Use when writing plans, roadmaps, or phased work to enforce quality gates — prevents fabricated timelines, ensures dependency ordering, and requires exit criteria.
 summary: "Use when: writing plans or roadmaps. Prevents fabricated timelines."
 coordination:
@@ -23,7 +24,7 @@ coordination:
 
 ## Purpose
 
-Enforce quality constraints on plans at creation time. The upstream `writing-plans` skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
+Enforce quality constraints on plans at creation time. The upstream `writing-plans` (upstream) skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
 
 **Announce at start:** "Using plan-quality-gates to enforce timeline and exit-criteria discipline."
 
@@ -153,7 +154,7 @@ These patterns in plan output indicate this skill was not followed:
 ## When to Use
 
 - When writing plans, roadmaps, or any phased work
-- Automatically co-activated with `writing-plans` skill
+- Automatically co-activated with `writing-plans` (upstream) skill
 - When reviewing existing plans for quality and completeness
 
 ## Failure Modes

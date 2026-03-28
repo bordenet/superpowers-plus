@@ -15,6 +15,8 @@ coordination:
 
 # ⚠️ EXPERIMENTAL: Self-Prompting ⚠️
 
+> **Wrong skill?** Getting unstuck → `think-twice`. Research → `perplexity-research`. Brainstorming → `brainstorming`.
+
 > **WARNING**: This skill is EXPERIMENTAL. It has been validated in a controlled
 > experiment but is NOT production-ready. Expect ~20% false positive rate.
 > ALWAYS verify outputs manually before acting on findings.
