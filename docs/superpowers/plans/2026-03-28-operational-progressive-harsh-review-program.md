@@ -57,23 +57,28 @@ workstream, the evidence contradicts the original ordering:
 ### Phase 2: Exercise Catalog & Validation
 **Goal:** Build measurement infrastructure. Validate PRD acceptance criteria. Produce data.
 
-8. Design exercise fixture format (diff + expected findings + metadata)
-9. Build Level 1-3 exercises from known gaps (the 3 Defect Finder misses from 2026-03-27)
-10. Build Level 4-6 exercises from real PRs (PR #288, PR #293, PR #300, plus one internal bugfix example)
+8. ~~Design exercise fixture format~~ ✅ Markdown + YAML frontmatter in `exercises/code-review-battery/`
+9. ~~Build Level 1-3 exercises from known gaps~~ ✅ ex-001 through ex-005 (difficulty 1-4, sourced from PRs #289, #297, #300)
+10. Build Level 4-6 exercises from real PRs with unknown bugs (not yet caught by battery)
 11. Build Level 7-10 exercises targeting under-tested dimensions (security injection, concurrency, backwards compat, mock fidelity)
-12. Run battery against all exercises, measure: precision, recall, false positive rate, timing
-13. **Reviewer specialization checkpoint:** Do exercises reveal coverage gaps in Guardian or Standards Enforcer that justify splitting? Decision gate — split only with evidence, not speculation.
+12. ~~Run battery against exercises 1-5~~ ✅ Precision 100%, Recall 100%, 0 false positives, 4 bonus findings
+13. **Reviewer specialization checkpoint:** Exercises 1-5 show no coverage gaps in Guardian or Standards Enforcer. Both caught convergent findings correctly. No split justified. Will re-evaluate after Level 4-10 exercises.
 14. Validate unchecked PRD Must Pass criteria with exercise results (see AC traceability below)
 
 **Exit criteria:** ≥10 exercises, precision ≥75%, all Must Pass PRD criteria checked off or documented as blocked.
+
+**Partial results (2026-03-28, exercises 1-5 only):**
+- Precision: 100% (0 false positives across 5 exercises, 9 expected findings, 4 bonus valid findings)
+- Recall: 100% (all 9 expected findings caught)
+- Caveat: all exercises use known bugs from training data. Need Level 4-10 exercises with novel bugs for true evaluation.
 
 **PRD AC traceability** (Must Pass AC1-AC9):
 
 | AC | Description | Status | Phase |
 |----|-------------|--------|-------|
-| AC1 | All 5 reviewers produce actionable findings on ≥3 real diffs | Unchecked | Phase 2 (exercises) |
-| AC2 | Battery catches all Critical/Important that monolith catches | Unchecked | Phase 2 (exercises) |
-| AC3 | Battery false positive rate <5% (10 review runs) | Unchecked | Phase 2 (exercises) |
+| AC1 | All 5 reviewers produce actionable findings on ≥3 real diffs | Partial — 3 reviewers (defect-finder, guardian, standards-enforcer) validated on 5 exercises. Design-critic and perf-analyst not yet exercised. | Phase 2 🟡 |
+| AC2 | Battery catches all Critical/Important that monolith catches | Met on exercises 1-5 (100% recall on Important+ findings) | Phase 2 ✅ |
+| AC3 | Battery false positive rate <5% (10 review runs) | Met on exercises 1-5 (0% false positive rate, 5 runs) — need 5 more runs | Phase 2 🟡 |
 | AC4 | Works on Augment.ai via `sub-agent-code-reviewer` | Met (proven in PR #300 session) | Phase 1 ✅ |
 | AC5 | Works on Claude Code via custom subagent files | Unchecked — not yet tested | Phase 2 (manual test) |
 | AC6 | Triage correctly selects relevant subset ≥80% of test diffs | Unchecked | Phase 2 (exercises) |
