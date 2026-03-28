@@ -190,3 +190,4 @@ Summary:
 - **exhaustive-audit-validation**: Deeper audit (heavier than this skill)
 - **verification-before-completion**: Pre-completion gate
 - **holistic-repo-verification**: Full repo health check
+- **measurement-integrity**: Metric validation
