@@ -4,8 +4,8 @@ source: superpowers-plus
 triggers: ["harsh review", "progressive review", "red team this", "review this harshly",
            "adversarial review", "hostile review", "critic review", "find what's wrong",
            "score this work", "quality gate review"]
-description: "Multi-persona adversarial review with escalating severity. Simulates 3 critic personas (JuniorDevNitpicker, SeniorArchCritic, ProdOpsHardass) scoring work on correctness, simplicity, testability, edge cases, and security. Score <5 = REJECT with root-cause analysis. Chains to think-twice, design-triad, and plan-and-execute for remediation."
-summary: "Use when: validating any deliverable before shipping. Score <5 = reject and redo."
+description: "Multi-persona adversarial review with escalating severity. Simulates 3 critic personas (JuniorDevNitpicker, SeniorArchCritic, ProdOpsHardass) scoring work on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT with root-cause analysis. Chains to think-twice, design-triad, and plan-and-execute for remediation."
+summary: "Use when: validating any deliverable before shipping. Score <6 = reject and redo."
 coordination:
   group: quality
   order: 0

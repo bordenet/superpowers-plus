@@ -50,51 +50,34 @@ Every `skill.md` should have a `## Failure Modes` section with a table of at lea
 ### Check 4: Line Count
 No `skill.md` should exceed 250 lines.
 
-### Check 5: Cross-References
-Skills that reference other skills by name should reference skills that actually exist.
-
-### Check 6: README Consistency
-The README.md skill count and domain counts should match the actual filesystem.
-
 ## Running the Check
 
 ```bash
-# Quick check via harsh-review.sh (checks 4 + 6)
+# Quick check (skill count + line limits)
 bash tools/harsh-review.sh
 
-# Full ecosystem health
-python3 -c "
-import yaml, os, sys
-skills_dir = 'skills'
-errors, warnings = [], []
-for root, dirs, files in os.walk(skills_dir):
-    for f in files:
-        if f != 'skill.md': continue
-        path = os.path.join(root, f)
-        with open(path) as fh: content = fh.read()
-        parts = content.split('---')
-        if len(parts) < 3:
-            errors.append(f'{path}: No YAML frontmatter')
-            continue
-        data = yaml.safe_load(parts[1])
-        # Check 1: Required fields
-        for field in ['name', 'source', 'triggers', 'description']:
-            if field not in data:
-                errors.append(f'{path}: Missing {field}')
-        # Check 2: Coordination
-        if 'coordination' not in data:
-            warnings.append(f'{path}: Missing coordination metadata')
-        # Check 3: Failure modes
-        if '## Failure Modes' not in content:
-            warnings.append(f'{path}: Missing Failure Modes section')
-        # Check 4: Line count
-        lines = content.count('\n')
-        if lines > 250:
-            errors.append(f'{path}: {lines} lines (max 250)')
-for e in errors: print(f'ERROR: {e}')
-for w in warnings: print(f'WARN:  {w}')
-print(f'\n{len(errors)} errors, {len(warnings)} warnings')
-"
+# Full ecosystem health (checks 1-4, uses Ruby YAML parser)
+ruby -ryaml -e '
+  errors = []; warnings = []
+  Dir.glob("skills/**/skill.md").each do |path|
+    content = File.read(path)
+    parts = content.split("---", 3)
+    if parts.length < 3
+      errors << "#{path}: No YAML frontmatter"; next
+    end
+    data = YAML.safe_load(parts[1]) rescue (errors << "#{path}: Invalid YAML"; next)
+    %w[name source triggers description].each do |f|
+      errors << "#{path}: Missing #{f}" unless data&.key?(f)
+    end
+    warnings << "#{path}: Missing coordination" unless data&.key?("coordination")
+    warnings << "#{path}: Missing Failure Modes" unless content.include?("## Failure Modes")
+    lines = content.count("\n")
+    errors << "#{path}: #{lines} lines (max 250)" if lines > 250
+  end
+  errors.each { |e| puts "ERROR: #{e}" }
+  warnings.each { |w| puts "WARN:  #{w}" }
+  puts "\n#{errors.length} errors, #{warnings.length} warnings"
+'
 ```
 
 ## Failure Modes
