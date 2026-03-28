@@ -23,55 +23,69 @@ Industry state-of-the-art (CodeRabbit, Qodo, Sourcegraph/Cody) achieves **<10% F
 
 Phase 2f adds two new pipeline stages and enhances four existing ones:
 
-**Naming note**: "Pipeline phases" (1, 1.5, 2, etc.) are coordinator execution steps — distinct from PRD roadmap phases (Phase 1, Phase 2, Phase 2f, Phase 3). The pipeline phase numbers are internal to the coordinator and do not change; they match the existing coordinator.md naming.
+**Naming**: The existing `coordinator.md` uses Phase 1 through Phase 6. Phase 2f inserts two new steps between existing phases. To avoid renumbering everything, the new steps use fractional numbers:
+
+| Step | Current coordinator.md | Phase 2f change |
+|------|----------------------|-----------------|
+| Phase 1 | Triage | Unchanged |
+| **Phase 1.5** | — | **NEW: Context Expansion** |
+| Phase 2 | Dispatch | Enhanced (5-part contract, expanded dimensions) |
+| **Phase 2.5** | — | **NEW: Deterministic Verification** |
+| Phase 3 | Aggregate | Enhanced (verified/unverified sections) |
+| Phase 4 | Targeted Re-review | Unchanged |
+| Phase 5 | Gap Analysis | Enhanced (Semgrep YAML rules) |
+| Phase 6 | Update Dashboard | Unchanged |
+
+**Note**: "Phase" here refers to coordinator pipeline steps, NOT PRD roadmap phases. PRD roadmap uses "Phase 1," "Phase 2," "Phase 2f," "Phase 3" (reserved for debugging parallelization).
 
 ```
 Diff arrives
     │
     ▼
-Pipeline Step 1: Triage (unchanged)
+Phase 1: Triage (unchanged)
     │
     ▼
-Pipeline Step 1.5: Context Expansion ──────────── NEW
+Phase 1.5: Context Expansion ─────────────────── NEW
     │  Extract changed symbols from diff
-    │  Find related code (callers, types via grep)
+    │  Find related code (refs, types via grep)
     │  Find related test files
     │  Get recent file history (monolith only)
-    │  Get commit messages / PR description
+    │  Get commit messages
     │  Run tests for changed files (opt-in only)
     │  Output: structured context package
     │
     ▼
-Pipeline Step 2: Dispatch ─────────────────────── ENHANCED
+Phase 2: Dispatch ────────────────────────────── ENHANCED
     │  5-part contract (+ context package)
+    │  Reviewers return structured findings
     │  Investigation Protocol in monolith/defect-finder/guardian
     │  Expanded dimensions (reliability, layering, test adequacy)
     │
     ▼
-Pipeline Step 3: Collect reviewer output (unchanged)
-    │
-    ▼
-Pipeline Step 3.5: Deterministic Verification ─── NEW
-    │  Parse structured finding schema
+Phase 2.5: Deterministic Verification ────────── NEW
+    │  Parse structured finding schema from each reviewer
     │  For each finding: verify file exists, line valid,
     │  symbol exists in file
     │  Tag: [VERIFIED], [UNVERIFIED], or [UNSTRUCTURED]
     │
     ▼
-Pipeline Step 4: Aggregate ────────────────────── ENHANCED
+Phase 3: Aggregate ───────────────────────────── ENHANCED
     │  Verified findings first
     │  Unverified + unstructured in appendix
     │
     ▼
-Pipeline Step 5: Gap Analysis ─────────────────── ENHANCED
+Phase 4: Targeted Re-review (unchanged)
+    │
+    ▼
+Phase 5: Gap Analysis ────────────────────────── ENHANCED
     │  Semgrep YAML as primary rule format
     │  Shell grep as fallback
     │
     ▼
-Pipeline Step 6: Dashboard Update (unchanged)
+Phase 6: Dashboard Update (unchanged)
 ```
 
-## Enhancement 1: Context Expansion Engine (Pipeline Step 1.5)
+## Enhancement 1: Context Expansion Engine (Phase 1.5)
 
 ### Research Basis
 
@@ -200,15 +214,15 @@ Note: the package reports grep hit counts and locations. It does NOT label resul
 
 ### Dispatch Contract Update
 
-The 4-part reviewer instruction contract becomes **5-part**:
+The 4-part reviewer instruction contract becomes **5-part** (part 5 is a single text block containing all context sections):
 
-| # | Element | Source |
-|---|---------|--------|
-| 1 | Repo path | Coordinator |
-| 2 | Exact diff command | Coordinator |
-| 3 | Reviewer prompt | `reviewers/<name>.md` |
-| 4 | Instruction to read full source files | Reviewer prompt |
-| 5 | **Context package** | **Phase 1.5 output (NEW)** |
+| # | Element | Source | Who Gets It |
+|---|---------|--------|-------------|
+| 1 | Repo path | Coordinator | All reviewers |
+| 2 | Exact diff command | Coordinator | All reviewers |
+| 3 | Reviewer prompt | `reviewers/<name>.md` | All reviewers |
+| 4 | Instruction to read full source files | Reviewer prompt | All reviewers |
+| 5 | **Context package** (single block containing: changed symbols + grep hits, test file hits, test status if run, commit messages, recent history for monolith only) | **Phase 1.5 output (NEW)** | All reviewers (monolith gets additional history section) |
 
 ### Token Budget
 
@@ -216,12 +230,12 @@ Context expansion adds ~300-800 tokens to each reviewer instruction (the package
 
 ### Skip Conditions
 
-- If the diff changes only 1 file with <20 LOC: skip context expansion (not enough complexity to justify the overhead). Reviewers can still explore manually.
-- If no symbols are extracted (pure config/docs change): skip.
+- If the diff changes only 1 file with <20 changed lines (measured via `git diff --stat` — the `+` and `-` line counts): skip context expansion. Not enough complexity to justify overhead. Reviewers can still explore manually.
+- If no symbols are extracted from the diff in Step 1 (e.g., pure config/docs/comment change): skip Steps 2-4 (grep-based discovery). Steps 5-6 (commit messages, test execution) may still run if applicable.
 
 ---
 
-## Enhancement 2: Deterministic Verification Filter (Phase 3.5)
+## Enhancement 2: Deterministic Verification Filter (Phase 2.5)
 
 ### Research Basis
 
@@ -294,7 +308,7 @@ The coordinator parses structured fields via line-prefix matching (`- **file**:`
 
 ### Mechanism
 
-Phase 3.5 runs after all reviewers return and before aggregation. The coordinator parses each finding's structured fields and runs deterministic checks:
+Phase 2.5 runs after all reviewers return (Phase 2) and before aggregation (Phase 3). The coordinator parses each finding's structured fields and runs deterministic checks:
 
 #### Check 1: File Existence
 ```bash
@@ -344,7 +358,14 @@ Based on our benchmark data:
 
 ### Performance Cost
 
-Each verification check is a single shell command: <100ms each. Total Phase 3.5 time for a typical review (10-15 findings): **<2 seconds**.
+Each verification check is a single shell command: <100ms each. Total Phase 2.5 time for a typical review (10-15 findings): **<2 seconds**.
+
+### Edge Cases and Graceful Degradation
+
+- **`timeout` not available** (e.g., macOS without coreutils): verification commands run without timeout wrappers. Since Check 1-3 commands (`test -f`, `wc -l`, `grep -n`) are inherently fast (<100ms), this is acceptable. Only Check 4 (`grep -rn` across repo) could hang on very large repos — omit Check 4 if `timeout` is unavailable.
+- **Very large repos** (>100k files): `grep -rn` in Check 4 may be slow. Limit Check 4 to repos with <10k files (measure via `find <repo> -type f | head -10001 | wc -l`). For larger repos, run Checks 1-3 only.
+- **Binary files**: `grep` may produce garbled output on binary files. Use `grep --binary-files=without-match` to skip binaries silently.
+- **Reviewer produces 0 parseable findings**: Tag entire output as `[UNSTRUCTURED]` and pass through to Phase 3 (aggregate) unmodified.
 
 ---
 
@@ -548,7 +569,7 @@ skills/engineering/code-review-battery/
 ├── skill.md                    # Entry point + step sequence          ≤1,200 tok
 ├── coordinator.md              # Phases 1-4: triage/dispatch/agg     ≤1,500 tok
 ├── context-expansion.md        # Phase 1.5: symbol graph + context   ≤800 tok   NEW
-├── verification.md             # Phase 3.5: deterministic checks     ≤600 tok   NEW
+├── verification.md             # Phase 2.5: deterministic checks     ≤600 tok   NEW
 ├── gap-analysis.md             # Phases 5-6: gaps + dashboard        ≤1,200 tok EXTRACTED
 ├── DESIGN.md                   # Reference (not a prompt)            exempt
 ├── PRD.md                      # Reference (not a prompt)            exempt
@@ -574,7 +595,7 @@ skills/engineering/code-review-battery/
 | 1.5 (Context) | `context-expansion.md` | When diff has ≥2 files or ≥20 LOC | ~800 |
 | 2 (Dispatch) | `coordinator.md` (already loaded) | Every review | 0 (cached) |
 | 3 (Collect) | — | Every review | 0 |
-| 3.5 (Verify) | `verification.md` | Every review | ~600 |
+| 2.5 (Verify) | `verification.md` | Every review | ~600 |
 | 4 (Aggregate) | `coordinator.md` (already loaded) | Every review | 0 (cached) |
 | 5 (Gaps) | `gap-analysis.md` | Full reviews only | ~1,200 |
 | 6 (Dashboard) | `gap-analysis.md` (already loaded) | Full reviews only | 0 (cached) |
@@ -609,11 +630,11 @@ skills/engineering/code-review-battery/
 
 | File | Enhancement | Change | Token Budget |
 |------|-------------|--------|-------------|
-| `skill.md` | 1, 2 | Trimmed, add step sequence with file loading refs | ≤1,200 |
-| `coordinator.md` | 1, 2 | Extract Phases 5-6, add 5-part contract, structured output parsing in aggregation, Phase 3.5 ref | ≤1,500 |
-| `context-expansion.md` | 1, 6 | NEW — Phase 1.5 context package building | ≤800 |
-| `verification.md` | 2 | NEW — Phase 3.5 deterministic verification + structured finding schema | ≤600 |
-| `gap-analysis.md` | 5 | NEW (extracted) — Phases 5-6 + Semgrep rules | ≤1,200 |
+| `skill.md` | 1, 2 | Trim Shadow Lane details and override descriptions; add Phase 1.5/2.5 step sequence with file loading refs; update 4-part → 5-part contract reference | ≤1,200 |
+| `coordinator.md` | 1, 2, 3 | Extract Phases 5-6 to gap-analysis.md; add 5-part dispatch contract; add Phase 2.5 ref (delegates to verification.md); update Phase 3 aggregation to parse structured output and separate verified/unverified/unstructured findings | ≤1,500 |
+| `context-expansion.md` | 1, 6 | NEW — Phase 1.5: symbol extraction, grep-based related code discovery, test file matching, file history, commit messages, opt-in test execution | ≤800 |
+| `verification.md` | 2 | NEW — Phase 2.5: structured finding schema definition, parsing rules, deterministic checks 1-3 (+optional 4), verification status tagging, graceful degradation | ≤600 |
+| `gap-analysis.md` | 5 | NEW (extracted from coordinator.md) — Phases 5-6: gap classification, Semgrep YAML rule generation, shell script fallback, Shadow Lane lifecycle, dashboard safe write protocol | ≤1,200 |
 | `DESIGN.md` | 1, 2, 4, 5 | Architecture diagram, file structure, dimensions | exempt |
 | `PRD.md` | 4 | Phase 2f scope, dimension matrix, ACs | exempt |
 | `reviewers/monolith.md` | 2, 3 | Structured output format, Investigation Protocol, file history context | ≤850 |
@@ -680,3 +701,5 @@ Every reviewer prompt requires these changes to support Phase 2f:
 | AC35 | Total review time (with context expansion + verification) ≤ 2x monolithic | Must Pass |
 | AC36 | Every prompt-loaded file ≤1,500 tokens after all Phase 2f changes are applied (including structured schema addition to reviewer prompts). Measurement: `wc -w <file>` × 1.33 ≈ token count. Run on all files in the "Summary of All File Changes" table. If any file exceeds budget after implementation, trim content or split further. | Must Pass |
 | AC37 | No single review step loads >1,500 tokens of skill/coordinator content (excluding diff output, context package content, and reviewer findings which are variable-length) | Must Pass |
+| AC38 | All 6 reviewer prompts updated with structured finding schema; each reviewer produces parseable `### Finding F<n>` blocks on ≥2 real diffs | Must Pass |
+| AC39 | Phase 2.5 verifier correctly tags `[UNSTRUCTURED]` when a reviewer does not follow the schema, without crashing or dropping the finding | Must Pass |
