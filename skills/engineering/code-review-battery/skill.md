@@ -67,7 +67,7 @@ Sub-agents don't inherit your conversation context. Provide diff and source cont
 - For every threshold comparison → grep all PRODUCERS of values crossing it
 - For stateful code → include full state type definition + transitions
 - For changed signatures → include all callers
-- For every cross-module function CALLED in the diff → include the full function body (callee implementation trace — the #1 source of unreproducible findings is assuming callees behave as named)
+- For every cross-module function CALLED in the diff → include the full function body (callee implementation trace — the #1 source of unreproducible findings is assuming callees behave as named). If prompt budget requires compression, the coordinator must still read the full implementation first, then include signature + all branches that mutate state, throw, early-return, or perform cleanup
 
 ```bash
 # Example: find all consumers of a field
