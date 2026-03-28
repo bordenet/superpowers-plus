@@ -46,23 +46,26 @@
 
 ```
 ~/.agents/skills/code-review-battery/
-├── SKILL.md                    # Skill entry point with triggers
-├── PRD.md                      # Product requirements (this file's companion)
+├── SKILL.md                    # Skill entry point with triggers + coordination
+├── PRD.md                      # Product requirements
 ├── DESIGN.md                   # This file
 ├── coordinator.md              # Triage + dispatch + aggregation + escalation
-├── context-expansion.md        # Context expansion procedures (on-demand)
-├── verification.md             # Finding verification procedures (on-demand)
-├── investigation-protocol.md   # Shared investigation protocol (on-demand)
-├── gap-analysis.md             # Gap analysis procedures (on-demand)
-├── implementation-plan.md      # Implementation plan (reference)
 ├── reviewers/
-│   ├── defect-finder.md        # Agent 1 prompt — correctness, edge cases, ripple analysis
-│   ├── design-critic.md        # Agent 2 prompt — factoring, complexity, naming
-│   ├── guardian.md             # Agent 3 prompt — security, blast radius, contract drift
-│   ├── standards-enforcer.md   # Agent 4 prompt — docs, test quality, observability
-│   ├── performance-analyst.md  # Agent 5 prompt — performance, logging
-│   └── monolith.md             # Comprehensive reviewer (on-demand, not in default battery)
+│   ├── defect-finder.md        # Agent 1 — correctness, ripple analysis, state lifecycle
+│   ├── design-critic.md        # Agent 2 — factoring, complexity, naming
+│   ├── guardian.md             # Agent 3 — security, blast radius, contract drift
+│   ├── standards-enforcer.md   # Agent 4 — docs, test quality, observability
+│   ├── performance-analyst.md  # Agent 5 — performance, logging
+│   └── monolith.md             # On-demand comprehensive reviewer
+├── [v1 deprecated — not used by v2 procedure]
+│   ├── context-expansion.md
+│   ├── verification.md
+│   ├── investigation-protocol.md
+│   ├── gap-analysis.md
+│   └── implementation-plan.md
 ```
+
+> **Monolith demotion rationale (v2):** V4 validation showed monolith had higher single-reviewer recall than any specialist. However, v2's ripple analysis techniques (consumer trace, state lifecycle, feedback loop analysis) absorbed the monolith's recall advantage into the specialist prompts. The 5-specialist battery now matches or exceeds monolith recall while providing structured, attributable findings. Monolith retained as on-demand fallback for comprehensive single-pass reviews.
 
 ## Platform Dispatch
 
@@ -228,9 +231,9 @@ delegate to the battery when available.
 
 ### Augment.ai
 ```bash
-# install.sh already copies skills to ~/.agents/skills/
-# No additional setup needed — sub-agent-explore is built-in
-cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
+# install.sh copies skills/engineering/code-review-battery/ to ~/.agents/skills/code-review-battery/
+# No additional setup needed — sub-agent-code-reviewer is built-in
+rsync -av skills/engineering/code-review-battery/ ~/.agents/skills/code-review-battery/
 ```
 
 ### Claude Code
@@ -238,7 +241,7 @@ cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
 # Copy reviewer prompts as custom subagent files
 mkdir -p .claude/agents/
 for reviewer in defect-finder design-critic guardian standards-enforcer performance-analyst; do
-  cp ~/.agents/skills/code-review-battery/claude-code/$reviewer.md .claude/agents/battery-$reviewer.md
+  cp ~/.agents/skills/code-review-battery/reviewers/$reviewer.md .claude/agents/battery-$reviewer.md
 done
 ```
 
@@ -248,7 +251,7 @@ done
 
 | Date | Experiment | Result | Impact on Design |
 |------|-----------|--------|-----------------|
-| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent-explore calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. |
+| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. Later switched to `sub-agent-code-reviewer`. |
 | 2026-03-27 | V2: Defect Finder prompt test | ✅ PASS — Found 1 Important + 1 Minor real issue, 0 false positives | Prompt format works. Found genuine intent-routing ordering bug + stemming redundancy. |
 | 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **CRITICAL LEARNING**: Diff must be INLINE in instruction. Sub-agents have isolated context. |
 | 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same fix: inline diff content. |
