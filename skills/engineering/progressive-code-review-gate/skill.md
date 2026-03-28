@@ -46,7 +46,7 @@ If no diff exists in any of these, skip this gate.
 
 Follow the `code-review-battery` skill procedure (Phase 1–5):
 1. **Phase 1 — Triage** the diff → select relevant specialists (monolith only via `--all` or manual request)
-2. **Phase 2 — Dispatch** activated reviewers in parallel with diff + source context inline
+2. **Phase 2 — Diff + Source Context + Dispatch** activated reviewers in parallel with diff + source context inline
 3. **Phase 3 — Aggregate** findings, triple-filter, classify Implement/Defer/Reject
 4. **Phase 4 — Escalation** if triggers fire (re-dispatch with diff + source context re-attached)
 5. **Phase 5 — Convergence** check (stop/continue/escalate-to-human)
