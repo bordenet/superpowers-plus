@@ -19,7 +19,7 @@
 ┌─────────────────────────────────────────────────┐
 │              Triage Coordinator                  │
 │  Analyzes diff → selects relevant specialists    │
-│  Monolith ALWAYS activates (not triage-gated)    │
+│  Monolith activates on full reviews (default on)  │
 └──────────────────┬──────────────────────────────┘
                    │
      ┌─────────────┼──────────┬──────────┬──────────┬──────────┐
@@ -67,11 +67,11 @@
 │   ├── guardian.md             # Specialist 3 prompt
 │   ├── standards-enforcer.md   # Specialist 4 prompt
 │   ├── performance-analyst.md  # Specialist 5 prompt
-│   ├── monolith.md             # Reviewer 6 — comprehensive (ALWAYS fires)
-│   ├── *-patterns.md           # Active learned patterns per reviewer (graduated)
-│   └── *-patterns.candidate.md # Candidate patterns (Shadow Lane, not active)
-├── checks/                     # Executable check scripts (graduated)
-│   └── candidates/             # Candidate scripts (Shadow Lane)
+│   ├── monolith.md             # Reviewer 6 — comprehensive (default on full reviews)
+│   ├── *-patterns.md           # Active learned patterns per reviewer (graduated) — created lazily
+│   └── *-patterns.candidate.md # Candidate patterns (Shadow Lane) — created lazily
+├── checks/                     # Executable check scripts (graduated) — created lazily
+│   └── candidates/             # Candidate scripts (Shadow Lane) — created lazily
 └── (no platform-specific files — dispatch uses sub-agent-code-reviewer on Augment,
      subagent()/Task() on Claude Code)
 ```

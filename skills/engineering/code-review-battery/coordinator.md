@@ -19,7 +19,7 @@ You are the coordinator for a parallel code review battery. You have four jobs:
 | **Guardian** | Security, blast radius, dependencies, backwards compat | ALWAYS (any code change) |
 | **Standards Enforcer** | Style, spec compliance, doc drift, test quality, data integrity | ALWAYS |
 | **Performance Analyst** | Performance, observability/logging | When diff touches DB queries, loops, caching, network I/O, or >500 LOC changed |
-| **Monolith** | ALL dimensions + cross-file tracing | **ALWAYS** (cannot be triaged off) |
+| **Monolith** | ALL dimensions + cross-file tracing | Default on full reviews unless `--skip-monolith` |
 
 ### Decision Rules
 
@@ -28,9 +28,11 @@ You are the coordinator for a parallel code review battery. You have four jobs:
 3. **Any code change** → Defect Finder + Guardian + Standards Enforcer (always)
 4. **Code adds/modifies classes, functions, public APIs** → also activate Design Critic
 5. **Code touches DB, loops, caching, network I/O, or >500 LOC** → also activate Performance Analyst
-6. **`--all` flag present** → activate ALL 5 reviewers regardless
-7. **`--only=<name>` flag present** → activate named reviewer only
-8. **`--skip=<name>` flag present** → apply rules 1-5, then remove named reviewer from activation list
+6. **`--all` flag present** → activate ALL 5 specialists regardless
+7. **`--only=<name>` flag present** → activate named reviewer only (monolith still fires unless `--skip-monolith`)
+8. **`--skip=<name>` flag present** → apply rules 1-5, then remove named specialist from activation list
+9. **`--skip-monolith` flag present** → do NOT dispatch monolith; skip Phase 5 (gap analysis) and Phase 6 (dashboard update). Specialists-only mode.
+10. **Targeted re-review (Phase 4)** → monolith does NOT fire unless it produced the nits
 
 ### Triage Output
 
@@ -39,7 +41,7 @@ After analyzing the diff, state your triage decision:
 **Triage Decision**:
 - Specialists activated: [list]
 - Specialists skipped: [list]
-- Monolith: ALWAYS (not triage-gated)
+- Monolith: [YES/SKIPPED (--skip-monolith) / SKIPPED (targeted re-review)]
 - Reasoning: [1-2 sentences]
 ```
 
@@ -185,11 +187,12 @@ After aggregation (Phase 3), compare battery specialist findings vs monolith fin
    - **Battery-only** (specialist depth): The monolith missed this. These validate specialist value.
    - **Both found** (overlap): Confirms the battery is working.
 
-4. **Adjudicate each gap** before learning:
-   - Verify the monolith-only finding is likely real (not a known monolith noise pattern — severity overrating, phantom file references, etc.)
-   - Use an independent evaluation: re-read the diff and source files yourself, confirm the issue exists
-   - If the gap is a monolith false positive: log it as `monolith_noise` in the dashboard but do NOT generate a candidate
-   - If the gap is confirmed real: proceed to step 5
+4. **Adjudicate each gap** before learning (3-part verification):
+   a. **Disconfirm first**: Actively try to prove the monolith finding is WRONG. Read the source, check if the condition the monolith flagged actually exists. Known monolith noise patterns: severity overrating (Critical for Minor issues), phantom file references (claiming files that don't exist), hallucinated API behavior.
+   b. **Require evidence**: The monolith finding must point to a specific file:line with a concrete issue. Vague or architectural opinions do not qualify for learning.
+   c. **Map to specialist gap**: Identify which specialist SHOULD have caught this AND which specific heuristic/dimension was insufficient. If you cannot identify a clear specialist ownership, log as `unassigned_gap` — do not generate a candidate.
+   - If the gap fails any of (a), (b), (c): log it as `monolith_noise` or `unassigned_gap` in the dashboard but do NOT generate a candidate
+   - If the gap passes all three: proceed to step 5
 
 5. **For each confirmed gap, determine learning form**:
    - **Pattern-learnable**: The gap is heuristic — a human reviewer would learn "always check X when you see Y." Generate a candidate entry for `reviewers/<reviewer>-patterns.candidate.md`.
@@ -259,21 +262,30 @@ After gap analysis, update the wiki dashboard.
 2. **Retain original** content as `original_content` (for restore on failure)
 3. **Parse** the existing markdown tables
 4. **Append** new rows / update aggregate rows — NEVER remove existing data
-5. **Pre-flight check**: verify the updated content:
-   - Contains ALL original section headings
+5. **Pre-flight check** — verify the updated content before writing:
+   - Contains ALL original section headings (exact match)
+   - Contains ALL original callouts (`:::info`, `:::warning`, etc.)
    - Original row count ≤ updated row count (no data loss)
-   - Updated content is not shorter than original (no truncation)
-   - All table structures are valid markdown
+   - Updated content length ≥ original content length (no truncation)
+   - Last section of original still present in updated content
+   - All table structures are valid markdown (no broken `|` pipes)
+   - No `\[` / `\]` escape artifacts introduced
+   - No duplicate headings introduced
 6. **Write** back: `update_document_outline(documentId="66eec34c-...", text=<updated_content>)`
-7. **Verify** (post-write):
+7. **Verify** (post-write — full invariant check):
    - Re-fetch the page immediately
-   - Confirm new data rows appear
+   - Confirm new data rows appear correctly
    - Confirm ALL original headings still exist
+   - Confirm ALL original callouts still exist
+   - Confirm last section still present
    - Confirm page length ≥ original length
-   - If ANY check fails: immediately restore `original_content` and log the failure
+   - Confirm no `\[` / `\]` escape artifacts
+   - Confirm no structural damage (duplicate TOC, broken embeds)
+   - **If ANY check fails**: immediately restore `original_content` and log the failure
 
 > ⚠️ **INVARIANT**: Always re-fetch after write to verify. Restore on failure. See `~/.ai-guidance/invariants.md`.
 > ⚠️ **NEVER truncate**: Dashboard updates are append-only. Existing data is never removed except by explicit archival.
+> ⚠️ **Platform note**: This procedure uses Outline wiki APIs. On platforms without Outline access, skip Phase 6 and log a note. Dashboard updates are not blocking to the review verdict.
 
 ---
 

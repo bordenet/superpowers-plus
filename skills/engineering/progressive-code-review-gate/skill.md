@@ -45,10 +45,12 @@ If no diff exists in any of these, skip this gate.
 ### Step 2: Dispatch the review battery
 
 Follow the `code-review-battery` skill procedure:
-1. Triage the diff → select relevant reviewers
+1. Triage the diff → select relevant specialists; monolith fires by default on full reviews
 2. Dispatch activated reviewers in parallel (see battery `skill.md` for platform-specific dispatch)
 3. Each reviewer reads the source files directly and runs the diff command
 4. Aggregate findings into unified report
+5. Gap analysis — compare specialist findings vs monolith, propose learning candidates (full reviews only)
+6. Update wiki dashboard with metrics (full reviews only; not blocking to verdict)
 
 Map battery output to gate verdicts:
 
