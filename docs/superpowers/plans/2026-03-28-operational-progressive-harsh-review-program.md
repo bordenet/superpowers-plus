@@ -100,13 +100,14 @@ workstream, the evidence contradicts the original ordering:
 ### Phase 4: Gap-to-Candidate Pipeline
 **Goal:** Build the plumbing that turns gaps into learned patterns. Prerequisite to promotion.
 
-20. Define candidate pattern schema (pattern, reviewer, source gap, TTL, confidence, validation status)
-21. Build gap → candidate proposal logic (when battery misses a finding that monolith catches, auto-propose a candidate)
-22. Build candidate validation workflow (re-run candidate against holdout exercises — does it catch the gap without introducing false positives?)
-23. Build candidate storage (file-based, in repo — no external infrastructure)
-24. Integration: wire gap analysis into battery Phase 3 aggregation so candidates are proposed automatically
+20. ~~Define candidate pattern schema~~ ✅ YAML schema in `gap-analysis.md` (id, status, reviewer, pattern, examples, confidence, TTL, validation, graduation)
+21. ~~Build gap → candidate proposal logic~~ ✅ Procedure in `gap-analysis.md` (7-step root-cause → draft → validate → queue flow)
+22. ~~Build candidate validation workflow~~ ✅ Validation state machine in `gap-analysis.md` (proposed → validating → validated → graduated, with rejection paths)
+23. ~~Build candidate storage~~ ✅ `candidates/` directory with TEMPLATE.yaml, version-controlled
+24. ~~Integration: wire gap analysis into battery skill.md~~ ✅ Post-review gap check added to skill.md (runs after Phase 5 convergence)
 
 **Exit criteria:** ≥1 candidate proposed from real gap, validated against holdout exercises, stored in repo.
+**Current state:** Pipeline built but empty (0 candidates). No gaps found yet — battery scored 100% on exercises 1-5. Candidates will be generated when Level 4-10 exercises or live reviews reveal gaps.
 
 ### Phase 5: Promotion Pipeline
 **Goal:** Graduate validated candidates into active reviewer prompts. Only build when Phase 4 produces candidates.
