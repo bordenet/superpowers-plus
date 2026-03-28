@@ -37,7 +37,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - Deciding between table vs. list format for structured data
 - Reviewing content that contains tables for formatting quality
 
----
 
 ## Scope Exclusions
 
@@ -70,7 +69,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - **Timeout:** 30s
 ```
 
----
 
 ## Structure Rules (HARD GATES)
 
@@ -122,7 +120,6 @@ Line breaks inside cells render inconsistently across tools. **Forbidden** unles
 
 Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose if needed.
 
----
 
 ## Visual Clarity Rules
 
@@ -148,7 +145,6 @@ Use predictable terms:
 - `Low / Medium / High` (not "Minimal / Moderate / Substantial")
 - `Required / Optional / Deprecated`
 
----
 
 ## Semantic Rules
 
@@ -158,7 +154,6 @@ Use predictable terms:
 4. **No derived columns** — If one column is derivable from another, drop it or move to notes
 5. **Tables are for data, not layout** — Don't use tables for visual formatting or pseudo-forms
 
----
 
 ## Anti-Patterns to Detect and Fix
 
@@ -171,7 +166,6 @@ Use predictable terms:
 | Tiny table | 2 rows, 2 columns | Convert to bullet list |
 | Inconsistent vocabulary | "Yes/Yep/Sure/Affirmative" | Standardize to "Yes/No" |
 
----
 
 ## Accessibility (HTML Contexts)
 
@@ -180,7 +174,6 @@ When tables render to HTML:
 - Never mix Markdown and HTML table syntax in same block
 - First row must be true header, not example data
 
----
 
 ## Checklist Before Creating a Table
 
@@ -193,7 +186,6 @@ When tables render to HTML:
 - [ ] Consistent vocabulary across rows?
 - [ ] No redundant columns?
 
----
 
 ## Example
 

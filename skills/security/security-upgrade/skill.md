@@ -39,7 +39,6 @@ This skill provides a systematic workflow for security dependency auditing and u
 - After onboarding a new project to assess security debt
 - CI/CD integration for automated security gates
 
----
 
 ## Phase 1: Discovery
 
@@ -54,7 +53,6 @@ find . -name "requirements.txt" -exec dirname {} \;
 find . -name "Cargo.toml" -exec dirname {} \;
 ```
 
----
 
 ## Phase 2: Security Scanning
 
@@ -97,79 +95,24 @@ cargo audit
 flutter pub outdated
 ```
 
----
 
 ## Phase 3: Upgrade Dependencies
 
-### Go Modules
-```bash
-go get <package>@<fixed-version>
-go mod tidy
-```
-
-### npm
-```bash
-npm audit fix
-npm audit fix --force  # Breaking changes - use with caution
-```
-
-### Python
-```bash
-pip install --upgrade <package>
-pip freeze > requirements.txt
-```
-
-### Rust
-```bash
-cargo update <package>
-```
-
----
+| Language | Upgrade | Build | Test |
+|----------|---------|-------|------|
+| Go | `go get <pkg>@<ver> && go mod tidy` | `go build -o /dev/null .` | `go test ./...` |
+| npm | `npm audit fix [--force]` | `npm run build` | `npm test` |
+| Python | `pip install --upgrade <pkg>` | — | `pytest` |
+| Rust | `cargo update <pkg>` | `cargo build` | `cargo test` |
+| Flutter | update `pubspec.yaml` | `flutter build web --release` | `flutter test` |
 
 ## Phase 4: Validation
 
-### Compile Verification
-```bash
-# Go
-go build -o /dev/null .
+Build → test → security re-scan. Expected: "No vulnerabilities found."
 
-# npm
-npm run build
-
-# Rust
-cargo build
-
-# Flutter
-flutter build web --release
-```
-
-### Run Tests
-```bash
-# Go
-go test ./...
-
-# npm
-npm test
-
-# Rust
-cargo test
-
-# Flutter
-flutter test
-```
-
-### Security Re-scan
-Re-run the appropriate scanner. Expected: "No vulnerabilities found."
-
----
-
-## Phase 5: Commit & Push
-
-**Only proceed if ALL validation tests pass.**
+## Phase 5: Commit & Push (only if ALL pass)
 
 ```bash
-git add -A
-
 git commit -m "security: upgrade dependencies to fix CVEs
 
 <Package> <old-version> → <new-version> (CVE-XXXX-XXXXX)
@@ -180,7 +123,6 @@ Validation: All tests passing"
 git push origin main
 ```
 
----
 
 ## Critical Reminders
 
@@ -204,7 +146,6 @@ If tests fail after an upgrade, the correct response is:
 3. OR rollback to the previous dependency version
 4. OR ask the user for guidance
 
----
 
 ## Expected Outcomes
 
@@ -213,7 +154,6 @@ If tests fail after an upgrade, the correct response is:
 - ✅ All tests pass
 - ✅ Changes committed and pushed
 
----
 
 ## Troubleshooting
 
@@ -231,7 +171,6 @@ If tests fail after an upgrade, the correct response is:
 - Update code to accommodate API changes
 - Consider gradual rollout for major version bumps
 
----
 
 ## Failure Modes
 

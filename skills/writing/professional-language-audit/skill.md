@@ -21,7 +21,6 @@ coordination:
 > **Last Updated:** 2026-03-11
 > **Incident:** Profanity found in documentation during audit. AI slop skills didn't catch it.
 
-
 ## When to Use
 
 - Before publishing any user-facing text
@@ -36,7 +35,6 @@ This skill scans content for profanity and unprofessional language BEFORE it rea
 - Wiki updates (any wiki platform)
 - Git commits of user-facing docs (README.md, skill.md, `*.md` in skills/)
 
----
 
 ## When to Invoke Manually
 
@@ -45,7 +43,6 @@ This skill scans content for profanity and unprofessional language BEFORE it rea
 - "Run language audit on README"
 - Before publishing any user-facing content
 
----
 
 ## HARD GATE Behavior
 
@@ -85,7 +82,6 @@ Profanity matches: 0
 Proceed with wiki update/commit.
 ```
 
----
 
 ## Detection Patterns
 
@@ -115,7 +111,6 @@ Patterns are loaded from `.profanity-patterns.txt` (in `scripts/` or repo root).
 - **BLOCK** = Cannot proceed until fixed
 - **FLAG** = Warning, context determines appropriateness (e.g., "dumb terminal" is technical)
 
----
 
 ## Integration Points
 
@@ -158,7 +153,6 @@ This skill is gate 4 in the commit-gates chain:
 6. ✅ Commit
 ```
 
----
 
 ## Replacement Suggestions
 
@@ -172,7 +166,6 @@ This skill is gate 4 in the commit-gates chain:
 | what the [expletive] | what happened, unexpectedly |
 | [angry expletive] | frustrated, upset |
 
----
 
 ## Audit Commands
 
@@ -191,14 +184,12 @@ node scripts/slop-dictionary.js seed-profanity
 node scripts/slop-dictionary.js list profanity
 ```
 
----
 
 ## Companion Skills
 
 - **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
 - **pre-commit-gate** — Integrates this skill into commit workflow
 
----
 
 - **enforce-style-guide**: Style checking (runs before language audit)
 - **public-repo-ip-audit**: IP audit (runs after language audit)
@@ -215,8 +206,6 @@ Multiple skills fire on "before commit". Execute in this order:
 | 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
 **Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
-
-
 
 ## Scope Exclusions
 
