@@ -109,7 +109,22 @@ After all reviewers return:
 
 6. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
 
-**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Durable Checks summary → Summary (`[X] total: [N] Critical, [N] Important, [N] Minor | [N] durable checks proposed`).
+**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary.
+
+**Live metrics** (computable from current pass only):
+
+| Metric | Target | How to compute |
+|--------|--------|----------------|
+| Durable check rate | ≥50% | Implement findings with durable checks / Implement findings. **N/A if 0 Implement findings.** |
+| Convergent finding count | — | Count of findings flagged by 2+ reviewers (informational, no target) |
+| Unresolved Critical count | 0 | Critical findings not yet addressed |
+
+**Offline evaluation metrics** (tracked in wiki dashboard across reviews, not in individual reports):
+- Precision: Implement findings validated by user / total Implement findings (target: ≥75%, ratchet up with evidence)
+- High-severity precision: validated Critical+Important / total Critical+Important (target: ≥80%)
+- Round 2 incremental yield: findings from escalation passes / total findings (target: ≤20% — if higher, specialists are missing too much)
+
+Include in summary: `Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`
 
 ### Phase 4: Escalation (Round 2)
 
@@ -128,6 +143,19 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 3. Append under `### Round 2 Findings`
 
 Skip escalation if: user requested `--round1-only`, all Round 1 clean, or diff <20 lines.
+
+### Phase 5: Convergence (multi-round reviews only)
+
+After each synthesis pass, evaluate stop criteria. **Escalation takes precedence** — if a trigger fires, run escalation before evaluating convergence.
+
+**STOP** when ALL of:
+- Unresolved Critical count = 0
+- Last 2 passes produced <20% new high-severity findings
+- Durable check rate ≥50% OR no Implement findings (clean pass)
+
+**CONTINUE** if any escalation trigger fires or Critical findings remain.
+
+**ESCALATE TO HUMAN** if not converged after 3 passes (most reviews converge in 2).
 
 ### Error Handling
 
