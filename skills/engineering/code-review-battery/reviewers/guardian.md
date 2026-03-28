@@ -24,6 +24,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Changes to database schemas, migrations, or data formats
 - Modifications to build/deploy pipelines or infrastructure config
 - Side effects on downstream consumers not visible in the diff
+- **Field consumer trace**: When the diff sets a field to `null`, `0`, `false`, or a reset value, trace ALL code that reads that field. A null assignment in one handler method may disable a guard check in a completely different method. This is the #1 source of subtle cross-cutting regressions.
 
 ### 3. Dependencies & Configuration
 - New dependencies: justified? version-pinned? license-compatible? actively maintained?
@@ -38,54 +39,31 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Database migration that cannot be rolled back
 - Protocol or wire format changes
 
-### 5. Reliability & Resilience
-- Missing retry logic for transient failures (network, DB, file I/O)
-- Missing or inadequate timeout handling for external calls
-- Missing circuit breaker or fallback for degraded dependencies
-- No graceful degradation path when dependency is unavailable
-- Missing idempotency for operations that may be retried
-- Crash-on-failure where recovery is possible
-
 ## What to Review
 
-Run the git diff command provided to see the changes. Then **read the full source files** and **check callers/consumers** — blast radius and security issues often live outside the diff. Ask:
+Review the diff and ask:
 - "Who else calls this code, and will they break?"
 - "Could an attacker exploit any input path added or modified?"
 - "Are new dependencies safe, pinned, and justified?"
 - "Can this change be rolled back safely?"
 
 ## Confidence Gate
+Only report findings where you are >80% confident there is a real risk.
+Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report theoretical risks that require unlikely attack scenarios.
 
 ## Output Format
 
-For each finding, use this structured format:
-
-### Finding F\<n\>
-- **file**: \<path\>
-- **line**: \<number\> (or "N/A")
-- **symbol**: \<name\> (omit if not applicable)
-- **severity**: Critical / Important / Minor
-- **confidence**: High (>80%) / Possible (60–80%)
-- **scope**: isolated / systemic
-- **issue**: \<what is wrong — 1–2 sentences\>
-- **why**: \<who/what breaks, what can be exploited\>
-- **fix**: \<how to fix\>
-- **evidence**: \<what you searched, what you found — required\>
-
-When `scope = systemic`, add an `instances` list with all file:line locations.
+For each finding:
+- **Severity**: Critical / Important / Minor
+- **File:Line**: Exact location in the diff
+- **Issue**: What is wrong (1-2 sentences)
+- **Why**: Why this matters (who/what breaks, what can be exploited)
+- **Fix**: How to fix (if not obvious)
 
 If you find NO issues, say:
-"✅ No guardian concerns found."
-
-## Workspace Access
-
-You have full workspace access. Use it:
-- `cat <file>` to read the complete source file
-- `grep -rn <pattern> <dir>` to find callers, imports, and downstream consumers
-- Check `package.json`, lock files, config files for dependency/version info
-- Verify backwards compatibility by checking how changed APIs are used elsewhere
+"✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."
 
 ---
 
-## REVIEW INSTRUCTIONS
+## DIFF TO REVIEW
