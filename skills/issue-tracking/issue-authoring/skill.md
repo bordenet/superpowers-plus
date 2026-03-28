@@ -154,6 +154,15 @@ Before creating issue:
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
 
+
+## Example
+
+```bash
+# Create a well-structured Linear ticket
+# Required: title, description with acceptance criteria, team assignment
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-authoring
+```
+
 ## Failure Modes
 
 - **Vague titles:** "Fix bug" or "Update thing" — titles must be specific and actionable (max 80 chars)
