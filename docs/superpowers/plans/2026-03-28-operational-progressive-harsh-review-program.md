@@ -59,9 +59,9 @@ The Perplexity plan introduces several concepts not yet in our battery:
 - Scoring rubric in aggregation phase
 - Convergence logic
 
-**EVALUATE** (may not fit our architecture):
-- Reviewer split (Security Guardian, Test Guardian) — may dilute focus
-- Full exercise catalog — useful but large effort
+**DEFERRED** (evaluated, not implementing now):
+- Reviewer split (Security Guardian, Test Guardian) — DEFERRED: current Guardian already covers security + blast radius + backwards compat effectively. Standards Enforcer already has test revert-safety, mock fidelity, paired boundary tests. Split when evidence shows insufficient coverage in either area.
+- Full exercise catalog — useful but large effort, defer to Phase 3
 - Promotion pipeline — needs infrastructure we don't have
 
 **DEFER** (premature optimization):
