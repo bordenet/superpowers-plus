@@ -151,11 +151,13 @@ Skip escalation if: user requested `--round1-only`, all Round 1 clean, or diff <
 
 ### Phase 5: Convergence (multi-round reviews only)
 
-After each synthesis pass, evaluate stop criteria. **Escalation takes precedence** — if a trigger fires, run escalation before evaluating convergence.
+Only evaluate convergence starting at pass 2. After pass 1, stop if no escalation trigger fired; otherwise continue to pass 2.
+
+After each synthesis pass (≥2), evaluate stop criteria. **Escalation takes precedence** — if a trigger fires, run escalation before evaluating convergence.
 
 **STOP** when ALL of:
 - Unresolved Critical count = 0
-- Last 2 passes produced <20% new high-severity findings
+- Last 2 passes produced <20% new high-severity findings (compare each pass's high-sev count to total high-sev across all passes; if 0 total, the criterion is met)
 - Durable check rate ≥50% OR no Implement findings (clean pass)
 
 **CONTINUE** if any escalation trigger fires or Critical findings remain.
