@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["design a new skill domain", "plan a skill family", "what skills should we build for", "domain design for", "design a domain", "new superpowers domain", "skill family design", "plan skills for"]
 description: Use when designing a new superpowers skill family from scratch — orchestrates the full research → brainstorm → harsh review → prioritize → document cycle. Produces a prioritized skill roster, architecture decision, infrastructure map, and blocker list. Does NOT build skills.
 summary: "Use when: designing a new skill family from scratch. Skip when: building skills (use domain-build)."
+coordination:
+  group: productivity
+  order: 2
+  requires: []
+  enables: ["skill-authoring", "brainstorming", "design-triad"]
+  escalates_to: []
+  internal: false
 ---
 
 # Domain Design Orchestrator

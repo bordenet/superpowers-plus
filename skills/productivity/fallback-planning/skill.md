@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["fallback plan", "contingency plan", "plan B", "what if this fails", "backup approach", "risk mitigation", "fallback TODO", "alternative plan"]
 description: Use when a primary implementation plan has identified risks that could invalidate the approach. Generates machine-agnostic fallback TODOs for the top 2-3 risks, each with enough context for a different agent to execute cold.
 summary: "Use when: primary plan has identified risks. Creates machine-agnostic fallback TODOs."
+coordination:
+  group: productivity
+  order: 3
+  requires: ["plan-and-execute"]
+  enables: ["todo-management"]
+  escalates_to: []
+  internal: false
 ---
 
 # Fallback Planning
@@ -76,3 +83,11 @@ Fallback TODOs are persisted alongside the primary plan:
 - **In TODO.md:** Tagged with `#fallback-[risk-name]` under the primary plan's tag
 - **In MCP tasks:** As child tasks of the primary plan's root task, marked NOT_STARTED
 - **In design doc:** Referenced in the "Fallback Plan" section
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Fallback plan requires same assumptions as primary plan | Each fallback must be genuinely independent — different approach, not just retry |
+| Fallback TODOs lack enough context for cold execution | Apply the stranger test: could an agent with zero context execute this? |
+| Created fallbacks for low-probability risks only | Prioritize by impact × probability — cover the highest-impact risks first |

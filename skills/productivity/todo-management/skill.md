@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["add task", "add TODO", "what should I work on", "show my tasks", "list tasks", "what are my tasks", "what's next", "what's pending", "complete [task]", "mark done", "what did I do", "triage", "my P1s", "today's priorities", "backlog", "implement this plan", "execute these steps", "track this work", "todo", "remaining work"]
 description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 summary: "Use when: managing multi-step tasks. Hard gate for 3+ step tasks."
+coordination:
+  group: productivity
+  order: 0
+  requires: []
+  enables: ["todo-archive", "fallback-planning"]
+  escalates_to: []
+  internal: false
 ---
 
 # TODO Management
@@ -219,12 +226,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 
 **On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
 
-**Post-session maintenance** — run `~/.codex/superpowers-plus/tools/todo-maintenance.sh` after any multi-step session. It will report stale `#plan-*` tasks and run archive automatically when any of these are true:
-- HISTORY has ≥5 completed tasks
-- TODO.md exceeds 200 lines
-- HISTORY entries are >7 days old
-
-**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
+**Post-session maintenance** — run `todo-maintenance.sh` after multi-step sessions (reports stale `#plan-*` tasks, auto-archives when ≥5 completed or >200 lines or >7 days old). Backups are automatic on every write.
 
 ---
 
@@ -232,34 +234,15 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 
 | Failure | Detection | Recovery |
 |---------|-----------|----------|
-| Agent uses `save-file`/`str-replace-editor` on TODO.md | OS immutability (`uchg`/`chattr +i`) blocks the write with "Operation not permitted" | No action needed — write was prevented |
-| Agent bypasses to `~/.codex/TODO.md` (honeypot) | Honeypot is also `uchg`+`444`; `sp-doctor` Check 23 detects content tampering | Run `sp-doctor --fix` to restore honeypot |
-| Honeypot immutable flag removed | `todo-crud.sh self-test` and `sp-doctor` Check 23 detect missing flag | Run `sp-doctor --fix` (macOS: `chflags uchg`, Linux: `sudo chattr +i`) |
-| `.todo-registry` missing or empty | `todo-crud.sh self-test` warns; engine falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
-| TODO path points to nonexistent file | `sp-doctor` Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
-| Annihilation detection blocks write | Engine detects >60% size drop or >5 task loss | Delete `~/.codex/todo-shadow/TODO.md` and retry |
-| Lock stuck (agent died mid-write) | Lock TTL expires after 120s; next operation auto-reaps | Wait 2 min, or manually `rm -rf` the `.TODO.md.lock` dir |
-| Agent writes directly despite rules | Shadow comparison catches post-write; `sp-doctor` catches honeypot damage | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
+| Direct file write attempted | OS immutability blocks it | No action needed |
+| Honeypot tampered/missing flag | `sp-doctor` Check 23 detects | Run `sp-doctor --fix` |
+| TODO path missing | Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
+| Annihilation detected (>60% drop) | Engine blocks write | Delete shadow and retry |
+| Lock stuck | TTL expires after 120s | Wait 2 min or rm lock dir |
 
-> **Honeypot is optional.** The honeypot at `~/.codex/TODO.md` is only deployed when
-> the real TODO lives elsewhere (e.g., OneDrive, Dropbox, a shared repo). If your
-> `TODO_FILE_PATH` points to `~/.codex/TODO.md` (the default), no honeypot exists and
-> Check 23 is automatically skipped. The honeypot rows above only apply to users who
-> configured an external TODO path.
-
-### Diagnostic Commands
-
-```bash
-# Full health check
-~/.codex/superpowers-plus/tools/todo-crud.sh self-test
-
-# Doctor checks (23: honeypot, 24: path validation, 25: stale workflow)
-bash ~/.codex/superpowers-plus/tools/doctor-checks.sh
-```
-
----
+> **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips. Diagnostics: `todo-crud.sh self-test` or `doctor-checks.sh`.
 
 ## Reference Files
 
-- [`references/taxonomy.md`](references/taxonomy.md) — Full tagging taxonomy, customization guidance
-- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format, task ID format, core operations, implementation workflow
+- [`references/taxonomy.md`](references/taxonomy.md) — Tagging taxonomy
+- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format and operations

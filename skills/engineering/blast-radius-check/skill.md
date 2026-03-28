@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "hotfix", "multi-component change", "cross-service change"]
 description: Blast radius analysis - search for ALL usages before modifying any existing code. Prevents breaking unrelated consumers by scoping impact before scoping fix.
 summary: "Use when: modifying existing code. Skip when: writing new isolated code."
+coordination:
+  group: engineering
+  order: 2
+  requires: []
+  enables: ["field-rename-verification"]
+  escalates_to: ["engineering-rigor"]
+  internal: false
 ---
 
 # Blast Radius Check
@@ -124,3 +131,12 @@ grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Only checked direct callers, missed transitive consumers | Trace data flow through ALL paths (READ → STORE → PASS) |
+| Skipped test impact analysis | Run full test suite, check for tests that exercise changed paths |
+| Assumed internal function has no external consumers | Grep for ALL references — internal/external distinction is often wrong |
+| Changed API contract without checking client services | Use `field-rename-verification` for cross-service contract changes |

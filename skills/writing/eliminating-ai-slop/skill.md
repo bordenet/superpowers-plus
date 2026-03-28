@@ -10,6 +10,13 @@ composition:
   produces: [quality-prose]
   capabilities: [eliminates-slop]
   priority: 35
+coordination:
+  group: writing
+  order: 1
+  requires: ["detecting-ai-slop"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Eliminating AI Slop

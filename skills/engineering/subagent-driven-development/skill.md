@@ -7,6 +7,13 @@ overrides: superpowers/subagent-driven-development
 # prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 description: "Use when executing implementation plans with independent tasks in the current session"
+coordination:
+  group: engineering
+  order: 5
+  requires: ["plan-and-execute"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Subagent-Driven Development
@@ -46,6 +53,7 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 2. Reasoning limit → re-dispatch with more capable model
 3. Task too large → break into smaller pieces
 4. Plan is wrong → escalate to human
+5. **Same error 3+ times** → invoke `think-twice` for fresh perspective before re-dispatch
 
 Never force retry without changes. If stuck, something must change.
 

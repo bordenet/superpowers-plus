@@ -8,6 +8,13 @@ overrides: superpowers/brainstorming
 triggers: ["brainstorm", "design a feature", "build a new", "create a new", "add functionality", "plan a feature", "explore approaches", "design this"]
 anti_triggers: ["fix bug", "debug", "write test", "refactor"]
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+coordination:
+  group: thinking
+  order: 1
+  requires: []
+  enables: ["design-triad", "writing-plans", "plan-and-execute"]
+  escalates_to: ["thinking-orchestrator"]
+  internal: false
 ---
 
 # Brainstorming Ideas Into Designs
@@ -66,7 +73,8 @@ Do NOT write any code or take implementation action until you have presented a d
 1. Write spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 2. Run spec review loop (subagent reviewer, max 3 iterations)
 3. User reviews written spec
-4. Invoke `writing-plans` skill for implementation plan
+4. **If ≥3 viable approaches emerged** — invoke `design-triad` to formally compare and red-team before committing
+5. Invoke `writing-plans` skill for implementation plan
 
 ## Key Principles
 

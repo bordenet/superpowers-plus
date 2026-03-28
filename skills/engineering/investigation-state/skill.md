@@ -148,6 +148,8 @@ Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suff
 |-------|-------------|
 | `thinking-orchestrator` | Routes "debugging a bug, starting investigation" here |
 | `todo-management` | On resolution (if fix needed), create fix task tagged `#investigation-<short-id>` |
+| `systematic-debugging` | Companion: debugging process → investigation-state stores context |
+| `think-twice` | When stuck with >3 hypotheses rejected, get fresh perspective |
 
 ---
 

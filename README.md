@@ -1,21 +1,21 @@
 # superpowers-plus
 
-63 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+66 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**63 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**66 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 18 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, systematic debugging, feature lifecycle, output verification |
-| productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
+| engineering | 19 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification |
+| productivity | 16 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute, superchain orchestrator |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
 | issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
-| observability | 4 | Completeness checks, audit validation, repo verification, diagnostics |
+| observability | 5 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
 | research | 3 | Perplexity integration, research incorporation, expert interviewing |
 | experimental | 1 | Self-prompting patterns |
@@ -147,6 +147,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
+| | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
@@ -163,6 +164,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | observability | completeness-check | Detects incomplete work from crashes or context loss |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
+| | skill-health-check | Validates skill ecosystem: YAML frontmatter, coordination, failure modes |
 | | superpowers-doctor | 22-check diagnostic across all installed skills |
 | productivity | adversarial-search | Defeats confirmation bias by searching for counter-evidence |
 | | code-review | File-protocol handoff for inter-agent code review |
@@ -174,6 +176,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
 | | skill-authoring | Creates new skills from descriptions/patterns |
+| | superchain-orchestrator | Auto-detects task phase, chains skills end-to-end autonomously |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for metacognition skills |

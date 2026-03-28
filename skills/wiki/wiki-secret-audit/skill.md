@@ -9,6 +9,13 @@ composition:
   produces: [sanitized-content]
   capabilities: [detects-secrets]
   priority: 25
+coordination:
+  group: wiki
+  order: 3
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Wiki Secret Audit

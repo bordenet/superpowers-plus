@@ -10,6 +10,13 @@ options:
   max_rows: 25
   force_compact: true
   prefer_lists_below_n_items: 3
+coordination:
+  group: writing
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Markdown Table Discipline
