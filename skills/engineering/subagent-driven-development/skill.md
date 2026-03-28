@@ -101,6 +101,15 @@ Constraints: max 3 retries, exponential backoff, no new dependencies.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
 ```
 
+
+## Example
+
+```bash
+# Launch sub-agent for independent task
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery
+# Pass context inline — sub-agents have NO conversation context
+```
+
 ## Failure Modes
 
 | Failure | Fix |

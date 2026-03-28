@@ -154,6 +154,18 @@ Design document with:
 | "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
 | "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |
 
+
+## Example
+
+```bash
+# Score each design option
+echo "| Option | Simplicity | Extensibility | Testability | Total |"
+echo "|--------|:----------:|:-------------:|:-----------:|:-----:|"
+echo "| A      | 4          | 3             | 5           | 12    |"
+echo "| B      | 3          | 5             | 4           | 12    |"
+echo "| C      | 5          | 2             | 3           | 10    |"
+```
+
 ## Failure Modes
 
 | Failure | Recovery |
