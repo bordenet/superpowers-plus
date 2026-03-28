@@ -27,8 +27,8 @@ coordination:
 - **brainstorming**: Generating design options before evaluation
 - **requirements-validation**: Validating requirements before design
 - **plan-and-execute**: Implementing the chosen design
-
 - **innovation**: 10x ideas before evaluation
+- **feature-development**: Full feature workflow (uses this skill)
 - **fallback-planning**: Evaluating fallback alternatives
 ## When to Use
 
