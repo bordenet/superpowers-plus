@@ -1,10 +1,11 @@
-# Code Review Battery — Phase 3: Deep Review
+# Code Review Battery — Phase 2f: Deep Review
 
 > **Status**: Design (pending approval)
 > **Author**: Matt Bordenet + AI
 > **Created**: 2026-03-28
 > **Companion**: [PRD.md](../../../skills/engineering/code-review-battery/PRD.md), [DESIGN.md](../../../skills/engineering/code-review-battery/DESIGN.md)
 > **Research Basis**: Perplexity deep research survey (2026-03-28) — 45 sources covering CodeRabbit, Qodo, Sourcegraph/Cody, Amazon CodeGuru, Semgrep, Greptile v3, Meta TestGen-LLM, Google DIDACT, Cycode, Veracode
+> **Note**: Phase 3 is reserved for debugging parallelization (see PRD.md). This work is Phase 2f.
 
 ## Problem Statement
 
@@ -20,7 +21,7 @@ Industry state-of-the-art (CodeRabbit, Qodo, Sourcegraph/Cody) achieves **<10% F
 
 ## Architecture Overview
 
-Phase 3 adds two new pipeline stages and enhances four existing ones:
+Phase 2f adds two new pipeline stages and enhances four existing ones:
 
 ```
 Diff arrives
@@ -31,9 +32,9 @@ Phase 1: Triage (unchanged)
     ▼
 Phase 1.5: Context Expansion ──────────────────── NEW
     │  Extract changed symbols from diff
-    │  Build call graph (callers, callees, types)
+    │  Find related code (callers, types via grep)
     │  Find related test files
-    │  Get git blame summary (monolith only)
+    │  Get recent file history (monolith only)
     │  Get PR description / commit messages
     │  Run tests for changed files (if available)
     │  Output: structured context package
@@ -99,7 +100,9 @@ git diff <scope> | grep '^+' | grep -E '(function |class |export |def |const |in
 
 This gives a list like: `parseConfig`, `UserService`, `IConfigOptions`.
 
-#### Step 2: Build Call Graph (1-level expansion)
+#### Step 2: Find Related Code (1-level grep expansion)
+
+> **Note**: This is text-based symbol search, not a true call graph. It catches direct references but misses multi-line definitions, method receivers, and matches in comments/strings. The term "call graph" is used loosely — this is cheap related-code discovery, not interprocedural analysis.
 
 For each changed symbol:
 
@@ -120,60 +123,77 @@ For each caller found: extract the enclosing function signature (so reviewers kn
 find <repo> \( -name '*test*' -o -name '*spec*' \) -type f | xargs grep -l '<changed-file-basename>' 2>/dev/null
 ```
 
-#### Step 4: Git Blame Summary (monolith context only)
+#### Step 4: Recent File History (monolith context only)
 
 ```bash
-# Last 5 changes to each modified file:
+# Last 5 commits touching each modified file:
 git log --oneline -5 -- <changed-file>
 ```
 
-Tells the monolith *why* the code was last changed — enables intent-sensitive review.
+Tells the monolith what recent changes affected each file — enables intent-sensitive review. This is `git log` (commit history), not `git blame` (line-level attribution).
 
-#### Step 5: PR Description / Commit Messages
+#### Step 5: Commit Messages / PR Description
 
-```bash
-# Extract intent from commit messages:
-git log --format='%s%n%b' @{u}..HEAD 2>/dev/null | head -30
-```
-
-#### Step 6: Test Status (if available)
+Extract intent from commit messages. The log range MUST match the review scope (same as the diff command):
 
 ```bash
-# Run tests for changed files (platform-dependent):
-# Node: npm test -- --testPathPattern='<test-files>' 2>&1 | tail -20
-# Python: pytest <test-files> 2>&1 | tail -20
-# Shell: bats <test-files> 2>&1 | tail -20
+# Match to review scope:
+# If diff is: git diff --cached        → git log --cached (staged commits — typically empty)
+# If diff is: git diff @{u}..HEAD      → git log --format='%s%n%b' @{u}..HEAD | head -30
+# If diff is: git diff main..HEAD      → git log --format='%s%n%b' main..HEAD | head -30
+# If diff is: git diff HEAD~1          → git log --format='%s%n%b' -1 HEAD | head -30
 ```
 
-Include pass/fail summary. If tests fail, include failure output — reviewers can check if their findings explain the failure.
+#### Step 6: Test Status (OPTIONAL — skip by default)
+
+Test execution during context expansion is **opt-in only** (`--run-tests` flag) due to latency, flakiness, and environment dependency risks.
+
+**When skipped** (default): the context package reports "Test status: not run" and reviewers can choose to run tests themselves.
+
+**When enabled** (`--run-tests`):
+```bash
+# Hard timeout: 30s total for all test commands. Kill if exceeded.
+timeout 30 <test-command> 2>&1 | tail -20
+```
+
+Safeguards:
+- 30-second hard timeout per test command; skip and note "timed out" if exceeded
+- Only run tests that match changed files (not the full test suite)
+- Test runner detection: look for `package.json` (npm/jest), `pytest.ini`/`setup.cfg` (pytest), `test/` dir with `.bats` files. If no runner detected, skip.
+- Do NOT run tests that require env vars, secrets, databases, or network services — if `test-command` fails immediately with a non-test error, skip and note "test setup failed"
+- Reviewers may still run tests independently via workspace access — this step is convenience, not mandatory
 
 ### Context Package Format
+
+The context package is **strictly factual** — raw grep/find output, no semantic conclusions. Reviewers draw their own conclusions from the facts. This preserves reviewer independence and avoids biasing all 6 reviewers with a single analysis.
 
 ```markdown
 ## Context Package
 
 ### Changed Symbols
 - `parseConfig()` in src/config.ts:42 (modified)
-  - Callers: src/app.ts:15 (in `initApp()`), src/cli.ts:88 (in `main()`), lib/init.ts:22 (in `bootstrap()`)
-  - Tests: test/config.test.ts (3 test cases reference parseConfig)
-  - Types: src/types.ts:31 (ConfigOptions interface)
+  - Callers: src/app.ts:15, src/cli.ts:88, lib/init.ts:22
+  - Test refs: test/config.test.ts (3 grep hits for "parseConfig")
+  - Types: src/types.ts:31 (grep hit for "ConfigOptions")
 
 - `UserService` class in src/services/user.ts (new method `deactivate()` added)
-  - Callers: src/routes/auth.ts:44 (in `handleLogout()`), src/routes/profile.ts:12 (in `deleteAccount()`)
-  - Tests: test/services/user.test.ts (no tests for deactivate — COVERAGE GAP)
-  - Interfaces: src/interfaces/IUserService.ts (deactivate not in interface — CONTRACT GAP)
+  - Callers: src/routes/auth.ts:44, src/routes/profile.ts:12
+  - Test refs: test/services/user.test.ts (0 grep hits for "deactivate")
+  - Interface refs: src/interfaces/IUserService.ts (0 grep hits for "deactivate")
 
-### Test Status
+### Test Status (if tests were run)
 - test/config.test.ts: PASS (3/3)
-- test/services/user.test.ts: PASS (12/12) — but no test for new `deactivate()` method
+- test/services/user.test.ts: PASS (12/12)
 
-### Recent Changes (monolith only)
-- src/config.ts: "fix: handle nested YAML maps" (3 days ago), "feat: add env override" (1 week ago)
-- src/services/user.ts: "feat: add user roles" (2 weeks ago)
+### Recent History (monolith only)
+- src/config.ts: "fix: handle nested YAML maps" (3d), "feat: add env override" (1w)
+- src/services/user.ts: "feat: add user roles" (2w)
 
-### Commit Intent
+### Commit Messages
 - "Add account deactivation flow with soft-delete and audit logging"
 ```
+
+Note: the package reports "0 grep hits for deactivate" in test and interface files — it does NOT label these as "COVERAGE GAP" or "CONTRACT GAP." That judgment belongs to the reviewers.
 
 ### Dispatch Contract Update
 
@@ -218,9 +238,28 @@ The 80% confidence gate is self-reported by the LLM. Our benchmarks prove this i
 3. **Hallucinated API behavior** — reviewer claims a function does X when it actually does Y
 4. **Non-existent symbol claims** — "function X is never called" when it's called in 5 places
 
+### Prerequisite: Structured Finding Schema
+
+Deterministic verification requires machine-parseable findings. The current reviewer output format uses prose (`**File:Line**: location`). Phase 2f updates the output format in all 6 reviewer prompts to require a structured block per finding:
+
+```
+### Finding F1
+- **file**: src/auth/validator.ts
+- **line**: 42
+- **symbol**: validateToken
+- **severity**: Critical
+- **issue**: Missing null check on token parameter
+- **why**: Crashes with TypeError when token is undefined
+- **fix**: Add `if (!token) return null;` guard
+```
+
+The coordinator parses these structured fields via simple line-prefix matching (`- **file**:`, `- **line**:`, `- **symbol**:`). This is more reliable than extracting from prose but does not require JSON. Reviewers can still include free-text explanation in the `issue`, `why`, and `fix` fields.
+
+If a reviewer does not follow the structured format (e.g., outputs prose instead), verification is skipped for that finding and it is tagged `[UNSTRUCTURED]` in the report.
+
 ### Mechanism
 
-Phase 3.5 runs after all reviewers return and before aggregation. The coordinator runs deterministic checks on each finding:
+Phase 3.5 runs after all reviewers return and before aggregation. The coordinator parses each finding's structured fields and runs deterministic checks:
 
 #### Check 1: File Existence
 ```bash
@@ -261,9 +300,11 @@ Each finding gets one of:
 ### Expected Impact
 
 Based on our benchmark data:
-- **Phantom file references** (V6 monolith): 5 findings would be caught → precision from 35% to 100% for that diff
-- **Overall battery precision**: estimated 63% → 85%+
-- **Overall monolith precision**: estimated 46% → 70%+
+- **Phantom file references** (V6 monolith): 5 findings would be caught → precision from 35% to 100% for that specific diff
+- **Overall battery precision**: Checks 1-3 eliminate phantom refs and out-of-range lines. Actual impact depends on what fraction of current FPs fall in these categories. V6 data suggests ~60% of monolith FPs are phantom refs; battery FPs are more often wrong reasoning with correct file references, so improvement will be smaller.
+- **Overall monolith precision**: Higher improvement expected since monolith FPs are dominated by phantom refs and non-existent symbol claims.
+
+**Honest projection**: Checks 1-3 alone will not achieve 85%+ precision. Severity inflation and wrong causal reasoning (the other major FP categories) are NOT addressed by file/line/symbol verification. Achieving 85%+ requires Check 4 (claim verification) AND the Investigation Protocol (E3) to mature over multiple review cycles.
 
 ### Performance Cost
 
@@ -337,18 +378,18 @@ Only report when you have:
 
 ### Research Basis
 
-The research identifies 8 key review dimensions. We cover 5 well, have gaps in 3:
+The research identifies 8 key review dimensions. We cover 5 well across 19 sub-dimensions (Defect Finder 4, Design Critic 4, Guardian 4, Standards Enforcer 5, Performance Analyst 2). Three areas need expansion:
 
-| Dimension | Status | Enhancement |
-|-----------|--------|-------------|
-| Correctness | ✅ Covered | — |
-| Design/Architecture | ⚠️ Missing layering | Add Architectural Layering to Design Critic |
-| Security | ✅ Covered | — |
-| Standards | ⚠️ Weak on test adequacy | Strengthen Test Quality in Standards Enforcer |
-| Performance | ✅ Covered | — |
-| **Reliability/Resilience** | ❌ Missing | Add to Guardian |
-| **Architectural Layering** | ❌ Missing | Add to Design Critic |
-| **Test Adequacy** | ⚠️ Weak | Expand in Standards Enforcer |
+| Dimension | Current Status | Enhancement |
+|-----------|---------------|-------------|
+| Correctness (4 sub-dims) | ✅ Covered | — |
+| Design/Architecture (4 sub-dims) | ⚠️ Missing layering | Add Architectural Layering sub-dimension to Design Critic |
+| Security (4 sub-dims) | ✅ Covered | — |
+| Standards (5 sub-dims) | ⚠️ Test Quality needs test-adequacy items | Expand sub-dimension 4 with coverage gap checks |
+| Performance (2 sub-dims) | ✅ Covered | — |
+| **Reliability/Resilience** | ❌ Not covered | Add as Guardian sub-dimension 5 |
+| **Architectural Layering** | ❌ Not covered | Add as Design Critic sub-dimension 5 |
+| **Test Adequacy** | ⚠️ Present but shallow | Expand Standards Enforcer sub-dimension 4 |
 
 ### Changes
 
@@ -373,7 +414,7 @@ The research identifies 8 key review dimensions. We cover 5 well, have gaps in 3
 - Add: Test coverage gaps for error/edge-case paths added in the diff
 - Add: Missing integration tests for new cross-component interactions
 
-**Dimension count**: 16 → 19 (Guardian +1, Design Critic +1, Standards Enforcer expanded)
+**Dimension count**: 19 → 22 (Guardian +1 new sub-dimension, Design Critic +1 new sub-dimension, Standards Enforcer sub-dimension 4 expanded with 4 new check items)
 
 ---
 
@@ -440,6 +481,18 @@ checks/
 └── *.sh                   # Graduated shell scripts (active)
 ```
 
+#### Validation and Execution
+
+Generated rules must be validated before candidate staging:
+
+1. **Syntax validation**: `semgrep --validate --config <rule>.semgrep.yml` (if Semgrep installed) or YAML parse check (`python -c "import yaml; yaml.safe_load(open('<rule>.semgrep.yml'))"`)
+2. **Dry run on changed files**: `semgrep --config <rule>.semgrep.yml <changed-files> --json` — verify it produces results and doesn't error
+3. **If validation fails**: fall back to shell script format for that gap
+
+**Semgrep availability**: Semgrep is treated as an optional dependency. If not installed, all script-learnable gaps generate shell scripts. The graduation pipeline (future) will validate rules against a holdout corpus — that pipeline must also handle both formats.
+
+**Execution during reviews**: Graduated checks (both Semgrep and shell) run as part of the review process. The coordinator runs active checks against changed files and includes results in the context package. This is future work — Phase 2f only covers candidate generation and validation, not runtime execution of graduated checks.
+
 ---
 
 ## Token Budget Constraint
@@ -448,7 +501,7 @@ Research shows prompt effectiveness peaks at 800–2,000 tokens and degrades pas
 
 ### Current Problem
 
-`coordinator.md` is already **2,916 tokens** — over the 2K ceiling. Phase 3 additions would push it to ~4,400. `skill.md` at 1,564 tokens is borderline.
+`coordinator.md` is already **2,916 tokens** — over the 2K ceiling. Phase 2f additions would push it to ~4,400. `skill.md` at 1,564 tokens is borderline.
 
 ### Solution: On-Demand Phase Loading
 
@@ -469,13 +522,13 @@ skills/engineering/code-review-battery/
 │   ├── guardian.md             # + Investigation + Reliability       ≤850 tok
 │   ├── standards-enforcer.md   # + Test Adequacy                     ≤800 tok
 │   ├── performance-analyst.md  # unchanged                           ~640 tok
-│   └── monolith.md             # + Investigation + blame context     ≤850 tok
+│   └── monolith.md             # + Investigation + file history ctx  ≤850 tok
 ├── checks/
 │   └── candidates/
 └── (pattern files created lazily)
 ```
 
-### Loading Sequence
+### Loading Sequence and Runtime Context
 
 `skill.md` directs which files to load at each step:
 
@@ -490,8 +543,15 @@ skills/engineering/code-review-battery/
 | 5 (Gaps) | `gap-analysis.md` | Full reviews only | ~1,200 |
 | 6 (Dashboard) | `gap-analysis.md` (already loaded) | Full reviews only | 0 (cached) |
 
-**Targeted re-reviews** (PASS_WITH_NITS): load only `coordinator.md` (~1,500 tokens total).
-**Full reviews**: load coordinator + context + verification + gap = ~4,100 tokens total, but spread across sequential phases — no single prompt exceeds 1,500.
+**Runtime context accumulation**: All loaded files accumulate in the coordinating agent's context window — splitting files does not reduce total runtime context. The benefits of splitting are:
+
+1. **Conditional loading**: Targeted re-reviews skip context-expansion.md, verification.md, and gap-analysis.md entirely — loading only coordinator.md (~1,500 tokens vs ~4,100 for a full review)
+2. **Signal density per-file**: Each file stays focused on its concern, avoiding attention dilution from unrelated instructions (research shows accuracy degrades when instructions exceed ~2,000 tokens per concern)
+3. **Reviewer sub-agents**: Each reviewer sub-agent reads only its own prompt (~600-850 tok) — they never see coordinator logic
+
+**Worst-case full review**: coordinator (~1,500) + context-expansion (~800) + verification (~600) + gap-analysis (~1,200) = ~4,100 tokens of skill content in the coordinating agent's context. This is above the 2K sweet spot but below the 5.5K degradation cliff for Claude models. The coordinating agent is also seeing diff output, reviewer findings, and user messages — total context will be larger.
+
+**Mitigation**: The coordinating agent's instructions are purpose-structured (triage → dispatch → verify → aggregate → learn) — each phase operates on its own section, reducing effective noise. Each individual file stays under 1,500 tokens to maintain signal density within that concern.
 
 ### What Moves Where
 
@@ -519,8 +579,8 @@ skills/engineering/code-review-battery/
 | `verification.md` | 2 | NEW — Phase 3.5 deterministic verification | ≤600 |
 | `gap-analysis.md` | 5 | NEW (extracted) — Phases 5-6 + Semgrep rules | ≤1,200 |
 | `DESIGN.md` | 1, 2, 4, 5 | Architecture diagram, file structure, dimensions | exempt |
-| `PRD.md` | 4 | Phase 3 scope, dimension matrix, ACs | exempt |
-| `reviewers/monolith.md` | 3 | Investigation Protocol, blame context | ≤850 |
+| `PRD.md` | 4 | Phase 2f scope, dimension matrix, ACs | exempt |
+| `reviewers/monolith.md` | 3 | Investigation Protocol, file history context | ≤850 |
 | `reviewers/defect-finder.md` | 3 | Investigation Protocol | ≤800 |
 | `reviewers/guardian.md` | 3, 4 | Investigation Protocol, Reliability sub-dimension | ≤850 |
 | `reviewers/design-critic.md` | 4 | Architectural Layering sub-dimension | ≤800 |
@@ -529,13 +589,13 @@ skills/engineering/code-review-battery/
 
 ## Expected Impact
 
-| Metric | Phase 2 (current) | Phase 3 (projected) | Basis |
+| Metric | Phase 2 (current) | Phase 2f (projected) | Basis |
 |--------|-------------------|---------------------|-------|
-| Battery precision | 63% | 85%+ | Verification filter eliminates phantom refs (E2) |
-| Monolith precision | 46% | 70%+ | Verification filter + investigation protocol (E2+E3) |
-| Cross-file bug detection | Low | Significantly higher | Context package provides call graph (E1) |
-| FPR (false positive rate) | ~37% | <15% | Deterministic verification + investigation discipline (E2+E3) |
-| Dimension coverage | 16 dimensions | 19 dimensions | Guardian +1, Design Critic +1, Standards expanded (E4) |
+| Battery precision | 63% | 70-80% (projected) | Verification catches phantom refs; severity/reasoning FPs need E3 maturation |
+| Monolith precision | 46% | 60-70% (projected) | Monolith FPs dominated by phantom refs — higher impact from verification |
+| Cross-file bug detection | Low | Higher | Context package pre-discovers callers and related code (E1) |
+| FPR (false positive rate) | ~37% | 20-30% (projected) | Verification catches phantom refs (E2); reasoning FPs need E3 maturation |
+| Dimension coverage | 19 sub-dimensions | 22 sub-dimensions | Guardian +1, Design Critic +1, Standards expanded (E4) |
 | Learned rule quality | Shell grep only | Semgrep YAML (AST-aware) + shell fallback (E5) | — |
 
 ## Open Design Decisions
@@ -545,18 +605,18 @@ skills/engineering/code-review-battery/
 3. **Semgrep availability**: Optional dependency — generate both formats, use Semgrep when available.
 4. **Investigation round limit**: Soft cap at 5 searches per finding, hard cap at 3 minutes per reviewer total investigation time.
 
-## Acceptance Criteria (Phase 3)
+## Acceptance Criteria (Phase 2f)
 
 | # | Criteria | Type |
 |---|----------|------|
-| AC27 | Context expansion extracts changed symbols and builds call graph on ≥3 real diffs | Must Pass |
+| AC27 | Context expansion extracts changed symbols and finds related code (callers, tests, types) on ≥3 real diffs | Must Pass |
 | AC28 | Context package adds <1000 tokens per reviewer instruction on average | Must Pass |
 | AC29 | Verification filter catches phantom file references (test against V6 benchmark) | Must Pass |
 | AC30 | Verification filter catches out-of-range line numbers | Must Pass |
-| AC31 | Battery precision ≥80% on benchmark diffs (up from 63%) | Must Pass |
+| AC31 | Battery precision improves vs Phase 2 baseline on ≥3 benchmark diffs (measure, don't target a specific %) | Must Pass |
 | AC32 | Investigation Protocol produces evidence-backed findings on ≥3 real diffs | Must Pass |
 | AC33 | Enhanced dimensions (reliability, layering, test adequacy) fire on relevant diffs | Should Pass |
-| AC34 | Semgrep YAML rules generated from gap analysis on ≥1 real gap | Should Pass |
+| AC34 | Semgrep YAML rules generated from gap analysis on ≥1 real gap; rule passes `semgrep --validate` (if Semgrep available) or YAML parse check | Should Pass |
 | AC35 | Total review time (with context expansion + verification) ≤ 2x monolithic | Must Pass |
-| AC36 | Every prompt-loaded file ≤1,500 tokens (measured via `wc -w * 4/3`) | Must Pass |
+| AC36 | Every prompt-loaded file ≤1,500 tokens. Measurement: `wc -w <file>` gives word count; multiply by 1.33 for approximate token count (markdown with code blocks runs ~1.3-1.5 tokens/word). This is an approximation — use `tiktoken` or Anthropic's tokenizer for exact counts if available. | Must Pass |
 | AC37 | No single review step loads >1,500 tokens of skill/coordinator content | Must Pass |
