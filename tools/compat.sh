@@ -187,7 +187,7 @@ _is_wsl_ntfs() {
   abs_path=$(realpath "$file" 2>/dev/null || readlink -f "$file" 2>/dev/null || echo "$file")
   # Standard Windows drive mounts: /mnt/c, /mnt/d, etc.
   [[ "$abs_path" == /mnt/[a-z]/* ]] && return 0
-  # Check if the mount is drvfs (Windows filesystem) via findmnt or /proc/mounts
+  # Check if the mount is drvfs (Windows filesystem) via findmnt
   if command -v findmnt &>/dev/null; then
     local fstype
     fstype=$(findmnt -n -o FSTYPE --target "$abs_path" 2>/dev/null || echo "")
