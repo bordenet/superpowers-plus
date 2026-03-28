@@ -19,6 +19,8 @@ coordination:
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
 > **Cost**: Perplexity API calls are paid — use judiciously
 
+> **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
+
 ## When to Invoke (Automatic Triggers)
 
 You MUST invoke this skill when ANY of these conditions are met:
@@ -151,6 +153,15 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Using Perplexity when web-search would suffice — cost waste | Always complete Step 0 (free tools first) and state what they returned |
+| Treating Perplexity response as authoritative without cross-verification | Perplexity can hallucinate too — verify key claims against primary sources |
+| Not recording outcome, preventing future calibration | Always complete Step 7 (record outcome) even when the answer was unhelpful |
+| Prompt too vague — getting generic response | Include context, constraints, what you tried, and what web-search found |
 
 ## Skill Connections
 

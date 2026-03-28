@@ -23,6 +23,8 @@ coordination:
 > **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
 > This skill enables retroactive scanning of existing wiki pages for exposed secrets.
 
+> **Wrong skill?** Scanning code repos for secrets → `repo-security-scan`. Executing wiki instructions safely → `wiki-instruction-guard`. Checking wiki page accuracy → `wiki-verify`.
+
 ## When to Use
 
 Invoke this skill when:
@@ -164,7 +166,7 @@ When secrets are found:
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Regex-only scanning:** Relying solely on pattern matching without checking for encoded/obfuscated secrets (base64, URL-encoded)
 - **Ignoring wiki history:** Checking only the current page content but not previous revisions where a secret may have been exposed

@@ -18,6 +18,8 @@ coordination:
 > **Purpose:** Ensure consistent, high-quality issues with verified fields
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+
 ---
 
 ## Configuration
@@ -151,7 +153,7 @@ Before creating issue:
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Vague titles:** "Fix bug" or "Update thing" — titles must be specific and actionable (max 80 chars)
 - **Missing acceptance criteria:** Issue created without clear definition of done

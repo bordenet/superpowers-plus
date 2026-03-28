@@ -17,6 +17,8 @@ coordination:
 
 > **Last Updated:** 2026-03-20
 > **Fires alongside:** `superpowers:writing-plans` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
+
+> **Wrong skill?** Executing a plan → `plan-and-execute`. Feature design → `brainstorming` or `design-triad`. Writing documentation → `readme-authoring`.
 > **See also:** [detecting-ai-slop reference](../detecting-ai-slop/reference.md) § Fabricated Calendar Timelines
 
 ## Purpose
@@ -153,3 +155,12 @@ These patterns in plan output indicate this skill was not followed:
 - When writing plans, roadmaps, or any phased work
 - Automatically co-activated with `writing-plans` skill
 - When reviewing existing plans for quality and completeness
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Calendar-disguised phase labels: "Phase 1: Quick Win" implies short duration | Audit for duration-implying words: "quick," "short," "rapid," "brief" |
+| Circular exit criteria: "Phase 2 exit: Phase 2 is complete" | Exit criteria must be independently verifiable — "what can someone check?" |
+| Parallel phases listed sequentially, implying false dependency chain | Explicitly mark phases that can run in parallel |
+| Plan presented without checking all rules | Run the Self-Check (all 5 boxes) before presenting to user |

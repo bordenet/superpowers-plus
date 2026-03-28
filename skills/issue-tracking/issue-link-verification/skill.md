@@ -19,6 +19,8 @@ coordination:
 > **Pattern:** Same rigor as wiki link verification — no broken links
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+> **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue keys → `issue-verify`.
+
 ---
 
 ## When to Use
@@ -199,6 +201,15 @@ Before posting content with links:
 ```
 
 ---
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Verifying domain but not full path — domain correct, slug fabricated | Verify the complete URL, not just the host |
+| Skipping verification for URLs "verified earlier in conversation" | Context drifts — re-verify before every post |
+| Link target exists but content doesn't match anchor text | Read the target page title, not just HTTP status |
+| Timeout on link check marked as "warn" instead of "fail" | Transient timeout → retry once; persistent → fail |
 
 ## Companion Skills
 

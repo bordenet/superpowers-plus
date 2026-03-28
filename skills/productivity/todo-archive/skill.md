@@ -19,6 +19,8 @@ coordination:
 > **Archive location:** `$(dirname $TODO_FILE_PATH)/todo-archives/`
 > **Index:** `todo-archives/INDEX.md`
 
+> **Wrong skill?** Managing active tasks → `todo-management`. Task CRUD operations → use `todo-crud.sh` directly.
+
 ---
 
 ## When to Use
@@ -181,3 +183,12 @@ show archived todos from 2026-02-01 to 2026-03-15
 | Archive file already has entries for that day | Append under existing date header (no duplicate header) |
 | HISTORY section is empty | No-op, report "No completed tasks to archive" |
 | No HISTORY section exists | No-op, report "No HISTORY section found" |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Concurrent write with todo-crud.sh corrupts archive | Use locking — abort if TODO.md is locked |
+| Losing task metadata (tags, issue links) during archival | Verify archived block matches source block character-for-character |
+| Archive runs during active task operations — split-brain | Check for in-progress tasks before archiving; warn user |
+| Count mismatch after archive but error suppressed | Hard abort + restore from backup on ANY integrity mismatch |

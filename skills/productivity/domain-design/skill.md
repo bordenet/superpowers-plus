@@ -19,6 +19,8 @@ coordination:
 > **Origin:** Codified from the Call Review Domain design (21-step, 10-phase methodology, March 2026).
 > **Output:** Prioritized skill roster, architecture decision, infrastructure map, wiki design doc + tracking page.
 
+> **Wrong skill?** Writing individual skills → `skill-authoring`. Feature design → `design-triad`. Brainstorming ideas → `brainstorming`.
+
 ## When to Use
 
 - Designing a brand-new superpowers skill family from scratch
@@ -70,12 +72,6 @@ Three rounds of diverge (brainstorm) → converge (harsh review), bookended by r
 ## Post-Design Gate
 
 Before reporting "design complete": wiki design doc published, tracking page updated, all blocker tickets filed with links in both docs.
-
-## When to Use
-
-- When planning a new superpowers skill family from scratch
-- When evaluating whether a domain needs 1 skill or 5+
-- When designing the architecture of a related skill group
 
 ## Failure Modes
 

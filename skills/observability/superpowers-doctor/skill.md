@@ -18,6 +18,8 @@ coordination:
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
 
+> **Wrong skill?** Structural lint only → `skill-health-check`. Writing/authoring skills → `skill-authoring`. Updating skills → `update-superpowers`.
+
 Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use

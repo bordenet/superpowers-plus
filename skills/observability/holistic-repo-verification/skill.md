@@ -17,6 +17,8 @@ coordination:
 
 **MANDATORY**: Use this skill before claiming any repository work is complete, before creating PRs, and before reporting that "CI is green."
 
+> **Wrong skill?** Pre-commit code quality → `pre-commit-gate`. Output verification → `output-verification`. Completion gate → `verification-before-completion`.
+
 ## The Core Principle
 
 **A repository is only "green" when ALL status indicators are green.**
@@ -130,6 +132,15 @@ GitHub Pages: ❌ errored
 - pages build and deployment (run 127): Upload artifact step failed
 - Error: tar: ./validator/js/core: File removed before we read it
 ```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Checking only most recent workflow run, not most recent of EACH workflow | List all distinct workflows, check latest run of each |
+| Claiming "all green" while a workflow is still running | Wait for completion — "in progress" is not "success" |
+| Only checking GitHub Actions — missing Azure DevOps pipelines | Use the appropriate CI/CD API for the repo's hosting platform |
+| Not waiting for Pages deployment after push | Pages builds are async — poll until status is `built` or `errored` |
 
 ## Skill Connections
 

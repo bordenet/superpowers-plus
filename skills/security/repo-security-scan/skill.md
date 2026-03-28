@@ -18,6 +18,8 @@ coordination:
 > **Purpose:** Systematic security scan of any git repository across four categories.
 > **Last Updated:** 2026-03-18
 
+> **Wrong skill?** Public repo IP leakage → `public-repo-ip-audit`. Wiki secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
+
 ## Approach
 
 Run a comprehensive security scan on a git repo without creating ad-hoc scripts. This skill orchestrates four scan categories using tools already available on the system.

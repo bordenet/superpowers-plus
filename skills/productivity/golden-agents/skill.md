@@ -15,6 +15,8 @@ coordination:
 
 # Golden Agents
 
+> **Wrong skill?** Writing individual skills → `skill-authoring`. Checking skill health → `skill-health-check`. Runtime diagnostics → `superpowers-doctor`.
+
 > **Last Updated:** 2026-02-01
 
 ## Purpose
@@ -181,7 +183,7 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 - **readme-authoring**: After setting up AI guidance, update README
 - **superpowers:verification-before-completion**: Verify files before committing
 
-## Common Failure Modes
+## Failure Modes
 
 - **Skipping detection:** Starting a workflow without first running Phase 1 detection to confirm what repos/agents exist
 - **Wrong workflow type:** Using "new repo" workflow when "upgrade" was needed (always detect first)

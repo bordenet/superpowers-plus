@@ -19,6 +19,8 @@ coordination:
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+
 ## When to Use
 
 - Updating status, assignee, labels, or any field on an existing issue/ticket
@@ -142,7 +144,7 @@ Before EVERY update:
 
 ---
 
-## Common Failure Modes
+## Failure Modes
 
 - **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
 - **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh

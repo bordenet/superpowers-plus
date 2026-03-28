@@ -17,6 +17,8 @@ coordination:
 
 > **Core principle:** Every requirement must be testable. Contradictions must be surfaced, not silently resolved.
 
+> **Wrong skill?** Feature design → `design-triad` or `brainstorming`. Implementation planning → `plan-and-execute`. Validating code output → `output-verification`.
+
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
 
 ## When to Use
