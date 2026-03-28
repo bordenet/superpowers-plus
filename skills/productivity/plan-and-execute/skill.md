@@ -93,41 +93,21 @@ Phase D: PHASE ENROLLMENT → Phase E: EXECUTE (retro → improve → do → rev
 
 ### Phase C: Stress-Test the Plan
 
-**This phase is critical. Plans almost always have significant problems that surface here.**
+**Critical — plans almost always have problems that surface here.** Minimum 2 rounds.
 
-Apply whichever combination of these tools makes sense to pressure-test the plan:
+Tools: **brainstorming** (better approaches?), **think-twice** (fresh-eyes review), **harsh review** (weakest phase? wrong dependency? untested assumption?).
 
-1. **Brainstorming** — Are there better approaches we haven't considered? Alternative phasing? Missing phases?
-2. **Think-twice** — Dispatch a fresh sub-agent with zero context to review the plan. What did we miss?
-3. **Harsh review** — Red-team the plan by answering these questions:
-   - What's the weakest phase?
-   - What dependency is wrong or missing?
-   - What will fail first?
-   - What assumption is untested?
-   - What edge case breaks the whole plan?
+If fundamentally broken → return to Phase B. Fix → "reworked, not refined."
 
-Run **minimum 2 rounds** of stress-testing. Fix issues found, then re-review.
-
-**If stress-testing reveals the plan is fundamentally broken** (the approach itself is wrong, not just needs tweaks — e.g., wrong decomposition, missing a critical phase, flawed sequencing), return to Phase B and replan. State clearly: "The plan needs to be reworked, not refined."
-
-4. **Exit gate:** Plan has survived stress-testing. All issues that would change execution are resolved. User approves the final plan.
+**Exit gate:** Plan survived stress-testing. User approves.
 
 ---
 
 ### Phase D: Phase Enrollment
 
-1. **Name the project** — ask user for a project tag or generate one (kebab-case). Example: `#plan-auth-redesign`
-2. **Enroll each phase as an autonomous TODO** via `todo-crud.sh`. "Autonomous" means: a fresh agent with no conversation history could pick up this TODO and execute it successfully. Each TODO must include:
-   - **Purpose:** WHY this phase exists
-   - **Trinity:** WHY / WHAT / HOW (with file paths, commands, concrete references — not vague gestures)
-   - **Deliverables:** Concrete outputs (files, states, artifacts)
-   - **Success Criteria:** Binary done/not-done, verifiable by command or inspection
-   - **Quality Gate:** "Run progressive harsh review on deliverables before marking complete"
-   - **Handoff State:** What the next phase needs to know (branch, last commit, partial work, gotchas)
-3. Tag all TODOs with `#plan-<project-name>`
-4. Order by dependency (not calendar)
-5. Mirror to MCP task list via `add_tasks` with parent/child structure
-6. **Exit gate:** All phases enrolled in TODO.md with full context. User confirms.
+Name project (`#plan-<name>`). Enroll each phase as autonomous TODO via `todo-crud.sh`. Each TODO: Purpose, Trinity (WHY/WHAT/HOW with concrete paths), Deliverables, Success Criteria (binary), Quality Gate, Handoff State. Tag `#plan-*`, order by dependency. Mirror to MCP `add_tasks`.
+
+**Exit gate:** All phases enrolled with full context. User confirms.
 
 ---
 
@@ -135,51 +115,23 @@ Run **minimum 2 rounds** of stress-testing. Fix issues found, then re-review.
 
 For each phase TODO, in order:
 
-#### Step 1: Pre-Phase Retrospective
+#### Step 1: Pre-Phase Retrospective (skip phase 1)
 
-**Skip for the first phase.** For all subsequent phases:
-
-Load `references/retrospective-template.md` and complete:
-
-1. **What went well** in the last phase (keep doing)
-2. **What didn't go well** (stop or change)
-3. **What did progressive harsh review surface** that we didn't anticipate?
-4. **Process improvement** — one concrete change to how we work
-5. **Quality improvement** — one concrete change to what we check
-
-**Persistence:** Summarize the retro's key findings (what changed, why) as a completion note via `todo-crud.sh complete --note "Retro: [1-3 sentence summary of findings and changes made to upcoming TODOs]"`. The full retro is in conversation context; the note captures enough for cross-session resumption.
+Load `references/retrospective-template.md`. Complete: what went well, what didn't, what harsh review surfaced, one process improvement, one quality improvement. Persist key findings via `todo-crud.sh complete --note "Retro: ..."`.
 
 #### Step 2: Improve Upcoming TODOs
 
-Review EVERY remaining TODO in the `#plan-<project>` list:
-
-1. Apply learnings from the retrospective
-2. Drive **at minimum 2 substantive improvements across all remaining TODOs** (not 2 per TODO — distribute where they add real value). If a TODO genuinely needs no changes, state why and move on. Forced improvements become filler.
-   - Sharpen success criteria based on what we learned
-   - Add guards against failure modes we discovered
-   - Improve the HOW based on what worked/didn't
-   - Strengthen the quality gate based on harsh review findings
-3. **Rewrite affected TODOs** via `todo-crud.sh` with improvements
-4. **Harsh-review rewritten TODOs** before finalizing (are the improvements real? do they conflict with other phases?)
-
-**Scaling note:** For projects with many remaining phases, focus improvement effort on the next 2-3 phases (highest impact). Scan later phases for applicability but don't force changes into distant phases that may themselves change.
+Apply retro learnings to remaining `#plan-*` TODOs. ≥2 substantive improvements across all remaining TODOs (not forced per-TODO). Focus on next 2-3 phases. Harsh-review rewritten TODOs.
 
 #### Step 3: Execute the Phase
 
-1. Re-read the TODO (it may have been improved by a prior retro)
-2. Execute the work described in the TODO
-3. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
-4. Verify success criteria are met
-5. **Before committing:** Run the commit gate chain (gates 1–3 always, 4–5 when applicable): `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit`. Your FIXES are new code — they need their own review.
-6. Mark TODO complete via `todo-crud.sh` with completion notes
-
-**If the phase fails** (deliverables don't meet criteria, blockers surface, harsh review finds critical issues): document what went wrong in the TODO note, run a retrospective immediately, and decide whether to retry the phase or trigger mid-execution replanning.
+1. Re-read TODO → execute → harsh-review deliverables → verify criteria
+2. **Commit gate chain:** `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit`
+3. Mark complete. **If phase fails:** document, immediate retro, decide retry vs replan.
 
 #### Step 4: Post-Phase Verification
 
-1. Confirm deliverables exist and meet success criteria
-2. Confirm handoff state is documented for the next phase
-3. **Exit gate:** TODO marked complete, deliverables verified, handoff state captured
+Confirm deliverables meet criteria + handoff state documented for next phase.
 
 ---
 

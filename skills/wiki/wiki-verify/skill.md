@@ -43,7 +43,6 @@ coordination:
 Look for a `## 🔍 Verification Sources` section at the bottom of the wiki page:
 
 ```markdown
----
 
 ## 🔍 Verification Sources
 
@@ -139,7 +138,6 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 **Every wiki page maintained by this skill MUST have this single-line footer at the bottom:**
 
 ```markdown
----
 
 *🔄 AI-maintained — invoke wiki-verify skill to update*
 ```
@@ -183,7 +181,6 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 
 When adding new wiki pages with codebase dependencies, add them to this registry.
-
 
 ## Companion Skills
 
