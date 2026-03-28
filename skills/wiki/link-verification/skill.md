@@ -202,21 +202,14 @@ Real page: `/doc/correct-page-abc123`.
 
 ## Code References Section Template
 
-When adding a "Code References" section to wiki pages:
+See [`references/code-references-template.md`](references/code-references-template.md).
 
-1. **List repos first** — Query your repository adapter to see what repos exist
-2. **Use relative paths** — `src/file.ts` not `repo/src/file.ts` (repo is in link)
-3. **Verify files exist** — Confirm file paths via API before linking
-4. **Column header = "Repository"** — Platform-agnostic naming
+## Example
 
-### Template
-
-```markdown
-### Code References
-
-| File | Purpose | Repository |
-|------|---------|------------|
-| `src/path/to/file.ts` | Brief description | [repo-name]([your-repo-url]) |
+```bash
+# Verify a wiki link exists before using it
+curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
+# 200 → OK. 404 → fix before publishing.
 ```
 
 ---
@@ -241,7 +234,6 @@ When adding a "Code References" section to wiki pages:
 
 ## Companion Skills
 
-- **wiki-orchestrator**: Content structure and formatting
-- **wiki-orchestrator**: Download-before-edit workflow
+- **wiki-orchestrator**: Content structure and download-before-edit workflow
 - **wiki-verify**: Post-hoc verification of wiki claims
 - **verification-before-completion**: General verification skill
