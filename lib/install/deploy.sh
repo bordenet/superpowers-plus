@@ -112,7 +112,11 @@ install_skill() {
         fi
 
         # Stage 2: Copy all override files on top (skill.md + any extras)
+        # Exclude process docs (DESIGN.md, PRD.md) — they're repo-only, not runtime
         while IFS= read -r -d '' f; do
+            local basename_f
+            basename_f=$(basename "$f")
+            [[ "$basename_f" == "DESIGN.md" || "$basename_f" == "PRD.md" ]] && continue
             cp "$f" "$dest/" || \
                 error_exit "Failed to install $(basename "$f") for skill: $skill_name"
         done < <(find "$skill_dir" -maxdepth 1 -type f -print0 2>/dev/null)
