@@ -68,11 +68,11 @@ Invoke a **single** reviewer with the monolithic prompt below. Use whatever
 sub-agent mechanism is available (e.g., `sub-agent-code-reviewer` on Augment,
 `Task()` on Claude Code). Give it a unique name per round (e.g., `review-round-1`).
 
-The monolithic reviewer MUST receive the same 4-part instruction contract:
+The monolithic reviewer MUST receive:
 1. Repo path
 2. Exact diff command matching the review scope
 3. Instruction to read full source files
-4. The monolithic review checklist:
+4. The monolithic checklist covering all review dimensions:
 
 ```
 Review the code changes in {repo_path}.
@@ -111,7 +111,7 @@ After fixing nits, run a **targeted** battery round:
 
 1. **Scope**: Only the files touched by the nit fixes (not the full original diff)
 2. **Reviewers**: Only the reviewer(s) that produced the nits in the previous round
-3. **Dispatch**: Re-capture `git diff` for just the fixed files, dispatch the scoped reviewers
+3. **Dispatch**: Re-use the original diff command with `-- <fixed-files>` appended (see coordinator.md Phase 4 for scoping rules). Dispatch the scoped reviewers with the same 4-part instruction contract.
 4. **Verdict mapping**: Same table as Step 2
 5. **Exit conditions**:
    - PASS → proceed to commit/push

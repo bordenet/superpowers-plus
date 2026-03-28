@@ -45,17 +45,18 @@ After analyzing the diff, state your triage decision:
 ### On Augment
 Dispatch activated reviewers as parallel sub-agents using `sub-agent-code-reviewer`:
 - Each sub-agent gets a unique name: `battery-<reviewer-name>`
-- Each sub-agent instruction includes:
-  1. The reviewer prompt (from `reviewers/<name>.md`)
-  2. The repo path (so it can run `git diff` and read source files)
-  3. Instructions to read the FULL changed files, not just the diff
+- Each sub-agent instruction follows the 4-part contract (see below):
+  1. Repo path
+  2. Exact diff command
+  3. Reviewer prompt
+  4. Instruction to read full source files
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
 - Wait for all to complete
 
 ### On Claude Code
 Dispatch activated reviewers using `subagent()` or `Task()` with tool access:
 - Each sub-agent needs shell access to run `git diff` and `cat` source files
-- Include the reviewer prompt + repo path in each task instruction
+- Same 4-part instruction contract as Augment dispatch (see below)
 - Fire simultaneously where the platform supports it
 
 ### Reviewer Instruction Contract
@@ -69,7 +70,8 @@ Each reviewer instruction **MUST** include these 4 elements:
    git diff HEAD~1                # last commit
    git diff @{u}..HEAD            # unpushed commits (pre-push)
    git diff main..HEAD            # branch changes
-   git diff -- file1.js file2.ts  # scoped re-review (Phase 4)
+   # Phase 4 scoped re-review: append -- <files> to original command:
+   git diff @{u}..HEAD -- file1.ts file2.ts
    ```
 3. **Reviewer prompt** — from `reviewers/<name>.md`
 4. **Instruction to read full source files** — not just the diff output

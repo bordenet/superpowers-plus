@@ -93,11 +93,10 @@ as Augment dispatch. Parallel execution where the platform supports it.
 
 ### Graceful Degradation
 
-If neither sub-agent tools nor Task() are available (e.g., a basic LLM chat):
-- The coordinator prompt includes inline fallback: "If you cannot dispatch
-  sub-agents, perform the review yourself using the following 5 checklists
-  sequentially."
-- Quality degrades (no parallelism, monolithic) but functionality is preserved.
+If parallel dispatch is not available, the `progressive-code-review-gate` defines
+a monolithic fallback path using a single reviewer with all 5 review dimensions
+combined into one checklist. The battery itself does NOT implement this fallback —
+it requires parallel sub-agent dispatch. The gate is the degradation boundary.
 
 ## Triage Coordinator Design
 
@@ -241,15 +240,14 @@ cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
 
 > **Historical note**: The original V2 experiments used `sub-agent-explore`, which has isolated context (no workspace access). This constraint led to inline diff injection. In v2 (2026-03-28), the battery switched to `sub-agent-code-reviewer`, which has full workspace access. Reviewers now run `git diff` themselves and read source files directly. The inline diff constraint no longer applies.
 
-Original constraint (for reference):
-1. The coordinator determines the diff command (staged/unstaged/branch)
-2. Each reviewer runs the diff command itself and reads full source files
-3. For large diffs, reviewers can focus on their area of concern within the changed files
-   (e.g., Defect Finder gets src/ changes, Guardian gets config/ changes)
-4. This is a token cost driver — the diff is repeated N times (once per reviewer)
+Original constraint (v1, `sub-agent-explore`):
+1. The coordinator captured the full diff before dispatching
+2. Each reviewer received the full diff INLINE in its instruction
+3. Reviewers could NOT read workspace files or run code
+4. Token cost scaled with diff size × number of reviewers
 
-**Mitigation**: Triage gating reduces N (fewer reviewers = fewer copies of the diff).
-For very large diffs (>2000 lines), consider per-file dispatch instead of per-reviewer.
+**v2 resolution** (2026-03-28, `sub-agent-code-reviewer`): reviewers now run the
+diff command themselves, eliminating inline injection and enabling code execution.
 
 
 ### V4 Analysis: Monolithic vs Battery
