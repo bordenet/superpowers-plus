@@ -42,7 +42,10 @@ Do NOT report stylistic preferences or hypothetical issues.
 For each finding, use this structured format:
 
 ### Finding F\<n\>
-- **Severity**: Critical / Important / Minor
+- **Severity** (use these definitions consistently):
+  - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
+  - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
 - **File:Line**: Exact location (e.g., `src/auth.ts:42`)
 - **Issue**: What is wrong (1–2 sentences)
 - **Why**: Why this matters (what breaks, what data is lost, what is insecure)
