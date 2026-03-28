@@ -65,6 +65,12 @@ coordination:
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands
 
 
+## Companion Skills
+
+- **wiki-verify**: Broader wiki page verification
+- **link-verification**: Checking links within wiki pages
+- **wiki-content-coherence**: Checking for content duplication
+
 ## When to Use
 
 - When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")

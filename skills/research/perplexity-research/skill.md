@@ -197,3 +197,9 @@ See `references/escalation.md` for the full decision tree.
 
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
+
+## Companion Skills
+
+- **expert-interviewer**: For structured domain expert interviews
+- **incorporating-research**: Merging Perplexity findings into docs
+- **think-twice**: When stuck — Perplexity is an escalation target

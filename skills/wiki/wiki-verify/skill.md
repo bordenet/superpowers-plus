@@ -185,6 +185,12 @@ Central fallback registry: `superpowers-plus/wiki-sources.yaml`
 When adding new wiki pages with codebase dependencies, add them to this registry.
 
 
+## Companion Skills
+
+- **wiki-debunker**: Deeper fact-checking of specific claims
+- **link-verification**: Checking wiki page links
+- **wiki-orchestrator**: Full wiki editing pipeline
+
 ## When to Use
 
 - After wiki pages referencing code/configs are updated
