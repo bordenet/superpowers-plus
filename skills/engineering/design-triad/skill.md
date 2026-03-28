@@ -131,43 +131,20 @@ Design document with:
 3. Edge-case catalog from Step 4
 4. Harsh review findings and resolutions
 
-## Example: Comparison Matrix Output
+## Example
 
 ```markdown
 | Criterion | A: Event-driven | B: Polling | C: Hybrid |
 |-----------|----------------|------------|-----------|
-| Complexity | Medium, new infra | Low, cron job | High, both paths |
-| Testability | Hard, async | Easy, sync | Medium |
-| Maintainability | Good, decoupled | Good, simple | Poor, two systems |
-| Risk | Message loss | Stale data | Complexity debt |
-| Fit with patterns | Matches existing | New pattern | Mixed |
+| Complexity | Medium | Low | High |
+| Testability | Hard (async) | Easy (sync) | Medium |
+| Risk | Message loss | Stale data | Complexity |
+| Fit | Matches existing | New pattern | Mixed |
 ```
 
 ## Rationalizations to Reject
 
-| Excuse | Reality |
-|--------|---------|
-| "There's only one way to do this" | You haven't thought hard enough. Invoke `think-twice`. |
-| "The other options are obviously wrong" | Document WHY in the matrix. That's the point. |
-| "This is too simple for 3 options" | Simple designs have unexamined assumptions. |
-| "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
-| "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
-| "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
-| "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
-| "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
-| "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |
-
-
-## Example
-
-```bash
-# Score each design option
-echo "| Option | Simplicity | Extensibility | Testability | Total |"
-echo "|--------|:----------:|:-------------:|:-----------:|:-----:|"
-echo "| A      | 4          | 3             | 5           | 12    |"
-echo "| B      | 3          | 5             | 4           | 12    |"
-echo "| C      | 5          | 2             | 3           | 10    |"
-```
+"Only one way" → invoke think-twice. "Obviously wrong" → document WHY. "Too simple for 3" → unexamined assumptions. "Converged at Step 3" → that's Round 1, need Round 2. "Reviewed my own" → author ≠ reviewer.
 
 ## Failure Modes
 

@@ -41,7 +41,6 @@ Run a comprehensive security scan on a git repo without creating ad-hoc scripts.
 - Public repo IP leakage → use `public-repo-ip-audit`
 - Wiki-sourced instruction safety → use `wiki-instruction-guard`
 
----
 
 ## Scan Process
 
@@ -151,7 +150,6 @@ git ls-files -z 2>/dev/null | xargs -0 grep -lnE \
   2>/dev/null | grep -v 'test\|spec\|\.md$'
 ```
 
----
 
 ## Fix Workflow
 
@@ -174,7 +172,6 @@ fix(security): replace eval() with JSON.parse() in parser.js
 
 After all fixes, **re-run the full scan** to confirm zero remaining issues. Use `superpowers:verification-before-completion` — evidence before assertions.
 
----
 
 ## Rules
 
@@ -187,7 +184,6 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 ## Companion Skills
 
 `security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
-
 
 - **security-upgrade**: Dependency upgrade after scan findings
 - **wiki-secret-audit**: Wiki-side secret scanning

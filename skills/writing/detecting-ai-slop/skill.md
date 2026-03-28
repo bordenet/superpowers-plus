@@ -37,8 +37,6 @@ This skill analyzes text and produces a **slop score** (0-100) with detailed bre
 - Compare before/after versions of edited text
 - Triage documents: which need the most cleanup?
 
----
-
 
 ## Scope Exclusions
 
@@ -62,7 +60,6 @@ The skill auto-detects content type from context:
 
 **Override:** "Analyze this as a [type]: [text]"
 
----
 
 ## Output Format
 
@@ -89,7 +86,6 @@ Stylometric Measurements:
 Verdict: Heavy slop. Substantial rewrite needed.
 ```
 
----
 
 ## Scoring Algorithm
 
@@ -112,7 +108,6 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | 61-80 | Heavy: significant slop, substantial rewrite needed |
 | 81-100 | Severe: text reads as unedited AI output |
 
----
 
 ## Stylometric Thresholds
 
@@ -125,7 +120,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Type-Token Ratio | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
 | Hapax legomena rate | Below user baseline | At or above baseline |
 
----
 
 ## Structural Patterns (25 points max)
 
@@ -137,7 +131,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Staccato Paragraphs | >50% are 1-2 sentences | +5 |
 | Symmetric Coverage | Equal weight to all options without prioritization | +5 |
 
----
 
 ## Semantic Patterns (20 points max)
 
@@ -148,7 +141,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Balanced to a Fault | Every pro has matching con of equal weight | +5 |
 | Circular Reasoning | Rephrases thesis without new evidence | +5 |
 
----
 
 ## Lexical Pattern Categories
 
@@ -163,7 +155,6 @@ For the complete pattern dictionary, see [reference.md](./reference.md).
 | Sycophancy | "Great question!", "Happy to help!" | Delete |
 | Typographic Tells | em-dash (—), smart quotes | Replace with standard punctuation |
 
----
 
 ## Dictionary Integration
 
@@ -175,7 +166,6 @@ This skill reads from `.slop-dictionary.json` if present in workspace root.
 
 **Note:** This skill reads from the dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
 
----
 
 ## Semantic Quick Tests
 
@@ -188,7 +178,6 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 | **Constraint** | "Implement microservices for scalability" | "Microservices add 3x ops overhead. Stay monolith unless dedicated platform team." |
 | **First-Person** | Generic enough to apply anywhere | Grounded in specific context |
 
----
 
 ## Companion Skills
 
