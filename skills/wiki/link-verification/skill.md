@@ -86,7 +86,6 @@ Invoke when:
 
 ---
 
-
 ## Scope Exclusions
 
 - Issue link verification → `issue-link-verification`

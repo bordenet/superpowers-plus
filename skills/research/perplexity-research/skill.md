@@ -22,6 +22,14 @@ coordination:
 
 > **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
 
+
+## When to Use
+
+- Research questions requiring current, cited sources
+- When web-search returns insufficient or outdated results
+- Technical comparisons needing multiple authoritative sources
+- When you need citation URLs to verify claims
+
 ## When to Invoke (Automatic Triggers)
 
 You MUST invoke this skill when ANY of these conditions are met:

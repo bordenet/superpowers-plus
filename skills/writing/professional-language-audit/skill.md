@@ -21,6 +21,13 @@ coordination:
 > **Last Updated:** 2026-03-11
 > **Incident:** Profanity found in documentation during audit. AI slop skills didn't catch it.
 
+
+## When to Use
+
+- Before publishing any user-facing text
+- Pre-commit gate step 4 (after code review)
+- When content includes casual or potentially inappropriate language
+
 ## Gate Behavior
 
 This skill scans content for profanity and unprofessional language BEFORE it reaches user-facing documentation. It operates as a **HARD GATE** — content with profanity cannot be published.
