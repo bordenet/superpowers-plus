@@ -18,7 +18,7 @@ coordination:
 
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
-**Why this exists**: A single monolithic reviewer tries to evaluate everything simultaneously, leading to shallow coverage. Specialized reviewers with focused prompts and code execution produce deeper, broader analysis — finding more issues across more dimensions while maintaining the same verification rigor as monolithic review.
+**Why this exists**: A single monolithic reviewer tries to evaluate everything simultaneously, leading to shallow coverage. Specialized reviewers with focused prompts and workspace access produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. Each reviewer uses `sub-agent-code-reviewer` for the same code-execution capability as monolithic review.
 
 ## When to Use
 
@@ -53,10 +53,11 @@ Read the reviewer prompt from `reviewers/<name>.md`. Dispatch ALL activated revi
 
 **On Claude Code** — use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell access to run `git diff` and `cat` source files. Use parallel dispatch where supported.
 
-Each reviewer instruction MUST include:
-1. The repo path (so it can `cd` there and run `git diff`)
-2. Instructions to read the FULL source files for changed code (not just the diff)
-3. The reviewer prompt from `reviewers/<name>.md`
+Each reviewer instruction MUST include (see `coordinator.md` for the full contract):
+1. **Repo path** — so the reviewer can `cd` to the right directory
+2. **Exact diff command** — matching the review scope (e.g., `git diff --cached`, `git diff @{u}..HEAD`, `git diff main..HEAD`)
+3. **Reviewer prompt** — from `reviewers/<name>.md`
+4. **Instruction to read full source files** — not just the diff output
 
 ### Step 4: Aggregate
 

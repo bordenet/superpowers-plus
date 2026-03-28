@@ -127,15 +127,19 @@ When the gate verdict is PASS_WITH_NITS and fixes have been applied, run a scope
 
 ### Scoping Rules
 
-1. **Files**: Only files modified by the nit fixes (`git diff` after fixes)
+1. **Files**: Only files modified by the nit fixes
 2. **Reviewers**: Only the reviewer(s) that produced the nits — do NOT re-run clean reviewers
-3. **Diff**: Re-capture a fresh `git diff` scoped to the fixed files only
+3. **Diff command**: Must preserve the original review scope but restrict to affected files.
+   Use the original diff command with a `-- <file>` suffix:
+   - Original: `git diff @{u}..HEAD` → Scoped: `git diff @{u}..HEAD -- file1.ts file2.ts`
+   - Original: `git diff --cached` → Scoped: `git diff --cached -- file1.ts file2.ts`
+   - Original: `git diff main..HEAD` → Scoped: `git diff main..HEAD -- file1.ts file2.ts`
 
 ### Procedure
 
 1. Identify which reviewer(s) produced the Minor/Important findings that triggered PASS_WITH_NITS
-2. Scope the diff command: `git diff -- <file1> <file2> ...` (only nit-affected files)
-3. Dispatch only those reviewer(s) with the scoped diff command and repo path
+2. Build the scoped diff command: `{original_diff_command} -- <file1> <file2> ...`
+3. Dispatch only those reviewer(s) with the scoped diff command, repo path, reviewer prompt, and full-file instruction
 4. Aggregate results using Phase 3 rules
 5. Return verdict to the gate (Step 3)
 

@@ -61,15 +61,23 @@ Map battery output to gate verdicts:
 
 On re-review rounds (Round 2+): skip triage, re-dispatch the SAME reviewers from Round 1.
 
-**Fallback** (only if battery dispatch is impossible — e.g., no parallel sub-agent support, no `sub-agent-code-reviewer` available, or sub-agents lack shell/tool access):
+**Fallback** (only if parallel sub-agent dispatch is impossible — e.g., platform
+does not support firing multiple sub-agents simultaneously):
 
-Invoke a single `sub-agent-code-reviewer` with a unique name per round (e.g., `review-round-1`):
+Invoke a **single** reviewer with the monolithic prompt below. Use whatever
+sub-agent mechanism is available (e.g., `sub-agent-code-reviewer` on Augment,
+`Task()` on Claude Code). Give it a unique name per round (e.g., `review-round-1`).
+
+The monolithic reviewer MUST receive the same 4-part instruction contract:
+1. Repo path
+2. Exact diff command matching the review scope
+3. Instruction to read full source files
+4. The monolithic review checklist:
 
 ```
 Review the code changes in {repo_path}.
-Run `cd {repo_path} && git diff` to see the diff.
+Run `cd {repo_path} && {exact_diff_command}` to see the diff.
 Read the full source files for all changed code.
-(For pre-push: `git diff @{u}..HEAD`)
 
 Be harsh and adversarial. Check for:
 1. Logic errors, off-by-one, edge cases

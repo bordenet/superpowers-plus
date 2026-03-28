@@ -55,12 +55,8 @@
 │   ├── guardian.md              # Agent 3 prompt
 │   ├── standards-enforcer.md   # Agent 4 prompt
 │   └── performance-analyst.md  # Agent 5 prompt
-└── claude-code/                # Claude Code subagent files (installed to .claude/agents/)
-    ├── defect-finder.md
-    ├── design-critic.md
-    ├── guardian.md
-    ├── standards-enforcer.md
-    └── performance-analyst.md
+└── (no platform-specific files — dispatch uses sub-agent-code-reviewer on Augment,
+     subagent()/Task() on Claude Code)
 ```
 
 ## Platform Dispatch
@@ -69,48 +65,31 @@
 
 Uses `sub-agent-code-reviewer` with unique names. All 5 fire in parallel:
 
+Each reviewer instruction follows the 4-part contract from `coordinator.md`:
+
 ```
 # Dispatched by the coordinator (the orchestrating agent):
-sub-agent-code-reviewer(name="battery-defect-finder", instruction=<reviewer prompt + repo path>)
-sub-agent-code-reviewer(name="battery-design-critic", instruction=<reviewer prompt + repo path>)
-sub-agent-code-reviewer(name="battery-guardian", instruction=<reviewer prompt + repo path>)
-sub-agent-code-reviewer(name="battery-standards", instruction=<reviewer prompt + repo path>)
-sub-agent-code-reviewer(name="battery-performance", instruction=<reviewer prompt + repo path>)
+sub-agent-code-reviewer(
+  name="battery-defect-finder",
+  instruction="<reviewer prompt> + repo path + exact diff command + read full files"
+)
+# ... repeated for each activated reviewer
 ```
 
 **Why `sub-agent-code-reviewer`?**
 - Reviewers have full workspace access — they can read source files, run tests, and execute code
 - Benchmarking showed `sub-agent-explore` (static diff analysis) missed deep architectural bugs that required code execution to find
-- `sub-agent-code-reviewer` produces same quality as monolithic review but with parallel speedup
-- Each reviewer runs `git diff` themselves and reads full source files for changed code
+- Parallel execution with workspace access gives both speed and quality
+- Each reviewer runs the exact `git diff` command matching the review scope and reads full source files
 
-### Claude Code
+### Claude Code (deferred — documented, not yet validated)
 
-Two options (prefer Option A):
+Use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell
+access to run `git diff` and `cat` source files. Same 4-part instruction contract
+as Augment dispatch. Parallel execution where the platform supports it.
 
-**Option A: Custom Subagent Files** (recommended)
-Install `.claude/agents/` files during setup. Claude auto-delegates based on description:
-
-```yaml
-# .claude/agents/battery-defect-finder.md
----
-name: battery-defect-finder
-description: "Code review focused on defects: correctness, edge cases, error handling, concurrency"
-tools: ["View", "Bash", "Grep"]
----
-<defect-finder prompt content>
-```
-
-**Option B: Inline Task Dispatch**
-The skill instructs the agent to use `Task()` calls directly:
-```
-Task("Review for defects: <diff content>")
-Task("Review for design: <diff content>")
-```
-
-Option A is preferred because it survives across sessions, auto-delegates, and
-can be version-controlled. Option B is simpler but requires the agent to
-understand the dispatch pattern each time.
+> **Status**: Claude Code dispatch is documented in `skill.md` and `coordinator.md`
+> but has not been validated in a CC environment (AC5 deferred). See PRD.md.
 
 ### Graceful Degradation
 
@@ -232,13 +211,11 @@ delegate to the battery when available.
 cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
 ```
 
-### Claude Code
-```bash
-# Copy reviewer prompts as custom subagent files
-mkdir -p .claude/agents/
-for reviewer in defect-finder design-critic guardian standards-enforcer performance-analyst; do
-  cp ~/.agents/skills/code-review-battery/claude-code/$reviewer.md .claude/agents/battery-$reviewer.md
-done
+### Claude Code (deferred)
+```
+# No platform-specific install needed. Reviewer prompts are in reviewers/.
+# The skill.md and coordinator.md contain dispatch instructions for Claude Code.
+# See AC5 in PRD.md — not yet validated in a CC environment.
 ```
 
 ## Investigation Log
