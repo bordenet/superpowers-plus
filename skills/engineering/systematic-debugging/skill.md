@@ -122,3 +122,4 @@ grep -rn "functionName(" --include="*.ts" src/ | wc -l
 - **adversarial-search**: When debugging hits confirmation bias
 - **think-twice**: Escalation when debugging is stuck
 - **receiving-code-review**: Responding to review feedback
+- **failure-autopsy**: Post-mortem on failed approaches
