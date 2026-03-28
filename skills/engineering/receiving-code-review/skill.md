@@ -191,3 +191,4 @@ grep -rn "\.getData()" --include="*.ts" src/ | grep -v "?." | grep -v "!= null"
 - **providing-code-review**: How the reviewer should structure feedback
 - **code-review**: File-protocol review (may generate the feedback you're processing)
 - **systematic-debugging**: For investigating complex review findings
+- **code-review-respond**: Review response workflow

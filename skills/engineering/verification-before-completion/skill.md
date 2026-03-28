@@ -222,13 +222,18 @@ being caught in self-review.
 | 2026-03-13 | Said "Shipped! 🚀" after git push before verifying PR created | Trust erosion, required post-hoc verification |
 | 2026-03-23 | Claimed "Fixed" without dispatching code reviewer | State leak caught only after user forced review |
 
+## Example
+
+```bash
+# WRONG: "Tests pass" without evidence
+# RIGHT: Run and show output
+npm test 2>&1 | tail -5  # Show actual results
+echo "Exit code: $?"      # Prove success
+```
+
 ## The Bottom Line
 
-**No shortcuts for verification.**
-
-Run the command. Read the output. THEN claim the result.
-
-This is non-negotiable.
+Run the command. Read the output. THEN claim the result. Non-negotiable.
 
 ## Failure Modes
 
