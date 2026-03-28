@@ -56,7 +56,7 @@ coordination:
 - Possessive attribution from wiki plan ("Junyi's queries") — verify in issue tracker
 - Exact percentages without data source
 
-## Reference Files
+## References
 
 - [`references/report-format.md`](references/report-format.md) — Report template, citation formats
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands

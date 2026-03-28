@@ -22,7 +22,7 @@ coordination:
 - Refactoring a data model that crosses service boundaries
 - Splitting or merging fields (e.g., `trackingLine` → `inboundLine`/`outboundLine`)
 
-## Overview
+## Why Renames Are Dangerous
 
 Field renames and API contract changes are the #1 source of production incidents from "complete" work that wasn't actually complete.
 
@@ -147,8 +147,16 @@ BEFORE claiming a field rename is complete:
 Skip any step = incomplete work
 ```
 
-## Related Skills
+## Companion Skills
 
-- `verification-before-completion` - General verification discipline
-- `systematic-debugging` - When the field mismatch causes runtime errors
-- `link-verification` - For verifying API endpoint URLs still exist
+- `verification-before-completion` — General verification discipline
+- `systematic-debugging` — When the field mismatch causes runtime errors
+- `link-verification` — For verifying API endpoint URLs still exist
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Missing a consumer across service boundary | Search ALL repos, not just current. Check API clients, shared libs. |
+| Renaming in code but not in config/env files | Check .env files, docker-compose, CI configs, deployment manifests |
+| Database column rename without migration | Column renames need a migration. Check ORM models match DB schema. |

@@ -142,7 +142,7 @@ Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suff
 
 ---
 
-## Integration with Other Skills
+## Skill Connections
 
 | Skill | Integration |
 |-------|-------------|

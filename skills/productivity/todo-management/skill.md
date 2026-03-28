@@ -145,15 +145,11 @@ When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **cl
 
 ---
 
-## Overview
+## How It Works
 
-Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags based on context, and provides queryable history.
+Conversational TODO management through AI dialog. Captures tasks in ≤15 seconds, P1/P2/P3 priority, auto-tagged. **Announce at start:** "I'm using the todo-management skill."
 
-**Announce at start:** "I'm using the todo-management skill."
-
----
-
-## Quick Reference
+## Command Reference
 
 | Command | Action |
 |---------|--------|

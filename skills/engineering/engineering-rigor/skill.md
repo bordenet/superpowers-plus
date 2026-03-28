@@ -1,7 +1,7 @@
 ---
 name: engineering-rigor
 source: superpowers-plus
-triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done"]
+triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done", "which verification skill", "what gate should I use", "which quality check"]
 description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, output-verification, code-review-battery, and providing-code-review.
 summary: "Use when: need hub for pre-commit, blast-radius, output-verification, code review battery, or code review skills."
 coordination:
@@ -62,7 +62,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 
 **Root Cause:** "Blinders on" implementation — trusting the plan without tracing the actual data flow.
 
-## Quick Reference: Which Skill?
+## Dispatch Table
 
 ```
 Am I describing generated output? → output-verification
@@ -86,7 +86,7 @@ Before writing feature code, validate the architectural approach:
 
 If any question surfaces a red flag, address it BEFORE implementation. Use `design-triad` for structured design evaluation.
 
-## Related Skills
+## Companion Skills
 
 - `output-verification` — Hard gate: no claims about output without inspection
 - `code-review-battery` — Parallel specialized review with 5 focused agents
@@ -94,3 +94,11 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Handling request inline instead of dispatching | This is a router. Dispatch to the right sub-skill, don't DIY. |
+| Wrong skill selected from dispatch table | Check skill descriptions. When in doubt, load both and compare. |
+| Skipping output-verification before claiming done | output-verification fires BEFORE verification-before-completion |

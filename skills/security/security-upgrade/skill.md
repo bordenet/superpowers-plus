@@ -17,7 +17,7 @@ coordination:
 
 > **Last Updated:** 2026-01-31
 
-## Overview
+## Workflow Summary
 
 This skill provides a systematic workflow for security dependency auditing and upgrading. Use it to scan for CVEs, upgrade vulnerable packages, validate changes, and commit fixes.
 

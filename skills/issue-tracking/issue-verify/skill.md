@@ -112,7 +112,7 @@ Summary: 2 verified, 1 not found
 
 ---
 
-## Quick Reference
+## Verification Checklist
 
 ```
 Before referencing ANY issue key:
@@ -124,7 +124,7 @@ Before referencing ANY issue key:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues

@@ -18,7 +18,7 @@ coordination:
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-06
 
-## Overview
+## Approach
 
 Author and maintain README.md files that onboard contributors in <5 minutes. Treat the README as your project's **API documentation for humans**.
 
@@ -205,7 +205,7 @@ Markdown lint: PASS (0 errors)
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **detecting-ai-slop**: Analyze README for slop score
 - **eliminating-ai-slop**: GVR loop for clean generation
@@ -222,7 +222,7 @@ For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https
 - **Stale examples:** Code examples that no longer compile or reference deprecated APIs
 
 
-## Reference Files
+## References
 
 - [`references/anti-slop-rules.md`](references/anti-slop-rules.md) — Word/phrase blocklist, vague→concrete replacements, rewriting examples
 - [`references/linting-rules.md`](references/linting-rules.md) — Common lint errors (MD058, MD009, etc.), table formatting, pre-commit checks
