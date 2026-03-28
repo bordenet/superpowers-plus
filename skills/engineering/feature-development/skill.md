@@ -217,3 +217,4 @@ npm run lint && npm test
 - **progressive-code-review-gate**: Code review enforcement
 - **test-driven-development**: TDD workflow
 - **subagent-driven-development**: Multi-agent development
+- **autonomous-chain-controller**: Full workflow orchestration
