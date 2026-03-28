@@ -673,16 +673,16 @@ This exceeds 1,500 but is within the 2,000 token sweet spot — and sub-agent in
 
 Every reviewer prompt requires these changes to support Phase 2f:
 
-**All 6 reviewers**:
+**Changes to reviewer .md files (all 6 reviewers)**:
 - Replace current `## Output Format` section with the structured finding schema (see Enhancement 2)
 - Current format (`**Severity**: ... **File:Line**: ... **Issue**: ...`) → structured block (`### Finding F<n>` with `- **file**:`, `- **line**:`, `- **symbol**:`, `- **severity**:`, etc.)
 - Add `- **confidence**: High / Possible` (replacing the prose "Possible: ..." prefix)
 - Add `- **scope**: isolated / systemic` with `- **instances**:` list when systemic
+- For monolith/defect-finder/guardian: add `- **evidence**:` as a required schema field (since investigation protocol will be loaded alongside)
+- For monolith: replace `- **Cross-cutting?**: Yes/No` with `- **cross-cutting**: yes / no`
 
-**Monolith, Defect Finder, Guardian only** (coordinator-side, NOT in reviewer prompts):
-- Coordinator loads `investigation-protocol.md` alongside the reviewer prompt at dispatch time
-- Add `- **evidence**:` as a required field in finding schema (this IS embedded in the reviewer prompt as part of the structured schema)
-- Replace monolith's `- **Cross-cutting?**: Yes/No` with `- **cross-cutting**: yes / no`
+**Changes to coordinator dispatch logic (NOT in reviewer .md files)**:
+- For monolith, defect-finder, guardian: load `investigation-protocol.md` alongside the reviewer prompt at dispatch time
 
 **Guardian only**:
 - Add sub-dimension `5. Reliability & Resilience` (see Enhancement 4)
@@ -716,7 +716,7 @@ Every reviewer prompt requires these changes to support Phase 2f:
 
 1. **Context expansion timeout**: Each context-expansion step (grep, find, git log) is wrapped in `timeout 10 <command>`. Test execution (opt-in) uses `timeout 15 <command>`. The coordinator tracks wall-clock time for Phase 1.5; if total exceeds 60s, it stops running remaining steps, reports partial context, and continues to dispatch. These timeouts are implemented by the coordinator using the shell `timeout` command (GNU coreutils), not by LLM self-regulation.
 2. **Verification depth**: Start with Checks 1-3 only (file/line/symbol), add claim verification (Check 4) incrementally after measuring false-negative rate.
-3. **Semgrep availability**: Optional dependency — generate both formats, use Semgrep when available.
+3. **Semgrep availability**: Optional dependency. When Semgrep is installed, generate Semgrep YAML and validate with `semgrep --validate`. When Semgrep is NOT installed, generate shell scripts only (do not generate Semgrep YAML that cannot be validated).
 4. **Investigation round limit**: The Investigation Protocol instructs reviewers to "investigate before reporting" but does not enforce a search limit — reviewers are LLM sub-agents with their own token budgets. In practice, each sub-agent is dispatched with a fixed prompt and returns when done. No external timer is applied. If investigation causes a reviewer to return very large output, the coordinator truncates findings to the first 20 per reviewer during aggregation.
 
 ## Acceptance Criteria (Phase 2f)
@@ -730,7 +730,7 @@ Every reviewer prompt requires these changes to support Phase 2f:
 | AC31 | Battery precision improves vs Phase 2 baseline on ≥3 benchmark diffs (measure, don't target a specific %) | Must Pass |
 | AC32 | Investigation Protocol produces evidence-backed findings on ≥3 real diffs | Must Pass |
 | AC33 | Enhanced dimensions (reliability, layering, test adequacy) fire on relevant diffs | Should Pass |
-| AC34 | Semgrep YAML rules generated from gap analysis on ≥1 real gap; rule passes `semgrep --validate` (if Semgrep available) or YAML parse check | Should Pass |
+| AC34 | When Semgrep is installed: Semgrep YAML rules generated from gap analysis on ≥1 real gap and pass `semgrep --validate`. When Semgrep is not installed: shell script generated instead (no Semgrep YAML emitted). | Should Pass |
 | AC35 | Total review time (with context expansion + verification) ≤ 2x monolithic | Must Pass |
 | AC36 | Every prompt-loaded file ≤1,500 tokens after all Phase 2f changes are applied (including structured schema addition to reviewer prompts). Measurement: `wc -w <file>` × 1.33 ≈ token count. Run on all files in the "Summary of All File Changes" table. If any file exceeds budget after implementation, trim content or split further. | Must Pass |
 | AC37 | No single coordinator-loaded file exceeds 1,500 tokens. Reviewer sub-agent instructions may exceed 1,500 (up to ~2,000) since they are the sole instruction in a fresh LLM call with no competing content. | Must Pass |
