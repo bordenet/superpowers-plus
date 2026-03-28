@@ -229,11 +229,8 @@ Concerns:
 
 ## Companion Skills
 
-| Resource | Purpose |
-|----------|---------|
-| [CLAUDE.md](../../../CLAUDE.md) | Writing standards (no AI slop) |
-| `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
-| `detecting-ai-slop` | Score research quality before incorporating |
+- **eliminating-ai-slop**: Clean up pasted text · **detecting-ai-slop**: Score research quality
+- **expert-interviewer**: Structured knowledge extraction · **perplexity-research**: Web research
 
 ## Example
 
