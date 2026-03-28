@@ -57,12 +57,6 @@
 │   ├── standards-enforcer.md   # Agent 4 — docs, test quality, observability
 │   ├── performance-analyst.md  # Agent 5 — performance, logging
 │   └── monolith.md             # On-demand comprehensive reviewer
-├── [v1 deprecated — not used by v2 procedure]
-│   ├── context-expansion.md
-│   ├── verification.md
-│   ├── investigation-protocol.md
-│   ├── gap-analysis.md
-│   └── implementation-plan.md
 ```
 
 > **Monolith demotion rationale (v2):** V4 validation showed monolith had higher single-reviewer recall than any specialist. However, v2's ripple analysis techniques (consumer trace, state lifecycle, feedback loop analysis) absorbed the monolith's recall advantage into the specialist prompts. The 5-specialist battery now matches or exceeds monolith recall while providing structured, attributable findings. Monolith retained as on-demand fallback for comprehensive single-pass reviews.
