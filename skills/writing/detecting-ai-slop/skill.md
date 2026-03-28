@@ -195,6 +195,7 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection
 - **readme-authoring**: README generation
+- **incorporating-research**: Score research quality before incorporating
 ## Example
 
 ```bash
