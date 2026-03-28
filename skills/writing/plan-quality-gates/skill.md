@@ -163,6 +163,13 @@ These patterns in plan output indicate this skill was not followed:
 - Automatically co-activated with `writing-plans` (upstream) skill
 - When reviewing existing plans for quality and completeness
 
+
+## Scope Exclusions
+
+- Plan execution → `plan-and-execute`
+- Brainstorming plan options → `brainstorming`
+- Code review → `progressive-code-review-gate`
+
 ## Failure Modes
 
 | Failure | Fix |

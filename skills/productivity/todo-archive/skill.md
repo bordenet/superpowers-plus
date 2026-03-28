@@ -41,6 +41,13 @@ coordination:
 
 ---
 
+
+## Scope Exclusions
+
+- Active task management → `todo-management`
+- Plan creation → `plan-and-execute`
+- Searching active tasks → `todo-management`
+
 ## Archive Workflow
 
 ### Step 1: Resolve paths

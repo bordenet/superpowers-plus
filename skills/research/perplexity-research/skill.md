@@ -198,6 +198,13 @@ See `references/escalation.md` for the full decision tree.
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
 
+
+## Scope Exclusions
+
+- Quick web search → use `web-search` tool directly
+- Structured domain interviews → `expert-interviewer`
+- Code search → use `codebase-retrieval` tool
+
 ## Companion Skills
 
 - **expert-interviewer**: For structured domain expert interviews

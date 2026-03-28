@@ -32,12 +32,29 @@ coordination:
 4. **Present** with risks and a concrete next-week experiment per idea. See `references/output-template.md`.
 5. **If stuck:** invoke `perplexity-research` for adjacent domain exploration or `think-twice` for fresh perspective.
 
+## Scope Exclusions
+
+- Incremental feature requests → `brainstorming`
+- Bug fixes or refactoring → `systematic-debugging` / `engineering-rigor`
+- Evaluating existing design options → `design-triad`
+- Implementation planning → `plan-and-execute`
+
 ## Key Principles
 
 - **Bold over safe** — 10x, not 10%
 - **Feasible over fantasy** — radical ≠ impossible
 - **Accretive** — build on existing strengths
 - **Concrete** — every idea needs a next-week experiment
+
+## Scoring Example
+
+| Idea | Impact (×3) | Feasibility (×2) | Alignment | Uniqueness | **Total** |
+|------|:-----------:|:-----------------:|:---------:|:----------:|:---------:|
+| AI-powered call scoring | 5 (15) | 3 (6) | 5 | 4 | **30** |
+| Real-time coaching overlay | 5 (15) | 2 (4) | 4 | 5 | **28** |
+| Self-healing config pipeline | 3 (9) | 4 (8) | 4 | 3 | **24** |
+
+**Gate:** If no idea scores ≥25, the problem space may need reframing — invoke `think-twice`.
 
 ## Follow-Up
 

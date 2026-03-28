@@ -208,6 +208,13 @@ Multiple skills fire on "before commit". Execute in this order:
 **Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
 
 
+
+## Scope Exclusions
+
+- AI slop detection → `detecting-ai-slop`
+- AI slop removal → `eliminating-ai-slop`
+- Code review → `progressive-code-review-gate`
+
 ## Failure Modes
 
 - **Over-flagging technical terms:** Words like "kill," "abort," "master" in engineering contexts are often appropriate
