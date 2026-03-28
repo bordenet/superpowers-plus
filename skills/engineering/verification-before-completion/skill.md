@@ -25,17 +25,9 @@ coordination:
 
 ## Companion Skills
 
-- **pre-commit-gate**: Pre-commit quality checks (this runs at completion)
-- **output-verification**: Verifying generated output
-- **holistic-repo-verification**: Full repo health check
-
-- **completeness-check**: Quick scope check (lighter)
-- **adversarial-search**: Confirmation bias prevention before completion
-- **exhaustive-audit-validation**: Deep audit (heavier)
-- **link-verification**: Link checking step
-- **issue-comment-debunker**: Fact-checking before completion
-- **todo-guardian**: TODO enforcement gate
-- **measurement-integrity**: Metric validation
+- **pre-commit-gate**: Pre-commit checks · **output-verification**: Output inspection · **holistic-repo-verification**: Repo health
+- **completeness-check**: Quick scope · **exhaustive-audit-validation**: Deep audit · **adversarial-search**: Bias prevention
+- **todo-guardian**: TODO enforcement · **measurement-integrity**: Metric validation
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim
@@ -46,45 +38,11 @@ coordination:
 
 ## Core Principle
 
-Claiming work is complete without verification is dishonesty, not efficiency.
+Evidence before claims, always. Violating the letter = violating the spirit.
 
-**Core principle:** Evidence before claims, always.
+**Pre-checks:** Generated output → `output-verification` first. Bulk edit/audit → `exhaustive-audit-validation` first.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
-
-## Completion-Gate Coordination
-
-**BEFORE running this skill's gate function, check:**
-
-| Task Type | Action |
-|-----------|--------|
-| Generated output (files, PDFs, API responses, script results) | Invoke `output-verification` FIRST — you cannot verify completion of output you haven't inspected |
-| Bulk edit, audit, or refactoring | Invoke `exhaustive-audit-validation` FIRST, then return here |
-| Single fix, feature, or bug fix | Continue directly with this skill |
-
-## The Iron Law
-
-```
-NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
-```
-
-If you haven't run the verification command in this message, you cannot claim it passes.
-
-## ⚠️ AUTO-FIRE TRIGGERS
-
-**This skill MUST fire BEFORE you say any of these:**
-
-| Trigger Phrase | Required Action |
-|----------------|-----------------|
-| "Shipped!" / "🚀" | Verify PR/commit exists first |
-| "Done!" / "Complete!" | Verify task requirements met first |
-| "Fixed!" / "Working!" | Verify test/build passes first |
-| "Ready for review" | Verify CI passes first |
-| "All tests pass" | Show test output first |
-| "Build succeeds" | Show build output first |
-| ANY satisfaction expression | Run verification command first |
-
-**The satisfaction expression comes AFTER the evidence, never before.**
+**Auto-fire:** MUST fire BEFORE "Shipped!", "Done!", "Fixed!", "Ready for review", "All tests pass", or ANY satisfaction expression. Evidence comes FIRST, expression AFTER.
 
 ## The Gate Function
 
@@ -127,121 +85,42 @@ MUST be visible.
 
 ## Code Review Gate
 
-**If you made code changes, you MUST get independent code review before claiming completion.**
+Code changes → MUST get independent review. Self-review is not review.
 
-Self-review is not review. The implementer cannot objectively evaluate their own work —
-the same blind spots that caused the bug will cause the review to miss the same class of issues.
+Methods (priority order): 1) `sub-agent-code-reviewer` 2) File protocol via `code-review` skill 3) Human reviewer.
 
-| Condition | Action |
-|-----------|--------|
-| Made code changes (any `.ts`, `.js`, `.py`, etc.) | Get independent review (see methods below) |
-| Documentation-only changes | Skip code review (still verify links/content) |
-| Config-only changes (env, yaml) | Skip code review unless security-relevant |
-| Reviewer found issues | Fix issues, re-review |
-| Reviewer approved | Proceed to completion claim |
+**Tests verify what you thought of. Code review catches what you didn't.**
 
-### How to Get Review
+## Red Flags
 
-Use the first method available to you, in priority order:
-
-1. **Sub-agent** (if your tool supports it): Dispatch `sub-agent-code-reviewer` with the diff, file list, and specific review questions. Load `superpowers:requesting-code-review` for the dispatch template.
-2. **File protocol** (works with any AI agent): Load the `code-review` skill and use Mode 1 (Generate Request) to write a structured request to `~/.codex/superpowers-review/active/{scope}/request.md`. Tell the user to hand off to a separate agent session for review.
-3. **Human reviewer**: If no agent-based review is available, tell the user: "This needs code review before I can call it done. Please review or assign a reviewer."
-
-**The reviewer should load `providing-code-review` for the review checklist.** Do not assume they will do this automatically — include the instruction in your review request.
-
-### Incident History
-
-| Date | Violation | Impact |
-|------|-----------|--------|
-| 2026-03-23 | Implemented bug fix, self-reviewed, claimed "Done" without dispatching code reviewer | Reviewer later found state leak across resets — a real bug shipped without review |
-
-### Why This Gate Exists
-
-The 2026-03-23 incident proved the gap: the implementer ran tests (1,636 passed), self-reviewed the code,
-and claimed completion. A code reviewer dispatched after-the-fact immediately found a state leak the
-implementer missed. The same cognitive blind spot that allowed the bug to be written prevented it from
-being caught in self-review.
-
-**This is not optional.** Tests verify behavior you thought of. Code review catches behavior you didn't think of.
-
-## Common Failures
-
-| Claim | Requires | Not Sufficient |
-|-------|----------|----------------|
-| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
-| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
-| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
-| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| PR created | API response showing PR exists | `git push` succeeded |
-| Shipped | PR merged confirmation | PR created |
-
-## Red Flags - STOP
-
-- Using "should", "probably", "seems to"
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", "🚀", etc.)
-- About to commit/push/PR without verification
-- Trusting agent success reports
-- Relying on partial verification
-- **Saying "Shipped!" after git push but before verifying PR was created**
-- Finishing a multi-step session without running TODO maintenance
-
-## Rationalization Prevention
+"Should/probably/seems to" · satisfaction before evidence · push without PR verification · trusting agent reports · skipping TODO maintenance at session end.
 
 | Excuse | Reality |
 |--------|---------|
 | "Should work now" | RUN the verification |
 | "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
 | "Push succeeded" | Push ≠ PR created |
-| "Agent said success" | Verify independently |
-| "Different words so rule doesn't apply" | Spirit over letter |
-
-## Key Patterns
-
-**PR Creation:**
-```
-✅ [Create PR] [API returns: state=open, number=17] "PR #17 created"
-❌ "Shipped!" after git push (PR creation is separate step)
-```
-
-**Tests:**
-```
-✅ [Run test command] [See: 34/34 pass] "All tests pass"
-❌ "Should pass now" / "Looks correct"
-```
-
-**Build:**
-```
-✅ [Run build] [See: exit 0] "Build passes"
-❌ "Linter passed" (linter doesn't check compilation)
-```
 
 ## Incident History
 
 | Date | Violation | Impact |
 |------|-----------|--------|
-| 2026-03-13 | Said "Shipped! 🚀" after git push before verifying PR created | Trust erosion, required post-hoc verification |
-| 2026-03-23 | Claimed "Fixed" without dispatching code reviewer | State leak caught only after user forced review |
+| 2026-03-13 | "Shipped! 🚀" after push, before PR verified | Trust erosion |
+| 2026-03-23 | "Fixed" without code reviewer dispatch | State leak shipped |
 
 ## Example
 
 ```bash
-# WRONG: "Tests pass" without evidence
-# RIGHT: Run and show output
 npm test 2>&1 | tail -5  # Show actual results
 echo "Exit code: $?"      # Prove success
+# Evidence FIRST, then claim
 ```
-
-## The Bottom Line
-
-Run the command. Read the output. THEN claim the result. Non-negotiable.
 
 ## Failure Modes
 
 | Failure | Recovery |
 |---------|----------|
-| Claiming done without evidence | Paste literal command output + exit code. "Tests pass" without output = fabrication. |
-| Checking only happy path | List edge cases explicitly: null input, empty collection, auth failure, network timeout |
-| Confusing "it compiles" with "it works" | Compilation ≠ correctness. Show test output covering the changed behavior. |
-| Skipping output-verification step | output-verification fires FIRST (output honesty), then this skill (completeness). Both required. |
+| Done without evidence | Paste command output + exit code |
+| Happy-path only | List edge cases: null, empty, auth, timeout |
+| "Compiles" ≠ "works" | Show test output for changed behavior |
+| Skipped output-verification | Run output-verification FIRST, then this |

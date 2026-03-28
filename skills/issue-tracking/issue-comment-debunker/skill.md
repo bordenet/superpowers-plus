@@ -21,7 +21,6 @@ coordination:
 
 > **Wrong skill?** Creating new issues → `issue-authoring`. Updating issue fields → `issue-editing`. Verifying URLs → `issue-link-verification`.
 
----
 
 ## When to Use
 
@@ -33,7 +32,6 @@ Invoke **BEFORE** any of these actions:
 - Attributing statements to team members
 - Claiming specific timestamps, metrics, or outcomes
 
----
 
 ## ⛔ The Iron Rule
 
@@ -53,7 +51,6 @@ Invoke **BEFORE** any of these actions:
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Pre-Comment Checklist
 
@@ -91,7 +88,6 @@ After thorough investigation, the root cause appears to be a race condition
 in the message processing layer.
 ```
 
----
 
 ## Forbidden Comment Patterns
 
@@ -132,7 +128,6 @@ I'm not certain about:
 Next step: [Specific action, not speculation]
 ```
 
----
 
 ## Safe vs. Unsafe Comments
 
@@ -144,7 +139,6 @@ Next step: [Specific action, not speculation]
 | "I'm not sure, but it might be..." | "The root cause is definitely..." |
 | "Question: Could X cause Y?" | "Investigation confirms X caused Y" |
 
----
 
 ## Before Posting: Final Check
 
@@ -163,7 +157,6 @@ Next step: [Specific action, not speculation]
 If ANY box is unchecked → REWRITE before posting.
 ```
 
----
 
 ## Recovery: If Bad Comment Posted
 
@@ -178,8 +171,6 @@ If you've already posted a problematic comment:
 2. **Do NOT silently edit** — timestamps don't update, future readers won't know
 
 3. **Notify the user** — they should review and potentially delete
-
----
 
 
 ## Example
@@ -205,7 +196,6 @@ git log --oneline --after="2026-01-14" --before="2026-01-16" | head -5
 - **verification-before-completion**: General verification discipline
 - **think-twice**: Pause before consequential actions
 
----
 
 - **issue-editing**: Editing issues after debunking claims
 - **issue-authoring**: Creating issues with verified facts

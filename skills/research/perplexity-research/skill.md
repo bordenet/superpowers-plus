@@ -22,7 +22,6 @@ coordination:
 
 > **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
 
-
 ## When to Use
 
 - Research questions requiring current, cited sources
@@ -53,78 +52,25 @@ User can force invocation with: "Use Perplexity to research X", "Get unstuck on 
 ### Step 0: Try Free Tools First (MANDATORY)
 
 <EXTREMELY_IMPORTANT>
-**Before ANY Perplexity call, you MUST try free alternatives first.**
-
-1. **Use `web-search`** for the query
-2. **Use `web-fetch`** to read any promising URLs
-3. **Evaluate**: Did you find what you need? If YES → STOP (no Perplexity needed)
-4. **Only escalate** if results are ≥50% worse than expected
-
-**You MUST state explicitly before calling Perplexity:**
-> "web-search returned [X]. This is insufficient because [reason]. Escalating to Perplexity."
-
-**Never use Perplexity for:**
-- Simple company lookups
-- Checking if a URL is live
-- Finding a company's website
-- Basic fact-checking
-- Reading documentation pages
+Try `web-search` + `web-fetch` first. Only escalate if ≥50% worse than expected.
+State: "web-search returned [X]. Insufficient because [reason]. Escalating."
+Never use Perplexity for: simple lookups, URL checks, basic fact-checking, reading docs.
 </EXTREMELY_IMPORTANT>
 
-### Step 1: Announce
+### Step 1: Announce + Prompt
 
-**ALWAYS** announce before invoking:
+Announce: research topic, trigger, free tools tried, why escalating.
+Prompt: context + specific question + constraints + what you've tried + web-search results.
 
-```
-🔍 **Consulting Perplexity**: [Brief description of what I'm researching]
-Reason: [Which trigger condition was met]
-Free tools tried: [web-search result summary]
-Why escalating: [specific insufficiency]
-```
+### Step 2: Dispatch
 
-### Step 2: Generate Rich Prompt
+| Quick fact | `perplexity_search_perplexity` | Deep research | `perplexity_research_perplexity` |
+|------------|------|---------------|------|
+| How-to | `perplexity_ask_perplexity` | Complex reasoning | `perplexity_reason_perplexity` |
 
-Craft a detailed prompt for Perplexity that includes:
-- **Context**: What you're trying to accomplish
-- **Specific question**: The exact information needed
-- **Constraints**: Any requirements (language, version, platform)
-- **What you've tried**: Failed approaches (if applicable)
-- **What web-search found**: Summary of free tool results
+### Step 3: Apply + Evaluate
 
-### Step 3: Dispatch to Perplexity
-
-Use the Perplexity MCP tools:
-
-| Query Type | Tool |
-|------------|------|
-| Quick fact | `perplexity_search_perplexity` |
-| How-to question | `perplexity_ask_perplexity` |
-| Deep research | `perplexity_research_perplexity` |
-| Complex reasoning | `perplexity_reason_perplexity` |
-
-### Step 4: Report Results (Preliminary)
-
-After receiving response, report what you learned:
-
-```
-📋 **Perplexity Response**: [Summary of findings]
-
-Key insights:
-- [insight 1]
-- [insight 2]
-
-**Attempting to apply**: [specific action you'll take based on this]
-```
-
-### Step 5: Apply the Information
-
-Actually USE the information from Perplexity:
-- Run the suggested command
-- Implement the suggested fix
-- Apply the recommended approach
-- Test the solution
-
-**DO NOT record stats yet.** You must evaluate whether it helped first.
+Report findings → apply (run command/implement fix/test) → evaluate BEFORE recording stats.
 
 ### Step 6: Evaluate Helpfulness (CRITICAL)
 
@@ -162,7 +108,6 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
-
 
 ## Example
 
@@ -203,7 +148,6 @@ curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: appli
 6. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
 7. **Cost awareness** - Perplexity costs real money; use only when free tools fail
 
----
 
 ## "I'm Stuck" Escalation Path
 
@@ -214,7 +158,6 @@ See `references/escalation.md` for the full decision tree.
 
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
-
 
 ## Scope Exclusions
 
