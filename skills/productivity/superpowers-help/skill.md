@@ -1,7 +1,7 @@
 ---
 name: superpowers-help
 source: superpowers-plus
-triggers: ["what are my superpowers", "what superpowers do I have", "what skills do I have", "list available skills", "superpowers help", "how do I use skills", "what can you do", "show me your capabilities", "help me understand superpowers", "what workflows are available"]
+triggers: ["what are my superpowers", "what superpowers do I have", "what skills do I have", "list available skills", "superpowers help", "how do I use skills", "what can you do", "show me your capabilities", "help me understand superpowers", "what workflows are available", "what skills are available", "list skills", "which skills"]
 anti_triggers: ["write code", "fix bug", "implement feature", "debug this"]
 description: Dynamically enumerates ALL installed skills at runtime, distinguishing superpowers (auto-triggered) from explicit skills. Never stale — always reflects current installation.
 summary: "Use when: user asks about superpowers system, how to use skills, or needs skill recommendations."
