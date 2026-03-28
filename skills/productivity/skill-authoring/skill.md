@@ -230,7 +230,7 @@ Before finalizing any generated skill:
 5. **Commit and deploy** — `./install.sh` to activate
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Oversized skill:** Exceeding 250-line limit — extract reference material to `references/` directory
 - **Missing frontmatter:** Forgetting required `---` delimiters, `description:`, or `triggers:` fields

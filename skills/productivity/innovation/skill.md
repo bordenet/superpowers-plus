@@ -19,6 +19,8 @@ coordination:
 
 > **Core question:** What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?
 
+> **Wrong skill?** Incremental feature ideas → `brainstorming`. Structured design evaluation → `design-triad`. Implementation planning → `plan-and-execute`.
+
 **NOT for:** bug fixes (`systematic-debugging`), incremental features (`brainstorming`), cleanup (`engineering-rigor`).
 **IS for:** product step-changes, architectural paradigm shifts, new business models, internal tool innovation.
 

@@ -116,7 +116,7 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 
 </EXTREMELY_IMPORTANT>
 
-## Common Failure Modes
+## Failure Modes
 
 - **Wrong child skill:** Routing to `verification-before-completion` when `adversarial-search` was needed (check the routing table)
 - **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate

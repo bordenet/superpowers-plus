@@ -15,6 +15,8 @@ coordination:
 
 # Professional Language Audit
 
+> **Wrong skill?** AI slop detection → `detecting-ai-slop`. AI slop rewriting → `eliminating-ai-slop`. General writing standards → `writing-skills`.
+
 > **Last Updated:** 2026-03-11
 > **Incident:** Profanity found in documentation during audit. AI slop skills didn't catch it.
 
@@ -205,7 +207,7 @@ Multiple skills fire on "before commit". Execute in this order:
 **Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Over-flagging technical terms:** Words like "kill," "abort," "master" in engineering contexts are often appropriate
 - **Missing context-dependent profanity:** Profanity in quoted user feedback or log output may be intentional — flag but don't auto-remove

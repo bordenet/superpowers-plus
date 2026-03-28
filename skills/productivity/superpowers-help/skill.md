@@ -15,6 +15,8 @@ coordination:
 
 # 🦸 Superpowers & Skills
 
+> **Wrong skill?** Checking skill health → `superpowers-doctor`. Writing new skills → `skill-authoring` / `writing-skills`. Updating skills → `update-superpowers`.
+
 ## When to Use
 
 - User asks "what can you do?" or "what skills do you have?"
@@ -145,11 +147,14 @@ cd superpowers-plus
 
 ---
 
-## Common Failure Modes
+## Failure Modes
 
-- **Stale enumeration:** Reporting skills from memory instead of running the runtime discovery command
-- **Missing overlay skills:** Forgetting that `SPC_SOURCE_DIR` overlay adds skills not in the base superpowers-plus install
-- **Confusing superpowers vs explicit:** A skill with triggers is a superpower (auto-fires); without triggers it must be explicitly invoked
+| Failure | Fix |
+|---------|-----|
+| Reporting skills from memory instead of running discovery | ALWAYS run `find-skills` — never enumerate from memory |
+| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — check both sources |
+| Confusing superpowers vs explicit skills | Superpowers have `triggers:` (auto-fire); explicit skills must be manually invoked |
+| Recommending a skill without checking if it's installed | Run `find-skills {name}` before recommending any skill |
 
 ## Documentation
 

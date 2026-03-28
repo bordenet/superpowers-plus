@@ -21,6 +21,8 @@ coordination:
 
 # Verification Before Completion
 
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Output inspection → `output-verification`. Code review → `progressive-code-review-gate`.
+
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim

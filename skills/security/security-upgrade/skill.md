@@ -17,6 +17,8 @@ coordination:
 
 > **Last Updated:** 2026-01-31
 
+> **Wrong skill?** Full repo security scan (secrets, code patterns) → `repo-security-scan`. Public repo IP leakage → `public-repo-ip-audit`. Wiki content secrets → `wiki-secret-audit`.
+
 ## Workflow Summary
 
 This skill provides a systematic workflow for security dependency auditing and upgrading. Use it to scan for CVEs, upgrade vulnerable packages, validate changes, and commit fixes.
@@ -224,6 +226,15 @@ If tests fail after an upgrade, the correct response is:
 - Consider gradual rollout for major version bumps
 
 ---
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| `npm audit fix --force` silently introducing major version bumps | Review what `--force` will change BEFORE running; prefer `npm audit fix` first |
+| Upgrading to version with breaking API changes without reading changelog | Check release notes/changelog for breaking changes before upgrading |
+| Skipping transitive/indirect vulnerability fixes | Scan output includes indirect deps — trace and fix the root dependency |
+| Tests pass locally but CI fails due to environment differences | Run full CI after push; don't declare "fixed" until CI confirms |
 
 ## Related Tools
 

@@ -94,3 +94,12 @@ Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter
 1. `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills {name}` — verify discoverable
 2. `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill {name}` — verify loads correctly
 3. Check compressed token count — target <1000
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Skill passes structural checks but has empty/placeholder procedure | Every skill needs at least one concrete "do X, then Y" instruction |
+| Trigger phrases too broad — causes false positive routing | Test triggers: `find-skills "{trigger}"` should return <3 skills per trigger |
+| Description doesn't start with "Use when:" — breaks search optimization | Format: `"Use when: {specific context}. Skip when: {anti-context}."` |
+| Skill exceeds 250-line limit after edits | Check `wc -l skill.md` before committing — refactor to examples.md if needed |

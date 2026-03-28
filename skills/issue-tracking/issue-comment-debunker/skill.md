@@ -18,6 +18,8 @@ coordination:
 > **Purpose:** Prevent AI from posting fabricated or misleading comments on tickets
 > **Pattern:** Evidence before assertion — no claims without citations
 
+> **Wrong skill?** Creating new issues → `issue-authoring`. Updating issue fields → `issue-editing`. Verifying URLs → `issue-link-verification`.
+
 ---
 
 ## When to Use
@@ -177,6 +179,15 @@ If you've already posted a problematic comment:
 3. **Notify the user** — they should review and potentially delete
 
 ---
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Self-exemption: "This comment is different, I'm confident" | No — verify every factual claim regardless of confidence |
+| Quoting code from memory instead of re-reading the file | Re-read the file NOW — memory drifts within conversations |
+| Constructing a timeline by interpolating between git commit dates | Report only what git log actually says — gaps between commits are unknown |
+| Fabricating consensus: "The team agreed..." | Only attribute decisions you can cite from meeting notes or comments |
 
 ## Companion Skills
 

@@ -15,6 +15,8 @@ coordination:
 
 # Skill: wiki-verify
 
+> **Wrong skill?** Checking links in wiki → `link-verification`. Scanning for secrets → `wiki-secret-audit`. Full wiki editing → `wiki-orchestrator`. Content duplication → `wiki-content-coherence`.
+
 ## Triggers
 
 - "Verify this wiki page"
