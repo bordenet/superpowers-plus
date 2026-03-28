@@ -23,6 +23,12 @@ coordination:
 
 > **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Output inspection → `output-verification`. Code review → `progressive-code-review-gate`.
 
+## Companion Skills
+
+- **pre-commit-gate**: Pre-commit quality checks (this runs at completion)
+- **output-verification**: Verifying generated output
+- **holistic-repo-verification**: Full repo health check
+
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim

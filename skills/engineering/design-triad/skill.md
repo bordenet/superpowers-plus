@@ -22,6 +22,12 @@ coordination:
 
 **Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
 
+## Companion Skills
+
+- **brainstorming**: Generating design options before evaluation
+- **requirements-validation**: Validating requirements before design
+- **plan-and-execute**: Implementing the chosen design
+
 ## When to Use
 
 - Any design decision where the wrong choice would cost significant rework

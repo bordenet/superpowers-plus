@@ -22,6 +22,11 @@ coordination:
 
 > **Wrong skill?** Writing individual skills → `skill-authoring`. Feature design → `design-triad`. Brainstorming ideas → `brainstorming`.
 
+## Companion Skills
+
+- **skill-authoring**: Creating individual skills from the domain design
+- **brainstorming**: Generating skill ideas for the domain
+
 ## When to Use
 
 - Designing a brand-new superpowers skill family from scratch
