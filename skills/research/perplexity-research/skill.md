@@ -155,6 +155,15 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
 
+
+## Example
+
+```bash
+# Invoke Perplexity via API
+source ~/.codex/.env
+curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: application/json"   -d '{"model":"sonar","messages":[{"role":"user","content":"query"}]}'   https://api.perplexity.ai/chat/completions | jq '.choices[0].message.content'
+```
+
 ## Failure Modes
 
 | Failure | Fix |

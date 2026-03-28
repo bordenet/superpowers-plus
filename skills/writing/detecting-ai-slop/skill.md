@@ -196,6 +196,16 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 - **professional-language-audit**: Profanity and inappropriate language detection
 
 
+
+## Example
+
+```bash
+# Score text for AI patterns (read-only analysis)
+# GVR = Generality + Verbosity + Repetition
+echo "Check for: hedging ('It is worth noting'), filler ('In order to'),
+  superlatives ('incredibly powerful'), and vague claims ('comprehensive')"
+```
+
 ## Failure Modes
 
 - **False positives on domain jargon:** Flagging legitimate technical terms (e.g., "robust" in a load-testing context) as slop

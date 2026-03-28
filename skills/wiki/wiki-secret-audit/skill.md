@@ -180,6 +180,14 @@ When secrets are found:
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
 
 
+
+## Example
+
+```bash
+# Scan wiki content for exposed secrets
+grep -rn "password\|api[_-]key\|secret\|token\|Bearer " wiki/ --include="*.md" |   grep -v "example\|placeholder\|YOUR_" | head -20
+```
+
 ## Failure Modes
 
 - **Regex-only scanning:** Relying solely on pattern matching without checking for encoded/obfuscated secrets (base64, URL-encoded)

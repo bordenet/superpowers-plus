@@ -163,6 +163,17 @@ This skill will be promoted to production when:
 - Skill comparison: `superpowers-plus/docs/SKILL_COMPARISON_self-prompting_vs_think-twice.md`
 
 
+
+## Example
+
+```bash
+# Generate a context-free prompt for fresh analysis
+echo "Analyze this codebase for [specific concern].
+Constraints: [list constraints].
+Output format: [specify format].
+Do NOT reference prior analysis." > /tmp/self-prompt.md
+```
+
 ## Failure Modes
 
 - **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 rounds)

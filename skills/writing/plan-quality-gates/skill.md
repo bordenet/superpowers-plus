@@ -170,6 +170,18 @@ These patterns in plan output indicate this skill was not followed:
 - Brainstorming plan options → `brainstorming`
 - Code review → `progressive-code-review-gate`
 
+
+## Example
+
+```bash
+# Validate plan quality before execution
+echo "Checklist:"
+echo "  [ ] Every step has success criteria"
+echo "  [ ] Rollback plan documented"
+echo "  [ ] Dependencies identified"
+echo "  [ ] Time estimates included"
+```
+
 ## Failure Modes
 
 | Failure | Fix |

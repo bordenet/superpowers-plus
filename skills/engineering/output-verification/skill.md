@@ -164,6 +164,16 @@ Plausible fiction is the most dangerous kind because the user trusts it.
 
 This is non-negotiable.
 
+
+## Example
+
+```bash
+# Verify generated output matches expectations
+diff <(cat expected-output.txt) <(cat actual-output.txt) || echo "MISMATCH"
+# Check for truncation
+wc -l actual-output.txt
+```
+
 ## Failure Modes
 
 | Failure | Fix |
