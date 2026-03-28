@@ -7,6 +7,7 @@ overrides: superpowers/verification-before-completion
 # history tracking, and refines rationalization prevention. obra's version lacks
 # the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
 triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "claiming completion", "expressing satisfaction"]
+anti_triggers: ["not done yet", "almost done", "when done", "once done", "until done"]
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always. If code was changed, dispatch sub-agent-code-reviewer before claiming done (self-review is not review). For multi-step or TODO-backed sessions, run TODO maintenance before the claim.
 summary: "Use when: about to claim work is done. Skip when: still actively working. Code changes require code reviewer dispatch."
 coordination:
@@ -28,7 +29,7 @@ coordination:
 - After fixing a bug — verify the fix AND verify no regressions
 - At session end for any multi-step or TODO-backed work, before the final completion claim
 
-## Overview
+## Core Principle
 
 Claiming work is complete without verification is dishonesty, not efficiency.
 
@@ -215,3 +216,12 @@ being caught in self-review.
 Run the command. Read the output. THEN claim the result.
 
 This is non-negotiable.
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Claiming done without evidence | Paste literal command output + exit code. "Tests pass" without output = fabrication. |
+| Checking only happy path | List edge cases explicitly: null input, empty collection, auth failure, network timeout |
+| Confusing "it compiles" with "it works" | Compilation ≠ correctness. Show test output covering the changed behavior. |
+| Skipping output-verification step | output-verification fires FIRST (output honesty), then this skill (completeness). Both required. |

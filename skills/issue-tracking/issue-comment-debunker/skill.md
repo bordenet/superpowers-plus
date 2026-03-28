@@ -178,7 +178,7 @@ If you've already posted a problematic comment:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **wiki-debunker**: Same principles for wiki content
 - **verification-before-completion**: General verification discipline
@@ -186,7 +186,7 @@ If you've already posted a problematic comment:
 
 ---
 
-## Quick Reference
+## Evidence Checklist
 
 ```
 Before posting ANY your issue tracker comment:

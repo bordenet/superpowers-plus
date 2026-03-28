@@ -23,7 +23,7 @@ coordination:
 
 ---
 
-## Overview
+## Authoring Modes
 
 This skill enables superpowers-plus to extend itself. Three modes:
 
@@ -177,7 +177,7 @@ composition:
 
 ---
 
-## Integration with Existing Skills
+## Skill Connections
 
 | Skill | How skill-authoring Uses It |
 |-------|----------------------------|

@@ -17,7 +17,7 @@ coordination:
 
 > **Last Updated:** 2026-02-01
 
-## Overview
+## Purpose
 
 Initialize or upgrade AI guidance in any repository using the [golden-agents](https://github.com/bordenet/golden-agents) framework. Auto-detects repo state and language, offers appropriate workflow.
 
@@ -152,7 +152,7 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 
 ---
 
-## Quick Reference
+## Command Reference
 
 | Command | Purpose |
 |---------|---------|
@@ -176,7 +176,7 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **readme-authoring**: After setting up AI guidance, update README
 - **superpowers:verification-before-completion**: Verify files before committing
@@ -188,6 +188,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 - **Missing redirect files:** Forgetting Phase 3 redirect files, leaving old config paths broken
 
 
-## Reference Files
+## References
 
 - [`references/workflows.md`](references/workflows.md) — Phase 2 workflow templates (new/upgrade/migrate), Phase 3 redirect file templates, language detection scripts. Load when executing a workflow.

@@ -27,6 +27,8 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 **Do not try to handle thinking tasks yourself.** Use the routing table below to dispatch to the right skill, then follow that skill's process.
 
+> **Wrong skill?** Code implementation → `feature-development`. PR review → `providing-code-review`. Build/test errors → `systematic-debugging`.
+
 ## Routing Table
 
 | Context | Route To | Why |
@@ -120,6 +122,10 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 - **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate
 - **Trigger saturation:** Multiple thinking triggers fire simultaneously — pick the highest-priority match from the routing table
 
-## Related Skills
+## Failure Modes
 
-- `engineering-rigor` -- Hub for engineering process (pre-commit, blast radius, code review)
+| Failure | Recovery |
+|---------|----------|
+| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill. |
+| Wrong routing decision | When two skills match, prefer the more specific one |
+| Missing routing case | If no row matches: PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |

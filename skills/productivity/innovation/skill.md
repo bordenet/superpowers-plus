@@ -43,7 +43,7 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 
 **Flow:** `innovation → user selects → brainstorming → writing-plans → implementation`
 
-## Reference Files
+## References
 
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
 

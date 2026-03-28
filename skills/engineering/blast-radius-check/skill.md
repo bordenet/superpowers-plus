@@ -2,6 +2,7 @@
 name: blast-radius-check
 source: superpowers-plus
 triggers: ["refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "hotfix", "multi-component change", "cross-service change"]
+anti_triggers: ["review this PR", "code review", "review these changes", "write new"]
 description: Blast radius analysis - search for ALL usages before modifying any existing code. Prevents breaking unrelated consumers by scoping impact before scoping fix.
 summary: "Use when: modifying existing code. Skip when: writing new isolated code."
 coordination:
@@ -126,7 +127,7 @@ grep -rn "newFieldName" --include="*.ts" --include="*.js" repo1/ repo2/ repo3/
 grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 ```
 
-## Related Skills
+## Companion Skills
 
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs

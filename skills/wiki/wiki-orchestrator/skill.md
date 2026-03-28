@@ -25,7 +25,8 @@ coordination:
 
 <EXTREMELY_IMPORTANT>
 
-**Every wiki operation MUST pass through this pipeline. No exceptions.**
+**Every BULK/MULTI-PAGE wiki operation MUST pass through this pipeline.**
+Single-page edits, creates, and deletes → use Outline API directly.
 
 | Stage | Gate | What Happens |
 |-------|------|-------------|
@@ -114,7 +115,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | "I know the links are correct" | Memory is unreliable, verify anyway |
 | "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-## Related Skills
+## Pipeline Skills
 
 | Skill | Role |
 |-------|------|
@@ -124,7 +125,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | `wiki-debunker` | Stage 6: Fact-checking |
 | `wiki-verify` | Post-publish: Version drift |
 
-## Reference Files
+## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
@@ -141,3 +142,11 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 # Example: create a wiki page through the orchestrator pipeline
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestrator
 ```
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Running full pipeline for single-page edits | Single-page create/edit doesn't need the pipeline. Use Outline API directly. |
+| Skipping pipeline stages (especially link-verification) | All stages are mandatory for bulk/multi-page operations |
+| Pipeline stage fails but agent continues | Stage failure = pipeline halt. Fix the issue, then restart from failed stage. |

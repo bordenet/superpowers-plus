@@ -20,7 +20,7 @@ coordination:
 > **Last Updated:** 2026-03-12
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
 
-## Overview
+## Detection Approach
 
 This skill analyzes text and produces a **slop score** (0-100) with detailed breakdown by detection dimension. Use it to quantify AI slop before deciding whether to rewrite.
 
@@ -181,7 +181,7 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection

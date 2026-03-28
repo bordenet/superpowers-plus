@@ -131,7 +131,7 @@ GitHub Pages: ❌ errored
 - Error: tar: ./validator/js/core: File removed before we read it
 ```
 
-## Integration with Other Skills
+## Skill Connections
 
 This skill complements:
 - `superpowers:verification-before-completion` - adds repo health to the verification checklist

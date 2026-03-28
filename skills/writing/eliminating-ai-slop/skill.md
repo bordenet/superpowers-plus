@@ -60,7 +60,7 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 
 Before publishing: meaning preserved? specificity added? voice consistent? no new slop introduced? GVR thresholds met?
 
-## Related Skills
+## Companion Skills
 
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
 
