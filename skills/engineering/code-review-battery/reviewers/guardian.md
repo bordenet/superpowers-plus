@@ -81,7 +81,3 @@ For each finding:
 
 If you find NO issues, say:
 "✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."
-
----
-
-## DIFF TO REVIEW
