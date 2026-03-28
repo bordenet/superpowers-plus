@@ -7,10 +7,13 @@ overrides: superpowers/receiving-code-review
 # and refines implementation order with systemic check step. obra's version lacks
 # the "fix the disease not the symptoms" workflow.
 triggers: ["received code review", "PR feedback", "reviewer commented", "code review feedback", "implement review suggestions", "address review comments"]
+anti_triggers: ["review this PR", "review these changes", "send to reviewer agent", "I am the reviewer agent"]
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 summary: "Use when: implementing PR feedback. Skip when: the feedback is a simple typo fix."
 ---
 # Code Review Reception
+
+> **Wrong skill?** Reviewing someone's PR → `providing-code-review`. Sending to reviewer agent → `code-review`. Acting as reviewer → `code-review-respond`.
 
 ## When to Use
 
@@ -182,3 +185,9 @@ No performative agreement. Technical rigor always.
 grep -rn "\.getData()" --include="*.ts" src/ | grep -v "?." | grep -v "!= null"
 # Then fix ALL instances, not just the one the reviewer spotted
 ```
+
+## Companion Skills
+
+- **providing-code-review**: How the reviewer should structure feedback
+- **code-review**: File-protocol review (may generate the feedback you're processing)
+- **systematic-debugging**: For investigating complex review findings
