@@ -47,8 +47,7 @@
 ```
 # Repo (source of truth)
 skills/engineering/code-review-battery/
-├── skill.md                    # Skill entry point with triggers + coordination
-├── coordinator.md              # Triage + dispatch + aggregation + escalation
+├── skill.md                    # Skill entry point — triage, dispatch, aggregate, escalate
 ├── DESIGN.md                   # Architecture docs (NOT installed to ~/.agents/)
 ├── PRD.md                      # Product requirements (NOT installed to ~/.agents/)
 ├── reviewers/
@@ -61,7 +60,7 @@ skills/engineering/code-review-battery/
 
 # Installed (runtime only — no process docs)
 ~/.agents/skills/code-review-battery/
-├── skill.md, coordinator.md, reviewers/*.md
+├── skill.md, reviewers/*.md
 ```
 
 > **Monolith demotion rationale (v2):** V4 validation showed monolith had higher single-reviewer recall than any specialist. However, v2's ripple analysis techniques (consumer trace, state lifecycle, feedback loop analysis) absorbed the monolith's recall advantage into the specialist prompts. The 5-specialist battery now matches or exceeds monolith recall while providing structured, attributable findings. Monolith retained as on-demand fallback for comprehensive single-pass reviews.
