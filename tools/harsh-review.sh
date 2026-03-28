@@ -300,6 +300,48 @@ while IFS= read -r skill_file; do
 done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
 
 # =============================================================================
+# CHECK 8c: Skill Frontmatter Validation
+# =============================================================================
+log_check "Skill frontmatter (required fields)"
+
+while IFS= read -r skill_file; do
+    skill_name=$(basename "$(dirname "$skill_file")")
+    # Check for frontmatter delimiters
+    if ! head -1 "$skill_file" | grep -q "^---"; then
+        log_fail "$skill_name: missing frontmatter opening ---"
+        continue
+    fi
+    # Check required fields
+    frontmatter=$(sed -n '1,/^---$/p' "$skill_file" | tail -n +2)
+    if ! echo "$frontmatter" | grep -q "^triggers:"; then
+        log_fail "$skill_name: missing 'triggers:' in frontmatter"
+    fi
+    if ! echo "$frontmatter" | grep -q "^description:"; then
+        log_fail "$skill_name: missing 'description:' in frontmatter"
+    fi
+    if ! echo "$frontmatter" | grep -q "^anti_triggers:"; then
+        log_warn "$skill_name: missing 'anti_triggers:' in frontmatter"
+    fi
+done < <(find skills -name "skill.md" 2>/dev/null)
+
+# =============================================================================
+# CHECK 8d: Companion Skill Cross-Reference Validation
+# =============================================================================
+log_check "Companion skill cross-references (all targets exist)"
+
+while IFS= read -r skill_file; do
+    skill_name=$(basename "$(dirname "$skill_file")")
+    # Extract companion refs: lines matching "- **skill-name**"
+    refs=$(grep -oE '^\- \*\*[a-z][a-z0-9-]+\*\*' "$skill_file" 2>/dev/null | \
+        sed 's/- \*\*//;s/\*\*//' || true)
+    for ref in $refs; do
+        if ! find skills -type d -name "$ref" 2>/dev/null | grep -q .; then
+            log_fail "$skill_name: companion ref '$ref' does not exist"
+        fi
+    done
+done < <(find skills -name "skill.md" 2>/dev/null)
+
+# =============================================================================
 # CHECK 9: README Skill Count Drift Detection
 # =============================================================================
 log_check "README skill count consistency"
