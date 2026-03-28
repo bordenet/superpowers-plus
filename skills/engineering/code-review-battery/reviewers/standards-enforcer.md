@@ -77,7 +77,10 @@ Do NOT report personal style preferences — only documented or codebase-evident
 ## Output Format
 
 For each finding:
-- **Severity**: Critical / Important / Minor
+- **Severity** (use these definitions consistently):
+  - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
+  - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
 - **File:Line**: Exact location in the diff
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
