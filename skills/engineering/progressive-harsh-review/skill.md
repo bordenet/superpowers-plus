@@ -18,6 +18,8 @@ coordination:
 
 # Progressive Harsh Review
 
+> **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
+
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
 > **Pattern:** Three escalating critic personas, each scoring independently.
 
