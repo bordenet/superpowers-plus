@@ -109,10 +109,11 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 **Invoke:** `plan-and-execute`
 
 1. Break the design into ordered implementation phases with success criteria
-2. Execute each phase, running tests after each
-3. For each phase: implement → test → self-review via `adversarial-search`
-4. Run `output-verification` after generating any artifact
-5. **Exit gate:** All phases complete, all tests pass, no regressions.
+2. **Enroll each phase as a TODO** via `todo-crud.sh` (autonomous, machine-agnostic)
+3. Execute each phase, running tests after each
+4. For each phase: implement → test → self-review via `adversarial-search`
+5. Run `output-verification` after generating any artifact
+6. **Exit gate:** All phases complete, all tests pass, no regressions.
 
 ---
 

@@ -7,6 +7,13 @@ overrides: superpowers/systematic-debugging
 # verbose examples; adds structured hypothesis/evidence tracking format.
 triggers: ["debug this", "fix this bug", "test failure", "unexpected behavior", "build failure", "not working", "investigate error", "root cause"]
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+coordination:
+  group: engineering
+  order: 3
+  requires: []
+  enables: ["investigation-state", "think-twice"]
+  escalates_to: ["thinking-orchestrator"]
+  internal: false
 ---
 
 # Systematic Debugging
@@ -88,3 +95,9 @@ If 3+ fixes in different locations: the architecture is wrong, not your fix. Sto
 - `root-cause-tracing.md` — trace bugs backward through call stack
 - `defense-in-depth.md` — add validation at multiple layers
 - `condition-based-waiting.md` — replace arbitrary timeouts with condition polling
+
+## Related Skills
+
+- `investigation-state` — persist debugging context across sessions for multi-day bugs
+- `think-twice` — dispatch fresh sub-agent when stuck in a hypothesis loop
+- `adversarial-search` — search for the WRONG value when symptoms contradict expectations

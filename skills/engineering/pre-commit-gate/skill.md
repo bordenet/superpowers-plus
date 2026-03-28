@@ -155,6 +155,8 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
+- `output-verification` — Before claiming generated artifacts are correct
+- `verification-before-completion` — After this gate passes, before claiming "done"
 
 ---
 

@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["write plan", "create plan", "design plan", "roadmap", "implementation plan", "phased plan", "write roadmap", "project plan"]
 description: Use when writing plans, roadmaps, or phased work to enforce quality gates — prevents fabricated timelines, ensures dependency ordering, and requires exit criteria.
 summary: "Use when: writing plans or roadmaps. Prevents fabricated timelines."
+coordination:
+  group: writing
+  order: 2
+  requires: []
+  enables: ['plan-and-execute']
+  escalates_to: []
+  internal: false
 ---
 
 # Plan Quality Gates

@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["comment on ticket", "post status update", "add investigation summary", "update the ticket with"]
 description: Use BEFORE posting any comment or update to issue tickets. Prevents fabricated investigation summaries, status updates, and unverified claims. Evidence before assertion — no claims without citations.
 summary: "Use when: posting comments on issue tickets. Skip when: reading issues only."
+coordination:
+  group: issue-tracking
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Comment Debunker

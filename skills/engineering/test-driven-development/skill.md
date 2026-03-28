@@ -7,6 +7,13 @@ overrides: superpowers/test-driven-development
 # examples (handled by golden-agents language modules instead).
 triggers: ["write tests first", "TDD", "test-driven", "write failing test", "red green refactor", "implement with tests"]
 description: Use when implementing any feature or bugfix, before writing implementation code
+coordination:
+  group: engineering
+  order: 4
+  requires: []
+  enables: ["verification-before-completion"]
+  escalates_to: []
+  internal: false
 ---
 
 # Test-Driven Development (TDD)
@@ -97,3 +104,9 @@ Can't check all boxes? You skipped TDD. Start over.
 ## Anti-Patterns
 
 When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: testing mock behavior instead of real behavior, adding test-only methods to production classes.
+
+## Related Skills
+
+- `design-triad` — when test architecture decisions arise (≥3 approaches to test a complex feature)
+- `systematic-debugging` — when tests fail for non-obvious reasons, switch to root-cause investigation
+- `verification-before-completion` — after TDD cycle, verify ALL tests pass before claiming done
