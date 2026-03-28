@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["is this done", "claiming done", "audit accumulated debt", "check for incomplete work", "find unfinished work"]
 description: Detect incomplete work in repositories from AI assistant crashes, context exhaustion, or mid-implementation distractions. Use before claiming work complete or when auditing accumulated debt.
 summary: "Use when: auditing for incomplete work from crashes or context exhaustion."
+coordination:
+  group: observability
+  order: 0
+  requires: []
+  enables: ['verification-before-completion']
+  escalates_to: ['thinking-orchestrator']
+  internal: false
 ---
 
 # completeness-check

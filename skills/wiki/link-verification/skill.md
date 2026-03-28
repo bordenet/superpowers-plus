@@ -9,6 +9,13 @@ composition:
   produces: [verified-links]
   capabilities: [validates-links]
   priority: 20
+coordination:
+  group: wiki
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: ['wiki-orchestrator']
+  internal: false
 ---
 
 # Link Verification

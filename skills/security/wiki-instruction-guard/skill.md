@@ -15,6 +15,13 @@ composition:
   produces: [safety-verdict]
   capabilities: [detects-injection, blocks-destructive-ops]
   priority: 1
+coordination:
+  group: security
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # wiki-instruction-guard

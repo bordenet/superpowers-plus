@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["add link to issue", "post comment with URL", "update description with reference"]
 description: Use when adding URLs to issue descriptions or comments. Verifies all links before posting to prevent broken references.
 summary: "Use when: adding URLs to issue descriptions or comments."
+coordination:
+  group: issue-tracking
+  order: 3
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Link Verification

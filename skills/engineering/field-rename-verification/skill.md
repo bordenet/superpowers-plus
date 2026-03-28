@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["rename this field", "change the API contract", "refactor this type across services", "update field name from X to Y"]
 description: Use when renaming fields, changing API contracts, or refactoring data models across multiple services. Prevents incomplete dependency analysis — the #1 source of production incidents from "complete" work. Requires tracing READ → STORE → PASS paths.
 summary: "Use when: renaming fields or changing API contracts across services. Skip when: change is internal to one file."
+coordination:
+  group: engineering
+  order: 4
+  requires: ["blast-radius-check"]
+  enables: ["verification-before-completion"]
+  escalates_to: ["engineering-rigor"]
+  internal: false
 ---
 
 # Field Rename Verification
