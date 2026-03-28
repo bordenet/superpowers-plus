@@ -944,48 +944,56 @@ _doctor_workflow_state() {
     return 0
   fi
 
-  local age_hours
-  age_hours=$(node -e "
+  # Compute age and staleness in a single node call.
+  # Returns "age_hours:is_stale:workflow" or "corrupt" on any parse/math failure.
+  # NaN, Infinity, and negative ages are all treated as corrupt.
+  local state_info
+  state_info=$(node -e "
     try {
       const s = JSON.parse(require('fs').readFileSync('$state_file', 'utf8'));
       const age = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
-      console.log(Math.round(age * 10) / 10);
-    } catch(_) { console.log(-1); }
+      if (!Number.isFinite(age) || age < 0) { console.log('corrupt'); process.exit(0); }
+      const rounded = Math.round(age * 10) / 10;
+      console.log(rounded + ':' + (age > 24 ? 1 : 0) + ':' + (s.workflow || 'unknown'));
+    } catch(_) { console.log('corrupt'); }
   " 2>/dev/null)
 
-  if [[ "$age_hours" == "-1" ]]; then
-    echo "🟡 WARNING: workflow-state — corrupt state file at $state_file"
+  if [[ -z "$state_info" || "$state_info" == "corrupt" ]]; then
+    echo "🟡 WARNING: workflow-state — corrupt or unparseable state file at $state_file"
     WARNINGS=$((WARNINGS + 1))
     if can_fix moderate; then
       local archive_dir="$HOME/.codex/.workflow-state-archive"
       mkdir -p "$archive_dir"
       local ts
       ts=$(date +%Y-%m-%dT%H-%M-%S)
-      mv "$state_file" "$archive_dir/workflow-corrupt-${ts}.json" 2>/dev/null || true
-      echo "  ✅ FIXED: archived corrupt state file"
-      FIXED=$((FIXED + 1))
+      if mv "$state_file" "$archive_dir/workflow-corrupt-${ts}.json" 2>/dev/null; then
+        echo "  ✅ FIXED: archived corrupt state file"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not archive corrupt state file"
+      fi
     fi
     return 0
   fi
 
-  # State older than 24 hours is stale
-  # Use node for comparison (already a dependency) — bc may not exist on minimal Linux
-  local is_stale
-  is_stale=$(node -e "console.log($age_hours > 24 ? 1 : 0)" 2>/dev/null || echo 0)
+  # Parse the colon-delimited result
+  local age_hours is_stale workflow
+  age_hours="${state_info%%:*}"
+  is_stale="${state_info#*:}"; is_stale="${is_stale%%:*}"
+  workflow="${state_info##*:}"
+
   if [[ "$is_stale" == "1" ]]; then
-    local workflow
-    workflow=$(node -e "
-      try { console.log(JSON.parse(require('fs').readFileSync('$state_file','utf8')).workflow || 'unknown'); }
-      catch(_) { console.log('unknown'); }
-    " 2>/dev/null)
     echo "🟡 WARNING: workflow-state — stale '${workflow}' workflow (${age_hours}h old, limit: 24h)"
     WARNINGS=$((WARNINGS + 1))
     if can_fix moderate; then
-      node -e "require('$REPO_ROOT/lib/workflow-state').archiveState(
+      if node -e "require('$REPO_ROOT/lib/workflow-state').archiveState(
         JSON.parse(require('fs').readFileSync('$state_file','utf8'))
-      )" 2>/dev/null || true
-      echo "  ✅ FIXED: archived stale workflow state"
-      FIXED=$((FIXED + 1))
+      )" 2>/dev/null; then
+        echo "  ✅ FIXED: archived stale workflow state"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not archive stale workflow state"
+      fi
     fi
   fi
 }
@@ -1080,11 +1088,13 @@ _doctor_todo_honeypot() {
     echo "🔴 CRITICAL: TODO honeypot missing at $honeypot"
     CRITICAL=$((CRITICAL + 1))
     if can_fix "safe"; then
-      printf '%s' "$expected_content" > "$honeypot"
-      chmod 444 "$honeypot"
-      set_immutable "$honeypot" || true
-      echo "  ✅ FIXED: restored honeypot"
-      FIXED=$((FIXED + 1))
+      if printf '%s' "$expected_content" > "$honeypot" && chmod 444 "$honeypot"; then
+        set_immutable "$honeypot" || true
+        echo "  ✅ FIXED: restored honeypot"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not create honeypot (permission denied?)"
+      fi
     fi
     return
   fi
@@ -1098,11 +1108,13 @@ _doctor_todo_honeypot() {
     CRITICAL=$((CRITICAL + 1))
     if can_fix "safe"; then
       clear_immutable "$honeypot"
-      printf '%s' "$expected_content" > "$honeypot"
-      chmod 444 "$honeypot"
-      set_immutable "$honeypot" || true
-      echo "  ✅ FIXED: restored honeypot content"
-      FIXED=$((FIXED + 1))
+      if printf '%s' "$expected_content" > "$honeypot" && chmod 444 "$honeypot"; then
+        set_immutable "$honeypot" || true
+        echo "  ✅ FIXED: restored honeypot content"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not restore honeypot content"
+      fi
     fi
   fi
 
@@ -1114,10 +1126,13 @@ _doctor_todo_honeypot() {
     ERRORS=$((ERRORS + 1))
     if can_fix "safe"; then
       clear_immutable "$honeypot"
-      chmod 444 "$honeypot"
-      set_immutable "$honeypot" || true
-      echo "  ✅ FIXED: set permissions to 444"
-      FIXED=$((FIXED + 1))
+      if chmod 444 "$honeypot"; then
+        set_immutable "$honeypot" || true
+        echo "  ✅ FIXED: set permissions to 444"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not set permissions"
+      fi
     fi
   fi
 
@@ -1151,12 +1166,13 @@ _doctor_todo_path() {
   # Try .todo-registry first
   local registry="$HOME/.codex/.todo-registry"
   if [[ -f "$registry" ]]; then
-    todo_path=$(cat "$registry" | tr -d '[:space:]')
+    # Strip only leading/trailing whitespace, not internal spaces (paths can have spaces)
+    todo_path=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$registry")
   fi
 
   # Fall back to .env
   if [[ -z "$todo_path" && -f "$HOME/.codex/.env" ]]; then
-    todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+    todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
   fi
 
   if [[ -z "$todo_path" ]]; then
@@ -1165,8 +1181,11 @@ _doctor_todo_path() {
     return
   fi
 
-  # Expand ~ and env vars
-  todo_path=$(eval echo "$todo_path" 2>/dev/null || echo "$todo_path")
+  # Safe tilde expansion (no eval — prevents shell injection)
+  # shellcheck disable=SC2088  # Intentional literal match
+  if [[ "$todo_path" == "~/"* ]]; then
+    todo_path="$HOME/${todo_path#\~/}"
+  fi
 
   if [[ ! -f "$todo_path" ]]; then
     echo "🟠 ERROR: TODO path configured but file does not exist: $todo_path"
