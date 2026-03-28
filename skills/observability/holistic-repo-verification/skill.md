@@ -20,6 +20,14 @@ coordination:
 
 > **Wrong skill?** Pre-commit code quality → `pre-commit-gate`. Output verification → `output-verification`. Completion gate → `verification-before-completion`.
 
+
+## When to Use
+
+- Before a major release or after large refactoring
+- After merging multiple feature branches
+- When CI passes but something still feels wrong
+- Periodic health check on repo consistency
+
 ## The Core Principle
 
 **A repository is only "green" when ALL status indicators are green.**

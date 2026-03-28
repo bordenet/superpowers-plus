@@ -39,7 +39,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 
 ---
 
-
 ## Scope Exclusions
 
 - AI slop removal → `eliminating-ai-slop`
