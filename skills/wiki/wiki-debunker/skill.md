@@ -81,6 +81,7 @@ coordination:
 - **link-verification**: Checking links within wiki pages
 - **wiki-content-coherence**: Checking for content duplication
 
+- **issue-comment-debunker**: Debunking issue comments (this is wiki)
 ## When to Use
 
 - When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")
