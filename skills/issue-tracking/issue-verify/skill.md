@@ -36,6 +36,13 @@ Invoke this skill when:
 
 ---
 
+
+## Scope Exclusions
+
+- Creating new issues → `issue-authoring`
+- Editing existing issues → `issue-editing`
+- Checking links in issues → `issue-link-verification`
+
 ## Issue Key Verification
 
 <EXTREMELY_IMPORTANT>

@@ -45,6 +45,13 @@ composition:
 - Checking what has already been tried ("what have we tried?")
 - Saving a checkpoint before ending a session
 
+
+## Scope Exclusions
+
+- Quick bug fix → `systematic-debugging`
+- Feature planning → `plan-and-execute`
+- Code review → `progressive-code-review-gate`
+
 ## Core Principles
 
 1. **JSON is authoritative.** Markdown is a read-only export for handoff.

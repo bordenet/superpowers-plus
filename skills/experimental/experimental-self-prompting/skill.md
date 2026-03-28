@@ -169,6 +169,13 @@ This skill will be promoted to production when:
 - **Prompt drift:** Self-generated prompts gradually diverge from the original goal — anchor each round to the user's request
 - **Overhead without value:** Some tasks don't benefit from self-prompting — simple factual lookups, mechanical edits
 
+
+## Scope Exclusions
+
+- Stuck in a loop → `think-twice`
+- Creative ideas → `brainstorming`
+- Debugging → `systematic-debugging`
+
 ## Companion Skills
 
 - **think-twice**: For stuck loops (production-ready alternative)

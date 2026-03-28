@@ -34,6 +34,13 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
 
+
+## Scope Exclusions
+
+- File-protocol review handoff → `code-review`
+- Inline PR review → `providing-code-review`
+- Pre-commit lint/tests → `pre-commit-gate`
+
 ## Procedure
 
 ### Phase 1: Triage
