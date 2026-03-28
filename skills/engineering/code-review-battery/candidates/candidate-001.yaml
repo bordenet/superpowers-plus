@@ -1,0 +1,35 @@
+# Candidate: Resource handle leak on early-return error paths
+id: candidate-001
+status: proposed
+kind: pattern
+created: 2026-03-28
+source_gap: "Defect Finder missed fd leak in ex-007: backup_state() opens fd for locking but error paths (invalid JSON, missing version) return without closing the fd. Defect Finder found other issues (lock/read inconsistency, portability) but not the resource leak."
+source_exercise: ex-007
+reviewer: defect-finder
+pattern: |
+  When reviewing code that opens a resource handle (file descriptor, socket,
+  database connection, lock file) early in a function, trace ALL exit paths
+  (return, throw, error branch) and verify the handle is released on each one.
+  Pay special attention to:
+  - Validation/guard clauses that return early after the handle is opened
+  - Error branches in try/catch that don't reach the cleanup section
+  - Functions with multiple return statements where only the last one cleans up
+  Flag as Important if any exit path leaks a handle.
+examples:
+  - file: "tools/state-backup.sh"
+    issue: "exec {fd}< opens fd on line 12, but return 1 on lines 24 and 32 exit without exec {fd}<&- to close it"
+    fix: "Add trap 'exec {fd}<&-' RETURN, or add exec {fd}<&- before each return 1"
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: null
+  regression_check: null
