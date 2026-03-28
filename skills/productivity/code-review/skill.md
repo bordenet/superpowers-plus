@@ -145,3 +145,4 @@ mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
 - **providing-code-review**: Engineering rigor checklist (loaded by reviewer)
 - **receiving-code-review**: Processing feedback from reviews
 - **code-review-battery**: Multi-reviewer code review
+- **micro-harsh-review**: Per-batch review (lighter)
