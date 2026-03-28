@@ -107,11 +107,11 @@ This gives a list like: `parseConfig`, `UserService`, `IConfigOptions`.
 For each changed symbol:
 
 ```bash
-# Find all callers across the repo:
-grep -rn '<symbol>' <repo> --include='*.{ts,js,py,sh,go,jsx,tsx}' | grep -v 'node_modules\|dist\|build'
+# Find all references to the symbol across the repo:
+grep -rn '<symbol>' <repo> --include='*.ts' --include='*.js' --include='*.py' --include='*.sh' --include='*.go' --include='*.jsx' --include='*.tsx' | grep -v 'node_modules\|dist\|build'
 
 # Find the symbol's type/interface definition (if it's a function parameter or return):
-grep -rn 'interface.*<TypeName>\|type.*<TypeName>' <repo> --include='*.{ts,d.ts}'
+grep -rn 'interface.*<TypeName>\|type.*<TypeName>' <repo> --include='*.ts' --include='*.d.ts'
 ```
 
 For each caller found: extract the enclosing function signature (so reviewers know the calling context without reading the entire file).
@@ -138,7 +138,7 @@ Extract intent from commit messages. The log range MUST match the review scope (
 
 ```bash
 # Match to review scope:
-# If diff is: git diff --cached        → git log --cached (staged commits — typically empty)
+# If diff is: git diff --cached        → no commit messages yet (staged but uncommitted); skip this step
 # If diff is: git diff @{u}..HEAD      → git log --format='%s%n%b' @{u}..HEAD | head -30
 # If diff is: git diff main..HEAD      → git log --format='%s%n%b' main..HEAD | head -30
 # If diff is: git diff HEAD~1          → git log --format='%s%n%b' -1 HEAD | head -30
@@ -152,12 +152,12 @@ Test execution during context expansion is **opt-in only** (`--run-tests` flag) 
 
 **When enabled** (`--run-tests`):
 ```bash
-# Hard timeout: 30s total for all test commands. Kill if exceeded.
-timeout 30 <test-command> 2>&1 | tail -20
+# Per-command timeout: 15s per test command. Kill if exceeded.
+timeout 15 <test-command> 2>&1 | tail -20
 ```
 
 Safeguards:
-- 30-second hard timeout per test command; skip and note "timed out" if exceeded
+- 15-second hard timeout per test command; skip and note "timed out" if exceeded
 - Only run tests that match changed files (not the full test suite)
 - Test runner detection: look for `package.json` (npm/jest), `pytest.ini`/`setup.cfg` (pytest), `test/` dir with `.bats` files. If no runner detected, skip.
 - Do NOT run tests that require env vars, secrets, databases, or network services — if `test-command` fails immediately with a non-test error, skip and note "test setup failed"
@@ -165,23 +165,23 @@ Safeguards:
 
 ### Context Package Format
 
-The context package is **strictly factual** — raw grep/find output, no semantic conclusions. Reviewers draw their own conclusions from the facts. This preserves reviewer independence and avoids biasing all 6 reviewers with a single analysis.
+The context package reports **grep results and command output** — labeled as what the commands found, not what the results mean. Reviewers draw their own semantic conclusions. This preserves reviewer independence and avoids biasing all 6 reviewers with a single analysis.
 
 ```markdown
 ## Context Package
 
 ### Changed Symbols
 - `parseConfig()` in src/config.ts:42 (modified)
-  - Callers: src/app.ts:15, src/cli.ts:88, lib/init.ts:22
-  - Test refs: test/config.test.ts (3 grep hits for "parseConfig")
-  - Types: src/types.ts:31 (grep hit for "ConfigOptions")
+  - Grep hits: src/app.ts:15, src/cli.ts:88, lib/init.ts:22 (3 files reference "parseConfig")
+  - Test file hits: test/config.test.ts (3 grep hits for "parseConfig")
+  - Type/interface hits: src/types.ts:31 (grep hit for "ConfigOptions")
 
 - `UserService` class in src/services/user.ts (new method `deactivate()` added)
-  - Callers: src/routes/auth.ts:44, src/routes/profile.ts:12
-  - Test refs: test/services/user.test.ts (0 grep hits for "deactivate")
-  - Interface refs: src/interfaces/IUserService.ts (0 grep hits for "deactivate")
+  - Grep hits: src/routes/auth.ts:44, src/routes/profile.ts:12 (2 files reference "UserService")
+  - Test file hits: test/services/user.test.ts (0 grep hits for "deactivate")
+  - Type/interface hits: src/interfaces/IUserService.ts (0 grep hits for "deactivate")
 
-### Test Status (if tests were run)
+### Test Status (if tests were run — requires --run-tests)
 - test/config.test.ts: PASS (3/3)
 - test/services/user.test.ts: PASS (12/12)
 
@@ -193,7 +193,7 @@ The context package is **strictly factual** — raw grep/find output, no semanti
 - "Add account deactivation flow with soft-delete and audit logging"
 ```
 
-Note: the package reports "0 grep hits for deactivate" in test and interface files — it does NOT label these as "COVERAGE GAP" or "CONTRACT GAP." That judgment belongs to the reviewers.
+Note: the package reports grep hit counts and locations. It does NOT label results as "callers," "COVERAGE GAP," or "CONTRACT GAP." Whether a grep hit represents a caller, a comment, or a string literal is for the reviewer to determine.
 
 ### Dispatch Contract Update
 
@@ -274,28 +274,29 @@ wc -l < "<referenced_file>"
 ```
 If finding references `config.ts:542` but the file has 200 lines → mark `[UNVERIFIED: line out of range]`.
 
-#### Check 3: Symbol Existence
+#### Check 3: Symbol Existence in File
 ```bash
 grep -n '<claimed_symbol>' "<referenced_file>"
 ```
-If finding says "the `validateToken()` function at line 42 is missing error handling" but no such function exists at that line → mark `[UNVERIFIED: symbol not found at location]`.
+This checks if the symbol appears **anywhere in the file** (not at the specific line — line-level verification would require AST parsing, which is out of scope). If `grep` finds zero hits for the symbol in the file → mark `[UNVERIFIED: symbol not found in file]`. If the symbol exists in the file but not near the claimed line, the finding is still tagged `[VERIFIED]` — the reviewer may have the right function but wrong line number.
 
 #### Check 4: Claim Verification (incremental — start with Checks 1-3 only)
 ```bash
 # "Function X is never called":
-grep -rn '<function_name>' <repo> --include='*.{ts,js,py,sh}' | grep -v '<definition_file>'
+grep -rn '<function_name>' <repo> --include='*.ts' --include='*.js' --include='*.py' --include='*.sh' | grep -v '<definition_file>'
 
 # "Variable X is unused":
-grep -rn '<variable_name>' <repo> --include='*.{ts,js,py,sh}' | wc -l
+grep -rn '<variable_name>' <repo> --include='*.ts' --include='*.js' --include='*.py' --include='*.sh' | wc -l
 ```
 
 #### Verification Output
 
 Each finding gets one of:
-- `[VERIFIED]` — all referenced files, lines, and symbols confirmed to exist
-- `[UNVERIFIED: <reason>]` — at least one verification check failed
+- `[VERIFIED]` — all referenced files, lines, and symbols confirmed to exist; claims checked where possible
+- `[UNVERIFIED: <reason>]` — at least one verification check failed (file missing, line out of range, symbol not in file, or claim disproved)
+- `[UNSTRUCTURED]` — reviewer output did not follow the structured finding schema; verification could not be performed
 
-**Unverified findings are NOT dropped.** They move to an appendix in the aggregated report. The reviewer may have the right insight with wrong evidence — the user decides.
+**Unverified and unstructured findings are NOT dropped.** They move to an appendix in the aggregated report. The reviewer may have the right insight with wrong evidence — the user decides.
 
 ### Expected Impact
 
@@ -414,7 +415,7 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 - Add: Test coverage gaps for error/edge-case paths added in the diff
 - Add: Missing integration tests for new cross-component interactions
 
-**Dimension count**: 19 → 22 (Guardian +1 new sub-dimension, Design Critic +1 new sub-dimension, Standards Enforcer sub-dimension 4 expanded with 4 new check items)
+**Dimension count**: 19 → 21 (Guardian +1 new sub-dimension, Design Critic +1 new sub-dimension). Standards Enforcer sub-dimension 4 is expanded with additional check items but remains 1 sub-dimension.
 
 ---
 
@@ -485,8 +486,8 @@ checks/
 
 Generated rules must be validated before candidate staging:
 
-1. **Syntax validation**: `semgrep --validate --config <rule>.semgrep.yml` (if Semgrep installed) or YAML parse check (`python -c "import yaml; yaml.safe_load(open('<rule>.semgrep.yml'))"`)
-2. **Dry run on changed files**: `semgrep --config <rule>.semgrep.yml <changed-files> --json` — verify it produces results and doesn't error
+1. **Syntax validation**: `semgrep --validate --config <rule>.semgrep.yml` (if Semgrep installed). No fallback YAML validation — if Semgrep is unavailable, the LLM generates a shell script instead (not a Semgrep rule).
+2. **Dry run on changed files** (if Semgrep available): `semgrep --config <rule>.semgrep.yml <changed-files> --json` — verify it runs without error
 3. **If validation fails**: fall back to shell script format for that gap
 
 **Semgrep availability**: Semgrep is treated as an optional dependency. If not installed, all script-learnable gaps generate shell scripts. The graduation pipeline (future) will validate rules against a holdout corpus — that pipeline must also handle both formats.
@@ -595,12 +596,12 @@ skills/engineering/code-review-battery/
 | Monolith precision | 46% | 60-70% (projected) | Monolith FPs dominated by phantom refs — higher impact from verification |
 | Cross-file bug detection | Low | Higher | Context package pre-discovers callers and related code (E1) |
 | FPR (false positive rate) | ~37% | 20-30% (projected) | Verification catches phantom refs (E2); reasoning FPs need E3 maturation |
-| Dimension coverage | 19 sub-dimensions | 22 sub-dimensions | Guardian +1, Design Critic +1, Standards expanded (E4) |
+| Dimension coverage | 19 sub-dimensions | 21 sub-dimensions | Guardian +1, Design Critic +1 (E4) |
 | Learned rule quality | Shell grep only | Semgrep YAML (AST-aware) + shell fallback (E5) | — |
 
 ## Open Design Decisions
 
-1. **Context expansion timeout**: How long to wait for grep/test commands? Proposed: 30s hard timeout, skip any step exceeding 10s.
+1. **Context expansion timeout**: Each context-expansion step (grep, find, git log) gets a 10s timeout. Test execution (opt-in only) gets 15s per command. Total Phase 1.5 hard cap: 60s. If exceeded, report partial context and continue to dispatch.
 2. **Verification depth**: Start with Checks 1-3 only (file/line/symbol), add claim verification (Check 4) incrementally after measuring false-negative rate.
 3. **Semgrep availability**: Optional dependency — generate both formats, use Semgrep when available.
 4. **Investigation round limit**: Soft cap at 5 searches per finding, hard cap at 3 minutes per reviewer total investigation time.
