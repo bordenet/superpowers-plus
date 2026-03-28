@@ -94,3 +94,11 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Handling request inline instead of dispatching | This is a router. Dispatch to the right sub-skill, don't DIY. |
+| Wrong skill selected from dispatch table | Check skill descriptions. When in doubt, load both and compare. |
+| Skipping output-verification before claiming done | output-verification fires BEFORE verification-before-completion |

@@ -172,3 +172,12 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 | Date | What Happened | Impact |
 |------|---------------|--------|
 | 2026-03-27 | Agent skipped brainstorming, think-twice, and harsh review. Created a new skill file, immediately presented a confabulated summary without reading the file back. README table ordering was wrong. Router stems were wrong for the actual stemmer. Thinking-orchestrator routing was overcorrected. Required 2 full hostile review rounds to catch all issues. | Every issue found by hostile reviewers could have been caught if the full workflow had been followed from the start. |
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Phase skipping (most common) | Every phase has an exit gate. No phase can be skipped without user opt-out. |
+| Rushing through brainstorming in <2 exchanges | Brainstorming should explore ≥3 approaches with real trade-offs |
+| Skipping harsh review after implementation | Phase 6 is mandatory. Fixes from review need their own review. |
+| Not persisting phase state via TODO | Each phase must be enrolled as a TODO before starting |

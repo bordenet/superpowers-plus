@@ -123,3 +123,11 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 ## Child Skills
 
 - `engineering-rigor` -- Hub for engineering process (pre-commit, blast radius, code review)
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill. |
+| Wrong routing decision | When two skills match, prefer the more specific one |
+| Missing routing case | If no row matches, default to adversarial-search |

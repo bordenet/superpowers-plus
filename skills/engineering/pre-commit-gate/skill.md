@@ -174,3 +174,12 @@ Multiple skills fire on "before commit". Execute in this order:
 | 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
 **Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Claiming 'lint passes' without showing output | VIOLATION: Every gate claim requires visible tool output in response |
+| Running tests after push (CI-first anti-pattern) | Run ALL gates locally before `git commit`. CI confirms, not discovers. |
+| Skipping dangerous-pattern-scan for .sh files | Step 0 is mandatory when .sh files are staged |
+| Not re-running gates after fixing gate failures | Fixes are new code. They need their own gate pass. |

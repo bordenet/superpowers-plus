@@ -152,3 +152,11 @@ Skip any step = incomplete work
 - `verification-before-completion` - General verification discipline
 - `systematic-debugging` - When the field mismatch causes runtime errors
 - `link-verification` - For verifying API endpoint URLs still exist
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Missing a consumer across service boundary | Search ALL repos, not just current. Check API clients, shared libs. |
+| Renaming in code but not in config/env files | Check .env files, docker-compose, CI configs, deployment manifests |
+| Database column rename without migration | Column renames need a migration. Check ORM models match DB schema. |

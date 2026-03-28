@@ -216,3 +216,10 @@ being caught in self-review.
 Run the command. Read the output. THEN claim the result.
 
 This is non-negotiable.
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Claiming done without evidence | Show command output, exit codes, test results |
+| Checking only happy path | Also verify edge cases and error handling |

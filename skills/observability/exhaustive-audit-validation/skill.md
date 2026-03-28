@@ -161,3 +161,11 @@ If this skill is skipped:
 4. Trust eroded
 
 **This skill exists because the agent claimed "first-pass complete" on 2026-02-28 while 12 of 27 skills were unfixed.**
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Checking only the first few instances | EVERY instance must be verified. Use grep counts to confirm. |
+| Declaring 'all fixed' without independent count | Count before and after. Numbers must match. |
+| Missing instances in non-obvious locations | Check tests, configs, docs, comments — not just source code |

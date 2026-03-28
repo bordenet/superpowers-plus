@@ -214,3 +214,10 @@ Multiple skills fire on "before commit". Execute in this order:
 | 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
 
 **Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Fixing style issues without re-running lint | Re-run lint after every fix batch |
+| Style fixes breaking functionality | Run tests after style changes |
