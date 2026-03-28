@@ -4,6 +4,13 @@ source: superpowers-plus
 description: Use when sending work to a separate reviewer agent or executing reviewer findings via the ~/.codex/superpowers-review/ request.md → response.md file protocol
 triggers: ["send to reviewer agent", "execute reviewer findings", "implement reviewer response", "superpowers-review"]
 anti_triggers: ["review my PR", "review this PR", "code review before commit", "pre-commit"]
+coordination:
+  group: code-quality
+  order: 1
+  requires: []
+  enables: [providing-code-review, progressive-code-review-gate]
+  escalates_to: [code-review-battery]
+  internal: false
 ---
 
 # Code Review — Requesting Agent File Protocol
@@ -131,6 +138,16 @@ mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
 # Requesting agent reads response.md, implements fixes
 ```
 
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Self-review as review | Author reviews own code | Dispatch to separate agent/human |
+| Skipping for small changes | "Just a one-liner" | All code changes need review |
+| Delayed review request | Review after merge | Review BEFORE merge, always |
+| Context-free request | No PR description | Include what/why/how/test plan |
+| Review shopping | Picking lenient reviewer | Assign by expertise, not leniency |
+
 ## Failure Modes
 
 | Failure | Fix |
@@ -146,3 +163,4 @@ mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
 - **receiving-code-review**: Processing feedback from reviews
 - **code-review-battery**: Multi-reviewer code review
 - **micro-harsh-review**: Per-batch review (lighter)
+- **progressive-code-review-gate**: Commit-time gate
