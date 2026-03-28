@@ -116,3 +116,6 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 - **investigation-state**: When investigation hits a wall
 - **issue-comment-debunker**: Debunking suspicious issue claims
 - **experimental-self-prompting**: Self-directed exploration
+- **quantitative-decision-gate**: Quantitative decision-making
+- **failure-autopsy**: Post-mortem analysis
+- **micro-harsh-review**: Per-batch code review

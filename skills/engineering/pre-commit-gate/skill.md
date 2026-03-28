@@ -171,6 +171,7 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 - **output-verification**: Output verification
 - **holistic-repo-verification**: Full repo health check
 - **security-upgrade**: Post-upgrade pre-commit checks
+- **micro-harsh-review**: Per-batch review gate
 ## Commit Gate Coordination
 
 Multiple skills fire on "before commit". Execute in this order:
