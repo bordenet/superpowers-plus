@@ -81,7 +81,7 @@ For each finding:
 - **File:Line**: Exact location in the diff
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
-- **Fix**: How to fix (if not obvious)
+- **Fix**: How to fix — include exact before/after code when possible
 
 If you find NO issues, say:
 "✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."

@@ -77,7 +77,7 @@ For each finding:
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
-- **Fix**: How to fix (if not obvious)
+- **Fix**: How to fix — include exact before/after code when possible
 
 If you find NO issues, say:
 "✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."

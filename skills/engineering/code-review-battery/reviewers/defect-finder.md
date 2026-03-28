@@ -124,7 +124,13 @@ For each finding:
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (what breaks, what data is lost, what crashes)
-- **Fix**: How to fix (if not obvious)
+- **Fix**: How to fix — include exact before/after code when possible:
+  ```
+  // Before:
+  if (count === 0) { skip() }
+  // After:
+  if (count === 0 && !hasEvidence) { skip() }
+  ```
 
 If you find NO defects, say:
 "✅ No defects found. Code handles error paths and edge cases appropriately."
