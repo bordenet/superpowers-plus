@@ -122,6 +122,16 @@ When two requirements conflict:
 | Implementation as requirement | "Use Redis for caching" | Restate as need: "Cache layer with <10ms reads" |
 | Negative-only | "Don't break existing behavior" | State positive: "All existing tests pass" |
 
+
+## Example
+
+```bash
+# Check that all requirements have acceptance criteria
+grep -c "GIVEN.*WHEN.*THEN" requirements.md || echo "⚠️ Missing acceptance criteria"
+# Verify testability: each requirement maps to at least one test
+grep -rn "describe\|it(" test/ --include="*.ts" | wc -l
+```
+
 ## Failure Modes
 
 | Failure | Fix |

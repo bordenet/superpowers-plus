@@ -124,6 +124,16 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 
 </EXTREMELY_IMPORTANT>
 
+
+## Example
+
+```bash
+# Invoke specific thinking modes
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill adversarial-search
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill brainstorming
+```
+
 ## Failure Modes
 
 | Failure | Recovery |

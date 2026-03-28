@@ -85,6 +85,16 @@ When duplicates are confirmed:
 3. Delete the weaker section
 4. Re-check heading hierarchy after deletion
 
+
+## Example
+
+```bash
+# Find potential duplicate content across wiki pages
+grep -rn "authentication" wiki/ --include="*.md" -l | head -10
+# Check for contradictions: same term defined differently
+grep -rn "timeout.*=" wiki/ --include="*.md" | sort
+```
+
 ## Failure Modes
 
 | Failure | Fix |
