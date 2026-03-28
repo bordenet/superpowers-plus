@@ -4,6 +4,10 @@
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
+## Development Process
+
+Development now uses private branches for maturation, testing, and validation before merging to main. Expect less frequent commits as changes are batched into reviewed, tested releases.
+
 ## What's Included
 
 **65 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
