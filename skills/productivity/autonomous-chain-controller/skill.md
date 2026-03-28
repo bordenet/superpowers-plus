@@ -39,6 +39,19 @@ coordination:
 - Full feature development lifecycle
 - Multi-step refactoring
 
+
+### Example
+
+```bash
+# Example: Chain selection for "build login page"
+echo "Task: build login page"
+echo "Complexity: MEDIUM (5 skills)"
+echo "Chain: brainstorming -> design-triad -> plan-and-execute -> TDD -> verify"
+echo "Gate 1: brainstorming output has >=3 options? YES"
+echo "Gate 2: design-triad scored all options? YES"
+echo "Gate 3: plan has phases? YES -> continue"
+```
+
 ## Scope Exclusions
 
 - Single-skill tasks -> invoke directly
@@ -90,6 +103,15 @@ All skills done + gates passed + verification + TODO sweep.
 | Branch drift | Wrong branch | HALT -> fix -> resume |
 | Gate cascade | 3x same failure | HALT -> autopsy -> escalate |
 | Scope creep | >8 skills | Split into sub-chains |
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Skipped gate | No between-skill check | Add gate, re-run previous skill |
+| Wrong chain selected | Output mismatches task | Re-classify, new chain |
+| Premature completion | Skills remaining | Block until all complete |
+| Scope creep | >8 skills in chain | Split into sub-chains |
 
 ## Failure Modes
 
