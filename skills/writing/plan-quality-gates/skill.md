@@ -155,7 +155,7 @@ These patterns in plan output indicate this skill was not followed:
 
 - **plan-and-execute**: Executing plans (this skill validates them)
 - **brainstorming**: Generating plan options
-- **writing-plans** (upstream): Plan writing standards
+- `writing-plans` (upstream): Plan writing standards
 
 ## When to Use
 
