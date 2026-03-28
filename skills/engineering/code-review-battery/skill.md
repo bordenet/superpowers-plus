@@ -109,7 +109,9 @@ After all reviewers return:
 
 6. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
 
-**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary.
+**Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
+
+**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor (full, or "[N] Minor findings suppressed") → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary (`Findings: [N] Critical, [N] Important, [N] Minor ([N] suppressed) | Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`).
 
 **Live metrics** (computable from current pass only):
 
@@ -124,7 +126,6 @@ After all reviewers return:
 - High-severity precision: validated Critical+Important / total Critical+Important (target: ≥80%)
 - Round 2 incremental yield: findings from escalation passes / total findings (target: ≤20% — if higher, specialists are missing too much)
 
-Include in summary: `Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`
 
 ### Phase 4: Escalation (Round 2)
 
