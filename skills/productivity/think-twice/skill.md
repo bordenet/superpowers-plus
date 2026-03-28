@@ -20,6 +20,14 @@ coordination:
 
 > **Break through blockers by consulting a fresh perspective.**
 
+
+## When to Use
+
+- You've tried the same approach 3+ times without progress
+- You notice yourself using hedging language ("I'm not sure why")
+- The same error keeps recurring after attempted fixes
+- You catch yourself referencing your own failed output as evidence
+
 ## Process
 
 1. **Generate consultation prompt** (see `references/consultation-prompt-template.md`):

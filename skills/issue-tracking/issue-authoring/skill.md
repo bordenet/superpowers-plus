@@ -23,6 +23,14 @@ coordination:
 
 ---
 
+
+## When to Use
+
+- Creating new tickets in Linear, Azure DevOps, or Monday
+- When user requests a ticket for a bug, feature, or task
+- Converting conversation discussion into a trackable ticket
+- When acceptance criteria need to be formalized
+
 ## Configuration
 
 Before using this skill, configure your issue tracker:
