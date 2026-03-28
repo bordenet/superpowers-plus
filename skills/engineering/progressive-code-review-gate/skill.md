@@ -169,3 +169,4 @@ pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate
 - **providing-code-review**: Engineering rigor checklist (informs review focus)
 - **progressive-harsh-review**: Progressive review enforcement
 - **feature-development**: Full feature workflow (uses this gate)
+- **micro-harsh-review**: Per-batch review (lighter)

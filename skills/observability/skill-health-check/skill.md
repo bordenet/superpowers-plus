@@ -30,6 +30,7 @@ coordination:
 
 - **superpowers-help**: Skill discovery (lighter)
 - **writing-skills**: Skill file format reference
+- **evolution-loop**: Self-improvement cycle
 ## When to Use
 
 - After creating or modifying skills
