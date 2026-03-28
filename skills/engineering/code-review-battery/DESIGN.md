@@ -1,9 +1,11 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Draft (Brainstorming Phase)
+> **Status**: Active Development (v2.3 — proven against real PR)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
-> **Confidence**: 88/100 (post-validation V1-V5)
+> **v2 Shipped**: 2026-03-28 (ripple analysis, consumer trace, comment-as-spec)
+> **v2.3 Shipped**: 2026-03-28 (feedback loop analysis, paired boundary tests, convergent findings, Round 2 escalation)
+> **Confidence**: 92/100 (v2.2 battery caught all Round 1-3 findings in single pass)
 
 ## Architecture Overview
 
@@ -47,41 +49,41 @@
 ├── SKILL.md                    # Skill entry point with triggers
 ├── PRD.md                      # Product requirements (this file's companion)
 ├── DESIGN.md                   # This file
-├── coordinator.md              # Triage + aggregation prompt template
+├── coordinator.md              # Triage + dispatch + aggregation + escalation
+├── context-expansion.md        # Context expansion procedures (on-demand)
+├── verification.md             # Finding verification procedures (on-demand)
+├── investigation-protocol.md   # Shared investigation protocol (on-demand)
+├── gap-analysis.md             # Gap analysis procedures (on-demand)
+├── implementation-plan.md      # Implementation plan (reference)
 ├── reviewers/
-│   ├── defect-finder.md        # Agent 1 prompt
-│   ├── design-critic.md        # Agent 2 prompt
-│   ├── guardian.md              # Agent 3 prompt
-│   ├── standards-enforcer.md   # Agent 4 prompt
-│   └── performance-analyst.md  # Agent 5 prompt
-└── claude-code/                # Claude Code subagent files (installed to .claude/agents/)
-    ├── defect-finder.md
-    ├── design-critic.md
-    ├── guardian.md
-    ├── standards-enforcer.md
-    └── performance-analyst.md
+│   ├── defect-finder.md        # Agent 1 prompt — correctness, edge cases, ripple analysis
+│   ├── design-critic.md        # Agent 2 prompt — factoring, complexity, naming
+│   ├── guardian.md             # Agent 3 prompt — security, blast radius, contract drift
+│   ├── standards-enforcer.md   # Agent 4 prompt — docs, test quality, observability
+│   ├── performance-analyst.md  # Agent 5 prompt — performance, logging
+│   └── monolith.md             # Comprehensive reviewer (on-demand, not in default battery)
 ```
 
 ## Platform Dispatch
 
 ### Augment.ai
 
-Uses `sub-agent-explore` with unique names. All 5 fire in parallel:
+Uses `sub-agent-code-reviewer` with unique names. All activated reviewers fire in parallel:
 
 ```
 # Dispatched by the coordinator (the orchestrating agent):
-sub-agent-explore(name="battery-defect-finder", instruction=<defect-finder.md content + diff>)
-sub-agent-explore(name="battery-design-critic", instruction=<design-critic.md content + diff>)
-sub-agent-explore(name="battery-guardian", instruction=<guardian.md content + diff>)
-sub-agent-explore(name="battery-standards", instruction=<standards-enforcer.md content + diff>)
-sub-agent-explore(name="battery-performance", instruction=<performance-analyst.md content + diff>)
+sub-agent-code-reviewer(name="battery-defect-finder", instruction=<defect-finder.md prompt + diff + source context>)
+sub-agent-code-reviewer(name="battery-design-critic", instruction=<design-critic.md prompt + diff>)
+sub-agent-code-reviewer(name="battery-guardian", instruction=<guardian.md prompt + diff + source context>)
+sub-agent-code-reviewer(name="battery-standards", instruction=<standards-enforcer.md prompt + diff>)
+# Performance Analyst skipped if no perf-sensitive code
 ```
 
-**Why `sub-agent-explore` not `sub-agent-code-reviewer`?**
-- `sub-agent-explore` is a built-in tool type — no manual setup required
-- `sub-agent-code-reviewer` must be manually configured per workspace
-- `sub-agent-explore` supports parallel dispatch with unique names
-- The reviewer behavior is controlled by the instruction, not the tool type
+**Why `sub-agent-code-reviewer`?**
+- Purpose-built sub-agent type for code review tasks in Augment workspaces
+- Pre-configured with workspace access — no manual setup needed
+- Supports parallel dispatch with unique names
+- Reviewer behavior is controlled by the instruction prompt
 
 ### Claude Code
 
@@ -254,7 +256,9 @@ done
 | 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. Verified stem derivations, YAML frontmatter, arithmetic on skill counts. 0 false positives. | Inline diff works. Standards Enforcer is appropriately thorough. |
 | 2026-03-27 | V3: Triage Coordinator test | ✅ PASS — Correctly activated 4/5 reviewers, skipped Performance Analyst. Sound reasoning. Output matched JSON format. | Triage logic works as designed. Design Critic correctly triggered for routing API changes. |
 | 2026-03-27 | V4: Monolithic vs Battery comparison | ⚠️ MIXED — See detailed analysis below | Battery more precise; monolithic finds more but with more noise. See V4 Analysis. |
-| — | V5: Token cost measurement | ⬜ Pending (estimated from V2b runs) | — |
+| — | V5: Token cost measurement | ⬜ Deferred — not a priority while improving precision | — |
+| 2026-03-28 | V6: v2.2 battery against real PR (3 files, +513/-43) | ✅ PASS — All Round 1-3 findings caught in single pass. 10 findings, 0 false positives. 4 reviewers dispatched in parallel. | Source context + ripple analysis is the key differentiator. Battery v2.2 is production-ready. |
+| 2026-03-28 | V7: v2.3 additions (feedback loop, paired boundary, convergent) | ✅ Committed — learnings from V6 incorporated | 3 new techniques added, all evidence-based. |
 
 ### Design Constraint Discovered (V2)
 
