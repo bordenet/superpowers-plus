@@ -28,7 +28,7 @@ coordination:
 <EXTREMELY_IMPORTANT>
 
 **Every BULK/MULTI-PAGE wiki operation MUST pass through this pipeline.**
-Single-page edits, creates, and deletes → use Outline API directly.
+Single-page edits, creates, and deletes → use wiki API directly.
 
 | Stage | Gate | What Happens |
 |-------|------|-------------|
@@ -149,6 +149,6 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestr
 
 | Failure | Recovery |
 |---------|----------|
-| Running full pipeline for single-page edits | Single-page create/edit doesn't need the pipeline. Use Outline API directly. |
+| Running full pipeline for single-page edits | Single-page create/edit doesn't need the pipeline. Use wiki API directly. |
 | Skipping pipeline stages (especially link-verification) | All stages are mandatory for bulk/multi-page operations |
 | Pipeline stage fails but agent continues | Stage failure = pipeline halt. Fix the issue, then restart from failed stage. |
