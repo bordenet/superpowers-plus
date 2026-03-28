@@ -79,6 +79,15 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 - When brainstorming is yielding incremental ideas — force 10x thinking
 - When evaluating whether to build vs buy vs integrate
 
+
+## Example
+
+```bash
+# Run the innovation scoring framework
+echo "Score each idea 1-5 on: Impact (×3), Feasibility (×2), Alignment, Uniqueness"
+echo "Gate: ideas scoring <25 need reframing via think-twice"
+```
+
 ## Failure Modes
 
 | Failure | Fix |
