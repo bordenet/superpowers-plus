@@ -55,70 +55,48 @@
 │   ├── guardian.md              # Agent 3 prompt
 │   ├── standards-enforcer.md   # Agent 4 prompt
 │   └── performance-analyst.md  # Agent 5 prompt
-└── claude-code/                # Claude Code subagent files (installed to .claude/agents/)
-    ├── defect-finder.md
-    ├── design-critic.md
-    ├── guardian.md
-    ├── standards-enforcer.md
-    └── performance-analyst.md
+└── (no platform-specific files — dispatch uses sub-agent-code-reviewer on Augment,
+     subagent()/Task() on Claude Code)
 ```
 
 ## Platform Dispatch
 
-### Augment.ai
+### Augment
 
-Uses `sub-agent-explore` with unique names. All 5 fire in parallel:
+Uses `sub-agent-code-reviewer` with unique names. Activated reviewers fire in parallel:
+
+Each reviewer instruction follows the 4-part contract from `coordinator.md`:
 
 ```
 # Dispatched by the coordinator (the orchestrating agent):
-sub-agent-explore(name="battery-defect-finder", instruction=<defect-finder.md content + diff>)
-sub-agent-explore(name="battery-design-critic", instruction=<design-critic.md content + diff>)
-sub-agent-explore(name="battery-guardian", instruction=<guardian.md content + diff>)
-sub-agent-explore(name="battery-standards", instruction=<standards-enforcer.md content + diff>)
-sub-agent-explore(name="battery-performance", instruction=<performance-analyst.md content + diff>)
+sub-agent-code-reviewer(
+  name="battery-defect-finder",
+  instruction="<reviewer prompt> + repo path + exact diff command + read full files"
+)
+# ... repeated for each activated reviewer
 ```
 
-**Why `sub-agent-explore` not `sub-agent-code-reviewer`?**
-- `sub-agent-explore` is a built-in tool type — no manual setup required
-- `sub-agent-code-reviewer` must be manually configured per workspace
-- `sub-agent-explore` supports parallel dispatch with unique names
-- The reviewer behavior is controlled by the instruction, not the tool type
+**Why `sub-agent-code-reviewer`?**
+- Reviewers have full workspace access — they can read source files, run tests, and execute code
+- Benchmarking showed `sub-agent-explore` (static diff analysis) missed deep architectural bugs that required code execution to find
+- Parallel execution with workspace access gives both speed and quality
+- Each reviewer runs the exact `git diff` command matching the review scope and reads full source files
 
-### Claude Code
+### Claude Code (deferred — documented, not yet validated)
 
-Two options (prefer Option A):
+Use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell
+access to run `git diff` and `cat` source files. Same 4-part instruction contract
+as Augment dispatch. Parallel execution where the platform supports it.
 
-**Option A: Custom Subagent Files** (recommended)
-Install `.claude/agents/` files during setup. Claude auto-delegates based on description:
-
-```yaml
-# .claude/agents/battery-defect-finder.md
----
-name: battery-defect-finder
-description: "Code review focused on defects: correctness, edge cases, error handling, concurrency"
-tools: ["View", "Bash", "Grep"]
----
-<defect-finder prompt content>
-```
-
-**Option B: Inline Task Dispatch**
-The skill instructs the agent to use `Task()` calls directly:
-```
-Task("Review for defects: <diff content>")
-Task("Review for design: <diff content>")
-```
-
-Option A is preferred because it survives across sessions, auto-delegates, and
-can be version-controlled. Option B is simpler but requires the agent to
-understand the dispatch pattern each time.
+> **Status**: Claude Code dispatch is documented in `skill.md` and `coordinator.md`
+> but has not been validated in a CC environment (AC5 deferred). See PRD.md.
 
 ### Graceful Degradation
 
-If neither sub-agent tools nor Task() are available (e.g., a basic LLM chat):
-- The coordinator prompt includes inline fallback: "If you cannot dispatch
-  sub-agents, perform the review yourself using the following 5 checklists
-  sequentially."
-- Quality degrades (no parallelism, monolithic) but functionality is preserved.
+If parallel dispatch is not available, the `progressive-code-review-gate` defines
+a monolithic fallback path using a single reviewer with all 5 review dimensions
+combined into one checklist. The battery itself does NOT implement this fallback —
+it requires parallel sub-agent dispatch. The gate is the degradation boundary.
 
 ## Triage Coordinator Design
 
@@ -157,7 +135,7 @@ A JSON-like selection that the dispatcher uses:
 
 ## Reviewer Prompt Structure
 
-Each reviewer prompt follows a consistent template:
+Each reviewer prompt (in `reviewers/<name>.md`) follows a consistent template:
 
 ```markdown
 # [Reviewer Name]
@@ -167,7 +145,14 @@ You are reviewing code changes with a specific focus: [MENTAL MODEL].
 You ONLY report findings in your domain. Do not comment on other dimensions.
 
 ## What to Review
-[DIFF CONTENT]
+Run the git diff command provided to see the changes. Then read the full source
+files for every changed file.
+
+## Workspace Access
+You have full workspace access. Use it:
+- cat <file> to read the complete source file
+- grep -rn <pattern> <dir> to find callers, related code
+- Run tests if they exist for the changed files
 
 ## Your Dimensions
 [LIST OF SPECIFIC DIMENSIONS WITH EXAMPLES]
@@ -179,7 +164,7 @@ Clearly mark any finding where confidence is 60-80% as "Possible: ..."
 ## Output Format
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (impact)
 - **Fix**: How to fix (if not obvious)
@@ -211,34 +196,31 @@ No separate aggregation agent — this avoids the serial bottleneck.
 ## Integration with Existing Skills
 
 ### progressive-code-review-gate
-Current flow: gather diff → dispatch `sub-agent-code-reviewer` → process results → loop if needed.
+Flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
 
-New flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
-
-The skill.md for `progressive-code-review-gate` will be updated to check for the
-battery skill. If present, delegate to it. If not (backward compat), fall back to
-monolithic review.
+The gate delegates to the battery as the primary review path. If parallel
+dispatch is impossible, the gate falls back to monolithic single-reviewer mode
+(see gate `skill.md` fallback section).
 
 ### requesting-code-review
-This skill dispatches review for PR-level or pre-merge review. It will similarly
-delegate to the battery when available.
+This is a pre-existing framework skill (from `superpowers`) that dispatches
+review for PR-level or pre-merge review. It currently uses monolithic dispatch.
+Updating it to delegate to the battery is a future integration task.
 
 ## Installation
 
 ### Augment.ai
 ```bash
 # install.sh already copies skills to ~/.agents/skills/
-# No additional setup needed — sub-agent-explore is built-in
+# sub-agent-code-reviewer is available in Augment workspaces
 cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
 ```
 
-### Claude Code
-```bash
-# Copy reviewer prompts as custom subagent files
-mkdir -p .claude/agents/
-for reviewer in defect-finder design-critic guardian standards-enforcer performance-analyst; do
-  cp ~/.agents/skills/code-review-battery/claude-code/$reviewer.md .claude/agents/battery-$reviewer.md
-done
+### Claude Code (deferred)
+```
+# No platform-specific install needed. Reviewer prompts are in reviewers/.
+# The skill.md and coordinator.md contain dispatch instructions for Claude Code.
+# See AC5 in PRD.md — not yet validated in a CC environment.
 ```
 
 ## Investigation Log
@@ -247,12 +229,12 @@ done
 
 | Date | Experiment | Result | Impact on Design |
 |------|-----------|--------|-----------------|
-| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent-explore calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. |
+| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. |
 | 2026-03-27 | V2: Defect Finder prompt test | ✅ PASS — Found 1 Important + 1 Minor real issue, 0 false positives | Prompt format works. Found genuine intent-routing ordering bug + stemming redundancy. |
-| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **CRITICAL LEARNING**: Diff must be INLINE in instruction. Sub-agents have isolated context. |
-| 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same fix: inline diff content. |
-| 2026-03-27 | V2b: Guardian prompt test (inline diff) | ✅ PASS — Correctly found no security/blast-radius issues on safe additive diff. Systematic 4-dimension coverage. 0 false positives. | Inline diff approach works. Guardian produces clean "no issues" when appropriate. |
-| 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. Verified stem derivations, YAML frontmatter, arithmetic on skill counts. 0 false positives. | Inline diff works. Standards Enforcer is appropriately thorough. |
+| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **HISTORICAL**: Led to inline diff model. Later superseded by `sub-agent-code-reviewer` which has workspace access. |
+| 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same — superseded by workspace-aware dispatch. |
+| 2026-03-27 | V2b: Guardian prompt test (inline diff) | ✅ PASS — Correctly found no security/blast-radius issues on safe additive diff. | Guardian produces clean "no issues" when appropriate. |
+| 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. | Standards Enforcer is appropriately thorough. |
 | 2026-03-27 | V3: Triage Coordinator test | ✅ PASS — Correctly activated 4/5 reviewers, skipped Performance Analyst. Sound reasoning. Output matched JSON format. | Triage logic works as designed. Design Critic correctly triggered for routing API changes. |
 | 2026-03-27 | V4: Monolithic vs Battery comparison | ⚠️ MIXED — See detailed analysis below | Battery more precise; monolithic finds more but with more noise. See V4 Analysis. |
 | 2026-03-27 | V6: Diff A (small, 3 files) | ✅ Battery: 0 findings (correct for string literal). Monolithic: 7 findings, ~5 false positives (claimed files don't exist, phantom references). | Battery precision 100%, monolithic ~35%. Battery correctly identifies safe change. |
@@ -260,19 +242,18 @@ done
 | 2026-03-27 | V8: Diff C (large, 22 files, YAML housekeeping) | ⚠️ Triage correct (3/5). Guardian + Monolithic degraded (insufficient inline context for 22-file diff). | **LEARNING**: Large multi-file diffs need better summarization strategy. Per-file dispatch may be needed for 15+ file diffs. |
 | 2026-03-27 | V5: Token cost (estimated) | ✅ ~1.5x monolithic for small/medium diffs | Within 3x budget. Large diffs with full inline would be ~4-5x. |
 
-### Design Constraint Discovered (V2)
+### Design Constraint Discovered (V2) — SUPERSEDED
 
-**Sub-agents have isolated context.** They cannot read files from the workspace
-unless explicitly given them in the instruction. This means:
+> **Historical note**: The original V2 experiments used `sub-agent-explore`, which has isolated context (no workspace access). This constraint led to inline diff injection. In v2 (2026-03-28), the battery switched to `sub-agent-code-reviewer`, which has full workspace access. Reviewers now run `git diff` themselves and read source files directly. The inline diff constraint no longer applies.
 
-1. The **coordinator** must capture the full diff before dispatching
-2. Each reviewer instruction must include the **full diff content inline**
-3. For large diffs, the coordinator may need to **chunk** the diff per reviewer
-   (e.g., Defect Finder gets src/ changes, Guardian gets config/ changes)
-4. This is a token cost driver — the diff is repeated N times (once per reviewer)
+Original constraint (v1, `sub-agent-explore`):
+1. The coordinator captured the full diff before dispatching
+2. Each reviewer received the full diff INLINE in its instruction
+3. Reviewers could NOT read workspace files or run code
+4. Token cost scaled with diff size × number of reviewers
 
-**Mitigation**: Triage gating reduces N (fewer reviewers = fewer copies of the diff).
-For very large diffs (>2000 lines), consider per-file dispatch instead of per-reviewer.
+**v2 resolution** (2026-03-28, `sub-agent-code-reviewer`): reviewers now run the
+diff command themselves, eliminating inline injection and enabling code execution.
 
 
 ### V4 Analysis: Monolithic vs Battery
@@ -355,7 +336,7 @@ Triage gating (reducing from 5 to 3-4 active reviewers) is the primary cost cont
 1. Battery precision consistently higher (63% vs 46%)
 2. Monolithic finds more issues but ≥40% are noise or overrated
 3. Battery triage was correct on all 4 diffs
-4. Large multi-file diffs degrade both approaches (isolated context limitation)
+4. Large multi-file diffs degrade both approaches (mitigated in v2 by workspace access)
 5. Battery ran only Defect Finder on most tests — full battery would improve recall
 
 **Phase 1c gate decision**: ✅ PASS. Precision ≥90% on clean diffs (A), ≥50% on

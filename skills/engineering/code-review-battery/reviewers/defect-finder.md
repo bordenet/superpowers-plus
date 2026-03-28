@@ -40,7 +40,7 @@ You ONLY report findings in your domain. Do NOT comment on style, architecture, 
 
 ## What to Review
 
-Review the diff provided below. For each file changed, trace through the logic and ask:
+Run the git diff command provided to see the changes. Then **read the full source files** for every changed file — the diff alone is insufficient for finding defects that depend on surrounding code. For each file changed, trace through the logic and ask:
 - "What happens if this input is null/empty/huge?"
 - "What happens if this operation fails?"
 - "Is this logic correct for ALL valid inputs, not just the happy path?"
@@ -55,7 +55,7 @@ Do NOT report stylistic preferences or hypothetical issues.
 
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location in the diff
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (what breaks, what data is lost, what crashes)
 - **Fix**: How to fix (if not obvious)
@@ -63,6 +63,14 @@ For each finding:
 If you find NO defects, say:
 "✅ No defects found. Code handles error paths and edge cases appropriately."
 
+## Workspace Access
+
+You have full workspace access. Use it:
+- `cat <file>` to read the complete source file (not just changed lines)
+- `grep -rn <pattern> <dir>` to find callers, related code, or similar patterns
+- `node -e '...'` or equivalent to verify behavior of suspicious code
+- Run tests if they exist for the changed files
+
 ---
 
-## DIFF TO REVIEW
+## REVIEW INSTRUCTIONS

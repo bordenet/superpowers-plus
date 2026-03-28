@@ -16,22 +16,19 @@ A single reviewer agent (`code-reviewer.md`) attempts to evaluate ALL review dim
 - Inconsistent focus (the reviewer gravitates toward whichever issue it notices first)
 - No parallelism — review time scales linearly with diff size
 
-### 2. Platform Lock-in
-The `progressive-code-review-gate` skill hard-codes `sub-agent-code-reviewer` (an Augment.ai-specific tool type). This means:
-- The skill cannot work on Claude Code without modification
-- Users on Claude Code must manually adapt the dispatch mechanism
-- No path to support future platforms (Gemini CLI, Codex, etc.)
+### 2. Platform Portability
+The battery uses `sub-agent-code-reviewer` (Augment) or `subagent()`/`Task()` (Claude Code) for dispatch. Each platform needs shell/tool access for reviewers to run `git diff` and read source files. Future platforms need equivalent sub-agent dispatch with workspace access.
 
-### 3. Manual Installation Required
-The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's settings. A new user cannot simply run `install.sh` and get review capabilities — they need platform-specific setup.
+### 3. Installation
+Skill files are auto-deployed via `install.sh` and skill discovery. No additional platform-specific setup required beyond having sub-agent dispatch available.
 
 ## Goals
 
 | # | Goal | Success Metric |
 |---|------|---------------|
 | G1 | Replace monolithic review with parallel specialized reviewers | ≥5 focused review dimensions run concurrently |
-| G2 | Achieve cross-platform portability | Works identically on Augment.ai AND Claude Code |
-| G3 | Zero manual setup | `install.sh` provides full review capability |
+| G2 | Portable design across platforms | Validated on Augment; Claude Code dispatch documented, pending validation |
+| G3 | Zero manual setup | `install.sh` deploys skill files; sub-agent dispatch is platform-native |
 | G4 | Reduce false positives | <5% of findings are noise (vs current ~15-20%) |
 | G5 | Maintain or improve review quality | Battery catches ≥ monolithic issues on same diff |
 | G6 | Triage gating | Only relevant reviewers fire per diff, reducing cost |
@@ -41,7 +38,7 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 ### In Scope (Phase 1: Review Battery)
 - 5 specialized reviewer agents with focused prompts
 - Triage coordinator that selects relevant reviewers per diff
-- Platform-agnostic dispatch (Augment + Claude Code)
+- Portable dispatch design (Augment validated, Claude Code documented)
 - Integration with existing `progressive-code-review-gate` skill
 - Aggregation of multi-reviewer output into unified report
 - 16 review dimensions covered across the 5 agents
@@ -135,8 +132,8 @@ The groupings were determined through a structured process:
 - [x] AC1: All 5 reviewer prompts produce actionable findings on ≥3 real diffs
 - [x] AC2: Battery catches Critical/Important issues (missed 1 Minor-overrated-as-Critical; mitigated by Data Integrity sub-dimension)
 - [x] AC3: Battery false positive rate <15% (measured: 12.5% across 8 runs; vs monolithic 41%)
-- [x] AC4: Works on Augment.ai via `sub-agent-explore` parallel dispatch
-- [ ] AC5: Works on Claude Code via custom subagent files — DEFERRED (no CC test env)
+- [x] AC4: Works on Augment via `sub-agent-code-reviewer` parallel dispatch (upgraded from `sub-agent-explore` after benchmarking showed quality gap)
+- [ ] AC5: Works on Claude Code via `subagent()`/`Task()` — DEFERRED (no CC test env; dispatch instructions documented)
 - [x] AC6: Triage coordinator correctly selects relevant subset on 100% of test diffs (4/4)
 - [x] AC7: Total review time (parallel) ≤ 1.5x monolithic review time
 - [x] AC8: `install.sh` auto-deploys battery via existing skill discovery
@@ -148,8 +145,8 @@ The groupings were determined through a structured process:
 - [x] AC12: Token cost ~1.5x monolithic (within 3x budget)
 
 ### Nice to Have
-- [ ] AC13: Support for `--all` override to force all reviewers on any diff
-- [ ] AC14: Support for `--only=<agent>` to run a single reviewer
+- [x] AC13: Support for `--all` override to force all reviewers on any diff
+- [x] AC14: Support for `--only=<agent>` and `--skip=<agent>` overrides
 - [ ] AC15: Reviewer-specific configuration per project
 
 ## Risks and Mitigations
@@ -181,7 +178,7 @@ The groupings were determined through a structured process:
 | V3 | Draft + test Triage Coordinator | Validate diff classification | ✅ PASS — correct 4/5 selection |
 | V4 | Monolithic vs Battery comparison | Prove battery ≥ monolithic quality | ⚠️ MIXED — higher precision, lower recall. See DESIGN.md |
 | V5 | Token cost measurement | Quantify cost tradeoff | ✅ EST — ~1.5x monolithic (within 3x threshold) |
-| V6 | Claude Code subagent file test | Verify `.claude/agents/` dispatch | ⬜ Deferred (need CC env) |
+| V6 | Claude Code dispatch test | Verify `subagent()`/`Task()` dispatch | ⬜ Deferred (need CC env; dispatch instructions documented in skill.md + coordinator.md) |
 
 ## Open Questions
 
