@@ -1245,6 +1245,112 @@ _doctor_todo_path() {
     echo "🟠 ERROR: TODO file missing $missing required headers at $todo_path"
     ERRORS=$((ERRORS + 1))
   fi
+
+  # 24b. Sync conflict file detection
+  # Cloud sync services (OneDrive, Dropbox, iCloud) create conflict copies
+  # when two machines edit the same file. These are silent data-loss vectors.
+  local todo_dir
+  todo_dir=$(dirname "$todo_path")
+  local todo_basename
+  todo_basename=$(basename "$todo_path" .md)
+  local conflict_count=0
+  local conflict_files=()
+  if [[ -d "$todo_dir" ]]; then
+    # OneDrive: "TODO - Copy.md", "TODO (1).md"
+    # Dropbox: "TODO (conflicted copy 2026-03-28).md"
+    # iCloud: "TODO 2.md"
+    # Generic: "TODO-conflict-*.md"
+    while IFS= read -r -d '' cf; do
+      local cfbase
+      cfbase=$(basename "$cf")
+      # Skip the actual TODO file itself
+      [[ "$cfbase" == "$(basename "$todo_path")" ]] && continue
+      # Skip known safe files (shadow ring backups)
+      [[ "$cfbase" == *.bak ]] && continue
+      [[ "$cfbase" == .TODO.md.* ]] && continue
+      conflict_files+=("$cfbase")
+      conflict_count=$((conflict_count + 1))
+    done < <(find "$todo_dir" -maxdepth 1 -type f \( \
+      -name "${todo_basename} - Copy*.md" -o \
+      -name "${todo_basename} (*.md" -o \
+      -name "${todo_basename}-conflict-*.md" -o \
+      -name "${todo_basename} [0-9]*.md" \
+    \) -print0 2>/dev/null)
+  fi
+  if [[ "$conflict_count" -gt 0 ]]; then
+    echo "🟠 ERROR: Found $conflict_count sync conflict file(s) in $(dirname "$todo_path"):"
+    for cf in "${conflict_files[@]}"; do
+      echo "   → $cf"
+    done
+    echo "   Action: review and merge manually, then delete the conflict copies"
+    ERRORS=$((ERRORS + 1))
+  fi
+
+  # 24c. Stray TODO scanner
+  # Agents sometimes create alternate TODO files outside the canonical path.
+  # Scan ~/.codex/ for unexpected *TODO*.md files.
+  local honeypot_path="$HOME/.codex/TODO.md"
+  local stray_count=0
+  local stray_files=()
+  while IFS= read -r -d '' sf; do
+    local sfpath
+    sfpath=$(realpath "$sf" 2>/dev/null || echo "$sf")
+    # Skip the canonical TODO
+    [[ "$sfpath" == "$(realpath "$todo_path" 2>/dev/null || echo "$todo_path")" ]] && continue
+    # Skip the honeypot
+    [[ "$sfpath" == "$(realpath "$honeypot_path" 2>/dev/null || echo "$honeypot_path")" ]] && continue
+    # Skip shadow ring directory contents
+    [[ "$sf" == *"/todo-shadow/"* ]] && continue
+    # Skip template directory
+    [[ "$sf" == *"/templates/"* ]] && continue
+    # Skip superpowers repos (contain skill docs referencing TODO)
+    [[ "$sf" == *"/superpowers-plus/"* ]] && continue
+    [[ "$sf" == *"/superpowers-augment/"* ]] && continue
+    stray_files+=("$sf")
+    stray_count=$((stray_count + 1))
+  done < <(find "$HOME/.codex" -maxdepth 2 -type f -name "*TODO*.md" -print0 2>/dev/null)
+  if [[ "$stray_count" -gt 0 ]]; then
+    echo "🟡 WARNING: Found $stray_count stray TODO file(s) in ~/.codex/:"
+    for sf in "${stray_files[@]}"; do
+      echo "   → $sf"
+    done
+    echo "   These may be from agents bypassing todo-crud.sh"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+
+  # 24d. Stale claim detection
+  # Check for tasks claimed >24h ago (likely abandoned by crashed agents).
+  if command -v python3 &>/dev/null; then
+    local engine="$REPO_ROOT/tools/todo-engine.py"
+    if [[ -f "$engine" ]]; then
+      local claims_json
+      claims_json=$(python3 "$engine" --json list-claims 2>/dev/null || echo "")
+      if [[ -n "$claims_json" ]]; then
+        # Parse claims and extract stale ones in a single Python call.
+        # Output format: first line = count, remaining lines = details.
+        local stale_output
+        stale_output=$(echo "$claims_json" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    stale = [c for c in d.get('claims', []) if c.get('age_min', 0) > 1440]
+    print(len(stale))
+    for c in stale:
+        h = round(c['age_min'] / 60, 1)
+        print(f\"  → {c['id']}: claimed by {c['agent']} ({h}h ago)\")
+except: print('0')
+" 2>/dev/null)
+        local stale_count
+        stale_count=$(echo "$stale_output" | head -1)
+        if [[ "${stale_count:-0}" -gt 0 ]]; then
+          echo "🟡 WARNING: $stale_count task(s) claimed >24h ago (likely abandoned):"
+          echo "$stale_output" | tail -n +2
+          echo "   Action: run 'todo-crud.sh reap' to release expired claims"
+          WARNINGS=$((WARNINGS + 1))
+        fi
+      fi
+    fi
+  fi
 }
 _doctor_todo_path
 
