@@ -2,6 +2,7 @@
 name: domain-design
 source: superpowers-plus
 triggers: ["design a new skill domain", "plan a skill family", "what skills should we build for", "domain design for", "design a domain", "new superpowers domain", "skill family design", "plan skills for"]
+anti_triggers: ["write a skill", "fix a skill", "skill quality"]
 description: Use when designing a new superpowers skill family from scratch — orchestrates the full research → brainstorm → harsh review → prioritize → document cycle. Produces a prioritized skill roster, architecture decision, infrastructure map, and blocker list. Does NOT build skills.
 summary: "Use when: designing a new skill family from scratch. Skip when: building skills (use domain-build)."
 coordination:
@@ -36,7 +37,7 @@ This is a 10-phase workflow. Per `todo-enforcement.always.md`, persist all 10 ph
 
 ## Scope
 
-Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process. **Not for** single-skill design (use `brainstorming` + `skill-authoring`) or implementation (use `writing-plans` or `domain-build`).
+Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process. **Not for** single-skill design (use `brainstorming` + `skill-authoring`) or implementation (use `writing-plans` or `skill-authoring`).
 
 ## Hard Principles
 

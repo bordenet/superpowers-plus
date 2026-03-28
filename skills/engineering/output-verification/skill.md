@@ -2,6 +2,7 @@
 name: output-verification
 source: superpowers-plus
 triggers: ["verify output", "inspect output", "check output", "verify rendered", "check pdf", "check html", "inspect artifact", "describe generated output", "review generated artifact", "read back the file", "ready to share", "ready to hand off", "ready to deliver", "output looks good", "rendered correctly", "diagrams look correct", "all rendered correctly", "covers all requirements", "verified", "reviewed the output", "checked the PDF", "presenting results"]
+anti_triggers: ["write code", "implement", "fix bug", "before commit", "review PR"]
 description: "Hard gate. Use BEFORE describing, summarizing, or approving any generated output — files, PDFs, API responses, script results. Fires on the ACTION PATTERN of generating output then describing it. Prevents confabulation disguised as verification. If there is no tool call (view, read, grep, open) between generate and describe, the description is fiction. Fires BEFORE verification-before-completion."
 summary: "Hard gate. You cannot describe output you haven't read. No tool call between generate and describe = fiction."
 coordination:

@@ -2,6 +2,7 @@
 name: markdown-table-discipline
 source: superpowers-plus
 triggers: ["creating a table", "markdown table", "table formatting", "table vs list", "format as table"]
+anti_triggers: ["write a document", "create wiki page", "draft email"]
 description: Enforces best practices for Markdown table construction. Invoke when deciding table vs list format, or when formatting multi-column data. Prevents visual noise, redundancy, and accessibility issues.
 summary: "Use when: deciding table vs list format or formatting multi-column data."
 options:
@@ -20,6 +21,8 @@ coordination:
 ---
 
 # Markdown Table Discipline
+
+> **Wrong skill?** AI slop detection → `detecting-ai-slop`. README writing → `readme-authoring`. Plan/roadmap → `plan-quality-gates`.
 
 Enforces best practices for Markdown table construction. This skill auto-triggers when the AI is writing or editing Markdown documents (README.md, wiki pages, skill.md files, documentation).
 

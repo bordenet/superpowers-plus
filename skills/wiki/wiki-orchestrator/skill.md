@@ -16,6 +16,8 @@ coordination:
 
 # Wiki Orchestrator
 
+> **Wrong skill?** Checking wiki links → `link-verification`. Fact-checking wiki → `wiki-debunker` or `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+
 > **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
 > **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 

@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["start investigation", "investigate this bug", "resume investigation",
            "what have we tried", "investigation status", "debug checkpoint",
            "save investigation state", "investigation handoff"]
+anti_triggers: ["implement", "write code", "create feature"]
 description: Persists debugging investigation context (hypotheses, evidence, eliminated approaches) across sessions. Companion to systematic-debugging. Use when starting, resuming, or handing off a multi-turn debugging session.
 summary: "Use when: starting, resuming, or handing off a multi-turn debugging investigation."
 coordination:

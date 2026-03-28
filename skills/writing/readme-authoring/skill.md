@@ -2,6 +2,7 @@
 name: readme-authoring
 source: superpowers-plus
 triggers: ["create README", "update README", "write README", "improve README", "README best practices"]
+anti_triggers: ["write skill file", "create skill", "skill.md format"]
 description: Use when creating or updating README.md files - enforces best practices, applies AI slop detection, quickstart-first structure.
 summary: "Use when: creating or updating README.md files."
 coordination:

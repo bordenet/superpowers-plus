@@ -2,6 +2,7 @@
 name: requirements-validation
 source: superpowers-plus
 triggers: ["validate requirements", "requirements review", "are these requirements valid", "contradictory requirements", "conflicting requirements", "requirements testing", "testable requirements", "requirements falsifiability", "check requirements for contradictions"]
+anti_triggers: ["implement requirements", "build this feature", "write code for"]
 description: Use when validating feature requirements before design or implementation. Tests each requirement for falsifiability, measurability, and independence. Detects contradictions and guides resolution without resolving silently.
 summary: "Use when: validating requirements before implementation. Skip when: requirements are already validated."
 coordination:
