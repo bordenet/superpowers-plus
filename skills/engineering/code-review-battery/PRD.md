@@ -55,17 +55,17 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 - Wiki dashboard for trending metrics over time
 - Safety controls (TTL, token budgets, precision floors, degradation response)
 
-### Out of Scope (Phase 2: Debugging Parallelization)
+### Out of Scope (Phase 3: Debugging Parallelization)
 > **⚠️ FUTURE SCOPE — DO NOT FORGET**
 >
-> Phase 2 will extend the parallel dispatch pattern to `systematic-debugging`:
+> Phase 3 will extend the parallel dispatch pattern to `systematic-debugging`:
 > - Dispatch parallel investigation agents (data flow tracer, recent changes analyzer, error message interpreter)
 > - Useful for multi-component failures where root cause is unclear
 > - Must preserve the "one hypothesis at a time" discipline from the existing skill
-> - The battery pattern from Phase 1 provides the dispatch infrastructure
+> - The battery pattern from Phase 1-2 provides the dispatch infrastructure
 >
 > **Entry point**: `~/.agents/skills/systematic-debugging/SKILL.md`
-> **Trigger**: After Phase 1 battery is validated and stable
+> **Trigger**: After Phase 2 learning system is validated and stable
 
 ### Out of Scope (Not Planned)
 - Accessibility review (too domain-specific; optional add-on for UI projects)

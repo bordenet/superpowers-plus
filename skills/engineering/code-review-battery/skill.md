@@ -1,10 +1,10 @@
 ---
 name: code-review-battery
 source: superpowers-plus
-triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers", "review battery", "five reviewer", "five-agent review"]
+triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers", "review battery", "six reviewer", "six-agent review"]
 anti_triggers: ["simple review", "quick review", "lint only"]
-description: "Use when: reviewing code changes with parallel specialized reviewers. Dispatches 5 focused agents (defect finder, design critic, guardian, standards enforcer, performance analyst) for deeper analysis than monolithic review."
-summary: "Use when: code review needed. Dispatches parallel specialized reviewer agents for deep, precise findings."
+description: "Use when: reviewing code changes with parallel specialized reviewers + monolith. Dispatches 6 agents (5 specialists + 1 monolith) for deep analysis with automatic learning."
+summary: "Use when: code review needed. Dispatches 6 parallel reviewer agents with automatic gap analysis and learning."
 coordination:
   group: code-review
   order: 0
@@ -22,7 +22,8 @@ Dispatch 5 specialized reviewer agents + 1 monolithic reviewer in parallel. A tr
 
 ## When to Use
 
-- When `requesting-code-review` or `progressive-code-review-gate` triggers a review
+- When `progressive-code-review-gate` triggers a review (primary entry point)
+- When `requesting-code-review` triggers a review (if it delegates to the battery)
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
 
@@ -98,13 +99,19 @@ After gap analysis, update the wiki dashboard page:
 | 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat | Triage-gated |
 | 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity | Triage-gated |
 | 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging | Triage-gated |
-| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **ALWAYS** |
+| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **ALWAYS on full reviews** |
+
+### Monolith Activation Rules
+
+- **Full review rounds** (Step 2): Monolith ALWAYS fires alongside activated specialists
+- **Targeted re-review** (Step 3a / Phase 4): Monolith does NOT fire unless it was the reviewer that produced the nits. Targeted re-reviews scope to nit-producing reviewers only.
+- Gap analysis (Phase 5) and dashboard update (Phase 6) only run after full review rounds, not targeted re-reviews.
 
 ## Overrides
 
-- `--all`: Force all 5 specialists regardless of triage (monolith always runs)
-- `--only=<name>`: Run a single named reviewer (monolith still runs alongside)
-- `--skip=<name>`: Exclude a specific specialist from triage selection (cannot skip monolith)
+- `--all`: Force all 5 specialists regardless of triage (monolith always runs on full reviews)
+- `--only=<name>`: Run a single named reviewer (monolith still runs alongside on full reviews)
+- `--skip=<name>`: Exclude a specific specialist from triage selection (cannot skip monolith on full reviews)
 - `--skip-monolith`: Explicitly skip the monolith (for speed-only runs; disables learning)
 
 ## Learning System

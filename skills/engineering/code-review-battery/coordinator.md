@@ -56,14 +56,15 @@ Dispatch activated specialists + monolith as parallel sub-agents using `sub-agen
   3. Reviewer prompt
   4. Instruction to read full source files
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
-- The monolith ALWAYS fires alongside the specialists
+- **Full review rounds**: Monolith ALWAYS fires alongside the specialists
+- **Targeted re-review (Phase 4)**: Monolith does NOT fire unless it produced the nits. Gap analysis (Phase 5) and dashboard update (Phase 6) also skip on targeted re-reviews.
 - Wait for all to complete
 
 ### On Claude Code
 Dispatch activated specialists + monolith using `subagent()` or `Task()` with tool access:
 - Each sub-agent needs shell access to run `git diff` and `cat` source files
 - Same 4-part instruction contract as Augment dispatch (see below)
-- The monolith ALWAYS fires alongside the specialists
+- Same monolith activation rules as Augment (full reviews: always; targeted re-reviews: only if nit-producing)
 - Fire simultaneously where the platform supports it
 
 ### Reviewer Instruction Contract
@@ -184,16 +185,23 @@ After aggregation (Phase 3), compare battery specialist findings vs monolith fin
    - **Battery-only** (specialist depth): The monolith missed this. These validate specialist value.
    - **Both found** (overlap): Confirms the battery is working.
 
-4. **For each gap, determine learning form**:
-   - **Pattern-learnable**: The gap is heuristic — a human reviewer would learn "always check X when you see Y." Add a candidate entry to `reviewers/<reviewer>-patterns.md` for the specialist that should have caught it.
-   - **Script-learnable**: The gap is deterministic — it can be detected by grep, AST scan, or a simple script. Generate a candidate script in `checks/`.
+4. **Adjudicate each gap** before learning:
+   - Verify the monolith-only finding is likely real (not a known monolith noise pattern — severity overrating, phantom file references, etc.)
+   - Use an independent evaluation: re-read the diff and source files yourself, confirm the issue exists
+   - If the gap is a monolith false positive: log it as `monolith_noise` in the dashboard but do NOT generate a candidate
+   - If the gap is confirmed real: proceed to step 5
 
-5. **Stage candidates** (Shadow Lane):
-   - Candidate patterns go into `reviewers/<reviewer>-patterns.candidate.md` (NOT the active pattern file)
-   - Candidate scripts go into `checks/candidates/` (NOT the active checks directory)
+5. **For each confirmed gap, determine learning form**:
+   - **Pattern-learnable**: The gap is heuristic — a human reviewer would learn "always check X when you see Y." Generate a candidate entry for `reviewers/<reviewer>-patterns.candidate.md`.
+   - **Script-learnable**: The gap is deterministic — it can be detected by grep, AST scan, or a simple script. Generate a candidate script for `checks/candidates/`.
+
+6. **Stage candidates** (Shadow Lane — NEVER write to active files):
+   - Candidate patterns go into `reviewers/<reviewer>-patterns.candidate.md` (NOT `*-patterns.md`)
+   - Candidate scripts go into `checks/candidates/` (NOT `checks/`)
    - Each candidate gets metadata: `date`, `source_diff`, `gap_description`, `confidence`, `TTL` (14 days default)
+   - ⚠️ **INVARIANT**: Candidates NEVER go into active pattern files or active checks directory. Only the graduation pipeline promotes candidates.
 
-6. **Log gaps**: Add each gap to the Gap Analysis Log in the dashboard (Phase 6).
+7. **Log gaps**: Add each gap to the Gap Analysis Log in the dashboard (Phase 6).
 
 ### Gap Classification Examples
 
@@ -245,15 +253,27 @@ After gap analysis, update the wiki dashboard.
 
 6. **Safety Indicators** — update current values for all indicators.
 
-### Update Procedure
+### Update Procedure (Safe Write Protocol)
 
-1. Fetch the current page content: `get_document_outline(id="66eec34c-5590-4f4f-a370-b4d134cd174e")`
-2. Parse the existing markdown tables
-3. Append new rows / update aggregate rows
-4. Write back the updated content: `update_document_outline(documentId="66eec34c-...", text=<updated_content>)`
-5. **VERIFY**: Re-fetch the page after update and confirm the new data appears correctly
+1. **Fetch** the current page: `get_document_outline(id="66eec34c-5590-4f4f-a370-b4d134cd174e")`
+2. **Retain original** content as `original_content` (for restore on failure)
+3. **Parse** the existing markdown tables
+4. **Append** new rows / update aggregate rows — NEVER remove existing data
+5. **Pre-flight check**: verify the updated content:
+   - Contains ALL original section headings
+   - Original row count ≤ updated row count (no data loss)
+   - Updated content is not shorter than original (no truncation)
+   - All table structures are valid markdown
+6. **Write** back: `update_document_outline(documentId="66eec34c-...", text=<updated_content>)`
+7. **Verify** (post-write):
+   - Re-fetch the page immediately
+   - Confirm new data rows appear
+   - Confirm ALL original headings still exist
+   - Confirm page length ≥ original length
+   - If ANY check fails: immediately restore `original_content` and log the failure
 
-> ⚠️ **INVARIANT**: Always re-fetch after write to verify. See `~/.ai-guidance/invariants.md`.
+> ⚠️ **INVARIANT**: Always re-fetch after write to verify. Restore on failure. See `~/.ai-guidance/invariants.md`.
+> ⚠️ **NEVER truncate**: Dashboard updates are append-only. Existing data is never removed except by explicit archival.
 
 ---
 
