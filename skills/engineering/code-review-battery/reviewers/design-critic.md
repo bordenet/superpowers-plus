@@ -62,7 +62,3 @@ For each finding:
 
 If you find NO issues, say:
 "✅ No design concerns found. Code is well-factored, testable, and clear."
-
----
-
-## DIFF TO REVIEW
