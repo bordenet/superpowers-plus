@@ -29,6 +29,11 @@ coordination:
 - **output-verification**: Verifying generated output
 - **holistic-repo-verification**: Full repo health check
 
+- **completeness-check**: Quick scope check (lighter)
+- **adversarial-search**: Confirmation bias prevention before completion
+- **exhaustive-audit-validation**: Deep audit (heavier)
+- **link-verification**: Link checking step
+- **issue-comment-debunker**: Fact-checking before completion
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim

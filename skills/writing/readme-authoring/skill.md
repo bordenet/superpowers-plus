@@ -221,6 +221,8 @@ Markdown lint: PASS (0 errors)
 - **eliminating-ai-slop**: GVR loop for clean generation
 - **brainstorming**: Before creating README, brainstorm structure
 
+- **markdown-table-discipline**: Table formatting in READMEs
+- **golden-agents**: AGENTS.md generation
 ## Related Tools
 
 For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
