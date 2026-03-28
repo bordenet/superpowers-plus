@@ -121,7 +121,7 @@ After all reviewers return:
 | Convergent finding count | — | Count of findings flagged by 2+ reviewers (informational, no target) |
 | Unresolved Critical count | 0 | Critical findings not yet addressed |
 
-**Offline evaluation metrics** (tracked in wiki dashboard across reviews, not in individual reports):
+**Offline evaluation metrics** (tracked externally across reviews, not in individual reports):
 - Precision: Implement findings validated by user / total Implement findings (target: ≥75%, ratchet up with evidence)
 - High-severity precision: validated Critical+Important / total Critical+Important (target: ≥80%)
 - Round 2 incremental yield: findings from escalation passes / total findings (target: ≤20% — if higher, specialists are missing too much)
@@ -163,6 +163,15 @@ After each synthesis pass (≥2), evaluate stop criteria. **Escalation takes pre
 **CONTINUE** if any escalation trigger fires or Critical findings remain.
 
 **ESCALATE TO HUMAN** if not converged after 3 passes (most reviews converge in 2).
+
+### Gap Analysis (post-review)
+
+After each review, check for gaps:
+- If monolith found something no specialist found → propose a candidate pattern (see `gap-analysis.md`)
+- If a known exercise's Expected Finding was missed → propose a candidate pattern
+- If a false positive recurred across 2+ reviews → propose an anti-pattern candidate
+
+Candidates go to `candidates/` for validation before affecting live reviews.
 
 ### Error Handling
 
