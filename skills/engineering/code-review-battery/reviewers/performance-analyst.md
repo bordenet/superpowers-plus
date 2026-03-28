@@ -48,10 +48,8 @@ For each finding:
 - **Issue**: What is inefficient or unobservable (1-2 sentences)
 - **Why**: Why this matters (what degrades, what's invisible to operators)
 - **Fix**: How to fix (specific optimization or logging addition)
+- **Regressions Risked**: What could break if this optimization is applied? (e.g., "Caching the result may serve stale data if the underlying source changes between requests")
+- **Durable Check**: Propose a benchmark, performance test, or monitoring invariant to prevent this class of issue permanently (e.g., "Add load test: verify endpoint responds in <200ms at 100 concurrent requests")
 
 If you find NO issues, say:
 "✅ No performance or observability concerns found. Code is efficient and well-instrumented."
-
----
-
-## DIFF TO REVIEW

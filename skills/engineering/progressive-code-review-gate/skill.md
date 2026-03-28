@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (6 parallel reviewers: 5 specialists + monolith with gap analysis and candidate staging). Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (5 specialist reviewers in parallel; monolith on-demand via --all). Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
@@ -44,13 +44,12 @@ If no diff exists in any of these, skip this gate.
 
 ### Step 2: Dispatch the review battery
 
-Follow the `code-review-battery` skill procedure:
-1. Triage the diff → select relevant specialists; monolith fires by default on full reviews
-2. Dispatch activated reviewers in parallel (see battery `skill.md` for platform-specific dispatch)
-3. Each reviewer reads the source files directly and runs the diff command
-4. Aggregate findings into unified report
-5. Gap analysis — compare specialist findings vs monolith, propose learning candidates (full reviews only)
-6. Update wiki dashboard with metrics (full reviews only; not blocking to verdict)
+Follow the `code-review-battery` skill procedure (Phase 1–5):
+1. **Phase 1 — Triage** the diff → select relevant specialists (monolith only via `--all` or manual request)
+2. **Phase 2 — Diff + Source Context + Dispatch** activated reviewers in parallel with diff + source context inline
+3. **Phase 3 — Aggregate** findings, triple-filter, classify Implement/Defer/Reject
+4. **Phase 4 — Escalation** if triggers fire (re-dispatch with diff + source context re-attached)
+5. **Phase 5 — Convergence** check (stop/continue/escalate-to-human)
 
 Map battery output to gate verdicts:
 
@@ -114,7 +113,7 @@ After fixing nits, run a **targeted** battery round:
 
 1. **Scope**: Only the files touched by the nit fixes (not the full original diff)
 2. **Reviewers**: Only the reviewer(s) that produced the nits in the previous round
-3. **Dispatch**: Re-use the original diff command with `-- <fixed-files>` appended (see coordinator.md Phase 4 for scoping rules). Dispatch the scoped reviewers with the same 4-part instruction contract.
+3. **Dispatch**: Re-use the original diff command with `-- <fixed-files>` appended (see `skills/engineering/code-review-battery/skill.md` Phase 4 for scoping rules). Each reviewer instruction must include: reviewer prompt + diff + source context (per Phase 2 dispatch requirements).
 4. **Verdict mapping**: Same table as Step 2
 5. **Exit conditions**:
    - PASS → proceed to commit/push
