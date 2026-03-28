@@ -84,7 +84,7 @@ workstream, the evidence contradicts the original ordering:
 | AC2 | Battery catches all Critical/Important that monolith catches | 83% recall (24/29). Remaining misses are edge cases: require-cache (Node.js internals), payload bloat (severity border), redundant computation (micro-opt). Contract-break and undefined-ref patterns now caught (ex-012, ex-013). | Phase 2 🟡 |
 | AC3 | Battery false positive rate <5% (10 review runs) | Met — 0% false positive rate across 10 exercise runs | Phase 2 ✅ |
 | AC4 | Works on Augment.ai via `sub-agent-code-reviewer` | Met (proven in PR #300 session) | Phase 1 ✅ |
-| AC5 | Works on Claude Code via custom subagent files | Documented in skill.md (Task() calls, .claude/agents/ files). Requires manual verification in Claude Code session. | Phase 2 (manual test) |
+| AC5 | Works on Claude Code via custom subagent files | ✅ Validated manually in Claude Code. All 5 reviewers dispatched via Task(), ran in parallel (93s), triage produced correct convergent finding (3× on ex-001 primary defect), 0 false positives, 3 bonus valid findings. | Phase 2 ✅ |
 | AC6 | Triage correctly selects relevant subset ≥80% of test diffs | ✅ 100% (13/13 exercises). Conservative rules ensure all relevant reviewers activated. | Phase 2 ✅ |
 | AC7 | Parallel review time ≤ 1.5x monolithic | Met (battery 93s avg vs monolith 349s avg) | Phase 1 ✅ |
 | AC8 | install.sh handles setup without manual steps | Met (deploy.sh — the actual installer — verified) | Phase 1 ✅ |
