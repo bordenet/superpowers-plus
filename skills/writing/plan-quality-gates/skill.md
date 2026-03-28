@@ -1,8 +1,8 @@
 ---
 name: plan-quality-gates
 source: superpowers-plus
-triggers: ["write plan", "create plan", "design plan", "roadmap", "implementation plan", "phased plan", "write roadmap", "project plan"]
-anti_triggers: ["execute plan", "run the plan", "implement this plan"]
+triggers: ["write plan", "create plan", "design plan", "roadmap", "phased plan", "write roadmap", "project plan"]
+anti_triggers: ["execute plan", "run the plan", "implement this plan", "implementation plan", "plan and execute", "phased execution"]
 description: Use when writing plans, roadmaps, or phased work to enforce quality gates — prevents fabricated timelines, ensures dependency ordering, and requires exit criteria.
 summary: "Use when: writing plans or roadmaps. Prevents fabricated timelines."
 coordination:
