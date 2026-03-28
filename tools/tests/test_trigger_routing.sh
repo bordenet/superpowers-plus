@@ -62,6 +62,7 @@ assert_top_match "handle this later" "todo-guardian"
 assert_top_match "end to end workflow" "autonomous-chain-controller"
 assert_top_match "improve the skills" "evolution-loop"
 assert_top_match "review this change" "micro-harsh-review"
+assert_top_match "that approach was wrong" "failure-autopsy"
 
 echo ""
 echo "── Results: $PASS passed, $FAIL failed, $SKIP skipped ──"
