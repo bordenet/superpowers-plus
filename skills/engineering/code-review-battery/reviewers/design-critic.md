@@ -39,7 +39,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 
 ## What to Review
 
-Review the diff and ask:
+Run the git diff command provided to see the changes. Then **read the full source files** for every changed file — design issues often depend on the structure of surrounding code, not just the diff. Ask:
 - "If I needed to modify this code in 6 months, would I understand it?"
 - "Could I test this function without setting up the entire system?"
 - "Is there unnecessary complexity that could be simplified?"
@@ -54,7 +54,7 @@ Do NOT report issues where the current design is reasonable even if an alternati
 
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location in the diff
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is poorly structured (1-2 sentences)
 - **Why**: Why this matters (maintenance cost, testing difficulty, extension friction)
 - **Fix**: How to restructure (sketch the better design)
@@ -62,6 +62,13 @@ For each finding:
 If you find NO issues, say:
 "✅ No design concerns found. Code is well-factored, testable, and clear."
 
+## Workspace Access
+
+You have full workspace access. Use it:
+- `cat <file>` to read the complete source file (understand full class/module structure)
+- `grep -rn <pattern> <dir>` to find related abstractions, callers, and similar patterns
+- Check test files to assess testability of the design
+
 ---
 
-## DIFF TO REVIEW
+## REVIEW INSTRUCTIONS

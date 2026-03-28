@@ -29,7 +29,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 
 ## What to Review
 
-Review the diff and ask:
+Run the git diff command provided to see the changes. Then **read the full source files** — performance issues often depend on surrounding loops, data structures, and call patterns not visible in the diff alone. Ask:
 - "What happens when this runs against 10x the expected data volume?"
 - "If this fails at 3 AM, can the on-call engineer diagnose it from logs alone?"
 - "Is there an unnecessary O(n) operation hiding inside an O(n) loop?"
@@ -44,7 +44,7 @@ Do NOT report micro-optimizations that won't affect real-world performance.
 
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location in the diff
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is inefficient or unobservable (1-2 sentences)
 - **Why**: Why this matters (what degrades, what's invisible to operators)
 - **Fix**: How to fix (specific optimization or logging addition)
@@ -52,6 +52,14 @@ For each finding:
 If you find NO issues, say:
 "✅ No performance or observability concerns found. Code is efficient and well-instrumented."
 
+## Workspace Access
+
+You have full workspace access. Use it:
+- `cat <file>` to read the complete source file (find surrounding loops, call sites)
+- `grep -rn <pattern> <dir>` to find hot paths and call frequency
+- Run profiling or timing commands if applicable
+- Check for existing caching, connection pooling, or batching patterns
+
 ---
 
-## DIFF TO REVIEW
+## REVIEW INSTRUCTIONS

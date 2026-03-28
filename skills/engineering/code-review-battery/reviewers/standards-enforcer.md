@@ -44,7 +44,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 
 ## What to Review
 
-Review the diff and ask:
+Run the git diff command provided to see the changes. Then **read the full source files** and surrounding code — standards conformance requires understanding the project's existing patterns. Ask:
 - "Does this follow the same patterns as the rest of the codebase?"
 - "Would a new team member understand why this code does what it does?"
 - "Are docs/comments/tests accurate for the NEW behavior, not the old?"
@@ -59,7 +59,7 @@ Do NOT report personal style preferences — only documented or codebase-evident
 
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location in the diff
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
 - **Fix**: How to fix (if not obvious)
@@ -67,6 +67,14 @@ For each finding:
 If you find NO issues, say:
 "✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."
 
+## Workspace Access
+
+You have full workspace access. Use it:
+- `cat <file>` to read the complete source file (understand existing conventions)
+- `grep -rn <pattern> <dir>` to check naming patterns, import styles across the codebase
+- Read test files to assess test quality in context
+- Check README, CHANGELOG, and docs for accuracy against code changes
+
 ---
 
-## DIFF TO REVIEW
+## REVIEW INSTRUCTIONS

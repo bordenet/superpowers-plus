@@ -27,6 +27,7 @@ You are the coordinator for a parallel code review battery. You have two jobs:
 5. **Code touches DB, loops, caching, network I/O, or >500 LOC** → also activate Performance Analyst
 6. **`--all` flag present** → activate ALL 5 reviewers regardless
 7. **`--only=<name>` flag present** → activate named reviewer only
+8. **`--skip=<name>` flag present** → apply rules 1-5, then remove named reviewer from activation list
 
 ### Triage Output
 
@@ -42,30 +43,43 @@ After analyzing the diff, state your triage decision:
 
 ## Phase 2: Dispatch
 
-### On Augment.ai
-Dispatch activated reviewers as parallel sub-agents using `sub-agent-explore`:
+### On Augment
+Dispatch activated reviewers as parallel sub-agents using `sub-agent-code-reviewer`:
 - Each sub-agent gets a unique name: `battery-<reviewer-name>`
-- Each sub-agent instruction = reviewer prompt + full diff content
+- Each sub-agent instruction follows the 4-part contract (see below):
+  1. Repo path
+  2. Exact diff command
+  3. Reviewer prompt
+  4. Instruction to read full source files
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
 - Wait for all to complete
 
 ### On Claude Code
-Dispatch activated reviewers using `Task()` or custom subagent files:
-- Each task gets the reviewer prompt + full diff content
+Dispatch activated reviewers using `subagent()` or `Task()` with tool access:
+- Each sub-agent needs shell access to run `git diff` and `cat` source files
+- Same 4-part instruction contract as Augment dispatch (see below)
 - Fire simultaneously where the platform supports it
 
-### Diff Preparation
-Before dispatching, capture the diff:
-```bash
-git diff --cached  # for staged changes
-# OR
-git diff HEAD~1    # for last commit
-# OR
-git diff main..HEAD # for branch changes
-```
+### Reviewer Instruction Contract
 
-Include the FULL diff in each reviewer's instruction. Sub-agents have isolated
-context — they cannot read files from your workspace.
+Each reviewer instruction **MUST** include these 4 elements:
+
+1. **Repo path** — so the reviewer can `cd` to the right directory
+2. **Exact diff command** — the specific `git diff` variant that matches the review scope:
+   ```bash
+   git diff --cached              # staged changes (pre-commit)
+   git diff HEAD~1                # last commit
+   git diff @{u}..HEAD            # unpushed commits (pre-push)
+   git diff main..HEAD            # branch changes
+   # Phase 4 scoped re-review: append -- <files> to original command:
+   git diff @{u}..HEAD -- file1.ts file2.ts
+   ```
+3. **Reviewer prompt** — from `reviewers/<name>.md`
+4. **Instruction to read full source files** — not just the diff output
+
+The diff command MUST match the scope being reviewed. Do not let reviewers
+default to plain `git diff` — this can review the wrong changes and invalidate
+the gate verdict.
 
 ---
 
@@ -116,15 +130,19 @@ When the gate verdict is PASS_WITH_NITS and fixes have been applied, run a scope
 
 ### Scoping Rules
 
-1. **Files**: Only files modified by the nit fixes (`git diff` after fixes)
+1. **Files**: Only files modified by the nit fixes
 2. **Reviewers**: Only the reviewer(s) that produced the nits — do NOT re-run clean reviewers
-3. **Diff**: Re-capture a fresh `git diff` scoped to the fixed files only
+3. **Diff command**: Must preserve the original review scope but restrict to affected files.
+   Use the original diff command with a `-- <file>` suffix:
+   - Original: `git diff @{u}..HEAD` → Scoped: `git diff @{u}..HEAD -- file1.ts file2.ts`
+   - Original: `git diff --cached` → Scoped: `git diff --cached -- file1.ts file2.ts`
+   - Original: `git diff main..HEAD` → Scoped: `git diff main..HEAD -- file1.ts file2.ts`
 
 ### Procedure
 
 1. Identify which reviewer(s) produced the Minor/Important findings that triggered PASS_WITH_NITS
-2. Re-capture the diff: `git diff -- <file1> <file2> ...` (only nit-affected files)
-3. Dispatch only those reviewer(s) with the scoped diff
+2. Build the scoped diff command: `{original_diff_command} -- <file1> <file2> ...`
+3. Dispatch only those reviewer(s) with the scoped diff command, repo path, reviewer prompt, and full-file instruction
 4. Aggregate results using Phase 3 rules
 5. Return verdict to the gate (Step 3)
 
