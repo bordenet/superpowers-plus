@@ -5,11 +5,11 @@
 > **Created**: 2026-03-28
 > **Companion**: [PRD.md](../../../skills/engineering/code-review-battery/PRD.md), [DESIGN.md](../../../skills/engineering/code-review-battery/DESIGN.md)
 > **Research Basis**: Perplexity deep research survey (2026-03-28) — 45 sources covering CodeRabbit, Qodo, Sourcegraph/Cody, Amazon CodeGuru, Semgrep, Greptile v3, Meta TestGen-LLM, Google DIDACT, Cycode, Veracode
-> **Note**: Phase 3 is reserved for debugging parallelization (see PRD.md). This work is Phase 2f.
+> **Note**: Phase 3 is reserved for debugging parallelization (see [PRD.md](../../../skills/engineering/code-review-battery/PRD.md)). This work is Phase 2f.
 
 ## Problem Statement
 
-Phase 2 shipped a 6-reviewer battery with gap analysis and Shadow Lane learning. Benchmark data (V4-V8) shows:
+Phase 2 shipped a 6-reviewer battery with gap analysis and Shadow Lane learning. Benchmark data (V4–V8) shows:
 - Battery precision: **63%** (37% of findings are wrong)
 - Monolith precision: **46%** (54% of findings are wrong)
 - Cross-file bugs spanning 3+ files: **missed consistently** by specialists
@@ -91,14 +91,14 @@ Phase 6: Dashboard Update (unchanged)
 
 | Source | Technique | Evidence |
 |--------|-----------|----------|
-| CodeRabbit | Enriches with repo rules, linked repos, MCP tools, related PR/issue context | [docs.coderabbit.ai] |
-| Qodo | Context Engine indexes and maps codebases, understands cross-file/service/version relationships | [docs.qodo.ai] |
-| Sourcegraph/Cody | SCIP-powered cross-repository symbol resolution + remote repo awareness | [sourcegraph.com/blog] |
+| CodeRabbit | Enriches with repo rules, linked repos, MCP tools, related PR/issue context | docs.coderabbit.ai |
+| Qodo | Context Engine indexes and maps codebases, understands cross-file/service/version relationships | docs.qodo.ai |
+| Sourcegraph/Cody | SCIP-powered cross-repository symbol resolution + remote repo awareness | sourcegraph.com/blog |
 | Ranking | cross-file dataflow/taint > call-graph expansion > type/contract propagation > pure RAG > diff-only | Multiple sources converge |
 
 ### Current Gap
 
-Reviewers get `{repo_path} + {diff_command} + {prompt} + "read full source files"`. They independently decide what to explore. Result: they often miss callers 3+ levels deep, don't check tests for changed code, and don't know about related type definitions. Each reviewer wastes tokens on redundant exploration.
+Reviewers get `{repo_path} + {diff_command} + {prompt} + "read full source files"`. They independently decide what to explore. Result: they often miss references 3+ levels deep, don't check tests for changed code, and don't know about related type definitions. Each reviewer wastes tokens on redundant exploration.
 
 ### Mechanism
 
@@ -107,7 +107,6 @@ The coordinator runs Phase 1.5 between triage and dispatch. It builds a **contex
 #### Step 1: Extract Changed Symbols
 
 Parse the diff to identify changed symbols:
-
 
 ```bash
 # From git diff output, extract function/class/export definitions on changed lines:
@@ -131,7 +130,7 @@ grep -rn '<symbol>' <repo> --include='*.ts' --include='*.js' --include='*.py' --
 grep -rn 'interface.*<TypeName>\|type.*<TypeName>' <repo> --include='*.ts' --include='*.d.ts'
 ```
 
-For each caller found: extract the enclosing function signature (so reviewers know the calling context without reading the entire file).
+For each reference found: extract the enclosing function signature (so reviewers know the referencing context without reading the entire file).
 
 #### Step 3: Find Related Test Files
 
@@ -147,7 +146,7 @@ find <repo> \( -name '*test*' -o -name '*spec*' \) -type f | xargs grep -l '<cha
 git log --oneline -5 -- <changed-file>
 ```
 
-Tells the monolith what recent changes affected each file — enables intent-sensitive review. This is `git log` (commit history), not `git blame` (line-level attribution).
+Shows the monolith what recent changes affected each file — enables intent-sensitive review. This is `git log` (commit history), not `git blame` (line-level attribution).
 
 #### Step 5: Commit Messages / PR Description
 
@@ -165,7 +164,7 @@ Extract intent from commit messages. The log range MUST match the review scope (
 
 Test execution during context expansion is **opt-in only** (`--run-tests` flag) due to latency, flakiness, and environment dependency risks.
 
-**When skipped** (default): the context package reports "Test status: not run" and reviewers can choose to run tests themselves.
+**When skipped** (default): the context package reports "Test status: not run." Reviewers can choose to run tests themselves via workspace access.
 
 **When enabled** (`--run-tests`):
 ```bash
@@ -177,8 +176,8 @@ Safeguards:
 - 15-second hard timeout per test command; skip and note "timed out" if exceeded
 - Only run tests that match changed files (not the full test suite)
 - Test runner detection: look for `package.json` (npm/jest), `pytest.ini`/`setup.cfg` (pytest), `test/` dir with `.bats` files. If no runner detected, skip.
-- Do NOT run tests that require env vars, secrets, databases, or network services — if `test-command` fails immediately with a non-test error, skip and note "test setup failed"
-- Reviewers may still run tests independently via workspace access — this step is convenience, not mandatory
+- Do not run tests that require env vars, secrets, databases, or network services — if `test-command` fails immediately with a non-test error, skip and note "test setup failed"
+- This step is convenience, not mandatory — reviewers can always run tests independently via workspace access
 
 ### Context Package Format
 
@@ -210,7 +209,7 @@ The context package reports **grep results and command output** — labeled as w
 - "Add account deactivation flow with soft-delete and audit logging"
 ```
 
-Note: the package reports grep hit counts and locations. It does NOT label results as "callers," "COVERAGE GAP," or "CONTRACT GAP." Whether a grep hit represents a caller, a comment, or a string literal is for the reviewer to determine.
+The package reports grep hit counts and locations. It does not label results as "callers," "COVERAGE GAP," or "CONTRACT GAP." Whether a grep hit represents a caller, a comment, or a string literal is for the reviewer to determine.
 
 ### Dispatch Contract Update
 
@@ -230,8 +229,8 @@ Context expansion adds ~300-800 tokens to each reviewer instruction (the package
 
 ### Skip Conditions
 
-- If the diff changes only 1 file with <20 changed lines (measured via `git diff --stat` — the `+` and `-` line counts): skip context expansion. Not enough complexity to justify overhead. Reviewers can still explore manually.
-- If no symbols are extracted from the diff in Step 1 (e.g., pure config/docs/comment change): skip Steps 2-4 (grep-based discovery). Steps 5-6 (commit messages, test execution) may still run if applicable.
+- If the diff changes only 1 file with <20 changed lines (measured via `git diff --stat` — the `+` and `-` line counts): skip context expansion. Reviewers can still explore manually.
+- If no symbols are extracted from the diff in Step 1 (e.g., pure config/docs/comment change): skip Steps 2–4 (grep-based discovery). Steps 5–6 (commit messages, test execution) may still run if applicable.
 
 ---
 
@@ -244,16 +243,16 @@ Context expansion adds ~300-800 tokens to each reviewer instruction (the package
 | Cycode | Deterministic security analysis + sanitizer recognition | 2.1% FPR |
 | Veracode | Deterministic static analysis | <1.1% FPR |
 | arXiv 2601.18844 | LLM-assisted path-feasibility reasoning | Reduces FPs in static bug detection |
-| Our V4-V8 benchmarks | Monolith phantom file refs, severity overrating, hallucinated API behavior | Battery 63% precision, monolith 46% |
+| Our V4–V8 benchmarks | Monolith phantom file refs, severity overrating, hallucinated API behavior | Battery 63% precision, monolith 46% |
 
 ### Current Gap
 
 The 80% confidence gate is self-reported by the LLM. Our benchmarks prove this is insufficient — 37% of battery findings and 54% of monolith findings are wrong. The most common FP patterns are:
 
-1. **Phantom file references** — reviewer claims a file exists that doesn't (monolith V6: 5/7 findings referenced non-existent files)
-2. **Severity overrating** — Critical label on Minor issues (monolith V4: 3/4 "Critical" findings were Minor)
-3. **Hallucinated API behavior** — reviewer claims a function does X when it actually does Y
-4. **Non-existent symbol claims** — "function X is never called" when it's called in 5 places
+1. **Phantom file references**: Reviewer claims a file exists that doesn't (monolith V6: 5/7 findings referenced non-existent files)
+2. **Severity overrating**: Critical label on Minor issues (monolith V4: 3/4 "Critical" findings were Minor)
+3. **Hallucinated API behavior**: Reviewer claims a function does X when it actually does Y
+4. **Non-existent symbol claims**: "Function X is never called" when it's called in 5 places
 
 ### Prerequisite: Structured Finding Schema
 
@@ -273,8 +272,8 @@ Deterministic verification requires machine-parseable findings. The current revi
 - **evidence**: Searched callers with `grep -rn 'validateToken'` — found 3
   callers, none check for null before passing token. (optional — required
   when Investigation Protocol is used)
-- **cross-cutting**: yes | no (monolith only — replaces existing Cross-cutting? field)
-- **instances**: (only when scope=systemic — list all locations)
+- **cross-cutting**: yes | no (monolith only — replaces existing `Cross-cutting?` field)
+- **instances**: (only when scope = systemic — list all locations)
   - src/auth/validator.ts:42
   - src/auth/refresh.ts:18
   - src/api/middleware.ts:91
@@ -295,7 +294,7 @@ Deterministic verification requires machine-parseable findings. The current revi
 | `fix` | No | No | Free text, may be multiline |
 | `evidence` | Conditional | No | Required when Investigation Protocol is active |
 | `cross-cutting` | Monolith only | No | Replaces current `Cross-cutting?` field |
-| `instances` | Conditional | No | Required when scope=systemic; list all locations |
+| `instances` | Conditional | No | Required when scope = systemic; list all locations |
 
 #### Parsing Rules
 
@@ -354,7 +353,7 @@ Based on our benchmark data:
 - **Overall battery precision**: Checks 1-3 eliminate phantom refs and out-of-range lines. Actual impact depends on what fraction of current FPs fall in these categories. V6 data suggests ~60% of monolith FPs are phantom refs; battery FPs are more often wrong reasoning with correct file references, so improvement will be smaller.
 - **Overall monolith precision**: Higher improvement expected since monolith FPs are dominated by phantom refs and non-existent symbol claims.
 
-**Honest projection**: Checks 1-3 alone will not achieve 85%+ precision. Severity inflation and wrong causal reasoning (the other major FP categories) are NOT addressed by file/line/symbol verification. Achieving 85%+ requires Check 4 (claim verification) AND the Investigation Protocol (E3) to mature over multiple review cycles.
+> **Honest projection**: Checks 1–3 alone will not achieve 85%+ precision. Severity inflation and wrong causal reasoning (the other major FP categories) are not addressed by file/line/symbol verification. Achieving 85%+ requires Check 4 (claim verification) and the Investigation Protocol (E3) to mature over multiple review cycles.
 
 ### Performance Cost
 
@@ -385,7 +384,7 @@ Each reviewer makes one pass. The prompts say "grep -rn to find callers" but the
 
 ### Mechanism
 
-Create `investigation-protocol.md` (~259 tokens / ≤300 tok budget) as a shared file. The coordinator loads this file alongside the reviewer prompt when dispatching monolith, defect-finder, or guardian. It is NOT embedded in the reviewer .md files (to keep each reviewer prompt under 800 tokens).
+Create `investigation-protocol.md` (~259 tokens / ≤300 tok budget) as a shared file. The coordinator loads this file alongside the reviewer prompt when dispatching monolith, defect-finder, or guardian. It is not embedded in the reviewer `.md` files (to keep each reviewer prompt under 800 tokens).
 
 Contents of `investigation-protocol.md`:
 
@@ -409,8 +408,8 @@ Actively try to DISPROVE the issue before reporting it.
 
 ### Step 3: Classify Scope
 If the issue is real:
-- **Systemic** (pattern in 3+ places): Report as architectural finding with ALL instances
-- **Isolated** (1-2 places): Report as localized finding
+- **Systemic** (pattern in 3+ places): Report as architectural finding with all instances
+- **Isolated** (1–2 places): Report as localized finding
 
 ### Step 4: Report with Evidence
 Only report when you have:
@@ -467,11 +466,11 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 - God packages/modules that everything depends on (coupling hub)
 - Missing interface boundaries between architectural layers
 
-**Standards Enforcer** — rename sub-dimension 4 from "Test Quality" to "Test Quality & Adequacy":
-- Add: New code paths in the diff without corresponding test cases (COVERAGE GAP)
-- Add: Changed behavior without updated regression tests
-- Add: Test coverage gaps for error/edge-case paths added in the diff
-- Add: Missing integration tests for new cross-component interactions
+**Standards Enforcer** — expand sub-dimension 4 from "Test Quality" to "Test Quality & Adequacy". Add:
+- New code paths in the diff without corresponding test cases
+- Changed behavior without updated regression tests
+- Test coverage gaps for error/edge-case paths added in the diff
+- Missing integration tests for new cross-component interactions
 
 **Dimension count**: 19 → 21 (Guardian +1 new sub-dimension, Design Critic +1 new sub-dimension). Standards Enforcer sub-dimension 4 is expanded with additional check items but remains 1 sub-dimension.
 
@@ -490,9 +489,9 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 ### Current Gap
 
 Our "script-learnable" path generates shell scripts (`grep -rn '__proto__'`). Problems:
-- No AST awareness — matches string patterns in comments and strings
+- No AST awareness: matches string patterns in comments and strings
 - No cross-file taint tracking
-- No standard format — each script is bespoke
+- No standard format: each script is bespoke
 - No precision metrics built into the format
 
 ### Mechanism
@@ -599,20 +598,20 @@ skills/engineering/code-review-battery/
 | standards-enforcer | ~734 | +114 | -80 | N/A | ~30 | ~798 |
 | performance-analyst | ~640 | +114 | -80 | N/A | — | ~674 |
 
-All under 800 tokens. The Investigation Protocol (~259 tokens) is extracted to `investigation-protocol.md` and loaded by the coordinator alongside the reviewer prompt for monolith, defect-finder, and guardian only — it is NOT embedded in the reviewer .md files.
+All under 800 tokens. The Investigation Protocol (~259 tokens) is extracted to `investigation-protocol.md` and loaded by the coordinator alongside the reviewer prompt for monolith, defect-finder, and guardian only — it is not embedded in the reviewer `.md` files.
 
 ### Loading Sequence and Runtime Context
 
 `skill.md` directs which files to load at each step:
 
-| Step | File Loaded | When | Tokens (coordinator) |
-|------|------------|------|---------------------|
+| Phase | File Loaded | When | Coordinator Tokens |
+|-------|------------|------|-------------------|
 | 1 (Triage) | `coordinator.md` | Every review | ~1,500 |
-| 1.5 (Context) | `context-expansion.md` | When diff has ≥2 files or ≥20 changed lines | ~800 |
-| 2 (Dispatch) | `coordinator.md` (cached) + `investigation-protocol.md` (for 3 reviewers) | Every review | ~300 new |
+| 1.5 (Context) | `context-expansion.md` | Diff has ≥2 files or ≥20 changed lines | ~800 |
+| 2 (Dispatch) | `coordinator.md` (cached) + `investigation-protocol.md` (3 reviewers) | Every review | ~300 new |
 | 2.5 (Verify) | `verification.md` | Every review | ~600 |
 | 3 (Aggregate) | `coordinator.md` (cached) | Every review | 0 |
-| 4 (Re-review) | `coordinator.md` (cached) | When targeted re-review needed | 0 |
+| 4 (Re-review) | `coordinator.md` (cached) | If targeted re-review needed | 0 |
 | 5 (Gaps) | `gap-analysis.md` | Full reviews only | ~1,200 |
 | 6 (Dashboard) | `gap-analysis.md` (cached) | Full reviews only | 0 |
 
@@ -697,19 +696,18 @@ Every reviewer prompt requires these changes to support Phase 2f:
 
 | Metric | Phase 2 (current) | Phase 2f (projected) | Basis |
 |--------|-------------------|---------------------|-------|
-| Battery precision | 63% | 70-80% (projected) | Verification catches phantom refs; severity/reasoning FPs need E3 maturation |
-| Monolith precision | 46% | 60-70% (projected) | Monolith FPs dominated by phantom refs — higher impact from verification |
-| Cross-file bug detection | Low | Higher | Context package pre-discovers callers and related code (E1) |
-| FPR (false positive rate) | ~37% | 20-30% (projected) | Verification catches phantom refs (E2); reasoning FPs need E3 maturation |
+| Battery precision | 63% | 70–80% (projected) | Verification catches phantom refs; severity/reasoning FPs need E3 maturation |
+| Monolith precision | 46% | 60–70% (projected) | Monolith FPs dominated by phantom refs — higher impact from verification |
+| Cross-file bug detection | Low | Higher | Context package pre-discovers related code (E1) |
+| FPR (false positive rate) | ~37% | 20–30% (projected) | Verification catches phantom refs (E2); reasoning FPs need E3 maturation |
 | Dimension coverage | 19 sub-dimensions | 21 sub-dimensions | Guardian +1, Design Critic +1 (E4) |
 | Learned rule quality | Shell grep only | Semgrep YAML (AST-aware) + shell fallback (E5) | — |
-
 
 ## Migration Risks
 
 1. **Structured output format adoption**: All 6 reviewer prompts change their output format. If a reviewer prompt is updated but the schema parsing in `verification.md` doesn't match, findings will be tagged `[UNSTRUCTURED]` and verification will be bypassed. **Mitigation**: update one reviewer at a time, test against a real diff, verify structured output is parsed correctly before proceeding to the next reviewer.
-2. **coordinator.md extraction**: Moving Phases 5-6 to `gap-analysis.md` could break the phase sequence if the coordinator doesn't correctly load the new file. **Mitigation**: test coordinator with and without gap analysis enabled after extraction.
-3. **Token budget compliance**: The structured schema adds ~114-160 tokens to each reviewer prompt. If current reviewer prompts are near 800 tokens, this may push some over. **Mitigation**: measure actual token counts per-reviewer after changes; trim existing reviewer content if needed (not add new content to compensate).
+2. **coordinator.md extraction**: Moving Phases 5–6 to `gap-analysis.md` could break the phase sequence if the coordinator doesn't correctly load the new file. **Mitigation**: test coordinator with and without gap analysis enabled after extraction.
+3. **Token budget compliance**: The structured schema adds ~114–160 tokens to each reviewer prompt. If current reviewer prompts are near 800 tokens, this may push some over. **Mitigation**: measure actual token counts per reviewer after changes; trim existing reviewer content if needed.
 4. **Context expansion on large repos**: `grep -rn` across a 50k+ file repo may be slow even with `timeout 10`. If many symbols are changed (e.g., a rename refactor touching 20 symbols), the expansion step could generate a very large context package. **Mitigation**: cap at 10 changed symbols; cap context package at 1,000 tokens; skip expansion on diffs touching >50 files.
 
 ## Open Design Decisions
