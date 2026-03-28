@@ -1,13 +1,16 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Active Development (v2.3 — proven against real PR)
+> **Status**: Active Development (v2.5 — callee trace, scoring, convergence)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
 > **v2 Shipped**: 2026-03-28 (ripple analysis, consumer trace, comment-as-spec)
 > **v2.3 Shipped**: 2026-03-28 (feedback loop analysis, paired boundary tests, convergent findings, Round 2 escalation)
+> **v2.5 Shipped**: 2026-03-28 (callee implementation trace, scoring metrics, convergence logic, tightening rules, coordinator merge)
 > **Confidence**: 92/100 (v2.2 battery caught all Round 1-3 findings in single pass)
 
 ## Architecture Overview
+
+The battery follows a 5-phase pipeline defined in `skill.md`:
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -15,31 +18,35 @@
 │  progressive-code-review-gate  |  manual invoke  │
 └──────────────────┬──────────────────────────────┘
                    │
-                   ▼
-┌─────────────────────────────────────────────────┐
-│              Triage Coordinator                  │
-│  Analyzes diff → selects relevant reviewers      │
-│  Input: git diff, file list, change metadata     │
-│  Output: list of reviewers to activate           │
-└──────────────────┬──────────────────────────────┘
+              Phase 1: Triage
+              (select reviewers)
+                   │
+              Phase 2: Diff + Source Context + Dispatch
+              (capture diff, gather ripple context,
+               callee traces, dispatch in parallel)
                    │
         ┌──────────┼──────────┬──────────┬──────────┐
         ▼          ▼          ▼          ▼          ▼
    ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
    │ Defect  ││ Design  ││Guardian ││Standards││ Perf    │
    │ Finder  ││ Critic  ││         ││Enforcer ││ Analyst │
-   │         ││         ││         ││         ││         │
-   │ Always  ││Conditnl ││ Always  ││ Always  ││Conditnl │
    └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
         │          │          │          │          │
         └──────────┴──────────┴──────────┴──────────┘
                               │
+              Phase 3: Aggregate
+              (sort, classify, triple-filter,
+               tightening, live metrics)
+                              │
+              Phase 4: Escalation (Round 2)
+              (trigger-based re-dispatch with
+               diff + source context re-attached)
+                              │
+              Phase 5: Convergence
+              (stop/continue/escalate-to-human)
+                              │
                               ▼
-┌─────────────────────────────────────────────────┐
-│           Aggregation (Coordinator)              │
-│  Merges findings, deduplicates, ranks severity   │
-│  Output: unified review report                   │
-└─────────────────────────────────────────────────┘
+                     Final Report
 ```
 
 ## File Structure
@@ -144,7 +151,7 @@ which reviewers to activate.
 | Touches DB, loops, caching, network I/O, or >500 LOC | + Performance Analyst |
 | Docs-only change | Standards Enforcer only |
 | Config/dependency change only | Guardian only |
-| `--all` flag | All 5 |
+| `--all` flag | All 5 specialists + Monolith |
 | `--only=<name>` flag | Named reviewer only |
 
 ### Output
@@ -184,7 +191,9 @@ For each finding:
 - **File:Line**: Exact location
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (impact)
-- **Fix**: How to fix (if not obvious)
+- **Fix**: How to fix (propose exact change if possible)
+- **Regressions Risked**: What could break if this fix is applied
+- **Durable Check**: Lint rule, test, assertion, or invariant to catch this class permanently
 
 If you find NO issues in your domain, say:
 "✅ No [domain] issues found."
@@ -213,13 +222,7 @@ No separate aggregation agent — this avoids the serial bottleneck.
 ## Integration with Existing Skills
 
 ### progressive-code-review-gate
-Current flow: gather diff → dispatch `sub-agent-code-reviewer` → process results → loop if needed.
-
-New flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
-
-The skill.md for `progressive-code-review-gate` will be updated to check for the
-battery skill. If present, delegate to it. If not (backward compat), fall back to
-monolithic review.
+Delegates to the battery's Phase 1–5 pipeline (Triage → Diff+Context+Dispatch → Aggregate → Escalation → Convergence). Falls back to monolithic review if battery is unavailable.
 
 ### requesting-code-review
 This skill dispatches review for PR-level or pre-merge review. It will similarly
