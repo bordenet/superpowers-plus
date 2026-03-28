@@ -42,30 +42,41 @@ After analyzing the diff, state your triage decision:
 
 ## Phase 2: Dispatch
 
-### On Augment.ai
-Dispatch activated reviewers as parallel sub-agents using `sub-agent-explore`:
+### On Augment
+Dispatch activated reviewers as parallel sub-agents using `sub-agent-code-reviewer`:
 - Each sub-agent gets a unique name: `battery-<reviewer-name>`
-- Each sub-agent instruction = reviewer prompt + full diff content
+- Each sub-agent instruction includes:
+  1. The reviewer prompt (from `reviewers/<name>.md`)
+  2. The repo path (so it can run `git diff` and read source files)
+  3. Instructions to read the FULL changed files, not just the diff
 - Fire ALL activated reviewers simultaneously (parallel, not sequential)
 - Wait for all to complete
 
 ### On Claude Code
-Dispatch activated reviewers using `Task()` or custom subagent files:
-- Each task gets the reviewer prompt + full diff content
+Dispatch activated reviewers using `subagent()` or `Task()` with tool access:
+- Each sub-agent needs shell access to run `git diff` and `cat` source files
+- Include the reviewer prompt + repo path in each task instruction
 - Fire simultaneously where the platform supports it
 
-### Diff Preparation
-Before dispatching, capture the diff:
-```bash
-git diff --cached  # for staged changes
-# OR
-git diff HEAD~1    # for last commit
-# OR
-git diff main..HEAD # for branch changes
-```
+### Reviewer Instruction Contract
 
-Include the FULL diff in each reviewer's instruction. Sub-agents have isolated
-context — they cannot read files from your workspace.
+Each reviewer instruction **MUST** include these 4 elements:
+
+1. **Repo path** — so the reviewer can `cd` to the right directory
+2. **Exact diff command** — the specific `git diff` variant that matches the review scope:
+   ```bash
+   git diff --cached              # staged changes (pre-commit)
+   git diff HEAD~1                # last commit
+   git diff @{u}..HEAD            # unpushed commits (pre-push)
+   git diff main..HEAD            # branch changes
+   git diff -- file1.js file2.ts  # scoped re-review (Phase 4)
+   ```
+3. **Reviewer prompt** — from `reviewers/<name>.md`
+4. **Instruction to read full source files** — not just the diff output
+
+The diff command MUST match the scope being reviewed. Do not let reviewers
+default to plain `git diff` — this can review the wrong changes and invalidate
+the gate verdict.
 
 ---
 
@@ -123,8 +134,8 @@ When the gate verdict is PASS_WITH_NITS and fixes have been applied, run a scope
 ### Procedure
 
 1. Identify which reviewer(s) produced the Minor/Important findings that triggered PASS_WITH_NITS
-2. Re-capture the diff: `git diff -- <file1> <file2> ...` (only nit-affected files)
-3. Dispatch only those reviewer(s) with the scoped diff
+2. Scope the diff command: `git diff -- <file1> <file2> ...` (only nit-affected files)
+3. Dispatch only those reviewer(s) with the scoped diff command and repo path
 4. Aggregate results using Phase 3 rules
 5. Return verdict to the gate (Step 3)
 

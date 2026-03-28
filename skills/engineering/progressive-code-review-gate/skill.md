@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via sub-agent-code-reviewer. Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (parallel specialized reviewers). Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
@@ -42,14 +42,13 @@ git diff @{u}..HEAD                 # diff of unpushed commits
 
 If no diff exists in any of these, skip this gate.
 
-### Step 2: Dispatch the reviewer
-
-**If `code-review-battery` skill is available** (preferred — parallel specialized review):
+### Step 2: Dispatch the review battery
 
 Follow the `code-review-battery` SKILL.md procedure:
 1. Triage the diff → select relevant reviewers
-2. Dispatch activated reviewers in parallel (each gets the full diff inline)
-3. Aggregate findings into unified report
+2. Dispatch activated reviewers in parallel via `sub-agent-code-reviewer`
+3. Each reviewer reads the source files directly and runs the diff command
+4. Aggregate findings into unified report
 
 Map battery output to gate verdicts:
 
@@ -62,13 +61,14 @@ Map battery output to gate verdicts:
 
 On re-review rounds (Round 2+): skip triage, re-dispatch the SAME reviewers from Round 1.
 
-**Otherwise** (fallback — monolithic review):
+**Fallback** (only if battery dispatch is impossible — e.g., no parallel sub-agent support, no `sub-agent-code-reviewer` available, or sub-agents lack shell/tool access):
 
-Invoke `sub-agent-code-reviewer` with a unique name per round (e.g., `review-round-1`):
+Invoke a single `sub-agent-code-reviewer` with a unique name per round (e.g., `review-round-1`):
 
 ```
 Review the code changes in {repo_path}.
 Run `cd {repo_path} && git diff` to see the diff.
+Read the full source files for all changed code.
 (For pre-push: `git diff @{u}..HEAD`)
 
 Be harsh and adversarial. Check for:

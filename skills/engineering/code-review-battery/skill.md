@@ -18,7 +18,7 @@ coordination:
 
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
-**Why this exists**: A single reviewer tries to evaluate everything simultaneously, leading to shallow coverage, inconsistent focus, and ~40% false positive rates. Specialized reviewers with focused prompts produce deeper analysis with near-zero false positives.
+**Why this exists**: A single monolithic reviewer tries to evaluate everything simultaneously, leading to shallow coverage. Specialized reviewers with focused prompts and code execution produce deeper, broader analysis — finding more issues across more dimensions while maintaining the same verification rigor as monolithic review.
 
 ## When to Use
 
@@ -47,13 +47,16 @@ State your triage decision before dispatching.
 
 ### Step 3: Dispatch reviewers in parallel
 
-Read the reviewer prompt from `reviewers/<name>.md`. Append the full diff to the prompt. Dispatch ALL activated reviewers simultaneously.
+Read the reviewer prompt from `reviewers/<name>.md`. Dispatch ALL activated reviewers simultaneously.
 
-**On Augment.ai** — use `sub-agent-explore` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously.
+**On Augment** — use `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously. Each reviewer gets the repo path and instructions to run `git diff` and read source files directly.
 
-**On Claude Code** — use `Task()` calls or `.claude/agents/` subagent files.
+**On Claude Code** — use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell access to run `git diff` and `cat` source files. Use parallel dispatch where supported.
 
-**Critical**: Each reviewer receives the FULL diff inline in its instruction. Sub-agents have isolated context — they cannot read workspace files.
+Each reviewer instruction MUST include:
+1. The repo path (so it can `cd` there and run `git diff`)
+2. Instructions to read the FULL source files for changed code (not just the diff)
+3. The reviewer prompt from `reviewers/<name>.md`
 
 ### Step 4: Aggregate
 
