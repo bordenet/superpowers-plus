@@ -2,11 +2,14 @@
 name: providing-code-review
 source: superpowers-plus
 triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
+anti_triggers: ["send to reviewer agent", "execute reviewer findings", "pre-commit check", "I am the reviewer agent"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
 summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
 ---
 
 # Providing Code Review
+
+> **Wrong skill?** File-protocol review → `code-review-respond`. Pre-commit review → `progressive-code-review-gate`. Processing feedback you received → `receiving-code-review`.
 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
@@ -151,8 +154,16 @@ When providing code review, structure feedback as:
 
 **If you can't check off all boxes, the review is incomplete.**
 
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Rubber-stamp approval without tracing data flow | Use the 6-point gate function checklist — if any box unchecked, don't approve |
+| Reviewing diff in isolation without blast radius | Run grep for all callers of modified functions before approving |
+| Trusting PR metadata claims without verification | Use Factual Claims Verification table — one API call catches stale status |
+
 ## Companion Skills
 
-- `pre-commit-gate` — Before committing changes
-- `blast-radius-check` — Before modifying existing code
-- `engineering-rigor` — Philosophy and overview
+- **code-review-battery**: Parallel specialist reviews (heavier than this checklist)
+- **receiving-code-review**: How the PR author should process your feedback
+- **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
