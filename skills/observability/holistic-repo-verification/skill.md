@@ -197,3 +197,4 @@ If any workflow is failing:
 - **verification-before-completion**: Task completion verification
 - **output-verification**: Verifying generated output
 - **exhaustive-audit-validation**: Deep audit (this is repo-level)
+- **measurement-integrity**: Metric integrity checks
