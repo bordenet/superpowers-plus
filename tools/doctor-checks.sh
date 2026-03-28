@@ -1057,8 +1057,44 @@ fi
 # the canonical sentinel. Agents that bypass todo-crud.sh and write directly
 # to this path will be caught by the immutable flag; this check catches
 # post-facto tampering or flag removal.
+#
+# OPTIONAL: This check is skipped when the user's real TODO file IS at
+# ~/.codex/TODO.md (the default path). The honeypot only exists to protect
+# users who store their TODO elsewhere (OneDrive, Dropbox, shared repo, etc.)
 _doctor_todo_honeypot() {
   local honeypot="$HOME/.codex/TODO.md"
+
+  # Resolve the real TODO path to check if honeypot is applicable
+  local real_todo_path=""
+  if [[ -f "$HOME/.codex/.todo-registry" ]]; then
+    real_todo_path=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$HOME/.codex/.todo-registry")
+  fi
+  if [[ -z "$real_todo_path" && -f "$HOME/.codex/.env" ]]; then
+    real_todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
+  fi
+  # Safe variable expansion
+  # shellcheck disable=SC2088
+  if [[ "$real_todo_path" == "~/"* ]]; then
+    real_todo_path="$HOME/${real_todo_path#\~/}"
+  elif [[ "$real_todo_path" == '$HOME/'* ]]; then
+    real_todo_path="$HOME/${real_todo_path#\$HOME/}"
+  elif [[ "$real_todo_path" == '${HOME}/'* ]]; then
+    real_todo_path="$HOME/${real_todo_path#\$\{HOME\}/}"
+  fi
+
+  # If the real TODO path IS ~/.codex/TODO.md (or not configured, defaulting to it),
+  # skip honeypot checks — the user's working file lives there.
+  local real_canonical honeypot_canonical
+  honeypot_canonical=$(realpath "$honeypot" 2>/dev/null || echo "$honeypot")
+  if [[ -z "$real_todo_path" ]]; then
+    # Not configured — default is ~/.codex/TODO.md, so no honeypot
+    return 0
+  fi
+  real_canonical=$(realpath "$real_todo_path" 2>/dev/null || echo "$real_todo_path")
+  if [[ "$real_canonical" == "$honeypot_canonical" ]]; then
+    # Real TODO IS the honeypot path — skip all honeypot checks
+    return 0
+  fi
 
   # Expected canonical content (must match todo-crud.sh HONEYPOT_EXPECTED_CONTENT)
   local expected_content
@@ -1083,10 +1119,10 @@ _doctor_todo_honeypot() {
 #   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
 '
 
-  # 23a. File exists
+  # 23a. File exists (WARNING, not CRITICAL — honeypot is optional)
   if [[ ! -f "$honeypot" ]]; then
-    echo "🔴 CRITICAL: TODO honeypot missing at $honeypot"
-    CRITICAL=$((CRITICAL + 1))
+    echo "🟡 WARNING: TODO honeypot not deployed at $honeypot (optional — deploy with sp-install)"
+    WARNINGS=$((WARNINGS + 1))
     if can_fix "safe"; then
       if printf '%s' "$expected_content" > "$honeypot" && chmod 444 "$honeypot"; then
         set_immutable "$honeypot" || true

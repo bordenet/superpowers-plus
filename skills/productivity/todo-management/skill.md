@@ -241,6 +241,12 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 | Lock stuck (agent died mid-write) | Lock TTL expires after 120s; next operation auto-reaps | Wait 2 min, or manually `rm -rf` the `.TODO.md.lock` dir |
 | Agent writes directly despite rules | Shadow comparison catches post-write; `sp-doctor` catches honeypot damage | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
 
+> **Honeypot is optional.** The honeypot at `~/.codex/TODO.md` is only deployed when
+> the real TODO lives elsewhere (e.g., OneDrive, Dropbox, a shared repo). If your
+> `TODO_FILE_PATH` points to `~/.codex/TODO.md` (the default), no honeypot exists and
+> Check 23 is automatically skipped. The honeypot rows above only apply to users who
+> configured an external TODO path.
+
 ### Diagnostic Commands
 
 ```bash
