@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers:
   - "review this change"
   - "review this code"
-  - "harsh review"
+  - "micro harsh review"
   - "micro review"
   - "code quality check"
 anti_triggers:
