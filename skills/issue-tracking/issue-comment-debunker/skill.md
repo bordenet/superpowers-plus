@@ -207,6 +207,9 @@ git log --oneline --after="2026-01-14" --before="2026-01-16" | head -5
 
 ---
 
+- **issue-editing**: Editing issues after debunking claims
+- **issue-authoring**: Creating issues with verified facts
+- **issue-link-verification**: Checking links referenced in comments
 ## Evidence Checklist
 
 ```
