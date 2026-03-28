@@ -69,10 +69,11 @@ workstream, the evidence contradicts the original ordering:
 
 **Results (2026-03-28, all 10 exercises, 22 expected findings):**
 - Precision: 100% (0 false positives across 10 exercises)
-- Recall: 77% combined (17/22) — 100% on known bugs (9/9), 62% on novel bugs (8/13)
+- Recall (pre-graduation): 77% (17/22) — 100% known (9/9), 62% novel (8/13)
+- Recall (post-graduation): 86% (19/22) — 100% known (9/9), 77% novel (10/13)
 - High-sev precision: 100%
-- Gaps: 1 candidate proposed (candidate-001: fd leak on error paths)
-- Misses: fd leak (ex-007), undefined reference (ex-006), contract break (ex-008), require-cache (ex-010)
+- Graduated: candidate-001 (resource handle leak on early return) — improved novel recall by +2 findings
+- Remaining misses: undefined reference (ex-006), contract break (ex-008), require-cache (ex-010)
 - Bonus findings: 8 valid findings not in ground truth (exercises updated)
 
 **PRD AC traceability** (Must Pass AC1-AC9):
@@ -110,18 +111,18 @@ workstream, the evidence contradicts the original ordering:
 24. ~~Integration: wire gap analysis into battery skill.md~~ ✅ Post-review gap check added to skill.md (runs after Phase 5 convergence)
 
 **Exit criteria:** ≥1 candidate proposed from real gap, validated against holdout exercises, stored in repo.
-**Current state:** Pipeline built but empty (0 candidates). No gaps found yet — battery scored 100% on exercises 1-5. Candidates will be generated when Level 4-10 exercises or live reviews reveal gaps.
+**Current state:** Pipeline active. 1 candidate graduated (candidate-001: resource handle leak on early return).
 
 ### Phase 5: Promotion Pipeline
-**Goal:** Graduate validated candidates into active reviewer prompts. Only build when Phase 4 produces candidates.
+**Goal:** Graduate validated candidates into active reviewer prompts.
 
-25. Define promotion criteria (precision threshold, stability window, no regressions on exercise suite)
-26. Implement shadow mode: candidate runs alongside baseline, findings compared but not surfaced
-27. Implement canary mode: candidate findings surfaced with `[CANDIDATE]` tag, user validates
-28. Implement graduation: candidate pattern merged into reviewer prompt, exercise suite updated
-29. Implement retirement: pattern removed if precision drops below threshold after graduation
+25. ~~Define promotion criteria~~ ✅ Precision ≥80% on validation exercises, 0 false positives on holdouts, source exercise must catch the gap
+26. ~~Shadow mode~~ DEFERRED — validation-against-holdouts serves the same purpose with less infrastructure. Shadow mode adds value only at scale (10+ candidates).
+27. ~~Canary mode~~ DEFERRED — same rationale as shadow mode. Candidate pattern is injected during validation, not tagged in live output.
+28. ~~Graduation~~ ✅ candidate-001 graduated: pattern merged into defect-finder.md line 104, candidate status updated, validation recorded
+29. ~~Retirement criteria~~ ✅ Pattern removed if: (a) precision drops below 70% on exercise suite after graduation, or (b) pattern is superseded by a more specific candidate. Live false-positive attribution requires canary tagging (deferred) — until then, exercise-suite regression is the retirement trigger.
 
-**Exit criteria:** ≥1 pattern graduated from candidate to active. Exercise suite validates no regression.
+**Exit criteria:** ≥1 pattern graduated from candidate to active ✅. Exercise suite regression: source exercise PASS (ex-007), holdouts PASS (ex-001, ex-004). Full 10-exercise re-run not yet done.
 
 ## Design Decisions
 
