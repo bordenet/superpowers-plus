@@ -163,27 +163,16 @@ deploy_todo_honeypot() {
         return 0
     }
 
-    cat > "$tmp_honeypot" << HONEYPOT_CONTENT
-# 🚨 STOP — WRONG FILE 🚨
-# $marker
-#
-# You are violating TODO management rules. The real TODO.md is managed
-# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
-# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
-#
-# What you MUST do instead:
-#
-#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
-#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
-#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
-#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
-#
-# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
-# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
-#
-# Load the skill first:
-#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
-HONEYPOT_CONTENT
+    # Source canonical honeypot content
+    local honeypot_src
+    honeypot_src="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tools/honeypot-content.txt"
+    if [[ -f "$honeypot_src" ]]; then
+        cat "$honeypot_src" > "$tmp_honeypot"
+    else
+        log_warn "honeypot-content.txt not found — skipping honeypot deployment"
+        rm -f "$tmp_honeypot"
+        return 0
+    fi
 
     # Set permissions on temp file before moving
     chmod 444 "$tmp_honeypot"
