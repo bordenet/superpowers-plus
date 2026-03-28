@@ -114,7 +114,7 @@ After fixing nits, run a **targeted** battery round:
 
 1. **Scope**: Only the files touched by the nit fixes (not the full original diff)
 2. **Reviewers**: Only the reviewer(s) that produced the nits in the previous round
-3. **Dispatch**: Re-use the original diff command with `-- <fixed-files>` appended (see coordinator.md Phase 4 for scoping rules). Dispatch the scoped reviewers with the same 4-part instruction contract.
+3. **Dispatch**: Re-use the original diff command with `-- <fixed-files>` appended (see `skills/engineering/code-review-battery/skill.md` Phase 4 for scoping rules). Each reviewer instruction must include: reviewer prompt + diff + source context (per Phase 2 dispatch requirements).
 4. **Verdict mapping**: Same table as Step 2
 5. **Exit conditions**:
    - PASS → proceed to commit/push
