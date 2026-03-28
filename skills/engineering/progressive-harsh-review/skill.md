@@ -1,0 +1,114 @@
+---
+name: progressive-harsh-review
+source: superpowers-plus
+triggers: ["harsh review", "progressive review", "red team this", "review this harshly",
+           "adversarial review", "hostile review", "critic review", "find what's wrong",
+           "score this work", "quality gate review"]
+description: "Multi-persona adversarial review with escalating severity. Simulates 3 critic personas (JuniorDevNitpicker, SeniorArchCritic, ProdOpsHardass) scoring work on correctness, simplicity, testability, edge cases, and security. Score <5 = REJECT with root-cause analysis. Chains to think-twice, design-triad, and plan-and-execute for remediation."
+summary: "Use when: validating any deliverable before shipping. Score <5 = reject and redo."
+coordination:
+  group: quality
+  order: 0
+  requires: []
+  enables: ["think-twice", "design-triad"]
+  escalates_to: []
+  internal: false
+---
+
+# Progressive Harsh Review
+
+> **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
+> **Pattern:** Three escalating critic personas, each scoring independently.
+
+**Announce at start:** "I'm using the **progressive-harsh-review** skill to red-team this work."
+
+## When to Use
+
+- After completing any significant deliverable (code, design, plan, skill, document)
+- As a quality gate before committing — catches issues pre-commit-gate misses
+- When the user says "review this harshly" or "find what's wrong"
+- NOT for: initial brainstorming (too early), code review of others' PRs (`providing-code-review`)
+
+## The Three Personas
+
+### Persona 1: JuniorDevNitpicker (Surface Quality)
+
+Focus: typos, formatting, naming, style, obvious bugs, missing error handling.
+Tone: eager, thorough, detail-oriented.
+
+### Persona 2: SeniorArchCritic (Structural Quality)
+
+Focus: architecture, design patterns, separation of concerns, extensibility, testability.
+Tone: experienced, skeptical, pattern-aware.
+
+### Persona 3: ProdOpsHardass (Operational Quality)
+
+Focus: failure modes, edge cases, security, performance, monitoring, rollback.
+Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
+
+## The Process
+
+### Step 1: Dispatch Review
+
+**HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
+
+For each persona, answer ALL scoring dimensions:
+
+| Dimension | Weight | Question |
+|-----------|--------|----------|
+| Correctness | 30% | Does it do what it claims? Are there bugs? |
+| Simplicity | 20% | Is it the simplest solution? Over-engineered? |
+| Testability | 15% | Can each component be tested independently? |
+| Edge Cases | 20% | What breaks? What wasn't considered? |
+| Security/Perf | 15% | Vulnerabilities? Performance bottlenecks? |
+
+### Step 2: Score
+
+Each persona scores 1-10 on each dimension. Calculate weighted average per persona.
+
+### Step 3: Verdict
+
+| Average Score | Verdict | Action |
+|---------------|---------|--------|
+| ≥8 | **PASS** | Ship it |
+| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only |
+| <6 | **REJECT** | Root-cause analysis → remediate → full re-review |
+
+### Step 4: Remediation (if needed)
+
+On REJECT:
+1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
+2. **Chain to remediation skills:**
+   - Design issues → `design-triad` (generate alternatives)
+   - Stuck/circular → `think-twice` (fresh perspective)
+   - Plan issues → `plan-and-execute` (replan)
+3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.
+
+### Step 5: Convergence
+
+- **Exit when:** Final round score ≥6, no new material issues
+- **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
+
+## Scoring Output Format
+
+```markdown
+### Persona: SeniorArchCritic
+| Dimension | Score | Finding |
+|-----------|-------|---------|
+| Correctness | 7 | Lock release doesn't check PID ownership |
+| Simplicity | 8 | Clean, minimal |
+| Testability | 6 | No unit tests for lock race condition |
+| Edge Cases | 5 | What if process dies mid-lock? |
+| Security/Perf | 7 | Lock file readable by any user |
+**Weighted Average: 6.5 → PASS_WITH_FIXES**
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Self-reviewed in same thinking pass | Use sub-agent or explicit role switch — author ≠ reviewer |
+| All personas gave same feedback | Personas must have distinct focus areas — if identical, you're not role-switching |
+| Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
+| Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
+| Only reviewed happy path | ProdOpsHardass must consider failure, rollback, 3am scenarios |
