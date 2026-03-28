@@ -160,3 +160,10 @@ After fixing nits, run a **targeted** battery round:
 ```
 pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5)
 ```
+
+## Companion Skills
+
+- **code-review-battery**: The review engine this gate dispatches
+- **pre-commit-gate**: Runs before this gate (lint/tests)
+- **enforce-style-guide**: Runs before this gate (style fixes)
+- **providing-code-review**: Engineering rigor checklist (informs review focus)

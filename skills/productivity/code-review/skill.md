@@ -3,9 +3,12 @@ name: code-review
 source: superpowers-plus
 description: Use when sending work to a separate reviewer agent or executing reviewer findings via the ~/.codex/superpowers-review/ request.md → response.md file protocol
 triggers: ["send to reviewer agent", "execute reviewer findings", "implement reviewer response", "superpowers-review"]
+anti_triggers: ["review my PR", "review this PR", "code review before commit", "pre-commit"]
 ---
 
 # Code Review — Requesting Agent File Protocol
+
+> **Wrong skill?** Reviewing someone's PR → `providing-code-review`. Pre-commit review → `progressive-code-review-gate`. Acting as reviewer agent → `code-review-respond`.
 
 ## When to Use
 
@@ -125,3 +128,9 @@ Use when: the reviewer has finished and written `response.md`.
 | Stale `response.md` from previous round executed | Check round numbers match before processing (Step 2 of Execute Response) |
 | Reviewer can't find referenced files | Verify all paths in "Files to Read" exist before generating request |
 | 5+ rounds without PASS | Stop generating rounds, escalate to human review |
+
+## Companion Skills
+
+- **code-review-respond**: Reviewer agent side of this protocol
+- **providing-code-review**: Engineering rigor checklist (loaded by reviewer)
+- **receiving-code-review**: Processing feedback from reviews
