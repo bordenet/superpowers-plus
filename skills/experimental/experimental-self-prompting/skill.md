@@ -24,6 +24,14 @@ coordination:
 
 ---
 
+
+## When to Use
+
+- Analysis has stalled due to context window pollution
+- You suspect anchoring bias from earlier conversation
+- Fresh perspective needed on a complex problem
+- When re-reading the same context isn't yielding new insights
+
 ## Experiment Results Summary
 
 **Winner: Condition B (Reframe-Self)** - Write prompt, answer yourself (no external model)

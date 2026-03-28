@@ -36,6 +36,13 @@ composition:
 
 **Announce at start:** "I'm using the **feature-development** skill to orchestrate this workflow."
 
+
+## When to Use
+
+- Implementing a new feature end-to-end (design → code → test → ship)
+- When the task spans multiple files and requires coordination
+- Multi-step implementation that needs a structured workflow
+
 ## When to Use — DEFAULT for Code Changes
 
 - **Any code change** — features, bug fixes, refactors, skill edits, config changes
