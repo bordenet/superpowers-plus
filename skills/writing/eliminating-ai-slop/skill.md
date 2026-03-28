@@ -13,7 +13,7 @@ composition:
 coordination:
   group: writing
   order: 1
-  requires: ["detecting-ai-slop"]
+  requires: []
   enables: []
   escalates_to: []
   internal: false

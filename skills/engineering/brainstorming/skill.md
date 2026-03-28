@@ -41,7 +41,7 @@ Do NOT write any code or take implementation action until you have presented a d
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, commit
 7. **Spec review loop** — dispatch spec-document-reviewer subagent; fix issues; max 3 iterations then escalate to human
 8. **User reviews written spec** — ask user to review before proceeding
-9. **Transition** — invoke `writing-plans` skill (the ONLY next skill)
+9. **Transition** — invoke `writing-plans` skill (or `design-triad` first if ≥3 viable approaches need formal comparison)
 
 ## Understanding the Idea
 
@@ -73,7 +73,7 @@ Do NOT write any code or take implementation action until you have presented a d
 1. Write spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 2. Run spec review loop (subagent reviewer, max 3 iterations)
 3. User reviews written spec
-4. **If ≥3 viable approaches emerged** — invoke `design-triad` to formally compare and red-team before committing
+4. **If ≥3 viable approaches emerged** — invoke `design-triad` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones)
 5. Invoke `writing-plans` skill for implementation plan
 
 ## Key Principles

@@ -222,11 +222,9 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 
 ---
 
-## ♻️ Housekeeping (MANDATORY — Every Session)
+## ♻️ Housekeeping (MANDATORY)
 
-**On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
-
-**Post-session maintenance** — run `todo-maintenance.sh` after multi-step sessions (reports stale `#plan-*` tasks, auto-archives when ≥5 completed or >200 lines or >7 days old). Backups are automatic on every write.
+Move `[x]` items to `# HISTORY → ## YYYY-MM-DD` immediately. Run `todo-maintenance.sh` after multi-step sessions (auto-archives when ≥5 completed or >200 lines or >7 days old).
 
 ---
 
@@ -237,12 +235,15 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 | Direct file write attempted | OS immutability blocks it | No action needed |
 | Honeypot tampered/missing flag | `sp-doctor` Check 23 detects | Run `sp-doctor --fix` |
 | TODO path missing | Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
-| Annihilation detected (>60% drop) | Engine blocks write | Delete shadow and retry |
-| Lock stuck | TTL expires after 120s | Wait 2 min or rm lock dir |
+| `.todo-registry` missing/empty | `self-test` warns; falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
+| Annihilation detected (>60% drop) | Engine blocks write | Delete `~/.codex/todo-shadow/TODO.md` and retry |
+| Lock stuck (agent died mid-write) | TTL expires after 120s | Wait 2 min, or `rm -rf` the `.TODO.md.lock` dir |
+| Agent writes directly despite rules | Shadow comparison catches post-write | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
 
-> **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips. Diagnostics: `todo-crud.sh self-test` or `doctor-checks.sh`.
+> **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips.
 
-## Reference Files
+Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-25)
 
-- [`references/taxonomy.md`](references/taxonomy.md) — Tagging taxonomy
-- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format and operations
+## References
+
+- [`references/taxonomy.md`](references/taxonomy.md) · [`references/file-format-and-operations.md`](references/file-format-and-operations.md)

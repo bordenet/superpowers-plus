@@ -61,16 +61,5 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 | Ideas too abstract to act on | Require concrete "next-week experiment" for each idea |
 | Scoring bias toward familiar approaches | Weight novelty explicitly in impact/feasibility matrix |
 | Innovation theater — big ideas with no follow-through | Gate: each idea must have a testable hypothesis |
-
-```bash
-# Example: invoke innovation for a feature
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill innovation
-```
-
-## Failure Modes
-
-| Failure | Fix |
-|---------|-----|
 | Generated incremental improvements disguised as innovation | Apply the 10x test: would this change the product category? If no, it is not innovation |
-| Scored ideas without concrete next-week prototypes | Every idea must have a prototype action doable in 1 week |
 | Confused technical cleverness with user impact | Score Impact (user-facing value) separately from Feasibility (technical) |
