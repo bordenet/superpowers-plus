@@ -23,6 +23,12 @@ coordination:
 
 **Announce at start:** "I'm using the **skill-authoring** skill to help create a new skill."
 
+## When to Use
+
+- User asks to create, generate, or scaffold a new skill
+- A repeating pattern is identified that should become a reusable skill
+- Skill gap analysis reveals missing capabilities in the skill catalog
+
 ---
 
 ## Authoring Modes
@@ -195,28 +201,9 @@ composition:
 | brainstorming | Could be invoked for skill design |
 | readme-authoring | Generates README alongside skill.md |
 
----
-
 ## Output Location
 
-Generated skills are saved to:
-
-```
-skills/<domain>/<skill-name>/
-├── skill.md       # Main skill definition
-├── README.md      # Optional: if skill needs extended docs
-└── modules/       # Optional: for complex skills
-```
-
-**Domain selection:**
-- `engineering` — Code quality, testing, CI/CD
-- `wiki` — Documentation platforms
-- `writing` — Prose quality, formatting
-- `productivity` — Workflow optimization
-- issue-tracking domain — Tickets, bugs, features
-- `security` — Audits, vulnerabilities
-- `observability` — Metrics, tracking
-- `research` — Information gathering
+See [`references/output-location.md`](references/output-location.md) for directory structure and domain selection guide.
 
 ---
 
