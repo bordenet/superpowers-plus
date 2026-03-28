@@ -78,6 +78,8 @@ For each finding:
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
 - **Fix**: How to fix — include exact before/after code when possible
+- **Regressions Risked**: What could break if this fix is applied? (e.g., "Tightening the input validation may reject legitimate edge-case inputs from existing clients")
+- **Durable Check**: Propose a lint rule, test, or security invariant to prevent this class of issue permanently (e.g., "Add pre-commit hook: scan for unsanitized user input in SQL query strings")
 
 If you find NO issues, say:
 "✅ No guardian concerns found. Change is safe, backwards-compatible, and dependencies are clean."

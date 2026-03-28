@@ -53,6 +53,8 @@ For each finding, use this structured format:
 - **fix**: \<how to fix\>
 - **evidence**: \<what you searched, what you found — required\>
 - **cross-cutting**: yes / no
+- **regressions_risked**: <what could break if this fix is applied>
+- **durable_check**: <lint rule, test, assertion, or invariant to catch this class of issue permanently>
 
 When `scope = systemic`, add an `instances` list with all file:line locations.
 
