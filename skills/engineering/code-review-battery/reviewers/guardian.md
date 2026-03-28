@@ -35,6 +35,15 @@ When the diff calls external services, I/O, or infrastructure APIs (database, ne
 
 **Example**: An auto-repeat function calls `playTTS()` and assumes it worked. If `playTTS()` fails silently, the repeat counter increments but the user hears nothing — the retry budget is wasted.
 
+### 2b. Caller Contract Drift
+When a bug fix changes observable behavior (even if the old behavior was wrong), it's a **semantic contract change**. Callers may depend on the old behavior.
+- For each behavior change: what does the CALLER see differently? (Return values, side effects, timing, event ordering)
+- Is the behavior change documented in the PR description?
+- Could any caller have adapted to the bug as a feature?
+- For fixes that add early returns or short-circuit paths: what did callers previously receive on those paths vs now?
+
+**Example**: A function that previously always returned a value now returns `undefined` on a new early-return path. Callers that don't check for undefined will break.
+
 ### 3. Dependencies & Configuration
 - New dependencies: justified? version-pinned? license-compatible? actively maintained?
 - Dependency version changes: breaking changes in changelog?
