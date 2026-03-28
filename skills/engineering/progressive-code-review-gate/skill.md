@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (parallel specialized reviewers). Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (6 parallel reviewers: 5 specialists + monolith with gap analysis and candidate staging). Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
@@ -45,10 +45,12 @@ If no diff exists in any of these, skip this gate.
 ### Step 2: Dispatch the review battery
 
 Follow the `code-review-battery` skill procedure:
-1. Triage the diff → select relevant reviewers
+1. Triage the diff → select relevant specialists; monolith fires by default on full reviews
 2. Dispatch activated reviewers in parallel (see battery `skill.md` for platform-specific dispatch)
 3. Each reviewer reads the source files directly and runs the diff command
 4. Aggregate findings into unified report
+5. Gap analysis — compare specialist findings vs monolith, propose learning candidates (full reviews only)
+6. Update wiki dashboard with metrics (full reviews only; not blocking to verdict)
 
 Map battery output to gate verdicts:
 

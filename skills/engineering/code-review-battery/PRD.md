@@ -1,10 +1,12 @@
 # Code Review Battery — Product Requirements Document
 
-> **Status**: Shipped (Phase 1e)
+> **Status**: Phase 2 Shipped (learning pipeline pending real-world validation)
 > **Author**: Matt Bordenet + AI
 > **Created**: 2026-03-27
-> **Shipped**: 2026-03-27
-> **Confidence**: 92/100 (post-validation V1-V8, 8 review runs)
+> **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
+> **Phase 2 Shipped**: 2026-03-28 (monolith, gap analysis, dashboard, Shadow Lane candidate staging)
+> **Phase 2 Pending**: AC24 (graduation validation set), AC25 (safety controls in production)
+> **Confidence**: 85/100
 
 ## Problem Statement
 
@@ -32,10 +34,13 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 | G4 | Reduce false positives | <5% of findings are noise (vs current ~15-20%) |
 | G5 | Maintain or improve review quality | Battery catches ≥ monolithic issues on same diff |
 | G6 | Triage gating | Only relevant reviewers fire per diff, reducing cost |
+| G7 | Monolith as safety net and teacher | Monolith runs by default on full reviews; gaps drive candidate staging |
+| G8 | Automatic continuous improvement | Battery specialists improve via graduated patterns/scripts (Shadow Lane) |
+| G9 | Observable learning metrics | Wiki dashboard tracks full review runs, gaps, and learning pipeline events |
 
 ## Scope
 
-### In Scope (Phase 1: Review Battery)
+### In Scope (Phase 1: Review Battery — shipped)
 - 5 specialized reviewer agents with focused prompts
 - Triage coordinator that selects relevant reviewers per diff
 - Portable dispatch design (Augment validated, Claude Code documented)
@@ -43,24 +48,32 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 - Aggregation of multi-reviewer output into unified report
 - 16 review dimensions covered across the 5 agents
 
-### Out of Scope (Phase 2: Debugging Parallelization)
+### In Scope (Phase 2: Monolith + Learning)
+- Monolith as 6th battery member (default on full reviews, skippable with `--skip-monolith`)
+- Gap analysis after full reviews (battery vs monolith comparison)
+- Shadow Lane learning system (candidate patterns + executable checks)
+- Graduation pipeline (adversarial validation, 30-day stability, precision floors)
+- Wiki dashboard for trending metrics over time
+- Safety controls (TTL, token budgets, precision floors, degradation response)
+
+### Out of Scope (Phase 3: Debugging Parallelization)
 > **⚠️ FUTURE SCOPE — DO NOT FORGET**
 >
-> Phase 2 will extend the parallel dispatch pattern to `systematic-debugging`:
+> Phase 3 will extend the parallel dispatch pattern to `systematic-debugging`:
 > - Dispatch parallel investigation agents (data flow tracer, recent changes analyzer, error message interpreter)
 > - Useful for multi-component failures where root cause is unclear
 > - Must preserve the "one hypothesis at a time" discipline from the existing skill
-> - The battery pattern from Phase 1 provides the dispatch infrastructure
+> - The battery pattern from Phase 1-2 provides the dispatch infrastructure
 >
 > **Entry point**: `~/.agents/skills/systematic-debugging/SKILL.md`
-> **Trigger**: After Phase 1 battery is validated and stable
+> **Trigger**: After Phase 2 learning system is validated and stable
 
 ### Out of Scope (Not Planned)
 - Accessibility review (too domain-specific; optional add-on for UI projects)
 - Internationalization review (too domain-specific; optional add-on)
 - CI/CD integration (future, after battery is proven locally)
 
-## The 5 Reviewer Agents
+## The 6 Reviewer Agents
 
 ### Agent 1: Defect Finder
 **Mental Model**: *"What inputs, states, or conditions break this code?"*
@@ -86,6 +99,11 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 **Mental Model**: *"Will this code behave well under production load?"*
 **Dimensions**: Performance, Observability/Logging
 **Triage**: Conditional — when diff touches DB, loops, caching, or >500 LOC changed
+
+### Agent 6: Monolith (Comprehensive Reviewer)
+**Mental Model**: *"What would a senior engineer catch in a thorough PR review?"*
+**Dimensions**: ALL dimensions + cross-file data flow tracing, type coercion, integration parity
+**Triage**: Default on full reviews (not triage-gated). Skippable with `--skip-monolith`. Serves as safety net and learning teacher.
 
 ## Dimension Coverage Matrix
 
@@ -149,6 +167,22 @@ The groupings were determined through a structured process:
 - [x] AC14: Support for `--only=<agent>` and `--skip=<agent>` overrides
 - [ ] AC15: Reviewer-specific configuration per project
 
+### Phase 2: Monolith + Learning
+**Shipped** (candidate staging, gap analysis, dashboard):
+- [x] AC16: Monolith reviewer prompt exists and fires by default on full reviews
+- [x] AC17: Monolith can be skipped with `--skip-monolith` (disables learning); not triage-gated otherwise
+- [x] AC18: Gap analysis compares battery vs monolith findings after full reviews
+- [x] AC19: Gaps are classified as pattern-learnable or script-learnable
+- [x] AC20: Candidate patterns staged in `*-patterns.candidate.md` (Shadow Lane)
+- [x] AC21: Candidate scripts staged in `checks/candidates/` (Shadow Lane)
+- [x] AC22: Wiki dashboard updated after full reviews with metrics
+- [x] AC23: Dashboard tracks review-level metrics, learning pipeline, gap log
+- [x] AC26: `--skip-monolith` override disables monolith and learning for speed-only runs
+
+**Pending** (graduation pipeline — needs real-world runs to validate):
+- [ ] AC24: Graduation pipeline validates candidates on 200+ stratified diffs (needs validation set)
+- [ ] AC25: Safety controls prevent false positive amplification (needs real-world runs)
+
 ## Risks and Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -158,6 +192,11 @@ The groupings were determined through a structured process:
 | Token cost 5x+ monolithic | Medium | Medium | Triage gating reduces active reviewers; measure and optimize |
 | Platform dispatch differences cause bugs | Low | High | Smoke test both platforms before implementation |
 | Reviewer prompts too broad/shallow | Medium | High | Prototype and iterate before shipping |
+| False positive amplification from auto-learning | Medium | Critical | Shadow Lane (candidates don't reach user until graduated), precision floors, TTL |
+| Prompt bloat from accumulated patterns | Medium | Medium | Hard token budget per pattern file, LRU eviction |
+| Monolith adds latency to full reviews | Low | Low | Monolith runs in parallel; doesn't add wall-clock time |
+| Learned patterns contradict each other | Low | Medium | Independent evaluator validates each candidate in isolation and in combination |
+| Stale patterns persist after codebase changes | Medium | Medium | TTL on all patterns; periodic revalidation required |
 
 ## Migration Path
 
@@ -167,7 +206,12 @@ The groupings were determined through a structured process:
 4. **Phase 1c**: Validate against acceptance criteria on 10+ real diffs
 5. **Phase 1d**: Wire `progressive-code-review-gate` to delegate to battery
 6. **Phase 1e**: Battery becomes default review path
-7. **Phase 2**: Extend pattern to debugging parallelization (separate PRD)
+7. **Phase 2a**: Add monolith as 6th battery member
+8. **Phase 2b**: Build gap analysis (battery vs monolith comparison)
+9. **Phase 2c**: Build Shadow Lane learning system (candidate patterns + scripts)
+10. **Phase 2d**: Create wiki dashboard for metrics trending
+11. **Phase 2e**: Validate graduation pipeline on real-world runs
+12. **Phase 3**: Extend pattern to debugging parallelization (separate PRD)
 
 ## Validation Plan
 
