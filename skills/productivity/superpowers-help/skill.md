@@ -2,6 +2,7 @@
 name: superpowers-help
 source: superpowers-plus
 triggers: ["what are my superpowers", "what superpowers do I have", "what skills do I have", "list available skills", "superpowers help", "how do I use skills", "what can you do", "show me your capabilities", "help me understand superpowers", "what workflows are available"]
+anti_triggers: ["write code", "fix bug", "implement feature", "debug this"]
 description: Dynamically enumerates ALL installed skills at runtime, distinguishing superpowers (auto-triggered) from explicit skills. Never stale — always reflects current installation.
 summary: "Use when: user asks about superpowers system, how to use skills, or needs skill recommendations."
 coordination:
@@ -116,7 +117,7 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 | Task | Type | Skill(s) |
 |------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → writing-plans |
+| "Build a new feature" | 🦸 auto | brainstorming → plan-and-execute |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
 | "Update the wiki" | 🦸 auto | wiki-orchestrator → link-verification |

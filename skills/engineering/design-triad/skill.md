@@ -2,6 +2,7 @@
 name: design-triad
 source: superpowers-plus
 triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team"]
+anti_triggers: ["brainstorm ideas", "innovation", "radical idea", "10x improvement"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
 summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
 coordination:
@@ -15,6 +16,8 @@ coordination:
 
 # Design Triad
 
+> **Wrong skill?** Brainstorming many ideas → `brainstorming`. Requirements validation → `requirements-validation`. Feature workflow → `feature-development`.
+
 > **Core principle:** Never commit to a design without considering at least three alternatives and surviving a harsh review.
 
 **Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
@@ -23,7 +26,7 @@ coordination:
 
 - Any design decision where the wrong choice would cost significant rework
 - Choosing between architectural approaches, data models, or integration patterns
-- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans`), bug fixing (`systematic-debugging`)
+- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans` (upstream)), bug fixing (`systematic-debugging`)
 
 ## Preflight
 

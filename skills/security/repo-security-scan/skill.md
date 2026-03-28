@@ -2,6 +2,7 @@
 name: repo-security-scan
 source: superpowers-plus
 triggers: ["security scan", "scan for secrets", "scan for vulnerabilities", "audit repo security", "check for hardcoded keys", "check for insecure code", "security review", "scan repos", "find secrets in code", "credential scan", "security audit"]
+anti_triggers: ["upgrade packages", "npm update", "dependency upgrade", "version bump"]
 description: "Use when asked to audit a git repository for security issues, check for secrets or credentials in code, scan for dependency vulnerabilities, or review a repo's security posture. Use instead of writing ad-hoc scanning scripts. Covers Python, Node.js, Go, Rust, and shell projects."
 summary: "Use when: auditing repo for security vulnerabilities, secrets, or misconfigurations."
 coordination:

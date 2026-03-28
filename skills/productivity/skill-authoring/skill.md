@@ -2,6 +2,7 @@
 name: skill-authoring
 source: superpowers-plus
 triggers: ["create a skill", "make a skill", "I need a skill", "new skill for", "skill that", "what skills should", "skill gap analysis", "turn this pattern into a skill", "synthesize skill", "generate skill"]
+anti_triggers: ["check skill health", "diagnose skill", "run doctor"]
 description: The genesis capability — create new skills from natural language descriptions, observed patterns, or codebase analysis. Makes superpowers-plus self-extending.
 summary: "Use when: writing or editing superpowers skill files."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # Skill Authoring
+
+> **Wrong skill?** Skill structure/format → `writing-skills`. Checking skill health → `skill-health-check`. Diagnosing skill issues → `superpowers-doctor`.
 
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
@@ -58,7 +61,7 @@ This skill enables superpowers-plus to extend itself. Three modes:
 I'll help create a TypeScript strict mode skill.
 
 **Proposed skill:**
-- Name: `typescript-strict-check`
+- Name: `typescript-strict-mode` (overlay)
 - Domain: `engineering`
 - Triggers: ["strict mode violations", "typescript strict", "check strict mode", "ts strict"]
 
@@ -203,7 +206,7 @@ skills/<domain>/<skill-name>/
 - `wiki` — Documentation platforms
 - `writing` — Prose quality, formatting
 - `productivity` — Workflow optimization
-- `issue-tracking` — Tickets, bugs, features
+- issue-tracking domain — Tickets, bugs, features
 - `security` — Audits, vulnerabilities
 - `observability` — Metrics, tracking
 - `research` — Information gathering

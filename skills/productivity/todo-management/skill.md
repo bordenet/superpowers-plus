@@ -2,6 +2,7 @@
 name: todo-management
 source: superpowers-plus
 triggers: ["add task", "add TODO", "what should I work on", "show my tasks", "list tasks", "what are my tasks", "what's next", "what's pending", "complete [task]", "mark done", "what did I do", "triage", "my P1s", "today's priorities", "backlog", "implement this plan", "execute these steps", "track this work", "todo", "remaining work"]
+anti_triggers: ["archive old tasks", "search old tasks", "find archived"]
 description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
 summary: "Use when: managing multi-step tasks. Hard gate for 3+ step tasks."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # TODO Management
+
+> **Wrong skill?** Archiving completed tasks → `todo-archive`. Plan execution → `plan-and-execute`.
 
 > **File location:** Resolved from `TODO_FILE_PATH` in `~/.codex/.env` (falls back to `$HOME/.codex/TODO.md`)
 > **PRD:** See `PRD.md` in this skill folder for full requirements

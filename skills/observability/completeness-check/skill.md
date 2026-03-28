@@ -2,6 +2,7 @@
 name: completeness-check
 source: superpowers-plus
 triggers: ["is this done", "claiming done", "audit accumulated debt", "check for incomplete work", "find unfinished work"]
+anti_triggers: ["start work", "begin implementation", "create new"]
 description: Detect incomplete work in repositories from AI assistant crashes, context exhaustion, or mid-implementation distractions. Use before claiming work complete or when auditing accumulated debt.
 summary: "Use when: auditing for incomplete work from crashes or context exhaustion."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # completeness-check
+
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Output inspection → `output-verification`. Repo health → `holistic-repo-verification`.
 
 **MANDATORY**: Use this skill before claiming work is complete on ANY repo, or when auditing accumulated incomplete work.
 
@@ -158,14 +161,11 @@ Summary:
 
 ## Failure Modes
 
-- **Self-grading bias:** Claiming 100% completeness without independent verification — always cross-check against the original scope
-- **Scope creep in checklist:** Adding items that weren't in the original request to inflate completeness percentage
-- **Missing edge cases:** Checking happy-path items but skipping error handling, cleanup, and rollback verification
-
-## Failure Modes
-
 | Failure | Recovery |
 |---------|----------|
-| Surface-level scan (checking filenames only) | Read file contents. Check for TODO, FIXME, incomplete implementations. |
+| Self-grading bias — claiming 100% without independent verification | Cross-check against original scope, not your own checklist |
+| Scope creep — adding items to inflate completeness percentage | Compare checklist against original request verbatim |
+| Surface-level scan — checking filenames only | Read file contents. Check for TODO, FIXME, incomplete implementations |
 | Missing abandoned branches | Check `git branch -a` for stale feature branches |
 | False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
+| Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |

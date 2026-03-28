@@ -19,11 +19,13 @@ coordination:
 
 # Writing Skills
 
+> **Wrong skill?** Full skill creation workflow → `skill-authoring`. Skill runtime issues → `superpowers-doctor`. Skill structural lint → `skill-health-check`.
+
 ## When to Use
 
 - Creating new skill files (structure, frontmatter, prose style, quality gates)
 - Reviewing existing skill files for compliance with conventions
-- NOT for: using/loading/finding skills at runtime (`using-superpowers`)
+- NOT for: using/loading/finding skills at runtime (`superpowers-help`)
 
 A **skill** is a reusable reference guide for techniques, patterns, or tools. NOT a narrative about solving a problem once.
 
@@ -58,7 +60,7 @@ skills/{domain}/{skill-name}/
 └── references/       # Reference material (optional)
 ```
 
-Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki`, `issue-tracking`, `observability`, `experimental`.
+Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki`, issue-tracking domain, `observability`, `experimental`.
 
 ## Creation Checklist
 

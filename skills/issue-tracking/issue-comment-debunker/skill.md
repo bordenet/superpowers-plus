@@ -2,6 +2,7 @@
 name: issue-comment-debunker
 source: superpowers-plus
 triggers: ["comment on ticket", "post status update", "add investigation summary", "update the ticket with"]
+anti_triggers: ["create issue", "update ticket fields", "close ticket"]
 description: Use BEFORE posting any comment or update to issue tickets. Prevents fabricated investigation summaries, status updates, and unverified claims. Evidence before assertion — no claims without citations.
 summary: "Use when: posting comments on issue tickets. Skip when: reading issues only."
 coordination:
