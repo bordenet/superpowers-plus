@@ -1,6 +1,6 @@
 # Superpowers Doctor — Check Reference
 
-All 22 checks are implemented in `tools/doctor-checks.sh`.
+All 25 checks are implemented in `tools/doctor-checks.sh`.
 
 ```bash
 ./tools/doctor-checks.sh              # Diagnose only
@@ -36,6 +36,9 @@ All 22 checks are implemented in `tools/doctor-checks.sh`.
 | 20 | 🟠 ERROR | Dirty checkout | Uncommitted changes in managed checkout | ✅ | moderate |
 | 21 | 🟠 ERROR | TODO archive smoke | Small-but-valid TODO fails to archive or produces bloated result | ❌ | — |
 | 22 | 🟡 WARNING | Reviewer-dispatch | Stale code-reviewer rendering patterns in installed skills | ❌ | — |
+| 23 | 🟡/🔴 | TODO honeypot integrity | Honeypot tampered/wrong perms/missing flag. **Skipped** when real TODO lives at `~/.codex/TODO.md`. Missing honeypot = WARNING (optional). Tampered = CRITICAL. | ✅ | safe |
+| 24 | 🟡 WARNING | TODO path validation | TODO path not configured, missing file, or stale registry | ❌ | — |
+| 25 | 🟡 WARNING | Stale workflow state | Abandoned workflow states older than 24h or corrupt state files | ✅ | moderate |
 
 **Pre-check:** WSL + NTFS mount detection — warns when skills are on `/mnt/c/...` where `chmod` is silently ignored.
 
@@ -43,8 +46,8 @@ All 22 checks are implemented in `tools/doctor-checks.sh`.
 
 | Tier | Flag | Checks Fixed | Risk |
 |------|------|-------------|------|
-| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19 | Non-destructive (sync, normalize, pull) |
-| Moderate | `--fix` | All of safe + 12, 14, 20 | Destructive (stash, clearing) |
+| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19, 23 | Non-destructive (sync, normalize, pull, restore honeypot) |
+| Moderate | `--fix` | All of safe + 12, 14, 20, 25 | Destructive (stash, clearing, archive stale state) |
 | Purge | `--fix --purge-orphans` | All of moderate + 8 | Removes orphaned installs (explicit opt-in) |
 
 ## Severity Guide
@@ -75,6 +78,6 @@ All 22 checks are implemented in `tools/doctor-checks.sh`.
 | Linux (Ubuntu/Debian) | All checks work. `git stash push` requires git 2.13+; fallback to `git stash save` |
 | WSL (Ubuntu) | All checks work. Same as Linux; also detects NTFS mount issues (pre-check) |
 
-**Optional dependencies for checks 21–22:**
+**Optional dependencies for checks 21–22, 25:**
 - `python3` — required for Check 21 (TODO archive smoke test). Skipped with INFO if absent.
-- `node` — required for Check 22 (reviewer-dispatch verification). Skipped with WARNING if absent.
+- `node` — required for Checks 22, 25 (reviewer-dispatch, stale workflow). Skipped with WARNING if absent.
