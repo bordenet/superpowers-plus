@@ -28,6 +28,8 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/compat.sh
+source "${SCRIPT_DIR}/compat.sh"
 ENGINE="$SCRIPT_DIR/todo-engine.py"
 
 # --- Help ---
@@ -47,6 +49,7 @@ Commands:
   claim      Claim a task for this agent (multi-agent coordination)
   unclaim    Release a claim on a task
   reap       Reap all expired claims (reverts to open)
+  self-test  Validate honeypot integrity, TODO path, and engine health
 
 Global Options:
   --json     Machine-readable JSON output
@@ -134,11 +137,170 @@ if [[ -f "$HOME/.codex/.env" ]]; then
   source "$HOME/.codex/.env" 2>/dev/null || true
 fi
 
+# --- Honeypot Sentinel ---
+# The canonical honeypot content at ~/.codex/TODO.md. Used by self-test and
+# doctor checks to verify the honeypot hasn't been tampered with.
+HONEYPOT_PATH="$HOME/.codex/TODO.md"
+HONEYPOT_EXPECTED_CONTENT='# 🚨 STOP — WRONG FILE 🚨
+# THIS IS NOT THE REAL TODO FILE
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+'
+
+# --- Self-Test ---
+# Validates: honeypot integrity, real TODO path resolution, registry health.
+self_test() {
+  local passed=0 failed=0 warnings=0
+
+  echo "🧪 todo-crud self-test"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # 1. Check real TODO path resolves
+  local real_path
+  real_path=$("$PYTHON" "$ENGINE" path 2>/dev/null)
+  if [[ -n "$real_path" ]]; then
+    echo "✅ TODO path resolves: $real_path"
+    passed=$((passed + 1))
+  else
+    echo "❌ TODO path resolution FAILED"
+    failed=$((failed + 1))
+  fi
+
+  # 2. Check real TODO file exists and is writable by engine
+  if [[ -n "$real_path" && -f "$real_path" ]]; then
+    echo "✅ TODO file exists"
+    passed=$((passed + 1))
+  elif [[ -n "$real_path" ]]; then
+    echo "❌ TODO file does not exist at $real_path"
+    failed=$((failed + 1))
+  fi
+
+  # 3. Check .todo-registry exists
+  local registry="$HOME/.codex/.todo-registry"
+  if [[ -f "$registry" ]]; then
+    local reg_content
+    reg_content=$(cat "$registry")
+    if [[ -n "$reg_content" ]]; then
+      echo "✅ .todo-registry exists and is non-empty"
+      passed=$((passed + 1))
+    else
+      echo "❌ .todo-registry exists but is empty"
+      failed=$((failed + 1))
+    fi
+  else
+    echo "⚠️  .todo-registry not found (using fallback path resolution)"
+    warnings=$((warnings + 1))
+  fi
+
+  # 4. Check honeypot exists
+  if [[ -f "$HONEYPOT_PATH" ]]; then
+    echo "✅ Honeypot file exists at $HONEYPOT_PATH"
+    passed=$((passed + 1))
+  else
+    echo "❌ Honeypot file MISSING at $HONEYPOT_PATH"
+    failed=$((failed + 1))
+  fi
+
+  # 5. Check honeypot has immutable flag (portable via compat.sh)
+  if [[ -f "$HONEYPOT_PATH" ]]; then
+    check_immutable "$HONEYPOT_PATH"
+    local immutable_result=$?
+    if [[ "$immutable_result" -eq 0 ]]; then
+      echo "✅ Honeypot has immutable flag"
+      passed=$((passed + 1))
+    elif [[ "$immutable_result" -eq 2 ]]; then
+      echo "⚠️  Cannot verify immutable flag on this platform/filesystem"
+      warnings=$((warnings + 1))
+    else
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "❌ Honeypot MISSING immutable flag (run: chflags uchg $HONEYPOT_PATH)"
+      else
+        echo "❌ Honeypot MISSING immutable flag (run: sudo chattr +i $HONEYPOT_PATH)"
+      fi
+      failed=$((failed + 1))
+    fi
+  fi
+
+  # 6. Check honeypot permissions are 444
+  if [[ -f "$HONEYPOT_PATH" ]]; then
+    local perms
+    perms=$(stat -f "%Lp" "$HONEYPOT_PATH" 2>/dev/null || stat -c "%a" "$HONEYPOT_PATH" 2>/dev/null || echo "")
+    if [[ "$perms" == "444" ]]; then
+      echo "✅ Honeypot permissions are 444 (read-only)"
+      passed=$((passed + 1))
+    else
+      echo "❌ Honeypot permissions are $perms (expected 444)"
+      failed=$((failed + 1))
+    fi
+  fi
+
+  # 7. Check honeypot content matches expected (portable via compat.sh)
+  if [[ -f "$HONEYPOT_PATH" ]]; then
+    local actual_hash expected_hash
+    actual_hash=$(sha256_hash "$HONEYPOT_PATH")
+    expected_hash=$(printf '%s' "$HONEYPOT_EXPECTED_CONTENT" | sha256_hash_stdin)
+    if [[ "$actual_hash" == "$expected_hash" ]]; then
+      echo "✅ Honeypot content matches expected sentinel"
+      passed=$((passed + 1))
+    else
+      echo "❌ Honeypot content has been TAMPERED WITH"
+      echo "   Expected sha256: $expected_hash"
+      echo "   Actual sha256:   $actual_hash"
+      failed=$((failed + 1))
+    fi
+  fi
+
+  # 8. Check engine is functional (can parse the real file)
+  if [[ -n "$real_path" && -f "$real_path" ]]; then
+    local list_result
+    if list_result=$("$PYTHON" "$ENGINE" list --priority P1 2>&1); then
+      echo "✅ Engine can parse and list tasks"
+      passed=$((passed + 1))
+    else
+      echo "❌ Engine list command failed: $list_result"
+      failed=$((failed + 1))
+    fi
+  fi
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Results: $passed passed, $failed failed, $warnings warnings"
+
+  if [[ "$failed" -gt 0 ]]; then
+    echo "❌ Self-test FAILED"
+    return 1
+  elif [[ "$warnings" -gt 0 ]]; then
+    echo "⚠️  Self-test PASSED with warnings"
+    return 0
+  else
+    echo "✅ Self-test PASSED"
+    return 0
+  fi
+}
+
 # --- Dispatch ---
 case "${1:-}" in
   -h|--help|help|"")
     show_help
     exit 0
+    ;;
+  self-test)
+    self_test
+    exit $?
     ;;
   *)
     exec "$PYTHON" "$ENGINE" "$@"
