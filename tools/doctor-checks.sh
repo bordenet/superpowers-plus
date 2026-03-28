@@ -1181,10 +1181,15 @@ _doctor_todo_path() {
     return
   fi
 
-  # Safe tilde expansion (no eval — prevents shell injection)
+  # Safe variable expansion (no eval — prevents shell injection)
+  # Handles ~/..., $HOME/..., and ${HOME}/... without exposing to arbitrary code execution
   # shellcheck disable=SC2088  # Intentional literal match
   if [[ "$todo_path" == "~/"* ]]; then
     todo_path="$HOME/${todo_path#\~/}"
+  elif [[ "$todo_path" == '$HOME/'* ]]; then
+    todo_path="$HOME/${todo_path#\$HOME/}"
+  elif [[ "$todo_path" == '${HOME}/'* ]]; then
+    todo_path="$HOME/${todo_path#\$\{HOME\}/}"
   fi
 
   if [[ ! -f "$todo_path" ]]; then
