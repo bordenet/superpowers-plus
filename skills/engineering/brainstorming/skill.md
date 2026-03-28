@@ -25,6 +25,16 @@ coordination:
 - **plan-and-execute**: Executing the selected approach
 - **innovation**: When 10x ideas are needed (not incremental)
 
+- **think-twice**: Escalation when brainstorm doesn't resolve the problem
+- **feature-development**: Full feature workflow (brainstorm → design → implement)
+- **requirements-validation**: Validating requirements before design
+- **fallback-planning**: Generating fallback approaches
+- **domain-design**: Skill domain ideation
+- **progressive-harsh-review**: Multi-persona adversarial review
+- **readme-authoring**: README generation
+- **plan-quality-gates**: Plan validation
+- **expert-interviewer**: Domain expert interviews
+- **experimental-self-prompting**: Self-prompting analysis
 ## When to Use
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior

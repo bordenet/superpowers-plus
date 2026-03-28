@@ -167,3 +167,5 @@ When providing code review, structure feedback as:
 - **code-review-battery**: Parallel specialist reviews (heavier than this checklist)
 - **receiving-code-review**: How the PR author should process your feedback
 - **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
+- **code-review**: File-protocol review (requesting side)
+- **code-review-respond**: File-protocol review (reviewer side)

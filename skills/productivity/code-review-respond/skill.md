@@ -115,6 +115,16 @@ Before writing your verdict, scan the reviewed content for any claims about exte
 
 **If you skip factual verification entirely**, your review is incomplete. Period.
 
+
+## Example
+
+```bash
+# As reviewer agent: read the request, review the diff
+cat .code-review/request.md
+# Write findings to response.md with severity tags
+echo "## Round 1 Findings" > .code-review/response.md
+```
+
 ## Failure Modes
 
 | Failure | Symptom | Recovery |

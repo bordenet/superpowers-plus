@@ -187,3 +187,5 @@ If any workflow is failing:
 - **completeness-check**: Quick scope check (lighter than this)
 - **pre-commit-gate**: Pre-commit quality gate
 - **verification-before-completion**: Task completion verification
+- **output-verification**: Verifying generated output
+- **exhaustive-audit-validation**: Deep audit (this is repo-level)

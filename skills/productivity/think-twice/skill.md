@@ -104,3 +104,6 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 - **perplexity-research**: Escalation target for knowledge problems
 - **systematic-debugging**: For specific error debugging
 - **brainstorming**: For generating alternative approaches
+- **adversarial-search**: Confirmation bias prevention
+- **investigation-state**: When investigation hits a wall
+- **issue-comment-debunker**: Debunking suspicious issue claims

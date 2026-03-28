@@ -193,6 +193,8 @@ node scripts/slop-dictionary.js list profanity
 
 ---
 
+- **enforce-style-guide**: Style checking (runs before language audit)
+- **public-repo-ip-audit**: IP audit (runs after language audit)
 ## Commit Gate Coordination
 
 Multiple skills fire on "before commit". Execute in this order:

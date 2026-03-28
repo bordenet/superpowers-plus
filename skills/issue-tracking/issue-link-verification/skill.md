@@ -224,3 +224,4 @@ Before posting content with links:
 - **link-verification**: General link verification (wiki-focused)
 - **issue-authoring**: Creating issues with proper links
 - **issue-comment-debunker**: Evidence-based comments
+- **issue-editing**: Editing issues after link verification

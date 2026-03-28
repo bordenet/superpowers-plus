@@ -139,6 +139,15 @@ Before referencing ANY issue key:
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
 
+
+## Example
+
+```bash
+# Verify issue metadata matches reality
+# Check assignee exists, sprint is current, labels are valid
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-verify
+```
+
 ## Failure Modes
 
 - **Skipping URL verification:** Assuming all links in the issue body are valid without fetching them

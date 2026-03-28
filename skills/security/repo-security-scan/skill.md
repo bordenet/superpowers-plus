@@ -189,6 +189,9 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 `security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
 
 
+- **security-upgrade**: Dependency upgrade after scan findings
+- **wiki-secret-audit**: Wiki-side secret scanning
+- **public-repo-ip-audit**: IP/license review (different from secrets)
 ## Failure Modes and Recovery
 
 | Failure | Fix |
