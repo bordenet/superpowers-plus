@@ -73,19 +73,25 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | ex-008   | 5 | 100% | 67% | 100% | Caught path traversal + blast radius; missed contract break (null→throw) |
 | ex-009   | 4 | 100% | 100% | 100% | Caught silent default change + NaN; bonus: value validation gap |
 | ex-010   | 5 | 100% | 67% | 100% | Caught tautological mock + mock leak; missed require-cache isolation |
+| ex-011   | 4 | 100% | 50% | 100% | **AC1 VALIDATED:** Performance Analyst caught N+1 I/O + observability gap. Defect Finder caught 2 bonus (missing error guard, duplicate handling). Missed: payload bloat, redundant word count. |
+| ex-012   | 3 | 100% | 100% | 100% | **AC2 TARGETED:** Defect Finder caught undefined `batchDispatch` reference (the ex-006 miss class). |
+| ex-013   | 4 | 100% | 50% | 100% | **AC2 TARGETED:** Defect Finder caught contract break (the ex-008 miss class). Missed: negative cache (Minor). |
 
 **Aggregate:**
 
-| Metric | Known (1-5, 9 expected) | Novel (6-10, 13 expected) | Combined (22 expected) |
-|--------|-------------|-------------|----------|
-| Precision | 100% | 100% | **100%** |
-| Recall (pre-graduation) | 100% (9/9) | 62% (8/13) | **77% (17/22)** |
-| Recall (post-graduation) | 100% (9/9) | 77% (10/13) | **86% (19/22)** |
-| High-sev Precision | 100% | 100% | **100%** |
-| False positives | 0 | 0 | **0** |
-| Bonus valid findings | 4 | 4 | **8** |
+| Metric | Known (1-5, 9 expected) | Novel (6-10, 13 expected) | Targeted (11-13, 7 expected) | Combined (29 expected) |
+|--------|-------------|-------------|-------------|----------|
+| Precision | 100% | 100% | 100% | **100%** |
+| Recall (post-graduation) | 100% (9/9) | 77% (10/13) | 71% (5/7) | **83% (24/29)** |
+| High-sev Precision | 100% | 100% | 100% | **100%** |
+| False positives | 0 | 0 | 0 | **0** |
+| Bonus valid findings | 4 | 4 | 2 | **10** |
 
-**Key insight:** Precision is perfect (0 false positives across 10 exercises). After candidate-001 graduated (resource handle leak on early return), novel recall improved from 62% to 77% (+2 findings on ex-007). Remaining misses: undefined reference (ex-006), contract break (ex-008), require-cache (ex-010).
+**Key insights:**
+- Precision remains perfect (0 false positives across 13 exercises).
+- **AC1 validated:** All 5 reviewers now produce actionable findings (Performance Analyst validated on ex-011).
+- **AC2 progress:** Battery catches undefined-reference (ex-012) and contract-break (ex-013) patterns when given proper context. Original misses (ex-006, ex-008) were harder because context was implicit.
+- Remaining structural misses: require-cache isolation (ex-010, Node.js-specific), payload bloat (ex-011, severity border), redundant computation (ex-011, micro-opt).
 
 ## Exit Criteria (from operational plan)
 
@@ -107,3 +113,6 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | [ex-008](./ex-008-path-injection.md) | 5 | guardian + defect-finder | Path traversal + contract break | Synthetic |
 | [ex-009](./ex-009-backwards-compat-break.md) | 4 | guardian + design-critic | Silent behavior change | Synthetic |
 | [ex-010](./ex-010-mock-fidelity.md) | 5 | standards-enforcer + defect-finder | Tautological test + mock leak | Synthetic |
+| [ex-011](./ex-011-n-plus-one-query.md) | 4 | performance-analyst + defect-finder | N+1 blocking I/O + unbounded payload | Synthetic |
+| [ex-012](./ex-012-undefined-import.md) | 3 | defect-finder | Undefined function reference (ReferenceError) | Synthetic |
+| [ex-013](./ex-013-return-contract-break.md) | 4 | defect-finder + guardian | Return contract change breaks callers | Synthetic |
