@@ -271,7 +271,7 @@ After gap analysis, update the wiki dashboard.
    - All table structures are valid markdown (no broken `|` pipes)
    - No `\[` / `\]` escape artifacts introduced
    - No duplicate headings introduced
-6. **Write** back: `update_document_outline(documentId="66eec34c-...", text=<updated_content>)`
+6. **Write** back: `update_document_outline(documentId="66eec34c-5590-4f4f-a370-b4d134cd174e", text=<updated_content>)`
 7. **Verify** (post-write — full invariant check):
    - Re-fetch the page immediately
    - Confirm new data rows appear correctly
@@ -284,9 +284,12 @@ After gap analysis, update the wiki dashboard.
    - **If ANY check fails**: immediately restore `original_content`:
      1. Write `original_content` back to the page
      2. Re-fetch the page after restore
-     3. Verify restored content matches `original_content` exactly (length, headings, last section)
-     4. If restore verification passes: log "Dashboard update failed, original restored"
-     5. If restore verification ALSO fails: **ESCALATE** — log "CRITICAL: Dashboard restore failed, manual intervention required" and surface to user
+     3. Compare fetched content against `original_content`:
+        - Character-for-character length match
+        - All headings present in same order
+        - First 200 and last 200 characters match
+     4. If restore verification passes: log "Dashboard update failed, original restored successfully"
+     5. If restore verification ALSO fails: **ESCALATE** — log "CRITICAL: Dashboard restore failed, manual intervention required" and surface to user immediately
 
 > ⚠️ **INVARIANT**: Always re-fetch after write to verify. Restore on failure. Verify restore. See `~/.ai-guidance/invariants.md`.
 > ⚠️ **NEVER truncate**: Dashboard updates are append-only. Existing data is never removed except by explicit archival.

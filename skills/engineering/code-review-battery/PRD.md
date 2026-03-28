@@ -194,7 +194,7 @@ The groupings were determined through a structured process:
 | Reviewer prompts too broad/shallow | Medium | High | Prototype and iterate before shipping |
 | False positive amplification from auto-learning | Medium | Critical | Shadow Lane (candidates don't reach user until graduated), precision floors, TTL |
 | Prompt bloat from accumulated patterns | Medium | Medium | Hard token budget per pattern file, LRU eviction |
-| Monolith adds latency to every review | Low | Low | Monolith runs in parallel; doesn't add wall-clock time |
+| Monolith adds latency to full reviews | Low | Low | Monolith runs in parallel; doesn't add wall-clock time |
 | Learned patterns contradict each other | Low | Medium | Independent evaluator validates each candidate in isolation and in combination |
 | Stale patterns persist after codebase changes | Medium | Medium | TTL on all patterns; periodic revalidation required |
 

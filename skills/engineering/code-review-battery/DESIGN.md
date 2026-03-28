@@ -26,9 +26,9 @@
      ▼             ▼          ▼          ▼          ▼          ▼
 ┌─────────┐ ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
 │ Defect  │ │ Design  ││Guardian ││Standards││ Perf    ││MONOLITH │
-│ Finder  │ │ Critic  ││         ││Enforcer ││ Analyst ││(always) │
+│ Finder  │ │ Critic  ││         ││Enforcer ││ Analyst ││(default)│
 │         │ │         ││         ││         ││         ││         │
-│ Triage  │ │ Triage  ││ Triage  ││ Triage  ││ Triage  ││ ALWAYS  │
+│ Triage  │ │ Triage  ││ Triage  ││ Triage  ││ Triage  ││ Default │
 └────┬────┘ └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
      │           │          │          │          │          │
      └───────────┴──────────┴──────────┴──────────┘          │
@@ -270,7 +270,7 @@ These controls are part of the safety control plane and cannot be modified by th
 All learning metrics are tracked on the wiki dashboard:
 - **Page**: `Code Review Battery — Performance Dashboard`
 - **Outline Document ID**: `66eec34c-5590-4f4f-a370-b4d134cd174e`
-- Updated automatically after every review run (Phase 6)
+- Updated after full review rounds via Phase 6 (skipped on targeted re-reviews, `--skip-monolith`, or platform limitations)
 
 ## Integration with Existing Skills
 

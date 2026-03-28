@@ -116,7 +116,7 @@ After gap analysis on full review rounds, update the wiki dashboard page. Skip i
 
 ## Learning System
 
-The battery improves automatically after every review. See `coordinator.md` Phase 5-6.
+The battery improves via gap analysis on full review rounds (Phase 5-6). See `coordinator.md`.
 
 ### How It Works (Shadow Lane Model)
 
