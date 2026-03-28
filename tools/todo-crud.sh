@@ -49,6 +49,7 @@ Commands:
   claim      Claim a task for this agent (multi-agent coordination)
   unclaim    Release a claim on a task
   reap       Reap all expired claims (reverts to open)
+  list-claims Show all claimed tasks with agent, age, expiry status
   self-test  Validate honeypot integrity, TODO path, and engine health
 
 Global Options:
