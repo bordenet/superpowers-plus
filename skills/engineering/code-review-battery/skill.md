@@ -107,7 +107,9 @@ After all reviewers return:
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Summary (`[X] total: [N] Critical, [N] Important, [N] Minor`).
+6. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
+
+**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Durable Checks summary → Summary (`[X] total: [N] Critical, [N] Important, [N] Minor | [N] durable checks proposed`).
 
 ### Phase 4: Escalation (Round 2)
 

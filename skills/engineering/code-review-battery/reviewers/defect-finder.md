@@ -128,6 +128,8 @@ For each finding:
   // After:
   if (count === 0 && !hasEvidence) { skip() }
   ```
+- **Regressions Risked**: What could break if this fix is applied? (e.g., "Adding the guard may block legitimate retry paths that rely on count === 0")
+- **Durable Check**: Propose a lint rule, test, assertion, or invariant that would catch this class of defect permanently (e.g., "Add unit test: verify retry fires when count === 0 AND hasEvidence === true")
 
 If you find NO defects, say:
 "✅ No defects found. Code handles error paths and edge cases appropriately."
