@@ -1,0 +1,34 @@
+# Candidate Pattern Template
+# Copy this file to candidate-NNN.yaml when proposing a new candidate.
+# See ../gap-analysis.md for the full procedure.
+
+id: candidate-NNN
+status: proposed
+kind: pattern  # pattern = new check; anti-pattern = suppress false positive
+created: YYYY-MM-DD
+source_gap: "Description of what the battery missed"
+source_exercise: null  # ex-NNN if from exercise, null if from live review
+reviewer: defect-finder  # Which reviewer this augments
+pattern: |
+  When reviewing code that <trigger condition>,
+  check for <specific defect pattern>.
+  Look at <what to examine>.
+  Flag as <severity> if <condition>.
+examples:
+  - file: "path/to/example"
+    issue: "What was missed"
+    fix: "How to fix it"
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: null
+  regression_check: null
