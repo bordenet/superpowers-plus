@@ -44,9 +44,9 @@ If no diff exists in any of these, skip this gate.
 
 ### Step 2: Dispatch the review battery
 
-Follow the `code-review-battery` SKILL.md procedure:
+Follow the `code-review-battery` skill procedure:
 1. Triage the diff → select relevant reviewers
-2. Dispatch activated reviewers in parallel via `sub-agent-code-reviewer`
+2. Dispatch activated reviewers in parallel (see battery `skill.md` for platform-specific dispatch)
 3. Each reviewer reads the source files directly and runs the diff command
 4. Aggregate findings into unified report
 
@@ -59,7 +59,8 @@ Map battery output to gate verdicts:
 | **Minor** | NIT | PASS_WITH_NITS |
 | All clean (✅) | — | PASS |
 
-On re-review rounds (Round 2+): skip triage, re-dispatch the SAME reviewers from Round 1.
+On **FAIL** re-review rounds (Round 2+): skip triage, re-dispatch the SAME reviewers from Round 1.
+On **PASS_WITH_NITS** re-review: use targeted Step 3a below (scoped files + scoped reviewers).
 
 **Fallback** (only if parallel sub-agent dispatch is impossible — e.g., platform
 does not support firing multiple sub-agents simultaneously):
@@ -147,7 +148,7 @@ After fixing nits, run a **targeted** battery round:
 |---------|---------|----------|
 | Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
 | Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
-| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Escalate from targeted re-review (Step 3a) to full re-review (Step 2) — re-dispatch all original reviewers |
 | Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
 | Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
 

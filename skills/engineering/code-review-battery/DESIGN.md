@@ -135,7 +135,7 @@ A JSON-like selection that the dispatcher uses:
 
 ## Reviewer Prompt Structure
 
-Each reviewer prompt follows a consistent template:
+Each reviewer prompt (in `reviewers/<name>.md`) follows a consistent template:
 
 ```markdown
 # [Reviewer Name]
@@ -145,7 +145,14 @@ You are reviewing code changes with a specific focus: [MENTAL MODEL].
 You ONLY report findings in your domain. Do not comment on other dimensions.
 
 ## What to Review
-[DIFF CONTENT]
+Run the git diff command provided to see the changes. Then read the full source
+files for every changed file.
+
+## Workspace Access
+You have full workspace access. Use it:
+- cat <file> to read the complete source file
+- grep -rn <pattern> <dir> to find callers, related code
+- Run tests if they exist for the changed files
 
 ## Your Dimensions
 [LIST OF SPECIFIC DIMENSIONS WITH EXAMPLES]
@@ -157,7 +164,7 @@ Clearly mark any finding where confidence is 60-80% as "Possible: ..."
 ## Output Format
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Exact location
+- **File:Line**: Location (in the diff or directly affected downstream file)
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (impact)
 - **Fix**: How to fix (if not obvious)
@@ -189,17 +196,16 @@ No separate aggregation agent — this avoids the serial bottleneck.
 ## Integration with Existing Skills
 
 ### progressive-code-review-gate
-Current flow: gather diff → dispatch `sub-agent-code-reviewer` → process results → loop if needed.
+Flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
 
-New flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
-
-The skill.md for `progressive-code-review-gate` will be updated to check for the
-battery skill. If present, delegate to it. If not (backward compat), fall back to
-monolithic review.
+The gate delegates to the battery as the primary review path. If parallel
+dispatch is impossible, the gate falls back to monolithic single-reviewer mode
+(see gate `skill.md` fallback section).
 
 ### requesting-code-review
-This skill dispatches review for PR-level or pre-merge review. It will similarly
-delegate to the battery when available.
+This is a pre-existing framework skill (from `superpowers`) that dispatches
+review for PR-level or pre-merge review. It currently uses monolithic dispatch.
+Updating it to delegate to the battery is a future integration task.
 
 ## Installation
 

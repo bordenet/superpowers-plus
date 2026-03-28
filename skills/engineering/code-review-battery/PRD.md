@@ -145,8 +145,8 @@ The groupings were determined through a structured process:
 - [x] AC12: Token cost ~1.5x monolithic (within 3x budget)
 
 ### Nice to Have
-- [ ] AC13: Support for `--all` override to force all reviewers on any diff
-- [ ] AC14: Support for `--only=<agent>` to run a single reviewer
+- [x] AC13: Support for `--all` override to force all reviewers on any diff
+- [x] AC14: Support for `--only=<agent>` and `--skip=<agent>` overrides
 - [ ] AC15: Reviewer-specific configuration per project
 
 ## Risks and Mitigations
@@ -178,7 +178,7 @@ The groupings were determined through a structured process:
 | V3 | Draft + test Triage Coordinator | Validate diff classification | ✅ PASS — correct 4/5 selection |
 | V4 | Monolithic vs Battery comparison | Prove battery ≥ monolithic quality | ⚠️ MIXED — higher precision, lower recall. See DESIGN.md |
 | V5 | Token cost measurement | Quantify cost tradeoff | ✅ EST — ~1.5x monolithic (within 3x threshold) |
-| V6 | Claude Code subagent file test | Verify `subagent()`/`Task()` dispatch | ⬜ Deferred (need CC env; dispatch instructions documented in skill.md + coordinator.md) |
+| V6 | Claude Code dispatch test | Verify `subagent()`/`Task()` dispatch | ⬜ Deferred (need CC env; dispatch instructions documented in skill.md + coordinator.md) |
 
 ## Open Questions
 
