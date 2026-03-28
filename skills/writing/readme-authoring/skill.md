@@ -15,6 +15,8 @@ coordination:
 
 # README Authoring
 
+> **Wrong skill?** Skill file authoring → `skill-authoring` / `writing-skills`. Wiki pages → `wiki-orchestrator`. Plan/roadmap → `plan-quality-gates`.
+
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-06
 
@@ -215,7 +217,7 @@ Markdown lint: PASS (0 errors)
 
 For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
 
-## Common Failure Modes
+## Failure Modes
 
 - **AI slop in README:** Phrases like "robust solution" or "This README provides" — run eliminating-ai-slop after drafting
 - **Missing prerequisites section:** Users can't get started without knowing what to install first

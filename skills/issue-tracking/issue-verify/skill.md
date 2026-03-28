@@ -19,6 +19,8 @@ coordination:
 > **Pattern:** Evidence before assertion — verify existence before citing
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+> **Wrong skill?** Creating issues → `issue-authoring`. Updating issues → `issue-editing`. Verifying URLs in issues → `issue-link-verification`.
+
 ---
 
 ## When to Use
@@ -129,7 +131,7 @@ Before referencing ANY issue key:
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
 
-## Common Failure Modes
+## Failure Modes
 
 - **Skipping URL verification:** Assuming all links in the issue body are valid without fetching them
 - **Checking only title/description:** Missing label, assignee, or priority validation

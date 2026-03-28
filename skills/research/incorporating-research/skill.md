@@ -233,7 +233,7 @@ Concerns:
 | `detecting-ai-slop` | Score research quality before incorporating |
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Copy-paste without attribution:** Incorporating research text verbatim without citing the source
 - **Stale sources:** Using outdated research findings without checking publication date or currency

@@ -25,6 +25,8 @@ coordination:
 > **Last Updated:** 2026-03-13
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
 
+> **Wrong skill?** Analyzing/scoring text (read-only) → `detecting-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
+
 ## Scope
 
 **Fires for:** All human-readable prose — messaging, email, social/professional, documentation, business writing.

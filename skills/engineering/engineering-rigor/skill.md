@@ -17,6 +17,8 @@ coordination:
 
 > **Source:** `superpowers-plus`
 
+> **Wrong skill?** This is a hub/dispatcher. Use the dispatch table below to find the right sub-skill.
+
 This is the **hub skill** for engineering rigor. For operational guidance, use the specific skill that matches your current task:
 
 ## Operational Skills (Use These)
