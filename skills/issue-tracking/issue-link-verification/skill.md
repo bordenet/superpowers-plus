@@ -22,7 +22,6 @@ coordination:
 
 > **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue keys → `issue-verify`.
 
----
 
 ## When to Use
 
@@ -33,8 +32,6 @@ Invoke this skill when:
 - Cross-referencing wiki pages
 - Linking PRs/commits
 - Any external URL in issue content
-
----
 
 
 ## Scope Exclusions
@@ -56,7 +53,6 @@ Invoke this skill when:
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Link Type Verification Methods
 
@@ -68,7 +64,6 @@ Invoke this skill when:
 | **Issue Reference** | Issue tracker search | **WARN** |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
 
----
 
 ## Verification Workflow
 
@@ -85,7 +80,6 @@ Invoke this skill when:
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
 
 ## Verification Report Format
 
@@ -103,7 +97,6 @@ Invoke this skill when:
 **Gate Status:** ❌ BLOCKED (wiki link failure)
 ```
 
----
 
 ## Wiki Link Verification
 
@@ -119,7 +112,6 @@ adapter.get_page(id: "slug-from-url")
 
 **Common mistake:** Fabricating wiki slugs based on expected page titles.
 
----
 
 ## Repository Link Verification
 
@@ -131,7 +123,6 @@ Use your repository adapter to verify PR and repo links exist.
 
 See `skills/issue-tracking/_adapters/` for platform-specific tools.
 
----
 
 ## Issue Reference Verification
 
@@ -143,7 +134,6 @@ adapter: search_issues(query: "PROJ-123")
 
 **Note:** Issue links may fail if issue is in another workspace or deleted.
 
----
 
 ## External URL Verification
 
@@ -162,7 +152,6 @@ Or use `web-fetch` for full retrieval.
 - `404` → FAIL
 - `5xx` → WARN (server issues)
 
----
 
 ## Link Extraction Pattern
 
@@ -176,7 +165,6 @@ Extract bare URLs:
 https?://[^\s<>\[\]()]+
 ```
 
----
 
 ## Hallucination Prevention
 
@@ -194,7 +182,6 @@ https?://[^\s<>\[\]()]+
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Verification Checklist
 
@@ -208,7 +195,6 @@ Before posting content with links:
 6. POST — Only after verification
 ```
 
----
 
 ## Failure Modes
 

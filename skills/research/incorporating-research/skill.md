@@ -27,7 +27,6 @@ This skill handles incorporating external research (Perplexity, web searches, Ch
 
 **Core principle:** Triage first, confirm scope, then edit. Strip artifacts, preserve voice.
 
----
 
 ## When to Use
 
@@ -40,7 +39,6 @@ Invoke when user says:
 
 **Red flag:** User says "incorporate" but might mean "review for quality" — clarify if ambiguous.
 
----
 
 ## The Workflow
 
@@ -53,7 +51,6 @@ Invoke when user says:
 **Confirm:**
 - "I'll incorporate this into `[path/to/file.md]`. Correct?"
 
----
 
 ### Step 2: Triage the Input
 
@@ -75,87 +72,24 @@ Triage Results:
 └── Artifacts: [Citation numbers, source sections, etc.]
 ```
 
----
 
 ### Step 3: Map to Existing Structure
 
-**Read the target document first** to understand:
-- Existing sections and hierarchy
-- Voice and tone
-- Formatting conventions (headers, lists, code blocks)
-
-**Determine placement:**
-- New section?
-- Inline addition to existing section?
-- Appendix?
-- Replaces existing content?
-
-**Flag conflicts:**
-- Does new content contradict existing content?
-- Does it duplicate existing content?
-
----
+Read target document first. Determine: new section, inline addition, appendix, or replacement. Flag conflicts/duplicates.
 
 ### Step 4: Confirm Scope Before Editing
 
-**NEVER edit without confirmation.**
-
-**Template:**
-```
-I'll make these changes to [file]:
-
-1. Add [X] to [section Y]
-2. Strip [Z] (irrelevant/artifacts)
-3. [Replace/Supplement] existing content in [section]
-
-Concerns:
-- [Any quality flags, contradictions, or hallucinations]
-
-Proceed?
-```
-
-**Wait for user confirmation.**
-
----
+**NEVER edit without confirmation.** Show: changes to [file], what to strip, concerns. Wait for approval.
 
 ### Step 5: Preserve Voice and Strip Artifacts
 
-**Voice preservation:**
-- Match existing header levels (##, ###, etc.)
-- Match list style (bullets vs. numbered)
-- Match tone (formal vs. conversational)
-- Match code block formatting
-- Match link style
-
-**Artifacts to strip:**
-- Citation numbers: `[1]`, `[2][3]`, `[citation needed]`
-- Source sections: "Sources:", "References:", URL lists
-- Perplexity metadata: "Based on X sources", "According to..."
-- ChatGPT artifacts: "Here's a summary...", "I hope this helps"
-- Unrelated content mixed into the paste
-
-**Preserve semantic meaning** while normalizing style.
-
----
+**Match**: header levels, list style, tone, code/link formatting.
+**Strip**: citation numbers `[1]`, source/reference sections, AI metadata ("Based on X sources", "Here's a summary"), unrelated content.
 
 ### Step 6: Post-Incorporation Summary
 
-After editing, report:
+Report: what was added and where, what was stripped, any concerns.
 
-```
-Incorporated into [file]:
-
-Added:
-- [What was added and where]
-
-Stripped:
-- [What was removed as noise/artifacts]
-
-Concerns:
-- [Any quality issues flagged]
-```
-
----
 
 ## Red Flags to Catch
 
@@ -167,7 +101,6 @@ Concerns:
 | **Contradictions** | New content conflicts with existing | Flag before incorporating |
 | **Duplicate content** | Research repeats what's already there | Ask: "This duplicates section Y. Replace or skip?" |
 
----
 
 ## Common Mistakes to Avoid
 
@@ -179,7 +112,6 @@ Concerns:
 
 ✅ **Triage → Map → Confirm → Edit → Summarize**
 
----
 
 ## Example Interaction
 
@@ -225,7 +157,6 @@ Concerns:
 - None (H100 VRAM confirmed as 80GB for standard model)
 ```
 
----
 
 ## Companion Skills
 

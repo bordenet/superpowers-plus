@@ -32,7 +32,6 @@ Author and maintain README.md files that onboard contributors in <5 minutes. Tre
 - <2000 lines; link to docs/ for depth.
 - Mobile-friendly (short lines, no wide tables).
 
----
 
 ## When to Use
 
@@ -43,7 +42,6 @@ Invoke when:
 - Before major releases (README audit)
 - User says: "Write/update/review the README"
 
----
 
 ## Scope Exclusions
 
@@ -142,52 +140,21 @@ your-tool input.txt --format=json --verbose
 | 11 | Support/Community | Bug reports, discussions, docs links |
 | 12 | License | Single line: "MIT" with link to LICENSE |
 
----
 
-## Anti-Patterns to Avoid
+## Anti-Patterns
 
-| Anti-Pattern | Problem | Fix |
-|--------------|---------|-----|
-| Personal/hobby vibe | Emojis everywhere, ASCII art, Spotify playlists | Professional tone, minimal decoration |
-| Broken/outdated | Dead badges, untested quickstart | Automated link checks, test examples |
-| Bloat | Full API docs, changelogs inline | Link to CHANGELOG.md, docs/ |
-| No quickstart | Walls of text before "go" button | Code block in first 20 lines |
-| Missing basics | No license, no TOC for long docs | Always include LICENSE, TOC if >500 lines |
-| Wide tables | Break on mobile | Keep tables <80 chars or use lists |
+No emoji spam/ASCII art · no dead badges · no inline API docs (link to docs/) · quickstart in first 20 lines · always LICENSE + TOC for long docs · tables <80 chars.
 
----
+**Slop:** Target score <20. Use `references/anti-slop-rules.md` + GVR loop from `eliminating-ai-slop`.
 
-## Anti-Slop Rules
+**Lint:** `npx markdownlint-cli2 "README.md"` before every commit. See `references/linting-rules.md`.
 
-Delete marketing language. Target slop score <20. See `references/anti-slop-rules.md` for the full word/phrase blocklist and replacement table.
+## Audit Checklist
 
-**Auto-invoke:** Use GVR loop from `eliminating-ai-slop` when generating README content.
-
----
-
-## Markdown Linting (REQUIRED)
-
-Run `npx markdownlint-cli2 "README.md"` before every commit. See `references/linting-rules.md` for common errors (MD058, MD009, etc.) and formatting examples.
-
-**If you skip linting, you WILL break CI.**
-
----
-
-## README Audit Checklist
-
-Run before releases or quarterly:
-
-- [ ] **Markdown lint passes** (`npx markdownlint-cli2 "README.md"`)
-- [ ] One-line description is concrete, not vague
-- [ ] Quick Start works (test it!)
-- [ ] Examples are runnable (copy-paste test)
-- [ ] No dead links
-- [ ] Badges are current
-- [ ] Version numbers match release
+Lint passes · description concrete · quickstart works · examples runnable · no dead links · badges current · versions match.
 - [ ] Screenshots/GIFs are current
 - [ ] No marketing language (slop score <20)
 
----
 
 ## Maintenance Mode
 
@@ -198,7 +165,6 @@ For existing READMEs, check:
 3. **Examples:** Run each code example
 4. **Screenshots:** Compare to current UI
 
----
 
 ## GVR Transparency
 
@@ -212,20 +178,17 @@ Markdown lint: PASS (0 errors)
 
 **If lint fails, fix before reporting completion.**
 
----
 
 ## Companion Skills
 
 - **detecting-ai-slop**: Analyze README for slop score
 - **eliminating-ai-slop**: GVR loop for clean generation
 - **brainstorming**: Before creating README, brainstorm structure
-
 - **markdown-table-discipline**: Table formatting in READMEs
 - **golden-agents**: AGENTS.md generation
 ## Related Tools
 
 For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
-
 
 ## Example
 
