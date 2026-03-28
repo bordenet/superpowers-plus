@@ -27,7 +27,7 @@ coordination:
 - **completeness-check**: Quick spot check (lighter than exhaustive)
 - **holistic-repo-verification**: Repository-level health
 - **verification-before-completion**: Pre-completion gate
-
+- **measurement-integrity**: Cross-validation enforcement
 ## When to Use
 
 - Before claiming any audit, bulk-edit, or refactoring task is complete
