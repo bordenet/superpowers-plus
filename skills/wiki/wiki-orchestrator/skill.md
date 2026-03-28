@@ -114,7 +114,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | "I know the links are correct" | Memory is unreliable, verify anyway |
 | "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-## Related Skills
+## Pipeline Skills
 
 | Skill | Role |
 |-------|------|
@@ -124,7 +124,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | `wiki-debunker` | Stage 6: Fact-checking |
 | `wiki-verify` | Post-publish: Version drift |
 
-## Reference Files
+## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow

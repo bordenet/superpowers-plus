@@ -126,7 +126,7 @@ grep -rn "newFieldName" --include="*.ts" --include="*.js" repo1/ repo2/ repo3/
 grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 ```
 
-## Related Skills
+## Companion Skills
 
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs

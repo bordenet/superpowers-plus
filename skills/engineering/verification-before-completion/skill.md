@@ -28,7 +28,7 @@ coordination:
 - After fixing a bug — verify the fix AND verify no regressions
 - At session end for any multi-step or TODO-backed work, before the final completion claim
 
-## Overview
+## Core Principle
 
 Claiming work is complete without verification is dishonesty, not efficiency.
 

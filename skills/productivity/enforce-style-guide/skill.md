@@ -136,7 +136,7 @@ Assistant: "Let me use the /enforce-style-guide skill first"
 # Only then proceeds to the next commit gate
 ```
 
-## Integration with Commit-Gates Chain
+## Commit-Gates Chain Position
 
 This skill is gate 2 (after `pre-commit-gate`). Style compliance checks:
 

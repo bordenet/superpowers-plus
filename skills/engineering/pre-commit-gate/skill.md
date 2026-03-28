@@ -150,7 +150,7 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 4. Verify new build passes
 5. THEN update ticket status
 
-## Related Skills
+## Companion Skills
 
 - `blast-radius-check` — Before modifying existing code
 - `providing-code-review` — When reviewing others' PRs

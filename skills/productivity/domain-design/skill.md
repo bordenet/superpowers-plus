@@ -32,7 +32,7 @@ coordination:
 
 This is a 10-phase workflow. Per `todo-enforcement.always.md`, persist all 10 phases to TODO.md with `#plan-domain-{name}` tags BEFORE starting Phase 1. Mirror to MCP as supplementary.
 
-## Overview
+## Scope
 
 Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process. **Not for** single-skill design (use `brainstorming` + `skill-authoring`) or implementation (use `writing-plans` or `domain-build`).
 

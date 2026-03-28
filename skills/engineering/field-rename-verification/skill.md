@@ -22,7 +22,7 @@ coordination:
 - Refactoring a data model that crosses service boundaries
 - Splitting or merging fields (e.g., `trackingLine` → `inboundLine`/`outboundLine`)
 
-## Overview
+## Why Renames Are Dangerous
 
 Field renames and API contract changes are the #1 source of production incidents from "complete" work that wasn't actually complete.
 

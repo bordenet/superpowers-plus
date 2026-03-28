@@ -186,7 +186,7 @@ https?://[^\s<>\[\]()]+
 
 ---
 
-## Quick Reference
+## Verification Checklist
 
 ```
 Before posting content with links:
@@ -200,7 +200,7 @@ Before posting content with links:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **link-verification**: General link verification (wiki-focused)
 - **issue-authoring**: Creating issues with proper links

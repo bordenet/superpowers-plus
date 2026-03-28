@@ -62,7 +62,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 
 **Root Cause:** "Blinders on" implementation — trusting the plan without tracing the actual data flow.
 
-## Quick Reference: Which Skill?
+## Dispatch Table
 
 ```
 Am I describing generated output? → output-verification
@@ -86,7 +86,7 @@ Before writing feature code, validate the architectural approach:
 
 If any question surfaces a red flag, address it BEFORE implementation. Use `design-triad` for structured design evaluation.
 
-## Related Skills
+## Companion Skills
 
 - `output-verification` — Hard gate: no claims about output without inspection
 - `code-review-battery` — Parallel specialized review with 5 focused agents

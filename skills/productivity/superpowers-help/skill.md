@@ -110,7 +110,7 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 ---
 
-## Quick Reference: Common Tasks
+## Common Task Routing
 
 | Task | Type | Skill(s) |
 |------|------|----------|

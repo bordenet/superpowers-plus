@@ -18,7 +18,7 @@ coordination:
 > **Guidelines:** See [CLAUDE.md](../../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-26
 
-## Overview
+## Purpose
 
 This skill handles incorporating external research (Perplexity, web searches, ChatGPT outputs, etc.) into existing documents without breaking voice, structure, or adding irrelevant content.
 
@@ -224,7 +224,7 @@ Concerns:
 
 ---
 
-## Cross-References
+## Companion Skills
 
 | Resource | Purpose |
 |----------|---------|

@@ -141,7 +141,7 @@ If gaps remain:
 
 ---
 
-## Integration with `verification-before-completion`
+## Companion: verification-before-completion
 
 This skill extends `superpowers:verification-before-completion`:
 

@@ -120,6 +120,6 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 - **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate
 - **Trigger saturation:** Multiple thinking triggers fire simultaneously — pick the highest-priority match from the routing table
 
-## Related Skills
+## Child Skills
 
 - `engineering-rigor` -- Hub for engineering process (pre-commit, blast radius, code review)

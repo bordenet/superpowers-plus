@@ -39,7 +39,7 @@ composition:
 - This fires AUTOMATICALLY. You do not need the user to say "use the full workflow."
 - If you are about to write, edit, or generate code, this skill applies.
 
-## When NOT to Use
+## Opt-Out Conditions
 
 - User explicitly says "skip the workflow", "just do it", "quick fix only"
 - Pure documentation-only changes (no code files touched)

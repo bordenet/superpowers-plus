@@ -38,7 +38,7 @@ coordination:
 **Reasoning problem** (logic, approach, design) → think-twice first → escalate to perplexity-research.
 **Knowledge problem** (API docs, error codes, facts) → perplexity-research first → think-twice for fresh reasoning.
 
-## Reference Files
+## References
 
 - `references/consultation-prompt-template.md` — Prompt template
 - `references/scoring-rubric.md` — Scoring dimensions

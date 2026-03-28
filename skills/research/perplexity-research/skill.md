@@ -35,14 +35,9 @@ You MUST invoke this skill when ANY of these conditions are met:
 **Personal preference matters?** → Ask the user instead
 **Broader/extrinsic research needed?** → Invoke this skill
 
-## Manual Invocation
-
-User can always force invocation with:
-- "Use Perplexity to research X"
-- "Get unstuck on X"  
-- "Research X via Perplexity"
-
 ## Invocation Protocol
+
+User can force invocation with: "Use Perplexity to research X", "Get unstuck on X", "Research X via Perplexity".
 
 ### Step 0: Try Free Tools First (MANDATORY)
 
@@ -157,7 +152,7 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
 
-## Integration with Other Skills
+## Skill Connections
 
 - **superpowers:systematic-debugging**: Invoke Perplexity when debugging hits a wall
 - **superpowers:brainstorming**: Use for research during design exploration
@@ -186,7 +181,7 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 Default order: `think-twice` (free, reasoning) → `perplexity-research` (paid, knowledge).
 See `references/escalation.md` for the full decision tree.
 
-## Reference Files
+## References
 
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research

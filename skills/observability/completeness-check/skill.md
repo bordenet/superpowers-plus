@@ -138,7 +138,7 @@ Summary:
 - Semantic analysis for stale docs
 - Cross-file dependency graphs
 
-## Integration with Other Skills
+## Skill Connections
 
 - `holistic-repo-verification` - Check repo health after fixing incompleteness
 - `superpowers:verification-before-completion` - Use completeness-check first

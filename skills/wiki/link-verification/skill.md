@@ -221,7 +221,7 @@ When adding a "Code References" section to wiki pages:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **wiki-orchestrator**: Content structure and formatting
 - **wiki-orchestrator**: Download-before-edit workflow
@@ -230,7 +230,7 @@ When adding a "Code References" section to wiki pages:
 
 ---
 
-## Quick Reference
+## Verification Checklist
 
 ```
 Before writing ANY link:

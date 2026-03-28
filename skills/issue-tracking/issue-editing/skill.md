@@ -129,7 +129,7 @@ Options:
 
 ---
 
-## Quick Reference
+## Edit Checklist
 
 ```
 Before EVERY update:
@@ -148,7 +148,7 @@ Before EVERY update:
 - **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh
 - **Field type mismatch:** Passing a label name instead of a label UUID (platform-specific)
 
-## Related Skills
+## Companion Skills
 
 - **issue-authoring**: Standards for creating issues
 - **issue-link-verification**: Verify URLs before posting

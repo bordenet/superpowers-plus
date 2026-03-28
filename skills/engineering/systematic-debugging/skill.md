@@ -96,7 +96,7 @@ If 3+ fixes in different locations: the architecture is wrong, not your fix. Sto
 - `defense-in-depth.md` — add validation at multiple layers
 - `condition-based-waiting.md` — replace arbitrary timeouts with condition polling
 
-## Related Skills
+## Companion Skills
 
 - `investigation-state` — persist debugging context across sessions for multi-day bugs
 - `think-twice` — dispatch fresh sub-agent when stuck in a hypothesis loop
