@@ -20,6 +20,9 @@ const {
   getComposition
 } = require('./lib/skill-router');
 
+// Workflow state machine (advisory gate tracking)
+const workflowState = require('./lib/workflow-state');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
@@ -596,6 +599,11 @@ function useSkill(skillName, options = {}) {
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
 
+    // Record skill invocation in workflow state (advisory, non-blocking)
+    try {
+        workflowState.recordSkillInvocation(actualName);
+    } catch (_) { /* non-fatal — advisory mode */ }
+
 }
 
 /**
@@ -719,6 +727,13 @@ line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
     emitSkillIndex();
+
+    // Show workflow state if active (advisory — costs 1 line when active, 0 when not)
+    const wsStatus = workflowState.getStatus();
+    if (wsStatus) {
+        console.log('');
+        console.log(wsStatus);
+    }
 }
 
 // Skill index: emits counts + load command (O(1) token cost).

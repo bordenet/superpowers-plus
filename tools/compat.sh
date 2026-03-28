@@ -13,6 +13,11 @@
 #   require_bash4    — Exit with helpful message if bash < 4
 #   sed_inplace      — Portable sed -i (macOS vs GNU)
 #   date_to_epoch    — Convert YYYY-MM-DD to Unix epoch
+#   sha256_hash      — Portable SHA-256 (shasum/sha256sum/openssl)
+#   sha256_hash_stdin — Pipe-friendly variant of sha256_hash
+#   set_immutable    — Portable chflags uchg / chattr +i
+#   clear_immutable  — Portable chflags nouchg / chattr -i
+#   check_immutable  — Returns 0=immutable, 1=not, 2=unknown
 #
 # Supported platforms: macOS, Linux, WSL
 # shellcheck disable=SC2034  # Variables may be used by sourcing scripts
@@ -79,6 +84,100 @@ date_to_epoch() {
   else
     date -d "$datestr" "+%s" 2>/dev/null || echo 0
   fi
+}
+
+# --- Portable SHA-256 Hash ---
+# shasum is macOS/Perl; sha256sum is GNU coreutils (Linux).
+# Returns hex digest only (no filename).
+
+sha256_hash() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 "$@" | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum "$@" | cut -d' ' -f1
+  else
+    # Last resort: openssl (available on most systems)
+    openssl dgst -sha256 "$@" 2>/dev/null | sed 's/.*= //'
+  fi
+}
+
+# Pipe-friendly variant: reads from stdin
+sha256_hash_stdin() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum | cut -d' ' -f1
+  else
+    openssl dgst -sha256 2>/dev/null | sed 's/.*= //'
+  fi
+}
+
+# --- Portable Immutable Flag ---
+# macOS: chflags uchg/nouchg
+# Linux ext4: chattr +i/-i (requires root or CAP_LINUX_IMMUTABLE)
+# WSL+NTFS: chattr silently fails; detect and warn
+
+set_immutable() {
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    chflags uchg "$file" 2>/dev/null
+  elif _is_wsl_ntfs "$file"; then
+    return 1  # Can't set immutable on NTFS
+  else
+    chattr +i "$file" 2>/dev/null || return 1
+  fi
+}
+
+clear_immutable() {
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    chflags nouchg "$file" 2>/dev/null
+  elif _is_wsl_ntfs "$file"; then
+    return 0  # Nothing to clear on NTFS
+  else
+    chattr -i "$file" 2>/dev/null || return 0
+  fi
+}
+
+check_immutable() {
+  # Returns 0 if immutable, 1 if not, 2 if can't determine
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    local flags
+    flags=$(stat -f "%Sf" "$file" 2>/dev/null || echo "")
+    [[ "$flags" == *"uchg"* ]] && return 0
+    return 1
+  elif _is_wsl_ntfs "$file"; then
+    return 2  # Can't determine on NTFS
+  elif command -v lsattr &>/dev/null; then
+    # lsattr output format: "----i---------e---- filename"
+    # The 'i' flag is at position 5 (0-indexed: 4) in the attribute string.
+    # We extract just the attribute field and check position 4.
+    local attr_field
+    attr_field=$(lsattr "$file" 2>/dev/null | awk '{print $1}')
+    if [[ -z "$attr_field" ]]; then
+      return 2
+    fi
+    # Check if character at index 4 is 'i'
+    if [[ "${attr_field:4:1}" == "i" ]]; then
+      return 0
+    fi
+    return 1
+  else
+    return 2  # lsattr not available
+  fi
+}
+
+# Internal: detect WSL + NTFS mount
+_is_wsl_ntfs() {
+  local file="$1"
+  # Not WSL at all
+  [[ -f /proc/version ]] && grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null || return 1
+  # Check if path is on an NTFS mount (/mnt/c, /mnt/d, etc.)
+  local realpath_file
+  realpath_file=$(realpath "$file" 2>/dev/null || echo "$file")
+  [[ "$realpath_file" == /mnt/[a-z]/* ]] && return 0
+  return 1
 }
 
 # --- Help for this file ---
