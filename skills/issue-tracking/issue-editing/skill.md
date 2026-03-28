@@ -165,3 +165,4 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-editing
 - **issue-authoring**: Standards for creating issues
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments
+- **issue-verify**: Post-edit verification

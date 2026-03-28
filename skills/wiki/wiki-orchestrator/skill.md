@@ -127,6 +127,11 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | `wiki-debunker` | Stage 6: Fact-checking |
 | `wiki-verify` | Post-publish: Version drift |
 
+- **wiki-verify**: Post-write verification
+- **wiki-secret-audit**: Secret scanning of wiki content
+- **wiki-instruction-guard**: Instruction injection prevention
+- **link-verification**: Link checking within wiki pages
+- **wiki-content-coherence**: Checking for content duplication
 ## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
