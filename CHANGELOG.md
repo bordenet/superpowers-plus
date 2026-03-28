@@ -9,6 +9,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **7 autonomy skills** (65→72 total) — Quantitative decision-making, failure analysis, metric validation, TODO enforcement, workflow orchestration, self-improvement, and per-batch code review:
+  - **quantitative-decision-gate**: Decision matrix with 4 weighted dimensions before any user question. Auto-selects when margin >10%.
+  - **failure-autopsy**: 5-Why post-mortem protocol for wrong approaches and misdiagnosed limitations.
+  - **measurement-integrity**: Cross-validation enforcement before reporting any metric or percentage.
+  - **todo-guardian**: Continuous TODO enforcement — stale detection, completion gate, session-end sweep.
+  - **autonomous-chain-controller**: Meta-orchestrator that auto-detects and executes multi-skill chains with quality gates.
+  - **evolution-loop**: Self-improvement cycle — scans failure patterns, generates skill updates.
+  - **micro-harsh-review**: 3-critic adversarial review (Nitpick, ArchSoundness, ProdBattleTest) for per-batch code changes.
+- **40 new intent patterns** in skill-router.js for all 7 autonomy skills
+- **21 bidirectional back-references** across existing skills (think-twice, brainstorming, plan-and-execute, etc.)
+- **10 deep integration refs** in existing skills (feature-development, TDD, completeness-check, etc.)
+- **6 new routing regression tests** in test_trigger_routing.sh (now 15/15)
+
+
 ### Changed
 - **design-triad: completion gate** — Added hard gate after Step 2 (Compare) to prevent agents from stopping at a recommendation without completing Steps 3-5 (Harsh Review, Edge Cases, Iterate). This was the single most common failure mode observed in practice.
 - **design-triad: trigger discoverability** — Added 2 validated trigger phrases (`design options with adversarial review`, `generate options compare and red team`) that reliably route to design-triad as top match via embedding-mode match-skills. Removed 5 candidate phrases that routed to wrong skills.
