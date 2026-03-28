@@ -46,7 +46,7 @@ State your triage decision before dispatching.
 
 Read the reviewer prompt from `reviewers/<name>.md`. Append the full diff to the prompt. Dispatch ALL activated reviewers simultaneously.
 
-**On Augment.ai** — use `sub-agent-explore` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously.
+**On Augment.ai** — use `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously.
 
 **On Claude Code** — use `Task()` calls or `.claude/agents/` subagent files.
 
@@ -61,18 +61,29 @@ After all reviewers return, merge findings following `coordinator.md` Phase 3:
 3. Note clean dimensions ("✅ No issues")
 4. Present unified report
 
-## The 5 Reviewers
+### Step 5: Escalation (Round 2)
 
-| # | Reviewer | Mental Model | Dimensions |
-|---|----------|-------------|------------|
-| 1 | Defect Finder | "What breaks this code?" | Correctness, Edge Cases, Error Handling, Concurrency |
-| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design |
-| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat |
-| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity |
-| 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging |
+Check escalation triggers per `coordinator.md` Phase 4. If any trigger fires, re-dispatch focused reviewers and append to the report under `### Round 2 Findings`.
+
+## The 5 Standard Reviewers
+
+| # | Reviewer | Mental Model | Key v2 Techniques |
+|---|----------|-------------|-------------------|
+| 1 | Defect Finder | "What breaks?" | Ripple analysis, consumer trace, state lifecycle, feedback loop analysis, interaction-path enumeration |
+| 2 | Design Critic | "Well-structured?" | Factoring, complexity, naming, API design |
+| 3 | Guardian | "Damage beyond diff?" | Blast radius, field consumer trace, caller contract drift, infrastructure error paths |
+| 4 | Standards Enforcer | "Meets expectations?" | Comment-as-spec, test revert-safety, paired boundary tests, mock fidelity, observability |
+| 5 | Performance Analyst | "Will it scale?" | Performance, logging |
+
+### On-Demand Reviewers (activated by escalation or `--all`)
+
+| Reviewer | When Activated |
+|----------|---------------|
+| Monolith | `--all` flag, or manual request for comprehensive single-reviewer pass |
 
 ## Overrides
 
-- `--all`: Force all 5 reviewers regardless of triage
+- `--all`: Force all reviewers including on-demand
 - `--only=<name>`: Run a single named reviewer
 - `--skip=<name>`: Exclude a specific reviewer from triage selection
+- `--round1-only`: Skip Round 2 escalation even if triggers fire
