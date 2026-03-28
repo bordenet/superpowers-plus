@@ -101,6 +101,15 @@ When reviewing test changes, ask for EVERY new test: **"Would this test still pa
 
 **Example**: A test asserting "silence timer is skipped when no evidence exists" may pass on old code too — if the old code already skipped the timer for a different reason (e.g., `transcriptCount === 0`).
 
+### Resource Handle Leak on Early Return
+When code opens a resource handle (file descriptor, socket, database connection, lock) early in a function, trace ALL exit paths and verify the handle is released on each one:
+1. Identify where the handle is opened (fd, connection, lock acquire)
+2. Identify where it is released (close, unlock, destructor)
+3. For EVERY `return`, `throw`, or error branch between open and release: does the handle leak?
+4. Pay special attention to validation/guard clauses that return early after the handle is opened
+
+**Example**: `exec {fd}<"$file"` opens a fd on line 12, `exec {fd}<&-` closes it on line 39, but `return 1` on lines 24 and 32 (JSON validation failure, missing field) exit without closing. Fix: `trap "exec {fd}<&-" RETURN` or add explicit close before each early return.
+
 ## General Checks
 
 For each file changed, also ask:
