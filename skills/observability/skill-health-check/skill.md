@@ -32,7 +32,13 @@ coordination:
 
 - After creating or modifying skills
 - After bulk skill changes (marathons, domain redesigns)
-- NOT for: runtime issues, install problems, broken tool paths (use `superpowers-doctor`)
+
+## Scope Exclusions
+
+- Runtime issues, install problems, broken tool paths → `superpowers-doctor`
+- Writing new skills from scratch → `skill-authoring`
+- Reviewing skill prose quality → `writing-skills`
+- Cross-reference validation across the whole repo → `holistic-repo-verification`
 
 ## What It Checks
 

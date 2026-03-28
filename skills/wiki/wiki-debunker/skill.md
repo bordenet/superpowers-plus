@@ -52,12 +52,22 @@ coordination:
 3. **Query source** — git log, issue tracker, meeting transcript (see `references/verification-commands.md`)
 4. **Mark result:** ✅ VERIFIED | ⚠️🔄 SOURCED BUT UNVERIFIED | ⚠️ UNCITED | ❌ CONTRADICTED
 
+## Scope Exclusions
+
+- Editing wiki content → `wiki-orchestrator`
+- Checking version drift / stale tech specs → `wiki-verify`
+- Checking broken links → `link-verification`
+- Scanning for exposed secrets → `wiki-secret-audit`
+
 ## Hallucination Red Flags
 
-- Precise date but no commit/ticket from that date
-- "We decided" without ticket/PR reference
-- Possessive attribution from wiki plan ("Junyi's queries") — verify in issue tracker
-- Exact percentages without data source
+| Red Flag | Example | Verification |
+|----------|---------|-------------|
+| Precise date, no evidence | "Decided on Jan 15" | `git log --after=2026-01-14 --before=2026-01-16` |
+| "We decided" without reference | "We decided to use Redis" | Search tickets/PRs for the decision |
+| Possessive attribution from wiki | "Junyi's queries" | Check issue tracker assignee |
+| Exact percentages, no data source | "Reduced errors by 43%" | Find the measurement commit/ticket |
+| Causal language without evidence | "This caused the outage" | Check incident reports |
 
 ## References
 

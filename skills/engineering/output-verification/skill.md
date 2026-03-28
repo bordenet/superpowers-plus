@@ -36,6 +36,13 @@ coordination:
 - After generating any deliverable — before making ANY claims about it
 - **When presenting results back to the user** — "here's what was created" requires reading what was created
 
+
+## Scope Exclusions
+
+- Pre-commit checks → `pre-commit-gate`
+- Full repo health → `holistic-repo-verification`
+- Code review → `progressive-code-review-gate`
+
 ## ⚠️ ACTION-PATTERN TRIGGER
 
 This skill fires on a **behavior pattern**, not just phrases:

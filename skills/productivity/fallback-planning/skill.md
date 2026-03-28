@@ -34,6 +34,13 @@ coordination:
 - When the cost of restarting from scratch exceeds the cost of pre-building a contingency
 - When a different agent or session may need to pick up fallback execution cold
 
+
+## Scope Exclusions
+
+- Primary plan creation → `plan-and-execute`
+- Brainstorming options → `brainstorming`
+- Design evaluation → `design-triad`
+
 ## Process
 
 1. **Extract risks** from the design document's harsh review and edge-case catalog.

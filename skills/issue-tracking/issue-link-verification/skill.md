@@ -36,6 +36,13 @@ Invoke this skill when:
 
 ---
 
+
+## Scope Exclusions
+
+- Creating new issues → `issue-authoring`
+- Fact-checking issue content → `issue-verify`
+- Wiki link verification → `link-verification`
+
 ## Pre-Posting Link Check (MANDATORY)
 
 <EXTREMELY_IMPORTANT>

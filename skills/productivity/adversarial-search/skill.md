@@ -84,6 +84,13 @@ When user asks for rigor/thorough/comprehensive analysis:
 - When user reports a problem and you're about to dismiss it
 - When user requests rigorous, thorough, or comprehensive analysis
 
+
+## Scope Exclusions
+
+- Brainstorming new ideas → `brainstorming`
+- Stuck in a loop → `think-twice`
+- Pre-commit checks → `pre-commit-gate`
+
 ## Failure Modes
 
 | Failure | Fix |

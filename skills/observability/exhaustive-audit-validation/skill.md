@@ -37,6 +37,13 @@ coordination:
 
 ---
 
+
+## Scope Exclusions
+
+- Quick spot check → `completeness-check` (lighter)
+- Pre-commit gate → `pre-commit-gate`
+- Task completion → `verification-before-completion`
+
 ## The Problem This Skill Solves
 
 **Pattern observed:**
