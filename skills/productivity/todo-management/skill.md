@@ -245,3 +245,4 @@ Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-
 - **todo-archive**: Archiving completed tasks · **plan-and-execute**: Planning complex task sequences
 
 **References:** [`references/taxonomy.md`](references/taxonomy.md) · [`references/file-format-and-operations.md`](references/file-format-and-operations.md)
+- **todo-guardian**: TODO enforcement layer
