@@ -115,3 +115,4 @@ When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: te
 - `verification-before-completion` — after TDD cycle, verify ALL tests pass before claiming done
 - **feature-development**: Full feature workflow
 - **subagent-driven-development**: TDD within sub-agent tasks
+- **quantitative-decision-gate**: Test strategy decisions
