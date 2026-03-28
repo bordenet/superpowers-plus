@@ -207,61 +207,74 @@ self_test() {
     warnings=$((warnings + 1))
   fi
 
-  # 4. Check honeypot exists
-  if [[ -f "$HONEYPOT_PATH" ]]; then
-    echo "✅ Honeypot file exists at $HONEYPOT_PATH"
-    passed=$((passed + 1))
+  # Honeypot checks (4-7): only applicable when TODO lives OUTSIDE ~/.codex/TODO.md.
+  # If the user's real TODO IS at ~/.codex/TODO.md, there's no honeypot — that IS
+  # their working file. The honeypot is an optional defense for users who store
+  # TODO elsewhere (e.g., OneDrive, Dropbox, a shared repo).
+  local real_canonical
+  real_canonical=$(realpath "$real_path" 2>/dev/null || readlink -f "$real_path" 2>/dev/null || echo "$real_path")
+  local honeypot_canonical
+  honeypot_canonical=$(realpath "$HONEYPOT_PATH" 2>/dev/null || readlink -f "$HONEYPOT_PATH" 2>/dev/null || echo "$HONEYPOT_PATH")
+
+  if [[ -n "$real_path" && "$real_canonical" == "$honeypot_canonical" ]]; then
+    echo "ℹ️  Honeypot checks skipped — TODO lives at $HONEYPOT_PATH (no honeypot needed)"
   else
-    echo "❌ Honeypot file MISSING at $HONEYPOT_PATH"
-    failed=$((failed + 1))
-  fi
-
-  # 5. Check honeypot has immutable flag (portable via compat.sh)
-  if [[ -f "$HONEYPOT_PATH" ]]; then
-    check_immutable "$HONEYPOT_PATH"
-    local immutable_result=$?
-    if [[ "$immutable_result" -eq 0 ]]; then
-      echo "✅ Honeypot has immutable flag"
+    # 4. Check honeypot exists
+    if [[ -f "$HONEYPOT_PATH" ]]; then
+      echo "✅ Honeypot file exists at $HONEYPOT_PATH"
       passed=$((passed + 1))
-    elif [[ "$immutable_result" -eq 2 ]]; then
-      echo "⚠️  Cannot verify immutable flag on this platform/filesystem"
+    else
+      echo "⚠️  Honeypot file not found at $HONEYPOT_PATH (optional — deploy with install.sh)"
       warnings=$((warnings + 1))
-    else
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "❌ Honeypot MISSING immutable flag (run: chflags uchg $HONEYPOT_PATH)"
+    fi
+
+    # 5. Check honeypot has immutable flag (portable via compat.sh)
+    if [[ -f "$HONEYPOT_PATH" ]]; then
+      check_immutable "$HONEYPOT_PATH"
+      local immutable_result=$?
+      if [[ "$immutable_result" -eq 0 ]]; then
+        echo "✅ Honeypot has immutable flag"
+        passed=$((passed + 1))
+      elif [[ "$immutable_result" -eq 2 ]]; then
+        echo "⚠️  Cannot verify immutable flag on this platform/filesystem"
+        warnings=$((warnings + 1))
       else
-        echo "❌ Honeypot MISSING immutable flag (run: sudo chattr +i $HONEYPOT_PATH)"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          echo "❌ Honeypot MISSING immutable flag (run: chflags uchg $HONEYPOT_PATH)"
+        else
+          echo "❌ Honeypot MISSING immutable flag (run: sudo chattr +i $HONEYPOT_PATH)"
+        fi
+        failed=$((failed + 1))
       fi
-      failed=$((failed + 1))
     fi
-  fi
 
-  # 6. Check honeypot permissions are 444
-  if [[ -f "$HONEYPOT_PATH" ]]; then
-    local perms
-    perms=$(stat -f "%Lp" "$HONEYPOT_PATH" 2>/dev/null || stat -c "%a" "$HONEYPOT_PATH" 2>/dev/null || echo "")
-    if [[ "$perms" == "444" ]]; then
-      echo "✅ Honeypot permissions are 444 (read-only)"
-      passed=$((passed + 1))
-    else
-      echo "❌ Honeypot permissions are $perms (expected 444)"
-      failed=$((failed + 1))
+    # 6. Check honeypot permissions are 444
+    if [[ -f "$HONEYPOT_PATH" ]]; then
+      local perms
+      perms=$(stat -f "%Lp" "$HONEYPOT_PATH" 2>/dev/null || stat -c "%a" "$HONEYPOT_PATH" 2>/dev/null || echo "")
+      if [[ "$perms" == "444" ]]; then
+        echo "✅ Honeypot permissions are 444 (read-only)"
+        passed=$((passed + 1))
+      else
+        echo "❌ Honeypot permissions are $perms (expected 444)"
+        failed=$((failed + 1))
+      fi
     fi
-  fi
 
-  # 7. Check honeypot content matches expected (portable via compat.sh)
-  if [[ -f "$HONEYPOT_PATH" ]]; then
-    local actual_hash expected_hash
-    actual_hash=$(sha256_hash "$HONEYPOT_PATH")
-    expected_hash=$(printf '%s' "$HONEYPOT_EXPECTED_CONTENT" | sha256_hash_stdin)
-    if [[ "$actual_hash" == "$expected_hash" ]]; then
-      echo "✅ Honeypot content matches expected sentinel"
-      passed=$((passed + 1))
-    else
-      echo "❌ Honeypot content has been TAMPERED WITH"
-      echo "   Expected sha256: $expected_hash"
-      echo "   Actual sha256:   $actual_hash"
-      failed=$((failed + 1))
+    # 7. Check honeypot content matches expected (portable via compat.sh)
+    if [[ -f "$HONEYPOT_PATH" ]]; then
+      local actual_hash expected_hash
+      actual_hash=$(sha256_hash "$HONEYPOT_PATH")
+      expected_hash=$(printf '%s' "$HONEYPOT_EXPECTED_CONTENT" | sha256_hash_stdin)
+      if [[ "$actual_hash" == "$expected_hash" ]]; then
+        echo "✅ Honeypot content matches expected sentinel"
+        passed=$((passed + 1))
+      else
+        echo "❌ Honeypot content has been TAMPERED WITH"
+        echo "   Expected sha256: $expected_hash"
+        echo "   Actual sha256:   $actual_hash"
+        failed=$((failed + 1))
+      fi
     fi
   fi
 

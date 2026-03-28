@@ -36,7 +36,7 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 | 20 | 🟠 ERROR | Dirty checkout | Uncommitted changes in managed checkout | ✅ | moderate |
 | 21 | 🟠 ERROR | TODO archive smoke | Small-but-valid TODO fails to archive or produces bloated result | ❌ | — |
 | 22 | 🟡 WARNING | Reviewer-dispatch | Stale code-reviewer rendering patterns in installed skills | ❌ | — |
-| 23 | 🔴 CRITICAL | TODO honeypot integrity | Honeypot missing, tampered, wrong permissions, missing immutable flag | ✅ | safe |
+| 23 | 🟡/🔴 | TODO honeypot integrity | Honeypot tampered/wrong perms/missing flag. **Skipped** when real TODO lives at `~/.codex/TODO.md`. Missing honeypot = WARNING (optional). Tampered = CRITICAL. | ✅ | safe |
 | 24 | 🟡 WARNING | TODO path validation | TODO path not configured, missing file, or stale registry | ❌ | — |
 | 25 | 🟡 WARNING | Stale workflow state | Abandoned workflow states older than 24h or corrupt state files | ✅ | moderate |
 
