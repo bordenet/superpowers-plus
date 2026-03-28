@@ -36,7 +36,6 @@ composition:
 
 **Announce at start:** "I'm using the **feature-development** skill to orchestrate this workflow."
 
-
 ## When to Use
 
 - Implementing a new feature end-to-end (design → code → test → ship)
@@ -55,7 +54,6 @@ composition:
 - Pure documentation-only changes (no code files touched)
 - Reading/exploring code with no intent to change it
 
----
 
 ## The Workflow
 
@@ -67,7 +65,6 @@ Phase 7: SHIP
 
 Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
----
 
 ### Phase 1: Brainstorming
 
@@ -78,7 +75,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 3. Surface assumptions, edge cases, and scope boundaries
 4. **Exit gate:** Clear understanding of what needs to change and why.
 
----
 
 ### Phase 2: Fresh Perspective
 
@@ -89,7 +85,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 3. Integrate fresh insights back into the plan
 4. **Exit gate:** Fresh perspective reviewed, no unaddressed blind spots.
 
----
 
 ### Phase 3: Design
 
@@ -101,7 +96,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Select winning design with documented rationale
 5. **Exit gate:** Design selected, trade-offs documented, edge cases addressed.
 
----
 
 ### Phase 4: Harsh Review (Design)
 
@@ -112,7 +106,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 3. Fix all BLOCKER and MAJOR findings before proceeding
 4. **Exit gate:** All BLOCKER/MAJOR findings resolved. MINOR findings tracked.
 
----
 
 ### Phase 5: Plan & Execute
 
@@ -125,7 +118,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 5. Run `output-verification` after generating any artifact
 6. **Exit gate:** All phases complete, all tests pass, no regressions.
 
----
 
 ### Phase 6: Harsh Review (Implementation)
 
@@ -137,7 +129,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Re-review after fixes (minimum 2 review rounds total)
 5. **Exit gate:** Two review rounds passed, all findings resolved.
 
----
 
 ### Phase 7: Ship
 
@@ -147,7 +138,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Commit, push, create PR, merge (with user approval at each step)
 5. **Exit gate:** All checks pass, PR merged, synced to all remotes.
 
----
 
 ## Phase Skip Prevention
 
@@ -163,7 +153,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
 **Opt-out is user-initiated ONLY.** The agent never decides to skip the workflow. If the user says "just do it" or "skip the full workflow," follow their instruction. Otherwise, run all phases.
 
----
 
 ## Integration Map
 
@@ -183,7 +172,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 |------|---------------|--------|
 | 2026-03-27 | Agent skipped brainstorming, think-twice, and harsh review. Created a new skill file, immediately presented a confabulated summary without reading the file back. README table ordering was wrong. Router stems were wrong for the actual stemmer. Thinking-orchestrator routing was overcorrected. Required 2 full hostile review rounds to catch all issues. | Every issue found by hostile reviewers could have been caught if the full workflow had been followed from the start. |
 
-
 ## Example
 
 ```bash
@@ -201,7 +189,6 @@ npm run lint && npm test
 | Rushing through brainstorming in <2 exchanges | Brainstorming should explore ≥3 approaches with real trade-offs |
 | Skipping harsh review after implementation | Phase 6 is mandatory. Fixes from review need their own review. |
 | Not persisting phase state via TODO | Each phase must be enrolled as a TODO before starting |
-
 
 ## Scope Exclusions
 
