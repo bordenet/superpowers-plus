@@ -195,44 +195,22 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 | "The TODOs are fine as-is" | Pre-execution improvement is the whole point |
 | "Just one round of review" | Minimum 2 rounds. First round finds surface issues; second finds structural ones |
 
----
+## Replanning & Resuming
 
-## Mid-Execution Replanning
-
-If a retrospective or harsh review reveals the remaining plan is fundamentally wrong (not just needs tweaking):
-
-1. **State clearly:** "The plan needs replanning from Phase N onward."
-2. **Defer remaining TODOs** via `todo-crud.sh defer --reason "Replanning triggered"`
-3. **Return to Phase B** (Plan) with the new understanding — the completed phases and their retros are inputs
-4. **Re-run Phase C** (Stress-Test) on the revised plan
-5. **Re-enroll** via Phase D — new TODOs replace the deferred ones
-
-This is NOT failure — it's the system working as designed. Continuing with a broken plan is the failure.
-
----
-
-## Resuming a Project
-
-If a project was started in a previous session:
-
-1. Check TODO.md for `#plan-<project>` items via `todo-crud.sh list`
-2. Identify the last completed phase
-3. Run a retrospective on the completed phase
-4. Improve remaining TODOs
-5. Resume execution from the next incomplete phase
+See [`references/replanning-and-resuming.md`](references/replanning-and-resuming.md) for mid-execution replanning and session resumption procedures.
 
 ---
 
 ## Integration Map
 
-| Phase | Skills Invoked | Purpose |
-|-------|---------------|---------|
-| Challenge Intake | (conversational) | Clarify scope and constraints |
-| Plan | `plan-quality-gates` | Dependency ordering, exit criteria |
-| Stress-Test | `brainstorming`, `think-twice`, harsh review (red-team questions) | Pressure-test the plan |
-| Enrollment | `todo-management` | Persistent, autonomous TODOs |
-| Execute | harsh review on deliverables; `progressive-code-review-gate` (if code) | Quality at every step |
-| Replan | (back to Plan + Stress-Test if fundamentally broken) | Course correction |
+See [`references/integration-map.md`](references/integration-map.md) for the full phase→skill mapping.
+
+## Example
+
+```bash
+# Enroll plan TODOs after stress-testing
+todo-crud.sh add --priority P2 --tag "#plan-auth-redesign" --title "Phase 1: Migrate OAuth provider"
+```
 
 ## Failure Modes
 
@@ -245,6 +223,8 @@ If a project was started in a previous session:
 
 ## Companion Skills
 
-- **brainstorming**: Generating plan options
-- **design-triad**: Evaluating design alternatives
-- **feature-development**: Full feature workflow (uses this skill)
+- **brainstorming**: Generating plan options · **design-triad**: Evaluating alternatives
+- **feature-development**: Full feature workflow · **todo-management**: Task persistence
+- **requirements-validation**: Validating plan inputs · **plan-quality-gates**: Exit criteria
+- **innovation**: Creative problem-solving · **fallback-planning**: Contingency plans
+- **subagent-driven-development**: Multi-agent task dispatch

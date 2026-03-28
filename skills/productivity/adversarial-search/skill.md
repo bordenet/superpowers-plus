@@ -76,7 +76,7 @@ When user asks for rigor/thorough/comprehensive analysis:
 - **think-twice**: Escalation when adversarial search isn't enough
 - **systematic-debugging**: For specific bug investigation
 - **verification-before-completion**: Final verification step
-
+- **investigation-state**: Investigation state tracking
 ## When to Use
 
 - When investigating bugs, inconsistencies, or suspected incorrect values
