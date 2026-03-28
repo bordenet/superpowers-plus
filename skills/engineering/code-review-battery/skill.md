@@ -105,7 +105,13 @@ After all reviewers return:
 2. Prefix each with `[Reviewer Name]`
 3. If 2+ reviewers flag the same location, **keep both** (different lenses provide complementary insight) and mark as **convergent** → promote to at least Important
 4. Note clean dimensions ("✅ No issues")
-5. **Triple-filter** each Important/Critical finding and classify:
+5. **Severity normalization**: Re-evaluate each finding against the shared severity definitions (provided to all reviewers). Reclassify when a reviewer's label doesn't match:
+   - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
+   - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
+   - **Minor** = works but violates standards (style, naming, missing docs/tests, observability)
+   - If a reviewer labeled a finding Critical but it's a process/standards gap (e.g., "no tests added"), downgrade to Important or Minor. Note the reclassification: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
+   - Convergent findings (step 3) are promoted to at least Important regardless.
+6. **Triple-filter** each Important/Critical finding and classify:
 
 | Finding | CX Impact | Complexity | Testability | Action |
 |---------|-----------|------------|-------------|--------|
@@ -116,7 +122,7 @@ After all reviewers return:
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-6. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
+7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
 
 **Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
 
