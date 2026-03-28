@@ -62,7 +62,7 @@ index 1ccd538..702f592 100644
 - **Category:** incomplete-fix, parallel-code-paths
 - **Durable Check:** Add a test that verifies DESIGN.md/PRD.md are NOT present in installed skill directories after running the installer.
 
-## Anti-Findings (should NOT be reported)
+## Anti-Findings
 
 - Style nit about `basename_f` vs `base` variable naming (the inconsistency exists but is a Minor at best and the names are local to their loops)
 - Suggesting `find --exclude` instead of the loop-and-skip pattern (valid design alternative but not a defect)
