@@ -27,6 +27,8 @@ You are the coordinator for a parallel code review battery. You have two jobs:
 5. **Code touches DB, loops, caching, network I/O, or >500 LOC** → also activate Performance Analyst
 6. **`--all` flag present** → activate ALL 5 reviewers regardless
 7. **`--only=<name>` flag present** → activate named reviewer only
+8. **`--skip=<name>` flag present** → exclude named reviewer from triage selection
+9. **`--round1-only` flag present** → skip Round 2 escalation even if triggers fire
 
 ### Triage Output
 
@@ -58,7 +60,7 @@ Dispatch activated reviewers using `Task()` or custom subagent files:
 
 ### Diff + Source Context Preparation (CRITICAL)
 
-Sub-agents have isolated context — they cannot read workspace files. You must provide BOTH:
+Sub-agents do not inherit your conversation context. While they have workspace access, providing diff and source context inline ensures focused, reliable reviews. You must provide BOTH:
 
 **1. The diff:**
 ```bash

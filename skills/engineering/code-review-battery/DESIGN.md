@@ -46,7 +46,7 @@
 
 ```
 ~/.agents/skills/code-review-battery/
-├── SKILL.md                    # Skill entry point with triggers + coordination
+├── skill.md                    # Skill entry point with triggers + coordination
 ├── PRD.md                      # Product requirements
 ├── DESIGN.md                   # This file
 ├── coordinator.md              # Triage + dispatch + aggregation + escalation
@@ -118,11 +118,11 @@ understand the dispatch pattern each time.
 
 ### Graceful Degradation
 
-If neither sub-agent tools nor Task() are available (e.g., a basic LLM chat):
-- The coordinator prompt includes inline fallback: "If you cannot dispatch
-  sub-agents, perform the review yourself using the following 5 checklists
-  sequentially."
-- Quality degrades (no parallelism, monolithic) but functionality is preserved.
+If neither sub-agent tools nor Task() are available (e.g., a basic LLM chat),
+the battery cannot dispatch parallel reviewers. The user should fall back to
+the monolith reviewer (`reviewers/monolith.md`) which covers all dimensions
+in a single pass. Quality degrades (no parallelism, no specialization) but
+review dimensions are preserved.
 
 ## Triage Coordinator Design
 
@@ -143,7 +143,7 @@ which reviewers to activate.
 |-----------|-------------------|
 | Any code change | Defect Finder, Guardian, Standards Enforcer |
 | Adds/modifies classes, functions, public APIs | + Design Critic |
-| Touches DB, loops, caching, or >500 LOC | + Performance Analyst |
+| Touches DB, loops, caching, network I/O, or >500 LOC | + Performance Analyst |
 | Docs-only change | Standards Enforcer only |
 | Config/dependency change only | Guardian only |
 | `--all` flag | All 5 |
@@ -253,7 +253,7 @@ done
 |------|-----------|--------|-----------------|
 | 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. Later switched to `sub-agent-code-reviewer`. |
 | 2026-03-27 | V2: Defect Finder prompt test | ✅ PASS — Found 1 Important + 1 Minor real issue, 0 false positives | Prompt format works. Found genuine intent-routing ordering bug + stemming redundancy. |
-| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **CRITICAL LEARNING**: Diff must be INLINE in instruction. Sub-agents have isolated context. |
+| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **CRITICAL LEARNING**: Diff must be INLINE in instruction. Sub-agents don't inherit parent conversation context. |
 | 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same fix: inline diff content. |
 | 2026-03-27 | V2b: Guardian prompt test (inline diff) | ✅ PASS — Correctly found no security/blast-radius issues on safe additive diff. Systematic 4-dimension coverage. 0 false positives. | Inline diff approach works. Guardian produces clean "no issues" when appropriate. |
 | 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. Verified stem derivations, YAML frontmatter, arithmetic on skill counts. 0 false positives. | Inline diff works. Standards Enforcer is appropriately thorough. |
@@ -265,12 +265,16 @@ done
 
 ### Design Constraint Discovered (V2)
 
-**Sub-agents have isolated context.** They cannot read files from the workspace
-unless explicitly given them in the instruction. This means:
+**Sub-agents do not inherit the parent agent's conversation context.** While
+`sub-agent-code-reviewer` has workspace access (can read files, run commands),
+it starts with a blank conversation — it doesn't know what diff you're reviewing
+unless you tell it. Providing diff and source context inline in the instruction
+ensures reviewers have exactly the right information without needing to navigate
+the codebase, and is more reliable than expecting them to run git commands.
 
-1. The **coordinator** must capture the full diff before dispatching
-2. Each reviewer instruction must include the **full diff content inline**
-3. For large diffs, the coordinator may need to **chunk** the diff per reviewer
+1. The **coordinator** captures the full diff before dispatching
+2. Each reviewer instruction includes the **full diff content inline** + source context
+3. For large diffs, the coordinator may **chunk** the diff per reviewer
    (e.g., Defect Finder gets src/ changes, Guardian gets config/ changes)
 4. This is a token cost driver — the diff is repeated N times (once per reviewer)
 
