@@ -30,6 +30,13 @@ coordination:
 - Need to enumerate available superpowers or explicit skills at runtime
 - Debugging whether a specific skill is installed and active
 
+
+## Scope Exclusions
+
+- Runtime diagnostics → `superpowers-doctor`
+- Writing new skills → `skill-authoring`
+- Structural lint → `skill-health-check`
+
 ## Understanding the Distinction
 
 | Term | Definition | How It Works |

@@ -94,6 +94,13 @@ When duplicates are confirmed:
 | Structural defects not caught by TF-IDF | Pair with manual review for layout/flow issues |
 | Page was assembled from multiple sources — all duplicates are "intentional" | Question intent: if two sections say the same thing, the reader is confused |
 
+
+## Scope Exclusions
+
+- Editing wiki content → `wiki-orchestrator`
+- Fact-checking claims → `wiki-debunker`
+- Checking broken links → `link-verification`
+
 ## Companion Skills
 
 - **wiki-orchestrator**: Full pipeline (this is Stage 2.5)

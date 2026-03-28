@@ -225,6 +225,13 @@ Multiple skills fire on "before commit". Execute in this order:
 | Fixing style issues without re-running lint | Re-run lint after every fix batch |
 | Style fixes breaking functionality | Run tests after style changes |
 
+
+## Scope Exclusions
+
+- Code review → `progressive-code-review-gate`
+- Pre-commit lint/tests → `pre-commit-gate`
+- Writing new code → just write it, then lint
+
 ## Companion Skills
 
 - **pre-commit-gate**: Runs before this gate (lint/tests)

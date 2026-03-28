@@ -30,6 +30,13 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 > **Wrong skill?** Code implementation → `feature-development`. PR review → `providing-code-review`. Build/test errors → `systematic-debugging`.
 
+
+## Scope Exclusions
+
+- Direct brainstorming → `brainstorming`
+- Writing wiki content → `wiki-orchestrator`
+- Creating tickets → `issue-authoring`
+
 ## Routing Table
 
 | Context | Route To | Why |

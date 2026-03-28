@@ -185,6 +185,13 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 | Skipping harsh review after implementation | Phase 6 is mandatory. Fixes from review need their own review. |
 | Not persisting phase state via TODO | Each phase must be enrolled as a TODO before starting |
 
+
+## Scope Exclusions
+
+- Non-code challenges → `plan-and-execute`
+- Pure bug fixes → `systematic-debugging`
+- Single-file changes → just do them
+
 ## Pipeline Skills
 
 - **brainstorming** → **design-triad** → **plan-and-execute** → **progressive-code-review-gate** → ship

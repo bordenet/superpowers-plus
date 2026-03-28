@@ -99,6 +99,13 @@ After fixing, re-run ALL gates. Zero matches required before push.
 | Agent rationalizes "it's not really sensitive" | Hard block — any match requires explicit user override |
 | Pattern registry is stale — new internal tools not covered | Review and update patterns quarterly; add new tools on adoption |
 
+
+## Scope Exclusions
+
+- Code review → `progressive-code-review-gate`
+- Secret scanning → `repo-security-scan`
+- Pre-commit lint/tests → `pre-commit-gate`
+
 ## Companion Skills
 
 - **repo-security-scan**: Broader security audit (secrets, CVEs, code patterns)

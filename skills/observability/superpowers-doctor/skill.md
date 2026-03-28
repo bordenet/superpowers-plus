@@ -39,6 +39,13 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - When skills behave unexpectedly (wrong triggers, missing content)
 - After cloning on Windows/WSL to detect CRLF or BOM issues
 
+
+## Scope Exclusions
+
+- Structural lint only → `skill-health-check` (lighter)
+- Writing new skills → `skill-authoring`
+- Updating skill installations → run `install.sh --upgrade`
+
 ## Modes
 
 | Mode | Behavior |

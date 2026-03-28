@@ -39,6 +39,13 @@ This skill analyzes text and produces a **slop score** (0-100) with detailed bre
 
 ---
 
+
+## Scope Exclusions
+
+- Rewriting slop (active editing) → `eliminating-ai-slop`
+- Profanity/inappropriate language → `professional-language-audit`
+- Code review → `progressive-code-review-gate`
+
 ## Content Type Detection
 
 The skill auto-detects content type from context:

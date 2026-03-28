@@ -58,6 +58,20 @@ coordination:
 **Location:** `{workspace_root}/.slop-dictionary.json` — this skill writes, `detecting-ai-slop` reads.
 Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my top slop patterns"
 
+## Quick-Reference: Common Patterns
+
+| Slop Pattern | Better Alternative |
+|-------------|-------------------|
+| "It's worth noting that..." | (delete — just state it) |
+| "In order to..." | "To..." |
+| "Leveraging/utilizing" | "Using" |
+| "A comprehensive solution" | (describe what it actually does) |
+| "Incredibly powerful" | (specific metric or capability) |
+| "Seamless integration" | "Connects to X via Y" |
+| "It's important to understand" | (delete — just explain) |
+
+See `reference.md` for the full pattern catalog.
+
 ## Self-Check
 
 Before publishing: meaning preserved? specificity added? voice consistent? no new slop introduced? GVR thresholds met?

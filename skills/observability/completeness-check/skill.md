@@ -170,6 +170,13 @@ Summary:
 | False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
 | Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |
 
+
+## Scope Exclusions
+
+- Deep exhaustive audit → `exhaustive-audit-validation`
+- Pre-commit verification → `pre-commit-gate`
+- Full repo health → `holistic-repo-verification`
+
 ## Companion Skills
 
 - **exhaustive-audit-validation**: Deeper audit (heavier than this skill)
