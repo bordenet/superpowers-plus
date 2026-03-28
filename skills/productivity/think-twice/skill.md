@@ -115,3 +115,4 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 - **adversarial-search**: Confirmation bias prevention
 - **investigation-state**: When investigation hits a wall
 - **issue-comment-debunker**: Debunking suspicious issue claims
+- **experimental-self-prompting**: Self-directed exploration
