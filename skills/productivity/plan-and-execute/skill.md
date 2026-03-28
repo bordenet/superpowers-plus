@@ -242,3 +242,9 @@ If a project was started in a previous session:
 | Shallow retros / cosmetic TODO improvements | Findings and changes must be concrete and substantive; persist via todo-crud.sh |
 | Harsh review on deliverables skipped | Quality gate is embedded in every TODO and commit gate chain — not optional |
 | Plan broken but execution continues | Mid-execution replanning: defer remaining TODOs, return to Phase B |
+
+## Companion Skills
+
+- **brainstorming**: Generating plan options
+- **design-triad**: Evaluating design alternatives
+- **feature-development**: Full feature workflow (uses this skill)

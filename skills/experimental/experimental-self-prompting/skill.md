@@ -167,3 +167,8 @@ This skill will be promoted to production when:
 - **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 rounds)
 - **Prompt drift:** Self-generated prompts gradually diverge from the original goal — anchor each round to the user's request
 - **Overhead without value:** Some tasks don't benefit from self-prompting — simple factual lookups, mechanical edits
+
+## Companion Skills
+
+- **think-twice**: For stuck loops (production-ready alternative)
+- **brainstorming**: For generating ideas (production-ready alternative)

@@ -23,6 +23,11 @@ coordination:
 
 **Announce at start:** "I'm using the **progressive-harsh-review** skill to red-team this work."
 
+## Companion Skills
+
+- **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
+- **brainstorming**: Generating options before review
+
 ## When to Use
 
 - After completing a significant non-code deliverable (plan, skill, document, design)

@@ -165,6 +165,12 @@ composition:
 > **Purpose:** <why this skill exists>
 > **Last Updated:** <date>
 
+## Companion Skills
+
+- **writing-skills**: Skill file format reference
+- **skill-health-check**: Structural lint for skill files
+- **superpowers-doctor**: Runtime diagnostics after publishing
+
 ## When to Use
 
 <Triggers and context>

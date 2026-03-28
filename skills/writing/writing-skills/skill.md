@@ -21,6 +21,11 @@ coordination:
 
 > **Wrong skill?** Full skill creation workflow → `skill-authoring`. Skill runtime issues → `superpowers-doctor`. Skill structural lint → `skill-health-check`.
 
+## Companion Skills
+
+- **skill-authoring**: Full skill creation workflow (this is format reference)
+- **skill-health-check**: Structural lint for skill files
+
 ## When to Use
 
 - Creating new skill files (structure, frontmatter, prose style, quality gates)

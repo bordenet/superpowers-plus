@@ -21,6 +21,12 @@ coordination:
 
 > **Wrong skill?** Simple single-file changes → just edit directly. Planning without execution → `brainstorming`. Feature workflow → `feature-development`.
 
+## Companion Skills
+
+- **feature-development**: Full feature workflow (this skill uses sub-agents)
+- **plan-and-execute**: For multi-step implementation planning
+- **test-driven-development**: TDD within sub-agent tasks
+
 ## When to Use
 
 - You have a written implementation plan with independent tasks to execute in the current session
