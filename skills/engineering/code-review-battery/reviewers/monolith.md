@@ -42,19 +42,18 @@ Do NOT report stylistic preferences or hypothetical issues.
 For each finding, use this structured format:
 
 ### Finding F\<n\>
-- **file**: \<path\>
-- **line**: \<number\> (or "N/A")
-- **symbol**: \<name\> (omit if not applicable)
-- **severity**: Critical / Important / Minor
-- **confidence**: High (>80%) / Possible (60–80%)
-- **scope**: isolated / systemic
-- **issue**: \<what is wrong — 1–2 sentences\>
-- **why**: \<what breaks, what data is lost, what is insecure\>
-- **fix**: \<how to fix\>
-- **evidence**: \<what you searched, what you found — required\>
-- **cross-cutting**: yes / no
+- **Severity**: Critical / Important / Minor
+- **File:Line**: Exact location (e.g., `src/auth.ts:42`)
+- **Issue**: What is wrong (1–2 sentences)
+- **Why**: Why this matters (what breaks, what data is lost, what is insecure)
+- **Fix**: How to fix (propose exact change if possible)
+- **Regressions Risked**: What could break if this fix is applied
+- **Durable Check**: Lint rule, test, assertion, or invariant to catch this class of issue permanently
 
-When `scope = systemic`, add an `instances` list with all file:line locations.
+Optional monolith-specific fields (append after core fields when relevant):
+- **Scope**: isolated / systemic (if systemic, add an `instances` list with all file:line locations)
+- **Cross-cutting**: yes / no
+- **Evidence**: What you searched, what you found
 
 If you find NO issues, say:
 "✅ No issues found across any review dimension."
