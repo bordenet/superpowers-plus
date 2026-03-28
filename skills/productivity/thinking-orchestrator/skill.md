@@ -143,3 +143,9 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill brainstorming
 | Skipping orchestrator — invoking child directly | Check if a different child was more appropriate first |
 | Trigger saturation — multiple triggers fire simultaneously | Pick the highest-priority match from the routing table |
 | Missing routing case | PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |
+
+## Companion Skills
+
+- **think-twice**: Deep analysis when stuck · **brainstorming**: Generating options
+- **design-triad**: Evaluating design alternatives · **adversarial-search**: Deep investigation
+- **plan-and-execute**: Structured planning workflow
