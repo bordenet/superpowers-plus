@@ -34,77 +34,100 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 
 ## Procedure
 
-### Step 1: Capture the diff AND source context
-Run `git diff` (staged, commit range, or branch diff) and `git diff --stat`.
+### Phase 1: Triage
 
-**Then gather ripple analysis context** (see `coordinator.md` Phase 2 — Diff + Source Context):
-- For every field SET/RESET/NULLED in the diff: grep all readers of that field
-- For every threshold comparison: grep all producers of values crossing it
-- For stateful code: include full state type definition
-- For changed signatures: include all callers
+Analyze the diff and select reviewers:
 
-This source context is appended to each reviewer's instruction alongside the diff. Without it, reviewers miss cross-cutting regressions.
+| Reviewer | Focus | Activate When |
+|----------|-------|---------------|
+| **Defect Finder** | Correctness, edge cases, concurrency | Any code change |
+| **Design Critic** | Factoring, complexity, API design | Adds/modifies classes, functions, public APIs |
+| **Guardian** | Security, blast radius, backwards compat | Any code change |
+| **Standards Enforcer** | Docs, test quality, observability | Always |
+| **Performance Analyst** | Performance, logging | DB, loops, caching, network I/O, or >500 LOC |
+| **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
-### Step 2: Triage
+**Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
 
-Read `coordinator.md` in this skill directory. Apply the triage decision rules to the diff:
+**Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation).
 
-| Change Type | Reviewers to Activate |
-|------------|----------------------|
-| Docs only (.md, .txt, comments) | Standards Enforcer only |
-| Config/deps only (package.json, .yml) | Guardian only |
-| Any code change | Defect Finder + Guardian + Standards Enforcer |
-| Code adds/modifies classes, functions, APIs | + Design Critic |
-| Code touches DB, loops, caching, >500 LOC | + Performance Analyst |
+State your triage decision before dispatching:
+```
+**Triage**: Activated: [list] | Skipped: [list] | Reason: [1-2 sentences]
+```
 
-State your triage decision before dispatching.
+### Phase 2: Diff + Source Context + Dispatch
 
-### Step 3: Dispatch reviewers in parallel
+Sub-agents don't inherit your conversation context. Provide diff and source context inline for focused, reliable reviews.
 
-Read the reviewer prompt from `reviewers/<name>.md`. Append the full diff to the prompt. Dispatch ALL activated reviewers simultaneously.
+**1. Capture the diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**On Augment.ai** — use `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously.
+**2. Gather source context for ripple analysis** (the #1 cause of missed findings is reviewing the diff in isolation):
+- For every field SET/RESET/NULLED in the diff → grep all READERS of that field
+- For every threshold comparison → grep all PRODUCERS of values crossing it
+- For stateful code → include full state type definition + transitions
+- For changed signatures → include all callers
 
-**On Claude Code** — use `Task()` calls or `.claude/agents/` subagent files.
+```bash
+# Example: find all consumers of a field
+grep -rn "lastUpdatedAt" src/services/**/*.ts
+# Example: find all producers of threshold values
+grep -rn "confidence:" src/services/**/*.ts
+```
 
-**Critical**: Each reviewer receives the FULL diff AND relevant unchanged source context inline in its instruction. Sub-agents don't inherit your conversation context, so providing inline context ensures focused, reliable reviews. The source context enables ripple analysis (consumer traces, boundary value traces).
+Label source context clearly in each reviewer instruction:
+```
+## UNCHANGED SOURCE CONTEXT (for ripple analysis)
+### All readers of `lastUpdatedAt`:
+[paste grep results with surrounding context]
+```
 
-### Step 4: Aggregate and Classify
+**3. Dispatch ALL activated reviewers simultaneously:**
+- **Augment.ai**: `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.)
+- **Claude Code**: `Task()` calls or `.claude/agents/` subagent files
 
-After all reviewers return, merge findings following `coordinator.md` Phase 3:
+Each reviewer instruction = reviewer prompt (from `reviewers/<name>.md`) + full diff + source context.
 
-1. Sort by severity: Critical → Important → Minor
-2. Prefix each finding with `[Reviewer Name]`
-3. Note clean dimensions ("✅ No issues")
-4. **Triple-filter** each Important/Critical finding:
-   - **Implement**: Improves customer experience + reduces/neutral complexity + improves testability
-   - **Defer**: Good finding but doesn't pass all 3 filters
-   - **Reject**: Correct observation but fix adds more complexity than it removes
-5. Present unified report with action classification
+### Phase 3: Aggregate
 
-### Step 5: Escalation (Round 2)
+After all reviewers return:
+1. Sort findings: **Critical → Important → Minor**, then by file path
+2. Prefix each with `[Reviewer Name]`
+3. If 2+ reviewers flag the same location, **keep both** (different lenses provide complementary insight) and mark as **convergent** → promote to at least Important
+4. Note clean dimensions ("✅ No issues")
+5. **Triple-filter** each Important/Critical finding and classify:
 
-Check escalation triggers per `coordinator.md` Phase 4. If any trigger fires, re-dispatch focused reviewers and append to the report under `### Round 2 Findings`.
+| Finding | CX Impact | Complexity | Testability | Action |
+|---------|-----------|------------|-------------|--------|
+| #1 ... | Fixes dead-air | +3 lines | Clearer tests | **Implement** |
+| #3 ... | None | Adds abstraction | Marginal | **Defer** |
 
-## The 5 Standard Reviewers
+- **Implement**: Passes all 3 filters. **Propose exact code change.**
+- **Defer**: Good finding but doesn't pass all 3. Document for future work.
+- **Reject**: Correct observation but fix adds more complexity than it removes.
 
-| # | Reviewer | Mental Model | Key v2 Techniques |
-|---|----------|-------------|-------------------|
-| 1 | Defect Finder | "What breaks?" | Ripple analysis, consumer trace, state lifecycle, feedback loop analysis, interaction-path enumeration |
-| 2 | Design Critic | "Well-structured?" | Factoring, complexity, naming, API design |
-| 3 | Guardian | "Damage beyond diff?" | Blast radius, field consumer trace, caller contract drift, infrastructure error paths |
-| 4 | Standards Enforcer | "Meets expectations?" | Comment-as-spec, test revert-safety, paired boundary tests, mock fidelity, observability |
-| 5 | Performance Analyst | "Will it scale?" | Performance, logging |
+**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor → Clean Dimensions → Action Classification table → Summary (`[X] total: [N] Critical, [N] Important, [N] Minor`).
 
-### On-Demand Reviewers (activated by escalation or `--all`)
+### Phase 4: Escalation (Round 2)
 
-| Reviewer | When Activated |
-|----------|---------------|
-| Monolith | `--all` flag, or manual request for comprehensive single-reviewer pass |
+If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 
-## Overrides
+| Trigger | Re-run | Why |
+|---------|--------|-----|
+| >2 state/flag findings | Defect Finder (interaction-path focus) | Systemic timing/ordering |
+| >3 test quality issues | Standards Enforcer (mock-focused) | Shared mock infrastructure |
+| >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
+| "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
 
-- `--all`: Force all reviewers including on-demand
-- `--only=<name>`: Run a single named reviewer
-- `--skip=<name>`: Exclude a specific reviewer from triage selection
-- `--round1-only`: Skip Round 2 escalation even if triggers fire
+**Escalation procedure:**
+1. Note the trigger signal in the report
+2. Re-dispatch the specified reviewer with a FOCUSED instruction citing the trigger and relevant Round 1 findings
+3. Append under `### Round 2 Findings`
+
+Skip escalation if: user requested `--round1-only`, all Round 1 clean, or diff <20 lines.
+
+### Error Handling
+
+- Reviewer fails/times out → note in report, do NOT retry
+- Diff >3000 lines → warn user, suggest smaller chunks
+- Empty diff → "No code changes to review"
