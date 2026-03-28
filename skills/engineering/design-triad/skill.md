@@ -30,6 +30,7 @@ coordination:
 - **innovation**: 10x ideas before evaluation
 - **feature-development**: Full feature workflow (uses this skill)
 - **fallback-planning**: Evaluating fallback alternatives
+- **quantitative-decision-gate**: Quantitative option scoring
 ## When to Use
 
 - Any design decision where the wrong choice would cost significant rework
