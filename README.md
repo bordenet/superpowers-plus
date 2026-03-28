@@ -1,17 +1,17 @@
 # superpowers-plus
 
-66 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+65 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
 ## What's Included
 
-**66 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**65 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
 | engineering | 19 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification |
-| productivity | 16 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute, superchain orchestrator |
+| productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
 | issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
@@ -123,7 +123,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | You say... | Skill triggered | What happens |
 |------------|-----------------|--------------|
 | "You're stuck in a loop!" | think-twice | Pauses, consults fresh sub-agent |
-| "Create a wiki page for X" | wiki-orchestrator | Full wiki authoring pipeline |
+| "Create a wiki page for X" | (direct Outline API) | Single-page creation doesn't need a skill |
+| "Build a multi-page wiki section" | wiki-orchestrator | Bulk/multi-page documentation pipeline |
 | "Review this PR" | providing-code-review | Structured feedback with checklist |
 | "Is this done?" | completeness-check | Audits for incomplete work |
 | "Check for security issues" | repo-security-scan | Full scan (secrets, deps, patterns, config) |
@@ -138,14 +139,14 @@ Skills activate automatically when your request matches their triggers. Describe
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
+| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
-| | engineering-rigor | Hub: routes to output-verification, pre-commit-gate, blast-radius-check, providing-code-review |
-| | feature-development | Orchestrates full feature lifecycle: requirements → design → implement → verify |
+| | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
+| | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
-| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
 | | providing-code-review | Structured PR feedback with checklist |
@@ -176,7 +177,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
 | | skill-authoring | Creates new skills from descriptions/patterns |
-| | superchain-orchestrator | Auto-detects task phase, chains skills end-to-end autonomously |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for metacognition skills |
@@ -192,7 +192,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
-| | wiki-orchestrator | Entry point for all wiki authoring and editing |
+| | wiki-orchestrator | Pipeline orchestrator: dispatches coherence, link, secret, slop, and fact-check skills |
 | | wiki-secret-audit | Finds leaked credentials in wiki pages |
 | | wiki-verify | Checks codebase references for drift |
 | writing | detecting-ai-slop | Scores text 0–100 for machine patterns |
