@@ -7,6 +7,43 @@
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
+# Check if a directory IS a git repository root (not just nested inside one).
+# Handles both normal repos (.git is a directory) and worktrees (.git is a file).
+# Also handles safe.directory / dubious-ownership protected repos.
+_is_git_repo() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 1
+    # .git must exist at the target as a file (worktree) or directory (normal repo).
+    # This rejects plain subdirectories nested inside a parent repo.
+    [[ -e "$dir/.git" ]] || return 1
+    # Verify git actually recognizes this as a repo (rejects corrupt/fake .git).
+    # Use rev-parse as the primary check; fall back to structural validation
+    # for safe.directory / dubious-ownership protected repos.
+    if ! (cd "$dir" && git rev-parse --git-dir &>/dev/null); then
+        # rev-parse failed — could be safe.directory or genuinely broken
+        if [[ -d "$dir/.git" ]]; then
+            # A minimally valid repo needs HEAD and objects/
+            [[ -f "$dir/.git/HEAD" ]] && [[ -d "$dir/.git/objects" ]]
+        elif [[ -f "$dir/.git" ]]; then
+            # Worktree: .git file contains "gitdir: <path>"
+            local gitdir
+            gitdir=$(sed -n 's/^gitdir: //p' "$dir/.git" 2>/dev/null)
+            [[ -n "$gitdir" ]] || return 1
+            # Resolve relative paths against the directory containing .git
+            [[ "$gitdir" == /* ]] || gitdir="$dir/$gitdir"
+            [[ -d "$gitdir" ]]
+        else
+            return 1
+        fi
+    fi
+}
+
 # --- Version coordination ---
 # Minimum obra/superpowers commit date (Unix timestamp) that this version of
 # superpowers-plus is known to work with. Update this when obra/superpowers
@@ -24,7 +61,7 @@ check_superpowers() {
 
 # Verify obra/superpowers is recent enough for this version of superpowers-plus
 check_obra_version() {
-    if [[ ! -d "$SUPERPOWERS_DIR/.git" ]]; then
+    if ! _is_git_repo "$SUPERPOWERS_DIR"; then
         log_verbose "Cannot check obra version: not a git repository"
         return 0
     fi
@@ -58,14 +95,18 @@ install_superpowers() {
 
     # If directory exists but not forced, try to update instead
     if [[ -d "$SUPERPOWERS_DIR" ]]; then
-        if [[ -d "$SUPERPOWERS_DIR/.git" ]]; then
-            log_info "Superpowers already installed, updating..."
-            update_superpowers
-            return $?
+        if _is_git_repo "$SUPERPOWERS_DIR"; then
+            log_info "Superpowers directory exists, updating..."
+            if ! update_superpowers; then
+                return 1
+            fi
+            # Verify skills/ exists after update (may be a partial/corrupt checkout)
+            if [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
+                error_exit "skills/ directory not found after update. The checkout may be corrupt. Use --force to reinstall."
+            fi
+            return 0
         else
-            log_warn "Superpowers directory exists but is not a git repo"
-            log_warn "Use --force to reinstall"
-            return 1
+            error_exit "Superpowers directory exists but is not a git repo: $SUPERPOWERS_DIR (use --force to reinstall)"
         fi
     fi
 
@@ -87,25 +128,20 @@ install_superpowers() {
 update_superpowers() {
     log_info "Updating obra/superpowers..."
 
-    if [[ ! -d "$SUPERPOWERS_DIR/.git" ]]; then
+    if ! _is_git_repo "$SUPERPOWERS_DIR"; then
         log_warn "Cannot update: superpowers is not a git repository"
         return 1
     fi
 
     log_verbose "Pulling latest changes from origin main"
     if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only origin main 2>&1); then
-        # --ff-only failed — likely divergent history (upstream rewrite) or local changes
-        log_warn "Fast-forward pull failed — attempting recovery..."
-        if (cd "$SUPERPOWERS_DIR" && git fetch origin 2>&1 && git reset --hard origin/main 2>&1); then
-            log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
-        else
-            local checkout_age
-            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
-            log_warn "Failed to update superpowers (may have local changes)"
-            log_warn "Local checkout last updated: $checkout_age"
-            log_warn "You may be running a stale version of obra/superpowers"
-            return 1
-        fi
+        local checkout_age
+        checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
+        log_warn "Fast-forward pull failed (local changes or divergent history)"
+        log_warn "Local checkout last updated: $checkout_age"
+        log_warn "Run with --force to discard local changes and reinstall"
+        log_warn "Run with --upgrade --force to reset and pull latest"
+        return 1
     fi
 
     log_success "obra/superpowers updated"
@@ -119,7 +155,7 @@ upgrade_existing() {
     if [[ ! -d "$SUPERPOWERS_DIR" ]]; then
         error_exit "superpowers not installed. Run ./install.sh first (without --upgrade)."
     fi
-    if [[ ! -d "$SUPERPOWERS_DIR/.git" ]]; then
+    if ! _is_git_repo "$SUPERPOWERS_DIR"; then
         error_exit "superpowers directory is not a git repository. Run ./install.sh --force to reinstall."
     fi
 
@@ -144,14 +180,9 @@ upgrade_existing() {
     else
         log_verbose "Pulling latest changes..."
         if ! git pull --ff-only origin main 2>&1; then
-            # --ff-only failed — try reset to origin/main (handles upstream history rewrites)
-            log_warn "Fast-forward pull failed — attempting reset to origin/main..."
-            if git reset --hard origin/main 2>&1; then
-                log_success "Recovered: reset to origin/main (upstream history may have been rewritten)"
-            else
-                log_warn "Reset failed. Run with --upgrade --force to discard local changes and upgrade."
-                exit 1
-            fi
+            log_warn "Fast-forward pull failed (local changes or divergent history)"
+            log_warn "Run with --upgrade --force to discard local changes and upgrade."
+            exit 1
         fi
     fi
 

@@ -19,7 +19,7 @@ When called by orchestrator, produce this summary:
 
 | # | Claim | Type | Source Used | Authoritative Source | Action |
 |---|-------|------|------------|---------------------|--------|
-| 1 | "Junyi's funnel metrics queries" | Task ownership | Wiki plan table | Issue tracker assignee | ⚠️🔄 Verify in Linear |
+| 1 | "Junyi's funnel metrics queries" | Task ownership | Wiki plan table | Issue tracker assignee | ⚠️🔄 Verify in tracker |
 | 2 | "Ships in Sprint 2 per v1 Plan" | Timeline | Wiki roadmap | Git tags, CI deploys | ⚠️🔄 Check actual sprint |
 
 ### Uncited Claims (require attention)

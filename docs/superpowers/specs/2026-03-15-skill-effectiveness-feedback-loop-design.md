@@ -1,5 +1,8 @@
 # Skill Effectiveness Feedback Loop — Design Spec
 
+> ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design spec, not documentation of existing functionality.
+
+
 > **Created:** 2026-03-15
 > **Status:** Approved
 > **Author:** AI + User collaboration

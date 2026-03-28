@@ -7,8 +7,8 @@ How superpowers-plus skills work and how to extend them.
 | Term | Definition | Frontmatter | Example |
 |------|------------|-------------|---------|
 | **Skill** | Generic term for any procedural module (a `skill.md` file) | Any | All of them |
-| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-editing` |
-| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `think-twice` |
+| **Superpower** | A skill with auto-triggers — invokes automatically when phrases match | `triggers: ["phrase", ...]` | `brainstorming`, `wiki-orchestrator` |
+| **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `security-upgrade` |
 
 **Key distinction:**
 - **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
@@ -37,7 +37,7 @@ Skills from both directories are discovered by `superpowers-augment.js`.
 
 ### Installer Architecture
 
-`install.sh` is a thin orchestrator (~380 lines) that sources 6 modules from `lib/install/`:
+`install.sh` is an orchestrator (~600 lines) that sources 6 modules from `lib/install/`:
 
 ```
 lib/install/
@@ -149,20 +149,20 @@ description: One-line description of what the skill does.
 **Superpower (auto-triggered):**
 ```yaml
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["update wiki page", "push to wiki", "edit wiki"]
-description: Use when editing wiki pages.
+description: Orchestrates wiki editing workflows — download, edit, publish.
 ---
 ```
 
 **Explicit Skill (manual invocation):**
 ```yaml
 ---
-name: think-twice
+name: superpowers-help
 source: superpowers-plus
 triggers: []  # Empty array = explicit
-description: Use when stuck on a problem.
+description: Lists available skills.
 ---
 ```
 
@@ -208,7 +208,7 @@ The `tools/skill-trigger-validator.sh` script audits triggers across all skills:
 
 ### Intentional Overlaps
 
-Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-editing`). These are declared in the `ALLOWED_OVERLAPS` array in the validator script.
+Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-orchestrator`). These are declared in the `ALLOWED_OVERLAPS` array in the validator script.
 
 ## Multi-Target Deployment
 
@@ -218,7 +218,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 |--------|--------------|-------|
 | Augment Agent | `~/.codex/skills/` | Primary path for superpowers-augment.js |
 | Claude Code | `~/.claude/skills/` | Native Skill tool path |
-| Augment (alt) | `~/.augment/skills/` | Alternative Augment location |
+| Rules | `~/.augment/rules/` | Always-on agent rules |
 | Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
 Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
@@ -242,7 +242,7 @@ The `issue-tracking/` domain uses adapters to support multiple platforms:
 skills/issue-tracking/
 ├── _adapters/
 │   ├── README.md         # Adapter overview
-│   ├── linear.md         # Linear.app configuration
+│   ├── platform-template.md # Provider-neutral adapter template
 │   ├── github-issues.md  # GitHub Issues configuration
 │   ├── jira.md           # Jira configuration
 │   └── azure-devops.md   # Azure DevOps configuration
@@ -277,7 +277,7 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 
 | Variable | Used By | Purpose |
 |----------|---------|---------|
-| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select adapter: `linear`, `github`, `jira`, `azure-devops` |
+| `ISSUE_TRACKER_TYPE` | issue-tracking/* | Select the configured issue-tracker adapter |
 | `PERPLEXITY_API_KEY` | research/perplexity-research | Perplexity MCP authentication |
 
 ## Bootstrapping
@@ -288,4 +288,4 @@ At conversation start, AI assistants run:
 node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ```
 
-This loads the `using-superpowers` skill which governs skill invocation.
+This emits the skill invocation rules (priority ordering, 1% chance rule) directly to the conversation.

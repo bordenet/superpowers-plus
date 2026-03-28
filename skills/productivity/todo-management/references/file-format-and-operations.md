@@ -99,5 +99,12 @@ This causes unbounded file growth. Only `[ ]` tasks belong in ACTIVE.
 
 ## Implementation Workflow
 
-All write operations follow: preflight → lock acquire → backup → write → lock release.
-See `skill.md` § Hard Gate and [AGENTS.md](../../../AGENTS.md#planning-and-task-management) for the complete protocol and scripts.
+**Primary tool:** `~/.codex/superpowers-plus/tools/todo-crud.sh` — handles all CRUD operations atomically.
+
+All write operations (add, complete, move, defer) are handled by `todo-crud.sh`, which automatically performs: path resolution → lock acquire → backup → write → lock release → whitespace normalization.
+
+**Maintenance tool:** `~/.codex/superpowers-plus/tools/todo-maintenance.sh` — runs routine housekeeping in one command: preflight/create-if-missing → inspect TODO health → report stale `#plan-*` tasks → archive when housekeeping thresholds are hit.
+
+**Agents should NEVER write TODO.md directly with sed, shell, or inline Python.** Use `todo-crud.sh` subcommands instead.
+
+See `skill.md` § Primary Interface for the full command reference.

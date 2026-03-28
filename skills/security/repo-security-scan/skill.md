@@ -2,10 +2,16 @@
 name: repo-security-scan
 source: superpowers-plus
 triggers: ["security scan", "scan for secrets", "scan for vulnerabilities", "audit repo security", "check for hardcoded keys", "check for insecure code", "security review", "scan repos", "find secrets in code", "credential scan", "security audit"]
-description: >
-  Use when asked to audit a git repository for security issues, check for secrets or credentials
-  in code, scan for dependency vulnerabilities, or review a repo's security posture. Use instead
-  of writing ad-hoc scanning scripts. Covers Python, Node.js, Go, Rust, and shell projects.
+anti_triggers: ["upgrade packages", "npm update", "dependency upgrade", "version bump"]
+description: "Use when asked to audit a git repository for security issues, check for secrets or credentials in code, scan for dependency vulnerabilities, or review a repo's security posture. Use instead of writing ad-hoc scanning scripts. Covers Python, Node.js, Go, Rust, and shell projects."
+summary: "Use when: auditing repo for security vulnerabilities, secrets, or misconfigurations."
+coordination:
+  group: security
+  order: 0
+  requires: []
+  enables: ['security-upgrade']
+  escalates_to: []
+  internal: false
 ---
 
 # repo-security-scan
@@ -13,7 +19,9 @@ description: >
 > **Purpose:** Systematic security scan of any git repository across four categories.
 > **Last Updated:** 2026-03-18
 
-## Overview
+> **Wrong skill?** Public repo IP leakage → `public-repo-ip-audit`. Wiki secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
+
+## Approach
 
 Run a comprehensive security scan on a git repo without creating ad-hoc scripts. This skill orchestrates four scan categories using tools already available on the system.
 
@@ -26,14 +34,6 @@ Run a comprehensive security scan on a git repo without creating ad-hoc scripts.
 - Before releasing or open-sourcing a project
 - Monthly/quarterly security hygiene checks
 - After onboarding a new repo
-
-## When NOT to Use
-
-- Wiki content scanning → use `wiki-secret-audit`
-- Public repo IP leakage → use `public-repo-ip-audit`
-- Wiki-sourced instruction safety → use `wiki-instruction-guard`
-
----
 
 ## Scan Process
 
@@ -143,7 +143,6 @@ git ls-files -z 2>/dev/null | xargs -0 grep -lnE \
   2>/dev/null | grep -v 'test\|spec\|\.md$'
 ```
 
----
 
 ## Fix Workflow
 
@@ -166,7 +165,6 @@ fix(security): replace eval() with JSON.parse() in parser.js
 
 After all fixes, **re-run the full scan** to confirm zero remaining issues. Use `superpowers:verification-before-completion` — evidence before assertions.
 
----
 
 ## Rules
 
@@ -176,6 +174,18 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 - **Re-run full scan after fixes** to confirm zero remaining issues.
 - **Multi-repo:** Process each repo sequentially through all four phases.
 
-## Related Skills
+## Companion Skills
 
 `security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
+
+- **security-upgrade**: Dependency upgrade after scan findings
+- **wiki-secret-audit**: Wiki-side secret scanning
+- **public-repo-ip-audit**: IP/license review (different from secrets)
+## Failure Modes and Recovery
+
+| Failure | Fix |
+|---------|-----|
+| Scanner tool not installed (gitleaks, npm audit) | Check prerequisites first — install or fallback to manual grep |
+| False positive on test fixtures with dummy secrets | Maintain allowlist of known test fixtures per repo |
+| Scan misses secrets in git history | Run gitleaks with `--log-opts --all` to scan full history |
+| Dependency vuln has no fix available | Document as accepted risk with justification and review date |

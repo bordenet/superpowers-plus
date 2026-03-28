@@ -1,0 +1,19 @@
+# 🚨 STOP — WRONG FILE 🚨
+# THIS IS NOT THE REAL TODO FILE
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management

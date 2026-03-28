@@ -10,6 +10,21 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Version Guard ---
+# This script works on bash 3.2+ but provide a clear error if running under
+# something ancient or under /bin/sh by accident.
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. You appear to be running sh or another shell." >&2
+    echo "  Fix: bash install-augment-superpowers.sh" >&2
+    exit 1
+fi
+if [ "${BASH_VERSINFO[0]}" -lt 3 ]; then
+    echo "ERROR: bash ${BASH_VERSION} is too old (need bash 3.2+)." >&2
+    echo "  macOS fix:  brew install bash" >&2
+    echo "  Linux fix:  sudo apt install bash  (or yum/dnf)" >&2
+    exit 1
+fi
+
 # --- Configuration ---
 VERSION="1.0.0"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
@@ -31,11 +46,11 @@ else
 fi
 
 # --- Logging ---
-info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error()   { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
-verbose() { [[ "$VERBOSE" == true ]] && echo -e "${BLUE}[DEBUG]${NC} $1" || true; }
+info()    { printf '%b\n' "${BLUE}[INFO]${NC} $1"; }
+success() { printf '%b\n' "${GREEN}[OK]${NC} $1"; }
+warn()    { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; }
+error()   { printf '%b\n' "${RED}[ERROR]${NC} $1" >&2; exit 1; }
+verbose() { [[ "$VERBOSE" == true ]] && printf '%b\n' "${BLUE}[DEBUG]${NC} $1" || true; }
 
 # --- Help ---
 show_help() {
@@ -155,16 +170,18 @@ mkdir -p ~/.augment/rules
 success "Directories created"
 
 # Install superpowers (obra/superpowers)
-if [[ -d ~/.codex/superpowers/.git ]]; then
+# Use -e (not -d) to support git worktrees where .git is a file
+if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # --ff-only failed — try reset (handles upstream history rewrites and divergent branches)
-        verbose "Fast-forward failed, resetting to origin/main..."
-        git fetch --quiet origin 2>/dev/null && git reset --hard origin/main 2>/dev/null \
-            || git pull --quiet origin master 2>/dev/null \
-            || warn "Could not update superpowers"
+        # --ff-only failed — warn instead of silently resetting (prevents data loss)
+        verbose "Fast-forward failed, trying master branch..."
+        if ! git pull --ff-only --quiet origin master 2>/dev/null; then
+            warn "Could not update superpowers (fast-forward failed)"
+            warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+        fi
     fi
     popd > /dev/null
     success "Superpowers updated"
@@ -199,10 +216,15 @@ const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skil
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 
 const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
-    [/\bTodoRead\b/g, 'view tool on TODO.md (run todo-preflight.sh first to get path), then optionally view_tasklist for UI'],
-    [/\bTask\b tool with subagents/g, 'Note: Augment does not have subagents - do the work directly'],
-    [/\bTask\b tool/g, 'launch-process (or handle directly)'],
+    [/\bTodoWrite\b/g, 'todo-crud.sh (add/complete/move/defer) — NEVER use str-replace-editor or save-file on TODO.md. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh add -p P2 -d "description" -t "#tag"'],
+    [/\bTodoRead\b/g, 'todo-crud.sh cat (full file) or todo-crud.sh list (filtered) — NEVER use view tool on TODO.md directly. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh cat'],
+    [/Task tool with superpowers:code-reviewer type/g, 'sub-agent-code-reviewer tool'],
+    [/Task tool \(superpowers:code-reviewer\):/g, 'sub-agent-code-reviewer tool:'],
+    [/Dispatch superpowers:code-reviewer subagent/g, 'Dispatch sub-agent-code-reviewer'],
+    [/\bcode-reviewer subagent\b/g, 'sub-agent-code-reviewer'],
+    [/\bcode reviewer subagent\b/g, 'sub-agent-code-reviewer'],
+    [/Dispatch final code-reviewer/g, 'Dispatch final sub-agent-code-reviewer'],
+    [/\bTask\b tool(?! with superpowers:code-reviewer type| \(superpowers:code-reviewer\))/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
     [/\bWrite\b tool/g, 'save-file tool'],
     [/\bEdit\b tool/g, 'str-replace-editor tool'],
@@ -230,13 +252,60 @@ function extractFrontmatter(filePath) {
         let inFrontmatter = false;
         let name = '';
         let description = '';
-        for (const line of lines) {
+        let triggers = [];
+        let requires_mcp = [];
+
+        function parseInlineArray(value) {
+            return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+        }
+
+        function parseYamlList(lines, startIndex) {
+            const values = [];
+            let nextIndex = startIndex;
+
+            for (let i = startIndex + 1; i < lines.length; i++) {
+                const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+                if (itemMatch) {
+                    values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+                    nextIndex = i;
+                    continue;
+                }
+                if (lines[i].trim() === '') {
+                    nextIndex = i;
+                    continue;
+                }
+                break;
+            }
+
+            return { values, nextIndex };
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
                 inFrontmatter = true;
                 continue;
             }
             if (inFrontmatter) {
+                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
+                if (triggersMatch) {
+                    triggers = parseInlineArray(triggersMatch[1]);
+                } else if (line.match(/^triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+
+                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
+                if (mcpMatch) {
+                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                } else if (line.match(/^requires_mcp:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    requires_mcp = parsed.values;
+                    i = parsed.nextIndex;
+                }
+
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
                     const key = match[1];
@@ -246,9 +315,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description };
+        return { name, description, triggers, requires_mcp };
     } catch (error) {
-        return { name: '', description: '' };
+        return { name: '', description: '', triggers: [], requires_mcp: [] };
     }
 }
 

@@ -7,9 +7,20 @@ overrides: superpowers/receiving-code-review
 # and refines implementation order with systemic check step. obra's version lacks
 # the "fix the disease not the symptoms" workflow.
 triggers: ["received code review", "PR feedback", "reviewer commented", "code review feedback", "implement review suggestions", "address review comments"]
+anti_triggers: ["review this PR", "review these changes", "send to reviewer agent", "I am the reviewer agent"]
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+summary: "Use when: implementing PR feedback. Skip when: the feedback is a simple typo fix."
+coordination:
+  group: code-quality
+  order: 4
+  requires: [providing-code-review]
+  enables: [code-review-respond]
+  escalates_to: [think-twice]
+  internal: false
 ---
 # Code Review Reception
+
+> **Wrong skill?** Reviewing someone's PR → `providing-code-review`. Sending to reviewer agent → `code-review`. Acting as reviewer → `code-review-respond`.
 
 ## When to Use
 
@@ -78,85 +89,38 @@ Reviewer says: "Remove hardcoded defaults at lines 96, 127, and 81"
      4. Fix ALL four
      5. Verify: grep returns nothing
      6. "Done - fixed 4 instances (3 listed + 1 additional in data import)"
-## Forbidden Responses
-**NEVER:**
-- "You're absolutely right!" (performative)
-- "Great point!" / "Excellent feedback!" (performative)
-- "Let me implement that now" (before verification)
+## Response Rules
 
-**INSTEAD:**
-- Restate the technical requirement
-- Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
-## Handling Unclear Feedback
-IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
+**Never performative** ("You're absolutely right!", "Great point!"). Instead: restate requirement, ask questions, push back with reasoning, or just fix it.
 
-WHY: Items may be related. Partial understanding = wrong implementation.
+**Correct feedback**: "Fixed. [what changed]" or "Good catch — [issue]. Fixed in [location]." or just fix and show.
+
+**Unclear feedback**: STOP — clarify ALL items before implementing. Partial understanding = wrong implementation.
 
 ## Source-Specific Handling
-### From your human partner
-- **Trusted** - implement after understanding
-- **Still ask** if scope unclear
-- **No performative agreement**
-- **Skip to action** or technical acknowledgment
 
-### From External Reviewers
-BEFORE implementing:
-     1. Check: Technically correct for THIS codebase?
-     2. Check: Breaks existing functionality?
-     3. Check: Reason for current implementation?
-     4. Check: Works on all platforms/versions?
-     5. Check: Does reviewer understand full context?
-
-IF suggestion seems wrong:
-  Push back with technical reasoning
-
-IF conflicts with your human partner's prior decisions:
-  Stop and discuss with your human partner first
+**Human partner**: Trusted — implement after understanding. Still ask if scope unclear.
+**External reviewers**: Check: correct for THIS codebase? Breaks functionality? Reason for current approach? Push back if wrong. Conflicts with partner's decisions → discuss with partner first.
 
 ## Implementation Order
-FOR multi-item feedback:
-     1. Clarify anything unclear FIRST
-     2. Then implement in this order:
-        • Blocking issues (breaks, security)
-        • Simple fixes (typos, imports)
-        • Complex fixes (refactoring, logic)
-     3. Test each fix individually
-     4. Verify no regressions
-     5. SYSTEMIC CHECK (see above)
-## When To Push Back
 
-Push back when:
-- Suggestion breaks existing functionality
-- Reviewer lacks full context
-- Violates YAGNI (unused feature)
-- Technically incorrect for this stack
-- Legacy/compatibility reasons exist
-- Conflicts with your human partner's architectural decisions
+1. Clarify unclear items FIRST
+2. Blocking (breaks, security) → simple (typos, imports) → complex (refactoring)
+3. Test each individually → verify no regressions → SYSTEMIC CHECK
+
+## Push Back When
+
+Breaks functionality · reviewer lacks context · YAGNI · technically wrong · legacy reasons · conflicts with partner's architecture.
 
 ## Common Mistakes
+
 | Mistake | Fix |
 |---------|-----|
 | Performative agreement | State requirement or just act |
 | Blind implementation | Verify against codebase first |
 | Batch without testing | One at a time, test each |
-| Assuming reviewer is right | Check if breaks things |
-| Avoiding pushback | Technical correctness > comfort |
-| Partial implementation | Clarify all items first |
-| **Checklist completion ≠ goal achieved** | Search for OTHER instances of same pattern |
-| Fixing symptoms, not disease | Extract underlying goal, verify it's achieved |
-## Acknowledging Correct Feedback
-
-When feedback IS correct:
-✅ "Fixed. [Brief description of what changed]"
-✅ "Good catch - [specific issue]. Fixed in [location]."
-✅ [Just fix it and show in the code]
-
-❌ "You're absolutely right!"
-❌ "Great point!"
+| Checklist ≠ goal achieved | Search for OTHER instances |
+| Fixing symptoms not disease | Extract underlying goal |
 ❌ ANY gratitude expression
 
 ## The Bottom Line
@@ -166,7 +130,17 @@ Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 No performative agreement. Technical rigor always.
 
 
-## Common Failure Modes
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Defensive dismissal | "That's by design" without evidence | Assume reviewer saw something real |
+| Blind acceptance | Fix everything without evaluation | Evaluate each: agree/disagree/discuss |
+| Scope deflection | "Out of scope for this PR" for real issues | Fix if <30 min, else log TODO |
+| Silent disagreement | Ignore comment, don't respond | Every comment gets a response |
+| Fix without understanding | Mechanical fix, same pattern recurs | Understand root cause first |
+
+## Failure Modes
 
 - **Blind implementation:** Implementing every suggestion without evaluating whether it's correct for THIS codebase
 - **Performative agreement:** Saying "great catch!" instead of technically verifying the feedback is accurate
@@ -181,3 +155,11 @@ No performative agreement. Technical rigor always.
 grep -rn "\.getData()" --include="*.ts" src/ | grep -v "?." | grep -v "!= null"
 # Then fix ALL instances, not just the one the reviewer spotted
 ```
+
+## Companion Skills
+
+- **providing-code-review**: How the reviewer should structure feedback
+- **code-review**: File-protocol review (may generate the feedback you're processing)
+- **systematic-debugging**: For investigating complex review findings
+- **code-review-respond**: Review response workflow
+- **code-review-battery**: Multi-reviewer orchestration

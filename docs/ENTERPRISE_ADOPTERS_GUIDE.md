@@ -30,8 +30,7 @@ superpowers-plus is designed as a **generic base layer** that organizations exte
 │   │  superpowers-plus   │    │   your-org-skills   │           │
 │   │  (PUBLIC / GENERIC) │    │  (PRIVATE / SPECIFIC)│           │
 │   ├─────────────────────┤    ├─────────────────────┤           │
-│   │ • wiki-editing      │    │ • wiki-editing      │ ← OVERRIDE│
-│   │ • wiki-authoring    │    │ • wiki-authoring    │ ← OVERRIDE│
+│   │ • wiki-orchestrator │    │ • wiki-orchestrator │ ← OVERRIDE│
 │   │ • issue-authoring   │    │ • jira-issue-auth   │ ← EXTEND  │
 │   │ • link-verification │    │ • link-verification │ ← OVERRIDE│
 │   │ • _adapters/        │    │ • rules/*.always.md │           │
@@ -40,7 +39,7 @@ superpowers-plus is designed as a **generic base layer** that organizations exte
 │            │ Install 1st              │ Install 2nd             │
 │            ▼                          ▼                         │
 │   ┌─────────────────────────────────────────────────┐          │
-│   │           ~/.augment/skills/                    │          │
+│   │           ~/.codex/skills/ + ~/.claude/skills/  │          │
 │   │  (Later installs OVERRIDE earlier ones)         │          │
 │   └─────────────────────────────────────────────────┘          │
 │                                                                 │
@@ -65,11 +64,11 @@ When an AI agent invokes a skill, it looks in these locations (in order):
 
 | Location | Purpose | Checked |
 |----------|---------|---------|
-| `~/.augment/skills/` | Augment Agent skills | First |
-| `~/.codex/skills/` | Claude Code skills | Second |
-| `~/.codex/superpowers/skills/` | obra/superpowers skills | Third |
+| `~/.codex/skills/` | Primary skills (Augment Agent + superpowers-augment.js) | First |
+| `~/.claude/skills/` | Claude Code native Skill tool path | Second |
+| `~/.codex/superpowers/skills/` | obra/superpowers framework skills | Third |
 
-Your org's `install.sh` should deploy to `~/.augment/skills/` to ensure your overrides take precedence.
+Your org's `install.sh` should deploy to `~/.codex/skills/` and `~/.claude/skills/` to ensure your overrides take precedence.
 
 ---
 
@@ -91,13 +90,13 @@ Use this pattern when you need to replace a generic skill with a vendor-specific
 2. **Install your org repo AFTER superpowers-plus**
 3. The generic version is replaced by your version
 
-**Example: Overriding `wiki-editing`**
+**Example: Overriding `wiki-orchestrator`**
 
 Generic version (superpowers-plus):
 ```yaml
-# skills/wiki/wiki-editing/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document"]
 description: Generic wiki editing workflow. See _adapters/ for platform setup.
@@ -106,11 +105,11 @@ description: Generic wiki editing workflow. See _adapters/ for platform setup.
 
 Your org version (your-org-skills):
 ```yaml
-# skills/wiki/wiki-editing/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-editing
+name: wiki-orchestrator
 source: your-org-skills
-overrides: superpowers-plus/wiki-editing
+overrides: superpowers-plus/wiki-orchestrator
 triggers: ["update wiki page", "push to wiki", "edit wiki", "create wiki document"]
 description: Wiki editing for YourWikiPlatform. Includes org-specific scope restrictions.
 ---
@@ -162,10 +161,10 @@ skills/
 │   ├── _adapters/
 │   │   ├── README.md              # Overview of all adapters
 │   │   ├── adapter-interface.md   # Generic interface definition
-│   │   ├── outline.md             # Outline-specific config
+│   │   ├── platform-template.md   # Provider-neutral adapter template
 │   │   ├── confluence.md          # Confluence-specific config
 │   │   └── notion.md              # Notion-specific config
-│   └── wiki-editing/
+│   └── wiki-orchestrator/
 │       └── skill.md               # Generic skill, references adapters
 ```
 
@@ -175,8 +174,8 @@ Adapters are selected via environment variables in `.env`:
 
 | Variable | Purpose | Example Values |
 |----------|---------|----------------|
-| `WIKI_PLATFORM` | Selects wiki adapter | `outline`, `confluence`, `notion` |
-| `ISSUE_TRACKER_TYPE` | Selects issue tracker | `linear`, `github`, `jira`, `azure-devops` |
+| `WIKI_PLATFORM` | Selects wiki adapter | Your configured adapter key |
+| `ISSUE_TRACKER_TYPE` | Selects issue tracker | Your configured adapter key |
 
 Skills read these at runtime to load the appropriate adapter configuration.
 
@@ -203,10 +202,10 @@ Use this pattern when your org's workflow diverges significantly from the generi
 **Example: Forked skill header**
 
 ```yaml
-# skills/wiki/wiki-authoring/skill.md
+# skills/wiki/wiki-orchestrator/skill.md
 ---
-name: wiki-authoring
-description: Wiki authoring rules for YourOrg. FORK of superpowers-plus wiki-authoring.
+name: wiki-orchestrator
+description: Wiki authoring rules for YourOrg. FORK of superpowers-plus wiki-orchestrator.
 ---
 
 # Wiki Authoring (YourOrg Fork)
@@ -229,7 +228,7 @@ Create a tracking file in your org repo:
 ```yaml
 # .fork-tracking.yaml
 forks:
-  - skill: wiki-authoring
+  - skill: wiki-orchestrator
     upstream_repo: superpowers-plus
     upstream_version: v2.1.0
     fork_date: 2024-03-01
@@ -257,13 +256,13 @@ Rules are **always-active guidance** that apply to ALL conversations, regardless
 | Invocation | Explicitly invoked or triggered | Always active |
 | Purpose | Specific workflows | Global policies |
 | Override | Can be overridden | Cannot be bypassed |
-| Location | `~/.augment/skills/` | `~/.augment/rules/` |
+| Location | `~/.codex/skills/` | `~/.augment/rules/` |
 
 ### Rule File Naming
 
 ```
 rules/
-├── wiki-editing.always.md      # Always-on wiki guidance
+├── wiki-orchestrator.always.md      # Always-on wiki guidance
 ├── secrets-policy.always.md    # Secret handling policy
 ├── code-review.always.md       # Code review requirements
 └── pii-protection.always.md    # PII handling rules
@@ -337,12 +336,12 @@ cp path/to/superpowers-plus/tools/skill-trigger-validator.sh your-org-skills/too
 
 ### Configuring Intentional Overlaps
 
-Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-editing`). Declare these in the `ALLOWED_OVERLAPS` array in your copy of the validator:
+Some skills share triggers intentionally (e.g., `link-verification` fires alongside `wiki-orchestrator`). Declare these in the `ALLOWED_OVERLAPS` array in your copy of the validator:
 
 ```bash
 # In your-org-skills/tools/skill-trigger-validator.sh
 ALLOWED_OVERLAPS=(
-    "link-verification:wiki-editing"      # Dependency chain
+    "link-verification:wiki-orchestrator"      # Dependency chain
     "link-verification:wiki-orchestrator" # Dependency chain
     "old-skill:new-skill"                 # Deprecated alias
 )
@@ -397,9 +396,9 @@ your-org-skills/
 │   │   └── your-org-utils.md
 │   │
 │   ├── wiki/                 # Wiki skills (override generic)
-│   │   ├── wiki-editing/
+│   │   ├── wiki-orchestrator/
 │   │   │   └── skill.md      # Platform-specific implementation
-│   │   ├── wiki-authoring/
+│   │   ├── wiki-orchestrator/
 │   │   │   └── skill.md      # Org formatting rules
 │   │   └── _adapters/        # Optional: org-specific adapters
 │   │       └── internal-wiki.md
@@ -424,8 +423,8 @@ your-org-skills/
 
 | Directory | Purpose | Installs To |
 |-----------|---------|-------------|
-| `skills/` | Skill implementations | `~/.augment/skills/` |
-| `skills/_shared/` | Shared utilities | `~/.augment/skills/_shared/` |
+| `skills/` | Skill implementations | `~/.codex/skills/` + `~/.claude/skills/` |
+| `skills/_shared/` | Shared utilities | `~/.codex/skills/_shared/` |
 | `rules/` | Always-on rules | `~/.augment/rules/` |
 
 ---
@@ -449,7 +448,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="1.0.0"
 
 # Target directories
-SKILLS_DIR="${HOME}/.augment/skills"
+SKILLS_DIR="${HOME}/.codex/skills"
+CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 RULES_DIR="${HOME}/.augment/rules"
 
 # Colors
@@ -490,13 +490,14 @@ check_env_vars() {
 install_skills() {
     log_info "Installing org skills..."
 
-    mkdir -p "$SKILLS_DIR"
+    mkdir -p "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"
 
     find "$SCRIPT_DIR/skills" -name "skill.md" | while read -r skill_file; do
         skill_dir=$(dirname "$skill_file")
         skill_name=$(basename "$skill_dir")
 
         cp -r "$skill_dir" "$SKILLS_DIR/"
+        cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/"
         log_info "  Installed: $skill_name"
     done
 }
@@ -526,7 +527,7 @@ main() {
     echo ""
     log_info "Installation complete!"
     echo ""
-    echo "Skills installed to: $SKILLS_DIR"
+    echo "Skills installed to: $SKILLS_DIR + $CLAUDE_SKILLS_DIR"
     echo "Rules installed to: $RULES_DIR"
 }
 
@@ -558,7 +559,7 @@ For a senior engineer setting up superpowers-plus for their organization:
 
 ### Day 2: Core Integrations
 - [ ] Identify which generic skills need overriding
-- [ ] Create org-specific wiki-editing (for your wiki platform)
+- [ ] Create org-specific wiki-orchestrator (for your wiki platform)
 - [ ] Create org-specific issue-authoring (for your issue tracker)
 - [ ] Add adapters for your platforms
 
@@ -580,7 +581,7 @@ For a senior engineer setting up superpowers-plus for their organization:
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | Generic skill runs instead of org-specific | Install order wrong | Run org install.sh AFTER superpowers-plus |
-| Skill not found | Skill not in correct directory | Check `~/.augment/skills/` for your skill |
+| Skill not found | Skill not in correct directory | Check `~/.codex/skills/` for your skill |
 | Rule not applying | Missing `.always.md` suffix | Rename to `*.always.md` |
 | Override not working | Name mismatch | Ensure exact same skill name |
 

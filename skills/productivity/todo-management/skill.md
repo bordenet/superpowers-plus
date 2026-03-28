@@ -1,11 +1,22 @@
 ---
 name: todo-management
 source: superpowers-plus
-triggers: ["add task", "add a TODO", "add TODO", "what should I work on", "show my tasks", "show my TODOs", "what are my TODOs", "what are my tasks", "complete [task]", "what did I do", "triage", "process TODOs", "mark done", "my P1s", "backlog", "today's priorities", "TODOs today", "task list", "implement this plan", "execute these steps", "track this work", "let's do this", "begin implementation", "work through this checklist", "todo", "todos", "what are our todos", "what's pending", "what's next", "what needs to be done", "open tasks", "outstanding tasks", "what's left", "remaining work", "show todos", "list tasks", "active tasks"]
+triggers: ["add task", "add TODO", "what should I work on", "show my tasks", "list tasks", "what are my tasks", "what's next", "what's pending", "complete [task]", "mark done", "what did I do", "triage", "my P1s", "today's priorities", "backlog", "implement this plan", "execute these steps", "track this work", "todo", "remaining work"]
+anti_triggers: ["archive old tasks", "search old tasks", "find archived"]
 description: Use when capturing tasks, tracking work, triaging priorities, querying task history, or executing multi-step plans.
+summary: "Use when: managing multi-step tasks. Hard gate for 3+ step tasks."
+coordination:
+  group: productivity
+  order: 0
+  requires: []
+  enables: ["todo-archive", "fallback-planning"]
+  escalates_to: []
+  internal: false
 ---
 
 # TODO Management
+
+> **Wrong skill?** Archiving completed tasks → `todo-archive`. Plan execution → `plan-and-execute`.
 
 > **File location:** Resolved from `TODO_FILE_PATH` in `~/.codex/.env` (falls back to `$HOME/.codex/TODO.md`)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
@@ -22,87 +33,95 @@ description: Use when capturing tasks, tracking work, triaging priorities, query
 
 ## Multi-Step Plan Tracking
 
-When executing a multi-step plan (3+ steps), use **BOTH** persistence mechanisms:
+For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MCP tools** (supplementary, session-only UI). Write TODO.md first, then mirror to MCP.
 
-1. **TODO.md file** (PRIMARY) — Persist all plan steps to disk for resilience
-2. **MCP tools** (SUPPLEMENTARY) — Real-time visibility in conversation UI
+### Workflow
 
-### Why Both?
-
-| Mechanism | Purpose | Survives |
-|-----------|---------|----------|
-| **TODO.md** | Persistence, recovery, cross-session continuity | Context compaction, crashes, session switches |
-| **MCP tools** | Real-time UI visibility for user | Current session only |
-
-**Default behavior:** Write to TODO.md first, then mirror to MCP tools if available.
-
-### Workflow: Executing a Multi-Step Plan
-
-When user says "implement this plan", "execute these steps", etc.:
-
-1. **Name the effort** — Derive identifier from plan title (kebab-case) or ask user if ambiguous
-   - "Implement the config refactor" → `config-refactor`
-   - "Fix the auth bug" → `auth-fix`
-   - If unclear: "What should I call this effort?"
-2. **Persist to TODO.md** — Write all steps as P1 tasks with `#plan-<identifier>` tag
-3. **Mirror to MCP** — Create parent task for the plan, add steps as children using `parent_task_id`
-4. **Track progress** — Update both systems as you complete steps
+1. **Name the effort** — kebab-case from plan title (e.g., `config-refactor`). Ask if ambiguous.
+2. **Persist** — Write steps as P1 tasks with `#plan-<identifier>` tag in TODO.md
+3. **Mirror** — Create parent task + children in MCP via `add_tasks` with `parent_task_id`
+4. **Track** — Update both systems as you complete steps
 5. **Verify** — Filter by `#plan-<identifier>` to check completion
 
-### Querying by Effort
-
-| Query | Action |
-|-------|--------|
-| "What's left in config-refactor?" | Filter `#plan-config-refactor`, show incomplete tasks |
-| "Show my active plans" | List unique `#plan-*` tags with task counts |
-| "Complete the auth-fix plan" | Mark all `#plan-auth-fix` tasks as done |
-
-### MCP Tools (Supplementary)
-
-MCP tools (`add_tasks`, `update_tasks`, `view_tasklist`) provide real-time UI visibility
-but are session-scoped. **Always write to TODO.md first**, then mirror to MCP if available.
-
 ---
 
-## ⛔ HARD GATE: File Path Resolution (MANDATORY — No Exceptions)
+## Primary Interface: `todo-crud.sh`
 
-**Before ANY task operation**, run preflight → use returned `TODO_PATH` for all file ops:
+**Use `todo-crud.sh` for ALL TODO.md access** — both reading and writing. It resolves the correct path from `~/.codex/.env` automatically. NEVER `cat` or `view` TODO.md directly.
 
 ```bash
-~/.codex/superpowers-plus/tools/todo-preflight.sh              # resolve path
-~/.codex/superpowers-plus/tools/todo-preflight.sh --create-if-missing  # create if needed
+# READ — show TODO.md contents (resolved path)
+~/.codex/superpowers-plus/tools/todo-crud.sh cat
+~/.codex/superpowers-plus/tools/todo-crud.sh path      # just the path
+~/.codex/superpowers-plus/tools/todo-crud.sh list       # filtered task list
+
+# WRITE — add, complete, move, defer
+~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P3 --description "Task description" --tags "#tag1 #tag2" --note "Additional context"
+~/.codex/superpowers-plus/tools/todo-crud.sh complete --id 20260322-01 --note "Resolution notes"
+~/.codex/superpowers-plus/tools/todo-crud.sh move --id 20260322-01 --to P1
+~/.codex/superpowers-plus/tools/todo-crud.sh defer --id 20260322-01 --reason "Blocked on X"
+
+# Multi-agent: claim a task (marks [/], adds TTL metadata)
+~/.codex/superpowers-plus/tools/todo-crud.sh claim --id 20260322-01 --ttl 30
+~/.codex/superpowers-plus/tools/todo-crud.sh unclaim --id 20260322-01
+~/.codex/superpowers-plus/tools/todo-crud.sh reap
+
+# Utility
+~/.codex/superpowers-plus/tools/todo-crud.sh next-id
+~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
-**If `FILE_EXISTS=false`: STOP. Do NOT proceed. Do NOT fall back to MCP-only tracking.**
+**What it does automatically:** path resolution, advisory locking, backup before write, task ID allocation, section targeting, whitespace normalization, expired claim reaping. Cross-platform (macOS + Linux).
 
-See **[AGENTS.md § Planning and Task Management](../../../AGENTS.md#planning-and-task-management)** for the full hard gate, locking protocol, anti-patterns, and configuration.
+**If TODO.md doesn't exist:** Run `todo-preflight.sh --create-if-missing` first to create from template.
 
-**Quick reference — correct write sequence:**
-1. Run preflight → get `TODO_PATH`
-2. `todo-lock.sh acquire` → backup → write → `todo-lock.sh release`
-3. Optionally mirror to MCP tools for UI visibility
+## Maintenance Interface: `todo-maintenance.sh`
+
+**Use `todo-maintenance.sh` for routine housekeeping.** It resolves/creates `TODO.md`, reports stale `#plan-*` tasks, and runs archive automatically when housekeeping thresholds are hit.
+
+```bash
+# One-command maintenance (recommended after multi-step sessions)
+~/.codex/superpowers-plus/tools/todo-maintenance.sh
+
+# Preview housekeeping actions without modifying TODO.md
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --dry-run
+
+# Machine-readable summary for agents/scripts
+~/.codex/superpowers-plus/tools/todo-maintenance.sh --json
+```
+
+### Legacy Tools (still available, rarely needed)
+
+| Tool | When to use |
+|------|-------------|
+| `todo-preflight.sh` | Create initial TODO.md, or debug path resolution |
+| `todo-lock.sh` | Debug lock issues (`status`, `steal` commands) |
+
+### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
+
+**NEVER write to TODO.md except through the approved TODO tools** (`todo-crud.sh`, `todo-preflight.sh --create-if-missing`, `todo-maintenance.sh`). This ban includes:
+- ❌ `save-file` / `str-replace-editor` / `echo >` / `cat >` / `sed -i` / inline python
+- ❌ ANY method that bypasses preflight, locking, backup, or structure validation
+
+**Incident 2026-03-23:** An agent used `save-file` to overwrite TODO.md with a raw task list. Dozens of unstarted tasks were permanently destroyed. No backup was created. Recovery was impossible.
+
+`todo-crud.sh` prevents this by: (1) resolving the correct `TODO_FILE_PATH`, (2) acquiring an advisory lock, (3) creating a timestamped backup, (4) validating section structure (required headers in order, priority subsections, and at least one task or history artifact). Bypassing it bypasses ALL of these protections.
+
+### Defense Layers (enforced by `todo-engine.py`)
+
+7 layers: rules → structural validation → OS immutability (`chflags uchg`) → chmod 444 → shadow+annihilation detection → stray path detection → path obscuring (`.todo-registry`). If annihilation blocks a write: delete `~/.codex/todo-shadow/TODO.md` and retry.
 
 ---
 
-## Overview
+## Multi-Agent Coordination
 
-Conversational TODO list management through AI dialog. Captures tasks in ≤15 seconds, organizes by P1/P2/P3 priority, auto-tags based on context, and provides queryable history.
-
-**Announce at start:** "I'm using the todo-management skill."
+Use `claim --id <ID>` → `complete --id <ID>` (or `unclaim` to abandon). Claims auto-expire after TTL (default 30 min). Run `reap` to clean expired claims. Set `AGENT_ID` env var for readable names.
 
 ---
 
-## Quick Reference
+## How It Works
 
-| Command | Action |
-|---------|--------|
-| "Add task: [description]" | Create task with AI-inferred priority + tags |
-| "Show my tasks" | Display P1 → P2 → P3 |
-| "Complete [ID or fragment]" | Mark done, prompt for notes |
-| "What did I do [timeframe]?" | Query history |
-| "What did I do for engineering?" | Filter by #engineering-* tags |
-| "What should I work on?" | Brainstorm mode |
-| "Triage" | Review active tasks |
+Conversational TODO management. Captures tasks in ≤15 seconds, P1/P2/P3 priority, auto-tagged. Commands: "Add task: X", "Show my tasks", "Complete [ID]", "What did I do?", "What should I work on?", "Triage".
 
 ## Priority Framework
 
@@ -116,49 +135,39 @@ Conversational TODO list management through AI dialog. Captures tasks in ≤15 s
 
 ---
 
-## Tagging Taxonomy
+## References
 
-Tags are auto-inferred from keywords. See `references/taxonomy.md` for the full taxonomy (engineering, recruiting, general, plan tags) and customization guidance.
-
-**Key pattern:** Use `#plan-<identifier>` (kebab-case) to group tasks by effort for parallel work isolation.
-
----
-
-## File Format & Operations
-
-See `references/file-format-and-operations.md` for:
-- Full TODO.md file format (ACTIVE TASKS, HISTORY, DEFERRED, METRICS sections)
-- Task ID format (`YYYYMMDD-NN`)
-- Core operations (Add, Complete, Query History)
-- Implementation workflow (lock acquire → backup → write → lock release)
-- Self-improvement pipeline and weekly feedback
-
----
+- **Tags**: Auto-inferred. Use `#plan-<id>` for parallel work. Full taxonomy: `references/taxonomy.md`
+- **File format**: `references/file-format-and-operations.md` (sections, IDs, operations, lock workflow)
+- **Context-Aware**: `references/context-aware-standard.md` — enforce on `#plan-*` tasks
 
 ## Guardrails
 
-| Condition | Action |
-|-----------|--------|
-| P1 count > 5 | Warn and offer to demote |
-| P3 task > 14 days old | Friday sweep: "Kill or Keep?" |
-| Multi-day task | Ask "What did you accomplish? What remains?" |
+P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress. Plan tasks without Context-Aware fields → warn.
+
+**Housekeeping:** Move `[x]` to HISTORY immediately. Run `todo-maintenance.sh` after multi-step sessions.
 
 ---
 
-## ♻️ Housekeeping (MANDATORY — Every Session)
+## Failure Modes
 
-**On task completion:** Move `[x]` items from ACTIVE to `# HISTORY → ## YYYY-MM-DD` immediately. Only `[ ]` tasks belong in ACTIVE sections.
+| Failure | Detection | Recovery |
+|---------|-----------|----------|
+| Direct file write attempted | OS immutability blocks it | No action needed |
+| Honeypot tampered/missing flag | `sp-doctor` Check 23 detects | Run `sp-doctor --fix` |
+| TODO path missing | Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
+| `.todo-registry` missing/empty | `self-test` warns; falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
+| Annihilation detected (>60% drop) | Engine blocks write | Delete `~/.codex/todo-shadow/TODO.md` and retry |
+| Lock stuck (agent died mid-write) | TTL expires after 120s | Wait 2 min, or `rm -rf` the `.TODO.md.lock` dir |
+| Agent writes directly despite rules | Shadow comparison catches post-write | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
 
-**Post-session archive check** — run archive (`todo-archive` skill or `~/.codex/skills/todo-archive/todo-archive.sh --force`) when any of these are true:
-- HISTORY has ≥5 completed tasks
-- TODO.md exceeds 200 lines
-- HISTORY entries are >7 days old
+> **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips.
 
-**Backup:** Before EVERY write: `cp "$TODO_PATH" "$TODO_PATH.$(date +%Y%m%d-%H%M%S).bak"`
+Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-25)
 
----
+## Companion Skills
 
-## Reference Files
+- **todo-archive**: Archiving completed tasks · **plan-and-execute**: Planning complex task sequences
 
-- [`references/taxonomy.md`](references/taxonomy.md) — Full tagging taxonomy, customization guidance
-- [`references/file-format-and-operations.md`](references/file-format-and-operations.md) — File format, task ID format, core operations, implementation workflow
+**References:** [`references/taxonomy.md`](references/taxonomy.md) · [`references/file-format-and-operations.md`](references/file-format-and-operations.md)
+- **todo-guardian**: TODO enforcement layer

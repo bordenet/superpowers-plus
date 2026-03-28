@@ -9,9 +9,9 @@
 
 | Scenario | Command |
 |----------|---------|
-| Standard upgrade | `./install.sh --upgrade --verbose` |
-| Force upgrade (discard local changes) | `./install.sh --upgrade --force --verbose` |
-| Complete reinstall | `./install.sh --force --verbose` |
+| Standard upgrade | `bash install.sh --upgrade --verbose` |
+| Force upgrade (discard local changes) | `bash install.sh --upgrade --force --verbose` |
+| Complete reinstall | `bash install.sh --force --verbose` |
 
 ---
 
@@ -39,7 +39,7 @@ If `git status` shows modifications, decide whether to:
 
 ```bash
 cd /path/to/superpowers-plus
-./install.sh --upgrade --verbose
+bash install.sh --upgrade --verbose
 ```
 
 **Use when:**
@@ -57,7 +57,7 @@ cd /path/to/superpowers-plus
 
 ```bash
 cd /path/to/superpowers-plus
-./install.sh --upgrade --force --verbose
+bash install.sh --upgrade --force --verbose
 ```
 
 **Use when:**
@@ -74,7 +74,7 @@ cd /path/to/superpowers-plus
 
 ```bash
 cd /path/to/superpowers-plus
-./install.sh --force --verbose
+bash install.sh --force --verbose
 ```
 
 **Use when:**
@@ -103,7 +103,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep -c "
 
 **Expected results:**
 - Bootstrap should complete without errors
-- Skill count should be 59+ (47 from this repo + 12 from obra/superpowers framework, varies as skills are added)
+- Skill count should be 72+ (58 from this repo + 14 from obra/superpowers framework, varies as skills are added)
 
 ---
 
@@ -118,7 +118,7 @@ Users may request upgrades with phrases like:
 
 **AI Assistant Response:**
 1. Navigate to superpowers-plus directory
-2. Run `./install.sh --upgrade --verbose`
+2. Run `bash install.sh --upgrade --verbose`
 3. If it fails, retry with `--upgrade --force`
 4. Verify with bootstrap command
 
@@ -128,8 +128,8 @@ Users may request upgrades with phrases like:
 
 | Problem | Solution |
 |---------|----------|
-| "superpowers not installed" | Run `./install.sh` (without --upgrade) first |
-| "not a git repository" | Run `./install.sh --force` to reinstall |
-| "Fast-forward pull failed" | Run `./install.sh --upgrade --force` |
+| "superpowers not installed" | Run `bash install.sh` (without --upgrade) first |
+| "not a git repository" | Run `bash install.sh --force` to reinstall |
+| "Fast-forward pull failed" | Run `bash install.sh --upgrade --force` |
 | Skills not loading | Check `~/.codex/skills/` and `~/.codex/superpowers/skills/` exist |
-| Wrong skill count | Run `./install.sh` to reinstall personal skills |
+| Wrong skill count | Run `bash install.sh` to reinstall personal skills |

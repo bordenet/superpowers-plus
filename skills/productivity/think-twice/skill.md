@@ -1,8 +1,10 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["think twice", "you're stuck", "you're looping", "you're going in circles", "stuck in a loop", "spiraling", "stop and think", "fresh perspective", "second opinion", "try a different approach", "stuck:reasoning", "stuck:perspective"]
-description: Helps the AI coding assistant break out of spirals and stuck loops. Auto-detects circular reasoning, repeated failures, or exhaustion signals. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+triggers: ["second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same"]
+anti_triggers: ["use perplexity", "research this", "Perplexity API"]
+description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
+summary: "Use when: stuck in a loop, circular reasoning, or same error 3+ times."
 coordination:
   group: stuck-escalation
   order: 1
@@ -14,7 +16,17 @@ coordination:
 
 # Think Twice
 
+> **Wrong skill?** Research a topic → `perplexity-research`. Brainstorm solutions → `brainstorming`. Debug a specific error → `systematic-debugging`.
+
 > **Break through blockers by consulting a fresh perspective.**
+
+
+## When to Use
+
+- You've tried the same approach 3+ times without progress
+- You notice yourself using hedging language ("I'm not sure why")
+- The same error keeps recurring after attempted fixes
+- You catch yourself referencing your own failed output as evidence
 
 ## Process
 
@@ -32,13 +44,72 @@ coordination:
 
 5. **If score <50:** Offer retry with refined prompt (max 1 retry) or proceed with best suggestion.
 
+## Stuck-Signal Auto-Detection
+
+Continuously monitor for these signals. When cumulative score ≥ 7, invoke think-twice **automatically**:
+
+| Signal | Weight |
+|--------|--------|
+| Same fix tried 3+ times | 3 |
+| Circular reasoning (referencing own failed output) | 3 |
+| Same error 3+ times after fixes | 3 |
+| Exhaustion language ("I've tried everything") | 3 |
+| Uncertainty hedging ("I'm not sure why") | 2 |
+| Approach change without rationale | 2 |
+
 ## Escalation Path
 
-**Reasoning problem** (logic, approach, design) → think-twice first → escalate to perplexity-research.
-**Knowledge problem** (API docs, error codes, facts) → perplexity-research first → think-twice for fresh reasoning.
+| Problem Type | First | Escalate To |
+|-------------|-------|-------------|
+| Reasoning (logic, approach, design) | `think-twice` | `perplexity-research` |
+| Knowledge (API docs, error codes, facts) | `perplexity-research` | `think-twice` for fresh reasoning |
+| Both (stuck + need facts) | `think-twice` | `perplexity-research` with refined query |
 
-## Reference Files
+## Consultation Prompt Quality
+
+The prompt sent to the sub-agent determines outcome quality. MUST include:
+
+| Element | Required? | Why |
+|---------|-----------|-----|
+| Problem statement | ✅ | What's broken or stuck |
+| Technical context | ✅ | Stack, versions, constraints |
+| What was tried + outcomes | ✅ | Prevents re-trying failed approaches |
+| Exact error messages | ✅ | Enables pattern matching |
+| Minimal code snippet | ✅ | Concrete not abstract |
+| Constraints | ✅ | What CAN'T change |
+| Specific ask | ✅ | "What else could cause X?" not "help" |
+
+**Total:** <2000 tokens. Self-contained. No references to "above" or "earlier."
+
+## References
 
 - `references/consultation-prompt-template.md` — Prompt template
 - `references/scoring-rubric.md` — Scoring dimensions
 - `prompts/consultant-persona.md` — Sub-agent persona
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Sub-agent inherits same flawed assumptions | Provide raw symptoms only, not prior conclusions |
+| Agent ignores stuck signals and keeps looping | Enforce cumulative score threshold — 7+ is mandatory |
+| Fresh perspective is too shallow | Sub-agent must produce root-cause hypothesis, not just "try X" |
+
+```bash
+# Example: invoke think-twice when stuck
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
+```
+
+
+## Companion Skills
+
+- **perplexity-research**: Escalation target for knowledge problems
+- **systematic-debugging**: For specific error debugging
+- **brainstorming**: For generating alternative approaches
+- **adversarial-search**: Confirmation bias prevention
+- **investigation-state**: When investigation hits a wall
+- **issue-comment-debunker**: Debunking suspicious issue claims
+- **experimental-self-prompting**: Self-directed exploration
+- **quantitative-decision-gate**: Quantitative decision-making
+- **failure-autopsy**: Post-mortem analysis
+- **micro-harsh-review**: Per-batch code review

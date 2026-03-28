@@ -1,11 +1,22 @@
 ---
 name: wiki-verify
 source: superpowers-plus
-triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy"]
+triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy", "check wiki accuracy", "verify wiki facts"]
+anti_triggers: ["edit wiki", "update wiki page", "create wiki page", "write wiki"]
 description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and updates stale content interactively.
+summary: "Use when: wiki references codebase details that may have drifted. Skip when: reading wiki only."
+coordination:
+  group: wiki
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: ['wiki-orchestrator']
+  internal: false
 ---
 
 # Skill: wiki-verify
+
+> **Wrong skill?** Checking links in wiki → `link-verification`. Scanning for secrets → `wiki-secret-audit`. Full wiki editing → `wiki-orchestrator`. Content duplication → `wiki-content-coherence`.
 
 ## Triggers
 
@@ -32,7 +43,6 @@ description: Use when wiki pages reference codebase details (versions, repos, co
 Look for a `## 🔍 Verification Sources` section at the bottom of the wiki page:
 
 ```markdown
----
 
 ## 🔍 Verification Sources
 
@@ -125,50 +135,34 @@ Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
 
 ## Required Page Footer
 
-**Every wiki page maintained by this skill MUST have this single-line footer at the bottom:**
+Add if missing: `*🔄 AI-maintained — invoke wiki-verify skill to update*`
+Place after `## 🔍 Verification Sources` section. Omit "Last verified" dates and page URLs.
 
-```markdown
----
+## Authoritative Sources
 
-*🔄 AI-maintained — invoke wiki-verify skill to update*
-```
+Git repos (`git show/log`) · repository adapter · `package.json` · `requirements.txt` · config files (YAML/JSON/TOML) · `.env.example`.
 
-**Rules:**
-- If footer is missing, ADD it during verification
-- The footer goes AFTER the `## 🔍 Verification Sources` section (if present)
-- If page only uses central registry (no tail section), the footer is the only tail content
-- **Omit** "Last verified" or "Last updated" lines — they add noise without value
-- **Omit** full page URL — the skill can determine context
+## Registry
 
-## Authoritative Sources Reference
+Central fallback: `superpowers-plus/wiki-sources.yaml`. Add new wiki pages with codebase dependencies here.
 
-| Source Type | How to Access |
-|-------------|---------------|
-| **Git repos** | `git show`, `git log`, file reads |
-| **Repository platform** | Use your repository adapter |
-| **package.json** | Parse JSON, check `dependencies`/`devDependencies` |
-| **requirements.txt** | Parse pinned versions |
-| **Config files** | Parse YAML/JSON/TOML configs |
-| **Environment vars** | Check `.env.example` or config docs |
+## Companion Skills
 
-## Example Invocations
+- **wiki-debunker**: Deeper fact-checking of specific claims
+- **link-verification**: Checking wiki page links
+- **wiki-orchestrator**: Full wiki editing pipeline
 
-```
-# Verify a specific page
-"Verify https://your-wiki.example.com/doc/example-vendors-page-abc123"
+## When to Use
 
-# Verify all configured pages
-"Verify all pages in wiki-sources.yaml"
+- After wiki pages referencing code/configs are updated
+- During periodic wiki health reviews
+- When a service version or dependency is upgraded
+- When wiki-orchestrator pipeline triggers verification stage
 
-# Report only (no changes)
-"Verify the vendor page --report"
+## Failure Modes
 
-# Auto-fix without prompts
-"Verify all pages --fix"
-```
-
-## Registry Location
-
-Central fallback registry: `superpowers-plus/wiki-sources.yaml`
-
-When adding new wiki pages with codebase dependencies, add them to this registry.
+| Failure | Fix |
+|---------|-----|
+| Verification source is also stale | Cross-reference multiple sources (repo, docs, API) |
+| UNVERIFIABLE claims left unmarked | Flag and tag for human review — don't silently skip |
+| False positive STALE on intentionally pinned versions | Check for `pinned:` or version lock annotations |

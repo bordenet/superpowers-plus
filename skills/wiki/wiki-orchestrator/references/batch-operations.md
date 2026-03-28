@@ -17,8 +17,8 @@
 ### Batch Workflow
 
 ```
-Phase 1: DISCOVER (zero API calls)
-  └─ sync_to_local_outline              # Download entire wiki (or collection)
+Phase 1: DISCOVER (zero write calls)
+  └─ Local wiki sync or export          # Download the working set when supported
   └─ grep/rg locally for target terms   # Find all pages that need changes
   └─ Build change manifest              # Page → planned edits
 
@@ -29,14 +29,14 @@ Phase 2: PLAN (zero API calls)
 
 Phase 3: EXECUTE (chunked API calls)
   └─ For each chunk:
-     ├─ get_document_outline × N        # Fetch FRESH content (mandatory)
+     ├─ adapter.get_page × N            # Fetch FRESH content (mandatory)
      ├─ Apply planned edits
      ├─ Run pipeline gates (links, secrets, slop)
-     └─ update_document_outline × N     # Push chunk
+     └─ adapter.update_page × N         # Push chunk
   └─ Verify chunk before proceeding to next
 
 Phase 4: VERIFY
-  └─ Spot-check 2-3 pages via get_document_outline
+  └─ Spot-check 2-3 pages via adapter.get_page
   └─ Scan for \[ or broken rendering
   └─ Report summary to user
 ```
@@ -52,7 +52,7 @@ Phase 4: VERIFY
 
 | Anti-Pattern | Why It Fails |
 |--------------|-------------|
-| `search_documents_outline` × 20 queries | Slow, expensive, misses pages |
+| Repeated wiki search API queries | Slow, expensive, misses pages |
 | Editing from memory without fresh fetch | Overwrites concurrent edits |
 | One API call per page with no batching plan | Context exhaustion on page 15 of 30 |
 | Pushing all pages then verifying | Can't roll back; broken links cascade |

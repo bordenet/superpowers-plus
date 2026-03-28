@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # skill-trigger-validator.sh
-# PURPOSE: Validate skill triggers - detect overlaps, missing triggers, and
-#          ensure all skills have machine-readable trigger definitions.
+# PURPOSE: Validate repo-source skill triggers - detect overlaps, missing
+#          triggers, and ensure all skills have machine-readable definitions.
 # USAGE: ./tools/skill-trigger-validator.sh [command]
 #        Commands: audit, overlaps, missing, registry
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="${SCRIPT_DIR}/../skills"
+# shellcheck source-path=SCRIPTDIR source=parse-frontmatter.sh
+source "${SCRIPT_DIR}/parse-frontmatter.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -19,10 +27,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
+log_info() { printf '%b\n' "${BLUE}[INFO]${NC} $*"; }
+log_success() { printf '%b\n' "${GREEN}[OK]${NC} $*"; }
+log_warn() { printf '%b\n' "${YELLOW}[WARN]${NC} $*"; }
+log_error() { printf '%b\n' "${RED}[ERROR]${NC} $*"; }
 
 # -----------------------------------------------------------------------------
 # EXPLICIT SKILLS — Intentionally have no triggers (invoke by name only)
@@ -31,7 +39,6 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 # -----------------------------------------------------------------------------
 EXPLICIT_SKILLS=(
     "superpowers-help"              # Meta: lists available skills
-    "think-twice"                   # Meta: user explicitly wants second opinion
     "skill-firing-tracker"          # Observability: tracks other skills
     "completeness-check"            # Observability: audit tool
     "exhaustive-audit-validation"   # Observability: audit tool
@@ -42,6 +49,9 @@ EXPLICIT_SKILLS=(
     "phone-screen-prep"             # Recruiting: invoked by pipeline orchestrator
     "phone-screen-synthesis"        # Recruiting: invoked by pipeline orchestrator
     "wiki-instruction-guard"        # Security: explicit invocation only (no automatic triggers)
+    "feature-development"           # Orchestrator child: dispatched by thinking-orchestrator
+    "plan-and-execute"              # Orchestrator child: dispatched by thinking-orchestrator
+    "investigation-state"           # Orchestrator child: dispatched by thinking-orchestrator
 )
 
 is_explicit_skill() {
@@ -63,26 +73,26 @@ extract_triggers() {
 
     # Try to extract from 'triggers:' field first (preferred - new format)
     local triggers
-    triggers=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^triggers:" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' | grep -v '^triggers')
+    triggers=$(frontmatter_field "$skill_file" "triggers" 2>/dev/null || true)
 
     if [[ -z "$triggers" ]]; then
         # Fall back to extracting quoted phrases from description
         local desc_line
-        desc_line=$(sed -n '/^---$/,/^---$/p' "$skill_file" | grep -E "^description:")
+        desc_line=$(sed -n '/^---$/,/^---$/p' "$skill_file" | { grep -E "^description:" || true; })
 
-        if echo "$desc_line" | grep -qE "(Triggers on|Use when|triggers on)"; then
+        if [[ -n "$desc_line" ]] && echo "$desc_line" | grep -qE "(Triggers on|Use when|triggers on)"; then
             # Extract quoted strings after trigger keywords
-            triggers=$(echo "$desc_line" | sed -E 's/.*(Triggers on|Use when|triggers on)//' | grep -oE '"[^"]+"' | tr -d '"' | grep -v '^$')
+            triggers=$(echo "$desc_line" | sed -E 's/.*(Triggers on|Use when|triggers on)//' | { grep -oE '"[^"]+"' || true; } | tr -d '"' | { grep -v '^$' || true; })
         fi
 
         # If still empty, try extracting all quoted strings that look like triggers
         if [[ -z "$triggers" ]]; then
-            triggers=$(echo "$desc_line" | grep -oE "'[^']+'" | tr -d "'" | grep -v '^$' | head -10)
+            triggers=$(echo "$desc_line" | { grep -oE "'[^']+'" || true; } | tr -d "'" | { grep -v '^$' || true; } | head -10)
         fi
     fi
 
     # Filter out any remaining noise
-    echo "$triggers" | grep -v '^description' | grep -v '^name' | grep -v '^\s*$' | head -20
+    echo "$triggers" | { grep -v '^description' || true; } | { grep -v '^name' || true; } | { grep -v '^\s*$' || true; } | head -20
 }
 
 # Build registry of all triggers -> skills
@@ -105,7 +115,7 @@ build_registry() {
         triggers=$(extract_triggers "$skill_file")
         
         if [[ -n "$triggers" ]]; then
-            echo -e "${GREEN}$domain/$skill_name${NC}:"
+            printf '%b\n' "${GREEN}$domain/$skill_name${NC}:"
             while IFS= read -r trigger; do
                 if [[ -n "$trigger" ]]; then
                     echo "  - \"$trigger\""
@@ -114,7 +124,7 @@ build_registry() {
             done <<< "$triggers"
             echo ""
         else
-            echo -e "${YELLOW}$domain/$skill_name${NC}: (no triggers found)"
+            printf '%b\n' "${YELLOW}$domain/$skill_name${NC}: (no triggers found)"
             echo ""
         fi
     done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)
@@ -131,9 +141,11 @@ ALLOWED_OVERLAPS=(
     "link-verification:wiki-orchestrator"     # link-verification fires before wiki-orchestrator
     # Research skills - both activate on "stuck" patterns
     "perplexity-research:think-twice"         # Both help when stuck, user chooses approach
-    # Pre-commit quality gates - all fire before commit/PR
+    # Pre-commit quality gates - all fire before commit/PR (same commit-gates chain)
     "enforce-style-guide:pre-commit-gate"     # Both enforce quality before commit
     "pre-commit-gate:professional-language-audit" # Both fire on "before commit"
+    "pre-commit-gate:progressive-code-review-gate" # Both fire on commit/push triggers
+    "professional-language-audit:progressive-code-review-gate" # Both fire on "before commit"
     # PR creation checks
     "engineering-rigor:holistic-repo-verification" # Both fire before creating PR
     # AI slop skills - detecting and eliminating are complementary
@@ -169,9 +181,10 @@ detect_overlaps() {
     echo ""
 
     # Build trigger -> skill mapping using temp file (more portable than associative arrays)
-    local temp_file
-    temp_file=$(mktemp)
-    trap 'rm -f "$temp_file"' EXIT
+    # Use module-level var so cleanup trap can access it after function returns
+    _TRIGGER_TEMP_FILE=$(mktemp)
+    local temp_file="$_TRIGGER_TEMP_FILE"
+    trap 'rm -f "${_TRIGGER_TEMP_FILE:-}"' EXIT
 
     local overlaps=0
     local allowed_overlaps=0
@@ -275,6 +288,10 @@ full_audit() {
     echo "========================================"
     echo "  Skill Trigger Validation Audit"
     echo "========================================"
+    echo ""
+    log_info "Scope: repo-source skills only ($SKILLS_DIR)"
+    log_info "This audit does NOT validate installed copies or live match-skills routing."
+    log_info "For shipped-surface validation, refresh the install and run match-skills on every declared trigger."
     echo ""
     
     detect_overlaps

@@ -2,14 +2,25 @@
 name: golden-agents
 source: superpowers-plus
 triggers: ["set up AI guidance", "add AGENTS.md", "initialize repo", "upgrade AI guidance", "add CLAUDE.md"]
+anti_triggers: ["write a skill", "check skill health", "diagnose skills"]
 description: Use when initializing a new git repo with AI guidance, upgrading existing repos with inadequate AI guidance, or when user says "set up AI guidance" or "add AGENTS.md" - detects repo state and offers appropriate workflow.
+summary: "Use when: initializing or upgrading AI guidance (AGENTS.md) in a git repo."
+coordination:
+  group: productivity
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Golden Agents
 
+> **Wrong skill?** Writing individual skills → `skill-authoring`. Checking skill health → `skill-health-check`. Runtime diagnostics → `superpowers-doctor`.
+
 > **Last Updated:** 2026-02-01
 
-## Overview
+## Purpose
 
 Initialize or upgrade AI guidance in any repository using the [golden-agents](https://github.com/bordenet/golden-agents) framework. Auto-detects repo state and language, offers appropriate workflow.
 
@@ -19,7 +30,6 @@ Initialize or upgrade AI guidance in any repository using the [golden-agents](ht
 git clone https://github.com/bordenet/golden-agents.git ~/.golden-agents
 ```
 
----
 
 ## When to Use
 
@@ -30,7 +40,6 @@ Invoke when:
 - Upgrading outdated AGENTS.md files
 - User says: "set up AI guidance", "add AGENTS.md", "upgrade AI guidance"
 
----
 
 ## Phase 1: Detection
 
@@ -110,7 +119,6 @@ Detected:
 Proceed with these settings? [Y/n/edit]
 ```
 
----
 
 ## Phase 2: Execute Workflow
 
@@ -123,13 +131,11 @@ Based on detection results, run the appropriate workflow from `references/workfl
 | AGENTS.md with markers | 2.3 Upgrade | `generate-agents.sh --upgrade --path=.` |
 | AGENTS.md without markers | 2.4 Migrate | Interactive: Migrate/Replace/Cancel |
 
----
 
 ## Phase 3: Create Redirect Files
 
 After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.md, COPILOT.md) pointing to AGENTS.md. See `references/workflows.md` for templates.
 
----
 
 ## Phase 4: Commit
 
@@ -142,9 +148,8 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | Upgrade | `chore: Upgrade AI guidance framework` |
 | Migrate | `refactor: Migrate to golden-agents framework` |
 
----
 
-## Quick Reference
+## Command Reference
 
 | Command | Purpose |
 |---------|---------|
@@ -155,7 +160,6 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | `~/.golden-agents/generate-agents.sh --upgrade --apply` | Apply upgrade |
 | `~/.golden-agents/generate-agents.sh --compact` | Generate ~130 line version |
 
----
 
 ## Common Mistakes
 
@@ -166,20 +170,18 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 | Forgetting redirect files | Always create all 4 (CLAUDE, CODEX, GEMINI, COPILOT) |
 | Not syncing before upgrade | Run `--sync` to get latest templates |
 
----
 
-## Related Skills
+## Companion Skills
 
 - **readme-authoring**: After setting up AI guidance, update README
 - **superpowers:verification-before-completion**: Verify files before committing
 
-## Common Failure Modes
+## Failure Modes
 
 - **Skipping detection:** Starting a workflow without first running Phase 1 detection to confirm what repos/agents exist
 - **Wrong workflow type:** Using "new repo" workflow when "upgrade" was needed (always detect first)
 - **Missing redirect files:** Forgetting Phase 3 redirect files, leaving old config paths broken
 
-
-## Reference Files
+## References
 
 - [`references/workflows.md`](references/workflows.md) — Phase 2 workflow templates (new/upgrade/migrate), Phase 3 redirect file templates, language detection scripts. Load when executing a workflow.

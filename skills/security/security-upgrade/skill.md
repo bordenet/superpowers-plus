@@ -2,18 +2,34 @@
 name: security-upgrade
 source: superpowers-plus
 triggers: ["scan for CVEs", "upgrade vulnerable packages", "dependency security audit", "npm audit", "dependency vulnerabilities"]
+anti_triggers: ["scan for secrets in code", "exposed credentials", "hardcoded password"]
 description: Use when you need to scan project dependencies for CVEs, upgrade vulnerable packages, validate that everything still compiles and passes tests, then commit and push the fixes - works with npm, Go, Python, Rust, and Flutter projects.
+summary: "Use when: upgrading dependencies for security fixes."
+coordination:
+  group: security
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Security Dependency Upgrade Workflow
 
 > **Last Updated:** 2026-01-31
 
-## Overview
+> **Wrong skill?** Full repo security scan (secrets, code patterns) → `repo-security-scan`. Public repo IP leakage → `public-repo-ip-audit`. Wiki content secrets → `wiki-secret-audit`.
+
+## Workflow Summary
 
 This skill provides a systematic workflow for security dependency auditing and upgrading. Use it to scan for CVEs, upgrade vulnerable packages, validate changes, and commit fixes.
 
 **Supported package managers:** npm, Go modules, pip, Cargo, Flutter/pub
+
+## Companion Skills
+
+- **repo-security-scan**: Full security audit (this skill handles upgrades)
+- **pre-commit-gate**: Pre-commit checks after security upgrades
 
 ## When to Use
 
@@ -23,7 +39,6 @@ This skill provides a systematic workflow for security dependency auditing and u
 - After onboarding a new project to assess security debt
 - CI/CD integration for automated security gates
 
----
 
 ## Phase 1: Discovery
 
@@ -38,7 +53,6 @@ find . -name "requirements.txt" -exec dirname {} \;
 find . -name "Cargo.toml" -exec dirname {} \;
 ```
 
----
 
 ## Phase 2: Security Scanning
 
@@ -81,79 +95,24 @@ cargo audit
 flutter pub outdated
 ```
 
----
 
 ## Phase 3: Upgrade Dependencies
 
-### Go Modules
-```bash
-go get <package>@<fixed-version>
-go mod tidy
-```
-
-### npm
-```bash
-npm audit fix
-npm audit fix --force  # Breaking changes - use with caution
-```
-
-### Python
-```bash
-pip install --upgrade <package>
-pip freeze > requirements.txt
-```
-
-### Rust
-```bash
-cargo update <package>
-```
-
----
+| Language | Upgrade | Build | Test |
+|----------|---------|-------|------|
+| Go | `go get <pkg>@<ver> && go mod tidy` | `go build -o /dev/null .` | `go test ./...` |
+| npm | `npm audit fix [--force]` | `npm run build` | `npm test` |
+| Python | `pip install --upgrade <pkg>` | — | `pytest` |
+| Rust | `cargo update <pkg>` | `cargo build` | `cargo test` |
+| Flutter | update `pubspec.yaml` | `flutter build web --release` | `flutter test` |
 
 ## Phase 4: Validation
 
-### Compile Verification
-```bash
-# Go
-go build -o /dev/null .
+Build → test → security re-scan. Expected: "No vulnerabilities found."
 
-# npm
-npm run build
-
-# Rust
-cargo build
-
-# Flutter
-flutter build web --release
-```
-
-### Run Tests
-```bash
-# Go
-go test ./...
-
-# npm
-npm test
-
-# Rust
-cargo test
-
-# Flutter
-flutter test
-```
-
-### Security Re-scan
-Re-run the appropriate scanner. Expected: "No vulnerabilities found."
-
----
-
-## Phase 5: Commit & Push
-
-**Only proceed if ALL validation tests pass.**
+## Phase 5: Commit & Push (only if ALL pass)
 
 ```bash
-git add -A
-
 git commit -m "security: upgrade dependencies to fix CVEs
 
 <Package> <old-version> → <new-version> (CVE-XXXX-XXXXX)
@@ -164,7 +123,6 @@ Validation: All tests passing"
 git push origin main
 ```
 
----
 
 ## Critical Reminders
 
@@ -188,7 +146,6 @@ If tests fail after an upgrade, the correct response is:
 3. OR rollback to the previous dependency version
 4. OR ask the user for guidance
 
----
 
 ## Expected Outcomes
 
@@ -197,7 +154,6 @@ If tests fail after an upgrade, the correct response is:
 - ✅ All tests pass
 - ✅ Changes committed and pushed
 
----
 
 ## Troubleshooting
 
@@ -215,8 +171,12 @@ If tests fail after an upgrade, the correct response is:
 - Update code to accommodate API changes
 - Consider gradual rollout for major version bumps
 
----
 
-## Related Tools
+## Failure Modes
 
-If security fixes require budget approval or stakeholder buy-in, use [docforge-ai business-justification](https://bordenet.github.io/docforge-ai/assistant/?type=business-justification) — adversarial review scores ROI, risk quantification, and alternatives analysis.
+| Failure | Fix |
+|---------|-----|
+| `npm audit fix --force` silently introducing major version bumps | Review what `--force` will change BEFORE running; prefer `npm audit fix` first |
+| Upgrading to version with breaking API changes without reading changelog | Check release notes/changelog for breaking changes before upgrading |
+| Skipping transitive/indirect vulnerability fixes | Scan output includes indirect deps — trace and fix the root dependency |
+| Tests pass locally but CI fails due to environment differences | Run full CI after push; don't declare "fixed" until CI confirms |

@@ -11,6 +11,12 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat << 'HELP'
 dangerous-pattern-scan.sh — Scan shell scripts for dangerous patterns

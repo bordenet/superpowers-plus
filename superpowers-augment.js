@@ -20,11 +20,39 @@ const {
   getComposition
 } = require('./lib/skill-router');
 
+// Workflow state machine (advisory gate tracking)
+const workflowState = require('./lib/workflow-state');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
-const COST_WARNINGS_DIR = path.join(homeDir, '.codex', '.skill-cost-warnings');
+
+
+// Load env file (shell-format KEY="value") into process.env
+const ENV_FILE = path.join(homeDir, '.codex', '.env');
+try {
+    if (fs.existsSync(ENV_FILE)) {
+        const envContent = fs.readFileSync(ENV_FILE, 'utf8');
+        for (const line of envContent.split('\n')) {
+            // Support: KEY=val, KEY="val", export KEY=val, inline # comments
+            const cleaned = line.replace(/^\s*export\s+/, '').trim();
+            // Try quoted form first (preserves # inside quotes)
+            const quoted = cleaned.match(/^([A-Za-z_][A-Za-z0-9_]*)="([^"]*)"(\s*#.*)?$/);
+            if (quoted) {
+                if (!process.env[quoted[1]]) process.env[quoted[1]] = quoted[2];
+                continue;
+            }
+            // Unquoted: strip inline comments first, then reject stray quotes
+            const unquoted = cleaned.replace(/\s+#.*$/, '');
+            if (unquoted.includes('"')) continue; // malformed — quotes didn't match quoted form
+            const match = unquoted.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+            if (match && !process.env[match[1]]) {
+                process.env[match[1]] = match[2];
+            }
+        }
+    }
+} catch (_) { /* non-fatal */ }
 
 // Source repo directories for namespace prefix resolution (spp:, spc:)
 // These point to git source repos, NOT installed directories.
@@ -44,11 +72,10 @@ function discoverSourceDir(envVar, wellKnownPaths) {
 const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
     '~/GitHub/Personal/superpowers-plus',
     '~/superpowers-plus',
+    '~/.codex/superpowers-plus',
 ]);
 
-const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', [
-    // Set SPC_SOURCE_DIR env var to point to your overlay repo
-]);
+const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
 
 /**
  * Find a skill.md in a source repo by searching domain subdirectories.
@@ -104,10 +131,16 @@ function checkBootstrap() {
 }
 
 const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'str-replace-editor on TODO.md (run todo-preflight.sh first to get path), then optionally add_tasks for UI'],
-    [/\bTodoRead\b/g, 'view tool on TODO.md (run todo-preflight.sh first to get path), then optionally view_tasklist for UI'],
-    [/\bTask\b tool with subagents/g, 'Note: Augment does not have subagents - do the work directly'],
-    [/\bTask\b tool/g, 'launch-process (or handle directly)'],
+    [/\bTodoWrite\b/g, 'todo-crud.sh (add/complete/move/defer) — NEVER use str-replace-editor or save-file on TODO.md. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh add -p P2 -d "description" -t "#tag"'],
+    [/\bTodoRead\b/g, 'todo-crud.sh cat (full file) or todo-crud.sh list (filtered) — NEVER use view tool on TODO.md directly. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh cat'],
+    [/Task tool with superpowers:code-reviewer type/g, 'sub-agent-code-reviewer tool'],
+    [/Task tool \(superpowers:code-reviewer\):/g, 'sub-agent-code-reviewer tool:'],
+    [/Dispatch superpowers:code-reviewer subagent/g, 'Dispatch sub-agent-code-reviewer'],
+    [/\bcode-reviewer subagent\b/g, 'sub-agent-code-reviewer'],
+    [/\bcode reviewer subagent\b/g, 'sub-agent-code-reviewer'],
+    [/Dispatch final code-reviewer/g, 'Dispatch final sub-agent-code-reviewer'],
+    [/dispatch final code reviewer/gi, 'Dispatch final sub-agent-code-reviewer'],
+    [/\bTask\b tool(?! with superpowers:code-reviewer type| \(superpowers:code-reviewer\))/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
     [/\bWrite\b tool/g, 'save-file tool'],
     [/\bEdit\b tool/g, 'str-replace-editor tool'],
@@ -128,6 +161,31 @@ function transformOutput(text) {
     return result;
 }
 
+function parseInlineArray(value) {
+    return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+}
+
+function parseYamlList(lines, startIndex) {
+    const values = [];
+    let nextIndex = startIndex;
+
+    for (let i = startIndex + 1; i < lines.length; i++) {
+        const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+        if (itemMatch) {
+            values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+            nextIndex = i;
+            continue;
+        }
+        if (lines[i].trim() === '') {
+            nextIndex = i;
+            continue;
+        }
+        break;
+    }
+
+    return { values, nextIndex };
+}
+
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
@@ -137,10 +195,15 @@ function extractFrontmatter(filePath) {
         let name = '';
         let description = '';
         let triggers = [];
+        let anti_triggers = [];
+        let requires_mcp = [];
+        let mcp_install_hint = '';
         let composition = null;
         let compositionLines = [];
+        let compress = true;
 
-        for (const line of lines) {
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (line.trim() === '---') {
                 if (inFrontmatter) break;
                 inFrontmatter = true;
@@ -176,10 +239,31 @@ function extractFrontmatter(filePath) {
                 }
 
                 // Check for triggers array
-                const triggersMatch = line.match(/^triggers:\s*\[(.+)\]/);
+                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
                 if (triggersMatch) {
-                    const triggerStr = triggersMatch[1];
-                    triggers = triggerStr.match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+                    triggers = parseInlineArray(triggersMatch[1]);
+                } else if (line.match(/^triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+                // Check for anti_triggers array
+                const antiTriggersMatch = line.match(/^anti_triggers:\s*(\[.+\])\s*$/);
+                if (antiTriggersMatch) {
+                    anti_triggers = parseInlineArray(antiTriggersMatch[1]);
+                } else if (line.match(/^anti_triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    anti_triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+                // Check for requires_mcp array
+                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
+                if (mcpMatch) {
+                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                } else if (line.match(/^requires_mcp:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    requires_mcp = parsed.values;
+                    i = parsed.nextIndex;
                 }
                 const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
                 if (match) {
@@ -187,14 +271,33 @@ function extractFrontmatter(filePath) {
                     const value = match[2];
                     if (key === 'name') name = value.trim();
                     if (key === 'description') description = value.trim();
+                    if (key === 'compress' && value.trim() === 'false') compress = false;
+                    if (key === 'mcp_install_hint') mcp_install_hint = value.trim();
                 }
             }
         }
-        return { name, description, triggers, composition };
+        return { name, description, triggers, anti_triggers, requires_mcp, mcp_install_hint, composition, compress };
     } catch (error) {
-        return { name: '', description: '', triggers: [], composition: null };
+        return { name: '', description: '', triggers: [], anti_triggers: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
     }
 }
+
+/**
+ * Check if required MCP servers are registered in ~/.augment/settings.json.
+ * Returns array of missing server names (empty = all good).
+ */
+function checkMcpPrerequisites(requiredServers) {
+    if (!requiredServers || requiredServers.length === 0) return [];
+    const settingsPath = path.join(homeDir, '.augment', 'settings.json');
+    try {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        const registered = Object.keys(settings.mcpServers || {});
+        return requiredServers.filter(s => !registered.includes(s));
+    } catch (_) {
+        return requiredServers; // Can't read settings → assume all missing
+    }
+}
+
 
 function findSkillFile(dir) {
     const candidates = ['SKILL.md', 'skill.md'];
@@ -218,15 +321,18 @@ function findSkillsInDir(dir, sourceType) {
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
             const hasTriggers = meta.triggers && meta.triggers.length > 0;
+            const fileSize = fs.statSync(skillFile).size;
             skills.push({
                 name: meta.name || entry.name,
                 description: meta.description || '',
                 triggers: meta.triggers || [],
+                anti_triggers: meta.anti_triggers || [],
                 composition: meta.composition || null,
                 isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
                 skillFile,
-                skillDir
+                skillDir,
+                tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
             });
         }
     }
@@ -266,13 +372,20 @@ function findSkills(filterMode = 'all') {
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
 
+    // Token cost tier helper
+    function tokenTier(tokens) {
+        if (tokens >= 2000) return '🔴';  // HIGH
+        if (tokens >= 1000) return '🟡';  // MEDIUM
+        return '🟢';                       // LOW
+    }
+
     if (filterMode === 'superpowers') {
         console.log('🦸 Superpowers (auto-triggered):');
         console.log('=================================\n');
         console.log('These skills activate automatically when trigger phrases are detected.\n');
         for (const skill of superpowers) {
             const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
-            console.log(displayName);
+            console.log(`${displayName} ${tokenTier(skill.tokens)} ~${skill.tokens} tokens`);
             if (skill.description) console.log('  ' + skill.description);
             if (skill.triggers.length > 0) {
                 console.log('  Triggers: ' + skill.triggers.slice(0, 3).map(t => `"${t}"`).join(', ') + (skill.triggers.length > 3 ? '...' : ''));
@@ -286,7 +399,7 @@ function findSkills(filterMode = 'all') {
         console.log('These skills must be explicitly invoked — they do not auto-trigger.\n');
         for (const skill of explicitSkills) {
             const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
-            console.log(displayName);
+            console.log(`${displayName} ${tokenTier(skill.tokens)} ~${skill.tokens} tokens`);
             if (skill.description) console.log('  ' + skill.description + '\n');
             else console.log();
         }
@@ -310,8 +423,15 @@ function findSkills(filterMode = 'all') {
             else console.log();
         }
     }
+    // Token budget summary
+    const totalTokens = deduped.reduce((sum, s) => sum + (s.tokens || 0), 0);
+    const highCost = deduped.filter(s => s.tokens >= 2000);
+    console.log(`Token budget: ${deduped.length} skills, ${totalTokens.toLocaleString()} tokens total installed`);
+    if (highCost.length > 0) {
+        console.log(`  🔴 ${highCost.length} high-cost skills (≥2000 tokens): ${highCost.map(s => s.name).join(', ')}`);
+    }
     console.log('Usage:');
-    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill');
+    console.log('  node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>   # Load a specific skill');
     console.log('  superpowers-augment find-skills              # List all skills');
     console.log('  superpowers-augment find-skills superpowers  # List only superpowers (auto-triggered)');
     console.log('  superpowers-augment find-skills explicit     # List only explicit skills\n');
@@ -332,46 +452,10 @@ function findSkills(filterMode = 'all') {
 }
 
 
-// High-cost skill warning (one-time per installation)
-function getHighCostSkills() {
-    // Try installed location first, then source repo
-    const locations = [
-        path.join(homeDir, '.codex', 'superpowers-plus', 'tools', 'high-cost-skills.json'),
-        path.join(__dirname, 'tools', 'high-cost-skills.json'),
-    ];
-    for (const loc of locations) {
-        if (fs.existsSync(loc)) {
-            try { return JSON.parse(fs.readFileSync(loc, 'utf8')); } catch { /* ignore */ }
-        }
-    }
-    return [];
-}
-
-function showHighCostWarningOnce(skillName) {
-    const highCost = getHighCostSkills();
-    // Normalize: strip prefixes to get bare skill name
-    const bare = skillName.replace(/^(superpowers:|spp:|spc:|sp-|spp-|spc-)/, '');
-    if (!highCost.includes(bare)) return;
-
-    // Check if warning already shown
-    try { fs.mkdirSync(COST_WARNINGS_DIR, { recursive: true }); } catch { /* exists */ }
-    const markerFile = path.join(COST_WARNINGS_DIR, bare);
-    if (fs.existsSync(markerFile)) return;
-
-    // Show warning and create marker
-    console.error('');
-    console.error(`⚠️  HIGH TOKEN COST: "${bare}" is a high-cost skill.`);
-    console.error('   It loads references, chains to other skills, or spawns sub-agents.');
-    console.error('   See docs/SKILL_TOKEN_COSTS.md for details.');
-    console.error('   (This warning appears once per skill per installation.)');
-    console.error('');
-    try { fs.writeFileSync(markerFile, new Date().toISOString()); } catch { /* best effort */ }
-}
-
-function useSkill(skillName) {
+function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
-        console.error('Usage: superpowers-augment use-skill <skill-name>');
+        console.error('Usage: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>');
         process.exit(1);
     }
 
@@ -384,12 +468,11 @@ function useSkill(skillName) {
         console.error('');
         console.error('  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap');
         console.error('');
-        console.error('Then retry: use-skill ' + skillName);
+        console.error('Then retry: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ' + skillName);
         console.error('');
-        console.error('WHY: Bootstrap loads the using-superpowers skill which governs');
-        console.error('skill invocation discipline, priority ordering, and red-flag');
-        console.error('detection. Without it, skills fire in isolation without the');
-        console.error('meta-framework that makes them effective.');
+        console.error('WHY: Bootstrap establishes session context, priority ordering,');
+        console.error('and red-flag detection. Without it, skills fire in isolation');
+        console.error('without the meta-framework that makes them effective.');
         console.error('');
         // Don't block — still load the skill, but the warning is impossible to miss
     }
@@ -474,35 +557,201 @@ function useSkill(skillName) {
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
-    showHighCostWarningOnce(actualName);
     const content = fs.readFileSync(skillFile, 'utf8');
+
+    if (options.probe) {
+        // Probe mode: output summary + token cost before loading
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        const fileSize = fs.statSync(skillFile).size;
+        const tokens = Math.round(fileSize / 4);
+        const tier = tokens >= 2000 ? '🔴 HIGH' : tokens >= 1000 ? '🟡 MEDIUM' : '🟢 LOW';
+        if (fmMatch) {
+            const fm = fmMatch[1];
+            const summaryMatch = fm.match(/^summary:\s*(.+)$/m) ||
+                                 fm.match(/^summary:\s*>\s*\n((?:\s+.+\n?)*)/m);
+            const descMatch = fm.match(/^description:\s*(.+)$/m) ||
+                              fm.match(/^description:\s*"(.+)"$/m);
+            const summary = summaryMatch ? (summaryMatch[1] || summaryMatch[2] || '').trim() : null;
+            const desc = descMatch ? (descMatch[1] || descMatch[2] || '').trim() : null;
+            console.log(`# Probe: ${skillName}  [${tier} ~${tokens} tokens]`);
+            if (summary) {
+                console.log(`\n${summary}`);
+            } else if (desc) {
+                console.log(`\n${desc}`);
+            } else {
+                console.log('\nNo summary available.');
+            }
+            console.log(`\nToken cost: ~${tokens} tokens (${tier})`);
+            console.log(`Load full skill? \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${skillName}\``);
+        }
+        return;
+    }
+
     const stripped = stripFrontmatter(content);
-    const transformed = transformOutput(stripped);
+    // Respect per-skill compress: false frontmatter opt-out
+    const fm = extractFrontmatter(skillFile);
+
+    // Check MCP prerequisites before loading skill content
+    const missingMcp = checkMcpPrerequisites(fm.requires_mcp);
+    if (missingMcp.length > 0) {
+        console.error('');
+        console.error('⚠️  MISSING MCP SERVER' + (missingMcp.length > 1 ? 'S' : '') + ': ' + missingMcp.join(', '));
+        console.error('This skill requires MCP server' + (missingMcp.length > 1 ? 's' : '') + ' not registered in ~/.augment/settings.json.');
+        if (fm.mcp_install_hint) {
+            console.error('');
+            console.error('Install: bash ' + fm.mcp_install_hint.replace(/^~/, homeDir));
+        }
+        console.error('Then restart your IDE to load the new MCP server.');
+        console.error('');
+    }
+
+    const compressed = fm.compress === false ? stripped : compressSkillContent(stripped);
+    const transformed = transformOutput(compressed);
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
 
+    // Record skill invocation in workflow state (advisory, non-blocking)
+    try {
+        workflowState.recordSkillInvocation(actualName);
+    } catch (_) { /* non-fatal — advisory mode */ }
+
+}
+
+/**
+ * Compress skill content by stripping repeated boilerplate patterns.
+ * Strips: DOT graphs, EXTREMELY-IMPORTANT wrappers (keeps inner text),
+ * "When to Use", "Overview", "Common Rationalizations", "Why X Matters",
+ * "Quick Reference", "Related Skills", "Cross-References", "Integration with",
+ * "Reference Files", "When This Skill Fires", "When NOT to Use",
+ * "Manual Invocation", "Incident Log", "I'm Stuck", YAML frontmatter (redundant),
+ * horizontal rules, HTML comments, excessive blank lines.
+ * Preserves: Failure Modes, SUBAGENT-STOP, HARD-GATE blocks, checklists,
+ * procedures, code examples, tables with data.
+ * Per-skill opt-out: add `compress: false` to YAML frontmatter.
+ */
+function compressSkillContent(text) {
+    let result = text;
+
+    // 1. Strip DOT graphs (not renderable)
+    result = result.replace(/```dot[\s\S]*?```/g, '');
+
+    // 2. Strip EXTREMELY-IMPORTANT wrappers (keep content)
+    result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
+
+    // 3. Preserve SUBAGENT-STOP blocks (sub-agent dispatch control — never strip)
+
+    // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
+    result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## When to Use[\s\S]*$/g, '');
+    result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## Overview\n[\s\S]*$/g, '');
+
+    // 5. Strip "Common Rationalizations" tables (lecturing)
+    result = result.replace(/##+ Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 6. Strip "Why Order Matters" / "Why This Matters" (philosophical)
+    result = result.replace(/##+ Why (?:Order|This|It) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 7. Strip "Quick Reference" section (duplicates main content)
+    result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 8. Preserve "Failure Modes" — may contain operational rules, not just boilerplate
+
+    // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
+    result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Related Skills[\s\S]*$/g, '');
+    result = result.replace(/##+ Cross[- ]?References[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Cross[- ]?References[\s\S]*$/g, '');
+    result = result.replace(/##+ Integration with [\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 10. Strip "Reference Files" (just pointers to other files)
+    result = result.replace(/##+ Reference Files[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Reference Files[\s\S]*$/g, '');
+
+    // 11. Strip "When This Skill Fires" (redundant with triggers)
+    result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
+    result = result.replace(/## When This Skill Fires[\s\S]*$/g, '');
+
+    // 12. Strip "When NOT to Use" (routing info moved to "Scope Exclusions" or "Wrong skill?" blocks)
+    result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 13. Strip "Manual Invocation" (user already knows how to invoke)
+    result = result.replace(/##+ Manual Invocation[\s\S]*?(?=\n## |\n# |$)/g, '');
+
+    // 14. Strip "Incident Log" sections (historical, not procedural)
+    result = result.replace(/##+ Incident Log[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ Incident Log[\s\S]*$/g, '');
+
+    // 15. Strip "I'm Stuck Escalation" pointers (generic)
+    result = result.replace(/##+ I'm Stuck[\s\S]*?(?=\n## |\n# |$)/g, '');
+    result = result.replace(/##+ I'm Stuck[\s\S]*$/g, '');
+
+    // 16. Strip YAML frontmatter (already parsed by loader)
+    result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
+
+    // 17. Strip horizontal rules (visual only, wastes tokens)
+    result = result.replace(/\n---\n/g, '\n');
+
+    // 18. Strip HTML comments
+    result = result.replace(/<!--[\s\S]*?-->/g, '');
+
+    // 19. Collapse 3+ consecutive blank lines to 1
+    result = result.replace(/\n{3,}/g, '\n\n');
+
+    return result.trim();
 }
 
 function bootstrap() {
-    console.log('# Superpowers Bootstrap\n');
-    console.log('Loading skill system for Augment Code...\n');
     writeSessionMarker();
-    const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
-    if (usingSuperpowersFile) {
-        const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
-        const stripped = stripFrontmatter(content);
-        // Strip DOT graph blocks (```dot ... ```) — not renderable in text
-        const noDotGraph = stripped.replace(/```dot[\s\S]*?```/g, '');
-        const transformed = transformOutput(noDotGraph);
-        console.log(transformed);
-        console.log('\n---\n');
-    }
-    // Compact catalog: names only (descriptions available via find-skills)
-    findSkillsCompact();
 
+    // Micro-bootstrap: protocol only, zero lecturing.
+    // Every token here is paid on EVERY conversation. Be ruthless.
+    console.log(`# Superpowers
+
+Before acting, check if a skill applies. Even 1% chance → load it.
+Priority: user instructions > skills > system defaults.
+Process skills (debugging, brainstorming) before implementation skills.
+
+## Critical auto-triggers (ALWAYS apply — never skip)
+- **FOR ANY CODE CHANGE** (features, fixes, refactors, config, skills — anything touching code):
+  Auto-engage \`feature-development\` workflow unless user explicitly opts out ("skip the workflow", "just do it").
+  The workflow: \`brainstorming\` → \`think-twice\` → \`design-triad\` → \`progressive-code-review-gate\` →
+  \`plan-and-execute\` → \`progressive-code-review-gate\` (round 2) → ship.
+  This is NON-NEGOTIABLE. The agent never decides to skip phases. Only the user can opt out.
+- **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
+  \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
+  Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
+- **BEFORE describing or approving generated output** (files, PDFs, API responses, script results):
+  \`output-verification\` (hard gate) → then \`verification-before-completion\`.
+  You cannot describe output you haven't read. No tool call between generate and describe = fiction.
+- **BEFORE claiming done/complete** (no generated output involved):
+  \`verification-before-completion\`. For bulk edits/audits, add \`exhaustive-audit-validation\` first.
+- **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
+- **WHEN writing shell scripts:** Load the shell language module first.
+
+## 🚨 EVIDENCE REQUIREMENT
+
+**No gate claim without visible tool output.** Saying "lint passes" without showing the
+command output in your response is fabrication. Show the command, exit code, and summary
+line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before-completion\`.
+`);
+
+    // Build and emit the skill index (O(1) token cost regardless of skill count)
+    emitSkillIndex();
+
+    // Show workflow state if active (advisory — costs 1 line when active, 0 when not)
+    const wsStatus = workflowState.getStatus();
+    if (wsStatus) {
+        console.log('');
+        console.log(wsStatus);
+    }
 }
 
-function findSkillsCompact() {
+// Skill index: emits counts + load command (O(1) token cost).
+// Full skill names written to disk for tooling (find-skills, probe, etc.).
+const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
+
+function buildSkillIndex() {
     const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
     const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
     const allSkills = [...personalSkills, ...superpowersSkills];
@@ -513,15 +762,27 @@ function findSkillsCompact() {
         seen.add(skill.name);
         deduped.push(skill);
     }
-    const superpowers = deduped.filter(s => s.isSuperpower);
-    const explicitSkills = deduped.filter(s => !s.isSuperpower);
+    return deduped;
+}
 
-    console.log(`🦸 ${superpowers.length} superpowers (auto-triggered): ` +
-        superpowers.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
-    console.log(`\n🔧 ${explicitSkills.length} explicit skills: ` +
-        explicitSkills.map(s => s.sourceType === 'superpowers' ? 'superpowers:' + s.name : s.name).join(', '));
-    console.log('\nUse `find-skills` for descriptions. Use `use-skill <name>` to load a skill.');
-    console.log(`\nSummary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
+function emitSkillIndex() {
+    const deduped = buildSkillIndex();
+    const superpowers = deduped.filter(s => s.isSuperpower);
+    const explicit = deduped.filter(s => !s.isSuperpower);
+
+    // Write full index to disk for tooling (find-skills, probe, etc.)
+    try {
+        const index = deduped.map(s => ({
+            name: s.name, triggers: s.triggers, tokens: s.tokens,
+            isSuperpower: s.isSuperpower, sourceType: s.sourceType
+        }));
+        fs.writeFileSync(SKILL_INDEX_FILE, JSON.stringify({ skills: index, built: new Date().toISOString() }));
+    } catch (_) { /* non-fatal */ }
+
+    // Emit count + load command + disambiguation hint.
+    console.log(`${superpowers.length} superpowers (auto-trigger) + ${explicit.length} explicit skills installed.`);
+    console.log('Load: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`');
+    console.log('Unsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "your query"`');
 }
 
 
@@ -529,9 +790,15 @@ function findSkillsCompact() {
 const command = process.argv[2];
 const args = process.argv.slice(3);
 
+(async () => {
 switch (command) {
     case 'bootstrap': bootstrap(); break;
-    case 'use-skill': useSkill(args[0]); break;
+    case 'use-skill': {
+        const probeMode = args[0] === '--probe';
+        const skillArg = probeMode ? args[1] : args[0];
+        useSkill(skillArg, { probe: probeMode });
+        break;
+    }
     case 'find-skills': findSkills(args[0] || 'all'); break;
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
@@ -642,28 +909,27 @@ switch (command) {
         const routerInfo = getRouterInfo();
         const actualMethod = method === 'auto' ? routerInfo.default : method;
 
-        semanticMatch(query, skills, { topN: 5, method })
-            .then(matches => {
-                console.log(`# Skill Match Results\n`);
-                console.log(`Query: "${query}"`);
-                console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
-                console.log('| Rank | Skill | Score | Type |');
-                console.log('|------|-------|-------|------|');
-                for (let i = 0; i < matches.length; i++) {
-                    const m = matches[i];
-                    const type = m.isSuperpower ? 'superpower' : 'explicit';
-                    const scoreDisplay = actualMethod === 'tfidf'
-                        ? m.score.toFixed(2)
-                        : (m.score * 100).toFixed(1) + '%';
-                    console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
-                }
-                console.log(`\nTop match: **${matches[0]?.name}**`);
-                console.log(`\nTo use: \`superpowers-augment use-skill ${matches[0]?.name}\``);
-            })
-            .catch(err => {
-                console.error('Error:', err.message);
-                process.exit(1);
-            });
+        try {
+            const matches = await semanticMatch(query, skills, { topN: 5, method });
+            console.log(`# Skill Match Results\n`);
+            console.log(`Query: "${query}"`);
+            console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
+            console.log('| Rank | Skill | Score | Type |');
+            console.log('|------|-------|-------|------|');
+            for (let i = 0; i < matches.length; i++) {
+                const m = matches[i];
+                const type = m.isSuperpower ? 'superpower' : 'explicit';
+                const scoreDisplay = actualMethod === 'tfidf'
+                    ? m.score.toFixed(2)
+                    : (m.score * 100).toFixed(1) + '%';
+                console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
+            }
+            console.log(`\nTop match: **${matches[0]?.name}**`);
+            console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
+        } catch (err) {
+            console.error('Error:', err.message);
+            process.exit(1);
+        }
         break;
     }
 
@@ -693,20 +959,19 @@ switch (command) {
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
         console.log('(Requires OPENAI_API_KEY)\n');
 
-        embedSkills(skills, forceRefresh)
-            .then(cache => {
-                const count = Object.keys(cache.embeddings).length;
-                console.log(`\n✅ Embedded ${count} skills`);
-                console.log(`Cache: ~/.codex/.skill-embeddings.json`);
-            })
-            .catch(err => {
-                console.error('Error:', err.message);
-                if (err.message.includes('OPENAI_API_KEY')) {
-                    console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
-                    console.error('Run: match-skills --tfidf "your query"');
-                }
-                process.exit(1);
-            });
+        try {
+            const cache = await embedSkills(skills, forceRefresh);
+            const count = Object.keys(cache.embeddings).length;
+            console.log(`\n✅ Embedded ${count} skills`);
+            console.log(`Cache: ~/.codex/.skill-embeddings.json`);
+        } catch (err) {
+            console.error('Error:', err.message);
+            if (err.message.includes('OPENAI_API_KEY')) {
+                console.error('\nNote: Embedding is optional. TF-IDF mode works without an API key.');
+                console.error('Run: match-skills --tfidf "your query"');
+            }
+            process.exit(1);
+        }
         break;
     }
 
@@ -733,3 +998,4 @@ switch (command) {
 
         break;
 }
+})().catch(err => { console.error('Fatal:', err.message); process.exit(1); });

@@ -2,7 +2,16 @@
 name: issue-editing
 source: superpowers-plus
 triggers: ["update ticket", "edit issue", "change status of", "assign issue to", "add label to issue"]
+anti_triggers: ["create ticket", "create issue", "open a ticket", "file a bug"]
 description: Use when updating issues in your project tracker. Enforces fetch-before-edit workflow to prevent stale updates, validates field changes, detects concurrent modifications.
+summary: "Use when: updating existing issues. Skip when: creating new issues."
+coordination:
+  group: issue-tracking
+  order: 2
+  requires: []
+  enables: ['issue-verify']
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Editing
@@ -10,6 +19,8 @@ description: Use when updating issues in your project tracker. Enforces fetch-be
 > **Purpose:** Prevent stale updates and race conditions when modifying issues
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
+
+> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ## When to Use
 
@@ -121,7 +132,7 @@ Options:
 
 ---
 
-## Quick Reference
+## Edit Checklist
 
 ```
 Before EVERY update:
@@ -134,14 +145,24 @@ Before EVERY update:
 
 ---
 
-## Common Failure Modes
+
+## Example
+
+```bash
+# Before editing: capture current state for comparison
+# After editing: verify changes applied correctly
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-editing
+```
+
+## Failure Modes
 
 - **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
 - **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh
 - **Field type mismatch:** Passing a label name instead of a label UUID (platform-specific)
 
-## Related Skills
+## Companion Skills
 
 - **issue-authoring**: Standards for creating issues
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments
+- **issue-verify**: Post-edit verification

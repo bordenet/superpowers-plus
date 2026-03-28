@@ -1,13 +1,32 @@
 ---
 name: completeness-check
 source: superpowers-plus
-triggers: ["work complete", "is this done", "claiming done", "audit accumulated debt", "check for incomplete work"]
+triggers: ["is this done", "claiming done", "audit accumulated debt", "check for incomplete work", "find unfinished work"]
+anti_triggers: ["start work", "begin implementation", "create new"]
 description: Detect incomplete work in repositories from AI assistant crashes, context exhaustion, or mid-implementation distractions. Use before claiming work complete or when auditing accumulated debt.
+summary: "Use when: auditing for incomplete work from crashes or context exhaustion."
+coordination:
+  group: observability
+  order: 0
+  requires: []
+  enables: ['verification-before-completion']
+  escalates_to: ['thinking-orchestrator']
+  internal: false
 ---
 
 # completeness-check
 
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Output inspection → `output-verification`. Repo health → `holistic-repo-verification`.
+
 **MANDATORY**: Use this skill before claiming work is complete on ANY repo, or when auditing accumulated incomplete work.
+
+
+## When to Use
+
+- Quick sanity check that nothing was missed in a changeset
+- Before marking a task as complete
+- After implementing a multi-file change
+- When a code review requests "check all callers"
 
 ## The Core Principle
 
@@ -19,19 +38,6 @@ AI coding assistants frequently leave incomplete work when they:
 
 This leaves humans out of the loop. This skill helps detect and surface that incomplete work.
 
-## When to Use This Skill
-
-### Proactive Mode (before claiming done)
-- Before committing changes
-- Before creating a pull request
-- Before reporting "work is complete"
-- After long coding sessions
-
-### Reactive Mode (auditing existing work)
-- When taking over a project from another AI session
-- When reviewing a repo that "feels incomplete"
-- Periodic maintenance audits
-- After discovering broken links or missing files
 
 ## Detection Categories
 
@@ -130,26 +136,26 @@ Summary:
 - Semantic analysis for stale docs
 - Cross-file dependency graphs
 
-## Integration with Other Skills
-
-- `holistic-repo-verification` - Check repo health after fixing incompleteness
-- `superpowers:verification-before-completion` - Use completeness-check first
-- `eliminating-ai-slop` - Clean up AI-generated patterns found
-
 ## Success Criteria
 
-✅ All Critical issues resolved
-✅ Score above 70 (or team threshold)
-✅ No regressions from previous check
-✅ Findings documented if deferred
-
----
-
-**Remember**: AI assistants leave incomplete work more often than we realize. This skill makes that work visible.
+All Critical resolved · score ≥70 · no regressions · deferred findings documented.
 
 
-## Common Failure Modes
+## Failure Modes
 
-- **Self-grading bias:** Claiming 100% completeness without independent verification — always cross-check against the original scope
-- **Scope creep in checklist:** Adding items that weren't in the original request to inflate completeness percentage
-- **Missing edge cases:** Checking happy-path items but skipping error handling, cleanup, and rollback verification
+| Failure | Recovery |
+|---------|----------|
+| Self-grading bias — claiming 100% without independent verification | Cross-check against original scope, not your own checklist |
+| Scope creep — adding items to inflate completeness percentage | Compare checklist against original request verbatim |
+| Surface-level scan — checking filenames only | Read file contents. Check for TODO, FIXME, incomplete implementations |
+| Missing abandoned branches | Check `git branch -a` for stale feature branches |
+| False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
+| Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |
+
+
+## Companion Skills
+
+- **exhaustive-audit-validation**: Deeper audit (heavier than this skill)
+- **verification-before-completion**: Pre-completion gate
+- **holistic-repo-verification**: Full repo health check
+- **measurement-integrity**: Metric validation

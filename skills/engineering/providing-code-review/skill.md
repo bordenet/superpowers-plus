@@ -2,10 +2,21 @@
 name: providing-code-review
 source: superpowers-plus
 triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
+anti_triggers: ["send to reviewer agent", "execute reviewer findings", "pre-commit check", "I am the reviewer agent"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
+summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
+coordination:
+  group: code-quality
+  order: 3
+  requires: [code-review]
+  enables: [receiving-code-review]
+  escalates_to: [code-review-battery]
+  internal: false
 ---
 
 # Providing Code Review
+
+> **Wrong skill?** File-protocol review → `code-review-respond`. Pre-commit review → `progressive-code-review-gate`. Processing feedback you received → `receiving-code-review`.
 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
@@ -83,6 +94,21 @@ grep -rn "functionName" --include="*.ts" .
 - Are there test failures being ignored?
 - Did lint pass?
 
+### 5. Factual Claims Verification
+
+If the PR or associated documentation makes claims about external system state, **verify each claim against the system of record.** Do not treat metadata as stylistic — it is falsifiable.
+
+| Claim Type | Verification Method |
+|------------|---------------------|
+| PR/merge status | Query ADO/GitHub API — ADO `status: 1` = Active, NOT Completed |
+| "Tests pass" | Check CI run status, not just the author's word |
+| Deployment state | Query pipeline or environment APIs |
+| Ticket/issue state | Query issue tracker API |
+| URLs and links | Fetch or query to confirm they resolve |
+| Dependency versions | Check lockfile or manifest directly |
+
+**ADO gotcha:** ADO generates a `lastMergeCommit` for every open PR (preview merge). This does NOT mean the PR is merged. Always check the `status` field: `1=Active, 2=Abandoned, 3=Completed`.
+
 ## The Review Gate Function
 
 ```
@@ -93,6 +119,7 @@ BEFORE approving any PR:
 3. INTEGRATION: Did I verify the changes work at service boundaries?
 4. TESTS: Are there tests for the new functionality?
 5. BUILD: Is CI passing? (Not just "mergeable" — actually green)
+6. FACTS: Did I verify every claim about external state (PR status, deploy status, ticket state, URLs)?
 
 If I can't answer YES to all → don't approve, ask questions or flag gaps
 ```
@@ -134,8 +161,29 @@ When providing code review, structure feedback as:
 
 **If you can't check off all boxes, the review is incomplete.**
 
-## Related Skills
+## Anti-Patterns
 
-- `pre-commit-gate` — Before committing changes
-- `blast-radius-check` — Before modifying existing code
-- `engineering-rigor` — Philosophy and overview
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Rubber-stamp approval | No substantive comments | Find ≥1 concern per review |
+| Style-only focus | All comments are formatting | Check logic, edge cases, security first |
+| Nitpick avalanche | >10 minor findings, 0 critical | Prioritize: critical → important → minor |
+| Context-free review | Comments without understanding intent | Read PR description + linked issues first |
+| Drive-by "LGTM" | Single word approval | Requires ≥3 substantive observations |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Rubber-stamp approval without tracing data flow | Use the 6-point gate function checklist — if any box unchecked, don't approve |
+| Reviewing diff in isolation without blast radius | Run grep for all callers of modified functions before approving |
+| Trusting PR metadata claims without verification | Use Factual Claims Verification table — one API call catches stale status |
+
+## Companion Skills
+
+- **code-review-battery**: Parallel specialist reviews (heavier than this checklist)
+- **receiving-code-review**: How the PR author should process your feedback
+- **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
+- **code-review**: File-protocol review (requesting side)
+- **code-review-respond**: File-protocol review (reviewer side)
+- **micro-harsh-review**: Per-batch review (lighter)
