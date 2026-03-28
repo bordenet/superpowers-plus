@@ -38,6 +38,19 @@ coordination:
 - Before comparing metrics across time
 - Before declaring a ceiling based on measurement
 
+
+### Example
+
+```bash
+# Example: Cross-validating skill count
+method1=$(find skills -name "skill.md" | wc -l)
+method2=$(find skills -name "skill.md" -not -path "*/_*" | wc -l)
+echo "Method 1 (all): $method1"
+echo "Method 2 (excl support): $method2"
+echo "Delta: $((method1 - method2)) support files"
+# Report: "72 skills (filesystem-verified, 2 methods)"
+```
+
 ## Scope Exclusions
 
 - Quoting verbatim tool output -> quote directly

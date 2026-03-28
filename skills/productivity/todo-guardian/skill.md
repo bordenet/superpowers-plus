@@ -39,6 +39,19 @@ coordination:
 - After every 3 steps (staleness check)
 - When reviewing session for missed action items
 
+
+### Example
+
+```bash
+# Example: Staleness check
+echo "=== TODO Staleness Audit ==="
+echo "| TODO              | Steps | Status    |"
+echo "| Fix error handler | 1     | Fresh     |"
+echo "| Refactor auth     | 4     | STALE     |"
+echo "| Check perf        | 7     | ORPHANED  |"
+echo "Action: 1 stale (re-evaluate), 1 orphaned (close)"
+```
+
 ## Scope Exclusions
 
 - CRUD on TODO.md -> todo-management
