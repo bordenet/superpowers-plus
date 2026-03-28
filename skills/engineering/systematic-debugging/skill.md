@@ -26,6 +26,8 @@ coordination:
 
 **Core principle:** ALWAYS find root cause before attempting fixes.
 
+> **Wrong skill?** Feature design → `brainstorming`. Code review → `providing-code-review`.
+
 ```
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```

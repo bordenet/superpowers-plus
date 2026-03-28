@@ -24,6 +24,8 @@ coordination:
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
 
+> **Wrong skill?** PR-level review of others' work → `providing-code-review`. File-protocol review → `code-review`.
+
 ## Procedure
 
 ### Step 1: Gather the diff

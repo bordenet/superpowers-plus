@@ -26,6 +26,8 @@ coordination:
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
+> **Wrong skill?** Debugging existing failures → `systematic-debugging`. Reviewing others' code → `providing-code-review`.
+
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
