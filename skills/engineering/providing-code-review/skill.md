@@ -5,6 +5,13 @@ triggers: ["review this PR", "review these changes", "code review", "provide fee
 anti_triggers: ["send to reviewer agent", "execute reviewer findings", "pre-commit check", "I am the reviewer agent"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
 summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
+coordination:
+  group: code-quality
+  order: 3
+  requires: [code-review]
+  enables: [receiving-code-review]
+  escalates_to: [code-review-battery]
+  internal: false
 ---
 
 # Providing Code Review
@@ -154,6 +161,16 @@ When providing code review, structure feedback as:
 
 **If you can't check off all boxes, the review is incomplete.**
 
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Rubber-stamp approval | No substantive comments | Find ≥1 concern per review |
+| Style-only focus | All comments are formatting | Check logic, edge cases, security first |
+| Nitpick avalanche | >10 minor findings, 0 critical | Prioritize: critical → important → minor |
+| Context-free review | Comments without understanding intent | Read PR description + linked issues first |
+| Drive-by "LGTM" | Single word approval | Requires ≥3 substantive observations |
+
 ## Failure Modes
 
 | Failure | Fix |
@@ -169,3 +186,4 @@ When providing code review, structure feedback as:
 - **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
 - **code-review**: File-protocol review (requesting side)
 - **code-review-respond**: File-protocol review (reviewer side)
+- **micro-harsh-review**: Per-batch review (lighter)

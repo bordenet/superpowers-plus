@@ -137,6 +137,16 @@ Monolith found something no specialist found → propose candidate pattern. Know
 
 Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| All reviewers agree | No disagreements found | Force at least one dissenting view |
+| Duplicate findings | Same issue from 3 reviewers | Deduplicate in synthesis, attribute first finder |
+| Reviewer fatigue | Later reviewers less thorough | Randomize dispatch order |
+| Missing source context | Review diff without callers | Include grep results for all touched functions |
+| Over-scoping | Reviewing unchanged code | Focus on diff + directly impacted callers only |
+
 ## Failure Modes
 
 | Failure | Fix |
@@ -151,3 +161,4 @@ Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks.
 - **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
 - **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
 - **code-review**: File-protocol review (alternative dispatch method)
+- **micro-harsh-review**: Per-batch review
