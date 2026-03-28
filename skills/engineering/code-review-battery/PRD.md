@@ -27,8 +27,8 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 | # | Goal | Success Metric |
 |---|------|---------------|
 | G1 | Replace monolithic review with parallel specialized reviewers | ≥5 focused review dimensions run concurrently |
-| G2 | Achieve cross-platform portability | Works identically on Augment.ai AND Claude Code |
-| G3 | Zero manual setup | `install.sh` provides full review capability |
+| G2 | Portable design across platforms | Validated on Augment; Claude Code dispatch documented, pending validation |
+| G3 | Zero manual setup | `install.sh` deploys skill files; sub-agent dispatch is platform-native |
 | G4 | Reduce false positives | <5% of findings are noise (vs current ~15-20%) |
 | G5 | Maintain or improve review quality | Battery catches ≥ monolithic issues on same diff |
 | G6 | Triage gating | Only relevant reviewers fire per diff, reducing cost |
@@ -38,7 +38,7 @@ Skill files are auto-deployed via `install.sh` and skill discovery. No additiona
 ### In Scope (Phase 1: Review Battery)
 - 5 specialized reviewer agents with focused prompts
 - Triage coordinator that selects relevant reviewers per diff
-- Platform-agnostic dispatch (Augment + Claude Code)
+- Portable dispatch design (Augment validated, Claude Code documented)
 - Integration with existing `progressive-code-review-gate` skill
 - Aggregation of multi-reviewer output into unified report
 - 16 review dimensions covered across the 5 agents

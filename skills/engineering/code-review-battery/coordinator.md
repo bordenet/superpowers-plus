@@ -27,6 +27,7 @@ You are the coordinator for a parallel code review battery. You have two jobs:
 5. **Code touches DB, loops, caching, network I/O, or >500 LOC** → also activate Performance Analyst
 6. **`--all` flag present** → activate ALL 5 reviewers regardless
 7. **`--only=<name>` flag present** → activate named reviewer only
+8. **`--skip=<name>` flag present** → apply rules 1-5, then remove named reviewer from activation list
 
 ### Triage Output
 

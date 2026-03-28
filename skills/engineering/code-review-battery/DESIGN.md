@@ -63,7 +63,7 @@
 
 ### Augment
 
-Uses `sub-agent-code-reviewer` with unique names. All 5 fire in parallel:
+Uses `sub-agent-code-reviewer` with unique names. Activated reviewers fire in parallel:
 
 Each reviewer instruction follows the 4-part contract from `coordinator.md`:
 
