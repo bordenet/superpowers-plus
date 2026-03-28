@@ -24,6 +24,10 @@ coordination:
 
 ---
 
+## Companion Skills
+
+- **todo-management**: Active task management (this skill handles archival)
+
 ## When to Use
 
 | Trigger | Action |

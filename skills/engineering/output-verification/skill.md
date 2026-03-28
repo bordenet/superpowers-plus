@@ -21,6 +21,12 @@ coordination:
 > **Purpose:** Prevent confabulation disguised as verification
 > **Core Principle:** You cannot describe output you haven't read. Period.
 
+## Companion Skills
+
+- **pre-commit-gate**: Pre-commit quality checks
+- **verification-before-completion**: Completion checklist
+- **holistic-repo-verification**: Full repo health
+
 ## When to Use
 
 - Before describing what a generated file contains

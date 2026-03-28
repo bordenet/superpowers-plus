@@ -151,6 +151,12 @@ These patterns in plan output indicate this skill was not followed:
 | Missing exit criteria | +3 | Incomplete |
 | Missing dependency statement | +3 | Incomplete |
 
+## Companion Skills
+
+- **plan-and-execute**: Executing plans (this skill validates them)
+- **brainstorming**: Generating plan options
+- **writing-plans** (upstream): Plan writing standards
+
 ## When to Use
 
 - When writing plans, roadmaps, or any phased work

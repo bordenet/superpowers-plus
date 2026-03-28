@@ -19,6 +19,12 @@ coordination:
 
 # Brainstorming Ideas Into Designs
 
+## Companion Skills
+
+- **design-triad**: Structured evaluation of brainstorm outputs
+- **plan-and-execute**: Executing the selected approach
+- **innovation**: When 10x ideas are needed (not incremental)
+
 ## When to Use
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior

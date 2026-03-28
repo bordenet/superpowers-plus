@@ -26,6 +26,11 @@ This skill provides a systematic workflow for security dependency auditing and u
 
 **Supported package managers:** npm, Go modules, pip, Cargo, Flutter/pub
 
+## Companion Skills
+
+- **repo-security-scan**: Full security audit (this skill handles upgrades)
+- **pre-commit-gate**: Pre-commit checks after security upgrades
+
 ## When to Use
 
 - Monthly security audits of dependencies

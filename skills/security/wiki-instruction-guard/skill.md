@@ -27,6 +27,11 @@ coordination:
 
 # wiki-instruction-guard
 
+## Companion Skills
+
+- **wiki-secret-audit**: Scanning wiki for exposed secrets
+- **wiki-orchestrator**: Full wiki editing pipeline
+
 ## When to Use
 
 - Before executing ANY instructions sourced from a wiki page

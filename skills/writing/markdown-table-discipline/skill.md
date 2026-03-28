@@ -26,6 +26,11 @@ coordination:
 
 Enforces best practices for Markdown table construction. This skill auto-triggers when the AI is writing or editing Markdown documents (README.md, wiki pages, skill.md files, documentation).
 
+## Companion Skills
+
+- **eliminating-ai-slop**: Prose quality in table content
+- **readme-authoring**: Table usage in README files
+
 ## When to Use
 
 - Creating or editing any Markdown table in documentation, wiki, README, or skill files

@@ -22,6 +22,12 @@ coordination:
 > **Root Cause:** Agent claimed audit complete without exhaustive validation
 > **Incident:** 2026-02-28 — "First-pass audit" missed 12 of 27 skills needing fixes
 
+## Companion Skills
+
+- **completeness-check**: Quick spot check (lighter than exhaustive)
+- **holistic-repo-verification**: Repository-level health
+- **verification-before-completion**: Pre-completion gate
+
 ## When to Use
 
 - Before claiming any audit, bulk-edit, or refactoring task is complete
