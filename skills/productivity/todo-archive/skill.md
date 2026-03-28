@@ -22,7 +22,6 @@ coordination:
 
 > **Wrong skill?** Managing active tasks → `todo-management`. Task CRUD operations → use `todo-crud.sh` directly.
 
----
 
 ## Companion Skills
 
@@ -38,8 +37,6 @@ coordination:
 | HISTORY has entries >30 days old | Archive regardless of line count (staleness rule) |
 | User says "search archived todos for X" | Search across archive files |
 | User says "show archived todos from Month Year" | Display specific monthly archive |
-
----
 
 
 ## Scope Exclusions
@@ -83,7 +80,6 @@ For each target month file:
 
    > Tasks archived from TODO.md
 
-   ---
    ```
 
 2. Check for duplicate task IDs (idempotency guard) and skip re-appending blocks already present in the month file
@@ -119,7 +115,6 @@ post_history_count = {N - M}
 
 If mismatch → ABORT, restore from backup, report error.
 
----
 
 ## Archive File Format
 
@@ -128,7 +123,6 @@ If mismatch → ABORT, restore from backup, report error.
 
 > Tasks archived from TODO.md
 
----
 
 ## 2026-03-18
 - [x] [20260315-01] Fix alarm tuning across repos #engineering-backend
@@ -146,7 +140,6 @@ If mismatch → ABORT, restore from backup, report error.
   - Progress: Approved with minor suggestions
 ```
 
----
 
 ## Search Interface
 
@@ -174,7 +167,6 @@ show archived todos from 2026-02-01 to 2026-03-15
 → cat 2026-02.md 2026-03.md (then filter by date headers)
 ```
 
----
 
 ## Integrity & Safety
 
@@ -184,7 +176,6 @@ show archived todos from 2026-02-01 to 2026-03-15
 - **Dry-run:** Report what would be archived without modifying files
 - **Recovery:** If counts mismatch post-archive → restore from backup
 
----
 
 ## Edge Cases
 

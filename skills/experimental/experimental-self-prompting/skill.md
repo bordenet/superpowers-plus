@@ -22,8 +22,6 @@ coordination:
 > experiment but is NOT production-ready. Expect ~20% false positive rate.
 > ALWAYS verify outputs manually before acting on findings.
 
----
-
 
 ## When to Use
 
@@ -45,7 +43,6 @@ coordination:
 
 **Key Insight**: Reframing helps Claude (+10% VH), but HURTS external models (+400% HR).
 
----
 
 ## ⚠️ CRITICAL WARNINGS ⚠️
 
@@ -72,7 +69,6 @@ This skill was validated on 5 genesis-tools projects:
 
 It may not generalize to other codebases.
 
----
 
 ## When to Invoke
 
@@ -88,7 +84,6 @@ It may not generalize to other codebases.
 Use the experimental-self-prompting skill to analyze [system]
 ```
 
----
 
 ## The Protocol (Condition B)
 
@@ -141,7 +136,6 @@ Create summary with:
 - HR count (hallucinations)
 - Key findings with evidence
 
----
 
 ## Known Issues
 
@@ -150,7 +144,6 @@ Create summary with:
 3. **No automated verification** - Manual grep/test required
 4. **Prompt templates not optimized** - May miss issues or over-flag
 
----
 
 ## Graduation Criteria
 
@@ -162,15 +155,12 @@ This skill will be promoted to production when:
 - [ ] User feedback loop established
 - [ ] Prompt templates optimized and documented
 
----
 
 ## Reference
 
 - Full experiment: `superpowers-plus/docs/plans/experiment-results-v2/`
 - Statistical analysis: `superpowers-plus/docs/plans/experiment-results-v2/STATISTICAL_ANALYSIS.md`
 - Skill comparison: `superpowers-plus/docs/SKILL_COMPARISON_self-prompting_vs_think-twice.md`
-
-
 
 ## Example
 
@@ -187,7 +177,6 @@ Do NOT reference prior analysis." > /tmp/self-prompt.md
 - **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 rounds)
 - **Prompt drift:** Self-generated prompts gradually diverge from the original goal — anchor each round to the user's request
 - **Overhead without value:** Some tasks don't benefit from self-prompting — simple factual lookups, mechanical edits
-
 
 ## Scope Exclusions
 
