@@ -163,6 +163,14 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 
 ---
 
+- **enforce-style-guide**: Style fixes (step 2 in commit chain)
+- **progressive-code-review-gate**: Code review (step 3 in commit chain)
+- **professional-language-audit**: Language check (step 4 in commit chain)
+- **verification-before-completion**: Completion checklist (runs after commit gates)
+- **public-repo-ip-audit**: IP/license audit (step 5)
+- **output-verification**: Output verification
+- **holistic-repo-verification**: Full repo health check
+- **security-upgrade**: Post-upgrade pre-commit checks
 ## Commit Gate Coordination
 
 Multiple skills fire on "before commit". Execute in this order:

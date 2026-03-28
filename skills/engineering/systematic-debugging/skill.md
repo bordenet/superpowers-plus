@@ -118,3 +118,6 @@ grep -rn "functionName(" --include="*.ts" src/ | wc -l
 - `investigation-state` — persist debugging context across sessions for multi-day bugs
 - `think-twice` — dispatch fresh sub-agent when stuck in a hypothesis loop
 - `adversarial-search` — search for the WRONG value when symptoms contradict expectations
+- **investigation-state**: Complex multi-session debugging
+- **adversarial-search**: When debugging hits confirmation bias
+- **think-twice**: Escalation when debugging is stuck

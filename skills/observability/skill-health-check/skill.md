@@ -28,6 +28,8 @@ coordination:
 - **superpowers-doctor**: Full runtime diagnostics (heavier than this lint)
 - **skill-authoring**: Writing new skill files
 
+- **superpowers-help**: Skill discovery (lighter)
+- **writing-skills**: Skill file format reference
 ## When to Use
 
 - After creating or modifying skills
