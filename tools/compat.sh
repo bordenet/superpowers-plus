@@ -150,16 +150,20 @@ check_immutable() {
   elif _is_wsl_ntfs "$file"; then
     return 2  # Can't determine on NTFS
   elif command -v lsattr &>/dev/null; then
-    # lsattr output format: "----i---------e---- filename"
-    # The 'i' flag is at position 5 (0-indexed: 4) in the attribute string.
-    # We extract just the attribute field and check position 4.
+    # lsattr output varies across implementations:
+    #   GNU coreutils: "----i---------e---- filename"  (20-char fixed field)
+    #   BusyBox:       "----i--------e-- filename"     (shorter, variable)
+    # Instead of checking a fixed position, extract the attribute field
+    # (first whitespace-delimited token) and search for 'i' in it.
+    # The attribute field only contains flag letters and dashes, so
+    # matching 'i' anywhere in it reliably detects immutable.
     local attr_field
     attr_field=$(lsattr "$file" 2>/dev/null | awk '{print $1}')
     if [[ -z "$attr_field" ]]; then
       return 2
     fi
-    # Check if character at index 4 is 'i'
-    if [[ "${attr_field:4:1}" == "i" ]]; then
+    # Attribute field is only [a-zA-Z-] characters; 'i' = immutable
+    if [[ "$attr_field" == *i* ]]; then
       return 0
     fi
     return 1
@@ -168,15 +172,27 @@ check_immutable() {
   fi
 }
 
-# Internal: detect WSL + NTFS mount
+# Internal: detect WSL + NTFS/drvfs mount
 _is_wsl_ntfs() {
   local file="$1"
-  # Not WSL at all
-  [[ -f /proc/version ]] && grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null || return 1
-  # Check if path is on an NTFS mount (/mnt/c, /mnt/d, etc.)
-  local realpath_file
-  realpath_file=$(realpath "$file" 2>/dev/null || echo "$file")
-  [[ "$realpath_file" == /mnt/[a-z]/* ]] && return 0
+  # Not WSL at all — check /proc/version for Microsoft kernel signature
+  if [[ ! -f /proc/version ]]; then
+    return 1
+  fi
+  if ! grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null; then
+    return 1
+  fi
+  # Resolve to absolute path
+  local abs_path
+  abs_path=$(realpath "$file" 2>/dev/null || readlink -f "$file" 2>/dev/null || echo "$file")
+  # Standard Windows drive mounts: /mnt/c, /mnt/d, etc.
+  [[ "$abs_path" == /mnt/[a-z]/* ]] && return 0
+  # Check if the mount is drvfs (Windows filesystem) via findmnt or /proc/mounts
+  if command -v findmnt &>/dev/null; then
+    local fstype
+    fstype=$(findmnt -n -o FSTYPE --target "$abs_path" 2>/dev/null || echo "")
+    [[ "$fstype" == "drvfs" || "$fstype" == "9p" ]] && return 0
+  fi
   return 1
 }
 

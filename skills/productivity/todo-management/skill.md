@@ -234,7 +234,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 |---------|-----------|----------|
 | Agent uses `save-file`/`str-replace-editor` on TODO.md | OS immutability (`uchg`/`chattr +i`) blocks the write with "Operation not permitted" | No action needed — write was prevented |
 | Agent bypasses to `~/.codex/TODO.md` (honeypot) | Honeypot is also `uchg`+`444`; `sp-doctor` Check 23 detects content tampering | Run `sp-doctor --fix` to restore honeypot |
-| Honeypot `uchg` flag removed | `todo-crud.sh self-test` and `sp-doctor` Check 23 detect missing flag | Run `sp-doctor --fix` or `chflags uchg ~/.codex/TODO.md` |
+| Honeypot immutable flag removed | `todo-crud.sh self-test` and `sp-doctor` Check 23 detect missing flag | Run `sp-doctor --fix` (macOS: `chflags uchg`, Linux: `sudo chattr +i`) |
 | `.todo-registry` missing or empty | `todo-crud.sh self-test` warns; engine falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
 | TODO path points to nonexistent file | `sp-doctor` Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
 | Annihilation detection blocks write | Engine detects >60% size drop or >5 task loss | Delete `~/.codex/todo-shadow/TODO.md` and retry |
@@ -247,7 +247,7 @@ When creating tasks that represent meaningful work units (not mechanical sub-ste
 # Full health check
 ~/.codex/superpowers-plus/tools/todo-crud.sh self-test
 
-# Doctor checks (23: honeypot, 24: path validation)
+# Doctor checks (23: honeypot, 24: path validation, 25: stale workflow)
 bash ~/.codex/superpowers-plus/tools/doctor-checks.sh
 ```
 
