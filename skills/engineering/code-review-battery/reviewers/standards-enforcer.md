@@ -85,7 +85,3 @@ For each finding:
 
 If you find NO issues, say:
 "✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."
-
----
-
-## DIFF TO REVIEW

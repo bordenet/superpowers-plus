@@ -51,7 +51,3 @@ For each finding:
 
 If you find NO issues, say:
 "✅ No performance or observability concerns found. Code is efficient and well-instrumented."
-
----
-
-## DIFF TO REVIEW
