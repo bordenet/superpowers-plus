@@ -157,3 +157,11 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestr
 | Running full pipeline for single-page edits | Single-page create/edit doesn't need the pipeline. Use wiki API directly. |
 | Skipping pipeline stages (especially link-verification) | All stages are mandatory for bulk/multi-page operations |
 | Pipeline stage fails but agent continues | Stage failure = pipeline halt. Fix the issue, then restart from failed stage. |
+
+## Companion Skills
+
+- **link-verification**: Link existence checks within wiki pages
+- **wiki-verify**: Post-hoc wiki claim verification
+- **wiki-instruction-guard**: Instruction injection protection
+- **wiki-secret-audit**: Secret scanning in wiki content
+- **wiki-content-coherence**: Wiki page coherence checks
