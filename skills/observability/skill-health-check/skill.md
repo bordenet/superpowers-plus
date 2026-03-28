@@ -1,54 +1,42 @@
 ---
 name: skill-health-check
 source: superpowers-plus
-triggers: ["skill health", "skill regression", "validate skills", "check skill quality",
-           "skill coverage report", "are skills healthy"]
-description: "Validates all skills have required structure: YAML frontmatter, coordination metadata, failure modes, cross-references, and line count limits. Reports coverage gaps and structural regressions. Run periodically or after bulk skill changes."
-summary: "Use when: checking skill ecosystem health after changes or periodically."
+triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test",
+           "skill coverage report"]
+anti_triggers: ["doctor", "diagnose", "runtime skill issue"]
+description: "Cheap structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and reports missing coordination metadata and Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
+summary: "Use when: checking skill file structure after bulk changes. For runtime diagnostics use superpowers-doctor."
 coordination:
   group: observability
-  order: 3
+  order: 1
   requires: []
-  enables: ["superpowers-doctor"]
-  escalates_to: []
+  enables: []
+  escalates_to: ["superpowers-doctor"]
   internal: false
 ---
 
 # Skill Health Check
 
-> **Purpose:** Detect structural regressions across the skill ecosystem.
+> **Purpose:** Cheap structural lint for skill files. Not a runtime diagnostic.
 
-**Announce at start:** "I'm running the **skill-health-check** to validate skill ecosystem health."
+**Announce at start:** "I'm running the **skill-health-check** structural lint."
 
 ## When to Use
 
 - After creating or modifying skills
-- Periodically (weekly or before releases)
-- When `harsh-review.sh` reports skill count drift
+- After bulk skill changes (marathons, domain redesigns)
+- NOT for: runtime issues, install problems, broken tool paths (use `superpowers-doctor`)
 
-## Checks
+## What It Checks
 
-### Check 1: YAML Frontmatter
-Every `skill.md` must have valid YAML frontmatter with required fields:
-- `name` (string)
-- `source` (string)
-- `triggers` (array, non-empty)
-- `description` (string)
+| Check | Severity | What it validates |
+|-------|----------|-------------------|
+| YAML frontmatter | ERROR | `name`, `source`, `triggers`, `description` fields present |
+| Line count | ERROR | No `skill.md` exceeds 250 lines |
+| Coordination metadata | WARN | `coordination:` block present (presence only, not semantic validity) |
+| Failure modes section | WARN | `## Failure Modes` heading present (presence only) |
 
-### Check 2: Coordination Metadata
-Every `skill.md` should have `coordination:` block with:
-- `group` (string)
-- `order` (number)
-- `requires` (array)
-- `enables` (array)
-- `escalates_to` (array)
-- `internal` (boolean)
-
-### Check 3: Failure Modes
-Every `skill.md` should have a `## Failure Modes` section with a table of at least 2 rows.
-
-### Check 4: Line Count
-No `skill.md` should exceed 250 lines.
+**What it does NOT check:** coordination semantic validity, cross-reference accuracy, runtime behavior, install state. Those are `superpowers-doctor` territory.
 
 ## Running the Check
 
