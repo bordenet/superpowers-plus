@@ -44,6 +44,14 @@ When the PR description, wiki, or ticket references specific counts, lists, or c
 - Are edge cases covered in tests?
 - Do test names clearly describe what they verify?
 - Are test fixtures/mocks realistic (not trivially always-passing)?
+- **Revert-safety**: Would each new test FAIL if the production code change were reverted? A test that passes on both old and new code proves nothing — it's a false-confidence test. Flag any test where the assertion would be satisfied by pre-existing behavior.
+
+### 4a. Observability
+New logic paths MUST be debuggable in production. Check:
+- Are new guard conditions, state transitions, and decision branches logged at `info` level (not just `debug`)?
+- Can an engineer investigating a production incident determine from logs alone whether the new code path was taken?
+- Are log messages specific enough to distinguish which branch was taken? (e.g., "skipped timer" is bad; "skipped timer: no user evidence (userVerified=false, eventCount=0)" is good)
+- Are metrics emitted for new decision points that affect user-visible behavior?
 
 ### 5. Data Integrity (Internal Consistency)
 - Are data structures internally consistent (e.g., bidirectional mappings complete)?
