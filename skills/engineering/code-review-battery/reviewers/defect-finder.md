@@ -69,6 +69,30 @@ For event-driven or async code, don't trace each path in isolation. Systematical
 
 **Example**: A retry timer fires while a new request is being processed — does the retry clobber the new request's state?
 
+### Callee Implementation Trace
+For every function called in the diff that crosses a module boundary (different file):
+1. Read the implementation — don't trust the function name or signature to describe behavior
+2. Ask: "Does this function actually do what the caller assumes?" Look for silent failures, partial operations, and ignored return values
+3. Pay special attention to cleanup/teardown functions (clear*, reset*, stop*) — they often have preconditions or no-op cases the caller doesn't check
+
+**Example**: `cancelPendingJobs()` silently no-ops when a job is in "queued" state rather than "running" — the caller assumes all jobs are cancelled, but a queued-but-not-yet-started job survives and executes later.
+
+### Adversarial Input Generation
+For every regex, pattern match, or string comparison in the diff:
+1. Generate 5 adversarial inputs designed to be ambiguous or boundary-crossing
+2. Include inputs that partially match multiple categories simultaneously
+3. Test: what happens when the input contains the target pattern embedded in a longer, different-intent phrase?
+
+**Example**: A category classifier matching "cancel" should be tested with "cancel my cancellation" (double match), "I can celebrate" (substring match), and "CANCEL" vs "cancel" (case sensitivity).
+
+### Non-Binary Response Enumeration
+For every user-facing prompt or confirmation in the diff:
+1. Enumerate ALL possible response categories — not just the expected yes/no
+2. Include: silence/timeout, ambiguous input, echo of the prompt, off-topic response, input matching a DIFFERENT handler's pattern
+3. For each unexpected category, trace what the code does — does it hang, retry, or misclassify?
+
+**Example**: A deletion confirmation expects "yes" or "no", but the user types "maybe later" (matches neither), stays silent (timeout), or types "delete something else" (matches the delete pattern but with different intent). Each needs a defined code path.
+
 ### Test Revert-Safety Audit
 When reviewing test changes, ask for EVERY new test: **"Would this test still pass if the production code change were reverted?"**
 - If yes → the test proves nothing. It's a false-confidence test that gives the illusion of coverage.
