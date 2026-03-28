@@ -66,6 +66,15 @@ For any code that introduces or modifies state transitions:
 
 **Example**: Adding `userVerified` as a guard for retry-timer means TIMEOUT/CANCEL paths that never set `userVerified` will never get auto-retry — even when they should.
 
+### State Lifecycle Completeness
+For every new boolean, flag, or enum added to a state object:
+1. Identify the **semantic condition** the flag represents (e.g., "a human is present")
+2. Enumerate ALL code paths that produce that semantic condition — not just the path the diff adds
+3. For each path that produces the condition but does NOT set the flag: that's a structural gap
+4. Ask: "Is this flag named correctly for what it actually tracks, or is it scoped too narrowly?"
+
+**Example**: A flag called `userVerified` set only on explicit verification may miss implicit verification paths (successful login, token refresh, biometric). The flag should be `userEvidenceSeen` and set on ANY path that constitutes evidence.
+
 ### Interaction-Path Enumeration
 For event-driven or async code, don't trace each path in isolation. Systematically enumerate **event orderings**:
 1. List all external events the code reacts to (transcripts, timeouts, callbacks, user actions)

@@ -45,6 +45,7 @@ When the PR description, wiki, or ticket references specific counts, lists, or c
 - Do test names clearly describe what they verify?
 - Are test fixtures/mocks realistic (not trivially always-passing)?
 - **Revert-safety**: Would each new test FAIL if the production code change were reverted? A test that passes on both old and new code proves nothing — it's a false-confidence test. Flag any test where the assertion would be satisfied by pre-existing behavior.
+- **Mock fidelity** (check when tests mock async primitives — Promises, callbacks, event emitters): Verify the mock can reproduce the timing and ordering the production code depends on. A mock that resolves ALL waiters simultaneously cannot test per-waiter guards. A mock that always succeeds cannot test error recovery. Compare mock behavior to the real implementation it replaces — the mock must be capable of expressing the failure mode the test claims to cover.
 
 ### 4a. Observability
 New logic paths MUST be debuggable in production. Check:

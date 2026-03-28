@@ -136,6 +136,29 @@ After all reviewers return, merge their findings:
 
 ---
 
+## Phase 4: Escalation (Round 2)
+
+After Round 1 aggregation, check escalation signals. If ANY trigger fires, activate the corresponding Round 2 reviewer:
+
+| Trigger Signal | Reviewer to Activate | Why |
+|---------------|---------------------|-----|
+| Defect Finder flagged >2 state/flag-related findings | **Interaction Path Enumerator** (re-run Defect Finder with interaction-path focus) | Multiple state issues suggest systemic timing/ordering problems |
+| Standards Enforcer flagged >3 test quality issues | **Mock Fidelity Auditor** (re-run Standards Enforcer with mock-focused scope) | Widespread test issues suggest shared mock infrastructure problems |
+| Diff removes >50 lines or deletes functions/classes | **Removal Safety Auditor** (re-run Guardian with deletion focus) | Large deletions may remove behavior callers depend on |
+| Any reviewer flagged "pre-existing" issues | **State Lifecycle Auditor** (re-run Defect Finder with lifecycle focus) | Pre-existing findings often point to deeper structural gaps |
+
+### Escalation procedure
+1. Note the trigger signal in the report
+2. Re-dispatch the specified reviewer with a FOCUSED instruction mentioning the Round 1 findings
+3. Append Round 2 findings to the report under a `### Round 2 Findings` section
+
+### When NOT to escalate
+- User explicitly requested Round 1 only
+- All Round 1 reviewers returned clean
+- Diff is <20 lines (low blast radius)
+
+---
+
 ## Error Handling
 
 - If a reviewer sub-agent fails or times out: note it in the report, do NOT retry automatically
