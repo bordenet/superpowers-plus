@@ -41,6 +41,20 @@ coordination:
 - After a ceiling or limitation was misdiagnosed
 - After a regression was introduced
 
+
+### Example
+
+```bash
+# Example: 5-Why for misdiagnosed routing ceiling
+echo "What: Routing accuracy stuck at 82%"
+echo "Why1: 3 queries return wrong skill"
+echo "Why2: TF-IDF scores too close"
+echo "Why3: Intent patterns too generic"
+echo "Why4: No collision detection in patterns"
+echo "Why5: Pattern specificity never tested"
+echo "Fix: Add specific patterns before generic ones"
+```
+
 ## Scope Exclusions
 
 - Active debugging -> systematic-debugging
@@ -81,6 +95,15 @@ Impact: [time wasted, wrong output, user intervention]
 **Immediate fix** + **Process update** + **Skill update**
 
 ---
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Stops at surface | "API was slow" | Push: why was it slow? What could agent do? |
+| No preventive action | Step 4 empty | Not done until process update exists |
+| Same failure twice | Pattern repeats | Previous preventive action failed — escalate |
+| Blames environment | "Network issue" | Reframe: agent-controllable factors |
 
 ## Failure Modes
 
