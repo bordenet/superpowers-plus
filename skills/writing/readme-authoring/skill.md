@@ -45,7 +45,6 @@ Invoke when:
 
 ---
 
-
 ## Scope Exclusions
 
 - Wiki page writing → `wiki-orchestrator`
@@ -227,12 +226,20 @@ Markdown lint: PASS (0 errors)
 
 For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
 
+
+## Example
+
+```bash
+# Validate README structure
+head -1 README.md | grep -q "^# " || echo "Missing title"
+grep -c "## " README.md  # count sections
+```
+
 ## Failure Modes
 
 - **AI slop in README:** Phrases like "robust solution" or "This README provides" — run eliminating-ai-slop after drafting
 - **Missing prerequisites section:** Users can't get started without knowing what to install first
 - **Stale examples:** Code examples that no longer compile or reference deprecated APIs
-
 
 ## References
 
