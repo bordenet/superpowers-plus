@@ -22,7 +22,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 - Boolean parameters that should be separate functions or enums
 - God objects or god functions concentrating too much responsibility
 - Accidental complexity from poor data structure choices
-- **Named predicates**: Multi-term boolean expressions (e.g., `x === 0 && !state.y`) should be extracted to named functions (e.g., `hasHumanEvidenceForAutoRepeat(state)`). This makes guards self-documenting, testable in isolation, and grep-able.
+- **Named predicates**: Multi-term boolean expressions (e.g., `x === 0 && !state.y`) should be extracted to named functions (e.g., `isEligibleForRetry(state)`). This makes guards self-documenting, testable in isolation, and grep-able.
 
 ### 3. Testability
 - Hard-coded dependencies that prevent unit testing
@@ -58,7 +58,7 @@ For each finding:
 - **File:Line**: Exact location in the diff
 - **Issue**: What is poorly structured (1-2 sentences)
 - **Why**: Why this matters (maintenance cost, testing difficulty, extension friction)
-- **Fix**: How to restructure (sketch the better design)
+- **Fix**: How to restructure — include exact before/after code when possible (sketch the better design)
 
 If you find NO issues, say:
 "✅ No design concerns found. Code is well-factored, testable, and clear."

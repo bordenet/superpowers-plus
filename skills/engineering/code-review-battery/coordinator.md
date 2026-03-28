@@ -132,8 +132,23 @@ After all reviewers return, merge their findings:
 - ✅ Guardian: No security or compatibility concerns
 - ✅ Performance Analyst: Skipped (no perf-sensitive code)
 
+### Action Classification (Triple-Filter)
+
+For each Important or Critical finding, classify through three lenses:
+
+| Finding | CX Impact | Complexity | Testability | Action |
+|---------|-----------|------------|-------------|--------|
+| #1 ... | Fixes dead-air | +3 lines | Clearer tests | **Implement** |
+| #3 ... | None | Adds abstraction | Marginal | **Defer** |
+| #5 ... | None | None | Already testable | **Reject** |
+
+- **Implement**: Passes all 3 filters (improves CX, reduces/neutral complexity, improves testability). Propose exact code change.
+- **Defer**: Good finding but doesn't pass all 3. Document for future work.
+- **Reject**: Correct observation but the fix adds more complexity than it removes.
+
 ### Summary
 [X] total findings: [N] Critical, [N] Important, [N] Minor
+[A] findings classified as Implement, [D] Defer, [R] Reject
 [Y] reviewers found no issues in their domain
 ```
 

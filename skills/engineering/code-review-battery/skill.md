@@ -52,14 +52,18 @@ Read the reviewer prompt from `reviewers/<name>.md`. Append the full diff to the
 
 **Critical**: Each reviewer receives the FULL diff AND relevant unchanged source context inline in its instruction. Sub-agents have isolated context — they cannot read workspace files. The source context enables ripple analysis (consumer traces, boundary value traces).
 
-### Step 4: Aggregate
+### Step 4: Aggregate and Classify
 
 After all reviewers return, merge findings following `coordinator.md` Phase 3:
 
 1. Sort by severity: Critical → Important → Minor
 2. Prefix each finding with `[Reviewer Name]`
 3. Note clean dimensions ("✅ No issues")
-4. Present unified report
+4. **Triple-filter** each Important/Critical finding:
+   - **Implement**: Improves customer experience + reduces/neutral complexity + improves testability
+   - **Defer**: Good finding but doesn't pass all 3 filters
+   - **Reject**: Correct observation but fix adds more complexity than it removes
+5. Present unified report with action classification
 
 ### Step 5: Escalation (Round 2)
 
