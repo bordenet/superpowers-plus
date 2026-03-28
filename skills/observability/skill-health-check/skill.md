@@ -34,6 +34,7 @@ coordination:
 
 - After creating or modifying skills
 - After bulk skill changes (marathons, domain redesigns)
+- Before committing any changes under `skills/` — catches formatting errors early
 
 ## Scope Exclusions
 

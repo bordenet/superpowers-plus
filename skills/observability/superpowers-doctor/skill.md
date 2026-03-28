@@ -28,7 +28,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - **skill-health-check**: Quick structural lint (lighter than doctor)
 - **skill-authoring**: Writing new skill files
 - `update-superpowers` (upstream): Updating skill installations
-
+- **superpowers-help**: Skill discovery and help
 ## When to Use
 
 - User says "run superpowers doctor" or "check skill health"

@@ -83,6 +83,7 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 
 - **detecting-ai-slop**: Read-only analysis (this skill is the active rewriter)
 - **readme-authoring**: Slop prevention in READMEs
+- **incorporating-research**: Clean up pasted research text
 - **markdown-table-discipline**: Slop prevention in table content
 ## When to Use
 
