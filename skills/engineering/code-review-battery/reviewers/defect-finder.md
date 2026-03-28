@@ -75,6 +75,14 @@ For every new boolean, flag, or enum added to a state object:
 
 **Example**: A flag called `userVerified` set only on explicit verification may miss implicit verification paths (successful login, token refresh, biometric). The flag should be `userEvidenceSeen` and set on ANY path that constitutes evidence.
 
+### Feedback Loop Analysis
+When a flag or counter guards a timer/retry that triggers an action that clears the flag's evidence:
+1. Trace the full cycle: flag set → guard passes → action fires → action clears evidence → flag unset → guard fails
+2. Ask: "After the first iteration succeeds, does the second iteration have the evidence it needs?"
+3. Pay special attention to retry/repeat loops where each iteration clears state that the guard depends on.
+
+**Example**: A `hasEvidence` flag enables a silence timer. The timer triggers auto-repeat. Auto-repeat clears transcripts → `transcriptCount = 0` and `hasEvidence` was never re-set → next silence timer guard fails → no second auto-repeat. The loop dead-ends after one iteration.
+
 ### Interaction-Path Enumeration
 For event-driven or async code, don't trace each path in isolation. Systematically enumerate **event orderings**:
 1. List all external events the code reacts to (transcripts, timeouts, callbacks, user actions)
@@ -102,6 +110,7 @@ Review the diff AND the source context provided below. For each file changed, tr
 - "What code PRODUCES values that cross my new thresholds?"
 - "What if two events INTERLEAVE rather than arriving sequentially?"
 - "Would each new test FAIL if the production change were reverted?"
+- "If a flag guards a retry/repeat loop, does each iteration preserve the evidence the flag needs?"
 
 ## Confidence Gate
 Only report findings where you are >80% confident there is a real defect or risk.

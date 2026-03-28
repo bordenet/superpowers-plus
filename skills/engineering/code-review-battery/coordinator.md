@@ -106,6 +106,7 @@ After all reviewers return, merge their findings:
 4. Prefix each finding with `[Reviewer Name]` for attribution
 5. If a reviewer returned "✅ No issues found", note it in summary
 6. If two reviewers flag the same location, keep both (different lenses may provide complementary insight)
+7. **Convergent findings** (same issue found independently by 2+ reviewers) are high-confidence signals — promote to at least Important severity regardless of individual reviewer severity
 
 ### Unified Report Format
 
