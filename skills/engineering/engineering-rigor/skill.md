@@ -105,6 +105,16 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - Pre-commit gate → `pre-commit-gate`
 - Debugging → `systematic-debugging`
 
+
+## Example
+
+```bash
+# Blast radius check: who calls the function I'm changing?
+grep -rn "myFunction(" --include="*.ts" src/ | grep -v "test"
+# Null safety check: find unguarded property access
+grep -rn "\.getData()" --include="*.ts" src/ | grep -v "?." | grep -v "!= null"
+```
+
 ## Failure Modes
 
 | Failure | Recovery |
