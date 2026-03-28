@@ -40,7 +40,7 @@ For each key finding, ask: **does evidence from a different source confirm or co
 | Finding | Confirming Source | Contradicting Source |
 |---------|-------------------|----------------------|
 | "Migration completed successfully" (pipeline log) | ? | "253 rows missing" (database query) |
-| "Schema updated in v2.3" (git diff) | "Ticket marked resolved" (Linear) | "Docs still describe v2.2 schema" (Outline) |
+| "Schema updated in v2.3" (git diff) | "Ticket marked resolved" (Linear) | "Docs still describe v2.2 schema" (wiki) |
 
 Contradictions between sources are the most valuable signals — they narrow the search space.
 

@@ -147,7 +147,7 @@ other_repo_provides() {
         [[ -z "$dir" || ! -d "$dir" ]] && continue
         local overlay_name=""
         case "$varname" in
-            SPC_SOURCE_DIR) overlay_name="superpowers-[company]" ;;
+            SPC_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
             PRODUCT_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
             PRODUCT_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
             *) continue ;;
