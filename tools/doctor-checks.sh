@@ -453,8 +453,8 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
     lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
     if [[ -n "${trigger_map[$lt]:-}" ]]; then
       existing="${trigger_map[$lt]}"
-      # Skip self-collisions (same skill, case-insensitive trigger variants)
-      if [[ "$existing" == "$skill" ]]; then
+      # Skip if skill is already in the map for this trigger (self-collision)
+      if echo ", $existing," | grep -q ", ${skill},"; then
         continue
       fi
       # Check if all colliding skills are in the same known group
