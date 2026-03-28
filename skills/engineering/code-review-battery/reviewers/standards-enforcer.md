@@ -22,23 +22,28 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Are there deviations from the agreed approach without explanation?
 - Do function names, variable names, and behavior match the specification?
 
-### 3. Documentation Drift
+### 3. Documentation Drift & Comment-as-Spec
 - Do docstrings/comments accurately describe current behavior (not stale)?
 - Does README/changelog reflect the changes made?
 - Are inline comments explaining "why" present for non-obvious decisions?
 - Do configuration files have matching documentation updates?
 - Are counts, lists, or tables in docs updated to match code changes?
+- **Comment-as-Spec**: Read every comment within 10 lines of changed code as a BOOLEAN ASSERTION. Verify it against the actual code behavior. Stale comments are defects — they mislead future developers.
+  - Example: A docblock saying "WAIT always clears transcripts" is false if the new low-confidence path skips clearing.
+  - Example: A comment saying "prevents duplicate callbacks" is false if the code no longer does that.
 
-### 4. Test Quality & Adequacy
+### 3a. Cross-Document Verification
+When the PR description, wiki, or ticket references specific counts, lists, or claims:
+- **Verify counts against actual diff** (e.g., "16 new tests" — count them in the diff)
+- **Verify file lists** (e.g., "Files Changed: types.ts, handler.ts" — confirm against `--stat`)
+- **Verify behavior claims** (e.g., "confidence gate at 0.5" — confirm the threshold in code)
+
+### 4. Test Quality
 - Are tests meaningful (testing behavior, not implementation details)?
 - Do assertions check the right things (not just "no error thrown")?
 - Are edge cases covered in tests?
 - Do test names clearly describe what they verify?
 - Are test fixtures/mocks realistic (not trivially always-passing)?
-- New code paths in the diff without corresponding test cases
-- Changed behavior without updated regression tests
-- Test coverage gaps for error/edge-case paths added in the diff
-- Missing integration tests for new cross-component interactions
 
 ### 5. Data Integrity (Internal Consistency)
 - Are data structures internally consistent (e.g., bidirectional mappings complete)?
@@ -48,42 +53,29 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 
 ## What to Review
 
-Run the git diff command provided to see the changes. Then **read the full source files** and surrounding code — standards conformance requires understanding the project's existing patterns. Ask:
+Review the diff and ask:
 - "Does this follow the same patterns as the rest of the codebase?"
 - "Would a new team member understand why this code does what it does?"
 - "Are docs/comments/tests accurate for the NEW behavior, not the old?"
 - "Are all internal data structures consistent and complete?"
 
+## Confidence Gate
+Only report findings where you are >80% confident there is a real standards violation.
+Mark any finding where confidence is 60-80% as "Possible: ..."
 Do NOT report personal style preferences — only documented or codebase-evident conventions.
 
 ## Output Format
 
-For each finding, use this structured format:
-
-### Finding F\<n\>
-- **file**: \<path\>
-- **line**: \<number\> (or "N/A")
-- **symbol**: \<name\> (omit if not applicable)
-- **severity**: Critical / Important / Minor
-- **confidence**: High (>80%) / Possible (60–80%)
-- **scope**: isolated / systemic
-- **issue**: \<what doesn't conform — 1–2 sentences\>
-- **why**: \<what standard, spec, or convention is violated\>
-- **fix**: \<how to fix\>
-
-When `scope = systemic`, add an `instances` list with all file:line locations.
+For each finding:
+- **Severity**: Critical / Important / Minor
+- **File:Line**: Exact location in the diff
+- **Issue**: What doesn't conform (1-2 sentences)
+- **Why**: What standard, spec, or convention is violated
+- **Fix**: How to fix (if not obvious)
 
 If you find NO issues, say:
-"✅ No standards concerns found."
-
-## Workspace Access
-
-You have full workspace access. Use it:
-- `cat <file>` to read the complete source file (understand existing conventions)
-- `grep -rn <pattern> <dir>` to check naming patterns, import styles across the codebase
-- Read test files to assess test quality in context
-- Check README, CHANGELOG, and docs for accuracy against code changes
+"✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."
 
 ---
 
-## REVIEW INSTRUCTIONS
+## DIFF TO REVIEW
