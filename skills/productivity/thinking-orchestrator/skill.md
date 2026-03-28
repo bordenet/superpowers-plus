@@ -149,3 +149,5 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill brainstorming
 - **think-twice**: Deep analysis when stuck · **brainstorming**: Generating options
 - **design-triad**: Evaluating design alternatives · **adversarial-search**: Deep investigation
 - **plan-and-execute**: Structured planning workflow
+- **quantitative-decision-gate**: Decision matrix scoring
+- **autonomous-chain-controller**: Full workflow automation

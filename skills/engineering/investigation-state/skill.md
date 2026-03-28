@@ -36,7 +36,7 @@ composition:
 - **systematic-debugging**: Step-by-step bug investigation
 - **adversarial-search**: Confirmation bias prevention during investigation
 - **think-twice**: When investigation hits a wall
-
+- **failure-autopsy**: Post-mortem analysis
 ## When to Use
 
 - Starting a new multi-turn debugging session
