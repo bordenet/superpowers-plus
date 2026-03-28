@@ -15,6 +15,8 @@ coordination:
 
 # Field Rename Verification
 
+> **Wrong skill?** General code modification → `blast-radius-check`. Pre-commit checks → `pre-commit-gate`. Completion verification → `verification-before-completion`.
+
 ## When to Use
 
 - Renaming a field, column, or property across one or more services

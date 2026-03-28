@@ -224,7 +224,7 @@ When tables render to HTML:
 | Retries | 3 |
 ```
 
-## Common Failure Modes
+## Failure Modes
 
 - **Table when list suffices:** Using a 2-row table for data that reads better as a bullet list
 - **Too many columns:** Tables wider than 5 columns become unreadable in most renderers

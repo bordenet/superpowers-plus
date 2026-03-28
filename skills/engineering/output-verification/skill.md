@@ -15,6 +15,8 @@ coordination:
 
 # Output Verification
 
+> **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Completion checklist → `verification-before-completion`. Code review → `progressive-code-review-gate`.
+
 > **Purpose:** Prevent confabulation disguised as verification
 > **Core Principle:** You cannot describe output you haven't read. Period.
 
@@ -147,3 +149,12 @@ No tool call between generate and describe = fiction, not verification.
 Plausible fiction is the most dangerous kind because the user trusts it.
 
 This is non-negotiable.
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Inspecting only first/last lines — errors buried in middle | Read ALL output, or grep for error patterns across full output |
+| Reading source file instead of rendered/compiled output | Source correctness ≠ render correctness — inspect the actual artifact |
+| Confusing "generation succeeded" (exit 0) with "output is correct" | Exit code confirms execution, not correctness — read the content |
+| Self-exemption: "I just wrote it, I know what's in it" | You know intent, not result — inspect anyway |

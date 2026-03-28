@@ -167,7 +167,7 @@ Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 No performative agreement. Technical rigor always.
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Blind implementation:** Implementing every suggestion without evaluating whether it's correct for THIS codebase
 - **Performative agreement:** Saying "great catch!" instead of technically verifying the feedback is accurate

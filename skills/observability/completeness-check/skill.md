@@ -156,7 +156,7 @@ Summary:
 **Remember**: AI assistants leave incomplete work more often than we realize. This skill makes that work visible.
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Self-grading bias:** Claiming 100% completeness without independent verification — always cross-check against the original scope
 - **Scope creep in checklist:** Adding items that weren't in the original request to inflate completeness percentage

@@ -160,7 +160,7 @@ This skill will be promoted to production when:
 - Skill comparison: `superpowers-plus/docs/SKILL_COMPARISON_self-prompting_vs_think-twice.md`
 
 
-## Common Failure Modes
+## Failure Modes
 
 - **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 rounds)
 - **Prompt drift:** Self-generated prompts gradually diverge from the original goal — anchor each round to the user's request

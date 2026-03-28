@@ -22,6 +22,8 @@ composition:
 
 # Investigation State
 
+> **Wrong skill?** Debugging → `systematic-debugging`. Getting unstuck → `think-twice`. Requirements analysis → `requirements-validation`.
+
 > **Purpose:** Persist debugging investigation context across sessions so no hypothesis, evidence, or eliminated approach is lost.
 > **Storage:** `~/.superpowers/investigations/<uuid>.json`
 > **Authoritative format:** JSON. Markdown export is read-only.

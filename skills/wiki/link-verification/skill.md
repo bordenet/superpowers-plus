@@ -24,6 +24,8 @@ coordination:
 > **Last Updated:** 2026-02-28
 > **Incident:** Hallucinated `github.com/your-org/*` links on Speech: Deepgram and Telephony: Telnyx wiki pages
 
+> **Wrong skill?** Verifying links in issue tickets → `issue-link-verification`. Checking wiki page content accuracy → `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+
 ---
 
 ## Orchestrator Integration
@@ -220,6 +222,15 @@ When adding a "Code References" section to wiki pages:
 | Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
 
 ---
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Link returns 200 but content doesn't match description | Read the target page title — verify it matches your anchor text |
+| Wiki slug verified for existence but wrong page | Compare the returned page title against what you're linking to |
+| Batch verification skips link on timeout, marks as "warn" | Retry once; if still failing, mark as "fail" not "warn" |
+| Checking internal wiki links only — missing broken external URLs | Verify ALL link types: wiki, repo, issue, and external |
 
 ## Companion Skills
 
