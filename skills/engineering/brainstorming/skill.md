@@ -35,6 +35,8 @@ coordination:
 - **plan-quality-gates**: Plan validation
 - **expert-interviewer**: Domain expert interviews
 - **experimental-self-prompting**: Self-prompting analysis
+- **quantitative-decision-gate**: Quantitative option evaluation
+- **autonomous-chain-controller**: Full workflow automation
 ## When to Use
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior
