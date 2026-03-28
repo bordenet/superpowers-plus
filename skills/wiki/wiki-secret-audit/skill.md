@@ -26,6 +26,12 @@ coordination:
 
 > **Wrong skill?** Scanning code repos for secrets → `repo-security-scan`. Executing wiki instructions safely → `wiki-instruction-guard`. Checking wiki page accuracy → `wiki-verify`.
 
+## Companion Skills
+
+- **repo-security-scan**: Scanning code repos for secrets (this skill scans wiki)
+- **wiki-instruction-guard**: Blocking dangerous wiki-sourced instructions
+- **wiki-orchestrator**: Full wiki editing pipeline
+
 ## When to Use
 
 Invoke this skill when:
