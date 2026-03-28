@@ -54,6 +54,8 @@ A **false negative** is an Expected Finding not matched by any battery output.
 
 ### Scoring Results (2026-03-28, battery v2.5)
 
+**Known-bug exercises (training data):**
+
 | Exercise | Difficulty | Precision | Recall | High-sev Precision | Notes |
 |----------|-----------|-----------|--------|-------------------|-------|
 | ex-001   | 3 | 100% | 100% | 100% | Convergent finding caught by both Defect Finder and Guardian |
@@ -61,9 +63,28 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | ex-003   | 2 | 100% | 100% | 100% | Regression correctly identified |
 | ex-004   | 4 | 100% | 100% | 100% | All 3 expected + 1 bonus (PID liveness check) |
 | ex-005   | 3 | 100% | 100% | 100% | All 2 expected + 3 bonus (circular ordering, ambiguity, terminology) |
-| **Total** | — | **100%** | **100%** | **100%** | 0 false positives, 0 misses, 4 bonus findings |
 
-**Caveat:** All exercises are derived from known bugs that the battery previously caught. Perfect scores are expected on this training set. True evaluation requires exercises with unknown bugs (not yet authored).
+**Novel-bug exercises (unseen by battery):**
+
+| Exercise | Difficulty | Precision | Recall | High-sev Precision | Notes |
+|----------|-----------|-----------|--------|-------------------|-------|
+| ex-006   | 5 | 100% | 50% | 100% | Caught validator gap; missed undefined reference (below confidence threshold) |
+| ex-007   | 4 | 100% | 33% | 100% | **GAP:** Missed fd leak on error paths. Found 2 bonus (lock inconsistency, portability). Candidate-001 proposed. |
+| ex-008   | 5 | 100% | 67% | 100% | Caught path traversal + blast radius; missed contract break (null→throw) |
+| ex-009   | 4 | 100% | 100% | 100% | Caught silent default change + NaN; bonus: value validation gap |
+| ex-010   | 5 | 100% | 67% | 100% | Caught tautological mock + mock leak; missed require-cache isolation |
+
+**Aggregate:**
+
+| Metric | Known (1-5, 9 expected) | Novel (6-10, 13 expected) | Combined (22 expected) |
+|--------|-------------|-------------|----------|
+| Precision | 100% | 100% | **100%** |
+| Recall | 100% (9/9) | 62% (8/13) | **77% (17/22)** |
+| High-sev Precision | 100% | 100% | **100%** |
+| False positives | 0 | 0 | **0** |
+| Bonus valid findings | 4 | 4 | **8** |
+
+**Key insight:** Precision is perfect (0 false positives across 10 exercises). Recall drops from 100% to 62% on novel bugs — the battery misses subtle findings at difficulty 4-5 (resource leaks, contract violations, require-cache effects). Candidate-001 proposed for the fd leak gap.
 
 ## Exit Criteria (from operational plan)
 
@@ -73,10 +94,15 @@ A **false negative** is an Expected Finding not matched by any battery output.
 
 ## Files
 
-| Exercise | Difficulty | Primary Reviewer | Bug Type |
-|----------|-----------|-----------------|----------|
-| [ex-001](./ex-001-stage-exclusion-gap.md) | 3 | defect-finder + guardian | Incomplete fix across parallel code paths |
-| [ex-002](./ex-002-missing-newlines.md) | 1 | standards-enforcer | Standards violation (trailing newline) |
-| [ex-003](./ex-003-callee-trace-regression.md) | 2 | defect-finder | Context truncation regression |
-| [ex-004](./ex-004-lock-atomicity.md) | 4 | defect-finder + guardian | Race condition + security (lock forgery) |
-| [ex-005](./ex-005-convergence-underspec.md) | 3 | standards-enforcer + defect-finder | Under-specified algorithm edge case |
+| Exercise | Difficulty | Primary Reviewer | Bug Type | Source |
+|----------|-----------|-----------------|----------|--------|
+| [ex-001](./ex-001-stage-exclusion-gap.md) | 3 | defect-finder + guardian | Incomplete fix across parallel code paths | PR #300 |
+| [ex-002](./ex-002-missing-newlines.md) | 1 | standards-enforcer | Standards violation (trailing newline) | PR #289 |
+| [ex-003](./ex-003-callee-trace-regression.md) | 2 | defect-finder | Context truncation regression | PR #300 |
+| [ex-004](./ex-004-lock-atomicity.md) | 4 | defect-finder + guardian | Race condition + security (lock forgery) | PR #297 |
+| [ex-005](./ex-005-convergence-underspec.md) | 3 | standards-enforcer + defect-finder | Under-specified algorithm edge case | PR #300 |
+| [ex-006](./ex-006-cross-file-enum-drift.md) | 5 | defect-finder + standards-enforcer | Incomplete change across consumers | Synthetic |
+| [ex-007](./ex-007-fd-leak-on-error.md) | 4 | defect-finder + guardian | Resource leak on error paths | Synthetic |
+| [ex-008](./ex-008-path-injection.md) | 5 | guardian + defect-finder | Path traversal + contract break | Synthetic |
+| [ex-009](./ex-009-backwards-compat-break.md) | 4 | guardian + design-critic | Silent behavior change | Synthetic |
+| [ex-010](./ex-010-mock-fidelity.md) | 5 | standards-enforcer + defect-finder | Tautological test + mock leak | Synthetic |
