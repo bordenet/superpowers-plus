@@ -181,6 +181,15 @@ If you've already posted a problematic comment:
 
 ---
 
+
+## Example
+
+```bash
+# Verify factual claims in issue comments
+# Check: commit SHAs exist, PR numbers are real, dates match events
+git log --oneline --after="2026-01-14" --before="2026-01-16" | head -5
+```
+
 ## Failure Modes
 
 | Failure | Fix |
@@ -198,6 +207,9 @@ If you've already posted a problematic comment:
 
 ---
 
+- **issue-editing**: Editing issues after debunking claims
+- **issue-authoring**: Creating issues with verified facts
+- **issue-link-verification**: Checking links referenced in comments
 ## Evidence Checklist
 
 ```

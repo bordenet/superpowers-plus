@@ -206,3 +206,5 @@ npm run lint && npm test
 
 - **brainstorming** → **design-triad** → **plan-and-execute** → **progressive-code-review-gate** → ship
 - **test-driven-development**: TDD within feature implementation
+- **plan-and-execute**: Planning phase before implementation
+- **subagent-driven-development**: Sub-agent task dispatch

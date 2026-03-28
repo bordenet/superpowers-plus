@@ -121,6 +121,16 @@ Use when: the reviewer has finished and written `response.md`.
 - Archive the final PASS round too (user may want to reference it).
 - Track round number from the response header (`# Code Review Response — Round {N}`), not a separate file.
 
+
+## Example
+
+```bash
+# Initiate file-protocol review
+mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
+# Reviewer agent reads request.md, writes response.md
+# Requesting agent reads response.md, implements fixes
+```
+
 ## Failure Modes
 
 | Failure | Fix |

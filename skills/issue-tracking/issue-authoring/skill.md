@@ -149,10 +149,20 @@ Before creating issue:
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments only
 
+- **issue-verify**: Post-creation verification
 ## Related Tools
 
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
+
+
+## Example
+
+```bash
+# Create a well-structured Linear ticket
+# Required: title, description with acceptance criteria, team assignment
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-authoring
+```
 
 ## Failure Modes
 

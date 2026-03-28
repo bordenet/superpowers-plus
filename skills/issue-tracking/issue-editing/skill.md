@@ -145,6 +145,15 @@ Before EVERY update:
 
 ---
 
+
+## Example
+
+```bash
+# Before editing: capture current state for comparison
+# After editing: verify changes applied correctly
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-editing
+```
+
 ## Failure Modes
 
 - **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
@@ -156,3 +165,4 @@ Before EVERY update:
 - **issue-authoring**: Standards for creating issues
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments
+- **issue-verify**: Post-edit verification
