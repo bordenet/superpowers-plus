@@ -29,7 +29,8 @@ coordination:
 
 - **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
 - **brainstorming**: Generating options before review
-
+- **micro-harsh-review**: Per-batch code review
+- **providing-code-review**: Code-specific review
 ## When to Use
 
 - After completing a significant non-code deliverable (plan, skill, document, design)
@@ -120,6 +121,16 @@ cd ~/.codex/superpowers-plus && bash tools/harsh-review.sh
 # Check specific skill
 bash tools/harsh-review.sh skills/engineering/my-skill/skill.md
 ```
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Soft review | No score <7 given | Recalibrate with known-bad example |
+| Same feedback loop | Same comment 3 iterations | Escalate to structural fix |
+| Style over substance | All comments are formatting | Check logic, edge cases, error handling first |
+| Perfection paralysis | 5+ rounds, no convergence | Set hard limit: 3 rounds then ship |
+| Missing context | Review without reading full file | Load surrounding context first |
 
 ## Failure Modes
 
