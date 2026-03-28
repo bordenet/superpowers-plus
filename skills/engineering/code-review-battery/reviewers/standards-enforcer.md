@@ -82,10 +82,8 @@ For each finding:
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
 - **Fix**: How to fix — include exact before/after code when possible
+- **Regressions Risked**: What could break if this fix is applied? (e.g., "Renaming the function to match convention may break callers in other packages")
+- **Durable Check**: Propose a lint rule, naming convention check, or doc-sync test to prevent this class of issue permanently (e.g., "Add CI check: all public functions must have JSDoc with @param and @returns")
 
 If you find NO issues, say:
 "✅ No standards concerns found. Code follows conventions, docs are accurate, tests are meaningful."
-
----
-
-## DIFF TO REVIEW

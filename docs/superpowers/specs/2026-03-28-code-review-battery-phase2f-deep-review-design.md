@@ -1,6 +1,6 @@
 # Code Review Battery — Phase 2f: Deep Review
 
-> **Status**: Design (pending approval)
+> **Status**: ARCHIVED — superseded by v2.4 implementation (2026-03-28). References to v1 files (coordinator.md, context-expansion.md, verification.md, investigation-protocol.md, gap-analysis.md, implementation-plan.md) are historical — those files were deleted in v2.5. Coordination logic now lives in skill.md (Phase 1–5).
 > **Author**: Matt Bordenet + AI
 > **Created**: 2026-03-28
 > **Companion**: [PRD.md](../../../skills/engineering/code-review-battery/PRD.md), [DESIGN.md](../../../skills/engineering/code-review-battery/DESIGN.md)
