@@ -67,7 +67,7 @@ Read the reviewer prompt from `reviewers/<name>.md`. Append the full diff to the
 
 **On Claude Code** — use `Task()` calls or `.claude/agents/` subagent files.
 
-**Critical**: Each reviewer receives the FULL diff AND relevant unchanged source context inline in its instruction. Sub-agents have isolated context — they cannot read workspace files. The source context enables ripple analysis (consumer traces, boundary value traces).
+**Critical**: Each reviewer receives the FULL diff AND relevant unchanged source context inline in its instruction. Sub-agents don't inherit your conversation context, so providing inline context ensures focused, reliable reviews. The source context enables ripple analysis (consumer traces, boundary value traces).
 
 ### Step 4: Aggregate and Classify
 
