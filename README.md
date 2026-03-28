@@ -127,7 +127,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | You say... | Skill triggered | What happens |
 |------------|-----------------|--------------|
 | "You're stuck in a loop!" | think-twice | Pauses, consults fresh sub-agent |
-| "Create a wiki page for X" | (direct Outline API) | Single-page creation doesn't need a skill |
+| "Create a wiki page for X" | (direct wiki API) | Single-page creation doesn't need a skill |
 | "Build a multi-page wiki section" | wiki-orchestrator | Bulk/multi-page documentation pipeline |
 | "Review this PR" | providing-code-review | Structured feedback with checklist |
 | "Is this done?" | completeness-check | Audits for incomplete work |

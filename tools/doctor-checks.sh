@@ -291,8 +291,8 @@ done
 # --- Check 8: Orphaned Installs ---
 # Demoted from ERROR+auto-fix to WARNING+report-only (2026-03-25).
 # Reason: locally-created skills that haven't been committed to a source repo yet
-# were being silently deleted. This destroyed outline-wiki-editing and its
-# Outline API access patterns, causing agents to give up on wiki access entirely.
+# were being silently deleted. This destroyed wiki-editing skills and their
+# API access patterns, causing agents to give up on wiki access entirely.
 # Use --purge-orphans to explicitly opt into orphan removal.
 declare -A _source_skill_names=()
 for dir in "${SOURCE_DIRS[@]}"; do

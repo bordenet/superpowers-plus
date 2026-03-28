@@ -83,7 +83,7 @@ When a bug correlates with a work item change:
 
 ---
 
-## Outline (via MCP tools)
+## Wiki Platform (via MCP tools)
 
 ### Content Drift Detection
 
@@ -125,7 +125,7 @@ When evidence spans multiple tools, look for:
 
 1. **Temporal correlation** — did a deploy (ADO) happen right before the bug appeared?
 2. **Data consistency** — does the database (MSSQL) match what the API returns?
-3. **Documentation drift** — do the docs (Outline) describe the current behavior or the old behavior?
+3. **Documentation drift** — do the docs (wiki) describe the current behavior or the old behavior?
 4. **Ticket history** — was this bug reported before (Linear) and marked resolved prematurely?
 
 See `evidence-synthesis.md` for the full synthesis technique.

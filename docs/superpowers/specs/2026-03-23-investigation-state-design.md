@@ -279,7 +279,7 @@ These are incremental additions to existing skills, not new skills:
 
 ### 4b. Cross-Tool Investigation Patterns
 
-**What:** A reference document covering patterns for debugging across MCP tools (MSSQL queries, Azure DevOps pipeline logs, Linear ticket state, Outline wiki content).
+**What:** A reference document covering patterns for debugging across MCP tools (MSSQL queries, Azure DevOps pipeline logs, Linear ticket state, wiki content).
 
 **Implementation:** New `references/cross-tool-patterns.md` in the `investigation-state` skill directory.
 
@@ -287,7 +287,7 @@ These are incremental additions to existing skills, not new skills:
 - MSSQL: diagnostic queries, connection comparison
 - Azure DevOps: pipeline run analysis, work item state tracing
 - Linear: issue timeline reconstruction
-- Outline: content drift detection
+- Wiki: content drift detection
 
 ### 4c. Git Bisect Technique Reference
 
