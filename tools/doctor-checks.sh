@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 22 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 25 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -175,7 +175,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (22 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (25 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
@@ -929,6 +929,68 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
   _doctor_todo_smoke
 fi
 
+# --- Check 25: Stale Workflow State ---
+# IMPORTANT: This must run BEFORE check 22 (reviewer-dispatch) because check 22
+# loads the adapter which triggers readState() auto-expiry on stale states.
+# Detects abandoned workflow states older than 24 hours.
+# Auto-fix: archives stale state to ~/.codex/.workflow-state-archive/
+_doctor_workflow_state() {
+  local state_file="$HOME/.codex/.workflow-state.json"
+  [[ -f "$state_file" ]] || return 0
+
+  if ! command -v node &>/dev/null; then
+    echo "🟡 WARNING: workflow-state — node not available, cannot check state age"
+    WARNINGS=$((WARNINGS + 1))
+    return 0
+  fi
+
+  local age_hours
+  age_hours=$(node -e "
+    try {
+      const s = JSON.parse(require('fs').readFileSync('$state_file', 'utf8'));
+      const age = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
+      console.log(Math.round(age * 10) / 10);
+    } catch(_) { console.log(-1); }
+  " 2>/dev/null)
+
+  if [[ "$age_hours" == "-1" ]]; then
+    echo "🟡 WARNING: workflow-state — corrupt state file at $state_file"
+    WARNINGS=$((WARNINGS + 1))
+    if can_fix moderate; then
+      local archive_dir="$HOME/.codex/.workflow-state-archive"
+      mkdir -p "$archive_dir"
+      local ts
+      ts=$(date +%Y-%m-%dT%H-%M-%S)
+      mv "$state_file" "$archive_dir/workflow-corrupt-${ts}.json" 2>/dev/null || true
+      echo "  ✅ FIXED: archived corrupt state file"
+      FIXED=$((FIXED + 1))
+    fi
+    return 0
+  fi
+
+  # State older than 24 hours is stale
+  # Use node for comparison (already a dependency) — bc may not exist on minimal Linux
+  local is_stale
+  is_stale=$(node -e "console.log($age_hours > 24 ? 1 : 0)" 2>/dev/null || echo 0)
+  if [[ "$is_stale" == "1" ]]; then
+    local workflow
+    workflow=$(node -e "
+      try { console.log(JSON.parse(require('fs').readFileSync('$state_file','utf8')).workflow || 'unknown'); }
+      catch(_) { console.log('unknown'); }
+    " 2>/dev/null)
+    echo "🟡 WARNING: workflow-state — stale '${workflow}' workflow (${age_hours}h old, limit: 24h)"
+    WARNINGS=$((WARNINGS + 1))
+    if can_fix moderate; then
+      node -e "require('$REPO_ROOT/lib/workflow-state').archiveState(
+        JSON.parse(require('fs').readFileSync('$state_file','utf8'))
+      )" 2>/dev/null || true
+      echo "  ✅ FIXED: archived stale workflow state"
+      FIXED=$((FIXED + 1))
+    fi
+  fi
+}
+_doctor_workflow_state
+
 # --- Check 22: Reviewer-Dispatch Rendering Verification ---
 # Verifies that installed skill rendering correctly translates code-reviewer
 # dispatch patterns to the expected sub-agent-code-reviewer output.
@@ -980,6 +1042,152 @@ if [[ -f "$ADAPTER" ]] && command -v node &>/dev/null; then
   }
   _doctor_reviewer_dispatch
 fi
+
+# --- Check 23: TODO Honeypot Integrity ---
+# Verifies the honeypot file at ~/.codex/TODO.md is intact: exists, has correct
+# permissions (444), has immutable flag (uchg/chattr +i), and content matches
+# the canonical sentinel. Agents that bypass todo-crud.sh and write directly
+# to this path will be caught by the immutable flag; this check catches
+# post-facto tampering or flag removal.
+_doctor_todo_honeypot() {
+  local honeypot="$HOME/.codex/TODO.md"
+
+  # Expected canonical content (must match todo-crud.sh HONEYPOT_EXPECTED_CONTENT)
+  local expected_content
+  expected_content='# 🚨 STOP — WRONG FILE 🚨
+# THIS IS NOT THE REAL TODO FILE
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+'
+
+  # 23a. File exists
+  if [[ ! -f "$honeypot" ]]; then
+    echo "🔴 CRITICAL: TODO honeypot missing at $honeypot"
+    CRITICAL=$((CRITICAL + 1))
+    if can_fix "safe"; then
+      printf '%s' "$expected_content" > "$honeypot"
+      chmod 444 "$honeypot"
+      set_immutable "$honeypot" || true
+      echo "  ✅ FIXED: restored honeypot"
+      FIXED=$((FIXED + 1))
+    fi
+    return
+  fi
+
+  # 23b. Content integrity (portable hash via compat.sh)
+  local actual_hash expected_hash
+  actual_hash=$(sha256_hash "$honeypot")
+  expected_hash=$(printf '%s' "$expected_content" | sha256_hash_stdin)
+  if [[ "$actual_hash" != "$expected_hash" ]]; then
+    echo "🔴 CRITICAL: TODO honeypot content TAMPERED at $honeypot"
+    CRITICAL=$((CRITICAL + 1))
+    if can_fix "safe"; then
+      clear_immutable "$honeypot"
+      printf '%s' "$expected_content" > "$honeypot"
+      chmod 444 "$honeypot"
+      set_immutable "$honeypot" || true
+      echo "  ✅ FIXED: restored honeypot content"
+      FIXED=$((FIXED + 1))
+    fi
+  fi
+
+  # 23c. Permissions
+  local perms
+  perms=$(stat -f "%Lp" "$honeypot" 2>/dev/null || stat -c "%a" "$honeypot" 2>/dev/null || echo "")
+  if [[ "$perms" != "444" ]]; then
+    echo "🟠 ERROR: TODO honeypot permissions are $perms (expected 444)"
+    ERRORS=$((ERRORS + 1))
+    if can_fix "safe"; then
+      clear_immutable "$honeypot"
+      chmod 444 "$honeypot"
+      set_immutable "$honeypot" || true
+      echo "  ✅ FIXED: set permissions to 444"
+      FIXED=$((FIXED + 1))
+    fi
+  fi
+
+  # 23d. Immutable flag (portable via compat.sh)
+  check_immutable "$honeypot"
+  local immutable_status=$?
+  if [[ "$immutable_status" -eq 1 ]]; then
+    echo "🟠 ERROR: TODO honeypot missing immutable flag"
+    ERRORS=$((ERRORS + 1))
+    if can_fix "safe"; then
+      if set_immutable "$honeypot"; then
+        echo "  ✅ FIXED: set immutable flag"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not set immutable flag (may need sudo on Linux)"
+      fi
+    fi
+  elif [[ "$immutable_status" -eq 2 ]]; then
+    # WSL+NTFS or lsattr unavailable — downgrade to info
+    echo "🔵 INFO: TODO honeypot — cannot verify immutable flag on this platform/filesystem"
+  fi
+}
+_doctor_todo_honeypot
+
+# --- Check 24: TODO Path Validation ---
+# Verifies the TODO system is properly configured: .todo-registry or .env
+# contains a valid path, the real TODO.md exists and has valid structure.
+_doctor_todo_path() {
+  local todo_path=""
+
+  # Try .todo-registry first
+  local registry="$HOME/.codex/.todo-registry"
+  if [[ -f "$registry" ]]; then
+    todo_path=$(cat "$registry" | tr -d '[:space:]')
+  fi
+
+  # Fall back to .env
+  if [[ -z "$todo_path" && -f "$HOME/.codex/.env" ]]; then
+    todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+  fi
+
+  if [[ -z "$todo_path" ]]; then
+    echo "🟡 WARNING: TODO path not configured in .todo-registry or .env"
+    WARNINGS=$((WARNINGS + 1))
+    return
+  fi
+
+  # Expand ~ and env vars
+  todo_path=$(eval echo "$todo_path" 2>/dev/null || echo "$todo_path")
+
+  if [[ ! -f "$todo_path" ]]; then
+    echo "🟠 ERROR: TODO path configured but file does not exist: $todo_path"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  # Validate structure: must contain required headers
+  local missing=0
+  for header in "# ACTIVE TASKS" "# HISTORY" "# DEFERRED" "# METRICS"; do
+    if ! grep -q "^${header}" "$todo_path" 2>/dev/null; then
+      missing=$((missing + 1))
+    fi
+  done
+  if [[ "$missing" -gt 0 ]]; then
+    echo "🟠 ERROR: TODO file missing $missing required headers at $todo_path"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+_doctor_todo_path
+
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
@@ -991,12 +1199,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 22 checks passed"
+    echo "✅ Doctor: all 25 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 22 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 25 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
