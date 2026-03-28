@@ -6,7 +6,7 @@ Platform-specific configurations for wiki skills.
 
 | Platform | Adapter | Status |
 |----------|---------|--------|
-| [Outline](https://www.getoutline.com/) | [outline.md](outline.md) | ✅ Supported |
+| Your current wiki platform | [platform-template.md](platform-template.md) | ⚙️ Configure locally |
 | Confluence | — | 🔮 Future |
 | Notion | — | 🔮 Future |
 | GitBook | — | 🔮 Future |
@@ -16,7 +16,7 @@ Platform-specific configurations for wiki skills.
 Set `WIKI_PLATFORM` in your `.env` file:
 
 ```bash
-WIKI_PLATFORM=outline
+WIKI_PLATFORM=your-platform
 ```
 
 Each adapter documents its required environment variables and MCP tool mappings.
@@ -37,24 +37,20 @@ wiki/
 ├── _adapters/
 │   ├── README.md              # This file
 │   ├── adapter-interface.md   # Generic interface
-│   └── outline.md             # Outline-specific config
-├── wiki-orchestrator/         # Generic (routes to adapter)
-├── wiki-authoring/            # Generic (formatting rules)
+│   └── platform-template.md   # Provider-neutral adapter template
+├── wiki-orchestrator/         # Generic workflow (routes to adapter, downloads, edits, publishes)
 ├── wiki-verify/               # Generic (fact-checking)
 ├── wiki-debunker/             # Generic (claim verification)
 ├── wiki-secret-audit/         # Generic (security scanning)
-├── link-verification/         # Uses adapter for URL patterns
-└── wiki-editing/              # Generic workflow (uses adapters)
+└── link-verification/         # Uses adapter for URL patterns
 ```
 
 ## Platform-Agnostic vs Platform-Specific Skills
 
 | Skill | Type | Notes |
 |-------|------|-------|
-| `wiki-orchestrator` | Generic | Routes to appropriate adapter |
-| `wiki-authoring` | Generic | Formatting rules (may vary by platform) |
+| `wiki-orchestrator` | Generic (uses adapters) | Orchestrates download, edit, publish workflow |
 | `wiki-verify` | Generic | Fact-checking against sources |
 | `wiki-debunker` | Generic | Claim verification |
 | `wiki-secret-audit` | Generic | Security scanning |
 | `link-verification` | Uses adapter | URL patterns from adapter |
-| `wiki-editing` | Generic (uses adapters) | Workflow and API operations |

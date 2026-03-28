@@ -2,12 +2,21 @@
 name: link-verification
 source: superpowers-plus
 triggers: ["add code reference", "link to repo", "reference the wiki page", "cite the issue ticket", "verify links", "check if URL exists", "verify this URL", "check this link", "wiki:verify-links", "link:verify"]
+anti_triggers: ["verify issue links", "check ticket URLs", "issue link"]
 description: Use when adding repository links, code references, internal wiki links, or external URLs to documentation. Invoke BEFORE writing any link to prevent hallucination. Also invoked by wiki-orchestrator as HARD GATE (Stage 3, after content generation, before publish).
+summary: "Use when: writing wiki pages with URLs. Hard gate — verify before publish."
 composition:
   consumes: [markdown-content]
   produces: [verified-links]
   capabilities: [validates-links]
   priority: 20
+coordination:
+  group: wiki
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: ['wiki-orchestrator']
+  internal: false
 ---
 
 # Link Verification
@@ -16,7 +25,8 @@ composition:
 > **Last Updated:** 2026-02-28
 > **Incident:** Hallucinated `github.com/your-org/*` links on Speech: Deepgram and Telephony: Telnyx wiki pages
 
----
+> **Wrong skill?** Verifying links in issue tickets → `issue-link-verification`. Checking wiki page content accuracy → `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+
 
 ## Orchestrator Integration
 
@@ -61,7 +71,6 @@ Also extract bare URLs:
 https?://[^\s<>\[\]()]+
 ```
 
----
 
 ## When to Use
 
@@ -73,7 +82,6 @@ Invoke when:
 - Any time you're about to write a URL to source code
 - **Adding internal wiki links** (e.g., `/doc/page-slug-xyz123`)
 
----
 
 ## ⛔ The Rule
 
@@ -90,79 +98,29 @@ Invoke when:
 
 </EXTREMELY_IMPORTANT>
 
----
 
-## Verification Checklist
+## Verification
 
-Before writing ANY repository link:
-
-- [ ] **Query the API** — Confirm repo exists before writing URL
-- [ ] **Get exact repo name** — Case-sensitive, from API response
-- [ ] **Construct URL from API response** — Not from assumption
-- [ ] **URL-encode special characters** — Spaces, special characters in project/org names
-
----
-
-## How to Verify
-
-### Using Your Repository Adapter
-
-```
-# Use your repository adapter to verify the repo exists
-# See skills/issue-tracking/_adapters/ for platform-specific tools
-```
-
-### GitHub Repos
-
-```
-# Verify repo exists
-github-api GET /repos/{owner}/{repo}
-```
-
-If 404 → **DOES NOT EXIST** → Do not write the link.
-
----
+Before ANY link: query API → get exact name → construct URL from response → URL-encode specials.
+GitHub: `github-api GET /repos/{owner}/{repo}`. 404 = doesn't exist = don't write it.
 
 ## Known Hallucination Patterns
 
-AI assistants commonly hallucinate these patterns because they're common in training data:
+| Pattern | Why Wrong |
+|---------|-----------|
+| `github.com/{company}/{repo}` | AI assumes GitHub universal |
+| Line-number links | File structure changes |
+| `main` branch | May be `master` or other |
+| `/doc/made-up-slug` | Wiki links fabricated without API check |
 
-| Hallucinated Pattern | Why It's Wrong |
-|----------------------|----------------|
-| `github.com/your-org/*` | YourOrg doesn't use GitHub for source code |
-| `github.com/{company}/{repo}` assumed | AI assumes GitHub is universal |
-| Line number links without verification | File structure may have changed |
-| `main` branch assumed | Default branch may be `master` or other |
-| `/doc/made-up-slug-xyz123` | **Internal wiki links fabricated without verification** |
-
----
-
-## Internal Wiki Link Verification
+## Internal Wiki Links
 
 <EXTREMELY_IMPORTANT>
+Wiki links are just as hallucination-prone as external links. Use wiki adapter `get_page(id)` to verify. See `skills/wiki/_adapters/`.
 
-**Internal wiki links (`/doc/slug-xyz123`) are just as likely to be hallucinated as external links.**
-
-### Before Writing ANY Internal Wiki Link
-
-Use the wiki platform adapter for verification. See `skills/wiki/_adapters/` for platform-specific setup.
-
-**Using adapter:**
 ```
-# Use your wiki adapter's get_page operation
-# See skills/wiki/_adapters/ for platform-specific tools
-adapter.get_page(id: "PAGE_SLUG_HERE")
-```
-
-**Expected output for existing page:**
-```
-true
-"Page Title Here"
-```
-
-**Output for non-existent page:**
-```
-false
+# Verify wiki page exists
+adapter.get_page(id: "PAGE_SLUG_HERE")  # true + title = exists, false = hallucinated
 "not_found"
 ```
 
@@ -181,28 +139,19 @@ Real page: `/doc/correct-page-abc123`.
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Code References Section Template
 
-When adding a "Code References" section to wiki pages:
+See [`references/code-references-template.md`](references/code-references-template.md).
 
-1. **List repos first** — Query your repository adapter to see what repos exist
-2. **Use relative paths** — `src/file.ts` not `repo/src/file.ts` (repo is in link)
-3. **Verify files exist** — Confirm file paths via API before linking
-4. **Column header = "Repository"** — Platform-agnostic naming
+## Example
 
-### Template
-
-```markdown
-### Code References
-
-| File | Purpose | Repository |
-|------|---------|------------|
-| `src/path/to/file.ts` | Brief description | [repo-name]([your-repo-url]) |
+```bash
+# Verify a wiki link exists before using it
+curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
+# 200 → OK. 404 → fix before publishing.
 ```
 
----
 
 ## Incident Log
 
@@ -211,24 +160,21 @@ When adding a "Code References" section to wiki pages:
 | Example | Example Page | Fake repository links | Fixed to verified repo URLs |
 | Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
 
----
 
-## Related Skills
+## Failure Modes
 
-- **wiki-authoring**: Content structure and formatting
-- **wiki-editing**: Download-before-edit workflow
+| Failure | Fix |
+|---------|-----|
+| Link returns 200 but content doesn't match description | Read the target page title — verify it matches your anchor text |
+| Wiki slug verified for existence but wrong page | Compare the returned page title against what you're linking to |
+| Batch verification skips link on timeout, marks as "warn" | Retry once; if still failing, mark as "fail" not "warn" |
+| Checking internal wiki links only — missing broken external URLs | Verify ALL link types: wiki, repo, issue, and external |
+
+## Companion Skills
+
+- **wiki-orchestrator**: Content structure and download-before-edit workflow
 - **wiki-verify**: Post-hoc verification of wiki claims
 - **verification-before-completion**: General verification skill
-
----
-
-## Quick Reference
-
-```
-Before writing ANY link:
-
-1. STOP — Do not assume the repo/URL exists
-2. QUERY — Use your repository adapter or github-api to verify
-3. CONFIRM — Check exact name, case, existence
-4. LINK — Only then write the URL
-```
+- **wiki-content-coherence**: Wiki page coherence checks
+- **wiki-debunker**: Wiki claim verification
+- **issue-link-verification**: Issue link checking

@@ -2,7 +2,16 @@
 name: domain-design
 source: superpowers-plus
 triggers: ["design a new skill domain", "plan a skill family", "what skills should we build for", "domain design for", "design a domain", "new superpowers domain", "skill family design", "plan skills for"]
+anti_triggers: ["write a skill", "fix a skill", "skill quality"]
 description: Use when designing a new superpowers skill family from scratch — orchestrates the full research → brainstorm → harsh review → prioritize → document cycle. Produces a prioritized skill roster, architecture decision, infrastructure map, and blocker list. Does NOT build skills.
+summary: "Use when: designing a new skill family from scratch. Skip when: building skills (use domain-build)."
+coordination:
+  group: productivity
+  order: 2
+  requires: []
+  enables: ["skill-authoring", "brainstorming", "design-triad"]
+  escalates_to: []
+  internal: false
 ---
 
 # Domain Design Orchestrator
@@ -10,6 +19,13 @@ description: Use when designing a new superpowers skill family from scratch — 
 > **Purpose:** Guide a structured domain design process for a new superpowers skill family.
 > **Origin:** Codified from the Call Review Domain design (21-step, 10-phase methodology, March 2026).
 > **Output:** Prioritized skill roster, architecture decision, infrastructure map, wiki design doc + tracking page.
+
+> **Wrong skill?** Writing individual skills → `skill-authoring`. Feature design → `design-triad`. Brainstorming ideas → `brainstorming`.
+
+## Companion Skills
+
+- **skill-authoring**: Creating individual skills from the domain design
+- **brainstorming**: Generating skill ideas for the domain
 
 ## When to Use
 
@@ -24,9 +40,9 @@ description: Use when designing a new superpowers skill family from scratch — 
 
 This is a 10-phase workflow. Per `todo-enforcement.always.md`, persist all 10 phases to TODO.md with `#plan-domain-{name}` tags BEFORE starting Phase 1. Mirror to MCP as supplementary.
 
-## Overview
+## Scope
 
-Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process. **Not for** single-skill design (use `brainstorming` + `skill-authoring`) or implementation (use `writing-plans` or `domain-build`).
+Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process.
 
 ## Hard Principles
 
@@ -62,3 +78,16 @@ Three rounds of diverge (brainstorm) → converge (harsh review), bookended by r
 ## Post-Design Gate
 
 Before reporting "design complete": wiki design doc published, tracking page updated, all blocker tickets filed with links in both docs.
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Design produces too many skills (scope creep) | Enforce P0-only delivery — defer P1+ to backlog |
+| Missing infrastructure requirements (tools, APIs) | Infrastructure map is mandatory output — blockers stop design |
+| Design never converges after harsh review | Cap at 3 review rounds — escalate to user for tiebreak |
+
+```bash
+# Example: design a new skill domain
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill domain-design
+```

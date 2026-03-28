@@ -10,9 +10,19 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$REPO_ROOT"
+cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
+
+# shellcheck source=/dev/null
+[[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
+SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
 
 # Colors
 if [[ -t 1 ]]; then
@@ -51,12 +61,12 @@ ERRORS=0
 WARNINGS=0
 FIXES=0
 
-log_check() { echo -e "${BLUE}[CHECK]${NC} $1"; }
+log_check() { printf '%b\n' "${BLUE}[CHECK]${NC} $1"; }
 # shellcheck disable=SC2329  # Used by callers that source this file
-log_pass()  { echo -e "${GREEN}[PASS]${NC} $1"; }
-log_fail()  { echo -e "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
-log_fix()   { echo -e "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
+log_pass()  { printf '%b\n' "${GREEN}[PASS]${NC} $1"; }
+log_fail()  { printf '%b\n' "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
+log_warn()  { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
+log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
 # Get files to check
 get_files() {
@@ -102,7 +112,7 @@ while IFS= read -r file; do
         else
             log_fail "$file: missing final newline"
         fi
-    elif tail -c 2 "$file" | xxd -p | grep -q "0a0a"; then
+    elif [[ "$(tail -c 2 "$file" | wc -l)" -ge 2 ]]; then
         # File ends with extra blank line
         if [[ "$FIX_MODE" == "true" ]]; then
             # Use Python for reliable cross-platform fix
@@ -209,9 +219,16 @@ done < <(get_files '\.sh$')
 # =============================================================================
 # CHECK 6: Hardcoded Vendor References (outside _adapters/)
 # =============================================================================
-log_check "Vendor-neutral design (no hardcoded vendors outside _adapters/)"
+log_check "Vendor-neutral design (no hardcoded vendors outside _adapters/ or local overlays)"
 
-VENDOR_PATTERNS="linear\.app|dev\.azure\.com|atlassian|jira\.com|wiki\.int\.|outline"
+VENDOR_PATTERNS="dev\.azure\.com|atlassian|jira\.com|wiki\.int\."
+EXTRA_VENDOR_PATTERNS_FILE="${SP_OVERLAY_DIR:-}/tools/harsh-review-vendor-patterns.txt"
+if [[ -n "${SP_OVERLAY_DIR:-}" && -f "$EXTRA_VENDOR_PATTERNS_FILE" ]]; then
+    while IFS= read -r pattern; do
+        [[ -z "$pattern" || "$pattern" =~ ^# ]] && continue
+        VENDOR_PATTERNS+="|$pattern"
+    done < "$EXTRA_VENDOR_PATTERNS_FILE"
+fi
 
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
@@ -270,6 +287,61 @@ for skill_dir in skills/*/; do
 done
 
 # =============================================================================
+# CHECK 8b: Skill File Length Limit
+# =============================================================================
+log_check "Skill file length (max 250 lines)"
+
+MAX_SKILL_LINES=250
+while IFS= read -r skill_file; do
+    line_count=$(wc -l < "$skill_file" | tr -d ' ')
+    if [[ "$line_count" -gt "$MAX_SKILL_LINES" ]]; then
+        log_fail "$(basename "$(dirname "$skill_file")")/skill.md: ${line_count} lines (max ${MAX_SKILL_LINES})"
+    fi
+done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
+
+# =============================================================================
+# CHECK 8c: Skill Frontmatter Validation
+# =============================================================================
+log_check "Skill frontmatter (required fields)"
+
+while IFS= read -r skill_file; do
+    skill_name=$(basename "$(dirname "$skill_file")")
+    # Check for frontmatter delimiters
+    if ! head -1 "$skill_file" | grep -q "^---"; then
+        log_fail "$skill_name: missing frontmatter opening ---"
+        continue
+    fi
+    # Check required fields
+    frontmatter=$(sed -n '1,/^---$/p' "$skill_file" | tail -n +2)
+    if ! echo "$frontmatter" | grep -q "^triggers:"; then
+        log_fail "$skill_name: missing 'triggers:' in frontmatter"
+    fi
+    if ! echo "$frontmatter" | grep -q "^description:"; then
+        log_fail "$skill_name: missing 'description:' in frontmatter"
+    fi
+    if ! echo "$frontmatter" | grep -q "^anti_triggers:"; then
+        log_warn "$skill_name: missing 'anti_triggers:' in frontmatter"
+    fi
+done < <(find skills -name "skill.md" 2>/dev/null)
+
+# =============================================================================
+# CHECK 8d: Companion Skill Cross-Reference Validation
+# =============================================================================
+log_check "Companion skill cross-references (all targets exist)"
+
+while IFS= read -r skill_file; do
+    skill_name=$(basename "$(dirname "$skill_file")")
+    # Extract companion refs: lines matching "- **skill-name**"
+    refs=$(grep -oE '^\- \*\*[a-z][a-z0-9-]+\*\*' "$skill_file" 2>/dev/null | \
+        sed 's/- \*\*//;s/\*\*//' || true)
+    for ref in $refs; do
+        if ! find skills -type d -name "$ref" 2>/dev/null | grep -q .; then
+            log_fail "$skill_name: companion ref '$ref' does not exist"
+        fi
+    done
+done < <(find skills -name "skill.md" 2>/dev/null)
+
+# =============================================================================
 # CHECK 9: README Skill Count Drift Detection
 # =============================================================================
 log_check "README skill count consistency"
@@ -317,7 +389,7 @@ if [[ -n "$README_LINE" ]]; then
 
     if [[ "$DRIFT_FOUND" == "true" ]]; then
         log_fail "README skill count drift detected:"
-        echo -e "$DRIFT_MSG"
+        printf '%b\n' "$DRIFT_MSG"
     fi
 else
     log_warn "Could not parse skill count line from README.md"
@@ -333,22 +405,22 @@ echo "=============================================="
 echo ""
 
 if [[ $FIXES -gt 0 ]]; then
-    echo -e "${GREEN}Fixed: $FIXES issues${NC}"
+    printf '%b\n' "${GREEN}Fixed: $FIXES issues${NC}"
 fi
 
 if [[ $WARNINGS -gt 0 ]]; then
-    echo -e "${YELLOW}Warnings: $WARNINGS${NC}"
+    printf '%b\n' "${YELLOW}Warnings: $WARNINGS${NC}"
 fi
 
 if [[ $ERRORS -gt 0 ]]; then
-    echo -e "${RED}Errors: $ERRORS${NC}"
+    printf '%b\n' "${RED}Errors: $ERRORS${NC}"
     echo ""
-    echo -e "${RED}HARSH REVIEW FAILED${NC}"
+    printf '%b\n' "${RED}HARSH REVIEW FAILED${NC}"
     echo "Fix all errors before committing."
     exit 1
 else
-    echo -e "${GREEN}No errors found.${NC}"
+    printf '%b\n' "${GREEN}No errors found.${NC}"
     echo ""
-    echo -e "${GREEN}HARSH REVIEW PASSED${NC}"
+    printf '%b\n' "${GREEN}HARSH REVIEW PASSED${NC}"
     exit 0
 fi

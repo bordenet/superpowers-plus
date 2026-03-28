@@ -1,12 +1,14 @@
 ---
 name: professional-language-audit
 source: superpowers-plus
-triggers: ["before wiki update", "before commit", "check for profanity", "scan for unprofessional language", "language audit", "professional language check", "commit:language", "commit:profanity"]
+triggers: ["before wiki update", "check for profanity", "scan for unprofessional language", "language audit", "professional language check", "commit:language", "commit:profanity"]
+anti_triggers: ["remove AI slop", "fix slop patterns", "rewrite without slop"]
 description: "HARD GATE — Scans content for profanity and unprofessional language before publishing to wiki or committing user-facing documentation."
+summary: "Use when: publishing to wiki or committing user-facing docs. Hard gate for profanity."
 coordination:
   group: commit-gates
-  order: 3
-  requires: ["enforce-style-guide"]
+  order: 4
+  requires: ["progressive-code-review-gate"]
   enables: ["public-repo-ip-audit"]
   escalates_to: []
   internal: false
@@ -14,10 +16,18 @@ coordination:
 
 # Professional Language Audit
 
+> **Wrong skill?** AI slop detection → `detecting-ai-slop`. AI slop rewriting → `eliminating-ai-slop`. General writing standards → `writing-skills`.
+
 > **Last Updated:** 2026-03-11
 > **Incident:** Profanity found in documentation during audit. AI slop skills didn't catch it.
 
-## Overview
+## When to Use
+
+- Before publishing any user-facing text
+- Pre-commit gate step 4 (after code review)
+- When content includes casual or potentially inappropriate language
+
+## Gate Behavior
 
 This skill scans content for profanity and unprofessional language BEFORE it reaches user-facing documentation. It operates as a **HARD GATE** — content with profanity cannot be published.
 
@@ -25,7 +35,6 @@ This skill scans content for profanity and unprofessional language BEFORE it rea
 - Wiki updates (any wiki platform)
 - Git commits of user-facing docs (README.md, skill.md, `*.md` in skills/)
 
----
 
 ## When to Invoke Manually
 
@@ -34,7 +43,6 @@ This skill scans content for profanity and unprofessional language BEFORE it rea
 - "Run language audit on README"
 - Before publishing any user-facing content
 
----
 
 ## HARD GATE Behavior
 
@@ -74,7 +82,6 @@ Profanity matches: 0
 Proceed with wiki update/commit.
 ```
 
----
 
 ## Detection Patterns
 
@@ -104,50 +111,19 @@ Patterns are loaded from `.profanity-patterns.txt` (in `scripts/` or repo root).
 - **BLOCK** = Cannot proceed until fixed
 - **FLAG** = Warning, context determines appropriateness (e.g., "dumb terminal" is technical)
 
----
 
 ## Integration Points
 
-### Pre-Wiki Update Gate
+**Gate 4** in the commit-gates chain: `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → **this** → `public-repo-ip-audit` → commit.
 
-BEFORE publishing to any wiki:
-
-1. Extract the content to be published
-2. Run profanity regex against content
-3. If matches found → BLOCK and report
-4. If clean → proceed with API call
-
-### Pre-Commit Gate
-
-BEFORE committing files matching:
-- `README.md`
-- `*.md` in `skills/` directory
-- Wiki content files
-
-**Run the audit on staged changes:**
+**Pre-wiki**: Run profanity regex before publishing. BLOCK on match.
+**Pre-commit**: Scan staged `.md` files:
 
 ```bash
-# Get staged markdown files
 git diff --cached --name-only | grep -E '\.(md)$'
-
-# For each file, scan for profanity
 node scripts/slop-dictionary.js scan-profanity FILE.md
 ```
 
-### Integration with pre-commit-gate skill
-
-This skill extends the pre-commit-gate workflow:
-
-```
-Pre-Commit Gate Checklist:
-1. ✅ Lint (shellcheck, biome)
-2. ✅ Typecheck (tsc)
-3. ✅ Test (vitest/bats)
-4. 🆕 ✅ Professional language audit  ← NEW STEP
-5. ✅ Commit
-```
-
----
 
 ## Replacement Suggestions
 
@@ -161,7 +137,6 @@ Pre-Commit Gate Checklist:
 | what the [expletive] | what happened, unexpectedly |
 | [angry expletive] | frustrated, upset |
 
----
 
 ## Audit Commands
 
@@ -180,30 +155,15 @@ node scripts/slop-dictionary.js seed-profanity
 node scripts/slop-dictionary.js list profanity
 ```
 
----
 
-## Related Skills
+## Companion Skills
 
-- **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
-- **pre-commit-gate** — Integrates this skill into commit workflow
+- **detecting-ai-slop**: Profanity as Category 9 (HARD BLOCK)
+- **pre-commit-gate**: Integrates this skill into commit workflow
+- **enforce-style-guide**: Style checking (runs before language audit)
+- **public-repo-ip-audit**: IP audit (runs after language audit)
 
----
-
-## Commit Gate Coordination
-
-Multiple skills fire on "before commit". Execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
-
-**Rationale:** Technical checks first (fast feedback), then style, then content gates.
-
-
-## Common Failure Modes
+## Failure Modes
 
 - **Over-flagging technical terms:** Words like "kill," "abort," "master" in engineering contexts are often appropriate
 - **Missing context-dependent profanity:** Profanity in quoted user feedback or log output may be intentional — flag but don't auto-remove

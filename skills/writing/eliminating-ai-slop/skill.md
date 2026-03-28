@@ -1,13 +1,22 @@
 ---
 name: eliminating-ai-slop
 source: superpowers-plus
-triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "teams message", "slack message", "discord message", "chat message", "email draft", "email reply", "composing email", "linkedin post", "linkedin message", "twitter post", "social media post", "wiki page", "readme", "commit message", "pr description", "status update", "ticket description", "jira ticket", "linear issue"]
+triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "write prose for docs", "draft a message", "compose an email", "write a post", "edit this writing", "review my prose"]
+anti_triggers: ["write code", "implement function", "create test", "fix bug", "system prompt", "agent instructions"]
 description: Use when writing or editing ANY prose a human will read. Covers messaging (Teams, Slack, Discord), email, social/professional (LinkedIn, Twitter), documentation (wiki, README, commits, PRs), and business writing (meeting notes, status updates, tickets). Operates in interactive mode (confirms before rewriting) or automatic mode (GVR loop). Does NOT fire for AI-to-AI content (prompts, system instructions, agent config).
+summary: "Use when: writing or editing prose a human will read. Skip when: writing AI-to-AI content."
 composition:
   consumes: [markdown-content]
   produces: [quality-prose]
   capabilities: [eliminates-slop]
   priority: 35
+coordination:
+  group: writing
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Eliminating AI Slop
@@ -15,6 +24,8 @@ composition:
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-03-13
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
+
+> **Wrong skill?** Analyzing/scoring text (read-only) → `detecting-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
 
 ## Scope
 
@@ -47,10 +58,48 @@ composition:
 **Location:** `{workspace_root}/.slop-dictionary.json` — this skill writes, `detecting-ai-slop` reads.
 Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my top slop patterns"
 
+## Quick-Reference: Common Patterns
+
+| Slop Pattern | Better Alternative |
+|-------------|-------------------|
+| "It's worth noting that..." | (delete — just state it) |
+| "In order to..." | "To..." |
+| "Leveraging/utilizing" | "Using" |
+| "A comprehensive solution" | (describe what it actually does) |
+| "Incredibly powerful" | (specific metric or capability) |
+| "Seamless integration" | "Connects to X via Y" |
+| "It's important to understand" | (delete — just explain) |
+
+See `reference.md` for the full pattern catalog.
+
 ## Self-Check
 
 Before publishing: meaning preserved? specificity added? voice consistent? no new slop introduced? GVR thresholds met?
 
-## Related Skills
+## Companion Skills
 
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
+
+
+- **detecting-ai-slop**: Read-only analysis (this skill is the active rewriter)
+- **readme-authoring**: Slop prevention in READMEs
+- **incorporating-research**: Clean up pasted research text
+- **markdown-table-discipline**: Slop prevention in table content
+## When to Use
+
+- When authoring any human-readable prose (docs, email, messages, tickets)
+- When wiki-orchestrator pipeline triggers slop detection stage
+- When reviewing AI-generated content before publishing
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Over-correction strips personality from writing | Preserve author voice — only target known slop patterns |
+| False positive on legitimate hedging language | Context matters — "it's worth noting" in a risk section is fine |
+| Slop patterns evolve faster than the deny list | Update pattern list quarterly from real examples |
+
+```bash
+# Example: invoke slop detection
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill eliminating-ai-slop
+```

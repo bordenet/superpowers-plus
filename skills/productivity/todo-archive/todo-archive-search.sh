@@ -2,7 +2,7 @@
 # todo-archive-search.sh — Search across archived TODO tasks
 # Usage: todo-archive-search.sh <command> [args]
 #   keyword <text>         Search by keyword across all archives
-#   linear <DELTA-XXX>     Search by Linear issue ID
+#   issue <PROJ-123>       Search by issue ID
 #   month <YYYY-MM>        Show all tasks for a specific month
 #   range <start> <end>    Show tasks in date range (YYYY-MM-DD)
 #   stats                  Show archive statistics
@@ -40,13 +40,13 @@ case "$COMMAND" in
     done || echo "  No results found."
     ;;
 
-  linear|issue)
+  issue)
     ISSUE="${1:-}"
     if [[ -z "$ISSUE" ]]; then
-      echo "Usage: todo-archive-search.sh linear <DELTA-XXX>" >&2
+      echo "Usage: todo-archive-search.sh issue <PROJ-123>" >&2
       exit 1
     fi
-    echo "🔍 Searching archives for Linear issue: $ISSUE"
+    echo "🔍 Searching archives for issue: $ISSUE"
     echo "---"
     grep -rn --include="*.md" -i "$ISSUE" "$ARCHIVE_DIR"/ 2>/dev/null | grep -v "INDEX.md" | while IFS=: read -r file line content; do
       fname=$(basename "$file")
@@ -140,7 +140,7 @@ case "$COMMAND" in
     echo ""
     echo "Commands:"
     echo "  keyword <text>         Search by keyword"
-    echo "  linear <DELTA-XXX>     Search by Linear issue ID"
+    echo "  issue <PROJ-123>       Search by issue ID"
     echo "  month <YYYY-MM>        Show monthly archive"
     echo "  range <start> <end>    Show tasks in date range"
     echo "  stats                  Show archive statistics"

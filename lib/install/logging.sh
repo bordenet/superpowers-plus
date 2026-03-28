@@ -7,6 +7,12 @@
 # GLOBALS SET: RED, GREEN, YELLOW, BLUE, NC
 # -----------------------------------------------------------------------------
 
+# Guard: this module must be sourced by install.sh, not run directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "ERROR: This is a library module. Run install.sh instead." >&2
+    exit 1
+fi
+
 # Colors for output (disabled if not a terminal, unless FORCE_COLOR=1)
 # FORCE_COLOR=1 allows parent scripts (e.g., adopter installers) to preserve colors
 # when calling this script through a pipe/tee.
@@ -27,24 +33,24 @@ fi
 # --- Logging functions ---
 
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    printf '%b\n' "${BLUE}[INFO]${NC} $1"
 }
 
 log_success() {
-    echo -e "${GREEN}[OK]${NC} $1"
+    printf '%b\n' "${GREEN}[OK]${NC} $1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    printf '%b\n' "${YELLOW}[WARN]${NC} $1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    printf '%b\n' "${RED}[ERROR]${NC} $1"
 }
 
 log_verbose() {
     if [[ "$VERBOSE" == "true" ]]; then
-        echo -e "${BLUE}[DEBUG]${NC} $1"
+        printf '%b\n' "${BLUE}[DEBUG]${NC} $1"
     fi
 }
 

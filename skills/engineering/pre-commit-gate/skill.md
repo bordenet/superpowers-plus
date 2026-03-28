@@ -2,17 +2,21 @@
 name: pre-commit-gate
 source: superpowers-plus
 triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push", "commit:pre-check", "commit:gate"]
+anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]
 description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
+summary: "Use when: about to commit code. Skip when: drafting or exploring."
 coordination:
   group: commit-gates
   order: 1
   requires: []
-  enables: ["enforce-style-guide", "professional-language-audit"]
+  enables: ["enforce-style-guide"]
   escalates_to: []
   internal: false
 ---
 
 # Pre-Commit Quality Gate
+
+> **Wrong skill?** Reviewing a PR → `providing-code-review`. Output verification → `output-verification`. Completion check → `verification-before-completion`.
 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
@@ -28,7 +32,7 @@ coordination:
 
 **RUN THESE LOCALLY BEFORE EVERY `git commit`.** Not after CI fails — BEFORE you commit.
 
-## Required Order: Safety Scan → Lint → Typecheck → Test → Commit → Push
+## This Gate's Checks: Safety Scan → Lint → Typecheck → Test
 
 ```bash
 # 0. Dangerous pattern scan (MUST pass if .sh files are staged)
@@ -42,13 +46,10 @@ npm run typecheck    # or: tsc --noEmit
 
 # 3. Test (MUST pass — excluding known infrastructure failures)
 npm test    # or: vitest --run
-
-# 4. ONLY IF ALL ABOVE PASS:
-git add -A && git commit -m "message"
-
-# 5. Push
-git push origin <branch>
 ```
+
+**After this gate passes, the remaining commit gates run in order:**
+enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5) → commit → push.
 
 > **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
 > `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
@@ -83,13 +84,50 @@ git push origin <branch>
 BEFORE EVERY COMMIT:
 
 0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)
-1. Did I run `npm run lint`? (zero errors)
-2. Did I run `npm run typecheck`? (zero errors)
-3. Did I run `npm test`? (all pass or only pre-existing failures)
+1. Did I run the lint command AND show the output in my response? (zero errors)
+2. Did I run the typecheck command AND show the output? (zero errors)
+3. Did I run the test command AND show the output? (all pass or only pre-existing failures)
 4. Did I review staged changes? (`git diff --staged`)
 
 If NO to any → DO NOT COMMIT
 ```
+
+## 🚨 Evidence Requirements (NON-NEGOTIABLE)
+
+**No gate claim without visible tool output.** Saying "lint passes" without showing
+the command output in your response is fabrication. Show the command invocation, exit
+code, and summary line (pass/fail counts, error counts). For large output, show the
+decisive lines — but the tool call itself MUST be visible.
+
+Each gate step requires evidence matching the gate it covers:
+
+| Gate step | Valid evidence | NOT evidence |
+|-----------|---------------|--------------|
+| Safety scan | `dangerous-pattern-scan.sh` output: 0 blocked patterns | "no dangerous patterns" |
+| Lint | Linter output: 0 errors + exit code 0 | "lint passes" |
+| Typecheck | Type checker output: 0 errors | "no type errors" |
+| Test | Test runner output: pass/fail counts + exit code 0 | "tests pass" |
+| Staged diff | `git diff --staged` output shown and reviewed | "I reviewed the changes" |
+
+**Use the repo's gate command if one exists** (e.g., `./tools/harsh-review.sh`, `npm run lint`,
+`make check`). The commands below are fallbacks when the repo has no defined gate:
+
+| Language | Lint | Typecheck | Test |
+|----------|------|-----------|------|
+| Shell | `shellcheck -x <file>` | `bash -n <file>` | repo-specific |
+| JS/TS | `npm run lint` | `tsc --noEmit` | `npm test` |
+| Python | `ruff check .` / `pylint` | `mypy` | `pytest` |
+| Go | `golangci-lint run` | `go vet ./...` | `go test ./...` |
+
+## Chain to Next Gate
+
+**When this gate passes, IMMEDIATELY load the next gate in the chain:**
+
+```
+use-skill enforce-style-guide
+```
+
+Then continue: `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit` (gates 4–5 when applicable). Do NOT commit between gates.
 
 ## Post-Commit: Verify Build Status
 
@@ -115,24 +153,21 @@ If NO to any → DO NOT COMMIT
 4. Verify new build passes
 5. THEN update ticket status
 
-## Related Skills
+## Companion Skills
 
-- `blast-radius-check` — Before modifying existing code
-- `providing-code-review` — When reviewing others' PRs
-- `engineering-rigor` — Philosophy and overview
+- **enforce-style-guide**: Style fixes (step 2 in commit chain)
+- **progressive-code-review-gate**: Code review (step 3)
+- **professional-language-audit**: Language check (step 4)
+- **public-repo-ip-audit**: IP/license audit (step 5)
+- **verification-before-completion**: After commit gates, before "done"
+- **blast-radius-check**: Before modifying existing code
+- **output-verification**: Before claiming generated artifacts correct
 
----
+## Failure Modes
 
-## Commit Gate Coordination
-
-Multiple skills fire on "before commit". Execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
-| 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 4 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
-
-**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style, then content gates.
+| Failure | Recovery |
+|---------|----------|
+| Claiming 'lint passes' without showing output | VIOLATION: Every gate claim requires visible tool output in response |
+| Running tests after push (CI-first anti-pattern) | Run ALL gates locally before `git commit`. CI confirms, not discovers. |
+| Skipping dangerous-pattern-scan for .sh files | Step 0 is mandatory when .sh files are staged |
+| Not re-running gates after fixing gate failures | Fixes are new code. They need their own gate pass. |

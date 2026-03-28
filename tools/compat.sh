@@ -13,18 +13,51 @@
 #   require_bash4    — Exit with helpful message if bash < 4
 #   sed_inplace      — Portable sed -i (macOS vs GNU)
 #   date_to_epoch    — Convert YYYY-MM-DD to Unix epoch
+#   sha256_hash      — Portable SHA-256 (shasum/sha256sum/openssl); file or stdin
+#   set_immutable    — Portable chflags uchg / chattr +i
+#   clear_immutable  — Portable chflags nouchg / chattr -i
+#   check_immutable  — Returns 0=immutable, 1=not, 2=unknown
+#   resolve_todo_path — Resolve TODO path from .todo-registry/.env
 #
 # Supported platforms: macOS, Linux, WSL
 # shellcheck disable=SC2034  # Variables may be used by sourcing scripts
 
 # --- Bash Version Guard ---
 
+# Usage: require_bash4 "$@"
+# Pass the calling script's "$@" so re-exec preserves original arguments.
 require_bash4() {
   if ((BASH_VERSINFO[0] < 4)); then
-    echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
-    echo "  macOS fix: brew install bash" >&2
-    echo "  Then ensure /opt/homebrew/bin or /usr/local/bin is in PATH" >&2
-    exit 1
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      if command -v brew &>/dev/null; then
+        echo "INFO: bash ${BASH_VERSION} is too old (need 4+). Installing via Homebrew..." >&2
+        brew install bash
+        # Find the brew-installed bash and re-exec the CALLING script under it
+        local brew_bash=""
+        for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+          if [[ -x "$candidate" ]] && "$candidate" -c '((BASH_VERSINFO[0] >= 4))' 2>/dev/null; then
+            brew_bash="$candidate"
+            break
+          fi
+        done
+        if [[ -n "$brew_bash" ]]; then
+          echo "INFO: Re-executing under $brew_bash" >&2
+          exec "$brew_bash" "${BASH_SOURCE[-1]}" "$@"
+        else
+          echo "ERROR: brew install bash succeeded but could not find bash 4+ binary" >&2
+          exit 1
+        fi
+      else
+        echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
+        echo "  macOS fix: brew install bash" >&2
+        echo "  Install Homebrew first: https://brew.sh" >&2
+        exit 1
+      fi
+    else
+      echo "ERROR: This script requires bash 4+. You have bash ${BASH_VERSION}" >&2
+      echo "  Install bash 4+ via your package manager (e.g., apt install bash)" >&2
+      exit 1
+    fi
   fi
 }
 
@@ -51,6 +84,129 @@ date_to_epoch() {
   else
     date -d "$datestr" "+%s" 2>/dev/null || echo 0
   fi
+}
+
+# --- Resolve TODO Path ---
+# Returns the canonical TODO file path from .todo-registry or .env.
+# Handles ~/..., $HOME/..., ${HOME}/... expansion without eval.
+# Returns empty string if no path configured.
+resolve_todo_path() {
+  local p=""
+  if [[ -f "$HOME/.codex/.todo-registry" ]]; then
+    p=$(sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$HOME/.codex/.todo-registry")
+  fi
+  if [[ -z "$p" && -f "$HOME/.codex/.env" ]]; then
+    p=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
+  fi
+  # Safe variable expansion (no eval)
+  # shellcheck disable=SC2088,SC2016
+  if [[ "$p" == "~/"* ]]; then
+    p="$HOME/${p#\~/}"
+  elif [[ "$p" == '$HOME/'* ]]; then
+    p="$HOME/${p#\$HOME/}"
+  elif [[ "$p" == '${HOME}/'* ]]; then
+    p="$HOME/${p#\$\{HOME\}/}"
+  fi
+  echo "$p"
+}
+
+# --- Portable SHA-256 Hash ---
+# Usage: sha256_hash FILE        (hash a file)
+#        sha256_hash              (hash stdin)
+#        echo "data" | sha256_hash
+# Returns hex digest only (no filename).
+sha256_hash() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 "$@" | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum "$@" | cut -d' ' -f1
+  else
+    openssl dgst -sha256 "$@" 2>/dev/null | sed 's/.*= //'
+  fi
+}
+
+# --- Portable Immutable Flag ---
+# macOS: chflags uchg/nouchg
+# Linux ext4: chattr +i/-i (requires root or CAP_LINUX_IMMUTABLE)
+# WSL+NTFS: chattr silently fails; detect and warn
+
+set_immutable() {
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    chflags uchg "$file" 2>/dev/null
+  elif _is_wsl_ntfs "$file"; then
+    return 1  # Can't set immutable on NTFS
+  else
+    chattr +i "$file" 2>/dev/null || return 1
+  fi
+}
+
+clear_immutable() {
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    chflags nouchg "$file" 2>/dev/null
+  elif _is_wsl_ntfs "$file"; then
+    return 0  # Nothing to clear on NTFS
+  else
+    chattr -i "$file" 2>/dev/null || return 0
+  fi
+}
+
+check_immutable() {
+  # Returns 0 if immutable, 1 if not, 2 if can't determine
+  local file="$1"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    local flags
+    flags=$(stat -f "%Sf" "$file" 2>/dev/null || echo "")
+    [[ "$flags" == *"uchg"* ]] && return 0
+    return 1
+  elif _is_wsl_ntfs "$file"; then
+    return 2  # Can't determine on NTFS
+  elif command -v lsattr &>/dev/null; then
+    # lsattr output varies across implementations:
+    #   GNU coreutils: "----i---------e---- filename"  (20-char fixed field)
+    #   BusyBox:       "----i--------e-- filename"     (shorter, variable)
+    # Instead of checking a fixed position, extract the attribute field
+    # (first whitespace-delimited token) and search for 'i' in it.
+    # The attribute field only contains flag letters and dashes, so
+    # matching 'i' anywhere in it reliably detects immutable.
+    local attr_field
+    attr_field=$(lsattr "$file" 2>/dev/null | awk '{print $1}')
+    if [[ -z "$attr_field" ]]; then
+      return 2
+    fi
+    # Attribute field is only [a-zA-Z-] characters; 'i' = immutable
+    if [[ "$attr_field" == *i* ]]; then
+      return 0
+    fi
+    return 1
+  else
+    return 2  # lsattr not available
+  fi
+}
+
+# Internal: detect WSL + NTFS/drvfs mount
+_is_wsl_ntfs() {
+  local file="$1"
+  # Not WSL at all — check /proc/version for Microsoft kernel signature
+  if [[ ! -f /proc/version ]]; then
+    return 1
+  fi
+  if ! grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null; then
+    return 1
+  fi
+  # Resolve to absolute path
+  local abs_path
+  abs_path=$(realpath "$file" 2>/dev/null || readlink -f "$file" 2>/dev/null || echo "$file")
+  # Standard Windows drive mounts: /mnt/c, /mnt/d, etc.
+  [[ "$abs_path" == /mnt/[a-z]/* ]] && return 0
+  # Check if the mount is drvfs (Windows filesystem) via findmnt
+  if command -v findmnt &>/dev/null; then
+    local fstype
+    fstype=$(findmnt -n -o FSTYPE --target "$abs_path" 2>/dev/null || echo "")
+    [[ "$fstype" == "drvfs" || "$fstype" == "9p" ]] && return 0
+  fi
+  return 1
 }
 
 # --- Help for this file ---

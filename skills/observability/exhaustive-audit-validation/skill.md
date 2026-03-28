@@ -2,7 +2,9 @@
 name: exhaustive-audit-validation
 source: superpowers-plus
 triggers: ["audit complete", "done with refactoring", "finished updating", "all skills fixed", "bulk edit done"]
+anti_triggers: ["quick check", "spot check", "just verify one thing"]
 description: Use BEFORE claiming any audit, refactoring, or bulk-edit task is complete. Enforces exhaustive scope enumeration, item-by-item tracking, automated validation, and coverage metrics. Prevents incomplete work from being marked as done.
+summary: "Use when: claiming any audit or bulk-edit is complete. Hard gate."
 coordination:
   group: completion-gate
   order: 1
@@ -14,10 +16,18 @@ coordination:
 
 # Exhaustive Audit Validation
 
+> **Wrong skill?** Quick spot check → `completeness-check`. Pre-commit → `pre-commit-gate`. Repo health → `holistic-repo-verification`.
+
 > **Purpose:** Prevent "first-pass complete" followed by "found 12 more issues"
 > **Root Cause:** Agent claimed audit complete without exhaustive validation
 > **Incident:** 2026-02-28 — "First-pass audit" missed 12 of 27 skills needing fixes
 
+## Companion Skills
+
+- **completeness-check**: Quick spot check (lighter than exhaustive)
+- **holistic-repo-verification**: Repository-level health
+- **verification-before-completion**: Pre-completion gate
+- **measurement-integrity**: Cross-validation enforcement
 ## When to Use
 
 - Before claiming any audit, bulk-edit, or refactoring task is complete
@@ -26,6 +36,7 @@ coordination:
 - Any task where "done" means "every item in the scope was processed"
 
 ---
+
 
 ## The Problem This Skill Solves
 
@@ -90,8 +101,8 @@ grep -L "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 # Example: Check for skills without "Use when" pattern
 grep -L "Use when" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 
-# Example: Check for skills without "Triggers on" pattern  
-grep -L "Triggers on" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
+# Example: Check for skills without YAML triggers field
+grep -L "^triggers:" skills/*/skill.md skills/*/*/skill.md 2>/dev/null
 
 # Example: Count skills with proper frontmatter
 grep -l "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null | wc -l
@@ -110,7 +121,7 @@ Before marking complete, state:
 **Validation checks passed:**
 - ✅ All skills have YAML frontmatter
 - ✅ All skills have "Use when" pattern
-- ✅ All skills have "Triggers on" phrases
+- ✅ All skills have YAML `triggers:` field
 
 **Remaining gaps:** None
 
@@ -131,7 +142,7 @@ If gaps remain:
 
 | Task Type | Validation Commands |
 |-----------|---------------------|
-| Skill trigger audit | `grep -L "Triggers on" skills/*/*/skill.md` |
+| Skill trigger audit | `grep -L "^triggers:" skills/*/*/skill.md` |
 | YAML frontmatter | `grep -L "^---" skills/*/*/skill.md` |
 | Test coverage | `npm run test:coverage` |
 | Lint fixes | `npm run lint` with zero errors |
@@ -140,7 +151,7 @@ If gaps remain:
 
 ---
 
-## Integration with `verification-before-completion`
+## Companion: verification-before-completion
 
 This skill extends `superpowers:verification-before-completion`:
 
@@ -160,3 +171,11 @@ If this skill is skipped:
 4. Trust eroded
 
 **This skill exists because the agent claimed "first-pass complete" on 2026-02-28 while 12 of 27 skills were unfixed.**
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Checking only the first few instances | EVERY instance must be verified. Use grep counts to confirm. |
+| Declaring 'all fixed' without independent count | Count before and after. Numbers must match. |
+| Missing instances in non-obvious locations | Check tests, configs, docs, comments — not just source code |

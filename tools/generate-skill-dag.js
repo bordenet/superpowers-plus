@@ -168,7 +168,7 @@ function getGroupPurpose(group) {
     'commit-gates': 'Quality checks before git commit',
     'wiki-pipeline': 'Wiki authoring quality pipeline',
     'stuck-escalation': 'Getting unstuck when blocked',
-    'completion-gate': 'Verification before claiming done',
+    'completion-gate': 'Verification and TODO maintenance before claiming done',
     'thinking': 'Metacognition and thinking orchestration',
   };
   return purposes[group] || 'Coordinated skill group';
@@ -182,7 +182,8 @@ function generateMarkdown(skills, mermaid) {
   var today = new Date().toISOString().split('T')[0];
 
   var groupTable = groups.map(function(g) {
-    var gSkills = coordinated.filter(function(s) { return s.coordination.group === g; });
+    var gSkills = coordinated.filter(function(s) { return s.coordination.group === g; })
+      .sort(function(a, b) { return (a.coordination.order || 99) - (b.coordination.order || 99); });
     var names = gSkills.map(function(s) { return '`' + s.name + '`'; }).join(', ');
     return '| ' + formatGroupName(g) + ' | ' + names + ' | ' + getGroupPurpose(g) + ' |';
   }).join('\n');

@@ -1,8 +1,10 @@
 ---
 name: wiki-orchestrator
 source: superpowers-plus
-triggers: ["create wiki page", "update wiki", "document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "fix wiki formatting", "structure this wiki page", "improve readability", "Outline markdown rules", "update wiki page", "push to outline", "edit wiki", "create wiki document", "delete wiki page"]
-description: "Unified wiki skill — the ONLY entry point for all wiki authoring, editing, and publishing. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check) then publishes. Replaces wiki-editing, wiki-authoring, and outline-wiki-editing."
+triggers: ["document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
+anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page", "check accuracy", "fact-check", "verify claims"]
+description: "Orchestrates BULK and MULTI-PAGE documentation projects — reorganizing multiple pages, cross-referencing across sections, publishing coordinated updates. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). NOT for single-page edits (use platform-specific editing skills like outline-wiki-editing)."
+summary: "Use when: bulk documentation projects, multi-page reorganization, cross-referencing. Skip when: editing one page, creating one page, deleting one page."
 coordination:
   group: wiki-pipeline
   order: 1
@@ -14,8 +16,10 @@ coordination:
 
 # Wiki Orchestrator
 
-> **Purpose:** Enforce quality pipeline for ALL wiki authoring, editing, and publishing.
-> **Philosophy:** Make quality control unavoidable, not optional.
+> **Wrong skill?** Checking wiki links → `link-verification`. Fact-checking wiki → `wiki-debunker` or `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+
+> **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
+> **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 
 ---
 
@@ -23,7 +27,8 @@ coordination:
 
 <EXTREMELY_IMPORTANT>
 
-**Every wiki operation MUST pass through this pipeline. No exceptions.**
+**Every BULK/MULTI-PAGE wiki operation MUST pass through this pipeline.**
+Single-page edits, creates, and deletes → use wiki API directly.
 
 | Stage | Gate | What Happens |
 |-------|------|-------------|
@@ -44,13 +49,19 @@ coordination:
 
 ## Content Formatting (Stage 2)
 
-- **No H1** — Outline renders title in UI. Start body with `##` or summary paragraph.
-- **Anchors:** `#h-section-name` (not `#section-name`) — Outline-specific format.
-- **No HTML** — `<details>`, `&nbsp;`, callouts (`> [!info]`), inline HTML all break.
-- **Tables:** Keep narrow (<80 chars). Column widths are ProseMirror metadata — lost on API update.
+- **No H1 unless your platform requires it** — many wiki UIs render the title separately. Start body with `##` or a summary paragraph.
+- **Anchors:** Use your adapter's documented anchor format.
+- **No raw HTML unless your platform preserves it** — `<details>`, `&nbsp;`, callouts (`> [!info]`), and inline HTML often break on API round-trips.
+- **Tables:** Keep narrow (<80 chars). Some platforms lose layout metadata on API update.
 - **Code blocks:** Always specify language.
 - **Table cells:** No `[ ]` checkboxes (escaped to `\[`), no `&nbsp;` (rendered as literal text). Use `Yes/No` or `✓/✗`.
 - **Heading hierarchy:** H1 once (title only), then H2/H3. Max depth H3 for readability.
+- **Table of Contents:** The 4-heading threshold is a **global orchestrator rule**, not adapter-specific. If the page has **4+ body H2/H3 headings** (excluding headings inside fenced code blocks):
+  - `toc_behavior=auto`: Do not add manual TOC markup. The platform renders a TOC automatically.
+  - `toc_behavior=manual`: Insert the adapter's `toc_syntax` markup. Placement: after the intro paragraph and before the first H2. If the page has no intro paragraph (starts directly with H2), place the TOC markup on the first line before the first H2.
+  - `toc_behavior=unsupported`: Do not insert any TOC markup. The platform has no TOC support.
+  - **Skip if TOC already exists:** Do not add a TOC if the page already contains the adapter's `toc_syntax` markup, or a heading matching `Contents` or `Table of Contents` (case-insensitive).
+  - Pages with ≤3 H2/H3 headings do not need a TOC.
 
 ---
 
@@ -59,21 +70,18 @@ coordination:
 <EXTREMELY_IMPORTANT>
 
 ### MCP Tools First
-Always use `get_document_outline`, `update_document_outline`, `create_document_outline`. Curl is fallback only.
+Always use your adapter's primary `get_page`, `update_page`, and `create_page` operations. Curl is fallback only.
 
 ### Download Before Editing
-Fetch current state via `get_document_outline` BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
+Fetch current state via your adapter's `get_page` operation BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
 
 ### Write Scope Restriction
-Only write to allowed roots. Walk the parent chain to verify:
-- `matt-bordenet-OUENQSb8BE` (Matt Bordenet personal)
-- `team-delta-[product]-phone-assist-PmmvNP0Pha` (Team Delta)
-- `[product]-WaniaoGMuW` ([Product] product pages)
+Only write to allowed roots defined by the current workspace or local overlay. Walk the parent chain to verify scope before writing.
 
 If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
 
 ### Check for Duplicates Before Creating
-`list_documents_outline(parentDocumentId)` → check if child with same title exists → use `update` if so.
+Use your adapter's list/search operation to check whether a sibling page with the same title already exists before creating a new page.
 
 ### Pre-Deletion Backup
 Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YYYY-MM-DD}_{id}_{slug}.md` with YAML frontmatter → verify backup exists → only then delete.
@@ -86,8 +94,8 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 
 ## Checklists
 
-**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_document_outline`
-**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about column widths → `update_document_outline` → Verify result
+**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_page`
+**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about layout loss → `update_page` → Verify result
 **Before Deleting:** Fetch full content → Backup with frontmatter → Verify backup → Search for inbound links → Delete
 
 ---
@@ -109,17 +117,25 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | "I know the links are correct" | Memory is unreliable, verify anyway |
 | "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-## Related Skills
-
-| Skill | Role |
-|-------|------|
-| `wiki-content-coherence` | Stage 2.5: Duplication detection |
-| `link-verification` | Stage 3: URL verification (HARD GATE) |
-| `eliminating-ai-slop` | Stage 5: Prose quality |
-| `wiki-debunker` | Stage 6: Fact-checking |
-| `wiki-verify` | Post-publish: Version drift |
-
-## Reference Files
+## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Running full pipeline for single-page edits | Use wiki API directly — pipeline is for bulk/multi-page |
+| Skipping pipeline stages | All stages mandatory for bulk ops |
+| Pipeline stage fails but agent continues | Stage failure = halt. Fix, restart from failed stage |
+
+## Companion Skills
+
+- **wiki-content-coherence**: Stage 2.5 — duplication detection
+- **link-verification**: Stage 3 — URL verification (HARD GATE)
+- **eliminating-ai-slop**: Stage 5 — prose quality
+- **wiki-debunker**: Stage 6 — fact-checking
+- **wiki-verify**: Post-publish — version drift
+- **wiki-secret-audit**: Secret scanning
+- **wiki-instruction-guard**: Instruction injection prevention

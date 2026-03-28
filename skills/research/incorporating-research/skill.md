@@ -2,21 +2,31 @@
 name: incorporating-research
 source: superpowers-plus
 triggers: ["incorporate research", "merge this research", "add this to the doc", "incorporate findings", "add external research"]
+anti_triggers: ["research this topic", "find information about", "what does X mean"]
 description: Use when user asks to incorporate, merge, or add external research (from Perplexity, web searches, ChatGPT, etc.) into existing documents - prevents misinterpreting "incorporate" as "review", strips artifacts, preserves document voice, and confirms scope before editing.
+summary: "Use when: merging external research into existing docs. Skip when: writing from scratch."
+coordination:
+  group: research
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Incorporating Research
 
-> **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
+> **Wrong skill?** Conducting research → `perplexity-research` or `expert-interviewer`. Writing docs → `wiki-orchestrator` or `readme-authoring`.
+
+> **Guidelines:** See [CLAUDE.md](../../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-26
 
-## Overview
+## Purpose
 
 This skill handles incorporating external research (Perplexity, web searches, ChatGPT outputs, etc.) into existing documents without breaking voice, structure, or adding irrelevant content.
 
 **Core principle:** Triage first, confirm scope, then edit. Strip artifacts, preserve voice.
 
----
 
 ## When to Use
 
@@ -29,7 +39,6 @@ Invoke when user says:
 
 **Red flag:** User says "incorporate" but might mean "review for quality" — clarify if ambiguous.
 
----
 
 ## The Workflow
 
@@ -42,7 +51,6 @@ Invoke when user says:
 **Confirm:**
 - "I'll incorporate this into `[path/to/file.md]`. Correct?"
 
----
 
 ### Step 2: Triage the Input
 
@@ -64,87 +72,24 @@ Triage Results:
 └── Artifacts: [Citation numbers, source sections, etc.]
 ```
 
----
 
 ### Step 3: Map to Existing Structure
 
-**Read the target document first** to understand:
-- Existing sections and hierarchy
-- Voice and tone
-- Formatting conventions (headers, lists, code blocks)
-
-**Determine placement:**
-- New section?
-- Inline addition to existing section?
-- Appendix?
-- Replaces existing content?
-
-**Flag conflicts:**
-- Does new content contradict existing content?
-- Does it duplicate existing content?
-
----
+Read target document first. Determine: new section, inline addition, appendix, or replacement. Flag conflicts/duplicates.
 
 ### Step 4: Confirm Scope Before Editing
 
-**NEVER edit without confirmation.**
-
-**Template:**
-```
-I'll make these changes to [file]:
-
-1. Add [X] to [section Y]
-2. Strip [Z] (irrelevant/artifacts)
-3. [Replace/Supplement] existing content in [section]
-
-Concerns:
-- [Any quality flags, contradictions, or hallucinations]
-
-Proceed?
-```
-
-**Wait for user confirmation.**
-
----
+**NEVER edit without confirmation.** Show: changes to [file], what to strip, concerns. Wait for approval.
 
 ### Step 5: Preserve Voice and Strip Artifacts
 
-**Voice preservation:**
-- Match existing header levels (##, ###, etc.)
-- Match list style (bullets vs. numbered)
-- Match tone (formal vs. conversational)
-- Match code block formatting
-- Match link style
-
-**Artifacts to strip:**
-- Citation numbers: `[1]`, `[2][3]`, `[citation needed]`
-- Source sections: "Sources:", "References:", URL lists
-- Perplexity metadata: "Based on X sources", "According to..."
-- ChatGPT artifacts: "Here's a summary...", "I hope this helps"
-- Unrelated content mixed into the paste
-
-**Preserve semantic meaning** while normalizing style.
-
----
+**Match**: header levels, list style, tone, code/link formatting.
+**Strip**: citation numbers `[1]`, source/reference sections, AI metadata ("Based on X sources", "Here's a summary"), unrelated content.
 
 ### Step 6: Post-Incorporation Summary
 
-After editing, report:
+Report: what was added and where, what was stripped, any concerns.
 
-```
-Incorporated into [file]:
-
-Added:
-- [What was added and where]
-
-Stripped:
-- [What was removed as noise/artifacts]
-
-Concerns:
-- [Any quality issues flagged]
-```
-
----
 
 ## Red Flags to Catch
 
@@ -156,7 +101,6 @@ Concerns:
 | **Contradictions** | New content conflicts with existing | Flag before incorporating |
 | **Duplicate content** | Research repeats what's already there | Ask: "This duplicates section Y. Replace or skip?" |
 
----
 
 ## Common Mistakes to Avoid
 
@@ -168,7 +112,6 @@ Concerns:
 
 ✅ **Triage → Map → Confirm → Edit → Summarize**
 
----
 
 ## Example Interaction
 
@@ -214,19 +157,22 @@ Concerns:
 - None (H100 VRAM confirmed as 80GB for standard model)
 ```
 
----
 
-## Cross-References
+## Companion Skills
 
-| Resource | Purpose |
-|----------|---------|
-| [CLAUDE.md](../../CLAUDE.md) | Writing standards (no AI slop) |
-| `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
-| `detecting-ai-slop` | Score research quality before incorporating |
+- **eliminating-ai-slop**: Clean up pasted text · **detecting-ai-slop**: Score research quality
+- **expert-interviewer**: Structured knowledge extraction · **perplexity-research**: Web research
 
+## Example
 
-## Common Failure Modes
+```bash
+grep -n "TODO.*verify" draft.md  # find unverified claims before publish
+```
 
-- **Copy-paste without attribution:** Incorporating research text verbatim without citing the source
-- **Stale sources:** Using outdated research findings without checking publication date or currency
-- **AI-slop injection:** Pasting AI-generated research summaries that introduce filler phrases into the document
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Copy-paste without attribution | Cite the source inline |
+| Stale sources | Check publication date before incorporating |
+| AI-slop injection | Run `eliminating-ai-slop` after pasting |

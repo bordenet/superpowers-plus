@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Bash Guard ---
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "ERROR: This script requires bash. Run with: bash $0" >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/compat.sh
 source "${SCRIPT_DIR}/compat.sh"
-require_bash4
+require_bash4 "$@"
 
 # skill-cost-analyzer.sh — Estimates relative token cost of each skill
 #
@@ -168,7 +174,7 @@ if [[ "$OUTPUT_MD" == "--markdown" ]]; then
   } > "$outfile"
   echo "Written to $outfile"
 else
-  echo -e "$header"
+  printf '%b\n' "$header"
   echo "------------------------------------------------------------------------"
   echo "$sorted"
 fi

@@ -10,6 +10,59 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **7 autonomy skills** (65→72 total) — Quantitative decision-making, failure analysis, metric validation, TODO enforcement, workflow orchestration, self-improvement, and per-batch code review:
+  - **quantitative-decision-gate**: Decision matrix with 4 weighted dimensions before any user question. Auto-selects when margin >10%.
+  - **failure-autopsy**: 5-Why post-mortem protocol for wrong approaches and misdiagnosed limitations.
+  - **measurement-integrity**: Cross-validation enforcement before reporting any metric or percentage.
+  - **todo-guardian**: Continuous TODO enforcement — stale detection, completion gate, session-end sweep.
+  - **autonomous-chain-controller**: Meta-orchestrator that auto-detects and executes multi-skill chains with quality gates.
+  - **evolution-loop**: Self-improvement cycle — scans failure patterns, generates skill updates.
+  - **micro-harsh-review**: 3-critic adversarial review (Nitpick, ArchSoundness, ProdBattleTest) for per-batch code changes.
+- **40 new intent patterns** in skill-router.js for all 7 autonomy skills
+- **21 bidirectional back-references** across existing skills (think-twice, brainstorming, plan-and-execute, etc.)
+- **10 deep integration refs** in existing skills (feature-development, TDD, completeness-check, etc.)
+- **6 new routing regression tests** in test_trigger_routing.sh (now 15/15)
+
+
+### Changed
+- **design-triad: completion gate** — Added hard gate after Step 2 (Compare) to prevent agents from stopping at a recommendation without completing Steps 3-5 (Harsh Review, Edge Cases, Iterate). This was the single most common failure mode observed in practice.
+- **design-triad: trigger discoverability** — Added 2 validated trigger phrases (`design options with adversarial review`, `generate options compare and red team`) that reliably route to design-triad as top match via embedding-mode match-skills. Removed 5 candidate phrases that routed to wrong skills.
+- **design-triad: rationalization table** — Added "I produced a recommendation" as an explicit rationalization to reject.
+- **design-triad: preflight anti-stall** — Replaced narrative-style preflight with a 3-path routing decision (known/investigate/low-stakes) and a 30-second time-box. The previous preflight told agents to "complete requirements-validation and engineering-rigor first" which caused infinite regress — agents loaded those skills without executing them and stalled before Step 1.
+
+### Fixed
+- **Installer cross-platform hardening** — 14 bug classes fixed across 6 installer files (#234)
+  - CRLF self-heal: recursive scan of all `.sh` files, `perl` primary + `tr` fallback with permission preservation
+  - `.env` subshell isolation: prevents `.env` from mutating installer shell state (`set -e`, `PATH`, `IFS`)
+  - `_sudo_prefix()`: handles root (no sudo needed), sudo with TTY, `sudo -n` headless, no-sudo-available
+  - Git worktree support: `-e .git` instead of `-d .git` throughout; `_is_git_repo()` validates HEAD
+  - `git reset --hard` guarded: requires `--force` flag to prevent silent data loss
+  - `sed -i` portability: cross-platform BSD/GNU detection + metacharacter escaping
+  - Node version check: enforces v18+ not just presence
+  - Trailing newline ensured before appending to `.env` files
+  - Target matrix: stock macOS (Bash 3.2), Linux containers (root/no-sudo), WSL-Ubuntu, headless CI, git worktrees
+- **Cross-platform portability pass 2** — `echo -e` → `printf`, `xxd` removed, `date` portability (#236)
+- **Defensive driving guards** across all 40 shell scripts (#237)
+  - Shell guard: detect `/bin/sh`, `dash`, `zsh` with fix instructions
+  - Bash version gate: rich box-drawing error with `brew install bash` / `apt install bash`
+  - Early prerequisite check: git + node checked before sourcing modules
+  - Source guard: lib modules detect direct execution and tell you to run `install.sh`
+- **Documentation audit** — purged ghost skill references (`wiki-editing`/`wiki-authoring` → `wiki-orchestrator`), fixed `.codex/INSTALL.md` and `.opencode/INSTALL.md` install mechanisms, updated plugin metadata to 58 skills / v2.5.2 (#238)
+
+### Added
+- `skills/productivity/plan-and-execute/` — General-purpose orchestrator: challenge → plan → stress-test → phased TODO execution with structured retrospectives and continuous improvement between phases (#257)
+- **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
+  - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
+  - Check 20: Dirty managed checkout detection (user vs generated artifacts), moderate auto-fix via `--fix`
+  - Check 21: TODO archive fixture-based smoke test (catches small-TODO regression)
+  - Check 22: Reviewer-dispatch rendering verification (detects stale code-reviewer patterns)
+  - Cross-platform: portable `timeout` fallback, `git stash save` fallback for git < 2.13, graceful skip when `python3`/`node` absent
+  - 8 new regression tests in `tools/tests/test_doctor_checks.sh`
+
+- **Feature Development Engine** — 4-phase workflow for pre-code validation (#182)
+  - `skills/engineering/design-triad/` — Enforces 3+ design options with comparison matrix and harsh review
+  - `skills/engineering/requirements-validation/` — Tests requirements for falsifiability, detects contradictions
+  - `skills/productivity/fallback-planning/` — Generates contingency TODOs from identified risks
 - `skills/security/wiki-instruction-guard/` — Blocks prompt injection in wiki content (#104)
 - `skills/productivity/adversarial-search/` — Defeats confirmation bias in analysis (#107)
 - `skills/productivity/thinking-orchestrator/` — Hub router for metacognition skills (#110)
@@ -31,6 +84,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - wiki-debunker Source Authority Matrix for source-laundered attributions (#138)
 
 ### Changed
+- `engineering-rigor` — Added Architecture Testing section (#182)
+- `todo-management` — Added Context-Aware TODO Standard with length limits (#182)
+- `adversarial-search` — Triggers deduplicated (orchestrator owns shared triggers); IP/Redaction hard gate added (#182)
+- `think-twice` — Reclassified from explicit to auto-triggered; triggers narrowed to 4 unique phrases (#182)
+- `thinking-orchestrator` — Dropped 25+ generic triggers to reduce token overhead from misfires (#182)
+- `harsh-review.sh` — Added CHECK 8b: fails if any skill.md exceeds 250 lines (#182)
+- `public-repo-ip-check.sh` — Prints file paths only by default; `--verbose` opt-in; loads `.ip-check-patterns`; history audit reclassified as advisory (#182)
+- `skill-trigger-validator.sh` — Pipeline guards for `set -euo pipefail`; temp file cleanup fix (#182)
+- `public-repo-ip-audit` skill — History audit reclassified from mandatory gate to advisory diagnostic (#182)
 - 9 oversized skills split to ≤250 lines with `references/` directories (#143)
 - Efficiency optimization across 6 skills — net −794 lines (#162)
 - README overhauled: updated counts, reduced length 18%, eliminated duplication (#158)
@@ -202,7 +264,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `_adapters/` directories with platform-specific configurations
 
 ### Changed
-- Removed hardcoded vendor references (Linear, Outline, Azure DevOps)
+- Removed hardcoded issue-tracker and wiki vendor references from shared skills
 - Skills now use generic operations that map to platform adapters
 
 ### Fixed

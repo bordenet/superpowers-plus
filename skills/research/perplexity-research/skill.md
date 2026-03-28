@@ -2,7 +2,9 @@
 name: perplexity-research
 source: superpowers-plus
 triggers: ["research this", "use perplexity", "I'm stuck", "need to research", "look this up", "stuck:research", "stuck:knowledge"]
+anti_triggers: ["incorporate research", "merge research into doc", "add research findings"]
 description: Invoke when stuck (2+ failed attempts, uncertainty, or guessing) OR manually to research technical/domain questions via Perplexity MCP. ALWAYS announce invocation and track stats.
+summary: "Use when: stuck after 2+ failed attempts or need technical research via Perplexity."
 coordination:
   group: stuck-escalation
   order: 2
@@ -16,7 +18,16 @@ coordination:
 
 > **Purpose**: Get unstuck by dispatching research queries to Perplexity AI
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
-> **Stats**: `~/.codex/perplexity-stats.json`
+> **Cost**: Perplexity API calls are paid — use judiciously
+
+> **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
+
+## When to Use
+
+- Research questions requiring current, cited sources
+- When web-search returns insufficient or outdated results
+- Technical comparisons needing multiple authoritative sources
+- When you need citation URLs to verify claims
 
 ## When to Invoke (Automatic Triggers)
 
@@ -34,90 +45,32 @@ You MUST invoke this skill when ANY of these conditions are met:
 **Personal preference matters?** → Ask the user instead
 **Broader/extrinsic research needed?** → Invoke this skill
 
-## Manual Invocation
-
-User can always force invocation with:
-- "Use Perplexity to research X"
-- "Get unstuck on X"  
-- "Research X via Perplexity"
-
 ## Invocation Protocol
+
+User can force invocation with: "Use Perplexity to research X", "Get unstuck on X", "Research X via Perplexity".
 
 ### Step 0: Try Free Tools First (MANDATORY)
 
 <EXTREMELY_IMPORTANT>
-**Before ANY Perplexity call, you MUST try free alternatives first.**
-
-1. **Use `web-search`** for the query
-2. **Use `web-fetch`** to read any promising URLs
-3. **Evaluate**: Did you find what you need? If YES → STOP (no Perplexity needed)
-4. **Only escalate** if results are ≥50% worse than expected
-
-**You MUST state explicitly before calling Perplexity:**
-> "web-search returned [X]. This is insufficient because [reason]. Escalating to Perplexity."
-
-**Never use Perplexity for:**
-- Simple company lookups
-- Checking if a URL is live
-- Finding a company's website
-- Basic fact-checking
-- Reading documentation pages
+Try `web-search` + `web-fetch` first. Only escalate if ≥50% worse than expected.
+State: "web-search returned [X]. Insufficient because [reason]. Escalating."
+Never use Perplexity for: simple lookups, URL checks, basic fact-checking, reading docs.
 </EXTREMELY_IMPORTANT>
 
-### Step 1: Announce
+### Step 1: Announce + Prompt
 
-**ALWAYS** announce before invoking:
+Announce: research topic, trigger, free tools tried, why escalating.
+Prompt: context + specific question + constraints + what you've tried + web-search results.
 
-```
-🔍 **Consulting Perplexity**: [Brief description of what I'm researching]
-Reason: [Which trigger condition was met]
-Free tools tried: [web-search result summary]
-Why escalating: [specific insufficiency]
-```
+### Step 2: Dispatch
 
-### Step 2: Generate Rich Prompt
+| Quick fact | `perplexity_search_perplexity` | Deep research | `perplexity_research_perplexity` |
+|------------|------|---------------|------|
+| How-to | `perplexity_ask_perplexity` | Complex reasoning | `perplexity_reason_perplexity` |
 
-Craft a detailed prompt for Perplexity that includes:
-- **Context**: What you're trying to accomplish
-- **Specific question**: The exact information needed
-- **Constraints**: Any requirements (language, version, platform)
-- **What you've tried**: Failed approaches (if applicable)
-- **What web-search found**: Summary of free tool results
+### Step 3: Apply + Evaluate
 
-### Step 3: Dispatch to Perplexity
-
-Use the Perplexity MCP tools:
-
-| Query Type | Tool |
-|------------|------|
-| Quick fact | `perplexity_search_perplexity` |
-| How-to question | `perplexity_ask_perplexity` |
-| Deep research | `perplexity_research_perplexity` |
-| Complex reasoning | `perplexity_reason_perplexity` |
-
-### Step 4: Report Results (Preliminary)
-
-After receiving response, report what you learned:
-
-```
-📋 **Perplexity Response**: [Summary of findings]
-
-Key insights:
-- [insight 1]
-- [insight 2]
-
-**Attempting to apply**: [specific action you'll take based on this]
-```
-
-### Step 5: Apply the Information
-
-Actually USE the information from Perplexity:
-- Run the suggested command
-- Implement the suggested fix
-- Apply the recommended approach
-- Test the solution
-
-**DO NOT record stats yet.** You must evaluate whether it helped first.
+Report findings → apply (run command/implement fix/test) → evaluate BEFORE recording stats.
 
 ### Step 6: Evaluate Helpfulness (CRITICAL)
 
@@ -138,50 +91,40 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 | **PARTIAL** | Some useful info but needed additional work | `successful: true` |
 | **FAILURE** | Information was wrong, irrelevant, or didn't help | `successful: false` |
 
-### Step 7: Update Stats (After Evaluation)
+### Step 7: Record Outcome (After Evaluation)
 
-**ONLY after Step 6**, use the helper script to update stats:
+**ONLY after Step 6**, log the research outcome for future reference:
 
-```bash
-~/.codex/perplexity-stats.sh add \
-  --trigger=<trigger> \
-  --tool=<tool> \
-  --query="<brief query summary>" \
-  --outcome=<SUCCESS|PARTIAL|FAILURE> \
-  --reason="<why it helped or didn't>"
-```
+- **Trigger**: What caused the research (failed_attempts, uncertainty, etc.)
+- **Tool used**: ask, search, or reason
+- **Query summary**: Brief description
+- **Outcome**: SUCCESS, PARTIAL, or FAILURE
+- **Reason**: Why it helped or didn't
 
-**Example:**
-```bash
-~/.codex/perplexity-stats.sh add \
-  --trigger=failed_attempts \
-  --tool=ask \
-  --query="ESLint 9.x flat config ignore patterns" \
-  --outcome=SUCCESS \
-  --reason="Fixed the ignore pattern issue"
-```
-
-> ⚠️ **DO NOT manually edit `~/.codex/perplexity-stats.json`** - this causes JSON corruption.
-> Always use the helper script which handles atomic updates safely.
+> Record outcomes in conversation context or TODO notes — this helps calibrate when Perplexity is worth the cost.
 
 **The evaluation loop**:
 1. Receive Perplexity response → Report (Step 4)
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
-4. Record stats → Track (Step 7) via `perplexity-stats.sh add`
+4. Record outcome → Track (Step 7)
 
-## Stats Commands
+## Example
 
-View stats: `~/.codex/perplexity-stats.sh show`
+```bash
+# Invoke Perplexity via API
+source ~/.codex/.env
+curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: application/json"   -d '{"model":"sonar","messages":[{"role":"user","content":"query"}]}'   https://api.perplexity.ai/chat/completions | jq '.choices[0].message.content'
+```
 
-Reset stats: `~/.codex/perplexity-stats.sh reset`
+## Failure Modes
 
-## Integration with Other Skills
-
-- **superpowers:systematic-debugging**: Invoke Perplexity when debugging hits a wall
-- **superpowers:brainstorming**: Use for research during design exploration
-- **superpowers:verification-before-completion**: Verify facts before claiming done
-- **incorporating-research**: Use AFTER Perplexity returns results and user wants to merge findings into an existing document. Handles triage, voice-matching, and artifact stripping.
+| Failure | Fix |
+|---------|-----|
+| Using Perplexity when web-search would suffice — cost waste | Always complete Step 0 (free tools first) and state what they returned |
+| Treating Perplexity response as authoritative without cross-verification | Perplexity can hallucinate too — verify key claims against primary sources |
+| Not recording outcome, preventing future calibration | Always complete Step 7 (record outcome) even when the answer was unhelpful |
+| Prompt too vague — getting generic response | Include context, constraints, what you tried, and what web-search found |
 
 ## Cost Efficiency
 
@@ -198,14 +141,19 @@ Reset stats: `~/.codex/perplexity-stats.sh reset`
 6. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
 7. **Cost awareness** - Perplexity costs real money; use only when free tools fail
 
----
 
 ## "I'm Stuck" Escalation Path
 
 Default order: `think-twice` (free, reasoning) → `perplexity-research` (paid, knowledge).
 See `references/escalation.md` for the full decision tree.
 
-## Reference Files
+## References
 
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
+
+## Companion Skills
+
+- **expert-interviewer**: For structured domain expert interviews
+- **incorporating-research**: Merging Perplexity findings into docs
+- **think-twice**: When stuck — Perplexity is an escalation target
