@@ -107,9 +107,14 @@ Apply retro learnings to remaining `#plan-*` TODOs. ≥2 substantive improvement
 
 #### Step 3: Execute the Phase
 
-1. Re-read TODO → execute → harsh-review deliverables → verify criteria
-2. **Commit gate chain:** `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit`
-3. Mark complete. **If phase fails:** document, immediate retro, decide retry vs replan.
+1. Re-read the TODO (it may have been improved by a prior retro)
+2. Execute the work described in the TODO
+3. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
+4. Verify success criteria are met
+5. **Before committing:** Run the commit gate chain (gates 1–3 always, 4–5 when applicable): `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → `public-repo-ip-audit`. Your FIXES are new code — they need their own review.
+6. Mark TODO complete via `todo-crud.sh` with completion notes
+
+**If the phase fails** (deliverables don't meet criteria, blockers surface, harsh review finds critical issues): document what went wrong in the TODO note, run a retrospective immediately, and decide whether to retry the phase or trigger mid-execution replanning.
 
 #### Step 4: Post-Phase Verification
 
@@ -139,13 +144,6 @@ See [`references/replanning-and-resuming.md`](references/replanning-and-resuming
 
 See [`references/integration-map.md`](references/integration-map.md) for the full phase→skill mapping.
 
-## Example
-
-```bash
-# Enroll plan TODOs after stress-testing
-todo-crud.sh add --priority P2 --tag "#plan-auth-redesign" --title "Phase 1: Migrate OAuth provider"
-```
-
 ## Failure Modes
 
 | Failure | Fix |
@@ -154,12 +152,3 @@ todo-crud.sh add --priority P2 --tag "#plan-auth-redesign" --title "Phase 1: Mig
 | Shallow retros / cosmetic TODO improvements | Findings and changes must be concrete and substantive; persist via todo-crud.sh |
 | Harsh review on deliverables skipped | Quality gate is embedded in every TODO and commit gate chain — not optional |
 | Plan broken but execution continues | Mid-execution replanning: defer remaining TODOs, return to Phase B |
-
-## Companion Skills
-
-- **brainstorming**: Generating plan options · **design-triad**: Evaluating alternatives
-- **feature-development**: Full feature workflow · **todo-management**: Task persistence
-- **requirements-validation**: Validating plan inputs · **plan-quality-gates**: Exit criteria
-- **innovation**: Creative problem-solving · **fallback-planning**: Contingency plans
-- **subagent-driven-development**: Multi-agent task dispatch
-- **autonomous-chain-controller**: Full workflow orchestration
