@@ -106,7 +106,24 @@ else
     fail "install-augment-superpowers.sh syntax error"
 fi
 
-# 10. harsh-review passes (honor exit code, not grep patterns)
+# 10. stripFrontmatter CRLF normalization in all 3 consumers
+echo ""
+echo "--- stripFrontmatter CRLF parity ---"
+crlf_ok=true
+for f in superpowers-augment.js mcp/superpowers-mcp.js install-augment-superpowers.sh; do
+    if grep -q 'function stripFrontmatter' "$f"; then
+        # Extract the first line of the function body — must contain CRLF normalization
+        body=$(sed -n '/function stripFrontmatter/,/^}/p' "$f" | head -5)
+        if echo "$body" | grep -qF 'replace(/'; then
+            pass "stripFrontmatter CRLF: $f"
+        else
+            fail "stripFrontmatter missing CRLF normalization: $f"
+            crlf_ok=false
+        fi
+    fi
+done
+
+# 11. harsh-review passes (honor exit code, not grep patterns)
 echo ""
 echo "--- harsh-review ---"
 if bash tools/harsh-review.sh >/dev/null 2>&1; then

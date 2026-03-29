@@ -401,7 +401,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];

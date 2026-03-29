@@ -149,6 +149,35 @@ walkDir(skillsDir);
 assert(realCount >= 50, `Parsed ${realCount} real skills (≥50)`);
 eq(emptyDesc, 0, `No empty/broken descriptions in ${realCount} skills`);
 
+// --- stripFrontmatter parity (inline implementation matching all 3 consumers) ---
+console.log('\n--- stripFrontmatter CRLF parity ---');
+// Replicate the shared stripFrontmatter logic used by augment.js, MCP, and install-augment
+function stripFrontmatter(content) {
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    let inFrontmatter = false;
+    let frontmatterEnded = false;
+    const result = [];
+    for (const line of lines) {
+        if (line.trim() === '---') {
+            if (inFrontmatter) { frontmatterEnded = true; continue; }
+            inFrontmatter = true;
+            continue;
+        }
+        if (frontmatterEnded || !inFrontmatter) result.push(line);
+    }
+    return result.join('\n').trim();
+}
+// CRLF
+eq(stripFrontmatter("---\r\nname: x\r\n---\r\nBody\r\nLine2"), 'Body\nLine2', 'stripFrontmatter: CRLF');
+// CR-only
+eq(stripFrontmatter("---\rname: x\r---\rBody\rLine2"), 'Body\nLine2', 'stripFrontmatter: CR-only');
+// Mixed endings
+eq(stripFrontmatter("---\r\nname: x\n---\rBody\nLine2"), 'Body\nLine2', 'stripFrontmatter: mixed');
+// No frontmatter
+eq(stripFrontmatter("Just body text"), 'Just body text', 'stripFrontmatter: no frontmatter');
+// No trailing newline
+eq(stripFrontmatter("---\nname: x\n---\nBody"), 'Body', 'stripFrontmatter: no trailing newline');
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);
