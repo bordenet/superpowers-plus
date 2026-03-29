@@ -202,7 +202,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | golden-agents | Bootstraps AGENTS.md |
 | | innovation | Generates 10x ideas: product shifts, architectural pivots |
 | | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
-| | quantitative-decision-gate | Decision matrix with weighted dimensions before any user question |
 | | skill-authoring | Creates new skills from descriptions/patterns |
 | | superpowers-help | Lists available skills |
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |

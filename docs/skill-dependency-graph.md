@@ -117,6 +117,10 @@ graph TD
     superpowers_help["superpowers-help"]
   end
 
+  subgraph productivity["Productivity"]
+    plan_and_execute["plan-and-execute"]
+  end
+
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"]
     perplexity_research["perplexity-research"]
@@ -226,42 +230,11 @@ graph TD
   measurement_integrity -->|then| evolution_loop
   evolution_loop -->|enables| skill_authoring
   exhaustive_audit_validation -->|enables| verification_before_completion
-  failure_autopsy -->|enables| quantitative_decision_gate
-  failure_autopsy -->|enables| measurement_integrity
-  failure_autopsy ==>|escalates to| think_twice
-  measurement_integrity -->|enables| verification_before_completion
-  measurement_integrity ==>|escalates to| failure_autopsy
-  skill_health_check ==>|escalates to| superpowers_doctor
-  adversarial_search -->|enables| think_twice
-  adversarial_search -->|enables| verification_before_completion
-  adversarial_search ==>|escalates to| thinking_orchestrator
-  autonomous_chain_controller -->|enables| brainstorming
-  autonomous_chain_controller -->|enables| design_triad
-  autonomous_chain_controller -->|enables| plan_and_execute
-  autonomous_chain_controller -->|enables| test_driven_development
-  autonomous_chain_controller ==>|escalates to| think_twice
-  autonomous_chain_controller ==>|escalates to| failure_autopsy
-  code_review -->|enables| progressive_code_review_gate
-  code_review ==>|escalates to| code_review_battery
-  code_review_respond -->|enables| pre_commit_gate
-  code_review_respond ==>|escalates to| think_twice
-  domain_design -->|enables| skill_authoring
-  domain_design -->|enables| brainstorming
-  domain_design -->|enables| design_triad
-  plan_and_execute -->|then| fallback_planning
-  fallback_planning -->|enables| todo_management
-  innovation -->|enables| brainstorming
-  innovation -->|enables| design_triad
   plan_and_execute -->|enables| brainstorming
   plan_and_execute -->|enables| think_twice
   plan_and_execute -->|enables| todo_management
   plan_and_execute -->|enables| plan_quality_gates
   plan_and_execute ==>|escalates to| thinking_orchestrator
-  quantitative_decision_gate -->|enables| brainstorming
-  quantitative_decision_gate -->|enables| design_triad
-  quantitative_decision_gate -->|enables| plan_and_execute
-  quantitative_decision_gate ==>|escalates to| think_twice
-  skill_authoring -->|enables| writing_skills
   think_twice ==>|escalates to| perplexity_research
   thinking_orchestrator -->|enables| adversarial_search
   thinking_orchestrator -->|enables| think_twice
@@ -307,16 +280,8 @@ graph TD
 | Debugging | `investigation-state` | Coordinated skill group |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
-| Quality | `progressive-harsh-review` | Coordinated skill group |
-| Experimental | `experimental-self-prompting` | Coordinated skill group |
-| Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
-| Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
-| Meta Improvement | `evolution-loop` | Coordinated skill group |
-| Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
-| Orchestration | `autonomous-chain-controller` | Coordinated skill group |
-| Productivity | `plan-and-execute`, `domain-design`, `fallback-planning`, `golden-agents`, `skill-authoring`, `todo-archive`, `todo-management` | Coordinated skill group |
-| Decision Making | `quantitative-decision-gate` | Coordinated skill group |
-| Meta | `superpowers-help` | Coordinated skill group |
+| Completion Gate | `exhaustive-audit-validation`, `verification-before-completion` | Verification and TODO maintenance before claiming done |
+| Productivity | `plan-and-execute` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Todo Enforcement | `todo-guardian` | Coordinated skill group |
 | Research | `incorporating-research`, `expert-interviewer` | Coordinated skill group |

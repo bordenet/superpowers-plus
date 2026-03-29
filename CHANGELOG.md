@@ -57,7 +57,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Documentation audit** — purged ghost skill references (`wiki-editing`/`wiki-authoring` → `wiki-orchestrator`), fixed `.codex/INSTALL.md` and `.opencode/INSTALL.md` install mechanisms, updated plugin metadata to 58 skills / v2.5.2 (#238)
 
 ### Added
-
 - `skills/productivity/plan-and-execute/` — General-purpose orchestrator: challenge → plan → stress-test → phased TODO execution with structured retrospectives and continuous improvement between phases (#257)
 - **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
   - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
