@@ -573,6 +573,9 @@ main() {
     # Install tools (todo-preflight.sh, todo-lock.sh, etc.)
     install_tools
 
+    # Install CLI commands (sp-update symlink to PATH)
+    install_cli_commands
+
     # Install adapter
     install_adapter
 
