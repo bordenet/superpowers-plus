@@ -282,14 +282,18 @@ function extractFrontmatter(filePath) {
                     requires_mcp = parsed.values;
                     i = parsed.nextIndex;
                 }
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
-                    if (key === 'compress' && value.trim() === 'false') compress = false;
-                    if (key === 'mcp_install_hint') mcp_install_hint = value.trim();
+                    let value = match[2].trim();
+                    // Strip outer quotes and handle escaped quotes inside
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    }
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
+                    if (key === 'compress' && value === 'false') compress = false;
+                    if (key === 'mcp_install_hint') mcp_install_hint = value;
                 }
             }
         }
@@ -334,7 +338,10 @@ function findSkillsInDir(dir, sourceType) {
         if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         // Handle both directories and symlinks to directories
         const skillDir = path.join(dir, entry.name);
-        const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch { continue; /* broken symlink */ }
         if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {

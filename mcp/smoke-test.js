@@ -28,8 +28,11 @@ function findSkills(dir, maxDepth = 4) {
       if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
-        const skillFile = path.join(fullPath, 'SKILL.md');
-        if (fs.existsSync(skillFile)) {
+        // Case-insensitive: check both skill.md and SKILL.md
+        const skillFileLC = path.join(fullPath, 'skill.md');
+        const skillFileUC = path.join(fullPath, 'SKILL.md');
+        const skillFile = fs.existsSync(skillFileLC) ? skillFileLC : (fs.existsSync(skillFileUC) ? skillFileUC : null);
+        if (skillFile) {
           skills.push({
             name: entry.name,
             path: path.relative(dir, fullPath),
