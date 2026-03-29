@@ -92,7 +92,8 @@ const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
     '~/.codex/superpowers-plus',
 ].filter(Boolean));
 
-const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
+const OVERLAY_SOURCE_DIR = discoverSourceDir('SP_OVERLAY_SOURCE_DIR', [])
+    || discoverSourceDir('SPC_SOURCE_DIR', []);  // backward compat
 
 /**
  * Find a skill.md in a source repo by searching domain subdirectories.
@@ -502,7 +503,7 @@ function findSkills(filterMode = 'all') {
     console.log('');
     console.log('Namespace prefixes (resolve to source repos, not installed dir):');
     console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
-    console.log('  spc:skill-name          → overlay source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  spc:skill-name          → overlay source repo' + (OVERLAY_SOURCE_DIR ? ' (' + OVERLAY_SOURCE_DIR + ')' : ' (not found)'));
     console.log('');
     console.log('Dash shorthands (sp- expands to superpowers-):');
     console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
@@ -540,7 +541,7 @@ function useSkill(skillName, options = {}) {
     // Namespace prefix resolution
     // superpowers:name → obra/superpowers skills only
     // spp:name         → superpowers-plus source repo only
-    // spc:name         → overlay source repo only (set SPC_SOURCE_DIR)
+    // spc:name         → overlay source repo only (set SP_OVERLAY_SOURCE_DIR)
     // name (no prefix) → installed dir (overlay overrides plus) → obra
     //
     // Dash shorthand (prefix expansion for fewer keystrokes):
@@ -584,12 +585,12 @@ function useSkill(skillName, options = {}) {
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
     } else if (forceSpc) {
         // spc: → search overlay source repo only
-        if (!SPC_SOURCE_DIR) {
+        if (!OVERLAY_SOURCE_DIR) {
             console.error('Error: spc: prefix used but overlay source repo not found.');
-            console.error('Set SPC_SOURCE_DIR env var to point to your overlay skill repo');
+            console.error('Set SP_OVERLAY_SOURCE_DIR env var to point to your overlay skill repo');
             process.exit(1);
         }
-        skillFile = findSkillInSourceRepo(SPC_SOURCE_DIR, actualName);
+        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
     } else if (!forceSuperpowers) {
         // No prefix → personal/installed dir first (overlay overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
@@ -613,7 +614,7 @@ function useSkill(skillName, options = {}) {
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpc) console.error('Searched overlay source: ' + SPC_SOURCE_DIR);
+        if (forceSpc) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
