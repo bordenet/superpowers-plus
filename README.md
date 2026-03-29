@@ -1,6 +1,6 @@
 # superpowers-plus
 
-87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+61 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,12 +10,12 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**61 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 34 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification, debug conductor, investigators, complexity refactoring, branch conventions, TypeScript conventions |
-| productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
+| engineering | 16 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
+| productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
 | observability | 8 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
