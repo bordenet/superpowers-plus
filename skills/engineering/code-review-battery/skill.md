@@ -51,6 +51,10 @@ Analyze the diff and select reviewers:
 
 **Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
 
+**Mandatory activation (not subject to triage exclusion):**
+- **Design Critic** is ALWAYS activated when changes touch: interfaces, public APIs, contracts, message schemas, shared state types, or cross-module boundaries.
+- **Guardian** is ALWAYS activated when changes touch: retry logic, circuit breakers, rollback behavior, deployment config, feature flags, authentication/authorization, or state machine transitions.
+
 **Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation).
 
 State your triage decision before dispatching:
