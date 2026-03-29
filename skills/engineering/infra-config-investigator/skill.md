@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `InfraEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Use
+
+Dispatched by `debug-conductor` when the incident involves infrastructure — config changes, deployment regressions, resource exhaustion, cloud provider maintenance, or environment mismatches.
+
 ## Investigation Protocol
 
 ### Step 1: Deployment Timeline Scan
@@ -81,7 +85,7 @@ composition:
 {
   "deployments": [
     { "service": "billing-service", "version": "2.4.1", "timestamp": "ISO-8601", "correlatesWithIncident": false },
-    { "service": "billing-service", "type": "config", "change": "pool_size: 50→5", "timestamp": "ISO-8601", "correlatesWithIncident": true }
+    { "service": "billing-service", "version": "2.4.0-hotfix", "timestamp": "ISO-8601", "correlatesWithIncident": true }
   ],
   "configChanges": [
     { "key": "db.pool.maxSize", "before": "50", "after": "5", "timestamp": "ISO-8601" }

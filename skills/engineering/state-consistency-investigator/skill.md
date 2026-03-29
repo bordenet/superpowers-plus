@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `StateEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Use
+
+Dispatched by `debug-conductor` when the incident involves data inconsistency — stale reads, replication lag, cache staleness, event reordering, or cross-service state divergence.
+
 ## Investigation Protocol
 
 ### Step 1: Identify the Consistency Boundary
@@ -54,9 +58,7 @@ For each affected entity:
       "sourceA": "primary-db",
       "sourceB": "replica-db",
       "valueA": "+1-555-0199",
-      "valueB": "+1-555-0100",
-      "timestampA": "2026-03-29T14:00:01Z",
-      "timestampB": "2026-03-29T14:00:05Z"
+      "valueB": "+1-555-0100"
     }
   ]
 }

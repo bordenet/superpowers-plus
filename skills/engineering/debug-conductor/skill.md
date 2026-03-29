@@ -49,7 +49,7 @@ composition:
 
 - Single service, clear error message → use `systematic-debugging`
 - First investigation attempt (always start serial)
-- Budget exhausted or <40% remaining
+- Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
 
 ## The Conductor Protocol
 
@@ -109,30 +109,33 @@ As investigators return evidence:
 
 ### Phase 5: Adjudication
 
-When all investigators complete (or budget exhausted):
+When all investigators complete (or budget exhausted), **dispatch `evidence-adjudicator`**:
 
-1. **Build reasoning tree** from all branch evidence
-2. **Identify Critical Divergence Points** — where investigators disagree
-3. **Evaluate evidence strength**, not investigator count
-4. **Require disconfirming evidence** — branches without it are suspect
-5. **Produce root-cause verdict** with confidence score
-6. **List alternative causes** with explicit gaps
+1. Pass all branch evidence packets to `evidence-adjudicator`
+2. Adjudicator builds reasoning tree, weighs evidence strength, detects contradictions
+3. Adjudicator produces `RootCauseVerdict` with confidence score and alternative causes
+4. Conductor receives verdict and proceeds to Phase 6
+
+> **Ownership:** The conductor orchestrates; `evidence-adjudicator` synthesizes. The conductor MUST NOT perform adjudication itself.
 
 ### Phase 6: Resolution
 
-1. **If confidence ≥ 0.8:** Present root cause + recommended next steps
-2. **If confidence 0.5–0.8:** Present ranked hypotheses, recommend targeted experiments
-3. **If confidence < 0.5:** Escalate to user with what we know and what we don't
-4. **Always:** Invoke `failure-autopsy` for post-resolution learning
-5. **Always:** Update `investigation-state` with final verdict
-6. **Always:** Log to TODO ledger any deferred follow-ups
+1. **Write adjudicator verdict** to `incidentPacket.adjudication`
+2. **Update `incidentPacket.budget`** with final token/time usage per branch
+3. **If confidence ≥ 0.8:** Present root cause + recommended next steps
+4. **If confidence 0.5–0.8:** Present ranked hypotheses, recommend targeted experiments
+5. **If confidence < 0.5:** Escalate to user with what we know and what we don't
+6. **Write resolution actions** to `incidentPacket.nextSteps`
+7. **Always:** Invoke `failure-autopsy` for post-resolution learning
+8. **Always:** Update `investigation-state` with final verdict
+9. **Always:** Log to TODO ledger any deferred follow-ups
 
 ## Bounded Forking Constraints
 
 | Constraint | Value | Action at Limit |
 |-----------|-------|----------------|
 | Max concurrent investigators | 4 | Queue additional; explain to user |
-| Max total branches | 6 | Stop branching; synthesize existing |
+| Max total branches | 6 | Stop branching; dispatch `evidence-adjudicator` with current branches |
 | Per-branch token budget | 25% of total | Kill branch |
 | Per-branch wall-clock | 5 minutes | Kill branch |
 | Min confidence to continue | 0.3 | Kill branch |
@@ -144,9 +147,10 @@ When all investigators complete (or budget exhausted):
 |---------|-----------|----------|
 | All investigators find nothing | All branches < 0.3 confidence | Escalate to user; suggest new evidence sources |
 | Investigators agree on wrong cause | High confidence but contradicted by reproduction | Require reproduction before accepting verdict |
-| Cost explosion | Budget > 80% with no verdict | Stop forking; synthesize partial findings |
+| Cost explosion | Budget > 80% with no verdict | Stop forking; dispatch `evidence-adjudicator` with partial findings |
 | Conductor bottleneck | Queued evidence > 3 items unprocessed | Process evidence in batch; simplify validation |
 | Circular investigation | Same hypothesis re-investigated | Track hypothesis IDs; reject duplicates |
+| Adjudicator failure | `evidence-adjudicator` times out or returns malformed verdict | Retry once; if still failed, escalate with partial ranked evidence and mark adjudication as degraded |
 
 ## Companion Skills
 
