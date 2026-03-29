@@ -113,7 +113,14 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 ### Defense Layers (enforced by `todo-engine.py`)
 
-7 layers: rules → structural validation → OS immutability (`chflags uchg`) → chmod 444 → shadow+annihilation detection → stray path detection → path obscuring (`.todo-registry`). If annihilation blocks a write: delete `~/.codex/todo-shadow/TODO.md` and retry.
+| Layer | Mechanism | What it catches |
+|-------|-----------|----------------|
+| 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
+| 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
+| 3. OS protection | `chmod 0444` — file is read-only | `save-file`, `str-replace-editor`, shell redirects |
+| 4. Shadow + annihilation | Pre-write comparison vs `~/.codex/todo-shadow/TODO.md` | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
+
+**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry. The error message will tell you this.
 
 ---
 
