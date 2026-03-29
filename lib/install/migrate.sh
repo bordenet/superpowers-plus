@@ -240,13 +240,13 @@ detect_orphaned_todo_files() {
         case "$basename" in
             Library|Documents|Pictures|Music|Movies|Downloads|Desktop|Public|Applications|OneDrive*) continue ;;
         esac
-        # Level 1: direct repos under ~/SomeDir/repo/ (must be a git repo)
+        # Level 1: direct repos under ~/SomeDir/repo/ (must be a git repo — supports worktrees where .git is a file)
         for git_dir in "$parent_dir"*/; do
-            [[ -d "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+            [[ -e "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
         done
-        # Level 2: nested repos under ~/SomeDir/owner/repo/ (must be a git repo)
+        # Level 2: nested repos under ~/SomeDir/owner/repo/ (must be a git repo — supports worktrees where .git is a file)
         for git_dir in "$parent_dir"*/*/; do
-            [[ -d "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+            [[ -e "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
         done
     done
 

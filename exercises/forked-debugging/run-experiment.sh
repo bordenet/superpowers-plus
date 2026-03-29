@@ -9,7 +9,9 @@
 #   scenario:  S1 | S2 | S3 | S4 | S5
 #   --runs N:  number of runs per cell (default: 3)
 #
-# Output: exercises/forked-debugging/results/<condition>-<scenario>-<run>.json
+# Output: exercises/forked-debugging/results/<condition>-<scenario>-run<N>-<timestamp>-<pid>.json
+#         Filenames include timestamp+PID to prevent collisions from concurrent runs.
+#         Result JSON files are .gitignored — do not track generated results.
 
 set -euo pipefail
 

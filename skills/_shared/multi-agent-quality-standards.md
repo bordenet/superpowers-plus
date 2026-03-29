@@ -3,7 +3,7 @@
 > **Purpose:** Shared quality rubrics, readability rules, fallback behavior, instrumentation specs,
 > and "NOT to use" criteria across all multi-agent-capable skills.
 
-## 1. Plan Quality Rubric (writing-plans council output)
+## 1. Plan Quality Rubric (plan-and-execute council output)
 
 Score each dimension 0–2. **Minimum passing score: 7/10.**
 
@@ -62,7 +62,7 @@ Every multi-agent invocation MUST log:
 
 ```json
 {
-  "skill": "brainstorming | writing-plans | subagent-driven-development",
+  "skill": "brainstorming | plan-and-execute | subagent-driven-development",
   "mode": "single-agent | multi-agent",
   "activationRubricScore": 7,
   "activationDecision": "multi-agent",
