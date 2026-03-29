@@ -135,7 +135,7 @@ Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks.
 
 | Anti-Pattern | Detection | Correction |
 |--------------|-----------|------------|
-| All reviewers agree | No disagreements found | Force at least one dissenting view |
+| All reviewers agree | No disagreements found | Force second-order critique: each reviewer must name ≥1 plausible failure mode or state why none exists — but the explanation must cite a specific property of the change (e.g., "pure rename, no callers affected"), not a generic "it's straightforward." Artificial dissent without reasoning is noise; generic dismissal is rubber-stamping |
 | Duplicate findings | Same issue from 3 reviewers | Deduplicate in synthesis, attribute first finder |
 | Reviewer fatigue | Later reviewers less thorough | Randomize dispatch order |
 | Missing source context | Review diff without callers | Include grep results for all touched functions |
