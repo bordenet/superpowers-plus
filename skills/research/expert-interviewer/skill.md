@@ -16,19 +16,11 @@ coordination:
 
 # Expert Interviewer
 
-> **Wrong skill?** Quick research → `perplexity-research`. Incorporating findings → `incorporating-research`. Brainstorming → `brainstorming`.
-
-## Companion Skills
-
-- **perplexity-research**: For factual research queries
-- **incorporating-research**: Merging findings into docs
-- **brainstorming**: Generating hypotheses from interview insights
-
 ## When to Use
 
 - Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
 - User says "help me document," "capture what I know," or "write up the problem space"
-- NOT for: feature design (`brainstorming`), implementation planning (`plan-and-execute`)
+- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans`)
 
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 

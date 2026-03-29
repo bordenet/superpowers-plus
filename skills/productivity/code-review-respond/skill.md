@@ -15,8 +15,6 @@ coordination:
 
 # Code Review — Reviewer Agent File Protocol
 
-> **Wrong skill?** Sending work to reviewer → `code-review`. Reviewing a PR inline → `providing-code-review`. Pre-commit review → `progressive-code-review-gate`.
-
 ## When to Use
 
 - You are the reviewer agent in a `~/.codex/superpowers-review/` file-protocol handoff

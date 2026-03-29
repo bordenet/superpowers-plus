@@ -27,19 +27,11 @@ composition:
 
 # Subagent-Driven Development
 
-> **Wrong skill?** Simple single-file changes → just edit directly. Planning without execution → `brainstorming`. Feature workflow → `feature-development`.
-
-## Companion Skills
-
-- **feature-development**: Full feature workflow (this skill uses sub-agents)
-- **plan-and-execute**: For multi-step implementation planning
-- **test-driven-development**: TDD within sub-agent tasks
-
 ## When to Use
 
-- You have a written implementation plan with independent tasks to execute in the current session
-- You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`writing-plans`), execution across multiple sessions (`executing-plans`)
+- Executing implementation plans with independent tasks in the current session
+- User says "execute plan with subagents" or "implement plan with subagents"
+- NOT for: writing the plan (`writing-plans`), parallel session execution (`executing-plans`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
@@ -108,19 +100,11 @@ Never force retry without changes. If stuck, something must change.
 
 ## Example: Dispatch Prompt
 
-```text
+```
 Implement task 3: "Add retry logic to API client."
 Files: src/api/client.ts (main), test/api/client.test.ts (tests).
 Constraints: max 3 retries, exponential backoff, no new dependencies.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
-```
-
-## Example
-
-```bash
-# Launch sub-agent for independent task
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery
-# Pass context inline — sub-agents have NO conversation context
 ```
 
 ## Failure Modes
@@ -129,4 +113,4 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-b
 |---------|-----|
 | Subagent given plan file path instead of full text | Re-dispatch with complete task text inline |
 | Skipped spec compliance review, went straight to quality | Go back — spec compliance THEN quality, order matters |
-| Parallel implementers caused merge conflicts | Re-serialize: fall back to sequential. If isolation score was ≥ 6, file a re-serialization event (SD-11) and tighten rubric for this codebase |
+| Parallel implementers caused merge conflicts | Never dispatch parallel implementers — sequential only |
