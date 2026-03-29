@@ -29,7 +29,6 @@ Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and in
 ## 🔴 TODO.md Access (NON-NEGOTIABLE — DATA LOSS PREVENTION)
 
 **To READ TODO.md** (show tasks, check status, answer "what are my TODOs"):
-
 ```bash
 ~/.codex/superpowers-plus/tools/todo-crud.sh cat       # print contents
 ~/.codex/superpowers-plus/tools/todo-crud.sh path      # print resolved path
@@ -39,7 +38,6 @@ Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and in
 **NEVER** `cat ~/.codex/TODO.md` or `view ~/.codex/TODO.md` — the file may not be there. The real path is resolved from `TODO_FILE_PATH` in `~/.codex/.env` automatically by `todo-crud.sh`.
 
 **To WRITE to TODO.md** — the ONLY permitted tools:
-
 - `todo-crud.sh` — task CRUD (add, complete, move, defer)
 - `todo-preflight.sh --create-if-missing` — initial file creation from template
 - `todo-maintenance.sh` — routine housekeeping and archival
@@ -49,8 +47,7 @@ Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and in
 ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id 20260322-01 --note "Done"
 ```
 
-### ❌ BANNED — These destroy TODO.md and cause DATA LOSS
-
+### ❌ BANNED — These destroy TODO.md and cause DATA LOSS:
 - ❌ `save-file` targeting TODO.md
 - ❌ `str-replace-editor` targeting TODO.md
 - ❌ `echo "..." > TODO.md` or any shell redirect
@@ -59,14 +56,6 @@ Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and in
 - ❌ Writing task lists without the structured `# ACTIVE TASKS` / `# HISTORY` format
 
 ### Why This Rule Exists
-On 2026-03-23, an agent used `save-file` to overwrite TODO.md with a raw task list, destroying dozens of open tasks that had never been started. No backup was created. The tasks were unrecoverable.
-
-### Enforcement (4 layers — you CANNOT bypass all of them)
-1. **Rules** — this ban (you're reading it now)
-2. **Structural validation** — `write_file()` rejects content missing required headers/sections
-3. **OS protection** — TODO.md is `chmod 0444` (read-only); `save-file` gets `PermissionError`
-4. **Shadow + annihilation detection** — pre-write comparison vs `~/.codex/todo-shadow/TODO.md` blocks >60% size drops, all-task wipes, or >5 task losses
-
-**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
+On 2026-03-23, an agent used `save-file` to overwrite TODO.md with a raw task list, destroying dozens of open tasks that had never been started. No backup was created. The tasks were unrecoverable. `todo-crud.sh` prevents this by: resolving the correct path, acquiring a lock, creating a timestamped backup, and validating structure before writing.
 
 For multi-step tasks (3+ steps): use `todo-crud.sh add` to persist tasks, then mirror to MCP `add_tasks` for UI.
