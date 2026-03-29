@@ -141,17 +141,9 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
 ## Phase Skip Prevention
 
-**You MUST NOT skip phases.** Common temptations and why they fail:
+**You MUST NOT skip phases.** "I already know the approach" → think-twice catches blind spots. "Only one design option" → design-triad requires ≥3. "Too small" → the 2026-03-27 incident was "just a small script."
 
-| Temptation | Why It Fails |
-|-----------|-------------|
-| "I already know the approach" | Think-twice exists because you have blind spots you can't see |
-| "Only one design option" | `design-triad` rejects this — ≥3 options always |
-| "The design is obviously right" | Harsh review #1 exists because designers are blind to their own flaws |
-| "The code works, why review again?" | Harsh review #2 catches implementation bugs the author can't see |
-| "Too small for this workflow" | The 2026-03-27 incident was "just a small PDF export script" |
-
-**Opt-out is user-initiated ONLY.** The agent never decides to skip the workflow. If the user says "just do it" or "skip the full workflow," follow their instruction. Otherwise, run all phases.
+**Opt-out is user-initiated ONLY.** The agent never decides to skip.
 
 
 ## Integration Map
@@ -168,9 +160,7 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
 ## Incident History
 
-| Date | What Happened | Impact |
-|------|---------------|--------|
-| 2026-03-27 | Agent skipped brainstorming, think-twice, and harsh review. Created a new skill file, immediately presented a confabulated summary without reading the file back. README table ordering was wrong. Router stems were wrong for the actual stemmer. Thinking-orchestrator routing was overcorrected. Required 2 full hostile review rounds to catch all issues. | Every issue found by hostile reviewers could have been caught if the full workflow had been followed from the start. |
+**2026-03-27:** Agent skipped brainstorming, think-twice, and harsh review. Confabulated summary without reading output. Required 2 hostile review rounds. Every issue would have been caught by the full workflow.
 
 ## Example
 

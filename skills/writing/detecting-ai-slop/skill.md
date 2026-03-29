@@ -121,7 +121,7 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Hapax legomena rate | Below user baseline | At or above baseline |
 
 
-## Structural Patterns (25 points max)
+## Structural & Semantic Patterns (45 points max)
 
 | Pattern | Description | Points |
 |---------|-------------|--------|
@@ -130,12 +130,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Over-Signposting | "In this section...", "As mentioned earlier..." | +5 |
 | Staccato Paragraphs | >50% are 1-2 sentences | +5 |
 | Symmetric Coverage | Equal weight to all options without prioritization | +5 |
-
-
-## Semantic Patterns (20 points max)
-
-| Pattern | Description | Points |
-|---------|-------------|--------|
 | Hollow Specificity | "Many companies have seen improvements" (which?) | +5 |
 | Absent Constraints | Absolute claims without limitations | +5 |
 | Balanced to a Fault | Every pro has matching con of equal weight | +5 |

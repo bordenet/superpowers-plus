@@ -123,36 +123,17 @@ Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose
 
 ## Visual Clarity Rules
 
-### Column Alignment
-
-| Column Type | Alignment |
-|-------------|-----------|
-| Text | Left-aligned (`:---`) |
-| Numeric | Right-aligned (`---:`) |
-| Status/Tags (Yes/No, 🦸/🔧) | Center-aligned (`:---:`) |
-
-### Pipe Spacing
-
-One space around pipes minimum for raw Markdown readability:
-
-❌ `|Name|Value|`
-✅ `| Name | Value |`
-
-### Consistent Vocabulary
-
-Use predictable terms:
-- `Yes / No / Partial` (not "Yep / Nope / Kinda")
-- `Low / Medium / High` (not "Minimal / Moderate / Substantial")
-- `Required / Optional / Deprecated`
-
+**Alignment**: Text left (`:---`) · numeric right (`---:`) · status/tags center (`:---:`).
+**Spacing**: `| Name | Value |` not `|Name|Value|`.
+**Vocabulary**: `Yes/No/Partial` · `Low/Medium/High` · `Required/Optional/Deprecated`.
 
 ## Semantic Rules
 
-1. **Unambiguous headers** — No generic "Misc" or "Notes" columns unless absolutely necessary
-2. **Consistent column types** — Don't mix booleans, prose, and numbers in the same column
-3. **No redundant columns** — If "Status" and "Is Complete?" convey the same info, keep only one
-4. **No derived columns** — If one column is derivable from another, drop it or move to notes
-5. **Tables are for data, not layout** — Don't use tables for visual formatting or pseudo-forms
+1. **Unambiguous headers** — no generic "Misc" or "Notes" columns
+2. **Consistent column types** — don't mix booleans, prose, and numbers
+3. **No redundant columns** — if two columns convey the same info, keep one
+4. **No derived columns** — derivable from another → drop or move to notes
+5. **Tables are for data, not layout**
 
 
 ## Anti-Patterns to Detect and Fix
@@ -195,12 +176,6 @@ awk -F'|' '/^\|/ && NF>7 {print FILENAME":"NR": "NF-1" columns"}' doc.md
 ```
 
 See [`references/examples.md`](references/examples.md) for good/bad table formatting examples.
-
-## Scope Exclusions
-
-- AI slop removal → `eliminating-ai-slop`
-- README formatting → `readme-authoring`
-- Wiki page editing → `wiki-orchestrator`
 
 ## Failure Modes
 
