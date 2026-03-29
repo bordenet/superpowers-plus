@@ -1,0 +1,25 @@
+{
+  "id": "SD-3",
+  "skill": "subagent-driven-development",
+  "name": "Tightly Coupled Refactor — Rename Core Entity",
+  "difficulty": "high",
+  "expected_winner": "A (serial)",
+  "expected_reason": "Renaming touches every layer — DB, API, UI, tests. Parallelism would cause merge hell.",
+  "prompt": "Rename the 'Agent' entity to 'Operator' throughout the entire codebase. This affects: the database schema (agents table → operators table), the Go API models, the API endpoints (/agents → /operators), the React dashboard components, all test files, and the API documentation. Must maintain backward compatibility with a redirect from old endpoints.",
+  "context": {
+    "scope": {
+      "database": {"table": "agents", "columns": ["agent_id", "agent_name", "agent_status"], "foreign_keys": 4},
+      "api": {"endpoints": ["/agents", "/agents/:id", "/agents/:id/status"], "models": ["Agent", "AgentStatus", "AgentConfig"]},
+      "ui": {"components": ["AgentList", "AgentDetail", "AgentConfig", "AgentStatus"], "files": 12},
+      "tests": {"files": 18, "references_to_agent": "~200"}
+    },
+    "coupling_analysis": "Every component references the same entity name. DB rename cascades through API models, which cascade through UI props, which cascade through test assertions. File overlap score: 0 for every pair.",
+    "expected_isolation_score": "0-1/8 per pair (maximum coupling)"
+  },
+  "evaluation_criteria": {
+    "dispatch_decision": "Did the conductor correctly force serial execution?",
+    "correctness": "Were all 200+ references renamed consistently?",
+    "backward_compat": "Do old /agents endpoints redirect to /operators?",
+    "no_parallel_attempt": "Parallelism should NOT have been attempted"
+  }
+}
