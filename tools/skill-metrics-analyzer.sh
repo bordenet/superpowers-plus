@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # Script: skill-metrics-analyzer.sh
 # PURPOSE: Generate skill firing reports from logged metrics. Analyzes skill
-#          invocations, missed triggers, and session data to produce weekly
+#          invocations, missed triggers, and session data to produce all-time
 #          reports in markdown or JSON format.
 # USAGE: ./skill-metrics-analyzer.sh [--json]
 #        (no args)   Output markdown report
@@ -25,7 +25,7 @@ OPTIONS
 
 DESCRIPTION
   Analyzes skill invocations, missed triggers, and session data from
-  $SUPERPOWERS_DIR/.skill-metrics/ to produce weekly reports.
+  $SUPERPOWERS_DIR/.skill-metrics/ to produce all-time reports.
 HELP
   exit 0
 fi
