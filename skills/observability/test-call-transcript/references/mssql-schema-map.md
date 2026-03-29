@@ -1,1 +1,0 @@
-../../call-lookup/references/mssql-schema-map.md
