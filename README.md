@@ -1,6 +1,6 @@
 # superpowers-plus
 
-81 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,11 +10,11 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**81 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 28 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification, debug conductor, investigators |
+| engineering | 34 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification, debug conductor, investigators, complexity refactoring, branch conventions, TypeScript conventions |
 | productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
@@ -143,6 +143,7 @@ Skills activate automatically when your request matches their triggers. Describe
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
+| | cognitive-complexity-refactoring | Reduces Biome cognitive complexity: extraction, early returns, condition simplification |
 | | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | debug-conductor | PREVIEW — Conductor-led parallel investigation for complex distributed incidents |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
@@ -150,6 +151,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | | evidence-adjudicator | Synthesizes investigator evidence into ranked root-cause verdicts |
 | | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
+| | git-branch-conventions | Semantic branch prefix naming: feat/, fix/, exp/, doc/, perf/, chore/ |
+| | implementation-tracker | Cross-session progress tracking for large issues |
 | | infra-config-investigator | Investigates infrastructure config changes, deployment regressions |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | llm-behavior-investigator | Investigates AI/LLM behavior: tool misselection, prompt regressions |
@@ -167,7 +170,10 @@ Skills activate automatically when your request matches their triggers. Describe
 | | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
 | | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
+| | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |
+| | typescript-strict-mode | No any, no !, proper type narrowing, union types |
 | | verification-before-completion | Final checks before claiming done |
+| | vitest-testing-patterns | SDK constructor mocking, fake timers, event handler capture |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
 | | issue-comment-debunker | Fact-checks before posting |
