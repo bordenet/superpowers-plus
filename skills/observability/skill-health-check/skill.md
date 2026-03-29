@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test",
            "skill coverage report"]
 anti_triggers: ["doctor", "diagnose", "runtime skill issue"]
-description: "Cheap structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and reports missing coordination metadata and Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
+description: "Structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and enforces coordination metadata (group, order, internal) as errors. Reports missing Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
 summary: "Use when: checking skill file structure after bulk changes. For runtime diagnostics use superpowers-doctor."
 coordination:
   group: observability
@@ -18,7 +18,7 @@ coordination:
 # Skill Health Check
 
 > **Purpose:** Cheap structural lint for skill files. Not a runtime diagnostic.
-
+>
 > **Wrong skill?** Runtime skill issues → `superpowers-doctor`. Writing new skills → `skill-authoring`. Skill prose quality → `writing-skills`.
 
 **Announce at start:** "I'm running the **skill-health-check** structural lint."
@@ -31,6 +31,7 @@ coordination:
 - **superpowers-help**: Skill discovery (lighter)
 - **writing-skills**: Skill file format reference
 - **evolution-loop**: Self-improvement cycle
+
 ## When to Use
 
 - After creating or modifying skills
@@ -43,10 +44,10 @@ coordination:
 |-------|----------|-------------------|
 | YAML frontmatter | ERROR | `name`, `source`, `triggers`, `description` fields present |
 | Line count | ERROR | No `skill.md` exceeds 250 lines |
-| Coordination metadata | WARN | `coordination:` block present (presence only, not semantic validity) |
+| Coordination metadata | ERROR | `coordination:` block present with required keys: `group`, `order`, `internal` |
 | Failure modes section | WARN | `## Failure Modes` heading present (presence only) |
 
-**What it does NOT check:** coordination semantic validity, cross-reference accuracy, runtime behavior, install state. Those are `superpowers-doctor` territory.
+**What it does NOT check:** coordination semantic validity (correct group names, valid order numbers), cross-reference accuracy, runtime behavior, install state. Those are `superpowers-doctor` territory. Structural lint validates that required keys *exist*; doctor validates they are *correct*.
 
 ## Running the Check
 
@@ -67,7 +68,14 @@ ruby -ryaml -e '
     %w[name source triggers description].each do |f|
       errors << "#{path}: Missing #{f}" unless data&.key?(f)
     end
-    warnings << "#{path}: Missing coordination" unless data&.key?("coordination")
+    unless data&.key?("coordination")
+      errors << "#{path}: Missing coordination block"
+    else
+      coord = data["coordination"]
+      %w[group order internal].each do |k|
+        errors << "#{path}: coordination missing '#{k}'" unless coord&.key?(k)
+      end
+    end
     warnings << "#{path}: Missing Failure Modes" unless content.include?("## Failure Modes")
     lines = content.count("\n")
     errors << "#{path}: #{lines} lines (max 250)" if lines > 250

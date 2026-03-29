@@ -37,6 +37,7 @@ git tag -l 'v*'
 ```
 
 Log these as evidence:
+
 ```json
 {
   "source": "git:bisect",
@@ -61,10 +62,12 @@ For each commit git checks out:
 
 1. **Run the reproduction test** — whatever demonstrates the bug
 2. **Mark the result:**
+
    ```bash
    git bisect good  # if the bug is NOT present
    git bisect bad   # if the bug IS present
    ```
+
 3. **Repeat** until git identifies the first bad commit
 
 ### Step 4: Automated Bisect (Preferred)
@@ -97,6 +100,7 @@ git bisect reset
 ```
 
 Log the finding:
+
 ```json
 {
   "source": "git:bisect",
@@ -116,6 +120,7 @@ git bisect skip  # Skip the current commit
 ```
 
 Use this when:
+
 - The commit doesn't compile
 - The commit is a merge commit with no functional changes
 - The feature under test doesn't exist yet at this commit

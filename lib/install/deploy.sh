@@ -370,8 +370,7 @@ install_skills() {
         local dir_name
         dir_name=$(basename "$domain_or_skill")
 
-        [[ "$dir_name" == "_shared" ]] && continue
-        [[ "$dir_name" == "_archive" ]] && continue
+        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             current_skill_names+=("$(basename "$domain_or_skill")")
@@ -393,8 +392,7 @@ install_skills() {
         local dir_name
         dir_name=$(basename "$domain_or_skill")
 
-        [[ "$dir_name" == "_shared" ]] && continue
-        [[ "$dir_name" == "_archive" ]] && continue
+        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             if install_skill "$domain_or_skill"; then
@@ -405,6 +403,9 @@ install_skills() {
         else
             for skill_dir in "$domain_or_skill"*/; do
                 [[ ! -d "$skill_dir" ]] && continue
+                local nested_name
+                nested_name=$(basename "$skill_dir")
+                [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
                     if install_skill "$skill_dir"; then
                         installed=$((installed + 1))
@@ -415,6 +416,17 @@ install_skills() {
             done
         fi
     done
+
+    # Deploy _shared/ support directory (not a skill, but referenced by skills)
+    if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
+        for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+            [[ -z "$target_dir" || ! -d "$target_dir" ]] && continue
+            local shared_dest="$target_dir/_shared"
+            rm -rf "${shared_dest:?}" 2>/dev/null || true
+            cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
+        done
+        log_verbose "Deployed _shared/ support directory"
+    fi
 
     if [[ $installed -eq 0 ]]; then
         log_warn "No skills were installed"

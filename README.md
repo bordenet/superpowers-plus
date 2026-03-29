@@ -1,6 +1,6 @@
 # superpowers-plus
 
-72 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,16 +10,16 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**72 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 20 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification |
+| engineering | 34 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification, debug conductor, investigators, complexity refactoring, branch conventions, TypeScript conventions |
 | productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
-| wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
-| issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
+| wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
 | observability | 8 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
+| issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
 | research | 3 | Perplexity integration, research incorporation, expert interviewing |
 | experimental | 1 | Self-prompting patterns |
@@ -39,6 +39,7 @@ bash install.sh      # use 'bash' explicitly — don't rely on ./install.sh
 ```
 
 The installer:
+
 - Detects wrong shell (sh, zsh, dash) and tells you to use bash
 - Detects old bash (3.2) with platform-specific install instructions
 - Checks for missing commands (git, node) with remediation steps
@@ -67,6 +68,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
 
 1. `cd mcp && npm install`
 2. Add to your MCP config (e.g., `~/.claude/settings.json`):
+
    ```json
    {
      "mcpServers": {
@@ -77,6 +79,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
      }
    }
    ```
+
 3. Restart your client. Use the `find_skills` MCP tool to list available skills.
 
 ### Codex
@@ -105,7 +108,7 @@ See [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-exa
 ### Updating
 
 ```bash
-./install.sh --upgrade
+bash install.sh --upgrade
 ```
 
 ## Configuration
@@ -143,23 +146,37 @@ Skills activate automatically when your request matches their triggers. Describe
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
+| | cognitive-complexity-refactoring | Reduces Biome cognitive complexity: extraction, early returns, condition simplification |
 | | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
+| | debug-conductor | PREVIEW — Conductor-led parallel investigation for complex distributed incidents |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
+| | evidence-adjudicator | Synthesizes investigator evidence into ranked root-cause verdicts |
 | | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
+| | git-branch-conventions | Semantic branch prefix naming: feat/, fix/, exp/, doc/, perf/, chore/ |
+| | implementation-tracker | Cross-session progress tracking for large issues |
+| | infra-config-investigator | Investigates infrastructure config changes, deployment regressions |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
+| | llm-behavior-investigator | Investigates AI/LLM behavior: tool misselection, prompt regressions |
 | | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
+| | reproduction-experiment-investigator | Runs controlled reproduction experiments to verify hypotheses |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
+| | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
 | | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
 | | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
+| | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
+| | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
+| | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |
+| | typescript-strict-mode | No any, no !, proper type narrowing, union types |
 | | verification-before-completion | Final checks before claiming done |
+| | vitest-testing-patterns | SDK constructor mocking, fake timers, event handler capture |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
 | | issue-comment-debunker | Fact-checks before posting |
@@ -197,6 +214,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
 | | wiki-orchestrator | Pipeline orchestrator: dispatches coherence, link, secret, slop, and fact-check skills |
+| | wiki-refactor | Full wiki refactor pipeline: discovery, dedup, IA, rewrite, review, delivery |
 | | wiki-secret-audit | Finds leaked credentials in wiki pages |
 | | wiki-verify | Checks codebase references for drift |
 | writing | detecting-ai-slop | Scores text 0–100 for machine patterns |
@@ -276,7 +294,7 @@ Skills support namespaced triggers (`domain:action`) for disambiguation:
 
 ## Extending
 
-```
+```text
 obra/superpowers (framework)
     └── superpowers-plus (this repo)
             └── your-org-skills
@@ -318,8 +336,8 @@ Utility scripts in `tools/`:
 | Perplexity tools not found | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
-| Skills not loading | Re-run `./install.sh`; check `~/.codex/skills/` exists |
-| Stale skill count | `./install.sh --upgrade`; verify with `find-skills` |
+| Skills not loading | Re-run `bash install.sh`; check `~/.codex/skills/` exists |
+| Stale skill count | `bash install.sh --upgrade`; verify with `find-skills` |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `./tools/doctor-checks.sh --fix-safe` |
 

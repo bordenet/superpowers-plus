@@ -8,6 +8,7 @@
 ## Problem Statement
 
 The superpowers skill system injects significant token overhead into every conversation:
+
 - **15,000 tokens** of "always" rules (12 `.always.md` files) load unconditionally
 - **47 skills** (~56,000 tokens total) can fire via trigger matching, each adding ~1,200 tokens
 - **Multiple skills** often fire per conversation (e.g., `todo-management` + `verification-before-completion` + `wiki-editing`)
@@ -16,6 +17,7 @@ The superpowers skill system injects significant token overhead into every conve
 ## Research Basis (DO NOT RE-RESEARCH — findings are final)
 
 ### Source 1: Anthropic — "Effective Context Engineering for AI Agents" (Sep 2025)
+
 - Context has **n² attention cost** — every token added depletes a finite "attention budget"
 - **"Right altitude" principle:** Instructions should be specific enough to guide behavior, yet flexible enough to provide strong heuristics. Avoid brittle if-else checklists AND vague hand-waving.
 - **Examples > exhaustive rules:** "Teams will often stuff a laundry list of edge cases... We do not recommend this. Instead, curate diverse, canonical examples."
@@ -24,12 +26,14 @@ The superpowers skill system injects significant token overhead into every conve
 - **Goal:** "The smallest possible set of high-signal tokens that maximize the likelihood of your desired outcome"
 
 ### Source 2: OpenDev Paper — arXiv 2603.05344v3 (Mar 2026)
+
 - **Priority-ordered conditional prompt composition:** Sections load only when contextually relevant
 - **Event-driven system reminders:** Targeted behavioral nudges injected at point of decision, not upfront
 - **Compaction stages:** Progressive reduction at 70/80/90/99% context utilization
 - **Subagent isolation:** Skills loaded in sub-agent context don't pollute main agent context
 
 ### Source 3: Microsoft LLMLingua (EMNLP 2023)
+
 - Token-level compression achieves 20x reduction on data/retrieval prompts
 - **NOT applicable** to behavioral instructions — compressing "NEVER fabricate URLs" risks the model missing it entirely
 - Conclusion: Compression is wrong tool; **selective loading** is the right tool
@@ -44,6 +48,7 @@ The biggest win is NOT compressing individual skills — it's **loading fewer of
 ## Phased Plan
 
 ### Phase 1: Audit & Classify (No code changes)
+
 1. Audit all 12 `.always.md` rule files — classify each rule block as ALWAYS vs CONDITIONAL
 2. Audit all 47 skills — classify by firing frequency and token cost
 3. Identify overlapping/redundant skills that can be merged
@@ -51,6 +56,7 @@ The biggest win is NOT compressing individual skills — it's **loading fewer of
 5. Document findings in this PRD
 
 ### Phase 2: Always-Rules Optimization (High impact, low risk)
+
 1. Extract conditional rules from `.always.md` files into on-demand skills
 2. Consolidate redundant rules across the 12 files
 3. Raise altitude on overly-procedural rules (checklists → heuristics + examples)
@@ -58,6 +64,7 @@ The biggest win is NOT compressing individual skills — it's **loading fewer of
 5. Measure token reduction vs baseline
 
 ### Phase 3: Skill Consolidation (Medium impact, medium risk)
+
 1. Merge overlapping wiki skills (wiki-editing + wiki-authoring + wiki-verify + wiki-debunker)
 2. Merge overlapping engineering skills where identified in Phase 1
 3. Add `cost_tier` frontmatter field to all skills
@@ -65,12 +72,14 @@ The biggest win is NOT compressing individual skills — it's **loading fewer of
 5. Validate: doctor checks, harsh-review, install + diffusion check
 
 ### Phase 4: Skill Content Optimization (Medium impact, high effort)
+
 1. Convert rule-heavy skills to example-driven format (per Anthropic guidance)
 2. Raise altitude on procedural skills (step-by-step → heuristics)
 3. Trim skills that exceed 200 lines to under 150 where possible
 4. Validate: doctor checks, harsh-review
 
 ### Phase 5: Measurement & Validation
+
 1. Measure final token counts vs Phase 1 baseline
 2. Run behavioral regression tests (do skills still fire correctly?)
 3. Commit, PR, merge, push to both repos
@@ -79,16 +88,17 @@ The biggest win is NOT compressing individual skills — it's **loading fewer of
 ---
 
 ## Success Criteria
+
 - Always-rules token count reduced by ≥40% (from ~15,000 to ≤9,000)
 - Average skill.md token count reduced by ≥20%
 - No behavioral regressions (doctor GREEN, harsh-review PASS)
 - Zero overlapping skills that cause ambiguous routing
 
 ## Non-Goals
+
 - Rewriting the skill-router.js architecture (separate effort)
 - Implementing event-driven reminder injection (requires Augment platform changes)
 - Prompt compression via LLMLingua or similar (not applicable to behavioral instructions)
-
 
 ---
 
@@ -221,7 +231,6 @@ Deep comparison of always-rules vs skills revealed LESS overlap than expected:
 
 **Phase 2 exceeded expectations:** Achieved 71% reduction in always-rules (vs 38-49% estimate) by raising altitude aggressively while preserving all unique content.
 
-
 ---
 
 ## Phase 3 Results (2026-03-20)
@@ -319,6 +328,7 @@ Phase 6 targeted the remaining unconditional overhead: AGENTS.md files and alway
 | P3: fathom always-rule | 102 words | 29 words | **-72%** |
 
 P3 created 3 new on-demand skills to hold the migrated content:
+
 - `wiki/wiki-platform-guardrails` (454 words) — platform guardrails, loaded via TF-IDF
 - `linear/linear-guardrails` (214 words) — core gates, comment hygiene, workflow state IDs
 - `fathom-api` (123 words) — API endpoint, curl examples, synthesis pattern

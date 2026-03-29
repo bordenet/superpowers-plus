@@ -18,6 +18,7 @@ bash install.sh
 ```
 
 The installer automatically:
+
 - Installs obra/superpowers if missing
 - Deploys skills to `~/.codex/skills/` and `~/.claude/skills/`
 - Sets up the bootstrap script and agent configuration
@@ -52,12 +53,14 @@ bash install.sh --uninstall
 ## What You Get
 
 **From obra/superpowers (installed automatically):**
+
 - brainstorming, writing-plans, executing-plans
 - test-driven-development, systematic-debugging
 - subagent-driven-development, using-git-worktrees
 - 14 core workflow skills
 
 **From superpowers-plus (58 skills):**
+
 - Wiki: wiki-orchestrator, wiki-verify, link-verification
 - Issue Tracking: issue-authoring, issue-link-verification (Linear, GitHub, Jira)
 - Security: secret-detection, public-repo-ip-audit
@@ -67,5 +70,5 @@ bash install.sh --uninstall
 
 ## Getting Help
 
-- superpowers-plus: https://github.com/bordenet/superpowers-plus/issues
-- obra/superpowers: https://github.com/obra/superpowers/issues
+- superpowers-plus: <https://github.com/bordenet/superpowers-plus/issues>
+- obra/superpowers: <https://github.com/obra/superpowers/issues>

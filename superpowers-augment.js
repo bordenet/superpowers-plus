@@ -24,8 +24,8 @@ const {
 const workflowState = require('./lib/workflow-state');
 
 const homeDir = os.homedir();
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
-const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 
 
@@ -69,11 +69,28 @@ function discoverSourceDir(envVar, wellKnownPaths) {
     return null;
 }
 
+// Self-discover: if this script lives inside a superpowers-plus checkout, use that
+// as the source dir (covers any clone location without hard-coding paths).
+function discoverSppFromScript() {
+    const scriptDir = path.resolve(__dirname);
+    // Check if script is inside a superpowers-plus repo (has skills/ dir)
+    if (fs.existsSync(path.join(scriptDir, 'skills')) && fs.existsSync(path.join(scriptDir, 'tools'))) {
+        return scriptDir;
+    }
+    // Script may be in a subdirectory; check parent
+    const parentDir = path.dirname(scriptDir);
+    if (fs.existsSync(path.join(parentDir, 'skills')) && fs.existsSync(path.join(parentDir, 'tools'))) {
+        return parentDir;
+    }
+    return null;
+}
+
 const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
-    '~/GitHub/Personal/superpowers-plus',
-    '~/superpowers-plus',
+    // Self-discovery from script location (works for any clone path)
+    discoverSppFromScript(),
+    // Installed copy as fallback
     '~/.codex/superpowers-plus',
-]);
+].filter(Boolean));
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
 
@@ -162,7 +179,37 @@ function transformOutput(text) {
 }
 
 function parseInlineArray(value) {
-    return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+    // Escape-aware tokenizer: handles ["a\"b", 'c\\d', ""] correctly
+    const items = [];
+    let i = value.indexOf('[');
+    if (i < 0) return items;
+    i++; // skip [
+    while (i < value.length) {
+        // Skip whitespace and commas
+        while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
+        if (value[i] === ']') break;
+        if (value[i] === '"' || value[i] === "'") {
+            const quote = value[i];
+            i++; // skip opening quote
+            let item = '';
+            while (i < value.length && value[i] !== quote) {
+                if (value[i] === '\\' && i + 1 < value.length) {
+                    if (value[i + 1] === quote) { item += quote; i += 2; }
+                    else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
+                    else { item += value[i]; i++; }
+                } else { item += value[i]; i++; }
+            }
+            i++; // skip closing quote
+            items.push(item);
+        } else {
+            // Unquoted token
+            let item = '';
+            while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
+            const trimmed = item.trim();
+            if (trimmed) items.push(trimmed);
+        }
+    }
+    return items;
 }
 
 function parseYamlList(lines, startIndex) {
@@ -189,7 +236,7 @@ function parseYamlList(lines, startIndex) {
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
+        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         let inFrontmatter = false;
         let inComposition = false;
         let name = '';
@@ -199,7 +246,6 @@ function extractFrontmatter(filePath) {
         let requires_mcp = [];
         let mcp_install_hint = '';
         let composition = null;
-        let compositionLines = [];
         let compress = true;
 
         for (let i = 0; i < lines.length; i++) {
@@ -265,14 +311,20 @@ function extractFrontmatter(filePath) {
                     requires_mcp = parsed.values;
                     i = parsed.nextIndex;
                 }
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
-                    if (key === 'compress' && value.trim() === 'false') compress = false;
-                    if (key === 'mcp_install_hint') mcp_install_hint = value.trim();
+                    let value = match[2].trim();
+                    // Strip outer quotes and handle escaped quotes inside
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    } else if (value.startsWith("'") && value.endsWith("'")) {
+                        value = value.slice(1, -1);
+                    }
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
+                    if (key === 'compress' && value === 'false') compress = false;
+                    if (key === 'mcp_install_hint') mcp_install_hint = value;
                 }
             }
         }
@@ -313,9 +365,17 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         // Handle both directories and symlinks to directories
         const skillDir = path.join(dir, entry.name);
-        const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
+            throw err; // surface real errors (EACCES, etc.)
+        }
         if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
@@ -340,7 +400,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];
@@ -518,7 +578,7 @@ function useSkill(skillName, options = {}) {
         // spp: → search superpowers-plus source repo only
         if (!SPP_SOURCE_DIR) {
             console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone to ~/GitHub/Personal/superpowers-plus');
+            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
             process.exit(1);
         }
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);

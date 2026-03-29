@@ -11,10 +11,7 @@ anti_triggers:
   - "PR review"
   - "pull request review"
   - "full code review"
-description: >
-  Per-batch adversarial review for ANY code change. 3 critic personas
-  score on 5 dimensions each. Score <8 average = REJECT + rework.
-  Faster than full review, more rigorous than lint.
+description: "Per-batch adversarial review for ANY code change. 3 critic personas score on 5 dimensions each. Score <8 average = REJECT + rework. Faster than full review, more rigorous than lint."
 summary: "Use when: any code change before commit. Skip when: docs-only."
 coordination:
   group: code-quality
@@ -38,7 +35,6 @@ coordination:
 - Before pushing to shared branch
 - When editing router patterns or gate thresholds
 
-
 ### Example
 
 ```bash
@@ -54,6 +50,8 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 1: NitpickLineByLine
 
+**Full access.** START FROM the local diff. PRIORITIZE line-by-line syntax, naming, and surface-level correctness.
+
 | Check | Score /10 | Notes |
 |-------|-----------|-------|
 | Off-by-one | | |
@@ -64,9 +62,13 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 2: ArchSoundnessProbe
 
+**Full access.** START FROM interface contracts and public APIs. PRIORITIZE ripple analysis across callers and downstream consumers.
+
 Respects patterns? /10 . Downstream impact? /10 . Minimal scope? /10 . 10x load? /10 . Reversible? /10
 
 ### Critic 3: ProdBattleTest
+
+**Full access.** START FROM failure modes and state transitions. PRIORITIZE error handling, retry/rollback logic, and 3 AM operational safety.
 
 Edge cases? /10 . Failure mode? /10 . Logging? /10 . Backward compat? /10 . Ship at 3 AM? /10
 
@@ -88,7 +90,7 @@ Average = (Nitpick + Arch + Prod) / 3
 |--------------|-----------|------------|
 | Rubber-stamp | All scores 9-10, no notes | Find >=1 concern per critic |
 | Inflated scores | Average > 9.0 consistently | Recalibrate with known-bad code |
-| Critics agree | Same findings across all 3 | Force one disagreement |
+| Critics agree | Same findings across all 3 | Force second-order critique: each must name ≥1 failure mode or cite a specific property of the change explaining why none exists (generic "it's straightforward" = rubber-stamp) |
 | Review > coding time | >15 min for <20 lines | Top 3 risks only |
 
 ## Failure Modes
@@ -97,7 +99,7 @@ Average = (Nitpick + Arch + Prod) / 3
 |---------|-----------|----------|
 | Rubber-stamp (all 10s) | No notes | Find >=1 concern per critic |
 | Review > change time | >15 min for <20 lines | Top 3 risks only |
-| Critics agree on everything | Same findings | Force disagreement |
+| Critics agree on everything | Same findings | Force second-order critique: name ≥1 plausible failure mode or cite specific change property explaining why none exists |
 | Score inflation | Average > 9.0 consistently | Recalibrate with bad code |
 
 ## Companion Skills

@@ -49,7 +49,6 @@ migrate_todo_skill_overrides() {
     case "$source_field" in
         ""|superpowers|obra)
             # This is a legitimate obra/superpowers-native skill — leave it
-            return 0
             ;;
         *)
             # This is a stale override from an adopter
@@ -57,7 +56,6 @@ migrate_todo_skill_overrides() {
             log_info "Removing stale override from $SUPERPOWERS_DIR/skills/todo-management/"
             rm -rf "${SUPERPOWERS_DIR:?}/skills/todo-management" || {
                 log_warn "Could not remove stale override (permission denied?)"
-                return 0
             }
             log_success "Cleaned stale todo-management override"
             ;;
@@ -201,11 +199,10 @@ deploy_todo_honeypot() {
 # Migration: Detect orphaned TODO.md files from previous installs
 #
 # Problem: Before the deterministic default ($HOME/.codex/TODO.md), agents guessed
-# paths from the skill examples (~/Documents/TODO.md) or workspace roots
-# (~/GitHub/*/TODO.md). These files may contain real task data that won't be found
-# by the new default path.
+# paths from skill examples or workspace roots. These files may contain real task
+# data that won't be found by the new default path.
 #
-# Fix: Scan known locations, report findings, suggest consolidation. Never delete.
+# Fix: Scan discovered locations, report findings, suggest consolidation. Never delete.
 detect_orphaned_todo_files() {
     local default_path="$HOME/.codex/TODO.md"
     # Extract TODO_FILE_PATH from ~/.codex/.env if configured there.
@@ -227,13 +224,28 @@ detect_orphaned_todo_files() {
         "$HOME/TODO.md"
     )
 
-    # Also check common workspace roots (non-recursive, fast)
-    # Covers both ~/GitHub/repo/ and ~/GitHub/owner/repo/ layouts
+    # Dynamically discover workspace roots: scan $HOME child directories
+    # for git repos (1-2 levels deep). Only check dirs with .git to avoid
+    # scanning ~/Library, ~/Documents, OneDrive, etc.
     local git_dir
-    for git_dir in "$HOME/GitHub"/*/ "$HOME/GitHub"/*/*/ \
-                   "$HOME/Projects"/*/ "$HOME/repos"/*/ \
-                   "$HOME/git"/*/; do
-        [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+    for parent_dir in "$HOME"/*/; do
+        [[ -d "$parent_dir" ]] || continue
+        # Skip dotdirs and known non-workspace dirs
+        local basename
+        basename="$(basename "$parent_dir")"
+        [[ "$basename" == .* ]] && continue
+        # Skip macOS system dirs and cloud storage that are never code repos
+        case "$basename" in
+            Library|Documents|Pictures|Music|Movies|Downloads|Desktop|Public|Applications|OneDrive*) continue ;;
+        esac
+        # Level 1: direct repos under ~/SomeDir/repo/ (must be a git repo — supports worktrees where .git is a file)
+        for git_dir in "$parent_dir"*/; do
+            [[ -e "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+        done
+        # Level 2: nested repos under ~/SomeDir/owner/repo/ (must be a git repo — supports worktrees where .git is a file)
+        for git_dir in "$parent_dir"*/*/; do
+            [[ -e "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+        done
     done
 
     # Check each candidate

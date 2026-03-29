@@ -22,7 +22,7 @@ Configuration for GitHub Issues tracking.
 
 ## URL Pattern
 
-```
+```text
 https://github.com/[owner]/[repo]/issues/[number]
 ```
 

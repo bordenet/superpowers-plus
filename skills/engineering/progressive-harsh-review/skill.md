@@ -19,7 +19,7 @@ coordination:
 # Progressive Harsh Review
 
 > **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
-
+>
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
 > **Pattern:** Three escalating critic personas, each scoring independently.
 
@@ -31,6 +31,7 @@ coordination:
 - **brainstorming**: Generating options before review
 - **micro-harsh-review**: Per-batch code review
 - **providing-code-review**: Code-specific review
+
 ## When to Use
 
 - After completing a significant non-code deliverable (plan, skill, document, design)
@@ -44,16 +45,28 @@ coordination:
 
 Focus: typos, formatting, naming, style, obvious bugs, missing error handling.
 Tone: eager, thorough, detail-oriented.
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** The local diff — line-by-line reading of changed code.
+**PRIORITIZE:** Surface correctness, naming consistency, null handling, off-by-one errors, error message quality.
+**Dimension weights:** Correctness 35%, Simplicity 25%, Edge Cases 20%, Testability 15%, Security/Perf 5%.
 
 ### Persona 2: SeniorArchCritic (Structural Quality)
 
 Focus: architecture, design patterns, separation of concerns, extensibility, testability.
 Tone: experienced, skeptical, pattern-aware.
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** Interface contracts and public APIs affected by the change. Check downstream impact before scoring.
+**PRIORITIZE:** Ripple analysis across all callers and consumers, design pattern adherence, reversibility, extensibility.
+**Dimension weights:** Correctness 25%, Simplicity 15%, Edge Cases 15%, Testability 25%, Security/Perf 20%.
 
 ### Persona 3: ProdOpsHardass (Operational Quality)
 
 Focus: failure modes, edge cases, security, performance, monitoring, rollback.
 Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** Failure modes and state transitions. Trace error handling paths and retry/rollback behavior first.
+**PRIORITIZE:** Operational safety, monitoring/logging coverage, backward compatibility, deployment risk, 3 AM resilience.
+**Dimension weights:** Correctness 25%, Simplicity 10%, Edge Cases 25%, Testability 10%, Security/Perf 30%.
 
 ## The Process
 
@@ -73,19 +86,23 @@ For each persona, answer ALL scoring dimensions:
 
 ### Step 2: Score and Aggregate
 
-Each persona scores 1-10 on each dimension. **Aggregation rule:** take the MINIMUM weighted average across all three personas. This prevents one lenient persona from masking another's concerns.
+Each persona scores 1-10 on each dimension. **Aggregation rule:** take the **weighted mean** across all three personas (equal persona weight by default). This replaces the previous MINIMUM rule, which was overly pessimistic when one persona was mismatched to the task.
+
+**Critical veto:** If ANY persona scores Correctness or Security/Perf ≤4 AND cites a specific defect (not a general concern), that finding acts as a **hard veto** — automatic REJECT regardless of the weighted mean. This preserves safety without making the whole system hostage to the weakest persona on non-critical dimensions.
 
 ### Step 3: Verdict
 
-| Minimum Persona Average | Verdict | Action |
-|--------------------------|---------|--------|
+| Weighted Mean | Verdict | Action |
+|---------------|---------|--------|
 | ≥8 | **PASS** | Ship it |
-| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when minimum ≥8 or Round 2 finds no new issues. |
+| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when mean ≥8 or Round 2 finds no new issues. |
 | <6 | **REJECT** | Root-cause analysis → remediate → full re-review |
+| Any | **REJECT (veto)** | Critical veto fired — fix the cited defect, full re-review |
 
 ### Step 4: Remediation (if needed)
 
 On REJECT:
+
 1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
 2. **Chain to remediation skills:**
    - Design issues → `design-triad` (generate alternatives)
@@ -93,9 +110,19 @@ On REJECT:
    - Plan issues → `plan-and-execute` (replan)
 3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.
 
-### Step 5: Convergence
+### Step 5: Correlated-Failure Detection
 
-- **Exit when:** Final round minimum persona average ≥6 AND no new material issues in latest round
+After scoring, scan persona outputs for **shared blind spots**:
+
+1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: local diff, ArchCritic: interface contracts, ProdOps: failure modes).
+2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding through their own analytical lens.
+3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output shows evidence of their distinct starting point (Nitpicker: line-level reading, ArchCritic: caller/contract analysis, ProdOps: failure mode tracing). If any persona's output lacks starting-point-specific evidence, re-examine.
+
+Flags trigger re-examination, not automatic verdict changes.
+
+### Step 6: Convergence
+
+- **Exit when:** Final round weighted mean ≥6 AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Scoring Output Format
@@ -111,7 +138,6 @@ On REJECT:
 | Security/Perf | 7 | Lock file readable by any user |
 **Weighted Average: 6.5 → PASS_WITH_FIXES**
 ```
-
 
 ## Example
 
@@ -137,7 +163,7 @@ bash tools/harsh-review.sh skills/engineering/my-skill/skill.md
 | Failure | Fix |
 |---------|-----|
 | Self-reviewed in same thinking pass | Use sub-agent or explicit role switch — author ≠ reviewer |
-| All personas gave same feedback | Personas must have distinct focus areas — if identical, you're not role-switching |
+| All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
 | Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
 | Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
 | Only reviewed happy path | ProdOpsHardass must consider failure, rollback, 3am scenarios |

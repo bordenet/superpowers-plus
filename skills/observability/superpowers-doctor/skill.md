@@ -18,7 +18,7 @@ coordination:
 
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
-
+>
 > **Wrong skill?** Structural lint only → `skill-health-check`. Writing/authoring skills → `skill-authoring`. Updating skills → `update-superpowers`.
 
 Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
@@ -29,6 +29,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - **skill-authoring**: Writing new skill files
 - `update-superpowers` (upstream): Updating skill installations
 - **superpowers-help**: Skill discovery and help
+
 ## When to Use
 
 - User says "run superpowers doctor" or "check skill health"
@@ -38,7 +39,6 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - After install.sh to verify deployment integrity
 - When skills behave unexpectedly (wrong triggers, missing content)
 - After cloning on Windows/WSL to detect CRLF or BOM issues
-
 
 ## Modes
 
@@ -54,6 +54,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 **10 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18, 19, 20). The remaining 12 require human judgment.
 
 **Graduated intervention:**
+
 - `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout pull) — non-destructive
 - `--fix` adds: 12 (deprecated triggers), 14 (junk removal), 20 (dirty checkout stash+clean) — destructive
 - `--purge-orphans` adds: 8 (orphan removal) — requires explicit opt-in because locally-created skills are not necessarily garbage

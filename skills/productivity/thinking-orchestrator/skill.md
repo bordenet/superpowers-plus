@@ -9,7 +9,7 @@ coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute", "progressive-harsh-review"]
+  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute", "progressive-harsh-review", "debug-conductor"]
   escalates_to: []
   internal: false
 ---
@@ -30,7 +30,6 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 > **Wrong skill?** Code implementation → `feature-development`. PR review → `providing-code-review`. Build/test errors → `systematic-debugging`.
 
-
 ## Routing Table
 
 | Context | Route To | Why |
@@ -48,6 +47,9 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
 | Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥6 to pass) |
+| Complex debugging across service boundaries | `systematic-debugging` + `investigation-state` | Serial-first: reproduce → hypothesize → isolate → fix |
+| Debugging stalled after systematic-debugging + think-twice (rubric ≥6) | `debug-conductor` | Escalation to conductor-led forked investigation (requires serial attempt first) |
+| Declared P1/P2 production incident with explicit user override | `debug-conductor` | Direct escalation (bypass serial-first for active incidents only) |
 | None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
 
 ## Child Skills
@@ -65,10 +67,11 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `design-triad` | Decision quality | 3+ options, comparison, harsh review |
 | `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
 | `progressive-harsh-review` | Quality review | Multi-persona adversarial scoring |
+| `debug-conductor` | Distributed debugging | Conductor-led bounded investigation with forked investigators |
 
 ## The Iron Law
 
-```
+```bash
 NEVER SKIP THE ROUTER. If a thinking trigger fires, route to the child skill.
 Do not handle it inline. The child skills have process steps you will miss.
 ```
@@ -117,7 +120,6 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 | Confident ignorance | Declared "no problem" without evidence | Searched exhaustively before concluding |
 
 </EXTREMELY_IMPORTANT>
-
 
 ## Example
 

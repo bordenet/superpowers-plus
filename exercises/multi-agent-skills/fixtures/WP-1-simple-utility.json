@@ -1,0 +1,21 @@
+{
+  "id": "WP-1",
+  "skill": "plan-and-execute",
+  "name": "Simple Utility Function — String Sanitizer",
+  "difficulty": "low",
+  "expected_winner": "A (single-agent)",
+  "expected_reason": "Simple task with one component; planning council adds overhead without value",
+  "prompt": "Add a string sanitizer utility that strips HTML tags, normalizes whitespace, and truncates to a max length. It should be used by the webhook delivery module to clean user-provided callback URLs and message templates.",
+  "context": {
+    "language": "Go",
+    "target_package": "internal/sanitize",
+    "consumers": ["webhook-delivery module"],
+    "existing_utilities": ["internal/validate — input validation", "internal/format — string formatting"],
+    "test_framework": "Go standard testing"
+  },
+  "evaluation_criteria": {
+    "plan_conciseness": "Plan should be 1 page or less",
+    "activation_correct": "Rubric should stay single-agent (score < 5)",
+    "cost_efficiency": "Minimal token cost"
+  }
+}

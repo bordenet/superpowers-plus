@@ -1,0 +1,56 @@
+{
+  "id": "S1",
+  "name": "Telephony Event Sequencing Bug",
+  "domain": ["telephony", "state"],
+  "difficulty": "medium",
+  "incident_description": "Calls are dropping after approximately 3 seconds. Callers hear ringing, then silence. The call disconnects. This started about 2 hours ago. Affects roughly 30% of outbound calls. No changes to telephony infrastructure were made, but the call router service was deployed (v2.3.1) 2 hours ago.",
+  "system_context": {
+    "services": [
+      {"name": "telephony-gateway", "version": "4.1.0", "role": "SIP signaling and RTP media"},
+      {"name": "call-router", "version": "2.3.1", "role": "Routes calls to agents, manages call state machine", "recently_deployed": true},
+      {"name": "llm-orchestrator", "version": "1.8.2", "role": "LLM-powered agent handling"},
+      {"name": "agent-handler", "version": "3.0.1", "role": "Human/AI agent session management"}
+    ],
+    "recent_changes": [
+      {"service": "call-router", "version": "2.3.1", "timestamp": "2026-03-29T12:00:00Z", "description": "Migrated event processing to async pipeline for improved throughput"}
+    ],
+    "config": {
+      "sip_invite_timeout_ms": 3000,
+      "call_setup_max_ms": 5000,
+      "event_processing": "async (new in v2.3.1)"
+    }
+  },
+  "available_evidence": {
+    "sip_traces": [
+      {"call_id": "call-001", "events": ["INVITE sent", "100 Trying", "180 Ringing", "TIMEOUT after 3000ms"]},
+      {"call_id": "call-002", "events": ["INVITE sent", "100 Trying", "180 Ringing", "200 OK", "ACK", "BYE after 1.2s"]},
+      {"call_id": "call-003", "events": ["INVITE sent", "100 Trying", "TIMEOUT after 3000ms"]}
+    ],
+    "call_router_logs": [
+      {"timestamp": "2026-03-29T14:01:23.456Z", "call_id": "call-001", "event": "call_disconnected", "note": "Received BEFORE call_connected for this call"},
+      {"timestamp": "2026-03-29T14:01:23.458Z", "call_id": "call-001", "event": "call_connected", "note": "Received AFTER call_disconnected"},
+      {"timestamp": "2026-03-29T14:01:23.460Z", "call_id": "call-001", "event": "state_transition", "from": "ringing", "to": "disconnected", "reason": "disconnect event processed first"}
+    ],
+    "metrics": {
+      "call_setup_latency_p99_before": "1.2s",
+      "call_setup_latency_p99_after": "3.8s",
+      "call_drop_rate_before": "2%",
+      "call_drop_rate_after": "30%",
+      "network_latency_ms": 85,
+      "network_latency_baseline_ms": 80
+    }
+  },
+  "root_cause": "Call router v2.3.1 introduced async event processing that delivers events out of order under load. The call_disconnected event from a previous call is processed before call_connected for the current call, causing the state machine to immediately transition to disconnected state. Under low load, events arrive in order; under moderate+ load, the async pipeline reorders them.",
+  "root_cause_domain": "state",
+  "red_herrings": [
+    {"description": "SIP INVITE timeout is 3000ms", "why_misleading": "The timeout is the SYMPTOM, not the cause. Calls time out because the state machine already moved to disconnected."},
+    {"description": "Network latency increased 5ms (80→85ms)", "why_misleading": "Within normal variance. Not enough to explain 3s setup time increase."},
+    {"description": "30% call drop rate matches async pipeline batch size", "why_misleading": "Coincidental correlation. The batch size is 100, and 30% is the percentage of calls arriving during high-load windows."}
+  ],
+  "expected_investigation_path": {
+    "timeline": "Correlate deployment timestamp with incident onset → strong signal",
+    "state": "Observe event ordering in call-router logs → events out of order → root cause",
+    "telephony": "SIP traces show timeout but no signaling error → points away from network",
+    "infra": "Deployment v2.3.1 correlates → points to code change"
+  }
+}

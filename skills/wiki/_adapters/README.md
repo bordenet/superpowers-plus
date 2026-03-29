@@ -32,7 +32,7 @@ Each adapter documents its required environment variables and MCP tool mappings.
 
 ## Architecture
 
-```
+```markdown
 wiki/
 ├── _adapters/
 │   ├── README.md              # This file

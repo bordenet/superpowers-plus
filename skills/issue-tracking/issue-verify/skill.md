@@ -19,7 +19,7 @@ coordination:
 > **Purpose:** Verify issue keys before referencing in commits, PRs, or documentation
 > **Pattern:** Evidence before assertion — verify existence before citing
 > **Adapter:** See `_adapters/` for platform-specific configuration
-
+>
 > **Wrong skill?** Creating issues → `issue-authoring`. Updating issues → `issue-editing`. Verifying URLs in issues → `issue-link-verification`.
 
 ---
@@ -36,7 +36,6 @@ Invoke this skill when:
 
 ---
 
-
 ## Issue Key Verification
 
 <EXTREMELY_IMPORTANT>
@@ -44,13 +43,16 @@ Invoke this skill when:
 **Before writing ANY issue key, verify it exists using your adapter's search operation.**
 
 **Expected response for existing issue:**
+
 - Issue ID, title, status returned
 
 **For non-existent issue:**
+
 - Empty results or "not found"
 
 **If issue doesn't exist:**
-```
+
+```text
 ⚠️ ISSUE NOT FOUND
 
 The issue key "[KEY]-XXX" does not exist.
@@ -78,6 +80,7 @@ When linking PRs to issues:
 **Required format:** `[KEY-XXX] Brief description`
 
 Before committing with issue key:
+
 1. Verify issue exists
 2. Verify issue is in appropriate state (not Done/Closed unless reopening)
 
@@ -87,7 +90,7 @@ Before committing with issue key:
 
 For bulk operations (changelog, sprint reports):
 
-```
+```markdown
 ## Issue Verification Report
 
 | Issue Key | Status | Title | Verified |
@@ -106,6 +109,7 @@ Summary: 2 verified, 1 not found
 <EXTREMELY_IMPORTANT>
 
 **AI assistants commonly hallucinate issue keys based on:**
+
 - Sequential patterns (KEY-100 exists, so KEY-101 must too)
 - Memory from previous conversations
 - Assuming issues referenced in docs still exist
@@ -118,7 +122,7 @@ Summary: 2 verified, 1 not found
 
 ## Verification Checklist
 
-```
+```text
 Before referencing ANY issue key:
 1. QUERY — Search for the exact key
 2. VERIFY — Issue exists and is in expected state
@@ -132,7 +136,6 @@ Before referencing ANY issue key:
 
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
-
 
 ## Example
 

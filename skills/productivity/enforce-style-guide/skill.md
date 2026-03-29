@@ -25,8 +25,9 @@ coordination:
 **ALWAYS** use this skill before committing code changes. No exceptions.
 
 This skill enforces:
+
 - Repository-specific style guides in `docs/` or root directory
-- Shell script standards from https://github.com/bordenet/scripts/blob/main/STYLE_GUIDE.md
+- Shell script standards from <https://github.com/bordenet/scripts/blob/main/STYLE_GUIDE.md>
 - Language-specific standards
 - Architectural patterns
 
@@ -107,13 +108,13 @@ Gate 2 (after `pre-commit-gate`). Checks: -h/--help, -v/--verbose, --what-if (de
 
 **DO NOT COMMIT** until this skill reports zero violations.
 
-
 ## Reference: Shell Script STYLE_GUIDE.md
 
 For authoritative shell script standards, always reference:
-https://github.com/bordenet/scripts/blob/main/STYLE_GUIDE.md
+<https://github.com/bordenet/scripts/blob/main/STYLE_GUIDE.md>
 
 Key requirements:
+
 - Required flags: -h/--help, -v/--verbose, --what-if (destructive)
 - Error handling: set -euo pipefail
 - Line limit: 400 lines max
@@ -121,9 +122,7 @@ Key requirements:
 - Man-page style help
 - INFO-level verbose logging
 
-
 **Remember**: This skill exists because 80% of scripts were non-compliant. Never let that happen again.
-
 
 ## Commit Gate Coordination
 

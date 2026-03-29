@@ -36,8 +36,8 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
-const PERSONAL_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
@@ -46,7 +46,34 @@ const skillsDir = PERSONAL_SKILLS_DIR;
  * Extract YAML frontmatter from a SKILL.md file.
  */
 function parseInlineArray(value) {
-  return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+  // Escape-aware tokenizer: handles ["a\"b", 'c\\d', ""] correctly
+  const items = [];
+  let i = value.indexOf('[');
+  if (i < 0) return items;
+  i++;
+  while (i < value.length) {
+    while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
+    if (value[i] === ']') break;
+    if (value[i] === '"' || value[i] === "'") {
+      const quote = value[i]; i++;
+      let item = '';
+      while (i < value.length && value[i] !== quote) {
+        if (value[i] === '\\' && i + 1 < value.length) {
+          if (value[i + 1] === quote) { item += quote; i += 2; }
+          else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
+          else { item += value[i]; i++; }
+        } else { item += value[i]; i++; }
+      }
+      i++;
+      items.push(item);
+    } else {
+      let item = '';
+      while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
+      const trimmed = item.trim();
+      if (trimmed) items.push(trimmed);
+    }
+  }
+  return items;
 }
 
 function parseYamlList(lines, startIndex) {
@@ -73,7 +100,7 @@ function parseYamlList(lines, startIndex) {
 function extractFrontmatter(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let name = '';
     let description = '';
@@ -91,8 +118,18 @@ function extractFrontmatter(filePath) {
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
         const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-        if (nameMatch) name = nameMatch[1].trim();
-        if (descMatch) description = descMatch[1].trim();
+        if (nameMatch) {
+          let v = nameMatch[1].trim();
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
+          name = v;
+        }
+        if (descMatch) {
+          let v = descMatch[1].trim();
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
+          description = v;
+        }
         if (triggerMatch) {
           triggers = parseInlineArray(triggerMatch[1]);
         } else if (line.match(/^triggers:\s*$/)) {
@@ -104,16 +141,12 @@ function extractFrontmatter(filePath) {
       }
     }
 
-    // Fallback: use first non-empty line after frontmatter
+    // Fallback: use first non-empty, non-heading line after frontmatter
     if (!description) {
-      let pastFrontmatter = false;
+      let dashCount = 0;
       for (const line of lines) {
-        if (line.trim() === '---') {
-          if (pastFrontmatter) break;
-          pastFrontmatter = true;
-          continue;
-        }
-        if (pastFrontmatter && line.trim() && !line.startsWith('#')) {
+        if (line.trim() === '---') { dashCount++; continue; }
+        if (dashCount >= 2 && line.trim() && !line.startsWith('#')) {
           description = line.trim().substring(0, 200);
           break;
         }
@@ -160,7 +193,7 @@ function compressSkillContent(text) {
  * Strip YAML frontmatter from content.
  */
 function stripFrontmatter(content) {
-  const lines = content.split('\n');
+  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   let inFrontmatter = false;
   let frontmatterEnded = false;
   const result = [];
@@ -188,7 +221,13 @@ function findSkillsInDir(dir, sourceType) {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
     const skillDir = path.join(dir, entry.name);
-    const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    let isDir = false;
+    try {
+      isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    } catch (err) {
+      if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
+      throw err; // surface real errors (EACCES, etc.)
+    }
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];
