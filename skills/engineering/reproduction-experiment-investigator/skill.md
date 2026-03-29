@@ -2,6 +2,7 @@
 name: reproduction-experiment-investigator
 source: superpowers-plus
 description: "Specialized investigator for testing hypotheses through reproduction attempts. Designs experiments, executes controlled tests, and reports whether a hypothesis can be confirmed or rejected. Dispatched by debug-conductor."
+summary: "Use when: testing hypotheses through controlled reproduction attempts."
 triggers: []
 anti_triggers: []
 coordination:
@@ -35,11 +36,13 @@ Dispatched by `debug-conductor` when a hypothesis needs testing — controlled r
 ### Step 1: Receive and Refine Hypothesis
 
 From the conductor, receive:
+
 - **Hypothesis:** "The failure is caused by [X] when [condition Y] is present"
 - **Predicted outcome:** "If hypothesis is correct, we expect [Z] when we [action]"
 - **Environment:** Where to reproduce (staging, local, isolated sandbox)
 
 Refine into a testable experiment:
+
 - Define exact steps to reproduce
 - Define exact success/failure criteria (not subjective)
 - Identify minimum reproduction conditions (strip unnecessary variables)
@@ -56,6 +59,7 @@ Refine into a testable experiment:
 ### Step 3: Execute Controlled Reproduction (3+ attempts)
 
 For each attempt:
+
 1. Reset environment to clean state
 2. Apply the hypothesized condition
 3. Execute the triggering action
@@ -74,6 +78,7 @@ For each attempt:
 ### Step 4: Control Experiment
 
 If reproduction succeeded:
+
 1. **Remove** the hypothesized condition
 2. Re-run the same triggering action
 3. If failure disappears → strong confirmation
@@ -120,3 +125,11 @@ If reproduction succeeded:
 | **Environment-specific** | Reproduces in prod-like environment but not staging → config/infra difference |
 | **Intermittent / race condition** | 1–2/3 reproduction → timing-dependent |
 | **Hypothesis disproven** | 0/3 reproduction even with condition → reject hypothesis |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Incomplete isolation | Test affected by shared state | Reset environment between experiments |
+| False confirmation | Coincidental success in reproduction | Run multiple trials |
+| Wrong variable | Testing irrelevant hypothesis | Verify hypothesis matches symptoms |

@@ -23,6 +23,7 @@
 ### 2. Gap Analysis
 
 For each metric below threshold:
+
 - Identify which pages or content groups are responsible
 - Classify gap as:
   - **Addressable:** Can be fixed within timebox → fix now
@@ -32,6 +33,7 @@ For each metric below threshold:
 ### 3. PRD Protection Confirmation
 
 Enumerate every quarantined PRD from Phase 1 and confirm:
+
 - [ ] Not present in `refactored-wiki/` as a modified file
 - [ ] Not referenced as a merge source in any rewritten page
 - [ ] Original content unchanged in wiki
@@ -41,6 +43,7 @@ If ANY check fails → HALT. This is a non-recoverable error.
 ### 4. Content Preservation Audit
 
 Verify that no unique content was lost during refactoring:
+
 - For each deleted page from Phase 3, confirm its unique content appears in the designated target page
 - For each merged page, confirm all non-duplicate content from all sources appears in the merged result
 - Flag any content that was in the original wiki but does not appear in the refactored wiki

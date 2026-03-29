@@ -83,6 +83,7 @@ index aaa1111..bbb2222 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** performance-analyst
 - **File:** mcp/skill-catalog.js:27
@@ -91,6 +92,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** Read files asynchronously with `fs.promises.readFile` + `Promise.all`, or cache the catalog on startup and invalidate on file changes.
 
 ### Finding 2
+
 - **Severity:** Important
 - **Reviewer:** performance-analyst
 - **File:** mcp/skill-catalog.js:36
@@ -99,6 +101,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** Remove `fullContent` from the default response. Add an optional `?include=content` query parameter for callers that need it.
 
 ### Finding 3
+
 - **Severity:** Minor
 - **Reviewer:** performance-analyst
 - **File:** mcp/skill-catalog.js:37
@@ -107,6 +110,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** If word count is needed, compute it lazily or at install time and cache in a metadata file.
 
 ### Finding 4
+
 - **Severity:** Minor
 - **Reviewer:** performance-analyst
 - **File:** mcp/skill-catalog.js (overall)

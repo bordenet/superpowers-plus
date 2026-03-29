@@ -122,7 +122,6 @@ Before writing your verdict, scan the reviewed content for any claims about exte
 
 **If you skip factual verification entirely**, your review is incomplete. Period.
 
-
 ## Example
 
 ```bash

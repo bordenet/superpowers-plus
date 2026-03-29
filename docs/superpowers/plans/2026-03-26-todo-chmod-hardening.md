@@ -75,11 +75,14 @@ def _validate_canonical_path(path: str) -> None:
 - [ ] **Step 3:** Improve `_unprotect_file()` error message to reference `todo-crud.sh`:
 
 Change the RuntimeError text from:
-```
+
+```text
 "CRITICAL: Cannot unprotect TODO.md for writing: {exc}. File protection may be broken on this filesystem."
 ```
+
 to:
-```
+
+```bash
 "CRITICAL: Cannot chmod TODO.md for writing: {exc}. "
 "The file is deliberately read-only (chmod 444). "
 "Use todo-crud.sh which handles chmod automatically. "

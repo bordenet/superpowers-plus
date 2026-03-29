@@ -69,6 +69,7 @@ new file mode 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** defect-finder
 - **File:** tools/state-backup.sh:23-24
@@ -77,6 +78,7 @@ new file mode 100644
 - **Fix:** Add `exec {fd}<&-` before each `return 1`, or use a trap: `trap "exec {fd}<&-" RETURN`
 
 ### Finding 2
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder
 - **File:** tools/state-backup.sh:13
@@ -84,6 +86,7 @@ new file mode 100644
 - **Category:** resource-leak, fd-leak
 
 ### Finding 3
+
 - **Severity:** Minor
 - **Reviewer:** guardian
 - **File:** tools/state-backup.sh:36

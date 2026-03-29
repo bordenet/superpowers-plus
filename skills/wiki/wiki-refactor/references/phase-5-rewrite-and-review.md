@@ -34,40 +34,50 @@ For each page in priority order (P1 → P2 → P3):
 Each page is reviewed by 5 wiki-specific reviewers. All reviewers have **full access** to all pages, snapshots, and the writing plan. Independence comes from distinct starting points and priorities.
 
 #### Reviewer 1: Factual Accuracy Reviewer
+
 **START FROM** claims and assertions in the page.
 **PRIORITIZE** verifiable facts, version-specific statements, configuration values, command syntax.
+
 - Are stated defaults correct?
 - Are version requirements current?
 - Do code/CLI examples actually work?
 - Are there unsourced claims that could be fabricated?
 
 #### Reviewer 2: Structure Critic
+
 **START FROM** page purpose (from writing plan card) and heading hierarchy.
 **PRIORITIZE** single-responsibility pages, logical heading flow, consistent depth.
+
 - Does the page serve exactly one purpose?
 - Do headings follow a logical progression?
 - Is content under the right heading?
 - Could any section be its own page?
 
 #### Reviewer 3: Standards Enforcer
+
 **START FROM** naming conventions and cross-references.
 **PRIORITIZE** link validity, consistent terminology, page naming patterns.
+
 - Do all internal links point to valid pages in the new structure?
 - Is terminology consistent with the rest of the refactored wiki?
 - Does the page follow the naming convention for its type?
 - Are "See Also" links present and correct?
 
 #### Reviewer 4: Completeness Auditor
+
 **START FROM** prerequisites and assumptions.
 **PRIORITIZE** missing context, undefined terms, gaps in procedures.
+
 - Are all prerequisites listed?
 - Are all terms defined (or linked to definitions)?
 - Are all procedure steps complete? No missing steps?
 - Would a reader need to consult another source to complete the task?
 
 #### Reviewer 5: Reader Advocate
+
 **START FROM** a newcomer's perspective.
 **PRIORITIZE** discoverability, jargon density, time-to-answer.
+
 - Can a newcomer understand this page without reading 5 other pages first?
 - Is jargon minimized or defined on first use?
 - How quickly can someone find the answer to the most common question this page addresses?
@@ -76,6 +86,7 @@ Each page is reviewed by 5 wiki-specific reviewers. All reviewers have **full ac
 ### Review Scoring
 
 Each reviewer scores 1-10 on wiki-specific dimensions (not the code-review dimensions from progressive-harsh-review — wiki content needs different quality lenses):
+
 - **Accuracy** (30%) — factual correctness
 - **Structure** (20%) — page organization and hierarchy
 - **Completeness** (25%) — no gaps or missing context
@@ -84,6 +95,7 @@ Each reviewer scores 1-10 on wiki-specific dimensions (not the code-review dimen
 ### Automated Link Verification (required before PASS)
 
 Before any page can receive a PASS verdict, run automated link verification:
+
 1. Extract all internal links from the page (wiki links, cross-references, "See Also")
 2. Verify each target exists in the new structure (not just the old structure)
 3. Flag broken links as blocking findings — a page with broken links cannot PASS

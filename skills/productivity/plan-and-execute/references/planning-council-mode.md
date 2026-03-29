@@ -29,7 +29,7 @@ During Phase B (Devise the Plan), before writing the plan:
 
 All council members receive identical context:
 
-```
+```python
 TASK: [full challenge description from Phase A]
 CONSTRAINTS: [user-specified constraints]
 SUCCESS CRITERIA: [from Phase A clarification]
@@ -51,7 +51,7 @@ RELEVANT CONTEXT: [codebase/system context gathered in Phase A]
 
 Each role receives the common plan packet plus a scoped mandate:
 
-```
+```python
 YOUR ROLE: [Role Name]
 YOUR MANDATE: [Specific section to produce]
 PRODUCE:
@@ -87,6 +87,7 @@ The Synthesis Planner (conductor) merges all role outputs:
 ### Step 5: Quality Check
 
 Before exiting Phase B:
+
 - Plan reads as if written by one author (no "lens voice" leaking)
 - All sections internally consistent
 - No contradictions between architecture and testing plans
@@ -145,6 +146,7 @@ Instead of manually selecting 3–5 roles, the conductor auto-selects based on t
 | Internal tool, single service | Requirements + Architecture only (min) | Minimal overhead |
 
 **Rules:**
+
 1. Requirements Clarifier + Architecture Planner always included (unchanged)
 2. Auto-selection produces candidates; conductor prunes if >5 roles selected
 3. Prune by lowest task relevance, keeping roles whose domain is explicitly mentioned
@@ -157,6 +159,7 @@ Instead of manually selecting 3–5 roles, the conductor auto-selects based on t
 After synthesis (Step 4), the conductor evaluates whether a refinement round improves the plan:
 
 **Refinement triggers** (ALL must be true):
+
 1. Synthesis produced ≥2 unresolved tradeoffs
 2. Plan quality score (per `multi-agent-quality-standards.md` §1) is exactly 7/10 (borderline pass)
 3. Budget remaining ≥ 30%
@@ -164,6 +167,7 @@ After synthesis (Step 4), the conductor evaluates whether a refinement round imp
 > **Note:** If quality score < 7, the shared standard (§3) requires fallback — not refinement. Refinement is only for **borderline-passing** plans (score = 7) that have unresolved tradeoffs worth addressing.
 
 **Refinement protocol:**
+
 1. Only roles involved in unresolved tradeoffs are re-dispatched (not all roles)
 2. Each re-dispatched role receives: the synthesized plan + the specific unresolved tradeoffs
 3. Prompt: "Given the merged plan and these unresolved tradeoffs, revise ONLY your section to address the conflicts. Do not rewrite other sections."
@@ -178,6 +182,7 @@ After synthesis (Step 4), the conductor evaluates whether a refinement round imp
 Track plan evolution across council rounds for auditability and rollback:
 
 **Version format** (extends shared instrumentation schema — `multi-agent-quality-standards.md` §5):
+
 ```json
 {
   "version": 1,
@@ -192,6 +197,7 @@ Track plan evolution across council rounds for auditability and rollback:
 ```
 
 **Rules:**
+
 1. Version 1 = initial synthesis output
 2. Version 2 = after refinement round (if triggered)
 3. Each version records: roles dispatched, tradeoff count, quality score, **full plan text**, plan hash
@@ -206,6 +212,7 @@ Track plan evolution across council rounds for auditability and rollback:
 Real-time progress reporting during council execution:
 
 **Progress events** (emitted to user as the council runs):
+
 1. `COUNCIL_START` — "Planning council activated with roles: [list]"
 2. `ROLE_DISPATCHED` — "Dispatching [Role Name]..." (per role)
 3. `ROLE_COMPLETE` — "[Role Name] complete (confidence: X, assumptions: N)"

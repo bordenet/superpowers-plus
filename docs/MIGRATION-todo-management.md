@@ -37,11 +37,13 @@ The `superpowers-plus/install.sh` installer runs post-install migrations:
 ### Step 1: Delete the todo-management override
 
 If your repo has a file like:
-```
+
+```text
 skills/productivity/todo-management/skill.md
 ```
 
 **Delete it.** The superpowers-plus version now includes:
+
 - All engineering tags (frontend, backend, infra, testing, docs)
 - All recruiting tags (sourcer, scheduler, admin, interviewer, hr)
 - Customizable general tags (`#team` → `#your-team`, `#product` → `#your-product`)
@@ -89,6 +91,7 @@ files it finds. For each one:
 ## Verification
 
 After applying these changes, run:
+
 ```bash
 # Reinstall superpowers-plus (deploys clean todo-management skill)
 cd ~/.codex/superpowers-plus && git pull origin main && ./install.sh --force

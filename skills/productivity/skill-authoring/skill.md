@@ -17,7 +17,7 @@ coordination:
 # Skill Authoring
 
 > **Wrong skill?** Skill structure/format → `writing-skills`. Checking skill health → `skill-health-check`. Diagnosing skill issues → `superpowers-doctor`.
-
+>
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
 
@@ -29,7 +29,6 @@ coordination:
 - A repeating pattern is identified that should become a reusable skill
 - Skill gap analysis reveals missing capabilities in the skill catalog
 
-
 ## Authoring Modes
 
 This skill enables superpowers-plus to extend itself. Three modes:
@@ -39,7 +38,6 @@ This skill enables superpowers-plus to extend itself. Three modes:
 | **From Description** | Natural language | Draft skill.md |
 | **From Patterns** | learning-state.json observations | Skill candidates |
 | **From Codebase** | Repository analysis | Skill recommendations |
-
 
 ## Mode 1: From Natural Language
 
@@ -60,7 +58,7 @@ This skill enables superpowers-plus to extend itself. Three modes:
 
 **Response:**
 
-```
+```bash
 I'll help create a TypeScript strict mode skill.
 
 **Proposed skill:**
@@ -84,13 +82,13 @@ Want me to generate the full skill.md?
 ### Validation Checklist
 
 Before presenting the draft:
+
 - [ ] Name is kebab-case, unique, descriptive
 - [ ] Triggers don't overlap with existing skills
 - [ ] Description starts with "Use when..."
 - [ ] Process has actionable steps
 - [ ] At least one concrete example
 - [ ] Domain is appropriate
-
 
 ## Mode 2: From Observed Patterns
 
@@ -109,7 +107,6 @@ When you notice a recurring pattern worth codifying, tell the AI:
 > "Turn this pattern into a skill: [pattern description]"
 
 The pattern description contains the "what" — extract trigger conditions, actions, and outcomes, then expand into the full skill structure.
-
 
 ## Mode 3: From Codebase Analysis
 
@@ -135,12 +132,12 @@ The pattern description contains the "what" — extract trigger conditions, acti
 ### Output Format
 
 For each recommended skill:
+
 1. **Name** — Suggested skill name
 2. **Evidence** — What in the codebase suggests this
 3. **Value** — Why this skill would help
 4. **Complexity** — Low/Medium/High
 5. **Priority** — P1/P2/P3
-
 
 ## Skill Template
 

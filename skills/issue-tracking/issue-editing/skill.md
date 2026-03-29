@@ -19,7 +19,7 @@ coordination:
 > **Purpose:** Prevent stale updates and race conditions when modifying issues
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
-
+>
 > **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ## When to Use
@@ -41,6 +41,7 @@ coordination:
 3. **Check for recent changes** — `updatedAt` timestamp indicates modifications
 
 **Why this matters:**
+
 - Multiple agents/users may edit the same issue
 - Memory may reflect stale state from earlier in conversation
 - Prevents overwriting recent changes with outdated data
@@ -51,7 +52,7 @@ coordination:
 
 ## Pre-Edit Workflow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ BEFORE ANY update_issue CALL                                │
 ├─────────────────────────────────────────────────────────────┤
@@ -84,7 +85,7 @@ coordination:
 
 **If issue was updated in the last 5 minutes:**
 
-```
+```text
 ⚠️ RECENT MODIFICATION DETECTED
 
 Issue: [KEY]-XXX
@@ -134,7 +135,7 @@ Options:
 
 ## Edit Checklist
 
-```
+```text
 Before EVERY update:
 1. FETCH — Query issue by key
 2. VERIFY — Issue exists, ID is correct
@@ -144,7 +145,6 @@ Before EVERY update:
 ```
 
 ---
-
 
 ## Example
 

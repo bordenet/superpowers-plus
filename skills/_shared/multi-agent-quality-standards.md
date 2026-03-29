@@ -92,7 +92,7 @@ Every multi-agent invocation MUST log:
 
 Before committing parallel branch outputs:
 
-```
+```markdown
 For each pair of completed branches (A, B):
   file_overlap = files_modified(A) ∩ files_modified(B)
   If |file_overlap| > 0:

@@ -7,7 +7,7 @@
 
 When called by orchestrator, produce this summary:
 
-```
+```bash
 ## Fact-Check Report
 
 **Claims Analyzed:** 14
@@ -46,17 +46,20 @@ When called by orchestrator, produce this summary:
 ## Citation Formats
 
 **Inline:**
+
 ```markdown
 We decided to use Vendor A for telephony [[TICKET-89](https://[your-tracker]/TICKET-89)].
 ```
 
 **Block quote for key decisions:**
+
 ```markdown
 > "Let's go with Vendor A — their WebSocket API is cleaner."
 > — Team Member, [PR #47]([your-repo-url]/pullrequest/47), 2026-01-15
 ```
 
 **Meeting transcript citation:**
+
 ```markdown
 As discussed in the [Team Triage @ 10:45]([meeting-share-url]#t=645) ⏵
 ```

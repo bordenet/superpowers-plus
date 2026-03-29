@@ -11,10 +11,12 @@ How superpowers-plus skills work and how to extend them.
 | **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `security-upgrade` |
 
 **Key distinction:**
+
 - **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
 - **Explicit skills** have no triggers → AI only invokes when user explicitly requests by name
 
 This distinction matters for user queries:
+
 - "What are my superpowers?" → List only auto-triggered skills
 - "What skills do I have?" → List all skills (both types)
 
@@ -22,7 +24,7 @@ This distinction matters for user queries:
 
 superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
 
-```
+```bash
 ~/.codex/
 ├── superpowers/          # obra/superpowers (cloned by install.sh)
 │   └── skills/           # Core framework skills (mostly superpowers)
@@ -39,7 +41,7 @@ Skills from both directories are discovered by `superpowers-augment.js`.
 
 `install.sh` is an orchestrator (~600 lines) that sources 6 modules from `lib/install/`:
 
-```
+```markdown
 lib/install/
 ├── logging.sh       # Colors, log_*, error_exit, create_dir
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
@@ -95,7 +97,7 @@ The router uses a **hybrid TF-IDF + Intent Pattern** approach:
 
 ### Architecture
 
-```
+```typescript
 lib/skill-router.js
 ├── buildTfIdfIndex()      # Builds document index from skill descriptions
 ├── matchSkillsTfIdf()     # Local TF-IDF matching with intent boosts
@@ -107,7 +109,7 @@ lib/skill-router.js
 
 A skill is a directory containing `skill.md`:
 
-```
+```markdown
 skills/{domain}/{skill-name}/
 └── skill.md              # Required: skill definition
 ```
@@ -160,6 +162,7 @@ coordination:
 ### Superpower vs Explicit Skill Examples
 
 **Superpower (auto-triggered):**
+
 ```yaml
 ---
 name: wiki-orchestrator
@@ -170,6 +173,7 @@ description: Orchestrates wiki editing workflows — download, edit, publish.
 ```
 
 **Explicit Skill (manual invocation):**
+
 ```yaml
 ---
 name: superpowers-help
@@ -180,6 +184,7 @@ description: Lists available skills.
 ```
 
 Or simply omit triggers entirely:
+
 ```yaml
 ---
 name: superpowers-help
@@ -240,7 +245,7 @@ Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/s
 
 Reusable patterns and shared contracts live in `skills/_shared/`:
 
-```
+```markdown
 skills/_shared/
 ├── README.md                            # Index and usage guide
 ├── confidence-calibration.md            # Confidence scoring standards
@@ -262,7 +267,7 @@ skills/_shared/
 
 The `issue-tracking/` domain uses adapters to support multiple platforms:
 
-```
+```markdown
 skills/issue-tracking/
 ├── _adapters/
 │   ├── README.md         # Adapter overview

@@ -33,6 +33,7 @@ Invoke this skill when:
 **`biome-ignore` comments are BANNED in new code.**
 
 When Biome reports an error:
+
 1. **REQUIRED:** Refactor the code to fix the actual issue
 2. **REQUIRED:** Extract functions, simplify logic, reduce nesting
 3. **BANNED:** Adding `// biome-ignore` to suppress the warning
@@ -68,6 +69,7 @@ function handlePartialResult(message: Message): void {
 **Measures how hard a function is to understand.**
 
 Calculates based on:
+
 - Nesting depth (each level adds complexity)
 - Control flow structures (if, for, while, switch)
 - Logical operators (&&, ||)
