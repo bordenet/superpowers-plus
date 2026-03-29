@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 anti_triggers: ["update ticket", "edit issue", "change status", "close ticket"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
-summary: "Use when: creating issues in any tracker. Skip when: updating existing issues."
+summary: "Use when: creating issues in a supported tracker (GitHub, Jira, Azure DevOps). Skip when: updating existing issues."
 coordination:
   group: issue-tracking
   order: 0
@@ -166,7 +166,7 @@ For formal acceptance criteria documents with adversarial review, use [docforge-
 ## Example
 
 ```bash
-# Create a well-structured Linear ticket
+# Create a well-structured issue in your configured tracker
 # Required: title, description with acceptance criteria, team assignment
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-authoring
 ```
