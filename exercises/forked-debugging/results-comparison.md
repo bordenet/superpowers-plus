@@ -64,7 +64,7 @@ Use when:
 
 ### When NOT to Fork (regardless of rubric score)
 
-- Budget < 40% remaining
+- Budget > 80% consumed
 - Previous fork on similar issue produced duplicates
 - Issue is already mitigated (root cause can wait for serial analysis)
 - Evidence is so sparse that investigators would be guessing

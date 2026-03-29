@@ -10,14 +10,14 @@
 |---|-----------|--------|--------------|--------|---------------|
 | 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | 🟡 **PROTOTYPED** — all TODOs done, experiments NOT yet run (harness is stub) | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
 | 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
-| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
+| 3 | **Planning Council** (plan-and-execute) | `feat/multi-agent-skill-upgrades` | P3 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
 | 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
 
 ## Shared Artifacts (used by all four)
 
 | Artifact | Location | Purpose |
 |----------|----------|---------|
-| Multi-Agent Activation Rubric | `skills/_shared/multi-agent-activation-rubric.md` | When to escalate from single-agent to multi-agent |
+| Multi-Agent Activation Rubric | `skills/_shared/multi-agent-activation-rubric.md` | When to escalate: score = 5 → ask user; score ≥ 6 → multi-agent eligible |
 | Multi-Agent Quality Standards | `skills/_shared/multi-agent-quality-standards.md` | Plan quality rubric, readability rules, fallback, novelty scoring, instrumentation, conflict handling |
 | Evidence Schema | `skills/_shared/evidence-schema.md` *(forked-debugging branch)* | Structured evidence output (primarily for debugging, reusable) |
 | Fork-Readiness Rubric | `skills/_shared/fork-readiness-rubric.md` *(forked-debugging branch)* | Debugging-specific fork decision (extends activation rubric) |
@@ -86,4 +86,4 @@ No initiative ships to main without passing ALL of these:
 - [ ] Should all four initiatives merge to dev independently, or batch into a single "multi-agent release"?
 - [ ] How do we measure cumulative cost impact when multiple skills use multi-agent in a single session?
 - [ ] Should the activation rubric be session-aware (lower threshold if session has budget, raise if depleted)?
-- [ ] How do we prevent activation rubric score inflation (agents learning to always score ≥5)?
+- [ ] How do we prevent activation rubric score inflation (agents learning to always score ≥6)?
