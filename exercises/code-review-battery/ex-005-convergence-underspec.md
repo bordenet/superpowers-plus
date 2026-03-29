@@ -43,6 +43,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** defect-finder or standards-enforcer
 - **File:** skills/engineering/code-review-battery/skill.md
@@ -51,6 +52,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 - **Fix:** Add: "Only evaluate convergence starting at pass 2. After pass 1, stop if no escalation trigger fired; otherwise continue."
 
 ### Finding 2
+
 - **Severity:** Minor
 - **Reviewer:** standards-enforcer
 - **File:** skills/engineering/code-review-battery/skill.md
@@ -58,6 +60,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 - **Category:** edge-case, division-by-zero
 
 ### Finding 3 (Bonus — discovered by battery)
+
 - **Severity:** Important
 - **Reviewer:** standards-enforcer or defect-finder
 - **File:** skills/engineering/code-review-battery/skill.md
@@ -66,6 +69,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 - **Fix:** Define explicit evaluation order: compute metrics → check escalation → check stop → continue.
 
 ### Finding 4 (Bonus — discovered by battery)
+
 - **Severity:** Important
 - **Reviewer:** defect-finder
 - **File:** skills/engineering/code-review-battery/skill.md
@@ -73,6 +77,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 - **Category:** ambiguity, identity-vs-count
 
 ### Finding 5 (Bonus — discovered by battery)
+
 - **Severity:** Minor
 - **Reviewer:** standards-enforcer
 - **File:** skills/engineering/code-review-battery/skill.md

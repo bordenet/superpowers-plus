@@ -56,13 +56,15 @@ Analyze the diff and select reviewers:
 **Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
 
 **Mandatory activation (not subject to triage exclusion):**
+
 - **Design Critic** is ALWAYS activated when changes touch: interfaces, public APIs, contracts, message schemas, shared state types, or cross-module boundaries.
 - **Guardian** is ALWAYS activated when changes touch: retry logic, circuit breakers, rollback behavior, deployment config, feature flags, authentication/authorization, or state machine transitions.
 
 **Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation).
 
 State your triage decision before dispatching:
-```
+
+```markdown
 **Triage**: Activated: [list] | Skipped: [list] | Reason: [1-2 sentences]
 ```
 
@@ -73,6 +75,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
 **2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation):
+
 - Fields SET/RESET/NULLED → grep all READERS
 - Threshold comparisons → grep all PRODUCERS of crossing values
 - Stateful code → full state type + transitions
@@ -84,6 +87,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 ### Phase 3: Aggregate
 
 After all reviewers return:
+
 1. Sort findings: **Critical → Important → Minor**, then by file path
 2. Prefix each with `[Reviewer Name]`
 3. If 2+ reviewers flag the same location, **keep both** and check for **convergence**:
@@ -107,7 +111,7 @@ After all reviewers return:
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
+1. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
 
 **Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
 

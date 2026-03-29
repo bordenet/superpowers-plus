@@ -49,7 +49,7 @@ The router builds pipelines by **matching producers to consumers** — like Unix
 
 ### Core Insight
 
-```
+```text
 wiki-authoring PRODUCES markdown-content
 link-verification CONSUMES markdown-content, PRODUCES verified-links
 wiki-editing CONSUMES verified-links, PRODUCES published-page
@@ -245,7 +245,7 @@ Router detects target: `publishes-wiki` capability needed.
 
 ### Step 2: Dependency Resolution
 
-```
+```text
 wiki-editing CONSUMES [verified-links, sanitized-content]
   ├── link-verification CONSUMES [markdown-content] PRODUCES [verified-links]
   │     └── wiki-authoring CONSUMES [user-intent] PRODUCES [markdown-content]
@@ -291,6 +291,7 @@ Router invokes skills in order, passing artifacts between them.
 ### Backward Compatibility
 
 Existing skills without `composition:` continue to work. The router falls back to:
+
 1. Explicit `coordination:` groups
 2. Trigger-based invocation (current behavior)
 
@@ -303,6 +304,7 @@ Existing skills without `composition:` continue to work. The router falls back t
 **Problem:** Multiple skills produce `markdown-content` — which one to choose?
 
 **Mitigation:**
+
 - Priority field breaks ties (lower = preferred)
 - Capability specificity: `generates-wiki-content` vs. `generates-content`
 - Context hints: repo type, recent files, user history
@@ -312,6 +314,7 @@ Existing skills without `composition:` continue to work. The router falls back t
 **Problem:** "Why did skill X run before skill Y?"
 
 **Mitigation:**
+
 - `--explain` flag shows composition reasoning
 - Log artifact flow: `[link-verification] consumed markdown-content from wiki-authoring`
 - Visualize pipeline as Mermaid diagram before execution
@@ -321,6 +324,7 @@ Existing skills without `composition:` continue to work. The router falls back t
 **Problem:** A consumes B, B consumes A
 
 **Mitigation:**
+
 - Visited set in resolver (see algorithm)
 - Validation at skill install time: reject cycles
 - Clear error: "Circular dependency: A → B → A"
@@ -330,6 +334,7 @@ Existing skills without `composition:` continue to work. The router falls back t
 **Problem:** Skill needs `verified-facts` but no skill produces it
 
 **Mitigation:**
+
 - If `optional: true`, skip the consumer
 - If required, fail fast with clear message: "No skill produces verified-facts"
 - Suggest: "Install wiki-debunker to enable fact verification"

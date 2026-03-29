@@ -94,6 +94,7 @@ function handle(event: WebhookEvent) { /* type-safe */ }
 ```
 
 **When `unknown` IS acceptable:**
+
 - Parsing external JSON (before validation)
 - Error handling (`catch (error: unknown)`)
 - Then immediately narrow or validate

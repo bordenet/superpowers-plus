@@ -30,7 +30,6 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 > **Wrong skill?** Code implementation → `feature-development`. PR review → `providing-code-review`. Build/test errors → `systematic-debugging`.
 
-
 ## Routing Table
 
 | Context | Route To | Why |
@@ -72,7 +71,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 ## The Iron Law
 
-```
+```bash
 NEVER SKIP THE ROUTER. If a thinking trigger fires, route to the child skill.
 Do not handle it inline. The child skills have process steps you will miss.
 ```
@@ -121,7 +120,6 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 | Confident ignorance | Declared "no problem" without evidence | Searched exhaustively before concluding |
 
 </EXTREMELY_IMPORTANT>
-
 
 ## Example
 

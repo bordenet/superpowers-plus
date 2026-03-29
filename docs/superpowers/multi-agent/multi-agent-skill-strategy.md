@@ -54,6 +54,7 @@ Shared across all three skills. Score 0–2 per signal; total = 5 → borderline
 | **Cost justification** | Low-value task | Moderate value | High-value (gates downstream work) |
 
 **Anti-activation signals** (any blocks multi-agent):
+
 - Task is a quick fix or small change
 - Tight coupling requires sequential processing
 - Budget remaining < 30%
@@ -123,6 +124,7 @@ Confidence is **role-specific** but follows a shared calibration:
 | **Synthesis Planner** | Merge all sections, resolve conflicts, produce coherent plan | `{ mergedPlan, conflicts[], unresolved[], readinessAssessment }` |
 
 **Activation criteria (specific to plan-and-execute):**
+
 - Multi-agent activation rubric score ≥ 6 (score = 5 → ask user)
 - Task involves ≥3 components/services
 - Task has significant rollback cost if plan is wrong
@@ -177,7 +179,7 @@ Confidence is **role-specific** but follows a shared calibration:
 
 | Lens | Perspective | Key Question |
 |------|-----------|-------------|
-| **Product / User Value** | What do users need? What creates the most value? | "What's the highest-leverage thing we could build?" |
+| **Product / User Value** | What do users need? What creates the most value? | "What's the highest-impact thing we could build?" |
 | **Architecture** | How should this be built? What patterns apply? | "What architecture gives us the most flexibility?" |
 | **Reliability / Ops** | What will break? How will we know? How will we fix it? | "What's the 2am page scenario?" |
 | **Security / Abuse** | How can this be misused? What data is exposed? | "How would a malicious actor exploit this?" |
@@ -187,6 +189,7 @@ Confidence is **role-specific** but follows a shared calibration:
 **Note:** Not all lenses activate every time. The activation rubric selects 3–4 relevant lenses per brainstorm.
 
 **Synthesizer responsibilities:**
+
 - Cluster similar ideas (semantic grouping, not lexical)
 - Remove true duplicates
 - Rank options by feasibility × impact
@@ -208,6 +211,7 @@ Confidence is **role-specific** but follows a shared calibration:
 ### 5.2 Human Escalation Rules
 
 Escalate to user when:
+
 - Synthesis finds unresolvable conflicts (2+ branches contradict with similar confidence)
 - Activation rubric is borderline (score = 5, ambiguous signals)
 - Budget exceeded without convergence
@@ -227,6 +231,7 @@ Escalate to user when:
 ### 5.4 Replayability
 
 All orchestration decisions logged in structured format:
+
 ```json
 {
   "decision": "activate-multi-agent",
@@ -252,6 +257,7 @@ All orchestration decisions logged in structured format:
 ### Scenarios per Skill
 
 **plan-and-execute:**
+
 | ID | Scenario | Expected Winner |
 |----|----------|----------------|
 | WP-1 | Simple utility function | A (single-agent) — over-engineering risk |
@@ -259,6 +265,7 @@ All orchestration decisions logged in structured format:
 | WP-3 | Large cross-service feature with migration | B (clear win) — too many aspects for one agent |
 
 **subagent-driven-development:**
+
 | ID | Scenario | Expected Winner |
 |----|----------|----------------|
 | SD-1 | Independent file changes (3 files, no overlap) | B — parallelism directly reduces latency |
@@ -266,6 +273,7 @@ All orchestration decisions logged in structured format:
 | SD-3 | Tightly coupled refactor | A — parallelism would cause merge hell |
 
 **brainstorming:**
+
 | ID | Scenario | Expected Winner |
 |----|----------|----------------|
 | BS-1 | Vague feature request ("improve onboarding") | B — viewpoint diversity adds value |
@@ -286,26 +294,31 @@ All orchestration decisions logged in structured format:
 ## 7. Implementation Waves
 
 ### Wave 1 ✅
+
 - [x] Repo inventory and existing capability audit
 - [x] Shared architecture document
 - [x] TODO documents per skill → `todo-brainstorming.md`, `todo-writing-plans.md`, `todo-subagent-driven-development.md`
 - [x] Multi-agent activation rubric (shared) → `skills/_shared/multi-agent-activation-rubric.md`
 
 ### Wave 2 ✅
+
 - [x] Design alternatives per skill (3 each, select 1, reject 2 with reasons) → §4.1–4.3 above
 - [x] Harsh review of all designs → §8.1 findings addressed
 
 ### Wave 3 ✅
+
 - [x] Shared primitives (task packet, result schema, synthesis schema) → §3.2–3.4 above
 - [x] plan-and-execute multi-agent prototype (first target) → `plan-and-execute/references/planning-council-mode.md`
 - [x] Progressive harsh review → 10+ rounds, final score 8.6/10
 
 ### Wave 4 ✅
+
 - [x] subagent-driven-development parallel dispatch → `references/parallel-dispatch-mode.md`, `isolation-analyzer.md`
 - [x] brainstorming ensemble prototype → `references/ensemble-mode.md`, `lens-mandates.md`
 - [x] Experiment fixtures and harness → `exercises/multi-agent-skills/fixtures/` (9 fixtures), `exercises/forked-debugging/` (5 fixtures + harness)
 
 ### Wave 5 — In Progress
+
 - [ ] Run comparative experiments (harness built, execution pending integration testing)
 - [x] Final recommendations → `docs/superpowers/specs/2026-03-29-forked-debugging-design.md`
 - [x] Documentation and limitations → §8 "Honest Caveats" + all TODO docs updated
@@ -321,9 +334,10 @@ All orchestration decisions logged in structured format:
 ### 8.1 Harsh Review Findings (Round 1, 2026-03-29)
 
 **Finding 1: Strawman alternatives.** The rejected designs (naive fan-out, competing full plans, random brainstorming) are weak. Stronger baselines to add:
+
 - **Single-agent draft + parallel critics** (write once, critique in parallel — cheaper coordination)
 - **2 competing full plans + judge** (less coordination, stronger synthesis forcing function)
-- **Serial plan with adversarial review** (no multi-agent overhead, leverages existing harsh review)
+- **Serial plan with adversarial review** (no multi-agent overhead, reuses existing harsh review)
 **Action:** These are now acknowledged as serious alternatives to test experimentally alongside the selected designs.
 
 **Finding 2: Activation rubric signals are subjective and correlated.** "Task decomposability" and "perspective diversity" tend to score together. Need observable predicates.
@@ -334,11 +348,13 @@ All orchestration decisions logged in structured format:
 
 **Finding 4: Per-skill cost caps needed.** 2.5× is too generous.
 **Action:** Set per-skill caps:
+
 - brainstorming: 1.5× (ideas are cheap; if you need 2.5× to brainstorm better, something's wrong)
 - plan-and-execute: 2.0× (plan sections have genuine independent work)
 - subagent-driven-development: 2.5× (code execution has legitimate parallelism value)
 
 **Finding 5: Synthesis weaknesses are skill-specific.**
+
 - plan-and-execute: sections co-determine each other (architecture shapes risk shapes testing)
 - subagent-driven-development: integration checker is too late; prevention > repair
 - brainstorming: clustering washes out contrarian ideas
@@ -347,7 +363,7 @@ All orchestration decisions logged in structured format:
 ## 9. Recommendation: Ship Order
 
 1. **Brainstorming ensemble first** — lowest risk (output is ideas, not code), easiest to evaluate, fastest to prototype
-2. **Plan-and-execute council second** — medium risk (output is plans, not code), high leverage (better plans → better execution)
+2. **Plan-and-execute council second** — medium risk (output is plans, not code), high impact (better plans → better execution)
 3. **Subagent-driven-development parallelism third** — highest risk (code merges), highest value when it works, needs most infrastructure
 
 This order maximizes learning velocity: each skill's lessons inform the next.

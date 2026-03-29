@@ -5,7 +5,7 @@
 
 ## Storage Location
 
-```
+```text
 ~/.superpowers/investigations/<uuid>.json
 ```
 
@@ -118,6 +118,7 @@ Set when `status` is `resolved`. Null otherwise.
 | `fixTodo` | string/null | TODO tag (e.g., `#investigation-a1b2c3d4`) if `type` is `fix-needed`, null otherwise |
 
 **Resolution types:**
+
 - `fix-needed` — Code change required. Create a TODO tagged `#investigation-<short-id>`.
 - `no-fix-needed` — Root cause found but no code change needed (config error, user error, data issue).
 - `external` — Issue is outside our control (third-party service, infrastructure).
@@ -125,6 +126,7 @@ Set when `status` is `resolved`. Null otherwise.
 ### Timestamps
 
 All timestamps are UTC in ISO-8601 format with seconds precision:
+
 - Format: `YYYY-MM-DDTHH:MM:SSZ`
 - Example: `2026-03-23T14:30:00Z`
 - No milliseconds. No timezone offsets. Always `Z` suffix.

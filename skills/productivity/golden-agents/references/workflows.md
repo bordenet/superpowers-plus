@@ -68,7 +68,7 @@ Project-specific content preserved."
 
 **Interactive choice required:**
 
-```
+```text
 Existing AI guidance found but lacks framework markers.
 
 Options:

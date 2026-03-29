@@ -34,7 +34,7 @@ Per [Anthropic's research](https://www.anthropic.com/engineering/demystifying-ev
 
 ### Size Distribution
 
-```
+```text
 Existing files (14 repos):
   Smallest: 124 lines (genesis-tools/GameWiki)
   Largest:  1033 lines (bloginator)
@@ -71,7 +71,7 @@ Coverage measures the presence of key topics essential for AI agent guidance.
 
 ### Coverage Depth (Keyword Frequency)
 
-```
+```markdown
 Topic               | Existing Avg | Compact | Full
 --------------------|--------------|---------|------
 Superpowers         |     6.4      |    9    |  21
@@ -92,6 +92,7 @@ Coherency measures structural consistency across files.
 ### Section Order Consistency
 
 **Generated files:** 100% consistent ordering:
+
 1. Superpowers Bootstrap
 2. Communication Standards
 3. Quality Gates
@@ -100,6 +101,7 @@ Coherency measures structural consistency across files.
 6. Context Management
 
 **Existing files:** Highly variable ordering. Examples:
+
 - RecipeArchive: Starts with "Git Workflow Policy"
 - bloginator: Starts with "CRITICAL: YOU ARE THE LLM"
 - codebase-reviewer: Starts with "SESSION RESUMPTION"

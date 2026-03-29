@@ -37,7 +37,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - Deciding between table vs. list format for structured data
 - Reviewing content that contains tables for formatting quality
 
-
 ## Decision Gate: Table vs. List
 
 **BEFORE creating ANY table, evaluate:**
@@ -52,6 +51,7 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 **Example — Convert tiny table to list:**
 
 ❌ Wrong:
+
 ```markdown
 | Setting | Value |
 |---------|-------|
@@ -59,10 +59,10 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 ```
 
 ✅ Correct:
+
 ```markdown
 - **Timeout:** 30s
 ```
-
 
 ## Structure Rules (HARD GATES)
 
@@ -73,16 +73,19 @@ Headerless tables are **forbidden**. Every table must have a semantic header row
 ### 2. Maximum 5 Columns
 
 If more attributes needed:
+
 - Split into multiple tables
 - Move minor attributes to bullets below the table
 
 ### 3. Primary Key Column
 
 If a column is an obvious identifier (name, ID, domain):
+
 - Sort rows by this column
 - Show value only on first row of each group, leave subsequent cells blank
 
 ❌ Wrong:
+
 ```markdown
 | Domain | Skill | Description |
 |--------|-------|-------------|
@@ -92,6 +95,7 @@ If a column is an obvious identifier (name, ID, domain):
 ```
 
 ✅ Correct:
+
 ```markdown
 | Domain | Skill | Description |
 |--------|-------|-------------|
@@ -103,6 +107,7 @@ If a column is an obvious identifier (name, ID, domain):
 ### 4. Cell Brevity
 
 Each cell should be a **single short phrase**. If more explanation needed:
+
 - Add footnotes
 - Add a "Notes" section below the table
 
@@ -113,7 +118,6 @@ Line breaks inside cells render inconsistently across tools. **Forbidden** unles
 ### 6. No Nested Formatting Chaos
 
 Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose if needed.
-
 
 ## Visual Clarity Rules
 
@@ -129,7 +133,6 @@ Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose
 4. **No derived columns** — derivable from another → drop or move to notes
 5. **Tables are for data, not layout**
 
-
 ## Anti-Patterns to Detect and Fix
 
 | Anti-Pattern | Example | Fix |
@@ -141,14 +144,13 @@ Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose
 | Tiny table | 2 rows, 2 columns | Convert to bullet list |
 | Inconsistent vocabulary | "Yes/Yep/Sure/Affirmative" | Standardize to "Yes/No" |
 
-
 ## Accessibility (HTML Contexts)
 
 When tables render to HTML:
+
 - Use proper `<th>` headers with `scope` attributes
 - Never mix Markdown and HTML table syntax in same block
 - First row must be true header, not example data
-
 
 ## Checklist Before Creating a Table
 
@@ -160,7 +162,6 @@ When tables render to HTML:
 - [ ] Each cell is a short phrase? (no paragraphs)
 - [ ] Consistent vocabulary across rows?
 - [ ] No redundant columns?
-
 
 ## Example
 

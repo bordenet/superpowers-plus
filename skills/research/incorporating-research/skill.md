@@ -17,7 +17,7 @@ coordination:
 # Incorporating Research
 
 > **Wrong skill?** Conducting research → `perplexity-research` or `expert-interviewer`. Writing docs → `wiki-orchestrator` or `readme-authoring`.
-
+>
 > **Guidelines:** See [CLAUDE.md](../../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-26
 
@@ -27,10 +27,10 @@ This skill handles incorporating external research (Perplexity, web searches, Ch
 
 **Core principle:** Triage first, confirm scope, then edit. Strip artifacts, preserve voice.
 
-
 ## When to Use
 
 Invoke when user says:
+
 - "Incorporate this feedback"
 - "Merge this into the doc"
 - "Add this Perplexity/research output"
@@ -39,18 +39,18 @@ Invoke when user says:
 
 **Red flag:** User says "incorporate" but might mean "review for quality" — clarify if ambiguous.
 
-
 ## The Workflow
 
 ### Step 1: Identify Target Document
 
 **Ask if unclear:**
+
 - "Which file should I update with this research?"
 - If multiple candidates exist, list them and ask
 
 **Confirm:**
-- "I'll incorporate this into `[path/to/file.md]`. Correct?"
 
+- "I'll incorporate this into `[path/to/file.md]`. Correct?"
 
 ### Step 2: Triage the Input
 
@@ -65,13 +65,13 @@ Separate signal from noise:
 | **Hallucinations** | Suspicious claims, outdated info | Flag for user verification |
 
 **Output triage summary:**
-```
+
+```bash
 Triage Results:
 ├── New content: [Brief description]
 ├── Irrelevant: [What's being stripped]
 └── Artifacts: [Citation numbers, source sections, etc.]
 ```
-
 
 ### Step 3: Map to Existing Structure
 
@@ -90,7 +90,6 @@ Read target document first. Determine: new section, inline addition, appendix, o
 
 Report: what was added and where, what was stripped, any concerns.
 
-
 ## Red Flags to Catch
 
 | Red Flag | Example | Action |
@@ -100,7 +99,6 @@ Report: what was added and where, what was stripped, any concerns.
 | **Hallucinations** | Outdated versions, wrong dates | Flag: "This claims X, verify?" |
 | **Contradictions** | New content conflicts with existing | Flag before incorporating |
 | **Duplicate content** | Research repeats what's already there | Ask: "This duplicates section Y. Replace or skip?" |
-
 
 ## Common Mistakes to Avoid
 
@@ -112,13 +110,13 @@ Report: what was added and where, what was stripped, any concerns.
 
 ✅ **Triage → Map → Confirm → Edit → Summarize**
 
-
 ## Example Interaction
 
 **User:** "Incorporate this Perplexity output into the hardware doc"
 
 **Agent:**
-```
+
+```javascript
 I'll incorporate this into `docs/hardware-procurement.md`. Let me triage the input first.
 
 Triage Results:
@@ -142,7 +140,7 @@ Proceed?
 
 **Agent:** [Makes edits]
 
-```
+```text
 Incorporated into docs/hardware-procurement.md:
 
 Added:
@@ -156,7 +154,6 @@ Stripped:
 Concerns:
 - None (H100 VRAM confirmed as 80GB for standard model)
 ```
-
 
 ## Companion Skills
 

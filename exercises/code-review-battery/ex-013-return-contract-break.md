@@ -15,6 +15,7 @@ A utility function `findSkillByName` previously returned `null` when a skill was
 The diff shows only the utility function change. The callers are shown in the Context section (not in the diff) to simulate a real review where you must consider downstream impact.
 
 **Callers (not shown in diff, but exist in the codebase):**
+
 ```javascript
 // In skill-router.js:
 const skill = findSkillByName(name);
@@ -63,6 +64,7 @@ index aaa1111..bbb2222 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Critical
 - **Reviewer:** defect-finder or guardian
 - **File:** lib/skill-lookup.js:24
@@ -71,6 +73,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** Either (a) keep returning `null` and add an optional `{ throws: true }` parameter for callers that want the exception, or (b) update ALL 3 callers to wrap calls in try/catch. Option (a) is safer as it doesn't require coordinated changes.
 
 ### Finding 2
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder
 - **File:** lib/skill-lookup.js:11

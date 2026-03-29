@@ -32,13 +32,13 @@ coordination:
 **A repository is only "green" when ALL status indicators are green.**
 
 This includes:
+
 - CI workflow (`.github/workflows/ci.yml`)
 - GitHub Pages deployment (`pages build and deployment`)
 - Any other custom workflows in `.github/workflows/`
 - GitHub Pages status via API
 
 **Never claim "CI passes" when only checking the CI workflow. That's a narrow, incomplete verification.**
-
 
 ## Verification Checklist
 
@@ -50,11 +50,13 @@ gh api /repos/{owner}/{repo}/actions/runs --jq '.workflow_runs[:10] | .[] | "\(.
 ```
 
 Or via GitHub API:
-```
+
+```text
 GET /repos/{owner}/{repo}/actions/runs?per_page=10
 ```
 
 **Check for:**
+
 - `CI` workflow: must show `conclusion: success`
 - `pages build and deployment` workflow: must show `conclusion: success`
 - Any other workflows: must show `conclusion: success`
@@ -66,7 +68,8 @@ gh api /repos/{owner}/{repo}/pages --jq '.status'
 ```
 
 Or via GitHub API:
-```
+
+```text
 GET /repos/{owner}/{repo}/pages
 ```
 
@@ -93,7 +96,8 @@ Look at the most recent run of EACH distinct workflow. All must pass.
 **Cause:** Various - check the workflow run logs for specific errors
 
 **Fix:** Examine the failing job's logs via:
-```
+
+```text
 GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs
 ```
 
@@ -101,7 +105,7 @@ GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs
 
 When verifying repository health, report like this:
 
-```
+```markdown
 ## Repository Health: {repo-name}
 
 | Workflow | Status | Run # |

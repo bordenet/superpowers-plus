@@ -35,7 +35,7 @@ Field renames and API contract changes are the #1 source of production incidents
 
 ## The Iron Law
 
-```
+```text
 NO FIELD RENAME IS COMPLETE UNTIL YOU VERIFY EVERY PATH:
 READ → STORE → PASS TO OTHER SERVICES
 ```
@@ -92,6 +92,7 @@ If old types exist in node_modules, consumers may compile against wrong contract
 ### 4. Integration Test the Full Path
 
 Unit tests pass but integration fails because:
+
 - Service A sends `oldFieldName`
 - Service B expects `newFieldName`
 - Both services' unit tests pass (internally consistent)
@@ -113,7 +114,7 @@ Unit tests pass but integration fails because:
 
 For cross-service field renames, verify at BOTH ends:
 
-```
+```text
 Service A (sender)        Service B (receiver)
 ─────────────────         ────────────────────
 HTTP client sends    →    Route handler expects
@@ -124,12 +125,14 @@ message.fieldName         body.fieldName
 ```
 
 **PROJ-XXX failure:**
+
 - voice-service (receiver) expected `inboundLine`/`outboundLine` ✅
 - acquisition-service (sender) still sent `trackingLine` ❌
 
 ## Red Flags - STOP
 
 If you find yourself thinking:
+
 - "The database column uses the old name, that's fine" → Maybe, but verify callers
 - "I just need to update the schema" → No, trace the full flow
 - "The tests pass so it's done" → Tests may not cross the boundary
@@ -138,7 +141,7 @@ If you find yourself thinking:
 
 ## The Gate Function
 
-```
+```text
 BEFORE claiming a field rename is complete:
 
 1. GREP: Run exhaustive search for old field name in ALL affected repos

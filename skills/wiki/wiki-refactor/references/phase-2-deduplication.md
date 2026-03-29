@@ -10,41 +10,51 @@
 For every page in the inventory (excluding quarantined PRDs), analyze content for:
 
 ### 1. Concept Duplication
+
 Same concept defined or explained in 3+ different places with wording variations.
 
 **Detection:** Look for:
+
 - Same term defined in multiple glossary sections or inline definitions
 - Same process described with different step counts or ordering
 - Same architecture component explained at different levels of detail on different pages
 
 ### 2. Procedure Repetition
+
 Same procedure (setup steps, configuration, troubleshooting) repeated across pages.
 
 **Detection:** Look for:
+
 - Sequential instructions with >60% step overlap
 - Same CLI commands or code snippets on multiple pages
 - "See also" links that duplicate rather than reference
 
 ### 3. Scattered Definitions
+
 Same term or concept defined inconsistently across pages.
 
 **Detection:** Look for:
+
 - Contradictory definitions of the same term
 - Different default values stated for the same config parameter
 - Conflicting version requirements
 
 ### 4. Overlapping Examples
+
 Same or near-identical examples appearing on multiple pages.
 
 **Detection:** Look for:
+
 - Code samples with >80% similarity
 - Screenshots or diagrams showing the same workflow
 - Identical table data on multiple pages
 
 ### 5. Redundant Warnings
+
 Same gotcha, caveat, or warning repeated across pages.
 
 **Detection:** Look for:
+
 - Identical "Note:" or "Warning:" blocks
 - Same failure mode described in multiple troubleshooting sections
 
@@ -77,6 +87,7 @@ Same gotcha, caveat, or warning repeated across pages.
 ## Resolution Recommendations
 
 For each duplicate group, recommend ONE of:
+
 - **Consolidate:** Merge all instances into single authoritative page. Replace others with links.
 - **Canonicalize:** Pick one instance as canonical. Update others to reference it.
 - **Extract:** Factor shared content into a new dedicated page. Link from all current locations.

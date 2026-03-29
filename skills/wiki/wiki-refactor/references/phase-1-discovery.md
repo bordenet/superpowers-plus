@@ -24,7 +24,7 @@
 | Internal links in | Count of links from other wiki pages to this one |
 | PRD? | `YES` if filename/title contains "PRD" (case-insensitive) OR content contains "Product Requirements Document" header (case-insensitive) OR H1/H2 is exactly "PRD" (case-insensitive) OR page is in operator-supplied PRD include list |
 
-6. **Detect broken internal links.** Any link pointing to a wiki page that returned 404 or is unreachable.
+1. **Detect broken internal links.** Any link pointing to a wiki page that returned 404 or is unreachable.
 
 ## Output Format: `wiki-inventory.md`
 
@@ -61,6 +61,7 @@
 ## Scope Cap
 
 After inventory is complete, check:
+
 - If total pages > 100 → warn: `⚠️ SCOPE: {{count}} pages exceeds 100-page threshold. Estimated refactor time: {{estimate}}. Narrow scope or confirm to continue.`
 - If total words > 50,000 → warn: `⚠️ SCOPE: {{word_count}} words exceeds 50k threshold.`
 

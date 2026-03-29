@@ -17,7 +17,7 @@ coordination:
 # Security Dependency Upgrade Workflow
 
 > **Last Updated:** 2026-01-31
-
+>
 > **Wrong skill?** Full repo security scan (secrets, code patterns) → `repo-security-scan`. Public repo IP leakage → `public-repo-ip-audit`. Wiki content secrets → `wiki-secret-audit`.
 
 ## Workflow Summary
@@ -39,7 +39,6 @@ This skill provides a systematic workflow for security dependency auditing and u
 - After onboarding a new project to assess security debt
 - CI/CD integration for automated security gates
 
-
 ## Phase 1: Discovery
 
 Identify what package managers are in use:
@@ -53,10 +52,10 @@ find . -name "requirements.txt" -exec dirname {} \;
 find . -name "Cargo.toml" -exec dirname {} \;
 ```
 
-
 ## Phase 2: Security Scanning
 
 ### npm Dependencies
+
 ```bash
 npm audit --json
 
@@ -66,6 +65,7 @@ find . -name "package.json" -not -path "*/node_modules/*" \
 ```
 
 ### Go Dependencies
+
 ```bash
 # Install if needed
 go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -78,6 +78,7 @@ go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
 ### Python Dependencies
+
 ```bash
 pip install pip-audit
 pip-audit
@@ -85,16 +86,17 @@ pip-audit -r requirements.txt
 ```
 
 ### Rust Dependencies
+
 ```bash
 cargo install cargo-audit
 cargo audit
 ```
 
 ### Flutter/Dart Dependencies
+
 ```bash
 flutter pub outdated
 ```
-
 
 ## Phase 3: Upgrade Dependencies
 
@@ -123,7 +125,6 @@ Validation: All tests passing"
 git push origin main
 ```
 
-
 ## Critical Reminders
 
 1. **Always run full validation suite** before committing
@@ -141,11 +142,11 @@ git push origin main
 - **NEVER commit with failing tests** - fix the code or rollback the upgrade
 
 If tests fail after an upgrade, the correct response is:
+
 1. Investigate why the test fails
 2. Fix the code to work with the new dependency version
 3. OR rollback to the previous dependency version
 4. OR ask the user for guidance
-
 
 ## Expected Outcomes
 
@@ -154,23 +155,24 @@ If tests fail after an upgrade, the correct response is:
 - ✅ All tests pass
 - ✅ Changes committed and pushed
 
-
 ## Troubleshooting
 
 **If govulncheck panics:**
+
 - Run on individual directories instead of entire codebase
 - Exclude template directories with Go files in node_modules
 
 **If validation fails:**
+
 - Do NOT commit or push
 - Fix issues before proceeding
 - Re-run validation suite
 
 **If breaking changes introduced:**
+
 - Review package changelogs
 - Update code to accommodate API changes
 - Consider gradual rollout for major version bumps
-
 
 ## Failure Modes
 

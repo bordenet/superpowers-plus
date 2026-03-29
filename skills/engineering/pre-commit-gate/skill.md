@@ -17,7 +17,7 @@ coordination:
 # Pre-Commit Quality Gate
 
 > **Wrong skill?** Reviewing a PR → `providing-code-review`. Output verification → `output-verification`. Completion check → `verification-before-completion`.
-
+>
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
@@ -80,7 +80,7 @@ enforce-style-guide (2) → progressive-code-review-gate (3) → professional-la
 
 ## The Gate Function
 
-```
+```bash
 BEFORE EVERY COMMIT:
 
 0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)
@@ -123,7 +123,7 @@ Each gate step requires evidence matching the gate it covers:
 
 **When this gate passes, IMMEDIATELY load the next gate in the chain:**
 
-```
+```text
 use-skill enforce-style-guide
 ```
 
@@ -147,6 +147,7 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 | No lint/test failures in CI logs | ✅ Yes |
 
 **If build fails after push:**
+
 1. Check pipeline logs immediately
 2. Fix the issue locally
 3. Push fix to branch

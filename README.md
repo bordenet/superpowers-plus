@@ -39,6 +39,7 @@ bash install.sh      # use 'bash' explicitly — don't rely on ./install.sh
 ```
 
 The installer:
+
 - Detects wrong shell (sh, zsh, dash) and tells you to use bash
 - Detects old bash (3.2) with platform-specific install instructions
 - Checks for missing commands (git, node) with remediation steps
@@ -67,6 +68,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
 
 1. `cd mcp && npm install`
 2. Add to your MCP config (e.g., `~/.claude/settings.json`):
+
    ```json
    {
      "mcpServers": {
@@ -77,6 +79,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
      }
    }
    ```
+
 3. Restart your client. Use the `find_skills` MCP tool to list available skills.
 
 ### Codex
@@ -291,7 +294,7 @@ Skills support namespaced triggers (`domain:action`) for disambiguation:
 
 ## Extending
 
-```
+```text
 obra/superpowers (framework)
     └── superpowers-plus (this repo)
             └── your-org-skills
