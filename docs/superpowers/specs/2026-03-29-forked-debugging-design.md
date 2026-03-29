@@ -72,7 +72,7 @@ This design is grounded in published research, not intuition. Key findings that 
 │  • Assign investigators with scoped mandates            │
 │  • Validate evidence (not just collect it)              │
 │  • Detect duplicate work across branches                │
-│  • Synthesize findings into root-cause hypothesis       │
+│  • Dispatch evidence-adjudicator for synthesis           │
 │  • Enforce budget/time/branch limits                    │
 │  • Produce structured incident artifact                 │
 └───────┬──────────┬──────────┬──────────┬───────────────┘
@@ -112,7 +112,7 @@ The conductor does NOT always fork. Serial debugging is the default. Forking is 
 
 **Anti-fork signals** (any one blocks forking):
 - Single service, single component, clear error message → stay serial
-- Budget exhausted (>80% of token budget consumed)
+- Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
 - Fewer than 2 distinct hypothesis domains identified
 - Previous fork attempt produced duplicate findings
 
@@ -126,7 +126,7 @@ The conductor does NOT always fork. Serial debugging is the default. Forking is 
 | Per-branch time limit | 5 minutes wall-clock | Prevents runaway investigations |
 | Confidence threshold to continue | ≥0.3 after first evidence | Kill low-confidence branches early |
 | Duplicate work detection | Jaccard similarity >0.7 on evidence | Merge or kill overlapping branches |
-| Mandatory disconfirming evidence | 1 per branch minimum | Prevents confirmation bias |
+| Mandatory disconfirming evidence | 1 per completed branch (killed branches exempt — see killed-branch contract in evidence-schema.md) | Prevents confirmation bias |
 
 ## 4. Investigator Role Definitions
 
@@ -144,7 +144,7 @@ Each investigator is a sub-agent with a scoped mandate, constrained tools, and a
 | **Escalation** | All branches <0.3 confidence; contradictory high-confidence findings; scope exceeds investigators |
 | **Handoff** | N/A — receives evidence, does not produce it directly |
 
-**Decision loop:** Receive incident → classify domain(s) → apply fork rubric → assign investigators → validate evidence → detect duplicates → invoke adjudicator → produce artifact.
+**Decision loop:** Receive incident → classify domain(s) → apply fork rubric → operator checkpoint (approve/redirect/reject) → assign investigators → validate evidence → detect duplicates → dispatch `evidence-adjudicator` → write verdict to incident packet → produce artifact.
 
 ### 4.2 Timeline & Trace Investigator
 
@@ -434,12 +434,12 @@ The following limitations were identified by adversarial review and are not yet 
 - ≥2 distinct hypothesis domains identified
 - Incident crosses service boundaries
 - Fork-readiness rubric score ≥6
-- Budget permits (≥40% of total budget remaining)
+- Budget permits (<80% consumed)
 
 ### Stay serial when ANY of:
 - Clear error message points to single root cause
 - Single service, single component affected
-- Budget <40% remaining
+- Budget >80% consumed
 - Previous fork attempt on similar incident produced duplicate findings
 
 ### Never fork when:

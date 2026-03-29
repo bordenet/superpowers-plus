@@ -6,7 +6,7 @@
 
 ## Experiment Grid (9 cells × 3 runs = 27 total runs)
 
-### writing-plans (3 cells)
+### plan-and-execute (3 cells)
 
 | ID | Scenario | Description | Expected Winner |
 |----|----------|-------------|----------------|

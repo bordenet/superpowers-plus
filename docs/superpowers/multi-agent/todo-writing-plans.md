@@ -1,13 +1,13 @@
-# TODO: writing-plans Multi-Agent Planning Council
+# TODO: plan-and-execute Multi-Agent Planning Council
 
-> **Epic:** Multi-agent planning council for writing-plans skill
+> **Epic:** Multi-agent planning council for plan-and-execute skill (formerly writing-plans)
 > **Priority:** P1 — Highest among the three targets (gates downstream execution quality)
 > **Branch:** `feat/multi-agent-skill-upgrades`
 > **Updated:** 2026-03-29 · **Status:** ✅ ALL ITEMS COMPLETE
 
 ## P1 — Critical Path
 
-- [x] **WP-01: Activation heuristic** ✅ → `references/planning-council-mode.md` §"When Planning Council Activates" (rubric ≥5 + task-specific criteria)
+- [x] **WP-01: Activation heuristic** ✅ → `references/planning-council-mode.md` §"When Planning Council Activates" (rubric ≥6, score=5 asks user, + task-specific criteria)
 - [x] **WP-02: Role definitions and prompts** ✅ → `references/role-mandates.md` (5 roles with copy-pasteable mandate prompts)
 - [x] **WP-03: Common plan packet schema** ✅ → `references/role-mandates.md` common preamble + `multi-agent-skill-strategy.md` §3.2
 - [x] **WP-04: Merged-plan synthesis strategy** ✅ → `references/synthesis-protocol.md` (cross-reference validation, section merge, conflict resolution)
