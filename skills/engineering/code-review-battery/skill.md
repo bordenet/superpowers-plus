@@ -1,145 +1,158 @@
 ---
 name: code-review-battery
-source: superpowers-plus
-triggers: ["battery review", "run the battery", "parallel review", "parallel code review", "specialized review", "multi-agent review", "run all reviewers", "review battery", "six reviewer", "six-agent review"]
-anti_triggers: ["simple review", "quick review", "lint only"]
-description: "Use when: reviewing code changes with parallel specialized reviewers + monolith. Dispatches 6 agents (5 specialists + 1 monolith) for deep analysis with gap analysis and candidate staging."
-summary: "Use when: code review needed. Dispatches 6 parallel reviewer agents with gap analysis and candidate staging."
+description: Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses
+summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) in parallel with source context for ripple analysis. Aggregates findings with triple-filter prioritization and Round 2 escalation.
+triggers:
+  - code review battery
+  - battery review
+  - parallel review
+  - dispatch reviewers
+  - specialist review
+  - multi-reviewer
+  - review with battery
+anti_triggers:
+  - requesting code review
+  - receiving code review
 coordination:
-  group: code-review
-  order: 0
+  enables:
+    - progressive-code-review-gate
   requires: []
-  enables: ["progressive-code-review-gate"]
-  escalates_to: []
-  internal: false
+source: superpowers-plus
 ---
 
 # Code Review Battery
 
-Dispatch 5 specialized reviewer agents + 1 monolithic reviewer in parallel. A triage coordinator selects which specialists to activate based on the diff. The monolith runs by default on full review rounds (can be skipped with `--skip-monolith`). After aggregation, a gap analysis compares battery vs monolith findings and feeds the learning system.
+> **Wrong skill?** File-protocol review handoff → `code-review`. Reviewing a PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`.
 
-**Why this exists**: Specialized reviewers with focused prompts produce broader coverage across security, performance, design, defects, and standards — with parallel speedup. The monolith runs alongside as both a safety net and a teacher: gaps between battery and monolith findings drive automatic candidate staging that makes the specialists stronger over time.
+Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
+
+**Why this exists**: A single reviewer tries to evaluate everything simultaneously, leading to shallow coverage, inconsistent focus, and ~40% false positive rates. Specialized reviewers with focused prompts produce deeper analysis with near-zero false positives.
 
 ## When to Use
 
-- When `progressive-code-review-gate` triggers a review (primary entry point)
-- When `requesting-code-review` triggers a review (if it delegates to the battery)
+- When `requesting-code-review` or `progressive-code-review-gate` triggers a review
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
 
 ## Procedure
 
-### Step 1: Capture the diff
-Run `git diff` (staged, commit range, or branch diff) and `git diff --stat`.
+### Phase 1: Triage
 
-### Step 2: Triage
+Analyze the diff and select reviewers:
 
-Read `coordinator.md` in this skill directory. Apply the triage decision rules to the diff:
+| Reviewer | Focus | Activate When |
+|----------|-------|---------------|
+| **Defect Finder** | Correctness, edge cases, concurrency | Any code change |
+| **Design Critic** | Factoring, complexity, API design | Adds/modifies classes, functions, public APIs |
+| **Guardian** | Security, blast radius, backwards compat | Any code change |
+| **Standards Enforcer** | Docs, test quality, observability | Always |
+| **Performance Analyst** | Performance, logging | DB, loops, caching, network I/O, or >500 LOC |
+| **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
-| Change Type | Reviewers to Activate |
-|------------|----------------------|
-| Docs only (.md, .txt, comments) | Standards Enforcer only |
-| Config/deps only (package.json, .yml) | Guardian only |
-| Any code change | Defect Finder + Guardian + Standards Enforcer |
-| Code adds/modifies classes, functions, APIs | + Design Critic |
-| Code touches DB, loops, caching, >500 LOC | + Performance Analyst |
+**Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
 
-State your triage decision before dispatching.
+**Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation).
 
-### Step 3: Dispatch reviewers in parallel
-
-Read the reviewer prompt from `reviewers/<name>.md`. Dispatch ALL activated reviewers simultaneously.
-
-**On Augment** — use `sub-agent-code-reviewer` with unique names (`battery-defect-finder`, `battery-guardian`, etc.). Fire ALL activated reviewers simultaneously. Each reviewer gets the repo path and instructions to run `git diff` and read source files directly.
-
-**On Claude Code** — use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell access to run `git diff` and `cat` source files. Use parallel dispatch where supported.
-
-Each reviewer instruction MUST include (see `coordinator.md` for the full contract):
-1. **Repo path** — so the reviewer can `cd` to the right directory
-2. **Exact diff command** — matching the review scope (e.g., `git diff --cached`, `git diff @{u}..HEAD`, `git diff main..HEAD`)
-3. **Reviewer prompt** — from `reviewers/<name>.md`
-4. **Instruction to read full source files** — not just the diff output
-
-### Step 4: Aggregate
-
-After all reviewers return (specialists + monolith), merge findings following `coordinator.md` Phase 3:
-
-1. Sort by severity: Critical → Important → Minor
-2. Prefix each finding with `[Reviewer Name]`
-3. Note clean dimensions ("✅ No issues")
-4. Present unified report
-
-### Step 5: Gap Analysis (full review rounds only)
-
-After aggregation on full review rounds (not targeted re-reviews), compare battery findings vs monolith findings. Follow `coordinator.md` Phase 5. Skip this step if `--skip-monolith` was used or the monolith failed.
-
-1. For each monolith finding, check if any specialist found the same or equivalent issue
-2. **Monolith-only findings** = gaps (battery missed it)
-3. **Battery-only findings** = specialist depth (monolith missed it)
-4. Classify each gap: pattern-learnable (heuristic) or script-learnable (deterministic)
-5. Generate candidate patterns and/or check scripts
-6. Stage candidates in the Shadow Lane (candidate lane, not baseline)
-7. Record all gaps in the Gap Analysis Log
-
-### Step 6: Update Dashboard (full review rounds only)
-
-After gap analysis on full review rounds, update the wiki dashboard page. Skip if `--skip-monolith` was used. Dashboard failure does not block the review verdict.
-- **Wiki page**: `Code Review Battery — Performance Dashboard` (Outline ID: `66eec34c-5590-4f4f-a370-b4d134cd174e`)
-- Add a new row to the **Review-Level Metrics** table
-- Update **Rolling Aggregates** for the current week
-- Update **Learning Pipeline** metrics if candidates were generated
-- Update **Gap Analysis Log** with any new gaps
-
-## The 6 Reviewers
-
-| # | Reviewer | Mental Model | Dimensions | Activation |
-|---|----------|-------------|------------|------------|
-| 1 | Defect Finder | "What breaks this code?" | Correctness, Edge Cases, Error Handling, Concurrency | Triage-gated |
-| 2 | Design Critic | "Is this well-structured?" | Factoring, Complexity, Testability, API Design | Triage-gated |
-| 3 | Guardian | "What damage beyond the diff?" | Security, Blast Radius, Dependencies, Backwards Compat | Triage-gated |
-| 4 | Standards Enforcer | "Does this meet expectations?" | Style, Spec Compliance, Doc Drift, Test Quality, Data Integrity | Triage-gated |
-| 5 | Performance Analyst | "Will this scale?" | Performance, Observability/Logging | Triage-gated |
-| 6 | **Monolith** | "What would a senior engineer catch?" | ALL dimensions + cross-file tracing | **Default on full reviews** |
-
-### Monolith Activation Rules
-
-- **Full review rounds** (Step 2): Monolith fires alongside activated specialists by default (unless `--skip-monolith`)
-- **Targeted re-review** (Step 3a / Phase 4): Monolith does NOT fire unless it was the reviewer that produced the nits. Targeted re-reviews scope to nit-producing reviewers only.
-- Gap analysis (Phase 5) and dashboard update (Phase 6) only run after full review rounds, not targeted re-reviews.
-
-## Overrides
-
-- `--all`: Force all 5 specialists regardless of triage (monolith still runs by default unless `--skip-monolith`)
-- `--only=<name>`: Run a single named reviewer (monolith still runs alongside on full reviews)
-- `--skip=<name>`: Exclude a specific specialist from triage selection (cannot skip monolith on full reviews)
-- `--skip-monolith`: Explicitly skip the monolith (for speed-only runs; disables learning)
-
-## Learning System
-
-The battery improves via gap analysis on full review rounds (Phase 5-6). See `coordinator.md`.
-
-### How It Works (Shadow Lane Model)
-
+State your triage decision before dispatching:
 ```
-Review Run
-  ├─ Baseline Lane (frozen, trusted) ──→ User-visible findings
-  └─ Candidate Lane (shadow, learning) ──→ Gap analysis only
-                                              │
-                                  Compare battery vs monolith
-                                              │
-                              Propose candidate patterns/scripts
-                                              │
-                              Adversarial validation (holdout set)
-                                              │
-                              30-day stability → Graduate to baseline
+**Triage**: Activated: [list] | Skipped: [list] | Reason: [1-2 sentences]
 ```
 
-- **Pattern files**: `reviewers/<name>-patterns.md` — heuristic entries per reviewer
-- **Check scripts**: `checks/<name>.sh` — deterministic detection scripts
-- **Adjudication**: 3-part verification before candidate staging (disconfirm, evidence, specialist mapping)
-- **Graduation** (requires independent evaluator + validation pipeline): Candidates must hit ≥92% precision on 200+ stratified diffs over 30 days
-- **Retirement**: Active patterns that drop below 85% precision are quarantined
-- **TTL**: Every pattern expires unless revalidated
-- **Hard budgets**: Max tokens per pattern file, max active patterns per reviewer
+### Phase 2: Diff + Source Context + Dispatch
 
-> ⚠️ Gap analysis stages candidates only. Promotion to active patterns/scripts requires the graduation pipeline (see DESIGN.md Safety Controls). The adjudication step is a pre-filter, not a promotion gate.
+Sub-agents have NO conversation context. Pass diff + source context inline.
+
+**1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
+
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation):
+- Fields SET/RESET/NULLED → grep all READERS
+- Threshold comparisons → grep all PRODUCERS of crossing values
+- Stateful code → full state type + transitions
+- Changed signatures → all callers
+- Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained)
+
+**3. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context.
+
+### Phase 3: Aggregate
+
+After all reviewers return:
+1. Sort findings: **Critical → Important → Minor**, then by file path
+2. Prefix each with `[Reviewer Name]`
+3. If 2+ reviewers flag the same location, **keep both** (different lenses provide complementary insight) and mark as **convergent** → promote to at least Important
+4. Note clean dimensions ("✅ No issues")
+5. **Severity normalization**: Re-evaluate each finding against the shared severity definitions (provided to all reviewers). Reclassify when a reviewer's label doesn't match:
+   - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
+   - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
+   - **Minor** = works but violates standards (style, naming, missing docs/tests, observability)
+   - If a reviewer labeled a finding Critical but it's a process/standards gap (e.g., "no tests added"), downgrade to Important or Minor. Note the reclassification: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
+   - Convergent findings (step 3) are promoted to at least Important regardless.
+6. **Triple-filter** each Important/Critical finding and classify:
+
+| Finding | CX Impact | Complexity | Testability | Action |
+|---------|-----------|------------|-------------|--------|
+| #1 ... | Fixes dead-air | +3 lines | Clearer tests | **Implement** |
+| #3 ... | None | Adds abstraction | Marginal | **Defer** |
+
+- **Implement**: Passes all 3 filters. **Propose exact code change.**
+- **Defer**: Good finding but doesn't pass all 3. Document for future work.
+- **Reject**: Correct observation but fix adds more complexity than it removes.
+
+7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
+
+**Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
+
+**Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor (full, or "[N] Minor findings suppressed") → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary (`Findings: [N] Critical, [N] Important, [N] Minor ([N] suppressed) | Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`).
+
+**Metrics**: Durable check rate (≥50%), convergent finding count, unresolved Critical count (target: 0). Offline: precision ≥75%, high-sev precision ≥80%, Round 2 yield ≤20%.
+
+### Phase 4: Escalation (Round 2)
+
+If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
+
+| Trigger | Re-run | Why |
+|---------|--------|-----|
+| >2 state/flag findings | Defect Finder (interaction-path focus) | Systemic timing/ordering |
+| >3 test quality issues | Standards Enforcer (mock-focused) | Shared mock infrastructure |
+| >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
+| "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
+
+Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
+
+### Phase 5: Convergence
+
+**STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
+**CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
+
+### Gap Analysis
+
+Monolith found something no specialist found → propose candidate pattern. Known exercise missed → candidate pattern. Recurring false positive → anti-pattern candidate. All go to `candidates/`.
+
+### Error Handling
+
+Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
+
+## Anti-Patterns
+
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| All reviewers agree | No disagreements found | Force at least one dissenting view |
+| Duplicate findings | Same issue from 3 reviewers | Deduplicate in synthesis, attribute first finder |
+| Reviewer fatigue | Later reviewers less thorough | Randomize dispatch order |
+| Missing source context | Review diff without callers | Include grep results for all touched functions |
+| Over-scoping | Reviewing unchanged code | Focus on diff + directly impacted callers only |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Sub-agent returns no findings on complex diff | Verify diff + source context was passed inline — sub-agents have no conversation context |
+| False positives from isolated diff review | Include source context (callers, field readers) per Phase 2 — isolation is the #1 cause |
+| Convergence never reached | Escalate to human after 3 passes |
+| Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
+
+## Companion Skills
+
+- **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
+- **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
+- **code-review**: File-protocol review (alternative dispatch method)
+- **micro-harsh-review**: Per-batch review

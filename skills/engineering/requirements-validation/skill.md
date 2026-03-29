@@ -2,15 +2,31 @@
 name: requirements-validation
 source: superpowers-plus
 triggers: ["validate requirements", "requirements review", "are these requirements valid", "contradictory requirements", "conflicting requirements", "requirements testing", "testable requirements", "requirements falsifiability", "check requirements for contradictions"]
+anti_triggers: ["implement requirements", "build this feature", "write code for"]
 description: Use when validating feature requirements before design or implementation. Tests each requirement for falsifiability, measurability, and independence. Detects contradictions and guides resolution without resolving silently.
 summary: "Use when: validating requirements before implementation. Skip when: requirements are already validated."
+coordination:
+  group: engineering
+  order: 1
+  requires: []
+  enables: ["design-triad", "brainstorming"]
+  escalates_to: ["feature-development"]
+  internal: false
 ---
 
 # Requirements Validation
 
 > **Core principle:** Every requirement must be testable. Contradictions must be surfaced, not silently resolved.
 
+> **Wrong skill?** Feature design → `design-triad` or `brainstorming`. Implementation planning → `plan-and-execute`. Validating code output → `output-verification`.
+
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
+
+## Companion Skills
+
+- **design-triad**: Evaluating design options from requirements
+- **brainstorming**: Generating approaches that meet requirements
+- **plan-and-execute**: Implementing validated requirements
 
 ## When to Use
 
@@ -105,3 +121,22 @@ When two requirements conflict:
 | Compound requirements | "Fast AND flexible AND secure" | Split into 3 independent requirements |
 | Implementation as requirement | "Use Redis for caching" | Restate as need: "Cache layer with <10ms reads" |
 | Negative-only | "Don't break existing behavior" | State positive: "All existing tests pass" |
+
+
+## Example
+
+```bash
+# Check that all requirements have acceptance criteria
+grep -c "GIVEN.*WHEN.*THEN" requirements.md || echo "⚠️ Missing acceptance criteria"
+# Verify testability: each requirement maps to at least one test
+grep -rn "describe\|it(" test/ --include="*.ts" | wc -l
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Resolved contradictions silently without surfacing to user | Hard gate: ALL contradictions go to user with options, never resolve silently |
+| Accepted vague requirements (fast, secure) as testable | Apply falsifiability test: if you cannot write a test that fails, it is not testable |
+| Skipped independence test, creating hidden coupling | Check: can each requirement be implemented/verified without the others? |
+| Validated requirements against assumptions instead of stated constraints | Cross-reference ONLY what the user stated, not what you inferred |

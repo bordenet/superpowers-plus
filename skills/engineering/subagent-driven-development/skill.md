@@ -6,16 +6,32 @@ overrides: superpowers/subagent-driven-development
 # (spec compliance + code quality), inline role descriptions instead of external
 # prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
+anti_triggers: ["simple task", "one file change", "quick fix"]
 description: "Use when executing implementation plans with independent tasks in the current session"
+coordination:
+  group: engineering
+  order: 5
+  requires: ["plan-and-execute"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Subagent-Driven Development
+
+> **Wrong skill?** Simple single-file changes → just edit directly. Planning without execution → `brainstorming`. Feature workflow → `feature-development`.
+
+## Companion Skills
+
+- **feature-development**: Full feature workflow (this skill uses sub-agents)
+- **plan-and-execute**: For multi-step implementation planning
+- **test-driven-development**: TDD within sub-agent tasks
 
 ## When to Use
 
 - You have a written implementation plan with independent tasks to execute in the current session
 - You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`writing-plans`), execution across multiple sessions (`executing-plans`)
+- NOT for: writing the plan (`writing-plans` (upstream)), execution across multiple sessions (`plan-and-execute`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
@@ -46,6 +62,7 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 2. Reasoning limit → re-dispatch with more capable model
 3. Task too large → break into smaller pieces
 4. Plan is wrong → escalate to human
+5. **Same error 3+ times** → invoke `think-twice` for fresh perspective before re-dispatch
 
 Never force retry without changes. If stuck, something must change.
 
@@ -82,6 +99,15 @@ Implement task 3: "Add retry logic to API client."
 Files: src/api/client.ts (main), test/api/client.test.ts (tests).
 Constraints: max 3 retries, exponential backoff, no new dependencies.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
+```
+
+
+## Example
+
+```bash
+# Launch sub-agent for independent task
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery
+# Pass context inline — sub-agents have NO conversation context
 ```
 
 ## Failure Modes

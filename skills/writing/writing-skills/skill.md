@@ -8,15 +8,29 @@ overrides: superpowers/writing-skills
 triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions", "review skill file", "skill quality check"]
 anti_triggers: ["use skill", "find skill", "load skill"]
 description: "Use when: creating or reviewing skill files. Covers SKILL.md structure, prose quality, markdown formatting, creation checklist, and quality gates. For the full creation workflow, see skill-authoring (upstream)."
+coordination:
+  group: writing
+  order: 0
+  requires: []
+  enables: ['skill-authoring']
+  escalates_to: []
+  internal: false
 ---
 
 # Writing Skills
+
+> **Wrong skill?** Full skill creation workflow → `skill-authoring`. Skill runtime issues → `superpowers-doctor`. Skill structural lint → `skill-health-check`.
+
+## Companion Skills
+
+- **skill-authoring**: Full skill creation workflow (this is format reference)
+- **skill-health-check**: Structural lint for skill files
 
 ## When to Use
 
 - Creating new skill files (structure, frontmatter, prose style, quality gates)
 - Reviewing existing skill files for compliance with conventions
-- NOT for: using/loading/finding skills at runtime (`using-superpowers`)
+- NOT for: using/loading/finding skills at runtime (`superpowers-help`)
 
 A **skill** is a reusable reference guide for techniques, patterns, or tools. NOT a narrative about solving a problem once.
 
@@ -51,7 +65,7 @@ skills/{domain}/{skill-name}/
 └── references/       # Reference material (optional)
 ```
 
-Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki`, `issue-tracking`, `observability`, `experimental`.
+Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki`, issue-tracking domain, `observability`, `experimental`.
 
 ## Creation Checklist
 
@@ -87,3 +101,12 @@ Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter
 1. `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills {name}` — verify discoverable
 2. `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill {name}` — verify loads correctly
 3. Check compressed token count — target <1000
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Skill passes structural checks but has empty/placeholder procedure | Every skill needs at least one concrete "do X, then Y" instruction |
+| Trigger phrases too broad — causes false positive routing | Test triggers: `find-skills "{trigger}"` should return <3 skills per trigger |
+| Description doesn't start with "Use when:" — breaks search optimization | Format: `"Use when: {specific context}. Skip when: {anti-context}."` |
+| Skill exceeds 250-line limit after edits | Check `wc -l skill.md` before committing — refactor to examples.md if needed |

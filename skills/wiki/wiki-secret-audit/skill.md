@@ -2,6 +2,7 @@
 name: wiki-secret-audit
 source: superpowers-plus
 triggers: ["scan wiki for secrets", "audit wiki for credentials", "check for exposed API keys", "wiki security scan", "find leaked tokens in wiki"]
+anti_triggers: ["scan code for secrets", "repo security scan", "CVE scan"]
 description: Use when scanning wiki pages for exposed secrets, after security incidents, or during periodic security reviews. Detects credentials, API keys, tokens that may have been published before secret detection.
 summary: "Use when: auditing wiki for exposed secrets, tokens, or credentials."
 composition:
@@ -9,12 +10,27 @@ composition:
   produces: [sanitized-content]
   capabilities: [detects-secrets]
   priority: 25
+coordination:
+  group: wiki
+  order: 3
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Wiki Secret Audit
 
 > **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
 > This skill enables retroactive scanning of existing wiki pages for exposed secrets.
+
+> **Wrong skill?** Scanning code repos for secrets → `repo-security-scan`. Executing wiki instructions safely → `wiki-instruction-guard`. Checking wiki page accuracy → `wiki-verify`.
+
+## Companion Skills
+
+- **repo-security-scan**: Scanning code repos for secrets (this skill scans wiki)
+- **wiki-instruction-guard**: Blocking dangerous wiki-sourced instructions
+- **wiki-orchestrator**: Full wiki editing pipeline
 
 ## When to Use
 
@@ -25,6 +41,7 @@ Invoke this skill when:
 - User says: "scan wiki for secrets", "audit wiki security", "check for exposed credentials"
 
 ---
+
 
 ## Audit Procedure
 
@@ -157,7 +174,14 @@ When secrets are found:
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
 
 
-## Common Failure Modes
+## Example
+
+```bash
+# Scan wiki content for exposed secrets
+grep -rn "password\|api[_-]key\|secret\|token\|Bearer " wiki/ --include="*.md" |   grep -v "example\|placeholder\|YOUR_" | head -20
+```
+
+## Failure Modes
 
 - **Regex-only scanning:** Relying solely on pattern matching without checking for encoded/obfuscated secrets (base64, URL-encoded)
 - **Ignoring wiki history:** Checking only the current page content but not previous revisions where a secret may have been exposed

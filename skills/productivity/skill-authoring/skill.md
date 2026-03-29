@@ -2,21 +2,35 @@
 name: skill-authoring
 source: superpowers-plus
 triggers: ["create a skill", "make a skill", "I need a skill", "new skill for", "skill that", "what skills should", "skill gap analysis", "turn this pattern into a skill", "synthesize skill", "generate skill"]
+anti_triggers: ["check skill health", "diagnose skill", "run doctor", "what skills are available", "list skills", "which skills", "help with skills"]
 description: The genesis capability — create new skills from natural language descriptions, observed patterns, or codebase analysis. Makes superpowers-plus self-extending.
 summary: "Use when: writing or editing superpowers skill files."
+coordination:
+  group: productivity
+  order: 5
+  requires: []
+  enables: ["writing-skills"]
+  escalates_to: []
+  internal: false
 ---
 
 # Skill Authoring
 
+> **Wrong skill?** Skill structure/format → `writing-skills`. Checking skill health → `skill-health-check`. Diagnosing skill issues → `superpowers-doctor`.
+
 > **Purpose:** Generate skill.md files from descriptions, patterns, or analysis
 > **Last Updated:** 2026-03-16
 
-
 **Announce at start:** "I'm using the **skill-authoring** skill to help create a new skill."
 
----
+## When to Use
 
-## Overview
+- User asks to create, generate, or scaffold a new skill
+- A repeating pattern is identified that should become a reusable skill
+- Skill gap analysis reveals missing capabilities in the skill catalog
+
+
+## Authoring Modes
 
 This skill enables superpowers-plus to extend itself. Three modes:
 
@@ -26,7 +40,6 @@ This skill enables superpowers-plus to extend itself. Three modes:
 | **From Patterns** | learning-state.json observations | Skill candidates |
 | **From Codebase** | Repository analysis | Skill recommendations |
 
----
 
 ## Mode 1: From Natural Language
 
@@ -51,7 +64,7 @@ This skill enables superpowers-plus to extend itself. Three modes:
 I'll help create a TypeScript strict mode skill.
 
 **Proposed skill:**
-- Name: `typescript-strict-check`
+- Name: `typescript-strict-mode` (overlay)
 - Domain: `engineering`
 - Triggers: ["strict mode violations", "typescript strict", "check strict mode", "ts strict"]
 
@@ -78,7 +91,6 @@ Before presenting the draft:
 - [ ] At least one concrete example
 - [ ] Domain is appropriate
 
----
 
 ## Mode 2: From Observed Patterns
 
@@ -98,7 +110,6 @@ When you notice a recurring pattern worth codifying, tell the AI:
 
 The pattern description contains the "what" — extract trigger conditions, actions, and outcomes, then expand into the full skill structure.
 
----
 
 ## Mode 3: From Codebase Analysis
 
@@ -130,101 +141,42 @@ For each recommended skill:
 4. **Complexity** — Low/Medium/High
 5. **Priority** — P1/P2/P3
 
----
 
 ## Skill Template
 
-All generated skills follow this structure:
+See [`references/output-location.md`](references/output-location.md) for directory structure and domain selection guide.
 
 ```yaml
----
 name: <skill-name>
-source: superpowers-plus  # or custom source
+source: superpowers-plus
 triggers: ["trigger 1", "trigger 2"]
 description: <one-line description>
-# Optional composition for pipeline skills:
-composition:
-  consumes: [<artifact>]
-  produces: [<artifact>]
-  capabilities: [<capability>]
-  priority: 50
----
-
-# <Skill Title>
-
-> **Purpose:** <why this skill exists>
-> **Last Updated:** <date>
-
-## When to Use
-
-<Triggers and context>
-
-## Process
-
-<Step-by-step guidance>
-
-## Examples
-
-<Concrete usage examples>
 ```
 
----
-
-## Integration with Existing Skills
-
-| Skill | How skill-authoring Uses It |
-|-------|----------------------------|
-| golden-agents | Similar scaffolding UX pattern |
-| brainstorming | Could be invoked for skill design |
-| readme-authoring | Generates README alongside skill.md |
-
----
-
-## Output Location
-
-Generated skills are saved to:
-
-```
-skills/<domain>/<skill-name>/
-├── skill.md       # Main skill definition
-├── README.md      # Optional: if skill needs extended docs
-└── modules/       # Optional: for complex skills
-```
-
-**Domain selection:**
-- `engineering` — Code quality, testing, CI/CD
-- `wiki` — Documentation platforms
-- `writing` — Prose quality, formatting
-- `productivity` — Workflow optimization
-- `issue-tracking` — Tickets, bugs, features
-- `security` — Audits, vulnerabilities
-- `observability` — Metrics, tracking
-- `research` — Information gathering
-
----
+Required sections: `## When to Use`, `## Process`, `## Examples`, `## Companion Skills`, `## Failure Modes`.
 
 ## Quality Gates
 
-Before finalizing any generated skill:
+1. Validate YAML frontmatter (name, triggers, description)
+2. Check trigger uniqueness — no overlap with existing skills (`superpowers-doctor`)
+3. Verify domain fit · run `harsh-review.sh` · user approval
+4. Save to `skills/{domain}/` · update README · `./install.sh`
 
-1. **Validate YAML frontmatter** — Name, triggers, description required
-2. **Check trigger uniqueness** — No overlap with existing skills
-3. **Verify domain fit** — Skill belongs in chosen domain
-4. **Run harsh-review.sh** — Must pass before commit
+**Skip when:** domain design (`domain-design`) · structural lint (`skill-health-check`) · runtime issues (`superpowers-doctor`)
 
----
+## Companion Skills
 
-## After Generation
+- **writing-skills**: Skill file format reference
+- **skill-health-check**: Structural lint for skill files
+- **superpowers-doctor**: Runtime diagnostics after publishing
+- **domain-design**: Domain-level skill design
+- **golden-agents**: Similar scaffolding UX pattern
+- **evolution-loop**: Pattern-driven skill creation
 
-1. **Review the draft** — User approves or requests changes
-2. **Save to skills/** — In appropriate domain directory
-3. **Run harsh-review.sh** — Verify formatting
-4. **Update README.md** — Add to skills table if needed
-5. **Commit and deploy** — `./install.sh` to activate
+## Failure Modes
 
-
-## Common Failure Modes
-
-- **Oversized skill:** Exceeding 250-line limit — extract reference material to `references/` directory
-- **Missing frontmatter:** Forgetting required `---` delimiters, `description:`, or `triggers:` fields
-- **Trigger collision:** Using a trigger phrase already claimed by another skill — check with doctor before committing
+| Failure | Fix |
+|---------|-----|
+| Oversized skill (>250L) | Extract reference material to `references/` |
+| Missing frontmatter | Add `---` delimiters, `description:`, `triggers:` |
+| Trigger collision | Run `superpowers-doctor` before committing |

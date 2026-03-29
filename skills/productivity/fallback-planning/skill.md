@@ -2,21 +2,38 @@
 name: fallback-planning
 source: superpowers-plus
 triggers: ["fallback plan", "contingency plan", "plan B", "what if this fails", "backup approach", "risk mitigation", "fallback TODO", "alternative plan"]
+anti_triggers: ["primary plan", "implement feature", "execute plan"]
 description: Use when a primary implementation plan has identified risks that could invalidate the approach. Generates machine-agnostic fallback TODOs for the top 2-3 risks, each with enough context for a different agent to execute cold.
 summary: "Use when: primary plan has identified risks. Creates machine-agnostic fallback TODOs."
+coordination:
+  group: productivity
+  order: 3
+  requires: ["plan-and-execute"]
+  enables: ["todo-management"]
+  escalates_to: []
+  internal: false
 ---
 
 # Fallback Planning
 
+> **Wrong skill?** Primary plan creation → `plan-and-execute`. Feature planning → `brainstorming`. Design comparison → `design-triad`.
+
 > **Core principle:** A plan without fallbacks is a plan that restarts from scratch when things go wrong.
 
 **Announce at start:** "I'm using the **fallback-planning** skill to generate contingency plans."
+
+## Companion Skills
+
+- **plan-and-execute**: Primary plan creation
+- **brainstorming**: Generating fallback options
+- **design-triad**: Evaluating alternatives
 
 ## When to Use
 
 - After a primary plan has been created and risks identified (via `design-triad` harsh review)
 - When the cost of restarting from scratch exceeds the cost of pre-building a contingency
 - When a different agent or session may need to pick up fallback execution cold
+
 
 ## Process
 
@@ -76,3 +93,22 @@ Fallback TODOs are persisted alongside the primary plan:
 - **In TODO.md:** Tagged with `#fallback-[risk-name]` under the primary plan's tag
 - **In MCP tasks:** As child tasks of the primary plan's root task, marked NOT_STARTED
 - **In design doc:** Referenced in the "Fallback Plan" section
+
+
+## Example
+
+```bash
+# Template: document primary + fallback before starting
+echo "PRIMARY: [approach]"
+echo "FALLBACK 1: [if primary fails because X]"
+echo "FALLBACK 2: [if both fail, minimal viable approach]"
+echo "ABORT CRITERIA: [when to stop and escalate]"
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Fallback plan requires same assumptions as primary plan | Each fallback must be genuinely independent — different approach, not just retry |
+| Fallback TODOs lack enough context for cold execution | Apply the stranger test: could an agent with zero context execute this? |
+| Created fallbacks for low-probability risks only | Prioritize by impact × probability — cover the highest-impact risks first |

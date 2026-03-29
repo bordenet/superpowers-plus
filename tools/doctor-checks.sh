@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 22 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 25 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -140,15 +140,18 @@ while IFS= read -r f; do
     SKILL_YAML_NAME[$skill]=$(echo "$yaml_block" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
     triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
     if [[ -n "$triggers_line" ]]; then
-      if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
-        # Inline array with content: triggers: ["foo", "bar"]
+      # Join multi-line inline arrays: triggers: ["foo",\n  "bar"] → single line
+      triggers_joined=$(echo "$yaml_block" | awk '/^triggers:/{buf=$0; found=1; next} found && /^[[:space:]]+[^a-z]/{buf=buf $0; next} found{print buf; exit} END{if(found) print buf}')
+      [[ -z "$triggers_joined" ]] && triggers_joined="$triggers_line"
+      if echo "$triggers_joined" | grep -qE 'triggers: \[.+\]'; then
+        # Inline array with content (single-line or joined multi-line)
         SKILL_HAS_TRIGGERS[$skill]="yes"
-        SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
-      elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
+        SKILL_TRIGGERS_RAW[$skill]="$triggers_joined"
+      elif echo "$triggers_joined" | grep -qE 'triggers: \[\]'; then
         # Inline empty array: triggers: []
         SKILL_TRIGGERS_RAW[$skill]=""
       else
-        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
+        # Multi-line YAML list: triggers:\n  - "foo"\n  - "bar"
         multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
         if [[ -n "$multiline_items" ]]; then
           SKILL_HAS_TRIGGERS[$skill]="yes"
@@ -175,7 +178,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (22 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (25 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
@@ -291,8 +294,8 @@ done
 # --- Check 8: Orphaned Installs ---
 # Demoted from ERROR+auto-fix to WARNING+report-only (2026-03-25).
 # Reason: locally-created skills that haven't been committed to a source repo yet
-# were being silently deleted. This destroyed outline-wiki-editing and its
-# Outline API access patterns, causing agents to give up on wiki access entirely.
+# were being silently deleted. This destroyed wiki-editing skills and their
+# API access patterns, causing agents to give up on wiki access entirely.
 # Use --purge-orphans to explicitly opt into orphan removal.
 declare -A _source_skill_names=()
 for dir in "${SOURCE_DIRS[@]}"; do
@@ -450,8 +453,8 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
     lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
     if [[ -n "${trigger_map[$lt]:-}" ]]; then
       existing="${trigger_map[$lt]}"
-      # Skip self-collisions (same skill, case-insensitive trigger variants)
-      if [[ "$existing" == "$skill" ]]; then
+      # Skip if skill is already in the map for this trigger (self-collision)
+      if echo ", $existing," | grep -q ", ${skill},"; then
         continue
       fi
       # Check if all colliding skills are in the same known group
@@ -929,6 +932,76 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
   _doctor_todo_smoke
 fi
 
+# --- Check 25: Stale Workflow State ---
+# IMPORTANT: This must run BEFORE check 22 (reviewer-dispatch) because check 22
+# loads the adapter which triggers readState() auto-expiry on stale states.
+# Detects abandoned workflow states older than 24 hours.
+# Auto-fix: archives stale state to ~/.codex/.workflow-state-archive/
+_doctor_workflow_state() {
+  local state_file="$HOME/.codex/.workflow-state.json"
+  [[ -f "$state_file" ]] || return 0
+
+  if ! command -v node &>/dev/null; then
+    echo "🟡 WARNING: workflow-state — node not available, cannot check state age"
+    WARNINGS=$((WARNINGS + 1))
+    return 0
+  fi
+
+  # Compute age and staleness in a single node call.
+  # Returns "age_hours:is_stale:workflow" or "corrupt" on any parse/math failure.
+  # NaN, Infinity, and negative ages are all treated as corrupt.
+  local state_info
+  state_info=$(node -e "
+    try {
+      const s = JSON.parse(require('fs').readFileSync('$state_file', 'utf8'));
+      const age = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
+      if (!Number.isFinite(age) || age < 0) { console.log('corrupt'); process.exit(0); }
+      const rounded = Math.round(age * 10) / 10;
+      console.log(rounded + ':' + (age > 24 ? 1 : 0) + ':' + (s.workflow || 'unknown'));
+    } catch(_) { console.log('corrupt'); }
+  " 2>/dev/null)
+
+  if [[ -z "$state_info" || "$state_info" == "corrupt" ]]; then
+    echo "🟡 WARNING: workflow-state — corrupt or unparseable state file at $state_file"
+    WARNINGS=$((WARNINGS + 1))
+    if can_fix moderate; then
+      local archive_dir="$HOME/.codex/.workflow-state-archive"
+      mkdir -p "$archive_dir"
+      local ts
+      ts=$(date +%Y-%m-%dT%H-%M-%S)
+      if mv "$state_file" "$archive_dir/workflow-corrupt-${ts}.json" 2>/dev/null; then
+        echo "  ✅ FIXED: archived corrupt state file"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not archive corrupt state file"
+      fi
+    fi
+    return 0
+  fi
+
+  # Parse the colon-delimited result
+  local age_hours is_stale workflow
+  age_hours="${state_info%%:*}"
+  is_stale="${state_info#*:}"; is_stale="${is_stale%%:*}"
+  workflow="${state_info##*:}"
+
+  if [[ "$is_stale" == "1" ]]; then
+    echo "🟡 WARNING: workflow-state — stale '${workflow}' workflow (${age_hours}h old, limit: 24h)"
+    WARNINGS=$((WARNINGS + 1))
+    if can_fix moderate; then
+      if node -e "require('$REPO_ROOT/lib/workflow-state').archiveState(
+        JSON.parse(require('fs').readFileSync('$state_file','utf8'))
+      )" 2>/dev/null; then
+        echo "  ✅ FIXED: archived stale workflow state"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not archive stale workflow state"
+      fi
+    fi
+  fi
+}
+_doctor_workflow_state
+
 # --- Check 22: Reviewer-Dispatch Rendering Verification ---
 # Verifies that installed skill rendering correctly translates code-reviewer
 # dispatch patterns to the expected sub-agent-code-reviewer output.
@@ -980,6 +1053,226 @@ if [[ -f "$ADAPTER" ]] && command -v node &>/dev/null; then
   }
   _doctor_reviewer_dispatch
 fi
+
+# --- Check 23: TODO Honeypot Integrity ---
+# Verifies the honeypot file at ~/.codex/TODO.md is intact: exists, has correct
+# permissions (444), has immutable flag (uchg/chattr +i), and content matches
+# the canonical sentinel. Agents that bypass todo-crud.sh and write directly
+# to this path will be caught by the immutable flag; this check catches
+# post-facto tampering or flag removal.
+#
+# OPTIONAL: This check is skipped when the user's real TODO file IS at
+# ~/.codex/TODO.md (the default path). The honeypot only exists to protect
+# users who store their TODO elsewhere (OneDrive, Dropbox, shared repo, etc.)
+_doctor_todo_honeypot() {
+  local honeypot="$HOME/.codex/TODO.md"
+
+  # Skip if real TODO lives at the honeypot path (or unconfigured)
+  local real_todo_path
+  real_todo_path=$(resolve_todo_path)
+  if [[ -z "$real_todo_path" ]]; then
+    return 0  # Unconfigured — default is ~/.codex/TODO.md, no honeypot
+  fi
+  local real_canonical honeypot_canonical
+  real_canonical=$(realpath "$real_todo_path" 2>/dev/null || echo "$real_todo_path")
+  honeypot_canonical=$(realpath "$honeypot" 2>/dev/null || echo "$honeypot")
+  if [[ "$real_canonical" == "$honeypot_canonical" ]]; then
+    return 0  # Real TODO IS at honeypot path — skip
+  fi
+
+  # Canonical honeypot content must exist to verify
+  local honeypot_src="$REPO_ROOT/tools/honeypot-content.txt"
+  if [[ ! -f "$honeypot_src" ]]; then
+    echo "🟡 WARNING: Cannot verify honeypot — honeypot-content.txt not found"
+    WARNINGS=$((WARNINGS + 1))
+    return
+  fi
+
+  # Compound check: exists + content hash + perms + immutable
+  if [[ ! -f "$honeypot" ]]; then
+    echo "🟡 WARNING: TODO honeypot not deployed at $honeypot (deploy with sp-install)"
+    WARNINGS=$((WARNINGS + 1))
+    if can_fix "safe"; then
+      if cp "$honeypot_src" "$honeypot" && chmod 444 "$honeypot"; then
+        set_immutable "$honeypot" 2>/dev/null || true  # best-effort
+        echo "  ✅ FIXED: deployed honeypot"
+        FIXED=$((FIXED + 1))
+      else
+        echo "  ⚠️  Could not deploy honeypot"
+      fi
+    fi
+    return
+  fi
+
+  # Validate content, perms, immutable in one pass
+  local problems=0
+  local actual_hash expected_hash
+  actual_hash=$(sha256_hash "$honeypot")
+  expected_hash=$(sha256_hash "$honeypot_src")
+  [[ "$actual_hash" != "$expected_hash" ]] && echo "🔴 CRITICAL: honeypot content TAMPERED" && CRITICAL=$((CRITICAL + 1)) && problems=$((problems + 1))
+
+  local perms
+  perms=$(stat -f "%Lp" "$honeypot" 2>/dev/null || stat -c "%a" "$honeypot" 2>/dev/null || echo "")
+  [[ "$perms" != "444" ]] && echo "🟠 ERROR: honeypot perms $perms (expected 444)" && ERRORS=$((ERRORS + 1)) && problems=$((problems + 1))
+
+  check_immutable "$honeypot"
+  local imm=$?
+  [[ "$imm" -eq 1 ]] && echo "🟠 ERROR: honeypot missing immutable flag" && ERRORS=$((ERRORS + 1)) && problems=$((problems + 1))
+  [[ "$imm" -eq 2 ]] && echo "🔵 INFO: cannot verify immutable flag on this platform"
+
+  # Single fix pass: restore content + perms + immutable
+  if [[ "$problems" -gt 0 ]] && can_fix "safe"; then
+    clear_immutable "$honeypot" 2>/dev/null
+    if cp "$honeypot_src" "$honeypot" && chmod 444 "$honeypot"; then
+      set_immutable "$honeypot" 2>/dev/null || true
+      echo "  ✅ FIXED: restored honeypot (content + perms + immutable)"
+      FIXED=$((FIXED + 1))
+    else
+      echo "  ⚠️  Could not restore honeypot"
+    fi
+  fi
+}
+_doctor_todo_honeypot
+
+# --- Check 24: TODO Path Validation ---
+# Verifies the TODO system is properly configured: .todo-registry or .env
+# contains a valid path, the real TODO.md exists and has valid structure.
+_doctor_todo_path() {
+  local todo_path
+  todo_path=$(resolve_todo_path)
+
+  if [[ -z "$todo_path" ]]; then
+    echo "🟡 WARNING: TODO path not configured in .todo-registry or .env"
+    WARNINGS=$((WARNINGS + 1))
+    return
+  fi
+
+  if [[ ! -f "$todo_path" ]]; then
+    echo "🟠 ERROR: TODO path configured but file does not exist: $todo_path"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  # Validate structure: must contain required headers
+  local missing=0
+  for header in "# ACTIVE TASKS" "# HISTORY" "# DEFERRED" "# METRICS"; do
+    if ! grep -q "^${header}" "$todo_path" 2>/dev/null; then
+      missing=$((missing + 1))
+    fi
+  done
+  if [[ "$missing" -gt 0 ]]; then
+    echo "🟠 ERROR: TODO file missing $missing required headers at $todo_path"
+    ERRORS=$((ERRORS + 1))
+  fi
+
+  # 24b. Sync conflict file detection
+  # Cloud sync services (OneDrive, Dropbox, iCloud) create conflict copies
+  # when two machines edit the same file. These are silent data-loss vectors.
+  local todo_dir
+  todo_dir=$(dirname "$todo_path")
+  local todo_basename
+  todo_basename=$(basename "$todo_path" .md)
+  local conflict_count=0
+  local conflict_files=()
+  if [[ -d "$todo_dir" ]]; then
+    # OneDrive: "TODO - Copy.md", "TODO (1).md"
+    # Dropbox: "TODO (conflicted copy 2026-03-28).md"
+    # iCloud: "TODO 2.md"
+    # Generic: "TODO-conflict-*.md"
+    while IFS= read -r -d '' cf; do
+      local cfbase
+      cfbase=$(basename "$cf")
+      # Skip the actual TODO file itself
+      [[ "$cfbase" == "$(basename "$todo_path")" ]] && continue
+      # Skip known safe files (shadow ring backups)
+      [[ "$cfbase" == *.bak ]] && continue
+      [[ "$cfbase" == .TODO.md.* ]] && continue
+      conflict_files+=("$cfbase")
+      conflict_count=$((conflict_count + 1))
+    done < <(find "$todo_dir" -maxdepth 1 -type f \( \
+      -name "${todo_basename} - Copy*.md" -o \
+      -name "${todo_basename} (*.md" -o \
+      -name "${todo_basename}-conflict-*.md" -o \
+      -name "${todo_basename} [0-9]*.md" \
+    \) -print0 2>/dev/null)
+  fi
+  if [[ "$conflict_count" -gt 0 ]]; then
+    echo "🟠 ERROR: Found $conflict_count sync conflict file(s) in $(dirname "$todo_path"):"
+    for cf in "${conflict_files[@]}"; do
+      echo "   → $cf"
+    done
+    echo "   Action: review and merge manually, then delete the conflict copies"
+    ERRORS=$((ERRORS + 1))
+  fi
+
+  # 24c. Stray TODO scanner
+  # Agents sometimes create alternate TODO files outside the canonical path.
+  # Scan ~/.codex/ for unexpected *TODO*.md files.
+  local honeypot_path="$HOME/.codex/TODO.md"
+  local stray_count=0
+  local stray_files=()
+  while IFS= read -r -d '' sf; do
+    local sfpath
+    sfpath=$(realpath "$sf" 2>/dev/null || echo "$sf")
+    # Skip the canonical TODO
+    [[ "$sfpath" == "$(realpath "$todo_path" 2>/dev/null || echo "$todo_path")" ]] && continue
+    # Skip the honeypot
+    [[ "$sfpath" == "$(realpath "$honeypot_path" 2>/dev/null || echo "$honeypot_path")" ]] && continue
+    # Skip shadow ring directory contents
+    [[ "$sf" == *"/todo-shadow/"* ]] && continue
+    # Skip template directory
+    [[ "$sf" == *"/templates/"* ]] && continue
+    # Skip superpowers repos (contain skill docs referencing TODO)
+    [[ "$sf" == *"/superpowers-plus/"* ]] && continue
+    [[ "$sf" == *"/superpowers-augment/"* ]] && continue
+    stray_files+=("$sf")
+    stray_count=$((stray_count + 1))
+  done < <(find "$HOME/.codex" -maxdepth 2 -type f -name "*TODO*.md" -print0 2>/dev/null)
+  if [[ "$stray_count" -gt 0 ]]; then
+    echo "🟡 WARNING: Found $stray_count stray TODO file(s) in ~/.codex/:"
+    for sf in "${stray_files[@]}"; do
+      echo "   → $sf"
+    done
+    echo "   These may be from agents bypassing todo-crud.sh"
+    WARNINGS=$((WARNINGS + 1))
+  fi
+
+  # 24d. Stale claim detection
+  # Check for tasks claimed >24h ago (likely abandoned by crashed agents).
+  if command -v python3 &>/dev/null; then
+    local engine="$REPO_ROOT/tools/todo-engine.py"
+    if [[ -f "$engine" ]]; then
+      local claims_json
+      claims_json=$(python3 "$engine" --json list-claims 2>/dev/null || echo "")
+      if [[ -n "$claims_json" ]]; then
+        # Parse claims and extract stale ones in a single Python call.
+        # Output format: first line = count, remaining lines = details.
+        local stale_output
+        stale_output=$(echo "$claims_json" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    stale = [c for c in d.get('claims', []) if c.get('age_min', 0) > 1440]
+    print(len(stale))
+    for c in stale:
+        h = round(c['age_min'] / 60, 1)
+        print(f\"  → {c['id']}: claimed by {c['agent']} ({h}h ago)\")
+except: print('0')
+" 2>/dev/null)
+        local stale_count
+        stale_count=$(echo "$stale_output" | head -1)
+        if [[ "${stale_count:-0}" -gt 0 ]]; then
+          echo "🟡 WARNING: $stale_count task(s) claimed >24h ago (likely abandoned):"
+          echo "$stale_output" | tail -n +2
+          echo "   Action: run 'todo-crud.sh reap' to release expired claims"
+          WARNINGS=$((WARNINGS + 1))
+        fi
+      fi
+    fi
+  fi
+}
+_doctor_todo_path
+
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
@@ -991,12 +1284,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 22 checks passed"
+    echo "✅ Doctor: all 25 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 22 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 25 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."

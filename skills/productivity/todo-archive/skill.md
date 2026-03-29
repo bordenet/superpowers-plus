@@ -2,8 +2,16 @@
 name: todo-archive
 source: superpowers-plus
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
+anti_triggers: ["add task", "create TODO", "what should I work on"]
 description: Low-level archive engine for completed tasks in TODO.md. Companion to todo-management; routine housekeeping should usually go through todo-maintenance.sh.
 summary: "Use when: archiving completed TODO items from TODO.md."
+coordination:
+  group: productivity
+  order: 6
+  requires: ["todo-management"]
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # TODO Archive System
@@ -12,7 +20,12 @@ summary: "Use when: archiving completed TODO items from TODO.md."
 > **Archive location:** `$(dirname $TODO_FILE_PATH)/todo-archives/`
 > **Index:** `todo-archives/INDEX.md`
 
----
+> **Wrong skill?** Managing active tasks → `todo-management`. Task CRUD operations → use `todo-crud.sh` directly.
+
+
+## Companion Skills
+
+- **todo-management**: Active task management (this skill handles archival)
 
 ## When to Use
 
@@ -25,7 +38,6 @@ summary: "Use when: archiving completed TODO items from TODO.md."
 | User says "search archived todos for X" | Search across archive files |
 | User says "show archived todos from Month Year" | Display specific monthly archive |
 
----
 
 ## Archive Workflow
 
@@ -62,7 +74,6 @@ For each target month file:
 
    > Tasks archived from TODO.md
 
-   ---
    ```
 
 2. Check for duplicate task IDs (idempotency guard) and skip re-appending blocks already present in the month file
@@ -98,7 +109,6 @@ post_history_count = {N - M}
 
 If mismatch → ABORT, restore from backup, report error.
 
----
 
 ## Archive File Format
 
@@ -107,7 +117,6 @@ If mismatch → ABORT, restore from backup, report error.
 
 > Tasks archived from TODO.md
 
----
 
 ## 2026-03-18
 - [x] [20260315-01] Fix alarm tuning across repos #engineering-backend
@@ -125,7 +134,6 @@ If mismatch → ABORT, restore from backup, report error.
   - Progress: Approved with minor suggestions
 ```
 
----
 
 ## Search Interface
 
@@ -153,7 +161,6 @@ show archived todos from 2026-02-01 to 2026-03-15
 → cat 2026-02.md 2026-03.md (then filter by date headers)
 ```
 
----
 
 ## Integrity & Safety
 
@@ -163,7 +170,6 @@ show archived todos from 2026-02-01 to 2026-03-15
 - **Dry-run:** Report what would be archived without modifying files
 - **Recovery:** If counts mismatch post-archive → restore from backup
 
----
 
 ## Edge Cases
 
@@ -174,3 +180,12 @@ show archived todos from 2026-02-01 to 2026-03-15
 | Archive file already has entries for that day | Append under existing date header (no duplicate header) |
 | HISTORY section is empty | No-op, report "No completed tasks to archive" |
 | No HISTORY section exists | No-op, report "No HISTORY section found" |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Concurrent write with todo-crud.sh corrupts archive | Use locking — abort if TODO.md is locked |
+| Losing task metadata (tags, issue links) during archival | Verify archived block matches source block character-for-character |
+| Archive runs during active task operations — split-brain | Check for in-progress tasks before archiving; warn user |
+| Count mismatch after archive but error suppressed | Hard abort + restore from backup on ANY integrity mismatch |

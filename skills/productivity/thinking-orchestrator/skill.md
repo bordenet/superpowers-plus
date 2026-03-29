@@ -1,14 +1,15 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
+triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
+anti_triggers: ["write a wiki page", "create a ticket", "commit this code", "deploy"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
 summary: "Use when: routing to the right thinking skill (brainstorming vs design-triad vs think-twice)."
 coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
+  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute", "progressive-harsh-review"]
   escalates_to: []
   internal: false
 ---
@@ -27,6 +28,9 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 
 **Do not try to handle thinking tasks yourself.** Use the routing table below to dispatch to the right skill, then follow that skill's process.
 
+> **Wrong skill?** Code implementation → `feature-development`. PR review → `providing-code-review`. Build/test errors → `systematic-debugging`.
+
+
 ## Routing Table
 
 | Context | Route To | Why |
@@ -43,6 +47,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
+| Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥6 to pass) |
 | None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
 
 ## Child Skills
@@ -59,6 +64,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `feature-development` | Feature work | Orchestrate full feature lifecycle |
 | `design-triad` | Decision quality | 3+ options, comparison, harsh review |
 | `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
+| `progressive-harsh-review` | Quality review | Multi-persona adversarial scoring |
 
 ## The Iron Law
 
@@ -112,12 +118,30 @@ Before delivering ANY analysis, evaluation, recommendation, or review, answer AL
 
 </EXTREMELY_IMPORTANT>
 
-## Common Failure Modes
 
-- **Wrong child skill:** Routing to `verification-before-completion` when `adversarial-search` was needed (check the routing table)
-- **Skipping orchestrator:** Invoking a child skill directly without checking if a different child was more appropriate
-- **Trigger saturation:** Multiple thinking triggers fire simultaneously — pick the highest-priority match from the routing table
+## Example
 
-## Related Skills
+```bash
+# Invoke specific thinking modes
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill adversarial-search
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill brainstorming
+```
 
-- `engineering-rigor` -- Hub for engineering process (pre-commit, blast radius, code review)
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill |
+| Wrong routing — e.g., `verification-before-completion` instead of `adversarial-search` | Check the routing table. When two skills match, prefer the more specific one |
+| Skipping orchestrator — invoking child directly | Check if a different child was more appropriate first |
+| Trigger saturation — multiple triggers fire simultaneously | Pick the highest-priority match from the routing table |
+| Missing routing case | PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |
+
+## Companion Skills
+
+- **think-twice**: Deep analysis when stuck · **brainstorming**: Generating options
+- **design-triad**: Evaluating design alternatives · **adversarial-search**: Deep investigation
+- **plan-and-execute**: Structured planning workflow
+- **quantitative-decision-gate**: Decision matrix scoring
+- **autonomous-chain-controller**: Full workflow automation

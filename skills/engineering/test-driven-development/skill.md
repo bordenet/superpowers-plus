@@ -6,7 +6,15 @@ overrides: superpowers/test-driven-development
 # Refactor cycle with explicit gates at each phase. Removes language-specific
 # examples (handled by golden-agents language modules instead).
 triggers: ["write tests first", "TDD", "test-driven", "write failing test", "red green refactor", "implement with tests"]
+anti_triggers: ["fix this bug", "debug this", "unexpected behavior", "error in production"]
 description: Use when implementing any feature or bugfix, before writing implementation code
+coordination:
+  group: engineering
+  order: 4
+  requires: []
+  enables: ["verification-before-completion"]
+  escalates_to: []
+  internal: false
 ---
 
 # Test-Driven Development (TDD)
@@ -18,6 +26,8 @@ description: Use when implementing any feature or bugfix, before writing impleme
 - NOT for: debugging existing failures (`systematic-debugging`), reviewing others' code (`providing-code-review`)
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
+
+> **Wrong skill?** Debugging existing failures → `systematic-debugging`. Reviewing others' code → `providing-code-review`.
 
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
@@ -97,3 +107,12 @@ Can't check all boxes? You skipped TDD. Start over.
 ## Anti-Patterns
 
 When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: testing mock behavior instead of real behavior, adding test-only methods to production classes.
+
+## Companion Skills
+
+- `design-triad` — when test architecture decisions arise (≥3 approaches to test a complex feature)
+- `systematic-debugging` — when tests fail for non-obvious reasons, switch to root-cause investigation
+- `verification-before-completion` — after TDD cycle, verify ALL tests pass before claiming done
+- **feature-development**: Full feature workflow
+- **subagent-driven-development**: TDD within sub-agent tasks
+- **quantitative-decision-gate**: Test strategy decisions

@@ -4,15 +4,30 @@ source: superpowers-plus
 triggers: ["help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "domain interview"]
 anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code", "interview me about", "knowledge capture"]
 description: "Use when extracting domain knowledge from a user through structured interviewing to produce a written artifact (wiki page, reference doc, problem space overview). NOT for feature design — use brainstorming for that."
+coordination:
+  group: research
+  order: 0
+  requires: []
+  enables: ['incorporating-research']
+  escalates_to: []
+  internal: false
 ---
 
 # Expert Interviewer
+
+> **Wrong skill?** Quick research → `perplexity-research`. Incorporating findings → `incorporating-research`. Brainstorming → `brainstorming`.
+
+## Companion Skills
+
+- **perplexity-research**: For factual research queries
+- **incorporating-research**: Merging findings into docs
+- **brainstorming**: Generating hypotheses from interview insights
 
 ## When to Use
 
 - Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
 - User says "help me document," "capture what I know," or "write up the problem space"
-- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans`)
+- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans` (upstream))
 
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
@@ -123,6 +138,17 @@ This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 
 Save to the location specified in F3. If wiki: create in specified collection/parent. If local: save to `docs/` with descriptive naming.
 
+
+## Example
+
+```bash
+# Structure: prepare interview questions before starting
+echo "1. What is the core problem this solves?"
+echo "2. What are the edge cases?"
+echo "3. What has been tried before and why did it fail?"
+echo "4. What constraints exist that aren't documented?"
+```
+
 ## Failure Modes
 
 | Failure | Symptom | Recovery |
@@ -142,4 +168,4 @@ Save to the location specified in F3. If wiki: create in specified collection/pa
 | External research | Minor input | Major input alongside interview |
 | Review focus | Design soundness, YAGNI | Factual accuracy, scope discipline, audience fit |
 | Output | Design spec → implementation plan | Knowledge artifact → publish |
-| Terminal state | `writing-plans` skill | Publish artifact |
+| Terminal state | `writing-plans` (upstream) skill | Publish artifact |

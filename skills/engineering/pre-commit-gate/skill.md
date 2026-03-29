@@ -2,6 +2,7 @@
 name: pre-commit-gate
 source: superpowers-plus
 triggers: ["before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "ready to push", "commit:pre-check", "commit:gate"]
+anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]
 description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
 summary: "Use when: about to commit code. Skip when: drafting or exploring."
 coordination:
@@ -14,6 +15,8 @@ coordination:
 ---
 
 # Pre-Commit Quality Gate
+
+> **Wrong skill?** Reviewing a PR → `providing-code-review`. Output verification → `output-verification`. Completion check → `verification-before-completion`.
 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
@@ -150,25 +153,21 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 4. Verify new build passes
 5. THEN update ticket status
 
-## Related Skills
+## Companion Skills
 
-- `blast-radius-check` — Before modifying existing code
-- `providing-code-review` — When reviewing others' PRs
-- `engineering-rigor` — Philosophy and overview
+- **enforce-style-guide**: Style fixes (step 2 in commit chain)
+- **progressive-code-review-gate**: Code review (step 3)
+- **professional-language-audit**: Language check (step 4)
+- **public-repo-ip-audit**: IP/license audit (step 5)
+- **verification-before-completion**: After commit gates, before "done"
+- **blast-radius-check**: Before modifying existing code
+- **output-verification**: Before claiming generated artifacts correct
 
----
+## Failure Modes
 
-## Commit Gate Coordination
-
-Multiple skills fire on "before commit". Execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
-| 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | **progressive-code-review-gate** | Harsh adversarial code review loop | All code commits |
-| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
-
-**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
+| Failure | Recovery |
+|---------|----------|
+| Claiming 'lint passes' without showing output | VIOLATION: Every gate claim requires visible tool output in response |
+| Running tests after push (CI-first anti-pattern) | Run ALL gates locally before `git commit`. CI confirms, not discovers. |
+| Skipping dangerous-pattern-scan for .sh files | Step 0 is mandatory when .sh files are staged |
+| Not re-running gates after fixing gate failures | Fixes are new code. They need their own gate pass. |

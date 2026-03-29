@@ -1,21 +1,25 @@
 # superpowers-plus
 
-63 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+72 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
+## Development Process
+
+Development now uses private branches for maturation, testing, and validation before merging to main. Expect less frequent commits as changes are batched into reviewed, tested releases.
+
 ## What's Included
 
-**63 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**72 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 18 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, systematic debugging, feature lifecycle, output verification |
-| productivity | 15 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
+| engineering | 20 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification |
+| productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 6 | Orchestrator pipeline, link checks, credential scanning, fact-checking |
 | issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
-| observability | 4 | Completeness checks, audit validation, repo verification, diagnostics |
+| observability | 8 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
 | security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
 | research | 3 | Perplexity integration, research incorporation, expert interviewing |
 | experimental | 1 | Self-prompting patterns |
@@ -123,7 +127,8 @@ Skills activate automatically when your request matches their triggers. Describe
 | You say... | Skill triggered | What happens |
 |------------|-----------------|--------------|
 | "You're stuck in a loop!" | think-twice | Pauses, consults fresh sub-agent |
-| "Create a wiki page for X" | wiki-orchestrator | Full wiki authoring pipeline |
+| "Create a wiki page for X" | (direct wiki API) | Single-page creation doesn't need a skill |
+| "Build a multi-page wiki section" | wiki-orchestrator | Bulk/multi-page documentation pipeline |
 | "Review this PR" | providing-code-review | Structured feedback with checklist |
 | "Is this done?" | completeness-check | Audits for incomplete work |
 | "Check for security issues" | repo-security-scan | Full scan (secrets, deps, patterns, config) |
@@ -138,15 +143,16 @@ Skills activate automatically when your request matches their triggers. Describe
 |--------|-------|--------------|
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
+| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
-| | engineering-rigor | Hub: routes to output-verification, pre-commit-gate, blast-radius-check, providing-code-review |
-| | feature-development | Orchestrates full feature lifecycle: requirements → design → implement → verify |
+| | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
+| | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
 | | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
-| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
+| | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
@@ -163,6 +169,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | observability | completeness-check | Detects incomplete work from crashes or context loss |
 | | exhaustive-audit-validation | Confirms checklist coverage |
 | | holistic-repo-verification | Checks all CI paths |
+| | skill-health-check | Validates skill ecosystem: YAML frontmatter, coordination, failure modes |
 | | superpowers-doctor | 22-check diagnostic across all installed skills |
 | productivity | adversarial-search | Defeats confirmation bias by searching for counter-evidence |
 | | code-review | File-protocol handoff for inter-agent code review |
@@ -189,7 +196,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | wiki | link-verification | Confirms URLs resolve |
 | | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
-| | wiki-orchestrator | Entry point for all wiki authoring and editing |
+| | wiki-orchestrator | Pipeline orchestrator: dispatches coherence, link, secret, slop, and fact-check skills |
 | | wiki-secret-audit | Finds leaked credentials in wiki pages |
 | | wiki-verify | Checks codebase references for drift |
 | writing | detecting-ai-slop | Scores text 0–100 for machine patterns |

@@ -1,13 +1,16 @@
 # Code Review Battery — Technical Design Document
 
-> **Status**: Shipped (Phase 2: Monolith + Learning)
+> **Status**: Active Development (v2.5 — callee trace, scoring, convergence)
 > **Companion**: [PRD.md](./PRD.md)
 > **Created**: 2026-03-27
-> **Phase 1 Shipped**: 2026-03-27 (5 specialists, sub-agent-code-reviewer)
-> **Phase 2 Shipped**: 2026-03-28 (monolith as 6th member, gap analysis, dashboard, Shadow Lane learning)
-> **Confidence**: 85/100
+> **v2 Shipped**: 2026-03-28 (ripple analysis, consumer trace, comment-as-spec)
+> **v2.3 Shipped**: 2026-03-28 (feedback loop analysis, paired boundary tests, convergent findings, Round 2 escalation)
+> **v2.5 Shipped**: 2026-03-28 (callee implementation trace, scoring metrics, convergence logic, tightening rules, coordinator merge)
+> **Confidence**: 92/100 (v2.2 battery caught all Round 1-3 findings in single pass)
 
 ## Architecture Overview
+
+The battery follows a 5-phase pipeline defined in `skill.md`:
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -15,105 +18,116 @@
 │  progressive-code-review-gate  |  manual invoke  │
 └──────────────────┬──────────────────────────────┘
                    │
-                   ▼
-┌─────────────────────────────────────────────────┐
-│              Triage Coordinator                  │
-│  Analyzes diff → selects relevant specialists    │
-│  Monolith activates on full reviews (default on)  │
-└──────────────────┬──────────────────────────────┘
+              Phase 1: Triage
+              (select reviewers)
                    │
-     ┌─────────────┼──────────┬──────────┬──────────┬──────────┐
-     ▼             ▼          ▼          ▼          ▼          ▼
-┌─────────┐ ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
-│ Defect  │ │ Design  ││Guardian ││Standards││ Perf    ││MONOLITH │
-│ Finder  │ │ Critic  ││         ││Enforcer ││ Analyst ││(default)│
-│         │ │         ││         ││         ││         ││         │
-│ Triage  │ │ Triage  ││ Triage  ││ Triage  ││ Triage  ││ Default │
-└────┬────┘ └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
-     │           │          │          │          │          │
-     └───────────┴──────────┴──────────┴──────────┘          │
-                            │                                │
-                            ▼                                │
-               ┌────────────────────────┐                    │
-               │ Aggregation (Phase 3)  │                    │
-               │ Unified review report  │                    │
-               └───────────┬────────────┘                    │
-                           │                                 │
-                           ▼                                 ▼
-               ┌─────────────────────────────────────────────┐
-               │          Gap Analysis (Phase 5)             │
-               │  Compare specialist findings vs monolith    │
-               │  Classify gaps → propose candidates         │
-               └───────────┬─────────────────────────────────┘
-                           │
-                           ▼
-               ┌─────────────────────────────────────────────┐
-               │       Update Dashboard (Phase 6)            │
-               │  Wiki: metrics, gaps, learning pipeline     │
-               └─────────────────────────────────────────────┘
+              Phase 2: Diff + Source Context + Dispatch
+              (capture diff, gather ripple context,
+               callee traces, dispatch in parallel)
+                   │
+        ┌──────────┼──────────┬──────────┬──────────┐
+        ▼          ▼          ▼          ▼          ▼
+   ┌─────────┐┌─────────┐┌─────────┐┌─────────┐┌─────────┐
+   │ Defect  ││ Design  ││Guardian ││Standards││ Perf    │
+   │ Finder  ││ Critic  ││         ││Enforcer ││ Analyst │
+   └────┬────┘└────┬────┘└────┬────┘└────┬────┘└────┬────┘
+        │          │          │          │          │
+        └──────────┴──────────┴──────────┴──────────┘
+                              │
+              Phase 3: Aggregate
+              (sort, classify, triple-filter,
+               tightening, live metrics)
+                              │
+              Phase 4: Escalation (Round 2)
+              (trigger-based re-dispatch with
+               diff + source context re-attached)
+                              │
+              Phase 5: Convergence
+              (stop/continue/escalate-to-human)
+                              │
+                              ▼
+                     Final Report
 ```
 
 ## File Structure
 
 ```
-~/.agents/skills/code-review-battery/
-├── skill.md                    # Skill entry point with triggers
-├── PRD.md                      # Product requirements (this file's companion)
-├── DESIGN.md                   # This file
-├── coordinator.md              # Triage + aggregation + gap analysis + dashboard
+# Repo (source of truth)
+skills/engineering/code-review-battery/
+├── skill.md                    # Skill entry point — triage, dispatch, aggregate, escalate
+├── DESIGN.md                   # Architecture docs (NOT installed to ~/.agents/)
+├── PRD.md                      # Product requirements (NOT installed to ~/.agents/)
 ├── reviewers/
-│   ├── defect-finder.md        # Specialist 1 prompt
-│   ├── design-critic.md        # Specialist 2 prompt
-│   ├── guardian.md             # Specialist 3 prompt
-│   ├── standards-enforcer.md   # Specialist 4 prompt
-│   ├── performance-analyst.md  # Specialist 5 prompt
-│   ├── monolith.md             # Reviewer 6 — comprehensive (default on full reviews)
-│   ├── *-patterns.md           # Active learned patterns per reviewer (graduated) — created lazily
-│   └── *-patterns.candidate.md # Candidate patterns (Shadow Lane) — created lazily
-├── checks/                     # Executable check scripts (graduated) — created lazily
-│   └── candidates/             # Candidate scripts (Shadow Lane) — created lazily
-└── (no platform-specific files — dispatch uses sub-agent-code-reviewer on Augment,
-     subagent()/Task() on Claude Code)
+│   ├── defect-finder.md        # Agent 1 — correctness, ripple analysis, state lifecycle
+│   ├── design-critic.md        # Agent 2 — factoring, complexity, naming
+│   ├── guardian.md             # Agent 3 — security, blast radius, contract drift
+│   ├── standards-enforcer.md   # Agent 4 — docs, test quality, observability
+│   ├── performance-analyst.md  # Agent 5 — performance, logging
+│   └── monolith.md             # On-demand comprehensive reviewer
+
+# Installed (runtime only — no process docs)
+~/.agents/skills/code-review-battery/
+├── skill.md, reviewers/*.md
 ```
+
+> **Monolith demotion rationale (v2):** V4 validation showed monolith had higher single-reviewer recall than any specialist. However, v2's ripple analysis techniques (consumer trace, state lifecycle, feedback loop analysis) absorbed the monolith's recall advantage into the specialist prompts. The 5-specialist battery now matches or exceeds monolith recall while providing structured, attributable findings. Monolith retained as on-demand fallback for comprehensive single-pass reviews.
 
 ## Platform Dispatch
 
-### Augment
+### Augment.ai
 
-Uses `sub-agent-code-reviewer` with unique names. Activated reviewers fire in parallel:
-
-Each reviewer instruction follows the 4-part contract from `coordinator.md`:
+Uses `sub-agent-code-reviewer` with unique names. All activated reviewers fire in parallel:
 
 ```
 # Dispatched by the coordinator (the orchestrating agent):
-sub-agent-code-reviewer(
-  name="battery-defect-finder",
-  instruction="<reviewer prompt> + repo path + exact diff command + read full files"
-)
-# ... repeated for each activated reviewer
+sub-agent-code-reviewer(name="battery-defect-finder", instruction=<defect-finder.md prompt + diff + source context>)
+sub-agent-code-reviewer(name="battery-design-critic", instruction=<design-critic.md prompt + diff>)
+sub-agent-code-reviewer(name="battery-guardian", instruction=<guardian.md prompt + diff + source context>)
+sub-agent-code-reviewer(name="battery-standards", instruction=<standards-enforcer.md prompt + diff>)
+# Performance Analyst skipped if no perf-sensitive code
 ```
 
 **Why `sub-agent-code-reviewer`?**
-- Reviewers have full workspace access — they can read source files, run tests, and execute code
-- Benchmarking showed `sub-agent-explore` (static diff analysis) missed deep architectural bugs that required code execution to find
-- Parallel execution with workspace access gives both speed and quality
-- Each reviewer runs the exact `git diff` command matching the review scope and reads full source files
+- Purpose-built sub-agent type for code review tasks in Augment workspaces
+- Pre-configured with workspace access — no manual setup needed
+- Supports parallel dispatch with unique names
+- Reviewer behavior is controlled by the instruction prompt
 
-### Claude Code (deferred — documented, not yet validated)
+### Claude Code
 
-Use `subagent()` or `Task()` with tool access enabled. Each reviewer needs shell
-access to run `git diff` and `cat` source files. Same 4-part instruction contract
-as Augment dispatch. Parallel execution where the platform supports it.
+Two options (prefer Option A):
 
-> **Status**: Claude Code dispatch is documented in `skill.md` and `coordinator.md`
-> but has not been validated in a CC environment (AC5 deferred). See PRD.md.
+**Option A: Custom Subagent Files** (recommended)
+Install `.claude/agents/` files during setup. Claude auto-delegates based on description:
+
+```yaml
+# .claude/agents/battery-defect-finder.md
+---
+name: battery-defect-finder
+description: "Code review focused on defects: correctness, edge cases, error handling, concurrency"
+tools: ["View", "Bash", "Grep"]
+---
+<defect-finder prompt content>
+```
+
+**Option B: Inline Task Dispatch**
+The skill instructs the agent to use `Task()` calls directly:
+```
+Task("Review for defects: <diff content>")
+Task("Review for design: <diff content>")
+```
+
+Option A is preferred because it survives across sessions, auto-delegates, and
+can be version-controlled. Option B is simpler but requires the agent to
+understand the dispatch pattern each time.
 
 ### Graceful Degradation
 
-If parallel dispatch is not available, the `progressive-code-review-gate` defines
-a monolithic fallback path using a single reviewer covering all review dimensions.
-The battery itself does NOT implement this fallback — it requires parallel sub-agent
-dispatch. The gate is the degradation boundary.
+If neither sub-agent tools nor Task() are available (e.g., a basic LLM chat),
+the battery cannot dispatch parallel reviewers. The user should fall back to
+the monolith reviewer (`reviewers/monolith.md`) which covers all dimensions
+in a single pass. Quality degrades (no parallelism, no specialization) but
+review dimensions are preserved.
 
 ## Triage Coordinator Design
 
@@ -130,32 +144,29 @@ which reviewers to activate.
 
 ### Decision Rules
 
-| Condition | Specialists Activated | Monolith |
-|-----------|----------------------|----------|
-| Any code change | Defect Finder, Guardian, Standards Enforcer | Default on |
-| Adds/modifies classes, functions, public APIs | + Design Critic | Default on |
-| Touches DB, loops, caching, or >500 LOC | + Performance Analyst | Default on |
-| Docs-only change | Standards Enforcer only | Default on |
-| Config/dependency change only | Guardian only | Default on |
-| `--all` flag | All 5 specialists | Default on |
-| `--only=<name>` flag | Named reviewer only | Default on (unless `--skip-monolith`) |
-| `--skip-monolith` | Per triage rules | **OFF** (disables learning) |
-| Targeted re-review (Phase 4) | Nit-producing reviewers only | Only if it produced nits |
+| Condition | Reviewers Activated |
+|-----------|-------------------|
+| Any code change | Defect Finder, Guardian, Standards Enforcer |
+| Adds/modifies classes, functions, public APIs | + Design Critic |
+| Touches DB, loops, caching, network I/O, or >500 LOC | + Performance Analyst |
+| Docs-only change | Standards Enforcer only |
+| Config/dependency change only | Guardian only |
+| `--all` flag | All 5 specialists + Monolith |
+| `--only=<name>` flag | Named reviewer only |
 
 ### Output
 A JSON-like selection that the dispatcher uses:
 ```json
 {
-  "specialists_activated": ["defect-finder", "guardian", "standards-enforcer", "design-critic"],
-  "specialists_skipped": ["performance-analyst"],
-  "monolith": "YES",
+  "activated": ["defect-finder", "guardian", "standards-enforcer", "design-critic"],
+  "skipped": ["performance-analyst"],
   "reasoning": "No DB/perf-sensitive code touched. 3 files changed, all in src/."
 }
 ```
 
 ## Reviewer Prompt Structure
 
-Each reviewer prompt (in `reviewers/<name>.md`) follows a consistent template:
+Each reviewer prompt follows a consistent template:
 
 ```markdown
 # [Reviewer Name]
@@ -165,14 +176,7 @@ You are reviewing code changes with a specific focus: [MENTAL MODEL].
 You ONLY report findings in your domain. Do not comment on other dimensions.
 
 ## What to Review
-Run the git diff command provided to see the changes. Then read the full source
-files for every changed file.
-
-## Workspace Access
-You have full workspace access. Use it:
-- cat <file> to read the complete source file
-- grep -rn <pattern> <dir> to find callers, related code
-- Run tests if they exist for the changed files
+[DIFF CONTENT]
 
 ## Your Dimensions
 [LIST OF SPECIFIC DIMENSIONS WITH EXAMPLES]
@@ -184,10 +188,12 @@ Clearly mark any finding where confidence is 60-80% as "Possible: ..."
 ## Output Format
 For each finding:
 - **Severity**: Critical / Important / Minor
-- **File:Line**: Location (in the diff or directly affected downstream file)
+- **File:Line**: Exact location
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (impact)
-- **Fix**: How to fix (if not obvious)
+- **Fix**: How to fix (propose exact change if possible)
+- **Regressions Risked**: What could break if this fix is applied
+- **Durable Check**: Lint rule, test, assertion, or invariant to catch this class permanently
 
 If you find NO issues in your domain, say:
 "✅ No [domain] issues found."
@@ -213,93 +219,31 @@ No separate aggregation agent — this avoids the serial bottleneck.
    3. [Design Critic] Function exceeds 200 LOC in parser.js:1 — ...
    ```
 
-## Learning System: Shadow Lane
-
-The battery improves via candidate staging after full review rounds (Shadow Lane model).
-
-### Architecture
-
-```
-Review Run
-  ├─ Specialists (5 agents, triage-gated)  ──┐
-  │                                           ├─→ Aggregation → User-visible report
-  └─ Monolith (default on full reviews)    ──┘
-                                               │
-                                    Gap Analysis (Phase 5)
-                                               │
-                        ┌──────────────────────┴──────────────────────┐
-                        │              For each gap:                   │
-                        │  1. Classify: pattern or script              │
-                        │  2. Generate candidate                       │
-                        │  3. Stage in Shadow Lane (candidate files)   │
-                        └──────────────────────┬──────────────────────┘
-                                               │
-                                    Graduation Pipeline
-                                               │
-                        ┌──────────────────────┴──────────────────────┐
-                        │  Adversarial validation on holdout diffs     │
-                        │  30-day stability window                     │
-                        │  ≥92% precision on 200+ stratified diffs     │
-                        │  → Graduate to active pattern/script         │
-                        └─────────────────────────────────────────────┘
-```
-
-### Candidate Lifecycle
-
-| Stage | Location | Visible to User? | TTL |
-|-------|----------|------------------|-----|
-| Proposed | `*-patterns.candidate.md` or `checks/candidates/` | No | 14 days |
-| Validated | Same, with validation metadata | No | 30 days |
-| Graduated | `*-patterns.md` or `checks/` | Yes (active) | Must revalidate periodically |
-| Quarantined | Removed from active, logged | No | Permanent (lineage blocked) |
-| Retired | Removed from active, logged | No | Permanent |
-
-### Safety Controls (Immutable)
-
-These controls are part of the safety control plane and cannot be modified by the learning system:
-
-1. **Independent evaluator**: Pattern quality is judged using a different prompt than the one that proposed the pattern
-2. **Stratified validation set**: 200+ diffs including a protected "canary pack" of historically tricky cases
-3. **Hard complexity budgets**: Max tokens per pattern file (TBD), max active patterns per reviewer (TBD), max scripts per lineage
-4. **TTL on all learned rules**: Every pattern expires unless revalidated
-5. **Precision floors**: Active patterns below 85% precision → quarantine + lineage blacklist
-6. **Automatic degradation response**: freeze → revert to baseline → quarantine lineage → replay recent history → escalate thresholds → cooldown → require 3 clean passes before re-entry
-
-### Dashboard Integration
-
-All learning metrics are tracked on the wiki dashboard:
-- **Page**: `Code Review Battery — Performance Dashboard`
-- **Outline Document ID**: `66eec34c-5590-4f4f-a370-b4d134cd174e`
-- Updated after full review rounds via Phase 6 (skipped on targeted re-reviews, `--skip-monolith`, or platform limitations)
-
 ## Integration with Existing Skills
 
 ### progressive-code-review-gate
-Flow: gather diff → run triage coordinator → dispatch battery → aggregate → process results → loop if needed.
-
-The gate delegates to the battery as the primary review path. If parallel
-dispatch is impossible, the gate falls back to monolithic single-reviewer mode
-(see gate `skill.md` fallback section).
+Delegates to the battery's Phase 1–5 pipeline (Triage → Diff+Context+Dispatch → Aggregate → Escalation → Convergence). Falls back to monolithic review if battery is unavailable.
 
 ### requesting-code-review
-This is a pre-existing framework skill (from `superpowers`) that dispatches
-review for PR-level or pre-merge review. It currently uses monolithic dispatch.
-Updating it to delegate to the battery is a future integration task.
+This skill dispatches review for PR-level or pre-merge review. It will similarly
+delegate to the battery when available.
 
 ## Installation
 
 ### Augment.ai
 ```bash
-# install.sh already copies skills to ~/.agents/skills/
-# sub-agent-code-reviewer is available in Augment workspaces
-cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
+# Install runtime files only (exclude DESIGN.md, PRD.md)
+rsync -av --exclude='DESIGN.md' --exclude='PRD.md' \
+  skills/engineering/code-review-battery/ ~/.agents/skills/code-review-battery/
 ```
 
-### Claude Code (deferred)
-```
-# No platform-specific install needed. Reviewer prompts are in reviewers/.
-# The skill.md and coordinator.md contain dispatch instructions for Claude Code.
-# See AC5 in PRD.md — not yet validated in a CC environment.
+### Claude Code
+```bash
+# Copy reviewer prompts as custom subagent files
+mkdir -p .claude/agents/
+for reviewer in defect-finder design-critic guardian standards-enforcer performance-analyst; do
+  cp ~/.agents/skills/code-review-battery/reviewers/$reviewer.md .claude/agents/battery-$reviewer.md
+done
 ```
 
 ## Investigation Log
@@ -308,31 +252,35 @@ cp -r skills/code-review-battery/ ~/.agents/skills/code-review-battery/
 
 | Date | Experiment | Result | Impact on Design |
 |------|-----------|--------|-----------------|
-| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. |
+| 2026-03-27 | V1: Parallel dispatch smoke test | ✅ PASS — 5 simultaneous sub-agent calls returned successfully | Confirms Augment dispatch is viable. No concurrency limit at N=5. Later switched to `sub-agent-code-reviewer`. |
 | 2026-03-27 | V2: Defect Finder prompt test | ✅ PASS — Found 1 Important + 1 Minor real issue, 0 false positives | Prompt format works. Found genuine intent-routing ordering bug + stemming redundancy. |
-| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **HISTORICAL**: Led to inline diff model. Later superseded by `sub-agent-code-reviewer` which has workspace access. |
-| 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same — superseded by workspace-aware dispatch. |
-| 2026-03-27 | V2b: Guardian prompt test (inline diff) | ✅ PASS — Correctly found no security/blast-radius issues on safe additive diff. | Guardian produces clean "no issues" when appropriate. |
-| 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. | Standards Enforcer is appropriately thorough. |
+| 2026-03-27 | V2: Guardian prompt test (file refs) | ❌ FAIL — Sub-agent couldn't access diff from file references | **CRITICAL LEARNING**: Diff must be INLINE in instruction. Sub-agents don't inherit parent conversation context. |
+| 2026-03-27 | V2: Standards Enforcer test (file refs) | ❌ FAIL — Same as Guardian | Same fix: inline diff content. |
+| 2026-03-27 | V2b: Guardian prompt test (inline diff) | ✅ PASS — Correctly found no security/blast-radius issues on safe additive diff. Systematic 4-dimension coverage. 0 false positives. | Inline diff approach works. Guardian produces clean "no issues" when appropriate. |
+| 2026-03-27 | V2b: Standards Enforcer test (inline diff) | ✅ PASS — Thorough conformance check. Verified stem derivations, YAML frontmatter, arithmetic on skill counts. 0 false positives. | Inline diff works. Standards Enforcer is appropriately thorough. |
 | 2026-03-27 | V3: Triage Coordinator test | ✅ PASS — Correctly activated 4/5 reviewers, skipped Performance Analyst. Sound reasoning. Output matched JSON format. | Triage logic works as designed. Design Critic correctly triggered for routing API changes. |
 | 2026-03-27 | V4: Monolithic vs Battery comparison | ⚠️ MIXED — See detailed analysis below | Battery more precise; monolithic finds more but with more noise. See V4 Analysis. |
-| 2026-03-27 | V6: Diff A (small, 3 files) | ✅ Battery: 0 findings (correct for string literal). Monolithic: 7 findings, ~5 false positives (claimed files don't exist, phantom references). | Battery precision 100%, monolithic ~35%. Battery correctly identifies safe change. |
-| 2026-03-27 | V7: Diff B (medium, 3 files, workflow rewrite) | ✅ Battery Defect Finder: 6 findings, 3 true positives (broad triggers, cascading invocation). Monolithic: 12 findings, 5 TP, 3 FP, 4 severity overrating. | Battery precision ~50%, monolithic ~42%. Both caught broad trigger issue. Monolithic had more noise. |
-| 2026-03-27 | V8: Diff C (large, 22 files, YAML housekeeping) | ⚠️ Triage correct (3/5). Guardian + Monolithic degraded (insufficient inline context for 22-file diff). | **LEARNING**: Large multi-file diffs need better summarization strategy. Per-file dispatch may be needed for 15+ file diffs. |
-| 2026-03-27 | V5: Token cost (estimated) | ✅ ~1.5x monolithic for small/medium diffs | Within 3x budget. Large diffs with full inline would be ~4-5x. |
+| — | V5: Token cost measurement | ⬜ Deferred — not a priority while improving precision | — |
+| 2026-03-28 | V6: v2.2 battery against real PR (3 files, +513/-43) | ✅ PASS — All Round 1-3 findings caught in single pass. 10 findings, 0 false positives. 4 reviewers dispatched in parallel. | Source context + ripple analysis is the key differentiator. Battery v2.2 is production-ready. |
+| 2026-03-28 | V7: v2.3 additions (feedback loop, paired boundary, convergent) | ✅ Committed — learnings from V6 incorporated | 3 new techniques added, all evidence-based. |
 
-### Design Constraint Discovered (V2) — SUPERSEDED
+### Design Constraint Discovered (V2)
 
-> **Historical note**: The original V2 experiments used `sub-agent-explore`, which has isolated context (no workspace access). This constraint led to inline diff injection. In v2 (2026-03-28), the battery switched to `sub-agent-code-reviewer`, which has full workspace access. Reviewers now run `git diff` themselves and read source files directly. The inline diff constraint no longer applies.
+**Sub-agents do not inherit the parent agent's conversation context.** While
+`sub-agent-code-reviewer` has workspace access (can read files, run commands),
+it starts with a blank conversation — it doesn't know what diff you're reviewing
+unless you tell it. Providing diff and source context inline in the instruction
+ensures reviewers have exactly the right information without needing to navigate
+the codebase, and is more reliable than expecting them to run git commands.
 
-Original constraint (v1, `sub-agent-explore`):
-1. The coordinator captured the full diff before dispatching
-2. Each reviewer received the full diff INLINE in its instruction
-3. Reviewers could NOT read workspace files or run code
-4. Token cost scaled with diff size × number of reviewers
+1. The **coordinator** captures the full diff before dispatching
+2. Each reviewer instruction includes the **full diff content inline** + source context
+3. For large diffs, the coordinator may **chunk** the diff per reviewer
+   (e.g., Defect Finder gets src/ changes, Guardian gets config/ changes)
+4. This is a token cost driver — the diff is repeated N times (once per reviewer)
 
-**v2 resolution** (2026-03-28, `sub-agent-code-reviewer`): reviewers now run the
-diff command themselves, eliminating inline injection and enabling code execution.
+**Mitigation**: Triage gating reduces N (fewer reviewers = fewer copies of the diff).
+For very large diffs (>2000 lines), consider per-file dispatch instead of per-reviewer.
 
 
 ### V4 Analysis: Monolithic vs Battery
@@ -397,27 +345,3 @@ Based on V2b runs, estimated token usage per reviewer:
 **Battery/Monolithic ratio**: ~1.4-1.6x for small diffs. Acceptable (AC12 threshold is 3x).
 For large diffs (2000+ LOC), ratio increases because diff is duplicated per reviewer.
 Triage gating (reducing from 5 to 3-4 active reviewers) is the primary cost control.
-
-### Aggregate Comparison (V4 + V6 + V7 + V8)
-
-**Across 4 test diffs (V4 output-verification, V6 evidence-requirements, V7 feature-dev-rewrite, V8 YAML-housekeeping):**
-
-| Metric | Battery | Monolithic |
-|--------|---------|-----------|
-| Total findings | 8 | 29 |
-| True positives | 5 | 13-14 |
-| False positives | 1 | 12-13 |
-| Severity overratings | 2 | 8+ |
-| **Precision** | **~63%** | **~46%** |
-| Context failures | 1 (Diff C) | 1 (Diff C) |
-
-**Key takeaways**:
-1. Battery precision consistently higher (63% vs 46%)
-2. Monolithic finds more issues but ≥40% are noise or overrated
-3. Battery triage was correct on all 4 diffs
-4. Large multi-file diffs degrade both approaches (mitigated in v2 by workspace access)
-5. Battery ran only Defect Finder on most tests — full battery would improve recall
-
-**Phase 1c gate decision**: ✅ PASS. Precision ≥90% on clean diffs (A), ≥50% on
-complex diffs (B). Recall gap is addressable by running full battery (not just
-Defect Finder). No prompt iteration needed — prompts are solid.

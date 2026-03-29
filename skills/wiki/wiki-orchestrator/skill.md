@@ -2,7 +2,7 @@
 name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
-anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page"]
+anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page", "check accuracy", "fact-check", "verify claims"]
 description: "Orchestrates BULK and MULTI-PAGE documentation projects — reorganizing multiple pages, cross-referencing across sections, publishing coordinated updates. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). NOT for single-page edits (use platform-specific editing skills like outline-wiki-editing)."
 summary: "Use when: bulk documentation projects, multi-page reorganization, cross-referencing. Skip when: editing one page, creating one page, deleting one page."
 coordination:
@@ -16,6 +16,8 @@ coordination:
 
 # Wiki Orchestrator
 
+> **Wrong skill?** Checking wiki links → `link-verification`. Fact-checking wiki → `wiki-debunker` or `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+
 > **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
 > **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 
@@ -25,7 +27,8 @@ coordination:
 
 <EXTREMELY_IMPORTANT>
 
-**Every wiki operation MUST pass through this pipeline. No exceptions.**
+**Every BULK/MULTI-PAGE wiki operation MUST pass through this pipeline.**
+Single-page edits, creates, and deletes → use wiki API directly.
 
 | Stage | Gate | What Happens |
 |-------|------|-------------|
@@ -114,30 +117,25 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | "I know the links are correct" | Memory is unreliable, verify anyway |
 | "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-## Related Skills
-
-| Skill | Role |
-|-------|------|
-| `wiki-content-coherence` | Stage 2.5: Duplication detection |
-| `link-verification` | Stage 3: URL verification (HARD GATE) |
-| `eliminating-ai-slop` | Stage 5: Prose quality |
-| `wiki-debunker` | Stage 6: Fact-checking |
-| `wiki-verify` | Post-publish: Version drift |
-
-## Reference Files
+## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
 
+## Failure Modes
 
-## When to Use
+| Failure | Recovery |
+|---------|----------|
+| Running full pipeline for single-page edits | Use wiki API directly — pipeline is for bulk/multi-page |
+| Skipping pipeline stages | All stages mandatory for bulk ops |
+| Pipeline stage fails but agent continues | Stage failure = halt. Fix, restart from failed stage |
 
-- For ALL wiki authoring, editing, and publishing operations — no exceptions
-- When creating new wiki pages from scratch
-- When updating existing wiki content
-- When reviewing wiki pages for quality
+## Companion Skills
 
-```bash
-# Example: create a wiki page through the orchestrator pipeline
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestrator
-```
+- **wiki-content-coherence**: Stage 2.5 — duplication detection
+- **link-verification**: Stage 3 — URL verification (HARD GATE)
+- **eliminating-ai-slop**: Stage 5 — prose quality
+- **wiki-debunker**: Stage 6 — fact-checking
+- **wiki-verify**: Post-publish — version drift
+- **wiki-secret-audit**: Secret scanning
+- **wiki-instruction-guard**: Instruction injection prevention

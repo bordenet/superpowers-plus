@@ -2,11 +2,21 @@
 name: adversarial-search
 source: superpowers-plus
 triggers: ["adversarial search", "investigation inversion", "search for the wrong thing", "confirmation bias check"]
+anti_triggers: ["brainstorm", "design options", "plan this feature", "self-prompt"]
 description: Use when investigating bugs, inconsistencies, conducting any search/grep task, OR when the user requests rigorous/thorough/comprehensive analysis. Routed to by thinking-orchestrator for confirmation-bias, negative-finding, and depth-challenge triggers. Prevents confirmation bias by forcing search for the WRONG thing, not just confirming the RIGHT thing exists.
 summary: "Use when: investigating bugs or conducting search tasks. Prevents confirmation bias."
+coordination:
+  group: thinking
+  order: 2
+  requires: []
+  enables: ["think-twice", "verification-before-completion"]
+  escalates_to: ["thinking-orchestrator"]
+  internal: false
 ---
 
 # Adversarial Search
+
+> **Wrong skill?** Getting unstuck on a bug → `think-twice`. Research → `perplexity-research`. Broad brainstorming → `brainstorming`.
 
 > **Never confirm correctness. Hunt for incorrectness.** The user's observed behavior is ground truth. Your grep results are not.
 
@@ -61,12 +71,19 @@ When user asks for rigor/thorough/comprehensive analysis:
 | "No changes needed" | The user just told you something is broken. It is. |
 
 
+## Companion Skills
+
+- **think-twice**: Escalation when adversarial search isn't enough
+- **systematic-debugging**: For specific bug investigation
+- **verification-before-completion**: Final verification step
+- **investigation-state**: Investigation state tracking
 ## When to Use
 
 - When investigating bugs, inconsistencies, or suspected incorrect values
 - BEFORE declaring negative findings ("no issue found", "already correct")
 - When user reports a problem and you're about to dismiss it
 - When user requests rigorous, thorough, or comprehensive analysis
+
 
 ## Failure Modes
 

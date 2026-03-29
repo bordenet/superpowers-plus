@@ -2,8 +2,16 @@
 name: issue-comment-debunker
 source: superpowers-plus
 triggers: ["comment on ticket", "post status update", "add investigation summary", "update the ticket with"]
+anti_triggers: ["create issue", "update ticket fields", "close ticket"]
 description: Use BEFORE posting any comment or update to issue tickets. Prevents fabricated investigation summaries, status updates, and unverified claims. Evidence before assertion — no claims without citations.
 summary: "Use when: posting comments on issue tickets. Skip when: reading issues only."
+coordination:
+  group: issue-tracking
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Comment Debunker
@@ -11,7 +19,8 @@ summary: "Use when: posting comments on issue tickets. Skip when: reading issues
 > **Purpose:** Prevent AI from posting fabricated or misleading comments on tickets
 > **Pattern:** Evidence before assertion — no claims without citations
 
----
+> **Wrong skill?** Creating new issues → `issue-authoring`. Updating issue fields → `issue-editing`. Verifying URLs → `issue-link-verification`.
+
 
 ## When to Use
 
@@ -23,7 +32,6 @@ Invoke **BEFORE** any of these actions:
 - Attributing statements to team members
 - Claiming specific timestamps, metrics, or outcomes
 
----
 
 ## ⛔ The Iron Rule
 
@@ -43,7 +51,6 @@ Invoke **BEFORE** any of these actions:
 
 </EXTREMELY_IMPORTANT>
 
----
 
 ## Pre-Comment Checklist
 
@@ -81,7 +88,6 @@ After thorough investigation, the root cause appears to be a race condition
 in the message processing layer.
 ```
 
----
 
 ## Forbidden Comment Patterns
 
@@ -122,7 +128,6 @@ I'm not certain about:
 Next step: [Specific action, not speculation]
 ```
 
----
 
 ## Safe vs. Unsafe Comments
 
@@ -134,26 +139,13 @@ Next step: [Specific action, not speculation]
 | "I'm not sure, but it might be..." | "The root cause is definitely..." |
 | "Question: Could X cause Y?" | "Investigation confirms X caused Y" |
 
----
 
 ## Before Posting: Final Check
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ISSUE COMMENT GATE                                         │
-├─────────────────────────────────────────────────────────────┤
-│ □ Every factual claim has cited evidence                   │
-│ □ No fabricated timestamps or metrics                       │
-│ □ No "investigation summary" framing                        │
-│ □ No attributions without source                            │
-│ □ Uncertainty is explicitly marked                          │
-│ □ Reads as observation, not authoritative conclusion        │
-└─────────────────────────────────────────────────────────────┘
+Every claim has evidence · no fabricated timestamps/metrics · no "investigation summary" framing · no unsourced attributions · uncertainty marked · reads as observation, not conclusion.
 
-If ANY box is unchecked → REWRITE before posting.
-```
+**If ANY check fails → REWRITE before posting.**
 
----
 
 ## Recovery: If Bad Comment Posted
 
@@ -169,24 +161,29 @@ If you've already posted a problematic comment:
 
 3. **Notify the user** — they should review and potentially delete
 
----
 
-## Related Skills
+## Example
+
+```bash
+# Verify factual claims in issue comments
+# Check: commit SHAs exist, PR numbers are real, dates match events
+git log --oneline --after="2026-01-14" --before="2026-01-16" | head -5
+```
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Self-exemption: "This comment is different, I'm confident" | No — verify every factual claim regardless of confidence |
+| Quoting code from memory instead of re-reading the file | Re-read the file NOW — memory drifts within conversations |
+| Constructing a timeline by interpolating between git commit dates | Report only what git log actually says — gaps between commits are unknown |
+| Fabricating consensus: "The team agreed..." | Only attribute decisions you can cite from meeting notes or comments |
+
+## Companion Skills
 
 - **wiki-debunker**: Same principles for wiki content
 - **verification-before-completion**: General verification discipline
 - **think-twice**: Pause before consequential actions
-
----
-
-## Quick Reference
-
-```
-Before posting ANY your issue tracker comment:
-
-1. EXTRACT — What claims am I making?
-2. VERIFY — Can I cite evidence for each?
-3. REFRAME — Is this observation or conclusion?
-4. HEDGE — Am I marking uncertainty appropriately?
-5. CHECK — Does this look like fabricated analysis?
-```
+- **issue-editing**: Editing issues after debunking claims
+- **issue-authoring**: Creating issues with verified facts
+- **issue-link-verification**: Checking links referenced in comments

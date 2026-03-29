@@ -5,6 +5,13 @@ triggers: ["calculate slop score", "check for AI slop", "detect AI writing", "sl
 anti_triggers: ["fix slop", "rewrite", "edit this writing", "remove AI slop", "improve AI draft"]
 description: Use when analyzing text to calculate a slop score (0-100) that measures AI slop density. Read-only analysis — does NOT rewrite text (use eliminating-ai-slop for rewrites). Invoke for CVs, cover letters, marketing copy, drafts, tooltip definitions, documentation prose, or any text where you need to quantify machine-generated patterns before deciding whether to edit.
 summary: "Use when: analyzing text for AI slop score. Use for CVs, cover letters, documentation prose."
+coordination:
+  group: writing
+  order: 1
+  requires: []
+  enables: ['eliminating-ai-slop']
+  escalates_to: []
+  internal: false
 ---
 
 # Detecting AI Slop
@@ -13,7 +20,9 @@ summary: "Use when: analyzing text for AI slop score. Use for CVs, cover letters
 > **Last Updated:** 2026-03-12
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
 
-## Overview
+> **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
+
+## Detection Approach
 
 This skill analyzes text and produces a **slop score** (0-100) with detailed breakdown by detection dimension. Use it to quantify AI slop before deciding whether to rewrite.
 
@@ -28,7 +37,6 @@ This skill analyzes text and produces a **slop score** (0-100) with detailed bre
 - Compare before/after versions of edited text
 - Triage documents: which need the most cleanup?
 
----
 
 ## Content Type Detection
 
@@ -46,7 +54,6 @@ The skill auto-detects content type from context:
 
 **Override:** "Analyze this as a [type]: [text]"
 
----
 
 ## Output Format
 
@@ -73,7 +80,6 @@ Stylometric Measurements:
 Verdict: Heavy slop. Substantial rewrite needed.
 ```
 
----
 
 ## Scoring Algorithm
 
@@ -96,7 +102,6 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | 61-80 | Heavy: significant slop, substantial rewrite needed |
 | 81-100 | Severe: text reads as unedited AI output |
 
----
 
 ## Stylometric Thresholds
 
@@ -109,9 +114,8 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Type-Token Ratio | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
 | Hapax legomena rate | Below user baseline | At or above baseline |
 
----
 
-## Structural Patterns (25 points max)
+## Structural & Semantic Patterns (45 points max)
 
 | Pattern | Description | Points |
 |---------|-------------|--------|
@@ -120,19 +124,11 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Over-Signposting | "In this section...", "As mentioned earlier..." | +5 |
 | Staccato Paragraphs | >50% are 1-2 sentences | +5 |
 | Symmetric Coverage | Equal weight to all options without prioritization | +5 |
-
----
-
-## Semantic Patterns (20 points max)
-
-| Pattern | Description | Points |
-|---------|-------------|--------|
 | Hollow Specificity | "Many companies have seen improvements" (which?) | +5 |
 | Absent Constraints | Absolute claims without limitations | +5 |
 | Balanced to a Fault | Every pro has matching con of equal weight | +5 |
 | Circular Reasoning | Rephrases thesis without new evidence | +5 |
 
----
 
 ## Lexical Pattern Categories
 
@@ -147,7 +143,6 @@ For the complete pattern dictionary, see [reference.md](./reference.md).
 | Sycophancy | "Great question!", "Happy to help!" | Delete |
 | Typographic Tells | em-dash (—), smart quotes | Replace with standard punctuation |
 
----
 
 ## Dictionary Integration
 
@@ -159,7 +154,6 @@ This skill reads from `.slop-dictionary.json` if present in workspace root.
 
 **Note:** This skill reads from the dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
 
----
 
 ## Semantic Quick Tests
 
@@ -172,15 +166,23 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 | **Constraint** | "Implement microservices for scalability" | "Microservices add 3x ops overhead. Stay monolith unless dedicated platform team." |
 | **First-Person** | Generic enough to apply anywhere | Grounded in specific context |
 
----
 
-## Related Skills
+## Companion Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection
+- **readme-authoring**: README generation
+- **incorporating-research**: Score research quality before incorporating
+## Example
 
+```bash
+# Score text for AI patterns (read-only analysis)
+# GVR = Generality + Verbosity + Repetition
+echo "Check for: hedging ('It is worth noting'), filler ('In order to'),
+  superlatives ('incredibly powerful'), and vague claims ('comprehensive')"
+```
 
-## Common Failure Modes
+## Failure Modes
 
 - **False positives on domain jargon:** Flagging legitimate technical terms (e.g., "robust" in a load-testing context) as slop
 - **Score inflation:** Giving a passing score to text with subtle but pervasive AI patterns

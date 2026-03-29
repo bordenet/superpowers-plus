@@ -2,8 +2,16 @@
 name: issue-authoring
 source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
+anti_triggers: ["update ticket", "edit issue", "change status", "close ticket"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
 summary: "Use when: creating issues in any tracker. Skip when: updating existing issues."
+coordination:
+  group: issue-tracking
+  order: 0
+  requires: []
+  enables: ['issue-verify']
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Authoring
@@ -11,7 +19,17 @@ summary: "Use when: creating issues in any tracker. Skip when: updating existing
 > **Purpose:** Ensure consistent, high-quality issues with verified fields
 > **Adapter:** See `_adapters/` for platform-specific configuration
 
+> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+
 ---
+
+
+## When to Use
+
+- Creating new tickets in Linear, Azure DevOps, or Monday
+- When user requests a ticket for a bug, feature, or task
+- Converting conversation discussion into a trackable ticket
+- When acceptance criteria need to be formalized
 
 ## Configuration
 
@@ -120,7 +138,7 @@ Configure workflow states for your platform. Common patterns:
 
 ---
 
-## Quick Reference
+## Pre-Flight Checklist
 
 ```
 Before creating issue:
@@ -133,18 +151,27 @@ Before creating issue:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **issue-editing**: Fetch-before-edit workflow
 - **issue-link-verification**: Verify URLs before posting
 - **issue-comment-debunker**: Evidence-based comments only
 
+- **issue-verify**: Post-creation verification
 ## Related Tools
 
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
 
-## Common Failure Modes
+## Example
+
+```bash
+# Create a well-structured Linear ticket
+# Required: title, description with acceptance criteria, team assignment
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-authoring
+```
+
+## Failure Modes
 
 - **Vague titles:** "Fix bug" or "Update thing" — titles must be specific and actionable (max 80 chars)
 - **Missing acceptance criteria:** Issue created without clear definition of done

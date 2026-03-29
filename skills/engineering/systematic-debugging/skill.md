@@ -6,7 +6,15 @@ overrides: superpowers/systematic-debugging
 # discipline with explicit "NO FIXES WITHOUT INVESTIGATION" gate. Removes
 # verbose examples; adds structured hypothesis/evidence tracking format.
 triggers: ["debug this", "fix this bug", "test failure", "unexpected behavior", "build failure", "not working", "investigate error", "root cause"]
+anti_triggers: ["write tests first", "TDD", "implement feature", "create new"]
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+coordination:
+  group: engineering
+  order: 3
+  requires: []
+  enables: ["investigation-state", "think-twice"]
+  escalates_to: ["thinking-orchestrator"]
+  internal: false
 ---
 
 # Systematic Debugging
@@ -18,6 +26,8 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 - NOT for: feature design (`brainstorming`), code review (`providing-code-review`)
 
 **Core principle:** ALWAYS find root cause before attempting fixes.
+
+> **Wrong skill?** Feature design → `brainstorming`. Code review → `providing-code-review`.
 
 ```
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
@@ -75,6 +85,20 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 
 If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
 
+
+## Example
+
+```bash
+# Step 1: Reproduce the issue
+npm test -- --grep "failing test name" 2>&1 | tail -20
+
+# Step 2: Trace the data flow
+grep -rn "functionName" --include="*.ts" src/ | head -20
+
+# Step 3: Verify the fix doesn't break callers
+grep -rn "functionName(" --include="*.ts" src/ | wc -l
+```
+
 ## Failure Modes
 
 | Failure | Symptom | Recovery |
@@ -88,3 +112,14 @@ If 3+ fixes in different locations: the architecture is wrong, not your fix. Sto
 - `root-cause-tracing.md` — trace bugs backward through call stack
 - `defense-in-depth.md` — add validation at multiple layers
 - `condition-based-waiting.md` — replace arbitrary timeouts with condition polling
+
+## Companion Skills
+
+- `investigation-state` — persist debugging context across sessions for multi-day bugs
+- `think-twice` — dispatch fresh sub-agent when stuck in a hypothesis loop
+- `adversarial-search` — search for the WRONG value when symptoms contradict expectations
+- **investigation-state**: Complex multi-session debugging
+- **adversarial-search**: When debugging hits confirmation bias
+- **think-twice**: Escalation when debugging is stuck
+- **receiving-code-review**: Responding to review feedback
+- **failure-autopsy**: Post-mortem on failed approaches

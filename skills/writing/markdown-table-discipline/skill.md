@@ -2,6 +2,7 @@
 name: markdown-table-discipline
 source: superpowers-plus
 triggers: ["creating a table", "markdown table", "table formatting", "table vs list", "format as table"]
+anti_triggers: ["write a document", "create wiki page", "draft email"]
 description: Enforces best practices for Markdown table construction. Invoke when deciding table vs list format, or when formatting multi-column data. Prevents visual noise, redundancy, and accessibility issues.
 summary: "Use when: deciding table vs list format or formatting multi-column data."
 options:
@@ -10,11 +11,25 @@ options:
   max_rows: 25
   force_compact: true
   prefer_lists_below_n_items: 3
+coordination:
+  group: writing
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Markdown Table Discipline
 
+> **Wrong skill?** AI slop detection → `detecting-ai-slop`. README writing → `readme-authoring`. Plan/roadmap → `plan-quality-gates`.
+
 Enforces best practices for Markdown table construction. This skill auto-triggers when the AI is writing or editing Markdown documents (README.md, wiki pages, skill.md files, documentation).
+
+## Companion Skills
+
+- **eliminating-ai-slop**: Prose quality in table content
+- **readme-authoring**: Table usage in README files
 
 ## When to Use
 
@@ -22,7 +37,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - Deciding between table vs. list format for structured data
 - Reviewing content that contains tables for formatting quality
 
----
 
 ## Decision Gate: Table vs. List
 
@@ -49,7 +63,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - **Timeout:** 30s
 ```
 
----
 
 ## Structure Rules (HARD GATES)
 
@@ -101,43 +114,21 @@ Line breaks inside cells render inconsistently across tools. **Forbidden** unles
 
 Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose if needed.
 
----
 
 ## Visual Clarity Rules
 
-### Column Alignment
-
-| Column Type | Alignment |
-|-------------|-----------|
-| Text | Left-aligned (`:---`) |
-| Numeric | Right-aligned (`---:`) |
-| Status/Tags (Yes/No, 🦸/🔧) | Center-aligned (`:---:`) |
-
-### Pipe Spacing
-
-One space around pipes minimum for raw Markdown readability:
-
-❌ `|Name|Value|`
-✅ `| Name | Value |`
-
-### Consistent Vocabulary
-
-Use predictable terms:
-- `Yes / No / Partial` (not "Yep / Nope / Kinda")
-- `Low / Medium / High` (not "Minimal / Moderate / Substantial")
-- `Required / Optional / Deprecated`
-
----
+**Alignment**: Text left (`:---`) · numeric right (`---:`) · status/tags center (`:---:`).
+**Spacing**: `| Name | Value |` not `|Name|Value|`.
+**Vocabulary**: `Yes/No/Partial` · `Low/Medium/High` · `Required/Optional/Deprecated`.
 
 ## Semantic Rules
 
-1. **Unambiguous headers** — No generic "Misc" or "Notes" columns unless absolutely necessary
-2. **Consistent column types** — Don't mix booleans, prose, and numbers in the same column
-3. **No redundant columns** — If "Status" and "Is Complete?" convey the same info, keep only one
-4. **No derived columns** — If one column is derivable from another, drop it or move to notes
-5. **Tables are for data, not layout** — Don't use tables for visual formatting or pseudo-forms
+1. **Unambiguous headers** — no generic "Misc" or "Notes" columns
+2. **Consistent column types** — don't mix booleans, prose, and numbers
+3. **No redundant columns** — if two columns convey the same info, keep one
+4. **No derived columns** — derivable from another → drop or move to notes
+5. **Tables are for data, not layout**
 
----
 
 ## Anti-Patterns to Detect and Fix
 
@@ -150,7 +141,6 @@ Use predictable terms:
 | Tiny table | 2 rows, 2 columns | Convert to bullet list |
 | Inconsistent vocabulary | "Yes/Yep/Sure/Affirmative" | Standardize to "Yes/No" |
 
----
 
 ## Accessibility (HTML Contexts)
 
@@ -159,7 +149,6 @@ When tables render to HTML:
 - Never mix Markdown and HTML table syntax in same block
 - First row must be true header, not example data
 
----
 
 ## Checklist Before Creating a Table
 
@@ -172,52 +161,17 @@ When tables render to HTML:
 - [ ] Consistent vocabulary across rows?
 - [ ] No redundant columns?
 
----
 
-## Examples
+## Example
 
-### Good: Skills Table with Blank Runs
-
-```markdown
-| Domain | Skill | What it does |
-|--------|-------|--------------|
-| engineering | blast-radius-check | Finds all callers |
-| | pre-commit-gate | Runs lint checks |
-| | verification | Final checks |
-| wiki | wiki-orchestrator | Routes tasks |
-| | wiki-orchestrator | Safe updates |
+```bash
+# Check table column count doesn't exceed 5
+awk -F'|' '/^\|/ && NF>7 {print FILENAME":"NR": "NF-1" columns"}' doc.md
 ```
 
-### Bad: Every Domain Repeated
+See [`references/examples.md`](references/examples.md) for good/bad table formatting examples.
 
-```markdown
-| Domain | Skill | What it does |
-|--------|-------|--------------|
-| engineering | blast-radius-check | Finds all callers |
-| engineering | pre-commit-gate | Runs lint checks |
-| engineering | verification | Final checks |
-| wiki | wiki-orchestrator | Routes tasks |
-| wiki | wiki-orchestrator | Safe updates |
-```
-
-### Good: Bullet List Instead of Tiny Table
-
-```markdown
-**Configuration:**
-- **Timeout:** 30 seconds
-- **Retries:** 3
-```
-
-### Bad: Tiny Table
-
-```markdown
-| Setting | Value |
-|---------|-------|
-| Timeout | 30 seconds |
-| Retries | 3 |
-```
-
-## Common Failure Modes
+## Failure Modes
 
 - **Table when list suffices:** Using a 2-row table for data that reads better as a bullet list
 - **Too many columns:** Tables wider than 5 columns become unreadable in most renderers

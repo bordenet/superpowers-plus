@@ -2,6 +2,7 @@
 name: exhaustive-audit-validation
 source: superpowers-plus
 triggers: ["audit complete", "done with refactoring", "finished updating", "all skills fixed", "bulk edit done"]
+anti_triggers: ["quick check", "spot check", "just verify one thing"]
 description: Use BEFORE claiming any audit, refactoring, or bulk-edit task is complete. Enforces exhaustive scope enumeration, item-by-item tracking, automated validation, and coverage metrics. Prevents incomplete work from being marked as done.
 summary: "Use when: claiming any audit or bulk-edit is complete. Hard gate."
 coordination:
@@ -15,10 +16,18 @@ coordination:
 
 # Exhaustive Audit Validation
 
+> **Wrong skill?** Quick spot check → `completeness-check`. Pre-commit → `pre-commit-gate`. Repo health → `holistic-repo-verification`.
+
 > **Purpose:** Prevent "first-pass complete" followed by "found 12 more issues"
 > **Root Cause:** Agent claimed audit complete without exhaustive validation
 > **Incident:** 2026-02-28 — "First-pass audit" missed 12 of 27 skills needing fixes
 
+## Companion Skills
+
+- **completeness-check**: Quick spot check (lighter than exhaustive)
+- **holistic-repo-verification**: Repository-level health
+- **verification-before-completion**: Pre-completion gate
+- **measurement-integrity**: Cross-validation enforcement
 ## When to Use
 
 - Before claiming any audit, bulk-edit, or refactoring task is complete
@@ -27,6 +36,7 @@ coordination:
 - Any task where "done" means "every item in the scope was processed"
 
 ---
+
 
 ## The Problem This Skill Solves
 
@@ -141,7 +151,7 @@ If gaps remain:
 
 ---
 
-## Integration with `verification-before-completion`
+## Companion: verification-before-completion
 
 This skill extends `superpowers:verification-before-completion`:
 
@@ -161,3 +171,11 @@ If this skill is skipped:
 4. Trust eroded
 
 **This skill exists because the agent claimed "first-pass complete" on 2026-02-28 while 12 of 27 skills were unfixed.**
+
+## Failure Modes
+
+| Failure | Recovery |
+|---------|----------|
+| Checking only the first few instances | EVERY instance must be verified. Use grep counts to confirm. |
+| Declaring 'all fixed' without independent count | Count before and after. Numbers must match. |
+| Missing instances in non-obvious locations | Check tests, configs, docs, comments — not just source code |

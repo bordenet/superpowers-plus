@@ -2,13 +2,30 @@
 name: holistic-repo-verification
 source: superpowers-plus
 triggers: ["repo health", "verify repo", "CI is green", "check all workflows", "before creating PR"]
+anti_triggers: ["fix CI", "debug pipeline", "write tests"]
 description: Verify ALL aspects of repository health before claiming work is complete. Checks CI workflows, GitHub Pages deployment, and any other workflows that affect repo status.
 summary: "Use when: verifying repo health (CI, deployments) before claiming done."
+coordination:
+  group: observability
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # holistic-repo-verification
 
 **MANDATORY**: Use this skill before claiming any repository work is complete, before creating PRs, and before reporting that "CI is green."
+
+> **Wrong skill?** Pre-commit code quality → `pre-commit-gate`. Output verification → `output-verification`. Completion gate → `verification-before-completion`.
+
+## When to Use
+
+- Before a major release or after large refactoring
+- After merging multiple feature branches
+- When CI passes but something still feels wrong
+- Periodic health check on repo consistency
 
 ## The Core Principle
 
@@ -22,14 +39,6 @@ This includes:
 
 **Never claim "CI passes" when only checking the CI workflow. That's a narrow, incomplete verification.**
 
-## When to Use This Skill
-
-Use this skill:
-- Before claiming work is complete on any GitHub repository
-- Before creating a Pull Request
-- Before reporting that "all tests pass" or "CI is green"
-- After pushing commits that should fix broken builds
-- When verifying repository health status
 
 ## Verification Checklist
 
@@ -105,53 +114,28 @@ GitHub Pages: ✅ built
 **Overall Status: GREEN** ✅
 ```
 
-Or if failing:
+If failing: add `### Failing Workflow Details` with workflow name, run #, error.
 
-```
-## Repository Health: {repo-name}
+## Failure Modes
 
-| Workflow | Status | Run # |
-|----------|--------|-------|
-| CI | ✅ success | 169 |
-| pages build and deployment | ❌ failure | 127 |
-
-GitHub Pages: ❌ errored
-
-**Overall Status: RED** ❌
-
-### Failing Workflow Details
-- pages build and deployment (run 127): Upload artifact step failed
-- Error: tar: ./validator/js/core: File removed before we read it
-```
-
-## Integration with Other Skills
-
-This skill complements:
-- `superpowers:verification-before-completion` - adds repo health to the verification checklist
-- `superpowers:requesting-code-review` - ensures repo is healthy before requesting review
-- `enforce-style-guide` - code quality before commit, this skill verifies after push
+| Failure | Fix |
+|---------|-----|
+| Checking only most recent workflow run, not most recent of EACH workflow | List all distinct workflows, check latest run of each |
+| Claiming "all green" while a workflow is still running | Wait for completion — "in progress" is not "success" |
+| Only checking GitHub Actions — missing Azure DevOps pipelines | Use the appropriate CI/CD API for the repo's hosting platform |
+| Not waiting for Pages deployment after push | Pages builds are async — poll until status is `built` or `errored` |
 
 ## Success Criteria
 
-This skill succeeds when:
+ALL workflow runs `conclusion: success` · GitHub Pages `status: built` (if applicable) · no `failure/cancelled/errored`.
 
-✅ ALL workflow runs show `conclusion: success`
-✅ GitHub Pages shows `status: built` (if applicable)
-✅ Repository badge/status indicator shows green
-✅ No workflow is in `failure`, `cancelled`, or `errored` state
+**If failing:** Identify failing workflow → get specific error from job logs → fix root cause (not re-run) → wait for ALL workflows → re-check holistically.
 
-## Failure Response
+## Companion Skills
 
-If any workflow is failing:
-
-1. **Identify the failing workflow** - not just CI
-2. **Get the specific error** - check job logs
-3. **Fix the root cause** - don't just re-run
-4. **Verify the fix** - wait for ALL workflows to complete
-5. **Re-check holistically** - confirm everything is green
-
-**DO NOT claim work is complete until ALL workflows pass.**
-
----
-
-**Remember**: When someone says "make CI green" or "fix the build," they mean the ENTIRE repository should show a healthy status, not just one specific workflow.
+- **completeness-check**: Quick scope check (lighter than this)
+- **pre-commit-gate**: Pre-commit quality gate
+- **verification-before-completion**: Task completion verification
+- **output-verification**: Verifying generated output
+- **exhaustive-audit-validation**: Deep audit (this is repo-level)
+- **measurement-integrity**: Metric integrity checks

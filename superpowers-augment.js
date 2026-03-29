@@ -20,6 +20,9 @@ const {
   getComposition
 } = require('./lib/skill-router');
 
+// Workflow state machine (advisory gate tracking)
+const workflowState = require('./lib/workflow-state');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
@@ -192,6 +195,7 @@ function extractFrontmatter(filePath) {
         let name = '';
         let description = '';
         let triggers = [];
+        let anti_triggers = [];
         let requires_mcp = [];
         let mcp_install_hint = '';
         let composition = null;
@@ -243,6 +247,15 @@ function extractFrontmatter(filePath) {
                     triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
+                // Check for anti_triggers array
+                const antiTriggersMatch = line.match(/^anti_triggers:\s*(\[.+\])\s*$/);
+                if (antiTriggersMatch) {
+                    anti_triggers = parseInlineArray(antiTriggersMatch[1]);
+                } else if (line.match(/^anti_triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    anti_triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
                 // Check for requires_mcp array
                 const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
                 if (mcpMatch) {
@@ -263,9 +276,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description, triggers, requires_mcp, mcp_install_hint, composition, compress };
+        return { name, description, triggers, anti_triggers, requires_mcp, mcp_install_hint, composition, compress };
     } catch (error) {
-        return { name: '', description: '', triggers: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
+        return { name: '', description: '', triggers: [], anti_triggers: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
     }
 }
 
@@ -313,6 +326,7 @@ function findSkillsInDir(dir, sourceType) {
                 name: meta.name || entry.name,
                 description: meta.description || '',
                 triggers: meta.triggers || [],
+                anti_triggers: meta.anti_triggers || [],
                 composition: meta.composition || null,
                 isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
@@ -596,6 +610,11 @@ function useSkill(skillName, options = {}) {
     console.log('# Skill: ' + skillName + '\n');
     console.log(transformed);
 
+    // Record skill invocation in workflow state (advisory, non-blocking)
+    try {
+        workflowState.recordSkillInvocation(actualName);
+    } catch (_) { /* non-fatal — advisory mode */ }
+
 }
 
 /**
@@ -653,7 +672,7 @@ function compressSkillContent(text) {
     result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
     result = result.replace(/## When This Skill Fires[\s\S]*$/g, '');
 
-    // 12. Strip "When NOT to Use" (handled by anti_triggers)
+    // 12. Strip "When NOT to Use" (routing info moved to "Scope Exclusions" or "Wrong skill?" blocks)
     result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
 
     // 13. Strip "Manual Invocation" (user already knows how to invoke)
@@ -719,6 +738,13 @@ line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
     emitSkillIndex();
+
+    // Show workflow state if active (advisory — costs 1 line when active, 0 when not)
+    const wsStatus = workflowState.getStatus();
+    if (wsStatus) {
+        console.log('');
+        console.log(wsStatus);
+    }
 }
 
 // Skill index: emits counts + load command (O(1) token cost).

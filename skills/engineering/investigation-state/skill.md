@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["start investigation", "investigate this bug", "resume investigation",
            "what have we tried", "investigation status", "debug checkpoint",
            "save investigation state", "investigation handoff"]
+anti_triggers: ["implement", "write code", "create feature"]
 description: Persists debugging investigation context (hypotheses, evidence, eliminated approaches) across sessions. Companion to systematic-debugging. Use when starting, resuming, or handing off a multi-turn debugging session.
 summary: "Use when: starting, resuming, or handing off a multi-turn debugging investigation."
 coordination:
@@ -22,12 +23,20 @@ composition:
 
 # Investigation State
 
+> **Wrong skill?** Debugging → `systematic-debugging`. Getting unstuck → `think-twice`. Requirements analysis → `requirements-validation`.
+
 > **Purpose:** Persist debugging investigation context across sessions so no hypothesis, evidence, or eliminated approach is lost.
 > **Storage:** `~/.superpowers/investigations/<uuid>.json`
 > **Authoritative format:** JSON. Markdown export is read-only.
 
 **Announce at start:** "I'm using the **investigation-state** skill to track this investigation."
 
+## Companion Skills
+
+- **systematic-debugging**: Step-by-step bug investigation
+- **adversarial-search**: Confirmation bias prevention during investigation
+- **think-twice**: When investigation hits a wall
+- **failure-autopsy**: Post-mortem analysis
 ## When to Use
 
 - Starting a new multi-turn debugging session
@@ -35,6 +44,7 @@ composition:
 - Handing off an investigation to another agent or session
 - Checking what has already been tried ("what have we tried?")
 - Saving a checkpoint before ending a session
+
 
 ## Core Principles
 
@@ -139,15 +149,6 @@ investigation-crud.sh export --id UUID
 ```
 
 Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suffix. Generated on demand only, not auto-synced.
-
----
-
-## Integration with Other Skills
-
-| Skill | Integration |
-|-------|-------------|
-| `thinking-orchestrator` | Routes "debugging a bug, starting investigation" here |
-| `todo-management` | On resolution (if fix needed), create fix task tagged `#investigation-<short-id>` |
 
 ---
 

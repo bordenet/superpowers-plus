@@ -2,8 +2,16 @@
 name: superpowers-doctor
 source: superpowers-plus
 triggers: ["superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
+anti_triggers: ["write a skill", "create skill file", "skill format"]
 description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 22 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, structural defects, stale/dirty managed checkouts, TODO archive regressions, and reviewer-dispatch rendering issues. Modeled after brew doctor."
 summary: "Use when: diagnosing skill installation or configuration issues."
+coordination:
+  group: observability
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Superpowers Doctor
@@ -11,8 +19,16 @@ summary: "Use when: diagnosing skill installation or configuration issues."
 > **Modeled after:** `brew doctor` — but meaner.
 > **Created:** 2026-03-18 | **Upgraded:** 2026-03-20
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 22 checks across 4 severity tiers. No skill escapes scrutiny.
+> **Wrong skill?** Structural lint only → `skill-health-check`. Writing/authoring skills → `skill-authoring`. Updating skills → `update-superpowers`.
 
+Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
+
+## Companion Skills
+
+- **skill-health-check**: Quick structural lint (lighter than doctor)
+- **skill-authoring**: Writing new skill files
+- `update-superpowers` (upstream): Updating skill installations
+- **superpowers-help**: Skill discovery and help
 ## When to Use
 
 - User says "run superpowers doctor" or "check skill health"
@@ -22,6 +38,7 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 - After install.sh to verify deployment integrity
 - When skills behave unexpectedly (wrong triggers, missing content)
 - After cloning on Windows/WSL to detect CRLF or BOM issues
+
 
 ## Modes
 

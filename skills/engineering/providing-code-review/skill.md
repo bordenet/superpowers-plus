@@ -2,11 +2,21 @@
 name: providing-code-review
 source: superpowers-plus
 triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
+anti_triggers: ["send to reviewer agent", "execute reviewer findings", "pre-commit check", "I am the reviewer agent"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
 summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
+coordination:
+  group: code-quality
+  order: 3
+  requires: [code-review]
+  enables: [receiving-code-review]
+  escalates_to: [code-review-battery]
+  internal: false
 ---
 
 # Providing Code Review
+
+> **Wrong skill?** File-protocol review → `code-review-respond`. Pre-commit review → `progressive-code-review-gate`. Processing feedback you received → `receiving-code-review`.
 
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
@@ -151,8 +161,29 @@ When providing code review, structure feedback as:
 
 **If you can't check off all boxes, the review is incomplete.**
 
-## Related Skills
+## Anti-Patterns
 
-- `pre-commit-gate` — Before committing changes
-- `blast-radius-check` — Before modifying existing code
-- `engineering-rigor` — Philosophy and overview
+| Anti-Pattern | Detection | Correction |
+|--------------|-----------|------------|
+| Rubber-stamp approval | No substantive comments | Find ≥1 concern per review |
+| Style-only focus | All comments are formatting | Check logic, edge cases, security first |
+| Nitpick avalanche | >10 minor findings, 0 critical | Prioritize: critical → important → minor |
+| Context-free review | Comments without understanding intent | Read PR description + linked issues first |
+| Drive-by "LGTM" | Single word approval | Requires ≥3 substantive observations |
+
+## Failure Modes
+
+| Failure | Fix |
+|---------|-----|
+| Rubber-stamp approval without tracing data flow | Use the 6-point gate function checklist — if any box unchecked, don't approve |
+| Reviewing diff in isolation without blast radius | Run grep for all callers of modified functions before approving |
+| Trusting PR metadata claims without verification | Use Factual Claims Verification table — one API call catches stale status |
+
+## Companion Skills
+
+- **code-review-battery**: Parallel specialist reviews (heavier than this checklist)
+- **receiving-code-review**: How the PR author should process your feedback
+- **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
+- **code-review**: File-protocol review (requesting side)
+- **code-review-respond**: File-protocol review (reviewer side)
+- **micro-harsh-review**: Per-batch review (lighter)

@@ -2,8 +2,16 @@
 name: issue-verify
 source: superpowers-plus
 triggers: ["verify issue", "check if ticket exists", "[KEY-XXX] in commit message", "link PR to issue"]
+anti_triggers: ["create issue", "update issue", "edit ticket"]
 description: Use when referencing issues in documentation, commits, or PRs. Verifies issue keys exist, validates cross-references.
 summary: "Use when: referencing issues in docs, commits, or PRs."
+coordination:
+  group: issue-tracking
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Issue Verification
@@ -11,6 +19,8 @@ summary: "Use when: referencing issues in docs, commits, or PRs."
 > **Purpose:** Verify issue keys before referencing in commits, PRs, or documentation
 > **Pattern:** Evidence before assertion — verify existence before citing
 > **Adapter:** See `_adapters/` for platform-specific configuration
+
+> **Wrong skill?** Creating issues → `issue-authoring`. Updating issues → `issue-editing`. Verifying URLs in issues → `issue-link-verification`.
 
 ---
 
@@ -25,6 +35,7 @@ Invoke this skill when:
 - Any time you reference an issue key outside your tracker
 
 ---
+
 
 ## Issue Key Verification
 
@@ -105,7 +116,7 @@ Summary: 2 verified, 1 not found
 
 ---
 
-## Quick Reference
+## Verification Checklist
 
 ```
 Before referencing ANY issue key:
@@ -117,12 +128,21 @@ Before referencing ANY issue key:
 
 ---
 
-## Related Skills
+## Companion Skills
 
 - **issue-authoring**: Creating new issues
 - **issue-editing**: Updating existing issues
 
-## Common Failure Modes
+
+## Example
+
+```bash
+# Verify issue metadata matches reality
+# Check assignee exists, sprint is current, labels are valid
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-verify
+```
+
+## Failure Modes
 
 - **Skipping URL verification:** Assuming all links in the issue body are valid without fetching them
 - **Checking only title/description:** Missing label, assignee, or priority validation

@@ -1,18 +1,35 @@
 ---
 name: superpowers-help
 source: superpowers-plus
-triggers: ["what are my superpowers", "what superpowers do I have", "what skills do I have", "list available skills", "superpowers help", "how do I use skills", "what can you do", "show me your capabilities", "help me understand superpowers", "what workflows are available"]
+triggers: ["what are my superpowers", "what superpowers do I have", "what skills do I have", "list available skills", "superpowers help", "how do I use skills", "what can you do", "show me your capabilities", "help me understand superpowers", "what workflows are available", "what skills are available", "list skills", "which skills"]
+anti_triggers: ["write code", "fix bug", "implement feature", "debug this"]
 description: Dynamically enumerates ALL installed skills at runtime, distinguishing superpowers (auto-triggered) from explicit skills. Never stale — always reflects current installation.
 summary: "Use when: user asks about superpowers system, how to use skills, or needs skill recommendations."
+coordination:
+  group: meta
+  order: 0
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # 🦸 Superpowers & Skills
+
+> **Wrong skill?** Checking skill health → `superpowers-doctor`. Writing new skills → `skill-authoring` / `writing-skills`. Updating skills → `update-superpowers`.
+
+## Companion Skills
+
+- **superpowers-doctor**: Runtime diagnostics
+- **skill-authoring**: Creating new skills
+- **skill-health-check**: Structural lint
 
 ## When to Use
 
 - User asks "what can you do?" or "what skills do you have?"
 - Need to enumerate available superpowers or explicit skills at runtime
 - Debugging whether a specific skill is installed and active
+
 
 ## Understanding the Distinction
 
@@ -103,11 +120,11 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 ---
 
-## Quick Reference: Common Tasks
+## Common Task Routing
 
 | Task | Type | Skill(s) |
 |------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → writing-plans |
+| "Build a new feature" | 🦸 auto | brainstorming → plan-and-execute |
 | "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
 | "Review this PR" | 🦸 auto | providing-code-review |
 | "Update the wiki" | 🦸 auto | wiki-orchestrator → link-verification |
@@ -138,11 +155,14 @@ cd superpowers-plus
 
 ---
 
-## Common Failure Modes
+## Failure Modes
 
-- **Stale enumeration:** Reporting skills from memory instead of running the runtime discovery command
-- **Missing overlay skills:** Forgetting that `SPC_SOURCE_DIR` overlay adds skills not in the base superpowers-plus install
-- **Confusing superpowers vs explicit:** A skill with triggers is a superpower (auto-fires); without triggers it must be explicitly invoked
+| Failure | Fix |
+|---------|-----|
+| Reporting skills from memory instead of running discovery | ALWAYS run `find-skills` — never enumerate from memory |
+| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — check both sources |
+| Confusing superpowers vs explicit skills | Superpowers have `triggers:` (auto-fire); explicit skills must be manually invoked |
+| Recommending a skill without checking if it's installed | Run `find-skills {name}` before recommending any skill |
 
 ## Documentation
 

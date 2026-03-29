@@ -2,6 +2,7 @@
 name: wiki-debunker
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
+anti_triggers: ["write wiki page", "edit wiki", "update wiki content"]
 description: Use when wiki content contains factual claims about decisions, timelines, who-said-what, or technical facts that could be fabricated. Verifies against git history, issue tickets, meeting transcripts, and PRs. Invoked by wiki-orchestrator as ADVISORY gate.
 summary: "Use when: posting comments or updates to wiki pages. Evidence before assertion."
 composition:
@@ -10,9 +11,18 @@ composition:
   capabilities: [validates-facts]
   priority: 30
   optional: true
+coordination:
+  group: wiki
+  order: 2
+  requires: []
+  enables: []
+  escalates_to: ['wiki-orchestrator']
+  internal: false
 ---
 
 # Wiki Debunker
+
+> **Wrong skill?** Editing wiki content → `wiki-orchestrator`. Checking links → `link-verification`. Scanning for secrets → `wiki-secret-audit`.
 
 > **NO CLAIM WITHOUT CITATION. Evidence before assertion.**
 > Scope: Claims about decisions, timelines, who-said-what, task ownership. NOT version drift (use wiki-verify).
@@ -44,17 +54,27 @@ composition:
 
 ## Hallucination Red Flags
 
-- Precise date but no commit/ticket from that date
-- "We decided" without ticket/PR reference
-- Possessive attribution from wiki plan ("Junyi's queries") — verify in issue tracker
-- Exact percentages without data source
+| Red Flag | Example | Verification |
+|----------|---------|-------------|
+| Precise date, no evidence | "Decided on Jan 15" | `git log --after=2026-01-14 --before=2026-01-16` |
+| "We decided" without reference | "We decided to use Redis" | Search tickets/PRs for the decision |
+| Possessive attribution from wiki | "Junyi's queries" | Check issue tracker assignee |
+| Exact percentages, no data source | "Reduced errors by 43%" | Find the measurement commit/ticket |
+| Causal language without evidence | "This caused the outage" | Check incident reports |
 
-## Reference Files
+## References
 
 - [`references/report-format.md`](references/report-format.md) — Report template, citation formats
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands
 
 
+## Companion Skills
+
+- **wiki-verify**: Broader wiki page verification
+- **link-verification**: Checking links within wiki pages
+- **wiki-content-coherence**: Checking for content duplication
+
+- **issue-comment-debunker**: Debunking issue comments (this is wiki)
 ## When to Use
 
 - When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")
