@@ -114,13 +114,11 @@ other_repo_provides() {
         local dir="${varval//\"/}"
         dir="${dir//\'/}"
         [[ -z "$dir" || ! -d "$dir" ]] && continue
+        # Derive overlay name from the source dir variable.
+        # Convention: *_SOURCE_DIR → the directory basename is the overlay name.
         local overlay_name=""
-        case "$varname" in
-            SPC_SOURCE_DIR) overlay_name="superpowers-private" ;;
-            RECRUITING_SOURCE_DIR) overlay_name="superpowers-recruiting" ;;
-            CARI_SOURCE_DIR) overlay_name="superpowers-cari" ;;
-            *) continue ;;
-        esac
+        overlay_name=$(basename "${dir}" 2>/dev/null) || continue
+        [[ -z "$overlay_name" || "$overlay_name" == "." ]] && continue
         local overlay_manifest="${CODEX_DIR}/${overlay_name}/install-state/${artifact_type}.manifest"
         if [[ -f "$overlay_manifest" ]] && grep -qxF "$artifact_name" "$overlay_manifest" 2>/dev/null; then
             return 0
