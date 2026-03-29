@@ -306,12 +306,18 @@ function extractFrontmatter(filePath) {
                     i = parsed.nextIndex;
                 }
 
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
+                    let value = match[2].trim();
+                    // Strip outer quotes and handle escaped quotes inside
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    } else if (value.startsWith("'") && value.endsWith("'")) {
+                        value = value.slice(1, -1);
+                    }
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
                 }
             }
         }
