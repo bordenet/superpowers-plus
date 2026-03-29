@@ -9,10 +9,12 @@
 Apply the shared multi-agent activation rubric (`skills/_shared/multi-agent-activation-rubric.md`).
 
 **Brainstorming-specific boosters:**
+
 - Broad/ambiguous prompt (user hasn't specified approach) → +1
 - Architectural impact (changes system shape) → +1
 
 **Brainstorming-specific dampeners:**
+
 - Known solution exists → -1
 - Time-sensitive ("just do it", "quick") → -1
 
@@ -43,7 +45,7 @@ Choose the most relevant lenses for this task:
 
 Each lens agent receives:
 
-```
+```python
 CONTEXT: [full task description and relevant codebase context]
 
 YOUR LENS: [Lens Name]
@@ -63,6 +65,7 @@ BUDGET: [token limit, max 25% of total]
 ### Step 4: Collect and Validate
 
 As lens outputs return:
+
 - Check: is output actually from the assigned perspective? (not generic brainstorming)
 - Check: confidence score ≥ 0.3? (kill irrelevant lenses)
 - Check: at least 1 rejection included? (prevents pure-positive output)
@@ -132,6 +135,7 @@ Instead of always selecting 3–4 lenses manually, the conductor can auto-select
 | Ambiguous/vague (no clear approach) | All 6 as candidate set, then prune to max 4 | Exploration mode |
 
 **Rules:**
+
 1. Simplicity/DX is always included (unchanged)
 2. Auto-selection produces a **candidate set**; the conductor may prune if >4 lenses selected
 3. Prune by lowest expected relevance (task-lens fit), not by alphabetical or fixed order
@@ -144,11 +148,13 @@ Instead of always selecting 3–4 lenses manually, the conductor can auto-select
 After synthesis (Step 5), the conductor evaluates whether a second round would improve quality:
 
 **Second-round triggers** (ALL must be true):
+
 1. Synthesis diversity score < 0.5 (too many overlapping ideas)
 2. Budget remaining ≥ 40% (enough headroom for another pass)
 3. Total synthesized ideas < 3 (thin output)
 
 **Second-round protocol:**
+
 1. Each lens receives the synthesized output from round 1
 2. Prompt: "Given these existing ideas, what was MISSED? What adjacent possibilities were overlooked?"
 3. Second-round output is merged with round 1 via the same synthesis protocol
@@ -163,16 +169,19 @@ After synthesis (Step 5), the conductor evaluates whether a second round would i
 After individual lens outputs (Step 4) but before synthesis (Step 5), an optional clarification pass:
 
 **Clarification triggers** (ANY):
+
 1. Two lenses produced directly contradictory recommendations on the same topic
 2. Architecture lens and Simplicity/DX lens disagree on fundamental approach
 
 **Clarification protocol:**
+
 1. Identify the specific contradiction point
 2. Each contradicting lens receives the other's reasoning (not full output)
 3. Prompt: "Lens [X] reached a different conclusion: [Y]. What assumption in YOUR reasoning would need to change for [X]'s conclusion to be correct?"
 4. Responses feed into synthesis as **assumption evidence** (tagged separately, not merged with original ideas)
 
 **Guardrails:**
+
 - Maximum 1 clarification round (not iterative)
 - Clarification must surface hidden assumptions, not restate positions
 - If both lenses identify the same assumptions, synthesis notes the **explicit tradeoff** (no resolution attempted)
@@ -184,6 +193,7 @@ After individual lens outputs (Step 4) but before synthesis (Step 5), an optiona
 Prevent re-generating ideas that have already been brainstormed in the current session or recent sessions:
 
 **Dedup protocol:**
+
 1. Before synthesis, hash each idea summary (lowercase, stop-words removed, stemmed)
 2. Compare against session idea store (in-memory for current session)
 3. Jaccard similarity > 0.7 with a previous idea → flag as "previously explored"

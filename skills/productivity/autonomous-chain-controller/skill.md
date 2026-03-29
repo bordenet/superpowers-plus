@@ -36,7 +36,6 @@ coordination:
 - Full feature development lifecycle
 - Multi-step refactoring
 
-
 ### Example
 
 ```bash
@@ -71,6 +70,7 @@ Chain: [ordered skill list]
 ### Phase 3: Execute with Gates
 
 Between EVERY skill:
+
 - [ ] Previous output correct?
 - [ ] TODOs logged? (todo-guardian)
 - [ ] No regressions? (measurement-integrity)

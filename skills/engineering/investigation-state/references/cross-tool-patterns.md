@@ -58,6 +58,7 @@ When investigating bugs that span multiple systems, use these patterns to gather
 ### Work Item State Tracing
 
 When a bug correlates with a work item change:
+
 1. Get the work item: `wit_get_work_item_azure-devops`
 2. Check revisions: `wit_list_work_item_revisions_azure-devops`
 3. Look for state changes that correlate with the bug's first appearance

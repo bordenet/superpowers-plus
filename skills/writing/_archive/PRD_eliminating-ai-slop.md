@@ -37,17 +37,20 @@ Actively eliminate AI slop patterns through rewriting. Operates in two modes: in
 When user provides existing text, propose changes with confirmation.
 
 **Trigger Conditions** (from Vision_PRD §6.1 FR10):
+
 - User provides text with edit request: "Edit this paragraph: [text]"
 - User provides text with review request: "Clean up this draft: [text]"
 - User pastes text with processing instruction
 
 **Workflow**:
+
 1. Detect slop patterns in provided text (uses detection logic)
 2. For each pattern, ask: "I found '[pattern]' ([category]). Rephrase or keep?"
 3. User responds: Rephrase / Keep / Never flag
 4. Batch option: "I found N patterns. Rephrase all, keep all, or list them?"
 
 **Acceptance Criteria**:
+
 - [ ] Distinguish between generation and processing requests
 - [ ] Confirmation prompt identifies pattern and category
 - [ ] User can respond individually or batch
@@ -60,12 +63,14 @@ When user provides existing text, propose changes with confirmation.
 During prose generation, eliminate slop before returning output.
 
 **Behavior** (from Vision_PRD §6.1 FR5):
+
 - Analyze output during generation
 - Identify slop patterns across all dimensions
 - Rewrite flagged content automatically
 - Return clean output to user
 
 **Acceptance Criteria**:
+
 - [ ] Rewrites preserve semantic meaning
 - [ ] Rewrites increase specificity where hollow
 - [ ] Rewrites vary structure where uniform
@@ -77,6 +82,7 @@ During prose generation, eliminate slop before returning output.
 Automatically activate for prose, deactivate for code.
 
 **Activation Triggers** (from Vision_PRD §6.1 FR9):
+
 - Blog posts, wiki articles, READMEs, documentation
 - Email composition or cleanup requests
 - LinkedIn post composition or cleanup
@@ -85,17 +91,20 @@ Automatically activate for prose, deactivate for code.
 - Any user prompt requesting prose content
 
 **Deactivation Triggers**:
+
 - Code blocks (Python, JavaScript, SQL, etc.)
 - Configuration files (JSON, YAML, TOML)
 - Shell commands, structured data
 
 **Manual Override**:
+
 - "Disable slop detection for this response"
 - "Enable slop detection"
 - "Disable [category] detection"
 - "Write this formally" (disables formality-mismatch detection)
 
 **Acceptance Criteria**:
+
 - [ ] Auto-activate for prose contexts
 - [ ] Auto-deactivate for code contexts
 - [ ] Detect content type and apply appropriate pattern set
@@ -109,6 +118,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.1: Email Rewriting
 
 **Rewriting Principles**:
+
 - Lead with the ask or key information
 - Remove unnecessary pleasantries
 - Preserve professional tone without corporate filler
@@ -127,12 +137,14 @@ Apply different rewriting strategies based on content type.
 | Passive voice requests | Active voice: "Could you review..." not "It would be appreciated if..." |
 
 **Structural Rewrites**:
+
 - Move action items to the top
 - Add TL;DR for emails >200 words
 - Convert long paragraphs to bullet points
 - Remove redundant sign-offs
 
 **Acceptance Criteria**:
+
 - [ ] Detect email context from prompt or content
 - [ ] Apply email-specific replacements
 - [ ] Preserve original meaning and professional tone
@@ -141,6 +153,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.2: LinkedIn Rewriting
 
 **Rewriting Principles**:
+
 - Remove engagement bait endings
 - Convert humble brags to direct statements
 - Reduce excessive formatting (line breaks, emojis)
@@ -158,12 +171,14 @@ Apply different rewriting strategies based on content type.
 | Hashtag stuffing | 2-3 relevant hashtags maximum |
 
 **Structural Rewrites**:
+
 - Consolidate single-sentence lines into paragraphs
 - Remove performative vulnerability setups
 - Reduce emoji count to ≤1 per 100 words
 - Convert engagement bait to genuine calls to action (or delete)
 
 **Acceptance Criteria**:
+
 - [ ] Detect LinkedIn context from prompt or hashtag presence
 - [ ] Remove engagement bait while preserving core message
 - [ ] Reduce formatting abuse
@@ -172,6 +187,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.3: SMS Rewriting
 
 **Rewriting Principles**:
+
 - Match conversational register
 - Prioritize brevity
 - Remove unnecessary formality
@@ -188,11 +204,13 @@ Apply different rewriting strategies based on content type.
 | "I wanted to reach out" | Direct statement: "Hey, [request]" |
 
 **Structural Rewrites**:
+
 - Reduce to single paragraph when possible
 - Remove sign-offs (sender is known)
 - Consolidate multiple sentences into one when meaning preserved
 
 **Acceptance Criteria**:
+
 - [ ] Detect SMS context from prompt or message length
 - [ ] Apply conversational register
 - [ ] Result is ≤50 words when original intent allows
@@ -201,6 +219,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.4: Teams/Slack Chat Rewriting
 
 **Rewriting Principles**:
+
 - Direct and immediate
 - No email formality
 - Context-appropriate terseness
@@ -217,12 +236,14 @@ Apply different rewriting strategies based on content type.
 | Long-form paragraphs | Bullet points or threaded messages |
 
 **Structural Rewrites**:
+
 - Combine greeting + question into single message
 - Use threads for multi-part discussions
 - Add context when @mentioning
 - Remove unnecessary acknowledgments
 
 **Acceptance Criteria**:
+
 - [ ] Detect chat context from prompt or platform mention
 - [ ] Apply chat-appropriate register
 - [ ] Result is direct and actionable
@@ -231,6 +252,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.5: CLAUDE.md / Agent Instruction Rewriting
 
 **Rewriting Principles**:
+
 - Every rule should be actionable and verifiable
 - Include examples for non-obvious rules
 - Remove meta-commentary about being an AI
@@ -246,12 +268,14 @@ Apply different rewriting strategies based on content type.
 | "Always be accurate" | Specific: "Verify dates against provided sources" |
 
 **Structural Rewrites**:
+
 - Add examples after abstract rules
 - Remove redundant capability descriptions
 - Consolidate overlapping instructions
 - Add clear scope boundaries
 
 **Acceptance Criteria**:
+
 - [ ] Detect CLAUDE.md context from filename or content
 - [ ] Transform vague rules into specific instructions
 - [ ] Add example placeholders where missing
@@ -260,6 +284,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.6: README Rewriting
 
 **Rewriting Principles**:
+
 - Quickstart within first 3 sections
 - Show, don't tell
 - Commands should be copy-pasteable
@@ -275,12 +300,14 @@ Apply different rewriting strategies based on content type.
 | "Coming soon" | Remove or move to roadmap section |
 
 **Structural Rewrites**:
+
 - Move installation before features
 - Add copy-paste code blocks
 - Replace bullet lists with examples where possible
 - Consolidate badges to essential ones
 
 **Acceptance Criteria**:
+
 - [ ] Detect README context from filename or prompt
 - [ ] Ensure quickstart appears early
 - [ ] All installation steps have executable commands
@@ -289,6 +316,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.7: PRD Rewriting
 
 **Rewriting Principles**:
+
 - Every requirement needs acceptance criteria
 - Metrics need baselines and targets
 - Scope needs explicit boundaries
@@ -304,12 +332,14 @@ Apply different rewriting strategies based on content type.
 | Requirements without priority | Add MoSCoW or numbered priority |
 
 **Structural Rewrites**:
+
 - Add acceptance criteria to all requirements
 - Add baseline column to metrics tables
 - Create explicit out-of-scope section
 - Add owner column to dependencies
 
 **Acceptance Criteria**:
+
 - [ ] Detect PRD context from prompt or content patterns
 - [ ] Transform vague requirements into measurable ones
 - [ ] Add acceptance criteria placeholders where missing
@@ -318,6 +348,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.8: Design Document Rewriting
 
 **Rewriting Principles**:
+
 - Decisions over descriptions
 - Every option needs tradeoff analysis
 - Constraints inform choices
@@ -333,12 +364,14 @@ Apply different rewriting strategies based on content type.
 | Generic component names | Specific: "UserAuthService" not "Handler" |
 
 **Structural Rewrites**:
+
 - Add "Alternatives Considered" section
 - Add "Why Not" for each rejected option
 - Add "Failure Modes" section
 - Add scale assumptions to architecture
 
 **Acceptance Criteria**:
+
 - [ ] Detect design doc context from prompt or content
 - [ ] Ensure all options have recommendations
 - [ ] Add constraints section if missing
@@ -347,6 +380,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.9: Test Plan Rewriting
 
 **Rewriting Principles**:
+
 - Every test case has expected result
 - Tests trace to requirements
 - Priority reflects risk
@@ -362,12 +396,14 @@ Apply different rewriting strategies based on content type.
 | "Should behave properly" | Expected result with values |
 
 **Structural Rewrites**:
+
 - Add Given/When/Then format
 - Add requirement traceability column
 - Add severity/priority to test cases
 - Separate automated from manual tests
 
 **Acceptance Criteria**:
+
 - [ ] Detect test plan context from prompt or content
 - [ ] Transform vague tests into specific scenarios
 - [ ] Add expected results to all test cases
@@ -376,6 +412,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.10: CV/Resume Rewriting
 
 **Rewriting Principles**:
+
 - Achievements over responsibilities
 - Quantify all impact
 - Show scope with numbers
@@ -392,12 +429,14 @@ Apply different rewriting strategies based on content type.
 | "Passionate about..." | Delete or demonstrate with projects |
 
 **Structural Rewrites**:
+
 - Convert responsibilities to achievements
 - Add metrics to every bullet
 - Replace objective with summary
 - Remove "References available"
 
 **Acceptance Criteria**:
+
 - [ ] Detect CV context from prompt or content
 - [ ] Transform responsibilities into achievements
 - [ ] Add quantification prompts where missing
@@ -406,6 +445,7 @@ Apply different rewriting strategies based on content type.
 #### FR4.11: Cover Letter Rewriting
 
 **Rewriting Principles**:
+
 - Company-specific opening
 - Role alignment, not CV repetition
 - Demonstrate, don't claim
@@ -421,12 +461,14 @@ Apply different rewriting strategies based on content type.
 | "Thank you for your consideration" | Specific next step proposal |
 
 **Structural Rewrites**:
+
 - Open with company-specific hook
 - Connect experience to job requirements
 - Add specific examples for each claim
 - End with concrete call to action
 
 **Acceptance Criteria**:
+
 - [ ] Detect cover letter context from prompt or content
 - [ ] Ensure company-specific content present
 - [ ] Transform claims into examples
@@ -437,6 +479,7 @@ Apply different rewriting strategies based on content type.
 Maintain and mutate the shared pattern dictionary.
 
 **Capabilities** (from Vision_PRD §6.1 FR6):
+
 - Add new patterns: "Add '[phrase]' to [category]"
 - Add content-type-specific patterns: "Add '[phrase]' to email slop"
 - Remove patterns: "Remove '[phrase]' from dictionary"
@@ -446,11 +489,13 @@ Maintain and mutate the shared pattern dictionary.
 - Export dictionary for backup
 
 **Storage**:
+
 - Location: Workspace root directory
 - Auto-add to .gitignore if git repository detected
 - Structure: pattern text, category, content type, count, date added, source
 
 **Acceptance Criteria**:
+
 - [ ] Dictionary persists across sessions
 - [ ] Accessible from multiple machines via workspace
 - [ ] .gitignore auto-updated
@@ -463,6 +508,7 @@ Maintain and mutate the shared pattern dictionary.
 Learn from user corrections.
 
 **Missed Pattern Workflow** (from Vision_PRD §6.1 FR7):
+
 1. User: "This phrase is slop: '[phrase]'"
 2. Skill extracts phrase, adds to dictionary
 3. Skill prompts for content type: "Universal, or specific to email/LinkedIn/SMS/chat?"
@@ -471,16 +517,19 @@ Learn from user corrections.
 6. Pattern detected in future outputs
 
 **False Positive Workflow**:
+
 1. User: "Don't flag '[phrase]'"
 2. Skill adds to exception list
 3. User specifies scope: document-only, content-type-only, or permanent/universal
 
 **Content-Type Feedback**:
+
 - "That's fine for chat but not email" → Add to email patterns only
 - "Too formal for text messages" → Add to SMS patterns
 - "This is LinkedIn cringe" → Add to LinkedIn patterns
 
 **Acceptance Criteria**:
+
 - [ ] Recognize feedback patterns ("is slop", "don't flag")
 - [ ] Extract exact phrase from user message
 - [ ] Prompt for content type when ambiguous
@@ -494,6 +543,7 @@ Learn from user corrections.
 Track rewriting metrics.
 
 **Tracked Metrics** (from Vision_PRD §6.1 FR8):
+
 - Patterns fixed (count per document, per 1000 words, by content type)
 - Rewrite quality (user reports of "changed my meaning")
 - Dictionary growth rate (by content type)
@@ -502,6 +552,7 @@ Track rewriting metrics.
 - Average length reduction by content type
 
 **Acceptance Criteria**:
+
 - [ ] Maintain counters per document and per content type
 - [ ] Report on request: "Show slop elimination stats"
 - [ ] Filter by content type: "Show email rewrite stats"
@@ -514,12 +565,14 @@ Track rewriting metrics.
 Report what was changed.
 
 **Reporting Modes**:
+
 - **Verbose** (first 30 days): Summary after every response
 - **On-demand** (after trust established): Summary available on request
 - **Detailed**: "Show what slop you removed" for full breakdown
 - **By content type**: "Show what you changed in that email"
 
 **Acceptance Criteria**:
+
 - [ ] Toggle between verbose and on-demand
 - [ ] Summary shows count by category and content type
 - [ ] Detailed view shows before/after for each change

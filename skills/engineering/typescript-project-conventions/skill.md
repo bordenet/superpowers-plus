@@ -44,6 +44,7 @@ import { env } from '../utils/env'
 ```
 
 **Common aliases** (configure via `tsconfig.json` paths):
+
 - `@/*` — src/ root
 - `@services/*` — src/services/
 - `@types/*` — src/types/

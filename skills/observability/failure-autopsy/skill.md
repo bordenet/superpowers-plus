@@ -38,7 +38,6 @@ coordination:
 - After a ceiling or limitation was misdiagnosed
 - After a regression was introduced
 
-
 ### Example
 
 ```bash

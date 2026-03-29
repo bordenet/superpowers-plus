@@ -9,7 +9,7 @@ Use these templates when reporting pipeline results.
 
 ## Stage 3: Link Verification Output
 
-```
+```markdown
 ## Link Verification Report
 
 | Link | Type | Status |
@@ -22,7 +22,7 @@ Use these templates when reporting pipeline results.
 
 ## Stage 4: Secret Scan Output
 
-```
+```markdown
 🛑 SECRET DETECTED — Publishing blocked
 
 | Line | Pattern | Match |
@@ -34,7 +34,7 @@ Use these templates when reporting pipeline results.
 
 ## Stage 5: Slop Detection Output
 
-```
+```markdown
 ## Slop Analysis
 
 **Score:** 23/100 (Good)
@@ -50,7 +50,7 @@ Use these templates when reporting pipeline results.
 
 ## Stage 6: Fact-Check Output
 
-```
+```markdown
 ## Fact-Check Summary
 
 **Claims:** 8 total | 6 cited | 2 uncited
@@ -64,7 +64,7 @@ Use these templates when reporting pipeline results.
 
 ## Stage 7: Publish Confirmation
 
-```
+```text
 Ready to publish with warnings:
 - 2 uncited claims (advisory)
 - 1 slop phrase (advisory)
@@ -73,5 +73,6 @@ Proceed? [Y/n]
 ```
 
 Then invoke `wiki-orchestrator`:
+
 - Use adapter's `update_page` for existing pages
 - Use adapter's `create_page` for new pages

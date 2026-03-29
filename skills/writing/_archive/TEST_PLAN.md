@@ -8,6 +8,7 @@
 ## Purpose
 
 Validate that the two skills meet requirements across all 13 supported content types:
+
 - **detecting-ai-slop**: Accurate slop score scoring with content-type-specific patterns
 - **eliminating-ai-slop**: Effective rewriting with meaning preservation per content type
 
@@ -28,7 +29,7 @@ See [DESIGN.md](./DESIGN.md) for technical architecture.
 
 ### Validation Protocol
 
-```
+```text
 Phase 1: Content Type Detection
 ├── Run TC-CT001 through TC-CT013 (content type detection)
 ├── Verify each type correctly identified
@@ -81,7 +82,8 @@ Phase 6: Final Validation
 **Objective:** Verify content type detector identifies emails.
 
 **Input:**
-```
+
+```text
 Subject: Q3 Budget Review
 
 Hi Sarah,
@@ -102,7 +104,8 @@ John
 **Objective:** Verify content type detector identifies LinkedIn posts.
 
 **Input:**
-```
+
+```text
 I'm thrilled to announce that after 5 years at Company X, I'm starting
 a new chapter!
 
@@ -126,7 +129,8 @@ Agree? 🚀
 **Objective:** Verify content type detector identifies SMS/text messages.
 
 **Input:**
-```
+
+```text
 Hey can you pick up milk on the way home?
 ```
 
@@ -139,7 +143,8 @@ Hey can you pick up milk on the way home?
 **Objective:** Verify content type detector identifies chat messages.
 
 **Input:**
-```
+
+```javascript
 @sarah Hi! Hope you're doing well. Quick question - do you have the
 latest version of the design doc? Let me know when you get a chance. Thanks!
 ```
@@ -153,7 +158,8 @@ latest version of the design doc? Let me know when you get a chance. Thanks!
 **Objective:** Verify content type detector identifies agent instructions.
 
 **Input:**
-```
+
+```markdown
 # CLAUDE.md
 
 You are a helpful assistant. Be friendly and provide comprehensive assistance.
@@ -169,7 +175,8 @@ Always strive for excellence and maintain professional standards.
 **Objective:** Verify content type detector identifies README files.
 
 **Input:**
-```
+
+```markdown
 # MyProject
 
 Welcome to MyProject! This is a powerful, robust, enterprise-grade solution
@@ -195,7 +202,8 @@ Coming soon!
 **Objective:** Verify content type detector identifies PRDs.
 
 **Input:**
-```
+
+```typescript
 # Product Requirements Document
 
 ## Requirements
@@ -218,7 +226,8 @@ TBD
 **Objective:** Verify content type detector identifies design documents.
 
 **Input:**
-```
+
+```markdown
 # System Architecture
 
 ## Overview
@@ -243,7 +252,8 @@ To be determined.
 **Objective:** Verify content type detector identifies test plans.
 
 **Input:**
-```
+
+```markdown
 # Test Plan
 
 ## Test Cases
@@ -266,7 +276,8 @@ The system should behave properly.
 **Objective:** Verify content type detector identifies CVs/resumes.
 
 **Input:**
-```
+
+```text
 JOHN DOE
 Results-driven professional with excellent communication skills
 
@@ -292,7 +303,8 @@ SKILLS
 **Objective:** Verify content type detector identifies cover letters.
 
 **Input:**
-```
+
+```text
 Dear Hiring Manager,
 
 I am writing to apply for the Senior Engineer position at Company X.
@@ -315,7 +327,8 @@ John Doe
 **Objective:** Verify user can override detected content type.
 
 **Input:**
-```
+
+```text
 User: "Analyze this as an email: [document that looks like README]"
 ```
 
@@ -328,7 +341,8 @@ User: "Analyze this as an email: [document that looks like README]"
 **Objective:** Verify fallback to Document type when no specific type detected.
 
 **Input:**
-```
+
+```text
 The quick brown fox jumps over the lazy dog. This is a sample paragraph
 with no specific content type markers. It could be anything.
 ```
@@ -349,7 +363,8 @@ with no specific content type markers. It could be anything.
 > "The incredibly powerful framework provides an extremely robust solution that is highly scalable and truly transformative for enterprise workflows."
 
 **Expected output:**
-```
+
+```text
 Slop Score: ≥50/100
 Lexical: ≥20/40 (≥7 patterns)
 - "incredibly" [Generic booster]
@@ -693,6 +708,7 @@ Lexical: ≥20/40 (≥7 patterns)
 > Coming soon!
 >
 > ## Usage
+>
 > Check back later."
 
 **Expected:** Missing substance patterns flagged.
@@ -803,6 +819,7 @@ Lexical: ≥20/40 (≥7 patterns)
 
 **Input:**
 > "- Responsible for designing systems
+>
 > - Managed a team of 5 engineers
 > - Worked on various projects
 > - Participated in code reviews"
@@ -881,6 +898,7 @@ Lexical: ≥20/40 (≥7 patterns)
 > User: "Clean up this email: The incredibly powerful solution leverages cutting-edge technology."
 
 **Expected behavior:**
+
 1. Skill detects content type (Email or Document)
 2. Skill detects 3+ patterns
 3. Skill presents confirmation prompt with type-specific suggestions
@@ -912,6 +930,7 @@ Lexical: ≥20/40 (≥7 patterns)
 > User: "Write an email to the team about pushing the deadline back a week"
 
 **Expected behavior:**
+
 1. Skill detects content type = Email
 2. Generates content without email slop
 3. No "I hope this finds you well"
@@ -926,6 +945,7 @@ Lexical: ≥20/40 (≥7 patterns)
 > User: "Write a LinkedIn post announcing our new product launch"
 
 **Expected behavior:**
+
 1. Skill detects content type = LinkedIn
 2. Generates content without engagement bait
 3. No "I'm thrilled to announce"
@@ -940,6 +960,7 @@ Lexical: ≥20/40 (≥7 patterns)
 > User: "Create a README for a Python CLI tool that converts CSV to JSON"
 
 **Expected behavior:**
+
 1. Skill detects content type = README
 2. No "Welcome to..." opening
 3. Quickstart appears early
@@ -1030,6 +1051,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Objective:** Verify dictionary stores content-type-specific patterns.
 
 **Procedure:**
+
 1. Use eliminator to add pattern to email section: "kindly revert"
 2. Analyze email containing "kindly revert" → flagged
 3. Analyze README containing "kindly revert" → NOT flagged (wrong type)
@@ -1041,6 +1063,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Objective:** Verify exceptions can be scoped to content type.
 
 **Procedure:**
+
 1. Add exception: "leverage" for PRD only
 2. Analyze PRD with "leverage" → NOT flagged
 3. Analyze email with "leverage" → flagged
@@ -1052,6 +1075,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Objective:** Verify metrics track by content type.
 
 **Procedure:**
+
 1. Detect 3 emails, 2 LinkedIn posts, 1 CV
 2. Query metrics
 
@@ -1064,6 +1088,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Objective:** Verify type-specific patterns tracked separately.
 
 **Procedure:**
+
 1. Detect email with email-opening-slop
 2. Detect LinkedIn with engagement-bait
 3. Query metrics
@@ -1077,6 +1102,7 @@ Lexical: ≥20/40 (≥7 patterns)
 **Objective:** Verify type-specific patterns don't leak to other types.
 
 **Procedure:**
+
 1. Text contains "I hope this finds you well" (email pattern)
 2. Analyze as LinkedIn post
 
@@ -1091,6 +1117,7 @@ Lexical: ≥20/40 (≥7 patterns)
 ### Phase 1: Detection Validation
 
 **Procedure:**
+
 1. User provides one document per content type (13 total)
 2. Agent runs detecting-ai-slop on each
 3. Agent reports slop score and all flagged patterns
@@ -1106,6 +1133,7 @@ Lexical: ≥20/40 (≥7 patterns)
 ### Phase 2: Elimination Validation
 
 **Procedure:**
+
 1. Apply eliminating-ai-slop to each document
 2. For each flagged pattern, user approves or rejects rewrite
 3. Evaluate rewrite quality:
@@ -1120,11 +1148,13 @@ Lexical: ≥20/40 (≥7 patterns)
 ### Phase 3: Final Validation
 
 **Procedure:**
+
 1. Run full pipeline on fresh documents
 2. Measure against success metrics
 3. Document any remaining issues
 
 **Success Criteria:**
+
 - Content type detection ≥95% accurate
 - Universal pattern detection ≥90% accurate
 - Type-specific pattern detection ≥85% accurate

@@ -30,7 +30,7 @@ Each adapter documents how generic fields map to platform-specific fields:
 
 Each adapter specifies the URL pattern for link verification:
 
-```
+```text
 [base-url]/[project-or-team]/[issue-type]/[id-or-key]
 ```
 

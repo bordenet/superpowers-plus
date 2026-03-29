@@ -45,6 +45,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
 From the output, extract:
+
 - Total skill count (auto-triggered + explicit)
 - Breakdown by activation type
 
@@ -143,7 +144,7 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 | Resource | URL |
 |----------|-----|
-| **Core superpowers** | https://github.com/obra/superpowers |
-| **superpowers-plus** | https://github.com/bordenet/superpowers-plus |
-| **Architecture** | https://github.com/bordenet/superpowers-plus/blob/main/docs/ARCHITECTURE.md |
-| **Contributing** | https://github.com/bordenet/superpowers-plus/blob/main/docs/CONTRIBUTING.md |
+| **Core superpowers** | <https://github.com/obra/superpowers> |
+| **superpowers-plus** | <https://github.com/bordenet/superpowers-plus> |
+| **Architecture** | <https://github.com/bordenet/superpowers-plus/blob/main/docs/ARCHITECTURE.md> |
+| **Contributing** | <https://github.com/bordenet/superpowers-plus/blob/main/docs/CONTRIBUTING.md> |

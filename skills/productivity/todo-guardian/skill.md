@@ -36,7 +36,6 @@ coordination:
 - After every 3 steps (staleness check)
 - When reviewing session for missed action items
 
-
 ### Example
 
 ```bash

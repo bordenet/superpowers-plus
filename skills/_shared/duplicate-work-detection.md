@@ -9,7 +9,7 @@
 
 Compare evidence item fields across branches:
 
-```
+```markdown
 For each pair of branches (A, B):
   overlap_score = |evidence_sources(A) ∩ evidence_sources(B)| / |evidence_sources(A) ∪ evidence_sources(B)|
 ```
@@ -31,6 +31,7 @@ Compare branch hypotheses by key terms:
 ### Level 3: Evidence Conclusion Overlap (Higher Cost)
 
 Compare branch verdicts and supporting evidence conclusions:
+
 1. If two branches reach the same verdict with the same supporting evidence → duplicate
 2. If two branches reach opposite verdicts about the same hypothesis → valuable divergence (keep both)
 
@@ -45,8 +46,9 @@ When branches are flagged as duplicates:
 
 ## Integration Points
 
-### In debug-conductor (Phase 4):
-```
+### In debug-conductor (Phase 4)
+
+```python
 After receiving evidence from branch N:
   For each existing branch M (M ≠ N):
     score = structural_overlap(M.evidence, N.evidence)
@@ -55,8 +57,9 @@ After receiving evidence from branch N:
       log merge decision to incident packet
 ```
 
-### In multi-agent synthesis layers:
-```
+### In multi-agent synthesis layers
+
+```text
 Before synthesis:
   Group branch outputs by structural similarity
   Within each group: merge duplicates, keep strongest

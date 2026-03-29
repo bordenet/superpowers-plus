@@ -19,6 +19,7 @@ Score each pair of tasks 0–2 per signal. **Pair score ≥ 6 → parallel eligi
 ### Step 1: Extract Task File Footprints
 
 For each task in the plan:
+
 1. Identify expected files to modify (from plan phase details)
 2. Identify expected files to read (imports, dependencies)
 3. Identify test files affected
@@ -27,7 +28,7 @@ For each task in the plan:
 
 For every pair (Task A, Task B):
 
-```
+```text
 file_overlap = score_file_overlap(A.modifies, B.modifies)
 interface_coupling = score_interface_coupling(A.interfaces, B.interfaces)
 test_isolation = score_test_isolation(A.tests, B.tests)
@@ -39,7 +40,7 @@ merge_risk = 1 - (pair_score / 8)
 
 ### Step 3: Build Dependency Graph
 
-```
+```markdown
 If pair_score >= 6 AND merge_risk <= 0.5:
   → Edge: "parallel eligible"
 If pair_score < 6 OR merge_risk > 0.5:
@@ -70,7 +71,7 @@ Any "must serialize" edge → those tasks run sequentially.
 
 ### File Overlap Scoring
 
-```
+```markdown
 shared_files = A.modifies ∩ B.modifies
 If |shared_files| > 0: score = 0
 If same_directory(A.modifies, B.modifies) but no shared files: score = 1
@@ -79,7 +80,7 @@ If completely_separate_trees(A.modifies, B.modifies): score = 2
 
 ### Interface Coupling Scoring
 
-```
+```bash
 shared_signatures = functions/methods that A exports AND B calls (or vice versa)
 If |shared_signatures| > 0: score = 0
 shared_types = types/structs used by both A and B
@@ -89,7 +90,7 @@ If no shared types or signatures: score = 2
 
 ### Test Isolation Scoring
 
-```
+```markdown
 shared_test_files = A.test_files ∩ B.test_files
 shared_fixtures = A.fixtures ∩ B.fixtures
 If |shared_test_files| > 0 or |shared_fixtures| > 0: score = 0
@@ -99,7 +100,7 @@ If completely_separate_test_files: score = 2
 
 ### Data Model Coupling Scoring
 
-```
+```markdown
 shared_tables = A.tables ∩ B.tables
 related_tables = tables with FK relationships between A.tables and B.tables
 If |shared_tables| > 0: score = 0
@@ -110,6 +111,7 @@ If no table overlap or FK relationship: score = 2
 ## Conservative Defaults
 
 When analysis is uncertain:
+
 - Unknown file overlap → assume 0 (serial)
 - Dynamic imports or reflection → assume 0 (serial)
 - Shared test utilities (e.g., `testutil/`) → assume 0 (serial)

@@ -22,7 +22,7 @@ Configuration for Azure DevOps work item tracking.
 
 ## URL Pattern
 
-```
+```text
 https://dev.azure.com/[org]/[project]/_workitems/edit/[id]
 ```
 

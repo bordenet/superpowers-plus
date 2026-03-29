@@ -18,7 +18,7 @@ coordination:
 # Skill Health Check
 
 > **Purpose:** Cheap structural lint for skill files. Not a runtime diagnostic.
-
+>
 > **Wrong skill?** Runtime skill issues → `superpowers-doctor`. Writing new skills → `skill-authoring`. Skill prose quality → `writing-skills`.
 
 **Announce at start:** "I'm running the **skill-health-check** structural lint."
@@ -31,6 +31,7 @@ coordination:
 - **superpowers-help**: Skill discovery (lighter)
 - **writing-skills**: Skill file format reference
 - **evolution-loop**: Self-improvement cycle
+
 ## When to Use
 
 - After creating or modifying skills
