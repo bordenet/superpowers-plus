@@ -13,7 +13,7 @@ For each page in priority order (P1 → P2 → P3):
 ### 1. Draft
 
 - Pull source content from snapshots (not live wiki — use Phase 1 snapshot)
-- Follow the section outline from the writing plan page card
+- Follow the section structure from the writing plan page card
 - Apply writing standards:
   - Technical, precise, direct prose
   - One idea per sentence

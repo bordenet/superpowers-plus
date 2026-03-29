@@ -27,50 +27,44 @@ coordination:
 ## When to Use
 
 - User asks "what can you do?" or "what skills do you have?"
-- Need to enumerate available superpowers or explicit skills at runtime
+- User needs routing to the right skill for their task
 - Debugging whether a specific skill is installed and active
-
-
-## Understanding the Distinction
-
-| Term | Definition | How It Works |
-|------|------------|--------------|
-| **Superpower** | A skill with `triggers: [...]` in frontmatter | Auto-invokes when trigger phrases are detected |
-| **Explicit Skill** | A skill without triggers | Must be explicitly invoked by name |
-
-**Example:**
-- `brainstorming` is a **superpower** — saying "help me plan this feature" auto-triggers it
-- `think-twice` is an **explicit skill** — you must say "invoke think-twice" to use it
 
 ---
 
-## MANDATORY: Dynamic Enumeration
+## Procedure: Progressive Disclosure
 
-**DO NOT rely on any hardcoded skill lists.** Skills change frequently. You MUST enumerate dynamically.
+**Default response is guidance, NOT a catalog dump.** Only show the full list if explicitly requested.
 
-### Responding to "What are my superpowers?"
+### Step 1: Quick Orientation (always start here)
 
-When the user asks about superpowers specifically, list **only auto-triggered skills**:
+Tell the user:
 
+> You have **[N] skills** installed ([X] auto-triggered, [Y] explicit).
+> Most fire automatically when needed — you don't have to remember them.
+>
+> **Tell me what you want to do** and I'll pick the right skill, or see the workflow guide below.
+
+To get the actual count, run:
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>&1 | head -5
 ```
 
-### Responding to "What skills do I have?"
+### Step 2: Route by Workflow (primary response)
 
-When the user asks about skills generally, list **all skills** (categorized):
+Present the workflow table from § "Workflow Routing" below. This is the core value of this skill — matching intent to skills.
 
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-```
+### Step 3: Drill Down (only if asked)
 
-### Listing Only Explicit Skills
+Only if the user says "show me everything" or "list all skills":
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills          # all
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers  # auto-triggered only
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit     # manual only
 ```
 
-### Load a Specific Skill
+### Loading a Specific Skill
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
@@ -78,35 +72,92 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
 
 ---
 
-## How Superpowers Work (Auto-Triggered)
+## Start Here: 5 Skills That Matter Most
 
-Superpowers fire when trigger phrases appear. You don't need to explicitly invoke them.
+For most users, these 5 skills cover 80% of daily work:
 
-**Example triggers:**
-- "help me plan this feature" → `brainstorming` fires
-- "fix this bug" → `systematic-debugging` fires
-- "update the wiki" → `wiki-orchestrator` fires
+| Skill | When | Auto? |
+|-------|------|:-----:|
+| `brainstorming` | Before building anything new — explores intent, requirements, design | 🦸 yes |
+| `systematic-debugging` | Before fixing any bug — structured reproduce → hypothesize → isolate → fix | 🦸 yes |
+| `feature-development` | Full build lifecycle — requirements → design → plan → TDD → verify | 🦸 yes |
+| `think-twice` | When stuck, looping, or unsure — breaks analysis paralysis | 🔧 explicit |
+| `verification-before-completion` | Before claiming anything is done — final safety net | 🦸 yes |
 
-### The 1% Rule
+If the system itself seems unhealthy: `superpowers-doctor` (run as `sp-doctor`).
 
-> If there's even a 1% chance a superpower might apply, **let it fire**.
+---
 
-Don't suppress: "This is simple, I don't need the skill." Superpowers exist to prevent mistakes.
+## Understanding the Two Axes
 
-## How Explicit Skills Work (Manual Invocation)
+| Axis | Values | What It Means |
+|------|--------|---------------|
+| **Activation** | 🦸 auto-triggered / 🔧 explicit | Auto-triggered skills fire when trigger phrases are detected. Explicit skills must be invoked by name. |
+| **Source** | `superpowers:` (core) / `superpowers-plus:` (extended) | Core skills come from [obra/superpowers](https://github.com/obra/superpowers). Extended skills add domain-specific capabilities. |
 
-Explicit skills require you to invoke them by name:
-- "invoke think-twice"
-- "use superpowers-help"
-- "run security-upgrade"
-
-These skills are typically meta-tools (help, observability) or tools that should only run on explicit request.
+**The 1% Rule:** If there's even a 1% chance a superpower applies, let it fire. Don't suppress with "this is simple."
 
 ### Priority When Multiple Apply
 
-1. **Process superpowers first** (brainstorming, debugging) — determine HOW to approach
-2. **Implementation superpowers second** (wiki-orchestrator, issue-authoring) — guide execution
+1. **Process skills first** (brainstorming, debugging) — determine HOW to approach
+2. **Implementation skills second** (wiki-orchestrator, issue-authoring) — guide execution
 3. **Explicit skills on request** — only when user specifically asks
+
+---
+
+## Workflow Routing
+
+### Building & Designing
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Build a new feature | `brainstorming` → `plan-and-execute` → `feature-development` | Full lifecycle; brainstorming explores before committing |
+| Design a system/component | `brainstorming` → `design-triad` → `domain-design` | 3+ options, comparison matrix, harsh review |
+| Write a plan/RFC | `plan-and-execute` → `plan-quality-gates` | Plan-quality-gates catches vague/incomplete plans |
+| Validate requirements | `requirements-validation` | Tests for falsifiability, contradictions |
+
+### Debugging & Investigating
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Fix a bug | `systematic-debugging` → `test-driven-development` | Serial-first: reproduce → hypothesize → isolate → fix |
+| Debug a complex distributed issue | `systematic-debugging` → `debug-conductor` | Escalation: only fork to parallel investigators if serial stalls |
+| Resume a stalled investigation | `investigation-state` → `think-twice` | Persists hypotheses/evidence across sessions |
+| Understand why an approach failed | `failure-autopsy` | Root cause analysis with 5-Why + preventive actions |
+
+### Code Quality & Review
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Review a PR | `providing-code-review` → `code-review-battery` | Battery runs 5 parallel specialist reviewers |
+| Get my code reviewed before pushing | `pre-commit-gate` → `progressive-harsh-review` | Lint → typecheck → test → adversarial review |
+| Check blast radius of a change | `blast-radius-check` → `field-rename-verification` | Finds all callers before edits |
+| Refactor safely | `subagent-driven-development` | Orchestrates parallel sub-agents for independent tasks |
+
+### Documentation & Wiki
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Update the wiki | `wiki-orchestrator` → `wiki-content-quality` | Orchestrator routes to appropriate wiki skill |
+| Refactor wiki structure | `wiki-refactor` | 7-phase pipeline: audit → deduplicate → rewrite → verify |
+| Fix AI-sounding writing | `detecting-ai-slop` → `eliminating-ai-slop` | Catches and rewrites hollow/inflated prose |
+
+### Issue Tracking
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Create a ticket | `issue-authoring` | Templates with acceptance criteria for GitHub/Jira/Azure DevOps |
+| Update an existing ticket | `issue-editing` | Safe update with before/after diff |
+| Verify ticket links work | `issue-link-verification` → `issue-verify` | Tests all URLs, confirms references exist |
+
+### Meta & Getting Unstuck
+
+| "I want to..." | Skill Chain | Notes |
+|-----------------|-------------|-------|
+| Get a second opinion | `think-twice` | 🔧 explicit — must invoke by name |
+| Search for counter-evidence | `adversarial-search` | Defeats confirmation bias |
+| Check skill system health | `superpowers-doctor` (`sp-doctor`) | 22-check diagnostic |
+| See what skills exist | `superpowers-help` (this skill) | You're here |
 
 ---
 
@@ -120,49 +171,16 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 ---
 
-## Common Task Routing
-
-| Task | Type | Skill(s) |
-|------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → plan-and-execute |
-| "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
-| "Review this PR" | 🦸 auto | providing-code-review |
-| "Update the wiki" | 🦸 auto | wiki-orchestrator → link-verification |
-| "Check my AI writing" | 🦸 auto | detecting-ai-slop → eliminating-ai-slop |
-| "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
-| "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
-| "Check skill health" | 🦸 auto | superpowers-doctor (sp-doctor) |
-
----
-
-## Installation
-
-### With superpowers already installed
-
-superpowers-plus requires [obra/superpowers](https://github.com/obra/superpowers) as a prerequisite.
-
-```bash
-git clone https://github.com/bordenet/superpowers-plus.git
-cd superpowers-plus
-./install.sh
-```
-
-### Check Version
-
-```bash
-./install.sh --version
-```
-
----
-
 ## Failure Modes
 
 | Failure | Fix |
 |---------|-----|
-| Reporting skills from memory instead of running discovery | ALWAYS run `find-skills` — never enumerate from memory |
+| Dumping 140 skills as first response | Use progressive disclosure — overview first, full list only on request |
+| Reporting skills from memory instead of running discovery | Run `find-skills` before answering — never enumerate from memory |
 | Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — check both sources |
-| Confusing superpowers vs explicit skills | Superpowers have `triggers:` (auto-fire); explicit skills must be manually invoked |
+| Confusing superpowers vs explicit skills | Two axes: activation (auto/explicit) and source (core/extended) |
 | Recommending a skill without checking if it's installed | Run `find-skills {name}` before recommending any skill |
+| Routing table doesn't cover user's task | Fall back to `match-skills <intent>` for fuzzy matching |
 
 ## Documentation
 

@@ -11,10 +11,7 @@ anti_triggers:
   - "PR review"
   - "pull request review"
   - "full code review"
-description: >
-  Per-batch adversarial review for ANY code change. 3 critic personas
-  score on 5 dimensions each. Score <8 average = REJECT + rework.
-  Faster than full review, more rigorous than lint.
+description: "Per-batch adversarial review for ANY code change. 3 critic personas score on 5 dimensions each. Score <8 average = REJECT + rework. Faster than full review, more rigorous than lint."
 summary: "Use when: any code change before commit. Skip when: docs-only."
 coordination:
   group: code-quality

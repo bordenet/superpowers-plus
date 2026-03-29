@@ -1,10 +1,7 @@
 ---
 name: llm-behavior-investigator
 source: superpowers-plus
-description: >
-  Specialized investigator for diagnosing LLM/prompt behavior issues: tool selection
-  failures, prompt regressions, context window problems, and parsing failures.
-  Dispatched by debug-conductor as part of forked debugging.
+description: "Specialized investigator for diagnosing LLM/prompt behavior issues: tool selection failures, prompt regressions, context window problems, and parsing failures. Dispatched by debug-conductor as part of forked debugging."
 triggers: []
 anti_triggers: []
 coordination:
