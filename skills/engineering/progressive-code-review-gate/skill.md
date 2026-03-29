@@ -153,7 +153,7 @@ After fixing nits, run a **targeted** battery round:
 |---------|---------|----------|
 | Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
 | Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
-| Fix-induced regression | Round N fix breaks something Round N-1 passed | Escalate from targeted re-review (Step 3a) to full re-review (Step 2) — re-dispatch all original reviewers |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
 | Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
 | Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
 
