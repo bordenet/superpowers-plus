@@ -44,21 +44,27 @@ coordination:
 
 Focus: typos, formatting, naming, style, obvious bugs, missing error handling.
 Tone: eager, thorough, detail-oriented.
-**Required evidence:** The deliverable itself — line-by-line reading. Do NOT read callers, consumers, or deployment context.
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** The local diff — line-by-line reading of changed code.
+**PRIORITIZE:** Surface correctness, naming consistency, null handling, off-by-one errors, error message quality.
 **Dimension weights:** Correctness 35%, Simplicity 25%, Edge Cases 20%, Testability 15%, Security/Perf 5%.
 
 ### Persona 2: SeniorArchCritic (Structural Quality)
 
 Focus: architecture, design patterns, separation of concerns, extensibility, testability.
 Tone: experienced, skeptical, pattern-aware.
-**Required evidence:** The deliverable PLUS all callers, consumers, and interface contracts affected by the change. Must check downstream impact before scoring.
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** Interface contracts and public APIs affected by the change. Check downstream impact before scoring.
+**PRIORITIZE:** Ripple analysis across all callers and consumers, design pattern adherence, reversibility, extensibility.
 **Dimension weights:** Correctness 25%, Simplicity 15%, Edge Cases 15%, Testability 25%, Security/Perf 20%.
 
 ### Persona 3: ProdOpsHardass (Operational Quality)
 
 Focus: failure modes, edge cases, security, performance, monitoring, rollback.
 Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
-**Required evidence:** The deliverable PLUS deployment context, error handling paths, retry/rollback behavior, and monitoring/logging coverage. Do NOT focus on code style or naming.
+**Full access:** All codebase context is available. Every persona may follow any lead.
+**START FROM:** Failure modes and state transitions. Trace error handling paths and retry/rollback behavior first.
+**PRIORITIZE:** Operational safety, monitoring/logging coverage, backward compatibility, deployment risk, 3 AM resilience.
 **Dimension weights:** Correctness 25%, Simplicity 10%, Edge Cases 25%, Testability 10%, Security/Perf 30%.
 
 ## The Process
@@ -106,9 +112,9 @@ On REJECT:
 
 After scoring, scan persona outputs for **shared blind spots**:
 
-1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different entry point (per their required evidence scope).
-2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding in their own analytical frame.
-3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output references evidence from their required scope (Nitpicker: line-level, ArchCritic: callers/contracts, ProdOps: error paths/rollback). If any persona's output lacks scope-specific evidence, re-examine.
+1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: local diff, ArchCritic: interface contracts, ProdOps: failure modes).
+2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding through their own analytical lens.
+3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output shows evidence of their distinct starting point (Nitpicker: line-level reading, ArchCritic: caller/contract analysis, ProdOps: failure mode tracing). If any persona's output lacks starting-point-specific evidence, re-examine.
 
 Flags trigger re-examination, not automatic verdict changes.
 
