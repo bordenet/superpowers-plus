@@ -75,7 +75,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     MATCHES=$(git log -p "$RANGE" 2>/dev/null | grep -E '^\+' | grep -cE "$IP_PATTERNS" || true)
     if [[ "$MATCHES" -gt 0 ]]; then
         echo -e "${RED}❌ FAIL: $MATCHES proprietary IP matches in added lines${NC}"
-        git log -p "$RANGE" | grep -E '^\+' | grep -nE "$IP_PATTERNS" | head -10
+        echo -e "${RED}   (matched content suppressed — use --verbose to see details)${NC}"
         ((ERRORS++))
     fi
 
