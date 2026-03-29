@@ -114,16 +114,12 @@ function extractFrontmatter(filePath) {
       }
     }
 
-    // Fallback: use first non-empty line after frontmatter
+    // Fallback: use first non-empty, non-heading line after frontmatter
     if (!description) {
-      let pastFrontmatter = false;
+      let dashCount = 0;
       for (const line of lines) {
-        if (line.trim() === '---') {
-          if (pastFrontmatter) break;
-          pastFrontmatter = true;
-          continue;
-        }
-        if (pastFrontmatter && line.trim() && !line.startsWith('#')) {
+        if (line.trim() === '---') { dashCount++; continue; }
+        if (dashCount >= 2 && line.trim() && !line.startsWith('#')) {
           description = line.trim().substring(0, 200);
           break;
         }
