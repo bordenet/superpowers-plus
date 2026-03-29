@@ -49,6 +49,8 @@ Commands:
   claim      Claim a task for this agent (multi-agent coordination)
   unclaim    Release a claim on a task
   reap       Reap all expired claims (reverts to open)
+  list-claims Show all claimed tasks with agent, age, expiry status
+  self-test  Validate honeypot integrity, TODO path, and engine health
 
 Global Options:
   --json     Machine-readable JSON output
@@ -140,7 +142,26 @@ fi
 # The canonical honeypot content at ~/.codex/TODO.md. Used by self-test and
 # doctor checks to verify the honeypot hasn't been tampered with.
 HONEYPOT_PATH="$HOME/.codex/TODO.md"
-# Honeypot content lives in tools/honeypot-content.txt (single source of truth)
+HONEYPOT_EXPECTED_CONTENT='# 🚨 STOP — WRONG FILE 🚨
+# THIS IS NOT THE REAL TODO FILE
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+'
 
 # --- Self-Test ---
 # Validates: honeypot integrity, real TODO path resolution, registry health.
@@ -187,14 +208,16 @@ self_test() {
     warnings=$((warnings + 1))
   fi
 
-  # Honeypot checks (4-7): skip when TODO lives at ~/.codex/TODO.md (no honeypot needed).
-  local resolved_path
-  resolved_path=$(resolve_todo_path)
-  local resolved_canonical honeypot_canonical
-  resolved_canonical=$(realpath "${resolved_path:-$HONEYPOT_PATH}" 2>/dev/null || echo "${resolved_path:-$HONEYPOT_PATH}")
-  honeypot_canonical=$(realpath "$HONEYPOT_PATH" 2>/dev/null || echo "$HONEYPOT_PATH")
+  # Honeypot checks (4-7): only applicable when TODO lives OUTSIDE ~/.codex/TODO.md.
+  # If the user's real TODO IS at ~/.codex/TODO.md, there's no honeypot — that IS
+  # their working file. The honeypot is an optional defense for users who store
+  # TODO elsewhere (e.g., OneDrive, Dropbox, a shared repo).
+  local real_canonical
+  real_canonical=$(realpath "$real_path" 2>/dev/null || readlink -f "$real_path" 2>/dev/null || echo "$real_path")
+  local honeypot_canonical
+  honeypot_canonical=$(realpath "$HONEYPOT_PATH" 2>/dev/null || readlink -f "$HONEYPOT_PATH" 2>/dev/null || echo "$HONEYPOT_PATH")
 
-  if [[ "$resolved_canonical" == "$honeypot_canonical" ]]; then
+  if [[ -n "$real_path" && "$real_canonical" == "$honeypot_canonical" ]]; then
     echo "ℹ️  Honeypot checks skipped — TODO lives at $HONEYPOT_PATH (no honeypot needed)"
   else
     # 4. Check honeypot exists
@@ -243,7 +266,7 @@ self_test() {
     if [[ -f "$HONEYPOT_PATH" ]]; then
       local actual_hash expected_hash
       actual_hash=$(sha256_hash "$HONEYPOT_PATH")
-      expected_hash=$(sha256_hash "${SCRIPT_DIR}/honeypot-content.txt")
+      expected_hash=$(printf '%s' "$HONEYPOT_EXPECTED_CONTENT" | sha256_hash_stdin)
       if [[ "$actual_hash" == "$expected_hash" ]]; then
         echo "✅ Honeypot content matches expected sentinel"
         passed=$((passed + 1))
