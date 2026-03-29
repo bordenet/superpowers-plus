@@ -231,7 +231,7 @@ Confidence is **role-specific** but follows a shared calibration:
 | Alternative | Description | Verdict |
 |-------------|-------------|---------|
 | **A. Random Perspective Sampling** | Each agent brainstorms freely with no role constraint | ❌ Rejected: Produces redundant lists; no perspective diversity guarantee |
-| **B. Debate Format** | Agents argue for/against proposals | ❌ Rejected: Premature convergence; debates narrow rather than expand possibility space |
+| **B. Debate Format** | Agents argue for/against proposals | ❌ Rejected: Premature convergence; debates narrow rather than expand possibility space. **Exception:** BS-13 adds a single-round *contradiction clarification* pass (not a debate) — it surfaces hidden assumptions without convergence pressure. See `ensemble-mode.md` §"Cross-Lens Contradiction Clarification." |
 | **C. Role-Based Ideation with Synthesis (Selected)** | Each agent wears a specific "lens"; synthesizer clusters and ranks | ✅ Selected: Guaranteed diversity; structured output; natural handoff to planning |
 
 **Brainstorming Ensemble Lenses:**

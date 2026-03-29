@@ -131,6 +131,92 @@ The merged plan enters standard Phase C stress-testing (brainstorming + think-tw
 - Cost: [tokens] ([ratio]× single-agent)
 ```
 
+## Dynamic Role Selection (WP-11)
+
+Instead of manually selecting 3–5 roles, the conductor auto-selects based on task signals:
+
+| Task Signal | Roles Auto-Selected | Rationale |
+|-------------|---------------------|-----------|
+| ≥3 components mentioned | Architecture + Requirements (always) | Multi-component coordination |
+| "production", "deploy", SLA-bound | + Risk/Failure-Mode + Rollout/Migration | Operational safety |
+| "migration", "backward compat" | + Rollout/Migration | Data/API transition |
+| Testable acceptance criteria exist | + Test/Verification | Quality gatekeeping |
+| Internal tool, single service | Requirements + Architecture only (min) | Minimal overhead |
+
+**Rules:**
+1. Requirements Clarifier + Architecture Planner always included (unchanged)
+2. Auto-selection produces candidates; conductor prunes if >5 roles selected
+3. Prune by lowest task relevance, keeping roles whose domain is explicitly mentioned
+4. Log selected/pruned roles with reasoning in Council Metadata
+
+**Override:** User can explicitly request or exclude specific roles.
+
+## Iterative Refinement (WP-12)
+
+After synthesis (Step 4), the conductor evaluates whether a refinement round improves the plan:
+
+**Refinement triggers** (ALL must be true):
+1. Synthesis produced ≥2 unresolved tradeoffs
+2. Plan quality score (per `multi-agent-quality-standards.md` §1) is exactly 7/10 (borderline pass)
+3. Budget remaining ≥ 30%
+
+> **Note:** If quality score < 7, the shared standard (§3) requires fallback — not refinement. Refinement is only for **borderline-passing** plans (score = 7) that have unresolved tradeoffs worth addressing.
+
+**Refinement protocol:**
+1. Only roles involved in unresolved tradeoffs are re-dispatched (not all roles)
+2. Each re-dispatched role receives: the synthesized plan + the specific unresolved tradeoffs
+3. Prompt: "Given the merged plan and these unresolved tradeoffs, revise ONLY your section to address the conflicts. Do not rewrite other sections."
+4. Synthesizer re-merges, focusing on tradeoff resolution
+5. Maximum: 1 refinement round. If tradeoffs persist, surface to user as "Council could not resolve"
+6. If post-refinement score drops below 7 → fall back per shared standard §3
+
+**Cost guard:** Refinement round cannot exceed 40% of the initial council cost.
+
+## Plan Versioning (WP-13)
+
+Track plan evolution across council rounds for auditability and rollback:
+
+**Version format** (extends shared instrumentation schema — `multi-agent-quality-standards.md` §5):
+```json
+{
+  "version": 1,
+  "timestamp": "ISO-8601",
+  "rolesDispatched": ["Requirements", "Architecture", "Risk"],
+  "unresolvedTradeoffs": 2,
+  "outputQualityScore": 7,
+  "planHash": "sha256 of plan text",
+  "deltaFromPrevious": null,
+  "planText": "full plan text for this version"
+}
+```
+
+**Rules:**
+1. Version 1 = initial synthesis output
+2. Version 2 = after refinement round (if triggered)
+3. Each version records: roles dispatched, tradeoff count, quality score, **full plan text**, plan hash
+4. `deltaFromPrevious` summarizes what changed (sections modified, tradeoffs resolved)
+5. Version history is appended to Council Metadata in the output
+6. If user requests a previous version, the conductor can reference the stored `planText` for comparison or rollback
+
+**Retention:** Version history (including full plan text per version) lives in the plan output metadata. Maximum 2 versions stored (initial + 1 refinement). No external persistence required.
+
+## Operator Visibility (WP-15)
+
+Real-time progress reporting during council execution:
+
+**Progress events** (emitted to user as the council runs):
+1. `COUNCIL_START` — "Planning council activated with roles: [list]"
+2. `ROLE_DISPATCHED` — "Dispatching [Role Name]..." (per role)
+3. `ROLE_COMPLETE` — "[Role Name] complete (confidence: X, assumptions: N)"
+4. `CONFLICT_DETECTED` — "Conflict between [Role A] and [Role B]: [summary]"
+5. `SYNTHESIS_START` — "Merging role outputs..."
+6. `REFINEMENT_TRIGGERED` — "Borderline pass (score = 7) with unresolved tradeoffs; running refinement round..."
+7. `COUNCIL_COMPLETE` — "Plan complete. Roles: N, Conflicts resolved: M, Unresolved: K, Cost: X×"
+
+**Format:** Each event is a single-line status message (no code blocks, no tables). Events appear inline as the council runs, giving the user real-time awareness without requiring interaction.
+
+**Quiet mode:** If the user has signaled preference for minimal output (e.g., "just give me the plan"), suppress events 2–5 and emit only START/COMPLETE.
+
 ## Failure Modes
 
 | Failure | Detection | Recovery |
@@ -140,3 +226,4 @@ The merged plan enters standard Phase C stress-testing (brainstorming + think-tw
 | Plan is bloated (>2× single-agent) | Word count check | Synthesizer must cut; distill to essentials |
 | Council cost exceeds 2.0× | Token tracking | Stop dispatching; synthesize with what's available |
 | Synthesis loses critical detail | Phase C stress-test catches it | Phase C functions as safety net (unchanged) |
+| Refinement round doesn't improve score | Quality score unchanged after round 2 | Accept plan; note "council exhausted" in metadata |
