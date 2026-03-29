@@ -238,14 +238,25 @@ Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/s
 
 ## Shared Modules
 
-Reusable patterns live in `skills/_shared/`:
+Reusable patterns and shared contracts live in `skills/_shared/`:
 
 ```
 skills/_shared/
-└── secret-detection.md   # Regex patterns for credential detection
+├── README.md                            # Index and usage guide
+├── confidence-calibration.md            # Confidence scoring standards
+├── duplicate-work-detection.md          # Cross-branch duplicate detection
+├── evidence-schema.md                   # Evidence structure for investigations
+├── fork-readiness-rubric.md             # When to fork vs stay serial
+├── incident-packet-schema.md            # Debugging orchestration packet contract
+├── multi-agent-activation-rubric.md     # 5=ask, ≥6=multi-agent eligible
+├── multi-agent-quality-standards.md     # Quality gates for multi-agent output
+├── multi-agent-result-schema.md         # Branch result contract
+├── multi-agent-synthesis-schema.md      # Synthesis output contract
+├── multi-agent-task-packet-schema.md    # Dispatch packet contract
+└── secret-detection.md                  # Regex patterns for credential detection
 ```
 
-Skills reference shared modules via relative paths or copy the content inline.
+**Normative shared docs** (multi-agent schemas, activation rubric) define contracts that skills MUST follow. Other shared docs provide reusable patterns that skills MAY reference.
 
 ## Adapter Pattern
 

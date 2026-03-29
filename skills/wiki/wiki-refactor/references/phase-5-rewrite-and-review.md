@@ -18,7 +18,8 @@ For each page in priority order (P1 → P2 → P3):
   - Technical, precise, direct prose
   - One idea per sentence
   - Active voice
-  - No hedging ("might", "could potentially", "it is possible that")
+  - No empty hedging ("might", "could potentially", "it is possible that")
+  - Evidence-backed qualifiers ARE allowed: "depends on version", "if enabled", "varies by deployment mode"
   - No filler ("it should be noted that", "in order to", "as a matter of fact")
   - Concrete examples over abstract descriptions
 - Resolve any contradictions flagged in Phase 4 (verify against source of truth)
@@ -80,13 +81,23 @@ Each reviewer scores 1-10 on wiki-specific dimensions (not the code-review dimen
 - **Completeness** (25%) — no gaps or missing context
 - **Readability** (25%) — clear, scannable, newcomer-accessible
 
-**Verdict:** Weighted mean across all 5 reviewers.
+### Automated Link Verification (required before PASS)
 
-| Weighted Mean | Verdict | Action |
-|---------------|---------|--------|
-| ≥8 | **PASS** | Proceed to next page |
-| 6-7 | **PASS_WITH_FIXES** | Fix findings, re-review changed sections only |
-| <6 | **REJECT** | Major rewrite, full re-review |
+Before any page can receive a PASS verdict, run automated link verification:
+1. Extract all internal links from the page (wiki links, cross-references, "See Also")
+2. Verify each target exists in the new structure (not just the old structure)
+3. Flag broken links as blocking findings — a page with broken links cannot PASS
+
+This catches link breakage incrementally (per page) rather than only at the end (Phase 7), when repair cost is highest.
+
+**Verdict:** Weighted mean across all 5 reviewers AND link verification passes.
+
+| Weighted Mean | Links | Verdict | Action |
+|---------------|-------|---------|--------|
+| ≥8 | All valid | **PASS** | Proceed to next page |
+| ≥8 | Broken links | **PASS_WITH_FIXES** | Fix links, re-verify |
+| 6-7 | Any | **PASS_WITH_FIXES** | Fix findings, re-review changed sections only |
+| <6 | Any | **REJECT** | Major rewrite, full re-review |
 
 **Cap:** 3 rounds per page. If still failing after 3 rounds → escalate to human.
 

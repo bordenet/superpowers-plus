@@ -48,8 +48,9 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
 | Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥6 to pass) |
-| Complex debugging across service boundaries + fork-ready (rubric ≥6) | `debug-conductor` | Conductor-led bounded investigation with parallel investigators |
-| Debugging stalled after systematic-debugging + think-twice | `debug-conductor` | Escalation from serial to forked investigation |
+| Complex debugging across service boundaries | `systematic-debugging` + `investigation-state` | Serial-first: reproduce → hypothesize → isolate → fix |
+| Debugging stalled after systematic-debugging + think-twice (rubric ≥6) | `debug-conductor` | Escalation to conductor-led forked investigation (requires serial attempt first) |
+| Declared P1/P2 production incident with explicit user override | `debug-conductor` | Direct escalation (bypass serial-first for active incidents only) |
 | None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
 
 ## Child Skills

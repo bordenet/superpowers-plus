@@ -6,7 +6,7 @@
 
 ## 1. Executive Summary
 
-This document defines the architecture for multi-agent execution across three skills: **writing-plans**, **subagent-driven-development**, and **brainstorming**. The goal is disciplined parallelism — not "spawn many agents" — grounded in the same research principles as the forked debugging initiative.
+This document defines the architecture for multi-agent execution across three skills: **plan-and-execute (formerly writing-plans)**, **subagent-driven-development**, and **brainstorming**. The goal is disciplined parallelism — not "spawn many agents" — grounded in the same research principles as the forked debugging initiative.
 
 **Core thesis:** These three skills are the strongest non-debugging candidates because they are naturally decomposable, benefit from diverse perspectives, and can be centrally synthesized without tight serialization.
 
@@ -14,7 +14,7 @@ This document defines the architecture for multi-agent execution across three sk
 
 | Rank | Skill | Why Multi-Agent | Risk Level |
 |------|-------|----------------|------------|
-| 1 | **writing-plans** | Independent planners can propose decompositions, risks, tests in parallel; outputs are comparable side-by-side before implementation | Low — plans are cheap to compare |
+| 1 | **plan-and-execute** | Independent planners can propose decompositions, risks, tests in parallel; outputs are comparable side-by-side before implementation | Low — plans are cheap to compare |
 | 2 | **subagent-driven-development** | Already near multi-agent; needs better orchestration, parallel dispatch for isolated tasks, merge-risk awareness | Medium — code merges can fail |
 | 3 | **brainstorming** | Viewpoint diversity improves idea quality; low-risk since output is ideas, not code | Low — ideas are cheap to generate |
 
@@ -61,82 +61,21 @@ Shared across all three skills. Score 0–2 per signal; total = 5 → borderline
 
 ### 3.2 Common Task Packet Schema
 
-Every multi-agent dispatch uses this schema:
+> **Canonical source:** `skills/_shared/multi-agent-task-packet-schema.md`
 
-```json
-{
-  "packetId": "uuid-v4",
-  "skill": "writing-plans | subagent-driven-development | brainstorming",
-  "mode": "single-agent | multi-agent",
-  "activationScore": 6,
-  "task": {
-    "description": "Free text task description",
-    "context": "Relevant codebase/system context",
-    "constraints": ["constraint-1", "constraint-2"],
-    "successCriteria": ["criterion-1", "criterion-2"]
-  },
-  "branches": [
-    {
-      "branchId": "uuid-v4",
-      "role": "Role name (e.g., Risk Planner, Architecture Lens)",
-      "mandate": "Specific scoped instruction for this branch",
-      "tokenBudget": 8000,
-      "timeoutSeconds": 300
-    }
-  ],
-  "budget": {
-    "maxBranches": 4,
-    "maxTokensTotal": 32000,
-    "maxWallClockSeconds": 600
-  },
-  "synthesis": {
-    "strategy": "merge | rank | select-best",
-    "conflictResolution": "evidence-weighted | user-decision | conductor-decision"
-  }
-}
-```
+Every multi-agent dispatch uses the task packet schema. See the shared file for the full JSON schema, field notes, and required/optional field documentation.
 
 ### 3.3 Common Result Schema
 
-Every branch produces:
+> **Canonical source:** `skills/_shared/multi-agent-result-schema.md`
 
-```json
-{
-  "branchId": "uuid-v4",
-  "role": "Role name",
-  "status": "completed | killed | merged",
-  "output": { /* role-specific structured output */ },
-  "confidence": 0.0-1.0,
-  "assumptions": ["assumption-1"],
-  "risks": ["risk-1"],
-  "missingInformation": ["what-i-dont-know"],
-  "objections": ["weakest-point-in-my-output"],
-  "tokensUsed": 4200,
-  "wallClockSeconds": 45
-}
-```
+Every branch produces a result conforming to the shared result schema. Key fields: `branchId`, `status`, `confidence` (0.0–1.0), `objections` (self-identified weakness), and resource usage metrics.
 
 ### 3.4 Common Synthesis Schema
 
-The synthesis layer produces:
+> **Canonical source:** `skills/_shared/multi-agent-synthesis-schema.md`
 
-```json
-{
-  "packetId": "uuid-v4",
-  "synthesisStrategy": "merge",
-  "mergedOutput": { /* skill-specific final output */ },
-  "conflictsResolved": [
-    { "conflict": "description", "resolution": "how resolved", "evidence": "why" }
-  ],
-  "unresolved": [
-    { "tradeoff": "description", "options": ["A", "B"], "recommendation": "A" }
-  ],
-  "branchesMerged": 3,
-  "duplicatesDetected": 1,
-  "overallConfidence": 0.78,
-  "humanEscalationNeeded": false
-}
-```
+The synthesis layer merges branch results using the shared synthesis schema. Key fields: `conflictsResolved`, `unresolved` tradeoffs, `overallConfidence`, and `humanEscalationNeeded`.
 
 ### 3.5 Duplicate-Output Detection
 
@@ -162,7 +101,7 @@ Confidence is **role-specific** but follows a shared calibration:
 
 ## 4. Skill-Specific Designs
 
-### 4.1 writing-plans: Multi-Agent Planning Council
+### 4.1 plan-and-execute: Multi-Agent Planning Council
 
 **Design Alternatives Considered:**
 
@@ -183,7 +122,7 @@ Confidence is **role-specific** but follows a shared calibration:
 | **Rollout / Migration Planner** | Plan deployment, feature flags, data migration, backward compatibility | `{ rolloutSteps[], featureFlags[], migrationPlan, backwardCompatibility }` |
 | **Synthesis Planner** | Merge all sections, resolve conflicts, produce coherent plan | `{ mergedPlan, conflicts[], unresolved[], readinessAssessment }` |
 
-**Activation criteria (specific to writing-plans):**
+**Activation criteria (specific to plan-and-execute):**
 - Multi-agent activation rubric score ≥ 6 (score = 5 → ask user)
 - Task involves ≥3 components/services
 - Task has significant rollback cost if plan is wrong
@@ -253,7 +192,7 @@ Confidence is **role-specific** but follows a shared calibration:
 - Rank options by feasibility × impact
 - Identify recurring concerns across lenses
 - Separate "high-upside but risky" ideas
-- Produce planning-ready handoff (directly consumable by writing-plans)
+- Produce planning-ready handoff (directly consumable by plan-and-execute)
 
 ## 5. Cross-Cutting Concerns
 
@@ -278,12 +217,12 @@ Escalate to user when:
 
 | Existing Skill | How It's Used |
 |---------------|--------------|
-| `thinking-orchestrator` | Gains routing rule: complex planning → writing-plans multi-agent mode |
+| `thinking-orchestrator` | Gains routing rule: complex planning → plan-and-execute multi-agent mode |
 | `autonomous-chain-controller` | Gains chain type: "multi-agent-planning" |
-| `design-triad` | Used within writing-plans for architecture decisions; NOT itself multi-agent |
+| `design-triad` | Used within plan-and-execute for architecture decisions; NOT itself multi-agent |
 | `progressive-code-review-gate` | Applied to each code batch from parallel subagent branches |
 | `adversarial-search` | Embedded in brainstorming Contrarian lens |
-| `plan-and-execute` | Consumes multi-agent writing-plans output as its plan source |
+| `plan-and-execute` | Consumes multi-agent plan-and-execute output as its plan source |
 
 ### 5.4 Replayability
 
@@ -291,7 +230,7 @@ All orchestration decisions logged in structured format:
 ```json
 {
   "decision": "activate-multi-agent",
-  "skill": "writing-plans",
+  "skill": "plan-and-execute",
   "rubricScore": 7,
   "rubricDetails": { "decomposability": 2, "diversity": 2, "comparability": 1, "qualityRisk": 1, "costJustification": 1 },
   "selectedRoles": ["requirements", "architecture", "risk", "testing"],
@@ -312,7 +251,7 @@ All orchestration decisions logged in structured format:
 
 ### Scenarios per Skill
 
-**writing-plans:**
+**plan-and-execute:**
 | ID | Scenario | Expected Winner |
 |----|----------|----------------|
 | WP-1 | Simple utility function | A (single-agent) — over-engineering risk |
@@ -358,7 +297,7 @@ All orchestration decisions logged in structured format:
 
 ### Wave 3 ✅
 - [x] Shared primitives (task packet, result schema, synthesis schema) → §3.2–3.4 above
-- [x] writing-plans multi-agent prototype (first target) → `plan-and-execute/references/planning-council-mode.md`
+- [x] plan-and-execute multi-agent prototype (first target) → `plan-and-execute/references/planning-council-mode.md`
 - [x] Progressive harsh review → 10+ rounds, final score 8.6/10
 
 ### Wave 4 ✅
@@ -396,11 +335,11 @@ All orchestration decisions logged in structured format:
 **Finding 4: Per-skill cost caps needed.** 2.5× is too generous.
 **Action:** Set per-skill caps:
 - brainstorming: 1.5× (ideas are cheap; if you need 2.5× to brainstorm better, something's wrong)
-- writing-plans: 2.0× (plan sections have genuine independent work)
+- plan-and-execute: 2.0× (plan sections have genuine independent work)
 - subagent-driven-development: 2.5× (code execution has legitimate parallelism value)
 
 **Finding 5: Synthesis weaknesses are skill-specific.**
-- writing-plans: sections co-determine each other (architecture shapes risk shapes testing)
+- plan-and-execute: sections co-determine each other (architecture shapes risk shapes testing)
 - subagent-driven-development: integration checker is too late; prevention > repair
 - brainstorming: clustering washes out contrarian ideas
 **Action:** Add explicit synthesis failure modes to each skill's TODO doc.

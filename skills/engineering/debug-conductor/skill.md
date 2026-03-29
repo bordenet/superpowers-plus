@@ -69,7 +69,7 @@ composition:
    - LLM / prompt behavior
    - State consistency
    - Infrastructure / config / deployment
-4. **Initialize incident packet** (see `references/incident-packet-schema.md`)
+4. **Initialize incident packet in working context** (schema: `skills/_shared/incident-packet-schema.md`; protocol-only — no persistent store)
 
 ### Phase 2: Fork Decision
 
@@ -120,7 +120,7 @@ As investigators return evidence:
 2. **Detect duplicates** — Jaccard similarity > 0.7 between branch evidence → merge
 3. **Monitor budgets** — kill branches exceeding limits
 4. **Check confidence** — kill branches with < 0.3 confidence after first evidence
-5. **Update incident packet** in real-time
+5. **Update incident packet in working context** (in-memory only; not persisted across sessions)
 
 ### Phase 5: Adjudication
 
@@ -135,12 +135,12 @@ When all investigators complete (or budget exhausted), **dispatch `evidence-adju
 
 ### Phase 6: Resolution
 
-1. **Write adjudicator verdict** to `incidentPacket.adjudication`
-2. **Update `incidentPacket.budget`** with final token/time usage per branch
+1. **Record adjudicator verdict** in `incidentPacket.adjudication` (in working context)
+2. **Record final budget usage** in `incidentPacket.budget`
 3. **If confidence ≥ 0.8:** Present root cause + recommended next steps
 4. **If confidence 0.5–0.8:** Present ranked hypotheses, recommend targeted experiments
 5. **If confidence < 0.5:** Escalate to user with what we know and what we don't
-6. **Write resolution actions** to `incidentPacket.nextSteps`
+6. **Record resolution actions** in `incidentPacket.nextSteps`
 7. **Always:** Invoke `failure-autopsy` for post-resolution learning
 8. **Always:** Update `investigation-state` with final verdict
 9. **Always:** Log to TODO ledger any deferred follow-ups
