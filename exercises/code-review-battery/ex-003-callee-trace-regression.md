@@ -34,6 +34,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** defect-finder
 - **File:** skills/engineering/code-review-battery/skill.md

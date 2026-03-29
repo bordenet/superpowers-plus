@@ -47,12 +47,14 @@ Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
 **Fallback tags:** Created by `fallback-planning` skill. Always nested under the parent `#plan-*` tag. Query with `#fallback-*` to see all contingency tasks, or `#plan-auth-fix #fallback-*` to see fallbacks for a specific effort.
 
 **Identifier derivation:**
+
 - Derive from plan title: "Config Refactor" → `config-refactor`
 - Use kebab-case: lowercase, hyphens instead of spaces
 - Keep short but descriptive: 2-4 words max
 - If ambiguous, ask: "What should I call this effort?"
 
 **Example TODO.md with multiple efforts:**
+
 ```markdown
 ## P1 - Today
 - [ ] [20250315-01] Update config schema #plan-config-refactor #engineering

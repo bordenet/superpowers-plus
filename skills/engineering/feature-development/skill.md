@@ -29,7 +29,7 @@ composition:
 # Feature Development
 
 > **Wrong skill?** Bug fix → `systematic-debugging`. Design comparison → `design-triad`. Pre-commit checks → `pre-commit-gate`. Workflow
-
+>
 > **Purpose:** Orchestrate the full rigorous development lifecycle so no phase is skipped.
 > **Pattern:** This skill SEQUENCES existing skills — it does not replace them.
 > **Scope:** This is the DEFAULT workflow for ANY code change. Opt out ONLY if the user explicitly says to skip it.
@@ -54,17 +54,15 @@ composition:
 - Pure documentation-only changes (no code files touched)
 - Reading/exploring code with no intent to change it
 
-
 ## The Workflow
 
-```
+```bash
 Phase 1: BRAINSTORM → Phase 2: FRESH PERSPECTIVE → Phase 3: DESIGN →
 Phase 4: HARSH REVIEW → Phase 5: PLAN & EXECUTE → Phase 6: HARSH REVIEW →
 Phase 7: SHIP
 ```
 
 Each phase has an **exit gate** — you cannot proceed until the gate passes.
-
 
 ### Phase 1: Brainstorming
 
@@ -75,7 +73,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 3. Surface assumptions, edge cases, and scope boundaries
 4. **Exit gate:** Clear understanding of what needs to change and why.
 
-
 ### Phase 2: Fresh Perspective
 
 **Invoke:** `think-twice`
@@ -84,7 +81,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 2. The sub-agent should identify gaps, blind spots, and alternative framings
 3. Integrate fresh insights back into the plan
 4. **Exit gate:** Fresh perspective reviewed, no unaddressed blind spots.
-
 
 ### Phase 3: Design
 
@@ -96,7 +92,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Select winning design with documented rationale
 5. **Exit gate:** Design selected, trade-offs documented, edge cases addressed.
 
-
 ### Phase 4: Harsh Review (Design)
 
 **Invoke:** `progressive-code-review-gate`
@@ -105,7 +100,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 2. Reviewer should find issues the designer is blind to
 3. Fix all BLOCKER and MAJOR findings before proceeding
 4. **Exit gate:** All BLOCKER/MAJOR findings resolved. MINOR findings tracked.
-
 
 ### Phase 5: Plan & Execute
 
@@ -118,7 +112,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 5. Run `output-verification` after generating any artifact
 6. **Exit gate:** All phases complete, all tests pass, no regressions.
 
-
 ### Phase 6: Harsh Review (Implementation)
 
 **Invoke:** `progressive-code-review-gate`
@@ -129,7 +122,6 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Re-review after fixes (minimum 2 review rounds total)
 5. **Exit gate:** Two review rounds passed, all findings resolved.
 
-
 ### Phase 7: Ship
 
 1. Run `output-verification` — read back all generated files
@@ -138,13 +130,11 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 4. Commit, push, create PR, merge (with user approval at each step)
 5. **Exit gate:** All checks pass, PR merged, synced to all remotes.
 
-
 ## Phase Skip Prevention
 
 **You MUST NOT skip phases.** "I already know the approach" → think-twice catches blind spots. "Only one design option" → design-triad requires ≥3. "Too small" → the 2026-03-27 incident was "just a small script."
 
 **Opt-out is user-initiated ONLY.** The agent never decides to skip.
-
 
 ## Integration Map
 

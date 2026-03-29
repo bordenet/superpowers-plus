@@ -12,7 +12,7 @@
 | **B** | Multi-agent (selected design: role-scoped parallel) | 1.5–2.5× depending on skill |
 | **C** | Single-agent draft + parallel critics (draft once, critique in parallel) | ~1.3–1.8× (cheaper coordination than B) |
 | **D** | 2 competing full outputs + judge (independent full attempts, judge picks best) | ~2.0× (high redundancy, strong synthesis forcing) |
-| **E** | Serial + adversarial review (single-agent + existing harsh review loop) | ~1.2× (no multi-agent overhead, leverages existing tooling) |
+| **E** | Serial + adversarial review (single-agent + existing harsh review loop) | ~1.2× (no multi-agent overhead, reuses existing tooling) |
 
 **Why conditions C–E exist:** The initial harsh review (§8.1 Finding 1) identified that rejected designs (naive fan-out, random brainstorming) were weak strawmen. Conditions C–E are legitimate alternatives that could outperform B at lower cost. If C or E beats B, multi-agent role-scoping adds complexity without value.
 
@@ -88,6 +88,7 @@
 ## Anti-Success: What Would Disprove Multi-Agent Value?
 
 If experiments show ANY of these, multi-agent should NOT ship:
+
 - Multi-agent quality ≤ single-agent on complex tasks (the strongest case)
 - Multi-agent costs > 3× with ≤ marginal quality improvement
 - Synthesis layer consistently produces worse output than individual branches
@@ -98,6 +99,7 @@ If experiments show ANY of these, multi-agent should NOT ship:
 ## Analysis Plan
 
 After all 135 runs (9 scenarios × 5 conditions × 3 runs):
+
 1. Compute per-metric averages by condition and scenario
 2. Pairwise comparisons: B vs A (does multi-agent help?), B vs C/D/E (is role-scoping the right *kind* of multi-agent?)
 3. Statistical significance test (paired t-test, n=3 per cell — acknowledge low power; Bonferroni correction for 10 pairwise comparisons)
@@ -109,6 +111,7 @@ After all 135 runs (9 scenarios × 5 conditions × 3 runs):
 ### Phased Execution (recommended)
 
 Full 135-run grid is expensive. Run in phases:
+
 1. **Phase 1 (27 runs):** A vs B only on all 9 scenarios. If B never wins, stop.
 2. **Phase 2 (27 runs):** Add C on all 9 scenarios. If C ≥ B everywhere, stop (simpler wins).
 3. **Phase 3 (54 runs):** Add D and E. Full comparison for final recommendation.

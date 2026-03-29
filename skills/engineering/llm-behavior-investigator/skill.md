@@ -2,6 +2,7 @@
 name: llm-behavior-investigator
 source: superpowers-plus
 description: "Specialized investigator for diagnosing LLM/prompt behavior issues: tool selection failures, prompt regressions, context window problems, and parsing failures. Dispatched by debug-conductor as part of forked debugging."
+summary: "Use when: diagnosing LLM/prompt behavior issues like tool selection failures."
 triggers: []
 anti_triggers: []
 coordination:
@@ -107,6 +108,7 @@ Return `LLMEvidence` to conductor:
 ```
 
 Plus standard evidence wrapper:
+
 - **Supporting:** Evidence pointing toward root cause
 - **Disconfirming:** Evidence that complicates or contradicts
 - **Confidence:** Based on correlation strength and reproduction
@@ -135,3 +137,11 @@ Plus standard evidence wrapper:
 | **Tool argument hallucination** | Tool called with plausible but fabricated parameters |
 | **Format drift** | Output structure degrades under high context load |
 | **Compound failure** | 2+ factors required together (e.g., ambiguous description + high context) |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Prompt red herring | Blaming prompt when model changed | Check model version and deployment first |
+| Context window overflow | Subtle truncation not detected | Measure actual token count vs limit |
+| Non-determinism | Cannot reproduce intermittent failure | Run multiple trials, report distribution |

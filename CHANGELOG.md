@@ -10,6 +10,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+
 - **Forked Debugging Orchestration (PREVIEW)** — conductor-led parallel investigation for complex distributed system incidents:
   - `debug-conductor`: Orchestrates parallel investigator branches with fork-readiness rubric and operator checkpoint
   - `evidence-adjudicator`: Synthesizes branch evidence into ranked root-cause verdicts with adversarial disconfirmation pass (Step 5b)
@@ -19,6 +20,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **wiki-refactor** skill — 7-phase wiki restructuring pipeline with discovery, dedup, IA, rewrite, review, delivery, and drift detection
 
 ### Changed
+
 - **Multi-agent activation threshold**: score = 5 is now borderline (asks user); score ≥ 6 auto-activates. Previously ≥ 5 auto-activated. Updated in shared rubric, brainstorming, plan-and-execute, subagent-driven-development, and all strategy docs.
 - **Silence policy**: All multi-agent systems now default to conservative (stay serial) when the operator doesn't respond, instead of auto-approving.
 - **`writing-plans` → `plan-and-execute`**: Renamed across all active skill files, shared standards, cross-references, and docs. Design documents retain historical name.
@@ -29,6 +31,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Conductor delegation boundary**: All "synthesize" actions now explicitly dispatch `evidence-adjudicator`. Phase 6 writes `adjudication`, `budget`, `nextSteps` to incident packet. Adjudicator-failure row added to failure table.
 
 ### Fixed
+
 - **7 autonomy skills** (65→72 total) — Quantitative decision-making, failure analysis, metric validation, TODO enforcement, workflow orchestration, self-improvement, and per-batch code review:
   - **quantitative-decision-gate**: Decision matrix with 4 weighted dimensions before any user question. Auto-selects when margin >10%.
   - **failure-autopsy**: 5-Why post-mortem protocol for wrong approaches and misdiagnosed limitations.
@@ -42,14 +45,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **10 deep integration refs** in existing skills (feature-development, TDD, completeness-check, etc.)
 - **6 new routing regression tests** in test_trigger_routing.sh (now 15/15)
 
-
 ### Changed
+
 - **design-triad: completion gate** — Added hard gate after Step 2 (Compare) to prevent agents from stopping at a recommendation without completing Steps 3-5 (Harsh Review, Edge Cases, Iterate). This was the single most common failure mode observed in practice.
 - **design-triad: trigger discoverability** — Added 2 validated trigger phrases (`design options with adversarial review`, `generate options compare and red team`) that reliably route to design-triad as top match via embedding-mode match-skills. Removed 5 candidate phrases that routed to wrong skills.
 - **design-triad: rationalization table** — Added "I produced a recommendation" as an explicit rationalization to reject.
 - **design-triad: preflight anti-stall** — Replaced narrative-style preflight with a 3-path routing decision (known/investigate/low-stakes) and a 30-second time-box. The previous preflight told agents to "complete requirements-validation and engineering-rigor first" which caused infinite regress — agents loaded those skills without executing them and stalled before Step 1.
 
 ### Fixed
+
 - **Installer cross-platform hardening** — 14 bug classes fixed across 6 installer files (#234)
   - CRLF self-heal: recursive scan of all `.sh` files, `perl` primary + `tr` fallback with permission preservation
   - `.env` subshell isolation: prevents `.env` from mutating installer shell state (`set -e`, `PATH`, `IFS`)
@@ -69,6 +73,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Documentation audit** — purged ghost skill references (`wiki-editing`/`wiki-authoring` → `wiki-orchestrator`), fixed `.codex/INSTALL.md` and `.opencode/INSTALL.md` install mechanisms, updated plugin metadata to 58 skills / v2.5.2 (#238)
 
 ### Added
+
 - `skills/productivity/plan-and-execute/` — General-purpose orchestrator: challenge → plan → stress-test → phased TODO execution with structured retrospectives and continuous improvement between phases (#257)
 - **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
   - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
@@ -103,6 +108,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - wiki-debunker Source Authority Matrix for source-laundered attributions (#138)
 
 ### Changed
+
 - `engineering-rigor` — Added Architecture Testing section (#182)
 - `todo-management` — Added Context-Aware TODO Standard with length limits (#182)
 - `adversarial-search` — Triggers deduplicated (orchestrator owns shared triggers); IP/Redaction hard gate added (#182)
@@ -119,6 +125,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Vestigial `~/.augment/skills/` deployment path removed (#106)
 
 ### Fixed
+
 - Security scrub: removed all proprietary references from public repo (#154)
 - Ghost command and dead URL removed from superpowers-help (#155, #156)
 - Doctor: overlay awareness, subshell counter bugs, false positive reduction (#147, #166–#170)
@@ -133,6 +140,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stale skill count references corrected across all distribution files
 
 ### Removed
+
 - `lib/learning-state.js` — skill metrics tracking (zero organic data produced) (#113)
 - `tools/skill-fire-logger.sh` — shell fire logging wrapper (#113)
 - `skills/observability/skill-firing-tracker/` — fire tracking skill (#113)
@@ -144,6 +152,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.5.1] - 2026-03-16
 
 ### Added
+
 - `--yes`/`-y` flag for non-interactive installs; auto-detects piped stdin (#88)
 - Ubuntu installation instructions and dependency install template (#87)
 - `skill-authoring` skill for skill synthesis (#83)
@@ -153,6 +162,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **wiki-verify**: Bulk Operations Protocol — 5-page chunking for multi-page wiki operations (#95)
 
 ### Fixed
+
 - **todo-management**: Deterministic default path (`$HOME/.codex/TODO.md`) with hard gate (#90)
 - **todo-management**: Migration now cleans personal skills dir (`~/.codex/skills/`) (#92)
 - **todo-management**: Migration cleanup + upstream recruiting tags (#91)
@@ -163,30 +173,35 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **perplexity-research**: Replace Augment-specific tool names with platform-agnostic descriptions (#95)
 
 ### Changed
+
 - Version sync workflow: plugin files now updated in-PR instead of direct push (#94)
 - **install.sh**: Decomposed from 1,163 lines into 380-line orchestrator + 6 modules in `lib/install/` (#97)
 
 ## [2.5.0] - 2026-03-15
 
 ### Changed
+
 - **BREAKING**: Semantic skill router now defaults to local TF-IDF matching
   - Eliminates OpenAI API dependency for skill discovery
   - Works offline with zero external calls
   - OpenAI embeddings still available as optional enhanced mode when `OPENAI_API_KEY` is set
 
 ### Added
+
 - **TF-IDF Engine**: Custom implementation with Porter-style stemming and stop-word filtering
 - **Query Expansion**: `CONCEPT_EXPANSIONS` map bridges semantic gaps (e.g., "failing" → "debug")
 - **Intent Patterns**: `INTENT_PATTERNS` provide high-confidence routing for domain-specific phrases
 - `--tfidf` and `--embedding` flags for `match-skills` command to force specific method
 
 ### Fixed
+
 - Prototype pollution bug with `constructor` term causing NaN scores and corrupted sort results
 - Trigger boost accumulation (now takes best partial match only, not sum of all matches)
 
 ## [2.4.2] - 2026-03-15
 
 ### Added
+
 - **innovation**: New superpower for radical, high-impact thinking beyond incremental improvements
   - Triggers: "innovate", "moonshot", "10x improvement", "breakthrough idea", etc.
   - Generates 3-5 ranked transformative ideas across categories (technical, UX, architectural)
@@ -200,6 +215,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `EXPLICIT_SKILLS` array in `skill-trigger-validator.sh` for intentionally trigger-less skills
 
 ### Changed
+
 - **superpowers-augment.js**: Now extracts `triggers` from frontmatter and categorizes skills
 - **superpowers-help**: Updated to distinguish superpowers vs explicit skills in output
 - **ARCHITECTURE.md**: Added "Terminology" section documenting the taxonomy
@@ -209,6 +225,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.3.0] - 2026-03-12
 
 ### Changed
+
 - **superpowers-help**: Complete rewrite with accurate skill enumeration
   - Now lists ALL 55 skills (14 core + 41 extended)
   - Added "what are my superpowers" as primary trigger
@@ -220,34 +237,40 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.2.0] - 2026-03-12
 
 ### Added
+
 - Full end-to-end automated version propagation
   - Version bump in `install.sh` triggers complete automation chain
   - Standalone marketplace auto-updates via `repository_dispatch`
 
 ### Fixed
+
 - Marketplace workflow registration (GitHub quirk requiring successful run)
 - YAML syntax error in marketplace commit message
 
 ## [2.1.2] - 2026-03-12
 
 ### Fixed
+
 - `version-sync.yml` now handles "no changes to commit" gracefully
 
 ## [2.1.1] - 2026-03-12
 
 ### Added
+
 - Automated marketplace version sync (#20)
   - `version-sync.yml` dispatches to `superpowers-plus-marketplace` on release
   - Marketplace repo receives dispatch and updates `marketplace.json`
 - `superpowers-help` skill for listing available skills and invocation methods
 
 ### Changed
+
 - `install.sh --help` now shows all installation methods (direct, curl, releases)
 - README: standalone marketplace is now Option A (recommended)
 
 ## [2.1.0] - 2026-03-12
 
 ### Added
+
 - Mandatory harsh review enforcement system (#13)
   - Pre-commit hooks (`tools/pre-commit`, `tools/install-hooks.sh`)
   - GitHub Actions CI workflow (`.github/workflows/harsh-review.yml`)
@@ -261,6 +284,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `.opencode/` for OpenCode distribution
 
 ### Changed
+
 - Split large skills (>500 lines) into modular files (#14)
   - `detecting-ai-slop`: 1040 → 165 lines (+ examples.md, reference.md)
   - `eliminating-ai-slop`: 774 → 159 lines
@@ -271,6 +295,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Removed duplicate cost-conscious search from AGENTS.md (#14)
 
 ### Fixed
+
 - Trailing newline issues in 67+ files (#11, #12)
 - Broken URLs in `install-augment-superpowers.sh` (#12)
 - Shell script shebangs: `#!/bin/bash` → `#!/usr/bin/env bash` (#13)
@@ -278,20 +303,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.0.0] - 2026-03-10
 
 ### Added
+
 - Platform-agnostic skill framework
 - Adapter pattern for wiki and issue-tracking skills
 - `_adapters/` directories with platform-specific configurations
 
 ### Changed
+
 - Removed hardcoded issue-tracker and wiki vendor references from shared skills
 - Skills now use generic operations that map to platform adapters
 
 ### Fixed
+
 - Static analysis issues across all skills (#7)
 
 ## [1.5.0] - 2026-03-05
 
 ### Added
+
 - Professional language audit skill (profanity detection) (#6)
 - Time estimate inflation detection in slop detection (#3)
 - `receiving-code-review` skill (#4)
@@ -299,16 +328,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [1.4.0] - 2026-03-01
 
 ### Added
+
 - Windows PowerShell support (`install.ps1`)
 - WSL detection and guidance
 
 ### Fixed
+
 - WSL distro detection for Docker Desktop (#5)
 - macOS/Linux PowerShell edge cases
 
 ## [1.0.0] - 2026-02-15
 
 ### Added
+
 - Initial release with 35 skills across 9 domains
 - Multi-platform installer (`install.sh`)
 - Augment adapter (`superpowers-augment.js`)

@@ -14,7 +14,7 @@ This file contains extended examples and usage patterns for slop detection.
 
 **Analysis:**
 
-```
+```text
 Slop Score: 82/100
 
 Breakdown:
@@ -94,7 +94,7 @@ Calibrate detection thresholds using your own human-written samples.
 
 ### Invoke Calibration
 
-```
+```text
 User: "Calibrate slop detection with my writing"
 [Paste 3-5 samples of your authentic writing, 300+ words each]
 ```
@@ -111,7 +111,7 @@ User: "Calibrate slop detection with my writing"
 
 ### Calibration Output
 
-```
+```python
 Calibration Complete
 
 Your Writing Profile:
@@ -134,13 +134,13 @@ Calibration saved to dictionary. Future analysis uses your thresholds.
 
 ### Show Detection Stats
 
-```
+```text
 User: "Show slop detection stats"
 ```
 
 **Output:**
 
-```
+```text
 Slop Detection Metrics
 
 Session Stats:

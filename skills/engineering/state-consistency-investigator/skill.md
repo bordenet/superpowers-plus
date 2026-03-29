@@ -2,6 +2,7 @@
 name: state-consistency-investigator
 source: superpowers-plus
 description: "Specialized investigator for diagnosing state consistency failures: replication lag, cache staleness, event ordering issues, cross-service data divergence, and eventual consistency bugs. Dispatched by debug-conductor."
+summary: "Use when: diagnosing state consistency failures across distributed systems."
 triggers: []
 anti_triggers: []
 coordination:
@@ -126,3 +127,11 @@ For each affected entity:
 | **Invalidation race** | Read arrives between invalidation and re-fill → cache miss → stale read |
 | **Dual-write inconsistency** | Two services write same entity independently; values diverge |
 | **Eventual consistency window violation** | Consumer reads during propagation delay |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Timing sensitivity | Bug only appears under specific timing | Test with artificial delays |
+| Stale read | Reading from replica during lag | Read from primary for verification |
+| Event ordering | Assuming ordered delivery | Check for out-of-order events explicitly |

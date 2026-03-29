@@ -64,6 +64,7 @@ Structure your response as:
 ## Sources
 
 [Links to relevant documentation, issues, or discussions you found]
-```
+
+```text
 
 **Success criteria:** Suggests at least one new approach not already tried, includes concrete implementable steps, cites web sources, can be acted upon immediately.

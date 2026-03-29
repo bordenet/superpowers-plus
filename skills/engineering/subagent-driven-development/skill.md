@@ -8,6 +8,7 @@ overrides: superpowers/subagent-driven-development
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 anti_triggers: ["simple task", "one file change", "quick fix"]
 description: "Use when executing implementation plans with independent tasks in the current session"
+summary: "Use when: executing plans with independent tasks that can run in parallel."
 coordination:
   group: engineering
   order: 5
@@ -107,13 +108,12 @@ Never force retry without changes. If stuck, something must change.
 
 ## Example: Dispatch Prompt
 
-```
+```text
 Implement task 3: "Add retry logic to API client."
 Files: src/api/client.ts (main), test/api/client.test.ts (tests).
 Constraints: max 3 retries, exponential backoff, no new dependencies.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
 ```
-
 
 ## Example
 
