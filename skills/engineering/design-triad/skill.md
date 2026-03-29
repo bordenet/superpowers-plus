@@ -17,7 +17,7 @@ coordination:
 # Design Triad
 
 > **Wrong skill?** Brainstorming many ideas → `brainstorming`. Requirements validation → `requirements-validation`. Feature workflow → `feature-development`.
-
+>
 > **Core principle:** Never commit to a design without considering at least three alternatives and surviving a harsh review.
 
 **Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
@@ -31,11 +31,12 @@ coordination:
 - **feature-development**: Full feature workflow (uses this skill)
 - **fallback-planning**: Evaluating fallback alternatives
 - **quantitative-decision-gate**: Quantitative option scoring
+
 ## When to Use
 
 - Any design decision where the wrong choice would cost significant rework
 - Choosing between architectural approaches, data models, or integration patterns
-- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans` (upstream)), bug fixing (`systematic-debugging`)
+- NOT for: initial idea exploration (`brainstorming`), execution planning (`plan-and-execute`), bug fixing (`systematic-debugging`)
 
 ## Preflight
 
@@ -60,6 +61,7 @@ Stalling at preflight (loading skills without executing them, deliberating about
 ## Step 1: Generate Options
 
 Produce **minimum THREE** options. Each must be:
+
 - **Genuinely different** — not superficial variations (different data model, different decomposition, different integration pattern)
 - **Implementable** — within current constraints, not fantasy
 - **Compact** — max 3 bullet points per option: approach, key trade-off, risk profile
@@ -85,12 +87,14 @@ State your recommendation with explicit rationale (2-3 sentences). If only one o
 ## Step 3: Harsh Review (Red Team)
 
 ⛔ **HARD GATE: Author ≠ Reviewer.** You MUST NOT red-team your own design in the same thinking pass that produced it. Use ONE of:
+
 - **Sub-agent** (preferred): Dispatch a sub-agent with role "hostile reviewer" and full context of the design
 - **Explicit role switch**: Complete the design, then start a new section with: *"I am now reviewing this as a hostile critic. My job is to find what's WRONG."*
 
 Self-review in the same pass that wrote the design is **a violation** — it produces theater, not adversarial pressure.
 
 For the selected design, the reviewer answers ALL of these (**max 1 sentence per answer**):
+
 1. What's the weakest assumption?
 2. What failure mode hasn't been considered?
 3. What would a hostile code reviewer attack?
@@ -103,6 +107,7 @@ For the selected design, the reviewer answers ALL of these (**max 1 sentence per
 ## Step 4: Edge Cases
 
 One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap: 10 edge cases max.** Not a full re-design — focused on:
+
 - Failure modes that need handling
 - Boundary conditions that need tests
 - Integration points that need defensive code
@@ -114,6 +119,7 @@ One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap:
 ⛔ **HARD GATE: Minimum 2 full review rounds.** Round 1 = the initial harsh review (Step 3). Round 2 = re-review after fixes. You may NOT declare convergence without completing Round 2. Declaring "converged" after only Step 3 is a violation.
 
 Each round has THREE phases:
+
 1. **Fix:** Address issues found in the previous review
 2. **Verify fixes landed:** Cross-reference each resolution against the actual artifact (spec, code, design doc). Confirm the fix appears in the output, not just in a resolution table. Claimed-but-not-implemented fixes are the #1 failure mode.
 3. **Re-review:** Run harsh review again (Step 3 questions) on the UPDATED artifact
@@ -126,6 +132,7 @@ Each round has THREE phases:
 ## Output
 
 Design document with:
+
 1. Selected approach (with rationale)
 2. Rejected alternatives (with WHY they were rejected)
 3. Edge-case catalog from Step 4

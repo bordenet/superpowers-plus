@@ -18,7 +18,7 @@ coordination:
 # Innovation
 
 > **Core question:** What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?
-
+>
 > **Wrong skill?** Incremental feature ideas → `brainstorming`. Structured design evaluation → `design-triad`. Implementation planning → `plan-and-execute`.
 
 **NOT for:** bug fixes (`systematic-debugging`), incremental features (`brainstorming`), cleanup (`engineering-rigor`).
@@ -53,12 +53,11 @@ coordination:
 
 After presenting: offer to draft RFC, create experiment plan, or deep-dive on specific aspect.
 
-**Flow:** `innovation → user selects → brainstorming → writing-plans → implementation`
+**Flow:** `innovation → user selects → brainstorming → plan-and-execute → implementation`
 
 ## References
 
 - [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
-
 
 ## Companion Skills
 
@@ -66,12 +65,12 @@ After presenting: offer to draft RFC, create experiment plan, or deep-dive on sp
 - **design-triad**: Evaluating innovation options
 - **plan-and-execute**: Executing on selected innovations
 - **quantitative-decision-gate**: Option scoring
+
 ## When to Use
 
 - Before building new features — generate radical alternatives to the obvious approach
 - When brainstorming is yielding incremental ideas — force 10x thinking
 - When evaluating whether to build vs buy vs integrate
-
 
 ## Example
 

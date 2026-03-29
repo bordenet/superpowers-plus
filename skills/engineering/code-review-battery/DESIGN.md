@@ -12,7 +12,7 @@
 
 The battery follows a 5-phase pipeline defined in `skill.md`:
 
-```
+```bash
 ┌─────────────────────────────────────────────────┐
 │                  Entry Points                    │
 │  progressive-code-review-gate  |  manual invoke  │
@@ -51,7 +51,7 @@ The battery follows a 5-phase pipeline defined in `skill.md`:
 
 ## File Structure
 
-```
+```bash
 # Repo (source of truth)
 skills/engineering/code-review-battery/
 ├── skill.md                    # Skill entry point — triage, dispatch, aggregate, escalate
@@ -78,7 +78,7 @@ skills/engineering/code-review-battery/
 
 Uses `sub-agent-code-reviewer` with unique names. All activated reviewers fire in parallel:
 
-```
+```bash
 # Dispatched by the coordinator (the orchestrating agent):
 sub-agent-code-reviewer(name="battery-defect-finder", instruction=<defect-finder.md prompt + diff + source context>)
 sub-agent-code-reviewer(name="battery-design-critic", instruction=<design-critic.md prompt + diff>)
@@ -88,6 +88,7 @@ sub-agent-code-reviewer(name="battery-standards", instruction=<standards-enforce
 ```
 
 **Why `sub-agent-code-reviewer`?**
+
 - Purpose-built sub-agent type for code review tasks in Augment workspaces
 - Pre-configured with workspace access — no manual setup needed
 - Supports parallel dispatch with unique names
@@ -112,7 +113,8 @@ tools: ["View", "Bash", "Grep"]
 
 **Option B: Inline Task Dispatch**
 The skill instructs the agent to use `Task()` calls directly:
-```
+
+```text
 Task("Review for defects: <diff content>")
 Task("Review for design: <diff content>")
 ```
@@ -135,6 +137,7 @@ The coordinator runs BEFORE the reviewers. It reads the diff metadata and decide
 which reviewers to activate.
 
 ### Input
+
 ```bash
 # The coordinator receives:
 1. git diff --stat (file list + change counts)
@@ -155,7 +158,9 @@ which reviewers to activate.
 | `--only=<name>` flag | Named reviewer only |
 
 ### Output
+
 A JSON-like selection that the dispatcher uses:
+
 ```json
 {
   "activated": ["defect-finder", "guardian", "standards-enforcer", "design-critic"],
@@ -205,12 +210,14 @@ The coordinator (main agent) handles aggregation after all reviewers return.
 No separate aggregation agent — this avoids the serial bottleneck.
 
 ### Aggregation Rules
+
 1. Collect all findings from all reviewers
 2. Sort by severity: Critical → Important → Minor
 3. Within same severity, sort by file path (groups related findings)
 4. Flag conflicts: if two reviewers contradict (rare with clean boundaries), note both
 5. Present unified report with reviewer attribution:
-   ```
+
+   ```markdown
    ### Critical
    1. [Defect Finder] Missing null check in auth.js:42 — ...
    2. [Guardian] SQL injection in query.js:15 — ...
@@ -222,15 +229,18 @@ No separate aggregation agent — this avoids the serial bottleneck.
 ## Integration with Existing Skills
 
 ### progressive-code-review-gate
+
 Delegates to the battery's Phase 1–5 pipeline (Triage → Diff+Context+Dispatch → Aggregate → Escalation → Convergence). Falls back to monolithic review if battery is unavailable.
 
 ### requesting-code-review
+
 This skill dispatches review for PR-level or pre-merge review. It will similarly
 delegate to the battery when available.
 
 ## Installation
 
 ### Augment.ai
+
 ```bash
 # Install runtime files only (exclude DESIGN.md, PRD.md)
 rsync -av --exclude='DESIGN.md' --exclude='PRD.md' \
@@ -238,6 +248,7 @@ rsync -av --exclude='DESIGN.md' --exclude='PRD.md' \
 ```
 
 ### Claude Code
+
 ```bash
 # Copy reviewer prompts as custom subagent files
 mkdir -p .claude/agents/
@@ -282,12 +293,12 @@ the codebase, and is more reliable than expecting them to run git commands.
 **Mitigation**: Triage gating reduces N (fewer reviewers = fewer copies of the diff).
 For very large diffs (>2000 lines), consider per-file dispatch instead of per-reviewer.
 
-
 ### V4 Analysis: Monolithic vs Battery
 
 **Test diff**: superpowers-plus output-verification skill addition (7 files, 209 insertions, 14 deletions)
 
 #### Monolithic Review Findings
+
 | # | Severity | Finding | Accurate? |
 |---|----------|---------|-----------|
 | 1 | Critical | Coordination order conflict across groups | ⚠️ Overrated — groups are isolated by design |
@@ -301,6 +312,7 @@ For very large diffs (>2000 lines), consider per-file dispatch instead of per-re
 **Monolithic accuracy**: 6/10 findings accurate, 4/10 overrated or false. False positive rate: ~40%.
 
 #### Battery Review Findings (Combined)
+
 | Agent | Findings | Accurate? |
 |-------|----------|-----------|
 | Defect Finder | Important: intent pattern ordering vulnerability; Minor: stemming redundancy | ✅ Both valid |
@@ -310,6 +322,7 @@ For very large diffs (>2000 lines), consider per-file dispatch instead of per-re
 **Battery accuracy**: 2/2 findings accurate, 2 correct "no issue" calls. False positive rate: 0%.
 
 #### Comparison Verdict
+
 | Metric | Monolithic | Battery |
 |--------|-----------|---------|
 | Total findings | 10 | 2 |
@@ -335,6 +348,7 @@ structure completeness and internal consistency patterns. Add a "data integrity"
 ### V5 Estimate: Token Cost
 
 Based on V2b runs, estimated token usage per reviewer:
+
 - Diff content: ~600 tokens (this was a small diff)
 - Prompt template: ~300 tokens
 - Response: ~200-500 tokens

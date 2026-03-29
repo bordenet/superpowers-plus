@@ -3,6 +3,7 @@
 ## When to Run Gap Analysis
 
 Run gap analysis when:
+
 1. **Battery misses a finding** that a human or monolithic reviewer catches
 2. **A false positive recurs** in the same category across 2+ reviews
 3. **An exercise exposes a weakness** — battery fails to catch an Expected Finding
@@ -60,13 +61,14 @@ When a gap is discovered:
 
 ## Candidate Validation Workflow
 
-```
+```bash
 proposed → validating → validated → graduated
                 ↓              ↓
              rejected       rejected (regression)
 ```
 
 **Validation steps:**
+
 1. Add the candidate pattern text to the relevant reviewer's prompt (temporary, in-memory)
 2. Run the augmented reviewer against 3+ exercises:
    - The source exercise (MUST catch the gap)
@@ -80,7 +82,7 @@ proposed → validating → validated → graduated
 
 All candidates live in `candidates/` under the battery skill directory:
 
-```
+```text
 skills/engineering/code-review-battery/
 ├── candidates/
 │   ├── candidate-001.yaml
@@ -93,6 +95,7 @@ Candidates are version-controlled. No external infrastructure needed.
 ## Integration with Battery
 
 After the review is complete (post-Phase 5 convergence):
+
 1. If any reviewer reported 0 findings on a non-trivial diff, flag for potential gap analysis
 2. If the monolith finds something no specialist found, auto-propose a candidate
 3. If an exercise fails (battery misses Expected Finding), auto-propose a candidate

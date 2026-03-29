@@ -55,6 +55,7 @@ new file mode 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** defect-finder, guardian
 - **File:** lib/workflow-state.js
@@ -63,6 +64,7 @@ new file mode 100644
 - **Fix:** Use `fs.openSync(LOCK_FILE, O_WRONLY | O_CREAT | O_EXCL)` for atomic create-if-not-exists.
 
 ### Finding 2
+
 - **Severity:** Important
 - **Reviewer:** guardian
 - **File:** lib/workflow-state.js
@@ -71,6 +73,7 @@ new file mode 100644
 - **Fix:** Read lock file, check `lockData.pid === process.pid` before deleting.
 
 ### Finding 3
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder
 - **File:** lib/workflow-state.js
@@ -78,6 +81,7 @@ new file mode 100644
 - **Category:** error-handling
 
 ### Finding 4 (Bonus — discovered by battery)
+
 - **Severity:** Important
 - **Reviewer:** guardian
 - **File:** lib/workflow-state.js

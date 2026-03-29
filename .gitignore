@@ -73,3 +73,4 @@ skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 .ip-check-patterns
 __pycache__/
 install-state/
+.skill-metrics/

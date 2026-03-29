@@ -6,7 +6,7 @@
 
 **Architecture:** Three defense layers: (1) fix the `core.always.md` rule to mandate the tool, (2) add `todo-engine.py` validation that detects and refuses stray-path writes, (3) add a preflight diagnostic command.
 
-**Repo:** `superpowers-plus` — GitHub-first workflow (branch → PR → merge → sync GitLab)
+**Repo:** `superpowers-plus` — GitHub workflow (branch → PR → merge)
 
 ---
 
@@ -75,11 +75,14 @@ def _validate_canonical_path(path: str) -> None:
 - [ ] **Step 3:** Improve `_unprotect_file()` error message to reference `todo-crud.sh`:
 
 Change the RuntimeError text from:
-```
+
+```text
 "CRITICAL: Cannot unprotect TODO.md for writing: {exc}. File protection may be broken on this filesystem."
 ```
+
 to:
-```
+
+```bash
 "CRITICAL: Cannot chmod TODO.md for writing: {exc}. "
 "The file is deliberately read-only (chmod 444). "
 "Use todo-crud.sh which handles chmod automatically. "
@@ -145,4 +148,4 @@ to:
 - [ ] **Step 1:** Branch from `upstream/main`
 - [ ] **Step 2:** Commit with message: `fix: harden TODO writes against chmod 444 fallback to stray paths`
 - [ ] **Step 3:** Push to `upstream`, create PR on GitHub
-- [ ] **Step 4:** After merge, sync GitLab: `git pull upstream main && git push origin main`
+- [ ] **Step 4:** After merge, verify changes on `main`.

@@ -248,7 +248,7 @@ function transformOutput(text) {
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
+        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         let inFrontmatter = false;
         let name = '';
         let description = '';
@@ -256,7 +256,33 @@ function extractFrontmatter(filePath) {
         let requires_mcp = [];
 
         function parseInlineArray(value) {
-            return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+            const items = [];
+            let i = value.indexOf('[');
+            if (i < 0) return items;
+            i++;
+            while (i < value.length) {
+                while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
+                if (value[i] === ']') break;
+                if (value[i] === '"' || value[i] === "'") {
+                    const quote = value[i]; i++;
+                    let item = '';
+                    while (i < value.length && value[i] !== quote) {
+                        if (value[i] === '\\' && i + 1 < value.length) {
+                            if (value[i + 1] === quote) { item += quote; i += 2; }
+                            else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
+                            else { item += value[i]; i++; }
+                        } else { item += value[i]; i++; }
+                    }
+                    i++;
+                    items.push(item);
+                } else {
+                    let item = '';
+                    while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
+                    const trimmed = item.trim();
+                    if (trimmed) items.push(trimmed);
+                }
+            }
+            return items;
         }
 
         function parseYamlList(lines, startIndex) {
@@ -306,12 +332,18 @@ function extractFrontmatter(filePath) {
                     i = parsed.nextIndex;
                 }
 
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
+                    let value = match[2].trim();
+                    // Strip outer quotes and handle escaped quotes inside
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    } else if (value.startsWith("'") && value.endsWith("'")) {
+                        value = value.slice(1, -1);
+                    }
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
                 }
             }
         }
@@ -335,8 +367,18 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         const skillDir = path.join(dir, entry.name);
+        // Handle both directories and symlinks to directories
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue;
+            throw err;
+        }
+        if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
@@ -353,7 +395,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];
@@ -545,9 +587,9 @@ fi
 # Test 5: List skills
 info "Testing find-skills command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
-SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep -c "^superpowers:" || echo "0")
+SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
 if [[ "$SKILL_COUNT" -gt 0 ]]; then
-    success "Found $SKILL_COUNT skills"
+    success "Found $SKILL_COUNT total installed skills"
 else
     warn "No skills found (this may be normal for first install)"
 fi

@@ -12,6 +12,7 @@ These examples demonstrate when the innovation skill should and should NOT fire.
 **Why innovation fires:** User explicitly asks for "step-change improvements" — a transformation trigger.
 
 **Expected output structure:**
+
 ```markdown
 # Innovation Analysis: Appointment Booking Agent
 
@@ -84,7 +85,7 @@ and A/B test with 3 dealers.
 **User prompt:**
 > "Add email confirmation to the booking flow."
 
-**Why innovation does NOT fire:** This is an incremental feature. Use `brainstorming` if design 
+**Why innovation does NOT fire:** This is an incremental feature. Use `brainstorming` if design
 is needed, or implement directly.
 
 ---
@@ -103,9 +104,10 @@ is needed, or implement directly.
 **User prompt:**
 > "What's next for this project?"
 
-**Why propose:** Could be innovation (transformative direction) or roadmap planning 
+**Why propose:** Could be innovation (transformative direction) or roadmap planning
 (incremental). Ask:
-```
+
+```text
 Would you like me to:
 (a) Run **Innovation** mode for transformative 10x ideas?
 (b) Help with roadmap planning for incremental improvements?

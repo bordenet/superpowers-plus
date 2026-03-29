@@ -14,9 +14,13 @@ anti_triggers:
   - requesting code review
   - receiving code review
 coordination:
+  group: code-quality
+  order: 1
   enables:
     - progressive-code-review-gate
   requires: []
+  escalates_to: []
+  internal: false
 source: superpowers-plus
 ---
 
@@ -51,10 +55,16 @@ Analyze the diff and select reviewers:
 
 **Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
 
+**Mandatory activation (not subject to triage exclusion):**
+
+- **Design Critic** is ALWAYS activated when changes touch: interfaces, public APIs, contracts, message schemas, shared state types, or cross-module boundaries.
+- **Guardian** is ALWAYS activated when changes touch: retry logic, circuit breakers, rollback behavior, deployment config, feature flags, authentication/authorization, or state machine transitions.
+
 **Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation).
 
 State your triage decision before dispatching:
-```
+
+```markdown
 **Triage**: Activated: [list] | Skipped: [list] | Reason: [1-2 sentences]
 ```
 
@@ -65,6 +75,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
 **2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation):
+
 - Fields SET/RESET/NULLED → grep all READERS
 - Threshold comparisons → grep all PRODUCERS of crossing values
 - Stateful code → full state type + transitions
@@ -76,16 +87,19 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 ### Phase 3: Aggregate
 
 After all reviewers return:
+
 1. Sort findings: **Critical → Important → Minor**, then by file path
 2. Prefix each with `[Reviewer Name]`
-3. If 2+ reviewers flag the same location, **keep both** (different lenses provide complementary insight) and mark as **convergent** → promote to at least Important
+3. If 2+ reviewers flag the same location, **keep both** and check for **convergence**:
+   - **True convergence** (promote to at least Important): reviewers reached the finding through *different reasoning paths* — e.g., one found it via data flow analysis, another via error handling review. The evidence snippets and rationale must differ.
+   - **Echo convergence** (do NOT promote): reviewers cite the same evidence snippets, use near-identical phrasing, or clearly derived their finding from the same analytical path. This indicates shared context bias, not independent validation. Keep both findings at their original severity.
 4. Note clean dimensions ("✅ No issues")
 5. **Severity normalization**: Re-evaluate each finding against the shared severity definitions (provided to all reviewers). Reclassify when a reviewer's label doesn't match:
    - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
    - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
    - **Minor** = works but violates standards (style, naming, missing docs/tests, observability)
    - If a reviewer labeled a finding Critical but it's a process/standards gap (e.g., "no tests added"), downgrade to Important or Minor. Note the reclassification: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
-   - Convergent findings (step 3) are promoted to at least Important regardless.
+   - True convergent findings (step 3) are promoted to at least Important. Echo convergent findings retain their original severity.
 6. **Triple-filter** each Important/Critical finding and classify:
 
 | Finding | CX Impact | Complexity | Testability | Action |
@@ -97,7 +111,7 @@ After all reviewers return:
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
+1. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
 
 **Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
 
@@ -123,6 +137,16 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 **STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
 **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
+### Correlated-Failure Detection
+
+After synthesis, scan all reviewer outputs for **shared blind spots**:
+
+1. **Evidence overlap check:** If ≥3 reviewers cite the same evidence snippets (same file + same line range) for their ONLY findings, flag `⚠️ CORRELATED EVIDENCE — reviewers may share a blind spot outside the cited region`. Expand the review scope to adjacent modules.
+2. **Phrasing similarity check:** If 2+ reviewers use near-identical phrasing for different findings (copy-paste reasoning), flag `⚠️ ECHO REASONING — findings may reflect shared analytical bias, not independent analysis`. Require at least one reviewer to re-examine from a different entry point.
+3. **Clean-sweep suspicion:** If ALL reviewers report zero findings, flag `⚠️ UNANIMOUS CLEAN — verify reviewers examined different evidence slices`. Check that each reviewer's output references different source files or code paths.
+
+Correlated-failure flags do NOT change verdicts directly — they trigger expanded scope or re-examination. The goal is to surface shared blind spots, not to manufacture findings.
+
 ### Gap Analysis
 
 Monolith found something no specialist found → propose candidate pattern. Known exercise missed → candidate pattern. Recurring false positive → anti-pattern candidate. All go to `candidates/`.
@@ -135,7 +159,7 @@ Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks.
 
 | Anti-Pattern | Detection | Correction |
 |--------------|-----------|------------|
-| All reviewers agree | No disagreements found | Force at least one dissenting view |
+| All reviewers agree | No disagreements found | Force second-order critique: each reviewer must name ≥1 plausible failure mode or state why none exists — but the explanation must cite a specific property of the change (e.g., "pure rename, no callers affected"), not a generic "it's straightforward." Artificial dissent without reasoning is noise; generic dismissal is rubber-stamping |
 | Duplicate findings | Same issue from 3 reviewers | Deduplicate in synthesis, attribute first finder |
 | Reviewer fatigue | Later reviewers less thorough | Randomize dispatch order |
 | Missing source context | Review diff without callers | Include grep results for all touched functions |
