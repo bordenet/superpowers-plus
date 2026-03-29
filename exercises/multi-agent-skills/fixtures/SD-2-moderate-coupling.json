@@ -1,0 +1,28 @@
+{
+  "id": "SD-2",
+  "skill": "subagent-driven-development",
+  "name": "Moderately Coupled Feature — Notification System",
+  "difficulty": "medium",
+  "expected_winner": "Close call — depends on merge-risk handling",
+  "expected_reason": "Shared types between UI and backend create coupling; parallel is possible but risky",
+  "prompt": "Add a notification system: backend notification service (Go), notification preferences API, and a notification bell UI component in the React dashboard. The backend produces notifications, the API serves preferences and notification lists, and the UI displays them. They share a Notification type definition.",
+  "context": {
+    "components": {
+      "notification-service": {"dir": "services/notifications/", "files": 0, "tests": 0, "note": "new service"},
+      "notification-api": {"dir": "api/notifications/", "files": 0, "tests": 0, "note": "new endpoints in existing API"},
+      "notification-ui": {"dir": "dashboard/src/components/notifications/", "files": 0, "tests": 0, "note": "new component"}
+    },
+    "shared_types": {
+      "Notification": {"id": "string", "type": "string", "message": "string", "read": "boolean", "createdAt": "timestamp"},
+      "NotificationPreference": {"channel": "string", "enabled": "boolean"}
+    },
+    "coupling_analysis": "Backend and API share Go types; API and UI share JSON contract; all three must agree on the Notification shape",
+    "expected_isolation_score": "3-4/8 per pair (shared types, related models, but separate files)"
+  },
+  "evaluation_criteria": {
+    "dispatch_decision": "Did the conductor correctly identify coupling and choose serial or careful parallel?",
+    "type_consistency": "Do all components agree on the Notification type?",
+    "integration_issues": "Were there merge conflicts or type mismatches?",
+    "comparison": "Was the result better or worse than pure serial execution?"
+  }
+}

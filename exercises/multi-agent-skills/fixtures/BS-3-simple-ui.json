@@ -1,0 +1,21 @@
+{
+  "id": "BS-3",
+  "skill": "brainstorming",
+  "name": "Simple UI Change — Dark Mode Toggle",
+  "difficulty": "low",
+  "expected_winner": "A (single-agent)",
+  "expected_reason": "Simple, well-understood feature; ensemble adds overhead without meaningful diversity",
+  "prompt": "Add a dark mode toggle to our admin dashboard. The dashboard uses React + Tailwind CSS. We want users to be able to switch between light and dark themes.",
+  "context": {
+    "tech_stack": {"frontend": "React 18", "css": "Tailwind CSS 3.4", "state": "Zustand", "components": "Custom component library based on Radix UI"},
+    "existing_theme_support": "None — all colors are hardcoded Tailwind classes",
+    "user_requests": "Dark mode has been requested 12 times in the last quarter",
+    "scope": "Admin dashboard only (not customer-facing portal)"
+  },
+  "evaluation_criteria": {
+    "efficiency": "Did the brainstorm complete quickly without over-analyzing?",
+    "activation_correct": "Did the activation rubric correctly stay single-agent?",
+    "pragmatism": "Are recommendations practical and immediate, not over-engineered?",
+    "cost": "Token cost should be minimal — this is a simple feature"
+  }
+}
