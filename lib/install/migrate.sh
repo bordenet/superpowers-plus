@@ -201,11 +201,10 @@ deploy_todo_honeypot() {
 # Migration: Detect orphaned TODO.md files from previous installs
 #
 # Problem: Before the deterministic default ($HOME/.codex/TODO.md), agents guessed
-# paths from the skill examples (~/Documents/TODO.md) or workspace roots
-# (~/GitHub/*/TODO.md). These files may contain real task data that won't be found
-# by the new default path.
+# paths from skill examples or workspace roots. These files may contain real task
+# data that won't be found by the new default path.
 #
-# Fix: Scan known locations, report findings, suggest consolidation. Never delete.
+# Fix: Scan discovered locations, report findings, suggest consolidation. Never delete.
 detect_orphaned_todo_files() {
     local default_path="$HOME/.codex/TODO.md"
     # Extract TODO_FILE_PATH from ~/.codex/.env if configured there.
@@ -227,13 +226,21 @@ detect_orphaned_todo_files() {
         "$HOME/TODO.md"
     )
 
-    # Also check common workspace roots (non-recursive, fast)
-    # Covers both ~/GitHub/repo/ and ~/GitHub/owner/repo/ layouts
+    # Dynamically discover workspace roots: scan any $HOME child directory
+    # that contains git repos (1-2 levels deep). No hardcoded directory names.
     local git_dir
-    for git_dir in "$HOME/GitHub"/*/ "$HOME/GitHub"/*/*/ \
-                   "$HOME/Projects"/*/ "$HOME/repos"/*/ \
-                   "$HOME/git"/*/; do
-        [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+    for parent_dir in "$HOME"/*/; do
+        [[ -d "$parent_dir" ]] || continue
+        # Skip dotdirs and known non-workspace dirs
+        [[ "$(basename "$parent_dir")" == .* ]] && continue
+        # Level 1: direct repos under ~/SomeDir/repo/
+        for git_dir in "$parent_dir"*/; do
+            [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+        done
+        # Level 2: nested repos under ~/SomeDir/owner/repo/
+        for git_dir in "$parent_dir"*/*/; do
+            [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+        done
     done
 
     # Check each candidate
