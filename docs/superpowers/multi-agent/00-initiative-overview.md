@@ -8,10 +8,10 @@
 
 | # | Initiative | Branch | Ship Priority | Status | Planning Docs |
 |---|-----------|--------|--------------|--------|---------------|
-| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | 🔨 **BUILT** — all 23/23 TODOs done, 6/6 OQs resolved. Pending experiment validation. | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
-| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | 🔨 **BUILT** — all P1/P2 done, P3 intentionally deferred. Pending experiment validation. | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
-| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | 🔨 **BUILT** — all P1/P2 done, P3 intentionally deferred. Pending experiment validation. | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
-| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | 🔨 **BUILT** — all P1/P2 done, P3 intentionally deferred. Pending experiment validation. | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
+| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | 🟡 **PROTOTYPED** — all TODOs done, experiments NOT yet run (harness is stub) | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
+| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
+| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
+| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | 🟡 **PROTOTYPED** — all P1-P3 items implemented, experiments NOT yet run | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
 
 ## Shared Artifacts (used by all four)
 
@@ -60,10 +60,10 @@ Forked Debugging ──(patterns)──→ Brainstorming Ensemble
 
 | Initiative | P1 | P2 | P3 (Deferred) | Experiment Infra |
 |-----------|-----|-----|---------------|-----------------|
-| Forked Debugging | ✅ 6/6 | ✅ 7/7 | 3 deferred, 7 complete | ✅ Harness + 5 fixtures |
-| Brainstorming | ✅ 5/5 | ✅ 5/5 | 3 deferred, 3 complete | ✅ 3 fixtures |
-| Planning Council | ✅ 5/5 | ✅ 5/5 | 3 deferred, 2 complete | ✅ 3 fixtures |
-| Parallel Dispatch | ✅ 5/5 | ✅ 5/5 | 5 deferred, 0 complete | ✅ 3 fixtures |
+| Forked Debugging | ✅ 6/6 | ✅ 7/7 | ✅ 10/10 all implemented | 🟡 Harness is stub + 5 fixtures (experiments NOT run) |
+| Brainstorming | ✅ 5/5 | ✅ 5/5 | ✅ 6/6 all implemented | 🟡 3 fixtures (experiments NOT run) |
+| Planning Council | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 all implemented | 🟡 3 fixtures (experiments NOT run) |
+| Parallel Dispatch | ✅ 5/5 | ✅ 5/5 | ✅ 5/5 all implemented | 🟡 3 fixtures (experiments NOT run) |
 | **TOTAL** | **21/21** | **22/22** | **14 deferred** | **14 fixtures ready** |
 
 ## Decision Gates
@@ -73,6 +73,7 @@ No initiative ships to main without passing ALL of these:
 | Gate | Criteria |
 |------|----------|
 | **Design review** | Harsh review completed, findings addressed |
+| **Experiment validation** | ⬜ NOT STARTED — harness is stub, no experiment data yet |
 | **Prototype validated** | At least 1 experiment run produces expected results |
 | **Cost bounded** | Multi-agent mode stays within per-skill cost cap |
 | **Quality improvement proven** | Multi-agent output rated higher than single-agent on complex tasks |
