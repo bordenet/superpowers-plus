@@ -71,6 +71,13 @@ function parseYamlList(lines, startIndex) {
 }
 
 function extractFrontmatter(filePath) {
+  // Strip surrounding YAML quotes: "value" or 'value' → value
+  function unquoteYaml(s) {
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))
+      return s.slice(1, -1);
+    return s;
+  }
+
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -114,8 +121,8 @@ function extractFrontmatter(filePath) {
 
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
-        if (nameMatch) name = nameMatch[1].trim();
-        if (descMatch) description = descMatch[1].trim();
+        if (nameMatch) name = unquoteYaml(nameMatch[1].trim());
+        if (descMatch) description = unquoteYaml(descMatch[1].trim());
 
         // Triggers — three forms
         if (line.match(/^triggers:\s*\[/)) {
