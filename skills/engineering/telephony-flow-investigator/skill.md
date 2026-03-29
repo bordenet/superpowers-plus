@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `TelephonyEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Use
+
+Dispatched by `debug-conductor` when the incident involves telephony call flow — SIP signaling failures, one-way audio, call state divergence, codec mismatches, or RTP quality issues.
+
 ## Investigation Protocol
 
 ### Step 1: Classify the Telephony Failure Mode

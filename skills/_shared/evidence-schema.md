@@ -39,14 +39,17 @@ Each investigation branch produces:
   "status": "in-progress | completed | killed | merged",
   "evidence": {
     "supporting": [ /* EvidenceItem[] */ ],
-    "disconfirming": [ /* EvidenceItem[] — MANDATORY, min 1 */ ]
+    "disconfirming": [ /* EvidenceItem[] — MANDATORY min 1 for status:completed; MAY be empty for status:killed */ ]
   },
+  "killReason": "string | null — required when status is 'killed' (e.g., 'budget-exceeded', 'low-confidence', 'duplicate')",
   "verdict": "confirmed | rejected | partial-cause | inconclusive",
   "verdictReason": "string — why this verdict",
   "tokensUsed": "number",
   "wallClockSeconds": "number"
 }
 ```
+
+> **Killed branches:** When status is `killed`, the conductor MUST still forward all partial evidence collected so far. The `disconfirming` array MAY be empty. The `killReason` field is REQUIRED. The `verdict` SHOULD be `inconclusive` unless the partial evidence already supported a conclusion.
 
 ## Investigator-Specific Evidence Types
 

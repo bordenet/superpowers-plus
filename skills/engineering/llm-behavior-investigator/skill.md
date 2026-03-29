@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `LLMEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Use
+
+Dispatched by `debug-conductor` when the incident involves AI/LLM behavior — tool misselection, prompt regressions, context window pressure, or output parsing failures.
+
 ## Investigation Protocol
 
 ### Step 1: Classify the LLM Failure Mode
@@ -63,7 +67,7 @@ composition:
    - Was meaning preserved or altered?
    - Was specificity maintained? (vague descriptions → ambiguous tool selection)
    - Was the change tested with representative inputs?
-4. Rate impact: `{ section, before, after, impactAssessment }`
+4. Rate impact: `{ section, before, after, impact }`
 
 ### Step 2C: Context Window Analysis
 

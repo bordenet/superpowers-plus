@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `TimelineEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Use
+
+Dispatched by `debug-conductor` when the incident involves temporal causation — deployment correlations, cascading failures, or event ordering across services.
+
 ## Investigation Protocol
 
 ### Step 1: Scope the Timeline
@@ -55,9 +59,9 @@ Build a chronological event sequence:
 ```json
 {
   "events": [
-    { "timestamp": "ISO-8601", "service": "call-router", "event": "deployment v2.3.1", "source": "ci-cd", "traceId": null },
-    { "timestamp": "ISO-8601", "service": "call-router", "event": "first error logged", "source": "app-log", "traceId": "abc123" },
-    { "timestamp": "ISO-8601", "service": "telephony-gw", "event": "SIP timeout spike", "source": "metrics", "traceId": null }
+    { "timestamp": "ISO-8601", "service": "call-router", "event": "deployment v2.3.1", "traceId": null },
+    { "timestamp": "ISO-8601", "service": "call-router", "event": "first error logged", "traceId": "abc123" },
+    { "timestamp": "ISO-8601", "service": "telephony-gw", "event": "SIP timeout spike", "traceId": null }
   ]
 }
 ```

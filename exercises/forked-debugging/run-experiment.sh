@@ -44,6 +44,8 @@ done
 # Validate
 [[ "$CONDITION" =~ ^[ABC]$ ]] || { echo "Error: condition must be A, B, or C"; exit 1; }
 [[ "$SCENARIO" =~ ^S[1-5]$ ]] || { echo "Error: scenario must be S1–S5"; exit 1; }
+[[ "$RUNS" =~ ^[0-9]+$ ]] || { echo "Error: --runs must be a positive integer, got '${RUNS}'"; exit 1; }
+[[ "$RUNS" -ge 1 ]] || { echo "Error: --runs must be ≥1, got '${RUNS}'"; exit 1; }
 
 FIXTURE_FILE="${FIXTURES_DIR}/${SCENARIO}.json"
 if [[ ! -f "$FIXTURE_FILE" ]]; then
@@ -61,7 +63,7 @@ echo "Runs:      ${RUNS}"
 echo "Fixture:   ${FIXTURE_FILE}"
 echo ""
 
-for run in $(seq 1 "$RUNS"); do
+for (( run=1; run<=RUNS; run++ )); do
     # Use unique run ID to prevent file conflicts from concurrent experiments
     RUN_ID="${CONDITION}-${SCENARIO}-run${run}-$(date +%s)-$$"
     RESULT_FILE="${RESULTS_DIR}/${RUN_ID}.json"
