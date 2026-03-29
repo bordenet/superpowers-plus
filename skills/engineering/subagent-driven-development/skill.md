@@ -37,6 +37,12 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need.
 
+### Parallel Dispatch Mode
+
+For tasks with sufficient isolation (different files, independent interfaces), the Execution Conductor can dispatch implementers in parallel. See `references/parallel-dispatch-mode.md` for full protocol.
+
+**Activation:** Fan-out eligibility rubric score ≥ 6 per task pair (file overlap, interface coupling, test isolation, data model coupling). **Cost cap:** 2.5× serial. **Default:** Sequential (existing behavior).
+
 ## Process (per task)
 
 1. **Read plan** — extract all tasks with full text upfront, create TodoWrite

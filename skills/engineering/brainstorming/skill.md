@@ -15,6 +15,13 @@ coordination:
   enables: ["design-triad", "plan-and-execute"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
+composition:
+  produces: [design-options, risk-surface, brainstorm-output]
+  consumes: [task-description, system-context]
+  capabilities: [generates-ideas, multi-perspective-ideation]
+  priority: 3
+  optional: false
+  requires_all: false
 ---
 
 # Brainstorming Ideas Into Designs
@@ -46,6 +53,13 @@ coordination:
 Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
 
 > **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `design-triad`.
+
+### Ensemble Mode (Multi-Perspective)
+
+For broad, ambiguous, or high-impact prompts, brainstorming can activate **ensemble mode** — dispatching parallel perspective lenses (Product, Architecture, Reliability, Security, Simplicity, Contrarian) for richer exploration. See `references/ensemble-mode.md` for full protocol.
+
+**Activation:** Apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 5 → ensemble. Else → single-agent (this checklist).
+**Cost cap:** 1.5× single-agent tokens. **Max lenses:** 4.
 
 <HARD-GATE>
 Do NOT write any code or take implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
