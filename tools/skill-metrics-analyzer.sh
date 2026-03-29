@@ -30,7 +30,13 @@ HELP
   exit 0
 fi
 
-METRICS_DIR="${SUPERPOWERS_DIR:-.}/.skill-metrics"
+if [[ -z "${SUPERPOWERS_DIR:-}" ]]; then
+  echo "Error: SUPERPOWERS_DIR is not set. Set it to your superpowers install directory." >&2
+  echo "  Example: export SUPERPOWERS_DIR=~/.codex/superpowers-plus" >&2
+  exit 1
+fi
+
+METRICS_DIR="$SUPERPOWERS_DIR/.skill-metrics"
 FIRED_LOG="$METRICS_DIR/fired.jsonl"
 MISSED_LOG="$METRICS_DIR/missed.jsonl"
 OUTPUT_FORMAT="${1:-markdown}"
@@ -68,7 +74,47 @@ else
     ACTION="Immediate trigger rewrite required"
 fi
 
-# Generate report
+# JSON output mode
+if [[ "$OUTPUT_FORMAT" == "--json" ]]; then
+    # Build fire counts
+    FIRE_COUNTS="{}"
+    if [[ -s "$FIRED_LOG" ]]; then
+        FIRE_COUNTS=$(jq -s 'group_by(.skill) | map({key: .[0].skill, value: length}) | from_entries' "$FIRED_LOG" 2>/dev/null || echo "{}")
+    fi
+
+    # Build miss counts
+    MISS_COUNTS="{}"
+    if [[ -s "$MISSED_LOG" ]]; then
+        MISS_COUNTS=$(jq -s 'group_by(.skill) | map({key: .[0].skill, value: length}) | from_entries' "$MISSED_LOG" 2>/dev/null || echo "{}")
+    fi
+
+    jq -n \
+        --arg generated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg period "last_7_days" \
+        --argjson totalFired "$TOTAL_FIRED" \
+        --argjson totalMissed "$TOTAL_MISSED" \
+        --arg missRate "$MISS_RATE" \
+        --arg status "$STATUS" \
+        --arg action "$ACTION" \
+        --argjson fireCounts "$FIRE_COUNTS" \
+        --argjson missCounts "$MISS_COUNTS" \
+        '{
+            generated: $generated,
+            period: $period,
+            summary: {
+                totalFired: $totalFired,
+                totalMissed: $totalMissed,
+                missRate: ($missRate | tonumber),
+                status: $status,
+                recommendedAction: $action
+            },
+            fireCountBySkill: $fireCounts,
+            missCountBySkill: $missCounts
+        }'
+    exit 0
+fi
+
+# Markdown report (default)
 cat << EOF
 # Skill Firing Observability Report
 
