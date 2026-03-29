@@ -54,7 +54,7 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 1: NitpickLineByLine
 
-**Evidence scope:** The deliverable only — line-by-line reading. Do NOT examine callers or deployment context.
+**Full access.** START FROM the local diff. PRIORITIZE line-by-line syntax, naming, and surface-level correctness.
 
 | Check | Score /10 | Notes |
 |-------|-----------|-------|
@@ -66,13 +66,13 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 2: ArchSoundnessProbe
 
-**Evidence scope:** The deliverable PLUS all callers, consumers, and interface contracts affected by the change.
+**Full access.** START FROM interface contracts and public APIs. PRIORITIZE ripple analysis across callers and downstream consumers.
 
 Respects patterns? /10 . Downstream impact? /10 . Minimal scope? /10 . 10x load? /10 . Reversible? /10
 
 ### Critic 3: ProdBattleTest
 
-**Evidence scope:** The deliverable PLUS error handling paths, retry/rollback behavior, and logging. Do NOT focus on naming or style.
+**Full access.** START FROM failure modes and state transitions. PRIORITIZE error handling, retry/rollback logic, and 3 AM operational safety.
 
 Edge cases? /10 . Failure mode? /10 . Logging? /10 . Backward compat? /10 . Ship at 3 AM? /10
 
