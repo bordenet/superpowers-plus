@@ -27,7 +27,7 @@ _resolve_upstream_dir() {
             upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
             ;;
         *)
-            # Other sources (superpowers-plus, superpowers-callbox, etc.)
+            # Other sources (superpowers-plus, overlay repos, etc.)
             # Search the source repo's skills/ tree for the skill name
             local src_repo="${CODEX_DIR}/${source_name}"
             if [[ -d "$src_repo/skills" ]]; then
