@@ -651,18 +651,107 @@ def _check_annihilation(new_content: str) -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# Shadow Backup & Annihilation Detection
+# ---------------------------------------------------------------------------
+
+def _shadow_path() -> str:
+    """Return the path to the shadow backup file."""
+    return os.path.join(SHADOW_DIR, "TODO.md")
+
+
+def _count_active_tasks(content: str) -> int:
+    """Count task lines (- [ ]/[x]/[/]) in the ACTIVE TASKS section only."""
+    history_match = RE_HISTORY.search(content)
+    active_section = content[:history_match.start()] if history_match else content
+    return len(RE_TASK.findall(active_section))
+
+
+def update_shadow(content: str) -> None:
+    """Write a shadow copy after a successful write (atomic: temp + replace).
+
+    This is a PUBLIC function so that other approved writers (archive,
+    maintenance) can update the shadow after they modify TODO.md directly.
+
+    Best-effort: warns on failure but does NOT crash the write path.
+    The primary file has already been written successfully at this point.
+    """
+    try:
+        os.makedirs(SHADOW_DIR, exist_ok=True)
+        shadow = _shadow_path()
+        tmp = shadow + f".tmp.{os.getpid()}"
+        with open(tmp, "w") as f:
+            f.write(content)
+        os.replace(tmp, shadow)
+    except OSError as exc:
+        print(f"WARNING: Could not update shadow backup: {exc}. "
+              f"Annihilation detection may be stale until next successful shadow write.",
+              file=sys.stderr)
+
+
+def _check_annihilation(new_content: str) -> None:
+    """Compare new content against shadow to detect catastrophic data loss.
+
+    Checks:
+    1. Size drop: new content < 40% of shadow size
+    2. Active task count → 0 when shadow had ≥1
+    3. Active task count drops by >5 in a single write
+
+    Raises SystemExit on detection. Does nothing if no shadow exists yet.
+    """
+    shadow = _shadow_path()
+    if not os.path.exists(shadow):
+        return  # First run — no comparison possible
+
+    try:
+        with open(shadow, "r") as f:
+            shadow_content = f.read()
+    except OSError as exc:
+        print(f"WARNING: Shadow backup unreadable ({exc}). "
+              f"Annihilation detection disabled for this write.",
+              file=sys.stderr)
+        return
+
+    shadow_size = len(shadow_content)
+    new_size = len(new_content)
+    shadow_tasks = _count_active_tasks(shadow_content)
+    new_tasks = _count_active_tasks(new_content)
+
+    # Check 1: Catastrophic size drop
+    if shadow_size > 0 and new_size < shadow_size * ANNIHILATION_SIZE_RATIO:
+        _error(
+            f"ANNIHILATION DETECTED: File size would drop from {shadow_size} "
+            f"to {new_size} bytes ({new_size * 100 // shadow_size}% of original). "
+            f"Shadow backup preserved at {shadow}. "
+            f"If this is intentional, delete the shadow and retry."
+        )
+
+    # Check 2: Active tasks wiped to zero
+    if shadow_tasks > 0 and new_tasks == 0:
+        _error(
+            f"ANNIHILATION DETECTED: All {shadow_tasks} active tasks would be "
+            f"deleted (new content has 0 active tasks). "
+            f"Shadow backup preserved at {shadow}. "
+            f"If this is intentional, delete the shadow and retry."
+        )
+
+    # Check 3: Too many tasks lost in one write
+    task_drop = shadow_tasks - new_tasks
+    if task_drop > ANNIHILATION_TASK_DROP_MAX:
+        _error(
+            f"ANNIHILATION DETECTED: Active task count would drop from "
+            f"{shadow_tasks} to {new_tasks} (loss of {task_drop}). "
+            f"Normal operations change ±1 task at a time. "
+            f"Shadow backup preserved at {shadow}. "
+            f"If this is intentional, delete the shadow and retry."
+        )
+
+
 def write_file(path: str, content: str) -> None:
     _validate_canonical_path(path)
     validate_structure(content)
     content = _normalize_whitespace(content)
     _check_annihilation(content)
-    # Create timed snapshot BEFORE the write (captures pre-write state)
-    if os.path.exists(path):
-        try:
-            with open(path, "r") as f:
-                _maybe_create_timed_snapshot(f.read())
-        except OSError:
-            pass
     _unprotect_file(path)
     try:
         with open(path, "w") as f:
