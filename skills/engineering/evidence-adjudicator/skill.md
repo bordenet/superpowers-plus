@@ -2,6 +2,7 @@
 name: evidence-adjudicator
 source: superpowers-plus
 description: "Synthesizes evidence from all investigator branches into a root cause verdict. Builds reasoning trees, detects contradictions, weighs evidence strength over agent count, and produces a ranked diagnosis. Dispatched by debug-conductor."
+summary: "Use when: synthesizing evidence from investigator branches into root cause verdict."
 triggers: []
 anti_triggers: []
 coordination:
@@ -35,6 +36,7 @@ Dispatched by `debug-conductor` after all investigator branches complete. Synthe
 ### Step 1: Collect All Branch Evidence
 
 Receive from conductor:
+
 - All completed branch evidence (supporting + disconfirming per branch)
 - Branch verdicts and confidence scores
 - Killed/merged branch records (what was tried and abandoned)
@@ -42,12 +44,13 @@ Receive from conductor:
 ### Step 2: Build Reasoning Tree
 
 For each hypothesis (branch):
+
 1. List supporting evidence with confidence scores
 2. List disconfirming evidence with confidence scores
 3. Calculate net evidence strength: `Σ(supporting × confidence) - Σ(disconfirming × confidence)`
 4. Arrange into a tree structure:
 
-```
+```bash
 Root: "What caused the incident?"
 ├── H1: "Event ordering bug" (net: +2.4)
 │   ├── [+] Deployment correlation (0.85)
@@ -65,6 +68,7 @@ Root: "What caused the incident?"
 ### Step 3: Identify Critical Divergence Points
 
 Where do investigators disagree?
+
 1. Find pairs of branches with contradictory evidence about the same fact
 2. At each divergence: which evidence is stronger? (source reliability, specificity, reproducibility)
 3. **Prefer evidence from reproduction over correlation** (experiment > observation)
@@ -73,6 +77,7 @@ Where do investigators disagree?
 ### Step 4: Check for Compound Root Causes
 
 Many real incidents have multiple contributing factors:
+
 1. Does removing any single hypothesis leave unexplained evidence?
 2. Do two hypotheses together explain more than either alone?
 3. Example: "Ambiguous tool description" alone → 5% failure. + "High context load" → 20% failure. Compound cause.
@@ -80,6 +85,7 @@ Many real incidents have multiple contributing factors:
 ### Step 5: Validate Disconfirming Evidence
 
 For the winning hypothesis:
+
 1. Was every piece of disconfirming evidence addressed?
 2. "Addressed" means: explained why it doesn't invalidate the hypothesis
 3. Unaddressed disconfirming evidence → lower confidence
@@ -88,6 +94,7 @@ For the winning hypothesis:
 ### Step 5b: Adversarial Disconfirmation Pass
 
 Before accepting the verdict, apply `adversarial-search` thinking to the leading hypothesis:
+
 1. **Invert the hypothesis** — "If this is NOT the root cause, what else explains the evidence?"
 2. **Challenge the strongest supporting evidence** — is there an alternative interpretation?
 3. **Look for confirmation bias** — did all branches converge too quickly?
@@ -148,3 +155,11 @@ Before accepting the verdict, apply `adversarial-search` thinking to the leading
 | **Wrong consensus** | Multiple investigators agree but reproduction fails → all wrong |
 | **Minority correct** | One low-confidence branch has stronger evidence than high-confidence majority |
 | **Insufficient evidence** | All hypotheses <0.5 → need more data, not more investigation |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Confirmation bias | Favoring first evidence seen | Weight by strength, not order |
+| Missing contradiction | Overlooking conflicting evidence | Explicit contradiction detection pass |
+| Over-counting agents | Same finding from N agents treated as N evidence | Deduplicate by root fact |

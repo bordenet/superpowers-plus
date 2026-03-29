@@ -2,6 +2,7 @@
 name: telephony-flow-investigator
 source: superpowers-plus
 description: "Specialized investigator for diagnosing telephony call flow failures: SIP signaling issues, call state machine divergences, codec mismatches, RTP quality degradation, and timing-sensitive call setup problems. Dispatched by debug-conductor."
+summary: "Use when: diagnosing telephony call flow failures and SIP signaling issues."
 triggers: []
 anti_triggers: []
 coordination:
@@ -129,3 +130,11 @@ Dispatched by `debug-conductor` when the incident involves telephony call flow â
 | **Codec negotiation failure** | SDP offer/answer mismatch on cipher or codec |
 | **Call state race condition** | Two events processed simultaneously, wrong one wins |
 | **SRTP overhead** | Packet size increase from SRTP upgrade causes MTU/NAT issues |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Codec mismatch | Audio works but quality is wrong | Check codec negotiation in SDP |
+| Timing window | Call setup race condition | Add timing instrumentation |
+| SIP vs RTP confusion | Investigating wrong layer | Isolate signaling vs media issues first |

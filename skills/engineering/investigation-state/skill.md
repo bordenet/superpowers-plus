@@ -24,7 +24,7 @@ composition:
 # Investigation State
 
 > **Wrong skill?** Debugging → `systematic-debugging`. Getting unstuck → `think-twice`. Requirements analysis → `requirements-validation`.
-
+>
 > **Purpose:** Persist debugging investigation context across sessions so no hypothesis, evidence, or eliminated approach is lost.
 > **Storage:** `~/.superpowers/investigations/<uuid>.json`
 > **Authoritative format:** JSON. Markdown export is read-only.
@@ -37,6 +37,7 @@ composition:
 - **adversarial-search**: Confirmation bias prevention during investigation
 - **think-twice**: When investigation hits a wall
 - **failure-autopsy**: Post-mortem analysis
+
 ## When to Use
 
 - Starting a new multi-turn debugging session
@@ -44,7 +45,6 @@ composition:
 - Handing off an investigation to another agent or session
 - Checking what has already been tried ("what have we tried?")
 - Saving a checkpoint before ending a session
-
 
 ## Core Principles
 
@@ -129,6 +129,7 @@ This prevents future agents from retrying failed approaches.
 ## Persistence
 
 `investigation-crud.sh` handles all persistence automatically:
+
 - Atomic writes (temp file + `os.replace`)
 - Auto-updates `updated` timestamp on every write
 - Creates `~/.superpowers/investigations/` and `.gitignore` on first use

@@ -18,9 +18,8 @@ coordination:
 
 > **Purpose:** Prevent AI from posting fabricated or misleading comments on tickets
 > **Pattern:** Evidence before assertion — no claims without citations
-
+>
 > **Wrong skill?** Creating new issues → `issue-authoring`. Updating issue fields → `issue-editing`. Verifying URLs → `issue-link-verification`.
-
 
 ## When to Use
 
@@ -31,7 +30,6 @@ Invoke **BEFORE** any of these actions:
 - Documenting findings or conclusions on a ticket
 - Attributing statements to team members
 - Claiming specific timestamps, metrics, or outcomes
-
 
 ## ⛔ The Iron Rule
 
@@ -51,7 +49,6 @@ Invoke **BEFORE** any of these actions:
 
 </EXTREMELY_IMPORTANT>
 
-
 ## Pre-Comment Checklist
 
 Before posting ANY comment to your issue tracker:
@@ -59,6 +56,7 @@ Before posting ANY comment to your issue tracker:
 ### 1. Identify Claim Types
 
 Parse your draft comment for:
+
 - [ ] Factual claims (X happened, Y caused Z)
 - [ ] Attributions (Person said/did X)
 - [ ] Timestamps (At HH:MM, on DATE)
@@ -88,7 +86,6 @@ After thorough investigation, the root cause appears to be a race condition
 in the message processing layer.
 ```
 
-
 ## Forbidden Comment Patterns
 
 ### "Investigation Summary" Anti-Pattern
@@ -109,6 +106,7 @@ After analyzing the system behavior, I've identified the following:
 ```
 
 **Why it's dangerous:**
+
 - Reads as authoritative status update
 - Contains fabricated timestamps, metrics, analysis
 - Future readers will trust it as ground truth
@@ -128,7 +126,6 @@ I'm not certain about:
 Next step: [Specific action, not speculation]
 ```
 
-
 ## Safe vs. Unsafe Comments
 
 | Safe | Unsafe |
@@ -139,19 +136,18 @@ Next step: [Specific action, not speculation]
 | "I'm not sure, but it might be..." | "The root cause is definitely..." |
 | "Question: Could X cause Y?" | "Investigation confirms X caused Y" |
 
-
 ## Before Posting: Final Check
 
 Every claim has evidence · no fabricated timestamps/metrics · no "investigation summary" framing · no unsourced attributions · uncertainty marked · reads as observation, not conclusion.
 
 **If ANY check fails → REWRITE before posting.**
 
-
 ## Recovery: If Bad Comment Posted
 
 If you've already posted a problematic comment:
 
 1. **Add correction immediately:**
+
    ```markdown
    ⚠️ CORRECTION: The above comment contains unverified claims I generated.
    Please disregard the investigation summary — it may contain inaccuracies.
@@ -160,7 +156,6 @@ If you've already posted a problematic comment:
 2. **Do NOT silently edit** — timestamps don't update, future readers won't know
 
 3. **Notify the user** — they should review and potentially delete
-
 
 ## Example
 

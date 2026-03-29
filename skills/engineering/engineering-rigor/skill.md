@@ -17,11 +17,10 @@ coordination:
 # Engineering Rigor
 
 > **Source:** `superpowers-plus`
-
+>
 > **Wrong skill?** This is a hub/dispatcher. Use the dispatch table below to find the right sub-skill.
 
 This is the **hub skill** for engineering rigor. For operational guidance, use the specific skill that matches your current task:
-
 
 ## When to Use
 
@@ -56,7 +55,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 
 ## The Iron Law
 
-```
+```bash
 BEFORE IMPLEMENTING: Trace the FULL data flow across ALL boundaries
 DURING IMPLEMENTING: Verify data flows INTO and OUT OF each component
 AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
@@ -65,6 +64,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 ## The Problem This Skill Family Solves
 
 **Failure Patterns:**
+
 1. Mechanical plan execution without verifying assumptions or tracing data flow
 2. Rubber-stamp code reviews that don't apply the same rigor as your own work
 3. Pushing code without running local checks, then debugging CI failures
@@ -75,7 +75,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 
 ## Dispatch Table
 
-```
+```text
 Am I describing generated output? → output-verification
 Am I about to commit?            → pre-commit-gate
 Am I modifying existing code?    → blast-radius-check
@@ -105,7 +105,6 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist
-
 
 ## Example
 

@@ -10,6 +10,7 @@ When an investigation has gathered evidence from multiple tools, use this techni
 ## The Problem
 
 Evidence from different tools arrives in fragments:
+
 - A database query shows missing rows
 - A pipeline log shows a failed migration step
 - A git diff shows a schema change
@@ -25,7 +26,7 @@ Without synthesis, agents form hypotheses from individual fragments rather than 
 
 Arrange all evidence chronologically:
 
-```
+```text
 [timestamp] [source] — [finding]
 [timestamp] [source] — [finding]
 ...

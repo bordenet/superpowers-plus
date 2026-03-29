@@ -17,11 +17,10 @@ coordination:
 # ⚠️ EXPERIMENTAL: Self-Prompting ⚠️
 
 > **Wrong skill?** Getting unstuck → `think-twice`. Research → `perplexity-research`. Brainstorming → `brainstorming`.
-
+>
 > **WARNING**: This skill is EXPERIMENTAL. It has been validated in a controlled
 > experiment but is NOT production-ready. Expect ~20% false positive rate.
 > ALWAYS verify outputs manually before acting on findings.
-
 
 ## When to Use
 
@@ -43,7 +42,6 @@ coordination:
 
 **Key Insight**: Reframing helps Claude (+10% VH), but HURTS external models (+400% HR).
 
-
 ## ⚠️ CRITICAL WARNINGS ⚠️
 
 ### 1. DO NOT Use with External Models
@@ -61,6 +59,7 @@ Even with Claude answering its own prompts, expect 1 in 5 findings to be wrong.
 ### 3. Only Tested on Genesis-Tools
 
 This skill was validated on 5 genesis-tools projects:
+
 - pr-faq-assistant
 - jd-assistant
 - one-pager
@@ -68,7 +67,6 @@ This skill was validated on 5 genesis-tools projects:
 - product-requirements-assistant
 
 It may not generalize to other codebases.
-
 
 ## When to Invoke
 
@@ -80,10 +78,10 @@ It may not generalize to other codebases.
 | **Pre-commit review** | Final check before major commits |
 
 **Explicit invocation required:**
-```
+
+```text
 Use the experimental-self-prompting skill to analyze [system]
 ```
-
 
 ## The Protocol (Condition B)
 
@@ -125,6 +123,7 @@ Treat the prompt as if you've never seen the code before. Answer systematically.
 **CRITICAL**: Never trust findings without verification.
 
 For each finding:
+
 1. Run grep/view command to confirm existence
 2. Run node test to confirm behavior (if applicable)
 3. Mark as VERIFIED (VH) or FALSE POSITIVE (HR)
@@ -132,10 +131,10 @@ For each finding:
 ### Step 4: Document Results
 
 Create summary with:
+
 - VH count (verified hits)
 - HR count (hallucinations)
 - Key findings with evidence
-
 
 ## Known Issues
 
@@ -143,7 +142,6 @@ Create summary with:
 2. **Limited codebase testing** - Only 5 genesis-tools projects
 3. **No automated verification** - Manual grep/test required
 4. **Prompt templates not optimized** - May miss issues or over-flag
-
 
 ## Graduation Criteria
 
@@ -154,7 +152,6 @@ This skill will be promoted to production when:
 - [ ] Automated verification pipeline integrated
 - [ ] User feedback loop established
 - [ ] Prompt templates optimized and documented
-
 
 ## Reference
 

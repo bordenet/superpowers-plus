@@ -21,7 +21,7 @@ superpowers-plus is designed as a **generic base layer** that organizations exte
 
 ### The Two-Repo Pattern
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────────────┐
 │                    YOUR ORGANIZATION                            │
 ├─────────────────────────────────────────────────────────────────┤
@@ -93,6 +93,7 @@ Use this pattern when you need to replace a generic skill with a vendor-specific
 **Example: Overriding `wiki-orchestrator`**
 
 Generic version (superpowers-plus):
+
 ```yaml
 # skills/wiki/wiki-orchestrator/skill.md
 ---
@@ -104,6 +105,7 @@ description: Generic wiki editing workflow. See _adapters/ for platform setup.
 ```
 
 Your org version (your-org-skills):
+
 ```yaml
 # skills/wiki/wiki-orchestrator/skill.md
 ---
@@ -155,7 +157,7 @@ Use this pattern when the generic skill should work with multiple platforms, sel
 
 ### How Adapters Work
 
-```
+```typescript
 skills/
 ├── wiki/
 │   ├── _adapters/
@@ -238,6 +240,7 @@ forks:
 ```
 
 **Sync process:**
+
 1. Check superpowers-plus release notes
 2. Review changes to forked skills
 3. Cherry-pick relevant improvements
@@ -260,7 +263,7 @@ Rules are **always-active guidance** that apply to ALL conversations, regardless
 
 ### Rule File Naming
 
-```
+```markdown
 rules/
 ├── wiki-orchestrator.always.md      # Always-on wiki guidance
 ├── secrets-policy.always.md    # Secret handling policy
@@ -384,7 +387,7 @@ Add to your CI pipeline:
 
 Your org repo should mirror superpowers-plus structure:
 
-```
+```markdown
 your-org-skills/
 ├── .env.example              # Org-specific env vars template
 ├── .fork-tracking.yaml       # Track forked skills
@@ -432,6 +435,7 @@ your-org-skills/
 ## Install Script Pattern
 
 Your org's `install.sh` should:
+
 1. Check prerequisites
 2. Validate environment variables
 3. Install skills (AFTER superpowers-plus)
@@ -552,23 +556,27 @@ main "$@"
 For a senior engineer setting up superpowers-plus for their organization:
 
 ### Day 1: Foundation
+
 - [ ] Fork or clone superpowers-plus
 - [ ] Run `./install.sh` to install generic base layer
 - [ ] Create your org-skills repo with matching structure
 - [ ] Create `install.sh` for your org repo
 
 ### Day 2: Core Integrations
+
 - [ ] Identify which generic skills need overriding
 - [ ] Create org-specific wiki-orchestrator (for your wiki platform)
 - [ ] Create org-specific issue-authoring (for your issue tracker)
 - [ ] Add adapters for your platforms
 
 ### Day 3: Policies
+
 - [ ] Create always-on rules for org policies
 - [ ] Add scope restrictions for sensitive areas
 - [ ] Document secret handling requirements
 
 ### Day 4: Rollout
+
 - [ ] Document setup process in your org repo README
 - [ ] Test install order: superpowers-plus → your-org-skills
 - [ ] Verify overrides are working correctly

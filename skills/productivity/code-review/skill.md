@@ -26,6 +26,7 @@ coordination:
 This skill handles the **file I/O and structured handoff** for inter-agent code review. It has two modes: **Generate Request** and **Execute Response**.
 
 **Complements these skills (load as needed):**
+
 - `receiving-code-review` — Behavioral protocol for processing feedback (systemic verification, no performative agreement). Load during Execute Response mode.
 - `providing-code-review` — Engineering rigor checklist for reviewers (data flow, blast radius). The REVIEWER loads this, not you.
 
@@ -127,7 +128,6 @@ Use when: the reviewer has finished and written `response.md`.
 - Clear stale `active/{scope}/response.md` during rollover, and refuse execute mode if request/response round numbers do not match.
 - Archive the final PASS round too (user may want to reference it).
 - Track round number from the response header (`# Code Review Response — Round {N}`), not a separate file.
-
 
 ## Example
 

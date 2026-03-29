@@ -90,7 +90,7 @@ If neither exists, STOP and report:
 
 ## Verification Process
 
-```
+```bash
 1. Fetch wiki page content (use adapter's get_page operation)
 2. Parse tail section OR lookup in wiki-sources.yaml
 3. Clone/fetch relevant repos if not local
@@ -104,7 +104,7 @@ If neither exists, STOP and report:
 
 ## Interactive Flow (Default)
 
-```
+```text
 🔍 Verifying: YourProduct Production Stack & Vendors
 
 Sources: backend-service (package.json), settings-service

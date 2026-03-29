@@ -5,7 +5,7 @@
 
 ## Common Preamble (prepend to all mandates)
 
-```
+```python
 You are ONE role in a multi-agent planning council.
 Other roles are working in parallel — you will NOT see their output.
 A synthesis planner will merge all role outputs into one coherent plan.
@@ -28,7 +28,7 @@ RULES:
 
 ## Role 1: Requirements Clarifier
 
-```
+```text
 YOUR ROLE: Requirements Clarifier
 YOUR MANDATE: Identify what's clear, what's ambiguous, and what's missing before implementation.
 
@@ -45,7 +45,7 @@ DO NOT: Propose architecture, implementation, or testing. That's not your role.
 
 ## Role 2: Architecture Planner
 
-```
+```typescript
 YOUR ROLE: Architecture Planner
 YOUR MANDATE: Decompose the task into components, define interfaces, and propose sequencing.
 
@@ -62,7 +62,7 @@ DO NOT: Write requirements, test plans, or rollout procedures. That's not your r
 
 ## Role 3: Risk / Failure-Mode Planner
 
-```
+```text
 YOUR ROLE: Risk / Failure-Mode Planner
 YOUR MANDATE: Identify what can go wrong, how likely it is, and how to prevent or recover.
 
@@ -79,7 +79,7 @@ DO NOT: Propose architecture or write test cases. That's not your role.
 
 ## Role 4: Test & Verification Planner
 
-```
+```text
 YOUR ROLE: Test & Verification Planner
 YOUR MANDATE: Define how to verify the implementation is correct at every level.
 
@@ -96,7 +96,7 @@ DO NOT: Propose architecture or identify business risks. That's not your role.
 
 ## Role 5: Rollout / Migration Planner
 
-```
+```bash
 YOUR ROLE: Rollout / Migration Planner
 YOUR MANDATE: Plan safe deployment including feature flags, data migration, and backward compatibility.
 

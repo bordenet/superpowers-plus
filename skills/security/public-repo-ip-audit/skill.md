@@ -16,7 +16,6 @@ coordination:
 
 # public-repo-ip-audit
 
-
 ## When to Use
 
 - Before pushing code to any public repository
@@ -61,7 +60,6 @@ PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 
 **Gate order:** `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → **this skill**.
 
-
 > **Wrong skill?** Scanning code for secrets/CVEs → `repo-security-scan`. Wiki content secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
 
 ## Procedure
@@ -73,6 +71,7 @@ Confirm the target repo is public. Check `git remote -v` and verify against the 
 ### Step 2: Build Pattern Registry
 
 Create org-specific patterns (see IP Pattern Registry above). Customize for your organization's:
+
 - Internal domain names and subdomains
 - Issue tracker prefixes (JIRA/Linear/Azure DevOps project keys)
 - Employee email patterns
@@ -106,7 +105,6 @@ After fixing, re-run ALL gates. Zero matches required before push.
 | Internal URL patterns not in deny list | Update deny list with new internal domains immediately |
 | Agent rationalizes "it's not really sensitive" | Hard block — any match requires explicit user override |
 | Pattern registry is stale — new internal tools not covered | Review and update patterns quarterly; add new tools on adoption |
-
 
 ## Companion Skills
 

@@ -7,7 +7,7 @@
 
 ### 1. File Conflict Check
 
-```
+```javascript
 For each file modified by any branch:
   If modified by >1 branch:
     diff = compute_diff(branchA.file, branchB.file)
@@ -28,7 +28,7 @@ For each file modified by any branch:
 
 Verify outputs from branch A can be consumed by branch B and vice versa:
 
-```
+```javascript
 For each shared interface:
   Check: do exported function signatures match expectations?
   Check: do type definitions agree?
@@ -45,7 +45,7 @@ For each shared interface:
 
 Run ALL tests — not just per-branch tests:
 
-```
+```text
 1. Run unit tests for all modified packages
 2. Run integration tests that cross branch boundaries
 3. Run any existing end-to-end tests
@@ -61,6 +61,7 @@ Run ALL tests — not just per-branch tests:
 ### 4. Review Gate
 
 Apply standard spec compliance + quality review to the INTEGRATED result:
+
 - Reviewer sees the merged output, not individual branches
 - Review covers: code correctness, style, test quality, documentation
 - Review does NOT re-evaluate the dispatch decision (that's the conductor's job)

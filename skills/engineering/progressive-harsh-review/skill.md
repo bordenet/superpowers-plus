@@ -19,7 +19,7 @@ coordination:
 # Progressive Harsh Review
 
 > **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
-
+>
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
 > **Pattern:** Three escalating critic personas, each scoring independently.
 
@@ -31,6 +31,7 @@ coordination:
 - **brainstorming**: Generating options before review
 - **micro-harsh-review**: Per-batch code review
 - **providing-code-review**: Code-specific review
+
 ## When to Use
 
 - After completing a significant non-code deliverable (plan, skill, document, design)
@@ -101,6 +102,7 @@ Each persona scores 1-10 on each dimension. **Aggregation rule:** take the **wei
 ### Step 4: Remediation (if needed)
 
 On REJECT:
+
 1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
 2. **Chain to remediation skills:**
    - Design issues → `design-triad` (generate alternatives)
@@ -136,7 +138,6 @@ Flags trigger re-examination, not automatic verdict changes.
 | Security/Perf | 7 | Lock file readable by any user |
 **Weighted Average: 6.5 → PASS_WITH_FIXES**
 ```
-
 
 ## Example
 

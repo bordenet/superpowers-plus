@@ -6,6 +6,7 @@
 ## Input
 
 You receive N lens outputs (JSON objects), each containing:
+
 - `ideas[]` — 3–5 ideas with summary, rationale, feasibility, impact
 - `risks[]` — 1+ risks from that lens perspective
 - `rejections[]` — 1+ rejected ideas with reasons
@@ -17,12 +18,14 @@ You receive N lens outputs (JSON objects), each containing:
 ### 1. Filter Low-Confidence Lenses
 
 If any lens has confidence < 0.3:
+
 - Note it was irrelevant to this task
 - Exclude its ideas from ranking (but keep its risks — even irrelevant lenses catch risks)
 
 ### 2. Cluster Ideas by Theme
 
 Group all ideas across lenses by similarity:
+
 - Ideas proposing the same approach from different angles → one cluster
 - Use summary text comparison: if two ideas could be merged into one sentence, they're the same cluster
 - Label each cluster with a short theme name
@@ -30,6 +33,7 @@ Group all ideas across lenses by similarity:
 ### 3. Deduplicate Within Clusters
 
 Within each cluster:
+
 - Keep the version with the strongest rationale
 - Merge unique feasibility/impact data from other versions
 - Record which lenses contributed (source diversity = higher confidence)
@@ -39,6 +43,7 @@ Within each cluster:
 Score each cluster: `rank = feasibility × impact × source_count`
 
 Where:
+
 - feasibility: H=3, M=2, L=1
 - impact: H=3, M=2, L=1
 - source_count: number of lenses that independently proposed this idea
@@ -48,6 +53,7 @@ Sort descending. Top 5–8 ideas make the final list.
 ### 5. Handle Contrarian Ideas
 
 Contrarian/Skeptic lens ideas get special treatment:
+
 - Do NOT merge them into clusters (they're intentionally different)
 - Present them in a separate "High-Upside / High-Risk" section
 - If the contrarian rejected the #1 ranked idea, include that rejection prominently

@@ -19,7 +19,7 @@ coordination:
 > **Purpose:** Guide a structured domain design process for a new superpowers skill family.
 > **Origin:** Codified from the Call Review Domain design (21-step, 10-phase methodology, March 2026).
 > **Output:** Prioritized skill roster, architecture decision, infrastructure map, wiki design doc + tracking page.
-
+>
 > **Wrong skill?** Writing individual skills → `skill-authoring`. Feature design → `design-triad`. Brainstorming ideas → `brainstorming`.
 
 ## Companion Skills
