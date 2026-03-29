@@ -55,4 +55,4 @@
 
 ## Task 9: Test, commit, PR, merge, sync
 
-- [ ] Run all tests, doctor checks, commit, PR, merge, sync GitLab.
+- [ ] Run all tests, doctor checks, commit, PR, merge.
