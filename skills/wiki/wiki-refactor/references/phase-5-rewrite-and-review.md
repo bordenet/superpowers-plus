@@ -74,7 +74,7 @@ Each page is reviewed by 5 wiki-specific reviewers. All reviewers have **full ac
 
 ### Review Scoring
 
-Each reviewer scores 1-10 on:
+Each reviewer scores 1-10 on wiki-specific dimensions (not the code-review dimensions from progressive-harsh-review — wiki content needs different quality lenses):
 - **Accuracy** (30%) — factual correctness
 - **Structure** (20%) — page organization and hierarchy
 - **Completeness** (25%) — no gaps or missing context
