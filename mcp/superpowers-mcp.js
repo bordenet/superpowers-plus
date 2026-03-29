@@ -100,7 +100,7 @@ function parseYamlList(lines, startIndex) {
 function extractFrontmatter(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let name = '';
     let description = '';
@@ -193,7 +193,7 @@ function compressSkillContent(text) {
  * Strip YAML frontmatter from content.
  */
 function stripFrontmatter(content) {
-  const lines = content.split('\n');
+  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   let inFrontmatter = false;
   let frontmatterEnded = false;
   const result = [];

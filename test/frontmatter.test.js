@@ -103,6 +103,14 @@ const nocomp = parseFrontmatter(noCompressSkill);
 assert(nocomp.compress === false, 'compress: false parsed');
 assert(parseFrontmatter('---\nname: x\n---\n').compress === true, 'compress defaults true');
 
+// --- parseFrontmatter: CRLF line endings ---
+console.log('\n--- parseFrontmatter: CRLF ---');
+const crlfSkill = "---\r\nname: crlf-skill\r\ndescription: \"CRLF test\"\r\ntriggers: [\"a\", \"b\"]\r\n---\r\n# Body\r\n";
+const crlf = parseFrontmatter(crlfSkill);
+eq(crlf.name, 'crlf-skill', 'CRLF: name parsed');
+eq(crlf.description, 'CRLF test', 'CRLF: description parsed');
+arrEq(crlf.triggers, ['a', 'b'], 'CRLF: triggers parsed');
+
 // --- parseFrontmatter: no frontmatter ---
 console.log('\n--- parseFrontmatter: no frontmatter ---');
 const noFM = parseFrontmatter('# Just a heading\nNo frontmatter here.');
