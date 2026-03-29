@@ -81,7 +81,7 @@ skills/{domain}/{skill-name}/
 |--------|---------|-------------------|-------------|
 | `dev` | Active development | Feature/fix branches | `staging` |
 | `staging` | Final testing & validation | `dev` only | `main` |
-| `main` | Production releases | `staging` only | — (GitLab sync target) |
+| `main` | Production releases | `staging` only | — |
 
 ### Feature Initiation
 
@@ -98,38 +98,22 @@ git push origin feat/my-feature
 ### Promotion Path
 
 ```
-feature-branch → PR → dev → PR → staging → PR → main → GitLab sync
+feature-branch → PR → dev → PR → staging → PR → main
 ```
 
 1. **Dev:** Feature branches merge into `dev` via PR. CI must pass.
 2. **Staging:** `dev` merges into `staging` for final validation. No new features — only stabilization fixes branched from `staging`.
-3. **Production:** `staging` merges into `main` for release. Triggers GitLab sync.
-
-### GitLab Synchronization
-
-After every merge to `main`, sync the private fork:
-
-```bash
-git checkout main
-git pull origin main
-git push gitlab main
-```
-
-GitLab is synced from `main` only. Never push `dev` or `staging` to GitLab.
+3. **Production:** `staging` merges into `main` for release.
 
 ### Prohibitions
 
 - ❌ **NEVER** commit directly to `dev`, `staging`, or `main` — always use a branch + PR
 - ❌ **NEVER** branch features from `main` or `staging` (branch from `dev`)
-- ❌ **NEVER** push `dev` or `staging` to GitLab — only `main` is synced
-- ❌ **NEVER** skip the GitLab sync after a production merge
 - ✅ **Exception:** Emergency hotfixes may branch from `main`, PR into `main`, then cherry-pick back to `dev`
 
 ### Incident Log
 
 | Date | Incident |
 |------|----------|
-| 2026-03-24 | Agent edited `doctor-checks.sh` on GitLab directly instead of GitHub PR. |
-| 2026-03-25 | Agent pushed to GitLab first, then tried GitHub after. Violated GitHub-first policy. |
 | 2026-03-25 | Bulk wiki update destroyed 5 pages. New invariant: verify every write. |
-| 2026-03-28 | Migrated from two-tier (main + GitLab sync) to three-tier (dev → staging → main). |
+| 2026-03-28 | Migrated from two-tier (main) to three-tier (dev → staging → main). |

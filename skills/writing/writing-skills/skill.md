@@ -91,7 +91,7 @@ Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki
 | Repo | Content | Access |
 |------|---------|--------|
 | `superpowers` (obra) | Upstream skills | Read-only |
-| `superpowers-plus` | Open-source enhancements | Public GitLab + GitHub |
+| `superpowers-plus` | Open-source enhancements | Public GitHub |
 | private overlay | Internal/proprietary | Private repo |
 
 Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spc with same `name`.
