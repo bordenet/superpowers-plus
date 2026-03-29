@@ -292,6 +292,10 @@ printf '%b\n' "${BOLD}=== Summary ===${NC}"
 echo ""
 
 if [[ $consecutive_clean -ge $CONSECUTIVE_CLEAN_REQUIRED ]] && [[ $final_errors -eq 0 ]]; then
+    if [[ "$tree_status" != "clean" ]]; then
+        printf '%b\n' "${YELLOW}⚠️  Review passed but working tree is dirty — stage or stash changes before pushing${NC}"
+        exit 1
+    fi
     printf '%b\n' "${GREEN}✅ Repository is clean after $iteration iteration(s)${NC}"
     printf '%b\n' "   ($consecutive_clean consecutive clean passes, $total_fixes fix round(s))"
     echo ""
