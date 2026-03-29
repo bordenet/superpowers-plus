@@ -20,27 +20,44 @@ function parseFrontmatter(content) {
     let currentKey = null;
     let inCoordination = false;
     let coordObj = {};
+    let coordCurrentKey = null;
 
     for (const line of lines) {
       if (line.startsWith('coordination:')) {
         inCoordination = true;
         coordObj = {};
+        coordCurrentKey = null;
         continue;
       }
       if (inCoordination) {
         if (line.match(/^[a-z]/)) {
           inCoordination = false;
+          coordCurrentKey = null;
           result.coordination = coordObj;
         } else {
+          // Multiline list item: "    - value"
+          const listItemMatch = line.match(/^\s+-\s+(.+)$/);
+          if (listItemMatch && coordCurrentKey) {
+            const item = listItemMatch[1].replace(/["']/g, '').trim();
+            if (!Array.isArray(coordObj[coordCurrentKey])) {
+              coordObj[coordCurrentKey] = [];
+            }
+            if (item) coordObj[coordCurrentKey].push(item);
+            continue;
+          }
           const coordMatch = line.match(/^\s+(\w+):\s*(.*)$/);
           if (coordMatch) {
+            coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
               val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim()).filter(Boolean);
+            } else if (val === '' || val === undefined) {
+              // Empty value — may be followed by multiline list items
+              val = [];
             } else if (val === 'true') val = true;
             else if (val === 'false') val = false;
             else if (/^\d+$/.test(val)) val = parseInt(val);
-            coordObj[coordMatch[1]] = val;
+            coordObj[coordCurrentKey] = val;
           }
         }
       }

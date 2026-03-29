@@ -99,7 +99,7 @@ if [[ "$OUTPUT_FORMAT" == "--json" ]]; then
 
     jq -n \
         --arg generated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg period "last_7_days" \
+        --arg period "all_time" \
         --argjson totalFired "$TOTAL_FIRED" \
         --argjson totalMissed "$TOTAL_MISSED" \
         --arg missRate "$MISS_RATE" \
@@ -128,7 +128,7 @@ cat << EOF
 # Skill Firing Observability Report
 
 **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
-**Period:** Last 7 days
+**Period:** All time
 
 ## Summary
 

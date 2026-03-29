@@ -1,6 +1,6 @@
 {
   "id": "WP-1",
-  "skill": "writing-plans",
+  "skill": "plan-and-execute",
   "name": "Simple Utility Function — String Sanitizer",
   "difficulty": "low",
   "expected_winner": "A (single-agent)",

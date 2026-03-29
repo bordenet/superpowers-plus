@@ -119,7 +119,15 @@ skills/{domain}/{skill-name}/
 name: skill-name
 source: superpowers-plus
 triggers: ["trigger phrase 1", "trigger phrase 2", "trigger phrase 3"]
+anti_triggers: ["phrase that should NOT trigger this skill"]
 description: One-line description of what the skill does.
+coordination:
+  group: domain-name
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Skill Name
@@ -132,6 +140,9 @@ description: One-line description of what the skill does.
 
 ## Output Format
 [Expected outputs]
+
+## Failure Modes
+[Known failure modes and remediation]
 ```
 
 ### Frontmatter Fields
@@ -141,7 +152,9 @@ description: One-line description of what the skill does.
 | `name` | Yes | Skill identifier (must match directory name) |
 | `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
 | `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
+| `anti_triggers` | No | Array of phrases that should NOT trigger this skill (WARN if missing) |
 | `description` | Yes | One-line description for skill discovery |
+| `coordination` | Yes | DAG metadata: `group`, `order`, `internal` (required), plus `requires`, `enables`, `escalates_to` |
 | `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
 
 ### Superpower vs Explicit Skill Examples

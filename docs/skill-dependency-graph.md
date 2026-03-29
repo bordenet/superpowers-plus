@@ -164,6 +164,7 @@ graph TD
   brainstorming -->|enables| design_triad
   brainstorming -->|enables| plan_and_execute
   brainstorming ==>|escalates to| thinking_orchestrator
+  code_review_battery -->|enables| progressive_code_review_gate
   systematic_debugging -->|then| debug_conductor
   debug_conductor -->|enables| investigation_state
   debug_conductor -->|enables| failure_autopsy
