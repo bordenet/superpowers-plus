@@ -86,7 +86,7 @@ coordination:
 | Failure | Fix |
 |---------|-----|
 | No authoritative source found for a claim | Mark as UNVERIFIED with citation-needed tag — don't guess |
-| Git history doesn't go back far enough | Check meeting transcripts (Fathom), ticket history, PR comments |
+| Git history doesn't go back far enough | Check meeting transcripts, ticket history, PR comments |
 | Agent fabricates a plausible-sounding citation | Every citation must include a verifiable URL or commit SHA |
 
 ```bash
