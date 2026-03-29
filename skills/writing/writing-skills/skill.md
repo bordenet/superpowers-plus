@@ -96,7 +96,7 @@ Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki
 | `superpowers-plus` | Open-source enhancements | Public GitHub |
 | private overlay | Internal/proprietary | Private repo |
 
-Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spc with same `name`.
+Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spo with same `name`.
 
 ## After Creation
 
