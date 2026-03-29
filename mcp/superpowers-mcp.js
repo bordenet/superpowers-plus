@@ -36,8 +36,8 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
-const PERSONAL_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
