@@ -3,6 +3,13 @@ name: loop-synthesis
 source: superpowers-recruiting
 description: "Phase 5: Synthesize loop interview into BLUF debrief format. Use when user says 'synthesize loop interview', 'debrief from system design', 'just finished implementation interview', 'process loop transcript'."
 triggers: ["synthesize loop interview", "debrief from system design", "just finished implementation interview", "process loop transcript"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Loop Synthesis

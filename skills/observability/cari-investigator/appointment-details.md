@@ -128,4 +128,3 @@ aws logs start-query \
 - Schema details: `references/mssql-schema-map.md`
 - CloudWatch log groups: `references/cloudwatch-map.md`
 - AWS credentials: `references/aws-credentials.md`
-

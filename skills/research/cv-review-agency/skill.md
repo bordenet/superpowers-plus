@@ -3,6 +3,13 @@ name: cv-review-agency
 source: superpowers-recruiting
 description: "Phase 1b: Trusting CV review for agency/recruiter-sourced candidates. Skip fraud detection, focus on stack fit and leveling. Use when user says 'from recruiter', 'agency candidate', 'from [agency name]'. NOT for direct-apply."
 triggers: ["from recruiter", "agency candidate", "from agency", "recruiter-sourced", "trusting review"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

@@ -3,6 +3,13 @@ name: loop-prep
 source: superpowers-recruiting
 description: "Phase 4: Prepare for 1-hour interview loop session. Use when user says 'prep loop interview', 'system design prep for', 'implementation interview prep', 'behavioral prep for'. Generates session-specific question bank, rubric, and probing areas from phone screen."
 triggers: ["prep loop interview", "system design prep for", "implementation interview prep", "behavioral prep for"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Loop Prep

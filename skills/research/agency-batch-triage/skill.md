@@ -3,6 +3,13 @@ name: agency-batch-triage
 source: superpowers-recruiting
 description: Use when processing multiple candidates from a recruiting agency in a single session. Triggers on "agency sent candidates", "triage these agency resumes", "batch screen from [agency]", "process recruiter batch", "agency candidates to review". Uses standard screening (not paranoid), logs to CSV, creates phone screen sheets for HIRE decisions.
 triggers: ["agency sent candidates", "triage these agency resumes", "batch screen from", "process recruiter batch", "agency candidates to review"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Agency Batch Triage

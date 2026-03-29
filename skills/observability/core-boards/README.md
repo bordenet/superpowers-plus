@@ -57,4 +57,3 @@ Run from `superpowers-callbox/`:
 ```bash
 ./install.sh
 ```
-

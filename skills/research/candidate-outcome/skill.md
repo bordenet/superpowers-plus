@@ -3,6 +3,13 @@ name: candidate-outcome
 source: superpowers-recruiting
 description: Use when recording candidate outcomes — fraud, no-show, rejection, or hire decision. Triggers on "[name] was a fraud", "[name] no-showed", "reject [name]", "we're hiring [name]", "candidate ghosted", "mark as fraudster", "record outcome for [name]". Updates candidate's historic record with standardized outcome section.
 triggers: ["was a fraud", "no-showed", "reject candidate", "we are hiring", "candidate ghosted", "mark as fraudster", "record outcome for"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

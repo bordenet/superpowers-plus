@@ -3,6 +3,13 @@ name: resume-screening
 source: superpowers-recruiting
 description: Use when reviewing resumes, screening candidates, evaluating CVs, or when user shares resume text/screenshot. Triggers on "review this resume", "screen this candidate", "evaluate this CV", "is this person qualified", "should we phone screen", "worth interviewing?". For Senior SDE role against CallBox hiring criteria.
 triggers: ["review this resume", "screen this candidate", "evaluate this CV", "is this person qualified", "should we phone screen", "worth interviewing"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

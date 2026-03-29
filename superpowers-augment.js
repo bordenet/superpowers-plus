@@ -246,7 +246,6 @@ function extractFrontmatter(filePath) {
         let requires_mcp = [];
         let mcp_install_hint = '';
         let composition = null;
-        let compositionLines = [];
         let compress = true;
 
         for (let i = 0; i < lines.length; i++) {

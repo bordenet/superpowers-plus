@@ -109,4 +109,3 @@ cd /path/to/superpowers-callbox && ./install.sh
 
 - **Repo:** [GitLab/superpowers-callbox](https://gitlab.int.callbox.net/mbordenet/superpowers-callbox)
 - **Skill file:** `linear/linear-comment-debunker/skill.md`
-

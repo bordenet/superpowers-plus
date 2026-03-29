@@ -92,4 +92,3 @@ Update phase on each transition. Mark `[x]` when publish completes.
 4. Ask: "Resume from Phase <N>, or abandon?"
 5. On resume: read state, continue from current phase
 6. On abandon: archive state file (move to `~/.codex/knowledge-capture/archive/`)
-

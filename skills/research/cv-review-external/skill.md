@@ -3,6 +3,13 @@ name: cv-review-external
 source: superpowers-recruiting
 description: "Phase 1a: PARANOID CV review for direct-apply (Paylocity) candidates. Full fraud detection, employer verification, timeline validation. Use when user says 'review this resume', 'screen this candidate', 'direct apply', 'from Paylocity'. NOT for agency candidates."
 triggers: ["direct apply", "from Paylocity", "paranoid review", "external candidate review", "Paylocity candidate"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

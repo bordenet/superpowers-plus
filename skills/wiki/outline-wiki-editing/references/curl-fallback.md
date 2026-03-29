@@ -85,4 +85,3 @@ Always clean up temp files after pushing.
 ## ❌ NEVER Use Heredocs
 
 Heredocs (`<< EOF ... EOF`) fail silently. Use `save-file` tool instead.
-

@@ -77,4 +77,3 @@ If you realize you've violated a guardrail mid-investigation:
 4. **Fix** — narrow the query, add filters, switch to dev/staging
 5. **Resume** only after the fix is confirmed
 </EXTREMELY_IMPORTANT>
-

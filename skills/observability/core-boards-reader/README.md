@@ -28,4 +28,3 @@ Both stored in `~/.codex/.env`. Session cookies expire after ~30 min idle.
 |-------|---------|
 | `core-boards` | **Authoring** — generate HTML for posting to Core Boards |
 | `core-boards-reader` | **Reading** — review, summarize, search (this skill) |
-

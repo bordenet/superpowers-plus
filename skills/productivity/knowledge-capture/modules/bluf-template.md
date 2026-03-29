@@ -81,4 +81,3 @@ Sections are derived from the coverage matrix, not from a static list:
 - Title for findability: "[System/Process Name] — [Article Type]"
 - Examples: "Telephony Failover — Architecture Reference", "LLM Provider Routing — Runbook"
 - Avoid generic titles like "Notes on X" or "About Y"
-

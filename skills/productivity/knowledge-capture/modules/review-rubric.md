@@ -64,4 +64,3 @@ You are reviewing a BLUF-style wiki article produced from an SME interview. Your
 - Does NOT override SME on intent, history, or trade-off rationale
 - Does NOT add content — flags gaps for the agent to fill with interviewee
 - Does NOT assess the skill's process — only the output artifact
-

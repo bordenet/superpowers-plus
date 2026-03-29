@@ -128,7 +128,7 @@ This checks prefix, lowercase, hyphens-only, and non-empty description. A branch
 ## Integration
 
 **Pairs with:**
-- **using-git-worktrees** — Apply these prefixes when creating worktree branches
+- The upstream `using-git-worktrees` skill (obra/superpowers) — Apply these prefixes when creating worktree branches
 
 **Known upstream inconsistency:** The obra/superpowers `using-git-worktrees` skill shows `feature/auth` in its example. That prefix is non-canonical per this convention — use `feat/auth` instead. This skill takes precedence for branch naming.
 

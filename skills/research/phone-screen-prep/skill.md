@@ -14,6 +14,13 @@ anti_triggers:
   - "just finished"
   - "synthesize"
   - "__SYNTHESIS"
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.
@@ -229,11 +236,7 @@ The synthesis workflow produces:
 | Resume Screening | `skills/recruiting/resume-screening/` |
 | Wiki LLM Prompt | [wiki.int.callbox.net](https://wiki.int.callbox.net/doc/llm-prompt-LfFH19Gj0y) |
 
----
-
 ## Failure Modes & Recovery
-
-If modules fail to load, follow these minimum recovery rules:
 
 1. **Template is MANDATORY** — `view templates/phone-screen.md` and copy wholesale
 2. **Integrity Policy is MANDATORY** — Read at start of every call
@@ -244,5 +247,4 @@ If modules fail to load, follow these minimum recovery rules:
 7. **Direct-apply** — Verify every employer before generating questions
 8. **File naming** — `FirstName_LastName__SrSDE__YYYY-MM-DD.md`
 9. **Never commit PII** — Phone screen files are OneDrive only
-
-🔴 **Evidence Tracking:** Load `modules/evidence-tracking.md` — Tag notes with `[transcript]`, `[observation]`, `[resume-verify]`, `[resume-unverified]`, or `[question]`.
+10. **Evidence Tracking** — Load `modules/evidence-tracking.md`; tag with `[transcript]`, `[observation]`, `[resume-verify]`, `[resume-unverified]`, or `[question]`

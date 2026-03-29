@@ -12,6 +12,13 @@ triggers:
   - "process transcript"
   - "just finished phone screen"
   - "__SYNTHESIS.md"
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Phone Screen Synthesis

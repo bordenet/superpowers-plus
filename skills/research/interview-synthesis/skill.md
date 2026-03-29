@@ -3,6 +3,13 @@ name: interview-synthesis
 source: superpowers-recruiting
 description: Use when an interview is complete and you need to create a debrief, summarize interview notes, or prepare for debrief meeting. Triggers on "create debrief for", "synthesize interview notes", "finalize interview record", "prep my debrief", "what's my recommendation for [candidate]", "just finished interviewing". Produces clean BLUF debrief record from raw notes/transcript.
 triggers: ["create debrief for", "synthesize interview notes", "finalize interview record", "prep my debrief", "just finished interviewing"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Interview Synthesis

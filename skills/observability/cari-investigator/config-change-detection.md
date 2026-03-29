@@ -118,4 +118,3 @@ Config Change Timeline for lskinid {id}
 
 - Log group details: `references/cloudwatch-map.md`
 - AWS credentials: `references/aws-credentials.md`
-
