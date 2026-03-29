@@ -343,6 +343,19 @@ while IFS= read -r skill_file; do
     if ! echo "$frontmatter" | grep -q "^anti_triggers:"; then
         log_warn "$skill_name: missing 'anti_triggers:' in frontmatter"
     fi
+    # Validate coordination metadata (required for DAG generation)
+    if echo "$frontmatter" | grep -q "^coordination:"; then
+        coord_block=$(sed -n '/^coordination:/,/^[a-z]/p' "$skill_file" | sed '$d')
+        if ! echo "$coord_block" | grep -q "group:"; then
+            log_fail "$skill_name: coordination block missing 'group:' (required for DAG generation)"
+        fi
+        if ! echo "$coord_block" | grep -q "order:"; then
+            log_fail "$skill_name: coordination block missing 'order:'"
+        fi
+        if ! echo "$coord_block" | grep -q "internal:"; then
+            log_fail "$skill_name: coordination block missing 'internal:'"
+        fi
+    fi
 done < <(find skills -name "skill.md" 2>/dev/null)
 
 # =============================================================================

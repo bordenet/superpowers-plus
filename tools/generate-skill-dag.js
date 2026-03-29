@@ -83,6 +83,10 @@ function extractSkillData() {
     const content = fs.readFileSync(file, 'utf8');
     const fm = parseFrontmatter(content);
     if (fm && fm.name) {
+      // Warn about malformed coordination metadata
+      if (fm.coordination && !fm.coordination.group) {
+        console.error('WARNING: ' + fm.name + ' has coordination block but missing group — skipped from DAG');
+      }
       skills.push({
         name: fm.name,
         path: path.relative(SKILLS_DIR, file),
@@ -175,10 +179,10 @@ function getGroupPurpose(group) {
 }
 
 function generateMarkdown(skills, mermaid) {
-  var coordinated = skills.filter(function(s) { return s.coordination; });
+  var coordinated = skills.filter(function(s) { return s.coordination && s.coordination.group; });
   var groupSet = {};
   coordinated.forEach(function(s) { groupSet[s.coordination.group] = true; });
-  var groups = Object.keys(groupSet);
+  var groups = Object.keys(groupSet).filter(function(g) { return g && g !== 'undefined'; });
   var today = new Date().toISOString().split('T')[0];
 
   var groupTable = groups.map(function(g) {
