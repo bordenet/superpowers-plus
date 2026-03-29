@@ -77,8 +77,8 @@ run_test_output "bad UUID message" "HTTP 4" bash "$TOOL" "nonexistent-doc-12345"
 # --- Live snapshot (requires API access) ---
 echo ""
 echo "--- Live snapshot ---"
-# Use a known document: Repo: [telephony-service]
-TEST_DOC="54a6a911-91f9-4ef6-955d-9b547976536d"
+# Use a known wiki document ID for live testing (set WIKI_TEST_DOC_ID env var)
+TEST_DOC="${WIKI_TEST_DOC_ID:-54a6a911-91f9-4ef6-955d-9b547976536d}"
 run_test "valid doc → exit 0" 0 bash "$TOOL" "$TEST_DOC"
 run_test_output "success message" "Snapshot created and verified" bash "$TOOL" "$TEST_DOC"
 run_test_output "shows document title" "Document:" bash "$TOOL" "$TEST_DOC"
