@@ -98,41 +98,10 @@ run_rm() {
     fi
 }
 
-# --- Remove a line from .env ---
-remove_env_var() {
-    local var_name="$1"
-    [[ -f "$ENV_FILE" ]] || return 0
-    [[ -r "$ENV_FILE" ]] || { log_warn "Cannot read $ENV_FILE — skipping $var_name removal"; return 1; }
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would remove $var_name from $ENV_FILE"
-        return 0
-    fi
-    local tmp_file="${ENV_FILE}.tmp.$$"
-    if ! : > "$tmp_file" 2>/dev/null; then
-        log_warn "Failed to create temp file for $ENV_FILE rewrite"
-        rm -f -- "$tmp_file" 2>/dev/null
-        return 1
-    fi
-
-    # grep exits 1 when every line is filtered out; that still produces a valid empty file.
-    local grep_status=0
-    grep -v "^${var_name}=" "$ENV_FILE" > "$tmp_file" 2>/dev/null || grep_status=$?
-    case "$grep_status" in
-        0|1)
-            if ! mv -- "$tmp_file" "$ENV_FILE"; then
-                rm -f -- "$tmp_file" 2>/dev/null
-                log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
-                return 1
-            fi
-            ;;
-        *)
-            rm -f -- "$tmp_file" 2>/dev/null
-            log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
-            return 1
-            ;;
-    esac
-    log_verbose "Removed $var_name from $ENV_FILE"
-}
+# NOTE: We intentionally do NOT modify ~/.codex/.env during uninstall.
+# That file contains MCP server credentials, API keys, and secrets that
+# must never be rewritten by an uninstaller. Stale *_SOURCE_DIR entries
+# are harmless and will be overwritten on next install.
 
 # --- Check if another overlay provides a shared artifact ---
 other_repo_provides() {
