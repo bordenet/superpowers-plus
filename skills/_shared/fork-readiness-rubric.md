@@ -39,7 +39,7 @@
 
 ## Decision Flow
 
-```
+```text
 Incident arrives
   │
   ├─ Single service + clear error? → SERIAL (systematic-debugging)
@@ -59,6 +59,7 @@ Incident arrives
 ## Examples
 
 ### Fork: Cross-service telephony + LLM failure
+
 - Multiple domains: 2 (telephony signaling + LLM tool selection)
 - Stalled: 1 (initial triage inconclusive)
 - Cross-service: 2 (telephony gateway + LLM orchestrator + call router)
@@ -67,6 +68,7 @@ Incident arrives
 - **Total: 8 → FORK**
 
 ### Stay serial: Single service config error
+
 - Multiple domains: 0 (just config)
 - Stalled: 0 (not started yet)
 - Cross-service: 0 (single service)

@@ -8,6 +8,7 @@ overrides: superpowers/brainstorming
 triggers: ["brainstorm", "design a feature", "build a new", "create a new", "add functionality", "plan a feature", "explore approaches", "design this"]
 anti_triggers: ["radical improvement", "10x improvement", "paradigm shift", "moonshot", "step-change"]
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+summary: "Use when: starting creative work. Explores intent and design before implementation."
 coordination:
   group: thinking
   order: 1
@@ -44,6 +45,7 @@ composition:
 - **experimental-self-prompting**: Self-prompting analysis
 - **quantitative-decision-gate**: Quantitative option evaluation
 - **autonomous-chain-controller**: Full workflow automation
+
 ## When to Use
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior
@@ -129,7 +131,6 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Components: RetryPolicy class wrapping HttpClient, configurable max retries
 ## Testing: Unit tests for retry count, backoff timing, jitter range
 ```
-
 
 ## Example
 

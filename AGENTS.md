@@ -62,7 +62,7 @@ See [UPGRADING.md](./UPGRADING.md). Quick: `./install.sh --upgrade --verbose`
 
 ## Skill File Structure
 
-```
+```markdown
 skills/{domain}/{skill-name}/
 ├── skill.md        # REQUIRED: Core skill with YAML frontmatter and triggers
 ├── examples.md     # OPTIONAL: Extended examples (loaded on demand)
@@ -97,7 +97,7 @@ git push origin feat/my-feature
 
 ### Promotion Path
 
-```
+```text
 feature-branch → PR → dev → PR → staging → PR → main
 ```
 

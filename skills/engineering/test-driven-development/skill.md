@@ -29,7 +29,7 @@ coordination:
 
 > **Wrong skill?** Debugging existing failures → `systematic-debugging`. Reviewing others' code → `providing-code-review`.
 
-```
+```text
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
@@ -78,6 +78,7 @@ Next failing test for next feature.
 ## Verification Checklist
 
 Before marking work complete:
+
 - [ ] Every new function/method has a test
 - [ ] Watched each test fail before implementing
 - [ ] Each test failed for expected reason

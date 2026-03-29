@@ -36,7 +36,6 @@ coordination:
 - Before comparing metrics across time
 - Before declaring a ceiling based on measurement
 
-
 ### Example
 
 ```bash

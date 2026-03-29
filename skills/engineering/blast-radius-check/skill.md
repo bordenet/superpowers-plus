@@ -17,7 +17,7 @@ coordination:
 # Blast Radius Check
 
 > **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Field renames → `field-rename-verification`. Output inspection → `output-verification`.
-
+>
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
@@ -91,7 +91,7 @@ grep -rn "implements InterfaceName\|extends BaseClass" --include="*.ts" .
 
 For multi-component changes, trace the full data flow BEFORE implementing:
 
-```
+```bash
 Data/Control Flow Diagram:
 SOURCE → STORAGE → ROUTER → CONSUMER → EXTERNAL
 ```
@@ -111,6 +111,7 @@ SOURCE → STORAGE → ROUTER → CONSUMER → EXTERNAL
 ### Identify "Silent" Pass-Through Points
 
 These are files that receive data and pass it along WITHOUT using it locally. They're easy to miss because:
+
 - No TypeScript errors (field is optional or `any`)
 - No test failures (tests mock inputs)
 - No lint errors (code is valid)
@@ -137,6 +138,7 @@ grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 - `providing-code-review` — When reviewing others' PRs
 - `engineering-rigor` — Philosophy and overview
 - **autonomous-chain-controller**: Chain-aware refactoring
+
 ## Failure Modes
 
 | Failure | Fix |

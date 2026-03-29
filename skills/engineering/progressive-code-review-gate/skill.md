@@ -47,6 +47,7 @@ If no diff exists in any of these, skip this gate.
 ### Step 2: Dispatch the review battery
 
 Follow the `code-review-battery` skill procedure (Phase 1–5):
+
 1. **Phase 1 — Triage** the diff → select relevant specialists (monolith only via `--all` or manual request)
 2. **Phase 2 — Diff + Source Context + Dispatch** activated reviewers in parallel with diff + source context inline
 3. **Phase 3 — Aggregate** findings, triple-filter, classify Implement/Defer/Reject
@@ -73,12 +74,13 @@ sub-agent mechanism is available (e.g., `sub-agent-code-reviewer` on Augment,
 `Task()` on Claude Code). Give it a unique name per round (e.g., `review-round-1`).
 
 The monolithic reviewer MUST receive:
+
 1. Repo path
 2. Exact diff command matching the review scope
 3. Instruction to read full source files
 4. The monolithic checklist covering all review dimensions:
 
-```
+```bash
 Review the code changes in {repo_path}.
 Run `cd {repo_path} && {exact_diff_command}` to see the diff.
 Read the full source files for all changed code.
@@ -157,7 +159,7 @@ After fixing nits, run a **targeted** battery round:
 
 ## Commit Gate Chain
 
-```
+```text
 pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5)
 ```
 

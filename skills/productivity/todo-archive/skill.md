@@ -19,9 +19,8 @@ coordination:
 > **Companion to:** `todo-management` (from superpowers-plus)
 > **Archive location:** `$(dirname $TODO_FILE_PATH)/todo-archives/`
 > **Index:** `todo-archives/INDEX.md`
-
+>
 > **Wrong skill?** Managing active tasks → `todo-management`. Task CRUD operations → use `todo-crud.sh` directly.
-
 
 ## Companion Skills
 
@@ -37,7 +36,6 @@ coordination:
 | HISTORY has entries >30 days old | Archive regardless of line count (staleness rule) |
 | User says "search archived todos for X" | Search across archive files |
 | User says "show archived todos from Month Year" | Display specific monthly archive |
-
 
 ## Archive Workflow
 
@@ -56,6 +54,7 @@ ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
 Parse the `# HISTORY` section of TODO.md. Identify completed (`[x]`) and cancelled (`[-]`) tasks.
 
 **Archival criteria (any match triggers archival):**
+
 - Manual trigger (`archive todos`) → archive ALL HISTORY entries
 - TODO.md > 400 lines AND entry is ≥7 days old → archive
 - Entry is >30 days old → archive (staleness rule)
@@ -69,6 +68,7 @@ For each task, extract the `Done:` or `Cancelled:` date. Compute target file: `Y
 For each target month file:
 
 1. If file doesn't exist → create with header:
+
    ```markdown
    # TODO Archive — {Month Name} {Year}
 
@@ -101,14 +101,13 @@ Remove only the archived entries from the HISTORY section. Keep any entries that
 
 ### Step 7: Integrity verification
 
-```
+```text
 pre_history_count = {N}
 removed_from_history = {M}
 post_history_count = {N - M}
 ```
 
 If mismatch → ABORT, restore from backup, report error.
-
 
 ## Archive File Format
 
@@ -134,33 +133,35 @@ If mismatch → ABORT, restore from backup, report error.
   - Progress: Approved with minor suggestions
 ```
 
-
 ## Search Interface
 
 ### By keyword
-```
+
+```bash
 search archived todos for "alarm tuning"
 → grep -rn "alarm tuning" "$ARCHIVE_DIR"/*.md
 ```
 
 ### By issue ID
-```
+
+```bash
 search archived todos for PROJ-$1
 → grep -rn "PROJ-$1" "$ARCHIVE_DIR"/*.md
 ```
 
 ### By month
-```
+
+```bash
 show archived todos from March 2026
 → cat "$ARCHIVE_DIR/2026-03.md"
 ```
 
 ### By date range
-```
+
+```bash
 show archived todos from 2026-02-01 to 2026-03-15
 → cat 2026-02.md 2026-03.md (then filter by date headers)
 ```
-
 
 ## Integrity & Safety
 
@@ -169,7 +170,6 @@ show archived todos from 2026-02-01 to 2026-03-15
 - **Idempotency:** Task IDs checked before appending — duplicates skipped
 - **Dry-run:** Report what would be archived without modifying files
 - **Recovery:** If counts mismatch post-archive → restore from backup
-
 
 ## Edge Cases
 

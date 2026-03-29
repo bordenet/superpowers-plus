@@ -4,6 +4,7 @@ source: superpowers-plus
 triggers: ["help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "domain interview"]
 anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code", "job interview prep", "user research interview", "mock interview"]
 description: "Use when extracting domain knowledge from a user through structured interviewing to produce a written artifact (wiki page, reference doc, problem space overview). NOT for feature design — use brainstorming for that."
+summary: "Use when: extracting domain knowledge through structured interviews."
 coordination:
   group: research
   order: 0
@@ -109,7 +110,7 @@ Stop interviewing when ALL of these are true:
 
 This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 
-```
+```bash
 1. [AGENT] Write tight first draft
    - Structure based on artifact frame (F3)
    - Every claim traceable to interview or research
@@ -137,7 +138,6 @@ This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 ## Phase 6: Publish
 
 Save to the location specified in F3. If wiki: create in specified collection/parent. If local: save to `docs/` with descriptive naming.
-
 
 ## Example
 

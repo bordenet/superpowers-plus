@@ -25,9 +25,8 @@ composition:
 > **Purpose:** Detect content duplication and structural defects in wiki pages.
 > **Gate:** ADVISORY (HIGH severity → user review before publish).
 > **Pipeline:** Stage 2.5 in wiki-orchestrator (between Content Generation and Link Verification).
-
+>
 > **Wrong skill?** Checking links → `link-verification`. Checking for secrets → `wiki-secret-audit`. Full wiki edit workflow → `wiki-orchestrator`.
-
 
 ## When to Use
 
@@ -47,6 +46,7 @@ composition:
 ### Step 2: Duplication Check (TF-IDF + Jaccard)
 
 For each section:
+
 1. Tokenize → remove stop words → filter tokens <4 chars → take top 8 by frequency
 2. Compare all section pairs using Jaccard similarity: `|A ∩ B| / |A ∪ B|`
 
@@ -69,7 +69,7 @@ For each section:
 
 Present findings in this format:
 
-```
+```markdown
 ## Coherence Report: [Page Title]
 
 | # | Section A | Section B | Jaccard | Severity |
@@ -88,11 +88,11 @@ Gate: ❌ BLOCKED (HIGH severity finding #1)
 ### Step 5: Remediation
 
 When duplicates are confirmed:
+
 1. Identify which section has richer content — keep it
 2. Merge unique details from the weaker section into the stronger one
 3. Delete the weaker section
 4. Re-check heading hierarchy after deletion
-
 
 ## Example
 
@@ -111,7 +111,6 @@ grep -rn "timeout.*=" wiki/ --include="*.md" | sort
 | False positive on intentional repetition | Whitelist known repeated-by-design sections (e.g., repeated warnings) |
 | Structural defects not caught by TF-IDF | Pair with manual review for layout/flow issues |
 | Page was assembled from multiple sources — all duplicates are "intentional" | Question intent: if two sections say the same thing, the reader is confused |
-
 
 ## Companion Skills
 

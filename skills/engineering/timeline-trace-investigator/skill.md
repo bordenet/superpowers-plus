@@ -2,6 +2,7 @@
 name: timeline-trace-investigator
 source: superpowers-plus
 description: "Specialized investigator for reconstructing incident timelines from distributed traces, logs, deployments, and metrics. Produces structured TimelineEvidence for the debug conductor. NOT a standalone skill â€” dispatched by debug-conductor as part of forked debugging."
+summary: "Use when: reconstructing incident timelines from distributed traces and logs."
 triggers: []
 anti_triggers: []
 coordination:
@@ -35,6 +36,7 @@ Dispatched by `debug-conductor` when the incident involves temporal causation â€
 ### Step 1: Scope the Timeline
 
 From the incident packet, extract:
+
 - **Time window:** When was the incident first detected? Add 30-minute buffer on each side.
 - **Affected services:** Which services are in the failure path?
 - **Trace/correlation IDs:** Any specific request IDs to follow?
@@ -75,6 +77,7 @@ Build a chronological event sequence:
 ### Step 5: Correlate Events
 
 Look for temporal correlations:
+
 - Deployment timestamp vs. error onset (< 5 min gap = strong correlation)
 - Config change vs. behavior change
 - Metric spike vs. error spike
@@ -97,6 +100,7 @@ Return `TimelineEvidence` to conductor:
 ```
 
 Plus standard evidence wrapper:
+
 - **Supporting evidence:** Events that point toward a hypothesis
 - **Disconfirming evidence:** Events that contradict or complicate the hypothesis
 - **Confidence:** Based on trace completeness (% of request path covered)
@@ -124,3 +128,11 @@ Plus standard evidence wrapper:
 | **Event ordering bug** | Events arrive out of sequence (checked via trace timestamps) |
 | **Silent service failure** | Service in path has zero events (gap in timeline) |
 | **Clock skew** | Event in Service B "before" the event in Service A that triggered it |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Clock skew | Events appear out of order | Normalize timestamps across services |
+| Missing spans | Gaps in trace data | Check sampling rate and instrumentation |
+| Correlation error | Linking unrelated events | Verify trace ID propagation |

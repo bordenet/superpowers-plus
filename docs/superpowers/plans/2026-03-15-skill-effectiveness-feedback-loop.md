@@ -1,8 +1,7 @@
 # Skill Effectiveness Feedback Loop — Implementation Plan
 
 > ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design plan, not documentation of existing functionality. No code has been written for this feature yet.
-
-
+>
 > **For agentic workers:** REQUIRED: Use superpowers:executing-plans to implement this plan.
 
 **Goal:** Add outcome tracking and learning to the superpowers skill system.
@@ -18,6 +17,7 @@
 ### Task 1.1: Create Learning State Manager
 
 **Files:**
+
 - Create: `lib/learning-state.js`
 
 - [ ] **Step 1: Create lib directory and learning-state.js with schema**
@@ -85,6 +85,7 @@ git commit -m "feat(learning): add learning state manager with read/write"
 ### Task 1.2: Add Outcome Recording
 
 **Files:**
+
 - Modify: `lib/learning-state.js` (add recordOutcome function)
 
 - [ ] **Step 1: Add recordOutcome function**
@@ -143,11 +144,13 @@ git commit -m "feat(learning): add outcome recording with metrics aggregation"
 ### Task 2.1: Add record-outcome command to superpowers-augment.js
 
 **Files:**
+
 - Modify: `superpowers-augment.js`
 
 - [ ] **Step 1: Import learning-state module at top**
 
 Add after line 8:
+
 ```javascript
 const { readState, writeState, recordOutcome } = require('./lib/learning-state');
 ```
@@ -155,6 +158,7 @@ const { readState, writeState, recordOutcome } = require('./lib/learning-state')
 - [ ] **Step 2: Add record-outcome command handler**
 
 Add to switch statement:
+
 ```javascript
 case 'record-outcome':
     const skill = args[0];
@@ -186,6 +190,7 @@ git commit -m "feat(cli): add record-outcome command"
 ### Task 2.2: Add analyze-triggers command
 
 **Files:**
+
 - Modify: `superpowers-augment.js`
 
 - [ ] **Step 1: Add analyzeTriggers function**
@@ -244,11 +249,13 @@ git commit -m "feat(cli): add analyze-triggers command"
 ### Task 3.1: Show learning insights on bootstrap
 
 **Files:**
+
 - Modify: `superpowers-augment.js` (bootstrap function)
 
 - [ ] **Step 1: Add learning insights to bootstrap**
 
 In bootstrap() function, after findSkills(), add:
+
 ```javascript
 // Learning insights
 const state = readState();
@@ -292,6 +299,7 @@ git commit -m "feat(bootstrap): show learning insights on session start"
 ### Task 4.1: Create skill-effectiveness skill
 
 **Files:**
+
 - Create: `skills/observability/skill-effectiveness/skill.md`
 
 - [ ] **Step 1: Write skill definition**

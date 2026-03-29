@@ -13,7 +13,8 @@ This file contains extended examples and usage patterns.
 > "Our incredibly powerful platform leverages cutting-edge AI to deliver comprehensive solutions. It's important to note that we prioritize user experience above all else."
 
 **Skill response:**
-```
+
+```text
 Found 5 slop patterns:
 
 1. "incredibly powerful" [Generic booster]
@@ -53,6 +54,7 @@ Options:
 > "In today's data-driven world, database performance is incredibly important. Let's explore how indexing can significantly improve your query speeds and deliver robust solutions for your applications."
 
 **GVR Iteration 1 (Verify):**
+
 - Patterns found: 5 (In today's, incredibly, Let's explore, significantly, robust)
 - Sentence σ: 4.2 (target: >15) ⚠️
 - TTR: 0.48 (target: 0.50-0.70) ⚠️
@@ -75,7 +77,7 @@ Options:
 
 ### Adding Patterns
 
-```
+```yaml
 User: "Add 'synergize' to the slop dictionary"
 Skill: Added 'synergize' to Buzzwords category.
        Weight: 1.0 | Count: 1 | Source: user-added
@@ -89,7 +91,7 @@ Skill: Added 'game-changing' to Generic Boosters.
 
 ### Adding Exceptions
 
-```
+```text
 User: "Never flag 'leverage' - I use it intentionally"
 Skill: Added 'leverage' to permanent exceptions. Won't flag in future.
 
@@ -99,7 +101,7 @@ Skill: Added 'comprehensive' to exceptions (this document only).
 
 ### Querying Dictionary
 
-```
+```text
 User: "Show my top slop patterns"
 Skill: [displays patterns sorted by count]
 
@@ -121,14 +123,14 @@ Calibrate thresholds using your own human-written samples.
 
 ### Invoke Calibration
 
-```
+```text
 User: "Calibrate slop detection with my writing"
 [Paste 3-5 samples of your authentic writing, 300+ words each]
 ```
 
 ### Calibration Output
 
-```
+```python
 Calibration Complete
 
 Your Writing Profile:

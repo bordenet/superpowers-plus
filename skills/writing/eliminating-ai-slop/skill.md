@@ -24,7 +24,7 @@ coordination:
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-03-13
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
-
+>
 > **Wrong skill?** Analyzing/scoring text (read-only) → `detecting-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
 
 ## Scope
@@ -80,11 +80,11 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 
 `detecting-ai-slop` (analysis, read-only) | `professional-language-audit` (profanity detection)
 
-
 - **detecting-ai-slop**: Read-only analysis (this skill is the active rewriter)
 - **readme-authoring**: Slop prevention in READMEs
 - **incorporating-research**: Clean up pasted research text
 - **markdown-table-discipline**: Slop prevention in table content
+
 ## When to Use
 
 - When authoring any human-readable prose (docs, email, messages, tickets)

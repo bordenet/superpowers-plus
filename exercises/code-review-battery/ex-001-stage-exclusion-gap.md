@@ -11,6 +11,7 @@ expected_reviewers: [defect-finder, guardian]
 ## Context
 
 The `install_skill()` function in `deploy.sh` installs skill files in two stages:
+
 - **Stage 1**: Copy upstream companion files (for override skills)
 - **Stage 2**: Copy override files on top
 
@@ -55,6 +56,7 @@ index 1ccd538..702f592 100644
 ## Expected Findings
 
 ### Finding 1 (Convergent — Defect Finder + Guardian)
+
 - **Severity:** Important
 - **Reviewer:** defect-finder, guardian
 - **File:** lib/install/deploy.sh
