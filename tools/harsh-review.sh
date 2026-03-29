@@ -69,12 +69,15 @@ log_warn()  { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
 log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
 # Get files to check
+# Accepts a regex pattern (e.g., '\.sh$') and uses grep -E for filtering in both modes.
+# In --changed-only mode: filters git diff output.
+# In default mode: lists all repo files then filters by regex.
 get_files() {
     local pattern="$1"
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         git diff --name-only origin/main...HEAD 2>/dev/null | grep -E "$pattern" || true
     else
-        find . -type f -name "$pattern" 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
     fi
 }
 

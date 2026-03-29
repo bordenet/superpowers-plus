@@ -105,7 +105,7 @@ See [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-exa
 ### Updating
 
 ```bash
-./install.sh --upgrade
+bash install.sh --upgrade
 ```
 
 ## Configuration
@@ -318,8 +318,8 @@ Utility scripts in `tools/`:
 | Perplexity tools not found | Run `./setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
-| Skills not loading | Re-run `./install.sh`; check `~/.codex/skills/` exists |
-| Stale skill count | `./install.sh --upgrade`; verify with `find-skills` |
+| Skills not loading | Re-run `bash install.sh`; check `~/.codex/skills/` exists |
+| Stale skill count | `bash install.sh --upgrade`; verify with `find-skills` |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `./tools/doctor-checks.sh --fix-safe` |
 
