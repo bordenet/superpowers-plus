@@ -117,51 +117,25 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 | "I know the links are correct" | Memory is unreliable, verify anyway |
 | "I'll verify after publishing" | That's backwards — verify BEFORE |
 
-## Pipeline Skills
-
-| Skill | Role |
-|-------|------|
-| `wiki-content-coherence` | Stage 2.5: Duplication detection |
-| `link-verification` | Stage 3: URL verification (HARD GATE) |
-| `eliminating-ai-slop` | Stage 5: Prose quality |
-| `wiki-debunker` | Stage 6: Fact-checking |
-| `wiki-verify` | Post-publish: Version drift |
-
-- **wiki-verify**: Post-write verification
-- **wiki-secret-audit**: Secret scanning of wiki content
-- **wiki-instruction-guard**: Instruction injection prevention
-- **link-verification**: Link checking within wiki pages
-- **wiki-content-coherence**: Checking for content duplication
 ## References
 
 - [`references/stage-output-examples.md`](references/stage-output-examples.md) — Output templates
 - [`references/batch-operations.md`](references/batch-operations.md) — Multi-page edit workflow
 
-
-## When to Use
-
-- For ALL wiki authoring, editing, and publishing operations — no exceptions
-- When creating new wiki pages from scratch
-- When updating existing wiki content
-- When reviewing wiki pages for quality
-
-```bash
-# Example: create a wiki page through the orchestrator pipeline
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill wiki-orchestrator
-```
-
 ## Failure Modes
 
 | Failure | Recovery |
 |---------|----------|
-| Running full pipeline for single-page edits | Single-page create/edit doesn't need the pipeline. Use wiki API directly. |
-| Skipping pipeline stages (especially link-verification) | All stages are mandatory for bulk/multi-page operations |
-| Pipeline stage fails but agent continues | Stage failure = pipeline halt. Fix the issue, then restart from failed stage. |
+| Running full pipeline for single-page edits | Use wiki API directly — pipeline is for bulk/multi-page |
+| Skipping pipeline stages | All stages mandatory for bulk ops |
+| Pipeline stage fails but agent continues | Stage failure = halt. Fix, restart from failed stage |
 
 ## Companion Skills
 
-- **link-verification**: Link existence checks within wiki pages
-- **wiki-verify**: Post-hoc wiki claim verification
-- **wiki-instruction-guard**: Instruction injection protection
-- **wiki-secret-audit**: Secret scanning in wiki content
-- **wiki-content-coherence**: Wiki page coherence checks
+- **wiki-content-coherence**: Stage 2.5 — duplication detection
+- **link-verification**: Stage 3 — URL verification (HARD GATE)
+- **eliminating-ai-slop**: Stage 5 — prose quality
+- **wiki-debunker**: Stage 6 — fact-checking
+- **wiki-verify**: Post-publish — version drift
+- **wiki-secret-audit**: Secret scanning
+- **wiki-instruction-guard**: Instruction injection prevention
