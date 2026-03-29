@@ -132,16 +132,6 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Testing: Unit tests for retry count, backoff timing, jitter range
 ```
 
-## Example
-
-```bash
-# After brainstorming: validate top 3 ideas against requirements
-for idea in "Option A" "Option B" "Option C"; do
-  echo "--- $idea ---"
-  echo "Feasibility: /5  Impact: /5  Risk: /5"
-done
-```
-
 ## Failure Modes
 
 | Failure | Fix |
