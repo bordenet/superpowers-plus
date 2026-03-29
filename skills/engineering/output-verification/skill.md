@@ -37,12 +37,6 @@ coordination:
 - **When presenting results back to the user** — "here's what was created" requires reading what was created
 
 
-## Scope Exclusions
-
-- Pre-commit checks → `pre-commit-gate`
-- Full repo health → `holistic-repo-verification`
-- Code review → `progressive-code-review-gate`
-
 ## ⚠️ ACTION-PATTERN TRIGGER
 
 This skill fires on a **behavior pattern**, not just phrases:
@@ -122,47 +116,13 @@ Skip any step = confabulation, not verification
 
 **If cumulative weight ≥ 5: STOP. You are confabulating. Go back to step 2 of the Gate Function.**
 
-## Red Flags — STOP
+## Common Rationalizations (All Invalid)
 
-- Describing output contents without having opened/read the file since generation
-- Using the phrase "all X rendered correctly" about visual/rendered content
-- Saying "ready to share" or "ready to hand off" without post-generation inspection
-- Noticing a count mismatch and not investigating it
-- Producing a "review" that reads like a description of your prior edits
-- Saying "confirmed" or "verified" when you only confirmed you *generated* it
-
-## Rationalization Prevention
-
-| Excuse | Reality |
-|--------|---------|
-| "I just wrote it, so I know what's in it" | You know what you intended. You don't know what actually rendered/compiled/exported. |
-| "The script succeeded (exit 0)" | Exit 0 means the script finished, not that its output is correct. |
-| "I can see from the source that the diagram is correct" | Source correctness ≠ render correctness. HTML entities, escaping, encoding all happen between source and output. |
-| "I checked the important parts" | Which parts? Cite them. If you can't cite line numbers or grep output, you didn't check. |
-| "The counts are close enough" | 13 ≠ 17. Investigate every mismatch. The difference is the bug. |
-| "I reviewed it" | Show me the tool call. No tool call = no review. |
+"I just wrote it" → you know intent, not result. "Exit 0" → finished ≠ correct. "Source looks right" → source ≠ render. "I checked the important parts" → cite line numbers or it didn't happen. "Counts are close enough" → 13 ≠ 17, the difference is the bug.
 
 ## Incident History
 
-| Date | What Happened | Impact |
-|------|---------------|--------|
-| 2026-03-27 | Agent generated PDF from wiki export. Script printed "Processing 17 documents" (expected 13). Agent didn't notice. PDF contained 4 internal working documents not meant for external auditors. All 15 Mermaid diagrams showed "Syntax error" due to HTML entity encoding. Agent said "all Mermaid diagrams rendered correctly" and "ready to hand off" — without opening the PDF or inspecting the HTML. | Near-miss: confidential internal documents almost sent to external auditors in a document with every diagram broken. Trust destroyed. |
-
-## Coordination
-
-This skill fires BEFORE `verification-before-completion` (order 0 vs order 2).
-
-**Rationale:** You can't verify completion if you haven't verified the output is what you think it is.
-`verification-before-completion` asks "did you run the tests?" This skill asks "did you read the results?"
-
-## The Bottom Line
-
-**You cannot describe output you haven't read.**
-
-No tool call between generate and describe = fiction, not verification.
-Plausible fiction is the most dangerous kind because the user trusts it.
-
-This is non-negotiable.
+**2026-03-27:** Agent generated PDF from wiki export. Script printed "Processing 17 documents" (expected 13) — agent didn't notice. PDF contained 4 confidential docs + all 15 Mermaid diagrams showed "Syntax error." Agent said "all rendered correctly" and "ready to hand off" without opening the PDF. Near-miss: confidential docs almost sent to external auditors.
 
 
 ## Example

@@ -52,13 +52,6 @@ coordination:
 3. **Query source** — git log, issue tracker, meeting transcript (see `references/verification-commands.md`)
 4. **Mark result:** ✅ VERIFIED | ⚠️🔄 SOURCED BUT UNVERIFIED | ⚠️ UNCITED | ❌ CONTRADICTED
 
-## Scope Exclusions
-
-- Editing wiki content → `wiki-orchestrator`
-- Checking version drift / stale tech specs → `wiki-verify`
-- Checking broken links → `link-verification`
-- Scanning for exposed secrets → `wiki-secret-audit`
-
 ## Hallucination Red Flags
 
 | Red Flag | Example | Verification |
