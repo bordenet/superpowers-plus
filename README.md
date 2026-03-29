@@ -1,6 +1,6 @@
 # superpowers-plus
 
-87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+86 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,7 +10,7 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**86 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
@@ -171,7 +171,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
 | | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
 | | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
-| | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
 | | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
 | | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |

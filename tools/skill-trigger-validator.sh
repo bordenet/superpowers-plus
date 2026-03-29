@@ -54,7 +54,6 @@ EXPLICIT_SKILLS=(
     "investigation-state"           # Orchestrator child: dispatched by thinking-orchestrator
     "timeline-trace-investigator"   # Internal: dispatched by debug-conductor
     "llm-behavior-investigator"     # Internal: dispatched by debug-conductor
-    "telephony-flow-investigator"   # Internal: dispatched by debug-conductor
     "state-consistency-investigator" # Internal: dispatched by debug-conductor
     "infra-config-investigator"     # Internal: dispatched by debug-conductor
     "reproduction-experiment-investigator" # Internal: dispatched by debug-conductor
