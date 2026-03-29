@@ -36,11 +36,19 @@ assert_top_match() {
 
 echo "── Trigger Routing Smoke Tests ──"
 
+if node "$ADAPTER" find-skills superpowers | grep -q 'wiki-instruction-guard'; then
+  pass 'wiki-instruction-guard stays auto-triggered with multiline triggers'
+else
+  fail 'wiki-instruction-guard missing from superpowers list (multiline trigger parsing broke)'
+fi
+
 # design-triad triggers (validated during fix/design-triad-completion-gate)
 assert_top_match "design options with adversarial review" "design-triad"
 assert_top_match "generate options compare and red team" "design-triad"
 assert_top_match "three design options" "design-triad"
 assert_top_match "compare design approaches" "design-triad"
+assert_top_match "what's the best approach for retry logic placement" "thinking-orchestrator"
+assert_top_match "where to store retry logic" "thinking-orchestrator"
 
 # Other critical routing (add as regressions are found)
 assert_top_match "I am stuck in a loop" "think-twice"
