@@ -141,7 +141,7 @@ Verdict escalation: Standard → `(P)roceed`. High severity (Cat 1-3) → type `
 | Failure | Fix |
 |---------|-----|
 | Pattern not detected (obfuscation, variable expansion) | Manual review — this is static regex, not a shell parser |
-| False positive blocking safe command | Add domain to `references/domain-allowlist-local.md` or user types `PROCEED` |
+| False positive blocking safe command | Add domain to opt-in `references/domain-allowlist-local.md` or user types `PROCEED` |
 | Wiki content bypasses scan via HTML comments or zero-width chars | Pre-processing (Rule 3) strips these — verify strip ran |
 
 ## Limitations
