@@ -248,7 +248,7 @@ function transformOutput(text) {
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
+        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         let inFrontmatter = false;
         let name = '';
         let description = '';
@@ -395,7 +395,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];
