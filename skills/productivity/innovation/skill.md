@@ -53,7 +53,7 @@ coordination:
 
 After presenting: offer to draft RFC, create experiment plan, or deep-dive on specific aspect.
 
-**Flow:** `innovation → user selects → brainstorming → writing-plans → implementation`
+**Flow:** `innovation → user selects → brainstorming → plan-and-execute → implementation`
 
 ## References
 

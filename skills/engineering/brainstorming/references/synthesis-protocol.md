@@ -107,7 +107,7 @@ Contrarian/Skeptic lens ideas get special treatment:
 2. **No lens voice:** Output reads as one author, not a patchwork of perspectives
 3. **Contrarian preserved:** At least 1 idea challenges the mainstream recommendations
 4. **Risks preserved:** Every lens risk appears somewhere in the output
-5. **Actionable:** A reader can hand this to `writing-plans` without additional brainstorming
+5. **Actionable:** A reader can hand this to `plan-and-execute` without additional brainstorming
 
 ## Failure Recovery
 

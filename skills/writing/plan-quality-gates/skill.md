@@ -17,14 +17,14 @@ coordination:
 # Plan Quality Gates
 
 > **Last Updated:** 2026-03-20
-> **Fires alongside:** `superpowers:writing-plans` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
+> **Fires alongside:** `superpowers:plan-and-execute` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
 
 > **Wrong skill?** Executing a plan → `plan-and-execute`. Feature design → `brainstorming` or `design-triad`. Writing documentation → `readme-authoring`.
 > **See also:** [detecting-ai-slop reference](../detecting-ai-slop/reference.md) § Fabricated Calendar Timelines
 
 ## Purpose
 
-Enforce quality constraints on plans at creation time. The upstream `writing-plans` (upstream) skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
+Enforce quality constraints on plans at creation time. The upstream `plan-and-execute` skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
 
 **Announce at start:** "Using plan-quality-gates to enforce timeline and exit-criteria discipline."
 
@@ -155,12 +155,12 @@ These patterns in plan output indicate this skill was not followed:
 
 - **plan-and-execute**: Executing plans (this skill validates them)
 - **brainstorming**: Generating plan options
-- `writing-plans` (upstream): Plan writing standards
+- `plan-and-execute`: Plan writing standards
 
 ## When to Use
 
 - When writing plans, roadmaps, or any phased work
-- Automatically co-activated with `writing-plans` (upstream) skill
+- Automatically co-activated with `plan-and-execute` skill
 - When reviewing existing plans for quality and completeness
 
 

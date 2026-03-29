@@ -106,7 +106,7 @@ The synthesizer (conductor agent or post-processing) must:
 
 ### Step 6: Hand Off
 
-Output feeds directly into writing-plans or design-triad as input.
+Output feeds directly into plan-and-execute or design-triad as input.
 If ensemble output is low-quality (synthesizer confidence < 0.5), fall back to single-agent brainstorming and note why.
 
 ## Failure Modes

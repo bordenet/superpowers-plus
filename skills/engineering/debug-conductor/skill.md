@@ -2,9 +2,11 @@
 name: debug-conductor
 source: superpowers-plus
 description: >
-  Conductor-led bounded investigation for complex distributed system incidents.
+  PREVIEW — Conductor-led bounded investigation for complex distributed system incidents.
   Decides whether to stay serial or fork into parallel investigator branches.
   Produces structured incident packets, not chat transcripts.
+  NOTE: Incident-packet persistence tooling is not yet implemented; this skill
+  defines the protocol and evidence contracts but cannot persist packets end-to-end.
 triggers:
   - "investigate distributed"
   - "debug across services"
@@ -81,11 +83,18 @@ Apply the **Fork-Readiness Rubric** (see `skills/_shared/fork-readiness-rubric.m
 
 **Record the rubric score and rationale in the incident packet.**
 
-**Operator checkpoint:** Before forking, present the rubric score, proposed investigator mix, and estimated budget to the user. Accept these responses:
-- **Approve** → proceed to Phase 3
-- **Redirect** → user adjusts investigator mix or hypotheses
-- **Reject** → fall back to serial `systematic-debugging`
-- **No response within 30 seconds** → proceed with proposed plan (log auto-approval)
+**Operator checkpoint:** Before forking, present the rubric score, proposed investigator mix, and estimated budget to the user.
+
+| Response | Action |
+|----------|--------|
+| **Approve** (yes, go, LGTM) | Proceed to Phase 3 |
+| **Redirect** (change investigators, adjust hypotheses) | Apply user's adjustments, re-present for approval |
+| **Reject** (no, don't fork, stay serial) | Fall back to serial `systematic-debugging` |
+| **Conditional** ("yes but limit to 2 branches") | Apply constraints, proceed |
+| **Explain more** ("why these investigators?") | Provide rationale, re-present; do NOT auto-proceed |
+| **Off-topic / unclear** | Clarify once: "Should I proceed with forked investigation?" If still unclear → single-agent fallback |
+| **Echo** (repeats the plan back) | Treat as approval |
+| **No response within 30 seconds** | Proceed with proposed plan (log auto-approval) |
 
 ### Phase 3: Investigator Assignment (Fork Path)
 
