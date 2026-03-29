@@ -27,7 +27,7 @@ _resolve_upstream_dir() {
             upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
             ;;
         *)
-            # Other sources (superpowers-plus, overlay repos, etc.)
+            # Other sources (superpowers-plus, superpowers-[company], etc.)
             # Search the source repo's skills/ tree for the skill name
             local src_repo="${CODEX_DIR}/${source_name}"
             if [[ -d "$src_repo/skills" ]]; then
@@ -93,15 +93,12 @@ install_skill() {
         # Stage 1: If override, copy upstream companion files first
         if [[ -n "$upstream_dir" ]]; then
             # Copy all upstream files EXCEPT the main skill file (SKILL.md/skill.md)
-            # and process docs (DESIGN.md, PRD.md) — those are repo-only, not runtime
             local f
             while IFS= read -r -d '' f; do
                 local base
                 base=$(basename "$f")
                 # Skip the main skill file — the override replaces it
                 [[ "$base" == "SKILL.md" || "$base" == "skill.md" ]] && continue
-                # Skip process docs — repo-only, not runtime
-                [[ "$base" == "DESIGN.md" || "$base" == "PRD.md" ]] && continue
                 cp "$f" "$dest/" || \
                     error_exit "Failed to stage upstream file $base for skill: $skill_name"
             done < <(find "$upstream_dir" -maxdepth 1 -type f -print0 2>/dev/null)
@@ -115,11 +112,7 @@ install_skill() {
         fi
 
         # Stage 2: Copy all override files on top (skill.md + any extras)
-        # Exclude process docs (DESIGN.md, PRD.md) — they're repo-only, not runtime
         while IFS= read -r -d '' f; do
-            local basename_f
-            basename_f=$(basename "$f")
-            [[ "$basename_f" == "DESIGN.md" || "$basename_f" == "PRD.md" ]] && continue
             cp "$f" "$dest/" || \
                 error_exit "Failed to install $(basename "$f") for skill: $skill_name"
         done < <(find "$skill_dir" -maxdepth 1 -type f -print0 2>/dev/null)
