@@ -3,6 +3,8 @@
 > **Purpose:** Persistent running log of deferred work, open questions, experiment follow-ups, and suspicious findings.
 > **Branch:** `feat/forked-debugging-superpower`
 > **Updated:** 2026-03-29
+> **Part of:** Multi-Agent Initiatives (1 of 4). Master plan: `docs/superpowers/multi-agent/00-initiative-overview.md` (on `feat/multi-agent-skill-upgrades` branch).
+> **Sibling initiatives:** Brainstorming Ensemble (P2), Planning Council (P3), Parallel Dispatch (P4)
 
 ## P1 — Critical Path
 
