@@ -39,12 +39,6 @@ coordination:
 | User says "show archived todos from Month Year" | Display specific monthly archive |
 
 
-## Scope Exclusions
-
-- Active task management → `todo-management`
-- Plan creation → `plan-and-execute`
-- Searching active tasks → `todo-management`
-
 ## Archive Workflow
 
 ### Step 1: Resolve paths

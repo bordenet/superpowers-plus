@@ -55,14 +55,6 @@ echo "Why5: Pattern specificity never tested"
 echo "Fix: Add specific patterns before generic ones"
 ```
 
-## Scope Exclusions
-
-- Active debugging -> systematic-debugging
-- Stuck in a loop -> think-twice
-- Code review comments -> receiving-code-review
-
----
-
 ## The 5-Why Protocol
 
 ### Step 1: State the Failure

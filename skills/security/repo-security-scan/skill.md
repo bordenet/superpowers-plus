@@ -35,13 +35,6 @@ Run a comprehensive security scan on a git repo without creating ad-hoc scripts.
 - Monthly/quarterly security hygiene checks
 - After onboarding a new repo
 
-## Scope Exclusions
-
-- Wiki content scanning → use `wiki-secret-audit`
-- Public repo IP leakage → use `public-repo-ip-audit`
-- Wiki-sourced instruction safety → use `wiki-instruction-guard`
-
-
 ## Scan Process
 
 ### Phase 0: Stack Detection
