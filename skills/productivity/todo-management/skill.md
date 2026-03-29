@@ -63,14 +63,11 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 # Multi-agent: claim a task (marks [/], adds TTL metadata)
 ~/.codex/superpowers-plus/tools/todo-crud.sh claim --id 20260322-01 --ttl 30
-
-# Multi-agent: release a claim
 ~/.codex/superpowers-plus/tools/todo-crud.sh unclaim --id 20260322-01
-
-# Multi-agent: reap all expired claims (reverts to [ ])
 ~/.codex/superpowers-plus/tools/todo-crud.sh reap
 
-# JSON output (for machine parsing)
+# Utility
+~/.codex/superpowers-plus/tools/todo-crud.sh next-id
 ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
@@ -103,24 +100,12 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 ### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
 
 **NEVER write to TODO.md except through the approved TODO tools** (`todo-crud.sh`, `todo-preflight.sh --create-if-missing`, `todo-maintenance.sh`). This ban includes:
-
 - ❌ `save-file` / `str-replace-editor` / `echo >` / `cat >` / `sed -i` / inline python
 - ❌ ANY method that bypasses preflight, locking, backup, or structure validation
 
 **Incident 2026-03-23:** An agent used `save-file` to overwrite TODO.md with a raw task list. Dozens of unstarted tasks were permanently destroyed. No backup was created. Recovery was impossible.
 
 `todo-crud.sh` prevents this by: (1) resolving the correct `TODO_FILE_PATH`, (2) acquiring an advisory lock, (3) creating a timestamped backup, (4) validating section structure (required headers in order, priority subsections, and at least one task or history artifact). Bypassing it bypasses ALL of these protections.
-
-### Defense Layers (enforced by `todo-engine.py`)
-
-| Layer | Mechanism | What it catches |
-|-------|-----------|----------------|
-| 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
-| 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
-| 3. OS protection | `chmod 0444` — file is read-only | `save-file`, `str-replace-editor`, shell redirects |
-| 4. Shadow + annihilation | Pre-write comparison vs `~/.codex/todo-shadow/TODO.md` | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
-
-**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry. The error message will tell you this.
 
 ---
 
@@ -194,7 +179,7 @@ P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress.
 
 > **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips.
 
-Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-25)
+**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
 
 ## Companion Skills
 
