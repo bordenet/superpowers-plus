@@ -49,7 +49,6 @@ migrate_todo_skill_overrides() {
     case "$source_field" in
         ""|superpowers|obra)
             # This is a legitimate obra/superpowers-native skill — leave it
-            return 0
             ;;
         *)
             # This is a stale override from an adopter
@@ -57,7 +56,6 @@ migrate_todo_skill_overrides() {
             log_info "Removing stale override from $SUPERPOWERS_DIR/skills/todo-management/"
             rm -rf "${SUPERPOWERS_DIR:?}/skills/todo-management" || {
                 log_warn "Could not remove stale override (permission denied?)"
-                return 0
             }
             log_success "Cleaned stale todo-management override"
             ;;
