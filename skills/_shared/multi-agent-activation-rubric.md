@@ -14,7 +14,7 @@
 | **Single-agent quality risk** | Confident it handles it | Moderate tunnel-vision risk | High risk of missed perspectives |
 | **Cost justification** | Low-value task | Moderate value | High-value (gates other work) |
 
-**Total ≥ 5 → multi-agent eligible** (skill-specific criteria may also apply).
+**Total = 5 → borderline (ask user).** **Total ≥ 6 → multi-agent eligible** (skill-specific criteria may also apply).
 
 ## Anti-Activation Signals (any blocks multi-agent)
 
@@ -30,7 +30,7 @@
 
 Each skill may add criteria that raise or lower the threshold:
 
-### writing-plans
+### plan-and-execute
 - **Raises score:** Task crosses team/domain boundaries (+1), significant rollback cost (+1)
 - **Lowers score:** Task is internal-only with one stakeholder (-1)
 
@@ -61,10 +61,10 @@ Task arrives at multi-agent-capable skill
   │
   ├─ Score activation rubric
   │   ├─ Score < 5 → SINGLE-AGENT
-  │   ├─ Score ≥ 5 → check skill-specific criteria
+  │   ├─ Score = 5 → BORDERLINE: ask user "Use multi-agent or stay single?"
+  │   ├─ Score ≥ 6 → check skill-specific criteria
   │   │   ├─ Skill criteria met → MULTI-AGENT
   │   │   └─ Skill criteria not met → SINGLE-AGENT (log why)
-  │   └─ Score ≥ 5 + ambiguous → ask user
   │
   └─ During execution:
       ├─ Branch confidence < 0.3 → KILL branch

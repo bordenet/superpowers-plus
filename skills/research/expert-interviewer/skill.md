@@ -27,7 +27,7 @@ coordination:
 
 - Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
 - User says "help me document," "capture what I know," or "write up the problem space"
-- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans` (upstream))
+- NOT for: feature design (`brainstorming`), implementation planning (`plan-and-execute`)
 
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
@@ -168,4 +168,4 @@ echo "4. What constraints exist that aren't documented?"
 | External research | Minor input | Major input alongside interview |
 | Review focus | Design soundness, YAGNI | Factual accuracy, scope discipline, audience fit |
 | Output | Design spec → implementation plan | Knowledge artifact → publish |
-| Terminal state | `writing-plans` (upstream) skill | Publish artifact |
+| Terminal state | `plan-and-execute` skill | Publish artifact |

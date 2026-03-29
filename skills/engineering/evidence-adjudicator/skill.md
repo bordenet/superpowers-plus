@@ -103,12 +103,12 @@ Before accepting the verdict, apply `adversarial-search` thinking to the leading
   "rootCause": "Call router v2.3.1 async event processing delivers events out of order under load",
   "confidence": 0.88,
   "supportingEvidence": [
-    { "source": "deployment-history", "finding": "v2.3.1 deployed 2h before incident", "confidence": 0.85 },
-    { "source": "call-router-logs", "finding": "Events arriving out of order", "confidence": 0.90 },
-    { "source": "reproduction", "finding": "Reproduced 3/3 with async + load", "confidence": 0.95 }
+    { "source": "deployment-history", "finding": "v2.3.1 deployed 2h before incident", "timestamp": "2026-03-29T10:15:00Z", "confidence": 0.85, "type": "supporting" },
+    { "source": "call-router-logs", "finding": "Events arriving out of order", "timestamp": "2026-03-29T10:20:00Z", "confidence": 0.90, "type": "supporting" },
+    { "source": "reproduction", "finding": "Reproduced 3/3 with async + load", "timestamp": "2026-03-29T11:00:00Z", "confidence": 0.95, "type": "supporting" }
   ],
   "disconfirmingEvidence": [
-    { "source": "network-metrics", "finding": "5ms latency increase", "confidence": 0.30, "resolution": "Within normal variance; does not explain 2600ms increase" }
+    { "source": "network-metrics", "finding": "5ms latency increase — within normal variance, does not explain 2600ms increase", "timestamp": "2026-03-29T10:25:00Z", "confidence": 0.30, "type": "disconfirming" }
   ],
   "alternativeCauses": [
     { "cause": "SIP timeout misconfiguration", "confidence": 0.15, "reason": "Timeout is effect, not cause" },

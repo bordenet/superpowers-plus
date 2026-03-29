@@ -35,7 +35,7 @@ coordination:
 
 - Any design decision where the wrong choice would cost significant rework
 - Choosing between architectural approaches, data models, or integration patterns
-- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans` (upstream)), bug fixing (`systematic-debugging`)
+- NOT for: initial idea exploration (`brainstorming`), execution planning (`plan-and-execute`), bug fixing (`systematic-debugging`)
 
 ## Preflight
 

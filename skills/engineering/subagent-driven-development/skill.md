@@ -38,7 +38,7 @@ composition:
 
 - You have a written implementation plan with independent tasks to execute in the current session
 - You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`writing-plans` (upstream)), execution across multiple sessions (`plan-and-execute`)
+- NOT for: writing the plan (`plan-and-execute`), execution across multiple sessions (`plan-and-execute`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
@@ -101,7 +101,7 @@ Never force retry without changes. If stuck, something must change.
 | Skill | Role |
 |-------|------|
 | `superpowers:using-git-worktrees` | Set up isolated workspace (REQUIRED) |
-| `superpowers:writing-plans` | Creates the plan this executes |
+| `superpowers:plan-and-execute` | Creates the plan this executes |
 | `superpowers:finishing-a-development-branch` | After all tasks complete |
 | `superpowers:executing-plans` | Alternative: parallel session execution |
 
