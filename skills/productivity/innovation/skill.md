@@ -32,13 +32,6 @@ coordination:
 4. **Present** with risks and a concrete next-week experiment per idea. See `references/output-template.md`.
 5. **If stuck:** invoke `perplexity-research` for adjacent domain exploration or `think-twice` for fresh perspective.
 
-## Scope Exclusions
-
-- Incremental feature requests → `brainstorming`
-- Bug fixes or refactoring → `systematic-debugging` / `engineering-rigor`
-- Evaluating existing design options → `design-triad`
-- Implementation planning → `plan-and-execute`
-
 ## Key Principles
 
 - **Bold over safe** — 10x, not 10%

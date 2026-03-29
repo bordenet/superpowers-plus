@@ -52,14 +52,6 @@ echo "Gate 2: design-triad scored all options? YES"
 echo "Gate 3: plan has phases? YES -> continue"
 ```
 
-## Scope Exclusions
-
-- Single-skill tasks -> invoke directly
-- Planning without execution -> plan-and-execute
-- Already mid-chain -> continue current
-
----
-
 ## Chain Protocol
 
 ### Phase 1: Classify

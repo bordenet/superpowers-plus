@@ -163,12 +163,6 @@ node scripts/slop-dictionary.js list profanity
 - **enforce-style-guide**: Style checking (runs before language audit)
 - **public-repo-ip-audit**: IP audit (runs after language audit)
 
-## Scope Exclusions
-
-- AI slop detection → `detecting-ai-slop`
-- AI slop removal → `eliminating-ai-slop`
-- Code review → `progressive-code-review-gate`
-
 ## Failure Modes
 
 - **Over-flagging technical terms:** Words like "kill," "abort," "master" in engineering contexts are often appropriate
