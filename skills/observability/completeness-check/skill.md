@@ -20,7 +20,6 @@ coordination:
 
 **MANDATORY**: Use this skill before claiming work is complete on ANY repo, or when auditing accumulated incomplete work.
 
-
 ## When to Use
 
 - Quick sanity check that nothing was missed in a changeset
@@ -31,13 +30,13 @@ coordination:
 ## The Core Principle
 
 AI coding assistants frequently leave incomplete work when they:
+
 - Get distracted mid-implementation
 - Crash or lose context
 - Context-switch away from unfinished tasks
 - Exhaust their context window (~70% utilization shows degradation)
 
 This leaves humans out of the loop. This skill helps detect and surface that incomplete work.
-
 
 ## Detection Categories
 
@@ -82,7 +81,7 @@ completeness-check --format json       # Machine-readable for CI integration
 
 ## Scoring Formula
 
-```
+```text
 Base deductions:
   Critical (High conf):   15 points each
   Critical (Med/Low):     10 points each
@@ -103,7 +102,7 @@ Score = max(0, 100 - deductions)
 
 ## Output Format: Summary
 
-```
+```text
 ╭─────────────────────────────────────────────────────────────╮
 │  COMPLETENESS CHECK                                         │
 │  Repository: genesis                                        │
@@ -121,17 +120,20 @@ Summary:
 ## Implementation Phases
 
 ### Phase 1: Fast (grep-based)
+
 - TODO/FIXME comments
 - Debug statements
 - Placeholder patterns
 - Empty directories
 
 ### Phase 2: Tool-Based
+
 - ESLint/staticcheck for dead code
 - Coverage tools for missing tests
 - Package registry for hallucinated deps
 
 ### Phase 3: Deep (expensive)
+
 - AST parsing for orphaned code
 - Semantic analysis for stale docs
 - Cross-file dependency graphs
@@ -139,7 +141,6 @@ Summary:
 ## Success Criteria
 
 All Critical resolved · score ≥70 · no regressions · deferred findings documented.
-
 
 ## Failure Modes
 
@@ -151,7 +152,6 @@ All Critical resolved · score ≥70 · no regressions · deferred findings docu
 | Missing abandoned branches | Check `git branch -a` for stale feature branches |
 | False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
 | Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |
-
 
 ## Companion Skills
 

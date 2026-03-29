@@ -28,6 +28,7 @@ coordination:
 - **pre-commit-gate**: Pre-commit checks · **output-verification**: Output inspection · **holistic-repo-verification**: Repo health
 - **completeness-check**: Quick scope · **exhaustive-audit-validation**: Deep audit · **adversarial-search**: Bias prevention
 - **todo-guardian**: TODO enforcement · **measurement-integrity**: Metric validation
+
 ## When to Use
 
 - Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim
@@ -46,7 +47,7 @@ Evidence before claims, always. Violating the letter = violating the spirit.
 
 ## The Gate Function
 
-```
+```bash
 BEFORE claiming any status or expressing satisfaction:
 
 1. IDENTIFY: What command proves this claim?

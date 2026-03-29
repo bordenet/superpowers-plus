@@ -12,9 +12,7 @@ anti_triggers:
   - "code coverage tool"
   - "test coverage command"
   - "coverage report"
-description: >
-  HARD GATE — Forces cross-validation, completeness verification, and
-  confidence qualification before reporting ANY metric or percentage.
+description: "HARD GATE — Forces cross-validation, completeness verification, and confidence qualification before reporting ANY metric or percentage."
 summary: "Use when: reporting any metric. Skip when: quoting tool output verbatim."
 coordination:
   group: quality-feedback
@@ -37,7 +35,6 @@ coordination:
 - Before claiming a count ("65 out of 65 skills")
 - Before comparing metrics across time
 - Before declaring a ceiling based on measurement
-
 
 ### Example
 

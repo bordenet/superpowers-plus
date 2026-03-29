@@ -28,7 +28,7 @@ composition:
 # Plan and Execute
 
 > **Wrong skill?** Brainstorming ideas → `brainstorming`. Design comparison → `design-triad`. Feature workflow → `feature-development`.
-
+>
 > **Purpose:** Turn any challenge into a stress-tested, phased plan — then execute each phase as an autonomous TODO with built-in quality gates and continuous improvement between phases.
 > **Pattern:** This skill ORCHESTRATES existing skills. It does not replace them.
 
@@ -43,7 +43,7 @@ composition:
 
 ## The Workflow
 
-```
+```text
 Phase A: CHALLENGE INTAKE → Phase B: PLAN → Phase C: STRESS-TEST →
 Phase D: PHASE ENROLLMENT → Phase E: EXECUTE (retro → improve → do → review)
 ```
@@ -62,6 +62,8 @@ Phase D: PHASE ENROLLMENT → Phase E: EXECUTE (retro → improve → do → rev
 ---
 
 ### Phase B: Devise the Plan
+
+**Mode decision:** Before writing the plan, apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 6 → use **Planning Council Mode** (`references/planning-council-mode.md`). Score = 5 → ask user whether to use council or single-agent. Score < 5 → single-agent planning below.
 
 1. Produce a plan that addresses the challenge
    - Interactive co-development OR autonomous drafting — match user's mode

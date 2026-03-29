@@ -28,6 +28,7 @@ cd ~/.codex/superpowers && git status
 ```
 
 If `git status` shows modifications, decide whether to:
+
 - Preserve them: Use standard `--upgrade` (may fail if conflicts exist)
 - Discard them: Use `--upgrade --force`
 
@@ -43,11 +44,13 @@ bash install.sh --upgrade --verbose
 ```
 
 **Use when:**
+
 - Routine updates (weekly/monthly)
 - No local changes to superpowers
 - Want to see before/after SHA comparison
 
 **What it does:**
+
 1. Requires superpowers already installed
 2. Runs `git fetch origin` + `git pull --ff-only origin main`
 3. Shows version comparison (e.g., `abc1234 → def5678`)
@@ -61,11 +64,13 @@ bash install.sh --upgrade --force --verbose
 ```
 
 **Use when:**
+
 - Standard upgrade fails due to local changes
 - Want to reset to upstream state
 - Git pull fails with merge conflicts
 
 **What it does:**
+
 1. Runs `git reset --hard HEAD` (discards uncommitted changes)
 2. Runs `git clean -fd` (removes untracked files)
 3. Then performs standard upgrade
@@ -78,11 +83,13 @@ bash install.sh --force --verbose
 ```
 
 **Use when:**
+
 - Installation is corrupted
 - Want a fresh clone from scratch
 - Troubleshooting strange behavior
 
 **What it does:**
+
 1. Removes `~/.codex/superpowers` entirely
 2. Fresh clone from `https://github.com/obra/superpowers.git`
 3. Reinstalls all personal skills
@@ -97,13 +104,14 @@ After upgrading, verify the installation:
 # Verify skills load correctly
 node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
-# Check skill count
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep -c "^superpowers:"
+# Check skill count (look for the Summary line)
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep '^Summary:'
 ```
 
 **Expected results:**
+
 - Bootstrap should complete without errors
-- Skill count should be 72+ (58 from this repo + 14 from obra/superpowers framework, varies as skills are added)
+- Summary should show 80+ total skills (varies as skills are added)
 
 ---
 
@@ -117,6 +125,7 @@ Users may request upgrades with phrases like:
 - "Pull latest superpowers"
 
 **AI Assistant Response:**
+
 1. Navigate to superpowers-plus directory
 2. Run `bash install.sh --upgrade --verbose`
 3. If it fails, retry with `--upgrade --force`

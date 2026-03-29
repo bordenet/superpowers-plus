@@ -14,10 +14,7 @@ anti_triggers:
   - "wrong file path"
   - "wrong variable name"
   - "trivial typo"
-description: >
-  Post-mortem analyzer for incorrect assumptions and failed approaches.
-  Produces root cause analysis (5-Why), pattern detection, and preventive
-  actions. INVOKE after any approach that turned out wrong.
+description: "Post-mortem analyzer for incorrect assumptions and failed approaches. Produces root cause analysis (5-Why), pattern detection, and preventive actions. INVOKE after any approach that turned out wrong."
 summary: "Use when: approach failed or assumption wrong. Skip when: trivial typo."
 coordination:
   group: quality-feedback
@@ -40,7 +37,6 @@ coordination:
 - After a metric was reported incorrectly
 - After a ceiling or limitation was misdiagnosed
 - After a regression was introduced
-
 
 ### Example
 
