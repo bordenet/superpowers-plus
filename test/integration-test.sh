@@ -57,7 +57,7 @@ echo ""
 echo "--- find-skills Discovery ---"
 find_output=$(timeout 30 node superpowers-augment.js find-skills 2>&1) || true
 # Parse actual skill total from Summary line (e.g., "Summary: 69 superpowers, 12 explicit skills, 81 total")
-skill_count=$(echo "$find_output" | grep -oE '[0-9]+ total' | grep -oE '[0-9]+' || echo "0")
+skill_count=$(echo "$find_output" | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
 if [[ "$skill_count" -ge 50 ]]; then
     pass "find-skills found $skill_count total skills (≥50)"
 else

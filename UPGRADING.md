@@ -97,13 +97,13 @@ After upgrading, verify the installation:
 # Verify skills load correctly
 node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 
-# Check skill count
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep -c "^superpowers:"
+# Check skill count (look for the Summary line)
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep '^Summary:'
 ```
 
 **Expected results:**
 - Bootstrap should complete without errors
-- Skill count should be 72+ (58 from this repo + 14 from obra/superpowers framework, varies as skills are added)
+- Summary should show 80+ total skills (varies as skills are added)
 
 ---
 
