@@ -1123,6 +1123,7 @@ _doctor_todo_honeypot() {
   # Single fix pass: restore content + perms + immutable
   if [[ "$problems" -gt 0 ]] && can_fix "safe"; then
     clear_immutable "$honeypot" 2>/dev/null
+    chmod u+w "$honeypot" 2>/dev/null || true
     if cp "$honeypot_src" "$honeypot" && chmod 444 "$honeypot"; then
       set_immutable "$honeypot" 2>/dev/null || true
       echo "  ✅ FIXED: restored honeypot (content + perms + immutable)"

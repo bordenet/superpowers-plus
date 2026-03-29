@@ -136,19 +136,34 @@ deploy_todo_honeypot() {
 
     # If ~/.codex/TODO.md already exists, check what it is
     if [[ -f "$honeypot_path" ]]; then
-        # Already our honeypot? Done.
+        # Already our honeypot? Check for canonical marker OR legacy honeypot patterns.
+        # Legacy honeypots used "STOP — WRONG FILE" before honeypot-content.txt existed.
         if grep -q "$marker" "$honeypot_path" 2>/dev/null; then
             log_verbose "TODO honeypot already deployed at $honeypot_path"
             return 0
         fi
-
-        # Non-honeypot file exists — NEVER overwrite. Warn and bail.
-        local line_count
-        line_count=$(wc -l < "$honeypot_path" 2>/dev/null | tr -d ' ')
-        log_warn "Found non-honeypot TODO.md at $honeypot_path ($line_count lines)"
-        log_warn "Real TODO is at: $resolved_path"
-        log_warn "Review and merge manually, then delete $honeypot_path and re-run install"
-        return 0
+        if grep -q "WRONG FILE" "$honeypot_path" 2>/dev/null \
+            && grep -q "NOT.*TODO" "$honeypot_path" 2>/dev/null; then
+            # Legacy honeypot — upgrade to canonical content
+            log_info "Upgrading legacy honeypot at $honeypot_path to canonical format"
+            # Remove immutability flag and perms before overwriting
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                chflags nouchg "$honeypot_path" 2>/dev/null || true
+            else
+                chattr -i "$honeypot_path" 2>/dev/null || true
+            fi
+            chmod u+w "$honeypot_path" 2>/dev/null || true
+            rm -f "$honeypot_path"
+            # Fall through to deployment below
+        else
+            # Non-honeypot file exists — NEVER overwrite. Warn and bail.
+            local line_count
+            line_count=$(wc -l < "$honeypot_path" 2>/dev/null | tr -d ' ')
+            log_warn "Found non-honeypot TODO.md at $honeypot_path ($line_count lines)"
+            log_warn "Real TODO is at: $resolved_path"
+            log_warn "Review and merge manually, then delete $honeypot_path and re-run install"
+            return 0
+        fi
     fi
 
     # Deploy honeypot — file does not exist yet
@@ -215,6 +230,12 @@ detect_orphaned_todo_files() {
             printf "%s" "${TODO_FILE_PATH:-}"
         ' 2>/dev/null) || true
     fi
+    # Also check .todo-registry as fallback
+    if [[ -z "$env_path" ]] && [[ -f "$HOME/.codex/.todo-registry" ]]; then
+        env_path=$(head -1 "$HOME/.codex/.todo-registry" 2>/dev/null | sed "s|\\\$HOME|$HOME|g") || true
+    fi
+    # The canonical path is env_path if set, otherwise default_path
+    local canonical_path="${env_path:-$default_path}"
     local -a candidates=()
     local -a found=()
 
@@ -248,10 +269,20 @@ detect_orphaned_todo_files() {
         done
     done
 
+    # Resolve canonical path to its real path for symlink dedup
+    local canonical_real=""
+    if [[ -f "$canonical_path" ]]; then
+        canonical_real=$(realpath "$canonical_path" 2>/dev/null) || true
+    fi
+
+    # Track seen inodes to deduplicate symlinked files
+    local -a seen_realpaths=()
+
     # Check each candidate
     for candidate in "${candidates[@]}"; do
-        # Skip the default path and the env path — those aren't orphaned
+        # Skip the default path, canonical path, and env path — those aren't orphaned
         [[ "$candidate" == "$default_path" ]] && continue
+        [[ "$candidate" == "$canonical_path" ]] && continue
         [[ -n "$env_path" ]] && [[ "$candidate" == "$env_path" ]] && continue
         # Skip template files
         [[ "$candidate" == *"/templates/"* ]] && continue
@@ -268,6 +299,22 @@ detect_orphaned_todo_files() {
         fi
 
         if [[ -f "$candidate" ]]; then
+            # Deduplicate symlinks — only report each physical file once
+            local candidate_real
+            candidate_real=$(realpath "$candidate" 2>/dev/null) || candidate_real="$candidate"
+            # Skip if this resolves to the canonical path
+            [[ -n "$canonical_real" ]] && [[ "$candidate_real" == "$canonical_real" ]] && continue
+            # Skip if we've already seen this real path
+            local already_seen=false
+            local seen
+            for seen in "${seen_realpaths[@]+"${seen_realpaths[@]}"}"; do
+                if [[ "$seen" == "$candidate_real" ]]; then
+                    already_seen=true
+                    break
+                fi
+            done
+            [[ "$already_seen" == "true" ]] && continue
+            seen_realpaths+=("$candidate_real")
             found+=("$candidate")
         fi
     done
@@ -277,7 +324,7 @@ detect_orphaned_todo_files() {
 
     # Report findings
     echo ""
-    log_warn "Found TODO.md file(s) outside the default location:"
+    log_warn "Found TODO.md file(s) outside the configured location:"
     echo ""
     for f in "${found[@]}"; do
         local size
@@ -287,11 +334,15 @@ detect_orphaned_todo_files() {
         echo "  📄 $f ($lines lines, $size bytes)"
     done
     echo ""
-    echo "  The default TODO.md location is now: $default_path"
+    echo "  Your TODO.md is at: $canonical_path"
     echo ""
     echo "  To consolidate, you can:"
-    echo "    1. Move:  mv <old-path> $default_path"
-    echo "    2. Point: add TODO_FILE_PATH=\"<old-path>\" to ~/.codex/.env"
-    echo "    3. Ignore: leave as-is (agents will use $default_path going forward)"
+    echo "    1. Move:  mv <old-path> $canonical_path"
+    if [[ "$canonical_path" != "$default_path" ]]; then
+        echo "    2. Ignore: leave as-is (agents use $canonical_path via TODO_FILE_PATH)"
+    else
+        echo "    2. Point: add TODO_FILE_PATH=\"<old-path>\" to ~/.codex/.env"
+        echo "    3. Ignore: leave as-is (agents will use $canonical_path going forward)"
+    fi
     echo ""
 }
