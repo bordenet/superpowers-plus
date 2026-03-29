@@ -81,6 +81,12 @@ Apply the **Fork-Readiness Rubric** (see `skills/_shared/fork-readiness-rubric.m
 
 **Record the rubric score and rationale in the incident packet.**
 
+**Operator checkpoint:** Before forking, present the rubric score, proposed investigator mix, and estimated budget to the user. Accept these responses:
+- **Approve** → proceed to Phase 3
+- **Redirect** → user adjusts investigator mix or hypotheses
+- **Reject** → fall back to serial `systematic-debugging`
+- **No response within 30 seconds** → proceed with proposed plan (log auto-approval)
+
 ### Phase 3: Investigator Assignment (Fork Path)
 
 1. **Select investigators** based on classified domains (max 4):
@@ -157,6 +163,6 @@ When all investigators complete (or budget exhausted), **dispatch `evidence-adju
 - **systematic-debugging** — serial investigation (always try first)
 - **investigation-state** — evidence persistence across sessions
 - **think-twice** — escalation signal (fork trigger)
-- **adversarial-search** — embedded in adjudication phase
+- **adversarial-search** — embedded in adjudicator Step 5b (disconfirmation pass)
 - **failure-autopsy** — post-resolution learning
 - **thinking-orchestrator** — hub router (routes here when fork-ready)
