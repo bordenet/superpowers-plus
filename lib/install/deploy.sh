@@ -370,8 +370,7 @@ install_skills() {
         local dir_name
         dir_name=$(basename "$domain_or_skill")
 
-        [[ "$dir_name" == "_shared" ]] && continue
-        [[ "$dir_name" == "_archive" ]] && continue
+        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             current_skill_names+=("$(basename "$domain_or_skill")")
