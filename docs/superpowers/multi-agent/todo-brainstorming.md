@@ -21,13 +21,13 @@
 - [x] **BS-09: Readability** ✅ → `skills/_shared/multi-agent-quality-standards.md` §2 (≤3 sentences per idea, ≤2× single-agent length)
 - [x] **BS-10: Evaluation harness** ✅ → `exercises/multi-agent-skills/fixtures/BS-1.json, BS-2.json, BS-3.json`
 
-## P3 — Intentionally Deferred
+## P3 — Completed (formerly deferred)
 
-- [~] **BS-11: Adaptive lens selection** — DEFERRED. Start with explicit 3–4 lens selection (ensemble-mode.md §Step 2). Optimize based on experiment data.
-- [~] **BS-12: Iterative brainstorming** — DEFERRED. Validate first-round quality before adding expensive second pass.
-- [~] **BS-13: Cross-lens debate** — DEFERRED. Risk of premature convergence. Brainstorms should expand possibility space, not narrow it.
+- [x] **BS-11: Adaptive lens selection** ✅ → `references/ensemble-mode.md` §"Adaptive Lens Selection" (signal-based auto-selection with prune rules)
+- [x] **BS-12: Iterative brainstorming** ✅ → `references/ensemble-mode.md` §"Iterative Brainstorming" (second-round triggers, cost guard, max 2 rounds)
+- [x] **BS-13: Cross-lens contradiction clarification** ✅ → `references/ensemble-mode.md` §"Cross-Lens Contradiction Clarification" (contradiction-triggered, 1 round max, surfaces assumptions, preserves tradeoffs)
 - [x] **BS-14: Instrumentation** ✅ → `skills/_shared/multi-agent-quality-standards.md` §5 (full JSON logging spec)
-- [~] **BS-15: Historical idea dedup** — DEFERRED. Requires persistent idea store that doesn't exist yet.
+- [x] **BS-15: Historical idea dedup** ✅ → `references/ensemble-mode.md` §"Historical Idea Dedup" (session-scoped hash dedup, Jaccard >0.7, annotation not removal)
 - [x] **BS-16: NOT to use criteria** ✅ → `skills/_shared/multi-agent-quality-standards.md` §9 + `skills/_shared/multi-agent-activation-rubric.md` anti-signals
 
 ## Open Questions
