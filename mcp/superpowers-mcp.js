@@ -91,8 +91,16 @@ function extractFrontmatter(filePath) {
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
         const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-        if (nameMatch) name = nameMatch[1].trim();
-        if (descMatch) description = descMatch[1].trim();
+        if (nameMatch) {
+          let v = nameMatch[1].trim();
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"');
+          name = v;
+        }
+        if (descMatch) {
+          let v = descMatch[1].trim();
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"');
+          description = v;
+        }
         if (triggerMatch) {
           triggers = parseInlineArray(triggerMatch[1]);
         } else if (line.match(/^triggers:\s*$/)) {
@@ -188,7 +196,10 @@ function findSkillsInDir(dir, sourceType) {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
     const skillDir = path.join(dir, entry.name);
-    const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    let isDir = false;
+    try {
+      isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    } catch { continue; /* broken symlink */ }
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];
