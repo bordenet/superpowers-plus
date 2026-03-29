@@ -52,13 +52,6 @@ echo "| Check perf        | 7     | ORPHANED  |"
 echo "Action: 1 stale (re-evaluate), 1 orphaned (close)"
 ```
 
-## Scope Exclusions
-
-- CRUD on TODO.md -> todo-management
-- Planning sequences -> plan-and-execute
-
----
-
 ## Enforcement Rules
 
 ### Rule 1: Extract or Reject

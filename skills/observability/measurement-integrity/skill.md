@@ -51,14 +51,6 @@ echo "Delta: $((method1 - method2)) support files"
 # Report: "72 skills (filesystem-verified, 2 methods)"
 ```
 
-## Scope Exclusions
-
-- Quoting verbatim tool output -> quote directly
-- Qualitative observations -> not a metric
-- Someone else published metric -> cite the source
-
----
-
 ## Measurement Checklist
 
 ### 1. Completeness

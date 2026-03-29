@@ -141,10 +141,6 @@ Conversational TODO management. Captures tasks in ≤15 seconds, P1/P2/P3 priori
 - **File format**: `references/file-format-and-operations.md` (sections, IDs, operations, lock workflow)
 - **Context-Aware**: `references/context-aware-standard.md` — enforce on `#plan-*` tasks
 
-## Scope Exclusions
-
-- Archiving → `todo-archive` · Plan creation → `plan-and-execute` · Search → query `TODO.md` directly
-
 ## Guardrails
 
 P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress. Plan tasks without Context-Aware fields → warn.
