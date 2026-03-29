@@ -52,7 +52,6 @@ EXPLICIT_SKILLS=(
     "feature-development"           # Orchestrator child: dispatched by thinking-orchestrator
     "plan-and-execute"              # Orchestrator child: dispatched by thinking-orchestrator
     "investigation-state"           # Orchestrator child: dispatched by thinking-orchestrator
-    "debug-conductor"               # Orchestrator child: dispatched by thinking-orchestrator
     "timeline-trace-investigator"   # Internal: dispatched by debug-conductor
     "llm-behavior-investigator"     # Internal: dispatched by debug-conductor
     "telephony-flow-investigator"   # Internal: dispatched by debug-conductor

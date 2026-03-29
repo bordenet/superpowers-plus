@@ -70,8 +70,13 @@ function discoverSourceDir(envVar, wellKnownPaths) {
 }
 
 const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
-    '~/.codex/superpowers-plus',
+    // Source checkout paths first (development takes priority over installed copy)
+    '~/GitHub/Personal/superpowers-plus',
+    '~/git/Personal/superpowers-plus',
+    '~/src/superpowers-plus',
     '~/superpowers-plus',
+    // Installed copy as fallback only
+    '~/.codex/superpowers-plus',
 ]);
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
@@ -517,7 +522,7 @@ function useSkill(skillName, options = {}) {
         // spp: → search superpowers-plus source repo only
         if (!SPP_SOURCE_DIR) {
             console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone to ~/.codex/superpowers-plus');
+            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
             process.exit(1);
         }
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
