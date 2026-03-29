@@ -1,0 +1,64 @@
+{
+  "id": "S3",
+  "name": "LLM Tool-Selection Regression",
+  "domain": ["llm-behavior"],
+  "difficulty": "medium",
+  "incident_description": "Our AI agent is sending emails to customers instead of making phone calls. Customer complaints started yesterday afternoon. The agent seems to work fine for other tasks (scheduling, lookups) but when asked to 'call the customer' it sends an email about 20% of the time. No errors are being logged.",
+  "system_context": {
+    "services": [
+      {"name": "llm-orchestrator", "version": "1.8.2", "role": "Manages LLM tool-use conversations"},
+      {"name": "tool-registry", "version": "2.0.0", "role": "Serves tool definitions to LLM"},
+      {"name": "telephony-gateway", "version": "4.1.0", "role": "Executes make_call tool"},
+      {"name": "email-service", "version": "3.2.1", "role": "Executes send_email tool"}
+    ],
+    "recent_changes": [
+      {"service": "tool-registry", "version": "2.0.0", "timestamp": "2026-03-28T14:00:00Z", "description": "Updated tool descriptions for clarity. make_call changed from 'Initiate an outbound phone call to a contact' to 'Reach out to a contact via voice channel'."}
+    ],
+    "config": {
+      "llm_model": "claude-sonnet-4-20250514",
+      "max_context_tokens": 128000,
+      "tool_count": 12,
+      "tools": ["make_call", "send_email", "lookup_contact", "schedule_callback", "transfer_call", "create_ticket", "update_ticket", "search_knowledge_base", "get_account_info", "set_disposition", "log_interaction", "escalate_to_human"]
+    }
+  },
+  "available_evidence": {
+    "agent_traces": [
+      {"conversation_id": "conv-101", "request": "Call the customer to follow up", "tool_selected": "send_email", "context_tokens_used": 108000, "success": true},
+      {"conversation_id": "conv-102", "request": "Call the customer about their order", "tool_selected": "make_call", "context_tokens_used": 45000, "success": true},
+      {"conversation_id": "conv-103", "request": "Please call this lead", "tool_selected": "send_email", "context_tokens_used": 112000, "success": true},
+      {"conversation_id": "conv-104", "request": "Ring the customer", "tool_selected": "make_call", "context_tokens_used": 62000, "success": true},
+      {"conversation_id": "conv-105", "request": "Call the customer back", "tool_selected": "send_email", "context_tokens_used": 95000, "success": true}
+    ],
+    "prompt_diff": {
+      "tool_registry_v1": {
+        "make_call": "Initiate an outbound phone call to a contact. Requires phone_number parameter.",
+        "send_email": "Send an email message to a contact. Requires email_address and subject parameters."
+      },
+      "tool_registry_v2": {
+        "make_call": "Reach out to a contact via voice channel. Requires phone_number parameter.",
+        "send_email": "Send an email message to a contact. Requires email_address and subject parameters."
+      }
+    },
+    "error_logs": "No errors logged. All tool calls succeed — the wrong tool is selected but executes successfully.",
+    "metrics": {
+      "tool_selection_accuracy_before": "99.2%",
+      "tool_selection_accuracy_after": "80.1%",
+      "make_call_mismatch_rate": "19.9%",
+      "avg_context_tokens_on_mismatch": 102000,
+      "avg_context_tokens_on_correct": 55000
+    }
+  },
+  "root_cause": "Tool registry v2.0.0 changed make_call description from 'Initiate an outbound phone call' (unambiguous) to 'Reach out to a contact via voice channel' (ambiguous — could mean email, call, or message). Under high context utilization (>80% of 128K window), the LLM loses precision on tool selection and defaults to send_email because its description ('Send an email message to a contact') is more specific and easier to match. The combination of ambiguous tool description + high context load triggers the regression.",
+  "root_cause_domain": "llm-behavior",
+  "red_herrings": [
+    {"description": "Context window at 85%+ on failures", "why_misleading": "Contributing factor but not root cause. High context alone with the OLD tool description didn't cause misselection. It's the combination."},
+    {"description": "No errors logged", "why_misleading": "Silent failure — the wrong tool succeeds, making it look like everything works. Tempting to dismiss the issue as 'working correctly'."},
+    {"description": "Only 20% of calls affected", "why_misleading": "Suggests intermittent infrastructure issue, but it's actually deterministic: high context + ambiguous description = misselection."}
+  ],
+  "expected_investigation_path": {
+    "llm_behavior": "Compare traces: misselections correlate with high context AND new tool description → root cause",
+    "timeline": "Change deployed yesterday at 14:00, complaints started afternoon → strong deployment correlation",
+    "state": "No state consistency issues — tool calls succeed",
+    "infra": "Deployment v2.0.0 correlates → points to tool description change"
+  }
+}
