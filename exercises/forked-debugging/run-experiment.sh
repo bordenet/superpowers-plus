@@ -34,9 +34,7 @@ shift 2
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --runs)
-            [[ $# -lt 2 ]] && { echo "Error: --runs requires a value"; exit 1; }
-            RUNS="$2"; shift 2 ;;
+        --runs) RUNS="$2"; shift 2 ;;
         *) usage ;;
     esac
 done
@@ -44,7 +42,6 @@ done
 # Validate
 [[ "$CONDITION" =~ ^[ABC]$ ]] || { echo "Error: condition must be A, B, or C"; exit 1; }
 [[ "$SCENARIO" =~ ^S[1-5]$ ]] || { echo "Error: scenario must be S1–S5"; exit 1; }
-[[ "$RUNS" =~ ^[1-9][0-9]*$ ]] || { echo "Error: --runs must be a positive integer, got '${RUNS}'"; exit 1; }
 
 FIXTURE_FILE="${FIXTURES_DIR}/${SCENARIO}.json"
 if [[ ! -f "$FIXTURE_FILE" ]]; then
@@ -65,12 +62,11 @@ echo ""
 for run in $(seq 1 "$RUNS"); do
     RESULT_FILE="${RESULTS_DIR}/${CONDITION}-${SCENARIO}-run${run}.json"
     echo "--- Run ${run}/${RUNS} ---"
-    START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    START_EPOCH=$(date +%s)
+    START_TIME=$(date +%s)
 
-    # Load fixture safely via stdin (no shell interpolation of fixture values)
-    INCIDENT_DESC=$(python3 -c "import json,sys; d=json.load(sys.stdin); print(d['incident_description'])" < "$FIXTURE_FILE")
-    GROUND_TRUTH=$(python3 -c "import json,sys; d=json.load(sys.stdin); print(d['root_cause'])" < "$FIXTURE_FILE")
+    # Load fixture
+    INCIDENT_DESC=$(python3 -c "import json,sys; d=json.load(open('${FIXTURE_FILE}')); print(d['incident_description'])")
+    GROUND_TRUTH=$(python3 -c "import json,sys; d=json.load(open('${FIXTURE_FILE}')); print(d['root_cause'])")
 
     case "$CONDITION" in
         A)
@@ -88,19 +84,18 @@ for run in $(seq 1 "$RUNS"); do
             ;;
     esac
 
-    END_EPOCH=$(date +%s)
-    DURATION=$((END_EPOCH - START_EPOCH))
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
 
-    # Write result skeleton (ground truth safely encoded via stdin)
-    GROUND_TRUTH_JSON=$(printf '%s' "$GROUND_TRUTH" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))")
+    # Write result skeleton
     cat > "$RESULT_FILE" <<EOF
 {
   "condition": "${CONDITION}",
   "scenario": "${SCENARIO}",
   "run": ${run},
-  "startTime": "${START_TIME}",
+  "startTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "durationSeconds": ${DURATION},
-  "groundTruth": ${GROUND_TRUTH_JSON},
+  "groundTruth": $(python3 -c "import json; print(json.dumps('${GROUND_TRUTH}'))"),
   "metrics": {
     "timeToFirstHypothesisSeconds": null,
     "timeToValidatedRootCauseSeconds": null,

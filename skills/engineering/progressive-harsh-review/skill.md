@@ -73,15 +73,18 @@ For each persona, answer ALL scoring dimensions:
 
 ### Step 2: Score and Aggregate
 
-Each persona scores 1-10 on each dimension. **Aggregation rule:** take the MINIMUM weighted average across all three personas. This prevents one lenient persona from masking another's concerns.
+Each persona scores 1-10 on each dimension. **Aggregation rule:** take the **weighted mean** across all three personas (equal persona weight by default). This replaces the previous MINIMUM rule, which was overly pessimistic when one persona was mismatched to the task.
+
+**Critical veto:** If ANY persona scores Correctness or Security/Perf ≤4 AND cites a specific defect (not a general concern), that finding acts as a **hard veto** — automatic REJECT regardless of the weighted mean. This preserves safety without making the whole system hostage to the weakest persona on non-critical dimensions.
 
 ### Step 3: Verdict
 
-| Minimum Persona Average | Verdict | Action |
-|--------------------------|---------|--------|
+| Weighted Mean | Verdict | Action |
+|---------------|---------|--------|
 | ≥8 | **PASS** | Ship it |
-| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when minimum ≥8 or Round 2 finds no new issues. |
+| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when mean ≥8 or Round 2 finds no new issues. |
 | <6 | **REJECT** | Root-cause analysis → remediate → full re-review |
+| Any | **REJECT (veto)** | Critical veto fired — fix the cited defect, full re-review |
 
 ### Step 4: Remediation (if needed)
 
@@ -95,7 +98,7 @@ On REJECT:
 
 ### Step 5: Convergence
 
-- **Exit when:** Final round minimum persona average ≥6 AND no new material issues in latest round
+- **Exit when:** Final round weighted mean ≥6 AND no active Critical vetoes AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Scoring Output Format

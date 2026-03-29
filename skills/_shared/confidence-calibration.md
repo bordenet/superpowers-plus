@@ -81,4 +81,4 @@ When combining evidence across types:
 1. These scores are **starting values** based on engineering judgment, not empirical calibration
 2. True calibration requires comparing predicted confidence to actual correctness across many investigations
 3. Until calibrated empirically: **prefer underconfidence to overconfidence** (err toward lower scores)
-4. Kill threshold (0.3) and accept threshold (0.8) are operational gates enforced by the conductor (see `fork-readiness-rubric.md` for canonical values)
+4. Kill threshold (0.3) and accept threshold (0.8) should be treated as soft guidelines, not hard cutoffs
