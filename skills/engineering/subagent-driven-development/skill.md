@@ -15,6 +15,13 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  produces: [implemented-code, test-suite, review-report]
+  consumes: [implementation-plan, task-list, acceptance-criteria]
+  capabilities: [parallel-task-dispatch, merge-risk-analysis, integration-checkpoint]
+  priority: 5
+  optional: false
+  requires_all: false
 ---
 
 # Subagent-Driven Development
