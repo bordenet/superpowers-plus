@@ -14,9 +14,13 @@ anti_triggers:
   - requesting code review
   - receiving code review
 coordination:
+  group: code-quality
+  order: 1
   enables:
     - progressive-code-review-gate
   requires: []
+  escalates_to: []
+  internal: false
 source: superpowers-plus
 ---
 

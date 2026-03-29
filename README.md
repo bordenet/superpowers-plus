@@ -144,21 +144,29 @@ Skills activate automatically when your request matches their triggers. Describe
 | engineering | blast-radius-check | Finds all callers before edits |
 | | brainstorming | Explores intent, requirements, and design before implementation |
 | | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
+| | debug-conductor | PREVIEW — Conductor-led parallel investigation for complex distributed incidents |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
+| | evidence-adjudicator | Synthesizes investigator evidence into ranked root-cause verdicts |
 | | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
 | | field-rename-verification | Verifies renames across service boundaries |
+| | infra-config-investigator | Investigates infrastructure config changes, deployment regressions |
 | | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
+| | llm-behavior-investigator | Investigates AI/LLM behavior: tool misselection, prompt regressions |
 | | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
 | | pre-commit-gate | Runs lint → typecheck → test |
 | | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
 | | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
 | | providing-code-review | Structured PR feedback with checklist |
 | | receiving-code-review | Verifies incoming feedback before implementing |
+| | reproduction-experiment-investigator | Runs controlled reproduction experiments to verify hypotheses |
 | | requirements-validation | Tests requirements for falsifiability, contradictions |
+| | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
 | | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
 | | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
+| | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
+| | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
 | | verification-before-completion | Final checks before claiming done |
 | experimental | experimental-self-prompting | Context-free analysis (unstable) |
 | issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
