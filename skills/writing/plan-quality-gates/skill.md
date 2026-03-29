@@ -172,7 +172,7 @@ echo "Checklist:"
 echo "  [ ] Every step has success criteria"
 echo "  [ ] Rollback plan documented"
 echo "  [ ] Dependencies identified"
-echo "  [ ] Time estimates included"
+echo "  [ ] No fabricated timelines (capacity data required for any time estimate)"
 ```
 
 ## Failure Modes
