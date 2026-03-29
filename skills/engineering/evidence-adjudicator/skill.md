@@ -88,6 +88,14 @@ For the winning hypothesis:
 3. Unaddressed disconfirming evidence → lower confidence
 4. **Branches that never produced disconfirming evidence are suspect** — may have only looked for confirmation
 
+### Step 5b: Adversarial Disconfirmation Pass
+
+Before accepting the verdict, apply `adversarial-search` thinking to the leading hypothesis:
+1. **Invert the hypothesis** — "If this is NOT the root cause, what else explains the evidence?"
+2. **Challenge the strongest supporting evidence** — is there an alternative interpretation?
+3. **Look for confirmation bias** — did all branches converge too quickly?
+4. If this pass produces a credible alternative, demote the leading hypothesis confidence by 0.1 and add the alternative to the reasoning tree.
+
 ### Step 6: Produce Verdict
 
 ```json
