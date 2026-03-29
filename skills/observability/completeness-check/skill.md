@@ -38,19 +38,6 @@ AI coding assistants frequently leave incomplete work when they:
 
 This leaves humans out of the loop. This skill helps detect and surface that incomplete work.
 
-## When to Use This Skill
-
-### Proactive Mode (before claiming done)
-- Before committing changes
-- Before creating a pull request
-- Before reporting "work is complete"
-- After long coding sessions
-
-### Reactive Mode (auditing existing work)
-- When taking over a project from another AI session
-- When reviewing a repo that "feels incomplete"
-- Periodic maintenance audits
-- After discovering broken links or missing files
 
 ## Detection Categories
 
@@ -149,22 +136,9 @@ Summary:
 - Semantic analysis for stale docs
 - Cross-file dependency graphs
 
-## Skill Connections
-
-- `holistic-repo-verification` - Check repo health after fixing incompleteness
-- `superpowers:verification-before-completion` - Use completeness-check first
-- `eliminating-ai-slop` - Clean up AI-generated patterns found
-
 ## Success Criteria
 
-✅ All Critical issues resolved
-✅ Score above 70 (or team threshold)
-✅ No regressions from previous check
-✅ Findings documented if deferred
-
----
-
-**Remember**: AI assistants leave incomplete work more often than we realize. This skill makes that work visible.
+All Critical resolved · score ≥70 · no regressions · deferred findings documented.
 
 
 ## Failure Modes
@@ -178,12 +152,6 @@ Summary:
 | False positive on intentional stubs | Check git history — recent stubs may be in-progress, not abandoned |
 | Skipping error handling/cleanup checks | Check error paths, rollback logic, and cleanup — not just happy path |
 
-
-## Scope Exclusions
-
-- Deep exhaustive audit → `exhaustive-audit-validation`
-- Pre-commit verification → `pre-commit-gate`
-- Full repo health → `holistic-repo-verification`
 
 ## Companion Skills
 

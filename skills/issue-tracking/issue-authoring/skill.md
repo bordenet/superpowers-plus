@@ -163,7 +163,6 @@ Before creating issue:
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
 
-
 ## Example
 
 ```bash

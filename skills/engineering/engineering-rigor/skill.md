@@ -107,13 +107,6 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - `verification-before-completion` — General completion checklist
 
 
-## Scope Exclusions
-
-- Specific code review checklist → `providing-code-review`
-- Pre-commit gate → `pre-commit-gate`
-- Debugging → `systematic-debugging`
-
-
 ## Example
 
 ```bash

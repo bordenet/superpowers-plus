@@ -38,12 +38,6 @@ Enforces best practices for Markdown table construction. This skill auto-trigger
 - Reviewing content that contains tables for formatting quality
 
 
-## Scope Exclusions
-
-- AI slop removal → `eliminating-ai-slop`
-- README writing → `readme-authoring`
-- Wiki page writing → `wiki-orchestrator`
-
 ## Decision Gate: Table vs. List
 
 **BEFORE creating ANY table, evaluate:**

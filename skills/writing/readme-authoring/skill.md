@@ -43,12 +43,6 @@ Invoke when:
 - User says: "Write/update/review the README"
 
 
-## Scope Exclusions
-
-- Wiki page writing → `wiki-orchestrator`
-- Skill file writing → `skill-authoring`
-- AI slop removal → `eliminating-ai-slop`
-
 ## README Structure (Priority Order)
 
 ### 1. Header (First Screen) - REQUIRED
