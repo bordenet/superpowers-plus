@@ -289,6 +289,8 @@ function extractFrontmatter(filePath) {
                     // Strip outer quotes and handle escaped quotes inside
                     if (value.startsWith('"') && value.endsWith('"')) {
                         value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    } else if (value.startsWith("'") && value.endsWith("'")) {
+                        value = value.slice(1, -1);
                     }
                     if (key === 'name') name = value;
                     if (key === 'description') description = value;
@@ -341,7 +343,10 @@ function findSkillsInDir(dir, sourceType) {
         let isDir = false;
         try {
             isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-        } catch { continue; /* broken symlink */ }
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
+            throw err; // surface real errors (EACCES, etc.)
+        }
         if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {

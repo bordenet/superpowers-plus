@@ -93,12 +93,14 @@ function extractFrontmatter(filePath) {
         const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
         if (nameMatch) {
           let v = nameMatch[1].trim();
-          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"');
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
           name = v;
         }
         if (descMatch) {
           let v = descMatch[1].trim();
-          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"');
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
           description = v;
         }
         if (triggerMatch) {
@@ -199,7 +201,10 @@ function findSkillsInDir(dir, sourceType) {
     let isDir = false;
     try {
       isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-    } catch { continue; /* broken symlink */ }
+    } catch (err) {
+      if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
+      throw err; // surface real errors (EACCES, etc.)
+    }
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];
