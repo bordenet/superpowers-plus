@@ -94,7 +94,7 @@ Apply the **Fork-Readiness Rubric** (see `skills/_shared/fork-readiness-rubric.m
 | **Explain more** ("why these investigators?") | Provide rationale, re-present; do NOT auto-proceed |
 | **Off-topic / unclear** | Clarify once: "Should I proceed with forked investigation?" If still unclear → single-agent fallback |
 | **Echo** (repeats the plan back) | Treat as approval |
-| **No response within 30 seconds** | Proceed with proposed plan (log auto-approval) |
+| **No response / silence** | Stay serial (`systematic-debugging`); log that fork was available but not approved |
 
 ### Phase 3: Investigator Assignment (Fork Path)
 

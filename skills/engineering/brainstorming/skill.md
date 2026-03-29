@@ -58,7 +58,7 @@ Turn ideas into fully formed designs through collaborative dialogue. Understand 
 
 For broad, ambiguous, or high-impact prompts, brainstorming can activate **ensemble mode** — dispatching parallel perspective lenses (Product, Architecture, Reliability, Security, Simplicity, Contrarian) for richer exploration. See `references/ensemble-mode.md` for full protocol.
 
-**Activation:** Apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 5 → ensemble. Else → single-agent (this checklist).
+**Activation:** Apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 6 → ensemble. Score = 5 → ask user. Score < 5 → single-agent (this checklist).
 **Cost cap:** 1.5× single-agent tokens. **Max lenses:** 4.
 
 <HARD-GATE>

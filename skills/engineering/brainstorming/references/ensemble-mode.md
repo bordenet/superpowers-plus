@@ -1,7 +1,7 @@
 # Brainstorming Ensemble Mode
 
 > **Purpose:** Multi-perspective ideation for broad, ambiguous, or design-heavy prompts.
-> **Activation:** Automatic when multi-agent activation rubric score ≥ 5.
+> **Activation:** Automatic when multi-agent activation rubric score ≥ 6. Score = 5 → ask user first.
 > **Default:** Single-agent brainstorming (existing behavior). Ensemble is escalation.
 
 ## When Ensemble Mode Activates
