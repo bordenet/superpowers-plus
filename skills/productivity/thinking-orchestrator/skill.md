@@ -1,7 +1,7 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
+triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
 summary: "Use when: routing to the right thinking skill (brainstorming vs design-triad vs think-twice)."
 coordination:
