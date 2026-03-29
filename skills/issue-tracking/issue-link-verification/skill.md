@@ -34,12 +34,6 @@ Invoke this skill when:
 - Any external URL in issue content
 
 
-## Scope Exclusions
-
-- Creating new issues → `issue-authoring`
-- Fact-checking issue content → `issue-verify`
-- Wiki link verification → `link-verification`
-
 ## Pre-Posting Link Check (MANDATORY)
 
 <EXTREMELY_IMPORTANT>

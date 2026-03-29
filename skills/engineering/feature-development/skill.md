@@ -180,12 +180,6 @@ npm run lint && npm test
 | Skipping harsh review after implementation | Phase 6 is mandatory. Fixes from review need their own review. |
 | Not persisting phase state via TODO | Each phase must be enrolled as a TODO before starting |
 
-## Scope Exclusions
-
-- Non-code challenges → `plan-and-execute`
-- Pure bug fixes → `systematic-debugging`
-- Single-file changes → just do them
-
 ## Companion Skills
 
 - **brainstorming**: Generating options and alternatives

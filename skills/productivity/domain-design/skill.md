@@ -40,13 +40,6 @@ coordination:
 
 This is a 10-phase workflow. Per `todo-enforcement.always.md`, persist all 10 phases to TODO.md with `#plan-domain-{name}` tags BEFORE starting Phase 1. Mirror to MCP as supplementary.
 
-## Scope Exclusions
-
-- Single-skill design → `brainstorming` + `skill-authoring`
-- Implementing designed skills → `skill-authoring`
-- Feature design (not skill domain) → `design-triad`
-- Restructuring an existing domain's internals → `brainstorming`
-
 ## Scope
 
 Orchestrates the full cycle of designing a new skill domain (3+ related skills). Composes `brainstorming`, `adversarial-search`, `innovation`, and `wiki-orchestrator` into a 10-phase process.

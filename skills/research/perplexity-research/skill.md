@@ -126,13 +126,6 @@ curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: appli
 | Not recording outcome, preventing future calibration | Always complete Step 7 (record outcome) even when the answer was unhelpful |
 | Prompt too vague — getting generic response | Include context, constraints, what you tried, and what web-search found |
 
-## Skill Connections
-
-- **superpowers:systematic-debugging**: Invoke Perplexity when debugging hits a wall
-- **superpowers:brainstorming**: Use for research during design exploration
-- **superpowers:verification-before-completion**: Verify facts before claiming done
-- **incorporating-research**: Use AFTER Perplexity returns results and user wants to merge findings into an existing document. Handles triage, voice-matching, and artifact stripping.
-
 ## Cost Efficiency
 
 > ⚠️ **Perplexity API calls cost real money.** Always try free tools first (Step 0).
@@ -158,12 +151,6 @@ See `references/escalation.md` for the full decision tree.
 
 - [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-conscious decision framework
 - [`references/escalation.md`](references/escalation.md) — "I'm stuck" decision tree for think-twice vs perplexity-research
-
-## Scope Exclusions
-
-- Quick web search → use `web-search` tool directly
-- Structured domain interviews → `expert-interviewer`
-- Code search → use `codebase-retrieval` tool
 
 ## Companion Skills
 
