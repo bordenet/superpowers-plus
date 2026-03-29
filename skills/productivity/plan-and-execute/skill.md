@@ -63,6 +63,8 @@ Phase D: PHASE ENROLLMENT → Phase E: EXECUTE (retro → improve → do → rev
 
 ### Phase B: Devise the Plan
 
+**Mode decision:** Before writing the plan, apply `skills/_shared/multi-agent-activation-rubric.md`. If score ≥ 5, use **Planning Council Mode** (`references/planning-council-mode.md`) — dispatches role-specific planners (requirements, architecture, risk, testing, rollout) in parallel, then synthesizes into one coherent plan. Otherwise, single-agent planning below.
+
 1. Produce a plan that addresses the challenge
    - Interactive co-development OR autonomous drafting — match user's mode
 2. Structure the plan as ordered phases with dependency relationships
