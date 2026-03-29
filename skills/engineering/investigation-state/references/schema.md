@@ -95,7 +95,7 @@ Added for the `debug-conductor` forked debugging system. All fields are null/abs
 |-------|------|-------------|
 | `incidentPacketId` | string/null | UUID of the parent incident packet that triggered this fork |
 | `branchId` | string/null | This branch's ID within the incident packet |
-| `branchRole` | string/null | Investigator role: `timeline-trace`, `llm-behavior`, `telephony-flow`, `state-consistency`, `infra-config`, `reproduction-experiment`, `evidence-adjudicator` |
+| `branchRole` | string/null | Investigator role: `timeline-trace`, `llm-behavior`, `state-consistency`, `infra-config`, `reproduction-experiment`, `evidence-adjudicator` |
 | `conductorId` | string/null | Investigation ID of the debug-conductor that dispatched this branch |
 | `forkReason` | string/null | Why forking was chosen (e.g., "rubric score 7, multi-domain incident") |
 | `forkRubricScore` | int/null | Fork-readiness rubric score at time of fork decision (0–10) |

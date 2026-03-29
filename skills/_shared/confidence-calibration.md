@@ -34,14 +34,6 @@
 | Context utilization correlation | 0.5 | +0.2 if threshold clearly separates success/failure | -0.1 if correlation is weak |
 | Tool description A/B test | 0.8 | +0.1 if deterministic | — |
 
-### Telephony Evidence (telephony-flow-investigator)
-
-| Evidence | Base Confidence | Boost | Penalty |
-|----------|----------------|-------|---------|
-| SIP trace shows exact failure point | 0.75 | +0.1 if multiple calls show same pattern | -0.1 if only 1 call sampled |
-| RTP packet analysis confirms direction | 0.8 | — | -0.15 if tcpdump is incomplete |
-| Call state machine divergence found | 0.7 | +0.15 if event ordering is deterministic | -0.1 if timing-dependent |
-
 ### State Evidence (state-consistency-investigator)
 
 | Evidence | Base Confidence | Boost | Penalty |
