@@ -226,20 +226,27 @@ detect_orphaned_todo_files() {
         "$HOME/TODO.md"
     )
 
-    # Dynamically discover workspace roots: scan any $HOME child directory
-    # that contains git repos (1-2 levels deep). No hardcoded directory names.
+    # Dynamically discover workspace roots: scan $HOME child directories
+    # for git repos (1-2 levels deep). Only check dirs with .git to avoid
+    # scanning ~/Library, ~/Documents, OneDrive, etc.
     local git_dir
     for parent_dir in "$HOME"/*/; do
         [[ -d "$parent_dir" ]] || continue
         # Skip dotdirs and known non-workspace dirs
-        [[ "$(basename "$parent_dir")" == .* ]] && continue
-        # Level 1: direct repos under ~/SomeDir/repo/
+        local basename
+        basename="$(basename "$parent_dir")"
+        [[ "$basename" == .* ]] && continue
+        # Skip macOS system dirs and cloud storage that are never code repos
+        case "$basename" in
+            Library|Documents|Pictures|Music|Movies|Downloads|Desktop|Public|Applications|OneDrive*) continue ;;
+        esac
+        # Level 1: direct repos under ~/SomeDir/repo/ (must be a git repo)
         for git_dir in "$parent_dir"*/; do
-            [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+            [[ -d "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
         done
-        # Level 2: nested repos under ~/SomeDir/owner/repo/
+        # Level 2: nested repos under ~/SomeDir/owner/repo/ (must be a git repo)
         for git_dir in "$parent_dir"*/*/; do
-            [[ -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
+            [[ -d "${git_dir}.git" && -f "${git_dir}TODO.md" ]] && candidates+=("${git_dir}TODO.md")
         done
     done
 
