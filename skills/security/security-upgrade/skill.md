@@ -180,10 +180,3 @@ If tests fail after an upgrade, the correct response is:
 | Upgrading to version with breaking API changes without reading changelog | Check release notes/changelog for breaking changes before upgrading |
 | Skipping transitive/indirect vulnerability fixes | Scan output includes indirect deps — trace and fix the root dependency |
 | Tests pass locally but CI fails due to environment differences | Run full CI after push; don't declare "fixed" until CI confirms |
-
-## Scope Exclusions
-
-- Secret/credential scanning → `wiki-secret-audit`
-- General code review → `progressive-code-review-gate`
-
-**Related:** Budget justification for security fixes → [docforge-ai](https://bordenet.github.io/docforge-ai/assistant/?type=business-justification)

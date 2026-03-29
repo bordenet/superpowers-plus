@@ -83,12 +83,6 @@ Invoke when:
 - **Adding internal wiki links** (e.g., `/doc/page-slug-xyz123`)
 
 
-## Scope Exclusions
-
-- Issue link verification → `issue-link-verification`
-- Wiki content editing → `wiki-orchestrator`
-- Fact-checking claims → `wiki-debunker`
-
 ## ⛔ The Rule
 
 <EXTREMELY_IMPORTANT>
