@@ -587,9 +587,9 @@ fi
 # Test 5: List skills
 info "Testing find-skills command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
-SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep -c "^superpowers:" || echo "0")
+SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
 if [[ "$SKILL_COUNT" -gt 0 ]]; then
-    success "Found $SKILL_COUNT skills"
+    success "Found $SKILL_COUNT total installed skills"
 else
     warn "No skills found (this may be normal for first install)"
 fi
