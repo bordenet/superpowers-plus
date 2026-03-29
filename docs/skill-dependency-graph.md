@@ -30,6 +30,14 @@ graph TD
 
   subgraph debugging["Debugging"]
     investigation_state["investigation-state"]
+    debug_conductor["debug-conductor (PREVIEW)"]
+    evidence_adjudicator["evidence-adjudicator"]
+    timeline_trace_investigator["timeline-trace-investigator"]
+    llm_behavior_investigator["llm-behavior-investigator"]
+    telephony_flow_investigator["telephony-flow-investigator"]
+    state_consistency_investigator["state-consistency-investigator"]
+    infra_config_investigator["infra-config-investigator"]
+    reproduction_experiment_investigator["reproduction-experiment-investigator"]
   end
 
   subgraph completion-gate["Completion Gate"]
@@ -110,6 +118,7 @@ graph TD
   subgraph wiki-pipeline["Wiki Pipeline"]
     wiki_orchestrator["wiki-orchestrator"]
     wiki_content_coherence["wiki-content-coherence"]
+    wiki_refactor["wiki-refactor"]
   end
 
   subgraph writing["Writing"]
@@ -124,10 +133,21 @@ graph TD
   blast_radius_check -->|enables| field_rename_verification
   blast_radius_check ==>|escalates to| engineering_rigor
   brainstorming -->|enables| design_triad
-  brainstorming -->|enables| writing_plans
   brainstorming -->|enables| plan_and_execute
   brainstorming ==>|escalates to| thinking_orchestrator
   design_triad -->|enables| plan_and_execute
+
+  %% Debugging orchestration (conductor dispatches all investigators + adjudicator)
+  debug_conductor -->|dispatches| timeline_trace_investigator
+  debug_conductor -->|dispatches| llm_behavior_investigator
+  debug_conductor -->|dispatches| telephony_flow_investigator
+  debug_conductor -->|dispatches| state_consistency_investigator
+  debug_conductor -->|dispatches| infra_config_investigator
+  debug_conductor -->|dispatches| reproduction_experiment_investigator
+  debug_conductor -->|dispatches| evidence_adjudicator
+  debug_conductor -->|requires| investigation_state
+  debug_conductor ==>|escalates to| systematic_debugging
+  evidence_adjudicator -->|uses| adversarial_search
   design_triad ==>|escalates to| thinking_orchestrator
   engineering_rigor -->|enables| pre_commit_gate
   engineering_rigor -->|enables| blast_radius_check
