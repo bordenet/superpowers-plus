@@ -29,7 +29,7 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `LLMEvidence` (see `skills/_shared/evidence-schema.md`)
 
-## When to Invoke
+## When to Use
 
 Dispatched by `debug-conductor` when the incident involves AI/LLM behavior — tool misselection, prompt regressions, context window pressure, or output parsing failures.
 
