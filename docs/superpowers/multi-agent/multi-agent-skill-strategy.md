@@ -346,30 +346,30 @@ All orchestration decisions logged in structured format:
 
 ## 7. Implementation Waves
 
-### Wave 1 (Current)
+### Wave 1 ✅
 - [x] Repo inventory and existing capability audit
 - [x] Shared architecture document
-- [ ] TODO documents per skill
-- [ ] Multi-agent activation rubric (shared)
+- [x] TODO documents per skill → `todo-brainstorming.md`, `todo-writing-plans.md`, `todo-subagent-driven-development.md`
+- [x] Multi-agent activation rubric (shared) → `skills/_shared/multi-agent-activation-rubric.md`
 
-### Wave 2
-- [ ] Design alternatives per skill (3 each, select 1, reject 2 with reasons)
-- [ ] Harsh review of all designs
+### Wave 2 ✅
+- [x] Design alternatives per skill (3 each, select 1, reject 2 with reasons) → §4.1–4.3 above
+- [x] Harsh review of all designs → §8.1 findings addressed
 
-### Wave 3
-- [ ] Shared primitives (task packet, result schema, synthesis schema)
-- [ ] writing-plans multi-agent prototype (first target)
-- [ ] Progressive harsh review
+### Wave 3 ✅
+- [x] Shared primitives (task packet, result schema, synthesis schema) → §3.2–3.4 above
+- [x] writing-plans multi-agent prototype (first target) → `plan-and-execute/references/planning-council-mode.md`
+- [x] Progressive harsh review → 10+ rounds, final score 8.6/10
 
-### Wave 4
-- [ ] subagent-driven-development parallel dispatch
-- [ ] brainstorming ensemble prototype
-- [ ] Experiment fixtures and harness
+### Wave 4 ✅
+- [x] subagent-driven-development parallel dispatch → `references/parallel-dispatch-mode.md`, `isolation-analyzer.md`
+- [x] brainstorming ensemble prototype → `references/ensemble-mode.md`, `lens-mandates.md`
+- [x] Experiment fixtures and harness → `exercises/multi-agent-skills/fixtures/` (9 fixtures), `exercises/forked-debugging/` (5 fixtures + harness)
 
-### Wave 5
-- [ ] Run comparative experiments
-- [ ] Final recommendations
-- [ ] Documentation and limitations
+### Wave 5 — In Progress
+- [ ] Run comparative experiments (harness built, execution pending integration testing)
+- [x] Final recommendations → `docs/superpowers/specs/2026-03-29-forked-debugging-design.md`
+- [x] Documentation and limitations → §8 "Honest Caveats" + all TODO docs updated
 
 ## 8. Honest Caveats
 
