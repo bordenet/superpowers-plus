@@ -81,64 +81,28 @@ Skip vanity badges. Order: version → license → CI → coverage.
 ### 3. Table of Contents (if >500 lines)
 
 ```markdown
-## Contents
-
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [API](#api)
-- [Contributing](#contributing)
-- [License](#license)
+## Contents (auto-generate via TOC extension, skip for short READMEs)
 ```
 
-Auto-generate via Markdown TOC extension. Skip for short READMEs.
+### 4. Quick Start (REQUIRED)
 
-### 4. Quick Start (REQUIRED - first code block)
-
-User should be running your code in <60 seconds.
-
-```markdown
-## Quick Start
-
-\`\`\`bash
-# Clone & install (one command ideal)
-git clone https://github.com/org/project
-cd project && npm install
-npm start
-\`\`\`
-```
-
-Max 5 steps. If longer, you have an installation problem.
+User runs your code in <60 seconds. Max 5 steps. If longer, you have an installation problem.
 
 ### 5. Usage Examples (REQUIRED)
 
-Show 2-3 concrete examples. Code must be runnable.
-
-```markdown
-## Usage
-
-\`\`\`bash
-# Basic usage
-your-tool input.txt
-
-# With options
-your-tool input.txt --format=json --verbose
-\`\`\`
-
-[Screenshot/GIF of output if applicable]
-```
+2-3 concrete, runnable examples. Screenshot/GIF if applicable.
 
 ### 6-12. Remaining Sections
 
 | # | Section | Notes |
 |---|---------|-------|
 | 6 | Why This Project? | Optional. Comparison table vs alternatives |
-| 7 | Configuration/API | Brief table of flags; link to full docs |
-| 8 | Features | Bullet list, no adjectives, link to docs |
+| 7 | Configuration/API | Brief flags table; link to full docs |
+| 8 | Features | Bullet list, no adjectives |
 | 9 | Directory Structure | Optional. ASCII tree for >10 files |
-| 10 | Contributing | Link to CONTRIBUTING.md + dev commands |
-| 11 | Support/Community | Bug reports, discussions, docs links |
-| 12 | License | Single line: "MIT" with link to LICENSE |
+| 10 | Contributing | Link to CONTRIBUTING.md |
+| 11 | Support/Community | Bug reports, discussions links |
+| 12 | License | Single line: "MIT" with link |
 
 
 ## Anti-Patterns
@@ -186,9 +150,6 @@ Markdown lint: PASS (0 errors)
 - **brainstorming**: Before creating README, brainstorm structure
 - **markdown-table-discipline**: Table formatting in READMEs
 - **golden-agents**: AGENTS.md generation
-## Related Tools
-
-For executive summaries or go/no-go decisions, use [docforge-ai one-pager](https://bordenet.github.io/docforge-ai/assistant/?type=one-pager) — adversarial review scores urgency, alternatives, and measurable outcomes.
 
 ## Example
 
