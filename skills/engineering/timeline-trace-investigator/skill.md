@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `TimelineEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Invoke
+
+Dispatched by `debug-conductor` when the incident involves temporal causation — deployment correlations, cascading failures, or event ordering across services.
+
 ## Investigation Protocol
 
 ### Step 1: Scope the Timeline
