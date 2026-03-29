@@ -136,34 +136,19 @@ deploy_todo_honeypot() {
 
     # If ~/.codex/TODO.md already exists, check what it is
     if [[ -f "$honeypot_path" ]]; then
-        # Already our honeypot? Check for canonical marker OR legacy honeypot patterns.
-        # Legacy honeypots used "STOP — WRONG FILE" before honeypot-content.txt existed.
+        # Already our honeypot? Done.
         if grep -q "$marker" "$honeypot_path" 2>/dev/null; then
             log_verbose "TODO honeypot already deployed at $honeypot_path"
             return 0
         fi
-        if grep -q "WRONG FILE" "$honeypot_path" 2>/dev/null \
-            && grep -q "NOT.*TODO" "$honeypot_path" 2>/dev/null; then
-            # Legacy honeypot — upgrade to canonical content
-            log_info "Upgrading legacy honeypot at $honeypot_path to canonical format"
-            # Remove immutability flag and perms before overwriting
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                chflags nouchg "$honeypot_path" 2>/dev/null || true
-            else
-                chattr -i "$honeypot_path" 2>/dev/null || true
-            fi
-            chmod u+w "$honeypot_path" 2>/dev/null || true
-            rm -f "$honeypot_path"
-            # Fall through to deployment below
-        else
-            # Non-honeypot file exists — NEVER overwrite. Warn and bail.
-            local line_count
-            line_count=$(wc -l < "$honeypot_path" 2>/dev/null | tr -d ' ')
-            log_warn "Found non-honeypot TODO.md at $honeypot_path ($line_count lines)"
-            log_warn "Real TODO is at: $resolved_path"
-            log_warn "Review and merge manually, then delete $honeypot_path and re-run install"
-            return 0
-        fi
+
+        # Non-honeypot file exists — NEVER overwrite. Warn and bail.
+        local line_count
+        line_count=$(wc -l < "$honeypot_path" 2>/dev/null | tr -d ' ')
+        log_warn "Found non-honeypot TODO.md at $honeypot_path ($line_count lines)"
+        log_warn "Real TODO is at: $resolved_path"
+        log_warn "Review and merge manually, then delete $honeypot_path and re-run install"
+        return 0
     fi
 
     # Deploy honeypot — file does not exist yet
@@ -176,16 +161,27 @@ deploy_todo_honeypot() {
         return 0
     }
 
-    # Source canonical honeypot content
-    local honeypot_src
-    honeypot_src="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tools/honeypot-content.txt"
-    if [[ -f "$honeypot_src" ]]; then
-        cat "$honeypot_src" > "$tmp_honeypot"
-    else
-        log_warn "honeypot-content.txt not found — skipping honeypot deployment"
-        rm -f "$tmp_honeypot"
-        return 0
-    fi
+    cat > "$tmp_honeypot" << HONEYPOT_CONTENT
+# 🚨 STOP — WRONG FILE 🚨
+# $marker
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+HONEYPOT_CONTENT
 
     # Set permissions on temp file before moving
     chmod 444 "$tmp_honeypot"
