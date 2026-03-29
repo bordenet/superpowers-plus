@@ -217,10 +217,10 @@ graph TD
   test_driven_development -->|enables| verification_before_completion
   debug_conductor -->|then| timeline_trace_investigator
   timeline_trace_investigator ==>|escalates to| debug_conductor
-  issue_authoring -->|enables| 'issue_verify'
-  issue_editing -->|enables| 'issue_verify'
-  completeness_check -->|enables| 'verification_before_completion'
-  completeness_check ==>|escalates to| 'thinking_orchestrator'
+  issue_authoring -->|enables| issue_verify
+  issue_editing -->|enables| issue_verify
+  completeness_check -->|enables| verification_before_completion
+  completeness_check ==>|escalates to| thinking_orchestrator
   failure_autopsy -->|then| evolution_loop
   measurement_integrity -->|then| evolution_loop
   evolution_loop -->|enables| skill_authoring
@@ -279,21 +279,21 @@ graph TD
   todo_guardian -->|enables| verification_before_completion
   todo_guardian ==>|escalates to| quantitative_decision_gate
   todo_management -->|enables| fallback_planning
-  expert_interviewer -->|enables| 'incorporating_research'
+  expert_interviewer -->|enables| incorporating_research
   professional_language_audit -->|then| public_repo_ip_audit
-  repo_security_scan -->|enables| 'security_upgrade'
-  link_verification ==>|escalates to| 'wiki_orchestrator'
+  repo_security_scan -->|enables| security_upgrade
+  link_verification ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|then| wiki_content_coherence
   wiki_content_coherence -->|enables| link_verification
   wiki_content_coherence ==>|escalates to| wiki_orchestrator
-  wiki_debunker ==>|escalates to| 'wiki_orchestrator'
+  wiki_debunker ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|enables| link_verification
   wiki_refactor -->|enables| link_verification
   wiki_refactor -->|enables| wiki_secret_audit
-  wiki_verify ==>|escalates to| 'wiki_orchestrator'
-  detecting_ai_slop -->|enables| 'eliminating_ai_slop'
-  plan_quality_gates -->|enables| 'plan_and_execute'
-  writing_skills -->|enables| 'skill_authoring'
+  wiki_verify ==>|escalates to| wiki_orchestrator
+  detecting_ai_slop -->|enables| eliminating_ai_slop
+  plan_quality_gates -->|enables| plan_and_execute
+  writing_skills -->|enables| skill_authoring
 ```
 
 ## Coordination Groups
