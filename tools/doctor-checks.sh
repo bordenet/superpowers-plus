@@ -20,7 +20,7 @@ require_bash4 "$@"
 INSTALLED_DIR="$HOME/.codex/skills"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Source .env for overlay path (SPC_SOURCE_DIR) and other config
+# Source .env for overlay path (SP_OVERLAY_SOURCE_DIR) and other config
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
 
@@ -45,7 +45,7 @@ SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 
 # Auto-discover overlay sources: any *_SOURCE_DIR env var in .env
-# (e.g., SPC_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
+# (e.g., SP_OVERLAY_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
 # Each overlay repo registers itself during install via: VARNAME_SOURCE_DIR="/path/to/repo"
 while IFS='=' read -r varname varval; do
   [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
