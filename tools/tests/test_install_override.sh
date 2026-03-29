@@ -7,6 +7,7 @@ set -euo pipefail
 # the installer stages upstream companion files first, then overlays the
 # override's skill.md on top.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PASS=0; FAIL=0; SKIP=0
 fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
