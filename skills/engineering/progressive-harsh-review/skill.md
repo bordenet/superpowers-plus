@@ -137,7 +137,7 @@ bash tools/harsh-review.sh skills/engineering/my-skill/skill.md
 | Failure | Fix |
 |---------|-----|
 | Self-reviewed in same thinking pass | Use sub-agent or explicit role switch — author ≠ reviewer |
-| All personas gave same feedback | Personas must have distinct focus areas — if identical, you're not role-switching |
+| All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
 | Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
 | Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
 | Only reviewed happy path | ProdOpsHardass must consider failure, rollback, 3am scenarios |
