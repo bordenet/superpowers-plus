@@ -24,8 +24,8 @@ const {
 const workflowState = require('./lib/workflow-state');
 
 const homeDir = os.homedir();
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
-const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 
 
