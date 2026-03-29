@@ -44,6 +44,7 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 ### Typographic Patterns (replace punctuation)
 
 **Em-dash (—) - HIGH PRIORITY:**
+
 - Parenthetical → parentheses: "the project (started in 2024) succeeded"
 - Contrast → semicolon: "it worked; the maintenance burden compounded"
 - List intro → colon: "three things: speed, quality, cost"
@@ -87,6 +88,7 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 AI-generated documentation defaults to pre-AI manual labor timeframes. With modern tooling and AI assistants, most tasks take 3-5x less time than stated.
 
 **The Deflation Rule:**
+
 1. Is this based on manual work from 2020?
 2. With AI assistance + modern scripts, what's the ACTUAL time?
 3. If estimate is >3x realistic, deflate it.
@@ -143,18 +145,21 @@ When you catch yourself writing "Phase 2 (Weeks 1-2)" or "Sprint 1" or "Target: 
 Before writing or editing prose, scan ±50 lines for similar phrasing.
 
 **Detection:**
+
 1. Search for 3+ word phrases that appear multiple times
 2. Check if you're about to echo something you just wrote
 3. For related documents, verify you're not copy/pasting
 
 **Elimination strategies:**
+
 - Same phrase twice → Rewrite one instance with different words
 - Parallel structure overuse → Mix transitions
 - Cross-document duplication → Summarize differently
 - Bullet point echo → Consolidate or differentiate
 
 **Example:**
-```
+
+```javascript
 BEFORE (parrot):
 - Architecture first, AI second
 - Define structure upfront, let AI handle implementation

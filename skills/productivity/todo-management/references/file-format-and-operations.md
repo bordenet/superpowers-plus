@@ -52,6 +52,7 @@
 ## Task ID Format
 
 **Pattern:** `YYYYMMDD-NN` (e.g., `20250204-01`)
+
 - Date = creation date
 - NN = sequential counter for that day (01, 02, 03...)
 
@@ -62,6 +63,7 @@
 **Input:** "Add task: [description]" or natural language variant
 
 **Process:**
+
 1. Parse task description
 2. Infer priority (default P2 unless urgency signals)
 3. Infer tags from keywords (see `references/taxonomy.md`)
@@ -76,10 +78,11 @@
 **Input:** "Complete [ID or title fragment]"
 
 **Process:**
+
 1. Match task (disambiguate if multiple matches)
 2. **REMOVE from ACTIVE section** — do NOT just flip `[ ]` to `[x]` in place
 3. **ADD to HISTORY** under `## YYYY-MM-DD` (today's date) with `[x]` prefix
-4. Add `  - Done: YYYY-MM-DD` timestamp
+4. Add `- Done: YYYY-MM-DD` timestamp
 5. Prompt for optional progress notes
 
 ⚠️ **Common agent failure:** Marking `[x]` in the ACTIVE section without moving.
@@ -92,6 +95,7 @@ This causes unbounded file growth. Only `[ ]` tasks belong in ACTIVE.
 **Input:** "What did I do [yesterday/last week/on Monday/for engineering]?"
 
 **Process:**
+
 1. Parse timeframe
 2. Filter HISTORY section
 3. Apply tag filter if specified

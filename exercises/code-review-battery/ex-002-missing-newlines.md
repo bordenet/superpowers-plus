@@ -52,6 +52,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Minor
 - **Reviewer:** standards-enforcer
 - **File:** skills/engineering/code-review-battery/DESIGN.md, PRD.md
@@ -59,6 +60,7 @@ diff --git a/skills/engineering/code-review-battery/skill.md b/skills/engineerin
 - **Category:** standards-violation
 
 ### Finding 2
+
 - **Severity:** Important
 - **Reviewer:** standards-enforcer (or defect-finder)
 - **File:** skills/engineering/code-review-battery/skill.md

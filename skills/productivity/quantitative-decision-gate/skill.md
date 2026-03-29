@@ -36,7 +36,6 @@ coordination:
 - When deciding whether to continue, pivot, or stop a task
 - When evaluating trade-offs (speed vs quality, scope vs time)
 
-
 ### Example
 
 ```bash

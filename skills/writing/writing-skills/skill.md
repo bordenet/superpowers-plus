@@ -8,6 +8,7 @@ overrides: superpowers/writing-skills
 triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions", "review skill file", "skill quality check"]
 anti_triggers: ["use skill", "find skill", "load skill"]
 description: "Use when: creating or reviewing skill files. Covers SKILL.md structure, prose quality, markdown formatting, creation checklist, and quality gates. For the full creation workflow, see skill-authoring (upstream)."
+summary: "Use when: creating or reviewing skill files for structure and quality."
 coordination:
   group: writing
   order: 0
@@ -43,6 +44,7 @@ source: superpowers-plus  # or superpowers, or private overlay
 triggers: ["phrase1", "phrase2"]
 anti_triggers: ["not-this"]
 description: "One-line summary starting with 'Use when:'"
+summary: "Use when: creating or reviewing skill files for structure and quality."
 ---
 ```
 
@@ -58,7 +60,7 @@ Then markdown body: core procedure, checklists, rules. Scale section depth to co
 
 ## Directory Structure
 
-```
+```markdown
 skills/{domain}/{skill-name}/
 ├── skill.md          # Core skill (≤250 lines)
 ├── examples.md       # Extended examples (optional)

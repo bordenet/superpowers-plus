@@ -37,7 +37,7 @@ This order maximizes learning velocity: each initiative's lessons feed the next.
 
 ## Dependencies Between Initiatives
 
-```
+```text
 Forked Debugging ──(patterns)──→ Brainstorming Ensemble
                                       │
                                       ├──(synthesis lessons)──→ Planning Council

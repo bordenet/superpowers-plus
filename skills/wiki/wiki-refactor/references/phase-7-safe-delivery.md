@@ -11,7 +11,7 @@
 
 Compare Phase 1 content snapshots against the current live wiki:
 
-```
+```text
 For each page in snapshot:
   1. Fetch current live content
   2. Diff against snapshot
@@ -19,6 +19,7 @@ For each page in snapshot:
 ```
 
 **If drift detected:**
+
 - Present drifted pages with diff to operator
 - Operator chooses per page:
   - **Overwrite:** Use refactored version (discard live edits)
@@ -31,7 +32,7 @@ If >30% of pages have drifted → warn: `⚠️ Significant wiki drift detected.
 
 Build the final `wiki/` directory:
 
-```
+```markdown
 wiki/
 ├── index.md                    # Landing page with structure overview + links
 ├── {{page-slug}}.md            # All refactored pages (flat or nested per structure)

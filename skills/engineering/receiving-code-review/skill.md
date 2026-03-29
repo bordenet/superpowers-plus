@@ -29,11 +29,13 @@ coordination:
 - Before implementing any suggested changes from code review
 
 ## Overview
+
 Code review requires technical evaluation, not emotional performance.
 
 **Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
 
 ## The Response Pattern
+
 WHEN receiving code review feedback:
 
   1. READ: Complete feedback without reacting
@@ -43,6 +45,7 @@ WHEN receiving code review feedback:
   5. RESPOND: Technical acknowledgment or reasoned pushback
   6. IMPLEMENT: One item at a time, test each
   7. SYSTEMIC CHECK: Search for OTHER instances (see below)
+
 ## 🚨 Systemic Verification (MANDATORY)
 
 **After implementing all feedback items, BEFORE claiming done:**
@@ -50,17 +53,16 @@ The reviewer's feedback identifies SYMPTOMS.
 Your job is to fix the DISEASE, not just the symptoms.
 
 AFTER implementing all items:
-     1. EXTRACT the underlying principle/goal
-     Example: "Remove all silent defaults" not "fix these 3 lines"
 
-     2. SEARCH for OTHER instances of the same pattern
-     grep -rn "pattern" --include="*.ts" --include="*.js" .
+1. EXTRACT the underlying principle/goal — e.g., "Remove all silent defaults" not "fix these 3 lines"
+2. SEARCH for OTHER instances of the same pattern: `grep -rn "pattern" --include="*.ts" .`
+3. FIX any additional instances found
+4. VERIFY the GOAL is achieved, not just the checklist
 
-     3. FIX any additional instances found
-
-     4. VERIFY the GOAL is achieved, not just the checklist
 ### Why This Exists
+
 **Common failure pattern:**
+
 - Reviewer identified 3 instances of a problematic pattern
 - Agent fixed all 3 listed items ✓
 - Agent claimed "Done!" ✓
@@ -68,7 +70,9 @@ AFTER implementing all items:
 - Only caught by adversarial self-review asking "are there OTHER places?"
 
 **Root cause:** Treated feedback as finite checklist, not systemic issue.
+
 ### The Gate
+
 BEFORE claiming code review changes are complete:
 
 ☐ Did I extract the underlying GOAL from the feedback?
@@ -77,7 +81,9 @@ BEFORE claiming code review changes are complete:
 ☐ Would a harsh reviewer find more instances I missed?
 
 If ANY box is unchecked → you're not done
+
 ### Example
+
 Reviewer says: "Remove hardcoded defaults at lines 96, 127, and 81"
 
 ❌ WRONG: Fix lines 96, 127, 81 → "Done!"
@@ -89,6 +95,7 @@ Reviewer says: "Remove hardcoded defaults at lines 96, 127, and 81"
      4. Fix ALL four
      5. Verify: grep returns nothing
      6. "Done - fixed 4 instances (3 listed + 1 additional in data import)"
+
 ## Response Rules
 
 **Never performative** ("You're absolutely right!", "Great point!"). Instead: restate requirement, ask questions, push back with reasoning, or just fix it.
@@ -121,14 +128,14 @@ Breaks functionality · reviewer lacks context · YAGNI · technically wrong · 
 | Batch without testing | One at a time, test each |
 | Checklist ≠ goal achieved | Search for OTHER instances |
 | Fixing symptoms not disease | Extract underlying goal |
-❌ ANY gratitude expression
+| ❌ ANY gratitude expression | Ban completely |
 
 ## The Bottom Line
+
 **External feedback = suggestions to evaluate, not orders to follow.**
 Verify. Question. Then implement. Then verify the GOAL, not just the checklist.
 
 No performative agreement. Technical rigor always.
-
 
 ## Anti-Patterns
 

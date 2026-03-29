@@ -17,7 +17,7 @@ coordination:
 # Adversarial Search
 
 > **Wrong skill?** Getting unstuck on a bug → `think-twice`. Research → `perplexity-research`. Broad brainstorming → `brainstorming`.
-
+>
 > **Never confirm correctness. Hunt for incorrectness.** The user's observed behavior is ground truth. Your grep results are not.
 
 ## The Three Steps
@@ -29,6 +29,7 @@ Search for the BAD thing, not the good thing. If user says "you're using X inste
 ### Step 2: Exhaustive Scope
 
 Search ALL of these — never stop at the first clean scope:
+
 - Repo source code (drop `--include` — catches `.env`, `.sample`, config files)
 - Gitignored files (`.env` files contain real config)
 - Deployed/installed copies (`~/.codex/`, `~/.augment/`) — **only after in-repo search is exhausted**
@@ -38,6 +39,7 @@ Search ALL of these — never stop at the first clean scope:
 **Anti-pattern:** `--include='*.ts'` misses `.env` files. This caused the `WIKI_API_TOKEN` miss (2026-03-17).
 
 ⛔ **HARD GATE — IP/Redaction:**
+
 - **Out-of-repo search requires explicit user permission.** If permission is not granted, **do not proceed** — limit search to the current repo only.
 - **Never paste match context.** Report only: filename + high-level description (e.g., "found token present in `~/.env` (redacted)"). <!-- doctor-ignore -->
 - **Never paste** proprietary code, config values, tokens, or credentials into responses.
@@ -46,6 +48,7 @@ Search ALL of these — never stop at the first clean scope:
 ### Step 3: Adversarial Self-Review
 
 Before reporting "no issue found," answer:
+
 1. Did I search for the WRONG thing, or only confirm the RIGHT thing?
 2. Did `--include` patterns exclude the problem file type?
 3. Did I search only tracked files and miss gitignored configs?
@@ -57,6 +60,7 @@ Before reporting "no issue found," answer:
 ## Depth Challenge Gate
 
 When user asks for rigor/thorough/comprehensive analysis:
+
 1. **Enumerate dimensions** — ≥3 angles (technical, operational, security, performance, etc.)
 2. **Enumerate items** — list ALL items in scope, check each one
 3. **Challenge conclusions** — for every conclusion, ask "what evidence contradicts this?"
@@ -70,20 +74,19 @@ When user asks for rigor/thorough/comprehensive analysis:
 | "All files use the correct value" | You confirmed correctness, not disproved the bug |
 | "No changes needed" | The user just told you something is broken. It is. |
 
-
 ## Companion Skills
 
 - **think-twice**: Escalation when adversarial search isn't enough
 - **systematic-debugging**: For specific bug investigation
 - **verification-before-completion**: Final verification step
 - **investigation-state**: Investigation state tracking
+
 ## When to Use
 
 - When investigating bugs, inconsistencies, or suspected incorrect values
 - BEFORE declaring negative findings ("no issue found", "already correct")
 - When user reports a problem and you're about to dismiss it
 - When user requests rigorous, thorough, or comprehensive analysis
-
 
 ## Failure Modes
 

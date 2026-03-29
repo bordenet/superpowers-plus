@@ -11,6 +11,7 @@ mkdir -p skills/{domain}/{skill-name}
 ```
 
 Use an existing domain or create a new one. Current domains:
+
 - `writing/` — text quality, AI slop detection
 - `engineering/` — code review, pre-commit gates
 - `issue-tracking/` — issue management
@@ -30,7 +31,7 @@ touch skills/{domain}/{skill-name}/skill.md
 
 **Multi-file skills (for skills >200 lines):**
 
-```
+```markdown
 skills/{domain}/{skill-name}/
 ├── skill.md        # REQUIRED: Core skill with YAML frontmatter
 ├── examples.md     # OPTIONAL: Extended examples (loaded on demand)
@@ -98,11 +99,13 @@ Do NOT invoke when:
 | **Explicit Skill** | `triggers: []` or omit | Skill should only run when explicitly requested |
 
 **Use superpowers (with triggers) when:**
+
 - The skill applies to a common workflow pattern (e.g., "fix this bug")
 - Auto-firing prevents mistakes (e.g., pre-commit checks)
 - The skill is part of a dependency chain (e.g., wiki-orchestrator triggers link-verification)
 
 **Use explicit skills (no triggers) when:**
+
 - The skill is a meta-tool (help, observability, metrics)
 - Running it has side effects the user should consciously choose (e.g., security-upgrade)
 - It's experimental or heavyweight
@@ -119,6 +122,7 @@ Before committing, run the trigger validator:
 ```
 
 This checks for:
+
 - Missing `triggers` arrays
 - Unexpected overlaps with other skills
 - Registry completeness
@@ -133,12 +137,14 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
 ## Skill Writing Guidelines
 
 **Do:**
+
 - Start with "When to Invoke" — AI needs to know when to use it
 - Include concrete examples
 - Define failure modes
 - Keep procedures to 5-10 steps
 
 **Don't:**
+
 - Use vague language ("consider", "might want to")
 - Include conditional logic without defaults
 - Omit the "Do NOT invoke" section
@@ -157,6 +163,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
 ### Before Committing
 
 **Install the pre-commit hook** (recommended):
+
 ```bash
 ./tools/install-hooks.sh
 ```
@@ -164,6 +171,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | grep skil
 This will automatically block commits that violate quality standards.
 
 **Or manually run the harsh review:**
+
 ```bash
 ./tools/harsh-review.sh
 ```
@@ -221,6 +229,7 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
 #### Step 1: Prepare the Release
 
 1. **Update version in `install.sh`:**
+
    ```bash
    VERSION="2.3.0"
    ```
@@ -230,6 +239,7 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
    - Add date: `## [2.3.0] - YYYY-MM-DD`
 
 3. **Create PR and merge to main:**
+
    ```bash
    git checkout -b chore/release-2.3.0
    git add -A
@@ -272,6 +282,7 @@ Once the tag is pushed, automation handles everything else:
 ### Version Check
 
 Users can verify their installed version:
+
 ```bash
 ./install.sh --version
 # install.sh version 2.3.0

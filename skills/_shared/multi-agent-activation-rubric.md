@@ -31,14 +31,17 @@
 Each skill may add criteria that raise or lower the threshold:
 
 ### plan-and-execute
+
 - **Raises score:** Task crosses team/domain boundaries (+1), significant rollback cost (+1)
 - **Lowers score:** Task is internal-only with one stakeholder (-1)
 
 ### subagent-driven-development
+
 - **Additional gate:** Fan-out eligibility rubric score ≥ 6 (file/interface/test/model isolation)
 - **Merge-risk > 0.5 blocks parallelism** regardless of activation score
 
 ### brainstorming
+
 - **Raises score:** Broad/ambiguous prompt (+1), architectural impact (+1)
 - **Lowers score:** Known solution exists (-1), time-sensitive task (-1)
 
@@ -54,7 +57,7 @@ Each skill may add criteria that raise or lower the threshold:
 
 ## Decision Flow
 
-```
+```text
 Task arrives at multi-agent-capable skill
   │
   ├─ Anti-activation signal? → SINGLE-AGENT

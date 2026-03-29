@@ -24,7 +24,7 @@ git log --merges --oneline --since="2026-01-01"
 
 ### PR as Decision Record
 
-```
+```markdown
 # Use your repository adapter to get PR details
 repo_get_pull_request(repository: "your-service", pullRequestId: 47)
 
@@ -34,7 +34,7 @@ repo_get_pull_request_threads(repository: "your-service", pullRequestId: 47)
 
 ## Issue Tracker Verification
 
-```
+```bash
 # Find ticket by topic
 issue tracker query: "Search issues mentioning 'Telnyx' in Your Team"
 
@@ -46,13 +46,14 @@ issue tracker query: "Get comments on TICKET-89 containing 'decided'"
 ```
 
 **Verify before citing:**
+
 - Does ticket exist?
 - Does it actually contain the claimed decision?
 - Is the attribution correct (assignee vs commenter)?
 
 ## Work Item / Build Verification
 
-```
+```bash
 # Use your issue tracker adapter
 issue_get(id: 1234)
 issue_get_comments(id: 1234)
@@ -70,7 +71,7 @@ Use when claims reference meeting discussions, verbal agreements, or spoken quot
 
 ### Using Your Meeting Adapter
 
-```
+```markdown
 # Use your meeting transcript adapter to search
 meeting_search(query: "KEYWORD")
 meeting_list(limit: 10, include_transcript: true)
@@ -79,6 +80,7 @@ meeting_list(limit: 10, include_transcript: true)
 ### Timestamp Deep Links
 
 Many transcript services support `#t={seconds}` format:
+
 - `share_url#t=645` → jumps to 10:45 in recording
 - Conversion: `HH:MM:SS` → `HH*3600 + MM*60 + SS` = seconds
 

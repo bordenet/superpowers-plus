@@ -5,7 +5,8 @@
 **PRD Status:** ✅ Complete (verified 2026-03-25) — all phases implemented, all success criteria met
 
 ## Source 1: Anthropic — "Effective Context Engineering for AI Agents" (Sep 2025)
-**URL:** https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+
+**URL:** <https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents>
 
 ### Key Findings (Direct Quotes)
 
@@ -39,7 +40,8 @@
    > "The agent regularly writes notes persisted to memory outside of the context window. These notes get pulled back into the context window at later times."
 
 ## Source 2: OpenDev Paper — arXiv 2603.05344v3 (Mar 2026)
-**URL:** https://arxiv.org/html/2603.05344v3
+
+**URL:** <https://arxiv.org/html/2603.05344v3>
 **Title:** "Building Effective AI Coding Agents for the Terminal"
 
 ### Key Architecture Patterns
@@ -68,9 +70,11 @@
    - Agent sees skill catalog (names + descriptions) but NOT full content until invoked
 
 ## Source 3: Microsoft LLMLingua (EMNLP 2023)
-**URL:** https://www.microsoft.com/en-us/research/blog/llmlingua-innovating-llm-efficiency-with-prompt-compression/
+
+**URL:** <https://www.microsoft.com/en-us/research/blog/llmlingua-innovating-llm-efficiency-with-prompt-compression/>
 
 ### Key Findings
+
 - Achieves up to 20x compression on ICL and reasoning prompts
 - Uses small LM (GPT-2 or LLaMA-7B) to identify and remove unimportant tokens
 - Compressed prompts are hard for humans to read but effective for LLMs

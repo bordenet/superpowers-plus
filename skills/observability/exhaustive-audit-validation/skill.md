@@ -17,7 +17,7 @@ coordination:
 # Exhaustive Audit Validation
 
 > **Wrong skill?** Quick spot check → `completeness-check`. Pre-commit → `pre-commit-gate`. Repo health → `holistic-repo-verification`.
-
+>
 > **Purpose:** Prevent "first-pass complete" followed by "found 12 more issues"
 > **Root Cause:** Agent claimed audit complete without exhaustive validation
 > **Incident:** 2026-02-28 — "First-pass audit" missed 12 of 27 skills needing fixes
@@ -28,6 +28,7 @@ coordination:
 - **holistic-repo-verification**: Repository-level health
 - **verification-before-completion**: Pre-completion gate
 - **measurement-integrity**: Cross-validation enforcement
+
 ## When to Use
 
 - Before claiming any audit, bulk-edit, or refactoring task is complete
@@ -37,10 +38,10 @@ coordination:
 
 ---
 
-
 ## The Problem This Skill Solves
 
 **Pattern observed:**
+
 1. Agent claims audit/refactoring "complete"
 2. Commits and pushes
 3. Immediately discovers obvious gaps in a "second pass"
@@ -85,6 +86,7 @@ Maintain a checklist showing status of EVERY item:
 | ... | ... | ... | ... |
 
 **Status options:**
+
 - ✅ Fixed/Updated
 - ⏭️ Skipped (with reason)
 - ❌ TODO/Not started
@@ -114,7 +116,7 @@ grep -l "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null | wc -l
 
 Before marking complete, state:
 
-```
+```bash
 ## Pre-Completion Validation Report
 
 **Scope:** Audited X of Y items (100%)
@@ -129,7 +131,8 @@ Before marking complete, state:
 ```
 
 If gaps remain:
-```
+
+```bash
 **Remaining gaps:** 3 skills still need triggers
 **Ready to claim complete:** NO — fix gaps first
 ```
@@ -165,6 +168,7 @@ When both apply, run this skill FIRST, then verification-before-completion.
 ## Failure Mode
 
 If this skill is skipped:
+
 1. Work marked "complete" with hidden gaps
 2. Second-pass discovery embarrasses agent
 3. User has to explicitly ask for re-audit

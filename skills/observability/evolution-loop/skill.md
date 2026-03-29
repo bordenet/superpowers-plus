@@ -36,7 +36,6 @@ coordination:
 - When same mistake occurs 3rd time
 - During deliberate improvement sprints
 
-
 ### Example
 
 ```bash

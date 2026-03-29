@@ -341,6 +341,7 @@ Profanity in user-facing documentation triggers a **HARD BLOCK** — the content
 Each profanity match adds **+50 points** (effectively maxes the score).
 
 **Seed profanity patterns:**
+
 ```bash
 node scripts/slop-dictionary.js seed-profanity
 ```
@@ -360,6 +361,7 @@ AI-generated documentation frequently contains inflated time estimates.
 | Documentation page | > 1 hour | 15-30 min |
 
 **Scoring:**
+
 - Mild inflation (2-3x realistic): +3 points
 - Moderate inflation (3-5x realistic): +5 points
 - Severe inflation (>5x realistic): +8 points
@@ -385,5 +387,6 @@ AI-generated plans frequently assign calendar periods to phases with zero basis.
 **What to use instead:** Dependency ordering + exit criteria. "Phase 2 depends on Phase 1 being complete. Exit criterion: X is true." This is honest — it says what must happen without pretending to know when.
 
 **Scoring:**
+
 - Any calendar-period assignment to a phase: +8 points (severe — it's fabrication)
 - Duration estimate without basis: +5 points

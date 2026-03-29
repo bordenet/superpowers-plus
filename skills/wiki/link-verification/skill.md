@@ -24,9 +24,8 @@ coordination:
 > **Purpose:** Prevent hallucinated links in documentation
 > **Last Updated:** 2026-02-28
 > **Incident:** Hallucinated `github.com/your-org/*` links on Speech: Deepgram and Telephony: Telnyx wiki pages
-
+>
 > **Wrong skill?** Verifying links in issue tickets → `issue-link-verification`. Checking wiki page content accuracy → `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
-
 
 ## Orchestrator Integration
 
@@ -36,7 +35,7 @@ This skill is invoked by `wiki-orchestrator` as a **HARD GATE** for internal wik
 
 When called by orchestrator, extract ALL links from content and verify each:
 
-```
+```markdown
 ## Link Verification Report
 
 | # | Link Text | URL | Type | Status | Notes |
@@ -62,15 +61,16 @@ When called by orchestrator, extract ALL links from content and verify each:
 ### Link Extraction Pattern
 
 Extract all markdown links from content:
+
 ```regex
 \[([^\]]+)\]\(([^)]+)\)
 ```
 
 Also extract bare URLs:
+
 ```regex
 https?://[^\s<>\[\]()]+
 ```
-
 
 ## When to Use
 
@@ -81,7 +81,6 @@ Invoke when:
 - Documenting architecture with repository links
 - Any time you're about to write a URL to source code
 - **Adding internal wiki links** (e.g., `/doc/page-slug-xyz123`)
-
 
 ## ⛔ The Rule
 
@@ -97,7 +96,6 @@ Invoke when:
 | `[your-repo-host]/org/*` | Verify via API | Query your repo host API to verify |
 
 </EXTREMELY_IMPORTANT>
-
 
 ## Verification
 
@@ -118,7 +116,7 @@ GitHub: `github-api GET /repos/{owner}/{repo}`. 404 = doesn't exist = don't writ
 <EXTREMELY_IMPORTANT>
 Wiki links are just as hallucination-prone as external links. Use wiki adapter `get_page(id)` to verify. See `skills/wiki/_adapters/`.
 
-```
+```markdown
 # Verify wiki page exists
 adapter.get_page(id: "PAGE_SLUG_HERE")  # true + title = exists, false = hallucinated
 "not_found"
@@ -139,7 +137,6 @@ Real page: `/doc/correct-page-abc123`.
 
 </EXTREMELY_IMPORTANT>
 
-
 ## Code References Section Template
 
 See [`references/code-references-template.md`](references/code-references-template.md).
@@ -152,14 +149,12 @@ curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
 # 200 → OK. 404 → fix before publishing.
 ```
 
-
 ## Incident Log
 
 | Date | Page | Issue | Resolution |
 |------|------|-------|------------|
 | Example | Example Page | Fake repository links | Fixed to verified repo URLs |
 | Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
-
 
 ## Failure Modes
 

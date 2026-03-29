@@ -82,6 +82,7 @@
 ## Persistence Note
 
 Currently, the incident packet exists only in the conductor's working context. Future work:
+
 - Persist to `investigation-state` skill's evidence store
 - Enable resume-after-crash for long-running investigations
 - Support cross-session incident handoff
