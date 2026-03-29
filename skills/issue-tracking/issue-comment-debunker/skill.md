@@ -142,20 +142,9 @@ Next step: [Specific action, not speculation]
 
 ## Before Posting: Final Check
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ISSUE COMMENT GATE                                         │
-├─────────────────────────────────────────────────────────────┤
-│ □ Every factual claim has cited evidence                   │
-│ □ No fabricated timestamps or metrics                       │
-│ □ No "investigation summary" framing                        │
-│ □ No attributions without source                            │
-│ □ Uncertainty is explicitly marked                          │
-│ □ Reads as observation, not authoritative conclusion        │
-└─────────────────────────────────────────────────────────────┘
+Every claim has evidence · no fabricated timestamps/metrics · no "investigation summary" framing · no unsourced attributions · uncertainty marked · reads as observation, not conclusion.
 
-If ANY box is unchecked → REWRITE before posting.
-```
+**If ANY check fails → REWRITE before posting.**
 
 
 ## Recovery: If Bad Comment Posted
@@ -195,19 +184,6 @@ git log --oneline --after="2026-01-14" --before="2026-01-16" | head -5
 - **wiki-debunker**: Same principles for wiki content
 - **verification-before-completion**: General verification discipline
 - **think-twice**: Pause before consequential actions
-
-
 - **issue-editing**: Editing issues after debunking claims
 - **issue-authoring**: Creating issues with verified facts
 - **issue-link-verification**: Checking links referenced in comments
-## Evidence Checklist
-
-```
-Before posting ANY your issue tracker comment:
-
-1. EXTRACT — What claims am I making?
-2. VERIFY — Can I cite evidence for each?
-3. REFRAME — Is this observation or conclusion?
-4. HEDGE — Am I marking uncertainty appropriately?
-5. CHECK — Does this look like fabricated analysis?
-```

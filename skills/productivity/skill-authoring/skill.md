@@ -144,24 +144,25 @@ For each recommended skill:
 
 ## Skill Template
 
-All generated skills follow this structure:
+See [`references/output-location.md`](references/output-location.md) for directory structure and domain selection guide.
 
 ```yaml
 name: <skill-name>
-source: superpowers-plus  # or custom source
+source: superpowers-plus
 triggers: ["trigger 1", "trigger 2"]
 description: <one-line description>
-# Optional composition for pipeline skills:
-composition:
-  consumes: [<artifact>]
-  produces: [<artifact>]
-  capabilities: [<capability>]
-  priority: 50
+```
 
-# <Skill Title>
+Required sections: `## When to Use`, `## Process`, `## Examples`, `## Companion Skills`, `## Failure Modes`.
 
-> **Purpose:** <why this skill exists>
-> **Last Updated:** <date>
+## Quality Gates
+
+1. Validate YAML frontmatter (name, triggers, description)
+2. Check trigger uniqueness — no overlap with existing skills (`superpowers-doctor`)
+3. Verify domain fit · run `harsh-review.sh` · user approval
+4. Save to `skills/{domain}/` · update README · `./install.sh`
+
+**Skip when:** domain design (`domain-design`) · structural lint (`skill-health-check`) · runtime issues (`superpowers-doctor`)
 
 ## Companion Skills
 
@@ -169,54 +170,8 @@ composition:
 - **skill-health-check**: Structural lint for skill files
 - **superpowers-doctor**: Runtime diagnostics after publishing
 - **domain-design**: Domain-level skill design
-- **superpowers-help**: Skill discovery
+- **golden-agents**: Similar scaffolding UX pattern
 - **evolution-loop**: Pattern-driven skill creation
-## When to Use
-
-<Triggers and context>
-
-## Process
-
-<Step-by-step guidance>
-
-## Examples
-
-<Concrete usage examples>
-```
-
-
-## Skill Connections
-
-| Skill | How skill-authoring Uses It |
-|-------|----------------------------|
-| golden-agents | Similar scaffolding UX pattern |
-| brainstorming | Could be invoked for skill design |
-| readme-authoring | Generates README alongside skill.md |
-
-## Output Location
-
-See [`references/output-location.md`](references/output-location.md) for directory structure and domain selection guide.
-
-
-## Quality Gates
-
-Before finalizing any generated skill:
-
-1. **Validate YAML frontmatter** — Name, triggers, description required
-2. **Check trigger uniqueness** — No overlap with existing skills
-3. **Verify domain fit** — Skill belongs in chosen domain
-4. **Run harsh-review.sh** — Must pass before commit
-
-
-## After Generation
-
-1. **Review the draft** — User approves or requests changes
-2. **Save to skills/** — In appropriate domain directory
-3. **Run harsh-review.sh** — Verify formatting
-4. **Update README.md** — Add to skills table if needed
-5. **Commit and deploy** — `./install.sh` to activate
-
-**Skip when:** domain design (`domain-design`) · structural lint (`skill-health-check`) · runtime issues (`superpowers-doctor`)
 
 ## Failure Modes
 
