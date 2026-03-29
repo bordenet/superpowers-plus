@@ -89,7 +89,7 @@ Never force retry without changes. If stuck, something must change.
 
 - **Never** start on main/master without user consent
 - **Never** skip either review stage (spec compliance THEN quality — order matters)
-- **Never** dispatch parallel implementers (conflicts)
+- **Never** dispatch parallel implementers without isolation rubric score ≥ 6 and integration checkpoint protocol active (see `references/parallel-dispatch-mode.md`)
 - **Never** provide plan file path instead of full text
 - **Never** proceed with unfixed review issues
 - **Never** let self-review replace actual review (both needed)
@@ -129,4 +129,4 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-b
 |---------|-----|
 | Subagent given plan file path instead of full text | Re-dispatch with complete task text inline |
 | Skipped spec compliance review, went straight to quality | Go back — spec compliance THEN quality, order matters |
-| Parallel implementers caused merge conflicts | Never dispatch parallel implementers — sequential only |
+| Parallel implementers caused merge conflicts | Re-serialize: fall back to sequential. If isolation score was ≥ 6, file a re-serialization event (SD-11) and tighten rubric for this codebase |

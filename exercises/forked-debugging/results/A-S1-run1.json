@@ -1,0 +1,20 @@
+{
+  "condition": "A",
+  "scenario": "S1",
+  "run": 1,
+  "startTime": "2026-03-29T15:30:44Z",
+  "durationSeconds": 0,
+  "groundTruth": "Call router v2.3.1 introduced async event processing that delivers events out of order under load. The call_disconnected event from a previous call is processed before call_connected for the current call, causing the state machine to immediately transition to disconnected state. Under low load, events arrive in order; under moderate+ load, the async pipeline reorders them.",
+  "metrics": {
+    "timeToFirstHypothesisSeconds": null,
+    "timeToValidatedRootCauseSeconds": null,
+    "wrongHypothesesPursued": null,
+    "evidenceQuality": null,
+    "duplicateWork": null,
+    "operatorReadability": null,
+    "tokenCost": null,
+    "actionable": null
+  },
+  "incidentPacket": null,
+  "notes": "Placeholder — implement agent dispatch in Wave 3"
+}
