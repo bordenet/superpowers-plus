@@ -1,0 +1,24 @@
+{
+  "id": "SD-1",
+  "skill": "subagent-driven-development",
+  "name": "Independent File Changes — Add Logging to 3 Services",
+  "difficulty": "low",
+  "expected_winner": "B (parallel dispatch)",
+  "expected_reason": "Zero file overlap, independent services — pure parallelism win on latency",
+  "prompt": "Add structured logging to three independent services: the email notification service, the webhook delivery service, and the analytics pipeline. Each service currently uses fmt.Println for debugging. Replace with structured logging using zerolog. Add request IDs, timestamps, and log levels. Each service is in its own directory with its own tests.",
+  "context": {
+    "services": {
+      "email-service": {"dir": "services/email/", "files": 8, "tests": 3, "shared_code": "none"},
+      "webhook-service": {"dir": "services/webhook/", "files": 12, "tests": 5, "shared_code": "none"},
+      "analytics-pipeline": {"dir": "services/analytics/", "files": 6, "tests": 2, "shared_code": "none"}
+    },
+    "shared_dependencies": "zerolog (already in go.mod)",
+    "expected_isolation_score": "8/8 per pair (completely independent directories, no shared interfaces)"
+  },
+  "evaluation_criteria": {
+    "parallelism_achieved": "Were all 3 tasks dispatched in parallel?",
+    "latency_improvement": "Did parallel execution reduce total wall-clock time?",
+    "integration_clean": "Did the integration checkpoint pass with zero conflicts?",
+    "correctness": "Does each service log correctly with request IDs?"
+  }
+}
