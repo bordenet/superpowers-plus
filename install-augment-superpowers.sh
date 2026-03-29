@@ -256,7 +256,33 @@ function extractFrontmatter(filePath) {
         let requires_mcp = [];
 
         function parseInlineArray(value) {
-            return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+            const items = [];
+            let i = value.indexOf('[');
+            if (i < 0) return items;
+            i++;
+            while (i < value.length) {
+                while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
+                if (value[i] === ']') break;
+                if (value[i] === '"' || value[i] === "'") {
+                    const quote = value[i]; i++;
+                    let item = '';
+                    while (i < value.length && value[i] !== quote) {
+                        if (value[i] === '\\' && i + 1 < value.length) {
+                            if (value[i + 1] === quote) { item += quote; i += 2; }
+                            else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
+                            else { item += value[i]; i++; }
+                        } else { item += value[i]; i++; }
+                    }
+                    i++;
+                    items.push(item);
+                } else {
+                    let item = '';
+                    while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
+                    const trimmed = item.trim();
+                    if (trimmed) items.push(trimmed);
+                }
+            }
+            return items;
         }
 
         function parseYamlList(lines, startIndex) {

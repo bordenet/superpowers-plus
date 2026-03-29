@@ -97,7 +97,16 @@ for f in install.sh lib/install/deploy.sh lib/install/migrate.sh; do
     fi
 done
 
-# 9. harsh-review passes (honor exit code, not grep patterns)
+# 9. install-augment-superpowers.sh syntax check
+echo ""
+echo "--- install-augment syntax ---"
+if bash -n install-augment-superpowers.sh 2>/dev/null; then
+    pass "install-augment-superpowers.sh syntax OK"
+else
+    fail "install-augment-superpowers.sh syntax error"
+fi
+
+# 10. harsh-review passes (honor exit code, not grep patterns)
 echo ""
 echo "--- harsh-review ---"
 if bash tools/harsh-review.sh >/dev/null 2>&1; then
