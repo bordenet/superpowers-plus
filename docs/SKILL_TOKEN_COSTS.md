@@ -4,13 +4,13 @@
 
 | Domain | Skill | Size (lines) | Aux (lines) | References | Chains To | Verify Loops | Sub-Agents | Est. Cost |
 |--------|-------|-------------:|------------:|-----------:|----------:|-------------:|-----------:|-----------|
-| engineering | subagent-driven-development | 90 | 0 | 0/0 | 1 | 0 | 18 | 57.8 (high) |
+| engineering | subagent-driven-development | 90 | 0 | 0/0 | 1 | 0 | 17 | 54.8 (high) |
 | productivity | thinking-orchestrator | 121 | 0 | 0/0 | 11 | 0 | 4 | 36.4 (high) |
 | productivity | plan-and-execute | 250 | 0 | 1/98 | 11 | 1 | 2 | 35.9 (high) |
 | productivity | think-twice | 66 | 0 | 2/116 | 2 | 0 | 8 | 33.0 (high) |
 | engineering | verification-before-completion | 199 | 0 | 0/0 | 3 | 1 | 7 | 31.9 (high) |
 | productivity | superpowers-help | 154 | 0 | 0/0 | 13 | 0 | 0 | 29.0 (high) |
-| engineering | progressive-code-review-gate | 104 | 0 | 0/0 | 6 | 0 | 3 | 23.0 (high) |
+| engineering | progressive-code-review-gate | 105 | 0 | 0/0 | 6 | 0 | 3 | 23.1 (high) |
 | research | perplexity-research | 212 | 0 | 2/92 | 5 | 0 | 2 | 22.0 (high) |
 | engineering | investigation-state | 162 | 0 | 4/528 | 4 | 0 | 0 | 21.8 (high) |
 | engineering | design-triad | 139 | 0 | 0/0 | 4 | 1 | 3 | 20.7 (high) |
@@ -26,6 +26,7 @@
 | productivity | enforce-style-guide | 216 | 0 | 0/0 | 5 | 0 | 0 | 14.3 (medium) |
 | engineering | brainstorming | 96 | 0 | 0/0 | 3 | 0 | 2 | 13.9 (medium) |
 | security | repo-security-scan | 192 | 0 | 0/0 | 5 | 0 | 0 | 13.8 (medium) |
+| engineering | brainstorming | 91 | 0 | 0/0 | 3 | 0 | 2 | 13.8 (medium) |
 | writing | readme-authoring | 222 | 0 | 3/147 | 3 | 0 | 0 | 13.3 (medium) |
 | productivity | skill-authoring | 230 | 0 | 0/0 | 4 | 0 | 0 | 12.6 (medium) |
 | productivity | domain-design | 84 | 0 | 0/0 | 5 | 0 | 0 | 11.6 (medium) |

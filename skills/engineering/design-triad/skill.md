@@ -138,15 +138,16 @@ Design document with:
 3. Edge-case catalog from Step 4
 4. Harsh review findings and resolutions
 
-## Example
+## Example: Comparison Matrix Output
 
 ```markdown
 | Criterion | A: Event-driven | B: Polling | C: Hybrid |
 |-----------|----------------|------------|-----------|
-| Complexity | Medium | Low | High |
-| Testability | Hard (async) | Easy (sync) | Medium |
-| Risk | Message loss | Stale data | Complexity |
-| Fit | Matches existing | New pattern | Mixed |
+| Complexity | Medium, new infra | Low, cron job | High, both paths |
+| Testability | Hard, async | Easy, sync | Medium |
+| Maintainability | Good, decoupled | Good, simple | Poor, two systems |
+| Risk | Message loss | Stale data | Complexity debt |
+| Fit with patterns | Matches existing | New pattern | Mixed |
 ```
 
 ## Rationalizations to Reject
