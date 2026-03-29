@@ -23,7 +23,6 @@ graph TD
     llm_behavior_investigator["llm-behavior-investigator [internal]"]
     reproduction_experiment_investigator["reproduction-experiment-investigator [internal]"]
     state_consistency_investigator["state-consistency-investigator [internal]"]
-    telephony_flow_investigator["telephony-flow-investigator [internal]"]
     timeline_trace_investigator["timeline-trace-investigator [internal]"]
     engineering_rigor["engineering-rigor"]
   end
@@ -217,8 +216,6 @@ graph TD
   systematic_debugging -->|enables| investigation_state
   systematic_debugging -->|enables| think_twice
   systematic_debugging ==>|escalates to| thinking_orchestrator
-  debug_conductor -->|then| telephony_flow_investigator
-  telephony_flow_investigator ==>|escalates to| debug_conductor
   test_driven_development -->|enables| verification_before_completion
   debug_conductor -->|then| timeline_trace_investigator
   timeline_trace_investigator ==>|escalates to| debug_conductor
@@ -274,7 +271,7 @@ graph TD
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Engineering | `feature-development`, `requirements-validation`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `telephony-flow-investigator`, `timeline-trace-investigator`, `engineering-rigor` | Coordinated skill group |
+| Engineering | `feature-development`, `requirements-validation`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `engineering-rigor` | Coordinated skill group |
 | Thinking | `brainstorming`, `adversarial-search`, `design-triad`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
 | Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
 | Debugging | `investigation-state` | Coordinated skill group |
