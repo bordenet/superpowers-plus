@@ -6,24 +6,24 @@
 
 ## P1 — Critical Path
 
-- [ ] [20260329-01] Design doc harsh review (dispatch sub-agent red-team) #design #review
-- [ ] [20260329-02] Evidence JSON schema formal definition in `skills/_shared/evidence-schema.md` #schema
-- [ ] [20260329-03] Fork-readiness rubric standalone reference doc #rubric
-- [ ] [20260329-04] Implement `debug-conductor` skill skeleton #wave2
-- [ ] [20260329-05] Implement `timeline-trace-investigator` skill #wave2
-- [ ] [20260329-06] Implement `llm-behavior-investigator` skill #wave2
+- [x] [20260329-01] Design doc harsh review (dispatch sub-agent red-team) #design #review ✅ Done 2026-03-29
+- [x] [20260329-02] Evidence JSON schema formal definition in `skills/_shared/evidence-schema.md` #schema ✅ Done 2026-03-29
+- [x] [20260329-03] Fork-readiness rubric standalone reference doc #rubric ✅ Done 2026-03-29
+- [x] [20260329-04] Implement `debug-conductor` skill skeleton #wave2 ✅ Done 2026-03-29
+- [x] [20260329-05] Implement `timeline-trace-investigator` skill #wave2 ✅ Done 2026-03-29
+- [x] [20260329-06] Implement `llm-behavior-investigator` skill #wave2 ✅ Done 2026-03-29
 
 ## P2 — Important
 
 - [ ] [20260329-07] Extend `investigation-state` schema with branch/fork metadata #wave3
 - [ ] [20260329-08] Implement duplicate-work detection (Jaccard similarity on evidence) #wave3
-- [ ] [20260329-09] Create experiment fixture: S1 telephony event sequencing #wave3
-- [ ] [20260329-10] Create experiment fixture: S3 LLM tool-selection regression #wave3
-- [ ] [20260329-11] Create experiment harness script #wave3
+- [x] [20260329-09] Create experiment fixture: S1 telephony event sequencing #wave3 ✅ Done 2026-03-29
+- [x] [20260329-10] Create experiment fixture: S3 LLM tool-selection regression #wave3 ✅ Done 2026-03-29
+- [x] [20260329-11] Create experiment harness script #wave3 ✅ Done 2026-03-29
 - [ ] [20260329-12] Add `distributed-debug` chain type to `autonomous-chain-controller` #wave2
 - [ ] [20260329-13] Add conductor routing rule to `thinking-orchestrator` #wave2
 
-## P3 — Deferred
+## P3 — Deferred (some promoted to completed)
 
 - [ ] [20260329-14] Implement telephony-flow-investigator skill #wave4
 - [ ] [20260329-15] Implement state-consistency-investigator skill #wave4
@@ -31,9 +31,9 @@
 - [ ] [20260329-17] Implement reproduction-experiment-investigator skill #wave4
 - [ ] [20260329-18] Implement evidence-adjudicator skill #wave4
 - [ ] [20260329-19] Confidence scoring calibration across evidence types #wave4
-- [ ] [20260329-20] Create experiment fixtures S2, S4, S5 #wave4
+- [x] [20260329-20] Create experiment fixtures S2, S4, S5 #wave4 ✅ Done 2026-03-29
 - [ ] [20260329-21] Run comparative experiments A vs B vs C #wave4
-- [ ] [20260329-22] Final recommendation document #wave5
+- [x] [20260329-22] Final recommendation document #wave5 ✅ Done 2026-03-29 (pre-experiment version)
 - [ ] [20260329-23] Update composition metadata on all affected skills #wave5
 
 ## Open Questions
