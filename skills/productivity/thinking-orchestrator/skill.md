@@ -9,7 +9,7 @@ coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute", "progressive-harsh-review"]
+  enables: ["adversarial-search", "think-twice", "output-verification", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute", "progressive-harsh-review", "debug-conductor"]
   escalates_to: []
   internal: false
 ---
@@ -48,6 +48,8 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
 | Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥6 to pass) |
+| Complex debugging across service boundaries + fork-ready (rubric ≥6) | `debug-conductor` | Conductor-led bounded investigation with parallel investigators |
+| Debugging stalled after systematic-debugging + think-twice | `debug-conductor` | Escalation from serial to forked investigation |
 | None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
 
 ## Child Skills
@@ -65,6 +67,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `design-triad` | Decision quality | 3+ options, comparison, harsh review |
 | `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
 | `progressive-harsh-review` | Quality review | Multi-persona adversarial scoring |
+| `debug-conductor` | Distributed debugging | Conductor-led bounded investigation with forked investigators |
 
 ## The Iron Law
 
