@@ -107,6 +107,20 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 `todo-crud.sh` prevents this by: (1) resolving the correct `TODO_FILE_PATH`, (2) acquiring an advisory lock, (3) creating a timestamped backup, (4) validating section structure (required headers in order, priority subsections, and at least one task or history artifact). Bypassing it bypasses ALL of these protections.
 
+### Defense Layers (enforced by `todo-engine.py`)
+
+| Layer | Mechanism | What it catches |
+|-------|-----------|----------------|
+| 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
+| 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
+| 3. OS protection | `chmod 0444` — file is read-only | `save-file`, `str-replace-editor`, shell redirects |
+| 4. Shadow + annihilation | Pre-write comparison vs `~/.codex/todo-shadow/TODO.md` | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
+| 5. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path (e.g., `~/.codex/TODO.md` when real path is OneDrive) |
+
+**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry. The error message will tell you this.
+
+**Incident 2026-03-26:** A sibling agent tried to write directly to `$TODO_FILE_PATH`, hit chmod 444 ("unwritable"), and fell back to `~/.codex/TODO.md` — creating a stray disconnected TODO file. Root cause: `core.always.md` didn't mandate `todo-crud.sh` and advertised `~/.codex/TODO.md` as a "default" fallback. Fix: added `_validate_canonical_path()` to `write_file()`, hardened `core.always.md` rule, added `--diagnose` to `todo-preflight.sh`.
+
 ---
 
 ## Multi-Agent Coordination
