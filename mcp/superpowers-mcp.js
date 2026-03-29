@@ -37,7 +37,7 @@ const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
 const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
@@ -79,6 +79,7 @@ function extractFrontmatter(filePath) {
     let description = '';
     let triggers = [];
     let compress = true;
+    let triggerAccum = null; // accumulates multiline trigger arrays
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -88,14 +89,33 @@ function extractFrontmatter(filePath) {
         continue;
       }
       if (inFrontmatter) {
+        // Handle multiline trigger accumulation
+        if (triggerAccum !== null) {
+          triggerAccum += ' ' + line.trim();
+          if (line.includes(']')) {
+            // Closing bracket found — parse accumulated triggers
+            const inner = triggerAccum.match(/\[(.+)\]/)?.[1] || '';
+            triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
+            triggerAccum = null;
+          }
+          continue;
+        }
+
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
-        const triggerMatch = line.match(/^triggers:\s*\[(.+)\]/);
         if (nameMatch) name = nameMatch[1].trim();
         if (descMatch) description = descMatch[1].trim();
-        if (triggerMatch) {
-          // Support both double-quoted and single-quoted trigger strings
-          triggers = triggerMatch[1].match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
+
+        // Triggers — single-line or start of multiline
+        if (line.match(/^triggers:\s*\[/)) {
+          if (line.includes(']')) {
+            // Single-line: triggers: ["a", "b"]
+            const inner = line.match(/\[(.+)\]/)?.[1] || '';
+            triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
+          } else {
+            // Multiline: opening bracket without closing
+            triggerAccum = line;
+          }
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }

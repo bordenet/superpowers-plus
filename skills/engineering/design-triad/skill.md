@@ -8,7 +8,7 @@ coordination:
   group: thinking
   order: 3
   requires: []
-  enables: ["plan-and-execute"]
+  enables: []
   escalates_to: ["thinking-orchestrator"]
   internal: false
 ---
