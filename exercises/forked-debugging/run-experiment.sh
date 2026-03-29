@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Forked Debugging Experiment Harness
-# Runs scenarios under different conditions and records results.
+# Forked Debugging Experiment Harness — STUB
+# STATUS: Scaffolding only. Loads fixtures and writes result skeletons with
+#         placeholder null metrics. Real experiment dispatch is NOT implemented.
+#         See results-comparison.md for expected outcomes and validation plan.
 #
 # Usage: ./run-experiment.sh <condition> <scenario> [--runs N]
 #   condition: A (single-agent) | B (naive-multi) | C (conductor-led)

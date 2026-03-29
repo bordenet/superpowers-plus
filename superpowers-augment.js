@@ -69,15 +69,28 @@ function discoverSourceDir(envVar, wellKnownPaths) {
     return null;
 }
 
+// Self-discover: if this script lives inside a superpowers-plus checkout, use that
+// as the source dir (covers any clone location without hard-coding paths).
+function discoverSppFromScript() {
+    const scriptDir = path.resolve(__dirname);
+    // Check if script is inside a superpowers-plus repo (has skills/ dir)
+    if (fs.existsSync(path.join(scriptDir, 'skills')) && fs.existsSync(path.join(scriptDir, 'tools'))) {
+        return scriptDir;
+    }
+    // Script may be in a subdirectory; check parent
+    const parentDir = path.dirname(scriptDir);
+    if (fs.existsSync(path.join(parentDir, 'skills')) && fs.existsSync(path.join(parentDir, 'tools'))) {
+        return parentDir;
+    }
+    return null;
+}
+
 const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
-    // Source checkout paths first (development takes priority over installed copy)
-    '~/GitHub/Personal/superpowers-plus',
-    '~/git/Personal/superpowers-plus',
-    '~/src/superpowers-plus',
-    '~/superpowers-plus',
-    // Installed copy as fallback only
+    // Self-discovery from script location (works for any clone path)
+    discoverSppFromScript(),
+    // Installed copy as fallback
     '~/.codex/superpowers-plus',
-]);
+].filter(Boolean));
 
 const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
 
