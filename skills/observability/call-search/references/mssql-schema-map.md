@@ -1,0 +1,1 @@
+../../[product]-investigator/references/mssql-schema-map.md
