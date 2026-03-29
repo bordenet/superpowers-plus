@@ -22,7 +22,7 @@ cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
-SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
+SP_OVERLAY_DIR="${SP_OVERLAY_SOURCE_DIR:-${SPC_SOURCE_DIR:-}}"
 
 # Colors
 if [[ -t 1 ]]; then
