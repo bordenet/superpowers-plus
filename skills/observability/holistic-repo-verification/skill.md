@@ -39,14 +39,6 @@ This includes:
 
 **Never claim "CI passes" when only checking the CI workflow. That's a narrow, incomplete verification.**
 
-## When to Use This Skill
-
-Use this skill:
-- Before claiming work is complete on any GitHub repository
-- Before creating a Pull Request
-- Before reporting that "all tests pass" or "CI is green"
-- After pushing commits that should fix broken builds
-- When verifying repository health status
 
 ## Verification Checklist
 
@@ -122,24 +114,7 @@ GitHub Pages: ✅ built
 **Overall Status: GREEN** ✅
 ```
 
-Or if failing:
-
-```
-## Repository Health: {repo-name}
-
-| Workflow | Status | Run # |
-|----------|--------|-------|
-| CI | ✅ success | 169 |
-| pages build and deployment | ❌ failure | 127 |
-
-GitHub Pages: ❌ errored
-
-**Overall Status: RED** ❌
-
-### Failing Workflow Details
-- pages build and deployment (run 127): Upload artifact step failed
-- Error: tar: ./validator/js/core: File removed before we read it
-```
+If failing: add `### Failing Workflow Details` with workflow name, run #, error.
 
 ## Failure Modes
 
@@ -150,42 +125,11 @@ GitHub Pages: ❌ errored
 | Only checking GitHub Actions — missing Azure DevOps pipelines | Use the appropriate CI/CD API for the repo's hosting platform |
 | Not waiting for Pages deployment after push | Pages builds are async — poll until status is `built` or `errored` |
 
-## Skill Connections
-
-This skill complements:
-- `superpowers:verification-before-completion` - adds repo health to the verification checklist
-- `superpowers:requesting-code-review` - ensures repo is healthy before requesting review
-- `enforce-style-guide` - code quality before commit, this skill verifies after push
-
 ## Success Criteria
 
-This skill succeeds when:
+ALL workflow runs `conclusion: success` · GitHub Pages `status: built` (if applicable) · no `failure/cancelled/errored`.
 
-✅ ALL workflow runs show `conclusion: success`
-✅ GitHub Pages shows `status: built` (if applicable)
-✅ Repository badge/status indicator shows green
-✅ No workflow is in `failure`, `cancelled`, or `errored` state
-
-## Failure Response
-
-If any workflow is failing:
-
-1. **Identify the failing workflow** - not just CI
-2. **Get the specific error** - check job logs
-3. **Fix the root cause** - don't just re-run
-4. **Verify the fix** - wait for ALL workflows to complete
-5. **Re-check holistically** - confirm everything is green
-
-**DO NOT claim work is complete until ALL workflows pass.**
-
-
-**Remember**: When someone says "make CI green" or "fix the build," they mean the ENTIRE repository should show a healthy status, not just one specific workflow.
-
-## Scope Exclusions
-
-- Quick scope check → `completeness-check` (lighter)
-- Pre-commit gate → `pre-commit-gate`
-- Skill-specific lint → `skill-health-check`
+**If failing:** Identify failing workflow → get specific error from job logs → fix root cause (not re-run) → wait for ALL workflows → re-check holistically.
 
 ## Companion Skills
 

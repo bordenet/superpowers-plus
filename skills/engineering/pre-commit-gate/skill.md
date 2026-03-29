@@ -155,37 +155,13 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 
 ## Companion Skills
 
-- `blast-radius-check` — Before modifying existing code
-- `providing-code-review` — When reviewing others' PRs
-- `engineering-rigor` — Philosophy and overview
-- `output-verification` — Before claiming generated artifacts are correct
-- `verification-before-completion` — After this gate passes, before claiming "done"
-
----
-
 - **enforce-style-guide**: Style fixes (step 2 in commit chain)
-- **progressive-code-review-gate**: Code review (step 3 in commit chain)
-- **professional-language-audit**: Language check (step 4 in commit chain)
-- **verification-before-completion**: Completion checklist (runs after commit gates)
+- **progressive-code-review-gate**: Code review (step 3)
+- **professional-language-audit**: Language check (step 4)
 - **public-repo-ip-audit**: IP/license audit (step 5)
-- **output-verification**: Output verification
-- **holistic-repo-verification**: Full repo health check
-- **security-upgrade**: Post-upgrade pre-commit checks
-- **micro-harsh-review**: Per-batch review gate
-## Commit Gate Coordination
-
-Multiple skills fire on "before commit". Execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 0 | **pre-commit-gate** (this skill) | Dangerous pattern scan | Commits with `.sh` files |
-| 1 | **pre-commit-gate** (this skill) | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | **progressive-code-review-gate** | Harsh adversarial code review loop | All code commits |
-| 4 | `professional-language-audit` | Profanity/language check | User-facing docs |
-| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
-
-**Rationale:** Safety scan first (catches catastrophic risk), then technical checks (fast feedback), then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
+- **verification-before-completion**: After commit gates, before "done"
+- **blast-radius-check**: Before modifying existing code
+- **output-verification**: Before claiming generated artifacts correct
 
 ## Failure Modes
 
