@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test",
            "skill coverage report"]
 anti_triggers: ["doctor", "diagnose", "runtime skill issue"]
-description: "Cheap structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and reports missing coordination metadata and Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
+description: "Structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and enforces coordination metadata (group, order, internal) as errors. Reports missing Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
 summary: "Use when: checking skill file structure after bulk changes. For runtime diagnostics use superpowers-doctor."
 coordination:
   group: observability
@@ -67,7 +67,14 @@ ruby -ryaml -e '
     %w[name source triggers description].each do |f|
       errors << "#{path}: Missing #{f}" unless data&.key?(f)
     end
-    warnings << "#{path}: Missing coordination" unless data&.key?("coordination")
+    unless data&.key?("coordination")
+      errors << "#{path}: Missing coordination block"
+    else
+      coord = data["coordination"]
+      %w[group order internal].each do |k|
+        errors << "#{path}: coordination missing '#{k}'" unless coord&.key?(k)
+      end
+    end
     warnings << "#{path}: Missing Failure Modes" unless content.include?("## Failure Modes")
     lines = content.count("\n")
     errors << "#{path}: #{lines} lines (max 250)" if lines > 250

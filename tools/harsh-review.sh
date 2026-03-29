@@ -356,6 +356,8 @@ while IFS= read -r skill_file; do
         if ! echo "$coord_block" | grep -q "^  internal:"; then
             log_fail "$skill_name: coordination block missing 'internal:'"
         fi
+    else
+        log_fail "$skill_name: missing 'coordination:' block in frontmatter (required for DAG generation)"
     fi
 done < <(find skills -name "skill.md" 2>/dev/null)
 
