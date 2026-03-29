@@ -52,13 +52,6 @@ EXPLICIT_SKILLS=(
     "feature-development"           # Orchestrator child: dispatched by thinking-orchestrator
     "plan-and-execute"              # Orchestrator child: dispatched by thinking-orchestrator
     "investigation-state"           # Orchestrator child: dispatched by thinking-orchestrator
-    "timeline-trace-investigator"   # Internal: dispatched by debug-conductor
-    "llm-behavior-investigator"     # Internal: dispatched by debug-conductor
-    "telephony-flow-investigator"   # Internal: dispatched by debug-conductor
-    "state-consistency-investigator" # Internal: dispatched by debug-conductor
-    "infra-config-investigator"     # Internal: dispatched by debug-conductor
-    "reproduction-experiment-investigator" # Internal: dispatched by debug-conductor
-    "evidence-adjudicator"          # Internal: dispatched by debug-conductor
 )
 
 is_explicit_skill() {
