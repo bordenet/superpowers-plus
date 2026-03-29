@@ -53,6 +53,9 @@ PRIORITY_MARKERS = {"P1": RE_P1, "P2": RE_P2, "P3": RE_P3}
 # This prevents save-file, str-replace-editor, and shell redirects from
 # overwriting TODO.md without going through todo-engine.py.
 FILE_MODE_PROTECTED = 0o444   # r--r--r--
+
+# Platform detection for immutability flags
+PLATFORM = sys.platform  # 'darwin' (macOS), 'linux', etc.
 FILE_MODE_WRITABLE  = 0o644   # rw-r--r--
 
 # ---------------------------------------------------------------------------
@@ -96,12 +99,12 @@ def resolve_todo_path() -> str:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-    # 3. Default — WARN loudly so agents notice the misconfiguration
+    # 4. Default — WARN loudly so agents notice the misconfiguration
     default = os.path.expanduser("~/.codex/TODO.md")
     print(
-        f"WARNING: TODO_FILE_PATH not found in environment or ~/.codex/.env. "
+        f"WARNING: TODO path not found in .todo-registry, environment, or .env. "
         f"Falling back to default: {default}. "
-        f"If this is wrong, set TODO_FILE_PATH in ~/.codex/.env",
+        f"Create ~/.codex/.todo-registry with the real path.",
         file=sys.stderr,
     )
     return default
@@ -325,21 +328,61 @@ def validate_structure(content: str) -> None:
         )
 
 
-def _unprotect_file(path: str) -> None:
-    """Make TODO.md writable (0644). Called before writes.
+def _clear_immutable(path: str) -> None:
+    """Clear OS-level immutable flag (chflags/chattr) if present.
 
-    Raises RuntimeError if the file exists but chmod fails — silent failure
-    would defeat the entire protection mechanism.
+    macOS: chflags nouchg
+    Linux: chattr -i (may require elevated privileges)
+    Other: no-op (fall through to chmod)
+    """
+    try:
+        if PLATFORM == "darwin":
+            subprocess.run(["chflags", "nouchg", path],
+                           capture_output=True, timeout=5, check=True)
+        elif PLATFORM == "linux":
+            subprocess.run(["chattr", "-i", path],
+                           capture_output=True, timeout=5, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Command not available or failed; fall through to chmod
+
+
+def _set_immutable(path: str) -> None:
+    """Set OS-level immutable flag (chflags/chattr) for strongest protection.
+
+    macOS: chflags uchg → 'Operation not permitted' for ANY write attempt
+    Linux: chattr +i → same effect (may require elevated privileges)
+    Other: no-op (rely on chmod 444 alone)
+
+    Agents' save-file and str-replace-editor CANNOT clear these flags.
+    Only todo-engine.py knows how to temporarily lift immutability.
+    """
+    try:
+        if PLATFORM == "darwin":
+            subprocess.run(["chflags", "uchg", path],
+                           capture_output=True, timeout=5, check=True)
+        elif PLATFORM == "linux":
+            subprocess.run(["chattr", "+i", path],
+                           capture_output=True, timeout=5, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        pass  # Best-effort; chmod 444 is the fallback
+
+
+def _unprotect_file(path: str) -> None:
+    """Make TODO.md writable. Clears immutable flag, then chmod 644.
+
+    Raises RuntimeError if chmod fails after clearing immutability — this
+    means something is seriously wrong with the filesystem.
     """
     if not os.path.exists(path):
         return  # File doesn't exist yet; nothing to unprotect
+    _clear_immutable(path)
     try:
         os.chmod(path, FILE_MODE_WRITABLE)
     except OSError as exc:
         raise RuntimeError(
             f"CRITICAL: Cannot chmod TODO.md for writing: {exc}. "
-            f"The file is deliberately read-only (chmod 444). "
-            f"Use todo-crud.sh which handles chmod automatically. "
+            f"The file is deliberately read-only and immutable. "
+            f"Use todo-crud.sh which handles protection automatically. "
             f"NEVER write TODO.md directly or fall back to a different path."
         ) from exc
 
@@ -368,17 +411,19 @@ def _validate_canonical_path(path: str) -> None:
 
 
 def _protect_file(path: str) -> None:
-    """Make TODO.md read-only (0444). Called after writes.
+    """Make TODO.md read-only (0444) + immutable (chflags uchg / chattr +i).
 
-    This is the OS-level gate that prevents save-file, str-replace-editor,
-    and shell redirects from overwriting TODO.md. Only todo-engine.py
-    temporarily lifts this protection during validated writes.
+    Two layers of protection:
+    1. chmod 444 — blocks normal write attempts (Permission denied)
+    2. chflags uchg — blocks ALL write attempts including chmod changes
+       (Operation not permitted). Agent tools cannot clear this flag.
 
-    Raises RuntimeError if the file exists but chmod fails — silent failure
-    would mean the file is left writable and unprotected.
+    Only todo-engine.py knows to call _clear_immutable() before _unprotect_file().
     """
     if not os.path.exists(path):
         return  # Nothing to protect
+    # Clear any existing immutable flag first (idempotent re-protection)
+    _clear_immutable(path)
     try:
         os.chmod(path, FILE_MODE_PROTECTED)
     except OSError as exc:
@@ -386,6 +431,7 @@ def _protect_file(path: str) -> None:
             f"CRITICAL: Cannot protect TODO.md after write: {exc}. "
             f"File is LEFT WRITABLE — manual chmod 0444 needed."
         ) from exc
+    _set_immutable(path)
 
 
 def write_file(path: str, content: str) -> None:
