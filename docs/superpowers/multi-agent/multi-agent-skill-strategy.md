@@ -43,7 +43,7 @@ This document defines the architecture for multi-agent execution across three sk
 
 ### 3.1 Multi-Agent Activation Rubric
 
-Shared across all three skills. Score 0–2 per signal; activate multi-agent if total ≥ 5.
+Shared across all three skills. Score 0–2 per signal; total = 5 → borderline (ask user); total ≥ 6 → multi-agent eligible.
 
 | Signal | 0 | 1 | 2 |
 |--------|---|---|---|
@@ -184,7 +184,7 @@ Confidence is **role-specific** but follows a shared calibration:
 | **Synthesis Planner** | Merge all sections, resolve conflicts, produce coherent plan | `{ mergedPlan, conflicts[], unresolved[], readinessAssessment }` |
 
 **Activation criteria (specific to writing-plans):**
-- Multi-agent activation rubric score ≥ 5
+- Multi-agent activation rubric score ≥ 6 (score = 5 → ask user)
 - Task involves ≥3 components/services
 - Task has significant rollback cost if plan is wrong
 - Task crosses team/domain boundaries

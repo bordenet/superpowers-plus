@@ -2,7 +2,7 @@
 
 > **Purpose:** Shared decision framework for all multi-agent-capable skills.
 > **Default:** Single-agent. Multi-agent is escalation, not starting point.
-> **Score:** 0–2 per signal. Activate multi-agent if total ≥ 5.
+> **Score:** 0–2 per signal. Total = 5 → borderline (ask user). Total ≥ 6 → multi-agent eligible.
 
 ## Scoring
 
