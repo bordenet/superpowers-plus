@@ -19,7 +19,7 @@ coordination:
 > **Purpose**: Get unstuck by dispatching research queries to Perplexity AI
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
 > **Cost**: Perplexity API calls are paid — use judiciously
-
+>
 > **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
 
 ## When to Use
@@ -76,7 +76,7 @@ Report findings → apply (run command/implement fix/test) → evaluate BEFORE r
 
 After attempting to apply the Perplexity response, explicitly evaluate:
 
-```
+```markdown
 📊 **Perplexity Evaluation**:
 - Applied: [what you tried]
 - Outcome: [SUCCESS | PARTIAL | FAILURE]
@@ -104,6 +104,7 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 > Record outcomes in conversation context or TODO notes — this helps calibrate when Perplexity is worth the cost.
 
 **The evaluation loop**:
+
 1. Receive Perplexity response → Report (Step 4)
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
@@ -140,7 +141,6 @@ curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: appli
 5. **Rich prompts** - Better prompts = better results
 6. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
 7. **Cost awareness** - Perplexity costs real money; use only when free tools fail
-
 
 ## "I'm Stuck" Escalation Path
 

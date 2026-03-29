@@ -22,6 +22,7 @@ Classify every page in the new structure as one of:
 ### 2. Build Hierarchy
 
 Design parent-child relationships following these rules:
+
 - **Max depth: 3 levels.** Any concept must be reachable in ≤3 clicks from the wiki root.
 - **Single parent.** Every page has exactly one parent. No page appears in multiple locations.
 - **Overview → Detail.** Parent pages are overviews; children are specifics.
@@ -31,6 +32,7 @@ Design parent-child relationships following these rules:
 ### 3. Map Content
 
 For each page in the new structure, document:
+
 - **Source pages:** Which current pages contribute content
 - **Merge/split operations:** What gets combined or separated
 - **Deletions:** Pages removed entirely (with justification — must be redundant, not just short)

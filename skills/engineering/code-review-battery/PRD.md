@@ -11,18 +11,23 @@
 The current code review system in the superpowers framework has three critical limitations:
 
 ### 1. Monolithic Review Agent
+
 A single reviewer agent (`code-reviewer.md`) attempts to evaluate ALL review dimensions simultaneously — correctness, security, design, performance, testing, and more. This leads to:
+
 - Shallow coverage across many dimensions rather than deep analysis in any one
 - Inconsistent focus (the reviewer gravitates toward whichever issue it notices first)
 - No parallelism — review time scales linearly with diff size
 
 ### 2. Platform Lock-in
+
 The `progressive-code-review-gate` skill hard-codes `sub-agent-code-reviewer` (an Augment.ai-specific tool type). This means:
+
 - The skill cannot work on Claude Code without modification
 - Users on Claude Code must manually adapt the dispatch mechanism
 - No path to support future platforms (Gemini CLI, Codex, etc.)
 
 ### 3. Manual Installation Required
+
 The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's settings. A new user cannot simply run `install.sh` and get review capabilities — they need platform-specific setup.
 
 ## Goals
@@ -39,6 +44,7 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 ## Scope
 
 ### In Scope (Phase 1: Review Battery)
+
 - 5 specialized reviewer agents with focused prompts
 - Triage coordinator that selects relevant reviewers per diff
 - Platform-agnostic dispatch (Augment + Claude Code)
@@ -47,9 +53,11 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 - 16 review dimensions covered across the 5 agents
 
 ### Out of Scope (Phase 2: Debugging Parallelization)
+>
 > **⚠️ FUTURE SCOPE — DO NOT FORGET**
 >
 > Phase 2 will extend the parallel dispatch pattern to `systematic-debugging`:
+>
 > - Dispatch parallel investigation agents (data flow tracer, recent changes analyzer, error message interpreter)
 > - Useful for multi-component failures where root cause is unclear
 > - Must preserve the "one hypothesis at a time" discipline from the existing skill
@@ -59,6 +67,7 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 > **Trigger**: After Phase 1 battery is validated and stable
 
 ### Out of Scope (Not Planned)
+
 - Accessibility review (too domain-specific; optional add-on for UI projects)
 - Internationalization review (too domain-specific; optional add-on)
 - CI/CD integration (future, after battery is proven locally)
@@ -66,26 +75,31 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 ## The 5 Reviewer Agents
 
 ### Agent 1: Defect Finder
+
 **Mental Model**: *"What inputs, states, or conditions break this code?"*
 **Dimensions**: Correctness, Edge Cases, Error Handling, Concurrency
 **Triage**: Always-on (highest ROI)
 
 ### Agent 2: Design Critic
+
 **Mental Model**: *"Is this code well-structured for humans to understand, extend, and test?"*
 **Dimensions**: Factoring/Composition, Complexity Reduction, Testability, API Design
 **Triage**: Conditional — when diff adds/modifies classes, functions, or public APIs
 
 ### Agent 3: Guardian
+
 **Mental Model**: *"What damage can this change cause beyond the diff?"*
 **Dimensions**: Security, Blast Radius, Dependencies/Config, Backwards Compatibility
 **Triage**: Always-on (prevents production incidents)
 
 ### Agent 4: Standards Enforcer
+
 **Mental Model**: *"Does this code meet the team's and project's documented expectations?"*
 **Dimensions**: Language Standards/Style, Spec Compliance, Documentation Drift, Test Quality
 **Triage**: Always-on (conformance checking)
 
 ### Agent 5: Performance Analyst
+
 **Mental Model**: *"Will this code behave well under production load?"*
 **Dimensions**: Performance, Observability/Logging
 **Triage**: Conditional — when diff touches DB, loops, caching, or >500 LOC changed
@@ -113,7 +127,6 @@ The `sub-agent-code-reviewer` tool must be manually configured in Augment.ai's s
 | + | Backwards Compatibility | Guardian | ✅ |
 | + | Observability/Logging | Performance Analyst | Conditional |
 
-
 ## Design Rationale: Why These Groupings?
 
 The groupings were determined through a structured process:
@@ -124,6 +137,7 @@ The groupings were determined through a structured process:
 4. **Refinement**: Regrouped by shared "mental model" — dimensions that require the same cognitive frame belong together
 
 **Industry validation**:
+
 - Anthropic's Claude Code Review uses 5 parallel specialized agents
 - Qodo recommends "Specialist-Agent architecture" over generic suggestions
 - Claude Code Agent Teams docs recommend 3-5 teammates as the optimal range
@@ -132,6 +146,7 @@ The groupings were determined through a structured process:
 ## Acceptance Criteria
 
 ### Must Pass (Phase 1 ship gate)
+
 - [ ] AC1: All 5 reviewer prompts produce actionable findings on ≥3 real diffs
 - [ ] AC2: Battery catches all Critical/Important issues that monolithic review catches
 - [ ] AC3: Battery false positive rate <5% (measured on 10 review runs)
@@ -143,11 +158,13 @@ The groupings were determined through a structured process:
 - [ ] AC9: Existing `progressive-code-review-gate` skill can delegate to battery
 
 ### Should Pass (quality bar)
+
 - [ ] AC10: Each reviewer's findings are non-overlapping with other reviewers' (≤10% overlap)
 - [ ] AC11: Aggregated output follows existing severity format (Critical/Important/Minor)
 - [ ] AC12: Token cost per review ≤ 3x monolithic review cost
 
 ### Nice to Have
+
 - [ ] AC13: Support for `--all` override to force all reviewers on any diff
 - [ ] AC14: Support for `--only=<agent>` to run a single reviewer
 - [ ] AC15: Reviewer-specific configuration per project

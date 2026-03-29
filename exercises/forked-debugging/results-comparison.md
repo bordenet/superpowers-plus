@@ -47,6 +47,7 @@ Based on the research foundation (Kim et al. 2025, AgentRx, TraceCoder) and our 
 ### When to Use Single-Agent Debugging (A)
 
 Use when:
+
 - Single domain, clear error message
 - Fork-readiness rubric score < 6
 - Budget is constrained
@@ -56,6 +57,7 @@ Use when:
 ### When to Use Conductor-Led Forked Debugging (C)
 
 Use when:
+
 - Multiple domains involved (rubric ≥ 6)
 - Cross-service failure with incomplete evidence
 - Single-agent investigation has stalled (think-twice invoked)

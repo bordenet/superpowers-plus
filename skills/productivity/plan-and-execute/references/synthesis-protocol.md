@@ -51,6 +51,7 @@ For each unresolved conflict: present both options with tradeoffs.
 ### 5. Aggregate Missing Information
 
 Combine all `missingInformation` fields. Deduplicate. Classify:
+
 - **Blocking:** Plan cannot proceed without this → flag for human input
 - **Important:** Plan is weaker without this but can proceed → note as caveat
 - **Nice-to-have:** Would improve plan but not critical → defer
@@ -72,7 +73,7 @@ Combine all `missingInformation` fields. Deduplicate. Classify:
 - **Components:** [list with 1-sentence purposes]
 - **Dependencies:** [graph or ordered list]
 - **Implementation sequence:** [phase order]
-- **Reused patterns:** [existing code to leverage]
+- **Reused patterns:** [existing code to build on]
 
 ### 3. Risk Assessment
 [From Risk Planner, cross-referenced with architecture]

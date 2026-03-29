@@ -45,6 +45,7 @@ index aaa1111..bbb2222 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Critical
 - **Reviewer:** defect-finder
 - **File:** lib/skill-router.js:20

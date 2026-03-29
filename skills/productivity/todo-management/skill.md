@@ -17,7 +17,7 @@ coordination:
 # TODO Management
 
 > **Wrong skill?** Archiving completed tasks → `todo-archive`. Plan execution → `plan-and-execute`.
-
+>
 > **File location:** Resolved from `TODO_FILE_PATH` in `~/.codex/.env` (falls back to `$HOME/.codex/TODO.md`)
 > **PRD:** See `PRD.md` in this skill folder for full requirements
 > **MCP Tools:** `add_tasks`, `update_tasks`, `view_tasklist` (for in-conversation tracking)
@@ -100,6 +100,7 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 ### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
 
 **NEVER write to TODO.md except through the approved TODO tools** (`todo-crud.sh`, `todo-preflight.sh --create-if-missing`, `todo-maintenance.sh`). This ban includes:
+
 - ❌ `save-file` / `str-replace-editor` / `echo >` / `cat >` / `sed -i` / inline python
 - ❌ ANY method that bypasses preflight, locking, backup, or structure validation
 
@@ -170,4 +171,5 @@ Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-
 - **todo-archive**: Archiving completed tasks · **plan-and-execute**: Planning complex task sequences
 
 **References:** [`references/taxonomy.md`](references/taxonomy.md) · [`references/file-format-and-operations.md`](references/file-format-and-operations.md)
+
 - **todo-guardian**: TODO enforcement layer

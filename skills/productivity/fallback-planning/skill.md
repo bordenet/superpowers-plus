@@ -17,7 +17,7 @@ coordination:
 # Fallback Planning
 
 > **Wrong skill?** Primary plan creation → `plan-and-execute`. Feature planning → `brainstorming`. Design comparison → `design-triad`.
-
+>
 > **Core principle:** A plan without fallbacks is a plan that restarts from scratch when things go wrong.
 
 **Announce at start:** "I'm using the **fallback-planning** skill to generate contingency plans."
@@ -33,7 +33,6 @@ coordination:
 - After a primary plan has been created and risks identified (via `design-triad` harsh review)
 - When the cost of restarting from scratch exceeds the cost of pre-building a contingency
 - When a different agent or session may need to pick up fallback execution cold
-
 
 ## Process
 
@@ -90,10 +89,10 @@ Before persisting fallback TODOs:
 ## Persistence
 
 Fallback TODOs are persisted alongside the primary plan:
+
 - **In TODO.md:** Tagged with `#fallback-[risk-name]` under the primary plan's tag
 - **In MCP tasks:** As child tasks of the primary plan's root task, marked NOT_STARTED
 - **In design doc:** Referenced in the "Fallback Plan" section
-
 
 ## Example
 

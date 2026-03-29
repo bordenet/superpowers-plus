@@ -40,6 +40,7 @@ For each non-PRD page, define the target heading structure:
 ### 3. Cross-Reference Plan
 
 For each page, list:
+
 - **Links TO:** pages this page should link to (parent, children, related concepts)
 - **Links FROM:** pages that should link to this page (update existing cross-references)
 - **Redirects needed:** old URLs that should redirect to this new page
@@ -47,6 +48,7 @@ For each page, list:
 ### 4. Content Decisions
 
 For each merge or consolidation:
+
 - Which source page's wording is canonical?
 - What content is dropped and why?
 - Are there contradictions to resolve? Which version is correct?
@@ -54,6 +56,7 @@ For each merge or consolidation:
 ## Rewrite Priority Order
 
 Phase 5 rewrites pages in this order:
+
 1. **P1 — Core concepts.** Overview pages and foundational references. These are linked by everything else.
 2. **P2 — Supporting detail.** Procedures, troubleshooting, secondary references.
 3. **P3 — Nice-to-have.** Supplementary pages, edge case documentation.

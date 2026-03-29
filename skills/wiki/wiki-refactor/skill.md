@@ -25,7 +25,7 @@ coordination:
 > **Gate:** HARD — PRD protection enforced at 3 checkpoints. Human approval required after Phase 4.
 > **Input:** `{{wiki_seed_url}}` — the root page whose descendant tree will be refactored.
 > **Output:** `wiki/` directory on a Dev feature branch with all refactored pages + migration guide.
-
+>
 > **Wrong skill?** Single page edit → `wiki-orchestrator`. Content coherence check → `wiki-content-coherence`. Link verification → `link-verification`.
 
 ## 🔴 PRD PROTECTION (NON-NEGOTIABLE)
@@ -33,12 +33,14 @@ coordination:
 PRD documents are **atomic and immutable** during refactoring. The moment a PRD is modified, the pipeline HALTS.
 
 **Detection (case-insensitive):** Any file where:
+
 - Filename/title contains "PRD" (case-insensitive: `prd`, `Prd`, `PRD`)
 - Content contains a header matching "Product Requirements Document" (case-insensitive)
 - Content contains an H1/H2 that is exactly "PRD" (case-insensitive)
 - File is in an operator-supplied PRD include list (if provided)
 
 **Checkpoints:**
+
 1. **After Phase 1:** Quarantine all PRD pages found in inventory. Record in `prd-quarantine-list`.
 2. **Before each Phase 5 write:** Check target path against quarantine list. If match → HALT.
 3. **After Phase 7:** Final diff confirms zero PRD files in changeset. If any → HALT.
@@ -48,11 +50,13 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 ## Procedure
 
 ### Pre-flight
+
 1. Validate `{{wiki_seed_url}}` is reachable
 2. Create feature branch: `feat/wiki-refactor-{{date}}`
 3. Initialize artifact directory: `wiki-refactor-artifacts/`
 
 ### Phase 1: Discovery → [phase-1-discovery.md](references/phase-1-discovery.md)
+
 - Crawl descendant page tree from seed URL
 - Snapshot all page content at crawl time
 - Output: `wiki-inventory.md`
@@ -61,20 +65,25 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 - **🔴 PRD checkpoint 1:** Quarantine all PRD pages. Record in `prd-quarantine-list`.
 
 ### Phase 2: Deduplication → [phase-2-deduplication.md](references/phase-2-deduplication.md)
+
 - Analyze all content for duplication patterns
 - Output: `dedup-analysis.md`
 - **Zero duplicates:** Skip consolidation work but continue to Phase 3 (IA/structure improvements may still apply). Only exit early if Phase 3 also finds no structural issues.
 
 ### Phase 3: Information Architecture → [phase-3-information-architecture.md](references/phase-3-information-architecture.md)
+
 - Design optimal new wiki structure
 - Output: `new-wiki-structure.md`
 
 ### Phase 4: Writing Plan → [phase-4-writing-plan.md](references/phase-4-writing-plan.md)
+
 - Map source pages → target pages with section structures
 - Output: `wiki-writing-plan.md`
 
 ### ⏸️ HUMAN CHECKPOINT
+
 **HALT.** Present `wiki-writing-plan.md` to operator. Do NOT proceed to Phase 5 until operator explicitly approves the plan. Display:
+
 - Total pages to rewrite
 - Pages to merge (with source list)
 - Pages to delete (with justification)
@@ -83,17 +92,20 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 - PRD quarantine list (confirm none are in rewrite scope)
 
 ### Phase 5: Rewrite + Review → [phase-5-rewrite-and-review.md](references/phase-5-rewrite-and-review.md)
+
 - Rewrite pages in priority order (core concepts first)
 - Each page passes 3-round progressive review with 5 wiki-specific reviewers
 - **🔴 PRD checkpoint 2:** Before each page write, check against quarantine list.
 - Output: `refactored-wiki/*.md`
 
 ### Phase 6: Quality Metrics → [phase-6-quality-metrics.md](references/phase-6-quality-metrics.md)
+
 - Compute dedup reduction, consolidation %, review pass %, orphan resolution %
 - Confirm zero PRDs touched
 - Output: `wiki-refactor-report.md`
 
 ### Phase 7: Safe Delivery → [phase-7-safe-delivery.md](references/phase-7-safe-delivery.md)
+
 - Package into `wiki/` directory on feature branch
 - Generate migration guide (old → new URL mapping)
 - **Snapshot diff:** Compare Phase 1 snapshot against current wiki. If drift detected → warn operator, present options: overwrite / merge / abort.

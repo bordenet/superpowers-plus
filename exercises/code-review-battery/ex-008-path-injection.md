@@ -45,6 +45,7 @@ index aaa1111..bbb2222 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Critical
 - **Reviewer:** guardian
 - **File:** lib/skill-loader.js
@@ -53,6 +54,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** Validate that the resolved path starts with `baseDir`: `if (!path.resolve(skillPath).startsWith(path.resolve(baseDir))) throw new Error('Invalid skill name');`
 
 ### Finding 2
+
 - **Severity:** Important
 - **Reviewer:** guardian
 - **File:** lib/skill-loader.js
@@ -60,6 +62,7 @@ index aaa1111..bbb2222 100644
 - **Category:** security, excessive-flexibility
 
 ### Finding 3
+
 - **Severity:** Important
 - **Reviewer:** defect-finder
 - **File:** lib/skill-loader.js

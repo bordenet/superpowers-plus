@@ -2,7 +2,7 @@
 
 Generated skills are saved to:
 
-```
+```markdown
 skills/<domain>/<skill-name>/
 ├── skill.md       # Main skill definition
 ├── README.md      # Optional: if skill needs extended docs
