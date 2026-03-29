@@ -9,7 +9,7 @@ coordination:
   group: writing
   order: 2
   requires: []
-  enables: ['plan-and-execute']
+  enables: []
   escalates_to: []
   internal: false
 ---

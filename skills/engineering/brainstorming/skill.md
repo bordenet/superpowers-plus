@@ -13,7 +13,7 @@ coordination:
   group: thinking
   order: 1
   requires: []
-  enables: ["design-triad", "plan-and-execute"]
+  enables: ["design-triad"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
 composition:
