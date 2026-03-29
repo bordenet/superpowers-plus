@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done"]
 description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
 summary: "Use when: need hub for pre-commit, blast-radius, or code review skills."
+coordination:
+  group: engineering
+  order: 1
+  requires: []
+  enables: ['pre-commit-gate', 'blast-radius-check']
+  escalates_to: []
+  internal: false
 ---
 
 # Engineering Rigor

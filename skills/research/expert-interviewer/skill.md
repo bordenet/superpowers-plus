@@ -4,6 +4,13 @@ source: superpowers-plus
 triggers: ["interview me about", "help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "knowledge capture", "domain interview"]
 anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code"]
 description: "Use when extracting domain knowledge from a user through structured interviewing to produce a written artifact (wiki page, reference doc, problem space overview). NOT for feature design — use brainstorming for that."
+coordination:
+  group: research
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Expert Interviewer

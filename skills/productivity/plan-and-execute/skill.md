@@ -8,12 +8,7 @@ triggers: ["plan and execute", "plan-and-execute", "challenge me", "give me a ch
            "stress-test the plan", "divide into phases", "autonomous phases", "phased TODO",
            "plan phases", "big project", "organize this work", "tackle this problem",
            "let's do this systematically", "multi-phase project"]
-description: >
-  General-purpose orchestrator for challenge → plan → stress-test → phased execution.
-  Produces a plan, stress-tests it with brainstorming + think-twice + progressive harsh review,
-  then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in
-  quality gates. Between phases, runs structured retrospectives that drive improvements into all
-  upcoming TODOs before execution continues.
+description: General-purpose orchestrator for challenge → plan → stress-test → phased execution. Produces a plan, stress-tests it, then enrolls each phase as an autonomous TODO with deliverables, success criteria, and built-in quality gates. Between phases, runs structured retrospectives that drive improvements into all upcoming TODOs.
 summary: "Use when: tackling any multi-phase challenge that benefits from structured planning, stress-testing, and continuous improvement during execution."
 coordination:
   group: productivity
