@@ -123,7 +123,7 @@ Run `match-skills "<task>"` and present the ranked results. The matching engine 
 ```bash
 sp-doctor    # expands to superpowers-doctor (normal resolution)
 spp-doctor   # loads from superpowers-plus source repo directly
-spc:skill    # loads from overlay source repo (requires SP_OVERLAY_SOURCE_DIR)
+spo:skill    # loads from overlay source repo (requires SP_OVERLAY_SOURCE_DIR)
 ```
 
 ---
