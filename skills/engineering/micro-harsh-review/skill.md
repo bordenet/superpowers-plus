@@ -54,6 +54,8 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 1: NitpickLineByLine
 
+**Evidence scope:** The deliverable only — line-by-line reading. Do NOT examine callers or deployment context.
+
 | Check | Score /10 | Notes |
 |-------|-----------|-------|
 | Off-by-one | | |
@@ -64,9 +66,13 @@ echo "Average: 8.0 -> PASS (conditional: add collision test)"
 
 ### Critic 2: ArchSoundnessProbe
 
+**Evidence scope:** The deliverable PLUS all callers, consumers, and interface contracts affected by the change.
+
 Respects patterns? /10 . Downstream impact? /10 . Minimal scope? /10 . 10x load? /10 . Reversible? /10
 
 ### Critic 3: ProdBattleTest
+
+**Evidence scope:** The deliverable PLUS error handling paths, retry/rollback behavior, and logging. Do NOT focus on naming or style.
 
 Edge cases? /10 . Failure mode? /10 . Logging? /10 . Backward compat? /10 . Ship at 3 AM? /10
 
