@@ -125,6 +125,16 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 **STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
 **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
+### Correlated-Failure Detection
+
+After synthesis, scan all reviewer outputs for **shared blind spots**:
+
+1. **Evidence overlap check:** If ≥3 reviewers cite the same evidence snippets (same file + same line range) for their ONLY findings, flag `⚠️ CORRELATED EVIDENCE — reviewers may share a blind spot outside the cited region`. Expand the review scope to adjacent modules.
+2. **Phrasing similarity check:** If 2+ reviewers use near-identical phrasing for different findings (copy-paste reasoning), flag `⚠️ ECHO REASONING — findings may reflect shared analytical bias, not independent analysis`. Require at least one reviewer to re-examine from a different entry point.
+3. **Clean-sweep suspicion:** If ALL reviewers report zero findings, flag `⚠️ UNANIMOUS CLEAN — verify reviewers examined different evidence slices`. Check that each reviewer's output references different source files or code paths.
+
+Correlated-failure flags do NOT change verdicts directly — they trigger expanded scope or re-examination. The goal is to surface shared blind spots, not to manufacture findings.
+
 ### Gap Analysis
 
 Monolith found something no specialist found → propose candidate pattern. Known exercise missed → candidate pattern. Recurring false positive → anti-pattern candidate. All go to `candidates/`.
