@@ -109,4 +109,3 @@ cd /path/to/superpowers-[company] && ./install.sh
 
 - **Repo:** [GitLab/superpowers-[company]](https://[INTERNAL-GITLAB]/mbordenet/superpowers-[company])
 - **Skill file:** `linear/linear-comment-debunker/skill.md`
-

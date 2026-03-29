@@ -57,4 +57,3 @@ Run from `superpowers-[company]/`:
 ```bash
 ./install.sh
 ```
-

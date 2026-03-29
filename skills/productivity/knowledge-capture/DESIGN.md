@@ -148,4 +148,3 @@ All Round 1 fixes are reflected in the design above:
 - TODO file contains only a pointer: "knowledge-capture: <topic> — Phase N. State: <path>"
 - Resume requires EXPLICIT user trigger — no auto-resume
 - On resume: read state, summarize progress, ask "resume or abandon?"
-

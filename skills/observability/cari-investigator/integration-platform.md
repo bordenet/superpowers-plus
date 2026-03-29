@@ -326,4 +326,3 @@ parse @message '"level":"*"' as level
 ---
 
 > **For Queries IP6-IP9 (DataFeedProvider lifecycle, bulk error scan, CDK load trace, CloudWatch metrics), LoaderConfig schema, booking eligibility, investigation scenarios, and report template → see `references/integration-platform-reference.md`**
-

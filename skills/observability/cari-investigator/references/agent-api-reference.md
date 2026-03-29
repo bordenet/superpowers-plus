@@ -187,4 +187,3 @@ When investigating a call, use this flow to connect the dots:
 1. CloudWatch Query 9 (Latency Analysis) — check first-completion and tool-call latencies
 2. Query 3 (Model Failover) — did failover add latency?
 3. Query 5 (Integration Debug) — was the DMS/scheduler API slow?
-

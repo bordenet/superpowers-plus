@@ -220,4 +220,3 @@ On "resume knowledge-capture" or equivalent:
 | Reactive mode skips harvest phase | Phase 1.5 is mandatory in reactive mode. Conversation must be harvested before synthesis. |
 | Reactive harvest misses content | Present coverage summary to user after harvest. User confirms or points to missed content. |
 | Wrong mode selected | Agent determines mode in Phase 1 based on trigger + conversation context. If wrong, user can correct. |
-

@@ -125,4 +125,3 @@ If you snapshot a page, you MUST either:
 2. Explicitly abandon the edit (snapshot remains for safety).
 
 Never leave a page in a damaged state because "the snapshot exists." The snapshot is a safety net, not permission to be careless.
-

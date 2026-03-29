@@ -102,4 +102,3 @@ Small core (≤250 lines) with references directory. Critical rules in first 30 
 | Loading | Module path errors | >3 in 1 week |
 | Loading | Shared module missing | >2 occurrences |
 | Loading | Catch-all firing too often | >50% of invocations |
-

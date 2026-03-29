@@ -35,4 +35,3 @@ Or trigger phrases:
 Created 2026-02-13 by Augment Agent during progressive loading refactor.
 
 Captures institutional knowledge for future AI agents to maintain the hierarchy.
-

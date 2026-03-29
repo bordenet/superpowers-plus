@@ -154,5 +154,3 @@ The Postgres `reporting-prod.calls` table only contains calls handled by [Produc
 - Check `dnis.leoutdial` — `force_manual` means the DNIS is not routed through [Product]
 
 **Rule of thumb:** If comparing MSSQL call counts to Postgres call counts, expect 20-30% fewer Postgres records. The "missing" calls are non-[Product] traffic.
-
-

@@ -118,4 +118,3 @@ writing-plans → implementation-tracker → work → verify → archive
                                           ↓
                             [product]-data-flow-verification (if scheduler)
 ```
-
