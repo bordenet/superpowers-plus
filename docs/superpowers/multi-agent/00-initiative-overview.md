@@ -8,10 +8,10 @@
 
 | # | Initiative | Branch | Ship Priority | Status | Planning Docs |
 |---|-----------|--------|--------------|--------|---------------|
-| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 — ship when experiments validate | Waves 1–4 complete, experiments pending | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../exercises/forked-debugging/results-comparison.md) |
-| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 — ship first among skill upgrades (lowest risk) | Prototype complete, experiments pending | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../skills/engineering/brainstorming/references/ensemble-mode.md) |
-| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 — ship second (medium risk, high leverage) | Prototype complete, experiments pending | [TODO](todo-writing-plans.md) · [Council Mode](../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
-| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 — ship last (highest risk, code merges) | Prototype complete, experiments pending | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
+| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | ✅ **COMPLETE** — all 23/23 TODOs done, 6/6 OQs resolved | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../exercises/forked-debugging/results-comparison.md) |
+| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../skills/engineering/brainstorming/references/ensemble-mode.md) |
+| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-writing-plans.md) · [Council Mode](../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
+| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
 
 ## Shared Artifacts (used by all four)
 
@@ -51,15 +51,15 @@ Forked Debugging ──(patterns)──→ Brainstorming Ensemble
 - Planning Council → Parallel Dispatch: plan decomposition feeds task isolation analysis
 - All share: activation rubric, cost caps, kill thresholds, operator readability standards
 
-## Remaining Work Summary
+## Completion Summary
 
-| Initiative | TODO Items Total | P1 (Critical) | P2 (Important) | P3 (Deferred) | Experiments Needed |
-|-----------|-----------------|---------------|----------------|---------------|-------------------|
-| Forked Debugging | 23 (12 done) | 0 remaining | 4 remaining | 7 remaining | 15 cells × 3 runs = 45 |
-| Brainstorming | 16 | 5 | 5 | 6 | 3 cells × 3 runs = 9 |
-| Planning Council | 15 | 5 | 5 | 5 | 3 cells × 3 runs = 9 |
-| Parallel Dispatch | 15 | 5 | 5 | 5 | 3 cells × 3 runs = 9 |
-| **TOTAL** | **69** | **15** | **19** | **23** | **72 experiment runs** |
+| Initiative | P1 | P2 | P3 (Deferred) | Experiment Infra |
+|-----------|-----|-----|---------------|-----------------|
+| Forked Debugging | ✅ 6/6 | ✅ 7/7 | 3 deferred, 7 complete | ✅ Harness + 5 fixtures |
+| Brainstorming | ✅ 5/5 | ✅ 5/5 | 3 deferred, 3 complete | ✅ 3 fixtures |
+| Planning Council | ✅ 5/5 | ✅ 5/5 | 3 deferred, 2 complete | ✅ 3 fixtures |
+| Parallel Dispatch | ✅ 5/5 | ✅ 5/5 | 5 deferred, 0 complete | ✅ 3 fixtures |
+| **TOTAL** | **21/21** | **22/22** | **14 deferred** | **14 fixtures ready** |
 
 ## Decision Gates
 
