@@ -37,13 +37,6 @@ coordination:
 - After bulk skill changes (marathons, domain redesigns)
 - Before committing any changes under `skills/` — catches formatting errors early
 
-## Scope Exclusions
-
-- Runtime issues, install problems, broken tool paths → `superpowers-doctor`
-- Writing new skills from scratch → `skill-authoring`
-- Reviewing skill prose quality → `writing-skills`
-- Cross-reference validation across the whole repo → `holistic-repo-verification`
-
 ## What It Checks
 
 | Check | Severity | What it validates |

@@ -41,12 +41,6 @@ Invoke when:
 - User says: "set up AI guidance", "add AGENTS.md", "upgrade AI guidance"
 
 
-## Scope Exclusions
-
-- Writing individual skills → `skill-authoring`
-- Skill structural lint → `skill-health-check`
-- Skill domain design → `domain-design`
-
 ## Phase 1: Detection
 
 ### 1.1 Check Prerequisites
