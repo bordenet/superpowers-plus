@@ -8,10 +8,10 @@
 
 | # | Initiative | Branch | Ship Priority | Status | Planning Docs |
 |---|-----------|--------|--------------|--------|---------------|
-| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | ✅ **COMPLETE** — all 23/23 TODOs done, 6/6 OQs resolved | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
-| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
-| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
-| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
+| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | 🟡 **PROTOTYPED** — all 23/23 TODOs done, 6/6 OQs resolved. Awaiting experiment validation. | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
+| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | 🟡 **PROTOTYPED** — all P1/P2 done, P3 intentionally deferred. Awaiting experiment validation. | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
+| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | 🟡 **PROTOTYPED** — all P1/P2 done, P3 intentionally deferred. Awaiting experiment validation. | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
+| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | 🟡 **PROTOTYPED** — all P1/P2 done, P3 intentionally deferred. Awaiting experiment validation. | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
 
 ## Shared Artifacts (used by all four)
 

@@ -35,7 +35,7 @@ composition:
 
 - Single service, clear error message → use `systematic-debugging`
 - First investigation attempt (always start serial)
-- Budget exhausted or <40% remaining
+- Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
 
 ## The Conductor Protocol
 
@@ -95,14 +95,14 @@ As investigators return evidence:
 
 ### Phase 5: Adjudication
 
-When all investigators complete (or budget exhausted):
+When all investigators complete (or budget exhausted), **dispatch `evidence-adjudicator`**:
 
-1. **Build reasoning tree** from all branch evidence
-2. **Identify Critical Divergence Points** — where investigators disagree
-3. **Evaluate evidence strength**, not investigator count
-4. **Require disconfirming evidence** — branches without it are suspect
-5. **Produce root-cause verdict** with confidence score
-6. **List alternative causes** with explicit gaps
+1. Pass all branch evidence packets to `evidence-adjudicator`
+2. Adjudicator builds reasoning tree, weighs evidence strength, detects contradictions
+3. Adjudicator produces `RootCauseVerdict` with confidence score and alternative causes
+4. Conductor receives verdict and proceeds to Phase 6
+
+> **Ownership:** The conductor orchestrates; `evidence-adjudicator` synthesizes. The conductor MUST NOT perform adjudication itself.
 
 ### Phase 6: Resolution
 
