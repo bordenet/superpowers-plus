@@ -6,13 +6,41 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
+# Semi-hermetic: deploy repo skills to a temp dir, use that as personal skills dir
+HERMETIC_DIR=$(mktemp -d)
+export PERSONAL_SKILLS_DIR="$HERMETIC_DIR"
+HERMETIC_EMPTY=$(mktemp -d)
+export SUPERPOWERS_SKILLS_DIR="$HERMETIC_EMPTY"
+trap 'rm -rf "$HERMETIC_DIR" "$HERMETIC_EMPTY"' EXIT
+
+# Deploy repo skills to flat layout (mimics install.sh behavior)
+for domain_dir in "$SCRIPT_DIR/skills/"*/; do
+    [[ ! -d "$domain_dir" ]] && continue
+    dname=$(basename "$domain_dir")
+    [[ "$dname" == _* ]] && continue
+    # Check if domain dir IS a skill
+    if [[ -f "$domain_dir/skill.md" ]] || [[ -f "$domain_dir/SKILL.md" ]]; then
+        cp -R "$domain_dir" "$HERMETIC_DIR/$dname"
+    else
+        # Nested: domain/skill/skill.md
+        for skill_dir in "$domain_dir"*/; do
+            [[ ! -d "$skill_dir" ]] && continue
+            sname=$(basename "$skill_dir")
+            [[ "$sname" == _* ]] && continue
+            if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
+                cp -R "$skill_dir" "$HERMETIC_DIR/$sname"
+            fi
+        done
+    fi
+done
+
 PASS=0
 FAIL=0
 
 pass() { echo "  ✅ $1"; ((PASS++)); }
 fail() { echo "  ❌ $1"; ((FAIL++)); }
 
-echo "=== Integration Tests ==="
+echo "=== Integration Tests (hermetic) ==="
 
 # 1. Smoke test
 echo ""
@@ -29,10 +57,18 @@ echo ""
 echo "--- find-skills Discovery ---"
 find_output=$(timeout 30 node superpowers-augment.js find-skills 2>&1) || true
 skill_count=$(echo "$find_output" | grep -c "^  " || true)
-if [[ "$skill_count" -ge 50 ]]; then
-    pass "find-skills found $skill_count skills (≥50)"
+if [[ "$skill_count" -ge 100 ]]; then
+    pass "find-skills found $skill_count skills (≥100)"
 else
-    fail "find-skills found only $skill_count skills (expected ≥50)"
+    fail "find-skills found only $skill_count skills (expected ≥100)"
+fi
+
+# 2b. No broken descriptions (folded scalar leak)
+broken_desc=$(echo "$find_output" | grep -cE "^\s+>$" || true)
+if [[ "$broken_desc" -eq 0 ]]; then
+    pass "No broken '>' descriptions in find-skills output"
+else
+    fail "Found $broken_desc broken '>' descriptions in find-skills output"
 fi
 
 # 3. _shared not listed as a skill (reuse cached output)
@@ -109,7 +145,6 @@ fi
 # 10. stripFrontmatter CRLF normalization in all 3 consumers
 echo ""
 echo "--- stripFrontmatter CRLF parity ---"
-crlf_ok=true
 for f in superpowers-augment.js mcp/superpowers-mcp.js install-augment-superpowers.sh; do
     if grep -q 'function stripFrontmatter' "$f"; then
         # Extract the first line of the function body — must contain CRLF normalization
@@ -118,7 +153,7 @@ for f in superpowers-augment.js mcp/superpowers-mcp.js install-augment-superpowe
             pass "stripFrontmatter CRLF: $f"
         else
             fail "stripFrontmatter missing CRLF normalization: $f"
-            crlf_ok=false
+
         fi
     fi
 done

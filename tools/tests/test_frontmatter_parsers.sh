@@ -80,6 +80,57 @@ run_parser_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js" yes
 run_parser_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" no
 run_parser_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh" yes
 
+# --- stripFrontmatter production parity ---
+echo ""
+echo "── stripFrontmatter CRLF Parity ──"
+
+run_strip_check() {
+    local label="$1"
+    local source_file="$2"
+
+    if PARSER_SOURCE="$source_file" node <<'STRIP_NODE'
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+
+const source = fs.readFileSync(process.env.PARSER_SOURCE, 'utf8');
+
+// Extract stripFrontmatter + its dependencies
+let start = source.indexOf('function stripFrontmatter(');
+if (start === -1) throw new Error('stripFrontmatter not found');
+// Find the closing brace of the function
+let depth = 0, end = start;
+for (let i = start; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
+}
+
+const context = { console };
+require('vm').createContext(context);
+require('vm').runInContext(source.slice(start, end), context);
+
+// CRLF
+assert.strictEqual(context.stripFrontmatter("---\r\nname: x\r\n---\r\nBody\r\nLine2"), "Body\nLine2", "CRLF failed");
+// CR-only
+assert.strictEqual(context.stripFrontmatter("---\rname: x\r---\rBody\rLine2"), "Body\nLine2", "CR-only failed");
+// Mixed
+assert.strictEqual(context.stripFrontmatter("---\r\nname: x\n---\rBody\nLine2"), "Body\nLine2", "Mixed failed");
+// No frontmatter
+assert.strictEqual(context.stripFrontmatter("Just body"), "Just body", "No frontmatter failed");
+// No trailing newline
+assert.strictEqual(context.stripFrontmatter("---\nname: x\n---\nBody"), "Body", "No trailing NL failed");
+STRIP_NODE
+    then
+        pass "$label stripFrontmatter CRLF parity"
+    else
+        fail "$label stripFrontmatter CRLF parity"
+    fi
+}
+
+run_strip_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js"
+run_strip_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js"
+run_strip_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh"
+
 if [[ "$(bash "$ROOT_DIR/tools/parse-frontmatter.sh" "$TEST_SKILL" triggers | paste -sd'|' -)" == "first trigger|second trigger" ]]; then
     pass "parse-frontmatter.sh parses multiline triggers"
 else
