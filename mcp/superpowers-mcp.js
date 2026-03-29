@@ -46,34 +46,7 @@ const skillsDir = PERSONAL_SKILLS_DIR;
  * Extract YAML frontmatter from a SKILL.md file.
  */
 function parseInlineArray(value) {
-  // Escape-aware tokenizer: handles ["a\"b", 'c\\d', ""] correctly
-  const items = [];
-  let i = value.indexOf('[');
-  if (i < 0) return items;
-  i++;
-  while (i < value.length) {
-    while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
-    if (value[i] === ']') break;
-    if (value[i] === '"' || value[i] === "'") {
-      const quote = value[i]; i++;
-      let item = '';
-      while (i < value.length && value[i] !== quote) {
-        if (value[i] === '\\' && i + 1 < value.length) {
-          if (value[i + 1] === quote) { item += quote; i += 2; }
-          else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
-          else { item += value[i]; i++; }
-        } else { item += value[i]; i++; }
-      }
-      i++;
-      items.push(item);
-    } else {
-      let item = '';
-      while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
-      const trimmed = item.trim();
-      if (trimmed) items.push(trimmed);
-    }
-  }
-  return items;
+  return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
 }
 
 function parseYamlList(lines, startIndex) {
@@ -118,18 +91,8 @@ function extractFrontmatter(filePath) {
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
         const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-        if (nameMatch) {
-          let v = nameMatch[1].trim();
-          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
-          name = v;
-        }
-        if (descMatch) {
-          let v = descMatch[1].trim();
-          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-          else if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
-          description = v;
-        }
+        if (nameMatch) name = nameMatch[1].trim();
+        if (descMatch) description = descMatch[1].trim();
         if (triggerMatch) {
           triggers = parseInlineArray(triggerMatch[1]);
         } else if (line.match(/^triggers:\s*$/)) {
