@@ -140,18 +140,15 @@ while IFS= read -r f; do
     SKILL_YAML_NAME[$skill]=$(echo "$yaml_block" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
     triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
     if [[ -n "$triggers_line" ]]; then
-      # Join multi-line inline arrays: triggers: ["foo",\n  "bar"] → single line
-      triggers_joined=$(echo "$yaml_block" | awk '/^triggers:/{buf=$0; found=1; next} found && /^[[:space:]]+[^a-z]/{buf=buf $0; next} found{print buf; exit} END{if(found) print buf}')
-      [[ -z "$triggers_joined" ]] && triggers_joined="$triggers_line"
-      if echo "$triggers_joined" | grep -qE 'triggers: \[.+\]'; then
-        # Inline array with content (single-line or joined multi-line)
+      if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
+        # Inline array with content: triggers: ["foo", "bar"]
         SKILL_HAS_TRIGGERS[$skill]="yes"
-        SKILL_TRIGGERS_RAW[$skill]="$triggers_joined"
-      elif echo "$triggers_joined" | grep -qE 'triggers: \[\]'; then
+        SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
+      elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
         # Inline empty array: triggers: []
         SKILL_TRIGGERS_RAW[$skill]=""
       else
-        # Multi-line YAML list: triggers:\n  - "foo"\n  - "bar"
+        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
         multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
         if [[ -n "$multiline_items" ]]; then
           SKILL_HAS_TRIGGERS[$skill]="yes"
