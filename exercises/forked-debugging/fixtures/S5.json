@@ -1,0 +1,68 @@
+{
+  "id": "S5",
+  "name": "Intermittent Production-Only Incident with Incomplete Evidence",
+  "domain": ["heisenbug", "distributed", "telephony"],
+  "difficulty": "very-high",
+  "incident_description": "Intermittent one-way audio on outbound calls. Callers can hear the customer, but the customer can't hear the caller. Happens on roughly 5% of calls. Cannot reproduce in staging. No pattern in time of day, customer, or agent. Started approximately 1 week ago but only noticed 2 days ago. No error messages.",
+  "system_context": {
+    "services": [
+      {"name": "telephony-gateway", "version": "4.1.0", "role": "SIP signaling, RTP media relay"},
+      {"name": "media-server", "version": "2.8.3", "role": "Audio mixing, recording, transcription"},
+      {"name": "call-router", "version": "2.3.0", "role": "Routes calls to available agents"},
+      {"name": "nat-gateway", "version": "AWS NAT Gateway", "role": "Network address translation for outbound RTP"},
+      {"name": "load-balancer", "version": "AWS ALB", "role": "Distributes SIP traffic across telephony-gateway instances"}
+    ],
+    "recent_changes": [
+      {"service": "nat-gateway", "type": "infra", "timestamp": "2026-03-22T03:00:00Z", "description": "AWS replaced NAT Gateway instance during maintenance window (standard lifecycle event, no notification)"},
+      {"service": "telephony-gateway", "type": "config", "timestamp": "2026-03-20T16:00:00Z", "description": "Updated SRTP encryption from AES-128 to AES-256 for compliance"}
+    ],
+    "config": {
+      "srtp_cipher": "AES_CM_256_HMAC_SHA1_80",
+      "srtp_cipher_previous": "AES_CM_128_HMAC_SHA1_80",
+      "rtp_port_range": "10000-20000",
+      "nat_gateway_ip": "52.14.xxx.xxx",
+      "stun_server": "stun.example.com:3478",
+      "symmetric_rtp": true
+    }
+  },
+  "available_evidence": {
+    "call_quality_metrics": {
+      "one_way_audio_rate_last_week": "5.2%",
+      "one_way_audio_rate_previous_week": "0.3%",
+      "affected_direction": "customer cannot hear caller (outbound RTP path)",
+      "calls_affected_per_day": "~25 out of 500"
+    },
+    "sip_traces": {
+      "affected_call": "SDP negotiation succeeds, both parties send RTP, but customer's RTP never reaches caller's media-server",
+      "working_call": "SDP negotiation succeeds, bidirectional RTP flows normally"
+    },
+    "network_analysis": {
+      "rtp_packets_sent_by_caller": "normal (50 pps)",
+      "rtp_packets_received_by_customer": "normal (50 pps)",
+      "rtp_packets_sent_by_customer": "normal (50 pps)",
+      "rtp_packets_received_by_caller": "ZERO on affected calls",
+      "nat_gateway_packet_drops": "0.01% (within normal range)",
+      "tcpdump_on_affected_call": "Customer's RTP packets arrive at NAT gateway but are NOT forwarded to media-server"
+    },
+    "infrastructure": {
+      "nat_gateway_creation_date": "2026-03-22T03:15:00Z",
+      "nat_gateway_previous_creation_date": "2025-09-01T00:00:00Z",
+      "nat_gateway_conntrack_table_size": "default (128K entries)",
+      "staging_nat_gateway": "Different instance, created 2025-06-01"
+    },
+    "incomplete_evidence": {
+      "nat_gateway_internal_logs": "NOT AVAILABLE (AWS does not expose)",
+      "srtp_key_exchange_logs": "NOT AVAILABLE (encrypted, no debug logging enabled)",
+      "exact_packet_path_through_nat": "NOT AVAILABLE (AWS black box)",
+      "staging_reproduction": "FAILED — staging uses different NAT gateway + different SRTP config"
+    }
+  },
+  "root_cause": "Two changes interacted: (1) SRTP cipher was upgraded from AES-128 to AES-256 on March 20, increasing RTP packet size by 16 bytes. (2) AWS silently replaced the NAT Gateway on March 22 during maintenance. The new NAT Gateway has a slightly different conntrack behavior — it drops UDP packets that exceed a certain size when the conntrack entry was established with smaller packets. The SRTP upgrade made outbound RTP packets 16 bytes larger. For ~5% of calls, the NAT conntrack entry is established during SDP negotiation (with smaller STUN packets), and when the larger SRTP packets arrive, they exceed the conntrack's expected size and are silently dropped. This only affects the outbound direction (caller → customer) because inbound packets traverse a different NAT path. Cannot reproduce in staging because staging uses the OLD NAT Gateway instance AND the old SRTP cipher.",
+  "root_cause_domain": "infra",
+  "red_herrings": [
+    {"description": "NAT gateway packet drop rate is 0.01% (normal)", "why_misleading": "The drops are real but tiny in aggregate. They're 100% of affected calls' outbound RTP, but only 0.01% of total NAT traffic."},
+    {"description": "SDP negotiation succeeds on all calls", "why_misleading": "SDP uses SIP (TCP/TLS), not affected by NAT UDP issue. Negotiation works; media doesn't."},
+    {"description": "SRTP upgrade was 9 days ago, incident noticed 2 days ago", "why_misleading": "SRTP alone didn't cause it. The NAT Gateway replacement on March 22 was the second factor. 5% failure rate took days to notice."},
+    {"description": "Customer can hear caller (one direction works)", "why_misleading": "Suggests caller's setup is wrong, but actually it's the NAT path asymmetry — inbound and outbound use different NAT routes."}
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "id": "S4",
+  "name": "State Desynchronization Across Services",
+  "domain": ["state", "distributed"],
+  "difficulty": "high",
+  "incident_description": "Customers are seeing stale account data. A customer updates their phone number in the web portal, but when an agent calls them, the old phone number is used. The update appears to succeed (customer sees new number) but the calling system uses the old one. Affects approximately 15% of profile updates. No error messages anywhere.",
+  "system_context": {
+    "services": [
+      {"name": "web-portal", "version": "6.2.0", "role": "Customer self-service, writes to primary DB"},
+      {"name": "profile-service", "version": "4.0.3", "role": "Profile CRUD, publishes events to message bus"},
+      {"name": "calling-service", "version": "3.5.1", "role": "Outbound calling, reads from local cache + replica DB"},
+      {"name": "message-bus", "version": "RabbitMQ 3.12", "role": "Event distribution"},
+      {"name": "primary-db", "version": "PostgreSQL 15 Primary", "role": "Source of truth"},
+      {"name": "replica-db", "version": "PostgreSQL 15 Replica", "role": "Read replica for calling-service"}
+    ],
+    "recent_changes": [],
+    "config": {
+      "replication_lag_sla_ms": 1000,
+      "calling_service_cache_ttl_seconds": 300,
+      "profile_event_consumer_workers": 2,
+      "message_bus_prefetch_count": 100
+    }
+  },
+  "available_evidence": {
+    "profile_updates": [
+      {"customer_id": "C-1001", "field": "phone", "old": "+1-555-0100", "new": "+1-555-0199", "web_portal_timestamp": "2026-03-29T14:00:00Z", "primary_db_timestamp": "2026-03-29T14:00:01Z", "replica_db_value_at_14_00_05": "+1-555-0100", "replica_db_value_at_14_05_00": "+1-555-0199"},
+      {"customer_id": "C-1002", "field": "phone", "old": "+1-555-0200", "new": "+1-555-0299", "web_portal_timestamp": "2026-03-29T14:01:00Z", "calling_service_used": "+1-555-0200", "call_timestamp": "2026-03-29T14:02:30Z"}
+    ],
+    "replication_metrics": {
+      "avg_replication_lag_ms": 800,
+      "p99_replication_lag_ms": 4500,
+      "replication_lag_spikes": "Intermittent spikes to 4-5s every ~2 minutes"
+    },
+    "message_bus": {
+      "profile_update_event_lag_ms": 200,
+      "consumer_processing_rate": "50 events/sec",
+      "consumer_backlog": 0,
+      "events_published_last_hour": 1200,
+      "events_consumed_last_hour": 1200
+    },
+    "calling_service_cache": {
+      "cache_hit_rate": "92%",
+      "cache_ttl_seconds": 300,
+      "cache_invalidation_source": "message-bus event",
+      "cache_invalidation_lag_ms": "200ms (from event receipt)"
+    }
+  },
+  "root_cause": "Two factors combine: (1) PostgreSQL replication lag spikes to 4-5s intermittently, and (2) the calling-service reads from the replica DB on cache miss. When a profile is updated, the event bus correctly invalidates the calling-service cache within 200ms. But the subsequent read goes to the replica DB, which may still have stale data due to replication lag. The calling-service then caches the STALE value from the replica for another 300 seconds. This affects ~15% of updates — those that happen during a replication lag spike AND are followed by a call within the cache TTL window.",
+  "root_cause_domain": "state",
+  "red_herrings": [
+    {"description": "Message bus shows zero backlog, all events consumed", "why_misleading": "Event bus is working correctly — cache invalidation fires fine. The problem is the READ path, not the EVENT path."},
+    {"description": "Cache invalidation happens within 200ms", "why_misleading": "Invalidation works! But the cache-miss read goes to a stale replica, re-caching the old value."},
+    {"description": "Average replication lag is 800ms (within SLA)", "why_misleading": "AVERAGE is fine; the P99 of 4500ms is what matters. Intermittent spikes cause the issue."}
+  ]
+}
