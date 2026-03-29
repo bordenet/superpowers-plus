@@ -773,27 +773,11 @@ Priority: user instructions > skills > system defaults.
 Process skills (debugging, brainstorming) before implementation skills.
 
 ## Critical auto-triggers (ALWAYS apply — never skip)
-- **FOR ANY CODE CHANGE** (features, fixes, refactors, config, skills — anything touching code):
-  Auto-engage \`feature-development\` workflow unless user explicitly opts out ("skip the workflow", "just do it").
-  The workflow: \`brainstorming\` → \`think-twice\` → \`design-triad\` → \`progressive-code-review-gate\` →
-  \`plan-and-execute\` → \`progressive-code-review-gate\` (round 2) → ship.
-  This is NON-NEGOTIABLE. The agent never decides to skip phases. Only the user can opt out.
 - **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
   \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
   Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
-- **BEFORE describing or approving generated output** (files, PDFs, API responses, script results):
-  \`output-verification\` (hard gate) → then \`verification-before-completion\`.
-  You cannot describe output you haven't read. No tool call between generate and describe = fiction.
-- **BEFORE claiming done/complete** (no generated output involved):
-  \`verification-before-completion\`. For bulk edits/audits, add \`exhaustive-audit-validation\` first.
 - **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
 - **WHEN writing shell scripts:** Load the shell language module first.
-
-## 🚨 EVIDENCE REQUIREMENT
-
-**No gate claim without visible tool output.** Saying "lint passes" without showing the
-command output in your response is fabrication. Show the command, exit code, and summary
-line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before-completion\`.
 `);
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
