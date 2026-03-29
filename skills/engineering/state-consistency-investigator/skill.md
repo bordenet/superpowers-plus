@@ -29,10 +29,6 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `StateEvidence` (see `skills/_shared/evidence-schema.md`)
 
-## When to Use
-
-Dispatched by `debug-conductor` when the incident involves data inconsistency — stale reads, replication lag, cache staleness, event reordering, or cross-service state divergence.
-
 ## Investigation Protocol
 
 ### Step 1: Identify the Consistency Boundary

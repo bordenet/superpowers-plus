@@ -1,9 +1,23 @@
 ---
 name: debug-conductor
 source: superpowers-plus
-description: "Conductor-led bounded investigation for complex distributed incidents. Forks into parallel investigators."
-triggers: ["investigate distributed", "debug across services", "cross-service failure", "incident investigation", "forked debugging"]
-anti_triggers: ["simple bug", "single file fix", "write tests", "implement feature"]
+description: >
+  Conductor-led bounded investigation for complex distributed system incidents.
+  Decides whether to stay serial or fork into parallel investigator branches.
+  Produces structured incident packets, not chat transcripts.
+triggers:
+  - "investigate distributed"
+  - "debug across services"
+  - "cross-service failure"
+  - "incident investigation"
+  - "forked debugging"
+  - "parallel investigation"
+  - "complex incident"
+anti_triggers:
+  - "simple bug"
+  - "single file fix"
+  - "write tests"
+  - "implement feature"
 coordination:
   group: engineering
   order: 2
@@ -35,7 +49,7 @@ composition:
 
 - Single service, clear error message → use `systematic-debugging`
 - First investigation attempt (always start serial)
-- Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
+- Budget exhausted or <40% remaining
 
 ## The Conductor Protocol
 
@@ -95,14 +109,14 @@ As investigators return evidence:
 
 ### Phase 5: Adjudication
 
-When all investigators complete (or budget exhausted), **dispatch `evidence-adjudicator`**:
+When all investigators complete (or budget exhausted):
 
-1. Pass all branch evidence packets to `evidence-adjudicator`
-2. Adjudicator builds reasoning tree, weighs evidence strength, detects contradictions
-3. Adjudicator produces `RootCauseVerdict` with confidence score and alternative causes
-4. Conductor receives verdict and proceeds to Phase 6
-
-> **Ownership:** The conductor orchestrates; `evidence-adjudicator` synthesizes. The conductor MUST NOT perform adjudication itself.
+1. **Build reasoning tree** from all branch evidence
+2. **Identify Critical Divergence Points** — where investigators disagree
+3. **Evaluate evidence strength**, not investigator count
+4. **Require disconfirming evidence** — branches without it are suspect
+5. **Produce root-cause verdict** with confidence score
+6. **List alternative causes** with explicit gaps
 
 ### Phase 6: Resolution
 
