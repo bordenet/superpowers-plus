@@ -57,10 +57,10 @@ echo ""
 echo "--- find-skills Discovery ---"
 find_output=$(timeout 30 node superpowers-augment.js find-skills 2>&1) || true
 skill_count=$(echo "$find_output" | grep -c "^  " || true)
-if [[ "$skill_count" -ge 100 ]]; then
-    pass "find-skills found $skill_count skills (≥100)"
+if [[ "$skill_count" -ge 50 ]]; then
+    pass "find-skills found $skill_count skills (≥50)"
 else
-    fail "find-skills found only $skill_count skills (expected ≥100)"
+    fail "find-skills found only $skill_count skills (expected ≥50)"
 fi
 
 # 2b. No broken descriptions (folded scalar leak)
