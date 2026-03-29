@@ -36,7 +36,7 @@ shift 2
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --runs) RUNS="$2"; shift 2 ;;
+        --runs) [[ $# -ge 2 ]] || { echo "Error: --runs requires a value"; exit 1; }; RUNS="$2"; shift 2 ;;
         *) usage ;;
     esac
 done
