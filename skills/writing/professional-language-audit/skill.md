@@ -114,43 +114,14 @@ Patterns are loaded from `.profanity-patterns.txt` (in `scripts/` or repo root).
 
 ## Integration Points
 
-### Pre-Wiki Update Gate
+**Gate 4** in the commit-gates chain: `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → **this** → `public-repo-ip-audit` → commit.
 
-BEFORE publishing to any wiki:
-
-1. Extract the content to be published
-2. Run profanity regex against content
-3. If matches found → BLOCK and report
-4. If clean → proceed with API call
-
-### Pre-Commit Gate
-
-BEFORE committing files matching:
-- `README.md`
-- `*.md` in `skills/` directory
-- Wiki content files
-
-**Run the audit on staged changes:**
+**Pre-wiki**: Run profanity regex before publishing. BLOCK on match.
+**Pre-commit**: Scan staged `.md` files:
 
 ```bash
-# Get staged markdown files
 git diff --cached --name-only | grep -E '\.(md)$'
-
-# For each file, scan for profanity
 node scripts/slop-dictionary.js scan-profanity FILE.md
-```
-
-### Integration with commit-gates chain
-
-This skill is gate 4 in the commit-gates chain:
-
-```
-1. ✅ pre-commit-gate         — Lint, typecheck, test
-2. ✅ enforce-style-guide     — Code style compliance
-3. ✅ progressive-code-review-gate — Adversarial code review
-4. 🆕 professional-language-audit ← THIS GATE
-5. ✅ public-repo-ip-audit    — IP leakage check (public repos)
-6. ✅ Commit
 ```
 
 
@@ -187,25 +158,10 @@ node scripts/slop-dictionary.js list profanity
 
 ## Companion Skills
 
-- **detecting-ai-slop** — Now includes profanity as Category 9 (HARD BLOCK)
-- **pre-commit-gate** — Integrates this skill into commit workflow
-
-
+- **detecting-ai-slop**: Profanity as Category 9 (HARD BLOCK)
+- **pre-commit-gate**: Integrates this skill into commit workflow
 - **enforce-style-guide**: Style checking (runs before language audit)
 - **public-repo-ip-audit**: IP audit (runs after language audit)
-## Commit Gate Coordination
-
-Multiple skills fire on "before commit". Execute in this order:
-
-| Order | Skill | Purpose | Scope |
-|-------|-------|---------|-------|
-| 1 | `pre-commit-gate` | Build, lint, typecheck, test | All commits |
-| 2 | `enforce-style-guide` | Code style compliance | All commits |
-| 3 | `progressive-code-review-gate` | Harsh adversarial code review loop | All code commits |
-| 4 | **professional-language-audit** (this skill) | Profanity/language check | User-facing docs |
-| 5 | `public-repo-ip-audit` | Proprietary content check | Public repos only |
-
-**Rationale:** Technical checks first, then style enforcement (may change code), then adversarial review (covers all code changes including style fixes), then content gates.
 
 ## Scope Exclusions
 
