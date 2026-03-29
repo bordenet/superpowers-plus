@@ -1,0 +1,56 @@
+{
+  "id": "S2",
+  "name": "Cross-Service Timeout / Retry Amplification",
+  "domain": ["distributed", "infra"],
+  "difficulty": "high",
+  "incident_description": "Multiple services are returning 503 errors. Started 20 minutes ago. The billing service is responding slowly (p99 latency jumped from 200ms to 8s), and downstream services are timing out and retrying, causing cascading failures. The system was stable until a configuration change was applied to the billing service's database connection pool.",
+  "system_context": {
+    "services": [
+      {"name": "api-gateway", "version": "5.0.2", "role": "Ingress routing, rate limiting"},
+      {"name": "order-service", "version": "3.1.0", "role": "Order processing, calls billing-service"},
+      {"name": "billing-service", "version": "2.4.1", "role": "Payment processing, DB-heavy", "recently_changed": true},
+      {"name": "notification-service", "version": "1.9.0", "role": "Email/SMS notifications, calls billing-service for receipts"},
+      {"name": "billing-db", "version": "PostgreSQL 15", "role": "Billing database"}
+    ],
+    "recent_changes": [
+      {"service": "billing-service", "type": "config", "timestamp": "2026-03-29T13:40:00Z", "description": "Reduced DB connection pool from 50 to 5 connections to 'save resources' per ops team request"}
+    ],
+    "config": {
+      "billing_db_pool_size": 5,
+      "billing_db_pool_size_previous": 50,
+      "order_service_timeout_ms": 3000,
+      "order_service_retry_count": 3,
+      "notification_service_timeout_ms": 5000,
+      "notification_service_retry_count": 2,
+      "api_gateway_timeout_ms": 10000
+    }
+  },
+  "available_evidence": {
+    "metrics": {
+      "billing_service_p99_latency_before": "200ms",
+      "billing_service_p99_latency_after": "8000ms",
+      "billing_db_active_connections": 5,
+      "billing_db_waiting_queries": 47,
+      "order_service_retry_rate": "300% of normal",
+      "notification_service_retry_rate": "200% of normal",
+      "api_gateway_503_rate": "45% of requests"
+    },
+    "logs": [
+      {"service": "billing-service", "level": "WARN", "message": "Connection pool exhausted, request queued", "count_per_minute": 120},
+      {"service": "order-service", "level": "ERROR", "message": "billing-service timeout after 3000ms, retrying (attempt 2/3)", "count_per_minute": 80},
+      {"service": "order-service", "level": "ERROR", "message": "billing-service timeout after 3000ms, retrying (attempt 3/3)", "count_per_minute": 60},
+      {"service": "notification-service", "level": "ERROR", "message": "billing-service timeout after 5000ms, retrying", "count_per_minute": 40}
+    ],
+    "traces": {
+      "normal_request": "api-gateway (2ms) → order-service (5ms) → billing-service (180ms) → billing-db (150ms)",
+      "failing_request": "api-gateway (2ms) → order-service (5ms) → billing-service (3000ms TIMEOUT) → retry → billing-service (3000ms TIMEOUT) → retry → billing-service (3000ms TIMEOUT) → 503"
+    }
+  },
+  "root_cause": "Ops team reduced billing-service DB connection pool from 50 to 5 connections. Under normal load, billing-service needs ~30 concurrent DB connections. With only 5, requests queue behind the pool. This causes billing-service latency to spike to 8s (waiting for pool). Order-service has a 3s timeout with 3 retries, so each failed request generates 3 more requests to billing-service, amplifying the load 3×. Notification-service adds another 2× amplification. The retry storm makes the pool exhaustion worse, creating a positive feedback loop.",
+  "root_cause_domain": "infra",
+  "red_herrings": [
+    {"description": "billing-service version 2.4.1 was deployed last week", "why_misleading": "Not recent; the config change was 20 minutes ago"},
+    {"description": "api-gateway shows 45% error rate", "why_misleading": "It's a victim, not the cause — it's just reporting upstream failures"},
+    {"description": "billing-db CPU is at 90%", "why_misleading": "Effect, not cause — the 47 queued queries are consuming CPU. Pool was the trigger."}
+  ]
+}
