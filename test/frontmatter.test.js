@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { parseFrontmatter, extractStringValue, findSkillFile } = require('../lib/frontmatter');
+const { parseFrontmatter, parseInlineArray, extractStringValue, findSkillFile } = require('../lib/frontmatter');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,6 +19,15 @@ function assert(condition, msg) {
 }
 function eq(a, b, msg) { assert(a === b, `${msg} (got: ${JSON.stringify(a)}, want: ${JSON.stringify(b)})`); }
 function arrEq(a, b, msg) { assert(JSON.stringify(a) === JSON.stringify(b), `${msg} (got: ${JSON.stringify(a)}, want: ${JSON.stringify(b)})`); }
+
+// --- parseInlineArray ---
+console.log('\n--- parseInlineArray ---');
+arrEq(parseInlineArray('["a", "b", "c"]'), ['a', 'b', 'c'], 'simple quoted array');
+arrEq(parseInlineArray("['a', 'b']"), ['a', 'b'], 'single-quoted array');
+arrEq(parseInlineArray('["a\\"b", "c"]'), ['a"b', 'c'], 'escaped quotes in array');
+arrEq(parseInlineArray('[]'), [], 'empty array');
+arrEq(parseInlineArray('[unquoted, values]'), ['unquoted', 'values'], 'unquoted values');
+arrEq(parseInlineArray('["a\\\\b"]'), ['a\\b'], 'escaped backslash in array');
 
 // --- extractStringValue ---
 console.log('\n--- extractStringValue ---');
