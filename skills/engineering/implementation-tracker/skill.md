@@ -39,7 +39,7 @@ anti_triggers: ['investigate bug', 'debug issue', 'systematic debugging']
 
 When existing progress doc found:
 
-```text
+```
 I found: docs/plans/{PREFIX}-1234-progress.md
 Last session: aug_abc123 (2026-03-05)
 Status: 3/7 tasks, 2 decisions, 1 open question
