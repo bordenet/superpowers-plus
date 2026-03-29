@@ -29,6 +29,10 @@ composition:
 > **Dispatched by:** `debug-conductor` — never invoked directly by user.
 > **Evidence type:** `ExperimentEvidence` (see `skills/_shared/evidence-schema.md`)
 
+## When to Invoke
+
+Dispatched by `debug-conductor` when a hypothesis needs testing — controlled reproduction, environment comparison, or A/B verification of a suspected root cause.
+
 ## Investigation Protocol
 
 ### Step 1: Receive and Refine Hypothesis

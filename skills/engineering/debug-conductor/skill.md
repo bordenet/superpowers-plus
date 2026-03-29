@@ -1,23 +1,9 @@
 ---
 name: debug-conductor
 source: superpowers-plus
-description: >
-  Conductor-led bounded investigation for complex distributed system incidents.
-  Decides whether to stay serial or fork into parallel investigator branches.
-  Produces structured incident packets, not chat transcripts.
-triggers:
-  - "investigate distributed"
-  - "debug across services"
-  - "cross-service failure"
-  - "incident investigation"
-  - "forked debugging"
-  - "parallel investigation"
-  - "complex incident"
-anti_triggers:
-  - "simple bug"
-  - "single file fix"
-  - "write tests"
-  - "implement feature"
+description: "Conductor-led bounded investigation for complex distributed incidents. Forks into parallel investigators."
+triggers: ["investigate distributed", "debug across services", "cross-service failure", "incident investigation", "forked debugging"]
+anti_triggers: ["simple bug", "single file fix", "write tests", "implement feature"]
 coordination:
   group: engineering
   order: 2
