@@ -8,18 +8,21 @@
 
 | # | Initiative | Branch | Ship Priority | Status | Planning Docs |
 |---|-----------|--------|--------------|--------|---------------|
-| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | ✅ **COMPLETE** — all 23/23 TODOs done, 6/6 OQs resolved | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../exercises/forked-debugging/results-comparison.md) |
-| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../skills/engineering/brainstorming/references/ensemble-mode.md) |
-| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-writing-plans.md) · [Council Mode](../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
-| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
+| 1 | **Forked Debugging** | `feat/forked-debugging-superpower` | P1 | ✅ **COMPLETE** — all 23/23 TODOs done, 6/6 OQs resolved | [Design Spec](../specs/2026-03-29-forked-debugging-design.md) · [TODO](../../plans/forked-debugging-TODO.md) · [Experiment Matrix](../../../exercises/forked-debugging/experiment-matrix.md) · [Results](../../../exercises/forked-debugging/results-comparison.md) |
+| 2 | **Brainstorming Ensemble** | `feat/multi-agent-skill-upgrades` | P2 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-brainstorming.md) · [Ensemble Mode](../../../skills/engineering/brainstorming/references/ensemble-mode.md) |
+| 3 | **Planning Council** (writing-plans) | `feat/multi-agent-skill-upgrades` | P3 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-writing-plans.md) · [Council Mode](../../../skills/productivity/plan-and-execute/references/planning-council-mode.md) |
+| 4 | **Parallel Dispatch** (subagent-driven-dev) | `feat/multi-agent-skill-upgrades` | P4 | ✅ **COMPLETE** — all P1/P2 done, P3 intentionally deferred | [TODO](todo-subagent-driven-development.md) · [Parallel Mode](../../../skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md) |
 
 ## Shared Artifacts (used by all four)
 
 | Artifact | Location | Purpose |
 |----------|----------|---------|
 | Multi-Agent Activation Rubric | `skills/_shared/multi-agent-activation-rubric.md` | When to escalate from single-agent to multi-agent |
-| Evidence Schema | `skills/_shared/evidence-schema.md` | Structured evidence output (primarily for debugging, reusable) |
-| Fork-Readiness Rubric | `skills/_shared/fork-readiness-rubric.md` | Debugging-specific fork decision (extends activation rubric) |
+| Multi-Agent Quality Standards | `skills/_shared/multi-agent-quality-standards.md` | Plan quality rubric, readability rules, fallback, novelty scoring, instrumentation, conflict handling |
+| Evidence Schema | `skills/_shared/evidence-schema.md` *(forked-debugging branch)* | Structured evidence output (primarily for debugging, reusable) |
+| Fork-Readiness Rubric | `skills/_shared/fork-readiness-rubric.md` *(forked-debugging branch)* | Debugging-specific fork decision (extends activation rubric) |
+| Confidence Calibration | `skills/_shared/confidence-calibration.md` *(forked-debugging branch)* | Per-evidence-type confidence scoring guide |
+| Duplicate-Work Detection | `skills/_shared/duplicate-work-detection.md` *(forked-debugging branch)* | Jaccard overlap + merge protocol |
 | Multi-Agent Strategy Doc | [multi-agent-skill-strategy.md](multi-agent-skill-strategy.md) | Architecture for initiatives 2–4 |
 | Experiments Plan | [experiments.md](experiments.md) | Evaluation plan for initiatives 2–4 |
 
