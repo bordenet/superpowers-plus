@@ -21,13 +21,13 @@
 - [x] **WP-09: Fallback behavior** ✅ → `skills/_shared/multi-agent-quality-standards.md` §3 (6 failure triggers with recovery paths)
 - [x] **WP-10: Evaluation harness** ✅ → `exercises/multi-agent-skills/fixtures/WP-1.json, WP-2.json, WP-3.json`
 
-## P3 — Intentionally Deferred
+## P3 — Completed (formerly deferred)
 
-- [~] **WP-11: Dynamic role selection** — DEFERRED. Start with explicit role selection (planning-council-mode.md §Step 3). Prune based on experiment data.
-- [~] **WP-12: Iterative refinement** — DEFERRED. Validate first-pass council quality before adding expensive review pass.
-- [~] **WP-13: Plan versioning** — DEFERRED. Premature without proving council iteration adds value.
+- [x] **WP-11: Dynamic role selection** ✅ → `references/planning-council-mode.md` §"Dynamic Role Selection" (signal-based auto-selection with prune rules)
+- [x] **WP-12: Iterative refinement** ✅ → `references/planning-council-mode.md` §"Iterative Refinement" (tradeoff-triggered, quality threshold, 1 round max)
+- [x] **WP-13: Plan versioning** ✅ → `references/planning-council-mode.md` §"Plan Versioning" (JSON version entries, delta tracking, rollback support)
 - [x] **WP-14: Instrumentation** ✅ → `skills/_shared/multi-agent-quality-standards.md` §5 (full JSON logging spec)
-- [~] **WP-15: Operator visibility** — DEFERRED. Build internal validation first; expose to user after proving value.
+- [x] **WP-15: Operator visibility** ✅ → `references/planning-council-mode.md` §"Operator Visibility" (7 progress events, quiet mode option)
 
 ## Open Questions
 

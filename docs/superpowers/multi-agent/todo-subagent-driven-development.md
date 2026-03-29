@@ -21,13 +21,13 @@
 - [x] **SD-09: Observability / dispatch logs** ✅ → `references/isolation-analyzer.md` §"Report" + `references/integration-checkpoint.md` §"Dispatch Log Entry" + `skills/_shared/multi-agent-quality-standards.md` §5
 - [x] **SD-10: Subagent result schema** ✅ → `multi-agent-skill-strategy.md` §3.3 Common Result Schema
 
-## P3 — Intentionally Deferred
+## P3 — Completed (formerly deferred)
 
-- [~] **SD-11: Dynamic re-serialization** — DEFERRED. Start with static isolation analysis; dynamic detection is complex and risky.
-- [~] **SD-12: Branch budgets** — DEFERRED. Current per-task scoping + 25% budget cap from activation rubric is sufficient.
-- [~] **SD-13: Rollback protocol** — DEFERRED. Git stash/branch mechanics are tricky; manual intervention acceptable for now.
-- [~] **SD-14: Metric collection** — DEFERRED. Instrumentation spec (§5) covers logging; aggregation/dashboards are post-validation.
-- [~] **SD-15: "Stop and ask" threshold** — DEFERRED. Conservative serial default for ambiguous cases (score 4–5) is the safe starting point.
+- [x] **SD-11: Dynamic re-serialization** ✅ → `references/parallel-dispatch-mode.md` §"Dynamic Re-Serialization" (conflict triggers, pause/re-score/serialize protocol, max 2 re-serializations)
+- [x] **SD-12: Branch budgets** ✅ → `references/parallel-dispatch-mode.md` §"Branch Budgets" (per-branch allocation, 80% warn, 100% kill, reallocation, extension protocol)
+- [x] **SD-13: Rollback protocol** ✅ → `references/parallel-dispatch-mode.md` §"Rollback Protocol" (3-level rollback: branch/pair/full, git safety, failure context forwarding)
+- [x] **SD-14: Metric collection** ✅ → `references/parallel-dispatch-mode.md` §"Metric Collection" (JSON schema for per-dispatch metrics, aggregation after 5+ dispatches)
+- [x] **SD-15: "Stop and ask" threshold** ✅ → `references/parallel-dispatch-mode.md` §"Stop and Ask Threshold" (score 5 prompts user with expanded response handling, auto mode option, learning loop)
 
 ## Open Questions
 
