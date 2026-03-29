@@ -171,7 +171,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
 | | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
 | | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
-| | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
 | | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
 | | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |
