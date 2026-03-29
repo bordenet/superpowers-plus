@@ -1,8 +1,7 @@
 ---
 name: design-triad
 source: superpowers-plus
-triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team", "redesign architecture", "architecture redesign", "evaluate design options", "redesign the architecture", "architecture options", "design the architecture"]
-anti_triggers: ["brainstorm ideas", "innovation", "radical idea", "10x improvement"]
+triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
 summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
 coordination:
@@ -152,14 +151,14 @@ Design document with:
 
 ## Rationalizations to Reject
 
-"Only one way" → invoke think-twice. "Obviously wrong" → document WHY. "Too simple for 3" → unexamined assumptions. "Converged at Step 3" → that's Round 1, need Round 2. "Reviewed my own" → author ≠ reviewer.
-
-## Failure Modes
-
-| Failure | Recovery |
-|---------|----------|
-| Stalling at Preflight (most common) | Set 30-second timer. Pick a route and move to Step 1. |
-| Only 2 options generated (straw man + real) | Invoke `think-twice` for fresh perspective before proceeding |
-| Self-reviewing own design in same pass | VIOLATION: Use sub-agent or explicit role switch for Step 3 |
-| Stopping at recommendation (Step 2) | Step 2 ≠ done. Steps 3-5 still required. Most common skip. |
-| Infinite review loops (>3 rounds) | Cap at 3 rounds. Escalate to user for tiebreak. |
+| Excuse | Reality |
+|--------|---------|
+| "There's only one way to do this" | You haven't thought hard enough. Invoke `think-twice`. |
+| "The other options are obviously wrong" | Document WHY in the matrix. That's the point. |
+| "This is too simple for 3 options" | Simple designs have unexamined assumptions. |
+| "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
+| "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
+| "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
+| "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
+| "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
+| "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |
