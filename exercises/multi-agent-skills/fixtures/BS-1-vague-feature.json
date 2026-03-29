@@ -1,0 +1,23 @@
+{
+  "id": "BS-1",
+  "skill": "brainstorming",
+  "name": "Vague Feature Request — Improve Onboarding",
+  "difficulty": "medium",
+  "expected_winner": "B (ensemble)",
+  "expected_reason": "Broad prompt benefits from multiple perspectives; single-agent likely tunnels on one approach",
+  "prompt": "How should we improve our customer onboarding experience? We're losing about 30% of new signups in the first week. The product is a B2B telephony platform with AI-powered call handling. Onboarding involves account setup, phone number provisioning, call flow configuration, and AI agent training. Customers range from 5-person sales teams to 500-seat call centers.",
+  "context": {
+    "product": "B2B telephony platform with AI call handling",
+    "current_onboarding_steps": ["Account creation", "Phone number selection", "Call flow builder (drag-and-drop)", "AI agent personality setup", "Test call", "Go live"],
+    "known_pain_points": ["Call flow builder is confusing for small teams", "AI training requires too many example conversations", "Phone number provisioning takes 24-48 hours", "No guided setup — users are dropped into a blank dashboard"],
+    "user_segments": ["Small teams (5-20 seats): want simple, fast setup", "Mid-market (20-100 seats): want customization + templates", "Enterprise (100-500 seats): want API access + SSO + custom integrations"],
+    "metrics": {"signup_to_first_call_days": 4.2, "week_1_churn": "30%", "nps_during_onboarding": 22}
+  },
+  "evaluation_criteria": {
+    "diversity": "Does the output explore multiple dimensions (UX, technical, business, ops)?",
+    "specificity": "Are ideas concrete enough to act on, or vague platitudes?",
+    "risk_coverage": "Are onboarding failure modes identified?",
+    "segment_awareness": "Do ideas differentiate by user segment?",
+    "actionability": "Could a planner turn these into a roadmap without additional brainstorming?"
+  }
+}
