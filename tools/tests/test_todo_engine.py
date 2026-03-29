@@ -79,6 +79,9 @@ class TodoEngineTests(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp(prefix="todo-test-")
         self.todo_path = Path(self.tmpdir) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
         # Isolate shadow dir so tests don't interfere with each other
         self._shadow_tmp = tempfile.mkdtemp(prefix="todo-shadow-test-")
         self._orig_shadow_dir = self.engine.SHADOW_DIR
@@ -87,6 +90,10 @@ class TodoEngineTests(unittest.TestCase):
     def tearDown(self):
         import shutil
         self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         shutil.rmtree(self._shadow_tmp, ignore_errors=True)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
@@ -846,8 +853,20 @@ class FileProtectionTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.todo_path = Path(self.tmp.name) / "TODO.md"
         self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
+        # Isolate shadow dir
+        self._shadow_tmp = tempfile.TemporaryDirectory()
+        self._orig_shadow_dir = self.engine.SHADOW_DIR
+        self.engine.SHADOW_DIR = self._shadow_tmp.name
 
     def tearDown(self):
+        self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
         # Ensure file is writable so tempdir cleanup succeeds
         if self.todo_path.exists():
             os.chmod(str(self.todo_path), 0o644)
@@ -929,6 +948,242 @@ class FileProtectionTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0,
                             "Shell redirect should fail on 0444 file")
+
+
+    def test_stray_path_write_refused(self):
+        """write_file() refuses if target path != resolved TODO_FILE_PATH.
+
+        Incident 2026-03-26: agent fell back to ~/.codex/TODO.md when the
+        real path was unwritable (chmod 444). This gate prevents that.
+        """
+        eng = self.engine
+        stray_tmp = tempfile.TemporaryDirectory()
+        stray_path = Path(stray_tmp.name) / "STRAY_TODO.md"
+        stray_path.write_text(SAMPLE_TODO)
+        # TODO_FILE_PATH points at self.todo_path, not stray_path
+        with self.assertRaises(SystemExit) as ctx:
+            eng.write_file(str(stray_path), SAMPLE_TODO)
+        stray_tmp.cleanup()
+
+    def test_canonical_path_write_allowed(self):
+        """write_file() succeeds when target matches TODO_FILE_PATH."""
+        eng = self.engine
+        # TODO_FILE_PATH already set to self.todo_path in setUp
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertEqual(self.todo_path.read_text(), SAMPLE_TODO)
+
+
+
+class ShadowBackupTests(unittest.TestCase):
+    """Tests for shadow backup and annihilation detection."""
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.todo_path = Path(self.tmp.name) / "TODO.md"
+        self.todo_path.write_text(SAMPLE_TODO)
+        # Point TODO_FILE_PATH at our temp file so _validate_canonical_path passes
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
+        # Use a temporary shadow dir to avoid polluting ~/.codex
+        self.shadow_tmp = tempfile.TemporaryDirectory()
+        self._orig_shadow_dir = self.engine.SHADOW_DIR
+        self.engine.SHADOW_DIR = self.shadow_tmp.name
+
+    def tearDown(self):
+        self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
+        if self.todo_path.exists():
+            os.chmod(str(self.todo_path), 0o644)
+        self.tmp.cleanup()
+        self.shadow_tmp.cleanup()
+
+    def _shadow_path(self):
+        return os.path.join(self.engine.SHADOW_DIR, "TODO.md")
+
+    def test_no_shadow_first_run_creates_shadow(self):
+        """First write with no shadow should succeed and create shadow."""
+        eng = self.engine
+        self.assertFalse(os.path.exists(self._shadow_path()))
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertTrue(os.path.exists(self._shadow_path()))
+
+    def test_shadow_updated_after_write(self):
+        """Shadow content should match the last successful write."""
+        eng = self.engine
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        shadow_content = Path(self._shadow_path()).read_text()
+        file_content = self.todo_path.read_text()
+        self.assertEqual(shadow_content, file_content)
+
+    def test_annihilation_blocked_size_drop(self):
+        """Block write when new content is <40% of shadow size."""
+        eng = self.engine
+        # Create a large shadow
+        big_content = SAMPLE_TODO + "\n" + ("- [ ] [20260323-99] Filler\n" * 50)
+        Path(self._shadow_path()).write_text(big_content)
+        # Try to write much smaller content (SAMPLE_TODO is ~40% of big)
+        with self.assertRaises(SystemExit):
+            eng.write_file(str(self.todo_path), SAMPLE_TODO)
+
+    def test_annihilation_blocked_task_count_zero(self):
+        """Block write when active tasks drop to 0 from >0.
+
+        Content is padded so file size stays above 40% threshold —
+        this ensures the TASK COUNT check fires, not the size check.
+        """
+        eng = self.engine
+        # Shadow has 3 active tasks (SAMPLE_TODO)
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        # New content: 0 active tasks, but padded with history so size >= 40%
+        # SAMPLE_TODO is ~481 bytes; we need new content > 192 bytes (40%)
+        history_padding = "\n".join(
+            f"- [x] [20260323-{i:02d}] Completed task {i} with details\n"
+            f"  - Done: 2026-03-25"
+            for i in range(1, 8)
+        )
+        zero_active = (
+            "# ACTIVE TASKS\n\n## P1 - Today\n\n## P2 - This Week\n\n"
+            "## P3 - Backlog\n\n---\n\n# HISTORY\n\n## 2026-03-25\n"
+            f"{history_padding}\n\n"
+            "---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        self.assertGreater(len(zero_active), len(SAMPLE_TODO) * 0.4,
+                           "Test fixture too small — size check would fire first")
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buf):
+            with self.assertRaises(SystemExit):
+                eng.write_file(str(self.todo_path), zero_active)
+        stderr_output = stderr_buf.getvalue()
+        self.assertIn("All 3 active tasks would be deleted", stderr_output,
+                      f"Expected task-count-zero branch, got: {stderr_output}")
+
+    def test_annihilation_blocked_large_task_drop(self):
+        """Block write when >5 active tasks are lost in one write.
+
+        Content is padded so file size stays above 40% threshold —
+        this ensures the TASK DROP check fires, not the size check.
+        """
+        eng = self.engine
+        # Create shadow with 8 active tasks
+        tasks = ""
+        for i in range(1, 9):
+            tasks += f"- [ ] [20260323-{i:02d}] Task {i} with a longer description for padding #test\n"
+        big_shadow = (
+            f"# ACTIVE TASKS\n\n## P1 - Today\n\n{tasks}\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        eng.write_file(str(self.todo_path), big_shadow)
+        shadow_size = len(big_shadow)
+        # New content: only 1 active task (drop of 7 > threshold of 5)
+        # Pad with history so size stays above 40%
+        history_padding = "\n".join(
+            f"- [x] [20260323-{i:02d}] Completed task {i} with details\n"
+            f"  - Done: 2026-03-25"
+            for i in range(2, 9)
+        )
+        one_task = (
+            "# ACTIVE TASKS\n\n## P1 - Today\n\n"
+            "- [ ] [20260323-01] Task 1 with a longer description for padding #test\n\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            f"# HISTORY\n\n{history_padding}\n\n"
+            "---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        self.assertGreater(len(one_task), shadow_size * 0.4,
+                           "Test fixture too small — size check would fire first")
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buf):
+            with self.assertRaises(SystemExit):
+                eng.write_file(str(self.todo_path), one_task)
+        stderr_output = stderr_buf.getvalue()
+        self.assertIn("Active task count would drop from 8 to 1", stderr_output,
+                      f"Expected task-drop branch, got: {stderr_output}")
+
+    def test_legitimate_single_completion_passes(self):
+        """Completing 1 task (3→2 active) should pass annihilation check."""
+        eng = self.engine
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)  # 3 active tasks
+        # Remove one task from active, add to history
+        two_active = (
+            "# ACTIVE TASKS\n\n## P1 - Today\n\n"
+            "- [ ] [20260323-01] Fix critical auth bug #engineering\n"
+            "  - Added: 2026-03-23\n\n"
+            "## P2 - This Week\n\n"
+            "- [ ] [20260323-02] Review PR #engineering\n"
+            "  - Added: 2026-03-23\n\n"
+            "## P3 - Backlog\n\n---\n\n"
+            "# HISTORY\n\n## 2026-03-25\n"
+            "- [x] [20260323-03] Document onboarding #process\n"
+            "  - Done: 2026-03-25\n\n---\n\n"
+            "# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        # Should NOT raise — this is a normal completion
+        eng.write_file(str(self.todo_path), two_active)
+        self.assertIn("# ACTIVE TASKS", self.todo_path.read_text())
+
+    def test_shadow_bypass_when_shadow_deleted(self):
+        """If shadow is manually deleted, the next write succeeds (escape hatch)."""
+        eng = self.engine
+        # Create shadow with lots of tasks
+        tasks = ""
+        for i in range(1, 9):
+            tasks += f"- [ ] [20260323-{i:02d}] Task {i} #test\n"
+        big = (
+            f"# ACTIVE TASKS\n\n## P1 - Today\n\n{tasks}\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        eng.write_file(str(self.todo_path), big)
+        # Delete shadow (the documented escape hatch)
+        os.remove(self._shadow_path())
+        # Now even a tiny write should succeed
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        self.assertTrue(os.path.exists(self._shadow_path()))
+
+
+    def test_unreadable_shadow_warns_and_allows_write(self):
+        """Unreadable shadow emits warning to stderr but write succeeds."""
+        eng = self.engine
+        # Create shadow then make it unreadable
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        shadow = self._shadow_path()
+        os.chmod(shadow, 0o000)
+        try:
+            stderr_buf = io.StringIO()
+            with contextlib.redirect_stderr(stderr_buf):
+                eng.write_file(str(self.todo_path), SAMPLE_TODO)
+            stderr_output = stderr_buf.getvalue()
+            self.assertIn("WARNING", stderr_output)
+            self.assertIn("shadow", stderr_output.lower())
+            # Write still succeeded
+            self.assertIn("# ACTIVE TASKS", self.todo_path.read_text())
+        finally:
+            os.chmod(shadow, 0o644)  # Restore for cleanup
+
+    def test_shadow_dir_as_file_warns_on_update(self):
+        """If shadow file is replaced with a directory, update_shadow warns."""
+        eng = self.engine
+        shadow = self._shadow_path()
+        # Create a file where the shadow dir should be (corrupt state)
+        os.makedirs(os.path.dirname(shadow), exist_ok=True)
+        # First normal write to establish shadow
+        eng.write_file(str(self.todo_path), SAMPLE_TODO)
+        # Now corrupt: replace shadow file with a directory
+        os.remove(shadow)
+        os.mkdir(shadow)
+        try:
+            stderr_buf = io.StringIO()
+            with contextlib.redirect_stderr(stderr_buf):
+                # Should warn but not crash
+                eng.write_file(str(self.todo_path), SAMPLE_TODO)
+            stderr_output = stderr_buf.getvalue()
+            self.assertIn("WARNING", stderr_output)
+        finally:
+            os.rmdir(shadow)  # Cleanup
 
 
 if __name__ == "__main__":
