@@ -29,10 +29,6 @@ composition:
 > **Dispatched by:** `debug-conductor` — invoked after investigators complete.
 > **Evidence type:** `RootCauseVerdict` (see `skills/_shared/evidence-schema.md`)
 
-## When to Use
-
-Dispatched by `debug-conductor` after all investigator branches complete. Synthesizes branch evidence into a ranked root cause verdict with reasoning tree.
-
 ## Adjudication Protocol
 
 ### Step 1: Collect All Branch Evidence
