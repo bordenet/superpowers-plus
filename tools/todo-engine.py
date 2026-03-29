@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """todo-engine.py — Cross-platform TODO.md CRUD engine.
 
-Handles add, complete, move, list, next-id, defer, claim, unclaim, reap, cat,
-path operations with built-in preflight (path resolution), advisory locking,
-backup, structural validation, ID allocation, section targeting, safe multiline
-content handling, and multi-agent claim coordination with TTL-based expiry.
+Handles add, complete, move, list, next-id, defer, claim, unclaim, reap
+operations atomically. Built-in preflight (path resolution), advisory locking,
+backup, ID allocation, section targeting, safe multiline content handling, and
+multi-agent claim coordination with TTL-based expiry.
 
 Usage (typically called via todo-crud.sh wrapper):
     python3 todo-engine.py add --priority P3 --description "Task" --tags "#foo"
@@ -1170,76 +1170,6 @@ def cmd_reap(args, todo_path: str, json_mode: bool) -> None:
              "reaped_ids": reaped}, json_mode)
 
 
-
-def _extract_task_title(line: str) -> str:
-    """Extract task title, skipping the ID bracket and status markers."""
-    # Line format: "- [/] <!-- id:ABC --> Some task title"
-    # Skip everything up to and including the closing -->
-    m = re.search(r"-->\s*(.+)$", line)
-    if m:
-        return m.group(1).strip()
-    # Fallback: take everything after the last ']'
-    m = re.search(r"\]\s*(.+)$", line)
-    return m.group(1).strip() if m else ""
-
-
-def cmd_list_claims(args, todo_path: str, json_mode: bool) -> None:
-    """List all currently claimed tasks with metadata."""
-    content = read_file(todo_path)
-    claims = []
-    now = datetime.datetime.now()
-    for m in RE_TASK.finditer(content):
-        task_id = m.group(1)
-        line_start = m.start()
-        line = content[line_start:content.find("\n", line_start)]
-        if "[/]" not in line[:20]:
-            continue
-        title = _extract_task_title(line)
-        claim = _find_claim_in_block(content, task_id)
-        if not claim:
-            claims.append({
-                "id": task_id, "agent": "(none)", "ttl": 0,
-                "claimed_at": "", "age_min": -1, "expired": False,
-                "title": title, "orphaned": True
-            })
-            continue
-        _, _, ts_str, agent, ttl = claim
-        try:
-            claimed_at = datetime.datetime.fromisoformat(ts_str)
-            age_min = round((now - claimed_at).total_seconds() / 60, 1)
-        except ValueError:
-            age_min = -1
-        expired = _is_claim_expired(ts_str, ttl)
-        claims.append({
-            "id": task_id, "agent": agent, "ttl": ttl,
-            "claimed_at": ts_str, "age_min": age_min, "expired": expired,
-            "title": title, "orphaned": False
-        })
-
-    result = {"status": "ok", "claims": claims, "total": len(claims),
-              "expired": sum(1 for c in claims if c["expired"]),
-              "orphaned": sum(1 for c in claims if c["orphaned"])}
-
-    if json_mode:
-        _output(result, True)
-    else:
-        # Human-readable output
-        if not claims:
-            print("No active claims.")
-            return
-        print(f"{'ID':<8} {'Agent':<20} {'Age':<10} {'Status':<10} Title")
-        print("-" * 72)
-        for c in claims:
-            age = f"{c['age_min']}m" if c['age_min'] >= 0 else "???"
-            if c['orphaned']:
-                status = "ORPHANED"
-            elif c['expired']:
-                status = "EXPIRED"
-            else:
-                status = "active"
-            print(f"{c['id']:<8} {c['agent']:<20} {age:<10} {status:<10} {c['title'][:30]}")
-
-
 # ---------------------------------------------------------------------------
 # Main — Argument Parsing
 # ---------------------------------------------------------------------------
@@ -1297,15 +1227,6 @@ def main():
 
     # reap
     sub.add_parser("reap", help="Reap all expired claims")
-
-    # list-claims
-    sub.add_parser("list-claims", help="List all claimed tasks with metadata")
-
-    # cat — print TODO.md contents from resolved path
-    sub.add_parser("cat", help="Print TODO.md contents (resolved path)")
-
-    # path — print resolved path only
-    sub.add_parser("path", help="Print resolved TODO.md path")
 
     args = parser.parse_args()
     json_mode = args.json

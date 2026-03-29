@@ -63,11 +63,14 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 # Multi-agent: claim a task (marks [/], adds TTL metadata)
 ~/.codex/superpowers-plus/tools/todo-crud.sh claim --id 20260322-01 --ttl 30
+
+# Multi-agent: release a claim
 ~/.codex/superpowers-plus/tools/todo-crud.sh unclaim --id 20260322-01
+
+# Multi-agent: reap all expired claims (reverts to [ ])
 ~/.codex/superpowers-plus/tools/todo-crud.sh reap
 
-# Utility
-~/.codex/superpowers-plus/tools/todo-crud.sh next-id
+# JSON output (for machine parsing)
 ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --all
 ```
 
@@ -115,6 +118,26 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 ---
 
 ## Multi-Agent Coordination
+
+When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **claim/unclaim/reap** to prevent duplicate work:
+
+1. **Before starting work:** `claim --id <ID>` — marks `[/]` with TTL metadata
+2. **On completion:** `complete --id <ID>` — moves to HISTORY (claim auto-removed)
+3. **On abandonment:** `unclaim --id <ID>` — reverts to `[ ]` for another agent
+4. **Periodic cleanup:** `reap` — finds expired claims and reverts them
+
+**TTL (default 30 min):** If an agent claims a task and dies/disconnects, the claim expires after TTL minutes. Another agent running `claim` or `reap` will auto-reap it.
+
+**Agent identity:** Set `AGENT_ID` env var for readable names. Falls back to `hostname:ppid`.
+
+**Claim metadata** (single line in task block):
+```
+  - Claimed: 2026-03-25T14:30:00 by augment-session-1 ttl=30
+```
+
+---
+
+## Overview
 
 Use `claim --id <ID>` → `complete --id <ID>` (or `unclaim` to abandon). Claims auto-expire after TTL (default 30 min). Run `reap` to clean expired claims. Set `AGENT_ID` env var for readable names.
 
