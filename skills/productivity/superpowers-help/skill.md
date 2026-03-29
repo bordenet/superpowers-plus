@@ -32,59 +32,50 @@ coordination:
 
 ---
 
-## Procedure: Progressive Disclosure
+## Procedure: Everything Is Dynamic
 
-**Default response is guidance, NOT a catalog dump.** Only show the full list if explicitly requested.
+**NEVER hardcode skill names, counts, or routing.** All data comes from runtime discovery.
 
-### Step 1: Quick Orientation (always start here)
+### Step 1: Discover What's Installed
 
-Tell the user:
+Run this FIRST — every time, no exceptions:
 
-> You have **[N] skills** installed ([X] auto-triggered, [Y] explicit).
-> Most fire automatically when needed — you don't have to remember them.
->
-> **Tell me what you want to do** and I'll pick the right skill, or see the workflow guide below.
-
-To get the actual count, run:
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>&1 | head -5
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
-### Step 2: Route by Workflow (primary response)
+From the output, extract:
+- Total skill count (auto-triggered + explicit)
+- Breakdown by activation type
 
-Present the workflow table from § "Workflow Routing" below. This is the core value of this skill — matching intent to skills.
+Present as a brief summary:
 
-### Step 3: Drill Down (only if asked)
+> You have **[N] skills** installed ([X] auto-triggered, [Y] explicit).
+> Auto-triggered skills fire when needed — you don't have to remember them.
+> **Tell me what you want to do** and I'll match you to the right skill.
 
-Only if the user says "show me everything" or "list all skills":
+### Step 2: Route by Intent (primary value)
+
+If the user describes a task or asks "what should I use for X?", use `match-skills`:
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills          # all
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "<user's intent>"
+```
+
+This returns the top 5 matching skills ranked by relevance with scores. Present the top 3 with their descriptions (pulled from the `find-skills` output, not from memory).
+
+### Step 3: Filter by Type (if asked)
+
+```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers  # auto-triggered only
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit     # manual only
 ```
 
-### Loading a Specific Skill
+### Step 4: Load a Specific Skill
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
 ```
-
----
-
-## Start Here: 5 Skills That Matter Most
-
-For most users, these 5 skills cover 80% of daily work:
-
-| Skill | When | Auto? |
-|-------|------|:-----:|
-| `brainstorming` | Before building anything new — explores intent, requirements, design | 🦸 yes |
-| `systematic-debugging` | Before fixing any bug — structured reproduce → hypothesize → isolate → fix | 🦸 yes |
-| `feature-development` | Full build lifecycle — requirements → design → plan → TDD → verify | 🦸 yes |
-| `think-twice` | When stuck, looping, or unsure — breaks analysis paralysis | 🔧 explicit |
-| `verification-before-completion` | Before claiming anything is done — final safety net | 🦸 yes |
-
-If the system itself seems unhealthy: `superpowers-doctor` (run as `sp-doctor`).
 
 ---
 
@@ -99,65 +90,30 @@ If the system itself seems unhealthy: `superpowers-doctor` (run as `sp-doctor`).
 
 ### Priority When Multiple Apply
 
-1. **Process skills first** (brainstorming, debugging) — determine HOW to approach
-2. **Implementation skills second** (wiki-orchestrator, issue-authoring) — guide execution
+1. **Process skills first** — determine HOW to approach (look for skills with triggers matching brainstorm/plan/debug)
+2. **Implementation skills second** — guide execution (look for skills matching the specific domain)
 3. **Explicit skills on request** — only when user specifically asks
 
 ---
 
-## Workflow Routing
+## Presenting Results
 
-### Building & Designing
+When showing skills to the user, organize dynamically using the data from `find-skills`:
 
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Build a new feature | `brainstorming` → `plan-and-execute` → `feature-development` | Full lifecycle; brainstorming explores before committing |
-| Design a system/component | `brainstorming` → `design-triad` → `domain-design` | 3+ options, comparison matrix, harsh review |
-| Write a plan/RFC | `plan-and-execute` → `plan-quality-gates` | Plan-quality-gates catches vague/incomplete plans |
-| Validate requirements | `requirements-validation` | Tests for falsifiability, contradictions |
+### For General "What Can You Do?" Questions
 
-### Debugging & Investigating
+1. Show count summary (from Step 1)
+2. Ask what they want to accomplish
+3. Run `match-skills` with their answer
+4. Present top 3 matches with descriptions
 
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Fix a bug | `systematic-debugging` → `test-driven-development` | Serial-first: reproduce → hypothesize → isolate → fix |
-| Debug a complex distributed issue | `systematic-debugging` → `debug-conductor` | Escalation: only fork to parallel investigators if serial stalls |
-| Resume a stalled investigation | `investigation-state` → `think-twice` | Persists hypotheses/evidence across sessions |
-| Understand why an approach failed | `failure-autopsy` | Root cause analysis with 5-Why + preventive actions |
+### For "Show Me Everything" Requests
 
-### Code Quality & Review
+Run `find-skills` and present the full output. It's already categorized (auto-triggered vs explicit) and alphabetized.
 
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Review a PR | `providing-code-review` → `code-review-battery` | Battery runs 5 parallel specialist reviewers |
-| Get my code reviewed before pushing | `pre-commit-gate` → `progressive-harsh-review` | Lint → typecheck → test → adversarial review |
-| Check blast radius of a change | `blast-radius-check` → `field-rename-verification` | Finds all callers before edits |
-| Refactor safely | `subagent-driven-development` | Orchestrates parallel sub-agents for independent tasks |
+### For "What's Good For [task]?" Questions
 
-### Documentation & Wiki
-
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Update the wiki | `wiki-orchestrator` → `wiki-content-quality` | Orchestrator routes to appropriate wiki skill |
-| Refactor wiki structure | `wiki-refactor` | 7-phase pipeline: audit → deduplicate → rewrite → verify |
-| Fix AI-sounding writing | `detecting-ai-slop` → `eliminating-ai-slop` | Catches and rewrites hollow/inflated prose |
-
-### Issue Tracking
-
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Create a ticket | `issue-authoring` | Templates with acceptance criteria for GitHub/Jira/Azure DevOps |
-| Update an existing ticket | `issue-editing` | Safe update with before/after diff |
-| Verify ticket links work | `issue-link-verification` → `issue-verify` | Tests all URLs, confirms references exist |
-
-### Meta & Getting Unstuck
-
-| "I want to..." | Skill Chain | Notes |
-|-----------------|-------------|-------|
-| Get a second opinion | `think-twice` | 🔧 explicit — must invoke by name |
-| Search for counter-evidence | `adversarial-search` | Defeats confirmation bias |
-| Check skill system health | `superpowers-doctor` (`sp-doctor`) | 22-check diagnostic |
-| See what skills exist | `superpowers-help` (this skill) | You're here |
+Run `match-skills "<task>"` and present the ranked results. The matching engine uses trigger phrases and descriptions to find relevant skills — it knows things this skill file doesn't.
 
 ---
 
@@ -175,12 +131,13 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 
 | Failure | Fix |
 |---------|-----|
-| Dumping 140 skills as first response | Use progressive disclosure — overview first, full list only on request |
+| Hardcoding skill names, counts, or routing tables | ALL data must come from `find-skills` / `match-skills` at runtime |
 | Reporting skills from memory instead of running discovery | Run `find-skills` before answering — never enumerate from memory |
-| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — check both sources |
+| Dumping the full catalog as first response | Start with count summary + "what do you want to do?" |
+| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — `find-skills` covers both sources |
 | Confusing superpowers vs explicit skills | Two axes: activation (auto/explicit) and source (core/extended) |
-| Recommending a skill without checking if it's installed | Run `find-skills {name}` before recommending any skill |
-| Routing table doesn't cover user's task | Fall back to `match-skills <intent>` for fuzzy matching |
+| Recommending a skill without confirming it's installed | Run `find-skills {name}` or `match-skills` before recommending |
+| Stale skill descriptions in output | If `find-skills` shows `>` as description, the installed copy needs re-syncing — run `install.sh` |
 
 ## Documentation
 
