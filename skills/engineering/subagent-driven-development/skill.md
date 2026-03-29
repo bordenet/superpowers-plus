@@ -39,7 +39,7 @@ composition:
 
 - You have a written implementation plan with independent tasks to execute in the current session
 - You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`plan-and-execute`), execution across multiple sessions (`plan-and-execute`)
+- NOT for: writing the plan (`writing-plans`), execution across multiple sessions (`executing-plans`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
