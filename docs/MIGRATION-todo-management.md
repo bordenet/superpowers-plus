@@ -15,7 +15,7 @@ The `todo-management` skill had a broken deployment state:
 
 2. **Orphaned TODO.md files:** Before the deterministic default (`$HOME/.codex/TODO.md`),
    agents guessed paths from skill examples (`~/Documents/TODO.md`) or workspace roots
-   (`~/GitHub/*/TODO.md`), leaving real task data in unreachable locations.
+   (`$WORKSPACE_ROOT/TODO.md`), leaving real task data in unreachable locations.
 
 3. **Hallucinated task state:** Without a valid file path, agents fell back to MCP-only
    tracking, which loses state on context compaction, causing fabricated TODO items.

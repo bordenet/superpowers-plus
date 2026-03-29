@@ -95,6 +95,6 @@ When user asks for rigor/thorough/comprehensive analysis:
 
 ```bash
 # Example: adversarial search — hunt for the WRONG value
-grep -r "OUTLINE_API_TOKEN" ~/GitHub/ --include='*' | head -20
+grep -r "OUTLINE_API_TOKEN" . --include='*' | head -20
 # NOT: grep -r "OUTLINE_API_KEY" (that just confirms the right thing exists)
 ```
