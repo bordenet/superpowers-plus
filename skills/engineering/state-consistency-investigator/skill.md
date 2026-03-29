@@ -1,10 +1,7 @@
 ---
 name: state-consistency-investigator
 source: superpowers-plus
-description: >
-  Specialized investigator for diagnosing state consistency failures: replication lag,
-  cache staleness, event ordering issues, cross-service data divergence, and eventual
-  consistency bugs. Dispatched by debug-conductor.
+description: "Specialized investigator for diagnosing state consistency failures: replication lag, cache staleness, event ordering issues, cross-service data divergence, and eventual consistency bugs. Dispatched by debug-conductor."
 triggers: []
 anti_triggers: []
 coordination:

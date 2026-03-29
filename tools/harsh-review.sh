@@ -258,6 +258,9 @@ while IFS= read -r file; do
     [[ "$file" == *"CONTRIBUTING"* ]] && continue  # Skip docs that reference examples
     [[ "$file" == *"ARCHITECTURE"* ]] && continue
     [[ "$file" == *"README"* ]] && continue
+    [[ "$file" == *"harsh-review.sh" ]] && continue  # Self-referencing pattern definitions
+    [[ "$file" == *"_adapters/"* ]] && continue  # Adapters are allowed to be vendor-specific
+    [[ "$file" == *"public-repo-ip-audit"* ]] && continue  # Contains example patterns with vendor placeholders
 
     if grep -qE "$VENDOR_PATTERNS" "$file" 2>/dev/null; then
         log_warn "$file: contains vendor-specific references (should be in _adapters/)"

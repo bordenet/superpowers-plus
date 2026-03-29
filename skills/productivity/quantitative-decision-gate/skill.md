@@ -12,11 +12,7 @@ anti_triggers:
   - "should I use this skill"
   - "should I announce"
   - "clarifying question about requirements"
-description: >
-  HARD GATE — Forces quantitative evaluation with a decision matrix before
-  ANY question to the user. If the agent can score options numerically, it
-  MUST choose highest-scoring and PROCEED. Only escalate when top 2 score
-  within 10% AND decision is irreversible.
+description: "HARD GATE — Forces quantitative evaluation with a decision matrix before ANY question to the user. If the agent can score options numerically, it MUST choose highest-scoring and PROCEED. Only escalate when top 2 score within 10% AND decision is irreversible."
 summary: "Use when: about to ask user to decide. Skip when: genuine requirements clarification."
 coordination:
   group: decision-making

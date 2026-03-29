@@ -1,10 +1,7 @@
 ---
 name: evidence-adjudicator
 source: superpowers-plus
-description: >
-  Synthesizes evidence from all investigator branches into a root cause verdict.
-  Builds reasoning trees, detects contradictions, weighs evidence strength over
-  agent count, and produces a ranked diagnosis. Dispatched by debug-conductor.
+description: "Synthesizes evidence from all investigator branches into a root cause verdict. Builds reasoning trees, detects contradictions, weighs evidence strength over agent count, and produces a ranked diagnosis. Dispatched by debug-conductor."
 triggers: []
 anti_triggers: []
 coordination:

@@ -70,7 +70,7 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 - Output: `new-wiki-structure.md`
 
 ### Phase 4: Writing Plan → [phase-4-writing-plan.md](references/phase-4-writing-plan.md)
-- Map source pages → target pages with section outlines
+- Map source pages → target pages with section structures
 - Output: `wiki-writing-plan.md`
 
 ### ⏸️ HUMAN CHECKPOINT

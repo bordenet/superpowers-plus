@@ -12,10 +12,7 @@ anti_triggers:
   - "build the matrix"
   - "build a table"
   - "simple one-liner"
-description: >
-  Meta-orchestrator that auto-detects required skill chain, executes with
-  quality gates between steps, and auto-retries on failures. User says
-  "build X" — this handles brainstorming through verification.
+description: "Meta-orchestrator that auto-detects required skill chain, executes with quality gates between steps, and auto-retries on failures. User says \"build X\" — this handles brainstorming through verification."
 summary: "Use when: multi-step task. Skip when: single focused action."
 coordination:
   group: orchestration

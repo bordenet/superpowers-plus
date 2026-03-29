@@ -1,10 +1,7 @@
 ---
 name: telephony-flow-investigator
 source: superpowers-plus
-description: >
-  Specialized investigator for diagnosing telephony call flow failures: SIP signaling
-  issues, call state machine divergences, codec mismatches, RTP quality degradation,
-  and timing-sensitive call setup problems. Dispatched by debug-conductor.
+description: "Specialized investigator for diagnosing telephony call flow failures: SIP signaling issues, call state machine divergences, codec mismatches, RTP quality degradation, and timing-sensitive call setup problems. Dispatched by debug-conductor."
 triggers: []
 anti_triggers: []
 coordination:

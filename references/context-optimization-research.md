@@ -30,7 +30,7 @@
    > "Rather than pre-processing all relevant data up front, agents maintain lightweight identifiers and use these references to dynamically load data into context at runtime."
 
 7. **Minimal viable set:**
-   > "You should be striving for the minimal set of information that fully outlines your expected behavior."
+   > "You should be striving for the minimal set of information that fully describes your expected behavior."
 
 8. **Compaction for long-horizon tasks:**
    > "Compaction distills the contents of a context window in a high-fidelity manner... The art lies in the selection of what to keep versus what to discard."
