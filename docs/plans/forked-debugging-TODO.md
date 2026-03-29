@@ -18,20 +18,20 @@
 ## P2 — Important
 
 - [ ] [20260329-07] Extend `investigation-state` schema with branch/fork metadata #wave3
-- [ ] [20260329-08] Implement duplicate-work detection (Jaccard similarity on evidence) #wave3
+- [x] [20260329-08] Implement duplicate-work detection (Jaccard similarity on evidence) #wave3 ✅ Done 2026-03-29
 - [x] [20260329-09] Create experiment fixture: S1 telephony event sequencing #wave3 ✅ Done 2026-03-29
 - [x] [20260329-10] Create experiment fixture: S3 LLM tool-selection regression #wave3 ✅ Done 2026-03-29
 - [x] [20260329-11] Create experiment harness script #wave3 ✅ Done 2026-03-29
-- [ ] [20260329-12] Add `distributed-debug` chain type to `autonomous-chain-controller` #wave2
-- [ ] [20260329-13] Add conductor routing rule to `thinking-orchestrator` #wave2
+- [x] [20260329-12] Add `distributed-debug` chain type to `autonomous-chain-controller` #wave2 ✅ Done 2026-03-29
+- [x] [20260329-13] Add conductor routing rule to `thinking-orchestrator` #wave2 ✅ Done 2026-03-29
 
 ## P3 — Deferred (some promoted to completed)
 
-- [ ] [20260329-14] Implement telephony-flow-investigator skill #wave4
-- [ ] [20260329-15] Implement state-consistency-investigator skill #wave4
-- [ ] [20260329-16] Implement infra-config-investigator skill #wave4
-- [ ] [20260329-17] Implement reproduction-experiment-investigator skill #wave4
-- [ ] [20260329-18] Implement evidence-adjudicator skill #wave4
+- [x] [20260329-14] Implement telephony-flow-investigator skill #wave4 ✅ Done 2026-03-29
+- [x] [20260329-15] Implement state-consistency-investigator skill #wave4 ✅ Done 2026-03-29
+- [x] [20260329-16] Implement infra-config-investigator skill #wave4 ✅ Done 2026-03-29
+- [x] [20260329-17] Implement reproduction-experiment-investigator skill #wave4 ✅ Done 2026-03-29
+- [x] [20260329-18] Implement evidence-adjudicator skill #wave4 ✅ Done 2026-03-29
 - [ ] [20260329-19] Confidence scoring calibration across evidence types #wave4
 - [x] [20260329-20] Create experiment fixtures S2, S4, S5 #wave4 ✅ Done 2026-03-29
 - [ ] [20260329-21] Run comparative experiments A vs B vs C #wave4
