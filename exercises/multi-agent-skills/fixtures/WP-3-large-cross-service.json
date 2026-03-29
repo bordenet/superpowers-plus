@@ -1,0 +1,25 @@
+{
+  "id": "WP-3",
+  "skill": "writing-plans",
+  "name": "Large Cross-Service Feature — Auth System Replacement",
+  "difficulty": "high",
+  "expected_winner": "B (planning council)",
+  "expected_reason": "Cross-service migration with data migration, rollback risk, and backward compatibility — too many dimensions for single-agent",
+  "prompt": "Replace our custom JWT-based authentication system with SSO (SAML + OIDC) across all 4 services: API gateway, admin dashboard, customer portal, and webhook service. Must support: enterprise SSO via SAML, social login via OIDC, existing JWT sessions during migration (dual-auth period), and data migration of 50K user accounts from our custom user table to the SSO provider. Zero downtime required. Must maintain backward compatibility for API keys used by integrations.",
+  "context": {
+    "services": ["api-gateway (Go)", "admin-dashboard (React)", "customer-portal (React)", "webhook-service (Go)"],
+    "current_auth": {"type": "Custom JWT", "user_count": 50000, "api_key_count": 12000, "session_store": "Redis"},
+    "target_sso": {"provider": "Auth0 or Okta (TBD)", "protocols": ["SAML 2.0", "OIDC"], "social_providers": ["Google", "Microsoft"]},
+    "constraints": ["Zero downtime", "Backward-compatible API keys", "Dual-auth period minimum 30 days", "GDPR compliance for user data migration"],
+    "team_size": 5,
+    "timeline": "Q2-Q3 (6 months)"
+  },
+  "evaluation_criteria": {
+    "migration_plan": "Is there a phased migration with rollback at each phase?",
+    "dual_auth": "Does the plan handle the transition period where both old and new auth work?",
+    "risk_coverage": "Data migration risks? Session invalidation risks? API key backward compat?",
+    "test_strategy": "How is the migration tested before cutover?",
+    "rollout_safety": "Feature flags? Canary rollout? Monitoring for auth failures?",
+    "gdpr_awareness": "Is user data migration GDPR-compliant?"
+  }
+}
