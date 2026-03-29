@@ -347,7 +347,7 @@ All orchestration decisions logged in structured format:
 ## 9. Recommendation: Ship Order
 
 1. **Brainstorming ensemble first** — lowest risk (output is ideas, not code), easiest to evaluate, fastest to prototype
-2. **Writing-plans council second** — medium risk (output is plans, not code), high leverage (better plans → better execution)
+2. **Plan-and-execute council second** — medium risk (output is plans, not code), high leverage (better plans → better execution)
 3. **Subagent-driven-development parallelism third** — highest risk (code merges), highest value when it works, needs most infrastructure
 
 This order maximizes learning velocity: each skill's lessons inform the next.
