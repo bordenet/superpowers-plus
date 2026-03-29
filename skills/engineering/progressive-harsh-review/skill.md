@@ -44,16 +44,22 @@ coordination:
 
 Focus: typos, formatting, naming, style, obvious bugs, missing error handling.
 Tone: eager, thorough, detail-oriented.
+**Required evidence:** The deliverable itself — line-by-line reading. Do NOT read callers, consumers, or deployment context.
+**Dimension weights:** Correctness 35%, Simplicity 25%, Edge Cases 20%, Testability 15%, Security/Perf 5%.
 
 ### Persona 2: SeniorArchCritic (Structural Quality)
 
 Focus: architecture, design patterns, separation of concerns, extensibility, testability.
 Tone: experienced, skeptical, pattern-aware.
+**Required evidence:** The deliverable PLUS all callers, consumers, and interface contracts affected by the change. Must check downstream impact before scoring.
+**Dimension weights:** Correctness 25%, Simplicity 15%, Edge Cases 15%, Testability 25%, Security/Perf 20%.
 
 ### Persona 3: ProdOpsHardass (Operational Quality)
 
 Focus: failure modes, edge cases, security, performance, monitoring, rollback.
 Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
+**Required evidence:** The deliverable PLUS deployment context, error handling paths, retry/rollback behavior, and monitoring/logging coverage. Do NOT focus on code style or naming.
+**Dimension weights:** Correctness 25%, Simplicity 10%, Edge Cases 25%, Testability 10%, Security/Perf 30%.
 
 ## The Process
 
