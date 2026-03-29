@@ -341,8 +341,18 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         const skillDir = path.join(dir, entry.name);
+        // Handle both directories and symlinks to directories
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue;
+            throw err;
+        }
+        if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
