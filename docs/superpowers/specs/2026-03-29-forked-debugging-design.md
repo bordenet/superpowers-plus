@@ -61,7 +61,7 @@ This design is grounded in published research, not intuition. Key findings that 
 
 ### 3.2 Core Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Debug Conductor                       │
 │  (Incident Orchestrator / Decision Authority)            │
@@ -95,7 +95,6 @@ This design is grounded in published research, not intuition. Key findings that 
    └──────────────────────────────────────────────┘
 ```
 
-
 ### 3.3 The Fork Decision: When to Parallelize
 
 The conductor does NOT always fork. Serial debugging is the default. Forking is an escalation.
@@ -111,6 +110,7 @@ The conductor does NOT always fork. Serial debugging is the default. Forking is 
 | Evidence suggests multiple contributing causes | 0–2 | Partial evidence for 2+ hypotheses |
 
 **Anti-fork signals** (any one blocks forking):
+
 - Single service, single component, clear error message → stay serial
 - Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
 - Fewer than 2 distinct hypothesis domains identified
@@ -231,6 +231,7 @@ Each investigator is a sub-agent with a scoped mandate, constrained tools, and a
 | **Handoff** | Final root cause verdict with full evidence chain |
 
 **Adjudication algorithm:**
+
 1. Build reasoning tree from all branches (per AgentAuditor research)
 2. Identify Critical Divergence Points (CDPs) — where investigators disagree
 3. At each CDP: evaluate evidence strength, not investigator count
@@ -318,6 +319,7 @@ This design builds on — not replaces — the existing debugging triad:
 | `failure-autopsy` | Post-resolution analysis; invoked after incident packet is closed |
 
 **Composition metadata additions:**
+
 ```yaml
 composition:
   produces: [incident-packet, root-cause-verdict, investigation-evidence]
@@ -328,6 +330,7 @@ composition:
 ## 7. Implementation Waves
 
 ### Wave 1: Foundation (Current)
+
 - [x] Inventory existing skills and orchestration hooks
 - [x] Write design document
 - [x] Create TODO ledger (`docs/plans/forked-debugging-TODO.md`)
@@ -338,6 +341,7 @@ composition:
 - [x] Harsh review round 1 (findings addressed below)
 
 ### Wave 2: Conductor + Core Investigators
+
 - [ ] Implement `debug-conductor` skill with decision loop
 - [ ] Implement `timeline-trace-investigator` skill
 - [ ] Implement `llm-behavior-investigator` skill
@@ -345,6 +349,7 @@ composition:
 - [ ] Add progressive harsh review checkpoints
 
 ### Wave 3: Fork Semantics + Experiment Infrastructure
+
 - [ ] Add branch tracking to `investigation-state`
 - [ ] Implement duplicate-work detection (Jaccard similarity)
 - [ ] Create experiment fixture scenarios
@@ -352,6 +357,7 @@ composition:
 - [ ] Create experiment harness script
 
 ### Wave 4: Full Investigator Set + Experiments
+
 - [ ] Implement remaining investigators (telephony, state, infra, reproduction)
 - [ ] Implement evidence adjudicator
 - [ ] Run comparative experiments (single vs naive-multi vs conductor-led)
@@ -359,6 +365,7 @@ composition:
 - [ ] Add confidence scoring calibration
 
 ### Wave 5: Refinement + Recommendation
+
 - [ ] Refine architecture based on experiment evidence
 - [ ] Produce final recommendation document
 - [ ] Document limitations candidly
@@ -429,20 +436,23 @@ The following limitations were identified by adversarial review and are not yet 
 
 ## 10. Decision Rubric: When to Fork, When Not To
 
-### Fork when ALL of:
+### Fork when ALL of
+
 - Single-agent investigation has stalled or been escalated via `think-twice`
 - ≥2 distinct hypothesis domains identified
 - Incident crosses service boundaries
 - Fork-readiness rubric score ≥6
 - Budget permits (<80% consumed)
 
-### Stay serial when ANY of:
+### Stay serial when ANY of
+
 - Clear error message points to single root cause
 - Single service, single component affected
 - Budget >80% consumed
 - Previous fork attempt on similar incident produced duplicate findings
 
-### Never fork when:
+### Never fork when
+
 - Incident is resolved or mitigated
 - User explicitly requests serial investigation
 - Fewer than 2 investigators would be assigned (1 fork = serial with overhead)

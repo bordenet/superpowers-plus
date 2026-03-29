@@ -35,7 +35,6 @@ coordination:
 - Before pushing to shared branch
 - When editing router patterns or gate thresholds
 
-
 ### Example
 
 ```bash

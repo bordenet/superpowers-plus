@@ -54,6 +54,7 @@ Each investigation branch produces:
 ## Investigator-Specific Evidence Types
 
 ### TimelineEvidence (Timeline & Trace Investigator)
+
 ```json
 {
   "events": [{ "timestamp": "ISO-8601", "service": "string", "event": "string", "traceId": "string" }],
@@ -63,6 +64,7 @@ Each investigation branch produces:
 ```
 
 ### TelephonyEvidence (Telephony Flow Investigator)
+
 ```json
 {
   "callFlow": [{ "step": "number", "state": "string", "timestamp": "ISO-8601", "expected": "string | null" }],
@@ -72,6 +74,7 @@ Each investigation branch produces:
 ```
 
 ### LLMEvidence (Prompt / LLM Behavior Investigator)
+
 ```json
 {
   "toolCalls": [{ "tool": "string", "params": "object", "success": "boolean", "expected": "string | null" }],
@@ -82,6 +85,7 @@ Each investigation branch produces:
 ```
 
 ### StateEvidence (State Consistency Investigator)
+
 ```json
 {
   "inconsistencies": [{ "entity": "string", "sourceA": "string", "sourceB": "string", "valueA": "any", "valueB": "any" }],
@@ -92,6 +96,7 @@ Each investigation branch produces:
 ```
 
 ### InfraEvidence (Infra / Config / Deployment Investigator)
+
 ```json
 {
   "deployments": [{ "service": "string", "version": "string", "timestamp": "ISO-8601", "correlatesWithIncident": "boolean" }],
@@ -102,6 +107,7 @@ Each investigation branch produces:
 ```
 
 ### ExperimentEvidence (Reproduction & Experiment Investigator)
+
 ```json
 {
   "hypothesis": "string",

@@ -2,6 +2,7 @@
 name: infra-config-investigator
 source: superpowers-plus
 description: "Specialized investigator for diagnosing infrastructure, configuration, and deployment failures: config changes, resource exhaustion, deployment regressions, cloud provider issues, and environment mismatches. Dispatched by debug-conductor."
+summary: "Use when: diagnosing infrastructure, config, or deployment failures."
 triggers: []
 anti_triggers: []
 coordination:
@@ -120,3 +121,11 @@ Dispatched by `debug-conductor` when the incident involves infrastructure — co
 | **Deployment regression** | New version deployed; metrics degrade immediately after |
 | **Environment mismatch** | Staging works, prod doesn't; config differs between environments |
 | **Auto-scaling lag** | Load spike → scaling event → 2–5 min gap with degraded capacity |
+
+## Failure Modes
+
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Config drift | Comparing against stale baseline | Always fetch current deployed config |
+| Wrong environment | Inspecting dev when prod is broken | Verify target environment first |
+| Resource false positive | Spike is normal load pattern | Compare against historical baselines |

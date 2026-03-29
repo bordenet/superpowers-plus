@@ -48,6 +48,7 @@ These patterns indicate the value is a placeholder or environment variable refer
 ### Step 1: Visual Scan
 
 Search your content for these keywords (case-insensitive):
+
 - `password`, `pwd`, `passwd`
 - `secret`, `credential`, `token`
 - `api_key`, `apikey`, `api-key`
@@ -57,6 +58,7 @@ Search your content for these keywords (case-insensitive):
 ### Step 2: Pattern Check
 
 For each match, ask:
+
 1. **Is this a real value?** → 🛑 STOP — remove or redact
 2. **Is this an env variable reference?** → ✅ OK (e.g., `$DB_PASSWORD`)
 3. **Is this a placeholder?** → ✅ OK (e.g., `[REDACTED]`, `<YOUR_VALUE>`)
@@ -79,6 +81,7 @@ For each match, ask:
 ## 🔒 MCP Server Hard Block (P0)
 
 Some wiki MCP servers have built-in secret scanners that:
+
 - Block `createPage`, `updatePage`, `pushPage` if secrets are detected
 - Return detailed error messages with line numbers and pattern names
 - Cannot be bypassed — content with secrets WILL NOT be published
@@ -90,17 +93,20 @@ This is the **last line of defense**. The checklist above should catch secrets B
 ## 🔧 Remediation Examples
 
 **Original (contains secret):**
-```
+
+```text
 Server=mydb.database.windows.net;User Id=admin;Password=j69KZhsk_6935Bayn2W0ZZmA
 ```
 
 **Fixed (environment variable):**
-```
+
+```text
 Server=mydb.database.windows.net;User Id=${DB_USER};Password=${DB_PASSWORD}
 ```
 
 **Fixed (redacted):**
-```
+
+```text
 Server=mydb.database.windows.net;User Id=admin;Password=[REDACTED: production SQL password]
 ```
 

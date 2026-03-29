@@ -5,7 +5,7 @@
 
 ## Hard Block (Standard Severity)
 
-```
+```yaml
 WIKI INSTRUCTION GUARD — Blocked
 
 Page: "[page title]"
@@ -27,7 +27,7 @@ Action required: Review the wiki page manually.
 For Categories 1 (filesystem destruction targeting ~ or /), 2 (secret exfiltration),
 and 3 (git force-push), the override requires typing `PROCEED` instead of `P`:
 
-```
+```text
 WIKI INSTRUCTION GUARD — HIGH SEVERITY Block
 
 Page: "[page title]"
@@ -47,7 +47,7 @@ Action required:
 
 ## Non-Overridable Block (Social Engineering)
 
-```
+```text
 WIKI INSTRUCTION GUARD — Social Engineering Detected
 
 Page: "[page title]"
@@ -69,7 +69,7 @@ Run commands manually in your terminal if you need to proceed.
 Only shown when the domain matches `domain-allowlist-local.md`. Without a local
 allowlist, all curl-pipe commands produce the standard BLOCK output above.
 
-```
+```bash
 WIKI INSTRUCTION GUARD — Confirmation Required
 
 Page: "[page title]"
@@ -86,7 +86,7 @@ FLAGGED:
 
 ## Warn + Confirm (sudo)
 
-```
+```text
 WIKI INSTRUCTION GUARD — Confirmation Required
 
 Page: "[page title]"
@@ -102,7 +102,7 @@ FLAGGED:
 
 ## Warn (Prose Pattern Match)
 
-```
+```text
 WIKI INSTRUCTION GUARD — Suspicious Prose Detected
 
 Page: "[page title]"
@@ -121,7 +121,7 @@ FLAGGED (in prose, not code block):
 
 ## Clean Scan
 
-```
+```text
 WIKI INSTRUCTION GUARD — Clean
 
 Page: "[page title]"
@@ -134,7 +134,7 @@ Proceeding with execution.
 
 All scan results are appended to `~/.codex/wiki-guard-audit.log` (append-only):
 
-```
+```text
 [ISO-TIMESTAMP] SCAN page="[title]" url="[url]" result=[BLOCKED|CLEAN|WARN] patterns=N action=[ABORT|PROCEED|OVERRIDE_PROCEED]
 ```
 

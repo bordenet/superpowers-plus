@@ -17,9 +17,8 @@ coordination:
 # Think Twice
 
 > **Wrong skill?** Research a topic → `perplexity-research`. Brainstorm solutions → `brainstorming`. Debug a specific error → `systematic-debugging`.
-
+>
 > **Break through blockers by consulting a fresh perspective.**
-
 
 ## When to Use
 
@@ -99,7 +98,6 @@ The prompt sent to the sub-agent determines outcome quality. MUST include:
 # Example: invoke think-twice when stuck
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 ```
-
 
 ## Companion Skills
 

@@ -30,6 +30,7 @@ The incident packet is a NEW artifact type, separate from `investigation-state` 
 It references investigation-state entries but does not replace them.
 
 **Migration path (Wave 3):**
+
 1. `investigation-state` gains optional `incidentPacketId` field linking to parent incident
 2. Branch objects in incident packet reference `investigation-state` hypothesis IDs
 3. No breaking changes to existing `investigation-crud.sh` operations

@@ -68,7 +68,6 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 - Overlay-aware: compares installed against highest-priority source (overlay > plus)
 - Diff-based drift detection (replaces comm-based overlap for accuracy)
 
-
 ## Platform Compatibility
 
 | Platform | Notes |
@@ -79,5 +78,6 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 | WSL (Ubuntu) | All checks work. Same as Linux; also detects NTFS mount issues (pre-check) |
 
 **Optional dependencies for checks 21–22, 25:**
+
 - `python3` — required for Check 21 (TODO archive smoke test). Skipped with INFO if absent.
 - `node` — required for Checks 22, 25 (reviewer-dispatch, stale workflow). Skipped with WARNING if absent.
