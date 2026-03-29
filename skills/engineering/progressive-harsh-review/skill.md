@@ -102,9 +102,19 @@ On REJECT:
    - Plan issues → `plan-and-execute` (replan)
 3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.
 
-### Step 5: Convergence
+### Step 5: Correlated-Failure Detection
 
-- **Exit when:** Final round weighted mean ≥6 AND no active Critical vetoes AND no new material issues in latest round
+After scoring, scan persona outputs for **shared blind spots**:
+
+1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different entry point (per their required evidence scope).
+2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding in their own analytical frame.
+3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output references evidence from their required scope (Nitpicker: line-level, ArchCritic: callers/contracts, ProdOps: error paths/rollback). If any persona's output lacks scope-specific evidence, re-examine.
+
+Flags trigger re-examination, not automatic verdict changes.
+
+### Step 6: Convergence
+
+- **Exit when:** Final round weighted mean ≥6 AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Scoring Output Format
