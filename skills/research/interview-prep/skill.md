@@ -3,6 +3,13 @@ name: interview-prep
 source: superpowers-[product]
 description: "Use when preparing for a behavioral interview loop, setting up hiring manager interview questions, or before a candidate's final round."
 triggers: ["prep interview for", "create behavioral sheet for", "interview tomorrow", "HM interview prep"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 # Interview Prep

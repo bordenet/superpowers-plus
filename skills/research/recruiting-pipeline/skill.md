@@ -3,6 +3,13 @@ name: recruiting-pipeline
 source: superpowers-[product]
 triggers: ["recruiting status", "pipeline status", "where is [name]", "funnel health", "candidate pipeline", "who's in process", "next recruiting action", "pipeline update", "recruiting dashboard", "active candidates"]
 description: Unified recruiting pipeline orchestrator. Tracks candidate state across stages (SCREENED → PHONE → LOOP → OFFER), routes to appropriate skills, detects fraud rings, and suggests proactive next actions.
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

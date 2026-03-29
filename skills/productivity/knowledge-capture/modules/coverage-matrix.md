@@ -47,4 +47,3 @@ If not reached after 20 exchanges: offer to narrow scope, mark as partial, or sc
 For narrow topics (FAQ, glossary): skip P2 areas entirely, reduce P1 threshold.
 For broad topics (architecture, system design): all areas are relevant.
 For operational topics: elevate Failure modes to P0.
-

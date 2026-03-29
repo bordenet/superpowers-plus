@@ -3,6 +3,13 @@ name: candidate-tracker
 source: superpowers-[product]
 description: Use BEFORE every resume screening to check for duplicates, repeat fraudsters, and fraud ring patterns. Triggers on "have we seen this candidate before", "check for duplicate", "is this person already screened", "detect fraud ring", "candidate lookup", "search candidate history". Central registry prevents re-screening known applicants.
 triggers: ["have we seen this candidate", "check for duplicate", "is this person already screened", "detect fraud ring", "candidate lookup", "search candidate history"]
+coordination:
+  group: research
+  order: 5
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: true
 ---
 
 > **⚠️ Environment Required:** This skill needs `$RECRUITING_DIR` and `$RECRUITING_PHONE_SCREENS_DIR`.

@@ -72,4 +72,3 @@ Real failures that drove each rule in this skill. Reference these when questioni
 | Date | Failure | Impact | Rule Created |
 |------|---------|--------|-------------|
 | 2026-02-20 | API update broke embedded "Plan-of-Record" document | Embed became plain link | Embed detection warning |
-

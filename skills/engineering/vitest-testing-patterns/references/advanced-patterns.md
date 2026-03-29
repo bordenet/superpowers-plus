@@ -95,4 +95,3 @@ it('should handle race condition', async () => {
 | Multiple concepts per test | One concept per test |
 | Not awaiting async | Always `await` promises |
 | Shared state between tests | Fresh state in `beforeEach` |
-

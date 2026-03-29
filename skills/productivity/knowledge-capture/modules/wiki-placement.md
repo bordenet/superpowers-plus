@@ -62,4 +62,3 @@ If API call fails (network error, 5xx, auth failure):
 2. Update state file: `Publish URL: pending`
 3. Do NOT claim success
 4. Tell interviewee: "Draft saved locally. To publish later: 'resume knowledge-capture'"
-
