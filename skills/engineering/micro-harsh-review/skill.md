@@ -88,7 +88,7 @@ Average = (Nitpick + Arch + Prod) / 3
 |--------------|-----------|------------|
 | Rubber-stamp | All scores 9-10, no notes | Find >=1 concern per critic |
 | Inflated scores | Average > 9.0 consistently | Recalibrate with known-bad code |
-| Critics agree | Same findings across all 3 | Force one disagreement |
+| Critics agree | Same findings across all 3 | Force second-order critique: each must name ≥1 failure mode or cite a specific property of the change explaining why none exists (generic "it's straightforward" = rubber-stamp) |
 | Review > coding time | >15 min for <20 lines | Top 3 risks only |
 
 ## Failure Modes
@@ -97,7 +97,7 @@ Average = (Nitpick + Arch + Prod) / 3
 |---------|-----------|----------|
 | Rubber-stamp (all 10s) | No notes | Find >=1 concern per critic |
 | Review > change time | >15 min for <20 lines | Top 3 risks only |
-| Critics agree on everything | Same findings | Force disagreement |
+| Critics agree on everything | Same findings | Force second-order critique: name ≥1 plausible failure mode or cite specific change property explaining why none exists |
 | Score inflation | Average > 9.0 consistently | Recalibrate with bad code |
 
 ## Companion Skills
