@@ -344,15 +344,16 @@ while IFS= read -r skill_file; do
         log_warn "$skill_name: missing 'anti_triggers:' in frontmatter"
     fi
     # Validate coordination metadata (required for DAG generation)
+    # Extract coordination block from frontmatter only (not body text)
     if echo "$frontmatter" | grep -q "^coordination:"; then
-        coord_block=$(sed -n '/^coordination:/,/^[a-z]/p' "$skill_file" | sed '$d')
-        if ! echo "$coord_block" | grep -q "group:"; then
+        coord_block=$(echo "$frontmatter" | sed -n '/^coordination:/,/^[a-z]/p' | sed '$d')
+        if ! echo "$coord_block" | grep -q "^  group:"; then
             log_fail "$skill_name: coordination block missing 'group:' (required for DAG generation)"
         fi
-        if ! echo "$coord_block" | grep -q "order:"; then
+        if ! echo "$coord_block" | grep -q "^  order:"; then
             log_fail "$skill_name: coordination block missing 'order:'"
         fi
-        if ! echo "$coord_block" | grep -q "internal:"; then
+        if ! echo "$coord_block" | grep -q "^  internal:"; then
             log_fail "$skill_name: coordination block missing 'internal:'"
         fi
     fi

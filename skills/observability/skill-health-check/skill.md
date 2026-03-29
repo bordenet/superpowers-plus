@@ -43,10 +43,10 @@ coordination:
 |-------|----------|-------------------|
 | YAML frontmatter | ERROR | `name`, `source`, `triggers`, `description` fields present |
 | Line count | ERROR | No `skill.md` exceeds 250 lines |
-| Coordination metadata | WARN | `coordination:` block present (presence only, not semantic validity) |
+| Coordination metadata | ERROR | `coordination:` block present with required keys: `group`, `order`, `internal` |
 | Failure modes section | WARN | `## Failure Modes` heading present (presence only) |
 
-**What it does NOT check:** coordination semantic validity, cross-reference accuracy, runtime behavior, install state. Those are `superpowers-doctor` territory.
+**What it does NOT check:** coordination semantic validity (correct group names, valid order numbers), cross-reference accuracy, runtime behavior, install state. Those are `superpowers-doctor` territory. Structural lint validates that required keys *exist*; doctor validates they are *correct*.
 
 ## Running the Check
 

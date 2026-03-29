@@ -36,7 +36,7 @@ function parseFrontmatter(content) {
           if (coordMatch) {
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = val.replace(/[\[\]"]/g, '').split(',').map(s => s.trim()).filter(Boolean);
+              val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim()).filter(Boolean);
             } else if (val === 'true') val = true;
             else if (val === 'false') val = false;
             else if (/^\d+$/.test(val)) val = parseInt(val);
@@ -48,7 +48,7 @@ function parseFrontmatter(content) {
       if (keyMatch && !inCoordination) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
-          val = val.replace(/[\[\]"]/g, '').split(',').map(s => s.trim());
+          val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim());
         }
         result[keyMatch[1]] = val;
       }
