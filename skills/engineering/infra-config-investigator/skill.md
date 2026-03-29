@@ -1,10 +1,7 @@
 ---
 name: infra-config-investigator
 source: superpowers-plus
-description: >
-  Specialized investigator for diagnosing infrastructure, configuration, and deployment
-  failures: config changes, resource exhaustion, deployment regressions, cloud provider
-  issues, and environment mismatches. Dispatched by debug-conductor.
+description: "Specialized investigator for diagnosing infrastructure, configuration, and deployment failures: config changes, resource exhaustion, deployment regressions, cloud provider issues, and environment mismatches. Dispatched by debug-conductor."
 triggers: []
 anti_triggers: []
 coordination:

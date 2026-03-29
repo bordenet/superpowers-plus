@@ -1,12 +1,7 @@
 ---
 name: debug-conductor
 source: superpowers-plus
-description: >
-  PREVIEW — Conductor-led bounded investigation for complex distributed system incidents.
-  Decides whether to stay serial or fork into parallel investigator branches.
-  Produces structured incident packets, not chat transcripts.
-  NOTE: Incident-packet persistence tooling is not yet implemented; this skill
-  defines the protocol and evidence contracts but cannot persist packets end-to-end.
+description: "PREVIEW — Conductor-led bounded investigation for complex distributed system incidents. Decides whether to stay serial or fork into parallel investigator branches. Produces structured incident packets, not chat transcripts. NOTE: Incident-packet persistence tooling is not yet implemented; this skill defines the protocol and evidence contracts but cannot persist packets end-to-end."
 triggers:
   - "investigate distributed"
   - "debug across services"

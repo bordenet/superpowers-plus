@@ -85,20 +85,22 @@ When a bug correlates with a work item change:
 
 ## Wiki Platform (via MCP tools)
 
+> **Platform-specific patterns are in adapter files.** See `_adapters/` for vendor-specific wiki tool commands.
+
 ### Content Drift Detection
 
 | Pattern | When to Use | Evidence Source |
 |---------|-------------|----------------|
-| Search for outdated documentation | Config/process changed but docs didn't | `outline` |
-| Compare document versions | When docs contradict observed behavior | `outline` |
-| Check recently updated pages | Correlate doc changes with bug timing | `outline` |
+| Search for outdated documentation | Config/process changed but docs didn't | wiki platform |
+| Compare document versions | When docs contradict observed behavior | wiki platform |
+| Check recently updated pages | Correlate doc changes with bug timing | wiki platform |
 
 ### Process
 
-1. **Search documents** — use `search_documents_outline` or `ask_documents_outline`
-2. **Check document content** — use `get_document_outline` for specific pages
-3. **Filter by date** — use `dateFilter` to find recently changed docs
-4. **Log finding** — record source as `outline`
+1. **Search documents** — use the wiki platform's search/ask tools
+2. **Check document content** — use the wiki platform's get-page tools
+3. **Filter by date** — use date filters to find recently changed docs
+4. **Log finding** — record source as the wiki platform name
 
 ---
 

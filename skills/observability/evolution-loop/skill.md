@@ -12,10 +12,7 @@ anti_triggers:
   - "improve the code"
   - "improve performance"
   - "upgrade dependencies"
-description: >
-  Self-improvement cycle: scans session logs, failure autopsies, and
-  decision logs for recurring patterns. Auto-generates skill updates
-  or new skills. Tracks improvement metrics over time.
+description: "Self-improvement cycle: scans session logs, failure autopsies, and decision logs for recurring patterns. Auto-generates skill updates or new skills. Tracks improvement metrics over time."
 summary: "Use when: reviewing outcomes for improvement. Skip when: mid-task."
 coordination:
   group: meta-improvement

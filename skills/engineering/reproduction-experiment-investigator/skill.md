@@ -1,10 +1,7 @@
 ---
 name: reproduction-experiment-investigator
 source: superpowers-plus
-description: >
-  Specialized investigator for testing hypotheses through reproduction attempts.
-  Designs experiments, executes controlled tests, and reports whether a hypothesis
-  can be confirmed or rejected. Dispatched by debug-conductor.
+description: "Specialized investigator for testing hypotheses through reproduction attempts. Designs experiments, executes controlled tests, and reports whether a hypothesis can be confirmed or rejected. Dispatched by debug-conductor."
 triggers: []
 anti_triggers: []
 coordination:
