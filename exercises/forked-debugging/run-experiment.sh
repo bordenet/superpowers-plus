@@ -60,13 +60,29 @@ echo "Fixture:   ${FIXTURE_FILE}"
 echo ""
 
 for run in $(seq 1 "$RUNS"); do
-    RESULT_FILE="${RESULTS_DIR}/${CONDITION}-${SCENARIO}-run${run}.json"
+    # Use unique run ID to prevent file conflicts from concurrent experiments
+    RUN_ID="${CONDITION}-${SCENARIO}-run${run}-$(date +%s)-$$"
+    RESULT_FILE="${RESULTS_DIR}/${RUN_ID}.json"
     echo "--- Run ${run}/${RUNS} ---"
     START_TIME=$(date +%s)
 
-    # Load fixture
-    INCIDENT_DESC=$(python3 -c "import json,sys; d=json.load(open('${FIXTURE_FILE}')); print(d['incident_description'])")
-    GROUND_TRUTH=$(python3 -c "import json,sys; d=json.load(open('${FIXTURE_FILE}')); print(d['root_cause'])")
+    # Load fixture (use jq for safe JSON extraction — no escaping issues)
+    if ! command -v jq &>/dev/null; then
+        echo "Error: jq is required but not installed. Install with: brew install jq" >&2
+        exit 1
+    fi
+    INCIDENT_DESC=$(jq -r '.incident_description // empty' "$FIXTURE_FILE") || {
+        echo "Error: Failed to parse incident_description from ${FIXTURE_FILE}" >&2
+        exit 1
+    }
+    GROUND_TRUTH=$(jq -r '.root_cause // empty' "$FIXTURE_FILE") || {
+        echo "Error: Failed to parse root_cause from ${FIXTURE_FILE}" >&2
+        exit 1
+    }
+    if [[ -z "$INCIDENT_DESC" || -z "$GROUND_TRUTH" ]]; then
+        echo "Error: Fixture ${FIXTURE_FILE} missing required fields (incident_description, root_cause)" >&2
+        exit 1
+    fi
 
     case "$CONDITION" in
         A)
@@ -95,7 +111,7 @@ for run in $(seq 1 "$RUNS"); do
   "run": ${run},
   "startTime": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "durationSeconds": ${DURATION},
-  "groundTruth": $(python3 -c "import json; print(json.dumps('${GROUND_TRUTH}'))"),
+  "groundTruth": $(jq -n --arg gt "$GROUND_TRUTH" '$gt'),
   "metrics": {
     "timeToFirstHypothesisSeconds": null,
     "timeToValidatedRootCauseSeconds": null,
