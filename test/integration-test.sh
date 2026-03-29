@@ -4,7 +4,7 @@
 
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || exit 1
 
 PASS=0
 FAIL=0
@@ -68,7 +68,7 @@ fi
 # 6. _shared/ exists and has schema files
 echo ""
 echo "--- _shared schemas ---"
-schema_count=$(ls skills/_shared/multi-agent-*-schema.md skills/_shared/incident-packet-schema.md 2>/dev/null | wc -l | tr -d ' ')
+schema_count=$(find skills/_shared -name "multi-agent-*-schema.md" -o -name "incident-packet-schema.md" 2>/dev/null | wc -l | tr -d ' ')
 if [[ "$schema_count" -ge 4 ]]; then
     pass "$schema_count schema files in _shared/"
 else
@@ -97,16 +97,13 @@ for f in install.sh lib/install/deploy.sh lib/install/migrate.sh; do
     fi
 done
 
-# 9. harsh-review passes
+# 9. harsh-review passes (honor exit code, not grep patterns)
 echo ""
 echo "--- harsh-review ---"
-hr_output=$(bash tools/harsh-review.sh 2>&1)
-errors=$(echo "$hr_output" | grep -c "\[ERROR\]" || true)
-warns=$(echo "$hr_output" | grep -c "\[WARN\]" || true)
-if [[ "$errors" -eq 0 && "$warns" -eq 0 ]]; then
-    pass "harsh-review: 0 errors, 0 warnings"
+if bash tools/harsh-review.sh >/dev/null 2>&1; then
+    pass "harsh-review: exit 0"
 else
-    fail "harsh-review: $errors errors, $warns warnings"
+    fail "harsh-review: exit non-zero (run 'bash tools/harsh-review.sh' for details)"
 fi
 
 echo ""
