@@ -1,7 +1,7 @@
 # Planning Council Mode
 
 > **Purpose:** Multi-agent planning for complex, multi-dimensional tasks.
-> **Activation:** Multi-agent activation rubric score ≥ 5 + task-specific criteria.
+> **Activation:** Multi-agent activation rubric score ≥ 6 (score = 5 → ask user) + task-specific criteria.
 > **Default:** Single-agent planning (existing Phase B behavior). Council is escalation.
 > **Cost cap:** 2.0× single-agent tokens.
 
@@ -15,8 +15,9 @@ During Phase B (Devise the Plan), before writing the plan:
    - Task crosses team/domain boundaries → +1
    - Significant rollback cost if plan is wrong → +1
    - Single stakeholder, internal-only → -1
-3. Score ≥ 5 → announce council mode and proceed
-4. Score < 5 → single-agent Phase B (standard behavior)
+3. Score ≥ 6 → announce council mode and proceed
+4. Score = 5 → ask user: "This task is borderline — use planning council or single-agent?"
+5. Score < 5 → single-agent Phase B (standard behavior)
 
 ## Council Protocol
 
