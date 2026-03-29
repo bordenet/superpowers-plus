@@ -83,6 +83,7 @@
 | Multi-agent doesn't hurt simple tasks | Quality ≥ single-agent OR correctly stays single-agent |
 | No scenario where multi-agent is strictly worse on ALL metrics | Zero such scenarios |
 | Operator readability ≥ single-agent | Rating difference > -0.5 |
+| False risk rate (noise) ≤ acceptable | ≤ 30% of flagged risks are non-issues on human review |
 
 ## Anti-Success: What Would Disprove Multi-Agent Value?
 

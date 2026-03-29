@@ -26,7 +26,7 @@ coordination:
 
 ## When to Use
 
-- Creating new tickets in Linear, Azure DevOps, or Monday
+- Creating new tickets in your configured issue tracker (supported adapters: GitHub Issues, Jira, Azure DevOps; custom adapters supported via `_adapters/platform-template.md`)
 - When user requests a ticket for a bug, feature, or task
 - Converting conversation discussion into a trackable ticket
 - When acceptance criteria need to be formalized
