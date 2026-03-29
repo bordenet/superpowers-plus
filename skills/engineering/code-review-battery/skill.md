@@ -78,14 +78,16 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 After all reviewers return:
 1. Sort findings: **Critical → Important → Minor**, then by file path
 2. Prefix each with `[Reviewer Name]`
-3. If 2+ reviewers flag the same location, **keep both** (different lenses provide complementary insight) and mark as **convergent** → promote to at least Important
+3. If 2+ reviewers flag the same location, **keep both** and check for **convergence**:
+   - **True convergence** (promote to at least Important): reviewers reached the finding through *different reasoning paths* — e.g., one found it via data flow analysis, another via error handling review. The evidence snippets and rationale must differ.
+   - **Echo convergence** (do NOT promote): reviewers cite the same evidence snippets, use near-identical phrasing, or clearly derived their finding from the same analytical path. This indicates shared context bias, not independent validation. Keep both findings at their original severity.
 4. Note clean dimensions ("✅ No issues")
 5. **Severity normalization**: Re-evaluate each finding against the shared severity definitions (provided to all reviewers). Reclassify when a reviewer's label doesn't match:
    - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
    - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
    - **Minor** = works but violates standards (style, naming, missing docs/tests, observability)
    - If a reviewer labeled a finding Critical but it's a process/standards gap (e.g., "no tests added"), downgrade to Important or Minor. Note the reclassification: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
-   - Convergent findings (step 3) are promoted to at least Important regardless.
+   - True convergent findings (step 3) are promoted to at least Important. Echo convergent findings retain their original severity.
 6. **Triple-filter** each Important/Critical finding and classify:
 
 | Finding | CX Impact | Complexity | Testability | Action |
@@ -97,7 +99,7 @@ After all reviewers return:
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers converge on the same finding, merge their regression analyses and pick the most actionable durable check.
+7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
 
 **Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
 
