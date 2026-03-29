@@ -416,6 +416,16 @@ install_skills() {
         fi
     done
 
+    # Deploy _shared/ support directory (not a skill, but referenced by skills)
+    if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
+        for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+            local shared_dest="$target_dir/_shared"
+            rm -rf "${shared_dest:?}" 2>/dev/null || true
+            cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
+        done
+        log_verbose "Deployed _shared/ support directory"
+    fi
+
     if [[ $installed -eq 0 ]]; then
         log_warn "No skills were installed"
     else

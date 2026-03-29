@@ -330,6 +330,8 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         // Handle both directories and symlinks to directories
         const skillDir = path.join(dir, entry.name);
         const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
