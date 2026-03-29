@@ -36,8 +36,8 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
-const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
-const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
@@ -90,15 +90,11 @@ function extractFrontmatter(filePath) {
       if (inFrontmatter) {
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
-        const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
+        const triggerMatch = line.match(/^triggers:\s*\[(.+)\]/);
         if (nameMatch) name = nameMatch[1].trim();
         if (descMatch) description = descMatch[1].trim();
         if (triggerMatch) {
-          triggers = parseInlineArray(triggerMatch[1]);
-        } else if (line.match(/^triggers:\s*$/)) {
-          const parsed = parseYamlList(lines, i);
-          triggers = parsed.values;
-          i = parsed.nextIndex;
+          triggers = triggerMatch[1].match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }
@@ -184,13 +180,7 @@ function findSkillsInDir(dir, sourceType) {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
     const skillDir = path.join(dir, entry.name);
-    let isDir = false;
-    try {
-      isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-    } catch (err) {
-      if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
-      throw err; // surface real errors (EACCES, etc.)
-    }
+    const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];
