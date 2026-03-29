@@ -79,7 +79,8 @@ function extractFrontmatter(filePath) {
     let description = '';
     let triggers = [];
     let compress = true;
-    let triggerAccum = null; // accumulates multiline trigger arrays
+    let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+    let yamlListField = null; // tracks which field is accumulating YAML-list items
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -89,11 +90,10 @@ function extractFrontmatter(filePath) {
         continue;
       }
       if (inFrontmatter) {
-        // Handle multiline trigger accumulation
+        // Handle bracket-multiline accumulation: triggers: [\n  "a",\n  "b"\n]
         if (triggerAccum !== null) {
           triggerAccum += ' ' + line.trim();
           if (line.includes(']')) {
-            // Closing bracket found — parse accumulated triggers
             const inner = triggerAccum.match(/\[(.+)\]/)?.[1] || '';
             triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
             triggerAccum = null;
@@ -101,21 +101,36 @@ function extractFrontmatter(filePath) {
           continue;
         }
 
+        // Handle YAML-list accumulation: triggers:\n  - item\n  - item
+        if (yamlListField && line.match(/^\s+-\s/)) {
+          const item = line.replace(/^\s+-\s*/, '').replace(/^["']|["']$/g, '').trim();
+          if (item) triggers.push(item);
+          continue;
+        } else if (yamlListField) {
+          // Line doesn't start with "  - ", list is done
+          yamlListField = null;
+          // Fall through to parse this line normally
+        }
+
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
         if (nameMatch) name = nameMatch[1].trim();
         if (descMatch) description = descMatch[1].trim();
 
-        // Triggers — single-line or start of multiline
+        // Triggers — three forms
         if (line.match(/^triggers:\s*\[/)) {
           if (line.includes(']')) {
-            // Single-line: triggers: ["a", "b"]
+            // Form 1: Single-line inline: triggers: ["a", "b"]
             const inner = line.match(/\[(.+)\]/)?.[1] || '';
             triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
           } else {
-            // Multiline: opening bracket without closing
+            // Form 2: Bracket-multiline: triggers: [\n  "a",\n  "b"\n]
             triggerAccum = line;
           }
+        } else if (line.match(/^triggers:\s*$/)) {
+          // Form 3: YAML-list: triggers:\n  - item
+          yamlListField = 'triggers';
+          triggers = [];
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }
