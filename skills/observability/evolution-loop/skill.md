@@ -51,14 +51,6 @@ echo "| Wrong branch   | 2     | pre-commit     | Add branch gate |"
 echo "Actions: 2 skill updates queued"
 ```
 
-## Scope Exclusions
-
-- New skill from user request -> skill-authoring
-- Specific failure debug -> failure-autopsy
-- Skill formatting check -> skill-health-check
-
----
-
 ## Evolution Protocol
 
 ### Step 1: Scan Sources

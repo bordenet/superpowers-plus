@@ -101,12 +101,6 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 ```
 
 
-## Scope Exclusions
-
-- Specific bug investigation → `systematic-debugging`
-- Creative ideation → `brainstorming`
-- Design evaluation → `design-triad`
-
 ## Companion Skills
 
 - **perplexity-research**: Escalation target for knowledge problems

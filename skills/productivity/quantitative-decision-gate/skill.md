@@ -55,14 +55,6 @@ echo "| Weighted     |      | 7.35    | 6.85   |"
 echo "Margin: 7% -> AUTO-SELECT extract-method"
 ```
 
-## Scope Exclusions
-
-- Genuine requirements clarification -> ask the user directly
-- Permission-gated actions (push, deploy, delete) -> always ask
-- Subjective preferences (naming, style) -> ask if no convention
-
----
-
 ## The Decision Matrix Protocol
 
 ### Step 1: Frame

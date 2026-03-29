@@ -46,12 +46,6 @@ composition:
 - Saving a checkpoint before ending a session
 
 
-## Scope Exclusions
-
-- Quick bug fix → `systematic-debugging`
-- Feature planning → `plan-and-execute`
-- Code review → `progressive-code-review-gate`
-
 ## Core Principles
 
 1. **JSON is authoritative.** Markdown is a read-only export for handoff.
@@ -155,17 +149,6 @@ investigation-crud.sh export --id UUID
 ```
 
 Rules: `verdict: null` → ACTIVE. `currentTheory` → `← CURRENT THEORY` suffix. Generated on demand only, not auto-synced.
-
----
-
-## Skill Connections
-
-| Skill | Integration |
-|-------|-------------|
-| `thinking-orchestrator` | Routes "debugging a bug, starting investigation" here |
-| `todo-management` | On resolution (if fix needed), create fix task tagged `#investigation-<short-id>` |
-| `systematic-debugging` | Companion: debugging process → investigation-state stores context |
-| `think-twice` | When stuck with >3 hypotheses rejected, get fresh perspective |
 
 ---
 

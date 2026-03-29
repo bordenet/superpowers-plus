@@ -164,13 +164,6 @@ These patterns in plan output indicate this skill was not followed:
 - When reviewing existing plans for quality and completeness
 
 
-## Scope Exclusions
-
-- Plan execution → `plan-and-execute`
-- Brainstorming plan options → `brainstorming`
-- Code review → `progressive-code-review-gate`
-
-
 ## Example
 
 ```bash

@@ -50,14 +50,6 @@ echo "Critic 3 (Prod):     7/10 - no collision test added"
 echo "Average: 8.0 -> PASS (conditional: add collision test)"
 ```
 
-## Scope Exclusions
-
-- Documentation-only -> progressive-harsh-review
-- Full PR -> progressive-code-review-gate
-- Style only -> enforce-style-guide
-
----
-
 ## 3-Critic Protocol
 
 ### Critic 1: NitpickLineByLine
