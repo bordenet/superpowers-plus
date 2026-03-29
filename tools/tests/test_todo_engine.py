@@ -504,7 +504,7 @@ class TodoEngineTests(unittest.TestCase):
                             path = eng.resolve_todo_path()
             stderr_output = err_buf.getvalue()
         self.assertIn("WARNING", stderr_output)
-        self.assertIn("TODO path not found", stderr_output)
+        self.assertIn("TODO_FILE_PATH not found", stderr_output)
         self.assertIn(".codex/TODO.md", path)
 
     def test_complete_nonexistent_task_errors(self):
