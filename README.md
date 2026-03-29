@@ -197,6 +197,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | wiki-content-coherence | Detects duplication and structural defects |
 | | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
 | | wiki-orchestrator | Pipeline orchestrator: dispatches coherence, link, secret, slop, and fact-check skills |
+| | wiki-refactor | Full wiki refactor pipeline: discovery, dedup, IA, rewrite, review, delivery |
 | | wiki-secret-audit | Finds leaked credentials in wiki pages |
 | | wiki-verify | Checks codebase references for drift |
 | writing | detecting-ai-slop | Scores text 0–100 for machine patterns |

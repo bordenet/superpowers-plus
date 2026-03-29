@@ -84,7 +84,7 @@ For each duplicate group, recommend ONE of:
 
 ## Early Exit
 
-Zero duplicate groups found → report: `✅ Wiki content is clean — no duplication detected. Skipping to Phase 6.`
+Zero duplicate groups found → report: `✅ No duplication detected. Skipping consolidation; proceeding to Phase 3 (IA review).` Continue to Phase 3 — the wiki may still benefit from structural improvements even without duplicates.
 
 ## Failure Modes
 

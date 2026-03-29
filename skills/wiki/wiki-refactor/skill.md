@@ -32,7 +32,11 @@ coordination:
 
 PRD documents are **atomic and immutable** during refactoring. The moment a PRD is modified, the pipeline HALTS.
 
-**Detection:** Any file where filename contains "PRD" OR content contains "Product Requirements Document" header.
+**Detection (case-insensitive):** Any file where:
+- Filename/title contains "PRD" (case-insensitive: `prd`, `Prd`, `PRD`)
+- Content contains a header matching "Product Requirements Document" (case-insensitive)
+- Content contains an H1/H2 that is exactly "PRD" (case-insensitive)
+- File is in an operator-supplied PRD include list (if provided)
 
 **Checkpoints:**
 1. **After Phase 1:** Quarantine all PRD pages found in inventory. Record in `prd-quarantine-list`.
@@ -59,7 +63,7 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 ### Phase 2: Deduplication → [phase-2-deduplication.md](references/phase-2-deduplication.md)
 - Analyze all content for duplication patterns
 - Output: `dedup-analysis.md`
-- **Early exit:** Zero duplicates found → skip to Phase 6 with "wiki is clean, no refactor needed"
+- **Zero duplicates:** Skip consolidation work but continue to Phase 3 (IA/structure improvements may still apply). Only exit early if Phase 3 also finds no structural issues.
 
 ### Phase 3: Information Architecture → [phase-3-information-architecture.md](references/phase-3-information-architecture.md)
 - Design optimal new wiki structure
@@ -114,7 +118,7 @@ PRD documents are **atomic and immutable** during refactoring. The moment a PRD 
 |---------|-------|----------|
 | PRD checkpoint fires | PRD in rewrite scope | HALT — full stop, no recovery |
 | Phase 1 returns zero pages | Bad URL, auth, or empty wiki | Abort with diagnostic message |
-| Phase 2 finds zero duplicates | Wiki is already clean | Skip to Phase 6, report "no refactor needed" |
+| Phase 2 finds zero duplicates | No content duplication | Skip consolidation; continue to Phase 3 for IA review |
 | Scope cap exceeded (>100 pages) | Large wiki | Warn operator, request scope narrowing or confirmation |
 | Snapshot drift detected in Phase 7 | Wiki edited during refactor | Present diff, operator chooses: overwrite / merge / abort |
 | 3-round review fails after 5 rounds | Quality won't converge | Escalate page to human for manual rewrite |

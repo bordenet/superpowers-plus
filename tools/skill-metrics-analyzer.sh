@@ -36,10 +36,19 @@ if [[ -z "${SUPERPOWERS_DIR:-}" ]]; then
   exit 1
 fi
 
+OUTPUT_FORMAT="markdown"
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    --json) OUTPUT_FORMAT="--json" ;;
+    *) echo "Error: unknown option '$1'" >&2
+       echo "Usage: $0 [--json]" >&2
+       exit 1 ;;
+  esac
+fi
+
 METRICS_DIR="$SUPERPOWERS_DIR/.skill-metrics"
 FIRED_LOG="$METRICS_DIR/fired.jsonl"
 MISSED_LOG="$METRICS_DIR/missed.jsonl"
-OUTPUT_FORMAT="${1:-markdown}"
 
 # Ensure metrics directory exists
 mkdir -p "$METRICS_DIR"

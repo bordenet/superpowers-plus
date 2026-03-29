@@ -10,7 +10,7 @@
 1. **Fetch seed page.** Retrieve full content of `{{wiki_seed_url}}`. If unreachable → abort with diagnostic.
 2. **Extract internal links.** Find all links pointing to pages within the same wiki domain/path prefix.
 3. **Recursive crawl.** For each discovered internal link, fetch content and extract further links. Track visited URLs to avoid cycles. Continue until no new pages are discovered.
-4. **Content snapshot.** Save each page's full text content to `wiki-refactor-artifacts/snapshots/{{page-slug}}.md` with a timestamp header. This snapshot is the source of truth for all subsequent phases and is used for drift detection in Phase 7.
+4. **Content snapshot.** Save each page's full text content to `wiki-refactor-artifacts/snapshots/{{page-id}}.md` with a YAML header containing `url`, `title`, `slug`, and `timestamp`. Use the platform's stable page ID (e.g., Outline document ID, Confluence page ID) as the filename — NOT the slug, since sibling pages under different parents can share slugs. Maintain a manifest at `wiki-refactor-artifacts/snapshot-manifest.json` mapping `{ pageId → { url, title, slug, snapshotFile } }`. This snapshot set is the source of truth for all subsequent phases and is used for drift detection in Phase 7.
 5. **Build inventory.** For each page, record:
 
 | Field | Description |
@@ -22,7 +22,7 @@
 | Word count | Total words on page |
 | Internal links out | Count of links to other wiki pages |
 | Internal links in | Count of links from other wiki pages to this one |
-| PRD? | `YES` if filename contains "PRD" or content contains "Product Requirements Document" |
+| PRD? | `YES` if filename/title contains "PRD" (case-insensitive) OR content contains "Product Requirements Document" header (case-insensitive) OR H1/H2 is exactly "PRD" (case-insensitive) OR page is in operator-supplied PRD include list |
 
 6. **Detect broken internal links.** Any link pointing to a wiki page that returned 404 or is unreachable.
 
@@ -55,7 +55,7 @@
 
 | Page | URL | Reason |
 |------|-----|--------|
-| ... | ... | Filename contains "PRD" / Content header match |
+| ... | ... | Filename/title/header match (case-insensitive) or operator PRD list |
 ```
 
 ## Scope Cap
