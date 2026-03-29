@@ -139,16 +139,6 @@ This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 
 Save to the location specified in F3. If wiki: create in specified collection/parent. If local: save to `docs/` with descriptive naming.
 
-## Example
-
-```bash
-# Structure: prepare interview questions before starting
-echo "1. What is the core problem this solves?"
-echo "2. What are the edge cases?"
-echo "3. What has been tried before and why did it fail?"
-echo "4. What constraints exist that aren't documented?"
-```
-
 ## Failure Modes
 
 | Failure | Symptom | Recovery |
