@@ -36,7 +36,7 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
-const PERSONAL_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
@@ -94,7 +94,8 @@ function extractFrontmatter(filePath) {
         if (nameMatch) name = nameMatch[1].trim();
         if (descMatch) description = descMatch[1].trim();
         if (triggerMatch) {
-          triggers = triggerMatch[1].match(/"[^"]+"/g)?.map(t => t.replace(/"/g, '')) || [];
+          // Support both double-quoted and single-quoted trigger strings
+          triggers = triggerMatch[1].match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }
@@ -180,7 +181,11 @@ function findSkillsInDir(dir, sourceType) {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
     const skillDir = path.join(dir, entry.name);
-    const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    let isDir = entry.isDirectory();
+    if (!isDir && entry.isSymbolicLink()) {
+      try { isDir = fs.statSync(skillDir).isDirectory(); }
+      catch (e) { if (e.code === 'ENOENT' || e.code === 'ELOOP') continue; throw e; }
+    }
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];

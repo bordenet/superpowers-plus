@@ -56,7 +56,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 60-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 87-skill suite — use git clone above for that.
 
 ### Claude Code
 
