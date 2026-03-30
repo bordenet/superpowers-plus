@@ -2,7 +2,6 @@
 
 > ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design spec, not documentation of existing functionality.
 
-
 **Status:** Approved
 **Author:** Matt Bordenet (via Augment Agent)
 **Date:** 2026-03-23
@@ -38,7 +37,7 @@ The existing skill ecosystem has task management (`todo-management`) and debuggi
 
 ### Architecture
 
-```
+```bash
 skills/engineering/investigation-state/
 ├── skill.md              # Core skill definition
 └── references/
@@ -49,7 +48,8 @@ skills/engineering/investigation-state/
 ```
 
 Runtime state stored in (path relative to user's **home directory**):
-```
+
+```python
 ~/.superpowers/investigations/
 ├── <uuid>.json           # Authoritative investigation state (machine-readable)
 └── .gitignore            # Excludes investigations from version control
@@ -221,7 +221,7 @@ Each integration requires a **manual edit** to the target skill file:
 
 ### Investigation Lifecycle
 
-```
+```markdown
 [new] → ACTIVE → [PAUSED] → RESOLVED | ABANDONED
                      ↑           |
                      └───────────┘ (resume)
@@ -235,6 +235,7 @@ Each integration requires a **manual edit** to the target skill file:
 ### Concurrent Investigations
 
 Each investigation gets a UUID-based filename. The agent manages them by:
+
 - Listing `*.json` files in `~/.superpowers/investigations/`
 - Resuming the most recent (by `updated` timestamp) if only one is active
 - Asking user to select if multiple are active
@@ -245,7 +246,6 @@ On session start, the skill instructs the agent to check for stale investigation
 > "Check `~/.superpowers/investigations/` for files with `updated` > 7 days ago. If found, prompt: 'Investigation [title] has been inactive for N days. Close, archive, or resume?'"
 
 This is a session-start check, not a background process.
-
 
 ---
 
@@ -284,6 +284,7 @@ These are incremental additions to existing skills, not new skills:
 **Implementation:** New `references/cross-tool-patterns.md` in the `investigation-state` skill directory.
 
 **Content:** Tool-specific evidence gathering patterns:
+
 - MSSQL: diagnostic queries, connection comparison
 - Azure DevOps: pipeline run analysis, work item state tracing
 - Linear: issue timeline reconstruction

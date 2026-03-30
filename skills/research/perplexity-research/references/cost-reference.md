@@ -39,7 +39,7 @@
 
 ### Decision Framework (Cost-Conscious)
 
-```
+```bash
 Step 1: Try web-search first (FREE)
 ├── Found what I need? → STOP (no Perplexity)
 └── Insufficient? → Continue
@@ -57,6 +57,7 @@ Step 3: Evaluate - Is this a high-value use case?
 ### API Unavailability
 
 If Perplexity returns 401/403/5xx errors:
+
 1. **Limit retries to 1** - Preserve time for alternative approaches
 2. **Fallback to `web-search`** - Often sufficient for targeted queries
 3. **Use `web-fetch`** - To get full content from authoritative sources

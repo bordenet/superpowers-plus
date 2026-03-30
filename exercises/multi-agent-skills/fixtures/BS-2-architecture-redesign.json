@@ -1,0 +1,24 @@
+{
+  "id": "BS-2",
+  "skill": "brainstorming",
+  "name": "Architecture Redesign — Monolith to Services",
+  "difficulty": "high",
+  "expected_winner": "B (ensemble)",
+  "expected_reason": "Multi-dimensional architecture problem; reliability, security, DX, and user impact all matter",
+  "prompt": "Should we break our monolith telephony backend into microservices? The monolith handles call routing, agent management, billing, analytics, and AI orchestration. It's 300K lines of code, deploys take 45 minutes, and a bug in billing once took down call routing for 2 hours. But the team is only 12 engineers and we ship features fast in the monolith.",
+  "context": {
+    "codebase": {"language": "Go", "lines": 300000, "age_years": 4, "test_coverage": "62%"},
+    "team": {"size": 12, "senior": 5, "junior": 7},
+    "deployment": {"frequency": "2x/day", "duration_minutes": 45, "rollback_time_minutes": 15},
+    "incidents": {"last_quarter": 8, "blast_radius_cross_module": 5, "mttr_minutes": 90},
+    "current_modules": ["call-routing", "agent-management", "billing", "analytics", "ai-orchestration", "admin-api", "webhook-delivery"],
+    "load": {"peak_concurrent_calls": 5000, "daily_api_requests": "2M", "growth_rate": "15% MoM"}
+  },
+  "evaluation_criteria": {
+    "tradeoff_depth": "Does the output honestly weigh monolith benefits vs. microservice benefits?",
+    "team_realism": "Does it account for 12-person team capacity?",
+    "migration_awareness": "Does it consider migration risk, not just end-state?",
+    "alternatives": "Does it explore options beyond binary monolith/microservices (e.g., modular monolith)?",
+    "reliability_angle": "Does it address the blast radius problem specifically?"
+  }
+}

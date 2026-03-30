@@ -1,8 +1,7 @@
 # Skill Effectiveness Feedback Loop — Design Spec
 
 > ⚠️ **STATUS: NOT IMPLEMENTED** — This is a design spec, not documentation of existing functionality.
-
-
+>
 > **Created:** 2026-03-15
 > **Status:** Approved
 > **Author:** AI + User collaboration
@@ -75,21 +74,25 @@ Create a learning system that tracks skill outcomes (not just invocations), lear
 ## Components
 
 ### 1. Learning State Manager (`lib/learning-state.js`)
+
 - Read/write `~/.codex/.learning-state.json`
 - Schema validation
 - Atomic writes with backup
 
 ### 2. Outcome Recorder (integrated into `superpowers-augment.js`)
+
 - New command: `record-outcome <skill> <success|failure> [evidence]`
 - Appends to outcomes array
 - Updates trigger_metrics aggregates
 
 ### 3. Trigger Analyzer (new command)
+
 - `analyze-triggers` — shows trigger effectiveness report
 - Identifies underperforming triggers (low fire rate)
 - Suggests new triggers from missed opportunities
 
 ### 4. Bootstrap Integration
+
 - On bootstrap, display learning insights
 - Show suggested trigger improvements
 - Warn about skills with high failure rates

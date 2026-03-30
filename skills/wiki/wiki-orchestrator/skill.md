@@ -2,8 +2,8 @@
 name: wiki-orchestrator
 source: superpowers-plus
 triggers: ["document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
-anti_triggers: ["verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page", "check accuracy", "fact-check", "verify claims"]
-description: "Orchestrates BULK and MULTI-PAGE documentation projects — reorganizing multiple pages, cross-referencing across sections, publishing coordinated updates. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). NOT for single-page edits (use platform-specific editing skills like outline-wiki-editing)."
+anti_triggers: ["verify", "verify this wiki page", "check wiki page", "validate wiki", "wiki verification", "verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page", "check accuracy", "fact-check", "verify claims"]
+description: "Orchestrates BULK and MULTI-PAGE documentation projects — reorganizing multiple pages, cross-referencing across sections, publishing coordinated updates. Runs quality pipeline (de-dup, link-verification, secret-scan, slop-detection, fact-check). NOT for single-page edits (use platform-specific editing skills from _adapters/)."
 summary: "Use when: bulk documentation projects, multi-page reorganization, cross-referencing. Skip when: editing one page, creating one page, deleting one page."
 coordination:
   group: wiki-pipeline
@@ -17,7 +17,7 @@ coordination:
 # Wiki Orchestrator
 
 > **Wrong skill?** Checking wiki links → `link-verification`. Fact-checking wiki → `wiki-debunker` or `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
-
+>
 > **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
 > **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 
@@ -70,23 +70,29 @@ Single-page edits, creates, and deletes → use wiki API directly.
 <EXTREMELY_IMPORTANT>
 
 ### MCP Tools First
+
 Always use your adapter's primary `get_page`, `update_page`, and `create_page` operations. Curl is fallback only.
 
 ### Download Before Editing
+
 Fetch current state via your adapter's `get_page` operation BEFORE any edit. Never use memory or stale files. This prevents overwriting concurrent edits. **Also applies when correcting mistakes** — user may have already fixed the issue.
 
 ### Write Scope Restriction
+
 Only write to allowed roots defined by the current workspace or local overlay. Walk the parent chain to verify scope before writing.
 
 If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
 
 ### Check for Duplicates Before Creating
+
 Use your adapter's list/search operation to check whether a sibling page with the same title already exists before creating a new page.
 
 ### Pre-Deletion Backup
+
 Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YYYY-MM-DD}_{id}_{slug}.md` with YAML frontmatter → verify backup exists → only then delete.
 
 ### Post-Update Verification
+
 After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, empty hrefs, malformed tables. Fix before reporting success.
 </EXTREMELY_IMPORTANT>
 

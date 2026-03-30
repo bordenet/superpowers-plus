@@ -46,7 +46,7 @@ See `platform-template.md` for value definitions.
 
 Each adapter specifies URL patterns for link verification:
 
-```
+```text
 [base-url]/[path-prefix]/[url-id-or-slug]
 ```
 
@@ -55,6 +55,7 @@ Example: `https://wiki.example.com/doc/page-title-abc123`
 ## Authentication
 
 Each adapter documents:
+
 - Required environment variables
 - How to obtain API credentials
 - Token format and permissions needed
@@ -73,6 +74,7 @@ Each adapter maps operations to available MCP tools:
 ## Fallback Behavior
 
 When MCP tools are unavailable, adapters should document:
+
 - curl command equivalents
 - Required headers and authentication
 - Response parsing

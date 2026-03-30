@@ -8,35 +8,25 @@ overrides: superpowers/brainstorming
 triggers: ["brainstorm", "design a feature", "build a new", "create a new", "add functionality", "plan a feature", "explore approaches", "design this"]
 anti_triggers: ["radical improvement", "10x improvement", "paradigm shift", "moonshot", "step-change"]
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+summary: "Use when: starting creative work. Explores intent and design before implementation."
 coordination:
   group: thinking
   order: 1
   requires: []
-  enables: ["design-triad", "plan-and-execute"]
+  enables: ["design-triad"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
+composition:
+  produces: [design-options, risk-surface, brainstorm-output]
+  consumes: [task-description, system-context]
+  capabilities: [generates-ideas, multi-perspective-ideation]
+  priority: 3
+  optional: false
+  requires_all: false
 ---
 
 # Brainstorming Ideas Into Designs
 
-## Companion Skills
-
-- **design-triad**: Structured evaluation of brainstorm outputs
-- **plan-and-execute**: Executing the selected approach
-- **innovation**: When 10x ideas are needed (not incremental)
-
-- **think-twice**: Escalation when brainstorm doesn't resolve the problem
-- **feature-development**: Full feature workflow (brainstorm → design → implement)
-- **requirements-validation**: Validating requirements before design
-- **fallback-planning**: Generating fallback approaches
-- **domain-design**: Skill domain ideation
-- **progressive-harsh-review**: Multi-persona adversarial review
-- **readme-authoring**: README generation
-- **plan-quality-gates**: Plan validation
-- **expert-interviewer**: Domain expert interviews
-- **experimental-self-prompting**: Self-prompting analysis
-- **quantitative-decision-gate**: Quantitative option evaluation
-- **autonomous-chain-controller**: Full workflow automation
 ## When to Use
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior
@@ -46,6 +36,13 @@ coordination:
 Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
 
 > **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `design-triad`.
+
+### Ensemble Mode (Multi-Perspective)
+
+For broad, ambiguous, or high-impact prompts, brainstorming can activate **ensemble mode** — dispatching parallel perspective lenses (Product, Architecture, Reliability, Security, Simplicity, Contrarian) for richer exploration. See `references/ensemble-mode.md` for full protocol.
+
+**Activation:** Apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 6 → ensemble. Score = 5 → ask user. Score < 5 → single-agent (this checklist).
+**Cost cap:** 1.5× single-agent tokens. **Max lenses:** 4.
 
 <HARD-GATE>
 Do NOT write any code or take implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -61,7 +58,7 @@ Do NOT write any code or take implementation action until you have presented a d
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, commit
 7. **Spec review loop** — dispatch spec-document-reviewer subagent; fix issues; max 3 iterations then escalate to human
 8. **User reviews written spec** — ask user to review before proceeding
-9. **Transition** — invoke `writing-plans` skill (or `design-triad` first if ≥3 viable approaches need formal comparison)
+9. **Transition** — invoke `plan-and-execute` skill (or `design-triad` first if ≥3 viable approaches need formal comparison)
 
 ## Understanding the Idea
 
@@ -94,7 +91,7 @@ Do NOT write any code or take implementation action until you have presented a d
 2. Run spec review loop (subagent reviewer, max 3 iterations)
 3. User reviews written spec
 4. **If ≥3 viable approaches emerged** — invoke `design-triad` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones)
-5. Invoke `writing-plans` skill for implementation plan
+5. Invoke `plan-and-execute` skill for implementation plan
 
 ## Key Principles
 
@@ -106,25 +103,11 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Example: Design Spec Output
 
 ```markdown
-# Design: Retry Logic for API Client
-## Approach A (recommended): Exponential backoff with jitter
-  - Trade-off: More complex, but prevents thundering herd
-## Approach B: Fixed-interval retry
-  - Trade-off: Simpler, but causes coordinated retry storms
-## Selected: A — backoff with jitter
-## Components: RetryPolicy class wrapping HttpClient, configurable max retries
-## Testing: Unit tests for retry count, backoff timing, jitter range
-```
-
-
-## Example
-
-```bash
-# After brainstorming: validate top 3 ideas against requirements
-for idea in "Option A" "Option B" "Option C"; do
-  echo "--- $idea ---"
-  echo "Feasibility: /5  Impact: /5  Risk: /5"
-done
+# Design: Feature Name
+## Approach: [Selected approach with rationale]
+## Components: [Architecture, data flow, interfaces]
+## Testing: [Strategy, edge cases]
+## Status: Approved → invoke writing-plans
 ```
 
 ## Failure Modes
@@ -134,5 +117,3 @@ done
 | Started coding before design approval | Delete code, restart from checklist step 3 |
 | Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
 | Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
-| Invented requirements not stated by user | Ask: "Is [requirement] important to you?" Don't assume |
-| Overdesigned beyond what was asked | Apply YAGNI — cut every feature the user didn't request |

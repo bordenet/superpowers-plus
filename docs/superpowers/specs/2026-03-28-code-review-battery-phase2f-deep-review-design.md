@@ -10,6 +10,7 @@
 ## Problem Statement
 
 Phase 2 shipped a 6-reviewer battery with gap analysis and Shadow Lane learning. Benchmark data (V4–V8) shows:
+
 - Battery precision: **63%** (37% of findings are wrong)
 - Monolith precision: **46%** (54% of findings are wrong)
 - Cross-file bugs spanning 3+ files: **missed consistently** by specialists
@@ -38,7 +39,7 @@ Phase 2f adds two new pipeline stages and enhances four existing ones:
 
 **Note**: "Phase" here refers to coordinator pipeline steps, NOT PRD roadmap phases. PRD roadmap uses "Phase 1," "Phase 2," "Phase 2f," "Phase 3" (reserved for debugging parallelization).
 
-```
+```bash
 Diff arrives
     │
     ▼
@@ -167,12 +168,14 @@ Test execution during context expansion is **opt-in only** (`--run-tests` flag) 
 **When skipped** (default): the context package reports "Test status: not run." Reviewers can choose to run tests themselves via workspace access.
 
 **When enabled** (`--run-tests`):
+
 ```bash
 # Per-command timeout: 15s per test command. Kill if exceeded.
 timeout 15 <test-command> 2>&1 | tail -20
 ```
 
 Safeguards:
+
 - 15-second hard timeout per test command; skip and note "timed out" if exceeded
 - Only run tests that match changed files (not the full test suite)
 - Test runner detection: look for `package.json` (npm/jest), `pytest.ini`/`setup.cfg` (pytest), `test/` dir with `.bats` files. If no runner detected, skip.
@@ -258,7 +261,7 @@ The 80% confidence gate is self-reported by the LLM. Our benchmarks prove this i
 
 Deterministic verification requires machine-parseable findings. The current reviewer output format uses prose (`**File:Line**: location`). Phase 2f updates the output format in all 6 reviewer prompts to require a structured block per finding:
 
-```
+```markdown
 ### Finding F1
 - **file**: src/auth/validator.ts
 - **line**: 42 (or "N/A" for findings without a single location)
@@ -299,8 +302,9 @@ Deterministic verification requires machine-parseable findings. The current revi
 #### Parsing Rules
 
 The coordinator parses structured fields via line-prefix matching (`- **file**:`, `- **line**:`, etc.):
+
 - Each finding starts with `### Finding F<n>` (heading signals boundary)
-- Single-line fields: everything after `: ` on the same line
+- Single-line fields: everything after `:` on the same line
 - Multiline fields (`issue`, `why`, `fix`, `evidence`): all lines until the next `- **` prefix or next `### Finding` heading
 - `instances` block: indented `- file:line` entries until next field or heading
 - If a finding block cannot be parsed (no `### Finding` heading, missing required fields), tag it `[UNSTRUCTURED]` and skip verification
@@ -310,25 +314,32 @@ The coordinator parses structured fields via line-prefix matching (`- **file**:`
 Phase 2.5 runs after all reviewers return (Phase 2) and before aggregation (Phase 3). The coordinator parses each finding's structured fields and runs deterministic checks:
 
 #### Check 1: File Existence
+
 ```bash
 test -f "<referenced_file>"
 ```
+
 If the finding references `src/auth/validator.ts` and that file doesn't exist → mark `[UNVERIFIED: file not found]`.
 
 #### Check 2: Line Validity
+
 ```bash
 wc -l < "<referenced_file>"
 # Compare against referenced line number
 ```
+
 If finding references `config.ts:542` but the file has 200 lines → mark `[UNVERIFIED: line out of range]`.
 
 #### Check 3: Symbol Existence in File
+
 ```bash
 grep -n '<claimed_symbol>' "<referenced_file>"
 ```
+
 This checks if the symbol appears **anywhere in the file** (not at the specific line — line-level verification would require AST parsing, which is out of scope). If `grep` finds zero hits for the symbol in the file → mark `[UNVERIFIED: symbol not found in file]`. If the symbol exists in the file but not near the claimed line, the finding is still tagged `[VERIFIED]` — the reviewer may have the right function but wrong line number.
 
 #### Check 4: Claim Verification (incremental — start with Checks 1-3 only)
+
 ```bash
 # "Function X is never called":
 grep -rn '<function_name>' <repo> --include='*.ts' --include='*.js' --include='*.py' --include='*.sh' | grep -v '<definition_file>'
@@ -340,6 +351,7 @@ grep -rn '<variable_name>' <repo> --include='*.ts' --include='*.js' --include='*
 #### Verification Output
 
 Each finding gets one of:
+
 - `[VERIFIED]` — all referenced files, lines, and symbols confirmed to exist; claims checked where possible
 - `[UNVERIFIED: <reason>]` — at least one verification check failed (file missing, line out of range, symbol not in file, or claim disproved)
 - `[UNSTRUCTURED]` — reviewer output did not follow the structured finding schema; verification could not be performed
@@ -349,6 +361,7 @@ Each finding gets one of:
 ### Expected Impact
 
 Based on our benchmark data:
+
 - **Phantom file references** (V6 monolith): 5 findings would be caught → precision from 35% to 100% for that specific diff
 - **Overall battery precision**: Checks 1-3 eliminate phantom refs and out-of-range lines. Actual impact depends on what fraction of current FPs fall in these categories. V6 data suggests ~60% of monolith FPs are phantom refs; battery FPs are more often wrong reasoning with correct file references, so improvement will be smaller.
 - **Overall monolith precision**: Higher improvement expected since monolith FPs are dominated by phantom refs and non-existent symbol claims.
@@ -452,6 +465,7 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 ### Changes
 
 **Guardian** — add sub-dimension `5. Reliability & Resilience`:
+
 - Missing retry logic for transient failures (network calls, DB connections, file I/O)
 - Missing or inadequate timeout handling for external calls
 - Missing circuit breaker or fallback for degraded dependencies
@@ -460,6 +474,7 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 - Crash-on-failure where recovery is possible and expected
 
 **Design Critic** — add sub-dimension `5. Architectural Layering`:
+
 - Layer violations (UI code importing data layer directly, skipping service layer)
 - Wrong dependency direction (lower layers depending on higher layers)
 - Circular dependencies between modules/packages
@@ -467,6 +482,7 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 - Missing interface boundaries between architectural layers
 
 **Standards Enforcer** — expand sub-dimension 4 from "Test Quality" to "Test Quality & Adequacy". Add:
+
 - New code paths in the diff without corresponding test cases
 - Changed behavior without updated regression tests
 - Test coverage gaps for error/edge-case paths added in the diff
@@ -489,6 +505,7 @@ The research identifies 8 key review dimensions. We cover 5 well across 19 sub-d
 ### Current Gap
 
 Our "script-learnable" path generates shell scripts (`grep -rn '__proto__'`). Problems:
+
 - No AST awareness: matches string patterns in comments and strings
 - No cross-file taint tracking
 - No standard format: each script is bespoke
@@ -530,7 +547,7 @@ grep -rn '__proto__\|constructor\[' "$@" || true
 
 #### File Structure Update
 
-```
+```bash
 checks/
 ├── candidates/
 │   ├── *.semgrep.yml     # Semgrep rules (preferred)
@@ -565,7 +582,7 @@ Research shows prompt effectiveness peaks at 800–2,000 tokens and degrades pas
 
 Split the monolithic coordinator into purpose-specific files loaded only when their phase runs:
 
-```
+```markdown
 skills/engineering/code-review-battery/
 ├── skill.md                    # Entry point + step sequence          ≤1,200 tok
 ├── coordinator.md              # Phases 1-4: triage/dispatch/agg     ≤1,500 tok
@@ -622,6 +639,7 @@ All under 800 tokens. The Investigation Protocol (~259 tokens) is extracted to `
 3. **Reviewer sub-agents are separate LLM calls** — the 1,500 token limit applies to coordinator-loaded files (where instructions compete for attention in one context), NOT to sub-agent dispatch. Each reviewer sub-agent receives its instruction as the primary prompt for a fresh LLM call.
 
 **Reviewer sub-agent instruction size (worst case = monolith with investigation protocol)**:
+
 - Reviewer prompt: ≤800 tok
 - Investigation protocol: ~259 tok (loaded by coordinator, appended to instruction)
 - Context package: ~300-800 tok (variable, depends on diff complexity)
@@ -636,11 +654,13 @@ This exceeds 1,500 but is within the 2,000 token sweet spot — and sub-agent in
 ### What Moves Where
 
 **Out of `skill.md`** (to hit ≤1,200):
+
 - Shadow Lane learning details → `gap-analysis.md`
 - Detailed override descriptions → `coordinator.md`
 - Keep: triggers, when-to-use, 6-reviewer table, step sequence, file loading instructions
 
 **Out of `coordinator.md`** (to hit ≤1,500):
+
 - Phase 5 (Gap Analysis) → `gap-analysis.md`
 - Phase 6 (Dashboard Update) → `gap-analysis.md`
 - Gap classification examples → `gap-analysis.md`
@@ -673,6 +693,7 @@ This exceeds 1,500 but is within the 2,000 token sweet spot — and sub-agent in
 Every reviewer prompt requires these changes to support Phase 2f:
 
 **Changes to reviewer .md files (all 6 reviewers)**:
+
 - Replace current `## Output Format` section with the structured finding schema (see Enhancement 2)
 - Current format (`**Severity**: ... **File:Line**: ... **Issue**: ...`) → structured block (`### Finding F<n>` with `- **file**:`, `- **line**:`, `- **symbol**:`, `- **severity**:`, etc.)
 - Add `- **confidence**: High / Possible` (replacing the prose "Possible: ..." prefix)
@@ -681,15 +702,19 @@ Every reviewer prompt requires these changes to support Phase 2f:
 - For monolith: replace `- **Cross-cutting?**: Yes/No` with `- **cross-cutting**: yes / no`
 
 **Changes to coordinator dispatch logic (NOT in reviewer .md files)**:
+
 - For monolith, defect-finder, guardian: load `investigation-protocol.md` alongside the reviewer prompt at dispatch time
 
 **Guardian only**:
+
 - Add sub-dimension `5. Reliability & Resilience` (see Enhancement 4)
 
 **Design Critic only**:
+
 - Add sub-dimension `5. Architectural Layering` (see Enhancement 4)
 
 **Standards Enforcer only**:
+
 - Expand sub-dimension 4 from "Test Quality" to "Test Quality & Adequacy" with 4 new check items (see Enhancement 4)
 
 ## Expected Impact

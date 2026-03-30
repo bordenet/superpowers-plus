@@ -15,6 +15,7 @@ AI coding assistants (Claude, Copilot, Gemini) generate prose that contains dete
 ### 2.1 Current State (P1)
 
 When AI assistants generate or edit prose (emails, PRDs, README files, CVs), users cannot easily tell how "AI-like" the output sounds. They must manually read and identify patterns, which is:
+
 - **Time-consuming:** 5-10 minutes per document to identify slop patterns
 - **Inconsistent:** Different users spot different patterns
 - **Error-prone:** Easy to miss patterns due to familiarity blindness
@@ -22,12 +23,14 @@ When AI assistants generate or edit prose (emails, PRDs, README files, CVs), use
 ### 2.2 Impact
 
 **Who is affected:**
+
 - **Technical writers** reviewing AI-assisted documentation (estimated 10+ docs/week)
 - **Developers** using AI to draft README files, PR descriptions, commit messages
 - **Job seekers** using AI for CVs/cover letters who risk rejection by ATS or human reviewers
 - **Product managers** reviewing AI-drafted PRDs, specs, and requirements
 
 **Quantified impact:**
+
 - Based on internal testing: 73% of AI-generated first drafts score >60 slop score (heavy AI fingerprint)
 - Users spend average 8 minutes manually reviewing a 500-word document for AI patterns
 - Unedited AI content in professional contexts risks credibility damage (impossible to quantify, but real)
@@ -125,7 +128,8 @@ The skill analyzes text and produces:
 User says: "What's the slop score on this email?"
 
 Skill responds:
-```
+
+```text
 Slop Score: 67/100
 
 Breakdown:
@@ -190,7 +194,8 @@ Top Offenders (showing 5 of 12):
 | FR8 | Support calibration mode (user provides writing samples) | P1 | 🔄 Two-Way | **Given** 3 samples of user's writing, **When** calibration run, **Then** adjust TTR/hapax thresholds to user's baseline ±10% | **Given** <300 words per sample, **When** calibration attempted, **Then** error "Sample too short" |
 
 **Score Formula (FR1 detail):**
-```
+
+```text
 Lexical:      min(40, pattern_count × 2)
 Structural:   5 × structural_patterns_found (max 25)
 Semantic:     5 × semantic_patterns_found (max 20)
@@ -233,6 +238,7 @@ Auto-detect content type and apply type-specific patterns.
 **Override**: User can specify: "Analyze this as a [type]: [text]"
 
 **Acceptance Criteria**:
+
 - [x] Auto-detect from context clues
 - [x] User override supported
 - [x] Type-specific patterns applied in addition to universal
@@ -240,6 +246,7 @@ Auto-detect content type and apply type-specific patterns.
 #### FR6.1: Email-Specific Slop Patterns
 
 **Opening Slop** (2 points each):
+
 - "I hope this email finds you well"
 - "I hope this message finds you in good spirits"
 - "I trust this email finds you well"
@@ -249,6 +256,7 @@ Auto-detect content type and apply type-specific patterns.
 - "TGIF!"
 
 **Follow-up Slop** (2 points each):
+
 - "Per my last email"
 - "As per our previous conversation"
 - "As discussed"
@@ -261,6 +269,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Following up on my previous email"
 
 **Closing Slop** (2 points each):
+
 - "Please don't hesitate to reach out"
 - "Please advise"
 - "Let me know if you have any questions"
@@ -271,6 +280,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Kindly revert"
 
 **Corporate Filler** (2 points each):
+
 - "Moving forward"
 - "Going forward"
 - "Action items"
@@ -283,6 +293,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Run it up the flagpole"
 
 **Structural Patterns**:
+
 - Buried lead (key request in paragraph 3+): 5 points
 - Passive voice in requests: 3 points
 - Wall of text (no paragraph breaks in >200 words): 5 points
@@ -290,6 +301,7 @@ Auto-detect content type and apply type-specific patterns.
 #### FR6.2: LinkedIn-Specific Slop Patterns
 
 **Announcement Slop** (3 points each):
+
 - "I'm thrilled to announce"
 - "I'm excited to share"
 - "I'm humbled to announce"
@@ -299,6 +311,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Some personal news"
 
 **Engagement Bait** (5 points each):
+
 - "Agree?" (standalone)
 - "Thoughts?"
 - "What do you think?"
@@ -309,6 +322,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Tag someone who needs to see this"
 
 **Humble Brag Patterns** (4 points each):
+
 - "I got rejected from [prestigious thing]... and here's what I learned"
 - "I almost quit... and then [success happened]"
 - "Everyone told me I was crazy..."
@@ -316,6 +330,7 @@ Auto-detect content type and apply type-specific patterns.
 - "I failed [number] times before..."
 
 **Listicle Abuse** (3 points each):
+
 - "X lessons I learned from Y"
 - "X things nobody tells you about Y"
 - "X reasons why Y"
@@ -323,6 +338,7 @@ Auto-detect content type and apply type-specific patterns.
 - "Here's my framework for X"
 
 **Structural Patterns**:
+
 - Excessive line breaks (single sentence per line for >5 lines): 5 points
 - Hashtag stuffing (>5 hashtags): 3 points
 - Emoji overuse (>3 per 100 words): 3 points
@@ -332,6 +348,7 @@ Auto-detect content type and apply type-specific patterns.
 SMS should be conversational. Corporate tone is the slop.
 
 **Formality Mismatch** (3 points each):
+
 - "Dear [Name]" in text message
 - "Best regards" / "Kind regards" in text
 - "I hope this message finds you"
@@ -341,11 +358,13 @@ SMS should be conversational. Corporate tone is the slop.
 - "I wanted to reach out"
 
 **Overcommunication** (2 points each):
+
 - Unnecessary confirmation: "Just confirming..."
 - Redundant sign-offs: "Thanks, [Name]" when sender is known
 - Over-explaining context already known to recipient
 
 **Structural Patterns**:
+>
 - >50 words without necessity: 3 points
 - >3 sentences when 1 would suffice: 3 points
 
@@ -354,6 +373,7 @@ SMS should be conversational. Corporate tone is the slop.
 Chat should be direct. Email formality is the slop.
 
 **Email-in-Chat** (3 points each):
+
 - Greeting + question as separate messages
 - "Hi [Name], hope you're well. Quick question..."
 - Long-form paragraphs in chat
@@ -361,17 +381,20 @@ Chat should be direct. Email formality is the slop.
 - "As per my previous message"
 
 **Meeting Avoidance Slop** (2 points each):
+
 - "Can we hop on a quick call?" for simple questions
 - "Let's take this offline" when resolution is possible in chat
 - "I'll set up a meeting" for yes/no questions
 
 **Passive Aggressive Patterns** (4 points each):
+
 - "Per my last message..."
 - "As I mentioned..."
 - "Just to clarify (again)..."
 - "Not sure if you saw my message..."
 
 **Structural Patterns**:
+
 - @mention without immediate context: 2 points
 - Thread necromancy (reviving dead threads): 2 points
 - Excessive emoji reactions on own messages: 2 points
@@ -381,6 +404,7 @@ Chat should be direct. Email formality is the slop.
 Agent instructions should be direct and actionable.
 
 **Vague Instruction Slop** (3 points each):
+
 - "Be helpful and friendly"
 - "Provide comprehensive assistance"
 - "Ensure high-quality outputs"
@@ -388,18 +412,21 @@ Agent instructions should be direct and actionable.
 - "Maintain professional standards"
 
 **Unnecessary Meta-Commentary** (2 points each):
+
 - "As an AI assistant, I..."
 - "My purpose is to..."
 - "I am designed to..."
 - Explaining what the agent is instead of what it does
 
 **Unenforceable Rules** (3 points each):
+
 - "Always be accurate" (without verification method)
 - "Never make mistakes"
 - "Ensure correctness"
 - Rules without clear success criteria
 
 **Structural Patterns**:
+
 - Rules without examples: 3 points
 - Contradictory instructions: 5 points
 - Overly nested conditionals: 3 points
@@ -409,12 +436,14 @@ Agent instructions should be direct and actionable.
 READMEs should be scannable and actionable.
 
 **Opening Slop** (3 points each):
+
 - "Welcome to [Project]!"
 - "This project aims to..."
 - "A powerful/robust/comprehensive solution for..."
 - Badge overload (>5 badges without explanation)
 
 **Marketing in README** (3 points each):
+
 - "Industry-leading"
 - "Best-in-class"
 - "Enterprise-grade"
@@ -422,12 +451,14 @@ READMEs should be scannable and actionable.
 - "Battle-tested" (without usage stats)
 
 **Missing Substance** (4 points each):
+
 - Installation section without actual commands
 - Usage section without code examples
 - Features list without demonstrations
 - "Coming soon" sections in mature projects
 
 **Structural Patterns**:
+
 - No quickstart in first 3 sections: 5 points
 - Features before installation: 3 points
 - Excessive nested bullets: 3 points
@@ -437,6 +468,7 @@ READMEs should be scannable and actionable.
 PRDs should be specific and measurable.
 
 **Vague Requirements** (4 points each):
+
 - "The system should be fast"
 - "Users should have a good experience"
 - "The interface should be intuitive"
@@ -444,6 +476,7 @@ PRDs should be specific and measurable.
 - Requirements without acceptance criteria
 
 **Scope Creep Signals** (3 points each):
+
 - "And also..."
 - "Additionally, it would be nice if..."
 - "Future consideration:"
@@ -451,12 +484,14 @@ PRDs should be specific and measurable.
 - Unbounded feature lists
 
 **Missing Specificity** (4 points each):
+
 - User stories without acceptance criteria
 - Success metrics without baselines
 - Timelines without milestones
 - Dependencies listed without owners
 
 **Structural Patterns**:
+
 - Problem statement >1 paragraph: 3 points
 - No success metrics section: 5 points
 - Requirements without priority: 3 points
@@ -466,6 +501,7 @@ PRDs should be specific and measurable.
 Design docs should explain decisions, not just describe systems.
 
 **Decision Avoidance** (4 points each):
+
 - "We could use X or Y" (without recommendation)
 - "There are several approaches..."
 - "This is left as a future decision"
@@ -473,17 +509,20 @@ Design docs should explain decisions, not just describe systems.
 - Options without tradeoff analysis
 
 **Over-Abstraction** (3 points each):
+
 - Box-and-arrow diagrams without data flow
 - Components named "Manager", "Handler", "Service" without specifics
 - "The system will handle..." without how
 
 **Missing Context** (4 points each):
+
 - No alternatives considered section
 - No constraints section
 - Architecture without scale assumptions
 - Design without failure modes
 
 **Structural Patterns**:
+
 - Diagrams without legends: 3 points
 - No "Why not" section for rejected alternatives: 4 points
 - Implementation details before design rationale: 3 points
@@ -493,6 +532,7 @@ Design docs should explain decisions, not just describe systems.
 Test plans should be executable and traceable.
 
 **Vague Test Cases** (4 points each):
+
 - "Verify the system works correctly"
 - "Ensure performance is acceptable"
 - "Test all edge cases"
@@ -500,16 +540,19 @@ Test plans should be executable and traceable.
 - "Should behave properly"
 
 **Coverage Theater** (3 points each):
+
 - "100% code coverage" without meaningful assertions
 - Test counts without quality metrics
 - "Comprehensive testing" without specifics
 
 **Missing Traceability** (3 points each):
+
 - Test cases without requirement links
 - No risk-based prioritization
 - Pass/fail without severity
 
 **Structural Patterns**:
+
 - No test data section: 3 points
 - No environment requirements: 3 points
 - Automated vs manual not distinguished: 2 points
@@ -519,12 +562,14 @@ Test plans should be executable and traceable.
 CVs should show impact, not describe responsibilities.
 
 **Responsibility vs Achievement** (4 points each):
+
 - "Responsible for..." (without outcomes)
 - "Managed a team of..." (without results)
 - "Worked on..." (without impact)
 - "Participated in..." (without contribution)
 
 **Buzzword Stuffing** (3 points each):
+
 - "Results-driven professional"
 - "Dynamic team player"
 - "Self-starter with excellent communication skills"
@@ -532,18 +577,21 @@ CVs should show impact, not describe responsibilities.
 - "Detail-oriented"
 
 **Vague Metrics** (3 points each):
+
 - "Improved performance significantly"
 - "Reduced costs substantially"
 - "Increased efficiency"
 - "Enhanced user experience"
 
 **Missing Specifics** (4 points each):
+
 - Technologies listed without context
 - Job titles without scope indicators
 - Achievements without quantification
 - Skills without demonstration
 
 **Structural Patterns**:
+
 - Objective statement instead of summary: 3 points
 - References available upon request: 2 points
 - >2 pages without senior experience: 3 points
@@ -553,29 +601,34 @@ CVs should show impact, not describe responsibilities.
 Cover letters should demonstrate fit, not restate the CV.
 
 **Generic Opening** (4 points each):
+
 - "I am writing to apply for..."
 - "I am excited to apply for..."
 - "I was thrilled to see the opening for..."
 - "I believe I am the perfect candidate..."
 
 **CV Repetition** (3 points each):
+
 - Restating job history without new insight
 - Listing skills already on CV
 - "As you can see from my resume..."
 
 **Empty Claims** (4 points each):
+
 - "I am a hard worker"
 - "I learn quickly"
 - "I am passionate about [company field]"
 - Claims without supporting examples
 
 **Weak Closing** (3 points each):
+
 - "I look forward to hearing from you"
 - "Thank you for your consideration"
 - "Please feel free to contact me"
 - No specific call to action
 
 **Structural Patterns**:
+
 - No company-specific content: 5 points
 - No specific role alignment: 4 points
 - >1 page: 3 points
@@ -622,6 +675,7 @@ Use shared persistent dictionary for custom pattern matching.
 ```
 
 **Behavior**:
+
 - Read patterns from workspace dictionary (if exists)
 - Merge with 150+ built-in patterns
 - Respect exception list (patterns marked for skip)
@@ -631,6 +685,7 @@ Use shared persistent dictionary for custom pattern matching.
 **Note**: This skill reads from dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
 
 **Acceptance Criteria**:
+
 - [x] Load dictionary from `{workspace_root}/.slop-dictionary.json`
 - [x] Merge built-in patterns with user-added
 - [x] Respect exception list
@@ -655,6 +710,7 @@ Quick tests applied during analysis to identify AI writing patterns.
 Allow users to calibrate thresholds using their own writing samples.
 
 **Calibration Workflow**:
+
 1. User provides 3-5 samples of authentic writing (300+ words each)
 2. Skill calculates personal baselines for stylometric metrics
 3. Baselines stored in dictionary calibration section
@@ -662,7 +718,7 @@ Allow users to calibrate thresholds using their own writing samples.
 
 **Calibration Output**:
 
-```
+```python
 Calibration Complete
 
 Your Writing Profile:
@@ -682,12 +738,13 @@ Adjusted Thresholds:
 Provide visibility into detection statistics.
 
 **Commands** (implemented):
+
 - `"Show slop detection stats"` - Session and all-time statistics
 - `"Export slop metrics"` - Export to `.slop-metrics.json`
 
 **Metrics Output**:
 
-```
+```text
 Slop Detection Metrics
 
 Session Stats:

@@ -21,6 +21,7 @@ expected_reviewers: [defect-finder, guardian, ...]  # Who SHOULD catch this
 ```
 
 Body contains:
+
 1. **## Context** — Background needed to understand the diff
 2. **## Diff** — The actual code change (fenced code block)
 3. **## Expected Findings** — Ground-truth findings with severity, reviewer, file, issue
@@ -88,6 +89,7 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | Bonus valid findings | 4 | 4 | 2 | **10** |
 
 **Key insights:**
+
 - Precision remains perfect (0 false positives across 13 exercises).
 - **AC1 validated:** All 5 reviewers now produce actionable findings (Performance Analyst validated on ex-011).
 - **AC2 progress:** Battery catches undefined-reference (ex-012) and contract-break (ex-013) patterns when given proper context. Original misses (ex-006, ex-008) were harder because context was implicit.

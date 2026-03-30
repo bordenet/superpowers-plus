@@ -15,8 +15,6 @@ coordination:
 
 # Code Review — Requesting Agent File Protocol
 
-> **Wrong skill?** Reviewing someone's PR → `providing-code-review`. Pre-commit review → `progressive-code-review-gate`. Acting as reviewer agent → `code-review-respond`.
-
 ## When to Use
 
 - Sending completed work to a separate reviewer agent via the file protocol
@@ -26,6 +24,7 @@ coordination:
 This skill handles the **file I/O and structured handoff** for inter-agent code review. It has two modes: **Generate Request** and **Execute Response**.
 
 **Complements these skills (load as needed):**
+
 - `receiving-code-review` — Behavioral protocol for processing feedback (systemic verification, no performative agreement). Load during Execute Response mode.
 - `providing-code-review` — Engineering rigor checklist for reviewers (data flow, blast radius). The REVIEWER loads this, not you.
 
@@ -128,26 +127,6 @@ Use when: the reviewer has finished and written `response.md`.
 - Archive the final PASS round too (user may want to reference it).
 - Track round number from the response header (`# Code Review Response — Round {N}`), not a separate file.
 
-
-## Example
-
-```bash
-# Initiate file-protocol review
-mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
-# Reviewer agent reads request.md, writes response.md
-# Requesting agent reads response.md, implements fixes
-```
-
-## Anti-Patterns
-
-| Anti-Pattern | Detection | Correction |
-|--------------|-----------|------------|
-| Self-review as review | Author reviews own code | Dispatch to separate agent/human |
-| Skipping for small changes | "Just a one-liner" | All code changes need review |
-| Delayed review request | Review after merge | Review BEFORE merge, always |
-| Context-free request | No PR description | Include what/why/how/test plan |
-| Review shopping | Picking lenient reviewer | Assign by expertise, not leniency |
-
 ## Failure Modes
 
 | Failure | Fix |
@@ -155,12 +134,3 @@ mkdir -p .code-review && echo "REQUEST" > .code-review/request.md
 | Stale `response.md` from previous round executed | Check round numbers match before processing (Step 2 of Execute Response) |
 | Reviewer can't find referenced files | Verify all paths in "Files to Read" exist before generating request |
 | 5+ rounds without PASS | Stop generating rounds, escalate to human review |
-
-## Companion Skills
-
-- **code-review-respond**: Reviewer agent side of this protocol
-- **providing-code-review**: Engineering rigor checklist (loaded by reviewer)
-- **receiving-code-review**: Processing feedback from reviews
-- **code-review-battery**: Multi-reviewer code review
-- **micro-harsh-review**: Per-batch review (lighter)
-- **progressive-code-review-gate**: Commit-time gate

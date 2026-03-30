@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 anti_triggers: ["update ticket", "edit issue", "change status", "close ticket"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
-summary: "Use when: creating issues in any tracker. Skip when: updating existing issues."
+summary: "Use when: creating issues in a supported tracker (GitHub, Jira, Azure DevOps). Skip when: updating existing issues."
 coordination:
   group: issue-tracking
   order: 0
@@ -18,15 +18,14 @@ coordination:
 
 > **Purpose:** Ensure consistent, high-quality issues with verified fields
 > **Adapter:** See `_adapters/` for platform-specific configuration
-
+>
 > **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ---
 
-
 ## When to Use
 
-- Creating new tickets in Linear, Azure DevOps, or Monday
+- Creating new tickets in your configured issue tracker (supported adapters: GitHub Issues, Jira, Azure DevOps; custom adapters supported via `_adapters/platform-template.md`)
 - When user requests a ticket for a bug, feature, or task
 - Converting conversation discussion into a trackable ticket
 - When acceptance criteria need to be formalized
@@ -66,6 +65,7 @@ Before calling your adapter's `create_issue` operation:
 | `Issue with X` | — | ❌ TOO VAGUE |
 
 **Title must be:**
+
 - Specific enough to understand without reading description
 - Max 80 characters (Some trackers truncate longer titles in views)
 - No ticket key prefix (PROJ-XXX added automatically)
@@ -130,6 +130,7 @@ Configure workflow states for your platform. Common patterns:
 **Before creating ANY issue, search for duplicates using your adapter's search operation.**
 
 **If potential duplicate found:**
+
 1. STOP — do not create new issue
 2. Report to user: "Found existing issue [KEY]-XXX with similar title"
 3. Ask: "Should I add a comment to the existing issue instead?"
@@ -140,7 +141,7 @@ Configure workflow states for your platform. Common patterns:
 
 ## Pre-Flight Checklist
 
-```
+```bash
 Before creating issue:
 1. SEARCH — Check for duplicates
 2. VALIDATE — Labels and assignee exist
@@ -158,15 +159,15 @@ Before creating issue:
 - **issue-comment-debunker**: Evidence-based comments only
 
 - **issue-verify**: Post-creation verification
+
 ## Related Tools
 
 For formal acceptance criteria documents with adversarial review, use [docforge-ai acceptance-criteria](https://bordenet.github.io/docforge-ai/assistant/?type=acceptance-criteria) — Claude drafts, Gemini critiques, Claude synthesizes.
 
-
 ## Example
 
 ```bash
-# Create a well-structured Linear ticket
+# Create a well-structured issue in your configured tracker
 # Required: title, description with acceptance criteria, team assignment
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-authoring
 ```

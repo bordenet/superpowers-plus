@@ -68,7 +68,6 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 - Overlay-aware: compares installed against highest-priority source (overlay > plus)
 - Diff-based drift detection (replaces comm-based overlap for accuracy)
 
-
 ## Platform Compatibility
 
 | Platform | Notes |

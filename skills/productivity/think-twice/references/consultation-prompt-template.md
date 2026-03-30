@@ -26,7 +26,7 @@ everything you need is in this brief.
 
 {{ERROR_BLOCKER}}
 
-```
+```text
 {{ERROR_OUTPUT}}
 ```
 
@@ -47,6 +47,7 @@ everything you need is in this brief.
 ## Research Guidance
 
 Before answering, consider searching the web for:
+
 - Recent issues/discussions related to {{SEARCH_TOPIC_1}}
 - Alternative approaches to {{SEARCH_TOPIC_2}}
 - Known bugs or breaking changes in {{SEARCH_TOPIC_3}}
@@ -63,10 +64,12 @@ When filling this template, the agent MUST:
 1. **Problem Statement** — 2-4 sentences, plain English, what we're trying to accomplish
 2. **Technical Context** — Be specific about versions (e.g., "Node.js 20.x, TypeScript 5.3")
 3. **What Has Been Tried** — Numbered list with outcomes:
-   ```
+
+   ```text
    1. [Approach] → [Result/Why it failed]
    2. [Approach] → [Result/Why it failed]
    ```
+
 4. **Error/Blocker** — Exact error messages, not paraphrased
 5. **Relevant Code** — Minimal reproducible snippet, NOT entire files
 6. **Constraints** — Non-obvious limitations (perf, compat, library restrictions)
@@ -76,6 +79,7 @@ When filling this template, the agent MUST:
 ## Quality Criteria
 
 The filled prompt MUST:
+
 - Be fully self-contained (any engineer could pick it up cold)
 - Include concrete error messages / output (not vague descriptions)
 - Separate facts from speculation

@@ -46,6 +46,7 @@ workstream, the evidence contradicts the original ordering:
 ## Execution Plan
 
 ### Phase 1: Structural Integration ✅ COMPLETE
+
 1. ~~Add callee implementation trace~~ ✅
 2. ~~Integrate extended finding schema~~ ✅
 3. ~~Add durable_check + regressions_risked fields~~ ✅ (all 6 reviewers)
@@ -55,19 +56,21 @@ workstream, the evidence contradicts the original ordering:
 7. ~~v2.5 simplification~~ ✅ (1,854→674 lines)
 
 ### Phase 2: Exercise Catalog & Validation
+
 **Goal:** Build measurement infrastructure. Validate PRD acceptance criteria. Produce data.
 
-8. ~~Design exercise fixture format~~ ✅ Markdown + YAML frontmatter in `exercises/code-review-battery/`
-9. ~~Build Level 1-3 exercises from known gaps~~ ✅ ex-001 through ex-005 (difficulty 1-4, sourced from PRs #289, #297, #300)
-10. ~~Build Level 4-6 exercises~~ ✅ ex-006 through ex-010 (difficulty 4-5, synthetic novel bugs: enum drift, fd leak, path injection, backwards compat, mock fidelity)
-11. ~~Build Level 7-10 exercises~~ ✅ Covered by ex-008 (security injection), ex-004/007 (concurrency/resource), ex-009 (backwards compat), ex-010 (mock fidelity)
-12. ~~Run battery against all 10 exercises~~ ✅ Combined: Precision 100%, Recall 80%, High-sev precision 100%
-13. **Reviewer specialization checkpoint:** Novel exercises confirm no coverage gaps in Guardian or Standards Enforcer. Design Critic validated on ex-009. No split justified. **Gap found in Defect Finder:** missed fd leak on error paths (candidate-001 proposed).
-14. ~~Validate PRD Must Pass criteria~~ ✅ See AC traceability below
+1. ~~Design exercise fixture format~~ ✅ Markdown + YAML frontmatter in `exercises/code-review-battery/`
+2. ~~Build Level 1-3 exercises from known gaps~~ ✅ ex-001 through ex-005 (difficulty 1-4, sourced from PRs #289, #297, #300)
+3. ~~Build Level 4-6 exercises~~ ✅ ex-006 through ex-010 (difficulty 4-5, synthetic novel bugs: enum drift, fd leak, path injection, backwards compat, mock fidelity)
+4. ~~Build Level 7-10 exercises~~ ✅ Covered by ex-008 (security injection), ex-004/007 (concurrency/resource), ex-009 (backwards compat), ex-010 (mock fidelity)
+5. ~~Run battery against all 10 exercises~~ ✅ Combined: Precision 100%, Recall 80%, High-sev precision 100%
+6. **Reviewer specialization checkpoint:** Novel exercises confirm no coverage gaps in Guardian or Standards Enforcer. Design Critic validated on ex-009. No split justified. **Gap found in Defect Finder:** missed fd leak on error paths (candidate-001 proposed).
+7. ~~Validate PRD Must Pass criteria~~ ✅ See AC traceability below
 
 **Exit criteria:** ≥10 exercises ✅, precision ≥75% ✅ (100%), all Must Pass PRD criteria checked off or documented as blocked ✅.
 
 **Results (2026-03-28, all 10 exercises, 22 expected findings):**
+
 - Precision: 100% (0 false positives across 10 exercises)
 - Recall (pre-graduation): 77% (17/22) — 100% known (9/9), 62% novel (8/13)
 - Recall (post-graduation): 86% (19/22) — 100% known (9/9), 77% novel (10/13)
@@ -91,36 +94,39 @@ workstream, the evidence contradicts the original ordering:
 | AC9 | progressive-code-review-gate delegates to battery | Met (gate updated in PR #300) | Phase 1 ✅ |
 
 ### Phase 3: Prompt Tuning from Exercise Data
+
 **Goal:** Fix what the exercises reveal. Improve Defect Finder recall (addresses the 3 known gaps).
 
-15. For each exercise where battery missed a finding: diagnose which reviewer prompt is insufficient and why
-16. For each false positive: diagnose which reviewer prompt is too aggressive and why
-17. Tune prompts — one reviewer at a time, re-run exercises after each change to measure improvement/regression
-18. Update metrics dashboard with exercise-based precision/recall metrics
-19. Re-run full exercise suite as regression gate before committing prompt changes
+1. For each exercise where battery missed a finding: diagnose which reviewer prompt is insufficient and why
+2. For each false positive: diagnose which reviewer prompt is too aggressive and why
+3. Tune prompts — one reviewer at a time, re-run exercises after each change to measure improvement/regression
+4. Update metrics dashboard with exercise-based precision/recall metrics
+5. Re-run full exercise suite as regression gate before committing prompt changes
 
 **Exit criteria:** Precision ≥75%, high-sev precision ≥80%, known Defect Finder gaps addressed.
 
 ### Phase 4: Gap-to-Candidate Pipeline
+
 **Goal:** Build the plumbing that turns gaps into learned patterns. Prerequisite to promotion.
 
-20. ~~Define candidate pattern schema~~ ✅ YAML schema in `gap-analysis.md` (id, status, reviewer, pattern, examples, confidence, TTL, validation, graduation)
-21. ~~Build gap → candidate proposal logic~~ ✅ Procedure in `gap-analysis.md` (7-step root-cause → draft → validate → queue flow)
-22. ~~Build candidate validation workflow~~ ✅ Validation state machine in `gap-analysis.md` (proposed → validating → validated → graduated, with rejection paths)
-23. ~~Build candidate storage~~ ✅ `candidates/` directory with TEMPLATE.yaml, version-controlled
-24. ~~Integration: wire gap analysis into battery skill.md~~ ✅ Post-review gap check added to skill.md (runs after Phase 5 convergence)
+1. ~~Define candidate pattern schema~~ ✅ YAML schema in `gap-analysis.md` (id, status, reviewer, pattern, examples, confidence, TTL, validation, graduation)
+2. ~~Build gap → candidate proposal logic~~ ✅ Procedure in `gap-analysis.md` (7-step root-cause → draft → validate → queue flow)
+3. ~~Build candidate validation workflow~~ ✅ Validation state machine in `gap-analysis.md` (proposed → validating → validated → graduated, with rejection paths)
+4. ~~Build candidate storage~~ ✅ `candidates/` directory with TEMPLATE.yaml, version-controlled
+5. ~~Integration: wire gap analysis into battery skill.md~~ ✅ Post-review gap check added to skill.md (runs after Phase 5 convergence)
 
 **Exit criteria:** ≥1 candidate proposed from real gap, validated against holdout exercises, stored in repo.
 **Current state:** Pipeline active. 1 candidate graduated (candidate-001: resource handle leak on early return).
 
 ### Phase 5: Promotion Pipeline
+
 **Goal:** Graduate validated candidates into active reviewer prompts.
 
-25. ~~Define promotion criteria~~ ✅ Precision ≥80% on validation exercises, 0 false positives on holdouts, source exercise must catch the gap
-26. ~~Shadow mode~~ DEFERRED — validation-against-holdouts serves the same purpose with less infrastructure. Shadow mode adds value only at scale (10+ candidates).
-27. ~~Canary mode~~ DEFERRED — same rationale as shadow mode. Candidate pattern is injected during validation, not tagged in live output.
-28. ~~Graduation~~ ✅ candidate-001 graduated: pattern merged into defect-finder.md line 104, candidate status updated, validation recorded
-29. ~~Retirement criteria~~ ✅ Pattern removed if: (a) precision drops below 70% on exercise suite after graduation, or (b) pattern is superseded by a more specific candidate. Live false-positive attribution requires canary tagging (deferred) — until then, exercise-suite regression is the retirement trigger.
+1. ~~Define promotion criteria~~ ✅ Precision ≥80% on validation exercises, 0 false positives on holdouts, source exercise must catch the gap
+2. ~~Shadow mode~~ DEFERRED — validation-against-holdouts serves the same purpose with less infrastructure. Shadow mode adds value only at scale (10+ candidates).
+3. ~~Canary mode~~ DEFERRED — same rationale as shadow mode. Candidate pattern is injected during validation, not tagged in live output.
+4. ~~Graduation~~ ✅ candidate-001 graduated: pattern merged into defect-finder.md line 104, candidate status updated, validation recorded
+5. ~~Retirement criteria~~ ✅ Pattern removed if: (a) precision drops below 70% on exercise suite after graduation, or (b) pattern is superseded by a more specific candidate. Live false-positive attribution requires canary tagging (deferred) — until then, exercise-suite regression is the retirement trigger.
 
 **Exit criteria:** ≥1 pattern graduated from candidate to active ✅. Exercise suite regression: source exercise PASS (ex-007), holdouts PASS (ex-001, ex-004). Full 10-exercise re-run not yet done.
 
@@ -129,6 +135,7 @@ workstream, the evidence contradicts the original ordering:
 ### What to adopt vs defer
 
 **ADOPTED** (high value, low cost):
+
 - ✅ Extended finding schema (Regressions Risked, Durable Check) — kept markdown, deferred JSON
 - ✅ Scoring rubric — split into live metrics (per-pass) and offline metrics (tracked externally)
 - ✅ Convergence logic — Phase 5 with 3-pass cap
@@ -137,9 +144,11 @@ workstream, the evidence contradicts the original ordering:
 - ✅ Escalation context re-attachment — Phase 4 requires diff + source inline
 
 **RESOLVED by evidence** (2026-03-28):
+
 - Reviewer split (Security Guardian, Test Guardian) — based on internal gap-analysis logs, all 3 logged gaps are primarily Defect Finder misses (one straddles Defect Finder + Standards Enforcer). No strong signal for a full split. Checkpoint in Phase 2 will re-evaluate with exercise data. Split only if exercises produce evidence of coverage gaps.
 
 **REORDERED by evidence** (2026-03-28):
+
 - Exercise catalog — promoted from Phase 3 to Phase 2 (can't tune without measurement)
 - Promotion pipeline — moved from Phase 4 to Phase 5 (can't promote without candidates)
 - Gap-to-candidate pipeline — inserted as new Phase 4 (prerequisite to promotion)
@@ -147,6 +156,7 @@ workstream, the evidence contradicts the original ordering:
 ### Finding format: JSON vs Markdown
 
 The Perplexity plan mandates JSON. Our battery uses markdown. Trade-off:
+
 - JSON: machine-parseable, enables automated scoring, but harder for sub-agents to produce reliably
 - Markdown: human-readable, proven in our battery, but no automated metrics
 

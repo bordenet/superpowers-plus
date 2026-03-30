@@ -33,6 +33,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ### 🔍 Perplexity Auto-Triggers
 
 Invoke `superpowers:perplexity-research` when:
+
 - 2+ failed attempts at same operation
 - About to guess at an answer
 - Unsure about API/library/fact

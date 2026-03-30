@@ -77,6 +77,7 @@ new file mode 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** standards-enforcer
 - **File:** tools/tests/test_skill_router_errors.js:10-13
@@ -85,6 +86,7 @@ new file mode 100644
 - **Fix:** Use a real filesystem: create a temp dir with no skill file, point `loadSkill` at it, assert it throws. Or at minimum, verify the test fails when the existence check is removed from `loadSkill`.
 
 ### Finding 2
+
 - **Severity:** Important
 - **Reviewer:** standards-enforcer or defect-finder
 - **File:** tools/tests/test_skill_router_errors.js:31-34
@@ -93,6 +95,7 @@ new file mode 100644
 - **Fix:** Save `const originalExistsSync = fs.existsSync` before mocking and restore in `finally`.
 
 ### Finding 3
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder
 - **File:** tools/tests/test_skill_router_errors.js:17

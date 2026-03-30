@@ -22,7 +22,7 @@ cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
-SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
+SP_OVERLAY_DIR="${SP_OVERLAY_SOURCE_DIR:-${SPC_SOURCE_DIR:-}}"
 
 # Colors
 if [[ -t 1 ]]; then
@@ -68,19 +68,40 @@ log_fail()  { printf '%b\n' "${RED}[FAIL]${NC} $1"; ((ERRORS++)) || true; }
 log_warn()  { printf '%b\n' "${YELLOW}[WARN]${NC} $1"; ((WARNINGS++)) || true; }
 log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
+# Resolve the comparison base for --changed-only mode.
+# Prefers upstream tracking branch; falls back to origin/dev, then origin/main.
+resolve_diff_base() {
+    local tracking
+    tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
+    if [[ -n "$tracking" ]]; then
+        echo "$tracking"
+    elif git rev-parse --verify origin/dev &>/dev/null; then
+        echo "origin/dev"
+    else
+        echo "origin/main"
+    fi
+}
+
 # Get files to check
+# Accepts a regex pattern (e.g., '\.sh$') and uses grep -E for filtering in both modes.
+# In --changed-only mode: filters git diff output against upstream/dev/main.
+# In default mode: lists all repo files then filters by regex.
 get_files() {
     local pattern="$1"
     if [[ "$CHANGED_ONLY" == "true" ]]; then
-        git diff --name-only origin/main...HEAD 2>/dev/null | grep -E "$pattern" || true
+        local base
+        base="$(resolve_diff_base)"
+        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E "$pattern" || true
     else
-        find . -type f -name "$pattern" 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
     fi
 }
 
 get_all_text_files() {
     if [[ "$CHANGED_ONLY" == "true" ]]; then
-        git diff --name-only origin/main...HEAD 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+        local base
+        base="$(resolve_diff_base)"
+        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
     else
         find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
     fi
@@ -91,7 +112,7 @@ echo "=============================================="
 echo "  HARSH REVIEW - Repository Quality Check"
 echo "=============================================="
 echo ""
-[[ "$CHANGED_ONLY" == "true" ]] && echo "Mode: Changed files only (vs origin/main)"
+[[ "$CHANGED_ONLY" == "true" ]] && echo "Mode: Changed files only (vs $(resolve_diff_base))"
 [[ "$FIX_MODE" == "true" ]] && echo "Mode: Auto-fix enabled"
 echo ""
 
@@ -146,7 +167,8 @@ log_check "Shell scripts (shellcheck + bash -n)"
 # SC2015 - A && B || C is not if-then-else (style)
 # SC2317 - Command unreachable (false positive)
 # SC2064 - Use single quotes in trap (style)
-SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
+# SC2016 - Expressions don't expand in single quotes (intentional literal matching)
+SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016"
 
 if command -v shellcheck &> /dev/null; then
     while IFS= read -r file; do
@@ -237,6 +259,9 @@ while IFS= read -r file; do
     [[ "$file" == *"CONTRIBUTING"* ]] && continue  # Skip docs that reference examples
     [[ "$file" == *"ARCHITECTURE"* ]] && continue
     [[ "$file" == *"README"* ]] && continue
+    [[ "$file" == *"harsh-review.sh" ]] && continue  # Self-referencing pattern definitions
+    [[ "$file" == *"_adapters/"* ]] && continue  # Adapters are allowed to be vendor-specific
+    [[ "$file" == *"public-repo-ip-audit"* ]] && continue  # Contains example patterns with vendor placeholders
 
     if grep -qE "$VENDOR_PATTERNS" "$file" 2>/dev/null; then
         log_warn "$file: contains vendor-specific references (should be in _adapters/)"
@@ -321,6 +346,22 @@ while IFS= read -r skill_file; do
     fi
     if ! echo "$frontmatter" | grep -q "^anti_triggers:"; then
         log_warn "$skill_name: missing 'anti_triggers:' in frontmatter"
+    fi
+    # Validate coordination metadata (required for DAG generation)
+    # Extract coordination block from frontmatter only (not body text)
+    if echo "$frontmatter" | grep -q "^coordination:"; then
+        coord_block=$(echo "$frontmatter" | sed -n '/^coordination:/,/^[a-z]/p' | sed '$d')
+        if ! echo "$coord_block" | grep -q "^  group:"; then
+            log_fail "$skill_name: coordination block missing 'group:' (required for DAG generation)"
+        fi
+        if ! echo "$coord_block" | grep -q "^  order:"; then
+            log_fail "$skill_name: coordination block missing 'order:'"
+        fi
+        if ! echo "$coord_block" | grep -q "^  internal:"; then
+            log_fail "$skill_name: coordination block missing 'internal:'"
+        fi
+    else
+        log_fail "$skill_name: missing 'coordination:' block in frontmatter (required for DAG generation)"
     fi
 done < <(find skills -name "skill.md" 2>/dev/null)
 

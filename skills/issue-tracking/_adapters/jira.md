@@ -23,7 +23,7 @@ Configuration for Jira issue tracking.
 
 ## URL Pattern
 
-```
+```text
 https://[instance].atlassian.net/browse/[KEY]-[number]
 ```
 
