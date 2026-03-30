@@ -1,7 +1,7 @@
 # Innovation — Output Template
 
 > Reference material for the `innovation` skill.
-> See `skill.md` for core agent guidance.
+> See `../skill.md` for core agent guidance.
 
 ## Output Format
 
@@ -47,7 +47,5 @@ Specific enough that someone could start Monday morning.]
 
 ---
 
-**Next:** (a) Draft an RFC  (b) Prototype the first move now
-(c) Stress-test with `think-twice`  (d) Generate alternatives via `brainstorming`
-(e) Phased execution plan via `plan-and-execute`
+Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, (d) generate alternatives via `brainstorming`, or (e) turn this into a phased execution plan via `plan-and-execute`?
 ```
