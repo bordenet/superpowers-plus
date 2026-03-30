@@ -1,17 +1,17 @@
 ---
 name: innovation
 source: superpowers-plus
-triggers: ["innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "moonshot", "reimagine", "what if we started from scratch", "what would a world-class team do", "step-change", "what's the boldest move"]
-anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
-description: "Use when: user wants a single high-conviction innovation answer — the smartest, most radically innovative, accretive, useful, and compelling addition to this project right now. Skip when: incremental ideas (brainstorming), bug fixes (systematic-debugging), or implementation planning (plan-and-execute)."
-summary: "Use when: single high-conviction innovation answer. Skip when: incremental ideas or bug fixes."
+triggers: ["innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "what if we started from scratch", "step-change improvement", "what's the boldest move"]
+anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup", "fix our CI", "best practice", "refactor", "moonshot refactor", "reimagine the docs"]
+description: "Use when: user wants a single high-conviction innovation answer — the smartest, most radically innovative, accretive, useful, and compelling addition to this project right now. Skip when: incremental ideas (brainstorming), bug fixes (systematic-debugging), implementation planning (plan-and-execute), or ops/repair tasks."
+summary: "Use when: single high-conviction innovation answer. Skip when: incremental ideas, bug fixes, or implementation planning."
 version: 3.0
 coordination:
   group: thinking
   order: 5
   requires: []
-  enables: ["brainstorming", "plan-and-execute"]
-  escalates_to: ["think-twice"]
+  enables: ["brainstorming", "plan-and-execute", "think-twice"]
+  escalates_to: []
   internal: false
 ---
 
@@ -59,7 +59,17 @@ Ask these. One per message.
 
 If the user already answered any of these in their prompt, confirm rather than re-ask.
 
-**Fallback for non-answers:** If the user declines questions ("just answer"), gives partial answers, or says "you decide" — proceed with Phase 1 context, state your assumptions explicitly, and mark your answer with lower confidence. Do not deadlock waiting for answers that aren't coming. One retry per question is the maximum; after that, move on.
+**Fallback for non-answers:** Do not deadlock waiting for answers that aren't coming. One retry per question is the maximum; after that, move on.
+
+| User Response | Action |
+|---------------|--------|
+| Silence (no reply after retry) | Proceed with Phase 1 context only. State assumptions. |
+| "Just answer" / "you decide" | Proceed immediately. State assumptions explicitly. |
+| Partial answer | Accept what's given, note what's missing, proceed. |
+| Off-topic or echo | Rephrase once. If still off-topic, proceed with Phase 1 context. |
+| Contradictory answer | Surface the contradiction, ask to clarify once, then pick the interpretation most consistent with Phase 1 context. |
+
+When proceeding without full Phase 2 input, prefix your answer with: *"Based on Phase 1 research and the following assumptions: [list]. Confidence is lower than it would be with direct user input."*
 
 ### Phase 3: Think Deeply, Then Answer
 
