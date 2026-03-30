@@ -313,6 +313,7 @@ async function main() {
         client3.kill();
       }
     } finally {
+      client2.kill();
       rmSync(tmpDir, { recursive: true, force: true });
     }
 
