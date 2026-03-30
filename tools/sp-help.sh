@@ -22,16 +22,10 @@ SKILLS_DIR="$HOME/.codex/skills"
 show_commands() {
     echo -e "${BOLD}CLI Commands${RESET}"
     echo ""
-    local bin_dir=""
+    local found=0
     for candidate in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
-        if [[ -d "$candidate" ]]; then
-            bin_dir="$candidate"
-            break
-        fi
-    done
-    if [[ -n "$bin_dir" ]]; then
-        local found=0
-        for link in "$bin_dir"/sp-*; do
+        [[ -d "$candidate" ]] || continue
+        for link in "$candidate"/sp-*; do
             [[ -e "$link" ]] || continue
             local cmd
             cmd=$(basename "$link")
@@ -41,13 +35,11 @@ show_commands() {
                 target=" → $(basename "$target")"
             fi
             echo -e "  ${GREEN}${cmd}${RESET}${DIM}${target}${RESET}"
-            ((found++))
+            found=$((found + 1))
         done
-        if [[ $found -eq 0 ]]; then
-            echo -e "  ${DIM}(none installed)${RESET}"
-        fi
-    else
-        echo -e "  ${DIM}(no bin directory found)${RESET}"
+    done
+    if [[ $found -eq 0 ]]; then
+        echo -e "  ${DIM}(none installed)${RESET}"
     fi
     echo ""
 }
@@ -75,7 +67,7 @@ show_skills() {
             else
                 echo -e "  ${CYAN}${name}${RESET}"
             fi
-            ((count++))
+            count=$((count + 1))
         done
         echo ""
         echo -e "  ${BOLD}${count}${RESET} skill(s) installed"
