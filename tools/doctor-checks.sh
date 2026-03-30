@@ -541,11 +541,13 @@ for dir in "${SOURCE_DIRS[@]}"; do
   while IFS= read -r junk; do
     [[ -z "$junk" ]] && continue
 
-    # If the repo intentionally ignores this file, don't surface it as a doctor finding.
-    # This helps avoid repeated noise for local artifacts that are already excluded.
+    # Skip files that are tracked by git or intentionally ignored.
+    # Tracked files (e.g. .ip-patterns) are legitimate repo content, not junk.
+    # Ignored files are local artifacts the repo has already excluded.
     if [[ -d "$root/.git" ]] && command -v git &>/dev/null; then
       rel="${junk#"$root"/}"
       git -C "$root" check-ignore -q -- "$rel" 2>/dev/null && continue
+      git -C "$root" ls-files --error-unmatch -- "$rel" &>/dev/null && continue
     fi
 
     echo "🔵 INFO: junk file in $(basename "$root")/: $(basename "$junk")"
