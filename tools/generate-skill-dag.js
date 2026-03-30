@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseInlineArray, extractStringValue } = require('../lib/frontmatter.js');
 
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 const DEFAULT_OUTPUT = path.join(__dirname, '..', 'docs', 'skill-dependency-graph.md');
@@ -60,7 +61,7 @@ function parseFrontmatter(content) {
             coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = val.replace(/[\[\]]/g, '').split(',').map(s => unquoteYaml(s.trim())).filter(Boolean);
+              val = parseInlineArray(val);
             } else if (val === '' || val === undefined) {
               // Empty value — may be followed by multiline list items
               val = [];
@@ -76,8 +77,7 @@ function parseFrontmatter(content) {
       if (keyMatch && !inCoordination) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
-          // Simple inline array parsing (coordination arrays are simple identifiers)
-          val = val.replace(/[\[\]]/g, '').split(',').map(s => unquoteYaml(s.trim())).filter(Boolean);
+          val = parseInlineArray(val);
         }
         result[keyMatch[1]] = (typeof val === 'string') ? unquoteYaml(val) : val;
       }
