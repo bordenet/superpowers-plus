@@ -387,7 +387,7 @@ done
 # bugs — add the overlay collision groups to your private repo's config.
 KNOWN_COLLISION_GROUPS=(
   # Hub→child: thinking-orchestrator delegates to specialized skills
-  "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review"
+  "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review progressive-harsh-review"
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
   # Pre-commit chain: ordered sequential checks before commit
@@ -1075,7 +1075,7 @@ _doctor_todo_honeypot() {
     real_todo_path=$(grep '^TODO_FILE_PATH=' "$HOME/.codex/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed "s/^[[:space:]]*//;s/[[:space:]]*$//;s/^[\"']//;s/[\"']$//")
   fi
   # Safe variable expansion
-  # shellcheck disable=SC2088
+  # shellcheck disable=SC2088,SC2016  # Intentional literal match against unexpanded $HOME patterns
   if [[ "$real_todo_path" == "~/"* ]]; then
     real_todo_path="$HOME/${real_todo_path#\~/}"
   elif [[ "$real_todo_path" == '$HOME/'* ]]; then
@@ -1221,7 +1221,7 @@ _doctor_todo_path() {
 
   # Safe variable expansion (no eval — prevents shell injection)
   # Handles ~/..., $HOME/..., and ${HOME}/... without exposing to arbitrary code execution
-  # shellcheck disable=SC2088  # Intentional literal match
+  # shellcheck disable=SC2088,SC2016  # Intentional literal match against unexpanded $HOME patterns
   if [[ "$todo_path" == "~/"* ]]; then
     todo_path="$HOME/${todo_path#\~/}"
   elif [[ "$todo_path" == '$HOME/'* ]]; then
