@@ -45,4 +45,5 @@ Specific enough that someone could start Monday morning.]
 
 **Next:** (a) Draft an RFC  (b) Prototype the first move now
 (c) Stress-test with `think-twice`  (d) Generate alternatives via `brainstorming`
+(e) Phased execution plan via `plan-and-execute`
 ```
