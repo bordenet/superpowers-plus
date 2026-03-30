@@ -23,6 +23,8 @@ function unquoteYaml(s) {
 }
 
 function parseFrontmatter(content) {
+  // Normalize CRLF/CR to LF before parsing
+  content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
   try {
@@ -61,7 +63,7 @@ function parseFrontmatter(content) {
             coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = parseInlineArray(val);
+              val = parseInlineArray(val).filter(Boolean); // drop empty strings
             } else if (val === '' || val === undefined) {
               // Empty value — may be followed by multiline list items
               val = [];
@@ -77,7 +79,7 @@ function parseFrontmatter(content) {
       if (keyMatch && !inCoordination) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
-          val = parseInlineArray(val);
+          val = parseInlineArray(val).filter(Boolean);
         }
         result[keyMatch[1]] = (typeof val === 'string') ? unquoteYaml(val) : val;
       }
