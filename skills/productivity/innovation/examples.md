@@ -26,7 +26,7 @@ User reply:
 > "Dealers. They wish it filled their empty bays."
 
 Agent message 3:
-> "Constraints?"
+> "What constraints should I respect — team size, timeline, tech stack, politics?"
 
 User reply:
 > "Small team, 2 engineers. Can't build ML infrastructure from scratch."
@@ -74,9 +74,7 @@ User reply:
 >
 > ---
 >
-> **Next:** (a) Draft an RFC  (b) Prototype the first move now
-> (c) Stress-test with `think-twice`  (d) Generate alternatives via `brainstorming`
-> (e) Phased execution plan via `plan-and-execute`
+> Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, (d) generate alternatives via `brainstorming`, or (e) turn this into a phased execution plan via `plan-and-execute`?
 
 ---
 
