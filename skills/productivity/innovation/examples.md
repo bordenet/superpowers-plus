@@ -23,6 +23,9 @@ When this skill fires, it answers ONE question with depth: **"What's the single 
 
 > # The Smartest Addition to Booking Agent Right Now
 >
+> > What's the single smartest, most radically innovative, accretive, useful,
+> > and compelling addition I could make to this project right now?
+>
 > ## The Answer: Predictive overbooking with automatic waitlist backfill.
 >
 > ### Why This, Why Now
@@ -54,8 +57,14 @@ When this skill fires, it answers ONE question with depth: **"What's the single 
 > ### First Move (This Week)
 > Pull 90 days of booking data for 5 dealers. Calculate per-service-type
 > no-show rates. Build a rules-based overbooking calculator (if no-show
-> rate >25%, book 1 extra per 4 slots). Run it in shadow mode for 1 week
+> rate >25%, book 1 extra per 4 slots). Run it in shadow mode for 4 days
 > — log what it WOULD have done, compare against actual no-shows.
+>
+> ---
+>
+> **Next:** (a) Draft an RFC  (b) Prototype the first move now
+> (c) Stress-test with `think-twice`  (d) Generate alternatives via `brainstorming`
+> (e) Phased execution plan via `plan-and-execute`
 
 ---
 
