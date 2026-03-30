@@ -1,8 +1,7 @@
 ---
 name: skill-health-check
 source: superpowers-plus
-triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test",
-           "skill coverage report"]
+triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test", "skill coverage report"]
 anti_triggers: ["doctor", "diagnose", "runtime skill issue"]
 description: "Structural lint for skill files: validates YAML frontmatter has required fields, checks line count limits, and enforces coordination metadata (group, order, internal) as errors. Reports missing Failure Modes sections as warnings. Does NOT check runtime behavior (use superpowers-doctor for that)."
 summary: "Use when: checking skill file structure after bulk changes. For runtime diagnostics use superpowers-doctor."
