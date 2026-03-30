@@ -134,11 +134,12 @@ main() {
         git clean -fd --quiet
     fi
 
-    # Fast-forward merge
+    # Fast-forward merge (or reset if diverged)
     local before_sha
     before_sha=$(git rev-parse --short HEAD)
 
     if git merge-base --is-ancestor HEAD "$remote/$target_branch" 2>/dev/null; then
+        # Local is ancestor of remote — safe fast-forward merge
         local merge_output
         if ! merge_output=$(git merge --ff-only "$remote/$target_branch" 2>&1); then
             log_error "Fast-forward merge failed."
@@ -174,9 +175,10 @@ main() {
             exit 1
         fi
     else
-        log_error "Local branch has diverged from $remote/$target_branch."
-        log_error "Use --force to reset, or resolve manually."
-        exit 1
+        # Local has diverged from remote (ahead and/or behind) — force reset to latest
+        log_warn "Local branch has diverged from $remote/$target_branch — forcing reset to latest"
+        git reset --hard "$remote/$target_branch" --quiet
+        git clean -fd --quiet
     fi
 
     local after_sha
