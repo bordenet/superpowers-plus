@@ -64,6 +64,17 @@ _trunc() {
     fi
 }
 
+# Map source name to display label
+_source_label() {
+    case "$1" in
+        superpowers-plus)     echo "superpowers-plus (base framework)" ;;
+        superpowers-[company])  echo "superpowers-[company] ([Company])" ;;
+        superpowers-[product])     echo "superpowers-[product] ([PRODUCT] / Team Delta)" ;;
+        unknown)              echo "other" ;;
+        *)                    echo "$1" ;;
+    esac
+}
+
 # --- Sections ---
 
 show_header() {
@@ -208,16 +219,7 @@ show_skills() {
         printf '%s\t%s\t%s\n' "$source" "$name" "$desc" >> "$tmpfile"
     done
 
-    # Source display labels
-    _source_label() {
-        case "$1" in
-            superpowers-plus)     echo "superpowers-plus (base framework)" ;;
-            superpowers-[company])  echo "superpowers-[company] ([Company])" ;;
-            superpowers-[product])     echo "superpowers-[product] ([PRODUCT] / Team Delta)" ;;
-            unknown)              echo "other" ;;
-            *)                    echo "$1" ;;
-        esac
-    }
+    # Source display labels (defined at top level as _source_label)
 
     # Get sorted unique sources: superpowers-plus first, then alpha
     local sources_list
@@ -266,23 +268,89 @@ show_skills() {
     echo ""
 }
 
+show_summary() {
+    # Quick skill counts per source without listing individual skills
+    if [[ ! -d "$SKILLS_DIR" ]]; then
+        echo -e "  ${YELLOW}Skills directory not found${RESET}"
+        return
+    fi
+
+    echo -e "${BOLD}Installed Skills${RESET}"
+    echo ""
+
+    # Count skills per source in a single pass
+    local total=0
+    local counts_file
+    counts_file=$(mktemp "${TMPDIR:-/tmp}/sp-counts.XXXXXX") || return
+    trap 'rm -f -- "$counts_file"' RETURN
+
+    for skill_dir in "$SKILLS_DIR"/*/; do
+        [[ -d "$skill_dir" && -f "$skill_dir/skill.md" ]] || continue
+        local name
+        name=$(basename "$skill_dir")
+        [[ "$name" == "_shared" ]] && continue
+        total=$((total + 1))
+        local source=""
+        source=$(_fm_field "$skill_dir/skill.md" "source")
+        [[ -z "$source" ]] && source="unknown"
+        echo "$source" >> "$counts_file"
+    done
+
+    # superpowers-plus first, then others alphabetically
+    if [[ -f "$counts_file" ]]; then
+        # Use awk for all counting — avoids grep exit-code issues under set -e
+        awk '
+            { counts[$0]++ }
+            END {
+                # superpowers-plus first
+                if ("superpowers-plus" in counts) {
+                    printf "SPP\t%d\n", counts["superpowers-plus"]
+                    delete counts["superpowers-plus"]
+                }
+                # remaining sources alphabetically
+                n = 0
+                for (s in counts) { sorted[n++] = s }
+                for (i = 0; i < n; i++)
+                    for (j = i+1; j < n; j++)
+                        if (sorted[i] > sorted[j]) { t = sorted[i]; sorted[i] = sorted[j]; sorted[j] = t }
+                for (i = 0; i < n; i++)
+                    printf "OTHER\t%d\t%s\n", counts[sorted[i]], sorted[i]
+            }
+        ' "$counts_file" | while IFS='	' read -r tag cnt src; do
+            if [[ "$tag" == "SPP" ]]; then
+                echo -e "  ${GREEN}superpowers-plus${RESET} ${DIM}(base framework · ${cnt} skills)${RESET}"
+            else
+                local label
+                label=$(_source_label "$src")
+                echo -e "  ${GREEN}${label}${RESET} ${DIM}(${cnt} skills)${RESET}"
+            fi
+        done
+    fi
+
+    echo ""
+    echo -e "  ${WHITE}${total}${RESET} skills total"
+    echo -e "  ${DIM}Run ${RESET}sp-help --skills${DIM} to see all skills with descriptions${RESET}"
+    echo ""
+}
+
 show_usage() {
     echo -e "${WHITE}sp-help${RESET} — Superpowers ecosystem reference"
     echo ""
     echo "Usage: sp-help [--skills | --commands | --overlays | --all | --compact]"
     echo ""
-    echo "  --skills     List installed skills grouped by source"
+    echo "  (default)    Overview: credits, overlays, commands, and skill counts"
+    echo "  --skills     List all installed skills grouped by source"
     echo "  --commands   List sp-* CLI commands"
     echo "  --overlays   Show installed overlay repos"
-    echo "  --all        Show everything (default)"
-    echo "  --compact    Show everything without skill descriptions"
+    echo "  --all        Show everything including full skill listing"
+    echo "  --compact    Full listing without skill descriptions"
     echo ""
     echo "For AI-assisted help, ask your agent: \"what superpowers do I have?\""
     echo ""
 }
 
 # --- Main ---
-mode="all"
+mode="default"
 compact="false"
 for arg in "$@"; do
     case "$arg" in
@@ -300,10 +368,16 @@ for arg in "$@"; do
     esac
 done
 
+# --compact without explicit mode implies --all (full listing, no descriptions)
+if [[ "$compact" == "true" && "$mode" == "default" ]]; then
+    mode="all"
+fi
+
 echo ""
 case "$mode" in
     skills)    show_skills "$compact" ;;
     commands)  show_commands ;;
     overlays)  show_header; show_overlays ;;
     all)       show_header; show_overlays; show_commands; show_skills "$compact" ;;
+    default)   show_header; show_overlays; show_commands; show_summary ;;
 esac
