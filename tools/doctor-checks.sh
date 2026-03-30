@@ -769,6 +769,17 @@ check_stale_checkout() {
         echo "  ⚠️  Could not fast-forward (local changes?). Run: git -C \"$dir\" pull"
       fi
     fi
+  elif [[ "$ahead" -gt 0 ]]; then
+    # Local commits in the installed copy are always wrong — this is a deployment
+    # target, not a working directory. Changes must go through the source repo.
+    echo "🔴 CRITICAL: $label — ${ahead} local commit(s) not on origin/main"
+    echo "   Installed copies must never be edited directly."
+    echo "   Edit source repos in ~/GitHub/, then reinstall."
+    git -C "$dir" log --oneline "origin/main..HEAD" 2>/dev/null | head -5 | while IFS= read -r line; do
+      echo "   $line"
+    done
+    echo "   Fix: git -C \"$dir\" reset --hard origin/main"
+    ((CRITICALS++))
   fi
 }
 for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
