@@ -188,6 +188,82 @@ async function main() {
     assert(matchText.includes('Rank'), 'match_skills output has ranking table');
     assert(matchText.includes('Top match:'), 'match_skills identifies a top match');
 
+    // ── 6. Parser regression: apostrophes and ] inside quoted triggers ──
+    console.log('\n--- parser regression ---');
+
+    // Create a hermetic temp skill with adversarial triggers
+    const tmpDir = path.join(import.meta.dirname || __dirname, '..', '.tmp-smoke-test-' + process.pid);
+    const tmpSkillDir = path.join(tmpDir, 'parser-regression-test');
+    const { mkdirSync, writeFileSync, rmSync } = await import('fs');
+    mkdirSync(tmpSkillDir, { recursive: true });
+    writeFileSync(path.join(tmpSkillDir, 'skill.md'), [
+      '---',
+      'name: parser-regression-test',
+      'description: "User says \\"build X\\""',
+      'triggers: [',
+      '  "what\'s next",',
+      '  "press ] to continue",',
+      '  "I\'m stuck"',
+      ']',
+      'coordination:',
+      '  group: test',
+      '  order: 1',
+      '  requires: []',
+      '  enables: []',
+      '  escalates_to: []',
+      '  internal: false',
+      '---',
+      '# Parser regression test skill',
+      '',
+    ].join('\n'));
+
+    // Spawn a second MCP server with the temp skill dir
+    const client2 = new McpClient(spawn(process.execPath, [SERVER_PATH], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, PERSONAL_SKILLS_DIR: tmpDir, SUPERPOWERS_SKILLS_DIR: '/dev/null' },
+    }));
+    try {
+      await client2.send('initialize', {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'smoke-regression', version: '1.0' },
+      });
+      client2._proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+      // Verify find_skills includes the test skill
+      const regFindResult = await client2.send('tools/call', {
+        name: 'find_skills', arguments: {},
+      });
+      const regFindText = regFindResult?.content?.[0]?.text || '';
+      assert(regFindText.includes('parser-regression-test'),
+        'regression: find_skills discovers temp skill');
+
+      // Verify description is properly unescaped (no backslash-quotes)
+      assert(!regFindText.includes('\\"build'),
+        'regression: description has no escaped quotes');
+
+      // Verify match_skills for apostrophe trigger
+      const regMatchResult = await client2.send('tools/call', {
+        name: 'match_skills',
+        arguments: { query: "what's next", top_n: 3 },
+      });
+      const regMatchText = regMatchResult?.content?.[0]?.text || '';
+      assert(regMatchText.includes('parser-regression-test'),
+        'regression: match_skills finds skill by apostrophe trigger');
+
+      // Verify match_skills for ] trigger
+      const regBracketResult = await client2.send('tools/call', {
+        name: 'match_skills',
+        arguments: { query: 'press ] to continue', top_n: 3 },
+      });
+      const regBracketText = regBracketResult?.content?.[0]?.text || '';
+      assert(regBracketText.includes('parser-regression-test'),
+        'regression: match_skills finds skill by bracket-in-trigger');
+    } finally {
+      client2.kill();
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+
   } catch (err) {
     bad('protocol error', err.message);
   } finally {
