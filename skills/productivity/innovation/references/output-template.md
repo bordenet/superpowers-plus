@@ -3,77 +3,46 @@
 > Reference material for the `innovation` skill.
 > See `skill.md` for core agent guidance.
 
-## Per-Idea Format (Step 5)
-
-For each idea, provide:
+## Output Format
 
 ```markdown
-## Idea [N]: [Title] — Score: [X]/35
+# The Smartest Addition to [Project Name] Right Now
 
-**What it is:** [1-2 sentence description]
+> What's the single smartest, most radically innovative, accretive, useful,
+> and compelling addition I could make to this project right now?
 
-**Why it's transformative:** [Why 10x, not 10%]
+## The Answer: [One clear sentence]
 
-**Impact × Feasibility:**
-| Dimension | Score | Rationale |
-|-----------|-------|-----------|
-| Impact | [1-5] | [why] |
-| Feasibility | [1-5] | [why] |
-| Alignment | [1-5] | [why] |
-| Uniqueness | [1-5] | [why] |
+### Why This, Why Now
 
-**What it would require:**
-- [Major prerequisite 1]
-- [Major prerequisite 2]
-- Estimated effort: [1 week / 1 sprint / 1 quarter]
+[2-3 paragraphs. What you learned about the project, the users, and the market
+that led you here. Why this is better than the obvious alternatives. What makes
+this the RIGHT moment for this move.]
 
-**Risks & Unknowns:**
-- [Risk 1]
-- [Risk 2]
+### How It's Accretive
 
-**🧪 Next-Week Prototype:**
-[Concrete experiment that validates the idea in ≤5 days]
-Example: "Build a Slack bot that handles 3 specific request types to validate demand"
-```
+[Specifically what existing strengths, infrastructure, code, or user behaviors
+this builds on. This is not greenfield — show how it amplifies what's already
+working.]
 
----
+### What It Unlocks
 
-## Full Output Format
+[Second-order effects. What becomes possible once this exists that isn't possible
+today? This is where 10x thinking lives — not in the idea itself, but in what
+the idea enables.]
 
-```markdown
-# Innovation Analysis: [Project Name]
+### The Hard Parts
 
-**Input context:** [What user provided — PRD snippet, pain points, code folder]
+[Honest. What could go wrong. What you don't know. What assumptions you're
+making that might be wrong. Technical risks, adoption risks, political risks.]
 
-**Current state:** [Brief summary of project today]
+### First Move (This Week)
 
-**Core question:** What's the single smartest, most radically innovative,
-accretive, useful, and compelling addition I could make right now?
+[Not a plan. An action. What you'd build in ≤5 days to validate this idea.
+Specific enough that someone could start Monday morning.]
 
 ---
 
-## Idea 1: [Title] ⭐ Recommended — Score: X/35
-
-[Full idea format from Step 5 with scoring table and next-week prototype]
-
-## Idea 2: [Title] — Score: X/35
-
-[Full idea format]
-
-## Idea 3: [Title] — Score: X/35
-
-[Full idea format]
-
----
-
-## Recommended Path Forward
-
-**Top recommendation:** Idea [N] because [reason]
-
-**This week:** [Concrete next-week experiment]
-
-**If you want to go deeper:** I can turn Idea [N] into:
-- [ ] A one-pager / RFC
-- [ ] An experiment plan with success criteria
-- [ ] A prototype implementation
+**Next:** (a) Draft an RFC  (b) Prototype the first move now
+(c) Stress-test with `think-twice`  (d) Generate alternatives via `brainstorming`
 ```
