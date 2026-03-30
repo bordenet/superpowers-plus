@@ -38,7 +38,7 @@ function parseFrontmatter(content) {
           // Multiline list item: "    - value"
           const listItemMatch = line.match(/^\s+-\s+(.+)$/);
           if (listItemMatch && coordCurrentKey) {
-            const item = listItemMatch[1].replace(/["']/g, '').trim();
+            const item = listItemMatch[1].trim().replace(/^["'](.+)["']$/, '$1');
             if (!Array.isArray(coordObj[coordCurrentKey])) {
               coordObj[coordCurrentKey] = [];
             }
@@ -50,7 +50,7 @@ function parseFrontmatter(content) {
             coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim()).filter(Boolean);
+              val = val.replace(/[\[\]]/g, '').split(',').map(s => s.trim().replace(/^["'](.+)["']$/, '$1')).filter(Boolean);
             } else if (val === '' || val === undefined) {
               // Empty value — may be followed by multiline list items
               val = [];

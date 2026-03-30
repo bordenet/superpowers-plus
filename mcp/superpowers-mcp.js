@@ -162,9 +162,12 @@ function extractFrontmatter(filePath) {
     let name = '';
     let description = '';
     let triggers = [];
+    let anti_triggers = [];
     let compress = true;
     let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+    let antiTriggerAccum = null; // accumulates bracket-multiline anti_trigger arrays
     let yamlListField = null; // tracks which field is accumulating YAML-list items
+    let yamlListTarget = null; // 'triggers' or 'anti_triggers'
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -174,7 +177,7 @@ function extractFrontmatter(filePath) {
         continue;
       }
       if (inFrontmatter) {
-        // Handle bracket-multiline accumulation: triggers: [\n  "a",\n  "b"\n]
+        // Handle bracket-multiline accumulation
         if (triggerAccum !== null) {
           triggerAccum += ' ' + line.trim();
           if (hasUnquotedClosingBracket(triggerAccum)) {
@@ -183,17 +186,27 @@ function extractFrontmatter(filePath) {
           }
           continue;
         }
+        if (antiTriggerAccum !== null) {
+          antiTriggerAccum += ' ' + line.trim();
+          if (hasUnquotedClosingBracket(antiTriggerAccum)) {
+            anti_triggers = parseInlineArray(extractBracketContent(antiTriggerAccum));
+            antiTriggerAccum = null;
+          }
+          continue;
+        }
 
-        // Handle YAML-list accumulation: triggers:\n  - item\n  - item
+        // Handle YAML-list accumulation
         if (yamlListField && line.match(/^\s+-\s/)) {
           const raw = line.replace(/^\s+-\s*/, '').trim();
           const item = unquoteYaml(raw);
-          if (item) triggers.push(item);
+          if (item) {
+            if (yamlListTarget === 'anti_triggers') anti_triggers.push(item);
+            else triggers.push(item);
+          }
           continue;
         } else if (yamlListField) {
-          // Line doesn't start with "  - ", list is done
           yamlListField = null;
-          // Fall through to parse this line normally
+          yamlListTarget = null;
         }
 
         const nameMatch = line.match(/^name:\s*(.*)$/);
@@ -204,16 +217,26 @@ function extractFrontmatter(filePath) {
         // Triggers — three forms
         if (line.match(/^triggers:\s*\[/)) {
           if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-            // Form 1: Single-line inline: triggers: ["a", "b"]
             triggers = parseInlineArray(extractBracketContent(line));
           } else {
-            // Form 2: Bracket-multiline: triggers: [\n  "a",\n  "b"\n]
             triggerAccum = line;
           }
         } else if (line.match(/^triggers:\s*$/)) {
-          // Form 3: YAML-list: triggers:\n  - item
           yamlListField = 'triggers';
+          yamlListTarget = 'triggers';
           triggers = [];
+        }
+        // Anti-triggers — same three forms
+        if (line.match(/^anti_triggers:\s*\[/)) {
+          if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+            anti_triggers = parseInlineArray(extractBracketContent(line));
+          } else {
+            antiTriggerAccum = line;
+          }
+        } else if (line.match(/^anti_triggers:\s*$/)) {
+          yamlListField = 'anti_triggers';
+          yamlListTarget = 'anti_triggers';
+          anti_triggers = [];
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }
@@ -230,9 +253,9 @@ function extractFrontmatter(filePath) {
         }
       }
     }
-    return { name, description, triggers, compress };
+    return { name, description, triggers, anti_triggers, compress };
   } catch {
-    return { name: '', description: '', triggers: [], compress: true };
+    return { name: '', description: '', triggers: [], anti_triggers: [], compress: true };
   }
 }
 
@@ -321,6 +344,7 @@ function findSkillsInDir(dir, sourceType) {
         skillDir,
         name: meta.name || entry.name,
         description: meta.description || `Skill: ${entry.name}`,
+        anti_triggers: meta.anti_triggers || [],
         dirName: entry.name,
         triggers: meta.triggers || [],
         compress: meta.compress,
