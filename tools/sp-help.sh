@@ -27,12 +27,29 @@ ENV_FILE="$HOME/.codex/.env"
 # --- Helpers ---
 
 # Extract a YAML frontmatter field from a skill.md file
+# Handles quoted values (preserves # inside quotes) and strips inline comments only
+# when the value is unquoted. Does NOT handle block scalars (|, >).
 _fm_field() {
     local file="$1" field="$2"
     awk -v f="$field" '
         /^---$/ { n++; next }
         n==1 && $0 ~ "^"f":" {
-            sub("^"f": *", ""); gsub(/^"/, ""); gsub(/"$/, ""); gsub(/ *#.*$/, ""); print; exit
+            sub("^"f": *", "")
+            # If value is a block scalar indicator, skip it
+            if ($0 ~ /^[|>][ ]*$/) { print ""; exit }
+            # Trim trailing whitespace FIRST (before quote detection)
+            sub(/[ \t]+$/, "")
+            # Strip surrounding quotes if present
+            if ($0 ~ /^".*"$/) {
+                sub(/^"/, ""); sub(/"$/, "")
+            } else if ($0 ~ /^'"'"'.*'"'"'$/) {
+                sub(/^'"'"'/, ""); sub(/'"'"'$/, "")
+            } else {
+                # Unquoted: strip trailing inline comment
+                sub(/ +#.*$/, "")
+                sub(/[ \t]+$/, "")
+            }
+            print; exit
         }
     ' "$file" 2>/dev/null || true
 }
@@ -55,8 +72,8 @@ show_header() {
     echo -e "  ${DIM}Upstream:${RESET}  ${ULINE}https://github.com/obra/superpowers${RESET}"
     echo -e "  ${DIM}Extended:${RESET}  ${ULINE}https://github.com/bordenet/superpowers-plus${RESET}"
     local spp_version=""
-    if [[ -d "$SPP_DIR/.git" ]]; then
-        spp_version=$(cd "$SPP_DIR" && git log --oneline -1 2>/dev/null | cut -c1-7)
+    if [[ -d "$SPP_DIR/.git" ]] && command -v git >/dev/null 2>&1; then
+        spp_version=$(cd "$SPP_DIR" && git log --oneline -1 2>/dev/null | cut -c1-7) || true
     fi
     if [[ -n "$spp_version" ]]; then
         echo -e "  ${DIM}Version:${RESET}   ${spp_version}"
@@ -70,8 +87,8 @@ show_overlays() {
 
     # Always show superpowers-plus as the base
     local spp_url=""
-    if [[ -d "$SPP_DIR/.git" ]]; then
-        spp_url=$(cd "$SPP_DIR" && git remote get-url origin 2>/dev/null || true)
+    if [[ -d "$SPP_DIR/.git" ]] && command -v git >/dev/null 2>&1; then
+        spp_url=$(cd "$SPP_DIR" && git remote get-url origin 2>/dev/null) || true
     fi
     local spp_count=0
     for d in "$SKILLS_DIR"/*/; do
@@ -85,7 +102,7 @@ show_overlays() {
 
     # Read overlay registrations from .env
     if [[ -f "$ENV_FILE" ]]; then
-        declare -A seen_names
+        local seen_names=""
         while IFS= read -r line; do
             # Match lines like FOO_SOURCE_DIR="..."
             if [[ "$line" =~ ^[A-Z_]+SOURCE_DIR=[\"\']?(.+)[\"\']?$ ]] || \
@@ -101,9 +118,11 @@ show_overlays() {
                 overlay_name=$(basename "$dir")
                 # Skip superpowers-plus (already shown) and local overlay
                 [[ "$overlay_name" == "superpowers-plus" ]] && continue
-                # Deduplicate by overlay name
-                [[ -n "${seen_names[$overlay_name]+x}" ]] && continue
-                seen_names[$overlay_name]=1
+                # Deduplicate by overlay name (newline-separated list)
+                case "$seen_names" in
+                    *"|${overlay_name}|"*) continue ;;
+                esac
+                seen_names="${seen_names}|${overlay_name}|"
                 # Count skills from this source
                 local ov_count=0
                 for d in "$SKILLS_DIR"/*/; do
@@ -114,8 +133,8 @@ show_overlays() {
                 done
                 [[ $ov_count -eq 0 ]] && continue
                 local ov_url=""
-                if [[ -d "$dir/.git" ]]; then
-                    ov_url=$(cd "$dir" && git remote get-url origin 2>/dev/null || true)
+                if [[ -d "$dir/.git" ]] && command -v git >/dev/null 2>&1; then
+                    ov_url=$(cd "$dir" && git remote get-url origin 2>/dev/null) || true
                 fi
                 echo -e "  ${GREEN}${overlay_name}${RESET} ${DIM}(${ov_count} skills)${RESET}"
                 [[ -n "$ov_url" ]] && echo -e "    ${DIM}${ov_url}${RESET}"
@@ -158,69 +177,63 @@ show_skills() {
         return
     fi
 
-    # Collect skills grouped by source
-    declare -A source_skills
-    declare -A source_order
+    # Build a temp file with source|name|description for all skills
+    local tmpfile
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/sp-help.XXXXXX") || return
+    trap 'rm -f -- "$tmpfile"' RETURN
+
     local total=0
-    local order_idx=0
 
     for skill_dir in "$SKILLS_DIR"/*/; do
         [[ -d "$skill_dir" ]] || continue
+        # Only count directories that contain skill.md
+        [[ -f "$skill_dir/skill.md" ]] || continue
         local name
         name=$(basename "$skill_dir")
         [[ "$name" == "_shared" ]] && continue
         total=$((total + 1))
 
-        local source="unknown"
+        local source=""
         local desc=""
-        if [[ -f "$skill_dir/skill.md" ]]; then
-            source=$(_fm_field "$skill_dir/skill.md" "source")
-            [[ -z "$source" ]] && source="unknown"
-            if [[ "$compact" != "true" ]]; then
-                desc=$(_fm_field "$skill_dir/skill.md" "summary")
-                [[ -z "$desc" ]] && desc=$(_fm_field "$skill_dir/skill.md" "description")
+        source=$(_fm_field "$skill_dir/skill.md" "source")
+        [[ -z "$source" ]] && source="unknown"
+        if [[ "$compact" != "true" ]]; then
+            desc=$(_fm_field "$skill_dir/skill.md" "summary")
+            [[ -z "$desc" ]] && desc=$(_fm_field "$skill_dir/skill.md" "description")
+            if [[ -n "$desc" ]]; then
+                desc=$(_trunc "$desc" 68)
             fi
         fi
-
-        # Track source ordering (first-seen order)
-        if [[ -z "${source_order[$source]+x}" ]]; then
-            source_order[$source]=$order_idx
-            order_idx=$((order_idx + 1))
-        fi
-
-        # Build entry
-        if [[ -n "$desc" ]]; then
-            desc=$(_trunc "$desc" 68)
-            source_skills[$source]+="  ${name}|${desc}"$'\n'
-        else
-            source_skills[$source]+="  ${name}|"$'\n'
-        fi
+        # Use tab as delimiter (safe — no tabs in source names or skill names)
+        printf '%s\t%s\t%s\n' "$source" "$name" "$desc" >> "$tmpfile"
     done
 
-    # Display source labels
-    declare -A source_labels
-    source_labels[superpowers-plus]="superpowers-plus (base framework)"
-    source_labels[superpowers-callbox]="superpowers-callbox (CallBox)"
-    source_labels[superpowers-cari]="superpowers-cari (CARI / Team Delta)"
-    source_labels[unknown]="other"
+    # Source display labels
+    _source_label() {
+        case "$1" in
+            superpowers-plus)     echo "superpowers-plus (base framework)" ;;
+            superpowers-callbox)  echo "superpowers-callbox (CallBox)" ;;
+            superpowers-cari)     echo "superpowers-cari (CARI / Team Delta)" ;;
+            unknown)              echo "other" ;;
+            *)                    echo "$1" ;;
+        esac
+    }
 
-    # Sort sources: superpowers-plus first, then alphabetical
-    local sorted_sources=()
-    [[ -n "${source_skills[superpowers-plus]+x}" ]] && sorted_sources+=("superpowers-plus")
-    for src in $(echo "${!source_skills[@]}" | tr ' ' '\n' | sort); do
-        [[ "$src" == "superpowers-plus" ]] && continue
-        sorted_sources+=("$src")
-    done
+    # Get sorted unique sources: superpowers-plus first, then alpha
+    local sources_list
+    sources_list=$(cut -f1 "$tmpfile" | sort -u | grep -v '^superpowers-plus$' || true)
+    local num_sources=0
 
-    for src in "${sorted_sources[@]}"; do
-        local label="${source_labels[$src]:-$src}"
-        local count
-        count=$(echo -n "${source_skills[$src]}" | grep -c '.' || true)
+    # Helper: print skills for a given source (exact field match via awk)
+    _print_source_group() {
+        local src="$1" file="$2"
+        local label count
+        label=$(_source_label "$src")
+        count=$(awk -F'\t' -v s="$src" '$1 == s { n++ } END { print n+0 }' "$file")
+        [[ "$count" -eq 0 ]] && return 1
         echo -e "${BOLD}${label}${RESET} ${DIM}(${count} skills)${RESET}"
         echo ""
-        # Sort and print skills within this source
-        echo -n "${source_skills[$src]}" | sort | while IFS='|' read -r sname sdesc; do
-            sname="${sname## }"
+        awk -F'\t' -v s="$src" '$1 == s' "$file" | sort -t'	' -k2,2 | while IFS='	' read -r _src sname sdesc; do
             if [[ -n "$sdesc" ]]; then
                 printf "  ${CYAN}%-38s${RESET} ${DIM}%s${RESET}\n" "$sname" "$sdesc"
             else
@@ -228,9 +241,25 @@ show_skills() {
             fi
         done
         echo ""
-    done
+        return 0
+    }
 
-    echo -e "  ${WHITE}${total}${RESET} skills installed across ${WHITE}${#sorted_sources[@]}${RESET} sources"
+    # superpowers-plus first (if present)
+    if _print_source_group "superpowers-plus" "$tmpfile"; then
+        num_sources=$((num_sources + 1))
+    fi
+
+    # Remaining sources alphabetically
+    if [[ -n "$sources_list" ]]; then
+        while IFS= read -r src; do
+            [[ -z "$src" ]] && continue
+            if _print_source_group "$src" "$tmpfile"; then
+                num_sources=$((num_sources + 1))
+            fi
+        done <<< "$sources_list"
+    fi
+
+    echo -e "  ${WHITE}${total}${RESET} skills installed across ${WHITE}${num_sources}${RESET} sources"
     echo ""
     echo -e "  ${DIM}Wiki:${RESET}  ${ULINE}https://cb-outline.getoutline.com/doc/superpowers-skills-cASQJAkNFD${RESET}"
     echo -e "  ${DIM}Audit:${RESET} ${ULINE}https://cb-outline.getoutline.com/doc/superpowers-audit-JZXrdyVBFg${RESET}"
