@@ -27,50 +27,52 @@ coordination:
 ## When to Use
 
 - User asks "what can you do?" or "what skills do you have?"
-- Need to enumerate available superpowers or explicit skills at runtime
+- User needs routing to the right skill for their task
 - Debugging whether a specific skill is installed and active
-
-
-## Understanding the Distinction
-
-| Term | Definition | How It Works |
-|------|------------|--------------|
-| **Superpower** | A skill with `triggers: [...]` in frontmatter | Auto-invokes when trigger phrases are detected |
-| **Explicit Skill** | A skill without triggers | Must be explicitly invoked by name |
-
-**Example:**
-- `brainstorming` is a **superpower** — saying "help me plan this feature" auto-triggers it
-- `think-twice` is an **explicit skill** — you must say "invoke think-twice" to use it
 
 ---
 
-## MANDATORY: Dynamic Enumeration
+## Procedure: Everything Is Dynamic
 
-**DO NOT rely on any hardcoded skill lists.** Skills change frequently. You MUST enumerate dynamically.
+**NEVER hardcode skill names, counts, or routing.** All data comes from runtime discovery.
 
-### Responding to "What are my superpowers?"
+### Step 1: Discover What's Installed
 
-When the user asks about superpowers specifically, list **only auto-triggered skills**:
-
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers
-```
-
-### Responding to "What skills do I have?"
-
-When the user asks about skills generally, list **all skills** (categorized):
+Run this FIRST — every time, no exceptions:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 ```
 
-### Listing Only Explicit Skills
+From the output, extract:
+
+- Total skill count (auto-triggered + explicit)
+- Breakdown by activation type
+
+Present as a brief summary:
+
+> You have **[N] skills** installed ([X] auto-triggered, [Y] explicit).
+> Auto-triggered skills fire when needed — you don't have to remember them.
+> **Tell me what you want to do** and I'll match you to the right skill.
+
+### Step 2: Route by Intent (primary value)
+
+If the user describes a task or asks "what should I use for X?", use `match-skills`:
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit
+node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "<user's intent>"
 ```
 
-### Load a Specific Skill
+This returns the top 5 matching skills ranked by relevance with scores. Present the top 3 with their descriptions (pulled from the `find-skills` output, not from memory).
+
+### Step 3: Filter by Type (if asked)
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills superpowers  # auto-triggered only
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit     # manual only
+```
+
+### Step 4: Load a Specific Skill
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
@@ -78,35 +80,41 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
 
 ---
 
-## How Superpowers Work (Auto-Triggered)
+## Understanding the Two Axes
 
-Superpowers fire when trigger phrases appear. You don't need to explicitly invoke them.
+| Axis | Values | What It Means |
+|------|--------|---------------|
+| **Activation** | 🦸 auto-triggered / 🔧 explicit | Auto-triggered skills fire when trigger phrases are detected. Explicit skills must be invoked by name. |
+| **Source** | `superpowers:` (core) / `superpowers-plus:` (extended) | Core skills come from [obra/superpowers](https://github.com/obra/superpowers). Extended skills add domain-specific capabilities. |
 
-**Example triggers:**
-- "help me plan this feature" → `brainstorming` fires
-- "fix this bug" → `systematic-debugging` fires
-- "update the wiki" → `wiki-orchestrator` fires
-
-### The 1% Rule
-
-> If there's even a 1% chance a superpower might apply, **let it fire**.
-
-Don't suppress: "This is simple, I don't need the skill." Superpowers exist to prevent mistakes.
-
-## How Explicit Skills Work (Manual Invocation)
-
-Explicit skills require you to invoke them by name:
-- "invoke think-twice"
-- "use superpowers-help"
-- "run security-upgrade"
-
-These skills are typically meta-tools (help, observability) or tools that should only run on explicit request.
+**The 1% Rule:** If there's even a 1% chance a superpower applies, let it fire. Don't suppress with "this is simple."
 
 ### Priority When Multiple Apply
 
-1. **Process superpowers first** (brainstorming, debugging) — determine HOW to approach
-2. **Implementation superpowers second** (wiki-orchestrator, issue-authoring) — guide execution
+1. **Process skills first** — determine HOW to approach (look for skills with triggers matching brainstorm/plan/debug)
+2. **Implementation skills second** — guide execution (look for skills matching the specific domain)
 3. **Explicit skills on request** — only when user specifically asks
+
+---
+
+## Presenting Results
+
+When showing skills to the user, organize dynamically using the data from `find-skills`:
+
+### For General "What Can You Do?" Questions
+
+1. Show count summary (from Step 1)
+2. Ask what they want to accomplish
+3. Run `match-skills` with their answer
+4. Present top 3 matches with descriptions
+
+### For "Show Me Everything" Requests
+
+Run `find-skills` and present the full output. It's already categorized (auto-triggered vs explicit) and alphabetized.
+
+### For "What's Good For [task]?" Questions
+
+Run `match-skills "<task>"` and present the ranked results. The matching engine uses trigger phrases and descriptions to find relevant skills — it knows things this skill file doesn't.
 
 ---
 
@@ -115,42 +123,7 @@ These skills are typically meta-tools (help, observability) or tools that should
 ```bash
 sp-doctor    # expands to superpowers-doctor (normal resolution)
 spp-doctor   # loads from superpowers-plus source repo directly
-spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
-```
-
----
-
-## Common Task Routing
-
-| Task | Type | Skill(s) |
-|------|------|----------|
-| "Build a new feature" | 🦸 auto | brainstorming → plan-and-execute |
-| "Fix this bug" | 🦸 auto | systematic-debugging → test-driven-development |
-| "Review this PR" | 🦸 auto | providing-code-review |
-| "Update the wiki" | 🦸 auto | wiki-orchestrator → link-verification |
-| "Check my AI writing" | 🦸 auto | detecting-ai-slop → eliminating-ai-slop |
-| "Get a second opinion" | 🔧 explicit | think-twice (must invoke by name) |
-| "What can you do?" | 🔧 explicit | superpowers-help (this skill) |
-| "Check skill health" | 🦸 auto | superpowers-doctor (sp-doctor) |
-
----
-
-## Installation
-
-### With superpowers already installed
-
-superpowers-plus requires [obra/superpowers](https://github.com/obra/superpowers) as a prerequisite.
-
-```bash
-git clone https://github.com/bordenet/superpowers-plus.git
-cd superpowers-plus
-./install.sh
-```
-
-### Check Version
-
-```bash
-./install.sh --version
+spo:skill    # loads from overlay source repo (requires SP_OVERLAY_SOURCE_DIR)
 ```
 
 ---
@@ -159,16 +132,19 @@ cd superpowers-plus
 
 | Failure | Fix |
 |---------|-----|
-| Reporting skills from memory instead of running discovery | ALWAYS run `find-skills` — never enumerate from memory |
-| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — check both sources |
-| Confusing superpowers vs explicit skills | Superpowers have `triggers:` (auto-fire); explicit skills must be manually invoked |
-| Recommending a skill without checking if it's installed | Run `find-skills {name}` before recommending any skill |
+| Hardcoding skill names, counts, or routing tables | ALL data must come from `find-skills` / `match-skills` at runtime |
+| Reporting skills from memory instead of running discovery | Run `find-skills` before answering — never enumerate from memory |
+| Dumping the full catalog as first response | Start with count summary + "what do you want to do?" |
+| Missing overlay skills from `SP_OVERLAY_SOURCE_DIR` | Overlay adds skills not in base install — `find-skills` covers both sources |
+| Confusing superpowers vs explicit skills | Two axes: activation (auto/explicit) and source (core/extended) |
+| Recommending a skill without confirming it's installed | Run `find-skills {name}` or `match-skills` before recommending |
+| Stale skill descriptions in output | If `find-skills` shows `>` as description, the installed copy needs re-syncing — run `install.sh` |
 
 ## Documentation
 
 | Resource | URL |
 |----------|-----|
-| **Core superpowers** | https://github.com/obra/superpowers |
-| **superpowers-plus** | https://github.com/bordenet/superpowers-plus |
-| **Architecture** | https://github.com/bordenet/superpowers-plus/blob/main/docs/ARCHITECTURE.md |
-| **Contributing** | https://github.com/bordenet/superpowers-plus/blob/main/docs/CONTRIBUTING.md |
+| **Core superpowers** | <https://github.com/obra/superpowers> |
+| **superpowers-plus** | <https://github.com/bordenet/superpowers-plus> |
+| **Architecture** | <https://github.com/bordenet/superpowers-plus/blob/main/docs/ARCHITECTURE.md> |
+| **Contributing** | <https://github.com/bordenet/superpowers-plus/blob/main/docs/CONTRIBUTING.md> |

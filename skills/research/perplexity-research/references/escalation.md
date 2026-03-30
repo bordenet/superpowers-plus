@@ -7,7 +7,7 @@
 
 Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this decision tree:
 
-```
+```text
 "I'm stuck"
     │
     ├─► Is this a KNOWLEDGE problem?
@@ -22,6 +22,7 @@ Both `think-twice` and `perplexity-research` trigger on "I'm stuck". Use this de
 ```
 
 **Default order:** `think-twice` → `perplexity-research`
+
 - Think-twice is free and instant
 - Perplexity costs money and requires justification (Step 0: try free tools first)
 - For pure reasoning problems, external research won't help

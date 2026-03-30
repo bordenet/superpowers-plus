@@ -8,6 +8,7 @@ overrides: superpowers/subagent-driven-development
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 anti_triggers: ["simple task", "one file change", "quick fix"]
 description: "Use when executing implementation plans with independent tasks in the current session"
+summary: "Use when: executing plans with independent tasks that can run in parallel."
 coordination:
   group: engineering
   order: 5
@@ -15,27 +16,32 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  produces: [implemented-code, test-suite, review-report]
+  consumes: [implementation-plan, task-list, acceptance-criteria]
+  capabilities: [parallel-task-dispatch, merge-risk-analysis, integration-checkpoint]
+  priority: 5
+  optional: false
+  requires_all: false
 ---
 
 # Subagent-Driven Development
 
-> **Wrong skill?** Simple single-file changes → just edit directly. Planning without execution → `brainstorming`. Feature workflow → `feature-development`.
-
-## Companion Skills
-
-- **feature-development**: Full feature workflow (this skill uses sub-agents)
-- **plan-and-execute**: For multi-step implementation planning
-- **test-driven-development**: TDD within sub-agent tasks
-
 ## When to Use
 
-- You have a written implementation plan with independent tasks to execute in the current session
-- You want isolated context per task (fresh subagent = no pollution from prior tasks)
-- NOT for: writing the plan (`writing-plans` (upstream)), execution across multiple sessions (`plan-and-execute`)
+- Executing implementation plans with independent tasks in the current session
+- User says "execute plan with subagents" or "implement plan with subagents"
+- NOT for: writing the plan (`writing-plans`), parallel session execution (`executing-plans`)
 
 Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
 **Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need.
+
+### Parallel Dispatch Mode
+
+For tasks with sufficient isolation (different files, independent interfaces), the Execution Conductor can dispatch implementers in parallel. See `references/parallel-dispatch-mode.md` for full protocol.
+
+**Activation:** Fan-out eligibility rubric score ≥ 6 per task pair (file overlap, interface coupling, test isolation, data model coupling). **Cost cap:** 2.5× serial. **Default:** Sequential (existing behavior).
 
 ## Process (per task)
 
@@ -76,7 +82,7 @@ Never force retry without changes. If stuck, something must change.
 
 - **Never** start on main/master without user consent
 - **Never** skip either review stage (spec compliance THEN quality — order matters)
-- **Never** dispatch parallel implementers (conflicts)
+- **Never** dispatch parallel implementers without isolation rubric score ≥ 6 and integration checkpoint protocol active (see `references/parallel-dispatch-mode.md`)
 - **Never** provide plan file path instead of full text
 - **Never** proceed with unfixed review issues
 - **Never** let self-review replace actual review (both needed)
@@ -88,7 +94,7 @@ Never force retry without changes. If stuck, something must change.
 | Skill | Role |
 |-------|------|
 | `superpowers:using-git-worktrees` | Set up isolated workspace (REQUIRED) |
-| `superpowers:writing-plans` | Creates the plan this executes |
+| `superpowers:plan-and-execute` | Creates the plan this executes |
 | `superpowers:finishing-a-development-branch` | After all tasks complete |
 | `superpowers:executing-plans` | Alternative: parallel session execution |
 
@@ -99,15 +105,6 @@ Implement task 3: "Add retry logic to API client."
 Files: src/api/client.ts (main), test/api/client.test.ts (tests).
 Constraints: max 3 retries, exponential backoff, no new dependencies.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
-```
-
-
-## Example
-
-```bash
-# Launch sub-agent for independent task
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery
-# Pass context inline — sub-agents have NO conversation context
 ```
 
 ## Failure Modes

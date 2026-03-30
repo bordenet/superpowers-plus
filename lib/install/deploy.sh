@@ -93,15 +93,12 @@ install_skill() {
         # Stage 1: If override, copy upstream companion files first
         if [[ -n "$upstream_dir" ]]; then
             # Copy all upstream files EXCEPT the main skill file (SKILL.md/skill.md)
-            # and process docs (DESIGN.md, PRD.md) — those are repo-only, not runtime
             local f
             while IFS= read -r -d '' f; do
                 local base
                 base=$(basename "$f")
                 # Skip the main skill file — the override replaces it
                 [[ "$base" == "SKILL.md" || "$base" == "skill.md" ]] && continue
-                # Skip process docs — repo-only, not runtime
-                [[ "$base" == "DESIGN.md" || "$base" == "PRD.md" ]] && continue
                 cp "$f" "$dest/" || \
                     error_exit "Failed to stage upstream file $base for skill: $skill_name"
             done < <(find "$upstream_dir" -maxdepth 1 -type f -print0 2>/dev/null)
@@ -115,11 +112,7 @@ install_skill() {
         fi
 
         # Stage 2: Copy all override files on top (skill.md + any extras)
-        # Exclude process docs (DESIGN.md, PRD.md) — they're repo-only, not runtime
         while IFS= read -r -d '' f; do
-            local basename_f
-            basename_f=$(basename "$f")
-            [[ "$basename_f" == "DESIGN.md" || "$basename_f" == "PRD.md" ]] && continue
             cp "$f" "$dest/" || \
                 error_exit "Failed to install $(basename "$f") for skill: $skill_name"
         done < <(find "$skill_dir" -maxdepth 1 -type f -print0 2>/dev/null)
@@ -346,6 +339,71 @@ install_tools() {
     log_success "Installed $count tools to $tools_dest"
 }
 
+# Install CLI commands — symlink all tools/sp-*.sh to PATH as sp-*
+install_cli_commands() {
+    local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
+
+    # Find all sp-*.sh files in the installed tools directory
+    local sp_scripts=()
+    while IFS= read -r -d '' f; do
+        sp_scripts+=("$f")
+    done < <(find "$tools_dest" -maxdepth 1 -name 'sp-*.sh' -type f -print0 2>/dev/null)
+
+    [[ ${#sp_scripts[@]} -gt 0 ]] || return 0
+
+    # Find a writable bin directory on PATH
+    local bin_dir=""
+    for candidate in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
+        if [[ -d "$candidate" ]] && [[ -w "$candidate" ]]; then
+            bin_dir="$candidate"
+            break
+        fi
+    done
+
+    # Try creating ~/.local/bin if nothing else works
+    if [[ -z "$bin_dir" ]]; then
+        bin_dir="$HOME/.local/bin"
+        mkdir -p "$bin_dir" 2>/dev/null || {
+            log_warn "Cannot create $bin_dir — sp-* commands won't be on PATH"
+            return 0
+        }
+    fi
+
+    local installed=0
+    for script in "${sp_scripts[@]}"; do
+        local basename
+        basename=$(basename "$script")
+        # sp-update.sh → sp-update, sp-doctor.sh → sp-doctor
+        local cmd_name="${basename%.sh}"
+        local link="$bin_dir/$cmd_name"
+
+        # Create or update symlink
+        if [[ -L "$link" ]]; then
+            local existing
+            existing=$(readlink "$link" 2>/dev/null || true)
+            if [[ "$existing" == "$script" ]]; then
+                log_verbose "$cmd_name symlink already correct"
+                installed=$((installed + 1))
+                continue
+            fi
+            rm -f "$link"
+        elif [[ -e "$link" ]]; then
+            log_warn "$cmd_name exists at $link but is not a symlink — skipping"
+            continue
+        fi
+
+        if ln -s "$script" "$link" 2>/dev/null; then
+            installed=$((installed + 1))
+        else
+            log_warn "Failed to symlink $cmd_name to $bin_dir"
+        fi
+    done
+
+    if [[ $installed -gt 0 ]]; then
+        log_success "CLI commands installed: $installed sp-* command(s) in $bin_dir"
+    fi
+}
+
 # Install all skills from this repository (supports domain-based structure)
 install_skills() {
     log_info "Installing skills from superpowers-plus..."
@@ -370,8 +428,7 @@ install_skills() {
         local dir_name
         dir_name=$(basename "$domain_or_skill")
 
-        [[ "$dir_name" == "_shared" ]] && continue
-        [[ "$dir_name" == "_archive" ]] && continue
+        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             current_skill_names+=("$(basename "$domain_or_skill")")
@@ -393,8 +450,7 @@ install_skills() {
         local dir_name
         dir_name=$(basename "$domain_or_skill")
 
-        [[ "$dir_name" == "_shared" ]] && continue
-        [[ "$dir_name" == "_archive" ]] && continue
+        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             if install_skill "$domain_or_skill"; then
@@ -405,6 +461,9 @@ install_skills() {
         else
             for skill_dir in "$domain_or_skill"*/; do
                 [[ ! -d "$skill_dir" ]] && continue
+                local nested_name
+                nested_name=$(basename "$skill_dir")
+                [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
                     if install_skill "$skill_dir"; then
                         installed=$((installed + 1))
@@ -415,6 +474,17 @@ install_skills() {
             done
         fi
     done
+
+    # Deploy _shared/ support directory (not a skill, but referenced by skills)
+    if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
+        for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+            [[ -z "$target_dir" || ! -d "$target_dir" ]] && continue
+            local shared_dest="$target_dir/_shared"
+            rm -rf "${shared_dest:?}" 2>/dev/null || true
+            cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
+        done
+        log_verbose "Deployed _shared/ support directory"
+    fi
 
     if [[ $installed -eq 0 ]]; then
         log_warn "No skills were installed"

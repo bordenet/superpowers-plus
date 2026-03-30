@@ -16,7 +16,7 @@
 
 ### Batch Workflow
 
-```
+```bash
 Phase 1: DISCOVER (zero write calls)
   └─ Local wiki sync or export          # Download the working set when supported
   └─ grep/rg locally for target terms   # Find all pages that need changes

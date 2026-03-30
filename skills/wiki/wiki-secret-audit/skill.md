@@ -23,7 +23,7 @@ coordination:
 
 > **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
 > This skill enables retroactive scanning of existing wiki pages for exposed secrets.
-
+>
 > **Wrong skill?** Scanning code repos for secrets → `repo-security-scan`. Executing wiki instructions safely → `wiki-instruction-guard`. Checking wiki page accuracy → `wiki-verify`.
 
 ## Companion Skills
@@ -35,6 +35,7 @@ coordination:
 ## When to Use
 
 Invoke this skill when:
+
 - Auditing existing wiki pages for credentials
 - After a security incident to find other potential leaks
 - Periodically scanning high-risk wiki areas
@@ -42,14 +43,13 @@ Invoke this skill when:
 
 ---
 
-
 ## Audit Procedure
 
 ### Step 1: Define Scope
 
 Determine which pages to scan using your adapter's operations:
 
-```
+```markdown
 # Option A: Single page
 # Use adapter's get_page operation
 
@@ -136,6 +136,7 @@ sk_live_[A-Za-z0-9]{20,}    # Stripe
 ### EXCLUDE (False Positives)
 
 Skip matches that are:
+
 - Environment variable references: `$PASSWORD`, `${VAR}`, `process.env.VAR`
 - Redacted placeholders: `[REDACTED]`, `<YOUR_VALUE>`
 - Documentation examples: "password must be 8+ chars"
@@ -172,7 +173,6 @@ When secrets are found:
 
 - **Shared Module:** `skills/_shared/secret-detection.md`
 - **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
-
 
 ## Example
 

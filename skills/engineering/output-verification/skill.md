@@ -17,7 +17,7 @@ coordination:
 # Output Verification
 
 > **Wrong skill?** Pre-commit checks → `pre-commit-gate`. Completion checklist → `verification-before-completion`. Code review → `progressive-code-review-gate`.
-
+>
 > **Purpose:** Prevent confabulation disguised as verification
 > **Core Principle:** You cannot describe output you haven't read. Period.
 
@@ -36,12 +36,11 @@ coordination:
 - After generating any deliverable — before making ANY claims about it
 - **When presenting results back to the user** — "here's what was created" requires reading what was created
 
-
 ## ⚠️ ACTION-PATTERN TRIGGER
 
 This skill fires on a **behavior pattern**, not just phrases:
 
-```
+```text
 IF: you generated/created/wrote an artifact (file, API response, script output)
 AND: you are about to describe what that artifact contains
 AND: you have NOT read the artifact back since generating it
@@ -60,6 +59,7 @@ This skill targets a specific failure mode that is NOT "forgot to test."
 *expects* to see in the output and presents that description as though it *observed* it.
 
 Key characteristics:
+
 - Description is plausible (matches what should be there based on prior work)
 - No tool call, file read, grep, or inspection was executed between generating and describing
 - The user cannot distinguish the confabulated review from a real one
@@ -70,7 +70,7 @@ This skill asks: **"did you actually READ what the command produced?"**
 
 ## The Iron Law
 
-```
+```text
 NO CLAIMS ABOUT OUTPUT WITHOUT A PRECEDING INSPECTION TOOL CALL
 
 If there is no tool call between "generate" and "describe,"
@@ -79,7 +79,7 @@ the description is fiction.
 
 ## The Gate Function
 
-```
+```bash
 BEFORE making ANY claim about generated output:
 
 1. IDENTIFY: What output am I about to describe?
@@ -123,7 +123,6 @@ Skip any step = confabulation, not verification
 ## Incident History
 
 **2026-03-27:** Agent generated PDF from wiki export. Script printed "Processing 17 documents" (expected 13) — agent didn't notice. PDF contained 4 confidential docs + all 15 Mermaid diagrams showed "Syntax error." Agent said "all rendered correctly" and "ready to hand off" without opening the PDF. Near-miss: confidential docs almost sent to external auditors.
-
 
 ## Example
 

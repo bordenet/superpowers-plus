@@ -23,7 +23,7 @@ coordination:
 # Wiki Debunker
 
 > **Wrong skill?** Editing wiki content → `wiki-orchestrator`. Checking links → `link-verification`. Scanning for secrets → `wiki-secret-audit`.
-
+>
 > **NO CLAIM WITHOUT CITATION. Evidence before assertion.**
 > Scope: Claims about decisions, timelines, who-said-what, task ownership. NOT version drift (use wiki-verify).
 
@@ -67,7 +67,6 @@ coordination:
 - [`references/report-format.md`](references/report-format.md) — Report template, citation formats
 - [`references/verification-commands.md`](references/verification-commands.md) — Verification commands
 
-
 ## Companion Skills
 
 - **wiki-verify**: Broader wiki page verification
@@ -75,6 +74,7 @@ coordination:
 - **wiki-content-coherence**: Checking for content duplication
 
 - **issue-comment-debunker**: Debunking issue comments (this is wiki)
+
 ## When to Use
 
 - When wiki content includes decisions, timelines, or attribution ("X decided", "on date Y")
@@ -86,7 +86,7 @@ coordination:
 | Failure | Fix |
 |---------|-----|
 | No authoritative source found for a claim | Mark as UNVERIFIED with citation-needed tag — don't guess |
-| Git history doesn't go back far enough | Check meeting transcripts (Fathom), ticket history, PR comments |
+| Git history doesn't go back far enough | Check meeting transcripts, ticket history, PR comments |
 | Agent fabricates a plausible-sounding citation | Every citation must include a verifiable URL or commit SHA |
 
 ```bash

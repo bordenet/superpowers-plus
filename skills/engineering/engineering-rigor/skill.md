@@ -1,15 +1,14 @@
 ---
 name: engineering-rigor
 source: superpowers-plus
-triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done", "which verification skill", "what gate should I use", "which quality check"]
-anti_triggers: ["specific task", "write code", "create file", "fix bug"]
-description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, output-verification, code-review-battery, and providing-code-review.
-summary: "Use when: need hub for pre-commit, blast-radius, output-verification, code review battery, or code review skills."
+triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done"]
+description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
+summary: "Use when: need hub for pre-commit, blast-radius, or code review skills."
 coordination:
   group: engineering
-  order: 0
+  order: 1
   requires: []
-  enables: ["pre-commit-gate", "blast-radius-check", "output-verification", "field-rename-verification"]
+  enables: ['pre-commit-gate', 'blast-radius-check']
   escalates_to: []
   internal: false
 ---
@@ -17,11 +16,10 @@ coordination:
 # Engineering Rigor
 
 > **Source:** `superpowers-plus`
-
+>
 > **Wrong skill?** This is a hub/dispatcher. Use the dispatch table below to find the right sub-skill.
 
 This is the **hub skill** for engineering rigor. For operational guidance, use the specific skill that matches your current task:
-
 
 ## When to Use
 
@@ -41,7 +39,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 | `providing-code-review` | When reviewing others' PRs | "review this PR", "code review" |
 | `receiving-code-review` | When handling PR feedback | "received code review", "PR feedback" |
 
-**TypeScript/testing skills (in overlay repo — install via `spc:` prefix):**
+**TypeScript/testing skills (in overlay repo — install via `spo:` prefix):**
 
 | Skill | When to Use | Trigger |
 |-------|-------------|---------|
@@ -56,7 +54,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 
 ## The Iron Law
 
-```
+```bash
 BEFORE IMPLEMENTING: Trace the FULL data flow across ALL boundaries
 DURING IMPLEMENTING: Verify data flows INTO and OUT OF each component
 AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
@@ -65,6 +63,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 ## The Problem This Skill Family Solves
 
 **Failure Patterns:**
+
 1. Mechanical plan execution without verifying assumptions or tracing data flow
 2. Rubber-stamp code reviews that don't apply the same rigor as your own work
 3. Pushing code without running local checks, then debugging CI failures
@@ -75,7 +74,7 @@ AFTER IMPLEMENTING: Cross-repo grep for EVERY new field/function name
 
 ## Dispatch Table
 
-```
+```text
 Am I describing generated output? → output-verification
 Am I about to commit?            → pre-commit-gate
 Am I modifying existing code?    → blast-radius-check
@@ -105,7 +104,6 @@ If any question surfaces a red flag, address it BEFORE implementation. Use `desi
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist
-
 
 ## Example
 

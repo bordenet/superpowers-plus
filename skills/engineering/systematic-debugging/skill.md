@@ -29,7 +29,7 @@ coordination:
 
 > **Wrong skill?** Feature design → `brainstorming`. Code review → `providing-code-review`.
 
-```
+```text
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
@@ -84,20 +84,6 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 4. **Ask the human** — "I've tried X and Y, both failed because Z. My current hypothesis is W — does that match your understanding?"
 
 If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
-
-
-## Example
-
-```bash
-# Step 1: Reproduce the issue
-npm test -- --grep "failing test name" 2>&1 | tail -20
-
-# Step 2: Trace the data flow
-grep -rn "functionName" --include="*.ts" src/ | head -20
-
-# Step 3: Verify the fix doesn't break callers
-grep -rn "functionName(" --include="*.ts" src/ | wc -l
-```
 
 ## Failure Modes
 

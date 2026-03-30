@@ -98,41 +98,10 @@ run_rm() {
     fi
 }
 
-# --- Remove a line from .env ---
-remove_env_var() {
-    local var_name="$1"
-    [[ -f "$ENV_FILE" ]] || return 0
-    [[ -r "$ENV_FILE" ]] || { log_warn "Cannot read $ENV_FILE — skipping $var_name removal"; return 1; }
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would remove $var_name from $ENV_FILE"
-        return 0
-    fi
-    local tmp_file="${ENV_FILE}.tmp.$$"
-    if ! : > "$tmp_file" 2>/dev/null; then
-        log_warn "Failed to create temp file for $ENV_FILE rewrite"
-        rm -f -- "$tmp_file" 2>/dev/null
-        return 1
-    fi
-
-    # grep exits 1 when every line is filtered out; that still produces a valid empty file.
-    local grep_status=0
-    grep -v "^${var_name}=" "$ENV_FILE" > "$tmp_file" 2>/dev/null || grep_status=$?
-    case "$grep_status" in
-        0|1)
-            if ! mv -- "$tmp_file" "$ENV_FILE"; then
-                rm -f -- "$tmp_file" 2>/dev/null
-                log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
-                return 1
-            fi
-            ;;
-        *)
-            rm -f -- "$tmp_file" 2>/dev/null
-            log_warn "Failed to rewrite $ENV_FILE for $var_name removal"
-            return 1
-            ;;
-    esac
-    log_verbose "Removed $var_name from $ENV_FILE"
-}
+# NOTE: We intentionally do NOT modify ~/.codex/.env during uninstall.
+# That file contains MCP server credentials, API keys, and secrets that
+# must never be rewritten by an uninstaller. Stale *_SOURCE_DIR entries
+# are harmless and will be overwritten on next install.
 
 # --- Check if another overlay provides a shared artifact ---
 other_repo_provides() {
@@ -145,13 +114,11 @@ other_repo_provides() {
         local dir="${varval//\"/}"
         dir="${dir//\'/}"
         [[ -z "$dir" || ! -d "$dir" ]] && continue
+        # Derive overlay name from the source dir variable.
+        # Convention: *_SOURCE_DIR → the directory basename is the overlay name.
         local overlay_name=""
-        case "$varname" in
-            SPC_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
-            PRODUCT_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
-            PRODUCT_SOURCE_DIR) overlay_name="superpowers-[product]" ;;
-            *) continue ;;
-        esac
+        overlay_name=$(basename "${dir}" 2>/dev/null) || continue
+        [[ -z "$overlay_name" || "$overlay_name" == "." ]] && continue
         local overlay_manifest="${CODEX_DIR}/${overlay_name}/install-state/${artifact_type}.manifest"
         if [[ -f "$overlay_manifest" ]] && grep -qxF "$artifact_name" "$overlay_manifest" 2>/dev/null; then
             return 0
@@ -289,7 +256,6 @@ main() {
     echo "  ${#tools[@]} tool(s) from ~/.codex/superpowers-plus/tools/"
     echo "  ${#templates[@]} template(s) from ~/.codex/templates/"
     echo "  Adapter: ~/.codex/superpowers-augment/"
-    echo "  Registration: SPP_SOURCE_DIR from ~/.codex/.env"
     if [[ "$PURGE" == "true" ]]; then
         echo "  [PURGE] Managed checkout: ~/.codex/superpowers-plus/"
         echo "  [PURGE] obra/superpowers: ~/.codex/superpowers/"
@@ -350,10 +316,8 @@ main() {
     [[ -d "$ADAPTER_DIR" ]] && run_rm "$ADAPTER_DIR"
     log_success "Adapter removed"
 
-    # Step 6: Remove source registration from .env
-    log_info "Removing source registration..."
-    remove_env_var "$SOURCE_VAR"
-    log_success "Registration removed"
+    # Step 6: .env is intentionally left alone (contains MCP credentials)
+    log_verbose "Skipping .env — stale $SOURCE_VAR entry is harmless"
 
     # Step 7: Purge (optional)
     if [[ "$PURGE" == "true" ]]; then

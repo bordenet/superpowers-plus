@@ -42,7 +42,7 @@ const isSuperpower = skill.triggers && skill.triggers.length > 0;
 ### Positive
 
 1. **Clear user mental model** — Users understand superpowers "just work" while explicit skills require invocation
-2. **Better discoverability** — `find-skills superpowers` vs `find-skills explicit` 
+2. **Better discoverability** — `find-skills superpowers` vs `find-skills explicit`
 3. **Reduced validator noise** — Explicit skills no longer flagged as "missing triggers"
 4. **Backward compatible** — No breaking changes to existing skills
 
@@ -62,7 +62,7 @@ const isSuperpower = skill.triggers && skill.triggers.length > 0;
 
 | File | Change |
 |------|--------|
-| `superpowers-augment.js` | Extract `triggers` from frontmatter, add `isSuperpower` flag, support `find-skills superpowers|explicit` |
+| `superpowers-augment.js` | Extract `triggers` from frontmatter, add `isSuperpower` flag, support `find-skills superpowers\|explicit` |
 | `docs/ARCHITECTURE.md` | Add "Terminology" section, clarify frontmatter fields |
 | `docs/CONTRIBUTING.md` | Add "Superpowers vs Explicit Skills" guidance |
 | `skills/productivity/superpowers-help/skill.md` | Distinguish types in output |

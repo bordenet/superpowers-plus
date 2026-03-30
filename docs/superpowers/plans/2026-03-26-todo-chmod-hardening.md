@@ -57,7 +57,7 @@ def _validate_canonical_path(path: str) -> None:
     """Refuse writes if path doesn't match resolved TODO_FILE_PATH.
     
     Prevents agents from writing to ~/.codex/TODO.md or other stray
-    locations when the real path is elsewhere (e.g., external synced folder).
+    locations when the real path is elsewhere (e.g., OneDrive).
     """
     canonical = resolve_todo_path()
     real_canonical = os.path.realpath(canonical)
@@ -111,7 +111,7 @@ to:
 - [ ] **Step 1:** Add to the Defense Layers table (after line 108):
 
 ```markdown
-| 5. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path (e.g., ~/.codex/TODO.md when real path is external synced folder) |
+| 5. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path (e.g., ~/.codex/TODO.md when real path is OneDrive) |
 ```
 
 - [ ] **Step 2:** Add incident to the destructive write ban section:

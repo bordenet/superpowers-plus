@@ -8,6 +8,7 @@
 ## Purpose
 
 Technical design for two complementary skills:
+
 - **detecting-ai-slop**: Read-only analysis producing slop score scores
 - **eliminating-ai-slop**: Active rewriting with interactive and automatic modes using GVR loop
 
@@ -19,7 +20,7 @@ See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              USER WORKFLOWS                                  │
 ├─────────────────┬──────────────────────┬────────────────────────────────────┤
@@ -57,7 +58,7 @@ See [Vision_PRD.md](./Vision_PRD.md) for high-level requirements.
 
 ### Detection Algorithm
 
-```
+```markdown
 1. Check explicit user declaration: "Analyze this as an email"
 2. Check filename patterns: README.md, CLAUDE.md, *.test.md
 3. Check content markers:
@@ -102,7 +103,7 @@ Analyze text and produce a slop score score (0-100) with detailed breakdown, app
 
 ### Invocation
 
-```
+```text
 User: "What's the slop score on this CV?"
 User: "Score this email draft for AI patterns"
 User: "How much slop is in this README?"
@@ -111,7 +112,7 @@ User: "Check this LinkedIn post before I publish"
 
 ### Output Format
 
-```
+```text
 Content Type Detected: Email
 
 Slop Score: 58/100
@@ -204,13 +205,14 @@ Actively rewrite text to eliminate detected slop patterns, applying content-type
 
 **Trigger:** User provides existing text with edit/review request.
 
-```
+```python
 User: "Clean up this email: [text]"
 User: "Remove the LinkedIn cringe from this post: [text]"
 User: "Make my cover letter less generic: [text]"
 ```
 
 **Workflow:**
+
 1. Detect content type
 2. Detect patterns (universal + type-specific)
 3. Present findings with content-type-aware suggestions
@@ -218,7 +220,8 @@ User: "Make my cover letter less generic: [text]"
 5. Apply approved rewrites using type-specific strategies
 
 **Confirmation Prompt Format (Email Example):**
-```
+
+```text
 Content Type: Email
 
 Found 7 slop patterns:
@@ -257,13 +260,14 @@ Options:
 
 **Trigger:** User requests content generation.
 
-```
+```text
 User: "Write an email to the team about the deadline change"
 User: "Draft a LinkedIn post about our product launch"
 User: "Create a README for this project"
 ```
 
 **Behavior (GVR Loop):**
+
 1. Detect requested content type from prompt
 2. **GENERATE:** Produce raw draft
 3. **VERIFY:** Analyze against patterns and stylometric thresholds
@@ -278,7 +282,7 @@ The GVR loop is the core architecture for automatic slop elimination in eliminat
 
 ### GVR Flow
 
-```
+```text
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  GENERATE   │────▶│   VERIFY    │────▶│   REFINE    │
 │  Raw draft  │     │  Analyze    │     │  Fix issues │
@@ -310,12 +314,13 @@ The GVR loop is the core architecture for automatic slop elimination in eliminat
 
 ### GVR Transparency Report
 
-```
+```markdown
 [GVR: 2 iterations | removed 8 patterns | σ: 7.2→16.4 | TTR: 0.42→0.56]
 ```
 
 **Example Summary:**
-```
+
+```markdown
 [Content type: LinkedIn | Slop prevention: removed 6 patterns]
   - 2 announcement slop ("I'm thrilled to announce" → direct statement)
   - 1 engagement bait ("Agree?" → removed)
@@ -361,6 +366,7 @@ The GVR loop is the core architecture for automatic slop elimination in eliminat
 **Location:** `{workspace_root}/.slop-dictionary.json`
 
 **Format (v2 - Full Schema):**
+
 ```json
 {
   "version": "2.0",
@@ -414,7 +420,8 @@ The GVR loop is the core architecture for automatic slop elimination in eliminat
 | timestamp | ISO 8601 | Last detection time |
 | source | string | "built-in" or "user-added" |
 | exception | boolean | Skip during detection if true |
-```
+
+```bash
 
 **Behavior:**
 - Detector reads dictionary, does not write
@@ -499,11 +506,13 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 ### Calculation Methods
 
 **Sentence length σ:**
+
 1. Split text into sentences (period, question mark, exclamation)
 2. Count words in each sentence
 3. Calculate: `σ = sqrt(Σ(x - μ)² / n)`
 
 **Type-Token Ratio:**
+
 1. Normalize text (lowercase, remove punctuation)
 2. For each 100-word window: unique tokens / 100
 3. Average across windows
@@ -542,6 +551,7 @@ Users can calibrate stylometric thresholds using their own human-written samples
 The `slop-sync` shell script enables dictionary synchronization across machines via GitHub.
 
 **Commands:**
+
 ```bash
 slop-sync push    # Upload local dictionary to GitHub
 slop-sync pull    # Download latest dictionary from GitHub
@@ -568,6 +578,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Two separate skills.
 
 **Rationale:**
+
 - Distinct use cases (score external docs, clean my drafts, prevent during generation)
 - Detector is read-only; eliminator mutates
 - User can invoke just what they need
@@ -578,6 +589,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Detect content type before pattern matching.
 
 **Rationale:**
+
 - Different content types have different slop patterns
 - Email "slop" differs from LinkedIn "slop"
 - Enables type-specific rewriting strategies
@@ -588,6 +600,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Always apply universal patterns; add type-specific patterns based on detected type.
 
 **Rationale:**
+
 - Universal patterns (boosters, buzzwords) apply everywhere
 - Type-specific patterns catch context-specific issues
 - Layered approach maximizes detection without over-flagging
@@ -597,6 +610,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Report universal and type-specific patterns separately.
 
 **Rationale:**
+
 - User understands what was flagged and why
 - Type-specific flags may have different weight
 - Enables user to calibrate per content type
@@ -606,6 +620,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Each content type has tailored rewriting guidance.
 
 **Rationale:**
+
 - "Lead with the ask" applies to email, not LinkedIn
 - "Remove engagement bait" applies to LinkedIn, not email
 - Context-aware rewriting produces better results
@@ -615,6 +630,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 **Decision:** Exceptions can be universal or content-type-specific.
 
 **Rationale:**
+
 - "leverage" might be slop in general but acceptable in specific contexts
 - Company policy might require certain phrases in email
 - Flexibility without losing protection
@@ -626,6 +642,7 @@ SLOP_DICT_PATH="/path/to/.slop-dictionary.json"
 ### Pattern Embedding
 
 Both skills embed all patterns directly in SKILL.md:
+
 - Universal patterns (100+)
 - All 11 type-specific pattern sets (200+ additional)
 - Total: 300+ patterns
@@ -642,6 +659,7 @@ Both skills embed all patterns directly in SKILL.md:
 ### Rewriting Safety
 
 For content-type-specific rewrites:
+
 - Preserve core meaning
 - Apply type-appropriate register
 - When uncertain, flag but don't auto-rewrite

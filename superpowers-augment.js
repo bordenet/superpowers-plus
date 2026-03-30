@@ -24,8 +24,8 @@ const {
 const workflowState = require('./lib/workflow-state');
 
 const homeDir = os.homedir();
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
-const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 
 
@@ -54,7 +54,7 @@ try {
     }
 } catch (_) { /* non-fatal */ }
 
-// Source repo directories for namespace prefix resolution (spp:, spc:)
+// Source repo directories for namespace prefix resolution (spp:, spo:)
 // These point to git source repos, NOT installed directories.
 // Discovery order: env var → well-known paths → null (prefix unavailable)
 function discoverSourceDir(envVar, wellKnownPaths) {
@@ -69,13 +69,31 @@ function discoverSourceDir(envVar, wellKnownPaths) {
     return null;
 }
 
-const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
-    '~/GitHub/Personal/superpowers-plus',
-    '~/superpowers-plus',
-    '~/.codex/superpowers-plus',
-]);
+// Self-discover: if this script lives inside a superpowers-plus checkout, use that
+// as the source dir (covers any clone location without hard-coding paths).
+function discoverSppFromScript() {
+    const scriptDir = path.resolve(__dirname);
+    // Check if script is inside a superpowers-plus repo (has skills/ dir)
+    if (fs.existsSync(path.join(scriptDir, 'skills')) && fs.existsSync(path.join(scriptDir, 'tools'))) {
+        return scriptDir;
+    }
+    // Script may be in a subdirectory; check parent
+    const parentDir = path.dirname(scriptDir);
+    if (fs.existsSync(path.join(parentDir, 'skills')) && fs.existsSync(path.join(parentDir, 'tools'))) {
+        return parentDir;
+    }
+    return null;
+}
 
-const SPC_SOURCE_DIR = discoverSourceDir('SPC_SOURCE_DIR', []);
+const SPP_SOURCE_DIR = discoverSourceDir('SPP_SOURCE_DIR', [
+    // Self-discovery from script location (works for any clone path)
+    discoverSppFromScript(),
+    // Installed copy as fallback
+    '~/.codex/superpowers-plus',
+].filter(Boolean));
+
+const OVERLAY_SOURCE_DIR = discoverSourceDir('SP_OVERLAY_SOURCE_DIR', [])
+    || discoverSourceDir('SPC_SOURCE_DIR', []);  // backward compat (pre-v1.9)
 
 /**
  * Find a skill.md in a source repo by searching domain subdirectories.
@@ -161,8 +179,80 @@ function transformOutput(text) {
     return result;
 }
 
+// State-machine parser for YAML inline arrays. Handles apostrophes inside
+// double-quoted strings ("what's next") and escaped quotes. Shared logic
+// with mcp/superpowers-mcp.js — keep in sync.
 function parseInlineArray(value) {
-    return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+    // Strip outer brackets if present
+    const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
+    const items = [];
+    let i = 0;
+    while (i < inner.length) {
+        while (i < inner.length && (inner[i] === ' ' || inner[i] === ',' || inner[i] === '\t')) i++;
+        if (i >= inner.length) break;
+        const quote = inner[i];
+        if (quote === '"' || quote === "'") {
+            let val = '';
+            i++; // skip opening quote
+            while (i < inner.length) {
+                if (quote === '"' && inner[i] === '\\' && i + 1 < inner.length) {
+                    val += inner[i + 1]; i += 2;
+                } else if (quote === "'" && inner[i] === "'" && i + 1 < inner.length && inner[i + 1] === "'") {
+                    val += "'"; i += 2; // YAML '' escape
+                } else if (inner[i] === quote) {
+                    i++; break;
+                } else {
+                    val += inner[i]; i++;
+                }
+            }
+            if (val) items.push(val);
+        } else {
+            let val = '';
+            while (i < inner.length && inner[i] !== ',') { val += inner[i]; i++; }
+            val = val.trim();
+            if (val) items.push(val);
+        }
+    }
+    return items;
+}
+
+// Check if a string has a closing ] outside of quotes.
+function hasUnquotedClosingBracket(s) {
+    let inQuote = null;
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+        if (c === '"' || c === "'") { inQuote = c; continue; }
+        if (c === ']') return true;
+    }
+    return false;
+}
+
+// Extract content between [ and the real closing ] (outside quotes).
+function extractBracketContent(s) {
+    const start = s.indexOf('[');
+    if (start === -1) return '';
+    let inQuote = null;
+    for (let i = start + 1; i < s.length; i++) {
+        const c = s[i];
+        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+        if (c === '"' || c === "'") { inQuote = c; continue; }
+        if (c === ']') return s.slice(start + 1, i);
+    }
+    return s.slice(start + 1);
+}
+
+// Strip surrounding YAML quotes and unescape
+function unquoteYaml(s) {
+    if (s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (s.startsWith("'") && s.endsWith("'")) {
+        return s.slice(1, -1).replace(/''/g, "'");
+    }
+    return s;
 }
 
 function parseYamlList(lines, startIndex) {
@@ -172,7 +262,7 @@ function parseYamlList(lines, startIndex) {
     for (let i = startIndex + 1; i < lines.length; i++) {
         const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
         if (itemMatch) {
-            values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+            values.push(unquoteYaml(itemMatch[1].trim()));
             nextIndex = i;
             continue;
         }
@@ -189,7 +279,7 @@ function parseYamlList(lines, startIndex) {
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
+        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         let inFrontmatter = false;
         let inComposition = false;
         let name = '';
@@ -199,8 +289,9 @@ function extractFrontmatter(filePath) {
         let requires_mcp = [];
         let mcp_install_hint = '';
         let composition = null;
-        let compositionLines = [];
         let compress = true;
+        let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+        let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -210,6 +301,24 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
+                // Handle bracket-multiline accumulation
+                if (triggerAccum !== null) {
+                    triggerAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(triggerAccum)) {
+                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                        triggerAccum = null;
+                    }
+                    continue;
+                }
+                if (mcpAccum !== null) {
+                    mcpAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(mcpAccum)) {
+                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                        mcpAccum = null;
+                    }
+                    continue;
+                }
+
                 // Check for composition block start
                 if (line.match(/^composition:/)) {
                     inComposition = true;
@@ -238,41 +347,40 @@ function extractFrontmatter(filePath) {
                     inComposition = false; // End of composition block
                 }
 
-                // Check for triggers array
-                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-                if (triggersMatch) {
-                    triggers = parseInlineArray(triggersMatch[1]);
+                // Check for triggers array — 3 forms
+                if (line.match(/^triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        triggerAccum = line; // bracket-multiline
+                    }
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
-                // Check for anti_triggers array
-                const antiTriggersMatch = line.match(/^anti_triggers:\s*(\[.+\])\s*$/);
-                if (antiTriggersMatch) {
-                    anti_triggers = parseInlineArray(antiTriggersMatch[1]);
-                } else if (line.match(/^anti_triggers:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    anti_triggers = parsed.values;
-                    i = parsed.nextIndex;
-                }
-                // Check for requires_mcp array
-                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
-                if (mcpMatch) {
-                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                // Check for requires_mcp array — same 3 forms
+                if (line.match(/^requires_mcp:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        requires_mcp = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        mcpAccum = line;
+                    }
                 } else if (line.match(/^requires_mcp:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     requires_mcp = parsed.values;
                     i = parsed.nextIndex;
                 }
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
-                    if (key === 'compress' && value.trim() === 'false') compress = false;
-                    if (key === 'mcp_install_hint') mcp_install_hint = value.trim();
+                    let value = match[2].trim();
+                    // Strip outer quotes and handle escaped quotes inside
+                    value = unquoteYaml(value);
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
+                    if (key === 'compress' && value === 'false') compress = false;
+                    if (key === 'mcp_install_hint') mcp_install_hint = value;
                 }
             }
         }
@@ -313,9 +421,17 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         // Handle both directories and symlinks to directories
         const skillDir = path.join(dir, entry.name);
-        const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
+            throw err; // surface real errors (EACCES, etc.)
+        }
         if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
@@ -340,7 +456,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];
@@ -442,12 +558,12 @@ function findSkills(filterMode = 'all') {
     console.log('');
     console.log('Namespace prefixes (resolve to source repos, not installed dir):');
     console.log('  spp:skill-name          → superpowers-plus source repo' + (SPP_SOURCE_DIR ? ' (' + SPP_SOURCE_DIR + ')' : ' (not found)'));
-    console.log('  spc:skill-name          → overlay source repo' + (SPC_SOURCE_DIR ? ' (' + SPC_SOURCE_DIR + ')' : ' (not found)'));
+    console.log('  spo:skill-name          → overlay source repo' + (OVERLAY_SOURCE_DIR ? ' (' + OVERLAY_SOURCE_DIR + ')' : ' (not found)'));
     console.log('');
     console.log('Dash shorthands (sp- expands to superpowers-):');
     console.log('  sp-doctor               → superpowers-doctor (normal resolution)');
     console.log('  spp-doctor              → superpowers-doctor from superpowers-plus source');
-    console.log('  spc-doctor              → superpowers-doctor from overlay source\n');
+    console.log('  spo-doctor              → superpowers-doctor from overlay source\n');
     console.log(`Summary: ${superpowers.length} superpowers, ${explicitSkills.length} explicit skills, ${deduped.length} total`);
 }
 
@@ -480,25 +596,25 @@ function useSkill(skillName, options = {}) {
     // Namespace prefix resolution
     // superpowers:name → obra/superpowers skills only
     // spp:name         → superpowers-plus source repo only
-    // spc:name         → overlay source repo only (set SPC_SOURCE_DIR)
+    // spo:name         → overlay source repo only (set SP_OVERLAY_SOURCE_DIR)
     // name (no prefix) → installed dir (overlay overrides plus) → obra
     //
     // Dash shorthand (prefix expansion for fewer keystrokes):
     // sp-X   → expands to superpowers-X, normal resolution
     // spp-X  → expands to superpowers-X, spp: resolution
-    // spc-X  → expands to superpowers-X, spc: resolution
+    // spo-X  → expands to superpowers-X, spo: resolution
     let forceSuperpowers = skillName.startsWith('superpowers:');
     let forceSpp = skillName.startsWith('spp:');
-    let forceSpc = skillName.startsWith('spc:');
+    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');  // spc: backward compat
     let actualName;
 
-    // Dash shorthand expansion: spp-X → spp:superpowers-X, spc-X → spc:superpowers-X, sp-X → superpowers-X
-    if (!forceSuperpowers && !forceSpp && !forceSpc) {
+    // Dash shorthand expansion: spp-X → spp:superpowers-X, spo-X → spo:superpowers-X, sp-X → superpowers-X
+    if (!forceSuperpowers && !forceSpp && !forceSpo) {
         if (skillName.startsWith('spp-')) {
             forceSpp = true;
             actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spc-')) {
-            forceSpc = true;
+        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {  // spc- backward compat
+            forceSpo = true;
             actualName = 'superpowers-' + skillName.slice(4);
         } else if (skillName.startsWith('sp-')) {
             actualName = 'superpowers-' + skillName.slice(3);
@@ -508,7 +624,7 @@ function useSkill(skillName, options = {}) {
     if (!actualName) {
         if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
         else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpc) actualName = skillName.replace(/^spc:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
         else actualName = skillName;
     }
 
@@ -518,18 +634,18 @@ function useSkill(skillName, options = {}) {
         // spp: → search superpowers-plus source repo only
         if (!SPP_SOURCE_DIR) {
             console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone to ~/GitHub/Personal/superpowers-plus');
+            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
             process.exit(1);
         }
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
-    } else if (forceSpc) {
-        // spc: → search overlay source repo only
-        if (!SPC_SOURCE_DIR) {
-            console.error('Error: spc: prefix used but overlay source repo not found.');
-            console.error('Set SPC_SOURCE_DIR env var to point to your overlay skill repo');
+    } else if (forceSpo) {
+        // spo: → search overlay source repo only
+        if (!OVERLAY_SOURCE_DIR) {
+            console.error('Error: spo: prefix used but overlay source repo not found.');
+            console.error('Set SP_OVERLAY_SOURCE_DIR env var to point to your overlay skill repo');
             process.exit(1);
         }
-        skillFile = findSkillInSourceRepo(SPC_SOURCE_DIR, actualName);
+        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
     } else if (!forceSuperpowers) {
         // No prefix → personal/installed dir first (overlay overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
@@ -537,7 +653,7 @@ function useSkill(skillName, options = {}) {
         if (personalFile) skillFile = personalFile;
     }
 
-    if (!skillFile && !forceSpp && !forceSpc) {
+    if (!skillFile && !forceSpp && !forceSpo) {
         // Fall through to obra/superpowers
         const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
         const superpowersFile = findSkillFile(superpowersDir);
@@ -553,7 +669,7 @@ function useSkill(skillName, options = {}) {
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpc) console.error('Searched overlay source: ' + SPC_SOURCE_DIR);
+        if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
@@ -713,27 +829,11 @@ Priority: user instructions > skills > system defaults.
 Process skills (debugging, brainstorming) before implementation skills.
 
 ## Critical auto-triggers (ALWAYS apply — never skip)
-- **FOR ANY CODE CHANGE** (features, fixes, refactors, config, skills — anything touching code):
-  Auto-engage \`feature-development\` workflow unless user explicitly opts out ("skip the workflow", "just do it").
-  The workflow: \`brainstorming\` → \`think-twice\` → \`design-triad\` → \`progressive-code-review-gate\` →
-  \`plan-and-execute\` → \`progressive-code-review-gate\` (round 2) → ship.
-  This is NON-NEGOTIABLE. The agent never decides to skip phases. Only the user can opt out.
 - **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
   \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
   Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
-- **BEFORE describing or approving generated output** (files, PDFs, API responses, script results):
-  \`output-verification\` (hard gate) → then \`verification-before-completion\`.
-  You cannot describe output you haven't read. No tool call between generate and describe = fiction.
-- **BEFORE claiming done/complete** (no generated output involved):
-  \`verification-before-completion\`. For bulk edits/audits, add \`exhaustive-audit-validation\` first.
 - **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
 - **WHEN writing shell scripts:** Load the shell language module first.
-
-## 🚨 EVIDENCE REQUIREMENT
-
-**No gate claim without visible tool output.** Saying "lint passes" without showing the
-command output in your response is fabrication. Show the command, exit code, and summary
-line. Details: \`use-skill pre-commit-gate\` and \`use-skill verification-before-completion\`.
 `);
 
     // Build and emit the skill index (O(1) token cost regardless of skill count)
@@ -982,7 +1082,7 @@ switch (command) {
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
         console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
         console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
-        console.log('  node superpowers-augment.js use-skill spc:<name>  # Load from overlay source repo');
+        console.log('  node superpowers-augment.js use-skill spo:<name>  # Load from overlay source repo');
         console.log('  node superpowers-augment.js use-skill spp-<name>  # spp-X from superpowers-plus source');
         console.log('  node superpowers-augment.js find-skills            # List all (categorized)');
         console.log('  node superpowers-augment.js find-skills superpowers # List auto-triggered only');

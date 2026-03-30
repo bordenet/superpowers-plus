@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (5 specialist reviewers in parallel; monolith on-demand via --all). Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via sub-agent-code-reviewer. Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
@@ -18,8 +18,9 @@ coordination:
 
 ## When to Use
 
-- Fires automatically before every commit or push of code changes
-- NOT for: PR-level review of others' work (`providing-code-review`), file-protocol review (`code-review`)
+- Before every commit or push of code changes (mandatory, fires automatically)
+- When user says "ready to commit," "push this," or "commit and push"
+- NOT for: PR-level review (`providing-code-review`), language/profanity audit (`professional-language-audit`)
 
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
@@ -47,6 +48,7 @@ If no diff exists in any of these, skip this gate.
 ### Step 2: Dispatch the review battery
 
 Follow the `code-review-battery` skill procedure (Phase 1–5):
+
 1. **Phase 1 — Triage** the diff → select relevant specialists (monolith only via `--all` or manual request)
 2. **Phase 2 — Diff + Source Context + Dispatch** activated reviewers in parallel with diff + source context inline
 3. **Phase 3 — Aggregate** findings, triple-filter, classify Implement/Defer/Reject
@@ -73,12 +75,13 @@ sub-agent mechanism is available (e.g., `sub-agent-code-reviewer` on Augment,
 `Task()` on Claude Code). Give it a unique name per round (e.g., `review-round-1`).
 
 The monolithic reviewer MUST receive:
+
 1. Repo path
 2. Exact diff command matching the review scope
 3. Instruction to read full source files
 4. The monolithic checklist covering all review dimensions:
 
-```
+```bash
 Review the code changes in {repo_path}.
 Run `cd {repo_path} && {exact_diff_command}` to see the diff.
 Read the full source files for all changed code.
@@ -151,13 +154,13 @@ After fixing nits, run a **targeted** battery round:
 |---------|---------|----------|
 | Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
 | Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
-| Fix-induced regression | Round N fix breaks something Round N-1 passed | Escalate from targeted re-review (Step 3a) to full re-review (Step 2) — re-dispatch all original reviewers |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
 | Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
 | Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
 
 ## Commit Gate Chain
 
-```
+```text
 pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5)
 ```
 

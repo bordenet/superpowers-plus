@@ -7,7 +7,7 @@ When adding a "Code References" section to wiki pages:
 3. **Verify files exist** — Confirm file paths via API before linking
 4. **Column header = "Repository"** — Platform-agnostic naming
 
-### Template
+## Template
 
 ```markdown
 ### Code References

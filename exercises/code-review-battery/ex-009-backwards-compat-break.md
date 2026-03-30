@@ -36,6 +36,7 @@ index aaa1111..bbb2222 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** guardian or design-critic
 - **File:** lib/config.js
@@ -44,6 +45,7 @@ index aaa1111..bbb2222 100644
 - **Fix:** Default should remain `tfidf` regardless of API key presence. Require explicit `SKILL_MATCHING_MODE=embedding` to opt in.
 
 ### Finding 2
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder
 - **File:** lib/config.js

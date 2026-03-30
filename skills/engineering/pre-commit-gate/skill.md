@@ -17,7 +17,7 @@ coordination:
 # Pre-Commit Quality Gate
 
 > **Wrong skill?** Reviewing a PR → `providing-code-review`. Output verification → `output-verification`. Completion check → `verification-before-completion`.
-
+>
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
@@ -80,7 +80,7 @@ enforce-style-guide (2) → progressive-code-review-gate (3) → professional-la
 
 ## The Gate Function
 
-```
+```bash
 BEFORE EVERY COMMIT:
 
 0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)
@@ -91,33 +91,6 @@ BEFORE EVERY COMMIT:
 
 If NO to any → DO NOT COMMIT
 ```
-
-## 🚨 Evidence Requirements (NON-NEGOTIABLE)
-
-**No gate claim without visible tool output.** Saying "lint passes" without showing
-the command output in your response is fabrication. Show the command invocation, exit
-code, and summary line (pass/fail counts, error counts). For large output, show the
-decisive lines — but the tool call itself MUST be visible.
-
-Each gate step requires evidence matching the gate it covers:
-
-| Gate step | Valid evidence | NOT evidence |
-|-----------|---------------|--------------|
-| Safety scan | `dangerous-pattern-scan.sh` output: 0 blocked patterns | "no dangerous patterns" |
-| Lint | Linter output: 0 errors + exit code 0 | "lint passes" |
-| Typecheck | Type checker output: 0 errors | "no type errors" |
-| Test | Test runner output: pass/fail counts + exit code 0 | "tests pass" |
-| Staged diff | `git diff --staged` output shown and reviewed | "I reviewed the changes" |
-
-**Use the repo's gate command if one exists** (e.g., `./tools/harsh-review.sh`, `npm run lint`,
-`make check`). The commands below are fallbacks when the repo has no defined gate:
-
-| Language | Lint | Typecheck | Test |
-|----------|------|-----------|------|
-| Shell | `shellcheck -x <file>` | `bash -n <file>` | repo-specific |
-| JS/TS | `npm run lint` | `tsc --noEmit` | `npm test` |
-| Python | `ruff check .` / `pylint` | `mypy` | `pytest` |
-| Go | `golangci-lint run` | `go vet ./...` | `go test ./...` |
 
 ## Chain to Next Gate
 
@@ -147,6 +120,7 @@ Then continue: `progressive-code-review-gate` → `professional-language-audit` 
 | No lint/test failures in CI logs | ✅ Yes |
 
 **If build fails after push:**
+
 1. Check pipeline logs immediately
 2. Fix the issue locally
 3. Push fix to branch

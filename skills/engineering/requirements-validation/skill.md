@@ -17,7 +17,7 @@ coordination:
 # Requirements Validation
 
 > **Core principle:** Every requirement must be testable. Contradictions must be surfaced, not silently resolved.
-
+>
 > **Wrong skill?** Feature design → `design-triad` or `brainstorming`. Implementation planning → `plan-and-execute`. Validating code output → `output-verification`.
 
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
@@ -37,6 +37,7 @@ coordination:
 ## Input Contract
 
 Before running the three tests, normalize requirements into a numbered list:
+
 - **Format:** `R1: [requirement text]`, `R2: [requirement text]`, etc.
 - If the input is prose, extract discrete requirements and number them.
 - If the input is already numbered, preserve the numbering.
@@ -47,6 +48,7 @@ Before running the three tests, normalize requirements into a numbered list:
 For EACH numbered requirement, apply all three:
 
 ### 1. Falsifiability Test
+
 **Question:** Can you write a test that would FAIL if this requirement isn't met?
 
 | Result | Action |
@@ -56,6 +58,7 @@ For EACH numbered requirement, apply all three:
 | Partially — some aspects testable | ⚠️ Split into testable and non-testable parts |
 
 ### 2. Measurability Test
+
 **Question:** Is "done" a binary state (yes/no), not a gradient?
 
 | Result | Action |
@@ -64,6 +67,7 @@ For EACH numbered requirement, apply all three:
 | Gradient — "better", "improved", "enhanced" | ❌ Add a threshold. "Better error handling" → "All error paths return structured error with code, message, and recovery hint" |
 
 ### 3. Independence Test
+
 **Question:** Does this requirement conflict with any other requirement in the set?
 
 | Result | Action |
@@ -121,7 +125,6 @@ When two requirements conflict:
 | Compound requirements | "Fast AND flexible AND secure" | Split into 3 independent requirements |
 | Implementation as requirement | "Use Redis for caching" | Restate as need: "Cache layer with <10ms reads" |
 | Negative-only | "Don't break existing behavior" | State positive: "All existing tests pass" |
-
 
 ## Example
 

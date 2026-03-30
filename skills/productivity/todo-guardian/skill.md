@@ -12,10 +12,7 @@ anti_triggers:
   - "TODO.md file format"
   - "todo-management skill"
   - "todo-crud.sh"
-description: >
-  Continuous enforcement for TODO discipline. Auto-extracts TODOs from
-  outputs, detects stale items (unchanged >3 steps), blocks completion
-  if open TODOs exist. ENFORCEMENT, not CRUD.
+description: "Continuous enforcement for TODO discipline. Auto-extracts TODOs from outputs, detects stale items (unchanged >3 steps), blocks completion if open TODOs exist. ENFORCEMENT, not CRUD."
 summary: "Use when: TODO mentioned or implied. Skip when: discussing todo-management."
 coordination:
   group: todo-enforcement
@@ -38,7 +35,6 @@ coordination:
 - Before claiming completion (check open TODOs)
 - After every 3 steps (staleness check)
 - When reviewing session for missed action items
-
 
 ### Example
 

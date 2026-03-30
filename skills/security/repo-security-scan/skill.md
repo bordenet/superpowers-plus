@@ -2,14 +2,13 @@
 name: repo-security-scan
 source: superpowers-plus
 triggers: ["security scan", "scan for secrets", "scan for vulnerabilities", "audit repo security", "check for hardcoded keys", "check for insecure code", "security review", "scan repos", "find secrets in code", "credential scan", "security audit"]
-anti_triggers: ["upgrade packages", "npm update", "dependency upgrade", "version bump"]
 description: "Use when asked to audit a git repository for security issues, check for secrets or credentials in code, scan for dependency vulnerabilities, or review a repo's security posture. Use instead of writing ad-hoc scanning scripts. Covers Python, Node.js, Go, Rust, and shell projects."
 summary: "Use when: auditing repo for security vulnerabilities, secrets, or misconfigurations."
 coordination:
   group: security
-  order: 0
+  order: 1
   requires: []
-  enables: ['security-upgrade']
+  enables: []
   escalates_to: []
   internal: false
 ---
@@ -18,7 +17,7 @@ coordination:
 
 > **Purpose:** Systematic security scan of any git repository across four categories.
 > **Last Updated:** 2026-03-18
-
+>
 > **Wrong skill?** Public repo IP leakage → `public-repo-ip-audit`. Wiki secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
 
 ## Approach
@@ -143,7 +142,6 @@ git ls-files -z 2>/dev/null | xargs -0 grep -lnE \
   2>/dev/null | grep -v 'test\|spec\|\.md$'
 ```
 
-
 ## Fix Workflow
 
 For each finding:
@@ -154,7 +152,8 @@ For each finding:
 4. **Misconfiguration** → Add missing entries, disable debug mode
 
 **Commit each fix individually** with descriptive messages:
-```
+
+```python
 fix(security): remove hardcoded API key from config.ts
 fix(security): add .env to .gitignore
 fix(security): upgrade flask 3.1.2→3.1.3 (CVE-2026-27205)
@@ -164,7 +163,6 @@ fix(security): replace eval() with JSON.parse() in parser.js
 ## Verification
 
 After all fixes, **re-run the full scan** to confirm zero remaining issues. Use `superpowers:verification-before-completion` — evidence before assertions.
-
 
 ## Rules
 
@@ -181,6 +179,7 @@ After all fixes, **re-run the full scan** to confirm zero remaining issues. Use 
 - **security-upgrade**: Dependency upgrade after scan findings
 - **wiki-secret-audit**: Wiki-side secret scanning
 - **public-repo-ip-audit**: IP/license review (different from secrets)
+
 ## Failure Modes and Recovery
 
 | Failure | Fix |

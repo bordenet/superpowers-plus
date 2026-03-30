@@ -19,7 +19,7 @@ coordination:
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-03-12
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
-
+>
 > **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
 
 ## Detection Approach
@@ -37,7 +37,6 @@ This skill analyzes text and produces a **slop score** (0-100) with detailed bre
 - Compare before/after versions of edited text
 - Triage documents: which need the most cleanup?
 
-
 ## Content Type Detection
 
 The skill auto-detects content type from context:
@@ -54,10 +53,9 @@ The skill auto-detects content type from context:
 
 **Override:** "Analyze this as a [type]: [text]"
 
-
 ## Output Format
 
-```
+```text
 Slop Score: 73/100
 
 Breakdown:
@@ -80,7 +78,6 @@ Stylometric Measurements:
 Verdict: Heavy slop. Substantial rewrite needed.
 ```
 
-
 ## Scoring Algorithm
 
 | Dimension | Max Points | Calculation |
@@ -102,7 +99,6 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | 61-80 | Heavy: significant slop, substantial rewrite needed |
 | 81-100 | Severe: text reads as unedited AI output |
 
-
 ## Stylometric Thresholds
 
 Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
@@ -113,7 +109,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Paragraph length SD | SD < 25 | SD > 25 |
 | Type-Token Ratio | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
 | Hapax legomena rate | Below user baseline | At or above baseline |
-
 
 ## Structural & Semantic Patterns (45 points max)
 
@@ -129,7 +124,6 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Balanced to a Fault | Every pro has matching con of equal weight | +5 |
 | Circular Reasoning | Rephrases thesis without new evidence | +5 |
 
-
 ## Lexical Pattern Categories
 
 For the complete pattern dictionary, see [reference.md](./reference.md).
@@ -143,7 +137,6 @@ For the complete pattern dictionary, see [reference.md](./reference.md).
 | Sycophancy | "Great question!", "Happy to help!" | Delete |
 | Typographic Tells | em-dash (—), smart quotes | Replace with standard punctuation |
 
-
 ## Dictionary Integration
 
 This skill reads from `.slop-dictionary.json` if present in workspace root.
@@ -153,7 +146,6 @@ This skill reads from `.slop-dictionary.json` if present in workspace root.
 - Weight affects scoring: `score = base_score * weight`
 
 **Note:** This skill reads from the dictionary but does not write. Use `eliminating-ai-slop` to add patterns or exceptions.
-
 
 ## Semantic Quick Tests
 
@@ -166,13 +158,13 @@ Use these when reviewing AI text qualitatively (merged from `reviewing-ai-text`)
 | **Constraint** | "Implement microservices for scalability" | "Microservices add 3x ops overhead. Stay monolith unless dedicated platform team." |
 | **First-Person** | Generic enough to apply anywhere | Grounded in specific context |
 
-
 ## Companion Skills
 
 - **eliminating-ai-slop**: Active rewriting to remove detected patterns
 - **professional-language-audit**: Profanity and inappropriate language detection
 - **readme-authoring**: README generation
 - **incorporating-research**: Score research quality before incorporating
+
 ## Example
 
 ```bash

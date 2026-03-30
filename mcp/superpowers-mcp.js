@@ -36,8 +36,8 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Multi-source skill directories (personal overrides superpowers)
-const PERSONAL_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
+const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
@@ -71,14 +71,103 @@ function parseYamlList(lines, startIndex) {
 }
 
 function extractFrontmatter(filePath) {
+  // Parse a YAML-inline array string like '"what\'s next", "I\'m stuck"'
+  // into an array of unquoted strings. Handles apostrophes inside double-quoted
+  // strings and vice versa. Supports escaped quotes (\" and \').
+  function parseInlineArray(inner) {
+    const items = [];
+    let i = 0;
+    while (i < inner.length) {
+      // Skip whitespace and commas
+      while (i < inner.length && (inner[i] === ' ' || inner[i] === ',' || inner[i] === '\t')) i++;
+      if (i >= inner.length) break;
+      const quote = inner[i];
+      if (quote === '"' || quote === "'") {
+        // Quoted string — find matching close quote (same type), respecting escapes
+        let val = '';
+        i++; // skip opening quote
+        while (i < inner.length) {
+          if (quote === '"' && inner[i] === '\\' && i + 1 < inner.length) {
+            // Double-quoted: backslash escaping
+            val += inner[i + 1];
+            i += 2;
+          } else if (quote === "'" && inner[i] === "'" && i + 1 < inner.length && inner[i + 1] === "'") {
+            // Single-quoted: '' is escaped apostrophe (YAML convention)
+            val += "'";
+            i += 2;
+          } else if (inner[i] === quote) {
+            i++; // skip closing quote
+            break;
+          } else {
+            val += inner[i];
+            i++;
+          }
+        }
+        if (val) items.push(val);
+      } else {
+        // Unquoted — read until comma or end
+        let val = '';
+        while (i < inner.length && inner[i] !== ',') { val += inner[i]; i++; }
+        val = val.trim();
+        if (val) items.push(val);
+      }
+    }
+    return items;
+  }
+
+  // Check if a string has a closing ] outside of quotes.
+  // Used to detect the end of bracket-multiline arrays.
+  function hasUnquotedClosingBracket(s) {
+    let inQuote = null;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+      if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+      if (c === '"' || c === "'") { inQuote = c; continue; }
+      if (c === ']') return true;
+    }
+    return false;
+  }
+
+  // Extract content between [ and the real closing ] (outside quotes).
+  function extractBracketContent(s) {
+    const start = s.indexOf('[');
+    if (start === -1) return '';
+    let inQuote = null;
+    for (let i = start + 1; i < s.length; i++) {
+      const c = s[i];
+      if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+      if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+      if (c === '"' || c === "'") { inQuote = c; continue; }
+      if (c === ']') return s.slice(start + 1, i);
+    }
+    return s.slice(start + 1); // no closing bracket found, return everything after [
+  }
+
+  // Strip surrounding YAML quotes and unescape: "value" or 'value' → value
+  function unquoteYaml(s) {
+    if (s.startsWith('"') && s.endsWith('"')) {
+      return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (s.startsWith("'") && s.endsWith("'")) {
+      return s.slice(1, -1).replace(/''/g, "'"); // YAML single-quote escaping
+    }
+    return s;
+  }
+
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let name = '';
     let description = '';
     let triggers = [];
+    let anti_triggers = [];
     let compress = true;
+    let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+    let antiTriggerAccum = null; // accumulates bracket-multiline anti_trigger arrays
+    let yamlListField = null; // tracks which field is accumulating YAML-list items
+    let yamlListTarget = null; // 'triggers' or 'anti_triggers'
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -88,40 +177,85 @@ function extractFrontmatter(filePath) {
         continue;
       }
       if (inFrontmatter) {
+        // Handle bracket-multiline accumulation
+        if (triggerAccum !== null) {
+          triggerAccum += ' ' + line.trim();
+          if (hasUnquotedClosingBracket(triggerAccum)) {
+            triggers = parseInlineArray(extractBracketContent(triggerAccum));
+            triggerAccum = null;
+          }
+          continue;
+        }
+        if (antiTriggerAccum !== null) {
+          antiTriggerAccum += ' ' + line.trim();
+          if (hasUnquotedClosingBracket(antiTriggerAccum)) {
+            anti_triggers = parseInlineArray(extractBracketContent(antiTriggerAccum));
+            antiTriggerAccum = null;
+          }
+          continue;
+        }
+
+        // Handle YAML-list accumulation
+        if (yamlListField && line.match(/^\s+-\s/)) {
+          const raw = line.replace(/^\s+-\s*/, '').trim();
+          const item = unquoteYaml(raw);
+          if (item) {
+            if (yamlListTarget === 'anti_triggers') anti_triggers.push(item);
+            else triggers.push(item);
+          }
+          continue;
+        } else if (yamlListField) {
+          yamlListField = null;
+          yamlListTarget = null;
+        }
+
         const nameMatch = line.match(/^name:\s*(.*)$/);
         const descMatch = line.match(/^description:\s*(.*)$/);
-        const triggerMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-        if (nameMatch) name = nameMatch[1].trim();
-        if (descMatch) description = descMatch[1].trim();
-        if (triggerMatch) {
-          triggers = parseInlineArray(triggerMatch[1]);
+        if (nameMatch) name = unquoteYaml(nameMatch[1].trim());
+        if (descMatch) description = unquoteYaml(descMatch[1].trim());
+
+        // Triggers — three forms
+        if (line.match(/^triggers:\s*\[/)) {
+          if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+            triggers = parseInlineArray(extractBracketContent(line));
+          } else {
+            triggerAccum = line;
+          }
         } else if (line.match(/^triggers:\s*$/)) {
-          const parsed = parseYamlList(lines, i);
-          triggers = parsed.values;
-          i = parsed.nextIndex;
+          yamlListField = 'triggers';
+          yamlListTarget = 'triggers';
+          triggers = [];
+        }
+        // Anti-triggers — same three forms
+        if (line.match(/^anti_triggers:\s*\[/)) {
+          if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+            anti_triggers = parseInlineArray(extractBracketContent(line));
+          } else {
+            antiTriggerAccum = line;
+          }
+        } else if (line.match(/^anti_triggers:\s*$/)) {
+          yamlListField = 'anti_triggers';
+          yamlListTarget = 'anti_triggers';
+          anti_triggers = [];
         }
         if (line.match(/^compress:\s*false/)) compress = false;
       }
     }
 
-    // Fallback: use first non-empty line after frontmatter
+    // Fallback: use first non-empty, non-heading line after frontmatter
     if (!description) {
-      let pastFrontmatter = false;
+      let dashCount = 0;
       for (const line of lines) {
-        if (line.trim() === '---') {
-          if (pastFrontmatter) break;
-          pastFrontmatter = true;
-          continue;
-        }
-        if (pastFrontmatter && line.trim() && !line.startsWith('#')) {
+        if (line.trim() === '---') { dashCount++; continue; }
+        if (dashCount >= 2 && line.trim() && !line.startsWith('#')) {
           description = line.trim().substring(0, 200);
           break;
         }
       }
     }
-    return { name, description, triggers, compress };
+    return { name, description, triggers, anti_triggers, compress };
   } catch {
-    return { name: '', description: '', triggers: [], compress: true };
+    return { name: '', description: '', triggers: [], anti_triggers: [], compress: true };
   }
 }
 
@@ -160,7 +294,7 @@ function compressSkillContent(text) {
  * Strip YAML frontmatter from content.
  */
 function stripFrontmatter(content) {
-  const lines = content.split('\n');
+  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   let inFrontmatter = false;
   let frontmatterEnded = false;
   const result = [];
@@ -188,7 +322,11 @@ function findSkillsInDir(dir, sourceType) {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
     const skillDir = path.join(dir, entry.name);
-    const isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+    let isDir = entry.isDirectory();
+    if (!isDir && entry.isSymbolicLink()) {
+      try { isDir = fs.statSync(skillDir).isDirectory(); }
+      catch (e) { if (e.code === 'ENOENT' || e.code === 'ELOOP') continue; throw e; }
+    }
     if (!isDir) continue;
     // Look for skill.md (case-insensitive)
     const candidates = ['skill.md', 'SKILL.md'];
@@ -206,6 +344,7 @@ function findSkillsInDir(dir, sourceType) {
         skillDir,
         name: meta.name || entry.name,
         description: meta.description || `Skill: ${entry.name}`,
+        anti_triggers: meta.anti_triggers || [],
         dirName: entry.name,
         triggers: meta.triggers || [],
         compress: meta.compress,

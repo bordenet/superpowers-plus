@@ -9,7 +9,7 @@ coordination:
   group: writing
   order: 2
   requires: []
-  enables: ['plan-and-execute']
+  enables: []
   escalates_to: []
   internal: false
 ---
@@ -17,14 +17,14 @@ coordination:
 # Plan Quality Gates
 
 > **Last Updated:** 2026-03-20
-> **Fires alongside:** `superpowers:writing-plans` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
-
+> **Fires alongside:** `superpowers:plan-and-execute` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
+>
 > **Wrong skill?** Executing a plan → `plan-and-execute`. Feature design → `brainstorming` or `design-triad`. Writing documentation → `readme-authoring`.
 > **See also:** [detecting-ai-slop reference](../detecting-ai-slop/reference.md) § Fabricated Calendar Timelines
 
 ## Purpose
 
-Enforce quality constraints on plans at creation time. The upstream `writing-plans` (upstream) skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
+Enforce quality constraints on plans at creation time. The upstream `plan-and-execute` skill handles plan structure. This skill prevents specific failure modes (fabricated timelines, missing exit criteria) that other skills do not guard against.
 
 **Announce at start:** "Using plan-quality-gates to enforce timeline and exit-criteria discipline."
 
@@ -35,6 +35,7 @@ Enforce quality constraints on plans at creation time. The upstream `writing-pla
 **NEVER assign calendar periods to plan phases without actual capacity data.**
 
 You have zero information about:
+
 - Team size or availability
 - Sprint velocity or cadence
 - Competing priorities or deadlines
@@ -57,12 +58,13 @@ Therefore you CANNOT write any of the following:
 ### What to Use Instead
 
 **Dependency ordering + exit criteria.** Each phase states:
+
 1. What it depends on (preconditions)
 2. What "done" means (exit criterion)
 
 ### ❌ WRONG (actual incident, 2026-03-20)
 
-```
+```text
 Phase 1: Discovery (Week 1)
 Phase 2: Foundation (Weeks 1-2)
 Phase 3: Validation (Weeks 3-4)
@@ -71,7 +73,7 @@ Phase 4: Optimization (Week 5)
 
 ### ✅ RIGHT
 
-```
+```python
 Phase 1: Build schema knowledge base
   Depends on: nothing
   Exit: ≥9 table docs with business semantics committed
@@ -108,6 +110,7 @@ Phase 4: Cut over production queries
 ## ✅ Rule 3: Dependency Ordering
 
 Every phase in a plan MUST state its dependencies explicitly:
+
 - `Depends on: nothing` (can start immediately)
 - `Depends on: Phase N` (sequential dependency)
 - `Depends on: Phase N + external approval` (blocked dependency)
@@ -119,6 +122,7 @@ If two phases have no dependency relationship, note they can run in parallel.
 ## ✅ Rule 4: Exit Criteria
 
 Every phase or task MUST have a concrete "done means" statement:
+
 - ❌ "Complete the migration" (vague)
 - ✅ "Exit: all queries use named connections, zero references to legacy connection strings in codebase"
 
@@ -155,14 +159,13 @@ These patterns in plan output indicate this skill was not followed:
 
 - **plan-and-execute**: Executing plans (this skill validates them)
 - **brainstorming**: Generating plan options
-- `writing-plans` (upstream): Plan writing standards
+- `plan-and-execute`: Plan writing standards
 
 ## When to Use
 
 - When writing plans, roadmaps, or any phased work
-- Automatically co-activated with `writing-plans` (upstream) skill
+- Automatically co-activated with `plan-and-execute` skill
 - When reviewing existing plans for quality and completeness
-
 
 ## Example
 
@@ -172,7 +175,7 @@ echo "Checklist:"
 echo "  [ ] Every step has success criteria"
 echo "  [ ] Rollback plan documented"
 echo "  [ ] Dependencies identified"
-echo "  [ ] Time estimates included"
+echo "  [ ] No fabricated timelines (capacity data required for any time estimate)"
 ```
 
 ## Failure Modes
