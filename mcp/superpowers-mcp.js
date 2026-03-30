@@ -71,10 +71,54 @@ function parseYamlList(lines, startIndex) {
 }
 
 function extractFrontmatter(filePath) {
-  // Strip surrounding YAML quotes: "value" or 'value' → value
+  // Parse a YAML-inline array string like '"what\'s next", "I\'m stuck"'
+  // into an array of unquoted strings. Handles apostrophes inside double-quoted
+  // strings and vice versa. Supports escaped quotes (\" and \').
+  function parseInlineArray(inner) {
+    const items = [];
+    let i = 0;
+    while (i < inner.length) {
+      // Skip whitespace and commas
+      while (i < inner.length && (inner[i] === ' ' || inner[i] === ',' || inner[i] === '\t')) i++;
+      if (i >= inner.length) break;
+      const quote = inner[i];
+      if (quote === '"' || quote === "'") {
+        // Quoted string — find matching close quote (same type), respecting escapes
+        let val = '';
+        i++; // skip opening quote
+        while (i < inner.length) {
+          if (inner[i] === '\\' && i + 1 < inner.length) {
+            // Escaped character — include the literal char after backslash
+            val += inner[i + 1];
+            i += 2;
+          } else if (inner[i] === quote) {
+            i++; // skip closing quote
+            break;
+          } else {
+            val += inner[i];
+            i++;
+          }
+        }
+        if (val) items.push(val);
+      } else {
+        // Unquoted — read until comma or end
+        let val = '';
+        while (i < inner.length && inner[i] !== ',') { val += inner[i]; i++; }
+        val = val.trim();
+        if (val) items.push(val);
+      }
+    }
+    return items;
+  }
+
+  // Strip surrounding YAML quotes and unescape: "value" or 'value' → value
   function unquoteYaml(s) {
-    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))
-      return s.slice(1, -1);
+    if (s.startsWith('"') && s.endsWith('"')) {
+      return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (s.startsWith("'") && s.endsWith("'")) {
+      return s.slice(1, -1).replace(/''/g, "'"); // YAML single-quote escaping
+    }
     return s;
   }
 
@@ -102,7 +146,7 @@ function extractFrontmatter(filePath) {
           triggerAccum += ' ' + line.trim();
           if (line.includes(']')) {
             const inner = triggerAccum.match(/\[(.+)\]/)?.[1] || '';
-            triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
+            triggers = parseInlineArray(inner);
             triggerAccum = null;
           }
           continue;
@@ -110,7 +154,8 @@ function extractFrontmatter(filePath) {
 
         // Handle YAML-list accumulation: triggers:\n  - item\n  - item
         if (yamlListField && line.match(/^\s+-\s/)) {
-          const item = line.replace(/^\s+-\s*/, '').replace(/^["']|["']$/g, '').trim();
+          const raw = line.replace(/^\s+-\s*/, '').trim();
+          const item = unquoteYaml(raw);
           if (item) triggers.push(item);
           continue;
         } else if (yamlListField) {
@@ -129,7 +174,7 @@ function extractFrontmatter(filePath) {
           if (line.includes(']')) {
             // Form 1: Single-line inline: triggers: ["a", "b"]
             const inner = line.match(/\[(.+)\]/)?.[1] || '';
-            triggers = inner.match(/["'][^"']+["']/g)?.map(t => t.replace(/["']/g, '')) || [];
+            triggers = parseInlineArray(inner);
           } else {
             // Form 2: Bracket-multiline: triggers: [\n  "a",\n  "b"\n]
             triggerAccum = line;
