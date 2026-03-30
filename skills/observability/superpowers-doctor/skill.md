@@ -23,13 +23,6 @@ coordination:
 
 Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
 
-## Companion Skills
-
-- **skill-health-check**: Quick structural lint (lighter than doctor)
-- **skill-authoring**: Writing new skill files
-- `update-superpowers` (upstream): Updating skill installations
-- **superpowers-help**: Skill discovery and help
-
 ## When to Use
 
 - User says "run superpowers doctor" or "check skill health"
@@ -71,7 +64,7 @@ All fixes create backups in `~/.codex/doctor-backups/YYYY-MM-DD_HH-MM-SS-PID/` b
 ./tools/doctor-checks.sh --fix --yes  # Fix all without prompts
 ```
 
-The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` env vars or well-known paths. See `references/checks.md` for the full check summary table.
+The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SP_OVERLAY_SOURCE_DIR` env vars or well-known paths. See `references/checks.md` for the full check summary table.
 
 ## Severity Tiers
 
@@ -92,7 +85,7 @@ The script auto-discovers source repos via `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` e
 
 | Failure | Recovery |
 |---------|----------|
-| No source repos found | Set `SPP_SOURCE_DIR` / `SPC_SOURCE_DIR` env vars |
+| No source repos found | Set `SPP_SOURCE_DIR` / `SP_OVERLAY_SOURCE_DIR` env vars |
 | YAML parsing fails | The parse failure IS the finding (Check 1) |
 | Network unavailable | Checks 13, 19 skipped — re-run when online |
 | Backup fails | Fix is skipped automatically — resolve disk space or permissions |

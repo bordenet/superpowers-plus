@@ -103,7 +103,7 @@ Can't check all boxes? You skipped TDD. Start over.
 |---------|-----|
 | Wrote implementation before test | Delete implementation, write failing test first |
 | Test passed immediately (no RED phase) | Test is wrong — it's testing existing behavior, not new behavior |
-| Added features during GREEN phase | Revert extras — GREEN means minimal code to pass, nothing more |
+| Must mock everything to test | Code is too coupled — refactor to use dependency injection |
 
 ## Anti-Patterns
 

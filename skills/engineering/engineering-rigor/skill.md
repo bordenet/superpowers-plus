@@ -1,15 +1,14 @@
 ---
 name: engineering-rigor
 source: superpowers-plus
-triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done", "which verification skill", "what gate should I use", "which quality check"]
-anti_triggers: ["specific task", "write code", "create file", "fix bug"]
-description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, output-verification, code-review-battery, and providing-code-review.
-summary: "Use when: need hub for pre-commit, blast-radius, output-verification, code review battery, or code review skills."
+triggers: ["engineering rigor", "implement this feature", "add a new field", "before marking done"]
+description: Hub skill for engineering rigor. Points to pre-commit-gate, blast-radius-check, and providing-code-review.
+summary: "Use when: need hub for pre-commit, blast-radius, or code review skills."
 coordination:
   group: engineering
-  order: 0
+  order: 1
   requires: []
-  enables: ["pre-commit-gate", "blast-radius-check", "output-verification", "field-rename-verification"]
+  enables: ['pre-commit-gate', 'blast-radius-check']
   escalates_to: []
   internal: false
 ---
@@ -40,7 +39,7 @@ This is the **hub skill** for engineering rigor. For operational guidance, use t
 | `providing-code-review` | When reviewing others' PRs | "review this PR", "code review" |
 | `receiving-code-review` | When handling PR feedback | "received code review", "PR feedback" |
 
-**TypeScript/testing skills (in overlay repo — install via `spc:` prefix):**
+**TypeScript/testing skills (in overlay repo — install via `spo:` prefix):**
 
 | Skill | When to Use | Trigger |
 |-------|-------------|---------|

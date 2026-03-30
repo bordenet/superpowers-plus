@@ -1,6 +1,6 @@
 # superpowers-plus
 
-87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+86 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,11 +10,11 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**86 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 34 | Blast radius, design triad, TDD, code review, code review battery, progressive review gate, progressive harsh review, systematic debugging, feature lifecycle, output verification, debug conductor, investigators, complexity refactoring, branch conventions, TypeScript conventions |
+| engineering | 34 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
 | productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
@@ -56,7 +56,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the full skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 86-skill suite — use git clone above for that.
 
 ### Claude Code
 
@@ -148,6 +148,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | brainstorming | Explores intent, requirements, and design before implementation |
 | | cognitive-complexity-refactoring | Reduces Biome cognitive complexity: extraction, early returns, condition simplification |
 | | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
+| | micro-harsh-review | Per-batch adversarial review: 3 critic personas, 5 dimensions, score <8 = rework |
 | | debug-conductor | PREVIEW — Conductor-led parallel investigation for complex distributed incidents |
 | | design-triad | 3+ design options, comparison matrix, harsh review loop |
 | | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
@@ -170,7 +171,6 @@ Skills activate automatically when your request matches their triggers. Describe
 | | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
 | | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
 | | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
-| | telephony-flow-investigator | Investigates telephony call flow: SIP signaling, audio, RTP |
 | | test-driven-development | Red → green → refactor cycle enforcement |
 | | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
 | | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |
@@ -184,11 +184,15 @@ Skills activate automatically when your request matches their triggers. Describe
 | | issue-link-verification | Tests URLs in ticket content |
 | | issue-verify | Confirms references exist |
 | observability | completeness-check | Detects incomplete work from crashes or context loss |
+| | evolution-loop | Self-improvement cycle: scans failures, generates skill updates, tracks metrics |
 | | exhaustive-audit-validation | Confirms checklist coverage |
+| | failure-autopsy | 5-Why post-mortem for wrong assumptions and failed approaches |
 | | holistic-repo-verification | Checks all CI paths |
+| | measurement-integrity | Cross-validation gate before reporting any metric or percentage |
 | | skill-health-check | Validates skill ecosystem: YAML frontmatter, coordination, failure modes |
 | | superpowers-doctor | 22-check diagnostic across all installed skills |
 | productivity | adversarial-search | Defeats confirmation bias by searching for counter-evidence |
+| | autonomous-chain-controller | Meta-orchestrator: auto-detects skill chains, executes with quality gates |
 | | code-review | File-protocol handoff for inter-agent code review |
 | | code-review-respond | Reviewer-side protocol for file-based review handoff |
 | | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
@@ -202,6 +206,7 @@ Skills activate automatically when your request matches their triggers. Describe
 | | think-twice | Breaks AI out of spirals via fresh sub-agent |
 | | thinking-orchestrator | Hub router for metacognition skills |
 | | todo-archive | Archives completed tasks to monthly files |
+| | todo-guardian | Continuous TODO enforcement: stale detection, completion gate, session-end sweep |
 | | todo-management | Parses and tracks tasks |
 | research | expert-interviewer | Extracts domain knowledge through structured interviewing |
 | | incorporating-research | Merges external findings into current work |

@@ -33,7 +33,7 @@ New work branches MUST start with one of these prefixes:
 
 ### Decision Guide
 
-```text
+```
 Is it throwaway / exploratory?              → exp/
 Is it a bug fix?                            → fix/
 Is it only documentation?                   → doc/
@@ -48,12 +48,11 @@ Everything else (deps, CI, refactor, tests) → chore/
 
 ## Branch Name Format
 
-```text
+```
 {prefix}/{short-description}
 ```
 
 **Rules:**
-
 - Lowercase only
 - Hyphens between words (not underscores)
 - Descriptive but concise
