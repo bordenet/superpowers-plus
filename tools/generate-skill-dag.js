@@ -67,6 +67,7 @@ function parseFrontmatter(content) {
             } else if (val === 'true') val = true;
             else if (val === 'false') val = false;
             else if (/^\d+$/.test(val)) val = parseInt(val);
+            else val = unquoteYaml(val);
             coordObj[coordCurrentKey] = val;
           }
         }
@@ -78,7 +79,7 @@ function parseFrontmatter(content) {
           // Simple inline array parsing (coordination arrays are simple identifiers)
           val = val.replace(/[\[\]]/g, '').split(',').map(s => unquoteYaml(s.trim())).filter(Boolean);
         }
-        result[keyMatch[1]] = val;
+        result[keyMatch[1]] = (typeof val === 'string') ? unquoteYaml(val) : val;
       }
     }
     if (inCoordination) result.coordination = coordObj;
