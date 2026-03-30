@@ -111,6 +111,35 @@ function extractFrontmatter(filePath) {
     return items;
   }
 
+  // Check if a string has a closing ] outside of quotes.
+  // Used to detect the end of bracket-multiline arrays.
+  function hasUnquotedClosingBracket(s) {
+    let inQuote = null;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+      if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+      if (c === '"' || c === "'") { inQuote = c; continue; }
+      if (c === ']') return true;
+    }
+    return false;
+  }
+
+  // Extract content between [ and the real closing ] (outside quotes).
+  function extractBracketContent(s) {
+    const start = s.indexOf('[');
+    if (start === -1) return '';
+    let inQuote = null;
+    for (let i = start + 1; i < s.length; i++) {
+      const c = s[i];
+      if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+      if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+      if (c === '"' || c === "'") { inQuote = c; continue; }
+      if (c === ']') return s.slice(start + 1, i);
+    }
+    return s.slice(start + 1); // no closing bracket found, return everything after [
+  }
+
   // Strip surrounding YAML quotes and unescape: "value" or 'value' → value
   function unquoteYaml(s) {
     if (s.startsWith('"') && s.endsWith('"')) {
@@ -144,9 +173,8 @@ function extractFrontmatter(filePath) {
         // Handle bracket-multiline accumulation: triggers: [\n  "a",\n  "b"\n]
         if (triggerAccum !== null) {
           triggerAccum += ' ' + line.trim();
-          if (line.includes(']')) {
-            const inner = triggerAccum.match(/\[(.+)\]/)?.[1] || '';
-            triggers = parseInlineArray(inner);
+          if (hasUnquotedClosingBracket(triggerAccum)) {
+            triggers = parseInlineArray(extractBracketContent(triggerAccum));
             triggerAccum = null;
           }
           continue;
@@ -171,10 +199,9 @@ function extractFrontmatter(filePath) {
 
         // Triggers — three forms
         if (line.match(/^triggers:\s*\[/)) {
-          if (line.includes(']')) {
+          if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
             // Form 1: Single-line inline: triggers: ["a", "b"]
-            const inner = line.match(/\[(.+)\]/)?.[1] || '';
-            triggers = parseInlineArray(inner);
+            triggers = parseInlineArray(extractBracketContent(line));
           } else {
             // Form 2: Bracket-multiline: triggers: [\n  "a",\n  "b"\n]
             triggerAccum = line;
