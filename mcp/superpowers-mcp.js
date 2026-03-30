@@ -87,9 +87,13 @@ function extractFrontmatter(filePath) {
         let val = '';
         i++; // skip opening quote
         while (i < inner.length) {
-          if (inner[i] === '\\' && i + 1 < inner.length) {
-            // Escaped character — include the literal char after backslash
+          if (quote === '"' && inner[i] === '\\' && i + 1 < inner.length) {
+            // Double-quoted: backslash escaping
             val += inner[i + 1];
+            i += 2;
+          } else if (quote === "'" && inner[i] === "'" && i + 1 < inner.length && inner[i + 1] === "'") {
+            // Single-quoted: '' is escaped apostrophe (YAML convention)
+            val += "'";
             i += 2;
           } else if (inner[i] === quote) {
             i++; // skip closing quote
