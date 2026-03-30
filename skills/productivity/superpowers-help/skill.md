@@ -123,7 +123,7 @@ Run `match-skills "<task>"` and present the ranked results. The matching engine 
 ```bash
 sp-doctor    # expands to superpowers-doctor (normal resolution)
 spp-doctor   # loads from superpowers-plus source repo directly
-spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
+spo:skill    # loads from overlay source repo (requires SP_OVERLAY_SOURCE_DIR)
 ```
 
 ---
@@ -135,7 +135,7 @@ spc:skill    # loads from overlay source repo (requires SPC_SOURCE_DIR)
 | Hardcoding skill names, counts, or routing tables | ALL data must come from `find-skills` / `match-skills` at runtime |
 | Reporting skills from memory instead of running discovery | Run `find-skills` before answering — never enumerate from memory |
 | Dumping the full catalog as first response | Start with count summary + "what do you want to do?" |
-| Missing overlay skills from `SPC_SOURCE_DIR` | Overlay adds skills not in base install — `find-skills` covers both sources |
+| Missing overlay skills from `SP_OVERLAY_SOURCE_DIR` | Overlay adds skills not in base install — `find-skills` covers both sources |
 | Confusing superpowers vs explicit skills | Two axes: activation (auto/explicit) and source (core/extended) |
 | Recommending a skill without confirming it's installed | Run `find-skills {name}` or `match-skills` before recommending |
 | Stale skill descriptions in output | If `find-skills` shows `>` as description, the installed copy needs re-syncing — run `install.sh` |

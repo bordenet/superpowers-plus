@@ -22,7 +22,7 @@ cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
-SP_OVERLAY_DIR="${SPC_SOURCE_DIR:-}"
+SP_OVERLAY_DIR="${SP_OVERLAY_SOURCE_DIR:-${SPC_SOURCE_DIR:-}}"
 
 # Colors
 if [[ -t 1 ]]; then
@@ -167,7 +167,8 @@ log_check "Shell scripts (shellcheck + bash -n)"
 # SC2015 - A && B || C is not if-then-else (style)
 # SC2317 - Command unreachable (false positive)
 # SC2064 - Use single quotes in trap (style)
-SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
+# SC2016 - Expressions don't expand in single quotes (intentional literal matching)
+SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016"
 
 if command -v shellcheck &> /dev/null; then
     while IFS= read -r file; do

@@ -9,26 +9,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- **Forked Debugging Orchestration (PREVIEW)** — conductor-led parallel investigation for complex distributed system incidents:
-  - `debug-conductor`: Orchestrates parallel investigator branches with fork-readiness rubric and operator checkpoint
-  - `evidence-adjudicator`: Synthesizes branch evidence into ranked root-cause verdicts with adversarial disconfirmation pass (Step 5b)
-  - 6 domain-specific investigators: timeline-trace, llm-behavior, telephony-flow, state-consistency, infra-config, reproduction-experiment
-  - Shared contracts: `evidence-schema.md` (killed-branch support), `fork-readiness-rubric.md`, `confidence-calibration.md`
-  - Experiment harness: `exercises/forked-debugging/run-experiment.sh` with input validation and run isolation
-- **wiki-refactor** skill — 7-phase wiki restructuring pipeline with discovery, dedup, IA, rewrite, review, delivery, and drift detection
-
 ### Changed
-
-- **Multi-agent activation threshold**: score = 5 is now borderline (asks user); score ≥ 6 auto-activates. Previously ≥ 5 auto-activated. Updated in shared rubric, brainstorming, plan-and-execute, subagent-driven-development, and all strategy docs.
-- **Silence policy**: All multi-agent systems now default to conservative (stay serial) when the operator doesn't respond, instead of auto-approving.
-- **`writing-plans` → `plan-and-execute`**: Renamed across all active skill files, shared standards, cross-references, and docs. Design documents retain historical name.
-- **`harsh-review.sh`**: Fixed file discovery — default mode was using `find -name` with regex patterns (silently found 0 files). Now uses `find | grep -E`. Also: `--changed-only` mode dynamically resolves diff base (tracking branch → origin/dev → origin/main).
-- **`skill-metrics-analyzer.sh`**: Implemented real `--json` output; requires `SUPERPOWERS_DIR` (no longer defaults to `./`); rejects unknown flags.
-- **`migrate.sh`**: Worktree detection uses `-e` instead of `-d` for `.git` (supports git worktrees where `.git` is a file).
-- **Evidence schema examples**: Aligned all investigator examples with canonical schema (removed non-schema fields: `source` in timeline, `timestampA`/`timestampB` in state, config-shaped records in infra `deployments`, `impactAssessment` → `impact` in LLM).
-- **Conductor delegation boundary**: All "synthesize" actions now explicitly dispatch `evidence-adjudicator`. Phase 6 writes `adjudication`, `budget`, `nextSteps` to incident packet. Adjudicator-failure row added to failure table.
+- **design-triad: completion gate** — Added hard gate after Step 2 (Compare) to prevent agents from stopping at a recommendation without completing Steps 3-5 (Harsh Review, Edge Cases, Iterate). This was the single most common failure mode observed in practice.
+- **design-triad: trigger discoverability** — Added 2 validated trigger phrases (`design options with adversarial review`, `generate options compare and red team`) that reliably route to design-triad as top match via embedding-mode match-skills. Removed 5 candidate phrases that routed to wrong skills.
+- **design-triad: rationalization table** — Added "I produced a recommendation" as an explicit rationalization to reject.
 
 ### Fixed
 
@@ -73,7 +57,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Documentation audit** — purged ghost skill references (`wiki-editing`/`wiki-authoring` → `wiki-orchestrator`), fixed `.codex/INSTALL.md` and `.opencode/INSTALL.md` install mechanisms, updated plugin metadata to 58 skills / v2.5.2 (#238)
 
 ### Added
-
 - `skills/productivity/plan-and-execute/` — General-purpose orchestrator: challenge → plan → stress-test → phased TODO execution with structured retrospectives and continuous improvement between phases (#257)
 - **superpowers-doctor** expanded to 22 checks with 4 new environment-health checks (#217)
   - Check 19: Stale managed checkout detection (behind `origin/main`), safe auto-fix via `--fix-safe`
@@ -98,8 +81,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `tools/todo-preflight.sh` — Single-command TODO.md path resolution and validation (#117)
 - `tools/skill-cost-analyzer.sh` — Token cost analysis for skill loading (#159)
 - One-time high-cost skill warning on first load (#160)
-- `spp:` and `spc:` namespace prefixes for cross-repo skill resolution (#151)
-- `sp-`/`spp-`/`spc-` dash shorthands for fewer keystrokes (#152)
+- `spp:` and `spo:` namespace prefixes for cross-repo skill resolution (#151)
+- `sp-`/`spp-`/`spo-` dash shorthands for fewer keystrokes (#152)
 - `superpowers-doctor` expanded to 18 checks with `--fix` mode and graduated fix tiers (#141, #145, #146, #169)
 - WSL compatibility handling in installer (#163)
 - Depth Challenge Gate for rigorous analysis requests (#112)

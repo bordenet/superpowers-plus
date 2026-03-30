@@ -161,16 +161,27 @@ deploy_todo_honeypot() {
         return 0
     }
 
-    # Source canonical honeypot content
-    local honeypot_src
-    honeypot_src="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tools/honeypot-content.txt"
-    if [[ -f "$honeypot_src" ]]; then
-        cat "$honeypot_src" > "$tmp_honeypot"
-    else
-        log_warn "honeypot-content.txt not found — skipping honeypot deployment"
-        rm -f "$tmp_honeypot"
-        return 0
-    fi
+    cat > "$tmp_honeypot" << HONEYPOT_CONTENT
+# 🚨 STOP — WRONG FILE 🚨
+# $marker
+#
+# You are violating TODO management rules. The real TODO.md is managed
+# by todo-crud.sh and lives at a path resolved from ~/.codex/.todo-registry
+# or ~/.codex/.env (TODO_FILE_PATH). This file is a honeypot.
+#
+# What you MUST do instead:
+#
+#   READ:     ~/.codex/superpowers-plus/tools/todo-crud.sh cat
+#   ADD:      ~/.codex/superpowers-plus/tools/todo-crud.sh add --priority P1 --description "..."
+#   COMPLETE: ~/.codex/superpowers-plus/tools/todo-crud.sh complete --id YYYYMMDD-NN
+#   PATH:     ~/.codex/superpowers-plus/tools/todo-crud.sh path
+#
+# NEVER use cat >, echo >, save-file, or str-replace-editor on ANY TODO.md.
+# NEVER guess the TODO path — ALWAYS use todo-crud.sh path.
+#
+# Load the skill first:
+#   node ~/.codex/superpowers-augment/superpowers-augment.js use-skill todo-management
+HONEYPOT_CONTENT
 
     # Set permissions on temp file before moving
     chmod 444 "$tmp_honeypot"
@@ -215,6 +226,12 @@ detect_orphaned_todo_files() {
             printf "%s" "${TODO_FILE_PATH:-}"
         ' 2>/dev/null) || true
     fi
+    # Also check .todo-registry as fallback
+    if [[ -z "$env_path" ]] && [[ -f "$HOME/.codex/.todo-registry" ]]; then
+        env_path=$(head -1 "$HOME/.codex/.todo-registry" 2>/dev/null | sed "s|\\\$HOME|$HOME|g") || true
+    fi
+    # The canonical path is env_path if set, otherwise default_path
+    local canonical_path="${env_path:-$default_path}"
     local -a candidates=()
     local -a found=()
 
@@ -248,10 +265,20 @@ detect_orphaned_todo_files() {
         done
     done
 
+    # Resolve canonical path to its real path for symlink dedup
+    local canonical_real=""
+    if [[ -f "$canonical_path" ]]; then
+        canonical_real=$(realpath "$canonical_path" 2>/dev/null) || true
+    fi
+
+    # Track seen inodes to deduplicate symlinked files
+    local -a seen_realpaths=()
+
     # Check each candidate
     for candidate in "${candidates[@]}"; do
-        # Skip the default path and the env path — those aren't orphaned
+        # Skip the default path, canonical path, and env path — those aren't orphaned
         [[ "$candidate" == "$default_path" ]] && continue
+        [[ "$candidate" == "$canonical_path" ]] && continue
         [[ -n "$env_path" ]] && [[ "$candidate" == "$env_path" ]] && continue
         # Skip template files
         [[ "$candidate" == *"/templates/"* ]] && continue
@@ -268,6 +295,22 @@ detect_orphaned_todo_files() {
         fi
 
         if [[ -f "$candidate" ]]; then
+            # Deduplicate symlinks — only report each physical file once
+            local candidate_real
+            candidate_real=$(realpath "$candidate" 2>/dev/null) || candidate_real="$candidate"
+            # Skip if this resolves to the canonical path
+            [[ -n "$canonical_real" ]] && [[ "$candidate_real" == "$canonical_real" ]] && continue
+            # Skip if we've already seen this real path
+            local already_seen=false
+            local seen
+            for seen in "${seen_realpaths[@]+"${seen_realpaths[@]}"}"; do
+                if [[ "$seen" == "$candidate_real" ]]; then
+                    already_seen=true
+                    break
+                fi
+            done
+            [[ "$already_seen" == "true" ]] && continue
+            seen_realpaths+=("$candidate_real")
             found+=("$candidate")
         fi
     done
@@ -277,7 +320,7 @@ detect_orphaned_todo_files() {
 
     # Report findings
     echo ""
-    log_warn "Found TODO.md file(s) outside the default location:"
+    log_warn "Found TODO.md file(s) outside the configured location:"
     echo ""
     for f in "${found[@]}"; do
         local size
@@ -287,11 +330,15 @@ detect_orphaned_todo_files() {
         echo "  📄 $f ($lines lines, $size bytes)"
     done
     echo ""
-    echo "  The default TODO.md location is now: $default_path"
+    echo "  Your TODO.md is at: $canonical_path"
     echo ""
     echo "  To consolidate, you can:"
-    echo "    1. Move:  mv <old-path> $default_path"
-    echo "    2. Point: add TODO_FILE_PATH=\"<old-path>\" to ~/.codex/.env"
-    echo "    3. Ignore: leave as-is (agents will use $default_path going forward)"
+    echo "    1. Move:  mv <old-path> $canonical_path"
+    if [[ "$canonical_path" != "$default_path" ]]; then
+        echo "    2. Ignore: leave as-is (agents use $canonical_path via TODO_FILE_PATH)"
+    else
+        echo "    2. Point: add TODO_FILE_PATH=\"<old-path>\" to ~/.codex/.env"
+        echo "    3. Ignore: leave as-is (agents will use $canonical_path going forward)"
+    fi
     echo ""
 }

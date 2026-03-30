@@ -9,7 +9,7 @@ coordination:
   group: productivity
   order: 3
   requires: ["plan-and-execute"]
-  enables: ["todo-management"]
+  enables: []
   escalates_to: []
   internal: false
 ---

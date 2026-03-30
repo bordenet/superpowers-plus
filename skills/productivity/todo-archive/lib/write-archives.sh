@@ -214,7 +214,7 @@ SHADOW_DIR="${HOME}/.codex/todo-shadow"
 SHADOW_FILE="${SHADOW_DIR}/TODO.md"
 if [[ -d "$SHADOW_FILE" ]]; then
   echo "WARNING: Shadow path ${SHADOW_FILE} is a directory (corrupt). Removing." >&2
-  rm -rf "${SHADOW_FILE:?}" 2>/dev/null || true
+  rm -rf "$SHADOW_FILE" 2>/dev/null || true
 fi
 if mkdir -p "$SHADOW_DIR" 2>/dev/null && \
    cp "$TODO_PATH" "${SHADOW_FILE}.tmp.$$" 2>/dev/null && \

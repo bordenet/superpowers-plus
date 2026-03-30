@@ -100,7 +100,6 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 ### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
 
 **NEVER write to TODO.md except through the approved TODO tools** (`todo-crud.sh`, `todo-preflight.sh --create-if-missing`, `todo-maintenance.sh`). This ban includes:
-
 - ❌ `save-file` / `str-replace-editor` / `echo >` / `cat >` / `sed -i` / inline python
 - ❌ ANY method that bypasses preflight, locking, backup, or structure validation
 
@@ -110,11 +109,46 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 
 ### Defense Layers (enforced by `todo-engine.py`)
 
-7 layers: rules → structural validation → OS immutability (`chflags uchg`) → chmod 444 → shadow+annihilation detection → stray path detection → path obscuring (`.todo-registry`). If annihilation blocks a write: delete `~/.codex/todo-shadow/TODO.md` and retry.
+| Layer | Mechanism | What it catches |
+|-------|-----------|----------------|
+| 1. Rules | This ban + AGENTS.md + core.always.md | Cooperating agents |
+| 2. Structural validation | `validate_structure()` in `write_file()` | Malformed content through engine |
+| 3. OS immutability | `chflags uchg` (macOS) / `chattr +i` (Linux) | ALL direct writes — `Operation not permitted` |
+| 4. chmod 444 | Secondary protection if immutability unavailable | `save-file`, `str-replace-editor`, shell redirects |
+| 5. Shadow + annihilation | Pre-write comparison vs shadow | Catastrophic data loss (>60% size drop, all tasks wiped, >5 tasks lost) |
+| 6. Stray path detection | `_validate_canonical_path()` in `write_file()` | Writes to wrong TODO.md path |
+| 7. Path obscuring | Path in private `.todo-registry`, NOT in `.env` | Agent path discovery; honeypot at `~/.codex/TODO.md` |
+
+**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
+
+**Incidents:**
+- **2026-03-23:** Agent used `save-file` to overwrite TODO.md, destroying dozens of open tasks. Unrecoverable.
+- **2026-03-26a:** Agent hit chmod 444, fell back to `~/.codex/TODO.md` — stray file. Fix: `_validate_canonical_path()`.
+- **2026-03-26b:** GPT-5.4 agent wrote directly despite all rules. Fix: `chflags uchg` + path obscuring + honeypot.
 
 ---
 
 ## Multi-Agent Coordination
+
+When multiple agents (Augment, Claude Code, amp, etc.) share a TODO.md, use **claim/unclaim/reap** to prevent duplicate work:
+
+1. **Before starting work:** `claim --id <ID>` — marks `[/]` with TTL metadata
+2. **On completion:** `complete --id <ID>` — moves to HISTORY (claim auto-removed)
+3. **On abandonment:** `unclaim --id <ID>` — reverts to `[ ]` for another agent
+4. **Periodic cleanup:** `reap` — finds expired claims and reverts them
+
+**TTL (default 30 min):** If an agent claims a task and dies/disconnects, the claim expires after TTL minutes. Another agent running `claim` or `reap` will auto-reap it.
+
+**Agent identity:** Set `AGENT_ID` env var for readable names. Falls back to `hostname:ppid`.
+
+**Claim metadata** (single line in task block):
+```
+  - Claimed: 2026-03-25T14:30:00 by augment-session-1 ttl=30
+```
+
+---
+
+## Overview
 
 Use `claim --id <ID>` → `complete --id <ID>` (or `unclaim` to abandon). Claims auto-expire after TTL (default 30 min). Run `reap` to clean expired claims. Set `AGENT_ID` env var for readable names.
 
@@ -164,11 +198,42 @@ P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress.
 
 > **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips.
 
-Diagnostics: `todo-crud.sh self-test` (health) · `doctor-checks.sh` (checks 23-25)
+**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
 
 ## Companion Skills
 
-- **todo-archive**: Archiving completed tasks · **plan-and-execute**: Planning complex task sequences
+## Failure Modes
+
+| Failure | Detection | Recovery |
+|---------|-----------|----------|
+| Agent uses `save-file`/`str-replace-editor` on TODO.md | OS immutability (`uchg`/`chattr +i`) blocks the write with "Operation not permitted" | No action needed — write was prevented |
+| Agent bypasses to `~/.codex/TODO.md` (honeypot) | Honeypot is also `uchg`+`444`; `sp-doctor` Check 23 detects content tampering | Run `sp-doctor --fix` to restore honeypot |
+| Honeypot immutable flag removed | `todo-crud.sh self-test` and `sp-doctor` Check 23 detect missing flag | Run `sp-doctor --fix` (macOS: `chflags uchg`, Linux: `sudo chattr +i`) |
+| `.todo-registry` missing or empty | `todo-crud.sh self-test` warns; engine falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
+| TODO path points to nonexistent file | `sp-doctor` Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
+| Annihilation detection blocks write | Engine detects >60% size drop or >5 task loss | Delete `~/.codex/todo-shadow/TODO.md` and retry |
+| Lock stuck (agent died mid-write) | Lock TTL expires after 120s; next operation auto-reaps | Wait 2 min, or manually `rm -rf` the `.TODO.md.lock` dir |
+| Agent writes directly despite rules | Shadow comparison catches post-write; `sp-doctor` catches honeypot damage | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
+
+> **Honeypot is optional.** The honeypot at `~/.codex/TODO.md` is only deployed when
+> the real TODO lives elsewhere (e.g., OneDrive, Dropbox, a shared repo). If your
+> `TODO_FILE_PATH` points to `~/.codex/TODO.md` (the default), no honeypot exists and
+> Check 23 is automatically skipped. The honeypot rows above only apply to users who
+> configured an external TODO path.
+
+### Diagnostic Commands
+
+```bash
+# Full health check
+~/.codex/superpowers-plus/tools/todo-crud.sh self-test
+
+# Doctor checks (23: honeypot, 24: path validation, 25: stale workflow)
+bash ~/.codex/superpowers-plus/tools/doctor-checks.sh
+```
+
+---
+
+## Reference Files
 
 **References:** [`references/taxonomy.md`](references/taxonomy.md) · [`references/file-format-and-operations.md`](references/file-format-and-operations.md)
 
