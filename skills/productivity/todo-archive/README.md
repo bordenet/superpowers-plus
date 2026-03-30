@@ -67,7 +67,8 @@ TODO_FILE_PATH=/tmp/TODO.md ./todo-archive.sh --dry-run
 ## Archive Location
 
 Archives live alongside `TODO.md`:
-```
+
+```text
 $(dirname $TODO_FILE_PATH)/todo-archives/
 ├── INDEX.md
 ├── 2026-02.md

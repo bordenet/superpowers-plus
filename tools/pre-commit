@@ -141,8 +141,8 @@ if [[ -f "$IP_PATTERNS_FILE" ]]; then
         if [[ "$file" == *".ip-patterns"* ]]; then continue; fi
 
         if grep -qE "$IP_PATTERNS" "$file" 2>/dev/null; then
-            echo -e "${RED}  ✗ $file: contains proprietary IP references${NC}"
-            grep -nE "$IP_PATTERNS" "$file" | head -5
+            MATCH_COUNT=$(grep -cE "$IP_PATTERNS" "$file" 2>/dev/null || echo 0)
+            echo -e "${RED}  ✗ $file: contains $MATCH_COUNT proprietary IP match(es)${NC}"
             ((ERRORS++))
         fi
     done
@@ -172,4 +172,3 @@ else
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 0
 fi
-

@@ -248,35 +248,92 @@ function transformOutput(text) {
 function extractFrontmatter(filePath) {
     try {
         const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
+        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
         let inFrontmatter = false;
         let name = '';
         let description = '';
         let triggers = [];
         let requires_mcp = [];
+        let triggerAccum = null;
+        let mcpAccum = null;
 
+        // State-machine parser for YAML inline arrays — handles apostrophes
+        // inside double-quoted strings. Keep in sync with mcp/superpowers-mcp.js.
         function parseInlineArray(value) {
-            return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+            const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
+            const items = [];
+            let idx = 0;
+            while (idx < inner.length) {
+                while (idx < inner.length && (inner[idx] === ' ' || inner[idx] === ',' || inner[idx] === '\t')) idx++;
+                if (idx >= inner.length) break;
+                const quote = inner[idx];
+                if (quote === '"' || quote === "'") {
+                    let val = '';
+                    idx++;
+                    while (idx < inner.length) {
+                        if (quote === '"' && inner[idx] === '\\' && idx + 1 < inner.length) { val += inner[idx + 1]; idx += 2; }
+                        else if (quote === "'" && inner[idx] === "'" && idx + 1 < inner.length && inner[idx + 1] === "'") { val += "'"; idx += 2; }
+                        else if (inner[idx] === quote) { idx++; break; }
+                        else { val += inner[idx]; idx++; }
+                    }
+                    if (val) items.push(val);
+                } else {
+                    let val = '';
+                    while (idx < inner.length && inner[idx] !== ',') { val += inner[idx]; idx++; }
+                    val = val.trim();
+                    if (val) items.push(val);
+                }
+            }
+            return items;
+        }
+
+        function hasUnquotedClosingBracket(s) {
+            let inQuote = null;
+            for (let ci = 0; ci < s.length; ci++) {
+                const c = s[ci];
+                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
+                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+                if (c === '"' || c === "'") { inQuote = c; continue; }
+                if (c === ']') return true;
+            }
+            return false;
+        }
+
+        function extractBracketContent(s) {
+            const start = s.indexOf('[');
+            if (start === -1) return '';
+            let inQuote = null;
+            for (let ci = start + 1; ci < s.length; ci++) {
+                const c = s[ci];
+                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
+                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+                if (c === '"' || c === "'") { inQuote = c; continue; }
+                if (c === ']') return s.slice(start + 1, ci);
+            }
+            return s.slice(start + 1);
+        }
+
+        function unquoteYaml(s) {
+            if (s.startsWith('"') && s.endsWith('"'))
+                return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            if (s.startsWith("'") && s.endsWith("'"))
+                return s.slice(1, -1).replace(/''/g, "'");
+            return s;
         }
 
         function parseYamlList(lines, startIndex) {
             const values = [];
             let nextIndex = startIndex;
-
-            for (let i = startIndex + 1; i < lines.length; i++) {
-                const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+            for (let li = startIndex + 1; li < lines.length; li++) {
+                const itemMatch = lines[li].match(/^\s+-\s+(.+)$/);
                 if (itemMatch) {
-                    values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
-                    nextIndex = i;
+                    values.push(unquoteYaml(itemMatch[1].trim()));
+                    nextIndex = li;
                     continue;
                 }
-                if (lines[i].trim() === '') {
-                    nextIndex = i;
-                    continue;
-                }
+                if (lines[li].trim() === '') { nextIndex = li; continue; }
                 break;
             }
-
             return { values, nextIndex };
         }
 
@@ -288,30 +345,56 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
-                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-                if (triggersMatch) {
-                    triggers = parseInlineArray(triggersMatch[1]);
+                // Handle bracket-multiline accumulation
+                if (triggerAccum !== null) {
+                    triggerAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(triggerAccum)) {
+                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                        triggerAccum = null;
+                    }
+                    continue;
+                }
+                if (mcpAccum !== null) {
+                    mcpAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(mcpAccum)) {
+                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                        mcpAccum = null;
+                    }
+                    continue;
+                }
+
+                // Triggers — 3 forms
+                if (line.match(/^triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        triggerAccum = line;
+                    }
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
 
-                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
-                if (mcpMatch) {
-                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                // requires_mcp — same 3 forms
+                if (line.match(/^requires_mcp:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        requires_mcp = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        mcpAccum = line;
+                    }
                 } else if (line.match(/^requires_mcp:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     requires_mcp = parsed.values;
                     i = parsed.nextIndex;
                 }
 
-                const match = line.match(/^(\w+):\s*"?([^"]*)"?$/);
+                const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    const value = match[2];
-                    if (key === 'name') name = value.trim();
-                    if (key === 'description') description = value.trim();
+                    let value = unquoteYaml(match[2].trim());
+                    if (key === 'name') name = value;
+                    if (key === 'description') description = value;
                 }
             }
         }
@@ -335,8 +418,18 @@ function findSkillsInDir(dir, sourceType) {
     if (!fs.existsSync(dir)) return skills;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+        // Skip support directories (_shared, _archive, _adapters, etc.)
+        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
         const skillDir = path.join(dir, entry.name);
+        // Handle both directories and symlinks to directories
+        let isDir = false;
+        try {
+            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
+        } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue;
+            throw err;
+        }
+        if (!isDir) continue;
         const skillFile = findSkillFile(skillDir);
         if (skillFile) {
             const meta = extractFrontmatter(skillFile);
@@ -353,7 +446,7 @@ function findSkillsInDir(dir, sourceType) {
 }
 
 function stripFrontmatter(content) {
-    const lines = content.split('\n');
+    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     let inFrontmatter = false;
     let frontmatterEnded = false;
     const contentLines = [];
@@ -545,9 +638,9 @@ fi
 # Test 5: List skills
 info "Testing find-skills command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
-SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep -c "^superpowers:" || echo "0")
+SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
 if [[ "$SKILL_COUNT" -gt 0 ]]; then
-    success "Found $SKILL_COUNT skills"
+    success "Found $SKILL_COUNT total installed skills"
 else
     warn "No skills found (this may be normal for first install)"
 fi

@@ -1,0 +1,22 @@
+{
+  "id": "WP-2",
+  "skill": "plan-and-execute",
+  "name": "Medium Feature — Rate Limiting System",
+  "difficulty": "medium",
+  "expected_winner": "Close call (B may edge A on risk coverage)",
+  "expected_reason": "3 components with moderate coupling; council adds risk/test coverage but may overkill",
+  "prompt": "Add rate limiting to our API. Needs: a rate limit configuration UI in the admin dashboard, middleware in the API gateway, and a rate limit tracking table in the database. Different customers have different rate limits based on their subscription tier. We need to handle burst allowance, display current usage to customers, and alert when customers approach their limits.",
+  "context": {
+    "components": ["React admin dashboard", "Go API gateway", "PostgreSQL database"],
+    "subscription_tiers": ["starter (100 req/min)", "professional (1000 req/min)", "enterprise (10000 req/min)"],
+    "existing_infrastructure": {"api_gateway": "Custom Go middleware chain", "dashboard": "React + Tailwind", "database": "PostgreSQL 15 with Redis cache"},
+    "team_size": 3,
+    "timeline_pressure": "moderate — Q2 commitment"
+  },
+  "evaluation_criteria": {
+    "component_coverage": "Does the plan address all 3 components?",
+    "risk_identification": "Does it identify race conditions in rate counting? Cache invalidation issues?",
+    "sequencing": "Is the build order logical (DB → middleware → UI)?",
+    "test_strategy": "Does it include load testing for rate limit accuracy?"
+  }
+}

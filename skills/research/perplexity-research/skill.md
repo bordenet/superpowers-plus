@@ -20,15 +20,6 @@ coordination:
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
 > **Cost**: Perplexity API calls are paid — use judiciously
 
-> **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
-
-## When to Use
-
-- Research questions requiring current, cited sources
-- When web-search returns insufficient or outdated results
-- Technical comparisons needing multiple authoritative sources
-- When you need citation URLs to verify claims
-
 ## When to Invoke (Automatic Triggers)
 
 You MUST invoke this skill when ANY of these conditions are met:
@@ -76,7 +67,7 @@ Report findings → apply (run command/implement fix/test) → evaluate BEFORE r
 
 After attempting to apply the Perplexity response, explicitly evaluate:
 
-```
+```markdown
 📊 **Perplexity Evaluation**:
 - Applied: [what you tried]
 - Outcome: [SUCCESS | PARTIAL | FAILURE]
@@ -104,20 +95,11 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 > Record outcomes in conversation context or TODO notes — this helps calibrate when Perplexity is worth the cost.
 
 **The evaluation loop**:
+
 1. Receive Perplexity response → Report (Step 4)
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
-
-## Example
-
-```bash
-# Invoke Perplexity via API
-source ~/.codex/.env
-curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: application/json"   -d '{"model":"sonar","messages":[{"role":"user","content":"query"}]}'   https://api.perplexity.ai/chat/completions | jq '.choices[0].message.content'
-```
-
-## Failure Modes
 
 | Failure | Fix |
 |---------|-----|
@@ -140,7 +122,6 @@ curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: appli
 5. **Rich prompts** - Better prompts = better results
 6. **Low threshold** - 2 failures is enough; don't struggle unnecessarily
 7. **Cost awareness** - Perplexity costs real money; use only when free tools fail
-
 
 ## "I'm Stuck" Escalation Path
 

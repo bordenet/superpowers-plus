@@ -1,15 +1,14 @@
 ---
 name: design-triad
 source: superpowers-plus
-triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team", "redesign architecture", "architecture redesign", "evaluate design options", "redesign the architecture", "architecture options", "design the architecture"]
-anti_triggers: ["brainstorm ideas", "innovation", "radical idea", "10x improvement"]
+triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team"]
 description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
 summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
 coordination:
   group: thinking
   order: 3
   requires: []
-  enables: ["plan-and-execute"]
+  enables: []
   escalates_to: ["thinking-orchestrator"]
   internal: false
 ---
@@ -17,7 +16,7 @@ coordination:
 # Design Triad
 
 > **Wrong skill?** Brainstorming many ideas → `brainstorming`. Requirements validation → `requirements-validation`. Feature workflow → `feature-development`.
-
+>
 > **Core principle:** Never commit to a design without considering at least three alternatives and surviving a harsh review.
 
 **Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
@@ -31,11 +30,12 @@ coordination:
 - **feature-development**: Full feature workflow (uses this skill)
 - **fallback-planning**: Evaluating fallback alternatives
 - **quantitative-decision-gate**: Quantitative option scoring
+
 ## When to Use
 
 - Any design decision where the wrong choice would cost significant rework
 - Choosing between architectural approaches, data models, or integration patterns
-- NOT for: initial idea exploration (`brainstorming`), execution planning (`writing-plans` (upstream)), bug fixing (`systematic-debugging`)
+- NOT for: initial idea exploration (`brainstorming`), execution planning (`plan-and-execute`), bug fixing (`systematic-debugging`)
 
 ## Preflight
 
@@ -43,7 +43,7 @@ coordination:
 
 1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
 2. **Requirements or architecture need investigation** — pause design-triad, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
-3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, skipping requirements/architecture preflight." Then proceed to Step 1. (Note: you are skipping the preflight validation, NOT skipping the design-triad process itself — Steps 1-5 still apply.)
+3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, proceeding without formal validation." Then proceed to Step 1.
 
 Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.
 
@@ -60,6 +60,7 @@ Stalling at preflight (loading skills without executing them, deliberating about
 ## Step 1: Generate Options
 
 Produce **minimum THREE** options. Each must be:
+
 - **Genuinely different** — not superficial variations (different data model, different decomposition, different integration pattern)
 - **Implementable** — within current constraints, not fantasy
 - **Compact** — max 3 bullet points per option: approach, key trade-off, risk profile
@@ -85,12 +86,14 @@ State your recommendation with explicit rationale (2-3 sentences). If only one o
 ## Step 3: Harsh Review (Red Team)
 
 ⛔ **HARD GATE: Author ≠ Reviewer.** You MUST NOT red-team your own design in the same thinking pass that produced it. Use ONE of:
+
 - **Sub-agent** (preferred): Dispatch a sub-agent with role "hostile reviewer" and full context of the design
 - **Explicit role switch**: Complete the design, then start a new section with: *"I am now reviewing this as a hostile critic. My job is to find what's WRONG."*
 
 Self-review in the same pass that wrote the design is **a violation** — it produces theater, not adversarial pressure.
 
 For the selected design, the reviewer answers ALL of these (**max 1 sentence per answer**):
+
 1. What's the weakest assumption?
 2. What failure mode hasn't been considered?
 3. What would a hostile code reviewer attack?
@@ -103,6 +106,7 @@ For the selected design, the reviewer answers ALL of these (**max 1 sentence per
 ## Step 4: Edge Cases
 
 One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap: 10 edge cases max.** Not a full re-design — focused on:
+
 - Failure modes that need handling
 - Boundary conditions that need tests
 - Integration points that need defensive code
@@ -114,6 +118,7 @@ One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap:
 ⛔ **HARD GATE: Minimum 2 full review rounds.** Round 1 = the initial harsh review (Step 3). Round 2 = re-review after fixes. You may NOT declare convergence without completing Round 2. Declaring "converged" after only Step 3 is a violation.
 
 Each round has THREE phases:
+
 1. **Fix:** Address issues found in the previous review
 2. **Verify fixes landed:** Cross-reference each resolution against the actual artifact (spec, code, design doc). Confirm the fix appears in the output, not just in a resolution table. Claimed-but-not-implemented fixes are the #1 failure mode.
 3. **Re-review:** Run harsh review again (Step 3 questions) on the UPDATED artifact
@@ -126,32 +131,34 @@ Each round has THREE phases:
 ## Output
 
 Design document with:
+
 1. Selected approach (with rationale)
 2. Rejected alternatives (with WHY they were rejected)
 3. Edge-case catalog from Step 4
 4. Harsh review findings and resolutions
 
-## Example
+## Example: Comparison Matrix Output
 
 ```markdown
 | Criterion | A: Event-driven | B: Polling | C: Hybrid |
 |-----------|----------------|------------|-----------|
-| Complexity | Medium | Low | High |
-| Testability | Hard (async) | Easy (sync) | Medium |
-| Risk | Message loss | Stale data | Complexity |
-| Fit | Matches existing | New pattern | Mixed |
+| Complexity | Medium, new infra | Low, cron job | High, both paths |
+| Testability | Hard, async | Easy, sync | Medium |
+| Maintainability | Good, decoupled | Good, simple | Poor, two systems |
+| Risk | Message loss | Stale data | Complexity debt |
+| Fit with patterns | Matches existing | New pattern | Mixed |
 ```
 
 ## Rationalizations to Reject
 
-"Only one way" → invoke think-twice. "Obviously wrong" → document WHY. "Too simple for 3" → unexamined assumptions. "Converged at Step 3" → that's Round 1, need Round 2. "Reviewed my own" → author ≠ reviewer.
-
-## Failure Modes
-
-| Failure | Recovery |
-|---------|----------|
-| Stalling at Preflight (most common) | Set 30-second timer. Pick a route and move to Step 1. |
-| Only 2 options generated (straw man + real) | Invoke `think-twice` for fresh perspective before proceeding |
-| Self-reviewing own design in same pass | VIOLATION: Use sub-agent or explicit role switch for Step 3 |
-| Stopping at recommendation (Step 2) | Step 2 ≠ done. Steps 3-5 still required. Most common skip. |
-| Infinite review loops (>3 rounds) | Cap at 3 rounds. Escalate to user for tiebreak. |
+| Excuse | Reality |
+|--------|---------|
+| "There's only one way to do this" | You haven't thought hard enough. Invoke `think-twice`. |
+| "The other options are obviously wrong" | Document WHY in the matrix. That's the point. |
+| "This is too simple for 3 options" | Simple designs have unexamined assumptions. |
+| "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
+| "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
+| "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
+| "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
+| "I reviewed my own design and it's solid" | Author ≠ Reviewer. Use a sub-agent or explicit role switch. |
+| "I documented the resolution" | Did you verify it actually landed in the artifact? Check. |

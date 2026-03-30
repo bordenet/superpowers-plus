@@ -57,6 +57,7 @@ index eee5555..fff6666 100644
 ## Expected Findings
 
 ### Finding 1
+
 - **Severity:** Important
 - **Reviewer:** defect-finder
 - **File:** lib/skill-validator.js
@@ -65,6 +66,7 @@ index eee5555..fff6666 100644
 - **Durable Check:** Add a test that asserts `validTypes` contains all values from `SKILL_TYPES`.
 
 ### Finding 2
+
 - **Severity:** Minor
 - **Reviewer:** defect-finder or standards-enforcer
 - **File:** lib/skill-router.js

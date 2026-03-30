@@ -1,9 +1,11 @@
 # Core Rules
 
 ## Safety
+
 Verify URLs exist before writing them in docs — query APIs, don't guess.
 
 ## Superpowers (ALWAYS ON)
+
 At the START of every conversation, run: `node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap`
 This loads the skill framework and catalog. Individual skills are paged in on demand via `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`.
 
@@ -12,6 +14,7 @@ Process skills (debugging, brainstorming) before implementation skills.
 IF A SKILL APPLIES (even 1% chance), YOU MUST INVOKE IT.
 
 ## Think-Twice Auto-Detection (ALWAYS MONITOR)
+
 Continuously monitor for stuck signals. When cumulative score ≥ 7, STOP and invoke `think-twice`:
 
 | Signal | Weight |

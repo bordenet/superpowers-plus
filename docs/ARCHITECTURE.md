@@ -11,10 +11,12 @@ How superpowers-plus skills work and how to extend them.
 | **Explicit Skill** | A skill without triggers — must be invoked by name | `triggers: []` or absent | `superpowers-help`, `security-upgrade` |
 
 **Key distinction:**
+
 - **Superpowers** have `triggers: [...]` → AI auto-invokes when trigger phrases are detected
 - **Explicit skills** have no triggers → AI only invokes when user explicitly requests by name
 
 This distinction matters for user queries:
+
 - "What are my superpowers?" → List only auto-triggered skills
 - "What skills do I have?" → List all skills (both types)
 
@@ -22,7 +24,7 @@ This distinction matters for user queries:
 
 superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
 
-```
+```bash
 ~/.codex/
 ├── superpowers/          # obra/superpowers (cloned by install.sh)
 │   └── skills/           # Core framework skills (mostly superpowers)
@@ -39,7 +41,7 @@ Skills from both directories are discovered by `superpowers-augment.js`.
 
 `install.sh` is an orchestrator (~600 lines) that sources 6 modules from `lib/install/`:
 
-```
+```markdown
 lib/install/
 ├── logging.sh       # Colors, log_*, error_exit, create_dir
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
@@ -95,7 +97,7 @@ The router uses a **hybrid TF-IDF + Intent Pattern** approach:
 
 ### Architecture
 
-```
+```typescript
 lib/skill-router.js
 ├── buildTfIdfIndex()      # Builds document index from skill descriptions
 ├── matchSkillsTfIdf()     # Local TF-IDF matching with intent boosts
@@ -107,7 +109,7 @@ lib/skill-router.js
 
 A skill is a directory containing `skill.md`:
 
-```
+```markdown
 skills/{domain}/{skill-name}/
 └── skill.md              # Required: skill definition
 ```
@@ -119,7 +121,15 @@ skills/{domain}/{skill-name}/
 name: skill-name
 source: superpowers-plus
 triggers: ["trigger phrase 1", "trigger phrase 2", "trigger phrase 3"]
+anti_triggers: ["phrase that should NOT trigger this skill"]
 description: One-line description of what the skill does.
+coordination:
+  group: domain-name
+  order: 1
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 # Skill Name
@@ -132,6 +142,9 @@ description: One-line description of what the skill does.
 
 ## Output Format
 [Expected outputs]
+
+## Failure Modes
+[Known failure modes and remediation]
 ```
 
 ### Frontmatter Fields
@@ -141,12 +154,15 @@ description: One-line description of what the skill does.
 | `name` | Yes | Skill identifier (must match directory name) |
 | `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
 | `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
+| `anti_triggers` | No | Array of phrases that should NOT trigger this skill (WARN if missing) |
 | `description` | Yes | One-line description for skill discovery |
+| `coordination` | Yes | DAG metadata: `group`, `order`, `internal` (required), plus `requires`, `enables`, `escalates_to` |
 | `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
 
 ### Superpower vs Explicit Skill Examples
 
 **Superpower (auto-triggered):**
+
 ```yaml
 ---
 name: wiki-orchestrator
@@ -157,6 +173,7 @@ description: Orchestrates wiki editing workflows — download, edit, publish.
 ```
 
 **Explicit Skill (manual invocation):**
+
 ```yaml
 ---
 name: superpowers-help
@@ -167,6 +184,7 @@ description: Lists available skills.
 ```
 
 Or simply omit triggers entirely:
+
 ```yaml
 ---
 name: superpowers-help
@@ -225,20 +243,31 @@ Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/s
 
 ## Shared Modules
 
-Reusable patterns live in `skills/_shared/`:
+Reusable patterns and shared contracts live in `skills/_shared/`:
 
-```
+```markdown
 skills/_shared/
-└── secret-detection.md   # Regex patterns for credential detection
+├── README.md                            # Index and usage guide
+├── confidence-calibration.md            # Confidence scoring standards
+├── duplicate-work-detection.md          # Cross-branch duplicate detection
+├── evidence-schema.md                   # Evidence structure for investigations
+├── fork-readiness-rubric.md             # When to fork vs stay serial
+├── incident-packet-schema.md            # Debugging orchestration packet contract
+├── multi-agent-activation-rubric.md     # 5=ask, ≥6=multi-agent eligible
+├── multi-agent-quality-standards.md     # Quality gates for multi-agent output
+├── multi-agent-result-schema.md         # Branch result contract
+├── multi-agent-synthesis-schema.md      # Synthesis output contract
+├── multi-agent-task-packet-schema.md    # Dispatch packet contract
+└── secret-detection.md                  # Regex patterns for credential detection
 ```
 
-Skills reference shared modules via relative paths or copy the content inline.
+**Normative shared docs** (multi-agent schemas, activation rubric) define contracts that skills MUST follow. Other shared docs provide reusable patterns that skills MAY reference.
 
 ## Adapter Pattern
 
 The `issue-tracking/` domain uses adapters to support multiple platforms:
 
-```
+```markdown
 skills/issue-tracking/
 ├── _adapters/
 │   ├── README.md         # Adapter overview

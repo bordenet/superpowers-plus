@@ -6,28 +6,14 @@ anti_triggers: ["design a feature", "build a component", "implement", "brainstor
 description: "Use when extracting domain knowledge from a user through structured interviewing to produce a written artifact (wiki page, reference doc, problem space overview). NOT for feature design — use brainstorming for that."
 coordination:
   group: research
-  order: 0
+  order: 1
   requires: []
-  enables: ['incorporating-research']
+  enables: []
   escalates_to: []
   internal: false
 ---
 
 # Expert Interviewer
-
-> **Wrong skill?** Quick research → `perplexity-research`. Incorporating findings → `incorporating-research`. Brainstorming → `brainstorming`.
-
-## Companion Skills
-
-- **perplexity-research**: For factual research queries
-- **incorporating-research**: Merging findings into docs
-- **brainstorming**: Generating hypotheses from interview insights
-
-## When to Use
-
-- Extracting domain knowledge from a user to produce a written artifact (wiki page, reference doc, problem space overview)
-- User says "help me document," "capture what I know," or "write up the problem space"
-- NOT for: feature design (`brainstorming`), implementation planning (`writing-plans` (upstream))
 
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
@@ -138,28 +124,6 @@ This pipeline is AUTOMATIC. Do not ask the user whether to run reviews.
 
 Save to the location specified in F3. If wiki: create in specified collection/parent. If local: save to `docs/` with descriptive naming.
 
-
-## Example
-
-```bash
-# Structure: prepare interview questions before starting
-echo "1. What is the core problem this solves?"
-echo "2. What are the edge cases?"
-echo "3. What has been tried before and why did it fail?"
-echo "4. What constraints exist that aren't documented?"
-```
-
-## Failure Modes
-
-| Failure | Symptom | Recovery |
-|---------|---------|----------|
-| Vague answers | User gives one-word or abstract responses without examples | Ask for a specific scenario: "Can you walk me through a real case where this happened?" |
-| Scope explosion | New topics keep appearing after Q10 | Hard stop. Run synthesis checkpoint. Ask: "Should we narrow scope or split into two artifacts?" |
-| Interviewer bias | Questions consistently lead toward a pre-formed conclusion | See Anti-Patterns section (Phase 3). Actively seek disconfirming evidence |
-| Premature drafting | Starting to write before saturation (Phase 4 criteria not met) | Check all 5 transition criteria. If any fail, continue interviewing |
-| Research-only artifact | Draft cites only research, no interview content | Review each section: does it contain at least one interview-sourced insight? If not, the interview failed to add value — ask more questions |
-| User disengagement | Shorter answers, "I don't know," redirecting to docs | Acknowledge fatigue. Offer: "Should we pause and pick up later, or switch to a different angle?" |
-
 ## Key Differences from Brainstorming
 
 | Dimension | Brainstorming | Expert-Interviewer |
@@ -168,4 +132,4 @@ echo "4. What constraints exist that aren't documented?"
 | External research | Minor input | Major input alongside interview |
 | Review focus | Design soundness, YAGNI | Factual accuracy, scope discipline, audience fit |
 | Output | Design spec → implementation plan | Knowledge artifact → publish |
-| Terminal state | `writing-plans` (upstream) skill | Publish artifact |
+| Terminal state | `writing-plans` skill | Publish artifact |

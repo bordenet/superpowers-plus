@@ -19,9 +19,8 @@ coordination:
 > **Purpose:** Verify all URLs before including in issue descriptions/comments
 > **Pattern:** Same rigor as wiki link verification — no broken links
 > **Adapter:** See `_adapters/` for platform-specific configuration
-
+>
 > **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue keys → `issue-verify`.
-
 
 ## When to Use
 
@@ -32,7 +31,6 @@ Invoke this skill when:
 - Cross-referencing wiki pages
 - Linking PRs/commits
 - Any external URL in issue content
-
 
 ## Pre-Posting Link Check (MANDATORY)
 
@@ -47,7 +45,6 @@ Invoke this skill when:
 
 </EXTREMELY_IMPORTANT>
 
-
 ## Link Type Verification Methods
 
 | Link Type | How to Verify | On Failure |
@@ -57,7 +54,6 @@ Invoke this skill when:
 | **Repository** | Source control API | **HARD BLOCK** |
 | **Issue Reference** | Issue tracker search | **WARN** |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
-
 
 ## Verification Workflow
 
@@ -77,7 +73,6 @@ Invoke this skill when:
 
 **External URLs**: `curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "URL"` or `web-fetch`. Status: `200/301/302` → PASS · `401/403` → WARN · `404` → FAIL · `5xx` → WARN.
 
-
 ## Hallucination Prevention
 
 <EXTREMELY_IMPORTANT>
@@ -93,7 +88,6 @@ Invoke this skill when:
 **ALWAYS verify. Never assume URLs are valid.**
 
 </EXTREMELY_IMPORTANT>
-
 
 ## Failure Modes
 

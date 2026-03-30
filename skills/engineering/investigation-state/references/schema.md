@@ -5,7 +5,7 @@
 
 ## Storage Location
 
-```
+```text
 ~/.superpowers/investigations/<uuid>.json
 ```
 
@@ -52,7 +52,16 @@ Each investigation is a single JSON file named by its UUID.
   "nextSteps": ["string (action items for next session)"],
   "toolsConsulted": ["string (freeform tool identifiers)"],
   "relatedTodos": ["string (TODO references, e.g., #investigation-abc12345)"],
-  "relatedTickets": ["string (ticket references, e.g., TST-123)"]
+  "relatedTickets": ["string (ticket references, e.g., TST-123)"],
+
+  "forkedDebugging": {
+    "incidentPacketId": "string (UUID) | null — links to parent incident packet if this investigation was forked",
+    "branchId": "string (UUID) | null — branch ID within the incident packet",
+    "branchRole": "string | null — investigator role (e.g., timeline-trace, llm-behavior)",
+    "conductorId": "string | null — investigation ID of the conductor that dispatched this branch",
+    "forkReason": "string | null — why forking was chosen (rubric score, stalled investigation)",
+    "forkRubricScore": "integer | null — fork-readiness rubric score at time of fork decision"
+  }
 }
 ```
 
@@ -76,6 +85,22 @@ Each investigation is a single JSON file named by its UUID.
 | `toolsConsulted` | array | Yes | Tools used during investigation (may be empty) |
 | `relatedTodos` | array | No | TODO references (e.g., `#investigation-abc12345`) |
 | `relatedTickets` | array | No | External ticket references (Linear, ADO, etc.) |
+| `forkedDebugging` | object | No | Present only when this investigation is a branch of a conductor-led forked debugging session. See Forked Debugging below |
+
+### Forked Debugging Extension
+
+Added for the `debug-conductor` forked debugging system. All fields are null/absent for standard investigations.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `incidentPacketId` | string/null | UUID of the parent incident packet that triggered this fork |
+| `branchId` | string/null | This branch's ID within the incident packet |
+| `branchRole` | string/null | Investigator role: `timeline-trace`, `llm-behavior`, `state-consistency`, `infra-config`, `reproduction-experiment`, `evidence-adjudicator` |
+| `conductorId` | string/null | Investigation ID of the debug-conductor that dispatched this branch |
+| `forkReason` | string/null | Why forking was chosen (e.g., "rubric score 7, multi-domain incident") |
+| `forkRubricScore` | int/null | Fork-readiness rubric score at time of fork decision (0–10) |
+
+**Backward compatibility:** Existing investigations without `forkedDebugging` continue to work unchanged. The field is optional and defaults to absent/null.
 
 ### Short ID
 
@@ -93,6 +118,7 @@ Set when `status` is `resolved`. Null otherwise.
 | `fixTodo` | string/null | TODO tag (e.g., `#investigation-a1b2c3d4`) if `type` is `fix-needed`, null otherwise |
 
 **Resolution types:**
+
 - `fix-needed` — Code change required. Create a TODO tagged `#investigation-<short-id>`.
 - `no-fix-needed` — Root cause found but no code change needed (config error, user error, data issue).
 - `external` — Issue is outside our control (third-party service, infrastructure).
@@ -100,6 +126,7 @@ Set when `status` is `resolved`. Null otherwise.
 ### Timestamps
 
 All timestamps are UTC in ISO-8601 format with seconds precision:
+
 - Format: `YYYY-MM-DDTHH:MM:SSZ`
 - Example: `2026-03-23T14:30:00Z`
 - No milliseconds. No timezone offsets. Always `Z` suffix.

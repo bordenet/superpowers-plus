@@ -18,22 +18,28 @@
 ## Draft Submission
 
 ### Plugin Name
+
 `superpowers-plus`
 
 ### Category
+
 `Skills` (extends obra/superpowers)
 
 ### Short Description (for directory listing)
+
 AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 58 skills for wiki, issue tracking, security.
 
 ### Full Description
+
 superpowers-plus extends Jesse Vincent's obra/superpowers with 58 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
+
 - `detecting-ai-slop`: Quantifies AI slop with 0-100 scoring. 300+ lexical patterns, 13 content types (CV, email, LinkedIn, PRD), stylometric analysis (sentence variance, TTR, hapax rate).
 - `eliminating-ai-slop`: Generate-Verify-Refine (GVR) loop prevents slop during prose generation. 11 rewriting strategies, interactive and automatic modes, dictionary management.
 
 **Additional Domains:**
+
 - Engineering (15 skills): blast radius, design triad, TDD, code review, systematic debugging, feature lifecycle
 - Productivity (14 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring
 - Writing (7 skills): slop detection/elimination, profanity gates, table discipline, README authoring, skill file authoring
@@ -45,11 +51,13 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 58 domain skills 
 - Experimental (1 skill): self-prompting
 
 ### Installation Command
-```
+
+```text
 /plugin install https://github.com/bordenet/superpowers-plus
 ```
 
 ### Prerequisite
+
 Requires `obra/superpowers`. The Claude marketplace does not have a dependency resolution mechanism — `install.sh` handles cloning obra/superpowers as a prerequisite. Users installing via `/plugin install` should install obra/superpowers first, or use `install.sh` which handles both.
 
 ## Known Bug: category/source Key Contamination
@@ -61,6 +69,7 @@ When the marketplace installs plugins, it can write `category` and `source` keys
 **Workaround:** We do NOT include `category` or `source` keys in our `plugin.json`. Those fields exist only in `marketplace.json`.
 
 If users report install failures:
+
 1. Delete cached plugin at `~/.claude-code/plugins/superpowers-plus/`
 2. Re-run `/plugin install`
 
@@ -69,6 +78,7 @@ If users report install failures:
 1. Fork `anthropics/claude-plugins-official`
 2. Create directory: `external_plugins/superpowers-plus/`
 3. Add `plugin.json`:
+
    ```json
    {
      "name": "superpowers-plus",
@@ -80,6 +90,7 @@ If users report install failures:
      }
    }
    ```
+
    > **Note:** Do NOT include `category` or `source` keys — see Known Bug section above.
 4. Open PR with:
    - Title: `Add superpowers-plus to external plugins`
@@ -91,7 +102,7 @@ If users report install failures:
 > **Status:** Indefinitely deferred. Anthropic's plugin marketplace acceptance is unlikely.
 > These items are preserved for reference only — do not actively pursue.
 
-- [ ] Monitor Anthropic's plugin directory submission form: https://clau.de/plugin-directory-submission
+- [ ] Monitor Anthropic's plugin directory submission form: <https://clau.de/plugin-directory-submission>
 - [ ] Verify current PR requirements (check open PRs for examples)
 - [ ] Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
 - [ ] Confirm obra/superpowers prerequisite is documented clearly (no auto-install via marketplace)

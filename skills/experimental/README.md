@@ -26,17 +26,20 @@ A skill is placed in the experimental directory when:
 **What it does**: Write comprehensive adversarial prompts before analyzing code to discover issues that direct analysis misses.
 
 **Key findings from experiment**:
+
 - Condition B (Reframe-Self) won: 21 VH, 1 HR (20% HR rate)
 - DO NOT use with external models (100% hallucination rate)
 - Expect ~20% false positive rate
 
 **Why experimental**:
+
 - Only tested on 5 genesis-tools projects
 - May not generalize to other codebases
 - Optimal prompt templates still being refined
 - No automated verification pipeline yet
 
 **Graduation criteria**:
+
 - [ ] Tested on 10+ diverse codebases
 - [ ] False positive rate consistently <15%
 - [ ] Automated verification integrated
@@ -50,7 +53,7 @@ A skill is placed in the experimental directory when:
 
 Experimental skills should NEVER be auto-invoked. Always use explicit invocation:
 
-```
+```text
 Use the experimental-self-prompting skill to analyze [system]
 ```
 
@@ -96,6 +99,7 @@ To promote a skill:
 **DO NOT rely on experimental skills for critical decisions.**
 
 These skills are research tools, not production systems. They exist to:
+
 - Test new methodologies
 - Gather data on effectiveness
 - Iterate toward production-ready solutions

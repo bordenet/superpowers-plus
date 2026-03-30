@@ -29,7 +29,7 @@ coordination:
 
 > **Wrong skill?** Debugging existing failures → `systematic-debugging`. Reviewing others' code → `providing-code-review`.
 
-```
+```text
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
@@ -78,6 +78,7 @@ Next failing test for next feature.
 ## Verification Checklist
 
 Before marking work complete:
+
 - [ ] Every new function/method has a test
 - [ ] Watched each test fail before implementing
 - [ ] Each test failed for expected reason
@@ -102,7 +103,7 @@ Can't check all boxes? You skipped TDD. Start over.
 |---------|-----|
 | Wrote implementation before test | Delete implementation, write failing test first |
 | Test passed immediately (no RED phase) | Test is wrong — it's testing existing behavior, not new behavior |
-| Added features during GREEN phase | Revert extras — GREEN means minimal code to pass, nothing more |
+| Must mock everything to test | Code is too coupled — refactor to use dependency injection |
 
 ## Anti-Patterns
 

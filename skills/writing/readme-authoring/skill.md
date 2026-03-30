@@ -17,7 +17,7 @@ coordination:
 # README Authoring
 
 > **Wrong skill?** Skill file authoring → `skill-authoring` / `writing-skills`. Wiki pages → `wiki-orchestrator`. Plan/roadmap → `plan-quality-gates`.
-
+>
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-02-06
 
@@ -32,7 +32,6 @@ Author and maintain README.md files that onboard contributors in <5 minutes. Tre
 - <2000 lines; link to docs/ for depth.
 - Mobile-friendly (short lines, no wide tables).
 
-
 ## When to Use
 
 Invoke when:
@@ -41,7 +40,6 @@ Invoke when:
 - Updating an existing README
 - Before major releases (README audit)
 - User says: "Write/update/review the README"
-
 
 ## README Structure (Priority Order)
 
@@ -98,7 +96,6 @@ User runs your code in <60 seconds. Max 5 steps. If longer, you have an installa
 | 11 | Support/Community | Bug reports, discussions links |
 | 12 | License | Single line: "MIT" with link |
 
-
 ## Anti-Patterns
 
 No emoji spam/ASCII art · no dead badges · no inline API docs (link to docs/) · quickstart in first 20 lines · always LICENSE + TOC for long docs · tables <80 chars.
@@ -110,9 +107,9 @@ No emoji spam/ASCII art · no dead badges · no inline API docs (link to docs/) 
 ## Audit Checklist
 
 Lint passes · description concrete · quickstart works · examples runnable · no dead links · badges current · versions match.
+
 - [ ] Screenshots/GIFs are current
 - [ ] No marketing language (slop score <20)
-
 
 ## Maintenance Mode
 
@@ -122,7 +119,6 @@ For existing READMEs, check:
 2. **Version refs:** Search for version numbers, update if stale
 3. **Examples:** Run each code example
 4. **Screenshots:** Compare to current UI
-
 
 ## GVR Transparency
 
@@ -135,7 +131,6 @@ Markdown lint: PASS (0 errors)
 ```
 
 **If lint fails, fix before reporting completion.**
-
 
 ## Companion Skills
 

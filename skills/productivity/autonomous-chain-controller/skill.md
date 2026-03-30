@@ -12,10 +12,7 @@ anti_triggers:
   - "build the matrix"
   - "build a table"
   - "simple one-liner"
-description: >
-  Meta-orchestrator that auto-detects required skill chain, executes with
-  quality gates between steps, and auto-retries on failures. User says
-  "build X" — this handles brainstorming through verification.
+description: "Meta-orchestrator that auto-detects required skill chain, executes with quality gates between steps, and auto-retries on failures. User says \"build X\" — this handles brainstorming through verification."
 summary: "Use when: multi-step task. Skip when: single focused action."
 coordination:
   group: orchestration
@@ -38,7 +35,6 @@ coordination:
 - Task requires 3+ skills in sequence
 - Full feature development lifecycle
 - Multi-step refactoring
-
 
 ### Example
 
@@ -66,6 +62,7 @@ Chain: [ordered skill list]
 |-----------|-------|
 | New feature | brainstorming -> design-triad -> plan-and-execute -> TDD -> review -> verify |
 | Bug fix | systematic-debugging -> TDD -> review -> verify |
+| Distributed incident | debug-conductor -> (investigators forked) -> evidence-adjudicator -> failure-autopsy |
 | Refactor | blast-radius-check -> plan -> TDD -> review -> verify |
 | Content | brainstorming -> plan -> harsh-review -> verify |
 | Investigation | adversarial-search -> investigation-state -> autopsy |
@@ -73,6 +70,7 @@ Chain: [ordered skill list]
 ### Phase 3: Execute with Gates
 
 Between EVERY skill:
+
 - [ ] Previous output correct?
 - [ ] TODOs logged? (todo-guardian)
 - [ ] No regressions? (measurement-integrity)
