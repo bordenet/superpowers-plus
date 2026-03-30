@@ -179,8 +179,78 @@ function transformOutput(text) {
     return result;
 }
 
+// State-machine parser for YAML inline arrays. Handles apostrophes inside
+// double-quoted strings ("what's next") and escaped quotes. Shared logic
+// with mcp/superpowers-mcp.js — keep in sync.
 function parseInlineArray(value) {
-    return value.match(/"[^"]+"|'[^']+'/g)?.map(item => item.slice(1, -1)) || [];
+    // Strip outer brackets if present
+    const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
+    const items = [];
+    let i = 0;
+    while (i < inner.length) {
+        while (i < inner.length && (inner[i] === ' ' || inner[i] === ',' || inner[i] === '\t')) i++;
+        if (i >= inner.length) break;
+        const quote = inner[i];
+        if (quote === '"' || quote === "'") {
+            let val = '';
+            i++; // skip opening quote
+            while (i < inner.length) {
+                if (inner[i] === '\\' && i + 1 < inner.length) {
+                    val += inner[i + 1]; i += 2;
+                } else if (inner[i] === quote) {
+                    i++; break;
+                } else {
+                    val += inner[i]; i++;
+                }
+            }
+            if (val) items.push(val);
+        } else {
+            let val = '';
+            while (i < inner.length && inner[i] !== ',') { val += inner[i]; i++; }
+            val = val.trim();
+            if (val) items.push(val);
+        }
+    }
+    return items;
+}
+
+// Check if a string has a closing ] outside of quotes.
+function hasUnquotedClosingBracket(s) {
+    let inQuote = null;
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+        if (c === '"' || c === "'") { inQuote = c; continue; }
+        if (c === ']') return true;
+    }
+    return false;
+}
+
+// Extract content between [ and the real closing ] (outside quotes).
+function extractBracketContent(s) {
+    const start = s.indexOf('[');
+    if (start === -1) return '';
+    let inQuote = null;
+    for (let i = start + 1; i < s.length; i++) {
+        const c = s[i];
+        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
+        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+        if (c === '"' || c === "'") { inQuote = c; continue; }
+        if (c === ']') return s.slice(start + 1, i);
+    }
+    return s.slice(start + 1);
+}
+
+// Strip surrounding YAML quotes and unescape
+function unquoteYaml(s) {
+    if (s.startsWith('"') && s.endsWith('"')) {
+        return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (s.startsWith("'") && s.endsWith("'")) {
+        return s.slice(1, -1).replace(/''/g, "'");
+    }
+    return s;
 }
 
 function parseYamlList(lines, startIndex) {
@@ -190,7 +260,7 @@ function parseYamlList(lines, startIndex) {
     for (let i = startIndex + 1; i < lines.length; i++) {
         const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
         if (itemMatch) {
-            values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
+            values.push(unquoteYaml(itemMatch[1].trim()));
             nextIndex = i;
             continue;
         }
@@ -218,6 +288,8 @@ function extractFrontmatter(filePath) {
         let mcp_install_hint = '';
         let composition = null;
         let compress = true;
+        let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+        let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -227,6 +299,24 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
+                // Handle bracket-multiline accumulation
+                if (triggerAccum !== null) {
+                    triggerAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(triggerAccum)) {
+                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                        triggerAccum = null;
+                    }
+                    continue;
+                }
+                if (mcpAccum !== null) {
+                    mcpAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(mcpAccum)) {
+                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                        mcpAccum = null;
+                    }
+                    continue;
+                }
+
                 // Check for composition block start
                 if (line.match(/^composition:/)) {
                     inComposition = true;
@@ -255,19 +345,25 @@ function extractFrontmatter(filePath) {
                     inComposition = false; // End of composition block
                 }
 
-                // Check for triggers array
-                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-                if (triggersMatch) {
-                    triggers = parseInlineArray(triggersMatch[1]);
+                // Check for triggers array — 3 forms
+                if (line.match(/^triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        triggerAccum = line; // bracket-multiline
+                    }
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
-                // Check for requires_mcp array
-                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
-                if (mcpMatch) {
-                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                // Check for requires_mcp array — same 3 forms
+                if (line.match(/^requires_mcp:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        requires_mcp = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        mcpAccum = line;
+                    }
                 } else if (line.match(/^requires_mcp:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     requires_mcp = parsed.values;
@@ -278,11 +374,7 @@ function extractFrontmatter(filePath) {
                     const key = match[1];
                     let value = match[2].trim();
                     // Strip outer quotes and handle escaped quotes inside
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-                    } else if (value.startsWith("'") && value.endsWith("'")) {
-                        value = value.slice(1, -1);
-                    }
+                    value = unquoteYaml(value);
                     if (key === 'name') name = value;
                     if (key === 'description') description = value;
                     if (key === 'compress' && value === 'false') compress = false;
