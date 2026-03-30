@@ -46,4 +46,4 @@
 
 - [ ] **Step 1:** Run `python3 -m unittest tools.tests.test_todo_engine -v`
 - [ ] **Step 2:** Run `bash tools/doctor-checks.sh`
-- [ ] **Step 3:** Commit on branch `fix/todo-obscure-path`, push, PR, merge.
+- [ ] **Step 3:** Commit on branch `fix/todo-obscure-path`, push, PR, merge, sync GitLab.

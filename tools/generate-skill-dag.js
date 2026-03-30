@@ -7,11 +7,24 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseInlineArray, extractStringValue } = require('../lib/frontmatter.js');
 
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 const DEFAULT_OUTPUT = path.join(__dirname, '..', 'docs', 'skill-dependency-graph.md');
 
+// Unquote a YAML scalar value: strip outer quotes and handle escapes.
+function unquoteYaml(s) {
+  s = s.trim();
+  if (s.startsWith('"') && s.endsWith('"'))
+    return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  if (s.startsWith("'") && s.endsWith("'"))
+    return s.slice(1, -1).replace(/''/g, "'");
+  return s;
+}
+
 function parseFrontmatter(content) {
+  // Normalize CRLF/CR to LF before parsing
+  content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
   try {
@@ -38,7 +51,7 @@ function parseFrontmatter(content) {
           // Multiline list item: "    - value"
           const listItemMatch = line.match(/^\s+-\s+(.+)$/);
           if (listItemMatch && coordCurrentKey) {
-            const item = listItemMatch[1].replace(/["']/g, '').trim();
+            const item = unquoteYaml(listItemMatch[1].trim());
             if (!Array.isArray(coordObj[coordCurrentKey])) {
               coordObj[coordCurrentKey] = [];
             }
@@ -50,13 +63,14 @@ function parseFrontmatter(content) {
             coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim()).filter(Boolean);
+              val = parseInlineArray(val).filter(Boolean); // drop empty strings
             } else if (val === '' || val === undefined) {
               // Empty value — may be followed by multiline list items
               val = [];
             } else if (val === 'true') val = true;
             else if (val === 'false') val = false;
             else if (/^\d+$/.test(val)) val = parseInt(val);
+            else val = unquoteYaml(val);
             coordObj[coordCurrentKey] = val;
           }
         }
@@ -65,9 +79,9 @@ function parseFrontmatter(content) {
       if (keyMatch && !inCoordination) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
-          val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim());
+          val = parseInlineArray(val).filter(Boolean);
         }
-        result[keyMatch[1]] = val;
+        result[keyMatch[1]] = (typeof val === 'string') ? unquoteYaml(val) : val;
       }
     }
     if (inCoordination) result.coordination = coordObj;

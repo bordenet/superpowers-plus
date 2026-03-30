@@ -85,19 +85,6 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 
 If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
 
-## Example
-
-```bash
-# Step 1: Reproduce the issue
-npm test -- --grep "failing test name" 2>&1 | tail -20
-
-# Step 2: Trace the data flow
-grep -rn "functionName" --include="*.ts" src/ | head -20
-
-# Step 3: Verify the fix doesn't break callers
-grep -rn "functionName(" --include="*.ts" src/ | wc -l
-```
-
 ## Failure Modes
 
 | Failure | Symptom | Recovery |

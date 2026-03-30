@@ -3,7 +3,7 @@ name: progressive-code-review-gate
 source: superpowers-plus
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]
 anti_triggers: ["lint before commit", "run tests before commit", "pre-commit check"]
-description: "Use when: committing or pushing code changes. Mandatory progressive review loop via code-review-battery (5 specialist reviewers in parallel; monolith on-demand via --all). Skip only when the user explicitly says to skip review."
+description: "Use when: committing or pushing code changes. Mandatory progressive review loop via sub-agent-code-reviewer. Skip only when the user explicitly says to skip review."
 summary: "Use when: committing or pushing code. Skip only when user explicitly says to skip."
 coordination:
   group: commit-gates
@@ -18,8 +18,9 @@ coordination:
 
 ## When to Use
 
-- Fires automatically before every commit or push of code changes
-- NOT for: PR-level review of others' work (`providing-code-review`), file-protocol review (`code-review`)
+- Before every commit or push of code changes (mandatory, fires automatically)
+- When user says "ready to commit," "push this," or "commit and push"
+- NOT for: PR-level review (`providing-code-review`), language/profanity audit (`professional-language-audit`)
 
 **MANDATORY before every commit/push of code changes.**
 Skip only when the human **explicitly** says to skip review.
@@ -153,7 +154,7 @@ After fixing nits, run a **targeted** battery round:
 |---------|---------|----------|
 | Review loop (5+ rounds) | Each fix introduces new findings | Stop at Round 5. Tell the human. The change may need a different approach |
 | Stale diff after fixes | Reviewer sees old diff because changes weren't staged | Re-run `git diff` or `git diff --staged` each round — never reuse prior output |
-| Fix-induced regression | Round N fix breaks something Round N-1 passed | Escalate from targeted re-review (Step 3a) to full re-review (Step 2) — re-dispatch all original reviewers |
+| Fix-induced regression | Round N fix breaks something Round N-1 passed | Reviewer must re-check ALL prior-passing areas, not just the new changes |
 | Reviewer scope creep | Flagging pre-existing code not in the diff | Restrict to changed lines and their direct callers. Pre-existing issues are INFO at most |
 | Skipping for "small changes" | One-line fix committed without review | Size doesn't determine risk. See Anti-Patterns table above |
 

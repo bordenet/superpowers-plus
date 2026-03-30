@@ -19,15 +19,6 @@ coordination:
 > **Purpose**: Get unstuck by dispatching research queries to Perplexity AI
 > **Trigger**: Automatic (2+ failures, uncertainty) OR manual invocation
 > **Cost**: Perplexity API calls are paid — use judiciously
->
-> **Wrong skill?** Incorporating research into existing docs → `incorporating-research`. General reasoning/stuck → `think-twice`. Design exploration → `brainstorming`.
-
-## When to Use
-
-- Research questions requiring current, cited sources
-- When web-search returns insufficient or outdated results
-- Technical comparisons needing multiple authoritative sources
-- When you need citation URLs to verify claims
 
 ## When to Invoke (Automatic Triggers)
 
@@ -109,16 +100,6 @@ After attempting to apply the Perplexity response, explicitly evaluate:
 2. Apply the information → Act (Step 5)
 3. Evaluate outcome → Judge (Step 6)
 4. Record outcome → Track (Step 7)
-
-## Example
-
-```bash
-# Invoke Perplexity via API
-source ~/.codex/.env
-curl -s -H "Authorization: Bearer $PERPLEXITY_API_KEY"   -H "Content-Type: application/json"   -d '{"model":"sonar","messages":[{"role":"user","content":"query"}]}'   https://api.perplexity.ai/chat/completions | jq '.choices[0].message.content'
-```
-
-## Failure Modes
 
 | Failure | Fix |
 |---------|-----|

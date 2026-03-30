@@ -27,7 +27,7 @@
 
 ## P3 — Deferred (some promoted to completed)
 
-- [x] [20260329-14] Implement telephony-flow-investigator skill #wave4 ✅ Done 2026-03-29
+- [x] [20260329-14] Implement telephony-flow-investigator skill #wave4 ✅ Done 2026-03-29 (moved to private overlay)
 - [x] [20260329-15] Implement state-consistency-investigator skill #wave4 ✅ Done 2026-03-29
 - [x] [20260329-16] Implement infra-config-investigator skill #wave4 ✅ Done 2026-03-29
 - [x] [20260329-17] Implement reproduction-experiment-investigator skill #wave4 ✅ Done 2026-03-29

@@ -16,8 +16,6 @@ coordination:
 
 # Incorporating Research
 
-> **Wrong skill?** Conducting research → `perplexity-research` or `expert-interviewer`. Writing docs → `wiki-orchestrator` or `readme-authoring`.
->
 > **Guidelines:** See [CLAUDE.md](../../../CLAUDE.md) for writing standards.
 > **Last Updated:** 2026-01-26
 
@@ -160,7 +158,11 @@ Concerns:
 - **eliminating-ai-slop**: Clean up pasted text · **detecting-ai-slop**: Score research quality
 - **expert-interviewer**: Structured knowledge extraction · **perplexity-research**: Web research
 
-## Example
+| Resource | Purpose |
+|----------|---------|
+| [CLAUDE.md](../../../CLAUDE.md) | Writing standards (no AI slop) |
+| `eliminating-ai-slop` | Use after incorporating to clean up pasted text |
+| `detecting-ai-slop` | Score research quality before incorporating |
 
 ```bash
 grep -n "TODO.*verify" draft.md  # find unverified claims before publish

@@ -60,17 +60,14 @@ For projects with many remaining phases, focus improvement effort on the next 2-
 ### TODO: `<ID> - <description>`
 
 **Improvement (substantive):**
-
 - What changed:
 - Why (linked to retro finding):
 
 **Harsh review of rewritten TODO:**
-
 - Reviewed: [ ] yes
 - Issues found and resolved:
 
 ### TODO: `<ID> - <description>` (no changes needed)
-
 - Why: [specific reason this TODO doesn't benefit from current retro findings]
 
 <!-- Repeat for each remaining TODO -->

@@ -254,55 +254,86 @@ function extractFrontmatter(filePath) {
         let description = '';
         let triggers = [];
         let requires_mcp = [];
+        let triggerAccum = null;
+        let mcpAccum = null;
 
+        // State-machine parser for YAML inline arrays — handles apostrophes
+        // inside double-quoted strings. Keep in sync with mcp/superpowers-mcp.js.
         function parseInlineArray(value) {
+            const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
             const items = [];
-            let i = value.indexOf('[');
-            if (i < 0) return items;
-            i++;
-            while (i < value.length) {
-                while (i < value.length && (value[i] === ' ' || value[i] === ',' || value[i] === '\t')) i++;
-                if (value[i] === ']') break;
-                if (value[i] === '"' || value[i] === "'") {
-                    const quote = value[i]; i++;
-                    let item = '';
-                    while (i < value.length && value[i] !== quote) {
-                        if (value[i] === '\\' && i + 1 < value.length) {
-                            if (value[i + 1] === quote) { item += quote; i += 2; }
-                            else if (value[i + 1] === '\\') { item += '\\'; i += 2; }
-                            else { item += value[i]; i++; }
-                        } else { item += value[i]; i++; }
+            let idx = 0;
+            while (idx < inner.length) {
+                while (idx < inner.length && (inner[idx] === ' ' || inner[idx] === ',' || inner[idx] === '\t')) idx++;
+                if (idx >= inner.length) break;
+                const quote = inner[idx];
+                if (quote === '"' || quote === "'") {
+                    let val = '';
+                    idx++;
+                    while (idx < inner.length) {
+                        if (quote === '"' && inner[idx] === '\\' && idx + 1 < inner.length) { val += inner[idx + 1]; idx += 2; }
+                        else if (quote === "'" && inner[idx] === "'" && idx + 1 < inner.length && inner[idx + 1] === "'") { val += "'"; idx += 2; }
+                        else if (inner[idx] === quote) { idx++; break; }
+                        else { val += inner[idx]; idx++; }
                     }
-                    i++;
-                    items.push(item);
+                    if (val) items.push(val);
                 } else {
-                    let item = '';
-                    while (i < value.length && value[i] !== ',' && value[i] !== ']') { item += value[i]; i++; }
-                    const trimmed = item.trim();
-                    if (trimmed) items.push(trimmed);
+                    let val = '';
+                    while (idx < inner.length && inner[idx] !== ',') { val += inner[idx]; idx++; }
+                    val = val.trim();
+                    if (val) items.push(val);
                 }
             }
             return items;
         }
 
+        function hasUnquotedClosingBracket(s) {
+            let inQuote = null;
+            for (let ci = 0; ci < s.length; ci++) {
+                const c = s[ci];
+                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
+                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+                if (c === '"' || c === "'") { inQuote = c; continue; }
+                if (c === ']') return true;
+            }
+            return false;
+        }
+
+        function extractBracketContent(s) {
+            const start = s.indexOf('[');
+            if (start === -1) return '';
+            let inQuote = null;
+            for (let ci = start + 1; ci < s.length; ci++) {
+                const c = s[ci];
+                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
+                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
+                if (c === '"' || c === "'") { inQuote = c; continue; }
+                if (c === ']') return s.slice(start + 1, ci);
+            }
+            return s.slice(start + 1);
+        }
+
+        function unquoteYaml(s) {
+            if (s.startsWith('"') && s.endsWith('"'))
+                return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            if (s.startsWith("'") && s.endsWith("'"))
+                return s.slice(1, -1).replace(/''/g, "'");
+            return s;
+        }
+
         function parseYamlList(lines, startIndex) {
             const values = [];
             let nextIndex = startIndex;
-
-            for (let i = startIndex + 1; i < lines.length; i++) {
-                const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
+            for (let li = startIndex + 1; li < lines.length; li++) {
+                const itemMatch = lines[li].match(/^\s+-\s+(.+)$/);
                 if (itemMatch) {
-                    values.push(itemMatch[1].trim().replace(/^['"]|['"]$/g, ''));
-                    nextIndex = i;
+                    values.push(unquoteYaml(itemMatch[1].trim()));
+                    nextIndex = li;
                     continue;
                 }
-                if (lines[i].trim() === '') {
-                    nextIndex = i;
-                    continue;
-                }
+                if (lines[li].trim() === '') { nextIndex = li; continue; }
                 break;
             }
-
             return { values, nextIndex };
         }
 
@@ -314,18 +345,44 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
-                const triggersMatch = line.match(/^triggers:\s*(\[.+\])\s*$/);
-                if (triggersMatch) {
-                    triggers = parseInlineArray(triggersMatch[1]);
+                // Handle bracket-multiline accumulation
+                if (triggerAccum !== null) {
+                    triggerAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(triggerAccum)) {
+                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                        triggerAccum = null;
+                    }
+                    continue;
+                }
+                if (mcpAccum !== null) {
+                    mcpAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(mcpAccum)) {
+                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                        mcpAccum = null;
+                    }
+                    continue;
+                }
+
+                // Triggers — 3 forms
+                if (line.match(/^triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        triggerAccum = line;
+                    }
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
 
-                const mcpMatch = line.match(/^requires_mcp:\s*(\[.+\])\s*$/);
-                if (mcpMatch) {
-                    requires_mcp = parseInlineArray(mcpMatch[1]);
+                // requires_mcp — same 3 forms
+                if (line.match(/^requires_mcp:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        requires_mcp = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        mcpAccum = line;
+                    }
                 } else if (line.match(/^requires_mcp:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     requires_mcp = parsed.values;
@@ -335,13 +392,7 @@ function extractFrontmatter(filePath) {
                 const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
-                    let value = match[2].trim();
-                    // Strip outer quotes and handle escaped quotes inside
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-                    } else if (value.startsWith("'") && value.endsWith("'")) {
-                        value = value.slice(1, -1);
-                    }
+                    let value = unquoteYaml(match[2].trim());
                     if (key === 'name') name = value;
                     if (key === 'description') description = value;
                 }

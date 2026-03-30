@@ -13,7 +13,7 @@ coordination:
   group: thinking
   order: 1
   requires: []
-  enables: ["design-triad", "plan-and-execute"]
+  enables: ["design-triad"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
 composition:
@@ -26,25 +26,6 @@ composition:
 ---
 
 # Brainstorming Ideas Into Designs
-
-## Companion Skills
-
-- **design-triad**: Structured evaluation of brainstorm outputs
-- **plan-and-execute**: Executing the selected approach
-- **innovation**: When 10x ideas are needed (not incremental)
-
-- **think-twice**: Escalation when brainstorm doesn't resolve the problem
-- **feature-development**: Full feature workflow (brainstorm → design → implement)
-- **requirements-validation**: Validating requirements before design
-- **fallback-planning**: Generating fallback approaches
-- **domain-design**: Skill domain ideation
-- **progressive-harsh-review**: Multi-persona adversarial review
-- **readme-authoring**: README generation
-- **plan-quality-gates**: Plan validation
-- **expert-interviewer**: Domain expert interviews
-- **experimental-self-prompting**: Self-prompting analysis
-- **quantitative-decision-gate**: Quantitative option evaluation
-- **autonomous-chain-controller**: Full workflow automation
 
 ## When to Use
 
@@ -122,24 +103,11 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Example: Design Spec Output
 
 ```markdown
-# Design: Retry Logic for API Client
-## Approach A (recommended): Exponential backoff with jitter
-  - Trade-off: More complex, but prevents thundering herd
-## Approach B: Fixed-interval retry
-  - Trade-off: Simpler, but causes coordinated retry storms
-## Selected: A — backoff with jitter
-## Components: RetryPolicy class wrapping HttpClient, configurable max retries
-## Testing: Unit tests for retry count, backoff timing, jitter range
-```
-
-## Example
-
-```bash
-# After brainstorming: validate top 3 ideas against requirements
-for idea in "Option A" "Option B" "Option C"; do
-  echo "--- $idea ---"
-  echo "Feasibility: /5  Impact: /5  Risk: /5"
-done
+# Design: Feature Name
+## Approach: [Selected approach with rationale]
+## Components: [Architecture, data flow, interfaces]
+## Testing: [Strategy, edge cases]
+## Status: Approved → invoke writing-plans
 ```
 
 ## Failure Modes
@@ -149,5 +117,3 @@ done
 | Started coding before design approval | Delete code, restart from checklist step 3 |
 | Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
 | Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
-| Invented requirements not stated by user | Ask: "Is [requirement] important to you?" Don't assume |
-| Overdesigned beyond what was asked | Apply YAGNI — cut every feature the user didn't request |

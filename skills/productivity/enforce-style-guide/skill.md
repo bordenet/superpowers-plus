@@ -2,7 +2,6 @@
 name: enforce-style-guide
 source: superpowers-plus
 triggers: ["check style", "enforce coding standards", "lint this", "style guide", "commit:style", "commit:lint"]
-anti_triggers: ["write new code", "implement feature", "create component"]
 description: Enforce coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, line limits, ShellCheck compliance, and syntax validation.
 summary: "Use when: about to commit shell scripts. Checks shebang, error handling, ShellCheck."
 coordination:
