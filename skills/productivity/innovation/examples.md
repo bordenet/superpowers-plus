@@ -1,131 +1,106 @@
 # Innovation Skill — Examples
 
-These examples demonstrate when the innovation skill should and should NOT fire.
+When this skill fires, it answers ONE question with depth: **"What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?"**
 
 ---
 
-## ✅ Example 1: LLM Agent Innovation
+## ✅ Example 1: Full Worked Example
 
 **User prompt:**
-> "We have an LLM agent that books service appointments. Propose step-change improvements to conversion and dealer satisfaction."
+> "We have an LLM agent that books service appointments. What's the smartest addition we could make?"
 
-**Why innovation fires:** User explicitly asks for "step-change improvements" — a transformation trigger.
+**Phase 1 (agent reads):** README, booking flow code, open issues, conversion metrics, competitor landscape via `perplexity-research`.
 
-**Expected output structure:**
+**Phase 2 (agent asks — one question per message):**
 
-```markdown
-# Innovation Analysis: Appointment Booking Agent
+Agent message 1:
+> "What's the single biggest pain point or missed opportunity you see right now?"
 
-**Input context:** LLM agent for service appointments; goals are conversion + dealer satisfaction
+User reply:
+> "Dealers complain about no-shows. 30% of booked appointments never happen."
 
-**Current state:** Agent handles booking flow, likely rule-based routing
+Agent message 2:
+> "Who benefits most, and what do they wish it did?"
+
+User reply:
+> "Dealers. They wish it filled their empty bays."
+
+Agent message 3:
+> "What constraints should I respect — team size, timeline, tech stack, politics?"
+
+User reply:
+> "Small team, 2 engineers. Can't build ML infrastructure from scratch."
+
+**Phase 3 — The Answer:**
+
+> # The Smartest Addition to Booking Agent Right Now
+>
+> > What's the single smartest, most radically innovative, accretive, useful,
+> > and compelling addition I could make to this project right now?
+>
+> ## The Answer: The smartest addition is predictive overbooking with automatic waitlist backfill.
+>
+> ### Why This, Why Now
+> 30% no-show rate means dealers are losing nearly a third of their capacity.
+> The agent already knows booking patterns and has dealer calendar access.
+> Competitors are still doing dumb reminder texts. The opportunity is to
+> treat this like airlines treat seat inventory — overbook intelligently
+> and backfill from a waitlist when cancellations happen.
+>
+> ### How It's Accretive
+> The agent already handles the booking flow and has historical data on
+> which appointment types no-show most. This adds a layer on top of
+> existing infrastructure — no new systems, just smarter scheduling logic.
+>
+> ### What It Unlocks
+> Once you have a working overbooking model, you have a **yield management
+> system** for service bays. That's a platform capability — dynamic pricing,
+> priority booking for high-value customers, predictive staffing. The
+> overbooking model is the foundation for all of it.
+>
+> ### The Hard Parts
+> - Getting the overbooking rate wrong means double-bookings and angry dealers.
+>   Need per-dealer, per-service-type calibration.
+> - Waitlist UX — customers need to feel like they're getting a benefit,
+>   not a consolation prize.
+> - Dealer trust — "your AI is overbooking my shop" is a hard sell until
+>   they see utilization go up.
+>
+> ### First Move (This Week)
+> Pull 90 days of booking data for 5 dealers. Calculate per-service-type
+> no-show rates. Build a rules-based overbooking calculator (if no-show
+> rate >25%, book 1 extra per 4 slots). Run it in shadow mode for 4 days
+> — log what it WOULD have done, compare against actual no-shows.
+>
+> ---
+>
+> Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, (d) generate alternatives via `brainstorming`, or (e) turn this into a phased execution plan via `plan-and-execute`?
 
 ---
 
-## Idea 1: Predictive Service Bundling ⭐ Recommended — Score: 28/35
-
-**What it is:** Agent proactively suggests service bundles based on vehicle history, 
-seasonal patterns, and dealer inventory — converting single appointments to multi-service visits.
-
-**Why it's transformative:** Increases revenue per visit 40-60% while reducing customer 
-return trips. Dealers see higher ticket values; customers get convenience.
-
-| Dimension | Score | Rationale |
-|-----------|-------|-----------|
-| Impact | 5 | Direct revenue lift + satisfaction |
-| Feasibility | 4 | Requires service history access |
-| Alignment | 4 | Extends current booking flow |
-| Uniqueness | 3 | Competitors could replicate |
-
-**What it would require:**
-- Vehicle service history API integration
-- ML model for service correlation
-- Estimated effort: 1 quarter
-
-**Risks & Unknowns:**
-- Service history data quality varies by dealer
-- Over-suggestion could feel pushy
-
-**🧪 Next-Week Prototype:**
-Build a rules-based version for top 5 service pairs (oil change + tire rotation, etc.) 
-and A/B test with 3 dealers.
-```
-
----
-
-## ✅ Example 2: Architecture Rethink
+## ✅ Example 2: Architecture Question
 
 **User prompt:**
 > "What if we started from scratch on the notification service?"
 
-**Why innovation fires:** Explicit "from scratch" language signals paradigm shift thinking.
+**Why innovation fires:** "From scratch" language — but the skill's job is to answer whether starting from scratch is actually the smartest move, or whether an accretive approach is better. It doesn't just validate the premise.
 
 ---
 
-## ✅ Example 3: Business Model Exploration
+## ❌ Do NOT Fire
 
-**User prompt:**
-> "What would a world-class team do with our internal developer tools?"
-
-**Why innovation fires:** Benchmark language ("world-class") + scope expansion implied.
-
----
-
-## ❌ Example 4: Bug Fix (Do NOT Fire)
-
-**User prompt:**
-> "Fix the race condition in the booking queue."
-
-**Why innovation does NOT fire:** This is a bug fix. Use `systematic-debugging`.
+| Prompt | Why Not | Use Instead |
+|--------|---------|-------------|
+| "Fix the race condition in the booking queue" | Bug fix | `systematic-debugging` |
+| "Add email confirmation to the booking flow" | Incremental feature | `brainstorming` or implement directly |
+| "Clean up the service layer abstractions" | Refactor | `engineering-rigor` |
 
 ---
 
-## ❌ Example 5: Incremental Feature (Do NOT Fire)
+## 🤔 Ambiguous — Ask, Don't Assume
 
-**User prompt:**
-> "Add email confirmation to the booking flow."
+**User prompt:** "What's next for this project?"
 
-**Why innovation does NOT fire:** This is an incremental feature. Use `brainstorming` if design
-is needed, or implement directly.
+Could be innovation or roadmap. Ask:
 
----
-
-## ❌ Example 6: Refactor (Do NOT Fire)
-
-**User prompt:**
-> "Clean up the service layer abstractions."
-
-**Why innovation does NOT fire:** This is a refactor. Use `engineering-rigor`.
-
----
-
-## 🤔 Example 7: Ambiguous — Propose, Don't Auto-Fire
-
-**User prompt:**
-> "What's next for this project?"
-
-**Why propose:** Could be innovation (transformative direction) or roadmap planning
-(incremental). Ask:
-
-```text
-Would you like me to:
-(a) Run **Innovation** mode for transformative 10x ideas?
-(b) Help with roadmap planning for incremental improvements?
-```
-
----
-
-## High-Signal Trigger Phrases
-
-Phrases that should reliably cause innovation to fire:
-
-1. "How could we 10x this?"
-2. "What's the moonshot version?"
-3. "Reimagine this from first principles"
-4. "What would make this a platform?"
-5. "New business model for this capability"
-6. "Rethink the architecture entirely"
-7. "Step-change improvement to [metric]"
-8. "What if we started from scratch?"
-9. "Paradigm shift opportunity"
-10. "What would a world-class team do?"
+> "Do you want me to answer the big question — *what's the single smartest addition to this project right now?* — or help with incremental roadmap planning?"
