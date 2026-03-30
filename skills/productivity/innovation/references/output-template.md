@@ -11,6 +11,10 @@
 > What's the single smartest, most radically innovative, accretive, useful,
 > and compelling addition I could make to this project right now?
 
+*[If Phase 2 was incomplete:]
+Based on Phase 1 research and the following assumptions: [list].
+Confidence is lower than it would be with direct user input.*
+
 ## The Answer: [One clear sentence]
 
 ### Why This, Why Now
