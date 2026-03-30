@@ -1,91 +1,108 @@
 ---
 name: innovation
 source: superpowers-plus
-triggers: ["innovate", "innovation mode", "what's the boldest move", "radical improvement", "radical ideas", "radical brainstorm", "breakthrough idea", "game-changing", "most impactful change", "10x improvement", "transform this project", "moonshot", "blue sky thinking", "disruptive idea", "reimagine", "step-change", "new business model", "greenfield idea", "what if we started from scratch", "rethink architecture", "paradigm shift", "new product idea", "strategic pivot", "what would a world-class team do"]
+triggers: ["innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "moonshot", "reimagine", "what if we started from scratch", "what would a world-class team do", "step-change", "what's the boldest move"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
-description: INVOKE when user explicitly seeks transformative, 10x-level ideas — product innovations, architectural paradigm shifts, or new business models. NOT for incremental improvements, bug fixes, or feature requests. Outputs ranked ideas with effort/impact scores and concrete next-week prototypes.
-summary: "Use when: user seeks transformative 10x ideas. Skip when: incremental improvements or bug fixes."
-version: 2.0
+description: "Answer ONE question with depth and conviction: What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now? NOT a brainstorming session. NOT a scoring rubric. ONE answer, deeply reasoned."
+summary: "One question, one answer: what's the smartest addition to this project right now?"
+version: 3.0
 coordination:
   group: thinking
   order: 5
   requires: []
-  enables: ["brainstorming", "design-triad"]
-  escalates_to: []
+  enables: ["brainstorming", "plan-and-execute"]
+  escalates_to: ["think-twice"]
   internal: false
 ---
 
 # Innovation
 
-> **Core question:** What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?
->
-> **Wrong skill?** Incremental feature ideas → `brainstorming`. Structured design evaluation → `design-triad`. Implementation planning → `plan-and-execute`.
+<CORE_PROMPT>
+**What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?**
+</CORE_PROMPT>
 
-**NOT for:** bug fixes (`systematic-debugging`), incremental features (`brainstorming`), cleanup (`engineering-rigor`).
-**IS for:** product step-changes, architectural paradigm shifts, new business models, internal tool innovation.
+That question IS this skill. Everything below exists to answer it well.
+
+**Wrong skill?** Incremental feature ideas → `brainstorming`. Bug fixes → `systematic-debugging`. Cleanup → `engineering-rigor`.
+
+## How This Works
+
+You are not generating a list. You are not filling out a rubric. You are answering ONE question with genuine depth, conviction, and specificity. The answer must be:
+
+- **Smart** — not obvious; demonstrates understanding of the domain
+- **Radically innovative** — 10x, not 10%; changes the category, not just the feature set
+- **Accretive** — builds on what exists; amplifies current strengths rather than starting over
+- **Useful** — solves a real problem for real users, not technically impressive for its own sake
+- **Compelling** — the user reads it and thinks "yes, obviously, why aren't we doing this already?"
 
 ## The Process
 
-1. **Gather context:** Ask for PRD/RFC snippet or top 1-2 pain points. Read README, issues, tech debt.
-2. **Generate 3-5 radical ideas** across: Technical Innovation, UX Breakthrough, Architectural Shift, Novel Integration, Paradigm Shift.
-3. **Score each:** `(Impact×3) + (Feasibility×2) + Alignment + Uniqueness` (each 1-5).
-4. **Present** with risks and a concrete next-week experiment per idea. See `references/output-template.md`.
-5. **If stuck:** invoke `perplexity-research` for adjacent domain exploration or `think-twice` for fresh perspective.
+<HARD-GATE>
+Do NOT answer the core question until Phase 2 is complete. Shallow context produces shallow answers. No exceptions.
+</HARD-GATE>
 
-## Key Principles
+### Phase 1: Understand What Exists (mandatory)
 
-- **Bold over safe** — 10x, not 10%
-- **Feasible over fantasy** — radical ≠ impossible
-- **Accretive** — build on existing strengths
-- **Concrete** — every idea needs a next-week experiment
+Before you can propose what to add, you must deeply understand what's there.
 
-## Scoring Example
+1. **Read the project.** README, package manifests, directory structure, recent commits/issues. Use `codebase-retrieval` aggressively. Spend real time here.
+2. **Read the pain.** Open issues, tech debt, user complaints, TODO comments. What's broken? What's slow? What do users work around?
+3. **Read the market.** If applicable, invoke `perplexity-research` to understand what competitors and adjacent domains are doing. What's the state of the art?
 
-| Idea | Impact (×3) | Feasibility (×2) | Alignment | Uniqueness | **Total** |
-|------|:-----------:|:-----------------:|:---------:|:----------:|:---------:|
-| AI-powered call scoring | 5 (15) | 3 (6) | 5 | 4 | **30** |
-| Real-time coaching overlay | 5 (15) | 2 (4) | 4 | 5 | **28** |
-| Self-healing config pipeline | 3 (9) | 4 (8) | 4 | 3 | **24** |
+### Phase 2: Ask the User (mandatory — 3 questions max)
 
-**Gate:** If no idea scores ≥25, the problem space may need reframing — invoke `think-twice`.
+Ask these. One per message. Do not skip.
 
-## Follow-Up
+| # | Question | Why |
+|---|----------|-----|
+| 1 | **What's the single biggest pain point or missed opportunity you see right now?** | Grounds your answer in their reality, not your assumptions |
+| 2 | **Who benefits most from this project, and what do they wish it did?** | Forces user-centric thinking |
+| 3 | **What constraints should I respect?** (team size, timeline, tech stack, politics) | Keeps "radical" from becoming "impossible" |
 
-After presenting: offer to draft RFC, create experiment plan, or deep-dive on specific aspect.
+If the user already answered any of these in their prompt, confirm rather than re-ask.
 
-**Flow:** `innovation → user selects → brainstorming → plan-and-execute → implementation`
+### Phase 3: Think Deeply, Then Answer
 
-## References
+Now answer the core question. ONE answer. Not three. Not five. ONE.
 
-- [`references/output-template.md`](references/output-template.md) — Per-idea scoring template and output format.
+Your answer must include:
 
-## Companion Skills
+1. **The idea** — stated in one clear sentence
+2. **Why this, why now** — what makes this the smartest move given everything you learned in Phase 1-2; why it's better than the obvious alternatives
+3. **How it's accretive** — specifically what existing strengths, infrastructure, or user behaviors it builds on
+4. **What it unlocks** — the second-order effects; what becomes possible once this exists
+5. **The hard parts** — honest assessment of risks, unknowns, and what could go wrong
+6. **First move** — the concrete thing you'd build THIS WEEK to validate the idea (not a plan; an action)
 
-- **brainstorming**: Incremental idea generation (this skill is 10x ideas)
-- **design-triad**: Evaluating innovation options
-- **plan-and-execute**: Executing on selected innovations
-- **quantitative-decision-gate**: Option scoring
+See `references/output-template.md` for format.
 
-## When to Use
+### Phase 4: Offer to Go Deeper
 
-- Before building new features — generate radical alternatives to the obvious approach
-- When brainstorming is yielding incremental ideas — force 10x thinking
-- When evaluating whether to build vs buy vs integrate
+After presenting your answer:
 
-## Example
+> "Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, or (d) generate alternatives via `brainstorming`?"
 
-```bash
-# Run the innovation scoring framework
-echo "Score each idea 1-5 on: Impact (×3), Feasibility (×2), Alignment, Uniqueness"
-echo "Gate: ideas scoring <25 need reframing via think-twice"
-```
+## Principles
+
+- **One answer, not a menu.** Having conviction is the skill. If you can't pick one, you don't understand the project well enough — go back to Phase 1.
+- **Accretive over greenfield.** The best innovations amplify what already works. "Start over" is almost never the answer.
+- **Concrete over clever.** If you can't describe the first week of work, the idea isn't real yet.
+- **User pain over technical elegance.** The smartest addition solves the problem users actually have, not the one that's most fun to engineer.
 
 ## Failure Modes
 
-| Failure | Fix |
-|---------|-----|
-| Ideas too abstract to act on | Require concrete "next-week experiment" for each idea |
-| Scoring bias toward familiar approaches | Weight novelty explicitly in impact/feasibility matrix |
-| Innovation theater — big ideas with no follow-through | Gate: each idea must have a testable hypothesis |
-| Generated incremental improvements disguised as innovation | Apply the 10x test: would this change the product category? If no, it is not innovation |
-| Confused technical cleverness with user impact | Score Impact (user-facing value) separately from Feasibility (technical) |
+| Failure | What Went Wrong | Fix |
+|---------|----------------|-----|
+| Generated a list instead of an answer | Avoided having conviction | Pick one. Justify why it beats the others. |
+| Idea is technically impressive but useless | Skipped understanding user pain (Phase 1 step 2) | Go back, read issues and complaints |
+| Idea is obvious / incremental | Didn't research the market (Phase 1 step 3) | Invoke `perplexity-research`, look at adjacent domains |
+| Idea ignores constraints | Skipped Phase 2 question 3 | Ask about constraints before answering |
+| Idea doesn't build on existing strengths | Didn't understand the codebase (Phase 1 step 1) | Read more code, understand the architecture |
+| "First move" is actually a 3-month plan | Confused planning with prototyping | Describe what you'd build in ≤5 days |
+
+## Companion Skills
+
+- **brainstorming** — for when the user wants quantity of ideas, not depth on one
+- **think-twice** — to stress-test your answer if it feels too easy
+- **perplexity-research** — for market/domain context during Phase 1
+- **plan-and-execute** — after user approves the idea, to execute on it
