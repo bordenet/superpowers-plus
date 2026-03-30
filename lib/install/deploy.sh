@@ -383,7 +383,7 @@ install_cli_commands() {
             existing=$(readlink "$link" 2>/dev/null || true)
             if [[ "$existing" == "$script" ]]; then
                 log_verbose "$cmd_name symlink already correct"
-                ((installed++))
+                installed=$((installed + 1))
                 continue
             fi
             rm -f "$link"
@@ -393,7 +393,7 @@ install_cli_commands() {
         fi
 
         if ln -s "$script" "$link" 2>/dev/null; then
-            ((installed++))
+            installed=$((installed + 1))
         else
             log_warn "Failed to symlink $cmd_name to $bin_dir"
         fi
