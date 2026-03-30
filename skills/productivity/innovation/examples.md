@@ -11,13 +11,25 @@ When this skill fires, it answers ONE question with depth: **"What's the single 
 
 **Phase 1 (agent reads):** README, booking flow code, open issues, conversion metrics, competitor landscape via `perplexity-research`.
 
-**Phase 2 (agent asks):**
-1. "What's the single biggest pain point or missed opportunity you see right now?"
-   → User: "Dealers complain about no-shows. 30% of booked appointments never happen."
-2. "Who benefits most, and what do they wish it did?"
-   → User: "Dealers. They wish it filled their empty bays."
-3. "Constraints?"
-   → User: "Small team, 2 engineers. Can't build ML infrastructure from scratch."
+**Phase 2 (agent asks — one question per message):**
+
+Agent message 1:
+> "What's the single biggest pain point or missed opportunity you see right now?"
+
+User reply:
+> "Dealers complain about no-shows. 30% of booked appointments never happen."
+
+Agent message 2:
+> "Who benefits most, and what do they wish it did?"
+
+User reply:
+> "Dealers. They wish it filled their empty bays."
+
+Agent message 3:
+> "Constraints?"
+
+User reply:
+> "Small team, 2 engineers. Can't build ML infrastructure from scratch."
 
 **Phase 3 — The Answer:**
 
@@ -26,7 +38,7 @@ When this skill fires, it answers ONE question with depth: **"What's the single 
 > > What's the single smartest, most radically innovative, accretive, useful,
 > > and compelling addition I could make to this project right now?
 >
-> ## The Answer: Predictive overbooking with automatic waitlist backfill.
+> ## The Answer: The smartest addition is predictive overbooking with automatic waitlist backfill.
 >
 > ### Why This, Why Now
 > 30% no-show rate means dealers are losing nearly a third of their capacity.
