@@ -3,8 +3,8 @@ name: innovation
 source: superpowers-plus
 triggers: ["innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "moonshot", "reimagine", "what if we started from scratch", "what would a world-class team do", "step-change", "what's the boldest move"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup"]
-description: "Answer ONE question with depth and conviction: What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now? NOT a brainstorming session. NOT a scoring rubric. ONE answer, deeply reasoned."
-summary: "One question, one answer: what's the smartest addition to this project right now?"
+description: "Use when: user wants a single high-conviction innovation answer — the smartest, most radically innovative, accretive, useful, and compelling addition to this project right now. Skip when: incremental ideas (brainstorming), bug fixes (systematic-debugging), or implementation planning (plan-and-execute)."
+summary: "Use when: single high-conviction innovation answer. Skip when: incremental ideas or bug fixes."
 version: 3.0
 coordination:
   group: thinking
@@ -17,9 +17,7 @@ coordination:
 
 # Innovation
 
-<CORE_PROMPT>
-**What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?**
-</CORE_PROMPT>
+> **Core question:** What's the single smartest, most radically innovative, accretive, useful, and compelling addition I could make to this project right now?
 
 That question IS this skill. Everything below exists to answer it well.
 
@@ -51,7 +49,7 @@ Before you can propose what to add, you must deeply understand what's there.
 
 ### Phase 2: Ask the User (mandatory — 3 questions max)
 
-Ask these. One per message. Do not skip.
+Ask these. One per message.
 
 | # | Question | Why |
 |---|----------|-----|
@@ -60,6 +58,8 @@ Ask these. One per message. Do not skip.
 | 3 | **What constraints should I respect?** (team size, timeline, tech stack, politics) | Keeps "radical" from becoming "impossible" |
 
 If the user already answered any of these in their prompt, confirm rather than re-ask.
+
+**Fallback for non-answers:** If the user declines questions ("just answer"), gives partial answers, or says "you decide" — proceed with Phase 1 context, state your assumptions explicitly, and mark your answer with lower confidence. Do not deadlock waiting for answers that aren't coming. One retry per question is the maximum; after that, move on.
 
 ### Phase 3: Think Deeply, Then Answer
 
@@ -80,7 +80,7 @@ See `references/output-template.md` for format.
 
 After presenting your answer:
 
-> "Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, or (d) generate alternatives via `brainstorming`?"
+> "Want me to: (a) draft an RFC for this, (b) prototype the first move right now, (c) challenge this idea with `think-twice` to stress-test it, (d) generate alternatives via `brainstorming`, or (e) turn this into a phased execution plan via `plan-and-execute`?"
 
 ## Principles
 
