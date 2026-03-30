@@ -65,7 +65,8 @@ function parseFrontmatter(content) {
       if (keyMatch && !inCoordination) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
-          val = val.replace(/[\[\]"']/g, '').split(',').map(s => s.trim());
+          // Simple inline array parsing (coordination arrays are simple identifiers)
+          val = val.replace(/[\[\]]/g, '').split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
         }
         result[keyMatch[1]] = val;
       }

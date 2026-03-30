@@ -271,7 +271,8 @@ function extractFrontmatter(filePath) {
                     let val = '';
                     idx++;
                     while (idx < inner.length) {
-                        if (inner[idx] === '\\' && idx + 1 < inner.length) { val += inner[idx + 1]; idx += 2; }
+                        if (quote === '"' && inner[idx] === '\\' && idx + 1 < inner.length) { val += inner[idx + 1]; idx += 2; }
+                        else if (quote === "'" && inner[idx] === "'" && idx + 1 < inner.length && inner[idx + 1] === "'") { val += "'"; idx += 2; }
                         else if (inner[idx] === quote) { idx++; break; }
                         else { val += inner[idx]; idx++; }
                     }

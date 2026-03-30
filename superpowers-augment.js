@@ -195,8 +195,10 @@ function parseInlineArray(value) {
             let val = '';
             i++; // skip opening quote
             while (i < inner.length) {
-                if (inner[i] === '\\' && i + 1 < inner.length) {
+                if (quote === '"' && inner[i] === '\\' && i + 1 < inner.length) {
                     val += inner[i + 1]; i += 2;
+                } else if (quote === "'" && inner[i] === "'" && i + 1 < inner.length && inner[i + 1] === "'") {
+                    val += "'"; i += 2; // YAML '' escape
                 } else if (inner[i] === quote) {
                     i++; break;
                 } else {
