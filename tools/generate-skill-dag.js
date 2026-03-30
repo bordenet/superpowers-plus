@@ -11,6 +11,16 @@ const path = require('path');
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 const DEFAULT_OUTPUT = path.join(__dirname, '..', 'docs', 'skill-dependency-graph.md');
 
+// Unquote a YAML scalar value: strip outer quotes and handle escapes.
+function unquoteYaml(s) {
+  s = s.trim();
+  if (s.startsWith('"') && s.endsWith('"'))
+    return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  if (s.startsWith("'") && s.endsWith("'"))
+    return s.slice(1, -1).replace(/''/g, "'");
+  return s;
+}
+
 function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
@@ -38,7 +48,7 @@ function parseFrontmatter(content) {
           // Multiline list item: "    - value"
           const listItemMatch = line.match(/^\s+-\s+(.+)$/);
           if (listItemMatch && coordCurrentKey) {
-            const item = listItemMatch[1].trim().replace(/^["'](.+)["']$/, '$1');
+            const item = unquoteYaml(listItemMatch[1].trim());
             if (!Array.isArray(coordObj[coordCurrentKey])) {
               coordObj[coordCurrentKey] = [];
             }
@@ -50,7 +60,7 @@ function parseFrontmatter(content) {
             coordCurrentKey = coordMatch[1];
             let val = coordMatch[2].trim();
             if (val.startsWith('[')) {
-              val = val.replace(/[\[\]]/g, '').split(',').map(s => s.trim().replace(/^["'](.+)["']$/, '$1')).filter(Boolean);
+              val = val.replace(/[\[\]]/g, '').split(',').map(s => unquoteYaml(s.trim())).filter(Boolean);
             } else if (val === '' || val === undefined) {
               // Empty value — may be followed by multiline list items
               val = [];
@@ -66,7 +76,7 @@ function parseFrontmatter(content) {
         let val = keyMatch[2].trim();
         if (val.startsWith('[')) {
           // Simple inline array parsing (coordination arrays are simple identifiers)
-          val = val.replace(/[\[\]]/g, '').split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+          val = val.replace(/[\[\]]/g, '').split(',').map(s => unquoteYaml(s.trim())).filter(Boolean);
         }
         result[keyMatch[1]] = val;
       }
