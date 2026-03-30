@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-03-29
+> **Last updated:** 2026-03-30
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -10,8 +10,15 @@ This document visualizes the coordination relationships between skills in superp
 ```mermaid
 graph TD
   subgraph engineering["Engineering"]
+    cognitive_complexity_refactoring["cognitive-complexity-refactoring"]
+    engineering_rigor["engineering-rigor"]
     feature_development["feature-development"]
+    git_branch_conventions["git-branch-conventions"]
+    implementation_tracker["implementation-tracker"]
     requirements_validation["requirements-validation"]
+    typescript_project_conventions["typescript-project-conventions"]
+    typescript_strict_mode["typescript-strict-mode"]
+    vitest_testing_patterns["vitest-testing-patterns"]
     blast_radius_check["blast-radius-check"]
     debug_conductor["debug-conductor"]
     systematic_debugging["systematic-debugging"]
@@ -24,7 +31,6 @@ graph TD
     reproduction_experiment_investigator["reproduction-experiment-investigator [internal]"]
     state_consistency_investigator["state-consistency-investigator [internal]"]
     timeline_trace_investigator["timeline-trace-investigator [internal]"]
-    engineering_rigor["engineering-rigor"]
   end
 
   subgraph thinking["Thinking"]
@@ -116,10 +122,6 @@ graph TD
     superpowers_help["superpowers-help"]
   end
 
-  subgraph productivity["Productivity"]
-    plan_and_execute["plan-and-execute"]
-  end
-
   subgraph stuck-escalation["Stuck Escalation"]
     think_twice["think-twice"]
     perplexity_research["perplexity-research"]
@@ -130,14 +132,14 @@ graph TD
   end
 
   subgraph research["Research"]
-    incorporating_research["incorporating-research"]
     expert_interviewer["expert-interviewer"]
+    incorporating_research["incorporating-research"]
   end
 
   subgraph security["Security"]
+    repo_security_scan["repo-security-scan"]
     security_upgrade["security-upgrade"]
     wiki_instruction_guard["wiki-instruction-guard"]
-    repo_security_scan["repo-security-scan"]
   end
 
   subgraph wiki["Wiki"]
@@ -156,28 +158,24 @@ graph TD
   subgraph writing["Writing"]
     detecting_ai_slop["detecting-ai-slop"]
     eliminating_ai_slop["eliminating-ai-slop"]
+    writing_skills["writing-skills"]
     plan_quality_gates["plan-quality-gates"]
     readme_authoring["readme-authoring"]
     markdown_table_discipline["markdown-table-discipline"]
-    writing_skills["writing-skills"]
   end
 
   blast_radius_check -->|enables| field_rename_verification
   blast_radius_check ==>|escalates to| engineering_rigor
   brainstorming -->|enables| design_triad
-  brainstorming -->|enables| plan_and_execute
   brainstorming ==>|escalates to| thinking_orchestrator
   code_review_battery -->|enables| progressive_code_review_gate
   systematic_debugging -->|then| debug_conductor
   debug_conductor -->|enables| investigation_state
   debug_conductor -->|enables| failure_autopsy
   debug_conductor ==>|escalates to| thinking_orchestrator
-  design_triad -->|enables| plan_and_execute
   design_triad ==>|escalates to| thinking_orchestrator
   engineering_rigor -->|enables| pre_commit_gate
   engineering_rigor -->|enables| blast_radius_check
-  engineering_rigor -->|enables| output_verification
-  engineering_rigor -->|enables| field_rename_verification
   debug_conductor -->|then| evidence_adjudicator
   evidence_adjudicator ==>|escalates to| debug_conductor
   feature_development -->|enables| brainstorming
@@ -227,15 +225,44 @@ graph TD
   measurement_integrity -->|then| evolution_loop
   evolution_loop -->|enables| skill_authoring
   exhaustive_audit_validation -->|enables| verification_before_completion
+  failure_autopsy -->|enables| quantitative_decision_gate
+  failure_autopsy -->|enables| measurement_integrity
+  failure_autopsy ==>|escalates to| think_twice
+  measurement_integrity -->|enables| verification_before_completion
+  measurement_integrity ==>|escalates to| failure_autopsy
+  skill_health_check ==>|escalates to| superpowers_doctor
+  adversarial_search -->|enables| think_twice
+  adversarial_search -->|enables| verification_before_completion
+  adversarial_search ==>|escalates to| thinking_orchestrator
+  autonomous_chain_controller -->|enables| brainstorming
+  autonomous_chain_controller -->|enables| design_triad
+  autonomous_chain_controller -->|enables| plan_and_execute
+  autonomous_chain_controller -->|enables| test_driven_development
+  autonomous_chain_controller ==>|escalates to| think_twice
+  autonomous_chain_controller ==>|escalates to| failure_autopsy
+  code_review -->|enables| progressive_code_review_gate
+  code_review ==>|escalates to| code_review_battery
+  code_review_respond -->|enables| pre_commit_gate
+  code_review_respond ==>|escalates to| think_twice
+  domain_design -->|enables| skill_authoring
+  domain_design -->|enables| brainstorming
+  domain_design -->|enables| design_triad
+  plan_and_execute -->|then| fallback_planning
+  innovation -->|enables| brainstorming
+  innovation -->|enables| design_triad
   plan_and_execute -->|enables| brainstorming
   plan_and_execute -->|enables| think_twice
   plan_and_execute -->|enables| todo_management
   plan_and_execute -->|enables| plan_quality_gates
   plan_and_execute ==>|escalates to| thinking_orchestrator
+  quantitative_decision_gate -->|enables| brainstorming
+  quantitative_decision_gate -->|enables| design_triad
+  quantitative_decision_gate -->|enables| plan_and_execute
+  quantitative_decision_gate ==>|escalates to| think_twice
+  skill_authoring -->|enables| writing_skills
   think_twice ==>|escalates to| perplexity_research
   thinking_orchestrator -->|enables| adversarial_search
   thinking_orchestrator -->|enables| think_twice
-  thinking_orchestrator -->|enables| output_verification
   thinking_orchestrator -->|enables| verification_before_completion
   thinking_orchestrator -->|enables| exhaustive_audit_validation
   thinking_orchestrator -->|enables| completeness_check
@@ -243,16 +270,12 @@ graph TD
   thinking_orchestrator -->|enables| feature_development
   thinking_orchestrator -->|enables| design_triad
   thinking_orchestrator -->|enables| plan_and_execute
-  thinking_orchestrator -->|enables| progressive_harsh_review
-  thinking_orchestrator -->|enables| debug_conductor
   todo_management -->|then| todo_archive
   todo_management -->|then| todo_guardian
   todo_guardian -->|enables| verification_before_completion
   todo_guardian ==>|escalates to| quantitative_decision_gate
   todo_management -->|enables| fallback_planning
-  expert_interviewer -->|enables| incorporating_research
   professional_language_audit -->|then| public_repo_ip_audit
-  repo_security_scan -->|enables| security_upgrade
   link_verification ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|then| wiki_content_coherence
   wiki_content_coherence -->|enables| link_verification
@@ -263,29 +286,35 @@ graph TD
   wiki_refactor -->|enables| wiki_secret_audit
   wiki_verify ==>|escalates to| wiki_orchestrator
   detecting_ai_slop -->|enables| eliminating_ai_slop
-  plan_quality_gates -->|enables| plan_and_execute
-  writing_skills -->|enables| skill_authoring
 ```
 
 ## Coordination Groups
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Engineering | `feature-development`, `requirements-validation`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `engineering-rigor` | Coordinated skill group |
+| Engineering | `cognitive-complexity-refactoring`, `engineering-rigor`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `typescript-project-conventions`, `typescript-strict-mode`, `vitest-testing-patterns`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Coordinated skill group |
 | Thinking | `brainstorming`, `adversarial-search`, `design-triad`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
 | Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
 | Debugging | `investigation-state` | Coordinated skill group |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
-| Completion Gate | `exhaustive-audit-validation`, `verification-before-completion` | Verification and TODO maintenance before claiming done |
-| Productivity | `plan-and-execute` | Coordinated skill group |
+| Quality | `progressive-harsh-review` | Coordinated skill group |
+| Experimental | `experimental-self-prompting` | Coordinated skill group |
+| Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
+| Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
+| Meta Improvement | `evolution-loop` | Coordinated skill group |
+| Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
+| Orchestration | `autonomous-chain-controller` | Coordinated skill group |
+| Productivity | `plan-and-execute`, `domain-design`, `fallback-planning`, `golden-agents`, `skill-authoring`, `todo-archive`, `todo-management` | Coordinated skill group |
+| Decision Making | `quantitative-decision-gate` | Coordinated skill group |
+| Meta | `superpowers-help` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Todo Enforcement | `todo-guardian` | Coordinated skill group |
-| Research | `incorporating-research`, `expert-interviewer` | Coordinated skill group |
-| Security | `security-upgrade`, `wiki-instruction-guard`, `repo-security-scan` | Coordinated skill group |
+| Research | `expert-interviewer`, `incorporating-research` | Coordinated skill group |
+| Security | `repo-security-scan`, `security-upgrade`, `wiki-instruction-guard` | Coordinated skill group |
 | Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Coordinated skill group |
 | Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence`, `wiki-refactor` | Wiki authoring quality pipeline |
-| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `plan-quality-gates`, `readme-authoring`, `markdown-table-discipline`, `writing-skills` | Coordinated skill group |
+| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `markdown-table-discipline` | Coordinated skill group |
 
 ## Legend
 
