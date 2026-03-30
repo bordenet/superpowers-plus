@@ -9,7 +9,9 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve through symlinks so this works when invoked via ~/.local/bin/sp-doctor
+REAL_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
 DOCTOR_SCRIPT="$SCRIPT_DIR/doctor-checks.sh"
 
 if [[ ! -f "$DOCTOR_SCRIPT" ]]; then
