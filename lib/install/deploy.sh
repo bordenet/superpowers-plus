@@ -339,12 +339,17 @@ install_tools() {
     log_success "Installed $count tools to $tools_dest"
 }
 
-# Install CLI commands — symlink sp-update (and future sp-* tools) to PATH
+# Install CLI commands — symlink all tools/sp-*.sh to PATH as sp-*
 install_cli_commands() {
     local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
-    local sp_update="$tools_dest/sp-update.sh"
 
-    [[ -f "$sp_update" ]] || return 0
+    # Find all sp-*.sh files in the installed tools directory
+    local sp_scripts=()
+    while IFS= read -r -d '' f; do
+        sp_scripts+=("$f")
+    done < <(find "$tools_dest" -maxdepth 1 -name 'sp-*.sh' -type f -print0 2>/dev/null)
+
+    [[ ${#sp_scripts[@]} -gt 0 ]] || return 0
 
     # Find a writable bin directory on PATH
     local bin_dir=""
@@ -359,34 +364,44 @@ install_cli_commands() {
     if [[ -z "$bin_dir" ]]; then
         bin_dir="$HOME/.local/bin"
         mkdir -p "$bin_dir" 2>/dev/null || {
-            log_warn "Cannot create $bin_dir — sp-update won't be on PATH"
-            log_warn "Run directly: $sp_update"
+            log_warn "Cannot create $bin_dir — sp-* commands won't be on PATH"
             return 0
         }
     fi
 
-    local link="$bin_dir/sp-update"
+    local installed=0
+    for script in "${sp_scripts[@]}"; do
+        local basename
+        basename=$(basename "$script")
+        # sp-update.sh → sp-update, sp-doctor.sh → sp-doctor
+        local cmd_name="${basename%.sh}"
+        local link="$bin_dir/$cmd_name"
 
-    # Create or update symlink
-    if [[ -L "$link" ]]; then
-        local existing
-        existing=$(readlink "$link" 2>/dev/null || true)
-        if [[ "$existing" == "$sp_update" ]]; then
-            log_verbose "sp-update symlink already correct: $link"
-            return 0
+        # Create or update symlink
+        if [[ -L "$link" ]]; then
+            local existing
+            existing=$(readlink "$link" 2>/dev/null || true)
+            if [[ "$existing" == "$script" ]]; then
+                log_verbose "$cmd_name symlink already correct"
+                ((installed++))
+                continue
+            fi
+            rm -f "$link"
+        elif [[ -e "$link" ]]; then
+            log_warn "$cmd_name exists at $link but is not a symlink — skipping"
+            continue
         fi
-        rm -f "$link"
-    elif [[ -e "$link" ]]; then
-        log_warn "sp-update exists at $link but is not a symlink — skipping"
-        return 0
-    fi
 
-    ln -s "$sp_update" "$link" 2>/dev/null && {
-        log_success "CLI command installed: $link → sp-update.sh"
-    } || {
-        log_warn "Failed to symlink sp-update to $bin_dir (permission denied?)"
-        log_warn "Run directly: $sp_update"
-    }
+        if ln -s "$script" "$link" 2>/dev/null; then
+            ((installed++))
+        else
+            log_warn "Failed to symlink $cmd_name to $bin_dir"
+        fi
+    done
+
+    if [[ $installed -gt 0 ]]; then
+        log_success "CLI commands installed: $installed sp-* command(s) in $bin_dir"
+    fi
 }
 
 # Install all skills from this repository (supports domain-based structure)
