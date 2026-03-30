@@ -139,10 +139,40 @@ main() {
     before_sha=$(git rev-parse --short HEAD)
 
     if git merge-base --is-ancestor HEAD "$remote/$target_branch" 2>/dev/null; then
-        git merge --ff-only "$remote/$target_branch" --quiet || {
-            log_error "Fast-forward merge failed. Use --force to reset."
+        local merge_output
+        if ! merge_output=$(git merge --ff-only "$remote/$target_branch" 2>&1); then
+            log_error "Fast-forward merge failed."
+            echo "$merge_output" >&2
+
+            # Detect untracked file conflicts and give actionable guidance
+            if echo "$merge_output" | grep -q "untracked working tree files would be overwritten"; then
+                echo "" >&2
+                log_warn "Untracked local files conflict with incoming tracked files."
+                log_warn "This usually happens when a file was deployed by the installer"
+                log_warn "before it was committed to git."
+                echo "" >&2
+                local conflicting_files
+                conflicting_files=$(echo "$merge_output" | sed -n '/untracked working tree files/,/Please move or remove/{ /^\t/p }')
+                if [[ -n "$conflicting_files" ]]; then
+                    log_info "Conflicting files:"
+                    echo "$conflicting_files" >&2
+                    echo "" >&2
+                    log_info "Fix: delete the untracked copies and re-run sp-update:"
+                    echo "$conflicting_files" | while IFS= read -r f; do
+                        f=$(echo "$f" | xargs)  # trim whitespace
+                        [[ -n "$f" ]] && printf '  rm "%s/%s"\n' "$managed_dir" "$f" >&2
+                    done
+                    printf '  sp-update\n' >&2
+                fi
+                echo "" >&2
+                log_info "Or use --force to discard ALL local changes (nuclear option)."
+            else
+                # Generic merge failure
+                echo "" >&2
+                log_info "Use --force to reset to $remote/$target_branch (discards local changes)."
+            fi
             exit 1
-        }
+        fi
     else
         log_error "Local branch has diverged from $remote/$target_branch."
         log_error "Use --force to reset, or resolve manually."
@@ -159,6 +189,20 @@ main() {
         if [[ "$VERBOSE" == "true" ]]; then
             git log --oneline "${before_sha}..${after_sha}" | head -20
         fi
+    fi
+
+    # Post-merge: check for dirty working tree or unresolved issues
+    local post_status
+    post_status=$(git status --porcelain 2>/dev/null)
+    if [[ -n "$post_status" ]]; then
+        log_warn "Working tree is not clean after update:"
+        echo "$post_status" | head -10 >&2
+        local dirty_count
+        dirty_count=$(echo "$post_status" | wc -l | xargs)
+        if [[ "$dirty_count" -gt 10 ]]; then
+            log_warn "... and $((dirty_count - 10)) more files"
+        fi
+        log_warn "This may affect skill deployment. Run --force to reset if needed."
     fi
 
     # Re-run installer to deploy updated skills/tools/rules
