@@ -259,8 +259,60 @@ async function main() {
       const regBracketText = regBracketResult?.content?.[0]?.text || '';
       assert(regBracketText.includes('parser-regression-test'),
         'regression: match_skills finds skill by bracket-in-trigger');
+
+      // Test anti_triggers: create a second skill with anti_triggers that should
+      // demote it for a specific query
+      const antiDir = path.join(tmpDir, 'anti-trigger-test');
+      mkdirSync(antiDir, { recursive: true });
+      writeFileSync(path.join(antiDir, 'skill.md'), [
+        '---',
+        'name: anti-trigger-test',
+        'description: A skill that should be demoted for review queries',
+        'triggers: ["code analysis", "static analysis"]',
+        'anti_triggers: ["review my PR", "pull request review"]',
+        'coordination:',
+        '  group: test',
+        '  order: 2',
+        '  requires: []',
+        '  enables: []',
+        '  escalates_to: []',
+        '  internal: false',
+        '---',
+        '# Anti-trigger test skill',
+        '',
+      ].join('\n'));
+
+      // Spawn a third client to pick up both skills
+      const client3 = new McpClient(spawn(process.execPath, [SERVER_PATH], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, PERSONAL_SKILLS_DIR: tmpDir, SUPERPOWERS_SKILLS_DIR: '/dev/null' },
+      }));
+      try {
+        await client3.send('initialize', {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'smoke-anti', version: '1.0' },
+        });
+        client3._proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+        // Match with anti_trigger query — anti-trigger-test should be demoted
+        const antiResult = await client3.send('tools/call', {
+          name: 'match_skills',
+          arguments: { query: 'review my PR code analysis', top_n: 5 },
+        });
+        const antiText = antiResult?.content?.[0]?.text || '';
+        // The parser-regression-test (no anti_triggers) should rank above
+        // anti-trigger-test (has anti_triggers matching the query)
+        const antiIdx = antiText.indexOf('anti-trigger-test');
+        const parserIdx = antiText.indexOf('parser-regression-test');
+        assert(antiIdx > -1 && parserIdx > -1,
+          'regression: both skills appear in anti_trigger match results');
+        assert(parserIdx < antiIdx,
+          'regression: anti_trigger demotes skill below competitor');
+      } finally {
+        client3.kill();
+      }
     } finally {
-      client2.kill();
       rmSync(tmpDir, { recursive: true, force: true });
     }
 
