@@ -1,6 +1,6 @@
 # superpowers-plus
 
-86 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
 
 > **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
 
@@ -10,12 +10,12 @@ Development now uses private branches for maturation, testing, and validation be
 
 ## What's Included
 
-**86 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
 
 | Domain | Count | Examples |
 |--------|------:|----------|
-| engineering | 34 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
-| productivity | 18 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
+| engineering | 33 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
+| productivity | 19 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
 | writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
 | wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
 | observability | 8 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
@@ -56,7 +56,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 86-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the 87-skill suite — use git clone above for that.
 
 ### Claude Code
 
