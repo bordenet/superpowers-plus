@@ -8,12 +8,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
-# If running from .git/hooks, find repo root
-if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
-    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-else
-    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ -z "$REPO_ROOT" ]]; then
+    # Fallback for manual execution outside a git worktree context.
+    if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+        REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    else
+        REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    fi
 fi
 
 cd "$REPO_ROOT"
@@ -130,24 +133,14 @@ fi
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[5/5]${NC} Checking for proprietary IP..."
 
-IP_PATTERNS_FILE="$REPO_ROOT/.ip-patterns"
-if [[ -f "$IP_PATTERNS_FILE" ]]; then
-    IP_PATTERNS=$(cat "$IP_PATTERNS_FILE" | head -1)
-    for file in $STAGED_FILES; do
-        [[ ! -f "$file" ]] && continue
-        # Skip binary files and the IP check script itself
-        if file "$file" | grep -q "binary"; then continue; fi
-        if [[ "$file" == *"public-repo-ip-check.sh"* ]]; then continue; fi
-        if [[ "$file" == *".ip-patterns"* ]]; then continue; fi
-
-        if grep -qE "$IP_PATTERNS" "$file" 2>/dev/null; then
-            MATCH_COUNT=$(grep -cE "$IP_PATTERNS" "$file" 2>/dev/null || echo 0)
-            echo -e "${RED}  ✗ $file: contains $MATCH_COUNT proprietary IP match(es)${NC}"
-            ((ERRORS++))
-        fi
-    done
+IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
+if [[ -f "$IP_AUDIT_SCRIPT" ]]; then
+    if ! bash "$IP_AUDIT_SCRIPT" --staged-only; then
+        ((ERRORS++))
+    fi
 else
-    echo -e "  (no .ip-patterns file found, skipping IP scan)"
+    echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
+    ((ERRORS++))
 fi
 
 # -----------------------------------------------------------------------------
