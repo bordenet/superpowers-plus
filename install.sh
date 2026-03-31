@@ -424,6 +424,32 @@ print_summary() {
     echo ""
 }
 
+run_post_validation_checks() {
+    # Ensure this source checkout has the current repo guardrails installed
+    if git -C "$SCRIPT_DIR" rev-parse --git-dir >/dev/null 2>&1 && [[ -f "$SCRIPT_DIR/tools/install-hooks.sh" ]]; then
+        log_info "Ensuring repo git hooks are installed..."
+        if bash "$SCRIPT_DIR/tools/install-hooks.sh" >/dev/null 2>&1; then
+            log_success "Repo git hooks installed"
+        else
+            log_warn "Could not install repo git hooks automatically"
+            log_warn "Run: bash \"$SCRIPT_DIR/tools/install-hooks.sh\""
+        fi
+    fi
+
+    # Post-install health check (report only, non-blocking)
+    # Skip if no skills are installed — doctor would report vacuous 0/0/0
+    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" && -d "$HOME/.codex/skills" ]]; then
+        local skill_count
+        skill_count=$(find "$HOME/.codex/skills" -maxdepth 2 -name "skill.md" 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "$skill_count" -gt 0 ]]; then
+            log_info "Running post-install health check..."
+            "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
+        else
+            log_info "Skipping health check — no skills installed yet"
+        fi
+    fi
+}
+
 # Check mode — validate prerequisites without installing
 check_prerequisites() {
     log_info "Checking prerequisites for superpowers-plus..."
@@ -528,6 +554,7 @@ main() {
         install_adapter
         sync_managed_checkout
         validate_installation
+        run_post_validation_checks
         print_summary
         return
     fi
@@ -584,19 +611,7 @@ main() {
 
     # Validate
     validate_installation
-
-    # Post-install health check (report only, non-blocking)
-    # Skip if no skills are installed — doctor would report vacuous 0/0/0
-    if [[ -f "$SCRIPT_DIR/tools/doctor-checks.sh" && -d "$HOME/.codex/skills" ]]; then
-        local skill_count
-        skill_count=$(find "$HOME/.codex/skills" -maxdepth 2 -name "skill.md" 2>/dev/null | wc -l | tr -d ' ')
-        if [[ "$skill_count" -gt 0 ]]; then
-            log_info "Running post-install health check..."
-            "$SCRIPT_DIR/tools/doctor-checks.sh" --summary-only 2>&1 || true
-        else
-            log_info "Skipping health check — no skills installed yet"
-        fi
-    fi
+    run_post_validation_checks
 
     # Print summary
     print_summary

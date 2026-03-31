@@ -21,7 +21,7 @@ coordination:
 >
 > **Wrong skill?** Structural lint only → `skill-health-check`. Writing/authoring skills → `skill-authoring`. Updating skills → `update-superpowers`.
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 25 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 26 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
