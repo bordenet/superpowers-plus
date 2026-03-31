@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 25 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 26 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -63,8 +63,8 @@ BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
 
 # Helper: should we fix this check?
-# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout)
-# Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk), 20 (dirty checkout)
+# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout), 21 (hook integrity)
+# Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk), 20 (dirty checkout), 26 (workflow state)
 can_fix() {
   [[ "$FIX_MODE" != "true" ]] && return 1
   [[ "$FIX_SAFE" != "true" ]] && return 0  # --fix allows everything
@@ -175,7 +175,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (25 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (26 checks)"
 echo ""
 
 # --- Pre-check: WSL + NTFS mount detection ---
@@ -844,7 +844,54 @@ for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra
 done
 fi  # end: command -v git guard for checks 19/20
 
-# --- Check 21: TODO Archive Smoke Test ---
+# --- Check 21: Git Hook Integrity ---
+# Verifies this source checkout has the current pre-commit and pre-push hooks
+# installed. Missing or stale hooks disable the local guardrails that should block
+# IP leaks before commit/push.
+HOOK_INSTALL_SCRIPT="$SCRIPT_DIR/install-hooks.sh"
+_doctor_hook_integrity() {
+  local hooks_dir hook_name expected installed
+  local -a issues=()
+
+  [[ -f "$HOOK_INSTALL_SCRIPT" ]] || return 0
+  git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  hooks_dir="$(git -C "$REPO_ROOT" rev-parse --git-path hooks 2>/dev/null || echo "$REPO_ROOT/.git/hooks")"
+
+  if [[ ! -d "$hooks_dir" ]]; then
+    issues+=(".git/hooks directory missing")
+  fi
+
+  for hook_name in pre-commit pre-push; do
+    expected="$SCRIPT_DIR/$hook_name"
+    installed="$hooks_dir/$hook_name"
+    [[ -f "$expected" ]] || continue
+    if [[ ! -f "$installed" ]]; then
+      issues+=("$hook_name missing")
+      continue
+    fi
+    [[ -x "$installed" ]] || issues+=("$hook_name is not executable")
+    cmp -s "$expected" "$installed" || issues+=("$hook_name differs from tools/$hook_name")
+  done
+
+  if [[ ${#issues[@]} -gt 0 ]]; then
+    echo "🟠 ERROR: git-hooks — repo hooks missing or stale"
+    for issue in "${issues[@]}"; do
+      echo "   - $issue"
+    done
+    echo "   Fix: bash \"$HOOK_INSTALL_SCRIPT\""
+    ((ERRORS++))
+    if can_fix safe; then
+      if bash "$HOOK_INSTALL_SCRIPT" >/dev/null 2>&1; then
+        echo "  ✅ FIXED: installed current pre-commit/pre-push hooks"; ((FIXED++))
+      else
+        echo "  ⚠️  Could not install git hooks automatically"
+      fi
+    fi
+  fi
+}
+_doctor_hook_integrity
+
+# --- Check 22: TODO Archive Smoke Test ---
 # Validates the installed TODO maintenance/archive flow using a temporary fixture.
 # Catches regressions where a small-but-valid TODO with archivable history fails
 # to archive correctly or produces a result exceeding expected size.
@@ -942,8 +989,8 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
   _doctor_todo_smoke
 fi
 
-# --- Check 25: Stale Workflow State ---
-# IMPORTANT: This must run BEFORE check 22 (reviewer-dispatch) because check 22
+# --- Check 26: Stale Workflow State ---
+# IMPORTANT: This must run BEFORE check 23 (reviewer-dispatch) because check 23
 # loads the adapter which triggers readState() auto-expiry on stale states.
 # Detects abandoned workflow states older than 24 hours.
 # Auto-fix: archives stale state to ~/.codex/.workflow-state-archive/
@@ -1012,7 +1059,7 @@ _doctor_workflow_state() {
 }
 _doctor_workflow_state
 
-# --- Check 22: Reviewer-Dispatch Rendering Verification ---
+# --- Check 23: Reviewer-Dispatch Rendering Verification ---
 # Verifies that installed skill rendering correctly translates code-reviewer
 # dispatch patterns to the expected sub-agent-code-reviewer output.
 # Detects stale renderings that would cause incorrect reviewer dispatch.
@@ -1064,7 +1111,7 @@ if [[ -f "$ADAPTER" ]] && command -v node &>/dev/null; then
   _doctor_reviewer_dispatch
 fi
 
-# --- Check 23: TODO Honeypot Integrity ---
+# --- Check 24: TODO Honeypot Integrity ---
 # Verifies the honeypot file at ~/.codex/TODO.md is intact: exists, has correct
 # permissions (444), has immutable flag (uchg/chattr +i), and content matches
 # the canonical sentinel. Agents that bypass todo-crud.sh and write directly
@@ -1206,7 +1253,7 @@ _doctor_todo_honeypot() {
 }
 _doctor_todo_honeypot
 
-# --- Check 24: TODO Path Validation ---
+# --- Check 25: TODO Path Validation ---
 # Verifies the TODO system is properly configured: .todo-registry or .env
 # contains a valid path, the real TODO.md exists and has valid structure.
 _doctor_todo_path() {
@@ -1378,12 +1425,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 25 checks passed"
+    echo "✅ Doctor: all 26 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 25 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 26 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
