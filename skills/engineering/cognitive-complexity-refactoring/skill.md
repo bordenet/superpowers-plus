@@ -16,7 +16,7 @@ coordination:
 
 # cognitive-complexity-refactoring
 
-## Trigger Conditions
+## When to Use
 
 Invoke this skill when:
 
