@@ -1,28 +1,70 @@
 # superpowers-plus
 
-87 skills for AI coding assistants. Extends [obra/superpowers](https://github.com/obra/superpowers) with slop detection, link verification, skill pipelines, issue tracking, and security scanning.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **⚠️ Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → tables → fact-check → publish). Budget accordingly.
+Skills for AI coding assistants that enforce the practices AI would otherwise skip. Extends [obra/superpowers](https://github.com/obra/superpowers).
 
-## Development Process
+## What This Is
 
-Development now uses private branches for maturation, testing, and validation before merging to main. Expect less frequent commits as changes are batched into reviewed, tested releases.
+AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification.
+
+Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) is a framework for teaching AI agents reusable procedures. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
+
+Each skill exists because it caught a real problem.
+
+## Standout Skills
+
+| Skill | What it does |
+|-------|-------------|
+| [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. |
+| [**design-triad**](skills/engineering/design-triad/skill.md) | Generates 3+ design options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to a design. |
+| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
+| [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
+| [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, design-triad, plan, TDD, review, verify. |
+| [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
+| [**detecting-ai-slop**](skills/writing/detecting-ai-slop/skill.md) | Scores text 0-100 for machine-generated patterns across lexical, structural, semantic, and stylometric dimensions. |
+| [**wiki-orchestrator**](skills/wiki/wiki-orchestrator/skill.md) | Pipeline for bulk documentation: de-dup, content, coherence, links, secrets, slop detection, fact-check, publish. |
+| [**evolution-loop**](skills/observability/evolution-loop/skill.md) | Self-improvement cycle: scans failures for recurring patterns, generates skill updates, tracks metrics over time. |
+
+## Quick Start
+
+Install ([details below](#installation)):
+
+```bash
+git clone https://github.com/bordenet/superpowers-plus.git && cd superpowers-plus && bash install.sh
+```
+
+Enable pre-commit gates: `bash tools/install-hooks.sh`
+
+Then tell your AI assistant what you're doing:
+
+| You say... | Skill triggered |
+|------------|-----------------|
+| "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
+| "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
+| "Review this code" | `code-review-battery` dispatches 5 parallel reviewers |
+| "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
+| "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
+
+**CLI matching** (for debugging): `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"`
 
 ## What's Included
 
-**87 skills** across 9 domains (count excludes `_shared`, `_adapters`, `_archive` support directories):
+Skills across 9 domains:
 
-| Domain | Count | Examples |
-|--------|------:|----------|
-| engineering | 33 | Blast radius, design triad, TDD, code review, progressive review gate, systematic debugging, feature lifecycle |
-| productivity | 19 | TODO tracking, adversarial search, domain design, think-twice, plan-and-execute |
-| writing | 7 | Slop detection/elimination, profanity gate, table discipline, skill file authoring |
-| wiki | 7 | Orchestrator pipeline, link checks, credential scanning, fact-checking, wiki refactor |
-| observability | 8 | Completeness checks, audit validation, repo verification, diagnostics, skill health |
-| issue-tracking | 5 | Authoring, editing, verification, link checks, comment debunking |
-| security | 4 | Repo scanning, CVE scanning, IP protection, instruction guard |
-| research | 3 | Perplexity integration, research incorporation, expert interviewing |
-| experimental | 1 | Self-prompting patterns |
+| Domain | Examples |
+|--------|----------|
+| **engineering** | Code review battery, design triad, TDD, progressive review, systematic debugging, feature lifecycle |
+| **productivity** | TODO tracking, plan-and-execute, think-twice, adversarial search, domain design |
+| **writing** | AI slop detection/elimination, profanity gate, table discipline, skill authoring |
+| **wiki** | Orchestrator pipeline, link verification, credential scanning, fact-checking |
+| **observability** | Completeness checks, evolution loop, audit validation, diagnostics |
+| **issue-tracking** | Authoring, editing, verification, link checks, comment debunking |
+| **security** | Repo scanning, CVE scanning, IP protection, instruction guard |
+| **research** | Perplexity integration, research incorporation, expert interviewing |
+| **experimental** | Self-prompting patterns |
+
+**Full skill reference:** [docs/SKILLS.md](docs/SKILLS.md)
 
 ## Installation
 
@@ -35,7 +77,7 @@ Development now uses private branches for maturation, testing, and validation be
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
-bash install.sh      # use 'bash' explicitly — don't rely on ./install.sh
+bash install.sh      # use 'bash' explicitly, not ./install.sh
 ```
 
 The installer:
@@ -56,7 +98,7 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the 87-skill suite — use git clone above for that.
+Installs obra/superpowers + the Augment adapter. Does **not** install the full skill suite; use git clone above for that.
 
 ### Claude Code
 
@@ -117,122 +159,17 @@ Copy `.env.example` to `.env` for optional integrations:
 
 | Variable | Purpose |
 |----------|---------|
-| `ISSUE_TRACKER_TYPE` | Adapter key — shipped adapters: `github`, `jira`, `azure-devops` |
-| `WIKI_PLATFORM` | Adapter key — see `skills/wiki/_adapters/platform-template.md` to add yours |
+| `ISSUE_TRACKER_TYPE` | Adapter key; shipped adapters: `github`, `jira`, `azure-devops` |
+| `WIKI_PLATFORM` | Adapter key; see `skills/wiki/_adapters/platform-template.md` to add yours |
 | `PERPLEXITY_API_KEY` | Enables deep research escalation (~$0.01/query) |
 | `THINK_TWICE_USE_PERPLEXITY` | `false` by default; set `true` to let think-twice escalate to Perplexity |
 | `OPENAI_API_KEY` | Enables embedding-based skill matching (optional; TF-IDF works without it) |
 
-## Semantic Skill Matching
-
-Skills activate automatically when your request matches their triggers. Describe what you want:
-
-| You say... | Skill triggered | What happens |
-|------------|-----------------|--------------|
-| "You're stuck in a loop!" | think-twice | Pauses, consults fresh sub-agent |
-| "Create a wiki page for X" | (direct wiki API) | Single-page creation doesn't need a skill |
-| "Build a multi-page wiki section" | wiki-orchestrator | Bulk/multi-page documentation pipeline |
-| "Review this PR" | providing-code-review | Structured feedback with checklist |
-| "Is this done?" | completeness-check | Audits for incomplete work |
-| "Check for security issues" | repo-security-scan | Full scan (secrets, deps, patterns, config) |
-
-`think-twice` also auto-detects when the AI is spiraling and suggests pausing.
-
-**CLI matching** (for debugging): `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"`
-
-## Skills
-
-| Domain | Skill | What it does |
-|--------|-------|--------------|
-| engineering | blast-radius-check | Finds all callers before edits |
-| | brainstorming | Explores intent, requirements, and design before implementation |
-| | cognitive-complexity-refactoring | Reduces Biome cognitive complexity: extraction, early returns, condition simplification |
-| | code-review-battery | Parallel specialized reviewers: defect finder, design critic, guardian, standards enforcer, performance analyst |
-| | micro-harsh-review | Per-batch adversarial review: 3 critic personas, 5 dimensions, score <8 = rework |
-| | debug-conductor | PREVIEW — Conductor-led parallel investigation for complex distributed incidents |
-| | design-triad | 3+ design options, comparison matrix, harsh review loop |
-| | engineering-rigor | Meta-skill: dispatches output-verification, pre-commit-gate, blast-radius-check, code review skills |
-| | evidence-adjudicator | Synthesizes investigator evidence into ranked root-cause verdicts |
-| | feature-development | Full lifecycle: requirements-validation → design-triad → plan-and-execute → TDD → verify |
-| | field-rename-verification | Verifies renames across service boundaries |
-| | git-branch-conventions | Semantic branch prefix naming: feat/, fix/, exp/, doc/, perf/, chore/ |
-| | implementation-tracker | Cross-session progress tracking for large issues |
-| | infra-config-investigator | Investigates infrastructure config changes, deployment regressions |
-| | investigation-state | Persists debugging context (hypotheses, evidence) across sessions |
-| | llm-behavior-investigator | Investigates AI/LLM behavior: tool misselection, prompt regressions |
-| | output-verification | Prevents confabulation disguised as verification — no claims about output without inspection |
-| | pre-commit-gate | Runs lint → typecheck → test |
-| | progressive-code-review-gate | Mandatory harsh review loop before commit/push |
-| | progressive-harsh-review | Multi-persona adversarial review (3 critic personas, weighted scoring) |
-| | providing-code-review | Structured PR feedback with checklist |
-| | receiving-code-review | Verifies incoming feedback before implementing |
-| | reproduction-experiment-investigator | Runs controlled reproduction experiments to verify hypotheses |
-| | requirements-validation | Tests requirements for falsifiability, contradictions |
-| | state-consistency-investigator | Investigates data inconsistency, replication lag, cache staleness |
-| | subagent-driven-development | Orchestrates parallel sub-agents for independent tasks |
-| | systematic-debugging | Structured debugging: reproduce → hypothesize → isolate → fix |
-| | test-driven-development | Red → green → refactor cycle enforcement |
-| | timeline-trace-investigator | Reconstructs temporal causation across distributed services |
-| | typescript-project-conventions | Import ordering, path aliases, error handling, file size limits |
-| | typescript-strict-mode | No any, no !, proper type narrowing, union types |
-| | verification-before-completion | Final checks before claiming done |
-| | vitest-testing-patterns | SDK constructor mocking, fake timers, event handler capture |
-| experimental | experimental-self-prompting | Context-free analysis (unstable) |
-| issue-tracking | issue-authoring | Writes tickets with acceptance criteria |
-| | issue-comment-debunker | Fact-checks before posting |
-| | issue-editing | Updates existing tickets safely |
-| | issue-link-verification | Tests URLs in ticket content |
-| | issue-verify | Confirms references exist |
-| observability | completeness-check | Detects incomplete work from crashes or context loss |
-| | evolution-loop | Self-improvement cycle: scans failures, generates skill updates, tracks metrics |
-| | exhaustive-audit-validation | Confirms checklist coverage |
-| | failure-autopsy | 5-Why post-mortem for wrong assumptions and failed approaches |
-| | holistic-repo-verification | Checks all CI paths |
-| | measurement-integrity | Cross-validation gate before reporting any metric or percentage |
-| | skill-health-check | Validates skill ecosystem: YAML frontmatter, coordination, failure modes |
-| | superpowers-doctor | 22-check diagnostic across all installed skills |
-| productivity | adversarial-search | Defeats confirmation bias by searching for counter-evidence |
-| | autonomous-chain-controller | Meta-orchestrator: auto-detects skill chains, executes with quality gates |
-| | code-review | File-protocol handoff for inter-agent code review |
-| | code-review-respond | Reviewer-side protocol for file-based review handoff |
-| | domain-design | 10-phase domain design: research → brainstorm → review → prioritize → document |
-| | enforce-style-guide | Applies project conventions |
-| | fallback-planning | Machine-agnostic contingency TODOs |
-| | golden-agents | Bootstraps AGENTS.md |
-| | innovation | Generates 10x ideas: product shifts, architectural pivots |
-| | plan-and-execute | Orchestrates challenge → plan → stress-test → phased TODO execution with retros |
-| | skill-authoring | Creates new skills from descriptions/patterns |
-| | superpowers-help | Lists available skills |
-| | think-twice | Breaks AI out of spirals via fresh sub-agent |
-| | thinking-orchestrator | Hub router for metacognition skills |
-| | todo-archive | Archives completed tasks to monthly files |
-| | todo-guardian | Continuous TODO enforcement: stale detection, completion gate, session-end sweep |
-| | todo-management | Parses and tracks tasks |
-| research | expert-interviewer | Extracts domain knowledge through structured interviewing |
-| | incorporating-research | Merges external findings into current work |
-| | perplexity-research | Escalates to Perplexity when free tools insufficient |
-| security | public-repo-ip-audit | Detects proprietary content before public push |
-| | repo-security-scan | Full scan: secrets, deps, patterns, config |
-| | security-upgrade | Scans CVEs, upgrades deps |
-| | wiki-instruction-guard | Blocks prompt injection in wiki content |
-| wiki | link-verification | Confirms URLs resolve |
-| | wiki-content-coherence | Detects duplication and structural defects |
-| | wiki-debunker | Fact-checks content against git history, tickets, transcripts |
-| | wiki-orchestrator | Pipeline orchestrator: dispatches coherence, link, secret, slop, and fact-check skills |
-| | wiki-refactor | Full wiki refactor pipeline: discovery, dedup, IA, rewrite, review, delivery |
-| | wiki-secret-audit | Finds leaked credentials in wiki pages |
-| | wiki-verify | Checks codebase references for drift |
-| writing | detecting-ai-slop | Scores text 0–100 for machine patterns |
-| | eliminating-ai-slop | Rewrites stilted prose |
-| | markdown-table-discipline | Enforces table formatting and readability |
-| | plan-quality-gates | Prevents fabricated timelines in plans |
-| | professional-language-audit | Blocks profanity |
-| | readme-authoring | Structures documentation |
-| | writing-skills | Creates, edits, and validates skill files |
-
 ## Skill Coordination
 
 Skills form pipelines with explicit dependencies. The diagram shows inter-skill coordination; orchestrator-internal stages (de-dup, content generation) are omitted.
+
+> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, tables, fact-check, publish). Budget accordingly.
 
 ```mermaid
 graph LR
@@ -286,17 +223,6 @@ graph LR
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
 | Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
 
-### Namespaced Triggers
-
-Skills support namespaced triggers (`domain:action`) for disambiguation:
-
-| Domain | Triggers |
-|--------|----------|
-| `commit:` | `commit:pre-check`, `commit:gate`, `commit:style`, `commit:lint`, `commit:language`, `commit:ip-audit`, `commit:public` |
-| `wiki:` | `wiki:create`, `wiki:update`, `wiki:publish`, `wiki:verify-links` |
-| `stuck:` | `stuck:research`, `stuck:knowledge` |
-| `link:` | `link:verify` |
-
 ## Extending
 
 ```text
@@ -348,7 +274,7 @@ Utility scripts in `tools/`:
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [Full Skill Reference](docs/SKILLS.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
 
 ## License
 
