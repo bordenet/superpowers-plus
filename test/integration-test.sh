@@ -11,7 +11,7 @@ HERMETIC_DIR=$(mktemp -d)
 export PERSONAL_SKILLS_DIR="$HERMETIC_DIR"
 HERMETIC_EMPTY=$(mktemp -d)
 export SUPERPOWERS_SKILLS_DIR="$HERMETIC_EMPTY"
-trap 'rm -rf "$HERMETIC_DIR" "$HERMETIC_EMPTY"' EXIT
+trap 'rm -rf "${HERMETIC_DIR:?}" "${HERMETIC_EMPTY:?}"' EXIT
 
 # Deploy repo skills to flat layout (mimics install.sh behavior)
 for domain_dir in "$SCRIPT_DIR/skills/"*/; do
@@ -37,8 +37,8 @@ done
 PASS=0
 FAIL=0
 
-pass() { echo "  ✅ $1"; ((PASS++)); }
-fail() { echo "  ❌ $1"; ((FAIL++)); }
+pass() { echo "  ✅ $1"; PASS=$((PASS + 1)); }
+fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
 
 echo "=== Integration Tests (hermetic) ==="
 
@@ -166,6 +166,15 @@ if bash tools/harsh-review.sh >/dev/null 2>&1; then
     pass "harsh-review: exit 0"
 else
     fail "harsh-review: exit non-zero (run 'bash tools/harsh-review.sh' for details)"
+fi
+
+# 12. public-repo-ip-check targeted coverage
+echo ""
+echo "--- public-repo-ip-check ---"
+if bash test/public-repo-ip-check.test.sh >/dev/null 2>&1; then
+    pass "public-repo-ip-check targeted tests"
+else
+    fail "public-repo-ip-check targeted tests failed (run 'bash test/public-repo-ip-check.test.sh')"
 fi
 
 echo ""

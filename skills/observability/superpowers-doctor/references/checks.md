@@ -1,6 +1,6 @@
 # Superpowers Doctor — Check Reference
 
-All 25 checks are implemented in `tools/doctor-checks.sh`.
+All 26 checks are implemented in `tools/doctor-checks.sh`.
 
 ```bash
 ./tools/doctor-checks.sh              # Diagnose only
@@ -34,11 +34,12 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 | 18 | 🟡 WARNING | UTF-8 BOM | Byte order mark breaks YAML parsing | ✅ | safe |
 | 19 | 🟠 ERROR | Stale checkout | Managed `~/.codex/superpowers-plus` behind origin/main | ✅ | safe |
 | 20 | 🟠 ERROR | Dirty checkout | Uncommitted changes in managed checkout | ✅ | moderate |
-| 21 | 🟠 ERROR | TODO archive smoke | Small-but-valid TODO fails to archive or produces bloated result | ❌ | — |
-| 22 | 🟡 WARNING | Reviewer-dispatch | Stale code-reviewer rendering patterns in installed skills | ❌ | — |
-| 23 | 🟡/🔴 | TODO honeypot integrity | Honeypot tampered/wrong perms/missing flag. **Skipped** when real TODO lives at `~/.codex/TODO.md`. Missing honeypot = WARNING (optional). Tampered = CRITICAL. | ✅ | safe |
-| 24 | 🟡 WARNING | TODO path validation | TODO path not configured, missing file, or stale registry | ❌ | — |
-| 25 | 🟡 WARNING | Stale workflow state | Abandoned workflow states older than 24h or corrupt state files | ✅ | moderate |
+| 21 | 🟠 ERROR | Git hook integrity | Missing/stale `pre-commit` or `pre-push` hooks in the source checkout | ✅ | safe |
+| 22 | 🟠 ERROR | TODO archive smoke | Small-but-valid TODO fails to archive or produces bloated result | ❌ | — |
+| 23 | 🟡 WARNING | Reviewer-dispatch | Stale code-reviewer rendering patterns in installed skills | ❌ | — |
+| 24 | 🟡/🔴 | TODO honeypot integrity | Honeypot tampered/wrong perms/missing flag. **Skipped** when real TODO lives at `~/.codex/TODO.md`. Missing honeypot = WARNING (optional). Tampered = CRITICAL. | ✅ | safe |
+| 25 | 🟡 WARNING | TODO path validation | TODO path not configured, missing file, or stale registry | ❌ | — |
+| 26 | 🟡 WARNING | Stale workflow state | Abandoned workflow states older than 24h or corrupt state files | ✅ | moderate |
 
 **Pre-check:** WSL + NTFS mount detection — warns when skills are on `/mnt/c/...` where `chmod` is silently ignored.
 
@@ -46,8 +47,8 @@ All 25 checks are implemented in `tools/doctor-checks.sh`.
 
 | Tier | Flag | Checks Fixed | Risk |
 |------|------|-------------|------|
-| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19, 23 | Non-destructive (sync, normalize, pull, restore honeypot) |
-| Moderate | `--fix` | All of safe + 12, 14, 20, 25 | Destructive (stash, clearing, archive stale state) |
+| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19, 21, 24 | Non-destructive (sync, normalize, pull, restore hooks/honeypot) |
+| Moderate | `--fix` | All of safe + 12, 14, 20, 26 | Destructive (stash, clearing, archive stale state) |
 | Purge | `--fix --purge-orphans` | All of moderate + 8 | Removes orphaned installs (explicit opt-in) |
 
 ## Severity Guide
