@@ -16,7 +16,7 @@ coordination:
 
 # vitest-testing-patterns
 
-## Trigger Conditions
+## When to Use
 
 Invoke this skill when:
 
