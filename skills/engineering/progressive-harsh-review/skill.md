@@ -1,9 +1,7 @@
 ---
 name: progressive-harsh-review
 source: superpowers-plus
-triggers: ["harsh review", "progressive review", "red team this", "review this harshly",
-           "hostile review", "critic review", "find what's wrong",
-           "score this work"]
+triggers: ["harsh review", "progressive review", "red team this", "review this harshly", "hostile review", "critic review", "find what's wrong", "score this work"]
 anti_triggers: ["code review", "PR review", "review someone's PR", "design review inside design-triad", "quick feedback"]
 description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after design-triad). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. For code PRs, use progressive-code-review-gate instead."
 summary: "Use when: validating non-code deliverables. For code PRs use progressive-code-review-gate."

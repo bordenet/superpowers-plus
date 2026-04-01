@@ -9,6 +9,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **update-superpowers skill** - Documents the `sp-update` workflow: three-tier promotion, divergence recovery (auto-reset), cascading installs, and sp-doctor verification. (#447)
+- **docs/SKILLS.md** - Full 87-skill reference table organized by domain, moved out of README. (#450)
+
+### Changed
+
+- **README overhaul** - Replaced hardcoded skill counts with dynamic language. Added Standout Skills table (9 key skills), Quick Start with trigger examples, pre-commit hooks note, and token budget advisory. Removed stale Development Process and Semantic Skill Matching sections. Three rounds of PHR, scored 8.5/10. (#450)
+- **GitHub repo description** - Fixed "orba" typo, updated to "Skills for AI coding assistants. Extends obra/superpowers."
+
+### Fixed
+
+- **IP audit hardening** - Strengthened public repo IP guardrails for staged, range-based, and full-file checks. Wired shared audit into pre-commit, pre-push, harsh-review, install, and doctor flows. Added regression tests for diff lines, upstream-only refs, external hooksPath, and bash 3.2 re-exec. (#449)
+- **Doctor ahead-commit detection** - Check 19 now flags CRITICAL when the installed copy has local commits not on remote, preventing stale diverged installations. (#445)
+- **Trigger collisions** - Collapsed multi-line trigger arrays for `progressive-harsh-review` and `skill-health-check`. Resolved `expert-interviewer` trigger collision with `knowledge-capture`. (#443)
+- **Fork reference scrub** - Removed fork-specific references from plan documents. (#444)
+
+### Maintenance
+
+- **Branch cleanup** - Deleted 11 stale remote branches and 7 local branches after verifying all PRs merged.
+
 ## [2.6.0] - 2026-03-30
 
 268 commits, 277 files changed, +19,801 / −3,451 lines. Skill count: 61 → 86.
