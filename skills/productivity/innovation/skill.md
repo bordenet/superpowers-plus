@@ -23,6 +23,19 @@ That question IS this skill. Everything below exists to answer it well.
 
 **Wrong skill?** Incremental feature ideas → `brainstorming`. Bug fixes → `systematic-debugging`. Cleanup → `engineering-rigor`.
 
+## When to Use
+
+- You want a single high-conviction innovation answer, not a list of options
+- The user asks "what's the boldest move", "10x this", or "what if we started from scratch"
+- You want to move beyond incremental improvements to identify a step-change
+
+## Example Invocation
+
+```
+Innovation mode: I've read the codebase and open issues.
+What's the single most impactful addition we could make right now?
+```
+
 ## How This Works
 
 You are not generating a list. You are not filling out a rubric. You are answering ONE question with genuine depth, conviction, and specificity. The answer must be:
