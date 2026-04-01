@@ -7,11 +7,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
-if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
-    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-else
-    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ -z "$REPO_ROOT" ]]; then
+    if [[ "$SCRIPT_DIR" == *".git/hooks"* ]]; then
+        REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    else
+        REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    fi
 fi
 
 cd "$REPO_ROOT"
@@ -20,16 +23,35 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-IP_PATTERNS_FILE="$REPO_ROOT/.ip-patterns"
-if [[ ! -f "$IP_PATTERNS_FILE" ]]; then
-    echo -e "${GREEN}No .ip-patterns file — skipping IP scan.${NC}"
-    exit 0
+IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
+if [[ ! -f "$IP_AUDIT_SCRIPT" ]]; then
+    echo -e "${RED}Missing tools/public-repo-ip-check.sh — push blocked.${NC}"
+    exit 1
 fi
-
-IP_PATTERNS=$(cat "$IP_PATTERNS_FILE" | head -1)
 
 # Remote name is passed as $1 by git
 REMOTE_NAME="${1:-origin}"
+
+resolve_push_base_ref() {
+    local candidate tracking
+    tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
+
+    for candidate in \
+        "$tracking" \
+        "$REMOTE_NAME/dev" "$REMOTE_NAME/staging" "$REMOTE_NAME/main" "$REMOTE_NAME/master" \
+        origin/dev origin/staging origin/main origin/master \
+        upstream/dev upstream/staging upstream/main upstream/master \
+        gitlab/dev gitlab/staging gitlab/main gitlab/master
+    do
+        [[ -n "$candidate" ]] || continue
+        if git rev-parse --verify "$candidate" >/dev/null 2>&1; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -40,21 +62,15 @@ echo ""
 ERRORS=0
 
 # Read push info from stdin (pre-push hook protocol)
-while read -r local_ref local_sha remote_ref remote_sha; do
+while read -r _ local_sha _ remote_sha; do
     if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
         continue  # Branch deletion, skip
     fi
 
     if [[ "$remote_sha" == "0000000000000000000000000000000000000000" ]]; then
-        # New branch — find merge-base with remote's default branch
+        # New branch — find merge-base with the repo's actual workflow base branch
         # This prevents scanning the entire history
-        REMOTE_DEFAULT=""
-        for candidate in "$REMOTE_NAME/main" "$REMOTE_NAME/master"; do
-            if git rev-parse --verify "$candidate" >/dev/null 2>&1; then
-                REMOTE_DEFAULT="$candidate"
-                break
-            fi
-        done
+        REMOTE_DEFAULT="$(resolve_push_base_ref || true)"
         if [[ -n "$REMOTE_DEFAULT" ]]; then
             MERGE_BASE=$(git merge-base "$local_sha" "$REMOTE_DEFAULT" 2>/dev/null || true)
             if [[ -n "$MERGE_BASE" ]]; then
@@ -71,19 +87,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 
     echo "Checking commits: $RANGE"
 
-    # Check commit diffs for IP patterns (added lines only — removals are safe)
-    MATCHES=$(git log -p "$RANGE" 2>/dev/null | grep -E '^\+' | grep -cE "$IP_PATTERNS" || true)
-    if [[ "$MATCHES" -gt 0 ]]; then
-        echo -e "${RED}❌ FAIL: $MATCHES proprietary IP matches in added lines${NC}"
-        echo -e "${RED}   (matched content suppressed — use --verbose to see details)${NC}"
-        ((ERRORS++))
-    fi
-
-    # Check author/committer emails against IP patterns from file
-    # (uses .ip-patterns to avoid hardcoding proprietary strings in this script)
-    BAD_EMAILS=$(git log "$RANGE" --format='%ae%n%ce' 2>/dev/null | sort -u | grep -iE "$IP_PATTERNS" || true)
-    if [[ -n "$BAD_EMAILS" ]]; then
-        echo -e "${RED}❌ FAIL: Proprietary email in commit metadata: $BAD_EMAILS${NC}"
+    if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
         ((ERRORS++))
     fi
 done

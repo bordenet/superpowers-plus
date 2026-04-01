@@ -1,8 +1,8 @@
 ---
 name: expert-interviewer
 source: superpowers-plus
-triggers: ["interview me about", "help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "knowledge capture", "domain interview"]
-anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code"]
+triggers: ["help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "domain interview"]
+anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code", "interview me about", "knowledge capture"]
 description: "Use when extracting domain knowledge from a user through structured interviewing to produce a written artifact (wiki page, reference doc, problem space overview). NOT for feature design — use brainstorming for that."
 coordination:
   group: research
@@ -18,6 +18,13 @@ coordination:
 Extract domain knowledge through structured questioning. Produce a reviewed, published artifact.
 
 This is NOT brainstorming. Brainstorming explores design alternatives. Expert-interviewing extracts and organizes existing knowledge. Different failure modes, different process.
+
+## When to Use
+
+- Extracting domain knowledge from a subject matter expert
+- Producing a wiki page, reference doc, or problem space overview from an interview
+- Capturing institutional knowledge before a team member transitions out
+- Documenting a domain you understand too shallowly to write about without expert input
 
 <HARD-GATE>
 Do NOT draft the artifact until Phase 4 (transition) criteria are met. Do NOT publish until the review pipeline (Phase 5) completes. No exceptions.

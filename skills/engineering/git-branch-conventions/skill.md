@@ -18,6 +18,11 @@ coordination:
 
 > **Scope:** New work branches only — not permanent branches (`main`, `master`, `develop`), release branches, or sync branches. Repos may have their own branch policies that take precedence.
 
+## When to Use
+
+- Running `git checkout -b`, `git switch -c`, `git branch <name>`, or `git worktree add -b`
+- Choosing a name for a new work branch
+
 ## Semantic Branch Prefixes (REQUIRED)
 
 New work branches MUST start with one of these prefixes:

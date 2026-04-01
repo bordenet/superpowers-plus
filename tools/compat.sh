@@ -33,7 +33,7 @@ require_bash4() {
         echo "INFO: bash ${BASH_VERSION} is too old (need 4+). Installing via Homebrew..." >&2
         brew install bash
         # Find the brew-installed bash and re-exec the CALLING script under it
-        local brew_bash=""
+        local brew_bash="" caller_script
         for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
           if [[ -x "$candidate" ]] && "$candidate" -c '((BASH_VERSINFO[0] >= 4))' 2>/dev/null; then
             brew_bash="$candidate"
@@ -41,8 +41,9 @@ require_bash4() {
           fi
         done
         if [[ -n "$brew_bash" ]]; then
+          caller_script="${BASH_SOURCE[1]:-$0}"
           echo "INFO: Re-executing under $brew_bash" >&2
-          exec "$brew_bash" "${BASH_SOURCE[-1]}" "$@"
+          exec "$brew_bash" "$caller_script" "$@"
         else
           echo "ERROR: brew install bash succeeded but could not find bash 4+ binary" >&2
           exit 1
