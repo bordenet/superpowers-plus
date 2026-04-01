@@ -28,6 +28,20 @@ coordination:
 >
 > **Wrong skill?** Single page edit → `wiki-orchestrator`. Content coherence check → `wiki-content-coherence`. Link verification → `link-verification`.
 
+## When to Use
+
+- The wiki needs structural overhaul: duplicated pages, broken navigation, inconsistent structure
+- Consolidating many small pages into fewer authoritative ones
+- Reorganizing a wiki section after a large product or team change
+- Not for editing one page -- use `wiki-orchestrator` or direct wiki tools instead
+
+## Example Invocation
+
+```
+Refactor the Engineering wiki: seed URL https://wiki.example.com/engineering
+Goal: eliminate duplicate setup guides, consolidate runbooks, improve navigation
+```
+
 ## 🔴 PRD PROTECTION (NON-NEGOTIABLE)
 
 PRD documents are **atomic and immutable** during refactoring. The moment a PRD is modified, the pipeline HALTS.

@@ -46,6 +46,14 @@ composition:
 - First investigation attempt (always start serial)
 - Budget exhausted (>80% consumed — see `fork-readiness-rubric.md`)
 
+## Example Invocation
+
+```
+Investigate: payment failures across checkout and fulfillment services since 2pm UTC
+Evidence: error logs, DB records for 3 failed transactions, user reports
+Hypothesis domains: API gateway routing, payment provider responses, state persistence
+```
+
 ## The Conductor Protocol
 
 ### Phase 1: Incident Triage
