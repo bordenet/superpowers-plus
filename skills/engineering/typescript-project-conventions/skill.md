@@ -16,7 +16,7 @@ coordination:
 
 # typescript-project-conventions
 
-## Trigger Conditions
+## When to Use
 
 Invoke this skill when:
 

@@ -73,6 +73,12 @@ Invoke this skill when:
 
 **External URLs**: `curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "URL"` or `web-fetch`. Status: `200/301/302` → PASS · `401/403` → WARN · `404` → FAIL · `5xx` → WARN.
 
+```bash
+# Verify an external URL before posting
+curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://example.com/docs/setup"
+# 200 → PASS, 404 → FAIL, 5xx → WARN (retry once)
+```
+
 ## Hallucination Prevention
 
 <EXTREMELY_IMPORTANT>
