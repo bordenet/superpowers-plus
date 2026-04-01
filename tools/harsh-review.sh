@@ -269,6 +269,17 @@ while IFS= read -r file; do
 done < <(get_files '\.(md|sh)$')
 
 # =============================================================================
+# CHECK 6B: Public Repo IP Audit (blocking on new changes)
+# =============================================================================
+log_check "Public repo IP audit (blocking on new changes)"
+
+if bash "$REPO_ROOT/tools/public-repo-ip-check.sh"; then
+    log_pass "public-repo-ip-check.sh"
+else
+    log_fail "public-repo-ip-check.sh failed"
+fi
+
+# =============================================================================
 # CHECK 7: Required Files Exist
 # =============================================================================
 log_check "Required repository files"

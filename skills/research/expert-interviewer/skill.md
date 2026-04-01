@@ -19,6 +19,13 @@ Extract domain knowledge through structured questioning. Produce a reviewed, pub
 
 This is NOT brainstorming. Brainstorming explores design alternatives. Expert-interviewing extracts and organizes existing knowledge. Different failure modes, different process.
 
+## When to Use
+
+- Extracting domain knowledge from a subject matter expert
+- Producing a wiki page, reference doc, or problem space overview from an interview
+- Capturing institutional knowledge before a team member transitions out
+- Documenting a domain you understand too shallowly to write about without expert input
+
 <HARD-GATE>
 Do NOT draft the artifact until Phase 4 (transition) criteria are met. Do NOT publish until the review pipeline (Phase 5) completes. No exceptions.
 </HARD-GATE>
