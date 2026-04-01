@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Skills for AI coding assistants that enforce the practices AI would otherwise skip. Extends [obra/superpowers](https://github.com/obra/superpowers).
+Skills for AI coding assistants that enforce the practices AI would otherwise skip. Extends [obra/superpowers](https://github.com/obra/superpowers). Can be used for non-coding workloads, too!
 
 ## What This Is
 
