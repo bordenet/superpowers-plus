@@ -779,7 +779,7 @@ check_stale_checkout() {
       echo "   $line"
     done
     echo "   Fix: git -C \"$dir\" reset --hard origin/main"
-    ((CRITICALS++))
+    ((CRITICAL++))
   fi
 }
 for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
