@@ -20,9 +20,8 @@ USAGE
   ./tools/install-hooks.sh
 
 DESCRIPTION
-  Installs pre-commit hook to .git/hooks/ that validates file endings,
-  shell syntax, and JSON syntax before each commit. Backs up any
-  existing pre-commit hook to .bak.
+  Installs the repo's pre-commit and pre-push hooks into .git/hooks/.
+  Backs up any existing hook to a matching .bak file before replacement.
 
   To bypass: git commit --no-verify
 HELP
@@ -31,13 +30,17 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
+if ! git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  echo "ERROR: $REPO_ROOT is not a git repository" >&2
+  exit 1
+fi
+HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --git-path hooks)"
 
 echo ""
 echo "Installing git hooks for superpowers-plus..."
 echo ""
 
-# Ensure .git/hooks exists
+# Ensure hooks directory exists
 mkdir -p "$HOOKS_DIR"
 
 # Install pre-commit hook
