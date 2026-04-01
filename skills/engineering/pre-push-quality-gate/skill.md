@@ -1,0 +1,143 @@
+---
+name: pre-push-quality-gate
+source: superpowers-plus
+triggers: ["git push", "push to", "pushing", "ready to push", "about to push", "push branch", "push origin", "push remote"]
+anti_triggers: ["review PR", "deploy to", "merge to main"]
+description: "Mandatory quality gate before ANY git push. Auto-detects repo toolchain (Biome/ESLint, tsc, vitest/jest) and runs lint+typecheck+test. Output must be shown in conversation. No push without proof."
+summary: "Use when: about to push code to any remote. Blocks push until lint/typecheck/test pass."
+coordination:
+  group: push-gates
+  order: 1
+  requires: []
+  enables: ["push-authorization-gate"]
+  escalates_to: []
+  internal: false
+---
+
+# Pre-Push Quality Gate
+
+> **Source:** `superpowers-plus`
+> **Created:** 2026-04-01 after 4 avoidable CI failures across 3 repos in 2 days
+
+## When to Use
+
+- Before ANY `git push` to any remote (Azure DevOps, GitHub, GitLab)
+- After amending commits (re-run -- amended code is untested code)
+- After resolving merge conflicts
+- Especially under time pressure (that is when mistakes happen)
+
+## The Problem This Solves
+
+Agents run `git push` without verifying lint/typecheck/test locally. CI catches the error 2-5 minutes later. Human reviews a broken build. Agent pushes a fix. Another CI cycle. Multiply by 3+ occurrences = unacceptable.
+
+**Instructional skills ("please run lint") do not work.** This skill requires PROOF.
+
+## ENFORCEMENT: Show Output or Do Not Push
+
+The agent MUST show the actual terminal output of each gate in the conversation.
+Claiming "I ran lint" without visible output is a VIOLATION.
+
+```
+REQUIRED before git push:
+
+1. Show lint output     (exit code 0, in conversation)
+2. Show typecheck output (exit code 0, in conversation)
+3. Show test output     (pass count, in conversation)
+4. If any gate fails    -> fix, re-run ALL gates, show output again
+```
+
+## Step 1: Detect Repo Toolchain
+
+```bash
+# Check package.json scripts
+cat package.json | grep -E '"(lint|typecheck|tsc|test|format)"' 2>/dev/null
+# Check config files
+ls biome.json biome.jsonc .eslintrc* tsconfig.json vitest.config.* jest.config.* 2>/dev/null
+```
+
+| Tool | Lint Command | Typecheck | Test |
+|------|-------------|-----------|------|
+| Biome + tsc + vitest | `npx biome check .` | `pnpm run typecheck` | `pnpm test` |
+| ESLint + tsc + jest | `npx eslint .` | `npx tsc --noEmit` | `npx jest` |
+| Shell only | `shellcheck *.sh` | N/A | `bats test/` |
+
+## Step 2: Auto-Fix First, Then Verify
+
+```bash
+# Fix what can be auto-fixed
+npx biome check --write .              # safe fixes
+npx biome check --write --unsafe .     # unsafe fixes (optional chain, etc.)
+
+# Then verify ZERO errors remain
+npx biome check .                      # MUST exit 0
+```
+
+## Step 3: Typecheck
+
+```bash
+pnpm run typecheck    # or: npx tsc --noEmit
+# MUST show zero errors in files you changed
+# Pre-existing errors in untouched files: note them, proceed
+```
+
+## Step 4: Test
+
+```bash
+pnpm test -- --run    # or: npx vitest run
+# MUST show all tests passing
+# Infrastructure-only failures (missing env/Docker): note the skip
+```
+
+## Step 5: Amend If Auto-Fix Changed Files
+
+```bash
+git diff --stat
+# If files changed from auto-fix:
+git add -u
+git commit --amend --no-edit
+```
+
+Do NOT create a separate "fix lint" commit. Amend.
+
+## Step 6: Show Summary, Then Push
+
+```
+Quality gate passed:
+  [x] Lint:      biome check -- 0 errors (output shown above)
+  [x] Typecheck: tsc --noEmit -- 0 errors (output shown above)
+  [x] Tests:     vitest -- N/N passing (output shown above)
+
+Ready to push branch X to remote Y. Proceed?
+```
+
+Only AFTER this summary AND human approval: `git push`.
+
+## Rationalization Prevention
+
+| Excuse | Response |
+|--------|----------|
+| "I already ran lint earlier" | Code changed since. Run again. Show output. |
+| "It's just formatting" | Biome rejects formatting. CI will fail. Run it. |
+| "Biome passed so types are fine" | Biome does not check types. Run tsc. |
+| "Tests take too long" | Lint + typecheck take 5 seconds. Run at minimum those two. |
+| "I'll fix it in the next push" | CI doesn't accept IOUs. Fix now. |
+
+## Minimum Viable Check (absolute floor)
+
+If you think you can skip the full gate:
+
+```bash
+npx biome check . && npx tsc --noEmit
+```
+
+Two commands. 10 seconds. Non-negotiable. If either fails, fix before pushing.
+
+## Incident Record
+
+| Date | What Happened |
+|------|---------------|
+| 2026-03-31 | Pushed without running Biome. CI caught 18 lint errors. |
+| 2026-03-31 | Pushed after script-generated JSON. Biome not re-run after file write. |
+| 2026-03-31 | Ran Biome but not tsc. CI failed on TS4111 type errors. |
+| 2026-04-01 | Ran tsc+vitest but skipped Biome. CI failed on 2 formatting errors. |
+| 2026-04-01 | Pushed without Biome. Optional chain + formatting errors broke CI. |
