@@ -21,6 +21,22 @@ coordination:
 > **Purpose:** Enforce quality pipeline for multi-page wiki operations (create, reorganize, archive, cross-reference). Simple single-page edits may use platform-specific editing skills directly.
 > **Philosophy:** Quality pipeline for complex operations; proportional overhead for simple ones.
 
+## When to Use
+
+- Creating or reorganizing multiple wiki pages at once
+- Cross-referencing content across sections (adding links to multiple pages)
+- Publishing a coordinated set of documentation updates
+- Bulk archival or restructuring of a wiki section
+
+Single-page edits, creates, or deletes do NOT need this skill -- use platform-specific wiki tools directly.
+
+## Example Invocation
+
+```
+Reorganize the "Onboarding" wiki section: merge the two setup guides,
+add cross-references to the API reference, and publish the updated structure.
+```
+
 ---
 
 ## ⛔ The Pipeline
