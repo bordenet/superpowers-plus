@@ -21,6 +21,13 @@ anti_triggers: ['investigate bug', 'debug issue', 'systematic debugging']
 
 **Announce at start:** "Using implementation-tracker to maintain progress across sessions."
 
+## When to Use
+
+- Implementing a large issue that will span multiple sessions
+- Resuming work after a context break and needing to reload prior state
+- Tracking decisions, refinements, and open questions during a multi-phase refactor
+- Auditing completeness of a feature (what was planned vs. what was actually done)
+
 ---
 
 ## Triggers
