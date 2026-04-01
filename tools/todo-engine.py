@@ -35,6 +35,7 @@ from pathlib import Path
 LOCK_DIR_NAME = ".TODO.md.lock"
 LOCK_TTL = 120  # seconds
 LOCK_TIMEOUT = 8  # seconds
+SHADOW_DIR = os.path.expanduser("~/.codex/todo-shadow")
 
 # Section markers (regex patterns)
 RE_P1 = re.compile(r"^## P1\b", re.MULTILINE)
