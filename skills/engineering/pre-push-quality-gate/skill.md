@@ -46,6 +46,20 @@ REQUIRED before git push:
 4. If any gate fails    -> fix, re-run ALL gates, show output again
 ```
 
+## Step 0: Code Review Sentinel (runs automatically via git hook)
+
+The pre-push git hook checks for `.code-review-cleared` before allowing any push with code changes.
+
+| Condition | Hook behavior |
+|-----------|--------------|
+| Docs/config only (no `.sh`, `.py`, `.ts`, `.js`, etc.) | Sentinel not required, push allowed |
+| Code changes present, sentinel missing | **Push blocked** — run `code-review-battery` first |
+| Code changes present, sentinel SHA ≠ HEAD | **Push blocked** — commits made after review; re-run battery |
+| Code changes present, verdict not PASS/PASS_WITH_NITS | **Push blocked** — fix Critical/Important findings first |
+| Code changes present, sentinel valid | ✅ Gate 1 passed |
+
+**You do not manually invoke this step** — the hook runs it automatically on every `git push`. What you DO need to do: **run `code-review-battery` and let it write `.code-review-cleared` before you push code changes.** If you push and the hook blocks you, that means you forgot the battery.
+
 ## Step 1: Detect Repo Toolchain
 
 ```bash
