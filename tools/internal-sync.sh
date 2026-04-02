@@ -7,8 +7,25 @@ set -euo pipefail
 # This is an INTERNAL-ONLY operation. Never expose to public repos.
 # Always use internal CI/CD or manual trigger only.
 
-REPO_PATH="${1:-$HOME/.codex/superpowers-plus}"
 PUBLIC_SOURCE="https://github.com/bordenet/superpowers-plus.git"
+
+# Resolve repo path: SPP_SOURCE_DIR in ~/.codex/.env takes priority over the
+# default, so behaviour is identical across machines that share config via
+# OneDrive or similar. Mirrors the resolve_managed_dir() logic in sp-update.sh.
+_resolve_repo_path() {
+  if [[ -f "$HOME/.codex/.env" ]]; then
+    local env_val
+    env_val=$(bash -c 'set +u; source "$1" 2>/dev/null; printf "%s" "${SPP_SOURCE_DIR:-}"' \
+      -- "$HOME/.codex/.env") || true
+    if [[ -n "$env_val" && -d "$env_val/.git" ]]; then
+      printf '%s' "$env_val"
+      return 0
+    fi
+  fi
+  printf '%s' "$HOME/.codex/superpowers-plus"
+}
+
+REPO_PATH="${1:-$(_resolve_repo_path)}"
 INTERNAL_REMOTE="public-source"  # Hidden remote name
 BRANCHES=(main dev staging)
 
