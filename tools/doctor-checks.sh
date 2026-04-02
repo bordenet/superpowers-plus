@@ -120,7 +120,7 @@ while IFS= read -r f; do
   # Read file once, extract everything we need
   SKILL_LINES[$skill]=$(wc -l < "$f" | tr -d ' ')
   SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
-  SKILL_DELIM_COUNT[$skill]=$(head -30 "$f" | grep -c "^---$" || true)
+  SKILL_DELIM_COUNT[$skill]=$(head -60 "$f" | grep -c "^---$" || true)
   SKILL_HAS_BOM[$skill]=""
   # Portable BOM detection: xxd may not exist on minimal distros; od is POSIX
   if command -v xxd &>/dev/null; then
