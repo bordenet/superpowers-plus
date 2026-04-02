@@ -1,0 +1,18 @@
+# .agent-gates — repo-specific pre-commit gate configuration
+# Sourced by tools/pre-commit if present. All variables are optional.
+#
+# CLASS: repo type hint (informational, shown in pre-commit output)
+#   Values: markdown-only | shell | node | python | mixed
+CLASS=shell
+
+# SKIP_SHELLCHECK: set to "true" to disable shellcheck (e.g. repo has no shell files)
+# SKIP_SHELLCHECK=true
+
+# EXTRA_LINT: command to run as an additional lint gate
+# EXTRA_LINT=npm run lint
+
+# EXTRA_TYPECHECK: command to run as an additional typecheck gate
+# EXTRA_TYPECHECK=npm run typecheck
+
+# EXTRA_TEST: command to run as an additional test gate (keep fast — pre-commit should be <10s)
+# EXTRA_TEST=bats test/
