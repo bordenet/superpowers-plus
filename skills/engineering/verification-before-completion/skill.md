@@ -6,7 +6,7 @@ overrides: superpowers/verification-before-completion
 # MUST trigger this skill), adds PR creation verification pattern, adds incident
 # history tracking, and refines rationalization prevention. obra's version lacks
 # the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
-triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready for review", "claiming completion", "expressing satisfaction"]
+triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always. If code was changed, dispatch sub-agent-code-reviewer before claiming done (self-review is not review). For multi-step or TODO-backed sessions, run TODO maintenance before the claim.
 summary: "Use when: about to claim work is done. Skip when: still actively working. Code changes require code reviewer dispatch."
 coordination:

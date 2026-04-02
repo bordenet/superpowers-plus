@@ -1,7 +1,7 @@
 ---
 name: implementation-tracker
 source: superpowers-plus
-triggers: ["start implementation", "track implementation", "resume work on issue", "update progress", "archive progress"]
+triggers: ["start implementation", "track implementation", "resume work on issue", "update progress", "implementation complete", "archive progress"]
 description: Use when implementing large issues across multiple sessions. Creates and maintains a living progress document that tracks completed work, decisions, refinements, and findings.
 summary: "Use when: implementing large issues across multiple sessions. Maintains progress doc."
 coordination:
