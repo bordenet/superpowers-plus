@@ -16,3 +16,10 @@ CLASS=shell
 
 # EXTRA_TEST: command to run as an additional test gate (keep fast — pre-commit should be <10s)
 # EXTRA_TEST=bats test/
+
+# REQUIRE_CODE_REVIEW_SENTINEL: set to "true" to enable the pre-commit sentinel check.
+# When enabled, any commit touching code files (non-docs) requires a valid
+# .code-review-cleared file written by code-review-battery. The SHA-specific
+# check (sentinel SHA == pushed ref) still happens at pre-push. This pre-commit
+# check verifies only that battery was run at all before staging changes.
+REQUIRE_CODE_REVIEW_SENTINEL=true
