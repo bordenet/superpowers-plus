@@ -64,7 +64,7 @@ Skills across 9 domains:
 | **research** | Perplexity integration, research incorporation, expert interviewing |
 | **experimental** | Self-prompting patterns |
 
-**Full skill reference:** [docs/SKILLS.md](docs/SKILLS.md)
+**Full skill reference:** `sp-help --skills` (always current — reads live from installed skill files)
 
 ## Installation
 
@@ -274,7 +274,7 @@ Utility scripts in `tools/`:
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Full Skill Reference](docs/SKILLS.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
 
 ## License
 
