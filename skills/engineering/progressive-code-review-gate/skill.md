@@ -45,9 +45,20 @@ git diff @{u}..HEAD                 # diff of unpushed commits
 
 If no diff exists in any of these, skip this gate.
 
-### Step 2: Dispatch the review battery
+### Step 2: Check sentinel, then dispatch battery if needed
 
-Follow the `code-review-battery` skill procedure (Phase 1–5):
+First, run the `code-review-battery` Phase 0 sentinel check:
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+If the sentinel is valid for HEAD AND `WORKTREE_CLEAN`: battery already ran on this code. Map the existing verdict to gate verdicts (see table below) and skip dispatch.
+
+Otherwise: dispatch battery. Follow the `code-review-battery` skill procedure (Phase 1–5):
 
 1. **Phase 1 — Triage** the diff → select relevant specialists (monolith only via `--all` or manual request)
 2. **Phase 2 — Diff + Source Context + Dispatch** activated reviewers in parallel with diff + source context inline
