@@ -137,21 +137,6 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 **STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
 **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
-**Write the sentinel when verdict is PASS or PASS_WITH_NITS (nits fixed):**
-
-```bash
-# Run this immediately after reaching a passing verdict — before reporting to the human
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-HEAD_SHA=$(git rev-parse HEAD 2>/dev/null)
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-echo "${HEAD_SHA}|PASS|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
-echo "✅ Code review clearance written: .code-review-cleared (${HEAD_SHA:0:8})"
-```
-
-Replace `PASS` with `PASS_WITH_NITS` in the echo if appropriate. The pre-push hook reads this file to gate pushes. **Do not skip this step** — without the sentinel, the push will be blocked.
-
-If verdict is REJECT or PASS_WITH_FIXES (fixes needed): do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch the battery, then write the sentinel when the re-run passes.
-
 ### Correlated-Failure Detection
 
 After synthesis, scan all reviewer outputs for **shared blind spots**:
@@ -161,6 +146,28 @@ After synthesis, scan all reviewer outputs for **shared blind spots**:
 3. **Clean-sweep suspicion:** If ALL reviewers report zero findings, flag `⚠️ UNANIMOUS CLEAN — verify reviewers examined different evidence slices`. Check that each reviewer's output references different source files or code paths.
 
 Correlated-failure flags do NOT change verdicts directly — they trigger expanded scope or re-examination. The goal is to surface shared blind spots, not to manufacture findings.
+
+### Phase 6: Finalize Verdict + Write Sentinel
+
+**Prerequisite:** Correlated-Failure Detection has completed and no re-examination was triggered.
+
+If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
+
+```bash
+# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered
+# The SHA must be the commit being reviewed/pushed (usually HEAD on the current branch).
+# If you are reviewing a specific ref that differs from HEAD, use that ref's SHA.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+VERDICT="PASS"           # or PASS_WITH_NITS — set this once, use it below
+REVIEWED_SHA=$(git rev-parse HEAD 2>/dev/null)
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo "v1|${REVIEWED_SHA}|${VERDICT}|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
+echo "✅ Sentinel written: v1|${REVIEWED_SHA:0:8}|${VERDICT}|${TIMESTAMP}"
+```
+
+The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA (must match the ref being pushed), and verdict (`PASS` or `PASS_WITH_NITS`). **Do not skip this step** — without the sentinel, the push will be blocked.
+
+If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
 ### Gap Analysis
 
