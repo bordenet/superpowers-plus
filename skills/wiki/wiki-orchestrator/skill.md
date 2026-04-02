@@ -95,9 +95,16 @@ Fetch current state via your adapter's `get_page` operation BEFORE any edit. Nev
 
 ### Write Scope Restriction
 
-Only write to allowed roots defined by the current workspace or local overlay. Walk the parent chain to verify scope before writing.
+**🔴 NEVER create a top-level (root) page.** Every agent-created page MUST be a child of an existing page unless the user explicitly approves root-level placement with the exact collection identified and explicit confirmation that the page will have no parent.
 
-If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
+Only write to allowed roots defined by the platform-specific editing skill (e.g., `outline-wiki-editing`). The editing skill defines:
+- **Allowed collection identifiers** — first-pass filter
+- **Allowed root document identifiers** — parent-chain verification target
+- **Verification procedure** — walk parent chain from target → root, confirm root matches
+
+**This applies to both CREATE and UPDATE operations.** Walk the parent chain to verify scope before writing. If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
+
+**If the platform-specific editing skill is not loaded or unavailable → do NOT write. Fail closed.**
 
 ### Check for Duplicates Before Creating
 
