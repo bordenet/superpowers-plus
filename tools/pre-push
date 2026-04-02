@@ -28,9 +28,12 @@ NC='\033[0m'
 # Code Review Sentinel Check
 # Purpose: Block pushes of code changes that have not been cleared by
 #          code-review-battery. The battery writes .code-review-cleared
-#          (format: SHA|VERDICT|TIMESTAMP) when it passes. This hook verifies
-#          the clearance exists, matches HEAD, and has a passing verdict.
+#          (format: v1|SHA|VERDICT|TIMESTAMP) when it passes. This hook
+#          verifies the clearance exists, matches the pushed ref SHA, and has a
+#          passing verdict.
 # Bypass:  Never. --no-verify is banned by policy.
+# Threat:  Local soft gate only. An agent can forge the file. This is
+#          intentional — this is a workflow gate, not a security boundary.
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 
@@ -40,11 +43,31 @@ SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 # Only pure docs and well-known root metadata files are exempted.
 range_is_docs_only() {
     local range="$1"
-    local code_files
-    code_files=$(git diff --name-only "$range" 2>/dev/null \
+    local all_files code_files
+    # For single-SHA ranges (new branch with no merge-base), git diff compares
+    # to the working tree — use diff-tree instead to enumerate only the commit's
+    # changed files. --root handles root commits; -m handles merge commits (lists
+    # files relative to each parent); sort -u deduplicates multi-parent output.
+    # Use `if !` to fail closed on git errors without triggering set -e: if we
+    # cannot enumerate files, treat the range as code (require sentinel).
+    if [[ "$range" != *".."* ]]; then
+        if ! all_files=$(git diff-tree --root -m --no-commit-id --name-only -r "${range}" 2>/dev/null | sort -u); then
+            return 1  # Cannot enumerate commit files — fail closed (not docs-only)
+        fi
+    else
+        if ! all_files=$(git diff --name-only "$range" 2>/dev/null); then
+            return 1  # Cannot enumerate range files — fail closed
+        fi
+    fi
+    # grep -v exits 1 when all lines are filtered (no matches). Under set -euo
+    # pipefail this would abort the hook. The || true is scoped to the FILTER
+    # pipeline only — not the git commands above — so real git failures still
+    # fail closed (return 1 via the if ! branches above).
+    code_files=$(printf '%s\n' "$all_files" \
+        | grep -v -E '^\s*$' \
         | grep -v -E '\.(md|txt|rst)$' \
         | grep -v -E '^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|AGENTS|CLAUDE|\.env\.example)$' \
-        | head -1)
+        | head -1 || true)
     [[ -z "$code_files" ]]
 }
 
@@ -77,10 +100,25 @@ check_code_review_sentinel() {
         return 1
     fi
 
-    local sentinel_sha sentinel_verdict sentinel_ts
-    sentinel_sha=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-    sentinel_verdict=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-    sentinel_ts=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "unknown")
+    local sentinel_ver sentinel_sha sentinel_verdict sentinel_ts
+    sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+    sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+    sentinel_verdict=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+    sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "unknown")
+
+    # Validate v1 format: exactly 4 pipe-delimited fields, field 1 is "v1",
+    # field 3 is one of the two accepted verdicts.
+    local field_count
+    field_count=$(awk -F'|' '{print NF}' "$SENTINEL_FILE" 2>/dev/null || echo "0")
+
+    if [[ "$sentinel_ver" != "v1" ]] || [[ "$field_count" != "4" ]]; then
+        echo ""
+        echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel file format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP).${NC}"
+        echo ""
+        echo "  Delete .code-review-cleared and re-run code-review-battery."
+        echo ""
+        return 1
+    fi
 
     # Compare against the ref actually being pushed, not necessarily HEAD.
     # Pre-push hooks can push non-HEAD refs (e.g., worktrees, detached heads).
