@@ -123,6 +123,7 @@ Provide the reviewer with:
 | Date | Violation | Impact |
 |------|-----------|--------|
 | 2026-03-23 | Implemented bug fix, self-reviewed, claimed "Done" without dispatching code reviewer | Reviewer later found state leak across resets — a real bug shipped without review |
+| 2026-04-02 | Said "Full suite green. Ready to commit and push" without dispatching code reviewer | Human had to ask "did you run code review battery?" — answer was "No." Presenting unreviewed work as ready. |
 
 ### Why This Gate Exists
 
@@ -191,6 +192,7 @@ being caught in self-review.
 |------|-----------|--------|
 | 2026-03-13 | Said "Shipped! 🚀" after git push before verifying PR created | Trust erosion, required post-hoc verification |
 | 2026-03-23 | Claimed "Fixed" without dispatching code reviewer | State leak caught only after user forced review |
+| 2026-04-02 | Presented work as "ready to commit and push" without running code review battery | Human caught the gap; unreviewed code nearly shipped |
 
 ## The Bottom Line
 
