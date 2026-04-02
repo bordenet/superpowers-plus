@@ -55,10 +55,10 @@ If you haven't run the verification command in this message, you cannot claim it
 
 ## ⚠️ AUTO-FIRE TRIGGERS
 
-**This skill MUST fire BEFORE you say any of these:**
+**This skill MUST fire BEFORE you do any of these:**
 
-| Trigger Phrase | Required Action |
-|----------------|-----------------|
+| Trigger | Required Action |
+|---------|-----------------|
 | "Shipped!" / "🚀" | Verify PR/commit exists first |
 | "Done!" / "Complete!" | Verify task requirements met first |
 | "Fixed!" / "Working!" | Verify test/build passes first |
@@ -66,8 +66,13 @@ If you haven't run the verification command in this message, you cannot claim it
 | "All tests pass" | Show test output first |
 | "Build succeeds" | Show build output first |
 | ANY satisfaction expression | Run verification command first |
+| **Writing a completion summary** | Code review battery must have PASSED first |
+| **Sharing an MR/PR link as "ready"** | Sentinel `.code-review-cleared` must exist for HEAD |
+| **Transitioning from implementation to reporting** | This transition IS the trigger — stop, run battery |
 
-**The satisfaction expression comes AFTER the evidence, never before.**
+**The presentation of work as ready IS a trigger, even without explicit completion language.** If you are about to write a summary of what you built, paste an MR link, or hand off to the human — this skill applies.
+
+**The satisfaction expression and the summary come AFTER the evidence, never before.**
 
 ## The Gate Function
 
@@ -123,7 +128,8 @@ Provide the reviewer with:
 | Date | Violation | Impact |
 |------|-----------|--------|
 | 2026-03-23 | Implemented bug fix, self-reviewed, claimed "Done" without dispatching code reviewer | Reviewer later found state leak across resets — a real bug shipped without review |
-| 2026-04-02 | Said "Full suite green. Ready to commit and push" without dispatching code reviewer | Human had to ask "did you run code review battery?" — answer was "No." Presenting unreviewed work as ready. |
+| 2026-04-02a | Said "Full suite green. Ready to commit and push" without dispatching code reviewer | Human had to ask "did you run code review battery?" — answer was "No." Presenting unreviewed work as ready. |
+| 2026-04-02b | Fixed trigger warnings in superpowers-plus, committed, pushed branch, shared MR link and completion summary — without running code review battery | Human demanded review. Battery found: wrong approach (deleted triggers instead of allowlisting), real safety regression (removed safety gate from verification-before-completion). MR had to be reworked entirely. Root cause: transition from implementation to "presenting summary" was not recognized as a trigger. Led to the sentinel file gate implementation. |
 
 ### Why This Gate Exists
 
@@ -192,7 +198,8 @@ being caught in self-review.
 |------|-----------|--------|
 | 2026-03-13 | Said "Shipped! 🚀" after git push before verifying PR created | Trust erosion, required post-hoc verification |
 | 2026-03-23 | Claimed "Fixed" without dispatching code reviewer | State leak caught only after user forced review |
-| 2026-04-02 | Presented work as "ready to commit and push" without running code review battery | Human caught the gap; unreviewed code nearly shipped |
+| 2026-04-02a | Presented work as "ready to commit and push" without running code review battery | Human caught the gap; unreviewed code nearly shipped |
+| 2026-04-02b | Committed, pushed branch, shared MR link + summary — no battery run | Wrong approach shipped to MR. Battery (when forced) found safety regression. Skills had explicit incident history from same session yet gate still failed. Transition from "implementation" to "reporting" was not recognized as trigger. Fix: sentinel file gate in pre-push hook + explicit "writing a summary" trigger. |
 
 ## The Bottom Line
 
