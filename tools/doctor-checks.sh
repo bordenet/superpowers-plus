@@ -400,6 +400,12 @@ KNOWN_COLLISION_GROUPS=(
   "security-upgrade repo-security-scan"
   # Skill creation: authoring workflow vs writing conventions
   "skill-authoring writing-skills"
+  # Completion-gate chain: intentional multi-skill coverage for completion/merge phrases.
+  # "implementation complete" fires both implementation-tracker (archive prompt) and
+  # finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
+  # verification-before-completion (safety gate) and finishing-a-development-branch
+  # (branch options). coordination.requires is metadata only — not enforced at runtime.
+  "finishing-a-development-branch verification-before-completion implementation-tracker"
 )
 
 # Load overlay collision groups from all overlay source dirs
