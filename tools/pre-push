@@ -21,7 +21,94 @@ cd "$REPO_ROOT"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
+
+# -----------------------------------------------------------------------------
+# Code Review Sentinel Check
+# Purpose: Block pushes of code changes that have not been cleared by
+#          code-review-battery. The battery writes .code-review-cleared
+#          (format: SHA|VERDICT|TIMESTAMP) when it passes. This hook verifies
+#          the clearance exists, matches HEAD, and has a passing verdict.
+# Bypass:  Never. --no-verify is banned by policy.
+# -----------------------------------------------------------------------------
+SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
+
+# Returns 0 if the range contains only prose/metadata files that cannot alter
+# runtime behavior. JSON/YAML/TOML/shell config ARE code for purposes of this
+# check — they can change scope guards, deploy behavior, and security boundaries.
+# Only pure docs and well-known root metadata files are exempted.
+range_is_docs_only() {
+    local range="$1"
+    local code_files
+    code_files=$(git diff --name-only "$range" 2>/dev/null \
+        | grep -v -E '\.(md|txt|rst)$' \
+        | grep -v -E '^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|AGENTS|CLAUDE|\.env\.example)$' \
+        | head -1)
+    [[ -z "$code_files" ]]
+}
+
+# $1 = RANGE (commit range being pushed)
+# $2 = local_sha (the actual ref SHA being pushed — may differ from HEAD)
+check_code_review_sentinel() {
+    local range="$1"
+    local pushed_sha="$2"
+
+    if range_is_docs_only "$range"; then
+        echo -e "  ${YELLOW}[code-review-gate]${NC} Docs only — sentinel not required."
+        return 0
+    fi
+
+    echo "  [code-review-gate] Code changes detected — checking clearance..."
+
+    if [[ ! -f "$SENTINEL_FILE" ]]; then
+        echo ""
+        echo -e "  ${RED}❌ PUSH BLOCKED: No code review clearance found.${NC}"
+        echo ""
+        echo "  Code changes require code-review-battery before pushing."
+        echo "  The battery writes .code-review-cleared when it passes PASS or PASS_WITH_NITS."
+        echo ""
+        echo "  Steps:"
+        echo "    1. node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery"
+        echo "    2. Dispatch reviewers with: git diff \$(git merge-base HEAD origin/main)..HEAD"
+        echo "    3. Battery writes .code-review-cleared on PASS/PASS_WITH_NITS"
+        echo "    4. git push"
+        echo ""
+        return 1
+    fi
+
+    local sentinel_sha sentinel_verdict sentinel_ts
+    sentinel_sha=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+    sentinel_verdict=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+    sentinel_ts=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "unknown")
+
+    # Compare against the ref actually being pushed, not necessarily HEAD.
+    # Pre-push hooks can push non-HEAD refs (e.g., worktrees, detached heads).
+    if [[ "$sentinel_sha" != "$pushed_sha" ]]; then
+        echo ""
+        echo -e "  ${RED}❌ PUSH BLOCKED: Code review clearance is stale.${NC}"
+        echo ""
+        echo "  Clearance was for commit: ${sentinel_sha:0:8}"
+        echo "  Pushing commit:           ${pushed_sha:0:8}"
+        echo ""
+        echo "  Commits were made after the review. Re-run code-review-battery, then push."
+        echo ""
+        return 1
+    fi
+
+    if [[ "$sentinel_verdict" != "PASS" && "$sentinel_verdict" != "PASS_WITH_NITS" ]]; then
+        echo ""
+        echo -e "  ${RED}❌ PUSH BLOCKED: Code review verdict was not passing.${NC}"
+        echo ""
+        echo "  Last verdict: $sentinel_verdict (at $sentinel_ts)"
+        echo "  Fix all Critical and Important findings, re-run battery."
+        echo ""
+        return 1
+    fi
+
+    echo -e "  ${GREEN}✓ Code review cleared: $sentinel_verdict (${sentinel_sha:0:8}, $sentinel_ts)${NC}"
+    return 0
+}
 
 IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
 if [[ ! -f "$IP_AUDIT_SCRIPT" ]]; then
@@ -55,7 +142,7 @@ resolve_push_base_ref() {
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  PRE-PUSH: Scanning for proprietary IP..."
+echo "  PRE-PUSH: Running quality gates..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -86,7 +173,17 @@ while read -r _ local_sha _ remote_sha; do
     fi
 
     echo "Checking commits: $RANGE"
+    echo ""
 
+    # Gate 1: Code review sentinel
+    echo "  [Gate 1/2] Code review clearance"
+    if ! check_code_review_sentinel "$RANGE" "$local_sha"; then
+        ((ERRORS++))
+    fi
+    echo ""
+
+    # Gate 2: Proprietary IP scan
+    echo "  [Gate 2/2] Proprietary IP scan"
     if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
         ((ERRORS++))
     fi
@@ -96,14 +193,14 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [[ $ERRORS -gt 0 ]]; then
-    echo -e "${RED}  PUSH BLOCKED: Proprietary IP detected in commits${NC}"
+    echo -e "${RED}  PUSH BLOCKED: $ERRORS gate(s) failed.${NC}"
     echo ""
-    echo "  Fix the content, amend/rebase, then push again."
+    echo "  Fix all issues above, then push again."
     echo "  DO NOT use --no-verify."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 1
 else
-    echo -e "${GREEN}  All commits clean. Push allowed.${NC}"
+    echo -e "${GREEN}  All gates passed. Push allowed.${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 0
 fi

@@ -39,11 +39,23 @@ Dispatch `code-review-battery` to catch issues before they cascade. The battery 
 
 **You MUST run autonomous code review BEFORE presenting ANY work as "ready" to a human.**
 
-This is a hard gate. If you are about to say "ready to commit," "ready to push," "implementation complete," or ANY variation — you MUST have already dispatched the `code-review-battery` and acted on its findings.
+This is a hard gate. It applies to ALL of these moments — not just when you say "done":
+
+| Moment | Required gate |
+|--------|--------------|
+| About to say "ready to commit/push" | Battery must have PASSED |
+| About to share an MR/PR link | Battery must have PASSED; sentinel must be written |
+| **About to write a completion summary** | Battery must have PASSED |
+| **Transitioning from implementation to reporting** | This IS the trigger — do not skip |
+| "Implementation complete" / "all done" | Battery must have PASSED |
+
+**The transition from "coding" to "telling the human what I built" is the gate.** You do not need to use explicit completion language. If you are about to describe what you implemented, that is the trigger.
+
+After the battery writes `.code-review-cleared`, the pre-push hook enforces this mechanically. But the skill gate comes FIRST — before you even think about pushing.
 
 The autonomous review is not the human's job to request. You must do it yourself, every time, before speaking.
 
-**Why this rule exists:** See the 2026-04-02 incident in `verification-before-completion` Incident History.
+**Why this rule exists:** See the 2026-04-02b incident in `verification-before-completion` Incident History. The gate failed because the implementation→reporting transition was not recognized as a trigger despite an explicit incident log entry from earlier the same session.
 
 ## When to Request Review
 
