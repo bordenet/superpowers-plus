@@ -2,16 +2,20 @@
 name: verification-before-completion
 source: superpowers-plus
 overrides: superpowers/verification-before-completion
-# Override rationale: Adds auto-fire triggers table (explicit list of phrases that
-# MUST trigger this skill), adds PR creation verification pattern, adds incident
-# history tracking, and refines rationalization prevention. obra's version lacks
-# the "Shipped! before PR exists" anti-pattern and trigger-phrase gate.
-triggers: ["work complete", "done", "shipped", "finished", "fixed", "passing", "ready to merge", "ready for review", "claiming completion", "expressing satisfaction"]
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs. CRITICAL - this skill must fire BEFORE saying "Shipped!", "Done!", "Complete!", or any success expression. Evidence before assertions always. If code was changed, dispatch sub-agent-code-reviewer before claiming done (self-review is not review). For multi-step or TODO-backed sessions, run TODO maintenance before the claim.
-summary: "Use when: about to claim work is done. Skip when: still actively working. Code changes require code reviewer dispatch."
+# Override rationale: Adds intent-based auto-fire triggers (fires on INTERNAL AGENT STATE,
+# not on output phrase detection). Adds sentinel short-circuit (if battery sentinel exists
+# for HEAD, skip battery re-dispatch). Adds incident history tracking.
+triggers:
+  - verify completion
+  - verification before completion
+  - run verification check
+  - check evidence before completing
+  - verify before completing
+description: "Use before claiming any work is complete, fixed, or passing — and before writing any response that presents results to a human. Requires evidence before assertions. If code was changed, check battery sentinel (or dispatch battery) before the completion claim. See AUTO-FIRE section in skill body for self-assessment trigger conditions."
+summary: "Use when: forming any response that presents results (even without 'done'/'shipped' language). Skip when: still actively working. Code changes require battery sentinel for HEAD or battery dispatch."
 coordination:
   group: completion-gate
-  order: 2
+  order: 4
   requires: []
   enables: []
   escalates_to: []
@@ -22,11 +26,14 @@ coordination:
 
 ## When to Use
 
-- Before saying "Done!", "Shipped!", "Fixed!", "Passing!", or any completion claim
-- Before creating or merging a PR
+- **BEFORE FORMING the response** — not after you notice you said "done"
+- Any time you are about to write a response that describes what you built or found
+- Before creating or merging a PR — even if you don't use the word "done"
 - Before closing a ticket or marking a task complete
 - After fixing a bug — verify the fix AND verify no regressions
-- At session end for any multi-step or TODO-backed work, before the final completion claim
+- At session end for any multi-step or TODO-backed work
+
+**The trigger is your INTENT, not your words.** The moment you are composing a message to the human that presents results — that is the moment to run this skill. Not after you've written it.
 
 ## Overview
 
@@ -53,31 +60,36 @@ NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 
 If you haven't run the verification command in this message, you cannot claim it passes.
 
-## ⚠️ AUTO-FIRE TRIGGERS
+## ⚠️ AUTO-FIRE TRIGGERS — INTENT STATES, NOT OUTPUT PHRASES
 
-**This skill MUST fire BEFORE you do any of these:**
+**This skill fires on WHAT YOU ARE ABOUT TO DO, not on what you say.**
 
-| Trigger | Required Action |
-|---------|-----------------|
-| "Shipped!" / "🚀" | Verify PR/commit exists first |
-| "Done!" / "Complete!" | Verify task requirements met first |
-| "Fixed!" / "Working!" | Verify test/build passes first |
-| "Ready for review" | Verify CI passes first |
-| "All tests pass" | Show test output first |
-| "Build succeeds" | Show build output first |
-| ANY satisfaction expression | Run verification command first |
-| **Writing a completion summary** | Code review battery must have PASSED first |
-| **Sharing an MR/PR link as "ready"** | Sentinel `.code-review-cleared` must exist for HEAD |
-| **Transitioning from implementation to reporting** | This transition IS the trigger — stop, run battery |
+> "Even if there's only a 1% chance you are about to present results — fire this skill."
 
-**The presentation of work as ready IS a trigger, even without explicit completion language.** If you are about to write a summary of what you built, paste an MR link, or hand off to the human — this skill applies.
+| Internal state (INTENT) | Required action before writing |
+|--------------------------|-------------------------------|
+| About to write any response describing implementation results | Stop. Verify evidence first. |
+| About to describe what you built or changed | Stop. This IS the trigger. |
+| About to share an MR/PR/commit link | Stop. Sentinel must exist for HEAD. |
+| About to write a "here's what I did" summary | Stop. Battery must have passed. |
+| About to commit or push code changes | Stop. Battery must have passed. |
+| About to claim a bug is fixed | Stop. Show test output proving it. |
+| About to claim tests pass | Stop. Show the actual test output. |
+| Finishing a multi-step task | Stop. Run TODO maintenance first. |
+| **ANY response that presents results — even without "done" language** | **STOP. This IS the trigger.** |
 
-**The satisfaction expression and the summary come AFTER the evidence, never before.**
+**The output phrase is NOT the trigger.** An agent can share an MR link and write a completion summary without using "done", "shipped", or "fixed". That is the exact failure mode this skill exists to prevent.
+
+**The trigger is the INTENT TO PRESENT** — the moment you begin composing a response to the human that describes results. That moment fires this skill.
 
 ## The Gate Function
 
 ```
-BEFORE claiming any status or expressing satisfaction:
+BEFORE forming any response that presents results to the human:
+
+0. INTENT CHECK: Am I about to write a response presenting results?
+   - YES → continue. NO → this skill doesn't apply yet.
+   (Most common false negative: "I'm just sharing a link" — that IS presenting results.)
 
 1. IDENTIFY: What command proves this claim?
 2. RUN: Execute the FULL command (fresh, complete)
@@ -85,31 +97,51 @@ BEFORE claiming any status or expressing satisfaction:
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
-5. CODE REVIEW GATE: If you made code changes, dispatch sub-agent-code-reviewer
-   BEFORE claiming "Done" or "Fixed". Self-review is not review.
-   See "Code Review Gate" section below.
+5. CODE REVIEW GATE: If you made code changes, see "Code Review Gate" below.
+   Run Step 0 of Code Review Gate BEFORE deciding whether to dispatch.
 6. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
    `~/.codex/superpowers-plus/tools/todo-maintenance.sh`
    Read the summary and resolve any stale-plan/archive surprises before proceeding.
-7. ONLY THEN: Make the claim
+7. ONLY THEN: Write the response
 
 Skip any step = lying, not verifying
 ```
 
 ## Code Review Gate
 
-**If you made code changes, you MUST dispatch `sub-agent-code-reviewer` before claiming completion.**
+**If you made code changes, you MUST verify battery evidence before claiming completion.**
 
-Self-review is not review. The implementer cannot objectively evaluate their own work —
-the same blind spots that caused the bug will cause the review to miss the same class of issues.
+### Step 0 — Sentinel short-circuit (run FIRST, before dispatching anything)
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+# Check for uncommitted/staged changes (unreviewed code not yet in HEAD)
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+| Sentinel state | Action |
+|----------------|--------|
+| `NO CLEARANCE` | Proceed to Step 1 (dispatch battery). |
+| Sentinel SHA ≠ HEAD SHA | Proceed to Step 1 (battery is stale — changes were made after last review). |
+| Sentinel valid for HEAD but `WORKTREE_DIRTY` | Proceed to Step 1 (staged/unstaged changes exist that were not reviewed — sentinel covers HEAD, not the current diff). |
+| `v1\|SHA\|PASS\|...` or `PASS_WITH_NITS`, SHA matches HEAD, AND `WORKTREE_CLEAN` | **Evidence confirmed.** Skip Step 1. Note the clearance and proceed to Step 5 (Housekeeping). |
+| Malformed | Delete `.code-review-cleared`, proceed to Step 1. |
+
+**One-per-unit rule (agent self-enforcement):** Battery fires at most once per coherent unit of work. If Step 0 confirms evidence, do NOT re-dispatch. This prevents double-dispatch when `requesting-code-review` and `verification-before-completion` both apply to the same moment. Note: this rule is expressed in skill prose (agent-layer), not in the runtime. The mechanical enforcement is at the git-hook layer (pre-commit Gate 0, pre-push Gate 1). Both layers are complementary.
+
+### Step 1 — Dispatch (only if Step 0 found no valid sentinel)
+
+Self-review is not review. The implementer cannot objectively evaluate their own work.
 
 | Condition | Action |
 |-----------|--------|
-| Made code changes (any `.ts`, `.js`, `.py`, etc.) | Dispatch `sub-agent-code-reviewer` with diff context |
+| Made code changes (any `.ts`, `.js`, `.py`, `.sh`, etc.) | Dispatch `sub-agent-code-reviewer` with diff context |
 | Documentation-only changes | Skip code review (still verify links/content) |
 | Config-only changes (env, yaml) | Skip code review unless security-relevant |
 | Reviewer found issues | Fix issues, re-dispatch reviewer |
-| Reviewer approved | Proceed to completion claim |
+| Reviewer approved | Proceed to Step 5 (Housekeeping) |
 
 **Dispatch template:**
 ```
