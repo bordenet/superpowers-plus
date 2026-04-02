@@ -1,13 +1,29 @@
 ---
 name: progressive-harsh-review
 source: superpowers-plus
-triggers: ["harsh review", "progressive review", "red team this", "review this harshly", "hostile review", "critic review", "find what's wrong", "score this work"]
-anti_triggers: ["code review", "PR review", "review someone's PR", "design review inside design-triad", "quick feedback"]
-description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after design-triad). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. For code PRs, use progressive-code-review-gate instead."
-summary: "Use when: validating non-code deliverables. For code PRs use progressive-code-review-gate."
+triggers:
+  - harsh review
+  - progressive review
+  - red team this
+  - review this harshly
+  - hostile review
+  - critic review
+  - find what's wrong
+  - score this work
+  - ready to present plan
+  - ready to present design
+  - ready to present spec
+anti_triggers:
+  - code review
+  - PR review
+  - review someone's PR
+  - design review inside design-triad
+  - quick feedback
+description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after design-triad). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
+summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery."
 coordination:
   group: quality
-  order: 0
+  order: 2
   requires: []
   enables: ["think-twice", "design-triad"]
   escalates_to: []
@@ -32,10 +48,18 @@ coordination:
 
 ## When to Use
 
-- After completing a significant non-code deliverable (plan, skill, document, design)
-- As a quality gate for artifacts that `progressive-code-review-gate` doesn't cover
-- When the user says "review this harshly" or "find what's wrong"
-- NOT for: code PRs (`progressive-code-review-gate`), design comparison inside `design-triad`, initial brainstorming (too early)
+**Intent-based (self-fire — do not wait to be asked):**
+- **About to present any non-code deliverable to the human** — plans, specs, skill files, designs, documents
+- The trigger is the INTENT to present, not whether the human explicitly requested review
+- If there is even a 1% chance the human expects a solid artifact, run PHR first
+
+**Explicit request:**
+- When the user says "review this harshly", "find what's wrong", or "red team this"
+
+**NOT for:**
+- Code PRs → use `code-review-battery` instead
+- Design comparison (choosing between options) → `design-triad` handles that
+- Initial brainstorming (too early — nothing to review yet)
 
 ## The Three Personas
 
