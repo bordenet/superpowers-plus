@@ -137,6 +137,21 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 **STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
 **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
+**Write the sentinel when verdict is PASS or PASS_WITH_NITS (nits fixed):**
+
+```bash
+# Run this immediately after reaching a passing verdict — before reporting to the human
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+HEAD_SHA=$(git rev-parse HEAD 2>/dev/null)
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo "${HEAD_SHA}|PASS|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
+echo "✅ Code review clearance written: .code-review-cleared (${HEAD_SHA:0:8})"
+```
+
+Replace `PASS` with `PASS_WITH_NITS` in the echo if appropriate. The pre-push hook reads this file to gate pushes. **Do not skip this step** — without the sentinel, the push will be blocked.
+
+If verdict is REJECT or PASS_WITH_FIXES (fixes needed): do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch the battery, then write the sentinel when the re-run passes.
+
 ### Correlated-Failure Detection
 
 After synthesis, scan all reviewer outputs for **shared blind spots**:

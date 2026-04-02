@@ -65,6 +65,10 @@ npm-debug.log*
 # Session state
 .superpowers-session
 
+# Code review sentinel (written by code-review-battery, read by pre-push hook)
+# Never commit — it is HEAD-specific and machine-local
+.code-review-cleared
+
 # wiki-instruction-guard local domain allowlist (org-specific, never committed)
 skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 
