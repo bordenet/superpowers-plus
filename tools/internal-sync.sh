@@ -2,13 +2,15 @@
 set -euo pipefail
 
 # INTERNAL SYNC — CONFIDENTIAL
-# Syncs ~/.codex/superpowers-plus/main to upstream source
+# Syncs ~/.codex/superpowers-plus main, dev, and staging from upstream public
+# source to internal GitLab fork (origin).
 # This is an INTERNAL-ONLY operation. Never expose to public repos.
 # Always use internal CI/CD or manual trigger only.
 
 REPO_PATH="${1:-$HOME/.codex/superpowers-plus}"
 PUBLIC_SOURCE="https://github.com/bordenet/superpowers-plus.git"
 INTERNAL_REMOTE="public-source"  # Hidden remote name
+BRANCHES=(main dev staging)
 
 cd "$REPO_PATH" || { echo "[ERROR] Invalid path: $REPO_PATH" >&2; exit 1; }
 
@@ -24,13 +26,21 @@ if ! git remote | grep -q "^${INTERNAL_REMOTE}$"; then
   git remote add "$INTERNAL_REMOTE" "$PUBLIC_SOURCE"
 fi
 
-# Fetch from public source (silent, suppress errors)
-git fetch "$INTERNAL_REMOTE" main --quiet 2>/dev/null || true
+# Fetch all branches from public source
+git fetch "$INTERNAL_REMOTE" "${BRANCHES[@]}" --quiet 2>/dev/null || true
 
-# Hard reset to public source
+# Sync main: reset local branch then push to GitLab
 git reset --hard "${INTERNAL_REMOTE}/main"
-
-# Push to internal origin (GitLab)
 git push origin main --force --quiet
+echo "[OK] Synced main"
 
-echo "[OK] Synced main to public source"
+# Sync dev and staging: push directly from remote tracking ref (no checkout needed)
+for branch in dev staging; do
+  if git push origin "refs/remotes/${INTERNAL_REMOTE}/${branch}:refs/heads/${branch}" --force --quiet 2>/dev/null; then
+    echo "[OK] Synced ${branch}"
+  else
+    echo "[WARN] Could not sync ${branch} — may not exist on public source" >&2
+  fi
+done
+
+echo "[OK] All branches synced from public source"
