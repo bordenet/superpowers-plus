@@ -18,6 +18,7 @@ coordination:
   order: 1
   enables:
     - progressive-code-review-gate
+    - verification-before-completion
   requires: []
   escalates_to: []
   internal: false
@@ -37,8 +38,39 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 - When `requesting-code-review` or `progressive-code-review-gate` triggers a review
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
+- When `verification-before-completion` detects the implementation→presentation transition and no valid sentinel exists for HEAD
+
+**Gate chain position 3 of 4:**
+
+| Gate (order) | Self-fires when | Short-circuit if |
+|---|---|---|
+| 1. `design-triad` | About to commit to a design before coding | Already ran this session |
+| 2. `progressive-harsh-review` | About to present a non-code deliverable | Already ran on this artifact |
+| **3. `code-review-battery`** | **About to present/commit/push code** | **Valid sentinel for HEAD exists** |
+| 4. `verification-before-completion` | About to write any results-presenting response | Sentinel SHA == HEAD → skip re-dispatch |
+
+**One-per-unit rule:** Battery fires at most once per coherent unit of work. If a valid `.code-review-cleared` sentinel exists for HEAD, the gate is already satisfied — do not re-dispatch.
 
 ## Procedure
+
+### Phase 0: Sentinel Check (canonical skip gate — run before dispatching anything)
+
+This is the canonical skip gate for the one-per-unit rule. Callers (`requesting-code-review`, `finishing-a-development-branch`, `progressive-code-review-gate`) should run this before dispatching. If a caller does not implement Phase 0 explicitly, the agent should apply this decision manually before invoking battery.
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+| Sentinel state | Decision |
+|----------------|----------|
+| `NO CLEARANCE` | Run battery (proceed to Phase 1). |
+| Sentinel SHA ≠ HEAD SHA | Run battery (battery is stale). |
+| Sentinel valid for HEAD but `WORKTREE_DIRTY` | Run battery (staged/unstaged changes exist that were not reviewed). |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` | **Skip.** Battery already ran on the current code. Note the clearance and skip to Phase 6. |
+| Malformed | Delete `.code-review-cleared`, run battery. |
 
 ### Phase 1: Triage
 
