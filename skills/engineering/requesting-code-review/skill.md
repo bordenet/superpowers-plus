@@ -12,6 +12,11 @@ triggers:
   - before merging
   - review before PR
   - thorough review
+  - please review my changes
+  - please review my implementation
+  - here's what I built
+  - here's what I implemented
+  - here's what I changed
 anti_triggers:
   - providing code review
   - receiving code review
@@ -34,6 +39,38 @@ coordination:
 Dispatch `code-review-battery` to catch issues before they cascade. The battery dispatches 5 specialist reviewers in parallel — each focused on a distinct set of review dimensions — producing deeper analysis than any single-pass review.
 
 **Core principle:** Review early, review often.
+
+## 🔴 Before Asking the Human to Review
+
+Apply this protocol whenever you are about to show a human your work — PR links, summaries, "here's what I built," "please review my changes." **Run this check before writing that message.**
+
+**Step 1 — Read the sentinel and HEAD SHA:**
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+```
+
+**Step 2 — Decide:**
+
+| Result | Action |
+|--------|--------|
+| `NO CLEARANCE` | STOP. Run `code-review-battery` first. Do not write the review request. |
+| Sentinel SHA ≠ HEAD SHA | STOP. Changes were made after last review. Re-run `code-review-battery`. |
+| `v1\|SHA\|PASS\|...` or `v1\|SHA\|PASS_WITH_NITS\|...` and SHA matches HEAD | Proceed — include the clearance line in your message (see Step 3) |
+| Anything else | STOP. Sentinel is malformed. Delete `.code-review-cleared`, re-run battery. |
+
+**Step 3 — Include the clearance in your human-facing message:**
+
+Every message that presents work to the human for review MUST open with the clearance line:
+
+```
+🔍 Review cleared: PASS | SHA: abc12345 | 2026-04-02T21:29Z
+```
+
+This is not optional decoration. It lets the human verify at a glance that battery ran on exactly the code being reviewed.
+If you cannot produce this line, you have not run battery on HEAD. Run it now.
 
 ## 🔴 The Cardinal Rule
 
