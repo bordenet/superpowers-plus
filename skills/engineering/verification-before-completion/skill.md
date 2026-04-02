@@ -123,14 +123,6 @@ Provide the reviewer with:
 
 **The reviewer loads `providing-code-review` automatically.** You do not need to tell them how to review.
 
-### Incident History
-
-| Date | Violation | Impact |
-|------|-----------|--------|
-| 2026-03-23 | Implemented bug fix, self-reviewed, claimed "Done" without dispatching code reviewer | Reviewer later found state leak across resets — a real bug shipped without review |
-| 2026-04-02a | Said "Full suite green. Ready to commit and push" without dispatching code reviewer | Human had to ask "did you run code review battery?" — answer was "No." Presenting unreviewed work as ready. |
-| 2026-04-02b | Fixed trigger warnings in superpowers-plus, committed, pushed branch, shared MR link and completion summary — without running code review battery | Human demanded review. Battery found: wrong approach (deleted triggers instead of allowlisting), real safety regression (removed safety gate from verification-before-completion). MR had to be reworked entirely. Root cause: transition from implementation to "presenting summary" was not recognized as a trigger. Led to the sentinel file gate implementation. |
-
 ### Why This Gate Exists
 
 The 2026-03-23 incident proved the gap: the implementer ran tests (1,636 passed), self-reviewed the code,
