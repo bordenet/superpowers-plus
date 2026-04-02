@@ -27,9 +27,30 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
+# -----------------------------------------------------------------------------
+# Per-repo manifest: .agent-gates (bash-sourceable, optional)
+#
+# Create .agent-gates in a repo to customise which checks run:
+#
+#   CLASS=node            # repo type: markdown-only | shell | node | python
+#   SKIP_SHELLCHECK=true  # disable shellcheck (e.g. repo has no shell files)
+#   SKIP_FILE_ENDINGS=true
+#   EXTRA_LINT="npm run lint"
+#   EXTRA_TYPECHECK="npm run typecheck"
+#   EXTRA_TEST="npm run test:affected"
+#
+# Repos without .agent-gates run all default checks (fail-safe default).
+# -----------------------------------------------------------------------------
+if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
+    # shellcheck source=/dev/null
+    source "$REPO_ROOT/.agent-gates"
+fi
+# Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  PRE-COMMIT: Running quality checks..."
+[[ -n "$CLASS" ]] && echo "  Repo class: $CLASS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -142,6 +163,25 @@ else
     echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
     ((ERRORS++))
 fi
+
+# -----------------------------------------------------------------------------
+# EXTRA CHECKS: Manifest-declared repo-specific gates (.agent-gates)
+# These run AFTER the base 5 checks. Declare in .agent-gates:
+#   EXTRA_LINT="npm run lint"
+#   EXTRA_TYPECHECK="npm run typecheck"
+#   EXTRA_TEST="npm run test:affected"
+# -----------------------------------------------------------------------------
+EXTRA_IDX=6
+for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
+    EXTRA_CMD="${!EXTRA_CMD_VAR:-}"
+    [[ -z "$EXTRA_CMD" ]] && continue
+    echo -e "${YELLOW}[${EXTRA_IDX}/+]${NC} Running ${EXTRA_CMD_VAR}: ${EXTRA_CMD}..."
+    if ! eval "$EXTRA_CMD" 2>&1; then
+        echo -e "${RED}  ✗ ${EXTRA_CMD_VAR} failed${NC}"
+        ((ERRORS++))
+    fi
+    ((EXTRA_IDX++))
+done
 
 # -----------------------------------------------------------------------------
 # RESULT
