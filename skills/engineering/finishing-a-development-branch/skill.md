@@ -42,9 +42,21 @@ Guide completion of development work by presenting clear options and handling ch
 
 ### 🔴 Step 0: Autonomous Code Review (NON-NEGOTIABLE)
 
-**Before verifying tests, before presenting options — run the code review battery.**
+**Before verifying tests, before presenting options — check the sentinel, then run battery if needed.**
 
-Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed to Step 1 when the battery verdict is PASS or PASS_WITH_NITS** (with nits fixed). See `code-review-battery` for the full triage → dispatch → aggregate → escalation procedure.
+First, run the `code-review-battery` Phase 0 sentinel check:
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+| Result | Action |
+|--------|--------|
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` | Battery evidence confirmed. Skip dispatch, proceed to Step 1. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed to Step 1 when the battery verdict is PASS or PASS_WITH_NITS.** |
 
 If you skip this step and present work as "ready" to the human, you have violated the gate.
 
