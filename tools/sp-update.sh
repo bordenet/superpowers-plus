@@ -219,6 +219,16 @@ main() {
     fi
 
     log_success "sp-update complete"
+
+    # Run superpowers-doctor to verify the installation is healthy
+    log_info "Running superpowers-doctor..."
+    if command -v sp-doctor &>/dev/null; then
+        sp-doctor || log_warn "superpowers-doctor reported issues — run sp-doctor for details"
+    elif [[ -f "$managed_dir/tools/doctor-checks.sh" ]]; then
+        bash "$managed_dir/tools/doctor-checks.sh" || log_warn "superpowers-doctor reported issues"
+    else
+        log_warn "sp-doctor not found — skipping health check"
+    fi
 }
 
 main "$@"
