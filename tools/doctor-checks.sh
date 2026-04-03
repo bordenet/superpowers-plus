@@ -108,7 +108,7 @@ declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
 declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
 declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
 declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
-declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 30 lines
+declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 60 lines
 declare -A SKILL_BODY_START=()       # skill name → line number where body starts
 declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
 
