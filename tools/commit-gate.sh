@@ -97,16 +97,41 @@ if [[ -z "${EXTRA_TEST:-}" && "${SKIP_DEFAULT_TESTS:-false}" != "true" ]]; then
 fi
 
 # Run harsh-review.sh (writes token on success)
+# Snapshot pre-existing token filenames so we can verify a NEW token was
+# written by THIS invocation — not just any stale-but-valid token.
+REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+mkdir -p "$REVIEW_TOKEN_DIR"
+_pre_tokens=()
+for _tf in "$REVIEW_TOKEN_DIR"/*; do [[ -f "$_tf" ]] && _pre_tokens+=("$(basename "$_tf")"); done
+
 printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
 if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
-    # Verify token was actually written
-    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
-    # shellcheck disable=SC2012
-    LATEST_TOKEN=$(ls -t "$REVIEW_TOKEN_DIR" 2>/dev/null | head -1 || true)
-    if [[ -n "$LATEST_TOKEN" ]] && grep -q "$REPO_ROOT" "$REVIEW_TOKEN_DIR/$LATEST_TOKEN" 2>/dev/null; then
-        printf '%b\n' "${GREEN}  ✓ harsh-review passed (token verified)${NC}"
+    # Require a NEW token for this repo (a file that was not in the pre-snapshot).
+    _NOW=$(date +%s)
+    _FOUND_NEW_TOKEN=false
+    for _tf in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$_tf" ]] || continue
+        _tb=$(basename "$_tf")
+        # Is this token new (not in the pre-run snapshot)?
+        _is_new=true
+        for _old in "${_pre_tokens[@]+"${_pre_tokens[@]}"}"; do
+            [[ "$_old" == "$_tb" ]] && { _is_new=false; break; }
+        done
+        "$_is_new" || continue
+        # Validate it's for this repo and still within TTL
+        if [[ "$_tb" =~ ^[0-9]+$ ]]; then _ts="$_tb"
+        else _ts=$(echo "$_tb" | awk -F'.' '{print $2}'); fi
+        [[ "$_ts" =~ ^[0-9]+$ ]] || continue
+        _age=$((_NOW - _ts))
+        if [[ $_age -le ${REVIEW_TOKEN_TTL:-300} ]]; then
+            _tr=$(cat "$_tf" 2>/dev/null || true)
+            if [[ "$_tr" == "$REPO_ROOT" ]]; then _FOUND_NEW_TOKEN=true; break; fi
+        fi
+    done
+    if [[ "$_FOUND_NEW_TOKEN" == "true" ]]; then
+        printf '%b\n' "${GREEN}  ✓ harsh-review passed (new token verified)${NC}"
     else
-        printf '%b\n' "${RED}  ✗ harsh-review passed, but token write failed${NC}"
+        printf '%b\n' "${RED}  ✗ harsh-review passed, but no new token was written${NC}"
         ERRORS=$((ERRORS + 1))
     fi
 else

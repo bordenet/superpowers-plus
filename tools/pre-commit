@@ -359,11 +359,17 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
     NOW=$(date +%s)
     FOUND_VALID_TOKEN=false
 
+    # _token_epoch: extract epoch from both old (pure-digits) and new
+    # (<cksum>.<epoch>.<pid>) filename formats.
+    _token_epoch() { local b; b=$(basename "$1")
+        if [[ "$b" =~ ^[0-9]+$ ]]; then echo "$b"
+        else echo "$b" | awk -F'.' '{print $2}'; fi
+    }
+
     if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
         for token_file in "$REVIEW_TOKEN_DIR"/*; do
             [[ -f "$token_file" ]] || continue
-            token_ts=$(basename "$token_file")
-            # Skip non-numeric filenames
+            token_ts=$(_token_epoch "$token_file")
             [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
             token_age=$((NOW - token_ts))
             if [[ $token_age -le $REVIEW_TTL ]]; then
@@ -388,15 +394,20 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
         ERRORS=$((ERRORS + 1))
     fi
 
-    # Garbage-collect expired tokens (older than 2x TTL)
+    # Garbage-collect expired tokens — repo-scoped (only delete current repo's
+    # tokens to avoid inadvertently removing another repo's still-valid token).
     if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
         for token_file in "$REVIEW_TOKEN_DIR"/*; do
             [[ -f "$token_file" ]] || continue
-            token_ts=$(basename "$token_file")
+            token_ts=$(_token_epoch "$token_file")
             [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
             token_age=$((NOW - token_ts))
             if [[ $token_age -gt $((REVIEW_TTL * 2)) ]]; then
-                rm -f "$token_file"
+                token_repo=$(cat "$token_file" 2>/dev/null || true)
+                # Only remove tokens belonging to this repo
+                if [[ "$token_repo" == "$REPO_ROOT" ]]; then
+                    rm -f "$token_file"
+                fi
             fi
         done
     fi
