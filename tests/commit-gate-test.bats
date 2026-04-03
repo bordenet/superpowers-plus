@@ -14,6 +14,34 @@ teardown() {
     rm -rf "$TEST_HOME"
 }
 
+# ---------------------------------------------------------------------------
+# Helper: replicates pre-commit's token-validation loop so we can unit-test
+# the accept/reject logic without invoking the full hook (which requires a
+# live git repo with staged files). Must match the loop in tools/pre-commit.
+# Returns 0 if a valid token found; 1 otherwise.
+# ---------------------------------------------------------------------------
+_token_gate_find_valid() {
+    local repo_root="$1"
+    local review_ttl="${2:-300}"
+    local now
+    now=$(date +%s)
+    for token_file in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$token_file" ]] || continue
+        local token_ts
+        token_ts=$(basename "$token_file")
+        [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
+        local token_age=$(( now - token_ts ))
+        if [[ $token_age -le $review_ttl ]]; then
+            local token_repo
+            token_repo=$(cat "$token_file" 2>/dev/null || true)
+            if [[ "$token_repo" == "$repo_root" ]]; then
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
 @test "harsh-review.sh creates a token file on success" {
     run bash "$TOOLS_DIR/harsh-review.sh"
     [ "$status" -eq 0 ]
@@ -40,26 +68,37 @@ teardown() {
     [[ "$latest_token" =~ ^[0-9]+$ ]]
 }
 
-@test "expired token is not accepted (age > 300s)" {
-    local old_ts=$(($(date +%s) - 600))
+@test "token gate rejects expired token (age > TTL)" {
+    # Plant a token that is 600s old — well past the 300s default TTL.
+    # The gate must NOT accept it; this tests the age-check branch of the
+    # validation loop, not just that 600 > 300 arithmetically.
+    local old_ts=$(( $(date +%s) - 600 ))
     local repo_root
     repo_root=$(cd "$TOOLS_DIR/.." && pwd)
     echo "$repo_root" > "$REVIEW_TOKEN_DIR/$old_ts"
-    local now
-    now=$(date +%s)
-    local age=$((now - old_ts))
-    [ "$age" -gt 300 ]
+    ! _token_gate_find_valid "$repo_root" 300
 }
 
-@test "token from wrong repo is not accepted" {
+@test "token gate rejects token from wrong repo" {
+    # Plant a fresh token whose content is a different repo path.
+    # The gate must NOT accept it; this tests the repo-match branch.
     local ts
     ts=$(date +%s)
     echo "/some/other/repo" > "$REVIEW_TOKEN_DIR/$ts"
     local repo_root
     repo_root=$(cd "$TOOLS_DIR/.." && pwd)
-    local token_repo
-    token_repo=$(cat "$REVIEW_TOKEN_DIR/$ts")
-    [ "$token_repo" != "$repo_root" ]
+    ! _token_gate_find_valid "$repo_root" 300
+}
+
+@test "token gate accepts fresh valid token for correct repo" {
+    # Plant a fresh token whose content is the current repo root.
+    # The gate must find and accept it.
+    local ts
+    ts=$(date +%s)
+    local repo_root
+    repo_root=$(cd "$TOOLS_DIR/.." && pwd)
+    echo "$repo_root" > "$REVIEW_TOKEN_DIR/$ts"
+    _token_gate_find_valid "$repo_root" 300
 }
 
 @test "commit-gate.sh runs without error" {

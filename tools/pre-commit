@@ -328,7 +328,7 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
         echo -e "${RED}  ✗ No valid review token found${NC}"
         echo -e "${RED}    Run: bash tools/harsh-review.sh${NC}"
         echo -e "${RED}    Or skip: SKIP_REVIEW_TOKEN=true in .agent-gates${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 
     # Garbage-collect expired tokens (older than 2x TTL)
