@@ -306,8 +306,12 @@ function extractFrontmatter(filePath) {
                 // Guard: if a new top-level key starts before the bracket closes,
                 // the source has malformed frontmatter — abandon accumulation and
                 // fall through to parse this line normally (fail-safe, not fail-swallow).
+                // Guard: if a new top-level key starts (word followed by ": "), the
+                // bracket was never closed — abandon accumulation and fall through so
+                // this line is parsed normally. Using /^\w+:\s/ (colon + whitespace)
+                // avoids false positives on valid items like URL values (http://...).
                 if (triggerAccum !== null) {
-                    if (line.match(/^\w+:/)) { triggerAccum = null; }
+                    if (line.match(/^\w+:\s/)) { triggerAccum = null; }
                     else {
                         triggerAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(triggerAccum)) {
@@ -318,7 +322,7 @@ function extractFrontmatter(filePath) {
                     }
                 }
                 if (antiAccum !== null) {
-                    if (line.match(/^\w+:/)) { antiAccum = null; }
+                    if (line.match(/^\w+:\s/)) { antiAccum = null; }
                     else {
                         antiAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(antiAccum)) {
@@ -329,7 +333,7 @@ function extractFrontmatter(filePath) {
                     }
                 }
                 if (mcpAccum !== null) {
-                    if (line.match(/^\w+:/)) { mcpAccum = null; }
+                    if (line.match(/^\w+:\s/)) { mcpAccum = null; }
                     else {
                         mcpAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(mcpAccum)) {
