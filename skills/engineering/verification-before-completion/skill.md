@@ -91,21 +91,53 @@ BEFORE forming any response that presents results to the human:
    - YES → continue. NO → this skill doesn't apply yet.
    (Most common false negative: "I'm just sharing a link" — that IS presenting results.)
 
-1. IDENTIFY: What command proves this claim?
-2. RUN: Execute the FULL command (fresh, complete)
-3. READ: Full output, check exit code, count failures
-4. VERIFY: Does output confirm the claim?
+1. LOOSE-ENDS RETROSPECTIVE: See "Loose-Ends Retrospective" section below.
+   - Scan session for unacted observations and deferred items.
+   - Block on any must-address items before proceeding.
+
+2. IDENTIFY: What command proves this claim?
+3. RUN: Execute the FULL command (fresh, complete)
+4. READ: Full output, check exit code, count failures
+5. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
-5. CODE REVIEW GATE: If you made code changes, see "Code Review Gate" below.
+6. CODE REVIEW GATE: If you made code changes, see "Code Review Gate" below.
    Run Step 0 of Code Review Gate BEFORE deciding whether to dispatch.
-6. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
+7. HOUSEKEEPING: If the work spanned multiple steps or used TODO.md, run:
    `~/.codex/superpowers-plus/tools/todo-maintenance.sh`
    Read the summary and resolve any stale-plan/archive surprises before proceeding.
-7. ONLY THEN: Write the response
+8. ONLY THEN: Write the response
 
 Skip any step = lying, not verifying
 ```
+
+## Loose-Ends Retrospective
+
+**Purpose:** Catch observations noted but not acted on — primary source of shipped bugs and broken links. Defense-in-depth, not a perfect audit.
+
+### The Retrospective (run at Step 1)
+
+Scan for:
+1. **Unacted observations** — "I noticed X", "the URL looks wrong" — without fixing it
+2. **Deferred items** — "I'll fix this later", "I'll do this later", "let me skip this for now"
+3. **Technical debt introduced** — TODO / FIXME / HACK comments written in code
+4. **Open loose ends** — `--all` required to surface deferred items:
+   ```bash
+   # Count check (count:0 = clean)
+   ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --tag "#loose-end" --all 2>&1
+   # Inspect notes on any found items
+   ~/.codex/superpowers-plus/tools/todo-crud.sh cat 2>&1 | grep -A 3 "#loose-end"
+   ```
+
+Classify each item found:
+
+| Label | Action |
+|-------|--------|
+| `resolved` | Already addressed — proceed |
+| `deferred` | Confirm a note/reason line is visible in the `cat` output for that item; if missing, escalate to human — there is no supported way to retrofit — proceed once confirmed |
+| `must-address` | **FIX IT NOW** — do not claim completion until resolved |
+
+Any `must-address` item → **STOP** → fix → restart gate from Step 1.
 
 ## Code Review Gate
 
@@ -155,14 +187,7 @@ Provide the reviewer with:
 
 **The reviewer loads `providing-code-review` automatically.** You do not need to tell them how to review.
 
-### Why This Gate Exists
-
-The 2026-03-23 incident proved the gap: the implementer ran tests (1,636 passed), self-reviewed the code,
-and claimed completion. A code reviewer dispatched after-the-fact immediately found a state leak the
-implementer missed. The same cognitive blind spot that allowed the bug to be written prevented it from
-being caught in self-review.
-
-**This is not optional.** Tests verify behavior you thought of. Code review catches behavior you didn't think of.
+> **Why:** The 2026-03-23 incident — implementer ran 1,636 tests, self-reviewed, claimed "Fixed". Reviewer found a state leak immediately. Self-review is not review.
 
 ## Common Failures
 
@@ -198,23 +223,11 @@ being caught in self-review.
 
 ## Key Patterns
 
-**PR Creation:**
-```
-✅ [Create PR] [API returns: state=open, number=17] "PR #17 created"
-❌ "Shipped!" after git push (PR creation is separate step)
-```
+**PR:** `✅ [API returns: state=open, number=17]` vs `❌ "Shipped!" after git push`
 
-**Tests:**
-```
-✅ [Run test command] [See: 34/34 pass] "All tests pass"
-❌ "Should pass now" / "Looks correct"
-```
+**Tests:** `✅ [34/34 pass]` vs `❌ "Should pass now"`
 
-**Build:**
-```
-✅ [Run build] [See: exit 0] "Build passes"
-❌ "Linter passed" (linter doesn't check compilation)
-```
+**Build:** `✅ [exit 0]` vs `❌ "Linter passed"`
 
 ## Incident History
 
