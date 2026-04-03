@@ -8,10 +8,10 @@ Configuration for GitHub Issues tracking.
 |-----------|----------|----------|
 | create_issue | `github-api` | `POST /repos/{owner}/{repo}/issues` |
 | update_issue | `github-api` | `PATCH /repos/{owner}/{repo}/issues/{number}` |
-| search_issues | `github-api` | `GET /search/issues` |
+| search_issues | `github-api` | `GET /search/issues` — always include `is:issue` in query to exclude PRs (e.g. `q=is:issue repo:{owner}/{repo} {query}`) |
 | get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — returns issue by numeric ID. **Important: this endpoint also returns PRs. Verify response is not a PR by checking that `pull_request` field is absent before treating as a valid issue.** |
 | add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments` |
-| verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue |
+| verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue. **Verify `pull_request` field is absent; PR URLs must not be accepted as issue URLs.** |
 
 ## Environment Variables
 
@@ -28,6 +28,17 @@ https://github.com/[owner]/[repo]/issues/[number]
 ```
 
 Example: `https://github.com/my-org/my-repo/issues/123`
+
+## Identifier Normalization
+
+GitHub issue identifiers appear in two forms in the wild:
+
+| Human-facing form | Exact lookup input | Notes |
+|-------------------|--------------------|-------|
+| `#42` | `42` (bare number) | Strip the `#` before passing to `get_issue` |
+| `owner/repo#42` | `42` | Strip owner/repo prefix and `#` |
+
+Always strip the `#` prefix and any `owner/repo` prefix before passing the identifier to `get_issue`.
 
 ## Minimum `get_issue` Output Contract Mapping
 

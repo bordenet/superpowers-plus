@@ -35,7 +35,7 @@ It references investigation-state entries but does not replace them.
 
 **Migration path (Wave 3):**
 
-1. `investigation-state` gains optional `incidentPacketId` field linking to parent incident
+1. `investigation-state` gains optional `forkedDebugging.incidentPacketId` field linking to parent incident (nested under the existing `forkedDebugging` object, not a top-level field)
 2. Branch objects in incident packet reference `investigation-state` hypothesis IDs
 3. No breaking changes to existing `investigation-crud.sh` operations
 4. New `incident-packet-crud.sh` tool handles incident packet lifecycle
