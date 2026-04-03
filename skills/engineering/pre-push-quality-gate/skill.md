@@ -52,7 +52,7 @@ The pre-push git hook checks for `.code-review-cleared` before allowing any push
 
 | Condition | Hook behavior |
 |-----------|--------------|
-| Docs/root-metadata only (`.md`, `.txt`, `.rst`, `.gitignore`, `.gitattributes`, `.editorconfig`, `README`, `CHANGELOG`, `LICENSE`, `AGENTS`, `CLAUDE`, `.env.example`) | Sentinel not required, push allowed |
+| Docs/root-metadata only (`.md`, `.txt`, `.rst`, `.gitignore`, `.gitattributes`, `.editorconfig`, `README`, `CHANGELOG`, `LICENSE`, `.env.example`) — **excluding** `AGENTS.md` and `CLAUDE.md` which are policy files treated as code | Sentinel not required, push allowed |
 | Config files present (`.json`, `.yaml`, `.toml`, `.sh`, `.py`, `.ts`, `.js`, etc.) | Treated as **code** — sentinel required |
 | Code changes present, sentinel missing | **Push blocked** — run `code-review-battery` first |
 | Code changes present, sentinel SHA ≠ pushed commit SHA | **Push blocked** — commits made after review; re-run battery |

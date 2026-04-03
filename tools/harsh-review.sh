@@ -139,12 +139,12 @@ while IFS= read -r file; do
             # Use Python for reliable cross-platform fix
             python3 -c "
 import sys
-with open('$file', 'rb') as f:
+with open(sys.argv[1], 'rb') as f:
     content = f.read()
 content = content.rstrip() + b'\n'
-with open('$file', 'wb') as f:
+with open(sys.argv[1], 'wb') as f:
     f.write(content)
-"
+" "$file"
             log_fix "$file (removed extra blank line)"
         else
             log_fail "$file: extra blank line at EOF"
@@ -198,7 +198,7 @@ while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
 
-    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+    if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null; then
         log_fail "$file: invalid JSON"
     fi
 done < <(get_files '\.json$')
