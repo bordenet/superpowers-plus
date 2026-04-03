@@ -109,7 +109,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `issue-comment-debunker` | Prevents fabricated investigation summaries in ticket comments. |
 | `issue-editing` | Fetch-before-edit workflow to prevent stale updates and concurrent modifications. |
 | `issue-link-verification` | Verifies all URLs before posting to issue descriptions or comments. |
-| `issue-verify` | Verifies issue keys exist and validates cross-references. |
+| `issue-verify` | Verifies issue identifiers exist and validates cross-references. |
 
 ## Security
 

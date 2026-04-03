@@ -71,7 +71,7 @@ coordination:
 | Field | Validation Required |
 |-------|---------------------|
 | `status` | Verify state exists in your workflow |
-| `assignee` | Verify the assignee value uses the platform-specific identifier format (e.g., GitHub username, Jira accountId) — not an email address unless your adapter explicitly maps from email |
+| `assignee` | Verify the assignee exists AND that the value uses the platform-specific identifier format (e.g., GitHub username, Jira accountId) — not an email address unless your adapter explicitly maps from email |
 | `labels` | Verify each label exists |
 | `priority` | Use platform-appropriate values |
 | `title` | Follow title standards (see issue-authoring) |

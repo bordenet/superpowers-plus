@@ -40,7 +40,12 @@ Invoke this skill when:
 
 <EXTREMELY_IMPORTANT>
 
-**Before writing ANY issue reference, verify it exists using your adapter's `get_issue` operation (preferred for exact platform-native identifier lookup) or `verify_link` for URL-based verification. Use `search_issues` only when the exact identifier is unknown.**
+**Before writing ANY issue reference, verify it exists using your adapter:**
+- **Exact identifier**: call `get_issue` → check `exists: true` and `entityType: "issue"` before proceeding
+- **URL**: call `verify_link` → check `exists: true` and `entityType: "issue"` before proceeding
+- Use `search_issues` only when the exact identifier is unknown
+
+**In both cases, the adapter returns `exists` and `entityType`. Reject any result where `entityType` is not `"issue"` before referencing the target in commits, PRs, or docs.**
 
 **Expected response for existing issue:**
 
