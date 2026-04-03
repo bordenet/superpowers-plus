@@ -20,7 +20,7 @@ Consumer skills may rely on these fields being present in the `get_issue` respon
 | Field | Type | Notes |
 |-------|------|-------|
 | `exists` | boolean | Whether the target was found |
-| `entityType` | `"issue"\|"pull_request"\|"other"\|"unknown"` | Normalized target classification. Consumer skills must stop and reject non-`"issue"` values before mutating or referencing the target. |
+| `entityType` | `"issue"\|"pull_request"\|"other"\|"unknown"` | Normalized target classification. Consumer skills must: stop/reject `"pull_request"` and `"other"` before mutating or referencing; for `"unknown"` (permission ambiguity, cross-workspace) either hard-block or WARN with mandatory user escalation before proceeding. |
 | `identifier` | string \| null | Platform-native identifier (key, number, or ID); null if not found |
 | `url` | string \| null | Direct URL to the issue; null if not found |
 | `title` | string \| null | Issue title/summary; null if not found |

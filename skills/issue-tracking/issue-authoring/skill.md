@@ -47,6 +47,7 @@ Before calling your adapter's `create_issue` operation:
 - [ ] **Search for duplicates** — Use adapter's search operation
 - [ ] **Validate labels exist** — Query label IDs for your platform
 - [ ] **Validate assignee exists** — Query user IDs for your platform
+- [ ] **Verify cross-references** — If description contains issue identifiers or URLs (e.g., `Related: [IDENTIFIER]`), run `issue-verify` or `issue-link-verification` first; reject any reference where `exists:false` or `entityType != "issue"`
 - [ ] **Title follows format** — See Title Standards below
 - [ ] **Description has required sections** — See Description Template
 
