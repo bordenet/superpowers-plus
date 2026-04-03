@@ -18,11 +18,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **README overhaul** - Replaced hardcoded skill counts with dynamic language. Added Standout Skills table (9 key skills), Quick Start with trigger examples, pre-commit hooks note, and token budget advisory. Removed stale Development Process and Semantic Skill Matching sections. Three rounds of PHR, scored 8.5/10. (#450)
 - **GitHub repo description** - Fixed "orba" typo, updated to "Skills for AI coding assistants. Extends obra/superpowers."
+- **Issue-tracking adapter contract** — `adapter-interface.md` now defines a structured minimum output contract for `get_issue` (returns `exists`, `entityType`, `identifier`, `url`, `title`, `status`, `updatedAt`) and `verify_link` (returns structured `{exists, identifier, entityType}` — no bare exists/not-found). Adapters must discriminate `"issue"` from `"pull_request"`, `"other"`, and `"unknown"`. `github-issues.md` now documents PR discrimination via the `pull_request` response field, plus identifier normalization and a full output contract mapping. `jira.md` now includes `verify_link` and a complete output contract mapping. `platform-template.md` expanded from a stub into a full compliance spec. (#503)
+- **entityType consumer policy hardened** — `issue-authoring`, `issue-editing`, and `issue-verify` now consistently hard-block on `"pull_request"` and `"other"`, and require explicit user confirmation for `"unknown"` on reference paths (mutation paths hard-block unconditionally). Policy table in `adapter-interface.md` is now deterministic — no "or WARN" branches at the interface layer. (#503)
+- **AGENTS.md promotion model** — Added Cadence column to branching table. New prohibitions: dev→staging and staging→main promotions require explicit human instruction in the current active turn; context compaction invalidates prior authorization. (#504)
 
 ### Removed
 
-- **Vendor-specific issue tracker adapter** — Removed shipped adapter for a proprietary issue tracker. External users should use `skills/issue-tracking/_adapters/platform-template.md` to create their own adapter. (#498)
-- **Internal wiki snapshot tooling** — Removed `tools/wiki-snapshot.sh` and its test suite; these were tightly coupled to an internal document management platform with no utility to external users. (#497)
+- **`azure-devops` issue tracker adapter** (`skills/issue-tracking/_adapters/azure-devops.md`) — Removed the shipped Azure DevOps adapter. Users who had `ISSUE_TRACKER_TYPE=azure-devops` should copy the deleted file from git history or recreate from `platform-template.md`. Migration: `git show origin/staging:skills/issue-tracking/_adapters/azure-devops.md > skills/issue-tracking/_adapters/azure-devops.md`. (#498)
+- **`tools/wiki-snapshot.sh`** — Removed Outline wiki pre-edit snapshot tool and its test suite (`tools/tests/test_wiki_snapshot.sh`). Users with shell automation calling this command will need to migrate to direct Outline API document-info calls (`POST /api/documents.info` with `{id: "<document-id>"}`). (#497)
 
 ### Fixed
 
