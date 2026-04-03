@@ -72,8 +72,22 @@ _parse_agent_gates() {
         [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
         _key="${_key//[[:space:]]/}"
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
-                # Strip inline comments, then trim whitespace and quotes
+            EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST)
+                # Command strings: do NOT strip '#' — these may contain '#' literally.
+                # Trim surrounding whitespace, then strip a MATCHING pair of quotes only
+                # (not individual leading/trailing quotes which would mangle commands that
+                # use quotes internally, e.g. EXTRA_TEST=printf '# ok\n').
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                if [[ "${_remainder:0:1}" == '"' && "${_remainder: -1}" == '"' && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                elif [[ "${_remainder:0:1}" == "'" && "${_remainder: -1}" == "'" && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                fi
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
+                # Scalar/boolean/numeric keys: strip inline comments before trimming.
                 _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"

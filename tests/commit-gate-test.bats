@@ -479,6 +479,40 @@ EOF
     [[ "$output" == *"invalid value"* ]]
 }
 
+@test "commit-gate.sh exits nonzero when .agent-gates has invalid REVIEW_TOKEN_TTL" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    echo "REVIEW_TOKEN_TTL=yes" > "$fixture/.agent-gates"
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
+@test "commit-gate.sh skips default tests when SKIP_DEFAULT_TESTS has inline comment" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # If inline-comment stripping is correct, 'true # skip' parses as 'true'
+    echo "SKIP_DEFAULT_TESTS=true # skip bats for this repo" > "$fixture/.agent-gates"
+    # Remove bats tests so default test step would fail if it ran
+    rm -rf "$fixture/tests"
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+}
+
+@test "commit-gate.sh EXTRA_TEST command containing a hash character is not truncated" {
+    # If '#' were stripped from EXTRA_TEST, 'printf' would lose its args and the
+    # gate would produce unexpected output or exit nonzero. Verify it exits 0 cleanly.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Use SKIP_DEFAULT_TESTS so bats is not required; EXTRA_TEST with '#' replaces it
+    printf 'SKIP_DEFAULT_TESTS=true\nEXTRA_TEST=printf '"'"'# ok\\n'"'"'\n' > "$fixture/.agent-gates"
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+}
+
 @test "commit-gate.sh fails on broken extensionless hook when repo has no upstream (fail-closed)" {
     # Regression: with no remote/upstream, resolve_diff_base() previously returned
     # "origin/main" which didn't exist, so git diff returned nothing and the gate
