@@ -6,20 +6,26 @@ overrides: superpowers/requesting-code-review
 # superpowers-plus specialist engine) instead of the upstream single-reviewer
 # template. Adds the "Cardinal Rule" — autonomous review before presenting work
 # as ready — and integrates with the commit-gate and completion-gate chains.
+# Triggers are INTENT-BASED (what the agent is about to do), not output-phrase-based.
 triggers:
   - request code review
   - review my changes
   - before merging
   - review before PR
   - thorough review
+  - please review my changes
+  - please review my implementation
+  - here's what I built
+  - here's what I implemented
+  - here's what I changed
 anti_triggers:
   - providing code review
   - receiving code review
   - code review battery
   - ready to commit
   - ready to push
-description: "Use when you want a thorough specialist review of code changes — dispatches code-review-battery. The Cardinal Rule: you MUST run autonomous code review BEFORE presenting ANY work as 'ready' to a human. For commit-time review, see progressive-code-review-gate."
-summary: "Use when: you want a thorough review. Routes through code-review-battery. Skip when: progressive-code-review-gate already fired, or review already dispatched this round."
+description: "Use when presenting code changes to a human for review — dispatches code-review-battery. Self-fires on intent to present (see Cardinal Rule in skill body). Skips battery dispatch if valid sentinel exists for clean HEAD. Always runs battery before presenting, never after."
+summary: "Use when: about to present code to a human (even informally). Skip when: valid sentinel exists for HEAD (battery already ran this unit of work)."
 coordination:
   group: code-quality
   order: 2
@@ -35,15 +41,63 @@ Dispatch `code-review-battery` to catch issues before they cascade. The battery 
 
 **Core principle:** Review early, review often.
 
+## 🔴 Before Asking the Human to Review
+
+Apply this protocol whenever you are about to show a human your work — PR links, summaries, "here's what I built," "please review my changes." **Run this check before writing that message.**
+
+**Step 1 — Read the sentinel, HEAD SHA, and worktree state:**
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+**Step 2 — Decide:**
+
+| Result | Action |
+|--------|--------|
+| `NO CLEARANCE` | STOP. Run `code-review-battery` first. Do not write the review request. |
+| Sentinel SHA ≠ HEAD SHA | STOP. Changes were made after last review. Re-run `code-review-battery`. |
+| Sentinel valid for HEAD but `WORKTREE_DIRTY` | STOP. Staged/unstaged changes exist that battery didn't review. Commit or stash, then re-run battery. |
+| `v1\|SHA\|PASS\|...` or `PASS_WITH_NITS`, SHA matches HEAD, AND `WORKTREE_CLEAN` | Proceed — include the clearance line in your message (see Step 3) |
+| Anything else | STOP. Sentinel is malformed. Delete `.code-review-cleared`, re-run battery. |
+
+**Step 3 — Include the clearance in your human-facing message:**
+
+Every message that presents work to the human for review MUST open with the clearance line:
+
+```
+🔍 Review cleared: PASS | SHA: abc12345 | 2026-04-02T21:29Z
+```
+
+This is not optional decoration. It lets the human verify at a glance that battery ran on exactly the code being reviewed.
+If you cannot produce this line, you have not run battery on HEAD. Run it now.
+
 ## 🔴 The Cardinal Rule
 
-**You MUST run autonomous code review BEFORE presenting ANY work as "ready" to a human.**
+**The INTENT TO PRESENT is the trigger — not the words you use.**
 
-This is a hard gate. If you are about to say "ready to commit," "ready to push," "implementation complete," or ANY variation — you MUST have already dispatched the `code-review-battery` and acted on its findings.
+The moment you are forming a response to the human that describes code you wrote — that is the trigger. Before the words exist. Not after you say "done". Before you start writing the sentence.
 
-The autonomous review is not the human's job to request. You must do it yourself, every time, before speaking.
+This applies unconditionally. No threshold for simplicity. No exception for small fixes. No exception for "the user will just look at the diff themselves." Every response. Every time.
 
-**Why this rule exists:** See the 2026-04-02 incident in `verification-before-completion` Incident History.
+| Internal state (INTENT) | Required gate |
+|------------------------|--------------|
+| Forming a response that describes code changes | Battery must have PASSED |
+| About to commit or push | Battery must have PASSED; sentinel must exist |
+| About to share an MR/PR link | Sentinel must exist for HEAD |
+| About to write a completion summary | Battery must have PASSED |
+| **ANY moment of transitioning from "working" to "reporting"** | **This IS the trigger. There is no hesitation threshold.** |
+
+**If battery already ran and sentinel exists for HEAD**: Evidence confirmed. Do not re-dispatch. Note the clearance and proceed.
+
+**If battery has not run**: Run it now, before writing a single word of the response.
+
+The autonomous review is not the human's job to request. You must do it yourself, every time, before the response is formed.
+
+**Why this rule exists:** See the 2026-04-02b incident in `verification-before-completion` Incident History. The gate failed because the implementation→reporting transition was not recognized as a trigger despite an explicit incident log entry from earlier the same session. The fix: trigger on INTENT, not on output language.
 
 ## When to Request Review
 
