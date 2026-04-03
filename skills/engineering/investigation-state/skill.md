@@ -110,7 +110,7 @@ Each hypothesis: `{id, text, evidence: [{source, finding, timestamp}], verdict: 
 3. `investigation-crud.sh set-verdict --id UUID --hypothesis N --verdict confirmed --reason "..."`
 4. If > 10 hypotheses: prompt for consolidation (likely scope creep)
 
-Evidence sources: freeform strings (`mssql:staging-db`, `ado:MyProject`, `linear`, `local:grep`, etc.)
+Evidence sources: freeform strings (`db:example-conn`, `ci:my-project`, `linear`, `local:grep`, etc.)
 
 ---
 

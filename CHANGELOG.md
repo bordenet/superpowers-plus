@@ -19,6 +19,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **README overhaul** - Replaced hardcoded skill counts with dynamic language. Added Standout Skills table (9 key skills), Quick Start with trigger examples, pre-commit hooks note, and token budget advisory. Removed stale Development Process and Semantic Skill Matching sections. Three rounds of PHR, scored 8.5/10. (#450)
 - **GitHub repo description** - Fixed "orba" typo, updated to "Skills for AI coding assistants. Extends obra/superpowers."
 
+### Removed
+
+- **Vendor-specific issue tracker adapter** — Removed shipped adapter for a proprietary issue tracker. External users should use `skills/issue-tracking/_adapters/platform-template.md` to create their own adapter. (#498)
+- **Internal wiki snapshot tooling** — Removed `tools/wiki-snapshot.sh` and its test suite; these were tightly coupled to an internal document management platform with no utility to external users. (#497)
+
 ### Fixed
 
 - **pre-push orphan docs-only exemption** - New branches with no common ancestor and only docs/metadata commits can now push without a code-review sentinel. Previously all no-base branches failed closed unconditionally. Uses `git log --name-only -m` to enumerate reachable history including merge-commit conflict resolutions; code files still cause fail-closed behavior.
