@@ -8,8 +8,8 @@ It replaces chat transcripts with a machine-readable, auditable artifact.
 
 ## Schema
 
-See the complete JSON example in the design doc:
-`docs/superpowers/specs/2026-03-29-forked-debugging-design.md` § 5.
+The canonical packet structure is defined in `skills/_shared/incident-packet-schema.md`.
+Key top-level fields are summarized below.
 
 ## Key Fields
 
