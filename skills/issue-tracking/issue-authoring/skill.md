@@ -47,7 +47,7 @@ Before calling your adapter's `create_issue` operation:
 - [ ] **Search for duplicates** — Use adapter's search operation
 - [ ] **Validate labels exist** — Query label IDs for your platform
 - [ ] **Validate assignee exists** — Query user IDs for your platform
-- [ ] **Verify cross-references** — If description contains issue identifiers or URLs (e.g., `Related: [IDENTIFIER]`), run `issue-verify` or `issue-link-verification` first; reject any reference where `exists:false` or `entityType != "issue"`
+- [ ] **Verify issue cross-references** — For **issue identifiers or issue URLs** in the description (e.g., `Related: [IDENTIFIER]`, `Closes: [URL]`), run `issue-verify` or `issue-link-verification` first; reject any where `exists:false` or `entityType != "issue"`. PR links, wiki links, repo URLs, and external references do not go through this check — use `issue-link-verification`'s type-specific policy for those.
 - [ ] **Title follows format** — See Title Standards below
 - [ ] **Description has required sections** — See Description Template
 
@@ -146,9 +146,10 @@ Configure workflow states for your platform. Common patterns:
 Before creating issue:
 1. SEARCH — Check for duplicates
 2. VALIDATE — Labels and assignee exist
-3. FORMAT — Title follows standards
-4. STRUCTURE — Description has required sections
-5. CREATE — Only then call adapter's create operation
+3. VERIFY REFS — Run issue-verify for issue identifiers/URLs in description
+4. FORMAT — Title follows standards
+5. STRUCTURE — Description has required sections
+6. CREATE — Only then call adapter's create operation
 ```
 
 ---
