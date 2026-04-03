@@ -28,8 +28,8 @@ main() {
   request_output=$(node "$ADAPTER" use-skill requesting-code-review)
   sdd_output=$(node "$ADAPTER" use-skill subagent-driven-development)
 
-  assert_contains "$request_output" "Dispatch sub-agent-code-reviewer" "requesting-code-review should dispatch sub-agent-code-reviewer"
-  assert_contains "$request_output" "Use sub-agent-code-reviewer tool" "requesting-code-review should map Task tool to sub-agent-code-reviewer"
+  assert_contains "$request_output" "sub-agent-code-reviewer" "requesting-code-review should reference sub-agent-code-reviewer"
+  assert_contains "$request_output" "code-review-battery" "requesting-code-review should dispatch via code-review-battery"
   assert_not_contains "$request_output" "Dispatch code-reviewer subagent" "requesting-code-review left legacy code-reviewer subagent wording"
   assert_not_contains "$request_output" "launch-process (or handle directly) with superpowers:code-reviewer type" "requesting-code-review fell back to generic Task tool mapping"
 
