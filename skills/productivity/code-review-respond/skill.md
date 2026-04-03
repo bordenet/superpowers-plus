@@ -108,13 +108,13 @@ Before writing your verdict, scan the reviewed content for any claims about exte
 
 | Claim Type | How to Verify |
 |------------|---------------|
-| PR status (merged, active, abandoned) | Call ADO/GitHub API — check actual status code, not preview artifacts |
+| PR status (merged, active, abandoned) | Call your PR platform's API — check actual status code, not preview artifacts |
 | Deployment status | Check CI/CD pipeline or environment state |
 | Test results ("all tests pass") | Verify CI run or run tests locally |
-| Ticket/issue state | Query Linear, ADO, or Jira API |
+| Ticket/issue state | Query your issue tracker API (e.g., Linear, Jira, GitHub Issues) |
 | URL targets (links to wiki, PRs, docs) | Fetch the URL or query the API — confirm it resolves |
 | Version numbers or dependency claims | Check the actual lockfile or package manifest |
-| "Merged commit" references | Verify the commit exists on the target branch — ADO generates preview merge commits for open PRs that do NOT indicate actual merge |
+| "Merged commit" references | Verify the commit exists on the target branch — some PR platforms generate preview merge commits for open PRs that do NOT indicate actual merge |
 
 **If you cannot verify a factual claim** (no API access, no tool available), flag it as a WARNING with the note: "Unverifiable claim — reviewer lacks access to confirm."
 
