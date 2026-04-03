@@ -41,15 +41,15 @@ Invoke this skill when:
 <EXTREMELY_IMPORTANT>
 
 **Before writing ANY issue reference, verify it exists using your adapter:**
-- **Exact identifier**: call `get_issue` → check `exists: true` and `entityType: "issue"` before proceeding
-- **URL**: call `verify_link` → check `exists: true` and `entityType: "issue"` before proceeding
+- **Exact identifier**: normalize first using adapter rules (e.g., GitHub: strip `#` prefix; Jira: use key as-is), then call `get_issue` → check `exists: true` and `entityType: "issue"` before proceeding
+- **URL**: call `verify_link` → check `exists: true` and `entityType: "issue"` before proceeding. **Note:** `verify_link` guarantees `exists`, `identifier`, and `entityType` but not `title` or `status`. If you need to report title/status (e.g., in verification output), call `get_issue` with the returned `identifier` as a follow-up step.
 - Use `search_issues` only when the exact identifier is unknown
 
 **In both cases, the adapter returns `exists` and `entityType`. Reject any result where `entityType` is not `"issue"` before referencing the target in commits, PRs, or docs.**
 
 **Expected response for existing issue:**
 
-- Issue identifier, title, status returned
+- Issue identifier, title, status returned (from get_issue; title and status may not be present in verify_link result)
 
 **For non-existent issue:**
 
