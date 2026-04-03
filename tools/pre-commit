@@ -274,6 +274,55 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# CHECK 6: Loose-ends scan (always runs; blocks only if REQUIRE_LOOSE_ENDS_CLEAN=true)
+#
+# Part A: scan-staged — greps staged diff for TODO/FIXME/HACK in code files.
+#         Surfaces code debt introduced in THIS commit so the agent can decide
+#         whether to record it via loose-ends.sh add before committing.
+#
+# Part B: check — audits open #loose-end items in the TODO store.
+#         Always warns; blocks the commit if REQUIRE_LOOSE_ENDS_CLEAN=true is
+#         set in .agent-gates (opt-in per repo, default: warn only).
+#
+# Why warn-only by default: some #loose-end items are legitimately deferred
+# across sessions. Blocking every commit would be too aggressive.
+# -----------------------------------------------------------------------------
+LOOSE_ENDS_SCRIPT="$SCRIPT_DIR/loose-ends.sh"
+
+if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
+    echo -e "${YELLOW}[6/+]${NC} Scanning staged changes for code debt..."
+    # Capture output + exit status safely under set -euo pipefail using 'if'
+    scan_output=""; scan_ok=true
+    if ! scan_output=$(bash "$LOOSE_ENDS_SCRIPT" scan-staged 2>&1); then
+        scan_ok=false
+    fi
+    if [[ "$scan_ok" == "false" ]]; then
+        echo "$scan_output"
+        echo -e "  ${YELLOW}  Record via: loose-ends.sh add --desc '...' --note '...'${NC}"
+        if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
+            ((ERRORS++))
+        fi
+    else
+        echo -e "  ${GREEN}✓ No code debt markers in staged changes.${NC}"
+    fi
+
+    echo -e "${YELLOW}[7/+]${NC} Checking for open #loose-end items..."
+    check_output=""; check_ok=true
+    if ! check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1); then
+        check_ok=false
+    fi
+    if [[ "$check_ok" == "false" ]]; then
+        echo "$check_output"
+        if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
+            echo -e "  ${RED}  REQUIRE_LOOSE_ENDS_CLEAN=true: resolve or justify all #loose-end items before committing.${NC}"
+            ((ERRORS++))
+        fi
+    else
+        echo -e "  ${GREEN}✓ No open #loose-end items.${NC}"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # EXTRA CHECKS: Manifest-declared repo-specific gates (.agent-gates)
 # These run AFTER the base 5 checks. Declare in .agent-gates:
 #   EXTRA_LINT="npm run lint"
