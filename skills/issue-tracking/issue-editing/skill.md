@@ -39,7 +39,8 @@ coordination:
 1. **Fetch current issue state** — Call `get_issue` with the platform-native identifier
 2. **Validate the target type** — Check the `get_issue` response:
    - If `exists: false` → **STOP. Report identifier not found. Do not mutate.**
-   - If `entityType` is anything other than `"issue"` (e.g., `"pull_request"`, `"other"`, `"unknown"`) → **STOP. Route to the appropriate non-issue workflow. Do not call update_issue.**
+   - If `entityType: "pull_request"` or `"other"` → **STOP. Route to the appropriate non-issue workflow. Do not call update_issue.**
+   - If `entityType: "unknown"` → **STOP. Hard-block on mutation paths. Report to user that the target's type cannot be confirmed. Do not mutate without a new fetch that resolves to `"issue"`.**
 3. **Use fetched data as base** — Don't assume memory reflects current state
 4. **Check for recent changes** — `updatedAt` timestamp indicates modifications
 

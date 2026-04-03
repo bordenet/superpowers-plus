@@ -45,7 +45,7 @@ Always strip the `#` prefix and any `owner/repo` prefix before passing the ident
 | Normalized Field | GitHub Response Field | Notes |
 |-----------------|----------------------|-------|
 | `exists` | HTTP 200 = `true`; 404 = `false` | Check HTTP status, not body |
-| `entityType` | `"issue"` if `pull_request` field absent; `"pull_request"` if `pull_request` field present; `"unknown"` on 404 | Consumer skills must: reject `"pull_request"` and `"other"` before mutation or cross-reference; for `"unknown"`, hard-block on mutation paths (`update_issue`, `add_comment`) or WARN with mandatory explicit-user-confirmation before reference-only operations — silence/unclear responses do not count as approval |
+| `entityType` | `"issue"` if `pull_request` field absent; `"pull_request"` if `pull_request` field present; `"unknown"` on 404 | Consumer skills must: reject `"pull_request"` and `"other"` before mutation or cross-reference; for `"unknown"`, hard-block on mutation paths (`update_issue`, `add_comment`) or WARN with mandatory explicit-user-confirmation before reference-only operations — silence, unclear, off-topic, echo, and partial responses do not count as approval |
 | `identifier` | `number` (as string) | e.g. `"42"` (strip any `#` prefix before lookup) |
 | `url` | `html_url` | Direct browser URL |
 | `title` | `title` | Issue title |
