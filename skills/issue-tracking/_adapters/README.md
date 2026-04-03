@@ -27,7 +27,6 @@ See the adapter documentation for your platform:
 - [github-issues.md](./github-issues.md) - GitHub Issues setup
 - [jira.md](./jira.md) - Jira setup
 
-
 ## Adding New Adapters
 
 See [adapter-interface.md](./adapter-interface.md) for the required operations.
