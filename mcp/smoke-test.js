@@ -282,18 +282,20 @@ async function main() {
         '',
       ].join('\n'));
 
-      // Malformed-bracket fixture: anti_triggers has an unclosed bracket, then
-      // a new YAML key immediately follows. Without the guard the key would be
-      // silently swallowed into the accumulator and never parsed.
+      // Malformed-bracket fixture: description appears AFTER the unclosed
+      // anti_triggers bracket so that a parser without the guard would swallow
+      // the description line into the accumulator, leaving description empty.
+      // The guard (/^\w+:(?:\s|$)/) must fire and abandon accumulation so
+      // description is parsed correctly — making find_skills show "payload
+      // correctly parsed" only when the fix is present.
       const malformedDir = path.join(tmpDir, 'malformed-bracket-guard-test');
       mkdirSync(malformedDir, { recursive: true });
       writeFileSync(path.join(malformedDir, 'skill.md'), [
         '---',
         'name: malformed-bracket-guard-test',
-        'description: "payload correctly parsed"',
         'triggers: ["alpha", "beta"]',
         'anti_triggers: ["unclosed',
-        'description: should not swallow into anti_triggers',
+        'description: "payload correctly parsed"',
         '---',
         '# Malformed bracket guard test',
         '',
@@ -327,22 +329,19 @@ async function main() {
         assert(parserIdx < antiIdx,
           'regression: anti_trigger demotes skill below competitor');
 
-        // Malformed-bracket guard: skill must be visible with correct trigger routing
+        // Malformed-bracket guard: description placed AFTER unclosed bracket.
+        // Old parser would swallow description into accumulator → empty description.
+        // New guarded parser abandons accumulation on the new key → correct description.
         const malformedFindResult = await client3.send('tools/call', {
           name: 'find_skills', arguments: {},
         });
         const malformedFindText = malformedFindResult?.content?.[0]?.text || '';
         assert(malformedFindText.includes('malformed-bracket-guard-test'),
           'regression: malformed-bracket skill is visible in find_skills');
-
-        // Trigger routing must still work (triggers were well-formed)
-        const malformedMatchResult = await client3.send('tools/call', {
-          name: 'match_skills',
-          arguments: { query: 'alpha beta', top_n: 5 },
-        });
-        const malformedMatchText = malformedMatchResult?.content?.[0]?.text || '';
-        assert(malformedMatchText.includes('malformed-bracket-guard-test'),
-          'regression: malformed-bracket skill matched by trigger after guard abandonment');
+        // This assertion FAILS on the old parser (description was swallowed)
+        // and PASSES only with the guard that abandons accumulation on new keys.
+        assert(malformedFindText.includes('payload correctly parsed'),
+          'regression: malformed-bracket description parsed correctly (guard working)');
       } finally {
         client3.kill();
       }
