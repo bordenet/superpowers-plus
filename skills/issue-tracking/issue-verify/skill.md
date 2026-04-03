@@ -40,7 +40,7 @@ Invoke this skill when:
 
 <EXTREMELY_IMPORTANT>
 
-**Before writing ANY issue key, verify it exists using your adapter's search operation.**
+**Before writing ANY issue key, verify it exists using your adapter's `get_issue` operation (preferred for exact key lookup) or `verify_link` for URL-based verification. Use `search_issues` only when the exact key is unknown.**
 
 **Expected response for existing issue:**
 

@@ -83,6 +83,6 @@
 
 Currently, the incident packet exists only in the conductor's working context. Future work:
 
-- Persist to `investigation-state` skill's evidence store
+- Persist to `investigation-state` skill's evidence store (note: a schema bridge is required — `investigation-state` currently stores evidence as `{source, finding, timestamp}`, while this schema uses `{source, finding, timestamp, confidence, type}`; migration tooling is not yet implemented)
 - Enable resume-after-crash for long-running investigations
 - Support cross-session incident handoff
