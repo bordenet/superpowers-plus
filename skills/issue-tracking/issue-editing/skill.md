@@ -125,8 +125,8 @@ Options:
 
 | Behavior | Action |
 |----------|--------|
-| User says "update [KEY]-999" | Search first — issue may not exist |
-| Issue not found in search | Report: "Issue [KEY]-999 not found" |
+| User says "update [KEY]-999" | Use get_issue first — issue may not exist |
+| Issue not found via get_issue | Report: "Issue [KEY]-999 not found" |
 | Assuming issue ID | ALWAYS query first |
 
 </EXTREMELY_IMPORTANT>
