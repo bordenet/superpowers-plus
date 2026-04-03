@@ -13,6 +13,12 @@ triggers:
   - design options with adversarial review
   - design decision needed
   - choosing implementation approach
+anti_triggers:
+  - implement this design
+  - code review
+  - already decided on the approach
+  - continue implementing
+  - just writing tests
 description: "Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review, and edge-case brainstorming before committing to a design. Self-assessment trigger: invoke before committing to any architecture (see When to Use in skill body). NOT for brainstorming (idea exploration) or writing plans (execution)."
 summary: "Use when: choosing between design approaches, OR about to commit to an architecture (self-fire). Skip when: design already decided and implementation has started."
 coordination:
