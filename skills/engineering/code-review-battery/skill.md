@@ -18,6 +18,7 @@ coordination:
   order: 1
   enables:
     - progressive-code-review-gate
+    - verification-before-completion
   requires: []
   escalates_to: []
   internal: false
@@ -37,8 +38,39 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 - When `requesting-code-review` or `progressive-code-review-gate` triggers a review
 - When you want a thorough review of staged changes, a commit range, or a PR diff
 - When reviewing someone else's code
+- When `verification-before-completion` detects the implementation→presentation transition and no valid sentinel exists for HEAD
+
+**Gate chain position 3 of 4:**
+
+| Gate (order) | Self-fires when | Short-circuit if |
+|---|---|---|
+| 1. `design-triad` | About to commit to a design before coding | Already ran this session |
+| 2. `progressive-harsh-review` | About to present a non-code deliverable | Already ran on this artifact |
+| **3. `code-review-battery`** | **About to present/commit/push code** | **Valid sentinel for HEAD exists** |
+| 4. `verification-before-completion` | About to write any results-presenting response | Sentinel SHA == HEAD → skip re-dispatch |
+
+**One-per-unit rule:** Battery fires at most once per coherent unit of work. If a valid `.code-review-cleared` sentinel exists for HEAD, the gate is already satisfied — do not re-dispatch.
 
 ## Procedure
+
+### Phase 0: Sentinel Check (canonical skip gate — run before dispatching anything)
+
+This is the canonical skip gate for the one-per-unit rule. Callers (`requesting-code-review`, `finishing-a-development-branch`, `progressive-code-review-gate`) should run this before dispatching. If a caller does not implement Phase 0 explicitly, the agent should apply this decision manually before invoking battery.
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+| Sentinel state | Decision |
+|----------------|----------|
+| `NO CLEARANCE` | Run battery (proceed to Phase 1). |
+| Sentinel SHA ≠ HEAD SHA | Run battery (battery is stale). |
+| Sentinel valid for HEAD but `WORKTREE_DIRTY` | Run battery (staged/unstaged changes exist that were not reviewed). |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` | **Skip.** Battery already ran on the current code. Note the clearance and skip to Phase 6. |
+| Malformed | Delete `.code-review-cleared`, run battery. |
 
 ### Phase 1: Triage
 
@@ -146,6 +178,28 @@ After synthesis, scan all reviewer outputs for **shared blind spots**:
 3. **Clean-sweep suspicion:** If ALL reviewers report zero findings, flag `⚠️ UNANIMOUS CLEAN — verify reviewers examined different evidence slices`. Check that each reviewer's output references different source files or code paths.
 
 Correlated-failure flags do NOT change verdicts directly — they trigger expanded scope or re-examination. The goal is to surface shared blind spots, not to manufacture findings.
+
+### Phase 6: Finalize Verdict + Write Sentinel
+
+**Prerequisite:** Correlated-Failure Detection has completed and no re-examination was triggered.
+
+If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
+
+```bash
+# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered
+# The SHA must be the commit being reviewed/pushed (usually HEAD on the current branch).
+# If you are reviewing a specific ref that differs from HEAD, use that ref's SHA.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+VERDICT="PASS"           # or PASS_WITH_NITS — set this once, use it below
+REVIEWED_SHA=$(git rev-parse HEAD 2>/dev/null)
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo "v1|${REVIEWED_SHA}|${VERDICT}|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
+echo "✅ Sentinel written: v1|${REVIEWED_SHA:0:8}|${VERDICT}|${TIMESTAMP}"
+```
+
+The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA (must match the ref being pushed), and verdict (`PASS` or `PASS_WITH_NITS`). **Do not skip this step** — without the sentinel, the push will be blocked.
+
+If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
 ### Gap Analysis
 
