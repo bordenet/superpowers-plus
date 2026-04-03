@@ -291,6 +291,7 @@ function extractFrontmatter(filePath) {
         let composition = null;
         let compress = true;
         let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+        let antiAccum = null;   // accumulates bracket-multiline anti_triggers arrays
         let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
 
         for (let i = 0; i < lines.length; i++) {
@@ -307,6 +308,14 @@ function extractFrontmatter(filePath) {
                     if (hasUnquotedClosingBracket(triggerAccum)) {
                         triggers = parseInlineArray(extractBracketContent(triggerAccum));
                         triggerAccum = null;
+                    }
+                    continue;
+                }
+                if (antiAccum !== null) {
+                    antiAccum += ' ' + line.trim();
+                    if (hasUnquotedClosingBracket(antiAccum)) {
+                        anti_triggers = parseInlineArray(extractBracketContent(antiAccum));
+                        antiAccum = null;
                     }
                     continue;
                 }
@@ -357,6 +366,18 @@ function extractFrontmatter(filePath) {
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+                // Check for anti_triggers array — same 3 forms
+                if (line.match(/^anti_triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        anti_triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        antiAccum = line; // bracket-multiline
+                    }
+                } else if (line.match(/^anti_triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    anti_triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
                 // Check for requires_mcp array — same 3 forms

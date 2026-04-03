@@ -779,3 +779,36 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"docs-only"* ]]
 }
+
+@test "pre-push blocks new branch with no common ancestor when history contains code files" {
+    # Negative-path complement to test 38. When the orphan branch history contains
+    # a code file, the hook must fail closed and require the sentinel even though
+    # there is no common ancestor with any known base branch.
+    #
+    # This covers the awk classifier in the NEW_BRANCH_NO_BASE block and confirms
+    # that git log --name-only -m --format="" correctly surfaces code files.
+    # The -m flag specifically matters for merge commits where files introduced
+    # only during conflict resolution could be missed without it; the negative
+    # path here proves that any code file in the reachable history causes a block.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    git -C "$fixture" checkout --orphan code-orphan -q
+    git -C "$fixture" rm -r --cached . -q
+    # Add both a doc file and a shell script — hook must detect the shell script
+    printf '# Docs\n' > "$fixture/DOCS.md"
+    printf '#!/usr/bin/env bash\necho hello\n' > "$fixture/helper.sh"
+    git -C "$fixture" add DOCS.md helper.sh
+    git -C "$fixture" commit -q -m "add: docs + helper script"
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/code-orphan %s refs/heads/code-orphan %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+    # No sentinel — must be blocked because helper.sh is code
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+}

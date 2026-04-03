@@ -234,12 +234,13 @@ while read -r _ local_sha _ remote_sha; do
     # Gate 1: Code review sentinel
     echo "  [Gate 1/2] Code review clearance"
     if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
-        # No merge-base found — enumerate ALL files across ALL commits reachable
-        # from the tip to decide if the push is truly docs-only before failing
-        # closed. On an orphan/unrelated-history branch, ALL commits are new, so
-        # walking the full ancestor chain is correct and safe.
-        # -m shows per-parent diffs for merge commits so resolution-only code
-        # changes (files absent from --name-only without -m) are not missed.
+        # No merge-base found — enumerate ALL files reachable from the tip and
+        # decide if the push is truly docs-only before failing closed.
+        # This over-approximates (may include ancestor commits already on the
+        # remote under a different ref/tag) but is conservative: it can only
+        # add false code-detections, never miss them.
+        # -m shows per-parent diffs for merge commits so files introduced only
+        # during conflict resolution are not silently missed.
         _no_base_files=$(git log --name-only -m --format="" "$local_sha" 2>/dev/null \
             | grep -v '^$' | sort -u || true)
         _no_base_code=$(printf '%s\n' "$_no_base_files" \
