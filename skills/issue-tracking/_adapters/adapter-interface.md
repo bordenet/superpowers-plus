@@ -13,6 +13,20 @@ All issue tracker adapters must implement these operations.
 | `add_comment` | issue_id, text | comment ID |
 | `verify_link` | url | exists/not-found |
 
+## Minimum `get_issue` Output Contract
+
+Consumer skills may rely on these fields being present in the `get_issue` response. Adapters should guarantee them at minimum:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `identifier` | string | Platform-native identifier (key, number, or ID) |
+| `url` | string | Direct URL to the issue |
+| `title` | string | Issue title/summary |
+| `status` | string | Current workflow state |
+| `updatedAt` | ISO 8601 string | Last modification timestamp |
+
+Additional fields (`assignee`, `labels`, `priority`) are optional but recommended.
+
 ## Field Mappings
 
 Each adapter documents how generic fields map to platform-specific fields:

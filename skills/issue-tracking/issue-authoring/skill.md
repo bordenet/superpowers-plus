@@ -68,7 +68,7 @@ Before calling your adapter's `create_issue` operation:
 
 - Specific enough to understand without reading description
 - Max 80 characters (Some trackers truncate longer titles in views)
-- No ticket key prefix (PROJ-XXX added automatically)
+- No tracker-managed identifier prefix (added automatically by the tracker)
 
 </EXTREMELY_IMPORTANT>
 
@@ -90,7 +90,7 @@ Before calling your adapter's `create_issue` operation:
 ## References
 - PR: [link if exists]
 - Wiki: [link if exists]
-- Related: PROJ-XXX
+- Related: [IDENTIFIER]
 ```
 
 ---

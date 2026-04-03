@@ -313,8 +313,8 @@ All orchestration decisions logged in structured format:
 
 ### Wave 4 ✅
 
-- [x] subagent-driven-development parallel dispatch → `skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md`, `isolation-analyzer.md`
-- [x] brainstorming ensemble prototype → `skills/engineering/brainstorming/references/ensemble-mode.md`, `lens-mandates.md`
+- [x] subagent-driven-development parallel dispatch → `skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md`, `skills/engineering/subagent-driven-development/references/isolation-analyzer.md`
+- [x] brainstorming ensemble prototype → `skills/engineering/brainstorming/references/ensemble-mode.md`, `skills/engineering/brainstorming/references/lens-mandates.md`
 - [x] Experiment fixtures and harness → `exercises/multi-agent-skills/fixtures/` (9 fixtures), `exercises/forked-debugging/` (5 fixtures + harness)
 
 ### Wave 5 — In Progress
