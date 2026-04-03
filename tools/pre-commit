@@ -50,32 +50,127 @@ NC='\033[0m'
 # inject arbitrary shell code or unset REQUIRE_CODE_REVIEW_SENTINEL before
 # the sentinel check runs. Only the known keys listed below are extracted.
 # -----------------------------------------------------------------------------
-if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
+# Load .agent-gates from the committed HEAD version when .agent-gates is itself
+# staged — prevents a same-commit config change from disabling the gates it's
+# supposed to govern (REQUIRE_CODE_REVIEW_SENTINEL, SKIP_REVIEW_TOKEN, etc.).
+# Falls back to the working-tree file when .agent-gates is NOT staged.
+_agent_gates_source=""
+if git diff --cached --name-only | grep -qE '^\.agent-gates$'; then
+    # .agent-gates is staged: read from HEAD (last committed version)
+    if git cat-file -e HEAD:.agent-gates 2>/dev/null; then
+        _agent_gates_source="HEAD"
+    fi
+    # If no HEAD version exists (first commit), treat as no config — gates stay at defaults
+else
+    [[ -f "$REPO_ROOT/.agent-gates" ]] && _agent_gates_source="file"
+fi
+
+_GATES_PARSE_ERRORS=0
+_parse_agent_gates() {
+    local _key _remainder _val
     while IFS='=' read -r _key _remainder; do
-        # Skip blank lines and comment lines
         [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
-        # Trim whitespace from key
         _key="${_key//[[:space:]]/}"
-        # Only accept known keys; ignore everything else silently
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
-                # Trim leading/trailing whitespace and strip surrounding quotes
+            EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST)
+                # Command strings: do NOT strip '#' — these may contain '#' literally.
+                # Trim surrounding whitespace, then strip a MATCHING pair of quotes only
+                # (not individual leading/trailing quotes which would mangle commands that
+                # use quotes internally, e.g. EXTRA_TEST=printf '# ok\n').
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                if [[ "${_remainder:0:1}" == '"' && "${_remainder: -1}" == '"' && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                elif [[ "${_remainder:0:1}" == "'" && "${_remainder: -1}" == "'" && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                fi
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                # Scalar/boolean/numeric keys: strip inline comments before trimming.
+                _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
                 _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
                 _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
-                printf -v "$_key" '%s' "$_remainder"
+                _val="$_remainder"
+                # Validate boolean keys
+                case "$_key" in
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                        if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                            echo -e "${RED}✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                    REVIEW_TOKEN_TTL)
+                        # Require a positive integer (> 0); TTL=0 causes instant expiry
+                        if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                            echo -e "${RED}✗ .agent-gates: invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)${NC}" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                esac
+                printf -v "$_key" '%s' "$_val"
                 ;;
             *) ;;
         esac
-    done < "$REPO_ROOT/.agent-gates"
+    done
+}
+case "$_agent_gates_source" in
+    # IMPORTANT: use process substitution (<(...)), NOT a pipeline, so _parse_agent_gates
+    # runs in the current shell and its variable assignments + _GATES_PARSE_ERRORS
+    # propagate back to this scope. A pipeline would run the function in a subshell
+    # and silently discard all parsed state.
+    HEAD) _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
+    file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
+esac
+
+# When .agent-gates is staged, validate the STAGED values (index blob) in
+# validation-only mode (do NOT apply them — that would allow self-disable).
+# Block the commit if the staged version has invalid key values so a broken
+# .agent-gates cannot land in the repo and brick the NEXT commit.
+# Applies even on first commit (no HEAD .agent-gates) because the staged file
+# will become HEAD and invalid values must be caught before they land.
+if git cat-file -e ":.agent-gates" 2>/dev/null; then
+    _validate_agent_gates_staged() {
+        local _key _remainder _val
+        while IFS='=' read -r _key _remainder; do
+            [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+            _key="${_key//[[:space:]]/}"
+            case "$_key" in
+                REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+                REVIEW_TOKEN_TTL)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+            esac
+        done
+    }
+    _validate_agent_gates_staged < <(git show ":.agent-gates" 2>/dev/null)
 fi
 # Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  PRE-COMMIT: Running quality checks..."
-[[ -n "$CLASS" ]] && echo "  Repo class: $CLASS"
+[[ -n "${CLASS:-}" ]] && echo "  Repo class: $CLASS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -88,7 +183,7 @@ if [[ -z "$STAGED_FILES" ]]; then
     exit 0
 fi
 
-ERRORS=0
+ERRORS=$_GATES_PARSE_ERRORS
 
 # -----------------------------------------------------------------------------
 # GATE 0: Code Review Sentinel (opt-in via REQUIRE_CODE_REVIEW_SENTINEL=true)
@@ -211,8 +306,15 @@ echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
-    [[ "$file" != *.sh ]] && continue
     [[ ! -f "$file" ]] && continue
+    # Match *.sh files AND extensionless bash scripts (pre-commit, pre-push, etc.)
+    local_is_bash=false
+    if [[ "$file" == *.sh ]]; then
+        local_is_bash=true
+    elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+        local_is_bash=true
+    fi
+    [[ "$local_is_bash" == "true" ]] || continue
 
     if ! bash -n "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: bash syntax error${NC}"
@@ -254,8 +356,14 @@ SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2
 if command -v shellcheck &> /dev/null; then
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
-        [[ "$file" != *.sh ]] && continue
         [[ ! -f "$file" ]] && continue
+        sc_is_bash=false
+        if [[ "$file" == *.sh ]]; then
+            sc_is_bash=true
+        elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+            sc_is_bash=true
+        fi
+        [[ "$sc_is_bash" == "true" ]] || continue
 
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
@@ -315,11 +423,16 @@ if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
     fi
 
     echo -e "${YELLOW}[7/+]${NC} Checking for open #loose-end items..."
-    check_output=""; check_ok=true
-    if ! check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1); then
-        check_ok=false
-    fi
-    if [[ "$check_ok" == "false" ]]; then
+    check_output=""; check_rc=0
+    check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1) || check_rc=$?
+    if [[ $check_rc -eq 2 ]]; then
+        # Exit 2 = audit backend failure (todo-crud.sh unavailable/broken).
+        # Block unconditionally — a failed audit is not "clean".
+        echo "$check_output"
+        echo -e "  ${RED}✗ Loose-ends audit failed — fix todo backend before committing.${NC}"
+        ERRORS=$((ERRORS + 1))
+    elif [[ $check_rc -ne 0 ]]; then
+        # Exit 1 = findings present (open #loose-end items exist).
         echo "$check_output"
         if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
             echo -e "  ${RED}  REQUIRE_LOOSE_ENDS_CLEAN=true: resolve or justify all #loose-end items before committing.${NC}"

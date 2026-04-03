@@ -41,15 +41,20 @@ _python_bin() {
 }
 
 cmd_check() {
-    local raw_output count
-    # Scan todo-crud.sh cat output directly — single source of truth for both
-    # count and display. This correctly handles:
-    #   • ACTIVE TASKS  — open items (main use case)
-    #   • DEFERRED      — items deferred via todo-crud.sh defer (included)
-    #   • HISTORY       — closed [x] tasks (excluded even if they carried #loose-end)
-    # Each item block is buffered in full so Note: lines that appear after the
-    # #loose-end tag are visible. Count = number of task-ID lines in output.
-    raw_output=$("$TODO_CRUD" cat 2>/dev/null | awk '
+    local todo_cat_output raw_output count
+    # Fail closed: if todo-crud.sh cat fails (bad path, locked file, missing
+    # registry), treat that as an audit error rather than "clean session".
+    # Suppress stderr from todo-crud.sh itself; expose our own error message.
+    if ! todo_cat_output=$("$TODO_CRUD" cat 2>/dev/null); then
+        echo -e "${RED}✗ Audit error: todo-crud.sh cat failed — cannot verify loose-end state.${NC}" >&2
+        echo -e "${RED}  Run: ${TODO_CRUD} cat   to diagnose.${NC}" >&2
+        exit 2
+    fi
+    # Scan cat output directly — single source of truth for both count and display.
+    # Correctly handles ACTIVE TASKS (included), DEFERRED (included), HISTORY (excluded).
+    # Each item block is buffered in full so Note: lines after a #loose-end tag
+    # are visible. Count = number of task-ID header lines in output.
+    raw_output=$(printf '%s\n' "$todo_cat_output" | awk '
         function flush_block() {
             if (in_block && found_tag) print block
             in_block=0; found_tag=0; block=""
@@ -59,13 +64,16 @@ cmd_check() {
         /^# DEFERRED/     { flush_block(); section="deferred"; next }
         /^# /             { flush_block(); section="other";    next }
         section == "history" || section == "other" { next }
-        /\[20[0-9]{6}-[0-9]+\]/ { flush_block(); in_block=1; block="" }
+        /^- \[[ x\/\-]\] \[20[0-9]{6}-[0-9]+\]/ { flush_block(); in_block=1; block="" }
         in_block { block = block "\n" $0 }
         in_block && /#loose-end/ { found_tag=1 }
         END { flush_block() }
     ' || true)
 
-    count=$(printf '%s\n' "$raw_output" | grep -cE '\[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)
+    # grep -c exits 1 when no matches but still prints "0"; use || true to
+    # prevent the failed exit from triggering set -e, and avoid "|| echo 0"
+    # which would produce "0\n0" (two zeros) on a clean TODO file.
+    count=$(printf '%s\n' "$raw_output" | grep -cE '^- \[[ x/\-]\] \[20[0-9]{6}-[0-9]+\]' 2>/dev/null || true)
 
     if [[ "$count" -eq 0 ]]; then
         echo -e "${GREEN}✓ No open #loose-end items. Session is clean.${NC}"
@@ -94,9 +102,18 @@ cmd_add() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --desc)  desc="$2";  shift 2 ;;
-            --note)  note="$2";  shift 2 ;;
-            --priority) priority="$2"; shift 2 ;;
+            --desc|--note|--priority)
+                if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+                    echo -e "${RED}✗ $1 requires a value${NC}" >&2
+                    echo -e "  Usage: loose-ends.sh add --desc 'text' --note 'reason' [--priority P1-P4]" >&2
+                    exit 1
+                fi
+                case "$1" in
+                    --desc)     desc="$2" ;;
+                    --note)     note="$2" ;;
+                    --priority) priority="$2" ;;
+                esac
+                shift 2 ;;
             *) echo -e "${RED}Unknown option: $1${NC}" >&2; usage ;;
         esac
     done
@@ -126,7 +143,7 @@ cmd_add() {
 # scan-staged: grep staged diff for code debt markers in code files
 # ---------------------------------------------------------------------------
 cmd_scan_staged() {
-    local diff_output findings=0
+    local diff_output
 
     diff_output=$(git diff --cached -U0 2>/dev/null) || { echo "(not in a git repo)"; exit 0; }
 
