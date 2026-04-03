@@ -11,6 +11,7 @@ triggers:
   - run verification check
   - check evidence before completing
   - verify before completing
+anti_triggers: ["still working on", "implementation in progress", "not done yet", "continuing to implement", "midway through"]
 description: "Use before claiming any work is complete, fixed, or passing — and before writing any response that presents results to a human. Requires evidence before assertions. If code was changed, check battery sentinel (or dispatch battery) before the completion claim. See AUTO-FIRE section in skill body for self-assessment trigger conditions."
 summary: "Use when: forming any response that presents results (even without 'done'/'shipped' language). Skip when: still actively working. Code changes require battery sentinel for HEAD or battery dispatch."
 coordination:
