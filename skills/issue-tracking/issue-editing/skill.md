@@ -36,9 +36,12 @@ coordination:
 
 **Before calling your adapter's `update_issue` operation, you MUST:**
 
-1. **Fetch current issue state** — Query the issue by its platform-native identifier
-2. **Use fetched data as base** — Don't assume memory reflects current state
-3. **Check for recent changes** — `updatedAt` timestamp indicates modifications
+1. **Fetch current issue state** — Call `get_issue` with the platform-native identifier
+2. **Validate the target type** — Check the `get_issue` response:
+   - If `exists: false` → **STOP. Report identifier not found. Do not mutate.**
+   - If `entityType` is anything other than `"issue"` (e.g., `"pull_request"`, `"other"`, `"unknown"`) → **STOP. Route to the appropriate non-issue workflow. Do not call update_issue.**
+3. **Use fetched data as base** — Don't assume memory reflects current state
+4. **Check for recent changes** — `updatedAt` timestamp indicates modifications
 
 **Why this matters:**
 
@@ -56,8 +59,8 @@ coordination:
 ┌─────────────────────────────────────────────────────────────┐
 │ BEFORE ANY update_issue CALL                                │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. FETCH: Query issue by platform-native identifier using adapter │
-│ 2. VERIFY: Issue exists and identifier is confirmed         │
+│ 1. FETCH: Call get_issue via adapter                        │
+│ 2. VERIFY: exists:true AND entityType:"issue" — else STOP   │
 │ 3. CHECK: updatedAt for recent modifications                │
 │ 4. COMPARE: Your intended changes vs current state          │
 │ 5. UPDATE: Only then call adapter's update operation        │
