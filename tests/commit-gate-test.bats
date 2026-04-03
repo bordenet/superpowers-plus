@@ -617,19 +617,34 @@ EOF
     [[ "$output" == *"requires a value"* ]]
 }
 
-@test "pre-commit blocks when .agent-gates has inline comment on boolean key" {
-    # Inline comment (true # comment) must be stripped before validation;
-    # gate-enabling behavior must not be broken by trailing comment text.
+@test "pre-commit gate-0 blocks when .agent-gates has inline comment on boolean key" {
+    # Isolates Gate 0 (sentinel) specifically — not the token gate.
+    # Inline comment (true # comment) must be stripped before validation so
+    # REQUIRE_CODE_REVIEW_SENTINEL=true is parsed correctly. The key correctness
+    # requirement: trailing comment text must not corrupt the boolean.
+    #
+    # Setup: .agent-gates is COMMITTED to HEAD (not staged) with the inline-comment
+    # value. Pre-commit reads it from the working tree. A valid review token is
+    # seeded so the token gate PASSES. The only remaining gate that can block is
+    # Gate 0 — which fires because no .code-review-cleared exists.
     local fixture
     fixture=$(_create_fixture_repo)
-    # Stage .agent-gates with inline comment on sentinel flag (HEAD has no .agent-gates)
+    # Commit .agent-gates with inline comment into HEAD so pre-commit reads it
     echo "REQUIRE_CODE_REVIEW_SENTINEL=true # enable sentinel" > "$fixture/.agent-gates"
-    printf '# code change\n' >> "$fixture/README.md"
-    git -C "$fixture" add .agent-gates README.md
-    # No .code-review-cleared present — sentinel check must block
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "add .agent-gates with inline comment"
+    # Seed a valid token so the token gate PASSES
+    _seed_token "$fixture"
+    # Stage a shell script (non-doc file) so staged_has_code() returns true and
+    # Gate 0 actually fires. README.md is docs-only and would skip Gate 0.
+    printf '#!/usr/bin/env bash\necho hello\n' > "$fixture/tools/my-check.sh"
+    git -C "$fixture" add tools/my-check.sh
+    # No .code-review-cleared present — Gate 0 must block
     run bash -c "cd '$fixture' && bash tools/pre-commit"
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
+    # Assert Gate 0 message — confirms it was the sentinel gate, not token gate
+    [[ "$output" == *"COMMIT BLOCKED: No code review clearance"* ]]
 }
 
 @test "pre-commit blocks and emits error when committed .agent-gates has invalid boolean value" {
@@ -734,4 +749,124 @@ EOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
     [[ "$output" == *"PUSH BLOCKED"* ]]
+}
+
+@test "pre-push allows new branch with no common ancestor when all commits are docs-only" {
+    # Regression guard for the orphan/no-base docs-only exemption.
+    # When NEW_BRANCH_NO_BASE=true (no shared ancestor with any known base),
+    # the hook enumerates all files in the branch's history. If all are docs/metadata
+    # the push must be allowed even with no .code-review-cleared present.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    # Create an orphan branch (no parent commits — completely unrelated history).
+    # Use --cached so git rm does NOT delete working-tree files (tools/ must
+    # survive so bash tools/pre-push can be invoked from the fixture root).
+    git -C "$fixture" checkout --orphan docs-orphan -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Docs only\n' > "$fixture/DOCS.md"
+    git -C "$fixture" add DOCS.md
+    git -C "$fixture" commit -q -m "docs: orphan branch with docs only"
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/docs-orphan %s refs/heads/docs-orphan %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+    # No .code-review-cleared — docs-only orphan branch must NOT be blocked
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"docs-only"* ]]
+}
+
+@test "pre-push blocks new branch with no common ancestor when history contains code files" {
+    # Negative-path complement to test 38. When the orphan branch history contains
+    # a code file, the hook must fail closed and require the sentinel even though
+    # there is no common ancestor with any known base branch.
+    #
+    # This covers the awk classifier in the NEW_BRANCH_NO_BASE block and confirms
+    # that git log --name-only -m --format="" correctly surfaces code files.
+    # The -m flag specifically matters for merge commits where files introduced
+    # only during conflict resolution could be missed without it; the negative
+    # path here proves that any code file in the reachable history causes a block.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    git -C "$fixture" checkout --orphan code-orphan -q
+    git -C "$fixture" rm -r --cached . -q
+    # Add both a doc file and a shell script — hook must detect the shell script
+    printf '# Docs\n' > "$fixture/DOCS.md"
+    printf '#!/usr/bin/env bash\necho hello\n' > "$fixture/helper.sh"
+    git -C "$fixture" add DOCS.md helper.sh
+    git -C "$fixture" commit -q -m "add: docs + helper script"
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/code-orphan %s refs/heads/code-orphan %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+    # No sentinel — must be blocked because helper.sh is code
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    # Assert the specific no-base fail-closed message (not a generic PUSH BLOCKED from another gate)
+    [[ "$output" == *"failing closed (require sentinel)"* ]]
+    # Confirm the docs-only exemption was NOT granted
+    [[ "$output" != *"docs-only, sentinel not required"* ]]
+}
+
+@test "pre-push blocks orphan branch when code file appears only in merge commit resolution" {
+    # Regression test for the -m flag in git log --name-only -m.
+    # Without -m, git log --name-only on a merge commit may omit files that were
+    # introduced only during conflict resolution (not present in either parent).
+    # With -m, per-parent diffs are shown so such files are caught.
+    #
+    # Fixture: orphan branch A has guide.md only (docs). We merge unrelated orphan
+    # branch B (also has guide.md with different content — causing conflict) with
+    # --no-commit, then add extra.sh as if resolving the conflict by adding code.
+    # The merge commit has extra.sh as a resolution artifact not in either parent.
+    # Without -m, git log might only report guide.md; with -m, extra.sh surfaces.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+
+    # Create orphan A with guide.md (docs-only history)
+    git -C "$fixture" checkout --orphan orphan-a -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Guide\nVersion A content\n' > "$fixture/guide.md"
+    git -C "$fixture" add guide.md
+    git -C "$fixture" commit -q -m "docs: add guide"
+
+    # Create unrelated orphan B with conflicting guide.md
+    git -C "$fixture" checkout --orphan orphan-b -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Guide\nVersion B content\n' > "$fixture/guide.md"
+    git -C "$fixture" add guide.md
+    git -C "$fixture" commit -q -m "docs: add guide version B"
+
+    # Switch back to orphan-a and merge B (conflict on guide.md) without committing
+    git -C "$fixture" checkout orphan-a -q
+    git -C "$fixture" merge --allow-unrelated-histories --no-commit orphan-b -q 2>/dev/null || true
+
+    # Simulate conflict resolution: accept A's guide.md and ADD a code file
+    # extra.sh is NOT in either parent — it's a merge-resolution-only artifact
+    git -C "$fixture" checkout HEAD -- guide.md
+    printf '#!/usr/bin/env bash\necho resolution\n' > "$fixture/extra.sh"
+    git -C "$fixture" add guide.md extra.sh
+    git -C "$fixture" commit -q -m "merge: resolve conflict (add extra.sh)"
+
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/orphan-a %s refs/heads/orphan-a %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+
+    # No sentinel — extra.sh is code so the hook must block even though it's
+    # only visible via -m (merge-commit per-parent diff)
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"failing closed (require sentinel)"* ]]
 }
