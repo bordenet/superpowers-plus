@@ -144,6 +144,53 @@ EOF
 run_malformed_bracket_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js"
 run_malformed_bracket_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh"
 
+# Installer mcpAccum path: requires_mcp is the second accumulator unique to the installer.
+# Use a malformed requires_mcp bracket to verify the mcpAccum guard.
+MALFORMED_MCP_SKILL="$TMP_DIR/malformed-mcp-skill.md"
+cat > "$MALFORMED_MCP_SKILL" <<'EOF'
+---
+name: malformed-mcp-guard-test
+triggers: ["alpha"]
+requires_mcp: ["unclosed
+description: "mcp-guard payload parsed"
+---
+Body.
+EOF
+
+if PARSER_SOURCE="$ROOT_DIR/install-augment-superpowers.sh" MALFORMED_SKILL="$MALFORMED_MCP_SKILL" node <<'NODE'
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+
+const sourcePath = process.env.PARSER_SOURCE;
+const testSkill = process.env.MALFORMED_SKILL;
+const source = fs.readFileSync(sourcePath, 'utf8');
+
+let start = source.indexOf('function parseInlineArray(value) {');
+let end = source.indexOf('\nfunction compressSkillContent(', start);
+if (start === -1 || end === -1) {
+  start = source.indexOf('function extractFrontmatter(filePath) {');
+  end = source.indexOf('\nfunction findSkillFile(', start);
+}
+if (start === -1 || end === -1) throw new Error('Could not locate parser block');
+
+const context = { fs, console };
+vm.createContext(context);
+vm.runInContext(source.slice(start, end), context);
+
+const meta = context.extractFrontmatter(testSkill);
+assert.strictEqual(meta.description, 'mcp-guard payload parsed',
+  `description should be preserved; got: "${meta.description}"`);
+const mcp = Array.from(meta.requires_mcp || []);
+assert.deepStrictEqual(mcp, [],
+  `requires_mcp should be empty after guard abandonment; got: ${JSON.stringify(mcp)}`);
+NODE
+then
+    pass "install-augment-superpowers malformed-bracket guard preserves subsequent fields (mcpAccum)"
+else
+    fail "install-augment-superpowers mcpAccum guard: description swallowed or requires_mcp non-empty"
+fi
+
 if [[ "$(bash "$ROOT_DIR/tools/parse-frontmatter.sh" "$TEST_SKILL" triggers | paste -sd'|' -)" == "first trigger|second trigger" ]]; then
     pass "parse-frontmatter.sh parses multiline triggers"
 else
