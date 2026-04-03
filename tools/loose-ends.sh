@@ -41,29 +41,20 @@ _python_bin() {
 }
 
 cmd_check() {
-    local json count py
-    py=$(_python_bin)
-
-    json=$("$TODO_CRUD" --json list --tag "#loose-end" --all 2>/dev/null || echo '{"tasks":[],"count":0}')
-
-    if [[ -n "$py" ]]; then
-        count=$( echo "$json" | "$py" -c "import sys,json; print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo "0" )
-    else
-        # Fallback: grep count field from raw JSON
-        count=$( echo "$json" | grep -o '"count":[0-9]*' | grep -o '[0-9]*' || echo "0" )
-    fi
-
-    if [[ "$count" -eq 0 ]]; then
-        echo -e "${GREEN}✓ No open #loose-end items. Session is clean.${NC}"
-        exit 0
-    fi
-
-    echo -e "${YELLOW}⚠ $count open #loose-end item(s) found:${NC}"
-    echo ""
-
-    # Show full blocks so notes are visible — buffer until block end so
-    # "- Note:" lines that appear AFTER the #loose-end tag are included.
-    "$TODO_CRUD" cat 2>/dev/null | awk '
+    local raw_output count
+    # Scan todo-crud.sh cat output directly — single source of truth for both
+    # count and display. This correctly handles:
+    #   • ACTIVE TASKS  — open items (main use case)
+    #   • DEFERRED      — items deferred via todo-crud.sh defer (included)
+    #   • HISTORY       — closed [x] tasks (excluded even if they carried #loose-end)
+    # Each item block is buffered in full so Note: lines that appear after the
+    # #loose-end tag are visible. Count = number of task-ID lines in output.
+    raw_output=$("$TODO_CRUD" cat 2>/dev/null | awk '
+        /^# ACTIVE TASKS/ { section="active";   in_block=0; found_tag=0; block=""; next }
+        /^# HISTORY/      { section="history";  in_block=0; found_tag=0; block=""; next }
+        /^# DEFERRED/     { section="deferred"; in_block=0; found_tag=0; block=""; next }
+        /^# /             { section="other";    in_block=0; found_tag=0; block=""; next }
+        section == "history" || section == "other" { next }
         /\[20[0-9]{6}-[0-9]+\]/ {
             if (in_block && found_tag) print block
             in_block=1; found_tag=0; block=""
@@ -75,8 +66,18 @@ cmd_check() {
             in_block=0; found_tag=0; block=""
         }
         END { if (in_block && found_tag) print block }
-    '
+    ' || true)
 
+    count=$(printf '%s\n' "$raw_output" | grep -cE '\[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)
+
+    if [[ "$count" -eq 0 ]]; then
+        echo -e "${GREEN}✓ No open #loose-end items. Session is clean.${NC}"
+        exit 0
+    fi
+
+    echo -e "${YELLOW}⚠ $count open #loose-end item(s) found:${NC}"
+    echo ""
+    printf '%s\n' "$raw_output"
     echo ""
     echo "Classify each item:"
     echo "  resolved     → todo-crud.sh complete --id <id>"

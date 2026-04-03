@@ -482,6 +482,11 @@ else
     # git-rev-parse based REPO_ROOT.  pwd -P is POSIX; realpath fallback is
     # available on Linux but absent on stock macOS without coreutils.
     _canon_repo="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || _canon_repo="$REPO_ROOT"
+    # Token filename: <repo_cksum>.<epoch>.<pid>  — collision-safe (two concurrent
+    # harsh-review runs can't overwrite each other) and repo-namespaced (GC can
+    # restrict deletion to the current repo without reading file contents).
+    _repo_cksum=$(printf '%s' "$_canon_repo" | cksum | awk '{print $1}')
+    token_file="${REVIEW_TOKEN_DIR}/${_repo_cksum}.$(date +%s).$$"
     echo "$_canon_repo" > "$token_file"
     exit 0
 fi
