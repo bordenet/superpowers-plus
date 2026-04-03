@@ -9,7 +9,7 @@ Configuration for GitHub Issues tracking.
 | create_issue | `github-api` | `POST /repos/{owner}/{repo}/issues` |
 | update_issue | `github-api` | `PATCH /repos/{owner}/{repo}/issues/{number}` |
 | search_issues | `github-api` | `GET /search/issues` |
-| get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` |
+| get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — returns issue by numeric ID. **Important: this endpoint also returns PRs. Verify response is not a PR by checking that `pull_request` field is absent before treating as a valid issue.** |
 | add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments` |
 | verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue |
 
@@ -28,6 +28,16 @@ https://github.com/[owner]/[repo]/issues/[number]
 ```
 
 Example: `https://github.com/my-org/my-repo/issues/123`
+
+## Minimum `get_issue` Output Contract Mapping
+
+| Normalized Field | GitHub Response Field | Notes |
+|-----------------|----------------------|-------|
+| `identifier` | `number` (as string) | e.g. `"42"` |
+| `url` | `html_url` | Direct browser URL |
+| `title` | `title` | Issue title |
+| `status` | `state` (`open` / `closed`) | Map to normalized status |
+| `updatedAt` | `updated_at` | ISO 8601 timestamp |
 
 ## Field Mappings
 

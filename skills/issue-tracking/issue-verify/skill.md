@@ -14,7 +14,7 @@ coordination:
   internal: false
 ---
 
-# Issue Verification
+# Issue Identifier Verification
 
 > **Purpose:** Verify issue identifiers before referencing in commits, PRs, or documentation
 > **Pattern:** Evidence before assertion — verify existence before citing
@@ -91,7 +91,7 @@ Before committing with issue identifier:
 For bulk operations (changelog, sprint reports):
 
 ```markdown
-## Issue Verification Report
+## Issue Identifier Verification Report
 
 | Issue Identifier | Status | Title | Verified |
 |-----------------|--------|-------|----------|
