@@ -116,7 +116,11 @@ _parse_agent_gates() {
     done
 }
 case "$_agent_gates_source" in
-    HEAD) git show HEAD:.agent-gates 2>/dev/null | _parse_agent_gates ;;
+    # IMPORTANT: use process substitution (<(...)), NOT a pipeline, so _parse_agent_gates
+    # runs in the current shell and its variable assignments + _GATES_PARSE_ERRORS
+    # propagate back to this scope. A pipeline would run the function in a subshell
+    # and silently discard all parsed state.
+    HEAD) _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
     file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
 esac
 # Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
