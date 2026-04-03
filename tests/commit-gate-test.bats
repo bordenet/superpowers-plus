@@ -34,12 +34,18 @@ teardown() {
     [ -d "$token_content" ]
 }
 
-@test "token filename is a unix timestamp" {
+@test "token filename contains a unix timestamp field" {
     run bash "$TOOLS_DIR/harsh-review.sh"
     [ "$status" -eq 0 ]
-    local latest_token
+    local latest_token ts
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    [[ "$latest_token" =~ ^[0-9]+$ ]]
+    # Accepts both old format (pure epoch) and new format (<cksum>.<epoch>.<pid>)
+    if [[ "$latest_token" =~ ^[0-9]+$ ]]; then
+        ts="$latest_token"
+    else
+        ts=$(echo "$latest_token" | awk -F'.' '{print $2}')
+    fi
+    [[ "$ts" =~ ^[0-9]+$ ]]
 }
 
 @test "expired token is rejected by pre-commit token check logic" {
