@@ -11,7 +11,7 @@ Configuration for Jira issue tracking.
 | search_issues | `jira-api` or REST API | `GET /rest/api/3/search` with `jql` parameter |
 | get_issue | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` |
 | add_comment | `jira-api` or REST API | `POST /rest/api/3/issue/{key}/comment` |
-| verify_link | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
+| verify_link | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` — resolve URL to key, then call endpoint. Returns `{exists: true, identifier: "{key}", entityType: "issue"}` on success (Jira has no PR concept); returns `{exists: false, identifier: null, entityType: "unknown"}` on 404. |
 
 ## Environment Variables
 

@@ -59,8 +59,8 @@ Before any claim verification, confirm the target is a real, non-PR issue:
 
 1. Resolve the identifier (normalize `#42` → `42`, strip `owner/repo#` prefix)
 2. Call `get_issue` (or `verify_link` for URL-based targets) via your adapter
-3. If **not found**: stop — report identifier not found; do not comment
-4. If **platform returns a PR** (e.g., GitHub `pull_request` field is present): stop — route to PR/source-control workflow instead
+3. If **not found** (`exists: false`): stop — report identifier not found; do not comment
+4. If **`entityType` is `pull_request` or `other`**: stop — route to PR/source-control workflow instead; issue-commenting skills do not operate on non-issue targets
 
 If the adapter result is ambiguous (cross-workspace, network error), surface the uncertainty before proceeding.
 

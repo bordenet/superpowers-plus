@@ -44,7 +44,7 @@ Invoke this skill when:
 
 **Expected response for existing issue:**
 
-- Issue ID, title, status returned
+- Issue identifier, title, status returned
 
 **For non-existent issue:**
 
