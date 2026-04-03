@@ -170,7 +170,7 @@ Self-review is not review. The implementer cannot objectively evaluate their own
 |-----------|--------|
 | Made code changes (any `.ts`, `.js`, `.py`, `.sh`, etc.) | Dispatch `sub-agent-code-reviewer` with diff context |
 | Documentation-only changes | Skip code review (still verify links/content) |
-| Config-only changes (env, yaml) | Skip code review unless security-relevant |
+| Config-only changes (env, yaml, toml, json) | Treat as code — dispatch code review (push gate enforces sentinel for these types) |
 | Reviewer found issues | Fix issues, re-dispatch reviewer |
 | Reviewer approved | Proceed to Step 5 (Housekeeping) |
 
