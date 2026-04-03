@@ -25,7 +25,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 
 - **`azure-devops` issue tracker adapter** (`skills/issue-tracking/_adapters/azure-devops.md`) — Removed the shipped Azure DevOps adapter. Users who had `ISSUE_TRACKER_TYPE=azure-devops` should copy the deleted file from git history or recreate from `platform-template.md`. Migration: `git show origin/staging:skills/issue-tracking/_adapters/azure-devops.md > skills/issue-tracking/_adapters/azure-devops.md`. (#498)
-- **`tools/wiki-snapshot.sh`** — Removed Outline wiki pre-edit snapshot tool and its test suite (`tools/tests/test_wiki_snapshot.sh`). Users with shell automation calling this command will need to migrate to direct Outline API calls (`GET /api/v1/documents/{id}`). (#497)
+- **`tools/wiki-snapshot.sh`** — Removed Outline wiki pre-edit snapshot tool and its test suite (`tools/tests/test_wiki_snapshot.sh`). Users with shell automation calling this command will need to migrate to direct Outline API document-info calls (`POST /api/documents.info` with `{id: "<document-id>"}`). (#497)
 
 ### Fixed
 
