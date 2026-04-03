@@ -86,11 +86,11 @@ skills/{domain}/{skill-name}/
 
 ### Branching Model
 
-| Branch | Purpose | Accepts PRs from | Merges into |
-|--------|---------|-------------------|-------------|
-| `dev` | Active development | Feature/fix branches | `staging` |
-| `staging` | Final testing & validation | `dev` only | `main` |
-| `main` | Production releases | `staging` only | — |
+| Branch | Purpose | Accepts PRs from | Merges into | Cadence |
+|--------|---------|-------------------|-------------|---------|
+| `dev` | Active development | Feature/fix branches | `staging` | Frequent — per feature/fix |
+| `staging` | Batch validation | `dev` only | `main` | Deliberate — accumulate many changes |
+| `main` | Production releases | `staging` only | — | **Rare — explicit human decision** |
 
 ### Feature Initiation
 
@@ -99,7 +99,7 @@ All new feature or fix branches MUST branch from `dev`:
 ```bash
 git fetch origin
 git checkout -b feat/my-feature origin/dev
-# ... make changes, commit ...
+# ... make changes, commit, battery review ...
 git push origin feat/my-feature
 # Create PR on GitHub targeting dev → merge
 ```
@@ -107,17 +107,24 @@ git push origin feat/my-feature
 ### Promotion Path
 
 ```text
-feature-branch → PR → dev → PR → staging → PR → main
+feature-branch → PR → dev
+                         ↓ (many changes accumulate)
+                       staging  ← explicit human instruction only
+                         ↓ (rigorous batch review)
+                        main    ← explicit human instruction + review verdict
 ```
 
-1. **Dev:** Feature branches merge into `dev` via PR. CI must pass.
-2. **Staging:** `dev` merges into `staging` for final validation. No new features — only stabilization fixes branched from `staging`.
-3. **Production:** `staging` merges into `main` for release.
+1. **Dev:** Feature/fix branches merge into `dev` via PR. CI must pass. This is the normal cadence — frequent, per-change.
+2. **Staging:** `dev` merges into `staging` only when **explicitly instructed by the human**. Staging is a deliberate batch-collection point — do NOT promote after every feature. Wait until multiple verified changes are ready for release.
+3. **Production:** `staging` merges into `main` only when **explicitly instructed by the human** AND a batch code review of all staging changes has been completed and approved.
 
 ### Prohibitions
 
 - ❌ **NEVER** commit directly to `dev`, `staging`, or `main` — always use a branch + PR
 - ❌ **NEVER** branch features from `main` or `staging` (branch from `dev`)
+- ❌ **NEVER** promote `dev → staging` without explicit human instruction in the current conversation
+- ❌ **NEVER** promote `staging → main` without explicit human instruction + batch review approval
+- ❌ **NEVER** treat a single feature landing in `dev` as a reason to promote — staging must accumulate multiple verified changes
 - ✅ **Exception:** Emergency hotfixes may branch from `main`, PR into `main`, then cherry-pick back to `dev`
 
 ### Incident Log
@@ -126,3 +133,4 @@ feature-branch → PR → dev → PR → staging → PR → main
 |------|----------|
 | 2026-03-25 | Bulk wiki update destroyed 5 pages. New invariant: verify every write. |
 | 2026-03-28 | Migrated from two-tier (main) to three-tier (dev → staging → main). |
+| 2026-04-03 | Agents promoted staging→main too eagerly. New rule: staging and main promotions require explicit human instruction + batch review. |
