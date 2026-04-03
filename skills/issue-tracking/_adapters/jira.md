@@ -34,6 +34,8 @@ Example: `https://mycompany.atlassian.net/browse/PROJ-123`
 
 | Normalized Field | Jira Response Field | Notes |
 |-----------------|---------------------|-------|
+| `exists` | HTTP 200 = `true`; 404 = `false` | Check HTTP status |
+| `entityType` | Always `"issue"` on 200; `"unknown"` on 404 | Jira has no PR concept; no rejection needed for entityType |
 | `identifier` | `key` | e.g. `"PROJ-123"` |
 | `url` | Construct: `{baseUrl}/browse/{key}` | Not directly in response body |
 | `title` | `fields.summary` | Issue title |
