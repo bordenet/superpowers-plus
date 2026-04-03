@@ -110,7 +110,7 @@ If the PR or associated documentation makes claims about external system state, 
 | URLs and links | Fetch or query to confirm they resolve |
 | Dependency versions | Check lockfile or manifest directly |
 
-**PR platform gotcha:** Some PR platforms (e.g., Azure DevOps) generate a preview merge commit for every open PR. This does NOT mean the PR is merged. Always check the PR status field via the API before concluding a merge occurred.
+**PR platform gotcha:** Some PR platforms generate a preview merge commit for every open PR. This does NOT mean the PR is merged. Always check the PR status field via the API before concluding a merge occurred.
 
 ## The Review Gate Function
 
