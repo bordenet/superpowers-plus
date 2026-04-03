@@ -37,30 +37,30 @@ When investigating bugs that span multiple systems, use these patterns to gather
 
 ---
 
-## Azure DevOps (via MCP tools)
+## CI / Issue Tracker (via your configured MCP tools)
 
 ### Pipeline Run Analysis
 
 | Pattern | When to Use | Evidence Source |
 |---------|-------------|----------------|
-| Check recent pipeline runs | Build/deploy failures | `ado:<project>` |
-| Compare pipeline logs across runs | Intermittent failures | `ado:<project>` |
-| Review PR merge history | Regression hunting | `ado:<project>` |
-| Check work item state transitions | Process issues | `ado:<project>` |
+| Check recent pipeline runs | Build/deploy failures | `ci:<project>` |
+| Compare pipeline logs across runs | Intermittent failures | `ci:<project>` |
+| Review PR merge history | Regression hunting | `ci:<project>` |
+| Check work item state transitions | Process issues | `ci:<project>` |
 
 ### Process
 
-1. **Identify the project** — use `core_list_projects_azure-devops`
-2. **Find relevant pipelines/PRs** — use `repo_list_pull_requests_by_repo_or_project_azure-devops`
-3. **Check commit history** — use `repo_search_commits_azure-devops` with date filters
-4. **Log finding** — record source as `ado:<project-name>`
+1. **Identify the project** — use your issue tracker's project-list MCP tool
+2. **Find relevant pipelines/PRs** — use your VCS MCP's list-pull-requests operation
+3. **Check commit history** — use your VCS MCP's commit-search operation with date filters
+4. **Log finding** — record source as `ci:<project-name>`
 
 ### Work Item State Tracing
 
 When a bug correlates with a work item change:
 
-1. Get the work item: `wit_get_work_item_azure-devops`
-2. Check revisions: `wit_list_work_item_revisions_azure-devops`
+1. Get the work item using your issue tracker's get-issue MCP operation
+2. Check revision history using your issue tracker's list-revisions MCP operation
 3. Look for state changes that correlate with the bug's first appearance
 
 ---

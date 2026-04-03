@@ -9,7 +9,7 @@ This skill set supports multiple issue tracking platforms through adapters.
 | Your current issue tracker | See your local adapter docs | ⚙️ Configure locally |
 | GitHub Issues | `github-api` | ✅ Full support |
 | Jira | `jira-api` (if available) | 🔶 Partial |
-| Azure DevOps | `wit_create_work_item_azure-devops`, etc. | ✅ Full support |
+| Other platforms | Use `platform-template.md` to create your own adapter | ⚙️ Bring your own |
 
 ## Configuration
 
@@ -26,7 +26,7 @@ See the adapter documentation for your platform:
 - [platform-template.md](./platform-template.md) - Provider-neutral adapter template
 - [github-issues.md](./github-issues.md) - GitHub Issues setup
 - [jira.md](./jira.md) - Jira setup
-- [azure-devops.md](./azure-devops.md) - Azure DevOps setup
+
 
 ## Adding New Adapters
 
