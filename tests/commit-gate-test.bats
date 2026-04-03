@@ -436,6 +436,49 @@ EOF
     [[ "$output" == *"requires a value"* ]]
 }
 
+@test "loose-ends.sh add exits with error when next token after --desc is another flag" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/loose-ends.sh" add --desc --note foo
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"requires a value"* ]]
+}
+
+@test "pre-commit blocks when .agent-gates has inline comment on boolean key" {
+    # Inline comment (true # comment) must be stripped before validation;
+    # gate-enabling behavior must not be broken by trailing comment text.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Stage .agent-gates with inline comment on sentinel flag (HEAD has no .agent-gates)
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=true # enable sentinel" > "$fixture/.agent-gates"
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    # No .code-review-cleared present — sentinel check must block
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
+
+@test "pre-commit blocks and emits error when committed .agent-gates has invalid boolean value" {
+    # Validation fires when the committed (HEAD) .agent-gates has a bad value.
+    # In first-commit scenarios (no HEAD .agent-gates), the parser skips the staged
+    # version by design (fail-safe default) — this test covers the HEAD-present path.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Commit a .agent-gates with an invalid boolean value into HEAD
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "add invalid agent-gates"
+    # Now stage a code change — parser will read .agent-gates from the new HEAD
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
 @test "commit-gate.sh fails on broken extensionless hook when repo has no upstream (fail-closed)" {
     # Regression: with no remote/upstream, resolve_diff_base() previously returned
     # "origin/main" which didn't exist, so git diff returned nothing and the gate
