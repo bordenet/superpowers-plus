@@ -34,8 +34,8 @@ Example: `https://mycompany.atlassian.net/browse/PROJ-123`
 
 | Normalized Field | Jira Response Field | Notes |
 |-----------------|---------------------|-------|
-| `exists` | HTTP 200 = `true`; 404 = `false` | Check HTTP status |
-| `entityType` | Always `"issue"` on 200; `"unknown"` on 404 | Jira has no PR concept; no rejection needed for entityType |
+| `exists` | HTTP 200 = `true`; 404 = `false`; 401/403 or cross-project permission failure = `null` | Check HTTP status. `null` = cannot determine (permission ambiguity) |
+| `entityType` | Always `"issue"` on 200; `"unknown"` on 404 or 401/403 | Jira has no PR concept; no `pull_request`/`other` rejection needed; `unknown` only on not-found or permission errors |
 | `identifier` | `key` | e.g. `"PROJ-123"` |
 | `url` | Construct: `{baseUrl}/browse/{key}` | Not directly in response body |
 | `title` | `fields.summary` | Issue title |
