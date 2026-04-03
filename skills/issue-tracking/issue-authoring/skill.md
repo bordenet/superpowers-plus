@@ -50,7 +50,7 @@ Before calling your adapter's `create_issue` operation:
 - [ ] **Verify issue cross-references** — For **issue identifiers or issue URLs** in the description (e.g., `Related: [IDENTIFIER]`, `Closes: [URL]`), run `issue-verify` first:
   - `entityType: "issue"` + `exists: true` → proceed
   - `entityType: "pull_request"` or `"other"` → **HARD BLOCK** — do not create the issue with a broken cross-reference
-  - `entityType: "unknown"` → **WARN** — stop and require **explicit user confirmation** (silence/unclear/off-topic/echo does not count) before including the reference
+  - `entityType: "unknown"` → **WARN** — stop and require **explicit user confirmation** (silence, unclear, off-topic, echo, and partial responses do not count as approval) before including the reference
   - `exists: false` → **HARD BLOCK** — do not reference a non-existent issue
   - PR links, wiki links, repo URLs, and external references do not go through this check — use `issue-link-verification`'s type-specific policy for those.
 - [ ] **Title follows format** — See Title Standards below
