@@ -1,9 +1,9 @@
 ---
 name: issue-verify
 source: superpowers-plus
-triggers: ["verify issue", "check if ticket exists", "[KEY-XXX] in commit message", "link PR to issue"]
+triggers: ["verify issue", "check if ticket exists", "issue identifier in commit message", "link PR to issue"]
 anti_triggers: ["create issue", "update issue", "edit ticket"]
-description: Use when referencing issues in documentation, commits, or PRs. Verifies issue keys exist, validates cross-references.
+description: Use when referencing issues in documentation, commits, or PRs. Verifies issue identifiers exist, validates cross-references.
 summary: "Use when: referencing issues in docs, commits, or PRs."
 coordination:
   group: issue-tracking
@@ -16,7 +16,7 @@ coordination:
 
 # Issue Verification
 
-> **Purpose:** Verify issue keys before referencing in commits, PRs, or documentation
+> **Purpose:** Verify issue identifiers before referencing in commits, PRs, or documentation
 > **Pattern:** Evidence before assertion — verify existence before citing
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
@@ -28,11 +28,11 @@ coordination:
 
 Invoke this skill when:
 
-- Writing commit messages with `[KEY-XXX]` prefixes
+- Writing commit messages with issue identifier prefixes
 - Linking PRs to issues
 - Documenting issues in wiki pages
 - Cross-referencing issues in changelogs
-- Any time you reference an issue key outside your tracker
+- Any time you reference an issue identifier outside your tracker
 
 ---
 
@@ -77,9 +77,9 @@ When linking PRs to issues:
 
 ### Commit Messages with Issue Keys
 
-**Required format:** `[KEY-XXX] Brief description`
+**Recommended format:** `[IDENTIFIER] Brief description` (use the exact identifier format your tracker uses — e.g. `PROJ-123`, `#42`, or `TICKET-456`)
 
-Before committing with issue key:
+Before committing with issue identifier:
 
 1. Verify issue exists
 2. Verify issue is in appropriate state (not Done/Closed unless reopening)
@@ -108,7 +108,7 @@ Summary: 2 verified, 1 not found
 
 <EXTREMELY_IMPORTANT>
 
-**AI assistants commonly hallucinate issue keys based on:**
+**AI assistants commonly hallucinate issue identifiers based on:**
 
 - Sequential patterns (KEY-100 exists, so KEY-101 must too)
 - Memory from previous conversations
@@ -123,7 +123,7 @@ Summary: 2 verified, 1 not found
 ## Verification Checklist
 
 ```text
-Before referencing ANY issue key:
+Before referencing ANY issue identifier:
 1. QUERY — Use get_issue for exact identifier lookup (or verify_link for URL-based verification)
 2. VERIFY — Issue exists and is in expected state
 3. FETCH — Get actual title (don't guess)
