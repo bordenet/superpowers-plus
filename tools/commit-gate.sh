@@ -5,7 +5,7 @@
 #          Orchestrates: lint → typecheck → test → harsh-review
 #          On success, harsh-review.sh writes the proof token that
 #          the pre-commit hook verifies.
-# USAGE: bash tools/commit-gate.sh [--skip-review]
+# USAGE: bash tools/commit-gate.sh
 # EXIT: 0 = all gates pass (token written), 1 = gate failed
 # -----------------------------------------------------------------------------
 set -euo pipefail
@@ -25,22 +25,35 @@ else
 fi
 
 # Options
-SKIP_REVIEW=false
 for arg in "$@"; do
     case "$arg" in
-        --skip-review) SKIP_REVIEW=true ;;
         --help|-h)
-            echo "Usage: commit-gate.sh [--skip-review]"
-            echo "  --skip-review  Skip harsh-review (still runs lint/typecheck/test)"
+            echo "Usage: commit-gate.sh"
             exit 0
             ;;
     esac
 done
 
-# Load .agent-gates if present
+# Load .agent-gates if present (safely parsed, not sourced)
 if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
-    # shellcheck source=/dev/null
-    source "$REPO_ROOT/.agent-gates"
+    while IFS='=' read -r _key _remainder; do
+        # Skip blank lines and comment lines
+        [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+        # Trim whitespace from key
+        _key="${_key//[[:space:]]/}"
+        # Only accept known keys; ignore everything else silently
+        case "$_key" in
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN)
+                # Trim leading/trailing whitespace and strip surrounding quotes
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            *) ;;
+        esac
+    done < "$REPO_ROOT/.agent-gates"
 fi
 
 echo ""
@@ -68,16 +81,23 @@ for GATE_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
 done
 
 # Run harsh-review.sh (writes token on success)
-if [[ "$SKIP_REVIEW" == "false" ]]; then
-    printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
-    if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
-        printf '%b\n' "${GREEN}  ✓ harsh-review passed (token written)${NC}"
+printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
+if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
+    # Verify token was actually written
+    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+    # shellcheck disable=SC2012
+    LATEST_TOKEN=$(ls -t "$REVIEW_TOKEN_DIR" 2>/dev/null | head -1 || true)
+    if [[ -n "$LATEST_TOKEN" ]] && grep -q "$REPO_ROOT" "$REVIEW_TOKEN_DIR/$LATEST_TOKEN" 2>/dev/null; then
+        printf '%b\n' "${GREEN}  ✓ harsh-review passed (token verified)${NC}"
     else
-        printf '%b\n' "${RED}  ✗ harsh-review failed${NC}"
+        printf '%b\n' "${RED}  ✗ harsh-review passed, but token write failed${NC}"
         ((ERRORS++))
     fi
-    ((STEP++))
+else
+    printf '%b\n' "${RED}  ✗ harsh-review failed${NC}"
+    ((ERRORS++))
 fi
+((STEP++))
 
 # Result
 echo ""
