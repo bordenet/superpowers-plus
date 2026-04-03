@@ -56,48 +56,43 @@ Capture immediately when you write any of these explicit commitment-to-defer phr
 
 ### Rule 1: Capture or Block
 
-Deferral language detected → record immediately with justification:
+Deferral language detected → record immediately using the enforcing wrapper:
 
 ```bash
-~/.codex/superpowers-plus/tools/todo-crud.sh add \
-  --priority P3 \
-  --description "<what was deferred> — deferred at <context>" \
-  --note "Deferred reason: <why it can't be done now>" \
-  --tags "#loose-end"
+~/.codex/superpowers-plus/tools/loose-ends.sh add \
+  --desc "<what was deferred> — deferred at <context>" \
+  --note "<why it can't be done now>"
 ```
 
-**Dedup check first:** Before adding, run the audit command below and scan for the same core item. If already present with `#loose-end`, skip — do not double-record.
+`loose-ends.sh add` **enforces `--note` at the shell level** — it will refuse to record without a justification, so there is no way to accidentally omit it.
 
-**Justification is required at creation time.** There is no supported way to retrofit a note to an existing task. If you cannot state a deferral reason, the item should be resolved, not deferred.
+**Dedup check first:** Run `loose-ends.sh check` and scan for the same core item. If already present, skip — do not double-record.
 
-NEVER allow deferral-language to pass without either (a) recording with `--note` or (b) resolving immediately.
+NEVER allow deferral-language to pass without either (a) recording via `loose-ends.sh add` or (b) resolving immediately.
 
 ### Rule 2: Audit at Milestones
 
-At any natural session milestone (before a commit, at session end, before a completion claim), audit:
+At any natural session milestone (before a commit, at session end, before a completion claim), run the single audit command:
 
 ```bash
-# Step A — Count (clean = count:0)
-~/.codex/superpowers-plus/tools/todo-crud.sh --json list --tag "#loose-end" --all 2>&1
-# Returns: {"tasks": [...], "count": N}
-# count: 0 = clean. count > 0 = review each task.
-
-# Step B — Inspect notes on any found items (to verify justification exists)
-~/.codex/superpowers-plus/tools/todo-crud.sh cat 2>&1 | grep -A 3 "#loose-end"
-# Each item block shows "Added:" and any "- Note:" lines.
+~/.codex/superpowers-plus/tools/loose-ends.sh check
 ```
 
-`--all` is required to surface items moved to DEFERRED.
+`loose-ends.sh check` handles both count and note inspection in one call. Exit 0 = clean. Non-zero exit = items require review (count shown). `--all` is handled internally so deferred items are always surfaced.
 
 ### Rule 3: Completion Gate
 
-Before claiming any work is complete:
+Before claiming any work is complete, run:
 
-- [ ] Step A returns `count: 0`, OR all listed items have been reviewed
+```bash
+~/.codex/superpowers-plus/tools/loose-ends.sh check
+```
+
+- [ ] Exit 0 (clean), OR all listed items reviewed and classified
 - [ ] Any `must-address` item is fully resolved
-- [ ] Any `deferred` item: Step B confirms a note/reason line is present in its block
+- [ ] Any `deferred` item shows a note/reason line in the output
 
-Items with no observable justification note → **BLOCK completion** → resolve or escalate to human.
+Items with no observable justification → **BLOCK completion** → resolve or escalate to human.
 
 ### Rule 4: Session-End Sweep
 
