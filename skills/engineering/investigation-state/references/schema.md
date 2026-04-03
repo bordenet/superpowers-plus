@@ -156,7 +156,7 @@ The `source` field is freeform text. Common patterns:
 | Pattern | Example | Meaning |
 |---------|---------|---------|
 | `db:<connection>` | `db:example-conn` | Database query via named connection |
-| `ci:<project>` | `ci:my-project` | CI/issue tracker (pipelines, work items) |
+| `ci:<project>` | `ci:<project>` | CI/issue tracker (pipelines, work items) |
 | `linear` | `linear` | Linear issue tracker |
 | `wiki` | `wiki` | Wiki platform |
 | `local:<tool>` | `local:grep` | Local tool (grep, find, cat, etc.) |

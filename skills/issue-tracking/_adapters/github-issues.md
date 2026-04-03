@@ -11,6 +11,7 @@ Configuration for GitHub Issues tracking.
 | search_issues | `github-api` | `GET /search/issues` |
 | get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` |
 | add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments` |
+| verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue |
 
 ## Environment Variables
 

@@ -11,6 +11,7 @@ Configuration for Jira issue tracking.
 | search_issues | JQL queries |
 | get_issue | `jira-api` or REST API |
 | add_comment | `jira-api` or REST API |
+| verify_link | `jira-api` or REST API — `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
 
 ## Environment Variables
 

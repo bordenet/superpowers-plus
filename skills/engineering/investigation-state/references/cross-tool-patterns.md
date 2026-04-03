@@ -53,7 +53,7 @@ When investigating bugs that span multiple systems, use these patterns to gather
 1. **Identify the project** — use your issue tracker's project-list MCP tool
 2. **Find relevant pipelines/PRs** — use your VCS MCP's list-pull-requests operation
 3. **Check commit history** — use your VCS MCP's commit-search operation with date filters
-4. **Log finding** — record source as `ci:<project-name>`
+4. **Log finding** — record source as `ci:<project>`
 
 ### Work Item State Tracing
 
