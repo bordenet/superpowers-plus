@@ -159,7 +159,7 @@ Copy `.env.example` to `.env` for optional integrations:
 
 | Variable | Purpose |
 |----------|---------|
-| `ISSUE_TRACKER_TYPE` | Adapter key; shipped adapters: `github`, `jira`, `azure-devops` |
+| `ISSUE_TRACKER_TYPE` | Adapter key; shipped adapters: `github`, `jira`; see `skills/issue-tracking/_adapters/platform-template.md` for others |
 | `WIKI_PLATFORM` | Adapter key; see `skills/wiki/_adapters/platform-template.md` to add yours |
 | `PERPLEXITY_API_KEY` | Enables deep research escalation (~$0.01/query) |
 | `THINK_TWICE_USE_PERPLEXITY` | `false` by default; set `true` to let think-twice escalate to Perplexity |
