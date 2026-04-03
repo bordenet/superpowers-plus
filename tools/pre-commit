@@ -54,7 +54,7 @@ if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
         _key="${_key//[[:space:]]/}"
         # Only accept known keys; ignore everything else silently
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN)
                 # Trim leading/trailing whitespace and strip surrounding quotes
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
