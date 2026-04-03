@@ -50,22 +50,19 @@ cmd_check() {
     # Each item block is buffered in full so Note: lines that appear after the
     # #loose-end tag are visible. Count = number of task-ID lines in output.
     raw_output=$("$TODO_CRUD" cat 2>/dev/null | awk '
-        /^# ACTIVE TASKS/ { section="active";   in_block=0; found_tag=0; block=""; next }
-        /^# HISTORY/      { section="history";  in_block=0; found_tag=0; block=""; next }
-        /^# DEFERRED/     { section="deferred"; in_block=0; found_tag=0; block=""; next }
-        /^# /             { section="other";    in_block=0; found_tag=0; block=""; next }
-        section == "history" || section == "other" { next }
-        /\[20[0-9]{6}-[0-9]+\]/ {
-            if (in_block && found_tag) print block
-            in_block=1; found_tag=0; block=""
-        }
-        in_block { block = block "\n" $0 }
-        in_block && /#loose-end/ { found_tag=1 }
-        /^[[:space:]]*$/ {
+        function flush_block() {
             if (in_block && found_tag) print block
             in_block=0; found_tag=0; block=""
         }
-        END { if (in_block && found_tag) print block }
+        /^# ACTIVE TASKS/ { flush_block(); section="active";   next }
+        /^# HISTORY/      { flush_block(); section="history";  next }
+        /^# DEFERRED/     { flush_block(); section="deferred"; next }
+        /^# /             { flush_block(); section="other";    next }
+        section == "history" || section == "other" { next }
+        /\[20[0-9]{6}-[0-9]+\]/ { flush_block(); in_block=1; block="" }
+        in_block { block = block "\n" $0 }
+        in_block && /#loose-end/ { found_tag=1 }
+        END { flush_block() }
     ' || true)
 
     count=$(printf '%s\n' "$raw_output" | grep -cE '\[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)

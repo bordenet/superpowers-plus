@@ -129,6 +129,80 @@ teardown() {
     [ "$after_count" -le "$before_count" ]
 }
 
+@test "expired new-format token is rejected by pre-commit token check logic" {
+    # Test new <cksum>.<epoch>.<pid> filename format with expired epoch
+    local old_ts=$(($(date +%s) - 600))
+    local repo_root
+    repo_root=$(cd "$TOOLS_DIR/.." && pwd -P 2>/dev/null || cd "$TOOLS_DIR/.." && pwd)
+    local cksum_val pid_val
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    pid_val=99999
+    echo "$repo_root" > "$REVIEW_TOKEN_DIR/${cksum_val}.${old_ts}.${pid_val}"
+
+    local NOW TTL FOUND_VALID
+    NOW=$(date +%s)
+    TTL=300
+    FOUND_VALID=false
+    for tf in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$tf" ]] || continue
+        local b ts age
+        b=$(basename "$tf")
+        if [[ "$b" =~ ^[0-9]+$ ]]; then ts="$b"; else ts=$(echo "$b" | awk -F'.' '{print $2}'); fi
+        [[ "$ts" =~ ^[0-9]+$ ]] || continue
+        age=$((NOW - ts))
+        if [[ $age -le $TTL ]]; then
+            tr=$(cat "$tf" 2>/dev/null || true)
+            [[ "$tr" == "$repo_root" ]] && FOUND_VALID=true && break
+        fi
+    done
+    [ "$FOUND_VALID" = "false" ]
+}
+
+@test "wrong-repo new-format token is rejected by pre-commit token check logic" {
+    local ts
+    ts=$(date +%s)
+    local repo_root
+    repo_root=$(cd "$TOOLS_DIR/.." && pwd -P 2>/dev/null || cd "$TOOLS_DIR/.." && pwd)
+    local cksum_val
+    cksum_val=$(printf '%s' "/some/other/repo" | cksum | awk '{print $1}')
+    echo "/some/other/repo" > "$REVIEW_TOKEN_DIR/${cksum_val}.${ts}.99998"
+
+    local NOW TTL FOUND_VALID
+    NOW=$ts
+    TTL=300
+    FOUND_VALID=false
+    for tf in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$tf" ]] || continue
+        local b fts age
+        b=$(basename "$tf")
+        if [[ "$b" =~ ^[0-9]+$ ]]; then fts="$b"; else fts=$(echo "$b" | awk -F'.' '{print $2}'); fi
+        [[ "$fts" =~ ^[0-9]+$ ]] || continue
+        age=$((NOW - fts))
+        if [[ $age -le $TTL ]]; then
+            tr=$(cat "$tf" 2>/dev/null || true)
+            [[ "$tr" == "$repo_root" ]] && FOUND_VALID=true && break
+        fi
+    done
+    [ "$FOUND_VALID" = "false" ]
+}
+
+@test "commit-gate.sh exits nonzero when harsh-review writes no token" {
+    # Verify that a stub harsh-review.sh that exits 0 but writes no token
+    # causes commit-gate.sh to report failure (stale-proof gate).
+    local tmp_repo
+    tmp_repo=$(mktemp -d)
+    git -C "$tmp_repo" init -q
+    mkdir -p "$tmp_repo/tools" "$tmp_repo/tests"
+    cp "$TOOLS_DIR/commit-gate.sh" "$tmp_repo/tools/"
+    # Stub harsh-review.sh: exits 0 but writes no token
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$tmp_repo/tools/harsh-review.sh"
+    chmod +x "$tmp_repo/tools/harsh-review.sh"
+    printf 'SKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
+    run bash "$tmp_repo/tools/commit-gate.sh"
+    rm -rf "$tmp_repo"
+    [ "$status" -ne 0 ]
+}
+
 @test "commit-gate.sh runs without error" {
     run bash "$TOOLS_DIR/commit-gate.sh"
     [ "$status" -eq 0 ]
