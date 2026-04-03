@@ -29,7 +29,7 @@ When investigating bugs that span multiple systems, use these patterns to gather
 
 ```json
 {
-  "source": "mssql:staging-db",
+  "source": "db:example-conn",
   "finding": "Users table has 1,247 rows; expected 1,500 after migration. 253 rows missing.",
   "timestamp": "2026-03-23T14:35:00Z"
 }

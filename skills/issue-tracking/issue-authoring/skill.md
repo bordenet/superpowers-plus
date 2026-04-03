@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 anti_triggers: ["update ticket", "edit issue", "change status", "close ticket"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
-summary: "Use when: creating issues in a supported tracker (GitHub, Jira, Azure DevOps). Skip when: updating existing issues."
+summary: "Use when: creating issues in your configured tracker (shipped adapters: GitHub, Jira; custom via skills/issue-tracking/_adapters/platform-template.md). Skip when: updating existing issues."
 coordination:
   group: issue-tracking
   order: 0

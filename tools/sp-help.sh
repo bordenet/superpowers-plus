@@ -261,7 +261,6 @@ show_skills() {
 
     echo -e "  ${WHITE}${total}${RESET} skills installed across ${WHITE}${num_sources}${RESET} sources"
     echo ""
-    echo ""
 }
 
 show_summary() {
