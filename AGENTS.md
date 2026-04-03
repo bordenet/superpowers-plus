@@ -124,7 +124,8 @@ feature-branch → PR → dev
 - ❌ **NEVER** branch features from `main` or `staging` (branch from `dev`)
 - ❌ **NEVER** promote `dev → staging` without explicit human instruction in the current conversation
 - ❌ **NEVER** promote `staging → main` without explicit human instruction + batch review approval
-- ❌ **NEVER** treat a single feature landing in `dev` as a reason to promote — staging must accumulate multiple verified changes
+- ❌ **NEVER** infer that a single feature landing in `dev` justifies promotion — staging must accumulate multiple verified changes. Explicit human instruction to promote a single fix is still allowed.
+- ❌ **NEVER** treat prior promotion authorization as valid after context compaction or sub-agent handoff — the human must restate the instruction in the current active turn
 - ✅ **Exception:** Emergency hotfixes may branch from `main`, PR into `main`, then cherry-pick back to `dev`
 
 ### Incident Log

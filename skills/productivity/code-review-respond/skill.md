@@ -2,6 +2,7 @@
 name: code-review-respond
 source: superpowers-plus
 description: Use when acting as the reviewer agent for a ~/.codex/superpowers-review/ request.md → response.md file protocol handoff
+summary: "Use when: you ARE the reviewer agent reading a superpowers-review request.md. Skip when: sending work to a reviewer or reviewing a PR directly."
 triggers: ["I am the reviewer agent", "read request.md", "reviewer agent protocol", "superpowers-review respond"]
 anti_triggers: ["send to reviewer", "execute reviewer findings", "review my PR", "pre-commit"]
 coordination:
