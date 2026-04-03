@@ -283,7 +283,8 @@ async function main() {
       ].join('\n'));
 
       // Malformed-bracket fixture A: unclosed anti_triggers (antiTriggerAccum path).
-      // Description placed AFTER so old parser swallows it; guarded parser preserves it.
+      // Description placed AFTER in no-space form ("description:\"...\"") — the narrower
+      // /^\w+:(?:\s|$)/ guard would miss this; /^\w+:(?:[^/]|$)/ correctly detects it.
       const malformedDir = path.join(tmpDir, 'malformed-bracket-guard-test');
       mkdirSync(malformedDir, { recursive: true });
       writeFileSync(path.join(malformedDir, 'skill.md'), [
@@ -291,14 +292,15 @@ async function main() {
         'name: malformed-bracket-guard-test',
         'triggers: ["alpha", "beta"]',
         'anti_triggers: ["unclosed',
-        'description: "payload correctly parsed"',
+        'description:"payload correctly parsed"',
         '---',
         '# Malformed bracket guard test',
         '',
       ].join('\n'));
 
       // Malformed-bracket fixture B: unclosed triggers (triggerAccum path).
-      // Separately exercises the triggerAccum guard in superpowers-mcp.js.
+      // Also uses no-space description to prove both accumulator paths and the
+      // broader key-detection regex are exercised.
       const malformedTriggersDir = path.join(tmpDir, 'malformed-trigger-guard-test');
       mkdirSync(malformedTriggersDir, { recursive: true });
       writeFileSync(path.join(malformedTriggersDir, 'skill.md'), [
@@ -306,7 +308,7 @@ async function main() {
         'name: malformed-trigger-guard-test',
         'anti_triggers: ["known", "good"]',
         'triggers: ["unclosed',
-        'description: "trigger-guard payload parsed"',
+        'description:"trigger-guard payload parsed"',
         '---',
         '# Malformed trigger guard test',
         '',

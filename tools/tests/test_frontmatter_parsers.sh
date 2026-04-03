@@ -131,12 +131,14 @@ run_parser_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superp
 # makes the test discriminating for both consumers.
 # Old parser (no guard): swallows description line into triggerAccum → description empty.
 # Guarded parser: abandons accumulation on new YAML key → description preserved.
+# Uses no-space form `description:"..."` to prove the guard covers that syntax too
+# (the narrower /^\w+:(?:\s|$)/ would NOT detect this; /^\w+:(?:[^/]|$)/ does).
 cat > "$MALFORMED_SKILL" <<'EOF'
 ---
 name: malformed-bracket-guard-test
 anti_triggers: ["known", "good"]
 triggers: ["unclosed
-description: "payload correctly parsed"
+description:"payload correctly parsed"
 ---
 Body.
 EOF
@@ -152,7 +154,7 @@ cat > "$MALFORMED_MCP_SKILL" <<'EOF'
 name: malformed-mcp-guard-test
 triggers: ["alpha"]
 requires_mcp: ["unclosed
-description: "mcp-guard payload parsed"
+description:"mcp-guard payload parsed"
 ---
 Body.
 EOF

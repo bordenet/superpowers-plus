@@ -178,12 +178,13 @@ function extractFrontmatter(filePath) {
       }
       if (inFrontmatter) {
         // Handle bracket-multiline accumulation.
-        // Guard: /^\w+:(?:\s|$)/ detects a new top-level key starting before the
+        // Guard: /^\w+:(?:[^/]|$)/ detects a new top-level key starting before the
         // bracket closes (malformed frontmatter). Abandon accumulation and fall
         // through so the current line is parsed normally (fail-safe, not fail-swallow).
-        // Using /^\w+:(?:\s|$)/ avoids false positives on URL values (http://...).
+        // Matches "key: value", "key:value", and "key:"; excludes URL continuations
+        // (http://...) where the character after the colon is a slash.
         if (triggerAccum !== null) {
-          if (line.match(/^\w+:(?:\s|$)/)) { triggerAccum = null; }
+          if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }
           else {
             triggerAccum += ' ' + line.trim();
             if (hasUnquotedClosingBracket(triggerAccum)) {
@@ -194,7 +195,7 @@ function extractFrontmatter(filePath) {
           }
         }
         if (antiTriggerAccum !== null) {
-          if (line.match(/^\w+:(?:\s|$)/)) { antiTriggerAccum = null; }
+          if (line.match(/^\w+:(?:[^/]|$)/)) { antiTriggerAccum = null; }
           else {
             antiTriggerAccum += ' ' + line.trim();
             if (hasUnquotedClosingBracket(antiTriggerAccum)) {
