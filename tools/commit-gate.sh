@@ -36,25 +36,62 @@ for arg in "$@"; do
 done
 
 # Load .agent-gates if present (safely parsed, not sourced)
-if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
+# Mirrors the pre-commit parser: EXTRA_* commands keep '#'; scalar/boolean/numeric
+# keys have inline comments stripped and their values validated.
+_GATES_PARSE_ERRORS=0
+_parse_agent_gates_cg() {
+    local _key _remainder _val
     while IFS='=' read -r _key _remainder; do
-        # Skip blank lines and comment lines
         [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
-        # Trim whitespace from key
         _key="${_key//[[:space:]]/}"
-        # Only accept known keys; ignore everything else silently
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
-                # Trim leading/trailing whitespace and strip surrounding quotes
+            EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST)
+                # Command strings: do NOT strip '#' — they may contain '#' literally.
+                # Trim surrounding whitespace, then strip a MATCHING pair of quotes only
+                # (not individual leading/trailing quotes which would mangle commands that
+                # use quotes internally, e.g. EXTRA_TEST=printf '# ok\n').
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                if [[ "${_remainder:0:1}" == '"' && "${_remainder: -1}" == '"' && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                elif [[ "${_remainder:0:1}" == "'" && "${_remainder: -1}" == "'" && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                fi
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                # Scalar/boolean/numeric: strip inline comments, then validate.
+                _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
                 _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
                 _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
-                printf -v "$_key" '%s' "$_remainder"
+                _val="$_remainder"
+                case "$_key" in
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                        if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                            echo "✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                    REVIEW_TOKEN_TTL)
+                        # Require positive integer > 0; TTL=0 causes instant expiry
+                        if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                            echo "✗ .agent-gates: invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                esac
+                printf -v "$_key" '%s' "$_val"
                 ;;
             *) ;;
         esac
-    done < "$REPO_ROOT/.agent-gates"
+    done
+}
+[[ -f "$REPO_ROOT/.agent-gates" ]] && _parse_agent_gates_cg < "$REPO_ROOT/.agent-gates"
+if [[ "$_GATES_PARSE_ERRORS" -gt 0 ]]; then
+    echo "✗ .agent-gates has $_GATES_PARSE_ERRORS invalid value(s) — fix before committing" >&2
+    exit 1
 fi
 
 echo ""

@@ -31,12 +31,14 @@ FIX_MODE=false
 FIX_SAFE=false
 SUMMARY_ONLY=false
 PURGE_ORPHANS=false
+FAIL_ON_FINDINGS=false
 for arg in "$@"; do
   case "$arg" in
-    --fix-safe)       FIX_SAFE=true; FIX_MODE=true ;;
-    --fix)            FIX_MODE=true ;;
-    --purge-orphans)  PURGE_ORPHANS=true ;;
-    --summary-only)   SUMMARY_ONLY=true ;;
+    --fix-safe)          FIX_SAFE=true; FIX_MODE=true ;;
+    --fix)               FIX_MODE=true ;;
+    --purge-orphans)     PURGE_ORPHANS=true ;;
+    --summary-only)      SUMMARY_ONLY=true ;;
+    --fail-on-findings)  FAIL_ON_FINDINGS=true ;;
   esac
 done
 
@@ -1446,3 +1448,9 @@ if [[ "$FIX_MODE" == "true" && "$FIXED" -gt 0 ]]; then
   echo "  📁 Backups: $BACKUP_DIR"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# --fail-on-findings: opt-in nonzero exit when any finding exists.
+# Default behavior (report-only) is preserved for all other callers.
+if [[ "$FAIL_ON_FINDINGS" == "true" && "$TOTAL" -gt 0 ]]; then
+  exit 1
+fi
