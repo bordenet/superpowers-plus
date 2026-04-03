@@ -14,7 +14,7 @@ All six operations defined in `adapter-interface.md` must be documented here.
 | `get_issue` | _fill in_ | Returns full issue details by exact platform-native identifier (key, number, or ID). **Must satisfy the minimum output contract (see below).** |
 | `search_issues` | _fill in_ | Query syntax for this platform |
 | `add_comment` | _fill in_ | Adds text comment to an existing issue |
-| `verify_link` | _fill in_ | Returns structured result: `{exists: bool, identifier: string\|null, entityType: "issue"\|"pull_request"\|"other"\|"unknown"}`. Document how your platform maps its response to `entityType`. |
+| `verify_link` | _fill in_ | Returns structured result: `{exists: boolean\|null, identifier: string\|null, entityType: "issue"\|"pull_request"\|"other"\|"unknown"}`. `exists: true` = confirmed found; `exists: false` = confirmed 404; `exists: null` = permission ambiguity / cannot determine (e.g. 401/403 or cross-workspace). Document how your platform maps HTTP status codes to `entityType` and to the tri-state `exists`. |
 
 ## Minimum `get_issue` Output Contract Mapping
 
@@ -22,7 +22,7 @@ Consumer skills rely on these normalized fields from `get_issue`. Document how y
 
 | Normalized Field | Your Platform Response Field | Notes |
 |-----------------|------------------------------|-------|
-| `exists` | _fill in_ | true if found, false on 404 |
+| `exists` | _fill in_ | `true` if confirmed found (HTTP 200); `false` if confirmed not found (HTTP 404); `null` if cannot determine (HTTP 401/403 or cross-workspace permission failure) — adapters must distinguish forbidden from not-found |
 | `entityType` | _fill in_ | Must be `"issue"`, `"pull_request"`, `"other"`, or `"unknown"`. If your platform has no PR concept, always return `"issue"` on success. |
 | `identifier` | _fill in_ | Platform-native identifier (key, number, or ID) as string |
 | `url` | _fill in_ | Direct browser URL to the issue |
