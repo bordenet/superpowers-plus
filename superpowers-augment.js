@@ -303,16 +303,13 @@ function extractFrontmatter(filePath) {
             }
             if (inFrontmatter) {
                 // Handle bracket-multiline accumulation.
-                // Guard: if a new top-level key starts before the bracket closes,
-                // the source has malformed frontmatter — abandon accumulation and
-                // fall through to parse this line normally (fail-safe, not fail-swallow).
-                // Guard: if a new top-level key starts, the bracket was never closed —
-                // abandon accumulation and fall through so this line is parsed normally.
-                // /^\w+:(?:\s|$)/ matches "key: value" and "key:" (empty-valued keys
-                // like composition: or triggers:) without false-positives on URL items
-                // (http://...) or unquoted scalars without trailing whitespace (foo:bar).
+                // Guard: if a new top-level key starts before the bracket closes, the
+                // frontmatter is malformed — abandon accumulation and fall through so
+                // this line is parsed normally (fail-safe, not fail-swallow).
+                // /^\w+:(?:[^/]|$)/ matches "key: value", "key:value", and "key:" while
+                // excluding URL continuations (http://...) where the char after : is /.
                 if (triggerAccum !== null) {
-                    if (line.match(/^\w+:(?:\s|$)/)) { triggerAccum = null; }
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }
                     else {
                         triggerAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(triggerAccum)) {
@@ -323,7 +320,7 @@ function extractFrontmatter(filePath) {
                     }
                 }
                 if (antiAccum !== null) {
-                    if (line.match(/^\w+:(?:\s|$)/)) { antiAccum = null; }
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { antiAccum = null; }
                     else {
                         antiAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(antiAccum)) {
@@ -334,7 +331,7 @@ function extractFrontmatter(filePath) {
                     }
                 }
                 if (mcpAccum !== null) {
-                    if (line.match(/^\w+:(?:\s|$)/)) { mcpAccum = null; }
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { mcpAccum = null; }
                     else {
                         mcpAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(mcpAccum)) {
