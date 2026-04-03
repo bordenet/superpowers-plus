@@ -89,19 +89,25 @@ resolve_diff_base() {
 
 # Get files to check
 # Accepts a regex pattern (e.g., '\.sh$') and uses grep -E for filtering in both modes.
-# In --changed-only mode: filters git diff output against upstream/dev/main.
+# In --changed-only mode: filters git diff output against upstream/dev/main, plus
+# any files currently staged (in the index). Staged files are unioned in so that
+# commit-gate.sh catches broken staged content before it is committed.
 # In default mode (or when no valid base exists): lists all repo files then filters by regex.
 get_files() {
     local pattern="$1"
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
-        if [[ -z "$base" ]]; then
-            log_warn "No verifiable remote base found — falling back to full-repo scan"
-            find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
-            return
-        fi
-        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E "$pattern" || true
+        {
+            if [[ -n "$base" ]]; then
+                git diff --name-only "${base}...HEAD" 2>/dev/null
+            else
+                log_warn "No verifiable remote base found — falling back to full-repo scan"
+                find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/'
+            fi
+            # Union in staged (index) files so pre-commit gate catches staged breakage
+            git diff --cached --name-only 2>/dev/null
+        } | sort -u | grep -E "$pattern" || true
     else
         find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
     fi
@@ -116,9 +122,14 @@ get_all_text_files() {
             get_all_text_files_full; return
         fi
         # Named extensions + extensionless bash hooks under tools/
+        # Also union in staged files (git diff --cached) so staged-only breakage is caught.
         {
             git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
-            git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '^(\.\/)?tools/' | while IFS= read -r f; do
+            git diff --cached --name-only 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+            {
+                git diff --name-only "${base}...HEAD" 2>/dev/null
+                git diff --cached --name-only 2>/dev/null
+            } | sort -u | grep -E '^(\.\/)?tools/' | while IFS= read -r f; do
                 [[ -f "$f" && ! "$f" == *.* ]] && head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
             done || true
         } | sort -u
