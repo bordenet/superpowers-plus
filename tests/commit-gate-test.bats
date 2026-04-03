@@ -427,6 +427,57 @@ EOF
     [ "$status" -ne 0 ]
 }
 
+@test "pre-commit honors SKIP_REVIEW_TOKEN=true from committed HEAD when .agent-gates is restaged" {
+    # Causal proof: HEAD .agent-gates with SKIP_REVIEW_TOKEN=true IS applied when
+    # .agent-gates is itself staged (process substitution keeps parser in parent shell).
+    # Without a token seeded, hook must PASS because SKIP_REVIEW_TOKEN is honoured from HEAD.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Step 1: commit .agent-gates with SKIP_REVIEW_TOKEN=true into HEAD
+    echo "SKIP_REVIEW_TOKEN=true" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "enable SKIP_REVIEW_TOKEN"
+    # Step 2: update sentinel to point to the new HEAD
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Step 3: stage .agent-gates again (different content) + code change — no token seeded
+    echo "SKIP_REVIEW_TOKEN=true" > "$fixture/.agent-gates"
+    printf 'change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must pass: HEAD config SKIP_REVIEW_TOKEN=true was honoured — no token required
+    [ "$status" -eq 0 ]
+}
+
+@test "pre-commit propagates parse error from committed HEAD .agent-gates when it is restaged" {
+    # Causal proof: parse errors from HEAD .agent-gates propagate to the parent shell
+    # (process substitution, not pipeline subshell). Hook must fail with 'invalid value'.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Step 1: commit .agent-gates with an invalid boolean into HEAD
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "invalid agent-gates"
+    # Step 2: provide valid sentinel and seed a token so other gates don't interfere
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    local _repo_hash
+    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
+    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    # Step 3: re-stage .agent-gates (same invalid content) + code change
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
+    printf 'change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must fail with a targeted parse-error message
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
 @test "loose-ends.sh add exits with error when --desc value is missing" {
     local fixture
     fixture=$(_create_fixture_repo)
