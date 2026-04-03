@@ -183,16 +183,16 @@ fi
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[1/5]${NC} Checking file endings..."
 
-for file in $STAGED_FILES; do
-    [[ ! -f "$file" ]] && continue
+while IFS= read -r file; do
+    [[ -z "$file" || ! -f "$file" ]] && continue
 
     # Skip binary files
     if file "$file" | grep -q "binary"; then
         continue
     fi
 
-    # Check for extra blank lines at EOF
-    if tail -c 2 "$file" 2>/dev/null | xxd -p | grep -q "0a0a"; then
+    # Check for extra blank lines at EOF (cross-platform: wc -l, not xxd)
+    if [[ "$(tail -c 2 "$file" 2>/dev/null | wc -l)" -ge 2 ]]; then
         echo -e "${RED}  ✗ $file: extra blank line at EOF${NC}"
         ERRORS=$((ERRORS + 1))
     fi
@@ -202,14 +202,15 @@ for file in $STAGED_FILES; do
         echo -e "${RED}  ✗ $file: missing final newline${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 2: Shell script syntax
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 
-for file in $STAGED_FILES; do
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
     [[ "$file" != *.sh ]] && continue
     [[ ! -f "$file" ]] && continue
 
@@ -224,22 +225,23 @@ for file in $STAGED_FILES; do
         echo -e "${RED}  ✗ $file: use '#!/usr/bin/env bash' not '#!/bin/bash'${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 3: JSON syntax
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[3/5]${NC} Checking JSON files..."
 
-for file in $STAGED_FILES; do
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
     [[ "$file" != *.json ]] && continue
     [[ ! -f "$file" ]] && continue
 
-    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+    if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: invalid JSON${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 4: Shellcheck (if available)
@@ -250,7 +252,8 @@ echo -e "${YELLOW}[4/5]${NC} Running shellcheck..."
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
 
 if command -v shellcheck &> /dev/null; then
-    for file in $STAGED_FILES; do
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
         [[ "$file" != *.sh ]] && continue
         [[ ! -f "$file" ]] && continue
 
@@ -258,7 +261,7 @@ if command -v shellcheck &> /dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
             ERRORS=$((ERRORS + 1))
         fi
-    done
+    done <<< "$STAGED_FILES"
 else
     echo -e "  (shellcheck not installed, skipping)"
 fi
