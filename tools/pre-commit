@@ -28,7 +28,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 # -----------------------------------------------------------------------------
-# Per-repo manifest: .agent-gates (bash-sourceable, optional)
+# Per-repo manifest: .agent-gates (data-parsed, optional)
 #
 # Create .agent-gates in a repo to customise which checks run:
 #
@@ -40,10 +40,31 @@ NC='\033[0m'
 #   EXTRA_TEST="npm run test:affected"
 #
 # Repos without .agent-gates run all default checks (fail-safe default).
+#
+# SECURITY: .agent-gates is parsed as data (KEY=VALUE only), NOT sourced.
+# Sourcing it before Gate 0 would allow a staged .agent-gates change to
+# inject arbitrary shell code or unset REQUIRE_CODE_REVIEW_SENTINEL before
+# the sentinel check runs. Only the known keys listed below are extracted.
 # -----------------------------------------------------------------------------
 if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
-    # shellcheck source=/dev/null
-    source "$REPO_ROOT/.agent-gates"
+    while IFS='=' read -r _key _remainder; do
+        # Skip blank lines and comment lines
+        [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+        # Trim whitespace from key
+        _key="${_key//[[:space:]]/}"
+        # Only accept known keys; ignore everything else silently
+        case "$_key" in
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL)
+                # Trim leading/trailing whitespace and strip surrounding quotes
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            *) ;;
+        esac
+    done < "$REPO_ROOT/.agent-gates"
 fi
 # Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
 
@@ -68,17 +89,20 @@ ERRORS=0
 # -----------------------------------------------------------------------------
 # GATE 0: Code Review Sentinel (opt-in via REQUIRE_CODE_REVIEW_SENTINEL=true)
 #
-# Purpose: Catch the moment the agent commits code — which is the last practical
-#          mechanical gate before the agent can present work to a human. The
-#          pre-push check verifies the exact pushed SHA; this check verifies only
-#          that battery was run at all before staging code changes.
+# Purpose: Early presence gate — verifies that code-review-battery was run
+#          before any code is committed. This is intentionally a "was battery
+#          run at all?" check, not an identity gate. SHA-specific enforcement
+#          (sentinel SHA == pushed ref SHA) happens in pre-push Gate 1.
 #
-# Why no SHA comparison: at pre-commit time the new commit SHA does not yet
-# exist. SHA-specific enforcement stays in pre-push. This gate proves only that
-# battery was run at some point before staging — not that these specific staged
-# changes were reviewed. Pre-push closes that gap via SHA matching.
+# Why the split: battery runs POST-commit so HEAD is the actual commit SHA.
+#   pre-commit: sentinel must exist with a valid passing verdict
+#   pre-push:   sentinel SHA must match the exact ref being pushed
+# This two-checkpoint design means: run battery → push (not run battery →
+# commit → re-run battery → push). A staleness warning fires when the sentinel
+# is for a different HEAD, so the agent knows pre-push will require re-review.
 #
-# Exemption: docs and root metadata only — same set as pre-push sentinel gate.
+# Policy files AGENTS.md and CLAUDE.md are treated as code (not docs) because
+# changes to them alter agent gate behavior. See staged_has_code() below.
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 
@@ -88,13 +112,19 @@ staged_has_code() {
     # deleted code files still require review clearance. Note: STAGED_FILES
     # intentionally omits D because downstream content checks require the file
     # to exist on disk; this helper is existence-independent.
-    # grep -v exits 1 when all lines match the filter (nothing left). Under
-    # set -euo pipefail, || true on the filter pipeline prevents abort.
+    #
+    # AGENTS.md and CLAUDE.md are policy files — treated as code. Changes to
+    # them alter agent gate behavior and require battery clearance. They are
+    # explicitly preserved by the awk filter before the generic .md exemption.
     local staged_code
     staged_code=$(git diff --cached --name-only --diff-filter=ACDMRT 2>/dev/null \
-        | grep -v -E '^\s*$' \
-        | grep -v -E '\.(md|txt|rst)$' \
-        | grep -v -E '^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|AGENTS|CLAUDE|\.env\.example)$' \
+        | awk '
+            /^\s*$/                             { next }
+            /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+            /\.(md|txt|rst)$/                   { next }
+            /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
+            { print }
+        ' \
         | head -1 || true)
     [[ -n "$staged_code" ]]
 }
@@ -109,7 +139,7 @@ if [[ "${REQUIRE_CODE_REVIEW_SENTINEL:-false}" == "true" ]]; then
             echo "  Code changes require code-review-battery before committing."
             echo "  Run battery → it writes .code-review-cleared → then commit."
             echo ""
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         else
             sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
             sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
@@ -120,14 +150,22 @@ if [[ "${REQUIRE_CODE_REVIEW_SENTINEL:-false}" == "true" ]]; then
             if [[ "$sentinel_ver" != "v1" || "$field_count" != "4" || -z "$sentinel_sha" || -z "$sentinel_ts" ]]; then
                 echo -e "  ${RED}❌ COMMIT BLOCKED: Sentinel format invalid (expected v1|SHA|VERDICT|TIMESTAMP, all fields non-empty).${NC}"
                 echo "  Delete .code-review-cleared and re-run code-review-battery."
-                ((ERRORS++))
+                ERRORS=$((ERRORS + 1))
             elif [[ "$sentinel_verdict" != "PASS" && "$sentinel_verdict" != "PASS_WITH_NITS" ]]; then
                 echo -e "  ${RED}❌ COMMIT BLOCKED: Last review verdict was '${sentinel_verdict}'.${NC}"
                 echo "  Fix all Critical/Important findings and re-run code-review-battery."
-                ((ERRORS++))
+                ERRORS=$((ERRORS + 1))
             else
                 echo -e "  ${GREEN}✓ Code review cleared: ${sentinel_verdict} (${sentinel_sha:0:8}, ${sentinel_ts})${NC}"
-                echo -e "  ${YELLOW}  Note: pre-push will re-verify that this SHA matches the pushed ref.${NC}"
+                # Staleness warning: if sentinel covers a different HEAD, pre-push will
+                # require re-review once the commit creates a new SHA.
+                current_head=$(git rev-parse HEAD 2>/dev/null || echo "")
+                if [[ -n "$current_head" && "$sentinel_sha" != "$current_head" ]]; then
+                    echo -e "  ${YELLOW}  ⚠ Sentinel is for ${sentinel_sha:0:8}; HEAD is ${current_head:0:8}.${NC}"
+                    echo -e "  ${YELLOW}  Run battery on HEAD before pushing — pre-push will compare sentinel to pushed ref.${NC}"
+                else
+                    echo -e "  ${YELLOW}  pre-push will re-verify that this SHA matches the pushed ref.${NC}"
+                fi
             fi
         fi
     else
@@ -151,13 +189,13 @@ for file in $STAGED_FILES; do
     # Check for extra blank lines at EOF
     if tail -c 2 "$file" 2>/dev/null | xxd -p | grep -q "0a0a"; then
         echo -e "${RED}  ✗ $file: extra blank line at EOF${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-    
+
     # Check for missing final newline
     if [[ $(tail -c 1 "$file" 2>/dev/null | wc -l) -eq 0 ]]; then
         echo -e "${RED}  ✗ $file: missing final newline${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done
 
@@ -172,14 +210,14 @@ for file in $STAGED_FILES; do
     
     if ! bash -n "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: bash syntax error${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-    
+
     # Check shebang
     shebang=$(head -n1 "$file")
     if [[ "$shebang" == "#!/bin/bash" ]]; then
         echo -e "${RED}  ✗ $file: use '#!/usr/bin/env bash' not '#!/bin/bash'${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done
 
@@ -194,7 +232,7 @@ for file in $STAGED_FILES; do
     
     if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: invalid JSON${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 done
 
@@ -213,7 +251,7 @@ if command -v shellcheck &> /dev/null; then
 
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
     done
 else
@@ -228,11 +266,11 @@ echo -e "${YELLOW}[5/5]${NC} Checking for proprietary IP..."
 IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
 if [[ -f "$IP_AUDIT_SCRIPT" ]]; then
     if ! bash "$IP_AUDIT_SCRIPT" --staged-only; then
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
 
 # -----------------------------------------------------------------------------
@@ -249,9 +287,9 @@ for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     echo -e "${YELLOW}[${EXTRA_IDX}/+]${NC} Running ${EXTRA_CMD_VAR}: ${EXTRA_CMD}..."
     if ! eval "$EXTRA_CMD" 2>&1; then
         echo -e "${RED}  ✗ ${EXTRA_CMD_VAR} failed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-    ((EXTRA_IDX++))
+    EXTRA_IDX=$((EXTRA_IDX + 1))
 done
 
 # -----------------------------------------------------------------------------
@@ -267,7 +305,7 @@ if [[ $ERRORS -gt 0 ]]; then
     echo "    git add <files>"
     echo "    git commit"
     echo ""
-    echo "  To bypass (NOT RECOMMENDED):"
+    echo "  To bypass (skips all gates — use only in emergencies):"
     echo "    git commit --no-verify"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 1
