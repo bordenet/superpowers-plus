@@ -11,7 +11,7 @@ All six operations defined in `adapter-interface.md` must be documented here.
 |-----------|---------------------|-------|
 | `create_issue` | _fill in_ | Title, description, labels, assignee |
 | `update_issue` | _fill in_ | Fields: status, assignee, labels, etc. |
-| `get_issue` | _fill in_ | Returns full issue details by ID |
+| `get_issue` | _fill in_ | Returns full issue details by exact platform-native identifier (key, number, or ID) |
 | `search_issues` | _fill in_ | Query syntax for this platform |
 | `add_comment` | _fill in_ | Adds text comment to an existing issue |
 | `verify_link` | _fill in_ | Confirms a URL resolves to a valid issue |

@@ -8,7 +8,7 @@ All issue tracker adapters must implement these operations.
 |-----------|-------|--------|
 | `create_issue` | title, description, labels, assignee | issue ID/URL |
 | `update_issue` | id, fields | success/failure |
-| `get_issue` | id | issue details |
+| `get_issue` | exact platform-native identifier (key, number, or ID) | issue details |
 | `search_issues` | query | list of issues |
 | `add_comment` | issue_id, text | comment ID |
 | `verify_link` | url | exists/not-found |
