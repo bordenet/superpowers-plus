@@ -211,8 +211,15 @@ echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
-    [[ "$file" != *.sh ]] && continue
     [[ ! -f "$file" ]] && continue
+    # Match *.sh files AND extensionless bash scripts (pre-commit, pre-push, etc.)
+    local_is_bash=false
+    if [[ "$file" == *.sh ]]; then
+        local_is_bash=true
+    elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+        local_is_bash=true
+    fi
+    [[ "$local_is_bash" == "true" ]] || continue
 
     if ! bash -n "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: bash syntax error${NC}"
@@ -254,8 +261,14 @@ SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2
 if command -v shellcheck &> /dev/null; then
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
-        [[ "$file" != *.sh ]] && continue
         [[ ! -f "$file" ]] && continue
+        sc_is_bash=false
+        if [[ "$file" == *.sh ]]; then
+            sc_is_bash=true
+        elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+            sc_is_bash=true
+        fi
+        [[ "$sc_is_bash" == "true" ]] || continue
 
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
@@ -315,11 +328,16 @@ if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
     fi
 
     echo -e "${YELLOW}[7/+]${NC} Checking for open #loose-end items..."
-    check_output=""; check_ok=true
-    if ! check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1); then
-        check_ok=false
-    fi
-    if [[ "$check_ok" == "false" ]]; then
+    check_output=""; check_rc=0
+    check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1) || check_rc=$?
+    if [[ $check_rc -eq 2 ]]; then
+        # Exit 2 = audit backend failure (todo-crud.sh unavailable/broken).
+        # Block unconditionally — a failed audit is not "clean".
+        echo "$check_output"
+        echo -e "  ${RED}✗ Loose-ends audit failed — fix todo backend before committing.${NC}"
+        ERRORS=$((ERRORS + 1))
+    elif [[ $check_rc -ne 0 ]]; then
+        # Exit 1 = findings present (open #loose-end items exist).
         echo "$check_output"
         if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
             echo -e "  ${RED}  REQUIRE_LOOSE_ENDS_CLEAN=true: resolve or justify all #loose-end items before committing.${NC}"
