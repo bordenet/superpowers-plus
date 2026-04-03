@@ -73,31 +73,33 @@ for GATE_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     printf '%b\n' "${YELLOW}[${STEP}]${NC} Running ${GATE_VAR}: ${GATE_CMD}..."
     if ! eval "$GATE_CMD" 2>&1; then
         printf '%b\n' "${RED}  ✗ ${GATE_VAR} failed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     else
         printf '%b\n' "${GREEN}  ✓ ${GATE_VAR} passed${NC}"
     fi
-    ((STEP++))
+    STEP=$((STEP + 1))
 done
 
 # Run harsh-review.sh (writes token on success)
 printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
 if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
-    # Verify token was actually written
+    # Verify token was actually written and matches this repo exactly.
+    # Use -xF (fixed-string, full-line) to prevent path metacharacter
+    # interpretation and avoid false positives from prefix-matched paths.
     REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     # shellcheck disable=SC2012
     LATEST_TOKEN=$(ls -t "$REVIEW_TOKEN_DIR" 2>/dev/null | head -1 || true)
-    if [[ -n "$LATEST_TOKEN" ]] && grep -q "$REPO_ROOT" "$REVIEW_TOKEN_DIR/$LATEST_TOKEN" 2>/dev/null; then
+    if [[ -n "$LATEST_TOKEN" ]] && grep -qxF "$REPO_ROOT" "$REVIEW_TOKEN_DIR/$LATEST_TOKEN" 2>/dev/null; then
         printf '%b\n' "${GREEN}  ✓ harsh-review passed (token verified)${NC}"
     else
         printf '%b\n' "${RED}  ✗ harsh-review passed, but token write failed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     printf '%b\n' "${RED}  ✗ harsh-review failed${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
-((STEP++))
+STEP=$((STEP + 1))
 
 # Result
 echo ""
