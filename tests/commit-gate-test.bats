@@ -810,5 +810,63 @@ EOF
     rm -f "$push_input"
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"PUSH BLOCKED"* ]]
+    # Assert the specific no-base fail-closed message (not a generic PUSH BLOCKED from another gate)
+    [[ "$output" == *"failing closed (require sentinel)"* ]]
+    # Confirm the docs-only exemption was NOT granted
+    [[ "$output" != *"docs-only, sentinel not required"* ]]
+}
+
+@test "pre-push blocks orphan branch when code file appears only in merge commit resolution" {
+    # Regression test for the -m flag in git log --name-only -m.
+    # Without -m, git log --name-only on a merge commit may omit files that were
+    # introduced only during conflict resolution (not present in either parent).
+    # With -m, per-parent diffs are shown so such files are caught.
+    #
+    # Fixture: orphan branch A has guide.md only (docs). We merge unrelated orphan
+    # branch B (also has guide.md with different content — causing conflict) with
+    # --no-commit, then add extra.sh as if resolving the conflict by adding code.
+    # The merge commit has extra.sh as a resolution artifact not in either parent.
+    # Without -m, git log might only report guide.md; with -m, extra.sh surfaces.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+
+    # Create orphan A with guide.md (docs-only history)
+    git -C "$fixture" checkout --orphan orphan-a -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Guide\nVersion A content\n' > "$fixture/guide.md"
+    git -C "$fixture" add guide.md
+    git -C "$fixture" commit -q -m "docs: add guide"
+
+    # Create unrelated orphan B with conflicting guide.md
+    git -C "$fixture" checkout --orphan orphan-b -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Guide\nVersion B content\n' > "$fixture/guide.md"
+    git -C "$fixture" add guide.md
+    git -C "$fixture" commit -q -m "docs: add guide version B"
+
+    # Switch back to orphan-a and merge B (conflict on guide.md) without committing
+    git -C "$fixture" checkout orphan-a -q
+    git -C "$fixture" merge --allow-unrelated-histories --no-commit orphan-b -q 2>/dev/null || true
+
+    # Simulate conflict resolution: accept A's guide.md and ADD a code file
+    # extra.sh is NOT in either parent — it's a merge-resolution-only artifact
+    git -C "$fixture" checkout HEAD -- guide.md
+    printf '#!/usr/bin/env bash\necho resolution\n' > "$fixture/extra.sh"
+    git -C "$fixture" add guide.md extra.sh
+    git -C "$fixture" commit -q -m "merge: resolve conflict (add extra.sh)"
+
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/orphan-a %s refs/heads/orphan-a %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+
+    # No sentinel — extra.sh is code so the hook must block even though it's
+    # only visible via -m (merge-commit per-parent diff)
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"failing closed (require sentinel)"* ]]
 }
