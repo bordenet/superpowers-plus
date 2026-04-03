@@ -69,7 +69,7 @@ Invoke this skill when:
 
 **Repository/PR links**: Use source control adapter's `get_pull_request` / `get_repository` operations. See `skills/issue-tracking/_adapters/`.
 
-**Issue links**: Search via adapter. May fail if issue is in another workspace.
+**Issue links**: Use your adapter's `verify_link` operation for URL-based verification, or `get_issue` for key-based exact lookup. Fall back to `search_issues` only for discovery. May fail if issue is in another workspace.
 
 **External URLs**: `curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "URL"` or `web-fetch`. Status: `200/301/302` → PASS · `401/403` → WARN · `404` → FAIL · `5xx` → WARN.
 
