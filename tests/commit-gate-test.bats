@@ -44,6 +44,39 @@ _create_fixture_repo() {
     printf '%s' "$repo_dir"
 }
 
+# Create a minimal fixture with NO initial commit (true first-commit / no-HEAD scenario).
+# Use for tests that verify behavior when HEAD does not exist yet.
+_create_empty_repo() {
+    local repo_dir
+    repo_dir=$(mktemp -d)
+    git -C "$repo_dir" init -q
+    git -C "$repo_dir" config user.email "test@test.com"
+    git -C "$repo_dir" config user.name "Test"
+    printf '# README\n' > "$repo_dir/README.md"
+    printf '# AGENTS\n' > "$repo_dir/AGENTS.md"
+    printf '# CLAUDE\n' > "$repo_dir/CLAUDE.md"
+    printf 'root = true\n' > "$repo_dir/.editorconfig"
+    mkdir -p "$repo_dir/docs"
+    printf '# Contributing\n' > "$repo_dir/docs/CONTRIBUTING.md"
+    printf '# Architecture\n' > "$repo_dir/docs/ARCHITECTURE.md"
+    cp -R "$REAL_REPO_ROOT/tools" "$repo_dir/tools"
+    mkdir -p "$repo_dir/skills"
+    # Stage required files but do NOT commit — HEAD does not exist
+    git -C "$repo_dir" add -A
+    printf '%s' "$repo_dir"
+}
+
+# Seed a valid review token for a fixture repo into $REVIEW_TOKEN_DIR.
+# Uses cksum + pwd -P matching the hook's token-lookup logic.
+_seed_token() {
+    local fixture="$1"
+    local repo_root cksum_val ts
+    repo_root=$(cd "$fixture" && pwd -P)
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    ts=$(date +%s)
+    echo "$repo_root" > "$REVIEW_TOKEN_DIR/${cksum_val}.${ts}.$$"
+}
+
 @test "harsh-review.sh creates a token file on success" {
     local fixture
     fixture=$(_create_fixture_repo)
@@ -464,9 +497,7 @@ EOF
     local head_sha
     head_sha=$(git -C "$fixture" rev-parse HEAD)
     echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
-    local _repo_hash
-    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
-    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    _seed_token "$fixture"
     # Step 3: re-stage .agent-gates (same invalid content) + code change
     echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
     printf 'change\n' >> "$fixture/README.md"
@@ -491,9 +522,7 @@ EOF
     local head_sha
     head_sha=$(git -C "$fixture" rev-parse HEAD)
     echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
-    local _repo_hash
-    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
-    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    _seed_token "$fixture"
     # Step 3: stage an invalid replacement .agent-gates + code change
     echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
     printf 'change\n' >> "$fixture/README.md"
@@ -522,14 +551,13 @@ EOF
 }
 
 @test "pre-commit blocks staged .agent-gates with invalid boolean on first commit (no HEAD)" {
-    # Validation must run even on the very first commit when no HEAD .agent-gates exists.
+    # True no-HEAD scenario: repo has never been committed; HEAD does not exist.
+    # Staged validation must still fire on the index blob and block invalid values.
     local fixture
-    fixture=$(_create_fixture_repo)
-    # Seed a valid review token so the token gate passes
-    local _repo_hash
-    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
-    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
-    # Stage .agent-gates with invalid boolean — no HEAD version exists yet
+    fixture=$(_create_empty_repo)
+    # Seed a valid review token into REVIEW_TOKEN_DIR so the token gate passes
+    _seed_token "$fixture"
+    # Stage .agent-gates with invalid boolean (no HEAD exists — pure first-commit path)
     echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
     git -C "$fixture" add .agent-gates
     run bash -c "cd '$fixture' && bash tools/pre-commit"
@@ -550,9 +578,7 @@ EOF
     local head_sha
     head_sha=$(git -C "$fixture" rev-parse HEAD)
     echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
-    local _repo_hash
-    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
-    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    _seed_token "$fixture"
     # Stage an invalid replacement
     echo "SKIP_DEFAULT_TESTS=yes" > "$fixture/.agent-gates"
     git -C "$fixture" add .agent-gates
@@ -672,4 +698,40 @@ EOF
     run bash "$fixture/tools/commit-gate.sh"
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
+}
+
+@test "pre-push blocks when no .code-review-cleared sentinel exists" {
+    # Gate 1 of pre-push: missing sentinel must block all code pushes.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    local local_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    # Write push-hook stdin to a temp file to avoid pipe+cd ordering issues
+    push_input=$(mktemp)
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$local_sha" > "$push_input"
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+}
+
+@test "pre-push blocks when sentinel SHA does not match pushed SHA" {
+    # Gate 1 of pre-push: stale sentinel (wrong SHA) must block the push.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    local local_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    # Write sentinel with a deliberately wrong SHA
+    echo "v1|aabbccdd1122334455667788aabbccdd11223344|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        > "$fixture/.code-review-cleared"
+    push_input=$(mktemp)
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$local_sha" > "$push_input"
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
 }
