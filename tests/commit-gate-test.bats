@@ -267,3 +267,32 @@ _create_fixture_repo() {
     token_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
     [ "$token_count" -ge 1 ]
 }
+
+@test "loose-ends.sh check exits 0 and prints clean message when no loose-end items exist" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Stub todo-crud.sh to return a valid TODO with no #loose-end items
+    cat > "$fixture/tools/todo-crud.sh" << 'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "cat" ]]; then
+    printf '# ACTIVE TASKS\n\n- [ ] [20260101-01] A normal task\n\n# HISTORY\n\n# DEFERRED\n'
+    exit 0
+fi
+exit 0
+EOF
+    chmod +x "$fixture/tools/todo-crud.sh"
+    run bash "$fixture/tools/loose-ends.sh" check
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"No open #loose-end items"* ]]
+}
+
+@test "harsh-review.sh fails when extensionless hook script has a bash syntax error" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Inject a syntax error into tools/pre-commit (extensionless, bash shebang)
+    printf '#!/usr/bin/env bash\nif then fi\n' > "$fixture/tools/pre-commit"
+    run bash "$fixture/tools/harsh-review.sh"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
