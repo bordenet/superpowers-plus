@@ -75,8 +75,9 @@ _parse_agent_gates_cg() {
                             continue
                         fi ;;
                     REVIEW_TOKEN_TTL)
-                        if [[ ! "$_val" =~ ^[0-9]+$ ]]; then
-                            echo "✗ .agent-gates: invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer)" >&2
+                        # Require positive integer > 0; TTL=0 causes instant expiry
+                        if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                            echo "✗ .agent-gates: invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)" >&2
                             _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
                             continue
                         fi ;;

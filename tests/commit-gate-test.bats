@@ -521,6 +521,58 @@ EOF
     [ "$status" -ne 0 ]
 }
 
+@test "pre-commit blocks staged .agent-gates with invalid boolean on first commit (no HEAD)" {
+    # Validation must run even on the very first commit when no HEAD .agent-gates exists.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Seed a valid review token so the token gate passes
+    local _repo_hash
+    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
+    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    # Stage .agent-gates with invalid boolean — no HEAD version exists yet
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
+@test "pre-commit blocks staged .agent-gates with invalid SKIP_DEFAULT_TESTS value" {
+    # SKIP_DEFAULT_TESTS must be validated in pre-commit to match commit-gate.sh parity.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Commit a valid .agent-gates into HEAD
+    echo "SKIP_DEFAULT_TESTS=false" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "valid agent-gates"
+    # Seed sentinel and token
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    local _repo_hash
+    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
+    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    # Stage an invalid replacement
+    echo "SKIP_DEFAULT_TESTS=yes" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
+@test "commit-gate.sh rejects REVIEW_TOKEN_TTL=0 at parse time" {
+    # TTL=0 causes instant expiry — must be rejected as invalid, not applied.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    echo "REVIEW_TOKEN_TTL=0" > "$fixture/.agent-gates"
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
 @test "loose-ends.sh add exits with error when --desc value is missing" {
     local fixture
     fixture=$(_create_fixture_repo)
