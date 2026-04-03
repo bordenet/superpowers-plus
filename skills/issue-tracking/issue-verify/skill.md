@@ -1,9 +1,9 @@
 ---
 name: issue-verify
 source: superpowers-plus
-triggers: ["verify issue", "check if ticket exists", "[KEY-XXX] in commit message", "link PR to issue"]
+triggers: ["verify issue", "check if ticket exists", "issue identifier in commit message", "link PR to issue"]
 anti_triggers: ["create issue", "update issue", "edit ticket"]
-description: Use when referencing issues in documentation, commits, or PRs. Verifies issue keys exist, validates cross-references.
+description: Use when referencing issues in documentation, commits, or PRs. Verifies issue identifiers exist, validates cross-references.
 summary: "Use when: referencing issues in docs, commits, or PRs."
 coordination:
   group: issue-tracking
@@ -14,9 +14,9 @@ coordination:
   internal: false
 ---
 
-# Issue Verification
+# Issue Identifier Verification
 
-> **Purpose:** Verify issue keys before referencing in commits, PRs, or documentation
+> **Purpose:** Verify issue identifiers before referencing in commits, PRs, or documentation
 > **Pattern:** Evidence before assertion — verify existence before citing
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
@@ -28,23 +28,32 @@ coordination:
 
 Invoke this skill when:
 
-- Writing commit messages with `[KEY-XXX]` prefixes
+- Writing commit messages with issue identifier prefixes
 - Linking PRs to issues
 - Documenting issues in wiki pages
 - Cross-referencing issues in changelogs
-- Any time you reference an issue key outside your tracker
+- Any time you reference an issue identifier outside your tracker
 
 ---
 
-## Issue Key Verification
+## Issue Identifier Verification
 
 <EXTREMELY_IMPORTANT>
 
-**Before writing ANY issue key, verify it exists using your adapter's search operation.**
+**Before writing ANY issue reference, verify it exists using your adapter:**
+- **Exact identifier**: normalize first using adapter rules (e.g., GitHub: strip `#` prefix; Jira: use key as-is), then call `get_issue` → check `exists: true` and `entityType: "issue"` before proceeding
+- **URL**: call `verify_link` → check `exists: true` and `entityType: "issue"` before proceeding. **Note:** `verify_link` guarantees `exists`, `identifier`, and `entityType` but not `title` or `status`. If you need to report title/status (e.g., in verification output), call `get_issue` with the returned `identifier` as a follow-up step.
+- Use `search_issues` only when the exact identifier is unknown
+
+**In all cases, the adapter returns `exists` and `entityType`. Apply the following policy:**
+- `entityType: "issue"` → proceed
+- `entityType: "pull_request"` or `"other"` → **HARD BLOCK**; do not reference this target as an issue
+- `entityType: "unknown"` (permission/cross-workspace ambiguity) → **WARN**; stop and require **explicit user confirmation** that the reference is intentional before proceeding. Silence, unclear responses, off-topic replies, echoing, and partial acknowledgments do **not** count as approval.
+- `exists: false` and `entityType: "unknown"` → **HARD BLOCK** (not-found overrides ambiguous path)
 
 **Expected response for existing issue:**
 
-- Issue ID, title, status returned
+- Issue identifier, title, status returned (from get_issue; title and status may not be present in verify_link result)
 
 **For non-existent issue:**
 
@@ -55,10 +64,10 @@ Invoke this skill when:
 ```text
 ⚠️ ISSUE NOT FOUND
 
-The issue key "[KEY]-XXX" does not exist.
-- Verify the issue number is correct
+The issue "[IDENTIFIER]" does not exist.
+- Verify the issue identifier is correct
 - Check if the issue was deleted or moved
-- Do NOT reference this key in commits/docs
+- Do NOT reference this identifier in commits/docs
 ```
 
 </EXTREMELY_IMPORTANT>
@@ -75,11 +84,11 @@ When linking PRs to issues:
 2. **Verify PR exists** in your source control
 3. **Only then create the link**
 
-### Commit Messages with Issue Keys
+### Commit Messages with Issue Identifiers
 
-**Required format:** `[KEY-XXX] Brief description`
+**Recommended format:** `[IDENTIFIER] Brief description` (use the exact identifier format your tracker uses — e.g. `PROJ-123`, `#42`, or `TICKET-456`)
 
-Before committing with issue key:
+Before committing with issue identifier:
 
 1. Verify issue exists
 2. Verify issue is in appropriate state (not Done/Closed unless reopening)
@@ -91,13 +100,13 @@ Before committing with issue key:
 For bulk operations (changelog, sprint reports):
 
 ```markdown
-## Issue Verification Report
+## Issue Identifier Verification Report
 
-| Issue Key | Status | Title | Verified |
-|-----------|--------|-------|----------|
-| KEY-123 | Done | Implement feature X | ✅ |
-| KEY-456 | In Progress | Fix bug Y | ✅ |
-| KEY-789 | — | — | ❌ NOT FOUND |
+| Issue Identifier | Status | Title | Verified |
+|-----------------|--------|-------|----------|
+| PROJ-123 | Done | Implement feature X | ✅ |
+| #456 | In Progress | Fix bug Y | ✅ |
+| TICKET-789 | — | — | ❌ NOT FOUND |
 
 Summary: 2 verified, 1 not found
 ```
@@ -108,9 +117,9 @@ Summary: 2 verified, 1 not found
 
 <EXTREMELY_IMPORTANT>
 
-**AI assistants commonly hallucinate issue keys based on:**
+**AI assistants commonly hallucinate issue identifiers based on:**
 
-- Sequential patterns (KEY-100 exists, so KEY-101 must too)
+- Sequential patterns (PROJ-100 exists, so PROJ-101 must too)
 - Memory from previous conversations
 - Assuming issues referenced in docs still exist
 
@@ -123,8 +132,8 @@ Summary: 2 verified, 1 not found
 ## Verification Checklist
 
 ```text
-Before referencing ANY issue key:
-1. QUERY — Search for the exact key
+Before referencing ANY issue identifier:
+1. QUERY — Use get_issue for exact identifier lookup (or verify_link for URL-based verification)
 2. VERIFY — Issue exists and is in expected state
 3. FETCH — Get actual title (don't guess)
 4. REFERENCE — Only then cite the issue

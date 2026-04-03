@@ -16,6 +16,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `feature-development` | Full lifecycle orchestrator: brainstorm, design-triad, plan, TDD, review, verify. |
 | `field-rename-verification` | Traces READ, STORE, PASS paths when renaming fields or changing API contracts. |
+| `finishing-a-development-branch` | Guides completion of development work when implementation is done: mandates code review, presents merge/PR/cleanup options. |
 | `git-branch-conventions` | Enforces semantic prefix naming on branch creation. |
 | `implementation-tracker` | Maintains a living progress document across multi-session implementations. |
 | `infra-config-investigator` | Diagnoses infrastructure, configuration, and deployment failures. |
@@ -24,10 +25,12 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Runs lint, typecheck, test locally before committing. |
+| `pre-push-quality-gate` | Mandatory quality gate before any git push: auto-detects toolchain (Biome/ESLint, tsc, vitest/jest) and runs lint+typecheck+test. |
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
 | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <6 = reject. |
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
 | `receiving-code-review` | Technical rigor when receiving feedback. No performative agreement. |
+| `requesting-code-review` | Dispatches the code-review-battery before presenting code changes to a human. Skips if valid sentinel exists. |
 | `reproduction-experiment-investigator` | Tests hypotheses through controlled reproduction attempts. |
 | `requirements-validation` | Tests requirements for falsifiability, measurability, and independence. |
 | `state-consistency-investigator` | Diagnoses state consistency failures: replication lag, cache staleness, event ordering. |
@@ -109,7 +112,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `issue-comment-debunker` | Prevents fabricated investigation summaries in ticket comments. |
 | `issue-editing` | Fetch-before-edit workflow to prevent stale updates and concurrent modifications. |
 | `issue-link-verification` | Verifies all URLs before posting to issue descriptions or comments. |
-| `issue-verify` | Verifies issue keys exist and validates cross-references. |
+| `issue-verify` | Verifies issue identifiers exist and validates cross-references. |
 
 ## Security
 
