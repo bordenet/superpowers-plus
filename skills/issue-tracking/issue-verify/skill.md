@@ -36,7 +36,7 @@ Invoke this skill when:
 
 ---
 
-## Issue Key Verification
+## Issue Identifier Verification
 
 <EXTREMELY_IMPORTANT>
 
@@ -56,9 +56,9 @@ Invoke this skill when:
 ⚠️ ISSUE NOT FOUND
 
 The issue "[IDENTIFIER]" does not exist.
-- Verify the issue number is correct
+- Verify the issue identifier is correct
 - Check if the issue was deleted or moved
-- Do NOT reference this key in commits/docs
+- Do NOT reference this identifier in commits/docs
 ```
 
 </EXTREMELY_IMPORTANT>
@@ -75,7 +75,7 @@ When linking PRs to issues:
 2. **Verify PR exists** in your source control
 3. **Only then create the link**
 
-### Commit Messages with Issue Keys
+### Commit Messages with Issue Identifiers
 
 **Recommended format:** `[IDENTIFIER] Brief description` (use the exact identifier format your tracker uses — e.g. `PROJ-123`, `#42`, or `TICKET-456`)
 
@@ -93,11 +93,11 @@ For bulk operations (changelog, sprint reports):
 ```markdown
 ## Issue Verification Report
 
-| Issue Key | Status | Title | Verified |
-|-----------|--------|-------|----------|
-| KEY-123 | Done | Implement feature X | ✅ |
-| KEY-456 | In Progress | Fix bug Y | ✅ |
-| KEY-789 | — | — | ❌ NOT FOUND |
+| Issue Identifier | Status | Title | Verified |
+|-----------------|--------|-------|----------|
+| PROJ-123 | Done | Implement feature X | ✅ |
+| #456 | In Progress | Fix bug Y | ✅ |
+| TICKET-789 | — | — | ❌ NOT FOUND |
 
 Summary: 2 verified, 1 not found
 ```
@@ -110,7 +110,7 @@ Summary: 2 verified, 1 not found
 
 **AI assistants commonly hallucinate issue identifiers based on:**
 
-- Sequential patterns (KEY-100 exists, so KEY-101 must too)
+- Sequential patterns (PROJ-100 exists, so PROJ-101 must too)
 - Memory from previous conversations
 - Assuming issues referenced in docs still exist
 
