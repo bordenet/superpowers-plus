@@ -139,12 +139,12 @@ while IFS= read -r file; do
             # Use Python for reliable cross-platform fix
             python3 -c "
 import sys
-with open('$file', 'rb') as f:
+with open(sys.argv[1], 'rb') as f:
     content = f.read()
 content = content.rstrip() + b'\n'
-with open('$file', 'wb') as f:
+with open(sys.argv[1], 'wb') as f:
     f.write(content)
-"
+" "$file"
             log_fix "$file (removed extra blank line)"
         else
             log_fail "$file: extra blank line at EOF"
@@ -198,7 +198,7 @@ while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
 
-    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+    if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null; then
         log_fail "$file: invalid JSON"
     fi
 done < <(get_files '\.json$')
@@ -478,6 +478,10 @@ else
     REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     mkdir -p "$REVIEW_TOKEN_DIR"
     token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
-    echo "$REPO_ROOT" > "$token_file"
+    # Canonicalize so symlinked paths (/var → /private/var) match pre-commit's
+    # git-rev-parse based REPO_ROOT.  pwd -P is POSIX; realpath fallback is
+    # available on Linux but absent on stock macOS without coreutils.
+    _canon_repo="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || _canon_repo="$REPO_ROOT"
+    echo "$_canon_repo" > "$token_file"
     exit 0
 fi
