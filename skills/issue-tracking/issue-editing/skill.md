@@ -88,7 +88,7 @@ coordination:
 ```text
 ⚠️ RECENT MODIFICATION DETECTED
 
-Issue: [KEY]-XXX
+Issue: [IDENTIFIER]
 Last updated: [timestamp]
 By: [user if available]
 
@@ -125,8 +125,8 @@ Options:
 
 | Behavior | Action |
 |----------|--------|
-| User says "update [KEY]-999" | Use get_issue first — issue may not exist |
-| Issue not found via get_issue | Report: "Issue [KEY]-999 not found" |
+| User says "update [IDENTIFIER]" | Use get_issue first — issue may not exist |
+| Issue not found via get_issue | Report: "Issue [IDENTIFIER] not found" |
 | Assuming issue ID | ALWAYS query first |
 
 </EXTREMELY_IMPORTANT>
