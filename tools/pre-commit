@@ -50,16 +50,28 @@ NC='\033[0m'
 # inject arbitrary shell code or unset REQUIRE_CODE_REVIEW_SENTINEL before
 # the sentinel check runs. Only the known keys listed below are extracted.
 # -----------------------------------------------------------------------------
-if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
+# Load .agent-gates from the committed HEAD version when .agent-gates is itself
+# staged — prevents a same-commit config change from disabling the gates it's
+# supposed to govern (REQUIRE_CODE_REVIEW_SENTINEL, SKIP_REVIEW_TOKEN, etc.).
+# Falls back to the working-tree file when .agent-gates is NOT staged.
+_agent_gates_source=""
+if git diff --cached --name-only | grep -qE '^\.agent-gates$'; then
+    # .agent-gates is staged: read from HEAD (last committed version)
+    if git cat-file -e HEAD:.agent-gates 2>/dev/null; then
+        _agent_gates_source="HEAD"
+    fi
+    # If no HEAD version exists (first commit), treat as no config — gates stay at defaults
+else
+    [[ -f "$REPO_ROOT/.agent-gates" ]] && _agent_gates_source="file"
+fi
+
+_parse_agent_gates() {
+    local _key _remainder
     while IFS='=' read -r _key _remainder; do
-        # Skip blank lines and comment lines
         [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
-        # Trim whitespace from key
         _key="${_key//[[:space:]]/}"
-        # Only accept known keys; ignore everything else silently
         case "$_key" in
             CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
-                # Trim leading/trailing whitespace and strip surrounding quotes
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
                 _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
@@ -68,8 +80,12 @@ if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
                 ;;
             *) ;;
         esac
-    done < "$REPO_ROOT/.agent-gates"
-fi
+    done
+}
+case "$_agent_gates_source" in
+    HEAD) git show HEAD:.agent-gates 2>/dev/null | _parse_agent_gates ;;
+    file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
+esac
 # Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
 
 echo ""

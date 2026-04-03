@@ -407,6 +407,35 @@ EOF
 }
 
 
+@test "pre-commit reads .agent-gates from HEAD when it is staged (cannot self-disable)" {
+    # Critical regression: staging .agent-gates with SKIP_REVIEW_TOKEN=true should NOT
+    # disable the token gate because the hook reads from HEAD, not the staged version.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Pre-seed a valid sentinel so Gate 0 passes
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Stage .agent-gates disabling the token gate (no token seeded — gate should still fire)
+    echo "SKIP_REVIEW_TOKEN=true" > "$fixture/.agent-gates"
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    # Run pre-commit from within the fixture
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Hook must block — the staged .agent-gates self-disable must NOT be honoured
+    [ "$status" -ne 0 ]
+}
+
+@test "loose-ends.sh add exits with error when --desc value is missing" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/loose-ends.sh" add --desc
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"requires a value"* ]]
+}
+
 @test "commit-gate.sh fails on broken extensionless hook when repo has no upstream (fail-closed)" {
     # Regression: with no remote/upstream, resolve_diff_base() previously returned
     # "origin/main" which didn't exist, so git diff returned nothing and the gate
