@@ -188,7 +188,16 @@ sync_managed_checkout() {
                 log_warn "Could not fast-forward managed checkout (local changes?)"
             fi
         else
-            log_warn "Managed checkout has diverged from origin/main — skipping sync"
+            # History has diverged — force-push or rewrite detected. Auto-reset to
+            # origin/main. The managed checkout (~/.codex/superpowers-plus) is a
+            # read-only deployment copy; divergence always means upstream rewrote history.
+            log_warn "Managed checkout has diverged from origin/main (force-push detected) — auto-resetting"
+            if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
+               git -C "$managed_dir" clean -fd --quiet 2>/dev/null; then
+                log_success "Managed checkout recovered: reset to origin/main"
+            else
+                log_warn "Auto-reset failed — run: cd $managed_dir && git reset --hard origin/main"
+            fi
         fi
     else
         log_warn "Could not fetch origin for managed checkout (network issue?)"
