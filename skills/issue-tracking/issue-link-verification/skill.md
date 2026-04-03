@@ -52,7 +52,7 @@ Invoke this skill when:
 | **Internal Wiki** | Wiki API query | **HARD BLOCK** |
 | **Pull Request** | Source control API | **HARD BLOCK** |
 | **Repository** | Source control API | **HARD BLOCK** |
-| **Issue Reference** | Issue tracker search | **WARN** |
+| **Issue Reference** | `verify_link` (URL) or `get_issue` (key) via adapter; `search_issues` for discovery only | **WARN** |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
 
 ## Verification Workflow
