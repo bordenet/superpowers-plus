@@ -84,7 +84,7 @@ Each investigation is a single JSON file named by its UUID.
 | `nextSteps` | array | Yes | Action items for the next session (may be empty) |
 | `toolsConsulted` | array | Yes | Tools used during investigation (may be empty) |
 | `relatedTodos` | array | No | TODO references (e.g., `#investigation-abc12345`) |
-| `relatedTickets` | array | No | External ticket references (Linear, ADO, etc.) |
+| `relatedTickets` | array | No | External ticket references (e.g., Linear, CI tracker, issue tracker) |
 | `forkedDebugging` | object | No | Present only when this investigation is a branch of a conductor-led forked debugging session. See Forked Debugging below |
 
 ### Forked Debugging Extension
