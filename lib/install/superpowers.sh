@@ -135,12 +135,31 @@ update_superpowers() {
 
     log_verbose "Pulling latest changes from origin main"
     if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only origin main 2>&1); then
-        local checkout_age
-        checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
-        log_warn "Fast-forward pull failed (local changes or divergent history)"
-        log_warn "Local checkout last updated: $checkout_age"
-        log_warn "Run with --force to discard local changes and reinstall"
-        log_warn "Run with --upgrade --force to reset and pull latest"
+        # Distinguish: diverged history (force-push/rewrite) vs local-ahead vs local changes.
+        # git pull fetches before merging, so origin/main is current even on failure.
+        # If origin/main IS ancestor of HEAD → local has extra commits → do not auto-reset.
+        # If origin/main is NOT ancestor of HEAD → true divergence → auto-reset.
+        if (cd "$SUPERPOWERS_DIR" && git merge-base --is-ancestor origin/main HEAD 2>/dev/null); then
+            local checkout_age
+            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
+            log_warn "Fast-forward pull failed (local checkout is ahead of or has diverged from origin/main)"
+            log_warn "Local checkout last updated: $checkout_age"
+            log_warn "Run with --force to discard local changes and reinstall"
+        elif ! (cd "$SUPERPOWERS_DIR" && git merge-base --is-ancestor HEAD origin/main 2>/dev/null); then
+            log_warn "obra/superpowers history has diverged from origin/main — auto-resetting"
+            if (cd "$SUPERPOWERS_DIR" && git reset --hard origin/main && git clean -fd 2>/dev/null); then
+                log_success "obra/superpowers recovered: reset to origin/main"
+                return 0
+            fi
+            log_warn "Auto-reset failed for obra/superpowers"
+        else
+            local checkout_age
+            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
+            log_warn "Fast-forward pull failed (local changes or divergent history)"
+            log_warn "Local checkout last updated: $checkout_age"
+            log_warn "Run with --force to discard local changes and reinstall"
+            log_warn "Run with --upgrade --force to reset and pull latest"
+        fi
         return 1
     fi
 
@@ -180,9 +199,25 @@ upgrade_existing() {
     else
         log_verbose "Pulling latest changes..."
         if ! git pull --ff-only origin main 2>&1; then
-            log_warn "Fast-forward pull failed (local changes or divergent history)"
-            log_warn "Run with --upgrade --force to discard local changes and upgrade."
-            exit 1
+            # Distinguish: diverged history vs local-ahead vs other ff failure.
+            # If origin/main IS ancestor of HEAD → local has extra commits → do not auto-reset.
+            # If origin/main is NOT ancestor of HEAD → true divergence → auto-reset.
+            if git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
+                log_warn "Fast-forward pull failed (local checkout is ahead of origin/main)"
+                log_warn "Run with --upgrade --force to discard local changes and upgrade."
+                exit 1
+            elif ! git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+                log_warn "obra/superpowers history has diverged from origin/main — auto-resetting"
+                if git reset --hard origin/main && git clean -fd; then
+                    log_success "obra/superpowers recovered: reset to origin/main"
+                else
+                    error_exit "Auto-reset failed. Try: cd $SUPERPOWERS_DIR && git reset --hard origin/main"
+                fi
+            else
+                log_warn "Fast-forward pull failed (local changes or divergent history)"
+                log_warn "Run with --upgrade --force to discard local changes and upgrade."
+                exit 1
+            fi
         fi
     fi
 
