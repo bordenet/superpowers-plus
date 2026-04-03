@@ -4,14 +4,14 @@ Configuration for Jira issue tracking.
 
 ## MCP Tools Required
 
-| Operation | MCP Tool / API |
-|-----------|----------------|
-| create_issue | `jira-api` or REST API |
-| update_issue | `jira-api` or REST API |
+| Operation | MCP Tool / API | Notes |
+|-----------|----------------|-------|
+| create_issue | `jira-api` or REST API | `POST /rest/api/3/issue` |
+| update_issue | `jira-api` or REST API | `PUT /rest/api/3/issue/{key}` |
 | search_issues | `jira-api` or REST API | `GET /rest/api/3/search` with `jql` parameter |
-| get_issue | `jira-api` or REST API |
-| add_comment | `jira-api` or REST API |
-| verify_link | `jira-api` or REST API — `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
+| get_issue | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` |
+| add_comment | `jira-api` or REST API | `POST /rest/api/3/issue/{key}/comment` |
+| verify_link | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
 
 ## Environment Variables
 
