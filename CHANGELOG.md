@@ -21,6 +21,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **pre-push orphan docs-only exemption** - New branches with no common ancestor and only docs/metadata commits can now push without a code-review sentinel. Previously all no-base branches failed closed unconditionally. Uses `git log --name-only -m` to enumerate reachable history including merge-commit conflict resolutions; code files still cause fail-closed behavior.
 - **IP audit hardening** - Strengthened public repo IP guardrails for staged, range-based, and full-file checks. Wired shared audit into pre-commit, pre-push, harsh-review, install, and doctor flows. Added regression tests for diff lines, upstream-only refs, external hooksPath, and bash 3.2 re-exec. (#449)
 - **Doctor ahead-commit detection** - Check 19 now flags CRITICAL when the installed copy has local commits not on remote, preventing stale diverged installations. (#445)
 - **Trigger collisions** - Collapsed multi-line trigger arrays for `progressive-harsh-review` and `skill-health-check`. Resolved `expert-interviewer` trigger collision with `knowledge-capture`. (#443)

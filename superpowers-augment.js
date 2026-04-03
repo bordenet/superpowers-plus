@@ -291,6 +291,7 @@ function extractFrontmatter(filePath) {
         let composition = null;
         let compress = true;
         let triggerAccum = null; // accumulates bracket-multiline trigger arrays
+        let antiAccum = null;   // accumulates bracket-multiline anti_triggers arrays
         let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
 
         for (let i = 0; i < lines.length; i++) {
@@ -301,22 +302,47 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
-                // Handle bracket-multiline accumulation
+                // Handle bracket-multiline accumulation.
+                // Guard: if a new top-level key starts before the bracket closes,
+                // the source has malformed frontmatter — abandon accumulation and
+                // fall through to parse this line normally (fail-safe, not fail-swallow).
+                // Guard: if a new top-level key starts, the bracket was never closed —
+                // abandon accumulation and fall through so this line is parsed normally.
+                // /^\w+:(?:\s|$)/ matches "key: value" and "key:" (empty-valued keys
+                // like composition: or triggers:) without false-positives on URL items
+                // (http://...) or unquoted scalars without trailing whitespace (foo:bar).
                 if (triggerAccum !== null) {
-                    triggerAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(triggerAccum)) {
-                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
-                        triggerAccum = null;
+                    if (line.match(/^\w+:(?:\s|$)/)) { triggerAccum = null; }
+                    else {
+                        triggerAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(triggerAccum)) {
+                            triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                            triggerAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
+                }
+                if (antiAccum !== null) {
+                    if (line.match(/^\w+:(?:\s|$)/)) { antiAccum = null; }
+                    else {
+                        antiAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(antiAccum)) {
+                            anti_triggers = parseInlineArray(extractBracketContent(antiAccum));
+                            antiAccum = null;
+                        }
+                        continue;
+                    }
                 }
                 if (mcpAccum !== null) {
-                    mcpAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(mcpAccum)) {
-                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
-                        mcpAccum = null;
+                    if (line.match(/^\w+:(?:\s|$)/)) { mcpAccum = null; }
+                    else {
+                        mcpAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(mcpAccum)) {
+                            requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                            mcpAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
                 // Check for composition block start
@@ -357,6 +383,18 @@ function extractFrontmatter(filePath) {
                 } else if (line.match(/^triggers:\s*$/)) {
                     const parsed = parseYamlList(lines, i);
                     triggers = parsed.values;
+                    i = parsed.nextIndex;
+                }
+                // Check for anti_triggers array — same 3 forms
+                if (line.match(/^anti_triggers:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        anti_triggers = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        antiAccum = line; // bracket-multiline
+                    }
+                } else if (line.match(/^anti_triggers:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    anti_triggers = parsed.values;
                     i = parsed.nextIndex;
                 }
                 // Check for requires_mcp array — same 3 forms
