@@ -4,7 +4,7 @@ source: superpowers-plus
 triggers: ["create ticket", "create issue", "open a ticket for", "file a bug"]
 anti_triggers: ["update ticket", "edit issue", "change status", "close ticket"]
 description: Use when creating issues in your project tracker. Enforces formatting standards, required fields, label validation, duplicate checking.
-summary: "Use when: creating issues in a supported tracker (GitHub, Jira, Azure DevOps). Skip when: updating existing issues."
+summary: "Use when: creating issues in your configured tracker (shipped adapters: GitHub, Jira; custom via skills/issue-tracking/_adapters/platform-template.md). Skip when: updating existing issues."
 coordination:
   group: issue-tracking
   order: 0
@@ -19,13 +19,13 @@ coordination:
 > **Purpose:** Ensure consistent, high-quality issues with verified fields
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue identifiers → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ---
 
 ## When to Use
 
-- Creating new tickets in your configured issue tracker (supported adapters: GitHub Issues, Jira, Azure DevOps; custom adapters supported via `_adapters/platform-template.md`)
+- Creating new tickets in your configured issue tracker (shipped adapters: GitHub Issues, Jira; custom adapters supported via `skills/issue-tracking/_adapters/platform-template.md`)
 - When user requests a ticket for a bug, feature, or task
 - Converting conversation discussion into a trackable ticket
 - When acceptance criteria need to be formalized
@@ -47,6 +47,12 @@ Before calling your adapter's `create_issue` operation:
 - [ ] **Search for duplicates** — Use adapter's search operation
 - [ ] **Validate labels exist** — Query label IDs for your platform
 - [ ] **Validate assignee exists** — Query user IDs for your platform
+- [ ] **Verify issue cross-references** — For **issue identifiers or issue URLs** in the description (e.g., `Related: [IDENTIFIER]`, `Closes: [URL]`), run `issue-verify` first:
+  - `entityType: "issue"` + `exists: true` → proceed
+  - `entityType: "pull_request"` or `"other"` → **HARD BLOCK** — do not create the issue with a broken cross-reference
+  - `entityType: "unknown"` → **WARN** — stop and require **explicit user confirmation** (silence, unclear, off-topic, echo, and partial responses do not count as approval) before including the reference
+  - `exists: false` → **HARD BLOCK** — do not reference a non-existent issue
+  - PR links, wiki links, repo URLs, and external references do not go through this check — use `issue-link-verification`'s type-specific policy for those.
 - [ ] **Title follows format** — See Title Standards below
 - [ ] **Description has required sections** — See Description Template
 
@@ -68,7 +74,7 @@ Before calling your adapter's `create_issue` operation:
 
 - Specific enough to understand without reading description
 - Max 80 characters (Some trackers truncate longer titles in views)
-- No ticket key prefix (PROJ-XXX added automatically)
+- No tracker-managed identifier prefix (added automatically by the tracker)
 
 </EXTREMELY_IMPORTANT>
 
@@ -90,7 +96,7 @@ Before calling your adapter's `create_issue` operation:
 ## References
 - PR: [link if exists]
 - Wiki: [link if exists]
-- Related: PROJ-XXX
+- Related: [IDENTIFIER]
 ```
 
 ---
@@ -132,7 +138,7 @@ Configure workflow states for your platform. Common patterns:
 **If potential duplicate found:**
 
 1. STOP — do not create new issue
-2. Report to user: "Found existing issue [KEY]-XXX with similar title"
+2. Report to user: "Found existing issue [IDENTIFIER] with similar title"
 3. Ask: "Should I add a comment to the existing issue instead?"
 
 </EXTREMELY_IMPORTANT>
@@ -145,9 +151,10 @@ Configure workflow states for your platform. Common patterns:
 Before creating issue:
 1. SEARCH — Check for duplicates
 2. VALIDATE — Labels and assignee exist
-3. FORMAT — Title follows standards
-4. STRUCTURE — Description has required sections
-5. CREATE — Only then call adapter's create operation
+3. VERIFY REFS — Run issue-verify for issue identifiers/URLs in description
+4. FORMAT — Title follows standards
+5. STRUCTURE — Description has required sections
+6. CREATE — Only then call adapter's create operation
 ```
 
 ---
