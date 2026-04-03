@@ -20,7 +20,7 @@ coordination:
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue identifiers → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ## When to Use
 
@@ -36,9 +36,13 @@ coordination:
 
 **Before calling your adapter's `update_issue` operation, you MUST:**
 
-1. **Fetch current issue state** — Query the issue by key or ID
-2. **Use fetched data as base** — Don't assume memory reflects current state
-3. **Check for recent changes** — `updatedAt` timestamp indicates modifications
+1. **Fetch current issue state** — Call `get_issue` with the platform-native identifier
+2. **Validate the target type** — Check the `get_issue` response:
+   - If `exists: false` → **STOP. Report identifier not found. Do not mutate.**
+   - If `entityType: "pull_request"` or `"other"` → **STOP. Route to the appropriate non-issue workflow. Do not call update_issue.**
+   - If `entityType: "unknown"` → **STOP. Hard-block on mutation paths. Report to user that the target's type cannot be confirmed. Do not mutate without a new fetch that resolves to `"issue"`.**
+3. **Use fetched data as base** — Don't assume memory reflects current state
+4. **Check for recent changes** — `updatedAt` timestamp indicates modifications
 
 **Why this matters:**
 
@@ -56,8 +60,8 @@ coordination:
 ┌─────────────────────────────────────────────────────────────┐
 │ BEFORE ANY update_issue CALL                                │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. FETCH: Query issue by key using adapter                  │
-│ 2. VERIFY: Issue exists and you have correct ID             │
+│ 1. FETCH: Call get_issue via adapter                        │
+│ 2. VERIFY: exists:true AND entityType:"issue" — else STOP   │
 │ 3. CHECK: updatedAt for recent modifications                │
 │ 4. COMPARE: Your intended changes vs current state          │
 │ 5. UPDATE: Only then call adapter's update operation        │
@@ -71,7 +75,7 @@ coordination:
 | Field | Validation Required |
 |-------|---------------------|
 | `status` | Verify state exists in your workflow |
-| `assignee` | Verify user ID exists (not email) |
+| `assignee` | Verify the assignee exists AND that the value uses the platform-specific identifier format (e.g., GitHub username, Jira accountId) — not an email address unless your adapter explicitly maps from email |
 | `labels` | Verify each label exists |
 | `priority` | Use platform-appropriate values |
 | `title` | Follow title standards (see issue-authoring) |
@@ -88,7 +92,7 @@ coordination:
 ```text
 ⚠️ RECENT MODIFICATION DETECTED
 
-Issue: [KEY]-XXX
+Issue: [IDENTIFIER]
 Last updated: [timestamp]
 By: [user if available]
 
@@ -121,13 +125,13 @@ Options:
 
 <EXTREMELY_IMPORTANT>
 
-**NEVER fabricate issue keys:**
+**NEVER fabricate issue identifiers:**
 
 | Behavior | Action |
 |----------|--------|
-| User says "update [KEY]-999" | Search first — issue may not exist |
-| Issue not found in search | Report: "Issue [KEY]-999 not found" |
-| Assuming issue ID | ALWAYS query first |
+| User says "update [IDENTIFIER]" | Use get_issue first — issue may not exist |
+| Issue not found via get_issue | Report: "Issue [IDENTIFIER] not found" |
+| Assuming issue identifier | ALWAYS query first via get_issue |
 
 </EXTREMELY_IMPORTANT>
 
@@ -137,8 +141,8 @@ Options:
 
 ```text
 Before EVERY update:
-1. FETCH — Query issue by key
-2. VERIFY — Issue exists, ID is correct
+1. FETCH — Query issue by platform-native identifier
+2. VERIFY — Issue exists, identifier is confirmed
 3. CHECK — Recent modifications (updatedAt)
 4. VALIDATE — Field values are valid
 5. UPDATE — Only then modify
@@ -157,8 +161,8 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-editing
 ## Failure Modes
 
 - **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
-- **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh
-- **Field type mismatch:** Passing a label name instead of a label UUID (platform-specific)
+- **Stale identifier:** Using a memorized or guessed identifier instead of fetching it fresh
+- **Field type mismatch:** Passing a label name instead of the platform-specific label identifier (e.g., label ID, label name string — depends on tracker)
 
 ## Companion Skills
 

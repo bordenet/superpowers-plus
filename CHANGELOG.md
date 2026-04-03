@@ -18,6 +18,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **README overhaul** - Replaced hardcoded skill counts with dynamic language. Added Standout Skills table (9 key skills), Quick Start with trigger examples, pre-commit hooks note, and token budget advisory. Removed stale Development Process and Semantic Skill Matching sections. Three rounds of PHR, scored 8.5/10. (#450)
 - **GitHub repo description** - Fixed "orba" typo, updated to "Skills for AI coding assistants. Extends obra/superpowers."
+- **Issue-tracking adapter contract** — `adapter-interface.md` now defines a structured minimum output contract for `get_issue` (returns `exists`, `entityType`, `identifier`, `url`, `title`, `status`, `updatedAt`) and `verify_link` (returns structured `{exists, identifier, entityType}` — no bare exists/not-found). Adapters must discriminate `"issue"` from `"pull_request"`, `"other"`, and `"unknown"`. `github-issues.md` now documents PR discrimination via the `pull_request` response field, plus identifier normalization and a full output contract mapping. `jira.md` now includes `verify_link` and a complete output contract mapping. `platform-template.md` expanded from a stub into a full compliance spec. (#503)
+- **entityType consumer policy hardened** — `issue-authoring`, `issue-editing`, and `issue-verify` now consistently hard-block on `"pull_request"` and `"other"`, and require explicit user confirmation for `"unknown"` on reference paths (mutation paths hard-block unconditionally). Policy table in `adapter-interface.md` is now deterministic — no "or WARN" branches at the interface layer. (#503)
+- **`exists` field is now `boolean | null`** — All adapter `get_issue` and `verify_link` responses use a tri-state `exists` field: `true` (confirmed found), `false` (confirmed 404), `null` (permission ambiguity — cannot determine, e.g. HTTP 401/403 or cross-workspace). Adapters must distinguish forbidden from not-found. `github-issues.md`, `jira.md`, and `platform-template.md` updated. (`null + "unknown"`) → WARN on reference paths, HARD BLOCK on mutation paths. (#505)
+- **AGENTS.md promotion model** — Added Cadence column to branching table. New prohibitions: dev→staging and staging→main promotions require explicit human instruction in the current active turn; context compaction invalidates prior authorization. (#504)
+
+### Removed
+
+- **`azure-devops` issue tracker adapter** (`skills/issue-tracking/_adapters/azure-devops.md`) — Removed the shipped Azure DevOps adapter. Users who had `ISSUE_TRACKER_TYPE=azure-devops` should copy the deleted file from git history or recreate from `platform-template.md`. Migration: `git show origin/staging:skills/issue-tracking/_adapters/azure-devops.md > skills/issue-tracking/_adapters/azure-devops.md`. (#498)
+- **`tools/wiki-snapshot.sh`** — Removed Outline wiki pre-edit snapshot tool and its test suite (`tools/tests/test_wiki_snapshot.sh`). Users with shell automation calling this command will need to migrate to direct Outline API document-info calls (`POST /api/documents.info` with `{id: "<document-id>"}`). (#497)
 
 ### Fixed
 
@@ -48,7 +57,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **sp-help** — Redesigned skill browser with credits, overlay indicators, grouped output by domain. Concise default output with grouped domain sections. Bash 3.2 compatible.
 - **sp-doctor** — Symlink-aware launcher. Resolves symlink before locating `doctor-checks.sh`. Check 14 skips git-tracked files.
 - **sp-update** — Self-updater with actionable diagnostics on merge failures.
-- **wiki-snapshot.sh** — Pre-edit snapshot tool for Outline documents (with test suite).
 - **Auto-symlink** — All `sp-*` CLI commands auto-symlinked during install.
 
 ### Added — Infrastructure
