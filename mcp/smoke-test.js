@@ -282,6 +282,23 @@ async function main() {
         '',
       ].join('\n'));
 
+      // Malformed-bracket fixture: anti_triggers has an unclosed bracket, then
+      // a new YAML key immediately follows. Without the guard the key would be
+      // silently swallowed into the accumulator and never parsed.
+      const malformedDir = path.join(tmpDir, 'malformed-bracket-guard-test');
+      mkdirSync(malformedDir, { recursive: true });
+      writeFileSync(path.join(malformedDir, 'skill.md'), [
+        '---',
+        'name: malformed-bracket-guard-test',
+        'description: "payload correctly parsed"',
+        'triggers: ["alpha", "beta"]',
+        'anti_triggers: ["unclosed',
+        'description: should not swallow into anti_triggers',
+        '---',
+        '# Malformed bracket guard test',
+        '',
+      ].join('\n'));
+
       // Spawn a third client to pick up both skills
       const client3 = new McpClient(spawn(process.execPath, [SERVER_PATH], {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -309,6 +326,23 @@ async function main() {
           'regression: both skills appear in anti_trigger match results');
         assert(parserIdx < antiIdx,
           'regression: anti_trigger demotes skill below competitor');
+
+        // Malformed-bracket guard: skill must be visible with correct trigger routing
+        const malformedFindResult = await client3.send('tools/call', {
+          name: 'find_skills', arguments: {},
+        });
+        const malformedFindText = malformedFindResult?.content?.[0]?.text || '';
+        assert(malformedFindText.includes('malformed-bracket-guard-test'),
+          'regression: malformed-bracket skill is visible in find_skills');
+
+        // Trigger routing must still work (triggers were well-formed)
+        const malformedMatchResult = await client3.send('tools/call', {
+          name: 'match_skills',
+          arguments: { query: 'alpha beta', top_n: 5 },
+        });
+        const malformedMatchText = malformedMatchResult?.content?.[0]?.text || '';
+        assert(malformedMatchText.includes('malformed-bracket-guard-test'),
+          'regression: malformed-bracket skill matched by trigger after guard abandonment');
       } finally {
         client3.kill();
       }

@@ -79,7 +79,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **TODO.md protection** — 7-layer defense system: OS-level immutability (`chflags uchg`), chmod 444, shadow backup with annihilation detection, honeypot at default path, path obscuring (removed from `.env`), stray path detection, structural validation. Prevents agent-driven data loss (incident 2026-03-23).
 - **Proprietary content scrub** — All proprietary references removed from public repo across 4 passes.
 - **Markdownlint audit** — 1,757 violations eliminated across the entire repo.
-- **YAML parser hardening** — Single-quote doubled-apostrophe escaping, bracket-multiline handling, state-machine trigger parser propagated to all consumers.
+- **YAML parser hardening** — Single-quote doubled-apostrophe escaping, bracket-multiline handling, state-machine trigger parser propagated to accumulator-based consumers (`superpowers-augment.js`, `mcp/superpowers-mcp.js`). `lib/frontmatter.js` uses inline regex matching and does not support bracket-multiline; see its header for details.
 - **DAG generator** — Shared `parseInlineArray` from `lib/frontmatter.js`, CRLF normalization, empty array filtering, scalar unquoting.
 - **Smoke test** — Fixed process leak, rewrote to use real JSON-RPC protocol.
 - **Install** — `install_cli_commands` arithmetic crash under `set -e`. Arithmetic compatible with Bash 3.2.
