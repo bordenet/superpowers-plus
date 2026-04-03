@@ -1,5 +1,7 @@
 # .agent-gates — repo-specific pre-commit gate configuration
-# Sourced by tools/pre-commit if present. All variables are optional.
+# Parsed as KEY=VALUE data by tools/pre-commit if present. NOT sourced.
+# Shell constructs (functions, expansions, conditionals) are not supported.
+# All variables are optional.
 #
 # CLASS: repo type hint (informational, shown in pre-commit output)
 #   Values: markdown-only | shell | node | python | mixed
