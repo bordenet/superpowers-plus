@@ -20,7 +20,7 @@ coordination:
 > **Pattern:** Mirrors wiki editing — always fetch current state before modifying
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+> **Wrong skill?** Creating new issues → `issue-authoring`. Verifying issue identifiers → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ## When to Use
 
@@ -36,7 +36,7 @@ coordination:
 
 **Before calling your adapter's `update_issue` operation, you MUST:**
 
-1. **Fetch current issue state** — Query the issue by key or ID
+1. **Fetch current issue state** — Query the issue by its platform-native identifier
 2. **Use fetched data as base** — Don't assume memory reflects current state
 3. **Check for recent changes** — `updatedAt` timestamp indicates modifications
 
@@ -56,7 +56,7 @@ coordination:
 ┌─────────────────────────────────────────────────────────────┐
 │ BEFORE ANY update_issue CALL                                │
 ├─────────────────────────────────────────────────────────────┤
-│ 1. FETCH: Query issue by key using adapter                  │
+│ 1. FETCH: Query issue by platform-native identifier using adapter │
 │ 2. VERIFY: Issue exists and you have correct ID             │
 │ 3. CHECK: updatedAt for recent modifications                │
 │ 4. COMPARE: Your intended changes vs current state          │
@@ -121,7 +121,7 @@ Options:
 
 <EXTREMELY_IMPORTANT>
 
-**NEVER fabricate issue keys:**
+**NEVER fabricate issue identifiers:**
 
 | Behavior | Action |
 |----------|--------|
@@ -137,7 +137,7 @@ Options:
 
 ```text
 Before EVERY update:
-1. FETCH — Query issue by key
+1. FETCH — Query issue by platform-native identifier
 2. VERIFY — Issue exists, ID is correct
 3. CHECK — Recent modifications (updatedAt)
 4. VALIDATE — Field values are valid

@@ -20,7 +20,7 @@ coordination:
 > **Pattern:** Same rigor as wiki link verification — no broken links
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue keys → `issue-verify`.
+> **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue identifiers → `issue-verify`.
 
 ## When to Use
 
@@ -52,7 +52,7 @@ Invoke this skill when:
 | **Internal Wiki** | Wiki API query | **HARD BLOCK** |
 | **Pull Request** | Source control API | **HARD BLOCK** |
 | **Repository** | Source control API | **HARD BLOCK** |
-| **Issue Reference** | `verify_link` (URL) or `get_issue` (key) via adapter; `search_issues` for discovery only | **WARN** |
+| **Issue Reference** | `verify_link` (URL) or `get_issue` (platform-native identifier) via adapter; `search_issues` for discovery only | **WARN** |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
 
 ## Verification Workflow

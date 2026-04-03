@@ -308,13 +308,13 @@ All orchestration decisions logged in structured format:
 ### Wave 3 ✅
 
 - [x] Shared primitives (task packet, result schema, synthesis schema) → §3.2–3.4 above
-- [x] plan-and-execute multi-agent prototype (first target) → `plan-and-execute/references/planning-council-mode.md`
+- [x] plan-and-execute multi-agent prototype (first target) → `skills/productivity/plan-and-execute/references/planning-council-mode.md`
 - [x] Progressive harsh review → 10+ rounds, final score 8.6/10
 
 ### Wave 4 ✅
 
-- [x] subagent-driven-development parallel dispatch → `references/parallel-dispatch-mode.md`, `isolation-analyzer.md`
-- [x] brainstorming ensemble prototype → `references/ensemble-mode.md`, `lens-mandates.md`
+- [x] subagent-driven-development parallel dispatch → `skills/engineering/subagent-driven-development/references/parallel-dispatch-mode.md`, `isolation-analyzer.md`
+- [x] brainstorming ensemble prototype → `skills/engineering/brainstorming/references/ensemble-mode.md`, `lens-mandates.md`
 - [x] Experiment fixtures and harness → `exercises/multi-agent-skills/fixtures/` (9 fixtures), `exercises/forked-debugging/` (5 fixtures + harness)
 
 ### Wave 5 — In Progress

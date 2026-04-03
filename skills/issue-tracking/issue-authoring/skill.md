@@ -19,7 +19,7 @@ coordination:
 > **Purpose:** Ensure consistent, high-quality issues with verified fields
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue keys → `issue-verify`. Adding comments → `issue-comment-debunker`.
+> **Wrong skill?** Updating existing issues → `issue-editing`. Verifying issue identifiers → `issue-verify`. Adding comments → `issue-comment-debunker`.
 
 ---
 
@@ -132,7 +132,7 @@ Configure workflow states for your platform. Common patterns:
 **If potential duplicate found:**
 
 1. STOP — do not create new issue
-2. Report to user: "Found existing issue [KEY]-XXX with similar title"
+2. Report to user: "Found existing issue [IDENTIFIER] with similar title"
 3. Ask: "Should I add a comment to the existing issue instead?"
 
 </EXTREMELY_IMPORTANT>
