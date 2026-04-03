@@ -146,6 +146,62 @@ EOF
 run_malformed_bracket_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js"
 run_malformed_bracket_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh"
 
+# augment antiAccum: malformed anti_triggers bracket; description must survive
+MALFORMED_ANTI_SKILL="$TMP_DIR/malformed-anti-skill.md"
+cat > "$MALFORMED_ANTI_SKILL" <<'EOF'
+---
+name: malformed-anti-guard-test
+triggers: ["alpha"]
+anti_triggers: ["unclosed
+description:"anti-guard payload parsed"
+---
+Body.
+EOF
+if PARSER_SOURCE="$ROOT_DIR/superpowers-augment.js" MALFORMED_SKILL="$MALFORMED_ANTI_SKILL" node <<'NODE'
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync(process.env.PARSER_SOURCE, 'utf8');
+let start = source.indexOf('function parseInlineArray(value) {');
+let end = source.indexOf('\nfunction compressSkillContent(', start);
+if (start === -1 || end === -1) { start = source.indexOf('function extractFrontmatter(filePath) {'); end = source.indexOf('\nfunction findSkillFile(', start); }
+if (start === -1 || end === -1) throw new Error('Could not locate parser block');
+const ctx = { fs, console }; vm.createContext(ctx); vm.runInContext(source.slice(start, end), ctx);
+const meta = ctx.extractFrontmatter(process.env.MALFORMED_SKILL);
+assert.strictEqual(meta.description, 'anti-guard payload parsed', `desc: "${meta.description}"`);
+assert.deepStrictEqual(Array.from(meta.anti_triggers || []), [], `anti: ${JSON.stringify(meta.anti_triggers)}`);
+NODE
+then pass "superpowers-augment malformed-bracket guard preserves subsequent fields (antiAccum)"
+else fail "superpowers-augment antiAccum guard: description swallowed or anti_triggers non-empty"; fi
+
+# augment mcpAccum: malformed requires_mcp bracket; description must survive
+MALFORMED_MCP_AUGMENT="$TMP_DIR/malformed-mcp-augment-skill.md"
+cat > "$MALFORMED_MCP_AUGMENT" <<'EOF'
+---
+name: malformed-mcp-augment-test
+triggers: ["alpha"]
+requires_mcp: ["unclosed
+description:"mcp-augment payload parsed"
+---
+Body.
+EOF
+if PARSER_SOURCE="$ROOT_DIR/superpowers-augment.js" MALFORMED_SKILL="$MALFORMED_MCP_AUGMENT" node <<'NODE'
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+const source = fs.readFileSync(process.env.PARSER_SOURCE, 'utf8');
+let start = source.indexOf('function parseInlineArray(value) {');
+let end = source.indexOf('\nfunction compressSkillContent(', start);
+if (start === -1 || end === -1) { start = source.indexOf('function extractFrontmatter(filePath) {'); end = source.indexOf('\nfunction findSkillFile(', start); }
+if (start === -1 || end === -1) throw new Error('Could not locate parser block');
+const ctx = { fs, console }; vm.createContext(ctx); vm.runInContext(source.slice(start, end), ctx);
+const meta = ctx.extractFrontmatter(process.env.MALFORMED_SKILL);
+assert.strictEqual(meta.description, 'mcp-augment payload parsed', `desc: "${meta.description}"`);
+assert.deepStrictEqual(Array.from(meta.requires_mcp || []), [], `mcp: ${JSON.stringify(meta.requires_mcp)}`);
+NODE
+then pass "superpowers-augment malformed-bracket guard preserves subsequent fields (mcpAccum)"
+else fail "superpowers-augment mcpAccum guard: description swallowed or requires_mcp non-empty"; fi
+
 # Installer mcpAccum path: requires_mcp is the second accumulator unique to the installer.
 # Use a malformed requires_mcp bracket to verify the mcpAccum guard.
 MALFORMED_MCP_SKILL="$TMP_DIR/malformed-mcp-skill.md"
