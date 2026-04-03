@@ -282,12 +282,8 @@ async function main() {
         '',
       ].join('\n'));
 
-      // Malformed-bracket fixture: description appears AFTER the unclosed
-      // anti_triggers bracket so that a parser without the guard would swallow
-      // the description line into the accumulator, leaving description empty.
-      // The guard (/^\w+:(?:\s|$)/) must fire and abandon accumulation so
-      // description is parsed correctly — making find_skills show "payload
-      // correctly parsed" only when the fix is present.
+      // Malformed-bracket fixture A: unclosed anti_triggers (antiTriggerAccum path).
+      // Description placed AFTER so old parser swallows it; guarded parser preserves it.
       const malformedDir = path.join(tmpDir, 'malformed-bracket-guard-test');
       mkdirSync(malformedDir, { recursive: true });
       writeFileSync(path.join(malformedDir, 'skill.md'), [
@@ -298,6 +294,21 @@ async function main() {
         'description: "payload correctly parsed"',
         '---',
         '# Malformed bracket guard test',
+        '',
+      ].join('\n'));
+
+      // Malformed-bracket fixture B: unclosed triggers (triggerAccum path).
+      // Separately exercises the triggerAccum guard in superpowers-mcp.js.
+      const malformedTriggersDir = path.join(tmpDir, 'malformed-trigger-guard-test');
+      mkdirSync(malformedTriggersDir, { recursive: true });
+      writeFileSync(path.join(malformedTriggersDir, 'skill.md'), [
+        '---',
+        'name: malformed-trigger-guard-test',
+        'anti_triggers: ["known", "good"]',
+        'triggers: ["unclosed',
+        'description: "trigger-guard payload parsed"',
+        '---',
+        '# Malformed trigger guard test',
         '',
       ].join('\n'));
 
@@ -341,7 +352,14 @@ async function main() {
         // This assertion FAILS on the old parser (description was swallowed)
         // and PASSES only with the guard that abandons accumulation on new keys.
         assert(malformedFindText.includes('payload correctly parsed'),
-          'regression: malformed-bracket description parsed correctly (guard working)');
+          'regression: malformed-bracket anti_triggers guard preserves description (antiTriggerAccum)');
+
+        // Fixture B: malformed triggers bracket (triggerAccum path).
+        // Description after unclosed triggers must also be visible.
+        assert(malformedFindText.includes('malformed-trigger-guard-test'),
+          'regression: malformed-trigger skill is visible in find_skills');
+        assert(malformedFindText.includes('trigger-guard payload parsed'),
+          'regression: malformed-bracket triggers guard preserves description (triggerAccum)');
       } finally {
         client3.kill();
       }
