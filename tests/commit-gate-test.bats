@@ -478,6 +478,49 @@ EOF
     [[ "$output" == *"invalid value"* ]]
 }
 
+@test "pre-commit blocks staged .agent-gates with invalid boolean even when HEAD config is valid" {
+    # When HEAD .agent-gates is valid but staged version has invalid value,
+    # pre-commit must block the commit (validation-only pass on staged index blob).
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Step 1: commit a valid .agent-gates into HEAD
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=false" > "$fixture/.agent-gates"
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "valid agent-gates"
+    # Step 2: provide valid sentinel and seed a token so other gates pass
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    local _repo_hash
+    _repo_hash=$(echo "$fixture" | md5 | awk '{print $1}')
+    echo "$fixture" > "$fixture/.review-token.${_repo_hash}.$(date +%s).$$"
+    # Step 3: stage an invalid replacement .agent-gates + code change
+    echo "REQUIRE_CODE_REVIEW_SENTINEL=yes" > "$fixture/.agent-gates"
+    printf 'change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must fail: staged version has invalid boolean; commit must be blocked
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"invalid value"* ]]
+}
+
+@test "commit-gate.sh catches staged broken extensionless hook even with valid upstream base" {
+    # commit-gate.sh --changed-only must also scan staged (index) files, not just
+    # committed diff. A broken hook staged but not yet committed must block gate.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Add a fake remote so resolve_diff_base finds a valid base and uses --changed-only
+    git -C "$fixture" remote add origin "file:///tmp/nonexistent-remote-$$" 2>/dev/null || true
+    git -C "$fixture" update-ref refs/remotes/origin/main "$(git -C "$fixture" rev-parse HEAD)" 2>/dev/null || true
+    # Stage a syntax-broken hook (not yet committed — should still be caught)
+    printf '#!/usr/bin/env bash\nif then fi\n' > "$fixture/tools/pre-push"
+    git -C "$fixture" add tools/pre-push
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
+
 @test "loose-ends.sh add exits with error when --desc value is missing" {
     local fixture
     fixture=$(_create_fixture_repo)

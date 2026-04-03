@@ -123,6 +123,45 @@ case "$_agent_gates_source" in
     HEAD) _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
     file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
 esac
+
+# When .agent-gates is staged, also validate the STAGED values (index blob) in
+# validation-only mode. We don't apply staged values (that would allow self-disable),
+# but we do block the commit if the staged version has invalid key values — preventing
+# a broken .agent-gates from landing in the repo and bricking the NEXT commit.
+if [[ "$_agent_gates_source" == "HEAD" ]] && git cat-file -e ":.agent-gates" 2>/dev/null; then
+    _validate_agent_gates_staged() {
+        local _key _remainder _val
+        while IFS='=' read -r _key _remainder; do
+            [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+            _key="${_key//[[:space:]]/}"
+            case "$_key" in
+                REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+                REVIEW_TOKEN_TTL)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ ! "$_val" =~ ^[0-9]+$ ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer)${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+            esac
+        done
+    }
+    _validate_agent_gates_staged < <(git show ":.agent-gates" 2>/dev/null)
+fi
 # Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
 
 echo ""
