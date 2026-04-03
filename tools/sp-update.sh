@@ -220,14 +220,21 @@ main() {
 
     log_success "sp-update complete"
 
-    # Run superpowers-doctor to verify the installation is healthy
+    # Run superpowers-doctor to verify the installation is healthy.
+    # This is an authoritative post-update check — if doctor fails, sp-update
+    # exits non-zero so callers can detect a degraded installation.
     log_info "Running superpowers-doctor..."
+    local _doctor_rc=0
     if command -v sp-doctor &>/dev/null; then
-        sp-doctor || log_warn "superpowers-doctor reported issues — run sp-doctor for details"
+        sp-doctor || _doctor_rc=$?
     elif [[ -f "$managed_dir/tools/doctor-checks.sh" ]]; then
-        bash "$managed_dir/tools/doctor-checks.sh" || log_warn "superpowers-doctor reported issues"
+        bash "$managed_dir/tools/doctor-checks.sh" || _doctor_rc=$?
     else
         log_warn "sp-doctor not found — skipping health check"
+    fi
+    if [[ "$_doctor_rc" -ne 0 ]]; then
+        log_warn "superpowers-doctor reported issues — run sp-doctor for details"
+        return "$_doctor_rc"
     fi
 }
 
