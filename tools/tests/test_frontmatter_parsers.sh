@@ -83,18 +83,20 @@ vm.createContext(context);
 vm.runInContext(source.slice(start, end), context);
 
 const meta = context.extractFrontmatter(testSkill);
-// Guarded parser: description placed AFTER unclosed bracket must survive
+// Guarded parser: description placed AFTER unclosed triggers bracket must survive.
+// Both augment and installer parse `triggers` via triggerAccum — this is the real
+// discriminating field. Old parser swallows description; guarded parser preserves it.
 assert.strictEqual(meta.description, 'payload correctly parsed',
   `description should be preserved; got: "${meta.description}"`);
-// Anti-triggers must be empty — bracket never closed, accumulation abandoned
-const anti = Array.from(meta.anti_triggers || []);
-assert.deepStrictEqual(anti, [],
-  `anti_triggers should be empty; got: ${JSON.stringify(anti)}`);
+// Triggers must be empty — bracket never closed, accumulation abandoned
+const trigs = Array.from(meta.triggers || []);
+assert.deepStrictEqual(trigs, [],
+  `triggers should be empty after guard abandonment; got: ${JSON.stringify(trigs)}`);
 NODE
     then
-        pass "$label malformed-bracket guard preserves subsequent fields"
+        pass "$label malformed-bracket guard preserves subsequent fields (triggerAccum)"
     else
-        fail "$label malformed-bracket guard: description was swallowed or anti_triggers non-empty"
+        fail "$label malformed-bracket guard: description was swallowed or triggers non-empty"
     fi
 }
 
@@ -124,14 +126,16 @@ run_parser_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js" yes
 run_parser_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" no
 run_parser_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh" yes
 
-# Malformed-bracket guard: description appears AFTER unclosed anti_triggers bracket.
-# A parser without the guard swallows description into the accumulator → empty.
-# Guarded parser abandons accumulation when it sees a new YAML key → description preserved.
+# Malformed-bracket guard: description appears AFTER an unclosed triggers bracket.
+# Both augment and installer have triggerAccum — using `triggers:` as the malformed field
+# makes the test discriminating for both consumers.
+# Old parser (no guard): swallows description line into triggerAccum → description empty.
+# Guarded parser: abandons accumulation on new YAML key → description preserved.
 cat > "$MALFORMED_SKILL" <<'EOF'
 ---
 name: malformed-bracket-guard-test
-triggers: ["alpha", "beta"]
-anti_triggers: ["unclosed
+anti_triggers: ["known", "good"]
+triggers: ["unclosed
 description: "payload correctly parsed"
 ---
 Body.
