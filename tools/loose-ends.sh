@@ -61,12 +61,20 @@ cmd_check() {
     echo -e "${YELLOW}⚠ $count open #loose-end item(s) found:${NC}"
     echo ""
 
-    # Show full blocks so notes are visible
+    # Show full blocks so notes are visible — buffer until block end so
+    # "- Note:" lines that appear AFTER the #loose-end tag are included.
     "$TODO_CRUD" cat 2>/dev/null | awk '
-        /\[20[0-9]{6}-[0-9]+\]/ { in_block=1; block="" }
+        /\[20[0-9]{6}-[0-9]+\]/ {
+            if (in_block && found_tag) print block
+            in_block=1; found_tag=0; block=""
+        }
         in_block { block = block "\n" $0 }
-        in_block && /#loose-end/ { print block }
-        /^$/ { in_block=0; block="" }
+        in_block && /#loose-end/ { found_tag=1 }
+        /^[[:space:]]*$/ {
+            if (in_block && found_tag) print block
+            in_block=0; found_tag=0; block=""
+        }
+        END { if (in_block && found_tag) print block }
     '
 
     echo ""

@@ -11,7 +11,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Use pwd -P for canonical path so it matches the review token written by harsh-review.sh
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P 2>/dev/null)" || REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 # Colors
@@ -43,7 +44,7 @@ if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
         _key="${_key//[[:space:]]/}"
         # Only accept known keys; ignore everything else silently
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
                 # Trim leading/trailing whitespace and strip surrounding quotes
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
@@ -73,12 +74,27 @@ for GATE_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     printf '%b\n' "${YELLOW}[${STEP}]${NC} Running ${GATE_VAR}: ${GATE_CMD}..."
     if ! eval "$GATE_CMD" 2>&1; then
         printf '%b\n' "${RED}  ✗ ${GATE_VAR} failed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     else
         printf '%b\n' "${GREEN}  ✓ ${GATE_VAR} passed${NC}"
     fi
-    ((STEP++))
+    STEP=$((STEP + 1))
 done
+
+# Default test step: run bats on tests/ unless EXTRA_TEST was already configured
+# or SKIP_DEFAULT_TESTS=true is set in .agent-gates.
+if [[ -z "${EXTRA_TEST:-}" && "${SKIP_DEFAULT_TESTS:-false}" != "true" ]]; then
+    if command -v bats &>/dev/null && compgen -G "$REPO_ROOT/tests/*.bats" > /dev/null 2>&1; then
+        printf '%b\n' "${YELLOW}[${STEP}]${NC} Running default tests (bats tests/)..."
+        if bats "$REPO_ROOT/tests/" 2>&1; then
+            printf '%b\n' "${GREEN}  ✓ Tests passed${NC}"
+        else
+            printf '%b\n' "${RED}  ✗ Tests failed — fix before committing${NC}"
+            ERRORS=$((ERRORS + 1))
+        fi
+        STEP=$((STEP + 1))
+    fi
+fi
 
 # Run harsh-review.sh (writes token on success)
 printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
@@ -91,13 +107,13 @@ if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
         printf '%b\n' "${GREEN}  ✓ harsh-review passed (token verified)${NC}"
     else
         printf '%b\n' "${RED}  ✗ harsh-review passed, but token write failed${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     printf '%b\n' "${RED}  ✗ harsh-review failed${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
 fi
-((STEP++))
+STEP=$((STEP + 1))
 
 # Result
 echo ""
