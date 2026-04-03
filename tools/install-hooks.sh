@@ -43,6 +43,11 @@ echo ""
 # Ensure hooks directory exists
 mkdir -p "$HOOKS_DIR"
 
+# Ensure review token directory exists
+REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+mkdir -p "$REVIEW_TOKEN_DIR"
+echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
+
 # Install pre-commit hook
 if [[ -f "$HOOKS_DIR/pre-commit" ]]; then
     echo "⚠️  Existing pre-commit hook found. Backing up to pre-commit.bak"
@@ -65,8 +70,11 @@ echo "✓ Installed pre-push hook"
 
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax, IP scan"
-echo "  • pre-push: Scans unpushed commits for proprietary IP"
+echo "  • pre-commit: file endings, shell syntax, JSON, IP scan, review token"
+echo "  • pre-push: scans unpushed commits for proprietary IP"
+echo ""
+echo "Review token gate: Run 'bash tools/commit-gate.sh' before committing."
+echo "Token directory: ~/.codex/review-tokens/"
 echo ""
 echo "To bypass hooks (not recommended): git commit --no-verify"
 echo ""

@@ -124,7 +124,7 @@ log_check "File endings (single newline at EOF)"
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+
     if [[ $(tail -c 1 "$file" | wc -l) -eq 0 ]]; then
         # File doesn't end with newline
         if [[ "$FIX_MODE" == "true" ]]; then
@@ -197,7 +197,7 @@ log_check "JSON syntax validation"
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+
     if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
         log_fail "$file: invalid JSON"
     fi
@@ -419,7 +419,7 @@ done
 # Extract counts from README.md
 # Line format: **41 skills** across 9 domains:
 # Legacy format also supported: **41 skills** (32 superpowers + 9 explicit) across 9 domains:
-README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1)
+README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1 || true)
 
 if [[ -n "$README_LINE" ]]; then
     # Use sed for cross-platform compatibility (no grep -P on macOS)
@@ -474,5 +474,11 @@ else
     printf '%b\n' "${GREEN}No errors found.${NC}"
     echo ""
     printf '%b\n' "${GREEN}HARSH REVIEW PASSED${NC}"
+    # Write review proof token
+    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
+        token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
+        echo "$REPO_ROOT" > "$token_file"
+    fi
     exit 0
 fi

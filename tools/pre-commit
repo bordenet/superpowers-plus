@@ -180,12 +180,12 @@ echo -e "${YELLOW}[1/5]${NC} Checking file endings..."
 
 for file in $STAGED_FILES; do
     [[ ! -f "$file" ]] && continue
-    
+
     # Skip binary files
     if file "$file" | grep -q "binary"; then
         continue
     fi
-    
+
     # Check for extra blank lines at EOF
     if tail -c 2 "$file" 2>/dev/null | xxd -p | grep -q "0a0a"; then
         echo -e "${RED}  ✗ $file: extra blank line at EOF${NC}"
@@ -207,7 +207,7 @@ echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 for file in $STAGED_FILES; do
     [[ "$file" != *.sh ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+
     if ! bash -n "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: bash syntax error${NC}"
         ERRORS=$((ERRORS + 1))
@@ -229,7 +229,7 @@ echo -e "${YELLOW}[3/5]${NC} Checking JSON files..."
 for file in $STAGED_FILES; do
     [[ "$file" != *.json ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+
     if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: invalid JSON${NC}"
         ERRORS=$((ERRORS + 1))
@@ -291,6 +291,59 @@ for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     fi
     EXTRA_IDX=$((EXTRA_IDX + 1))
 done
+
+# -----------------------------------------------------------------------------
+# REVIEW TOKEN CHECK: Verify harsh-review.sh ran recently
+# Skip if SKIP_REVIEW_TOKEN=true in .agent-gates
+# -----------------------------------------------------------------------------
+if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
+    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+    REVIEW_TTL="${REVIEW_TOKEN_TTL:-300}"
+    NOW=$(date +%s)
+    FOUND_VALID_TOKEN=false
+
+    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
+        for token_file in "$REVIEW_TOKEN_DIR"/*; do
+            [[ -f "$token_file" ]] || continue
+            token_ts=$(basename "$token_file")
+            # Skip non-numeric filenames
+            [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
+            token_age=$((NOW - token_ts))
+            if [[ $token_age -le $REVIEW_TTL ]]; then
+                token_repo=$(cat "$token_file" 2>/dev/null || true)
+                if [[ "$token_repo" == "$REPO_ROOT" ]]; then
+                    FOUND_VALID_TOKEN=true
+                    # Consume the token (one-time use)
+                    rm -f "$token_file"
+                    break
+                fi
+            fi
+        done
+    fi
+
+    echo -e "${YELLOW}[+]${NC} Checking review token (TTL=${REVIEW_TTL}s)..."
+    if [[ "$FOUND_VALID_TOKEN" == "true" ]]; then
+        echo -e "${GREEN}  ✓ Valid review token found${NC}"
+    else
+        echo -e "${RED}  ✗ No valid review token found${NC}"
+        echo -e "${RED}    Run: bash tools/harsh-review.sh${NC}"
+        echo -e "${RED}    Or skip: SKIP_REVIEW_TOKEN=true in .agent-gates${NC}"
+        ((ERRORS++))
+    fi
+
+    # Garbage-collect expired tokens (older than 2x TTL)
+    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
+        for token_file in "$REVIEW_TOKEN_DIR"/*; do
+            [[ -f "$token_file" ]] || continue
+            token_ts=$(basename "$token_file")
+            [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
+            token_age=$((NOW - token_ts))
+            if [[ $token_age -gt $((REVIEW_TTL * 2)) ]]; then
+                rm -f "$token_file"
+            fi
+        done
+    fi
+fi
 
 # -----------------------------------------------------------------------------
 # RESULT
