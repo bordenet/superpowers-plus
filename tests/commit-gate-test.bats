@@ -2,6 +2,7 @@
 # Tests for the review token gate system
 
 TOOLS_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../tools" && pwd)"
+REAL_REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
 setup() {
     export TEST_HOME="$(mktemp -d)"
@@ -16,8 +17,38 @@ teardown() {
     rm -rf "$TEST_HOME"
 }
 
+# Create a minimal fixture repo that satisfies harsh-review.sh required files.
+# Copies tools/ from the real repo so we test the actual scripts.
+_create_fixture_repo() {
+    local repo_dir
+    repo_dir=$(mktemp -d)
+    git -C "$repo_dir" init -q
+    git -C "$repo_dir" config user.email "test@test.com"
+    git -C "$repo_dir" config user.name "Test"
+    # Required files for harsh-review.sh CHECK 7
+    # Each file must have content + exactly one trailing newline (CHECK 1)
+    printf '# README\n' > "$repo_dir/README.md"
+    printf '# AGENTS\n' > "$repo_dir/AGENTS.md"
+    printf '# CLAUDE\n' > "$repo_dir/CLAUDE.md"
+    printf 'root = true\n' > "$repo_dir/.editorconfig"
+    mkdir -p "$repo_dir/docs"
+    printf '# Contributing\n' > "$repo_dir/docs/CONTRIBUTING.md"
+    printf '# Architecture\n' > "$repo_dir/docs/ARCHITECTURE.md"
+    # Copy tools from real repo
+    cp -R "$REAL_REPO_ROOT/tools" "$repo_dir/tools"
+    # Minimal skills dir (empty is fine — no skills to validate)
+    mkdir -p "$repo_dir/skills"
+    # Initial commit so git commands work
+    git -C "$repo_dir" add -A
+    git -C "$repo_dir" commit -q -m "initial"
+    printf '%s' "$repo_dir"
+}
+
 @test "harsh-review.sh creates a token file on success" {
-    run bash "$TOOLS_DIR/harsh-review.sh"
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/harsh-review.sh"
+    rm -rf "$fixture"
     [ "$status" -eq 0 ]
     local token_count
     token_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
@@ -25,17 +56,26 @@ teardown() {
 }
 
 @test "token file contains repo root path" {
-    run bash "$TOOLS_DIR/harsh-review.sh"
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/harsh-review.sh"
     [ "$status" -eq 0 ]
     local latest_token
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    local token_content
+    local token_content token_real fixture_real
     token_content=$(cat "$REVIEW_TOKEN_DIR/$latest_token")
-    [ -d "$token_content" ]
+    # Resolve symlinks (macOS: /var → /private/var) for reliable comparison
+    token_real=$(cd "$token_content" && pwd -P)
+    fixture_real=$(cd "$fixture" && pwd -P)
+    [ "$token_real" = "$fixture_real" ]
+    rm -rf "$fixture"
 }
 
 @test "token filename is a unix timestamp" {
-    run bash "$TOOLS_DIR/harsh-review.sh"
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/harsh-review.sh"
+    rm -rf "$fixture"
     [ "$status" -eq 0 ]
     local latest_token
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
@@ -124,12 +164,18 @@ teardown() {
 }
 
 @test "commit-gate.sh runs without error" {
-    run bash "$TOOLS_DIR/commit-gate.sh"
+    local fixture
+    fixture=$(_create_fixture_repo)
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
     [ "$status" -eq 0 ]
 }
 
 @test "commit-gate.sh creates a token" {
-    bash "$TOOLS_DIR/commit-gate.sh"
+    local fixture
+    fixture=$(_create_fixture_repo)
+    bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
     local token_count
     token_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
     [ "$token_count" -ge 1 ]
