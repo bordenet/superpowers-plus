@@ -53,7 +53,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **sp-help** — Redesigned skill browser with credits, overlay indicators, grouped output by domain. Concise default output with grouped domain sections. Bash 3.2 compatible.
 - **sp-doctor** — Symlink-aware launcher. Resolves symlink before locating `doctor-checks.sh`. Check 14 skips git-tracked files.
 - **sp-update** — Self-updater with actionable diagnostics on merge failures.
-
 - **Auto-symlink** — All `sp-*` CLI commands auto-symlinked during install.
 
 ### Added — Infrastructure

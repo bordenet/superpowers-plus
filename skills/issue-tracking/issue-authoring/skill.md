@@ -25,7 +25,7 @@ coordination:
 
 ## When to Use
 
-- Creating new tickets in your configured issue tracker (shipped adapters: GitHub Issues, Jira; custom adapters supported via `_adapters/platform-template.md`)
+- Creating new tickets in your configured issue tracker (shipped adapters: GitHub Issues, Jira; custom adapters supported via `skills/issue-tracking/_adapters/platform-template.md`)
 - When user requests a ticket for a bug, feature, or task
 - Converting conversation discussion into a trackable ticket
 - When acceptance criteria need to be formalized
