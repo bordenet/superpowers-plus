@@ -599,4 +599,4 @@ For a senior engineer setting up superpowers-plus for their organization:
 
 - [superpowers-plus README](../README.md) — Installation and usage
 - [obra/superpowers](https://github.com/obra/superpowers) — Base skill framework
-- [Adapter Interface](../skills/wiki/_adapters/adapter-interface.md) — How to create adapters
+- [Adapter Interface](../skills/issue-tracking/_adapters/adapter-interface.md) — How to create issue-tracker adapters
