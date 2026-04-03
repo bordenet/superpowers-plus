@@ -19,7 +19,7 @@ Consumer skills may rely on these fields being present in the `get_issue` respon
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `exists` | boolean | Whether the target was found |
+| `exists` | `boolean \| null` | Whether the target was found. `true` = confirmed found; `false` = confirmed not found (e.g. 404); `null` = cannot determine (e.g. permission-denied/forbidden, cross-workspace access, masked 404 where not-found is indistinguishable from forbidden) |
 | `entityType` | `"issue"\|"pull_request"\|"other"\|"unknown"` | Normalized target classification. See **entityType Consumer Policy** below for required handling. `"pull_request"` and `"other"` are always rejected. `"unknown"` handling depends on operation class. |
 | `identifier` | string \| null | Platform-native identifier (key, number, or ID); null if not found |
 | `url` | string \| null | Direct URL to the issue; null if not found |
@@ -44,7 +44,16 @@ Adapters classify; consumers enforce. The following policy is deterministic and 
 
 **When to return `"unknown"`:** Permission ambiguity, cross-workspace references, masked 404 (where the platform cannot distinguish not-found from forbidden), or any case where entity type cannot be determined. Adapters must not collapse confirmed 404s (known not-found) with access-denied responses — document which HTTP status codes map to `"unknown"` vs confirmed not-found.
 
-**`exists` field note:** When `entityType: "unknown"` and `exists: false`, treat as confirmed not-found (hard block). When `entityType: "unknown"` and `exists` cannot be determined (permission ambiguity), retain `"unknown"` and apply the reference-only WARN policy.
+**`exists` + `entityType` combinations:**
+
+| exists | entityType | Consumer action |
+|--------|------------|----------------|
+| `true` | `"issue"` | Proceed normally |
+| `true` | `"pull_request"` / `"other"` | HARD BLOCK — wrong entity type |
+| `false` | any | HARD BLOCK — target not found |
+| `null` | `"unknown"` | WARN on reference paths; HARD BLOCK on mutation paths |
+
+Adapters must distinguish HTTP 404 (confirmed not-found → `exists: false`) from HTTP 401/403 or cross-workspace access failures (cannot determine → `exists: null`). Do not collapse all negative responses into `exists: false`.
 
 ## Field Mappings
 
