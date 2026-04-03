@@ -40,7 +40,7 @@ Invoke this skill when:
 
 <EXTREMELY_IMPORTANT>
 
-**Before writing ANY issue key, verify it exists using your adapter's `get_issue` operation (preferred for exact key lookup) or `verify_link` for URL-based verification. Use `search_issues` only when the exact key is unknown.**
+**Before writing ANY issue reference, verify it exists using your adapter's `get_issue` operation (preferred for exact platform-native identifier lookup) or `verify_link` for URL-based verification. Use `search_issues` only when the exact identifier is unknown.**
 
 **Expected response for existing issue:**
 
@@ -55,7 +55,7 @@ Invoke this skill when:
 ```text
 ⚠️ ISSUE NOT FOUND
 
-The issue key "[KEY]-XXX" does not exist.
+The issue "[IDENTIFIER]" does not exist.
 - Verify the issue number is correct
 - Check if the issue was deleted or moved
 - Do NOT reference this key in commits/docs
@@ -124,7 +124,7 @@ Summary: 2 verified, 1 not found
 
 ```text
 Before referencing ANY issue key:
-1. QUERY — Use get_issue for exact key lookup (or verify_link for URL-based verification)
+1. QUERY — Use get_issue for exact identifier lookup (or verify_link for URL-based verification)
 2. VERIFY — Issue exists and is in expected state
 3. FETCH — Get actual title (don't guess)
 4. REFERENCE — Only then cite the issue

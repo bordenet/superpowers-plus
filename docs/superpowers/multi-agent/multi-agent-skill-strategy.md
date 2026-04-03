@@ -2,7 +2,7 @@
 
 > **Status:** Draft · **Author:** Matt Bordenet · **Date:** 2026-03-29
 > **Branch:** `feat/multi-agent-skill-upgrades`
-> **Related:** `docs/superpowers/specs/2026-03-29-forked-debugging-design.md` (forked debugging)
+> **Related:** `skills/engineering/debug-conductor/` (forked debugging implementation)
 
 ## 1. Executive Summary
 
@@ -320,7 +320,7 @@ All orchestration decisions logged in structured format:
 ### Wave 5 — In Progress
 
 - [ ] Run comparative experiments (harness built, execution pending integration testing)
-- [x] Final recommendations → `docs/superpowers/specs/2026-03-29-forked-debugging-design.md`
+- [x] Final recommendations → incorporated into `skills/engineering/debug-conductor/`
 - [x] Documentation and limitations → §8 "Honest Caveats" + all TODO docs updated
 
 ## 8. Honest Caveats
