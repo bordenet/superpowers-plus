@@ -121,20 +121,19 @@ Scan for:
 1. **Unacted observations** — "I noticed X", "the URL looks wrong" — without fixing it
 2. **Deferred items** — "I'll fix this later", "I'll do this later", "let me skip this for now"
 3. **Technical debt introduced** — TODO / FIXME / HACK comments written in code
-4. **Open loose ends** — `--all` required to surface deferred items:
+4. **Open loose ends** — single command handles count + note inspection:
    ```bash
-   # Count check (count:0 = clean)
-   ~/.codex/superpowers-plus/tools/todo-crud.sh --json list --tag "#loose-end" --all 2>&1
-   # Inspect notes on any found items
-   ~/.codex/superpowers-plus/tools/todo-crud.sh cat 2>&1 | grep -A 3 "#loose-end"
+   ~/.codex/superpowers-plus/tools/loose-ends.sh check
+   # Exit 0 = clean. Non-zero = items listed with justification visibility.
    ```
+   The pre-commit hook also runs this automatically at every commit.
 
-Classify each item found:
+Classify each item shown:
 
 | Label | Action |
 |-------|--------|
 | `resolved` | Already addressed — proceed |
-| `deferred` | Confirm a note/reason line is visible in the `cat` output for that item; if missing, escalate to human — there is no supported way to retrofit — proceed once confirmed |
+| `deferred` | Confirm a note/reason line is visible in the output; if missing, escalate to human — no retrofit path exists — proceed once confirmed |
 | `must-address` | **FIX IT NOW** — do not claim completion until resolved |
 
 Any `must-address` item → **STOP** → fix → restart gate from Step 1.
