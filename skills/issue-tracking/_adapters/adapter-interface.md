@@ -11,7 +11,7 @@ All issue tracker adapters must implement these operations.
 | `get_issue` | exact platform-native identifier (key, number, or ID) | issue details |
 | `search_issues` | query | list of issues |
 | `add_comment` | identifier (platform-native key, number, or ID), text | comment ID |
-| `verify_link` | url | exists/not-found |
+| `verify_link` | url | structured result: `{exists: bool, identifier: string\|null, entityType: "issue"\|"pull_request"\|"other"\|"unknown"}` — consumers use `entityType` to distinguish issues from PRs; must not return a bare exists/not-found flag |
 
 ## Minimum `get_issue` Output Contract
 

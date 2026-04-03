@@ -11,7 +11,7 @@ Configuration for GitHub Issues tracking.
 | search_issues | `github-api` | `GET /search/issues` — always include `is:issue` in query to exclude PRs (e.g. `q=is:issue repo:{owner}/{repo} {query}`) |
 | get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — looks up by **issue number** (not GitHub's global `id` field). **Important: this endpoint also returns PRs. Verify response is not a PR by checking that `pull_request` field is absent before treating as a valid issue.** |
 | add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments`. **Precondition: same PR-separation requirement as `update_issue`.** |
-| verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue. **Verify `pull_request` field is absent; PR URLs must not be accepted as issue URLs.** |
+| verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — resolve URL to issue number, then call endpoint. Returns `{exists: true, identifier: "{number}", entityType: "issue"}` if `pull_request` field absent; returns `{exists: true, identifier: "{number}", entityType: "pull_request"}` if `pull_request` field present; returns `{exists: false, identifier: null, entityType: "unknown"}` on 404. |
 
 ## Environment Variables
 

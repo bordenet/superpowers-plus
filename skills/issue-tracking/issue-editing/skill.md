@@ -57,7 +57,7 @@ coordination:
 │ BEFORE ANY update_issue CALL                                │
 ├─────────────────────────────────────────────────────────────┤
 │ 1. FETCH: Query issue by platform-native identifier using adapter │
-│ 2. VERIFY: Issue exists and you have correct ID             │
+│ 2. VERIFY: Issue exists and identifier is confirmed         │
 │ 3. CHECK: updatedAt for recent modifications                │
 │ 4. COMPARE: Your intended changes vs current state          │
 │ 5. UPDATE: Only then call adapter's update operation        │
@@ -71,7 +71,7 @@ coordination:
 | Field | Validation Required |
 |-------|---------------------|
 | `status` | Verify state exists in your workflow |
-| `assignee` | Verify user ID exists (not email) |
+| `assignee` | Verify the assignee value uses the platform-specific identifier format (e.g., GitHub username, Jira accountId) — not an email address unless your adapter explicitly maps from email |
 | `labels` | Verify each label exists |
 | `priority` | Use platform-appropriate values |
 | `title` | Follow title standards (see issue-authoring) |
