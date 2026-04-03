@@ -140,32 +140,39 @@ _create_fixture_repo() {
 
 @test "commit-gate.sh exits nonzero when EXTRA_TEST fails" {
     # Create a temp repo with a failing EXTRA_TEST gate
+    # Use 'false' (not 'exit 1') so the eval path doesn't terminate the shell
     local tmp_repo
     tmp_repo=$(mktemp -d)
     git -C "$tmp_repo" init -q
     mkdir -p "$tmp_repo/tools" "$tmp_repo/tests"
     cp "$TOOLS_DIR/commit-gate.sh" "$tmp_repo/tools/"
     cp "$TOOLS_DIR/harsh-review.sh" "$tmp_repo/tools/"
-    # Write .agent-gates with a forced-fail test command
-    printf 'EXTRA_TEST=exit 1\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
+    printf 'EXTRA_TEST=false\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
     run bash "$tmp_repo/tools/commit-gate.sh"
     rm -rf "$tmp_repo"
     [ "$status" -ne 0 ]
 }
 
 @test "no review token written when commit-gate.sh fails" {
+    # When an earlier gate fails, harsh-review.sh is skipped entirely
+    # so no new token should be written.
     local tmp_repo before_count after_count
     tmp_repo=$(mktemp -d)
     git -C "$tmp_repo" init -q
     mkdir -p "$tmp_repo/tools" "$tmp_repo/tests"
     cp "$TOOLS_DIR/commit-gate.sh" "$tmp_repo/tools/"
-    cp "$TOOLS_DIR/harsh-review.sh" "$tmp_repo/tools/"
-    printf 'EXTRA_TEST=exit 1\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
+    # Use a stub harsh-review.sh that writes a token + exits 0, to confirm
+    # it is never called when earlier gates have already failed.
+    printf '#!/usr/bin/env bash\necho "%s" > "%s/%s.%s.%s"\nexit 0\n' \
+        "$tmp_repo" "$REVIEW_TOKEN_DIR" "9999999999" "$(date +%s)" "$$" \
+        > "$tmp_repo/tools/harsh-review.sh"
+    chmod +x "$tmp_repo/tools/harsh-review.sh"
+    printf 'EXTRA_TEST=false\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
     before_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
     run bash "$tmp_repo/tools/commit-gate.sh"
     after_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
     rm -rf "$tmp_repo"
-    # Gate failed — no new token should have been written
+    # Gate failed AND harsh-review was skipped — no new token should appear
     [ "$after_count" -le "$before_count" ]
 }
 
