@@ -2,7 +2,7 @@
 
 > **Purpose:** Decide whether to stay serial or fork into parallel investigation branches.
 > **Default:** Serial. Forking is an escalation, not a starting position.
-> **Reference:** Design spec `docs/superpowers/specs/2026-03-29-forked-debugging-design.md`
+> **Reference:** See `skills/engineering/debug-conductor/` for the forked debugging implementation.
 
 ## Scoring (0–2 per signal, fork if total ≥ 6)
 

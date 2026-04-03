@@ -6,12 +6,28 @@ All issue tracker adapters must implement these operations.
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `create_issue` | title, description, labels, assignee | issue ID/URL |
-| `update_issue` | id, fields | success/failure |
-| `get_issue` | id | issue details |
+| `create_issue` | title, description, labels, assignee | created issue identifier and URL |
+| `update_issue` | identifier (platform-native key, number, or ID), fields | success/failure |
+| `get_issue` | exact platform-native identifier (key, number, or ID) | structured result including `exists`, `entityType`, `identifier`, `url`, `title`, `status`, `updatedAt` — see Minimum `get_issue` Output Contract below |
 | `search_issues` | query | list of issues |
-| `add_comment` | issue_id, text | comment ID |
-| `verify_link` | url | exists/not-found |
+| `add_comment` | identifier (platform-native key, number, or ID), text | comment ID |
+| `verify_link` | url | structured result: `{exists: bool, identifier: string\|null, entityType: "issue"\|"pull_request"\|"other"\|"unknown"}` — consumers use `entityType` to distinguish issues from PRs; must not return a bare exists/not-found flag |
+
+## Minimum `get_issue` Output Contract
+
+Consumer skills may rely on these fields being present in the `get_issue` response. Adapters must guarantee them at minimum:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `exists` | boolean | Whether the target was found |
+| `entityType` | `"issue"\|"pull_request"\|"other"\|"unknown"` | Normalized target classification. Consumer skills must: stop/reject `"pull_request"` and `"other"` before mutating or referencing; for `"unknown"` (permission ambiguity, cross-workspace) either hard-block or WARN with mandatory user escalation before proceeding. |
+| `identifier` | string \| null | Platform-native identifier (key, number, or ID); null if not found |
+| `url` | string \| null | Direct URL to the issue; null if not found |
+| `title` | string \| null | Issue title/summary; null if not found |
+| `status` | string \| null | Current workflow state; null if not found |
+| `updatedAt` | ISO 8601 string \| null | Last modification timestamp; null if not found |
+
+Additional fields (`assignee`, `labels`, `priority`) are optional but recommended.
 
 ## Field Mappings
 
