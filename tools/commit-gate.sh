@@ -104,6 +104,12 @@ mkdir -p "$REVIEW_TOKEN_DIR"
 _pre_tokens=()
 for _tf in "$REVIEW_TOKEN_DIR"/*; do [[ -f "$_tf" ]] && _pre_tokens+=("$(basename "$_tf")"); done
 
+if [[ $ERRORS -gt 0 ]]; then
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Skipping harsh-review.sh — fix earlier gate failures first"
+    printf '%b\n' "${YELLOW}  ⚠ Re-run commit-gate.sh after resolving the errors above${NC}"
+    STEP=$((STEP + 1))
+else
+
 printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
 if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
     # Require a NEW token for this repo (a file that was not in the pre-snapshot).
@@ -139,6 +145,8 @@ else
     ERRORS=$((ERRORS + 1))
 fi
 STEP=$((STEP + 1))
+
+fi  # end: skip harsh-review when earlier gates failed
 
 # Result
 echo ""

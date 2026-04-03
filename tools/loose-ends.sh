@@ -59,13 +59,13 @@ cmd_check() {
         /^# DEFERRED/     { flush_block(); section="deferred"; next }
         /^# /             { flush_block(); section="other";    next }
         section == "history" || section == "other" { next }
-        /\[20[0-9]{6}-[0-9]+\]/ { flush_block(); in_block=1; block="" }
+        /^- \[[ x\/\-]\] \[20[0-9]{6}-[0-9]+\]/ { flush_block(); in_block=1; block="" }
         in_block { block = block "\n" $0 }
         in_block && /#loose-end/ { found_tag=1 }
         END { flush_block() }
     ' || true)
 
-    count=$(printf '%s\n' "$raw_output" | grep -cE '\[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)
+    count=$(printf '%s\n' "$raw_output" | grep -cE '^- \[[ x/\-]\] \[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)
 
     if [[ "$count" -eq 0 ]]; then
         echo -e "${GREEN}✓ No open #loose-end items. Session is clean.${NC}"
