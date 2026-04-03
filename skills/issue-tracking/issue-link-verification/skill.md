@@ -52,7 +52,7 @@ Invoke this skill when:
 | **Internal Wiki** | Wiki API query | **HARD BLOCK** |
 | **Pull Request** | Source control API | **HARD BLOCK** |
 | **Repository** | Source control API | **HARD BLOCK** |
-| **Issue Reference** | `verify_link` (URL) or `get_issue` (platform-native identifier) via adapter; `search_issues` for discovery only | **HARD BLOCK** if `exists: false`; route to source-control workflow if `entityType: "pull_request"`; **HARD BLOCK** if `entityType: "other"` (unknown non-issue entity — do not reference without reclassification); **WARN** if `entityType: "unknown"` (permission/cross-workspace ambiguity — surface uncertainty to user before proceeding) |
+| **Issue Reference** | `verify_link` (URL) or `get_issue` (platform-native identifier) via adapter; `search_issues` for discovery only | **HARD BLOCK** if `exists: false`; route to source-control workflow if `entityType: "pull_request"`; **HARD BLOCK** if `entityType: "other"` (unknown non-issue entity — do not reference without reclassification); for `entityType: "unknown"` (permission/cross-workspace ambiguity) — **WARN** and stop until the user provides **explicit confirmation** that this reference is intentional; silence, unclear, off-topic, echo, and partial responses do not count as approval |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
 
 ## Verification Workflow

@@ -47,7 +47,12 @@ Before calling your adapter's `create_issue` operation:
 - [ ] **Search for duplicates** — Use adapter's search operation
 - [ ] **Validate labels exist** — Query label IDs for your platform
 - [ ] **Validate assignee exists** — Query user IDs for your platform
-- [ ] **Verify issue cross-references** — For **issue identifiers or issue URLs** in the description (e.g., `Related: [IDENTIFIER]`, `Closes: [URL]`), run `issue-verify` or `issue-link-verification` first; reject any where `exists:false` or `entityType != "issue"`. PR links, wiki links, repo URLs, and external references do not go through this check — use `issue-link-verification`'s type-specific policy for those.
+- [ ] **Verify issue cross-references** — For **issue identifiers or issue URLs** in the description (e.g., `Related: [IDENTIFIER]`, `Closes: [URL]`), run `issue-verify` first:
+  - `entityType: "issue"` + `exists: true` → proceed
+  - `entityType: "pull_request"` or `"other"` → **HARD BLOCK** — do not create the issue with a broken cross-reference
+  - `entityType: "unknown"` → **WARN** — stop and require **explicit user confirmation** (silence/unclear/off-topic/echo does not count) before including the reference
+  - `exists: false` → **HARD BLOCK** — do not reference a non-existent issue
+  - PR links, wiki links, repo URLs, and external references do not go through this check — use `issue-link-verification`'s type-specific policy for those.
 - [ ] **Title follows format** — See Title Standards below
 - [ ] **Description has required sections** — See Description Template
 
