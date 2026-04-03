@@ -14,7 +14,7 @@ All six operations defined in `adapter-interface.md` must be documented here.
 | `get_issue` | _fill in_ | Returns full issue details by exact platform-native identifier (key, number, or ID). **Must satisfy the minimum output contract (see below).** |
 | `search_issues` | _fill in_ | Query syntax for this platform |
 | `add_comment` | _fill in_ | Adds text comment to an existing issue |
-| `verify_link` | _fill in_ | Confirms a URL resolves to a valid issue |
+| `verify_link` | _fill in_ | Returns structured result: `{exists: bool, identifier: string\|null, entityType: "issue"\|"pull_request"\|"other"\|"unknown"}`. Document how your platform maps its response to `entityType`. |
 
 ## Minimum `get_issue` Output Contract Mapping
 
