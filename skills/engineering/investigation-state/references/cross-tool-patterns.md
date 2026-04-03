@@ -7,23 +7,23 @@ When investigating bugs that span multiple systems, use these patterns to gather
 
 ---
 
-## MSSQL (via MCP tools)
+## Database / SQL Store (via your configured database MCP tools)
 
 ### Diagnostic Queries
 
 | Pattern | When to Use | Evidence Source |
 |---------|-------------|----------------|
-| Compare row counts across environments | Data migration issues | `mssql:<connection>` |
-| Check recent modifications (`updated_at` columns) | Stale data suspicion | `mssql:<connection>` |
-| Verify connection targets | Wrong database suspicion | `mssql:<connection>` |
-| Query execution plans | Performance regressions | `mssql:<connection>` |
+| Compare row counts across environments | Data migration issues | `db:<connection>` |
+| Check recent modifications (`updated_at` columns) | Stale data suspicion | `db:<connection>` |
+| Verify connection targets | Wrong database suspicion | `db:<connection>` |
+| Query execution plans | Performance regressions | `db:<connection>` |
 
 ### Process
 
-1. **Identify the connection** — use `list_connections_mssql` to find available connections
-2. **Describe the table** — use `describe_table_mssql` to understand schema before querying
-3. **Run diagnostic query** — use `query_mssql` with targeted SELECT
-4. **Log finding** — record source as `mssql:<connection-name>` with a summary of what was found
+1. **Identify the connection** — use your database MCP's list-connections operation
+2. **Describe the table** — use your database MCP's describe-table operation to understand schema before querying
+3. **Run diagnostic query** — use your database MCP's query operation with targeted SELECT
+4. **Log finding** — record source as `db:<connection-name>` with a summary of what was found
 
 ### Example Evidence Entry
 
@@ -126,8 +126,8 @@ Per the `adversarial-search` skill: **search for the WRONG thing, not the right 
 
 When evidence spans multiple tools, look for:
 
-1. **Temporal correlation** — did a deploy (ADO) happen right before the bug appeared?
-2. **Data consistency** — does the database (MSSQL) match what the API returns?
+1. **Temporal correlation** — did a deploy or pipeline run happen right before the bug appeared?
+2. **Data consistency** — does the database match what the API returns?
 3. **Documentation drift** — do the docs (wiki) describe the current behavior or the old behavior?
 4. **Ticket history** — was this bug reported before (Linear) and marked resolved prematurely?
 
