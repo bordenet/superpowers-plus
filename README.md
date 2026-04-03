@@ -50,7 +50,7 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-Skills across 9 domains:
+**90 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
