@@ -7,9 +7,9 @@ This skill set supports multiple issue tracking platforms through adapters.
 | Platform | MCP Tools | Status |
 |----------|-----------|--------|
 | Your current issue tracker | See your local adapter docs | ⚙️ Configure locally |
-| GitHub Issues | `github-api` | ✅ Full support |
-| Jira | `jira-api` (if available) | 🔶 Partial |
-| Azure DevOps | `wit_create_work_item_azure-devops`, etc. | ✅ Full support |
+| GitHub Issues | `github-api` | ✅ All 6 operations documented with `get_issue` output contract mapping and issue/PR disambiguation note |
+| Jira | `jira-api` (if available) | ✅ All 6 operations documented with `get_issue` output contract mapping (runtime requires jira-api or REST) |
+| Other platforms | Use `platform-template.md` to create your own adapter | ⚙️ Bring your own |
 
 ## Configuration
 
@@ -26,7 +26,6 @@ See the adapter documentation for your platform:
 - [platform-template.md](./platform-template.md) - Provider-neutral adapter template
 - [github-issues.md](./github-issues.md) - GitHub Issues setup
 - [jira.md](./jira.md) - Jira setup
-- [azure-devops.md](./azure-devops.md) - Azure DevOps setup
 
 ## Adding New Adapters
 

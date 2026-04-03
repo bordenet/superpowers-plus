@@ -77,3 +77,7 @@ skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 .ip-check-patterns
 __pycache__/
 install-state/
+
+# Internal planning and design docs (proprietary IP — not for public repo)
+docs/superpowers/plans/
+docs/superpowers/specs/
