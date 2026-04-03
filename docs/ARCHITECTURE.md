@@ -274,7 +274,7 @@ skills/issue-tracking/
 │   ├── platform-template.md # Provider-neutral adapter template
 │   ├── github-issues.md  # GitHub Issues configuration
 │   ├── jira.md           # Jira configuration
-│   └── azure-devops.md   # Azure DevOps configuration
+│   └── {platform}.md     # Your platform adapter (from platform-template.md)
 ├── issue-authoring/
 │   └── skill.md
 └── ...
