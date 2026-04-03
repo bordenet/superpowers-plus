@@ -359,6 +359,22 @@ EOF
     [ "$status" -ne 0 ]
 }
 
+@test "harsh-review.sh --changed-only fails when extensionless hook uses #!/bin/bash shebang" {
+    local fixture remote_dir
+    remote_dir=$(mktemp -d)
+    fixture=$(_create_fixture_repo)
+    git -C "$remote_dir" init --bare -q
+    git -C "$fixture" remote add origin "$remote_dir"
+    git -C "$fixture" push -q origin HEAD:dev
+    # Use #!/bin/bash (forbidden shebang) on an extensionless hook
+    printf '#!/bin/bash\necho hello\n' > "$fixture/tools/pre-push"
+    git -C "$fixture" add tools/pre-push
+    git -C "$fixture" commit -q -m "bad shebang in pre-push"
+    run bash "$fixture/tools/harsh-review.sh" --changed-only
+    rm -rf "$fixture" "$remote_dir"
+    [ "$status" -ne 0 ]
+}
+
 @test "pre-commit blocks commit when loose-ends audit backend fails" {
     local fixture
     fixture=$(_create_fixture_repo)

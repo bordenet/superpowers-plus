@@ -242,17 +242,30 @@ fi
 # =============================================================================
 log_check "Shebang consistency (#!/usr/bin/env bash)"
 
+_check_shebang() {
+    local file="$1"
+    [[ -z "$file" ]] && return
+    [[ ! -f "$file" ]] && return
+    local shebang
+    shebang=$(head -n1 "$file")
+    if [[ "$shebang" == "#!/bin/bash" ]]; then
+        log_fail "$file: use '#!/usr/bin/env bash' instead of '#!/bin/bash'"
+    fi
+}
+
+# Check *.sh files
+while IFS= read -r file; do
+    _check_shebang "$file"
+done < <(get_files '\.sh$')
+
+# Also check extensionless bash hooks — mirrors the syntax/shellcheck loop above
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-
-    shebang=$(head -n1 "$file")
-    if [[ "$shebang" =~ ^#! ]]; then
-        if [[ "$shebang" == "#!/bin/bash" ]]; then
-            log_fail "$file: use '#!/usr/bin/env bash' instead of '#!/bin/bash'"
-        fi
-    fi
-done < <(get_files '\.sh$')
+    [[ "$file" == *.sh ]] && continue
+    head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
+    _check_shebang "$file"
+done < <(get_files '^(\.\/)?tools/')
 
 # =============================================================================
 # CHECK 6: Hardcoded Vendor References (outside _adapters/)
