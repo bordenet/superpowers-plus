@@ -175,6 +175,7 @@ if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
+    _sp_update_ok=true
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
         # Detect diverged history (force-push/rewrite) vs local-ahead vs missing ref.
         # git pull fetches before merging, so origin/main is current even after failure.
@@ -186,20 +187,24 @@ if [[ -e ~/.codex/superpowers/.git ]]; then
             if ! git pull --ff-only --quiet origin master 2>/dev/null; then
                 warn "Could not update superpowers (fast-forward failed)"
                 warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+                _sp_update_ok=false
             fi
         elif git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
             # origin/main IS ancestor of HEAD: local has extra commits — do not auto-reset
             warn "Could not update superpowers (local checkout is ahead of origin/main)"
             warn "To reset manually: cd ~/.codex/superpowers && git reset --hard origin/main"
+            _sp_update_ok=false
         else
             # origin/main is NOT ancestor of HEAD: true divergence (history rewrite/force-push)
             verbose "Diverged history detected — auto-resetting to origin/main"
-            git reset --hard origin/main --quiet 2>/dev/null || \
+            if ! git reset --hard origin/main --quiet 2>/dev/null; then
                 warn "Auto-reset failed — run: cd ~/.codex/superpowers && git reset --hard origin/main"
+                _sp_update_ok=false
+            fi
         fi
     fi
     popd > /dev/null
-    success "Superpowers updated"
+    [[ "$_sp_update_ok" == true ]] && success "Superpowers updated"
 else
     info "Installing superpowers from obra/superpowers..."
     verbose "Cloning $SUPERPOWERS_REPO to ~/.codex/superpowers"
