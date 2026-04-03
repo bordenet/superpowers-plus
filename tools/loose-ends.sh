@@ -143,7 +143,7 @@ cmd_add() {
 # scan-staged: grep staged diff for code debt markers in code files
 # ---------------------------------------------------------------------------
 cmd_scan_staged() {
-    local diff_output findings=0
+    local diff_output
 
     diff_output=$(git diff --cached -U0 2>/dev/null) || { echo "(not in a git repo)"; exit 0; }
 

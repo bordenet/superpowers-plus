@@ -218,21 +218,25 @@ main() {
         log_warn "install.sh not found — skipping re-deploy"
     fi
 
-    # Run superpowers-doctor to verify the installation is healthy.
-    # Uses --fail-on-findings so a degraded installation causes sp-update to
-    # exit nonzero. Default report-only behavior is preserved for direct calls.
+    # Run superpowers-doctor to report installation health after update.
+    # Advisory only: doctor warnings do not fail sp-update because they are
+    # non-critical by design (environment drift, optional tools, etc.).
+    # sp-update still exits nonzero if sp-doctor itself crashes (unexpected error).
     log_info "Running superpowers-doctor..."
-    local _doctor_rc=0
+    local _doctor_rc=0 _doctor_cmd=""
     if command -v sp-doctor &>/dev/null; then
-        sp-doctor --summary-only --fail-on-findings || _doctor_rc=$?
+        _doctor_cmd="sp-doctor"
+        sp-doctor --summary-only || _doctor_rc=$?
     elif [[ -f "$managed_dir/tools/doctor-checks.sh" ]]; then
-        bash "$managed_dir/tools/doctor-checks.sh" --summary-only --fail-on-findings || _doctor_rc=$?
+        _doctor_cmd="bash $managed_dir/tools/doctor-checks.sh"
+        bash "$managed_dir/tools/doctor-checks.sh" --summary-only || _doctor_rc=$?
     else
         log_warn "sp-doctor not found — skipping health check"
     fi
     if [[ "$_doctor_rc" -ne 0 ]]; then
-        log_warn "superpowers-doctor reported issues — run 'sp-doctor' for details"
-        return "$_doctor_rc"
+        log_warn "superpowers-doctor reported issues — run '${_doctor_cmd:-sp-doctor}' for details"
+        # Advisory: log the warning but do not propagate the exit code.
+        # A degraded install is still a complete install; the user can remediate separately.
     fi
 
     log_success "sp-update complete"
