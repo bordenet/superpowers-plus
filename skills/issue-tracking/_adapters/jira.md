@@ -4,14 +4,14 @@ Configuration for Jira issue tracking.
 
 ## MCP Tools Required
 
-| Operation | MCP Tool / API |
-|-----------|----------------|
-| create_issue | `jira-api` or REST API |
-| update_issue | `jira-api` or REST API |
-| search_issues | JQL queries |
-| get_issue | `jira-api` or REST API |
-| add_comment | `jira-api` or REST API |
-| verify_link | `jira-api` or REST API — `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
+| Operation | MCP Tool / API | Notes |
+|-----------|----------------|-------|
+| create_issue | `jira-api` or REST API | `POST /rest/api/3/issue` |
+| update_issue | `jira-api` or REST API | `PUT /rest/api/3/issue/{key}` |
+| search_issues | `jira-api` or REST API | `GET /rest/api/3/search` with `jql` parameter |
+| get_issue | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` |
+| add_comment | `jira-api` or REST API | `POST /rest/api/3/issue/{key}/comment` |
+| verify_link | `jira-api` or REST API | `GET /rest/api/3/issue/{key}` — resolve URL to key, then call endpoint. Returns `{exists: true, identifier: "{key}", entityType: "issue"}` on success (Jira has no PR concept); returns `{exists: false, identifier: null, entityType: "unknown"}` on 404. |
 
 ## Environment Variables
 
@@ -30,16 +30,28 @@ https://[instance].atlassian.net/browse/[KEY]-[number]
 
 Example: `https://mycompany.atlassian.net/browse/PROJ-123`
 
+## Minimum `get_issue` Output Contract Mapping
+
+| Normalized Field | Jira Response Field | Notes |
+|-----------------|---------------------|-------|
+| `exists` | HTTP 200 = `true`; 404 = `false` | Check HTTP status |
+| `entityType` | Always `"issue"` on 200; `"unknown"` on 404 | Jira has no PR concept; no rejection needed for entityType |
+| `identifier` | `key` | e.g. `"PROJ-123"` |
+| `url` | Construct: `{baseUrl}/browse/{key}` | Not directly in response body |
+| `title` | `fields.summary` | Issue title |
+| `status` | `fields.status.name` | Workflow state string |
+| `updatedAt` | `fields.updated` | ISO 8601 timestamp |
+
 ## Field Mappings
 
 | Generic | Jira Field | Notes |
 |---------|------------|-------|
-| title | `summary` | Required |
-| description | `description` | Atlassian Doc Format or Markdown |
-| labels | `labels` | Array of strings |
-| assignee | `assignee.accountId` | Atlassian account ID |
-| status | `status.name` | Workflow state |
-| priority | `priority.name` | Highest, High, Medium, Low, Lowest |
+| title | `fields.summary` | Required |
+| description | `fields.description` | Atlassian Doc Format or Markdown |
+| labels | `fields.labels` | Array of strings |
+| assignee | `fields.assignee.accountId` | Atlassian account ID |
+| status | `fields.status.name` | Workflow state |
+| priority | `fields.priority.name` | Highest, High, Medium, Low, Lowest |
 
 ## Issue Types
 
