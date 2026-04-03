@@ -347,7 +347,7 @@ function extractFrontmatter(filePath) {
             if (inFrontmatter) {
                 // Handle bracket-multiline accumulation
                 if (triggerAccum !== null) {
-                    if (line.match(/^\w+:(?:\s|$)/)) { triggerAccum = null; }  // abandon on new YAML key
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }  // abandon on new YAML key
                     else {
                         triggerAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(triggerAccum)) {
@@ -358,7 +358,7 @@ function extractFrontmatter(filePath) {
                     }
                 }
                 if (mcpAccum !== null) {
-                    if (line.match(/^\w+:(?:\s|$)/)) { mcpAccum = null; }      // abandon on new YAML key
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { mcpAccum = null; }      // abandon on new YAML key
                     else {
                         mcpAccum += ' ' + line.trim();
                         if (hasUnquotedClosingBracket(mcpAccum)) {
