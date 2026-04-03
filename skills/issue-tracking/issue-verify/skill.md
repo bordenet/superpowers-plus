@@ -45,7 +45,11 @@ Invoke this skill when:
 - **URL**: call `verify_link` → check `exists: true` and `entityType: "issue"` before proceeding. **Note:** `verify_link` guarantees `exists`, `identifier`, and `entityType` but not `title` or `status`. If you need to report title/status (e.g., in verification output), call `get_issue` with the returned `identifier` as a follow-up step.
 - Use `search_issues` only when the exact identifier is unknown
 
-**In both cases, the adapter returns `exists` and `entityType`. Reject any result where `entityType` is not `"issue"` before referencing the target in commits, PRs, or docs.**
+**In all cases, the adapter returns `exists` and `entityType`. Apply the following policy:**
+- `entityType: "issue"` → proceed
+- `entityType: "pull_request"` or `"other"` → **HARD BLOCK**; do not reference this target as an issue
+- `entityType: "unknown"` (permission/cross-workspace ambiguity) → **WARN**; stop and require **explicit user confirmation** that the reference is intentional before proceeding. Silence, unclear responses, off-topic replies, echoing, and partial acknowledgments do **not** count as approval.
+- `exists: false` and `entityType: "unknown"` → **HARD BLOCK** (not-found overrides ambiguous path)
 
 **Expected response for existing issue:**
 
