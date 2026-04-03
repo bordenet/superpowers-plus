@@ -20,7 +20,7 @@ coordination:
 > **Pattern:** Same rigor as wiki link verification — no broken links
 > **Adapter:** See `_adapters/` for platform-specific configuration
 >
-> **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue keys → `issue-verify`.
+> **Wrong skill?** Verifying wiki links → `link-verification`. Creating issues → `issue-authoring`. Verifying issue identifiers → `issue-verify`.
 
 ## When to Use
 
@@ -52,7 +52,7 @@ Invoke this skill when:
 | **Internal Wiki** | Wiki API query | **HARD BLOCK** |
 | **Pull Request** | Source control API | **HARD BLOCK** |
 | **Repository** | Source control API | **HARD BLOCK** |
-| **Issue Reference** | Issue tracker search | **WARN** |
+| **Issue Reference** | `verify_link` (URL) or `get_issue` (platform-native identifier) via adapter; `search_issues` for discovery only | **HARD BLOCK** if `exists: false`; route to source-control workflow if `entityType: "pull_request"`; **HARD BLOCK** if `entityType: "other"` (unknown non-issue entity — do not reference without reclassification); for `entityType: "unknown"` (permission/cross-workspace ambiguity) — **WARN** and stop until the user provides **explicit confirmation** that this reference is intentional; silence, unclear, off-topic, echo, and partial responses do not count as approval |
 | **External URL** | `web-fetch` or `curl` | **WARN** |
 
 ## Verification Workflow
@@ -69,7 +69,7 @@ Invoke this skill when:
 
 **Repository/PR links**: Use source control adapter's `get_pull_request` / `get_repository` operations. See `skills/issue-tracking/_adapters/`.
 
-**Issue links**: Search via adapter. May fail if issue is in another workspace.
+**Issue links**: Use your adapter's `verify_link` operation for URL-based verification, or `get_issue` for exact platform-native identifier lookup (key, number, or ID). Fall back to `search_issues` only for discovery. May fail if issue is in another workspace.
 
 **External URLs**: `curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "URL"` or `web-fetch`. Status: `200/301/302` → PASS · `401/403` → WARN · `404` → FAIL · `5xx` → WARN.
 

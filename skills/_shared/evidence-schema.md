@@ -9,7 +9,7 @@ Every piece of evidence from any investigator follows this schema:
 
 ```json
 {
-  "source": "string — tool or data source (e.g., 'sip-trace', 'mssql:prod', 'git:log', 'metrics:datadog')",
+  "source": "string — tool or data source (e.g., 'sip-trace', 'db:example-conn', 'git:log', 'metrics:datadog')",
   "finding": "string — what was observed (factual, not interpretive)",
   "timestamp": "ISO-8601 — when evidence was collected",
   "confidence": "number 0.0–1.0 — how confident is this finding?",
