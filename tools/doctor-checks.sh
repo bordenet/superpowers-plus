@@ -31,12 +31,14 @@ FIX_MODE=false
 FIX_SAFE=false
 SUMMARY_ONLY=false
 PURGE_ORPHANS=false
+FAIL_ON_FINDINGS=false
 for arg in "$@"; do
   case "$arg" in
-    --fix-safe)       FIX_SAFE=true; FIX_MODE=true ;;
-    --fix)            FIX_MODE=true ;;
-    --purge-orphans)  PURGE_ORPHANS=true ;;
-    --summary-only)   SUMMARY_ONLY=true ;;
+    --fix-safe)          FIX_SAFE=true; FIX_MODE=true ;;
+    --fix)               FIX_MODE=true ;;
+    --purge-orphans)     PURGE_ORPHANS=true ;;
+    --summary-only)      SUMMARY_ONLY=true ;;
+    --fail-on-findings)  FAIL_ON_FINDINGS=true ;;
   esac
 done
 
@@ -108,7 +110,7 @@ declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
 declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
 declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
 declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
-declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 30 lines
+declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 60 lines
 declare -A SKILL_BODY_START=()       # skill name → line number where body starts
 declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
 
@@ -120,7 +122,7 @@ while IFS= read -r f; do
   # Read file once, extract everything we need
   SKILL_LINES[$skill]=$(wc -l < "$f" | tr -d ' ')
   SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
-  SKILL_DELIM_COUNT[$skill]=$(head -30 "$f" | grep -c "^---$" || true)
+  SKILL_DELIM_COUNT[$skill]=$(head -60 "$f" | grep -c "^---$" || true)
   SKILL_HAS_BOM[$skill]=""
   # Portable BOM detection: xxd may not exist on minimal distros; od is POSIX
   if command -v xxd &>/dev/null; then
@@ -400,6 +402,12 @@ KNOWN_COLLISION_GROUPS=(
   "security-upgrade repo-security-scan"
   # Skill creation: authoring workflow vs writing conventions
   "skill-authoring writing-skills"
+  # Completion-gate chain: intentional multi-skill coverage for completion/merge phrases.
+  # "implementation complete" fires both implementation-tracker (archive prompt) and
+  # finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
+  # verification-before-completion (safety gate) and finishing-a-development-branch
+  # (branch options). coordination.requires is metadata only — not enforced at runtime.
+  "finishing-a-development-branch verification-before-completion implementation-tracker"
 )
 
 # Load overlay collision groups from all overlay source dirs
@@ -1440,3 +1448,9 @@ if [[ "$FIX_MODE" == "true" && "$FIXED" -gt 0 ]]; then
   echo "  📁 Backups: $BACKUP_DIR"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# --fail-on-findings: opt-in nonzero exit when any finding exists.
+# Default behavior (report-only) is preserved for all other callers.
+if [[ "$FAIL_ON_FINDINGS" == "true" && "$TOTAL" -gt 0 ]]; then
+  exit 1
+fi

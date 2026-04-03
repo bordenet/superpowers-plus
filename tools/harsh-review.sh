@@ -70,28 +70,44 @@ log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
 # Resolve the comparison base for --changed-only mode.
 # Prefers upstream tracking branch; falls back to origin/dev, then origin/main.
+# Returns empty string if no valid remote ref can be verified — callers must
+# treat an empty base as "fall back to full-repo scan" to stay fail-closed.
 resolve_diff_base() {
-    local tracking
+    local tracking candidate
     tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
-    if [[ -n "$tracking" ]]; then
-        echo "$tracking"
-    elif git rev-parse --verify origin/dev &>/dev/null; then
-        echo "origin/dev"
-    else
-        echo "origin/main"
+    if [[ -n "$tracking" ]] && git rev-parse --verify "$tracking" &>/dev/null; then
+        echo "$tracking"; return
     fi
+    for candidate in origin/dev origin/main; do
+        if git rev-parse --verify "$candidate" &>/dev/null; then
+            echo "$candidate"; return
+        fi
+    done
+    # No verifiable remote ref — return empty so callers fall back to full scan
+    echo ""
 }
 
 # Get files to check
 # Accepts a regex pattern (e.g., '\.sh$') and uses grep -E for filtering in both modes.
-# In --changed-only mode: filters git diff output against upstream/dev/main.
-# In default mode: lists all repo files then filters by regex.
+# In --changed-only mode: filters git diff output against upstream/dev/main, plus
+# any files currently staged (in the index). Staged files are unioned in so that
+# commit-gate.sh catches broken staged content before it is committed.
+# In default mode (or when no valid base exists): lists all repo files then filters by regex.
 get_files() {
     local pattern="$1"
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
-        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E "$pattern" || true
+        {
+            if [[ -n "$base" ]]; then
+                git diff --name-only "${base}...HEAD" 2>/dev/null
+            else
+                log_warn "No verifiable remote base found — falling back to full-repo scan"
+                find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/'
+            fi
+            # Union in staged (index) files so pre-commit gate catches staged breakage
+            git diff --cached --name-only 2>/dev/null
+        } | sort -u | grep -E "$pattern" || true
     else
         find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
     fi
@@ -101,10 +117,35 @@ get_all_text_files() {
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
-        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+        if [[ -z "$base" ]]; then
+            # No verifiable remote base — fall back to full scan (fail-closed)
+            get_all_text_files_full; return
+        fi
+        # Named extensions + extensionless bash hooks under tools/
+        # Also union in staged files (git diff --cached) so staged-only breakage is caught.
+        {
+            git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+            git diff --cached --name-only 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+            {
+                git diff --name-only "${base}...HEAD" 2>/dev/null
+                git diff --cached --name-only 2>/dev/null
+            } | sort -u | grep -E '^(\.\/)?tools/' | while IFS= read -r f; do
+                [[ -f "$f" && ! "$f" == *.* ]] && head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
+            done || true
+        } | sort -u
     else
-        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        get_all_text_files_full
     fi
+}
+
+get_all_text_files_full() {
+    {
+        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        # Extensionless bash hooks under tools/
+        find . -path './tools/*' -type f ! -name "*.*" 2>/dev/null | grep -v ".git" | while IFS= read -r f; do
+            head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
+        done || true
+    } | sort -u
 }
 
 echo ""
@@ -124,7 +165,7 @@ log_check "File endings (single newline at EOF)"
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+
     if [[ $(tail -c 1 "$file" | wc -l) -eq 0 ]]; then
         # File doesn't end with newline
         if [[ "$FIX_MODE" == "true" ]]; then
@@ -139,12 +180,12 @@ while IFS= read -r file; do
             # Use Python for reliable cross-platform fix
             python3 -c "
 import sys
-with open('$file', 'rb') as f:
+with open(sys.argv[1], 'rb') as f:
     content = f.read()
 content = content.rstrip() + b'\n'
-with open('$file', 'wb') as f:
+with open(sys.argv[1], 'wb') as f:
     f.write(content)
-"
+" "$file"
             log_fix "$file (removed extra blank line)"
         else
             log_fail "$file: extra blank line at EOF"
@@ -171,20 +212,36 @@ log_check "Shell scripts (shellcheck + bash -n)"
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016"
 
 if command -v shellcheck &> /dev/null; then
+    # Check *.sh files
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
         [[ ! -f "$file" ]] && continue
-
-        # Syntax check
         if ! bash -n "$file" 2>/dev/null; then
             log_fail "$file: bash syntax error"
         fi
-
-        # Shellcheck (exclude style issues and false positives)
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             log_fail "$file: shellcheck violations"
         fi
     done < <(get_files '\.sh$')
+
+    # Also check extensionless hook scripts (pre-commit, pre-push, etc.) that
+    # carry a bash shebang — these are the largest scripts in the repo and were
+    # previously excluded from shell linting because they lack a .sh suffix.
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        [[ ! -f "$file" ]] && continue
+        # Skip files that already matched *.sh above
+        [[ "$file" == *.sh ]] && continue
+        # Only process files with a bash shebang
+        head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
+        if ! bash -n "$file" 2>/dev/null; then
+            log_fail "$file: bash syntax error"
+        fi
+        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
+            log_fail "$file: shellcheck violations"
+        fi
+    # Pattern matches both find output (./tools/) and git diff output (tools/)
+    done < <(get_files '^(\.\/)?tools/')
 else
     log_warn "shellcheck not installed - skipping shell lint"
 fi
@@ -197,8 +254,8 @@ log_check "JSON syntax validation"
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-    
-    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+
+    if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null; then
         log_fail "$file: invalid JSON"
     fi
 done < <(get_files '\.json$')
@@ -226,17 +283,30 @@ fi
 # =============================================================================
 log_check "Shebang consistency (#!/usr/bin/env bash)"
 
+_check_shebang() {
+    local file="$1"
+    [[ -z "$file" ]] && return
+    [[ ! -f "$file" ]] && return
+    local shebang
+    shebang=$(head -n1 "$file")
+    if [[ "$shebang" == "#!/bin/bash" ]]; then
+        log_fail "$file: use '#!/usr/bin/env bash' instead of '#!/bin/bash'"
+    fi
+}
+
+# Check *.sh files
+while IFS= read -r file; do
+    _check_shebang "$file"
+done < <(get_files '\.sh$')
+
+# Also check extensionless bash hooks — mirrors the syntax/shellcheck loop above
 while IFS= read -r file; do
     [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-
-    shebang=$(head -n1 "$file")
-    if [[ "$shebang" =~ ^#! ]]; then
-        if [[ "$shebang" == "#!/bin/bash" ]]; then
-            log_fail "$file: use '#!/usr/bin/env bash' instead of '#!/bin/bash'"
-        fi
-    fi
-done < <(get_files '\.sh$')
+    [[ "$file" == *.sh ]] && continue
+    head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
+    _check_shebang "$file"
+done < <(get_files '^(\.\/)?tools/')
 
 # =============================================================================
 # CHECK 6: Hardcoded Vendor References (outside _adapters/)
@@ -401,9 +471,7 @@ log_check "README skill count consistency"
 # Count actual skills
 ACTUAL_TOTAL=$(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
 
-# Count explicit skills from EXPLICIT_SKILLS array in skill-trigger-validator.sh
-ACTUAL_EXPLICIT=$(grep -A50 "^EXPLICIT_SKILLS=" tools/skill-trigger-validator.sh 2>/dev/null | grep -c '^\s*"' || echo 0)
-ACTUAL_SUPERPOWERS=$((ACTUAL_TOTAL - ACTUAL_EXPLICIT))
+
 
 # Count domains (directories under skills/ that contain skill files)
 ACTUAL_DOMAINS=0
@@ -419,7 +487,7 @@ done
 # Extract counts from README.md
 # Line format: **41 skills** across 9 domains:
 # Legacy format also supported: **41 skills** (32 superpowers + 9 explicit) across 9 domains:
-README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1)
+README_LINE=$(grep -E '^\*\*[0-9]+ skills\*\*' README.md 2>/dev/null | head -1 || true)
 
 if [[ -n "$README_LINE" ]]; then
     # Use sed for cross-platform compatibility (no grep -P on macOS)
@@ -474,5 +542,19 @@ else
     printf '%b\n' "${GREEN}No errors found.${NC}"
     echo ""
     printf '%b\n' "${GREEN}HARSH REVIEW PASSED${NC}"
+    # Write review proof token
+    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+    mkdir -p "$REVIEW_TOKEN_DIR"
+    token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
+    # Canonicalize so symlinked paths (/var → /private/var) match pre-commit's
+    # git-rev-parse based REPO_ROOT.  pwd -P is POSIX; realpath fallback is
+    # available on Linux but absent on stock macOS without coreutils.
+    _canon_repo="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || _canon_repo="$REPO_ROOT"
+    # Token filename: <repo_cksum>.<epoch>.<pid>  — collision-safe (two concurrent
+    # harsh-review runs can't overwrite each other) and repo-namespaced (GC can
+    # restrict deletion to the current repo without reading file contents).
+    _repo_cksum=$(printf '%s' "$_canon_repo" | cksum | awk '{print $1}')
+    token_file="${REVIEW_TOKEN_DIR}/${_repo_cksum}.$(date +%s).$$"
+    echo "$_canon_repo" > "$token_file"
     exit 0
 fi

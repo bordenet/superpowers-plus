@@ -43,6 +43,11 @@ echo ""
 # Ensure hooks directory exists
 mkdir -p "$HOOKS_DIR"
 
+# Ensure review token directory exists
+REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+mkdir -p "$REVIEW_TOKEN_DIR"
+echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
+
 # Install pre-commit hook
 if [[ -f "$HOOKS_DIR/pre-commit" ]]; then
     echo "⚠️  Existing pre-commit hook found. Backing up to pre-commit.bak"
@@ -65,8 +70,23 @@ echo "✓ Installed pre-push hook"
 
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: Validates file endings, shell syntax, JSON syntax, IP scan"
-echo "  • pre-push: Scans unpushed commits for proprietary IP"
+echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
+echo "                JSON validity, IP scan, review token"
+echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
 echo ""
-echo "To bypass hooks (not recommended): git commit --no-verify"
+echo "Before your FIRST commit (bootstrap):"
+echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
+echo "  2. Run 'bash tools/commit-gate.sh'  — lint/test/harsh-review + mints review token"
+echo "  3. git commit                        — pre-commit verifies sentinel + consumes token"
+echo ""
+echo "Subsequent commits (sentinel already present):"
+echo "  1. Run 'bash tools/commit-gate.sh'  — mints a fresh review token"
+echo "  2. git commit                        — pre-commit verifies sentinel + consumes token"
+echo ""
+echo "Before pushing:"
+echo "  1. Run code-review-battery          — refreshes .code-review-cleared with HEAD SHA"
+echo "  2. git push                          — pre-push verifies sentinel SHA matches HEAD"
+echo ""
+echo "Token directory: ~/.codex/review-tokens/"
+echo "To bypass (not recommended): git commit --no-verify / git push --no-verify"
 echo ""
