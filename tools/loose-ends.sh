@@ -41,15 +41,20 @@ _python_bin() {
 }
 
 cmd_check() {
-    local raw_output count
-    # Scan todo-crud.sh cat output directly — single source of truth for both
-    # count and display. This correctly handles:
-    #   • ACTIVE TASKS  — open items (main use case)
-    #   • DEFERRED      — items deferred via todo-crud.sh defer (included)
-    #   • HISTORY       — closed [x] tasks (excluded even if they carried #loose-end)
-    # Each item block is buffered in full so Note: lines that appear after the
-    # #loose-end tag are visible. Count = number of task-ID lines in output.
-    raw_output=$("$TODO_CRUD" cat 2>/dev/null | awk '
+    local todo_cat_output raw_output count
+    # Fail closed: if todo-crud.sh cat fails (bad path, locked file, missing
+    # registry), treat that as an audit error rather than "clean session".
+    # Suppress stderr from todo-crud.sh itself; expose our own error message.
+    if ! todo_cat_output=$("$TODO_CRUD" cat 2>/dev/null); then
+        echo -e "${RED}✗ Audit error: todo-crud.sh cat failed — cannot verify loose-end state.${NC}" >&2
+        echo -e "${RED}  Run: ${TODO_CRUD} cat   to diagnose.${NC}" >&2
+        exit 2
+    fi
+    # Scan cat output directly — single source of truth for both count and display.
+    # Correctly handles ACTIVE TASKS (included), DEFERRED (included), HISTORY (excluded).
+    # Each item block is buffered in full so Note: lines after a #loose-end tag
+    # are visible. Count = number of task-ID header lines in output.
+    raw_output=$(printf '%s\n' "$todo_cat_output" | awk '
         function flush_block() {
             if (in_block && found_tag) print block
             in_block=0; found_tag=0; block=""

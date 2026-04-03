@@ -199,7 +199,8 @@ if command -v shellcheck &> /dev/null; then
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             log_fail "$file: shellcheck violations"
         fi
-    done < <(get_files '^./tools/')
+    # Pattern matches both find output (./tools/) and git diff output (tools/)
+    done < <(get_files '^(\.\/)?tools/')
 else
     log_warn "shellcheck not installed - skipping shell lint"
 fi

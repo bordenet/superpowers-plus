@@ -296,3 +296,40 @@ EOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
 }
+
+@test "harsh-review.sh --changed-only fails when extensionless hook script has a bash syntax error" {
+    # Regression: changed-only mode uses git diff paths (tools/pre-push) without
+    # the leading ./ that find produces; the pattern must match both forms.
+    local fixture remote_dir
+    remote_dir=$(mktemp -d)
+    fixture=$(_create_fixture_repo)
+    # Stand up a bare remote so we can set origin/dev
+    git -C "$remote_dir" init --bare -q
+    git -C "$fixture" remote add origin "$remote_dir"
+    git -C "$fixture" push -q origin HEAD:dev
+    # Inject a syntax error into an extensionless hook and commit it
+    printf '#!/usr/bin/env bash\nif then fi\n' > "$fixture/tools/pre-push"
+    git -C "$fixture" add tools/pre-push
+    git -C "$fixture" commit -q -m "break pre-push"
+    run bash "$fixture/tools/harsh-review.sh" --changed-only
+    rm -rf "$fixture" "$remote_dir"
+    [ "$status" -ne 0 ]
+}
+
+@test "loose-ends.sh check exits nonzero when todo-crud.sh cat fails" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Stub todo-crud.sh to exit nonzero on cat (simulates missing TODO file)
+    cat > "$fixture/tools/todo-crud.sh" << 'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "cat" ]]; then
+    echo "ERROR: TODO file not found" >&2
+    exit 1
+fi
+exit 0
+EOF
+    chmod +x "$fixture/tools/todo-crud.sh"
+    run bash "$fixture/tools/loose-ends.sh" check
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
