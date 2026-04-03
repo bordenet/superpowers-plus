@@ -70,27 +70,37 @@ log_fix()   { printf '%b\n' "${GREEN}[FIXED]${NC} $1"; ((FIXES++)) || true; }
 
 # Resolve the comparison base for --changed-only mode.
 # Prefers upstream tracking branch; falls back to origin/dev, then origin/main.
+# Returns empty string if no valid remote ref can be verified — callers must
+# treat an empty base as "fall back to full-repo scan" to stay fail-closed.
 resolve_diff_base() {
-    local tracking
+    local tracking candidate
     tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
-    if [[ -n "$tracking" ]]; then
-        echo "$tracking"
-    elif git rev-parse --verify origin/dev &>/dev/null; then
-        echo "origin/dev"
-    else
-        echo "origin/main"
+    if [[ -n "$tracking" ]] && git rev-parse --verify "$tracking" &>/dev/null; then
+        echo "$tracking"; return
     fi
+    for candidate in origin/dev origin/main; do
+        if git rev-parse --verify "$candidate" &>/dev/null; then
+            echo "$candidate"; return
+        fi
+    done
+    # No verifiable remote ref — return empty so callers fall back to full scan
+    echo ""
 }
 
 # Get files to check
 # Accepts a regex pattern (e.g., '\.sh$') and uses grep -E for filtering in both modes.
 # In --changed-only mode: filters git diff output against upstream/dev/main.
-# In default mode: lists all repo files then filters by regex.
+# In default mode (or when no valid base exists): lists all repo files then filters by regex.
 get_files() {
     local pattern="$1"
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
+        if [[ -z "$base" ]]; then
+            log_warn "No verifiable remote base found — falling back to full-repo scan"
+            find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
+            return
+        fi
         git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E "$pattern" || true
     else
         find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
@@ -101,6 +111,10 @@ get_all_text_files() {
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
+        if [[ -z "$base" ]]; then
+            # No verifiable remote base — fall back to full scan (fail-closed)
+            get_all_text_files_full; return
+        fi
         # Named extensions + extensionless bash hooks under tools/
         {
             git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
@@ -109,14 +123,18 @@ get_all_text_files() {
             done || true
         } | sort -u
     else
-        {
-            find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
-            # Extensionless bash hooks under tools/
-            find . -path './tools/*' -type f ! -name "*.*" 2>/dev/null | grep -v ".git" | while IFS= read -r f; do
-                head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
-            done || true
-        } | sort -u
+        get_all_text_files_full
     fi
+}
+
+get_all_text_files_full() {
+    {
+        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        # Extensionless bash hooks under tools/
+        find . -path './tools/*' -type f ! -name "*.*" 2>/dev/null | grep -v ".git" | while IFS= read -r f; do
+            head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
+        done || true
+    } | sort -u
 }
 
 echo ""

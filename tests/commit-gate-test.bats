@@ -405,3 +405,19 @@ EOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
 }
+
+
+@test "commit-gate.sh fails on broken extensionless hook when repo has no upstream (fail-closed)" {
+    # Regression: with no remote/upstream, resolve_diff_base() previously returned
+    # "origin/main" which didn't exist, so git diff returned nothing and the gate
+    # silently passed a broken hook. Fix: fall back to full-repo scan.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # No remote added — no upstream, no origin/dev, no origin/main
+    printf '#!/usr/bin/env bash\nif then fi\n' > "$fixture/tools/pre-push"
+    git -C "$fixture" add tools/pre-push
+    git -C "$fixture" commit -q -m "stage broken hook"
+    run bash "$fixture/tools/commit-gate.sh"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
