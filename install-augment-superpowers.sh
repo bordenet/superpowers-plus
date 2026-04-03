@@ -176,11 +176,18 @@ if [[ -e ~/.codex/superpowers/.git ]]; then
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # --ff-only failed — warn instead of silently resetting (prevents data loss)
-        verbose "Fast-forward failed, trying master branch..."
-        if ! git pull --ff-only --quiet origin master 2>/dev/null; then
-            warn "Could not update superpowers (fast-forward failed)"
-            warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+        # Detect diverged history (force-push/rewrite) vs local changes blocking ff-merge.
+        # git pull fetches before merging, so origin/main is current even after failure.
+        if ! git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+            verbose "Diverged history detected — auto-resetting to origin/main"
+            git reset --hard origin/main --quiet 2>/dev/null || \
+                warn "Auto-reset failed — run: cd ~/.codex/superpowers && git reset --hard origin/main"
+        else
+            verbose "Fast-forward failed, trying master branch..."
+            if ! git pull --ff-only --quiet origin master 2>/dev/null; then
+                warn "Could not update superpowers (fast-forward failed)"
+                warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
+            fi
         fi
     fi
     popd > /dev/null
