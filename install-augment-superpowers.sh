@@ -176,18 +176,26 @@ if [[ -e ~/.codex/superpowers/.git ]]; then
     verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # Detect diverged history (force-push/rewrite) vs local changes blocking ff-merge.
+        # Detect diverged history (force-push/rewrite) vs local-ahead vs missing ref.
         # git pull fetches before merging, so origin/main is current even after failure.
-        if ! git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
-            verbose "Diverged history detected — auto-resetting to origin/main"
-            git reset --hard origin/main --quiet 2>/dev/null || \
-                warn "Auto-reset failed — run: cd ~/.codex/superpowers && git reset --hard origin/main"
-        else
-            verbose "Fast-forward failed, trying master branch..."
+        # Three-way check: if origin/main IS ancestor of HEAD → local is ahead (don't reset).
+        # If neither is ancestor of the other → true divergence (history rewrite → auto-reset).
+        # If origin/main doesn't exist → fall back to master branch.
+        if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
+            verbose "origin/main not found, trying master branch..."
             if ! git pull --ff-only --quiet origin master 2>/dev/null; then
                 warn "Could not update superpowers (fast-forward failed)"
                 warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
             fi
+        elif git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
+            # origin/main IS ancestor of HEAD: local has extra commits — do not auto-reset
+            warn "Could not update superpowers (local checkout is ahead of origin/main)"
+            warn "To reset manually: cd ~/.codex/superpowers && git reset --hard origin/main"
+        else
+            # origin/main is NOT ancestor of HEAD: true divergence (history rewrite/force-push)
+            verbose "Diverged history detected — auto-resetting to origin/main"
+            git reset --hard origin/main --quiet 2>/dev/null || \
+                warn "Auto-reset failed — run: cd ~/.codex/superpowers && git reset --hard origin/main"
         fi
     fi
     popd > /dev/null
