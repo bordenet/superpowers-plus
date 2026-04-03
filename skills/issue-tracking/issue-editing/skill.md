@@ -127,7 +127,7 @@ Options:
 |----------|--------|
 | User says "update [IDENTIFIER]" | Use get_issue first — issue may not exist |
 | Issue not found via get_issue | Report: "Issue [IDENTIFIER] not found" |
-| Assuming issue ID | ALWAYS query first |
+| Assuming issue identifier | ALWAYS query first via get_issue |
 
 </EXTREMELY_IMPORTANT>
 
@@ -138,7 +138,7 @@ Options:
 ```text
 Before EVERY update:
 1. FETCH — Query issue by platform-native identifier
-2. VERIFY — Issue exists, ID is correct
+2. VERIFY — Issue exists, identifier is confirmed
 3. CHECK — Recent modifications (updatedAt)
 4. VALIDATE — Field values are valid
 5. UPDATE — Only then modify
@@ -157,8 +157,8 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill issue-editing
 ## Failure Modes
 
 - **Stale update:** Editing without fetching — overwrites a teammate's concurrent change
-- **Wrong UUID:** Using a memorized or guessed issue ID instead of fetching it fresh
-- **Field type mismatch:** Passing a label name instead of a label UUID (platform-specific)
+- **Stale identifier:** Using a memorized or guessed identifier instead of fetching it fresh
+- **Field type mismatch:** Passing a label name instead of the platform-specific label identifier (e.g., label ID, label name string — depends on tracker)
 
 ## Companion Skills
 

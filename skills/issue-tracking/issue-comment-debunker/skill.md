@@ -53,6 +53,17 @@ Invoke **BEFORE** any of these actions:
 
 Before posting ANY comment to your issue tracker:
 
+### 0. Validate the Target Issue
+
+Before any claim verification, confirm the target is a real, non-PR issue:
+
+1. Resolve the identifier (normalize `#42` → `42`, strip `owner/repo#` prefix)
+2. Call `get_issue` (or `verify_link` for URL-based targets) via your adapter
+3. If **not found**: stop — report identifier not found; do not comment
+4. If **platform returns a PR** (e.g., GitHub `pull_request` field is present): stop — route to PR/source-control workflow instead
+
+If the adapter result is ambiguous (cross-workspace, network error), surface the uncertainty before proceeding.
+
 ### 1. Identify Claim Types
 
 Parse your draft comment for:
