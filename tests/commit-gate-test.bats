@@ -870,3 +870,29 @@ EOF
     [ "$status" -ne 0 ]
     [[ "$output" == *"failing closed (require sentinel)"* ]]
 }
+
+@test "pre-push allows orphan branch consisting entirely of --allow-empty commits" {
+    # When an orphan branch has only --allow-empty commits, git log --name-only
+    # returns no filenames. Previously this fell into the fail-closed path because
+    # _no_base_files was empty and the code could not distinguish "empty result"
+    # from "enumeration failed". After the exit-code fix, empty result from a
+    # successful enumeration is treated as "no files to review → allow".
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    git -C "$fixture" checkout --orphan empty-orphan -q
+    git -C "$fixture" rm -r --cached . -q
+    # Commit with no file changes — git commit --allow-empty
+    git -C "$fixture" commit -q --allow-empty -m "chore: empty marker commit"
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/empty-orphan %s refs/heads/empty-orphan %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+    # No sentinel — allow-empty-only branch must NOT be blocked
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"allow-empty only"* ]]
+}

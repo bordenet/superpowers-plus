@@ -116,6 +116,37 @@ console.log('\n--- parseFrontmatter: no frontmatter ---');
 const noFM = parseFrontmatter('# Just a heading\nNo frontmatter here.');
 eq(noFM.name, '', 'no frontmatter returns empty name');
 
+// --- parseFrontmatter: malformed bracket (unclosed [) ---
+console.log('\n--- parseFrontmatter: malformed bracket ---');
+// lib/frontmatter.js uses regex-based matching (/^field:\s*(\[.+\])\s*$/) so an
+// unclosed bracket simply does not match and the field is silently left empty.
+// This is safe: no later fields are swallowed (unlike accumulator-based parsers
+// without a top-level-key guard).
+const malformedBracket = `---
+name: malformed
+anti_triggers: ["a", "b"
+description: "should still be parsed"
+---
+# Body`;
+const malformed = parseFrontmatter(malformedBracket);
+arrEq(malformed.anti_triggers, [], 'malformed unclosed bracket → empty anti_triggers (safe fallback)');
+eq(malformed.description, 'should still be parsed', 'field after malformed bracket still parsed correctly');
+
+// --- parseFrontmatter: bracket-multiline (known limitation) ---
+console.log('\n--- parseFrontmatter: bracket-multiline (known limitation) ---');
+// lib/frontmatter.js intentionally uses inline-only matching for arrays.
+// Bracket-multiline format (opening [ on one line, closing ] on another) is NOT
+// supported — the array is returned as empty. Consumers that need bracket-multiline
+// (superpowers-augment.js, superpowers-mcp.js) use accumulator-based parsers.
+const bracketMultiline = `---
+name: bmulti
+anti_triggers: ["first",
+  "second"]
+---
+# Body`;
+const bmulti = parseFrontmatter(bracketMultiline);
+arrEq(bmulti.anti_triggers, [], 'bracket-multiline not supported in reference parser (returns empty — known limitation)');
+
 // --- findSkillFile ---
 console.log('\n--- findSkillFile ---');
 const testDir = path.join(__dirname, '..', 'skills', 'productivity', 'superpowers-help');

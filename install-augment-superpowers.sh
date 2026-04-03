@@ -347,20 +347,26 @@ function extractFrontmatter(filePath) {
             if (inFrontmatter) {
                 // Handle bracket-multiline accumulation
                 if (triggerAccum !== null) {
-                    triggerAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(triggerAccum)) {
-                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
-                        triggerAccum = null;
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }  // abandon on new YAML key
+                    else {
+                        triggerAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(triggerAccum)) {
+                            triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                            triggerAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
                 if (mcpAccum !== null) {
-                    mcpAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(mcpAccum)) {
-                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
-                        mcpAccum = null;
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { mcpAccum = null; }      // abandon on new YAML key
+                    else {
+                        mcpAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(mcpAccum)) {
+                            requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                            mcpAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
                 // Triggers — 3 forms
