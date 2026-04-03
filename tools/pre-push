@@ -39,6 +39,22 @@ NC='\033[0m'
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 
+# Reads filenames from stdin, prints the first one that is classified as code,
+# or prints nothing if all files are docs/metadata. Used by both range_is_docs_only()
+# and the NEW_BRANCH_NO_BASE block so the classification rules stay in one place.
+# AGENTS.md / CLAUDE.md are policy files treated as code; skills/ is always code;
+# .md/.txt/.rst and well-known root metadata files are exempted.
+_first_code_file() {
+    awk '
+        /^\s*$/                             { next }
+        /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+        /^skills\//                         { print; next }
+        /\.(md|txt|rst)$/                   { next }
+        /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
+        { print }
+    ' | head -1
+}
+
 # Returns 0 if the range contains only prose/metadata files that cannot alter
 # runtime behavior. JSON/YAML/TOML/shell config ARE code for purposes of this
 # check — they can change scope guards, deploy behavior, and security boundaries.
@@ -61,21 +77,9 @@ range_is_docs_only() {
             return 1  # Cannot enumerate range files — fail closed
         fi
     fi
-    # AGENTS.md and CLAUDE.md are policy files — treated as code. Changes to
-    # them alter agent gate behavior and must not be exempted as docs.
-    # awk preserves them before the generic .md exemption applies.
     # The || true is scoped to the FILTER pipeline only — not the git commands
     # above — so real git failures still fail closed (return 1 via if ! above).
-    code_files=$(printf '%s\n' "$all_files" \
-        | awk '
-            /^\s*$/                             { next }
-            /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
-            /^skills\//                         { print; next }
-            /\.(md|txt|rst)$/                   { next }
-            /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
-            { print }
-        ' \
-        | head -1 || true)
+    code_files=$(printf '%s\n' "$all_files" | _first_code_file || true)
     [[ -z "$code_files" ]]
 }
 
@@ -241,21 +245,38 @@ while read -r _ local_sha _ remote_sha; do
         # add false code-detections, never miss them.
         # -m shows per-parent diffs for merge commits so files introduced only
         # during conflict resolution are not silently missed.
-        _no_base_files=$(git log --name-only -m --format="" "$local_sha" 2>/dev/null \
-            | grep -v '^$' | sort -u || true)
-        _no_base_code=$(printf '%s\n' "$_no_base_files" \
-            | awk '
-                /^\s*$/                             { next }
-                /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
-                /^skills\//                         { print; next }
-                /\.(md|txt|rst)$/                   { next }
-                /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
-                { print }
-            ' | head -1 || true)
-        if [[ -n "$_no_base_files" && -z "$_no_base_code" ]]; then
+        #
+        # Track git exit code separately so we can distinguish three outcomes:
+        #   (a) enumeration failed → fail closed (sentinel required)
+        #   (b) succeeded, no files (--allow-empty commits only) → allow (nothing to review)
+        #   (c) succeeded, files found → classify docs-only vs code
+        _no_base_files=""
+        _git_enum_ok=true
+        _log_raw=""
+        # Capture git exit code separately: grep -v '^$' returns exit 1 on empty
+        # input (no matching lines), which must not be confused with a git failure.
+        if ! _log_raw=$(git log --name-only -m --format="" "$local_sha" 2>/dev/null); then
+            _git_enum_ok=false
+        else
+            _no_base_files=$(printf '%s\n' "$_log_raw" | grep -v '^$' | sort -u || true)
+        fi
+        _no_base_code=$(printf '%s\n' "$_no_base_files" | _first_code_file || true)
+
+        if [[ "$_git_enum_ok" == "false" ]]; then
+            # Cannot enumerate — fail closed.
+            echo "  [code-review-gate] New branch with no common ancestor — failing closed (require sentinel)."
+            if ! check_code_review_sentinel "REQUIRE_SENTINEL" "$local_sha"; then
+                ERRORS=$((ERRORS + 1))
+            fi
+        elif [[ -z "$_no_base_files" ]]; then
+            # Enumeration succeeded but no files changed (only --allow-empty commits).
+            # Nothing to review — allow without sentinel.
+            echo "  [code-review-gate] New branch (no common ancestor) — no file changes (allow-empty only), sentinel not required."
+        elif [[ -z "$_no_base_code" ]]; then
+            # Files found, all docs/metadata — allow without sentinel.
             echo "  [code-review-gate] New branch (no common ancestor) — all commits docs-only, sentinel not required."
         else
-            # Code commits present, or could not enumerate files — fail closed.
+            # Code commits present — fail closed.
             echo "  [code-review-gate] New branch with no common ancestor — failing closed (require sentinel)."
             if ! check_code_review_sentinel "REQUIRE_SENTINEL" "$local_sha"; then
                 ERRORS=$((ERRORS + 1))
