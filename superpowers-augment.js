@@ -302,30 +302,42 @@ function extractFrontmatter(filePath) {
                 continue;
             }
             if (inFrontmatter) {
-                // Handle bracket-multiline accumulation
+                // Handle bracket-multiline accumulation.
+                // Guard: if a new top-level key starts before the bracket closes,
+                // the source has malformed frontmatter — abandon accumulation and
+                // fall through to parse this line normally (fail-safe, not fail-swallow).
                 if (triggerAccum !== null) {
-                    triggerAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(triggerAccum)) {
-                        triggers = parseInlineArray(extractBracketContent(triggerAccum));
-                        triggerAccum = null;
+                    if (line.match(/^\w+:/)) { triggerAccum = null; }
+                    else {
+                        triggerAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(triggerAccum)) {
+                            triggers = parseInlineArray(extractBracketContent(triggerAccum));
+                            triggerAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
                 if (antiAccum !== null) {
-                    antiAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(antiAccum)) {
-                        anti_triggers = parseInlineArray(extractBracketContent(antiAccum));
-                        antiAccum = null;
+                    if (line.match(/^\w+:/)) { antiAccum = null; }
+                    else {
+                        antiAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(antiAccum)) {
+                            anti_triggers = parseInlineArray(extractBracketContent(antiAccum));
+                            antiAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
                 if (mcpAccum !== null) {
-                    mcpAccum += ' ' + line.trim();
-                    if (hasUnquotedClosingBracket(mcpAccum)) {
-                        requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
-                        mcpAccum = null;
+                    if (line.match(/^\w+:/)) { mcpAccum = null; }
+                    else {
+                        mcpAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(mcpAccum)) {
+                            requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
+                            mcpAccum = null;
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
                 // Check for composition block start
