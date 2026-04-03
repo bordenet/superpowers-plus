@@ -57,10 +57,10 @@ Before posting ANY comment to your issue tracker:
 
 Before any claim verification, confirm the target is a real, non-PR issue:
 
-1. Resolve the identifier (normalize `#42` → `42`, strip `owner/repo#` prefix)
-2. Call `get_issue` (or `verify_link` for URL-based targets) via your adapter
-3. If **not found** (`exists: false`): stop — report identifier not found; do not comment
-4. If **`entityType` is `pull_request` or `other`**: stop — route to PR/source-control workflow instead; issue-commenting skills do not operate on non-issue targets
+1. Normalize the identifier using your adapter's documented rules (e.g., GitHub adapter: strip `#` prefix and `owner/repo#` prefix)
+2. Call `get_issue` for identifier-based targets, or `verify_link` for URL-based targets, via your adapter
+3. If **`exists: false`**: stop — report identifier not found; do not comment
+4. If **`entityType` is anything other than `"issue"`** (i.e., `pull_request`, `other`, or `unknown`): stop and do not comment — route to the appropriate workflow or surface the uncertainty to the user
 
 If the adapter result is ambiguous (cross-workspace, network error), surface the uncertainty before proceeding.
 

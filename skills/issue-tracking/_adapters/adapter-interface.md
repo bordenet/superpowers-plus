@@ -15,15 +15,17 @@ All issue tracker adapters must implement these operations.
 
 ## Minimum `get_issue` Output Contract
 
-Consumer skills may rely on these fields being present in the `get_issue` response. Adapters should guarantee them at minimum:
+Consumer skills may rely on these fields being present in the `get_issue` response. Adapters must guarantee them at minimum:
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `identifier` | string | Platform-native identifier (key, number, or ID) |
-| `url` | string | Direct URL to the issue |
-| `title` | string | Issue title/summary |
-| `status` | string | Current workflow state |
-| `updatedAt` | ISO 8601 string | Last modification timestamp |
+| `exists` | boolean | Whether the target was found |
+| `entityType` | `"issue"\|"pull_request"\|"other"\|"unknown"` | Normalized target classification. Consumer skills must stop and reject non-`"issue"` values before mutating or referencing the target. |
+| `identifier` | string \| null | Platform-native identifier (key, number, or ID); null if not found |
+| `url` | string \| null | Direct URL to the issue; null if not found |
+| `title` | string \| null | Issue title/summary; null if not found |
+| `status` | string \| null | Current workflow state; null if not found |
+| `updatedAt` | ISO 8601 string \| null | Last modification timestamp; null if not found |
 
 Additional fields (`assignee`, `labels`, `priority`) are optional but recommended.
 

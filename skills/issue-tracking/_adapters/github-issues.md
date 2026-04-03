@@ -44,7 +44,9 @@ Always strip the `#` prefix and any `owner/repo` prefix before passing the ident
 
 | Normalized Field | GitHub Response Field | Notes |
 |-----------------|----------------------|-------|
-| `identifier` | `number` (as string) | e.g. `"42"` |
+| `exists` | HTTP 200 = `true`; 404 = `false` | Check HTTP status, not body |
+| `entityType` | `"issue"` if `pull_request` field absent; `"pull_request"` if `pull_request` field present; `"unknown"` on 404 | **Consumer skills must reject any non-`"issue"` result before mutation or cross-reference** |
+| `identifier` | `number` (as string) | e.g. `"42"` (strip any `#` prefix before lookup) |
 | `url` | `html_url` | Direct browser URL |
 | `title` | `title` | Issue title |
 | `status` | `state` (`open` / `closed`) | Map to normalized status |

@@ -22,6 +22,8 @@ Consumer skills rely on these normalized fields from `get_issue`. Document how y
 
 | Normalized Field | Your Platform Response Field | Notes |
 |-----------------|------------------------------|-------|
+| `exists` | _fill in_ | true if found, false on 404 |
+| `entityType` | _fill in_ | Must be `"issue"`, `"pull_request"`, `"other"`, or `"unknown"`. If your platform has no PR concept, always return `"issue"` on success. |
 | `identifier` | _fill in_ | Platform-native identifier (key, number, or ID) as string |
 | `url` | _fill in_ | Direct browser URL to the issue |
 | `title` | _fill in_ | Issue title/summary |
