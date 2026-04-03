@@ -55,11 +55,55 @@ NODE
     fi
 }
 
+run_malformed_bracket_check() {
+    local label="$1"
+    local source_file="$2"
+
+    if PARSER_SOURCE="$source_file" MALFORMED_SKILL="$MALFORMED_SKILL" node <<'NODE'
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+
+const sourcePath = process.env.PARSER_SOURCE;
+const testSkill = process.env.MALFORMED_SKILL;
+const source = fs.readFileSync(sourcePath, 'utf8');
+
+let start = source.indexOf('function parseInlineArray(value) {');
+let end = source.indexOf('\nfunction compressSkillContent(', start);
+if (start === -1 || end === -1) {
+  start = source.indexOf('function extractFrontmatter(filePath) {');
+  end = source.indexOf('\nfunction findSkillFile(', start);
+}
+if (start === -1 || end === -1) {
+  throw new Error(`Could not locate parser block in ${sourcePath}`);
+}
+
+const context = { fs, console };
+vm.createContext(context);
+vm.runInContext(source.slice(start, end), context);
+
+const meta = context.extractFrontmatter(testSkill);
+// Guarded parser: description placed AFTER unclosed bracket must survive
+assert.strictEqual(meta.description, 'payload correctly parsed',
+  `description should be preserved; got: "${meta.description}"`);
+// Anti-triggers must be empty — bracket never closed, accumulation abandoned
+const anti = Array.from(meta.anti_triggers || []);
+assert.deepStrictEqual(anti, [],
+  `anti_triggers should be empty; got: ${JSON.stringify(anti)}`);
+NODE
+    then
+        pass "$label malformed-bracket guard preserves subsequent fields"
+    else
+        fail "$label malformed-bracket guard: description was swallowed or anti_triggers non-empty"
+    fi
+}
+
 echo "── Frontmatter Parser Smoke Tests ──"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR:?}"' EXIT
 TEST_SKILL="$TMP_DIR/skill.md"
+MALFORMED_SKILL="$TMP_DIR/malformed-skill.md"
 
 cat > "$TEST_SKILL" <<'EOF'
 ---
@@ -79,6 +123,22 @@ EOF
 run_parser_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js" yes
 run_parser_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" no
 run_parser_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh" yes
+
+# Malformed-bracket guard: description appears AFTER unclosed anti_triggers bracket.
+# A parser without the guard swallows description into the accumulator → empty.
+# Guarded parser abandons accumulation when it sees a new YAML key → description preserved.
+cat > "$MALFORMED_SKILL" <<'EOF'
+---
+name: malformed-bracket-guard-test
+triggers: ["alpha", "beta"]
+anti_triggers: ["unclosed
+description: "payload correctly parsed"
+---
+Body.
+EOF
+
+run_malformed_bracket_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js"
+run_malformed_bracket_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh"
 
 if [[ "$(bash "$ROOT_DIR/tools/parse-frontmatter.sh" "$TEST_SKILL" triggers | paste -sd'|' -)" == "first trigger|second trigger" ]]; then
     pass "parse-frontmatter.sh parses multiline triggers"
