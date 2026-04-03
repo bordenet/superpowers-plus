@@ -124,7 +124,7 @@ Summary: 2 verified, 1 not found
 
 ```text
 Before referencing ANY issue key:
-1. QUERY — Search for the exact key
+1. QUERY — Use get_issue for exact key lookup (or verify_link for URL-based verification)
 2. VERIFY — Issue exists and is in expected state
 3. FETCH — Get actual title (don't guess)
 4. REFERENCE — Only then cite the issue

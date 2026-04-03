@@ -83,6 +83,6 @@
 
 Currently, the incident packet exists only in the conductor's working context. Future work:
 
-- Persist to `investigation-state` skill's evidence store (note: a schema bridge is required — `investigation-state` currently stores evidence as `{source, finding, timestamp}`, while this schema uses `{source, finding, timestamp, confidence, type}`; migration tooling is not yet implemented)
+- Persist via a dedicated `incident-packet-crud.sh` tool (not yet implemented); the incident packet is a **separate artifact** from `investigation-state` evidence — bridging requires explicit field mapping: packet `summary` → investigation `finding`; packet `supports`/`contradicts` have no direct equivalent; packet `id` and `type` have different semantics. Do not attempt to map packet evidence directly into `investigation-state` evidence entries without a defined migration spec.
 - Enable resume-after-crash for long-running investigations
 - Support cross-session incident handoff
