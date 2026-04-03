@@ -238,7 +238,9 @@ while read -r _ local_sha _ remote_sha; do
         # from the tip to decide if the push is truly docs-only before failing
         # closed. On an orphan/unrelated-history branch, ALL commits are new, so
         # walking the full ancestor chain is correct and safe.
-        _no_base_files=$(git log --name-only --format="" "$local_sha" 2>/dev/null \
+        # -m shows per-parent diffs for merge commits so resolution-only code
+        # changes (files absent from --name-only without -m) are not missed.
+        _no_base_files=$(git log --name-only -m --format="" "$local_sha" 2>/dev/null \
             | grep -v '^$' | sort -u || true)
         _no_base_code=$(printf '%s\n' "$_no_base_files" \
             | awk '

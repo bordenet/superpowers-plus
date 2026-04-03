@@ -617,7 +617,7 @@ EOF
     [[ "$output" == *"requires a value"* ]]
 }
 
-@test "pre-commit Gate 0 blocks when .agent-gates has inline comment on boolean key" {
+@test "pre-commit gate-0 blocks when .agent-gates has inline comment on boolean key" {
     # Isolates Gate 0 (sentinel) specifically — not the token gate.
     # Inline comment (true # comment) must be stripped before validation so
     # REQUIRE_CODE_REVIEW_SENTINEL=true is parsed correctly. The key correctness
@@ -749,4 +749,33 @@ EOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
     [[ "$output" == *"PUSH BLOCKED"* ]]
+}
+
+@test "pre-push allows new branch with no common ancestor when all commits are docs-only" {
+    # Regression guard for the orphan/no-base docs-only exemption.
+    # When NEW_BRANCH_NO_BASE=true (no shared ancestor with any known base),
+    # the hook enumerates all files in the branch's history. If all are docs/metadata
+    # the push must be allowed even with no .code-review-cleared present.
+    local fixture push_input
+    fixture=$(_create_fixture_repo)
+    # Create an orphan branch (no parent commits — completely unrelated history).
+    # Use --cached so git rm does NOT delete working-tree files (tools/ must
+    # survive so bash tools/pre-push can be invoked from the fixture root).
+    git -C "$fixture" checkout --orphan docs-orphan -q
+    git -C "$fixture" rm -r --cached . -q
+    printf '# Docs only\n' > "$fixture/DOCS.md"
+    git -C "$fixture" add DOCS.md
+    git -C "$fixture" commit -q -m "docs: orphan branch with docs only"
+    local local_sha zero_sha
+    local_sha=$(git -C "$fixture" rev-parse HEAD)
+    zero_sha="0000000000000000000000000000000000000000"
+    push_input=$(mktemp)
+    printf 'refs/heads/docs-orphan %s refs/heads/docs-orphan %s\n' \
+        "$local_sha" "$zero_sha" > "$push_input"
+    # No .code-review-cleared — docs-only orphan branch must NOT be blocked
+    run bash -c "cd '$fixture' && bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    rm -rf "$fixture"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"docs-only"* ]]
 }
