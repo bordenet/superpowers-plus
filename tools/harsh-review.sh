@@ -476,9 +476,8 @@ else
     printf '%b\n' "${GREEN}HARSH REVIEW PASSED${NC}"
     # Write review proof token
     REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
-    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
-        token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
-        echo "$REPO_ROOT" > "$token_file"
-    fi
+    mkdir -p "$REVIEW_TOKEN_DIR"
+    token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
+    echo "$REPO_ROOT" > "$token_file"
     exit 0
 fi

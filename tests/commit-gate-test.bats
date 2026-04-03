@@ -1,16 +1,17 @@
 #!/usr/bin/env bats
 # Tests for the review token gate system
 
-REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
 TOOLS_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../tools" && pwd)"
 
 setup() {
+    export TEST_HOME="$(mktemp -d)"
+    export HOME="$TEST_HOME"
+    export REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     mkdir -p "$REVIEW_TOKEN_DIR"
-    rm -f "$REVIEW_TOKEN_DIR"/*
 }
 
 teardown() {
-    rm -f "$REVIEW_TOKEN_DIR"/*
+    rm -rf "$TEST_HOME"
 }
 
 @test "harsh-review.sh creates a token file on success" {
