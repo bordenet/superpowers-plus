@@ -101,7 +101,7 @@ check_code_review_sentinel() {
         echo ""
         echo "  Steps:"
         echo "    1. node ~/.codex/superpowers-augment/superpowers-augment.js use-skill code-review-battery"
-        echo "    2. Dispatch reviewers with: git diff \$(git merge-base HEAD origin/main)..HEAD"
+        echo "    2. Dispatch reviewers with: git diff \$(git merge-base HEAD \$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || echo 'origin/dev'))..HEAD"
         echo "    3. Battery writes .code-review-cleared on PASS/PASS_WITH_NITS"
         echo "    4. git push"
         echo ""

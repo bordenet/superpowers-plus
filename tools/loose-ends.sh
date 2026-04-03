@@ -65,7 +65,10 @@ cmd_check() {
         END { flush_block() }
     ' || true)
 
-    count=$(printf '%s\n' "$raw_output" | grep -cE '^- \[[ x/\-]\] \[20[0-9]{6}-[0-9]+\]' 2>/dev/null || echo 0)
+    # grep -c exits 1 when no matches but still prints "0"; use || true to
+    # prevent the failed exit from triggering set -e, and avoid "|| echo 0"
+    # which would produce "0\n0" (two zeros) on a clean TODO file.
+    count=$(printf '%s\n' "$raw_output" | grep -cE '^- \[[ x/\-]\] \[20[0-9]{6}-[0-9]+\]' 2>/dev/null || true)
 
     if [[ "$count" -eq 0 ]]; then
         echo -e "${GREEN}✓ No open #loose-end items. Session is clean.${NC}"

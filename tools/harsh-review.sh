@@ -171,20 +171,35 @@ log_check "Shell scripts (shellcheck + bash -n)"
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016"
 
 if command -v shellcheck &> /dev/null; then
+    # Check *.sh files
     while IFS= read -r file; do
         [[ -z "$file" ]] && continue
         [[ ! -f "$file" ]] && continue
-
-        # Syntax check
         if ! bash -n "$file" 2>/dev/null; then
             log_fail "$file: bash syntax error"
         fi
-
-        # Shellcheck (exclude style issues and false positives)
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             log_fail "$file: shellcheck violations"
         fi
     done < <(get_files '\.sh$')
+
+    # Also check extensionless hook scripts (pre-commit, pre-push, etc.) that
+    # carry a bash shebang — these are the largest scripts in the repo and were
+    # previously excluded from shell linting because they lack a .sh suffix.
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        [[ ! -f "$file" ]] && continue
+        # Skip files that already matched *.sh above
+        [[ "$file" == *.sh ]] && continue
+        # Only process files with a bash shebang
+        head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
+        if ! bash -n "$file" 2>/dev/null; then
+            log_fail "$file: bash syntax error"
+        fi
+        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
+            log_fail "$file: shellcheck violations"
+        fi
+    done < <(get_files '^./tools/')
 else
     log_warn "shellcheck not installed - skipping shell lint"
 fi
