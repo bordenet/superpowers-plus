@@ -2,6 +2,31 @@
 
 > **Load at START of every conversation.**
 
+## 🔴 WORKSPACE — WHERE TO OPERATE (NON-NEGOTIABLE)
+
+**ALL edits, commits, and pushes for superpowers-plus MUST happen in:**
+
+```
+~/git/Personal/superpowers-plus
+```
+
+**`~/.codex/superpowers-plus` is the INSTALLED CONSUMER COPY — never edit it directly.**
+
+| Path | Role | Allowed operations |
+|------|------|--------------------|
+| `~/git/Personal/superpowers-plus` | **Source of truth** | Edit, commit, push to `origin` (GitHub) |
+| `~/.codex/superpowers-plus` | **Installed copy** | Read-only. Re-deploy via `install.sh --upgrade` after changes land on GitHub. |
+
+**Before any shell command, verify working directory:**
+```bash
+cd ~/git/Personal/superpowers-plus
+```
+
+**The GitLab fork (`~/.codex/superpowers-plus`) is NEVER a target for commits or pushes.**
+Flow: `~/git/Personal/superpowers-plus` → GitHub (`origin`) → GitLab fork (pull only).
+
+
+
 ## Self-Management Protocol
 
 After editing ANY guidance file, run: `wc -l AGENTS.md .ai-guidance/*.md 2>/dev/null`
