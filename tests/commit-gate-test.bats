@@ -333,3 +333,59 @@ EOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
 }
+
+
+@test "pre-commit blocks staged broken extensionless hook even with valid token and sentinel" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Pre-seed a valid review token for this fixture repo
+    local repo_root cksum_val ts token_file
+    repo_root=$(cd "$fixture" && pwd -P)
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    ts=$(date +%s)
+    token_file="$REVIEW_TOKEN_DIR/${cksum_val}.${ts}.$$"
+    echo "$repo_root" > "$token_file"
+    # Pre-seed a valid sentinel
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Stage a broken extensionless bash hook
+    printf '#!/usr/bin/env bash\nif then fi\n' > "$fixture/tools/pre-push"
+    git -C "$fixture" add tools/pre-push
+    # Run pre-commit from within the fixture so git rev-parse --show-toplevel
+    # resolves to the fixture repo, not the test runner's repo.
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
+
+@test "pre-commit blocks commit when loose-ends audit backend fails" {
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Pre-seed valid token and sentinel so all other gates pass
+    local repo_root cksum_val ts token_file
+    repo_root=$(cd "$fixture" && pwd -P)
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    ts=$(date +%s)
+    token_file="$REVIEW_TOKEN_DIR/${cksum_val}.${ts}.$$"
+    echo "$repo_root" > "$token_file"
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Stub todo-crud.sh to fail on cat
+    cat > "$fixture/tools/todo-crud.sh" << 'EOF'
+#!/usr/bin/env bash
+[[ "${1:-}" == "cat" ]] && { echo "ERROR: backend unavailable" >&2; exit 1; }
+exit 0
+EOF
+    chmod +x "$fixture/tools/todo-crud.sh"
+    # Enable loose-ends gate and stage a harmless change
+    printf 'REQUIRE_LOOSE_ENDS_CLEAN=true\n' > "$fixture/.agent-gates"
+    printf '# comment\n' >> "$fixture/README.md"
+    git -C "$fixture" add README.md .agent-gates
+    # Run pre-commit from within the fixture so git rev-parse --show-toplevel
+    # resolves to the fixture repo, not the test runner's repo.
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    [ "$status" -ne 0 ]
+}
