@@ -7,10 +7,10 @@ Configuration for GitHub Issues tracking.
 | Operation | MCP Tool | API Path |
 |-----------|----------|----------|
 | create_issue | `github-api` | `POST /repos/{owner}/{repo}/issues` |
-| update_issue | `github-api` | `PATCH /repos/{owner}/{repo}/issues/{number}` |
+| update_issue | `github-api` | `PATCH /repos/{owner}/{repo}/issues/{number}`. **Precondition: validate as non-PR issue via `get_issue`/`verify_link` before mutating.** |
 | search_issues | `github-api` | `GET /search/issues` — always include `is:issue` in query to exclude PRs (e.g. `q=is:issue repo:{owner}/{repo} {query}`) |
-| get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — returns issue by numeric ID. **Important: this endpoint also returns PRs. Verify response is not a PR by checking that `pull_request` field is absent before treating as a valid issue.** |
-| add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments` |
+| get_issue | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — looks up by **issue number** (not GitHub's global `id` field). **Important: this endpoint also returns PRs. Verify response is not a PR by checking that `pull_request` field is absent before treating as a valid issue.** |
+| add_comment | `github-api` | `POST /repos/{owner}/{repo}/issues/{number}/comments`. **Precondition: same PR-separation requirement as `update_issue`.** |
 | verify_link | `github-api` | `GET /repos/{owner}/{repo}/issues/{number}` — confirms URL resolves to a valid issue. **Verify `pull_request` field is absent; PR URLs must not be accepted as issue URLs.** |
 
 ## Environment Variables
