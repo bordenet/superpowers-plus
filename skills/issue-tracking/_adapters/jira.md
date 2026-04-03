@@ -30,16 +30,26 @@ https://[instance].atlassian.net/browse/[KEY]-[number]
 
 Example: `https://mycompany.atlassian.net/browse/PROJ-123`
 
+## Minimum `get_issue` Output Contract Mapping
+
+| Normalized Field | Jira Response Field | Notes |
+|-----------------|---------------------|-------|
+| `identifier` | `key` | e.g. `"PROJ-123"` |
+| `url` | Construct: `{baseUrl}/browse/{key}` | Not directly in response body |
+| `title` | `fields.summary` | Issue title |
+| `status` | `fields.status.name` | Workflow state string |
+| `updatedAt` | `fields.updated` | ISO 8601 timestamp |
+
 ## Field Mappings
 
 | Generic | Jira Field | Notes |
 |---------|------------|-------|
-| title | `summary` | Required |
-| description | `description` | Atlassian Doc Format or Markdown |
-| labels | `labels` | Array of strings |
-| assignee | `assignee.accountId` | Atlassian account ID |
-| status | `status.name` | Workflow state |
-| priority | `priority.name` | Highest, High, Medium, Low, Lowest |
+| title | `fields.summary` | Required |
+| description | `fields.description` | Atlassian Doc Format or Markdown |
+| labels | `fields.labels` | Array of strings |
+| assignee | `fields.assignee.accountId` | Atlassian account ID |
+| status | `fields.status.name` | Workflow state |
+| priority | `fields.priority.name` | Highest, High, Medium, Low, Lowest |
 
 ## Issue Types
 

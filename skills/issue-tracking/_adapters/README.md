@@ -7,8 +7,8 @@ This skill set supports multiple issue tracking platforms through adapters.
 | Platform | MCP Tools | Status |
 |----------|-----------|--------|
 | Your current issue tracker | See your local adapter docs | ⚙️ Configure locally |
-| GitHub Issues | `github-api` | ✅ Full support |
-| Jira | `jira-api` (if available) | ✅ Contract complete (runtime requires jira-api or REST) |
+| GitHub Issues | `github-api` | ✅ All 6 operations documented with `get_issue` output contract mapping and issue/PR disambiguation note |
+| Jira | `jira-api` (if available) | ✅ All 6 operations documented with `get_issue` output contract mapping (runtime requires jira-api or REST) |
 | Other platforms | Use `platform-template.md` to create your own adapter | ⚙️ Bring your own |
 
 ## Configuration
