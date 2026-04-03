@@ -103,7 +103,7 @@ cmd_add() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --desc|--note|--priority)
-                if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
                     echo -e "${RED}✗ $1 requires a value${NC}" >&2
                     echo -e "  Usage: loose-ends.sh add --desc 'text' --note 'reason' [--priority P1-P4]" >&2
                     exit 1
