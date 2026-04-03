@@ -478,6 +478,10 @@ else
     REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     mkdir -p "$REVIEW_TOKEN_DIR"
     token_file="${REVIEW_TOKEN_DIR}/$(date +%s)"
-    echo "$REPO_ROOT" > "$token_file"
+    # Canonicalize so symlinked paths (/var → /private/var) match pre-commit's
+    # git-rev-parse based REPO_ROOT.  pwd -P is POSIX; realpath fallback is
+    # available on Linux but absent on stock macOS without coreutils.
+    _canon_repo="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || _canon_repo="$REPO_ROOT"
+    echo "$_canon_repo" > "$token_file"
     exit 0
 fi

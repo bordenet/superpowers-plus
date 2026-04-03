@@ -8,6 +8,8 @@ setup() {
     export HOME="$TEST_HOME"
     export REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     mkdir -p "$REVIEW_TOKEN_DIR"
+    # Prevent recursive bats invocation when commit-gate.sh runs inside tests
+    export SKIP_DEFAULT_TESTS=true
 }
 
 teardown() {
@@ -40,26 +42,85 @@ teardown() {
     [[ "$latest_token" =~ ^[0-9]+$ ]]
 }
 
-@test "expired token is not accepted (age > 300s)" {
+@test "expired token is rejected by pre-commit token check logic" {
+    # Simulate the pre-commit token check: an expired token must not match
     local old_ts=$(($(date +%s) - 600))
     local repo_root
-    repo_root=$(cd "$TOOLS_DIR/.." && pwd)
+    repo_root=$(cd "$TOOLS_DIR/.." && pwd -P 2>/dev/null || cd "$TOOLS_DIR/.." && pwd)
     echo "$repo_root" > "$REVIEW_TOKEN_DIR/$old_ts"
-    local now
-    now=$(date +%s)
-    local age=$((now - old_ts))
-    [ "$age" -gt 300 ]
+
+    # Replicate the pre-commit check logic inline
+    local NOW TTL FOUND_VALID
+    NOW=$(date +%s)
+    TTL=300
+    FOUND_VALID=false
+    for tf in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$tf" ]] || continue
+        local ts age
+        ts=$(basename "$tf")
+        [[ "$ts" =~ ^[0-9]+$ ]] || continue
+        age=$((NOW - ts))
+        if [[ $age -le $TTL ]]; then
+            tr=$(cat "$tf" 2>/dev/null || true)
+            [[ "$tr" == "$repo_root" ]] && FOUND_VALID=true && break
+        fi
+    done
+    [ "$FOUND_VALID" = "false" ]
 }
 
-@test "token from wrong repo is not accepted" {
-    local ts
+@test "wrong-repo token is rejected by pre-commit token check logic" {
+    local ts NOW TTL FOUND_VALID
     ts=$(date +%s)
+    NOW=$ts
+    TTL=300
     echo "/some/other/repo" > "$REVIEW_TOKEN_DIR/$ts"
     local repo_root
-    repo_root=$(cd "$TOOLS_DIR/.." && pwd)
-    local token_repo
-    token_repo=$(cat "$REVIEW_TOKEN_DIR/$ts")
-    [ "$token_repo" != "$repo_root" ]
+    repo_root=$(cd "$TOOLS_DIR/.." && pwd -P 2>/dev/null || cd "$TOOLS_DIR/.." && pwd)
+
+    FOUND_VALID=false
+    for tf in "$REVIEW_TOKEN_DIR"/*; do
+        [[ -f "$tf" ]] || continue
+        local fts age
+        fts=$(basename "$tf")
+        [[ "$fts" =~ ^[0-9]+$ ]] || continue
+        age=$((NOW - fts))
+        if [[ $age -le $TTL ]]; then
+            tr=$(cat "$tf" 2>/dev/null || true)
+            [[ "$tr" == "$repo_root" ]] && FOUND_VALID=true && break
+        fi
+    done
+    [ "$FOUND_VALID" = "false" ]
+}
+
+@test "commit-gate.sh exits nonzero when EXTRA_TEST fails" {
+    # Create a temp repo with a failing EXTRA_TEST gate
+    local tmp_repo
+    tmp_repo=$(mktemp -d)
+    git -C "$tmp_repo" init -q
+    mkdir -p "$tmp_repo/tools" "$tmp_repo/tests"
+    cp "$TOOLS_DIR/commit-gate.sh" "$tmp_repo/tools/"
+    cp "$TOOLS_DIR/harsh-review.sh" "$tmp_repo/tools/"
+    # Write .agent-gates with a forced-fail test command
+    printf 'EXTRA_TEST=exit 1\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
+    run bash "$tmp_repo/tools/commit-gate.sh"
+    rm -rf "$tmp_repo"
+    [ "$status" -ne 0 ]
+}
+
+@test "no review token written when commit-gate.sh fails" {
+    local tmp_repo before_count after_count
+    tmp_repo=$(mktemp -d)
+    git -C "$tmp_repo" init -q
+    mkdir -p "$tmp_repo/tools" "$tmp_repo/tests"
+    cp "$TOOLS_DIR/commit-gate.sh" "$tmp_repo/tools/"
+    cp "$TOOLS_DIR/harsh-review.sh" "$tmp_repo/tools/"
+    printf 'EXTRA_TEST=exit 1\nSKIP_DEFAULT_TESTS=true\n' > "$tmp_repo/.agent-gates"
+    before_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
+    run bash "$tmp_repo/tools/commit-gate.sh"
+    after_count=$(ls -1 "$REVIEW_TOKEN_DIR" 2>/dev/null | wc -l | xargs)
+    rm -rf "$tmp_repo"
+    # Gate failed — no new token should have been written
+    [ "$after_count" -le "$before_count" ]
 }
 
 @test "commit-gate.sh runs without error" {

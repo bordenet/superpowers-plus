@@ -19,6 +19,10 @@ if [[ -z "$REPO_ROOT" ]]; then
     fi
 fi
 
+# Canonicalize to physical path so symlinked paths (/var → /private/var)
+# match the path stored in review tokens by harsh-review.sh (pwd -P).
+REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || true
+
 cd "$REPO_ROOT"
 
 # Colors
@@ -54,7 +58,7 @@ if [[ -f "$REPO_ROOT/.agent-gates" ]]; then
         _key="${_key//[[:space:]]/}"
         # Only accept known keys; ignore everything else silently
         case "$_key" in
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN)
                 # Trim leading/trailing whitespace and strip surrounding quotes
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                 _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
@@ -121,6 +125,7 @@ staged_has_code() {
         | awk '
             /^\s*$/                             { next }
             /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+            /^skills\//                         { print; next }
             /\.(md|txt|rst)$/                   { next }
             /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
             { print }
@@ -300,7 +305,7 @@ if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
         echo "$scan_output"
         echo -e "  ${YELLOW}  Record via: loose-ends.sh add --desc '...' --note '...'${NC}"
         if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
     else
         echo -e "  ${GREEN}✓ No code debt markers in staged changes.${NC}"
@@ -315,7 +320,7 @@ if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
         echo "$check_output"
         if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
             echo -e "  ${RED}  REQUIRE_LOOSE_ENDS_CLEAN=true: resolve or justify all #loose-end items before committing.${NC}"
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
     else
         echo -e "  ${GREEN}✓ No open #loose-end items.${NC}"
@@ -377,7 +382,7 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
         echo -e "${RED}  ✗ No valid review token found${NC}"
         echo -e "${RED}    Run: bash tools/harsh-review.sh${NC}"
         echo -e "${RED}    Or skip: SKIP_REVIEW_TOKEN=true in .agent-gates${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 
     # Garbage-collect expired tokens (older than 2x TTL)
