@@ -101,9 +101,21 @@ get_all_text_files() {
     if [[ "$CHANGED_ONLY" == "true" ]]; then
         local base
         base="$(resolve_diff_base)"
-        git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+        # Named extensions + extensionless bash hooks under tools/
+        {
+            git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '\.(md|sh|json|js|ts|yaml|yml|example)$' || true
+            git diff --name-only "${base}...HEAD" 2>/dev/null | grep -E '^(\.\/)?tools/' | while IFS= read -r f; do
+                [[ -f "$f" && ! "$f" == *.* ]] && head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
+            done || true
+        } | sort -u
     else
-        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        {
+            find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+            # Extensionless bash hooks under tools/
+            find . -path './tools/*' -type f ! -name "*.*" 2>/dev/null | grep -v ".git" | while IFS= read -r f; do
+                head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"
+            done || true
+        } | sort -u
     fi
 }
 
