@@ -8,7 +8,7 @@ Configuration for Jira issue tracking.
 |-----------|----------------|
 | create_issue | `jira-api` or REST API |
 | update_issue | `jira-api` or REST API |
-| search_issues | JQL queries |
+| search_issues | `jira-api` or REST API | `GET /rest/api/3/search` with `jql` parameter |
 | get_issue | `jira-api` or REST API |
 | add_comment | `jira-api` or REST API |
 | verify_link | `jira-api` or REST API — `GET /rest/api/3/issue/{key}` — confirms URL resolves to a valid issue |
