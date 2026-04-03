@@ -75,7 +75,7 @@ fi
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  PRE-COMMIT: Running quality checks..."
-[[ -n "$CLASS" ]] && echo "  Repo class: $CLASS"
+[[ -n "${CLASS:-}" ]] && echo "  Repo class: $CLASS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
