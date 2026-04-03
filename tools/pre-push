@@ -234,11 +234,29 @@ while read -r _ local_sha _ remote_sha; do
     # Gate 1: Code review sentinel
     echo "  [Gate 1/2] Code review clearance"
     if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
-        # Cannot reliably determine if all introduced commits are docs-only when
-        # there is no merge-base. Fail closed: require sentinel clearance.
-        echo "  [code-review-gate] New branch with no common ancestor — failing closed (require sentinel)."
-        if ! check_code_review_sentinel "REQUIRE_SENTINEL" "$local_sha"; then
-            ERRORS=$((ERRORS + 1))
+        # No merge-base found — enumerate ALL files across ALL commits reachable
+        # from the tip to decide if the push is truly docs-only before failing
+        # closed. On an orphan/unrelated-history branch, ALL commits are new, so
+        # walking the full ancestor chain is correct and safe.
+        _no_base_files=$(git log --name-only --format="" "$local_sha" 2>/dev/null \
+            | grep -v '^$' | sort -u || true)
+        _no_base_code=$(printf '%s\n' "$_no_base_files" \
+            | awk '
+                /^\s*$/                             { next }
+                /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+                /^skills\//                         { print; next }
+                /\.(md|txt|rst)$/                   { next }
+                /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
+                { print }
+            ' | head -1 || true)
+        if [[ -n "$_no_base_files" && -z "$_no_base_code" ]]; then
+            echo "  [code-review-gate] New branch (no common ancestor) — all commits docs-only, sentinel not required."
+        else
+            # Code commits present, or could not enumerate files — fail closed.
+            echo "  [code-review-gate] New branch with no common ancestor — failing closed (require sentinel)."
+            if ! check_code_review_sentinel "REQUIRE_SENTINEL" "$local_sha"; then
+                ERRORS=$((ERRORS + 1))
+            fi
         fi
     elif ! check_code_review_sentinel "$RANGE" "$local_sha"; then
         ERRORS=$((ERRORS + 1))

@@ -617,19 +617,34 @@ EOF
     [[ "$output" == *"requires a value"* ]]
 }
 
-@test "pre-commit blocks when .agent-gates has inline comment on boolean key" {
-    # Inline comment (true # comment) must be stripped before validation;
-    # gate-enabling behavior must not be broken by trailing comment text.
+@test "pre-commit Gate 0 blocks when .agent-gates has inline comment on boolean key" {
+    # Isolates Gate 0 (sentinel) specifically — not the token gate.
+    # Inline comment (true # comment) must be stripped before validation so
+    # REQUIRE_CODE_REVIEW_SENTINEL=true is parsed correctly. The key correctness
+    # requirement: trailing comment text must not corrupt the boolean.
+    #
+    # Setup: .agent-gates is COMMITTED to HEAD (not staged) with the inline-comment
+    # value. Pre-commit reads it from the working tree. A valid review token is
+    # seeded so the token gate PASSES. The only remaining gate that can block is
+    # Gate 0 — which fires because no .code-review-cleared exists.
     local fixture
     fixture=$(_create_fixture_repo)
-    # Stage .agent-gates with inline comment on sentinel flag (HEAD has no .agent-gates)
+    # Commit .agent-gates with inline comment into HEAD so pre-commit reads it
     echo "REQUIRE_CODE_REVIEW_SENTINEL=true # enable sentinel" > "$fixture/.agent-gates"
-    printf '# code change\n' >> "$fixture/README.md"
-    git -C "$fixture" add .agent-gates README.md
-    # No .code-review-cleared present — sentinel check must block
+    git -C "$fixture" add .agent-gates
+    git -C "$fixture" commit -q -m "add .agent-gates with inline comment"
+    # Seed a valid token so the token gate PASSES
+    _seed_token "$fixture"
+    # Stage a shell script (non-doc file) so staged_has_code() returns true and
+    # Gate 0 actually fires. README.md is docs-only and would skip Gate 0.
+    printf '#!/usr/bin/env bash\necho hello\n' > "$fixture/tools/my-check.sh"
+    git -C "$fixture" add tools/my-check.sh
+    # No .code-review-cleared present — Gate 0 must block
     run bash -c "cd '$fixture' && bash tools/pre-commit"
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
+    # Assert Gate 0 message — confirms it was the sentinel gate, not token gate
+    [[ "$output" == *"COMMIT BLOCKED: No code review clearance"* ]]
 }
 
 @test "pre-commit blocks and emits error when committed .agent-gates has invalid boolean value" {
