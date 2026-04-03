@@ -13,13 +13,17 @@ Key top-level fields are summarized below.
 
 ## Key Fields
 
+See `skills/_shared/incident-packet-schema.md` for the authoritative JSON schema. Quick reference:
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | uuid-v4 | yes | Unique investigation identifier |
-| `status` | enum | yes | active, resolved, escalated, abandoned |
-| `incident` | object | yes | Description, severity, affected systems, timeline |
-| `forkDecision` | object | yes | Rubric score, details, decision, rationale |
-| `branches` | array | yes | Investigation branches with evidence |
+| `incidentId` | uuid-v4 | yes | Unique investigation identifier |
+| `summary` | string | yes | One-line description of the incident |
+| `severity` | enum | yes | P1, P2, or P3 |
+| `conductor` | object | yes | Agent ID, start time, and status |
+| `hypotheses` | array | yes | Working hypotheses with confidence and evidence refs |
+| `evidence` | array | yes | Evidence items (id, source, type, summary, supports, contradicts) |
+| `branches` | array | yes | Investigation branches with investigator, hypothesis, status |
 | `adjudication` | object | no | Root cause verdict (populated at resolution) |
 | `budget` | object | yes | Token/time/branch usage tracking |
 | `nextSteps` | array | no | Recommended follow-up actions |
