@@ -102,9 +102,18 @@ cmd_add() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --desc)  desc="$2";  shift 2 ;;
-            --note)  note="$2";  shift 2 ;;
-            --priority) priority="$2"; shift 2 ;;
+            --desc|--note|--priority)
+                if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                    echo -e "${RED}✗ $1 requires a value${NC}" >&2
+                    echo -e "  Usage: loose-ends.sh add --desc 'text' --note 'reason' [--priority P1-P4]" >&2
+                    exit 1
+                fi
+                case "$1" in
+                    --desc)     desc="$2" ;;
+                    --note)     note="$2" ;;
+                    --priority) priority="$2" ;;
+                esac
+                shift 2 ;;
             *) echo -e "${RED}Unknown option: $1${NC}" >&2; usage ;;
         esac
     done

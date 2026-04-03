@@ -218,8 +218,6 @@ main() {
         log_warn "install.sh not found — skipping re-deploy"
     fi
 
-    log_success "sp-update complete"
-
     # Run superpowers-doctor to verify the installation is healthy.
     # Uses --fail-on-findings so a degraded installation causes sp-update to
     # exit nonzero. Default report-only behavior is preserved for direct calls.
@@ -236,6 +234,8 @@ main() {
         log_warn "superpowers-doctor reported issues — run 'sp-doctor' for details"
         return "$_doctor_rc"
     fi
+
+    log_success "sp-update complete"
 }
 
 main "$@"
