@@ -29,6 +29,10 @@ write_large_todo() {
       echo '  - Added: 2026-03-23'
       echo
     done
+    echo '## P2 - This Week'
+    echo
+    echo '## P3 - Backlog'
+    echo
     echo '---'
     echo
     echo '# HISTORY'
@@ -183,8 +187,36 @@ test_small_valid_todo_archives_successfully() {
   [[ "$history_count" == "0" ]] || fail "expected 0 history tasks after forced archive, found $history_count"
 }
 
+test_archive_succeeds_on_protected_todo() {
+  local root output history_count
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+
+  if command -v chflags >/dev/null 2>&1; then
+    chflags uchg "$root/data/default.md"
+  else
+    chmod 0444 "$root/data/default.md"
+  fi
+
+  output=$(HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) || {
+    if command -v chflags >/dev/null 2>&1; then
+      chflags nouchg "$root/data/default.md" 2>/dev/null || true
+    fi
+    fail "protected todo should archive without write-path failure"
+  }
+
+  [[ "$output" != *'Operation not permitted'* ]] || fail 'archive should not try to rename over a protected TODO directly'
+  history_count=$(awk '/^# HISTORY/{flag=1;next}/^# DEFERRED/{flag=0} flag' "$root/data/default.md" | grep -cE '^- \[(x|-)\]' || true)
+  [[ "$history_count" == "0" ]] || fail "expected 0 history tasks after protected archive, found $history_count"
+
+  if command -v chflags >/dev/null 2>&1; then
+    chflags nouchg "$root/data/default.md" 2>/dev/null || true
+  fi
+}
+
 test_duplicate_archive_entries_are_not_readded
 test_explicit_todo_file_path_overrides_env_default
 test_index_total_counts_all_archive_files
 test_small_valid_todo_archives_successfully
+test_archive_succeeds_on_protected_todo
 echo 'PASS: todo-archive regression tests'

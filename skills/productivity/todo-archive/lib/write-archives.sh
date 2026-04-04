@@ -12,10 +12,15 @@ if ((BASH_VERSINFO[0] < 4)); then
   exit 1
 fi
 
-# --- Backup ---
-BACKUP_PATH="${TODO_PATH}.$(date +%Y%m%d-%H%M%S).bak"
+# --- Snapshot current TODO for rebuild math ---
+BACKUP_PATH="$(mktemp "${TMPDIR:-/tmp}/todo-archive-backup.XXXXXX")"
+REBUILD_TMP="${TODO_PATH}.rebuild.tmp"
 cp "$TODO_PATH" "$BACKUP_PATH"
-echo "💾 Backup: $BACKUP_PATH"
+cleanup_tmp() {
+  rm -f "$BACKUP_PATH" "$REBUILD_TMP"
+}
+trap cleanup_tmp EXIT
+echo "💾 Snapshot captured for rebuild"
 
 # --- Group tasks by completion month ---
 declare -A MONTH_TASKS
@@ -132,7 +137,6 @@ done < <(find "$ARCHIVE_DIR" -maxdepth 1 -name '*.md' ! -name 'INDEX.md' -print 
 echo "📇 Updated $INDEX_FILE"
 
 # --- Rebuild TODO.md (write to temp first, validate before overwriting) ---
-REBUILD_TMP="${TODO_PATH}.rebuild.tmp"
 {
   head -n "$HISTORY_START" "$BACKUP_PATH"
   echo ""
@@ -204,25 +208,20 @@ if [[ "$PRE_DEFERRED_TASKS" -ne "$POST_DEFERRED_TASKS" ]]; then
   exit 1
 fi
 
-# Safe to overwrite
-mv "$REBUILD_TMP" "$TODO_PATH"
-chmod 0444 "$TODO_PATH"  # Re-protect after archive rebuild
+# Safe to overwrite via todo-engine.py, which handles backup/unprotect/protect/shadow sync
+"$PYTHON" - <<'PY' "$TODO_ENGINE" "$TODO_PATH" "$REBUILD_TMP"
+import importlib.util
+import pathlib
+import sys
 
-# Update shadow backup so annihilation detection stays in sync.
-# Best-effort: archive success must not depend on shadow writability.
-SHADOW_DIR="${HOME}/.codex/todo-shadow"
-SHADOW_FILE="${SHADOW_DIR}/TODO.md"
-if [[ -d "$SHADOW_FILE" ]]; then
-  echo "WARNING: Shadow path ${SHADOW_FILE} is a directory (corrupt). Removing." >&2
-  rm -rf "$SHADOW_FILE" 2>/dev/null || true
-fi
-if mkdir -p "$SHADOW_DIR" 2>/dev/null && \
-   cp "$TODO_PATH" "${SHADOW_FILE}.tmp.$$" 2>/dev/null && \
-   mv "${SHADOW_FILE}.tmp.$$" "${SHADOW_FILE}" 2>/dev/null; then
-  : # Shadow updated successfully
-else
-  echo "WARNING: Could not update shadow backup. Annihilation detection may be stale." >&2
-fi
+engine_path, todo_path, rebuild_tmp = sys.argv[1:4]
+spec = importlib.util.spec_from_file_location("todo_engine", engine_path)
+module = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(module)
+content = pathlib.Path(rebuild_tmp).read_text()
+module.write_file(todo_path, content)
+PY
 
 # --- Integrity check ---
 POST_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')

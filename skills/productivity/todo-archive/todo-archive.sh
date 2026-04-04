@@ -8,8 +8,29 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+TODO_ENGINE="$REPO_ROOT/tools/todo-engine.py"
+
+PYTHON=""
+for candidate in python3 python; do
+  if command -v "$candidate" &>/dev/null; then
+    PYTHON="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$PYTHON" ]]; then
+  echo "ERROR: Python 3 is required but not found. Install python3." >&2
+  exit 1
+fi
+
+if [[ ! -f "$TODO_ENGINE" ]]; then
+  echo "ERROR: todo-engine.py not found at $TODO_ENGINE" >&2
+  exit 1
+fi
 
 # --- Configuration ---
+# shellcheck disable=SC2034  # consumed by sourced archive helpers / parse-history.sh
 AGE_THRESHOLD=7    # Days before auto-archive kicks in
 STALE_THRESHOLD=30 # Days before staleness rule forces archive
 LINE_THRESHOLD=400 # Soft limit triggering auto-archive
@@ -24,6 +45,7 @@ fi
 
 # --- Parse arguments (AFTER .env to prevent .env from overwriting flags) ---
 ARCHIVE_DRY_RUN=false
+# shellcheck disable=SC2034  # consumed by sourced parse-history.sh
 ARCHIVE_FORCE=false
 
 while [[ $# -gt 0 ]]; do
@@ -47,6 +69,7 @@ TODO_LINES=$(wc -l < "$TODO_PATH" | tr -d ' ')
 echo "📋 TODO.md: $TODO_LINES lines ($TODO_PATH)"
 
 # --- Phase 1: Parse and classify HISTORY tasks ---
+# shellcheck disable=SC1091
 # shellcheck source=lib/parse-history.sh
 source "$SCRIPT_DIR/lib/parse-history.sh"
 
@@ -73,5 +96,6 @@ fi
 # --- Phase 2: Write archives, rebuild TODO.md, verify ---
 mkdir -p "$ARCHIVE_DIR"
 
+# shellcheck disable=SC1091
 # shellcheck source=lib/write-archives.sh
 source "$SCRIPT_DIR/lib/write-archives.sh"
