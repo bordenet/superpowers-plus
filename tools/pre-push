@@ -169,6 +169,22 @@ fi
 # Remote name is passed as $1 by git
 REMOTE_NAME="${1:-origin}"
 
+# Determine if this is a public remote that requires IP scanning.
+# Public hosting domains (GitHub, GitLab.com, Bitbucket) are public by definition.
+# Private/internal remotes (self-hosted GitLab, local file paths, etc.) do NOT
+# need the IP scan — pushing already-audited-public content to a private repo
+# cannot leak IP to an external party. The sentinel (code-review) gate still
+# applies to all remotes.
+REMOTE_URL="$(git remote get-url "$REMOTE_NAME" 2>/dev/null || echo "")"
+IS_PUBLIC_REMOTE=false
+# Match both HTTPS (https://github.com/...) and SSH (git@github.com:...) URLs.
+# The domain check is intentionally broad (no anchoring before the domain) to
+# catch both forms. Private self-hosted instances use different domain names
+# (e.g. gitlab.int.company.net) and will not match.
+if echo "$REMOTE_URL" | grep -qE '(github\.com|gitlab\.com|bitbucket\.org)'; then
+    IS_PUBLIC_REMOTE=true
+fi
+
 resolve_push_base_ref() {
     local candidate tracking
     tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
@@ -287,10 +303,14 @@ while read -r _ local_sha _ remote_sha; do
     fi
     echo ""
 
-    # Gate 2: Proprietary IP scan
+    # Gate 2: Proprietary IP scan (public remotes only)
     echo "  [Gate 2/2] Proprietary IP scan"
-    if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
-        ERRORS=$((ERRORS + 1))
+    if [[ "$IS_PUBLIC_REMOTE" == "true" ]]; then
+        if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo "  (skipped — private remote: $REMOTE_URL)"
     fi
 done
 
