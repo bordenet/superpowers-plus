@@ -356,21 +356,28 @@ install_tools() {
 # Returns 0 if dir is referenced as a PATH token in a known POSIX shell profile,
 # 1 if it is absent from all of them.
 #
-# Profiles checked: ~/.bash_profile, ~/.bashrc, ~/.zshrc, ~/.zprofile, ~/.profile
+# Profiles checked: ~/.bash_profile, ~/.bash_login, ~/.bashrc,
+#                   ~/.zshrc, ~/.zprofile, ~/.profile
 # Not checked: fish (config.fish), nushell — those use different PATH syntax.
 #
 # Matching rules:
 #   - Comment lines (leading #) are ignored.
-#   - Only lines containing a PATH assignment or mutation are considered.
-#   - The directory is matched as a colon-delimited token, not a substring.
+#   - Only lines that persistently assign/append to PATH are considered.
+#     Per-command env assignments (PATH=... command, no export) are excluded.
+#   - The directory is matched as a token (colon, quote, semicolon, space,
+#     comment, or line boundary), not a substring — prevents bin-old false hits.
 #   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
 #     are matched to avoid false negatives when the profile uses a variable form.
+#   - Trailing slash is normalised: ~/bin/ and ~/bin are treated as equivalent.
+#   - Known limitation: directories with spaces, # or ; in their name may match
+#     spuriously if another path starts with the same prefix (extremely unusual).
+#   - Known limitation: per-command env exclusion uses a heuristic; shell control
+#     operators (&&, ||) and semicolon-joined forms are preserved as persistent.
 _cli_bin_dir_in_profiles() {
-    local dir="$1"
+    local dir="${1%/}"   # strip trailing slash for consistent matching
     local profiles=(
-        "$HOME/.bash_profile" "$HOME/.bashrc"
-        "$HOME/.zshrc"        "$HOME/.zprofile"
-        "$HOME/.profile"
+        "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.bashrc"
+        "$HOME/.zshrc"        "$HOME/.zprofile"   "$HOME/.profile"
     )
 
     # Escape ERE metacharacters in path fragments so unusual-but-valid characters
@@ -405,27 +412,36 @@ _cli_bin_dir_in_profiles() {
         )
     fi
 
-    # Token boundaries: colon, any quote, equals, or line start/end.
-    # This prevents /home/.local/bin-old from matching /home/.local/bin.
+    # Token boundaries: colon, any quote, semicolon, hash, whitespace, or line end.
+    # Broader than just colons/quotes so unquoted entries followed by a comment,
+    # semicolon, or trailing space are not missed.
     local pre='(^|[=:"'"'"'])'
-    local post='([:"'"'"']|$)'
+    local post='([:"'"'"';#]|[[:space:]]|$)'
 
     local p pat path_lines
     for p in "${profiles[@]}"; do
         [[ -f "$p" ]] || continue
-        # Strip comment lines; keep only lines that assign/append to PATH itself.
-        # Anchored to avoid matching MANPATH, MY_PATH, LD_LIBRARY_PATH, etc.
+        # Strip comment lines; keep only lines that persistently assign/append
+        # to PATH itself. Anchored to exclude MANPATH, MY_PATH, LD_LIBRARY_PATH.
         path_lines=$(grep -v '^[[:space:]]*#' "$p" 2>/dev/null \
             | grep -E '^[[:space:]]*(export[[:space:]]+)?PATH(\+)?=') || true
         [[ -n "$path_lines" ]] || continue
+        # Exclude per-command env assignments: PATH=<value> <command> (no export).
+        # Positive allowlist: keep bare PATH= lines only when the suffix is a shell
+        # operator (&&, ||, ;) or comment (#) or EOL. Anything else after whitespace
+        # is a per-command temp env.
+        # [^[:space:];]* stops at ; so PATH=val; export FOO is NOT wrongly excluded.
+        path_lines=$(printf '%s\n' "$path_lines" \
+            | grep -vE '^[[:space:]]*PATH[+]?=[^[:space:];]*[[:space:]]+[^&|;#[:space:]]') || true
+        [[ -n "$path_lines" ]] || continue
 
-        # Check absolute path form
-        if printf '%s\n' "$path_lines" | grep -qE "${pre}${esc_dir}${post}"; then
+        # Check absolute path form; /? accepts optional trailing slash in the profile
+        if printf '%s\n' "$path_lines" | grep -qE "${pre}${esc_dir}/?${post}"; then
             return 0
         fi
-        # Check $HOME/... shorthand forms
+        # Check $HOME/... shorthand forms (also accept optional trailing slash)
         for pat in "${extra_pats[@]}"; do
-            if printf '%s\n' "$path_lines" | grep -qE "${pre}${pat}${post}"; then
+            if printf '%s\n' "$path_lines" | grep -qE "${pre}${pat}/?${post}"; then
                 return 0
             fi
         done
