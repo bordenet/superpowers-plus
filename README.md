@@ -194,7 +194,7 @@ Copy `.env.example` to `~/.codex/.env` for runtime integrations. If you want ins
 
 Skills form pipelines with explicit dependencies. The diagram shows inter-skill coordination; orchestrator-internal stages (de-dup, content generation) are omitted.
 
-> **Token budget:** Bulk/multi-page wiki work runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, tables, fact-check, publish). Single-page edit paths may bypass the orchestrator, but publish adapters must still do executable markdown artifact scans and post-write round-trip verification.
+> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, markdown structure, fact-check, publish). Budget accordingly.
 
 ```mermaid
 graph LR
@@ -219,7 +219,7 @@ graph LR
     wiki_content_coherence --> link_verification["link-verification"]
     link_verification --> wiki_secret_audit["wiki-secret-audit"]
     wiki_secret_audit --> eliminating_ai_slop["eliminating-ai-slop"]
-    eliminating_ai_slop --> markdown_table_discipline["markdown-table-discipline"]
+    eliminating_ai_slop --> markdown_table_discipline["wiki-markdown-structure-gate"]
     markdown_table_discipline --> wiki_debunker["wiki-debunker"]
     wiki_debunker --> publish["Publish"]
   end
@@ -245,7 +245,7 @@ graph LR
 | Commit Gates | pre-commit → style → code review → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | output-verification (generated output) or exhaustive-audit (bulk edits) → verification | Context-dependent gates before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; adapters must verify persisted markdown artifacts before success; wiki-verify runs post-publish for drift |
+| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → markdown structure → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
 | Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
 
 ## Extending

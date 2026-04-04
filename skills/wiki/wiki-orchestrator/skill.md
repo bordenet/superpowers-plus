@@ -54,7 +54,7 @@ Single-page edits, creates, and deletes → use wiki API directly.
 | 3. Link Verification | **BLOCK** | `link-verification`: Internal wiki + repo links block on failure |
 | 4. Secret Scan | **BLOCK** | Search for `password`, `secret`, `token`, `api_key`, `credential`, `private_key` |
 | 5. Slop Detection | ADVISORY | `eliminating-ai-slop`: GVR slop scoring |
-| 5.5 Table Discipline | ADVISORY | `markdown-table-discipline` (authoring guidance only) |
+| 5.5 Markdown Structure | **BLOCK** | `wiki-markdown-structure-gate`: malformed tables, escaped wiki-link artifacts, unbalanced fences/callouts, heading hierarchy defects |
 | 6. Fact-Check | WARN | `wiki-debunker`: Count cited vs uncited claims |
 | 7. Publish | — | Execute via MCP tools (see Publishing Rules below) |
 
@@ -166,6 +166,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 - **wiki-content-coherence**: Stage 2.5 — duplication detection
 - **link-verification**: Stage 3 — URL verification (HARD GATE)
 - **eliminating-ai-slop**: Stage 5 — prose quality
+- **wiki-markdown-structure-gate**: Stage 5.5 — deterministic structural markdown gate
 - **wiki-debunker**: Stage 6 — fact-checking
 - **wiki-verify**: Post-publish — version drift
 - **wiki-secret-audit**: Secret scanning
