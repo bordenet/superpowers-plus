@@ -61,6 +61,9 @@ check "unquoted with trailing comment"              FOUND 'export PATH=__FAKE_BI
 check "control operator && after value"             FOUND 'PATH="__FAKE_BIN__:$PATH" && export FOO=1'
 check "control operator || after value"             FOUND 'PATH="__FAKE_BIN__:$PATH" || true'
 check "entry in ~/.bash_login"                      FOUND 'export PATH="__FAKE_BIN__:$PATH"' .bash_login
+check "\${PATH:+\$PATH:} prefix unquoted"           FOUND 'export PATH=${PATH:+$PATH:}__FAKE_BIN__'
+check "\${PATH:+\$PATH:} prefix quoted"             FOUND 'export PATH="${PATH:+$PATH:}__FAKE_BIN__"'
+check "\${PATH:+\$PATH:} with \$HOME shorthand"     FOUND 'export PATH=${PATH:+$PATH:}$HOME/.local/bin'
 
 echo "--- Should NOT FIND (true negatives) ---"
 check "commented out"                               NOT_FOUND '# export PATH="__FAKE_BIN__:$PATH"'

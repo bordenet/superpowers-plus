@@ -364,8 +364,9 @@ install_tools() {
 #   - Comment lines (leading #) are ignored.
 #   - Only lines that persistently assign/append to PATH are considered.
 #     Per-command env assignments (PATH=... command, no export) are excluded.
-#   - The directory is matched as a token (colon, quote, semicolon, space,
+#   - The directory is matched as a token (colon, quote, }, semicolon, space,
 #     comment, or line boundary), not a substring — prevents bin-old false hits.
+#     } is included so ${PATH:+$PATH:}TARGET idioms are correctly matched.
 #   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
 #     are matched to avoid false negatives when the profile uses a variable form.
 #   - Trailing slash is normalised: ~/bin/ and ~/bin are treated as equivalent.
@@ -413,10 +414,10 @@ _cli_bin_dir_in_profiles() {
         )
     fi
 
-    # Token boundaries: colon, any quote, semicolon, hash, whitespace, or line end.
-    # Broader than just colons/quotes so unquoted entries followed by a comment,
-    # semicolon, or trailing space are not missed.
-    local pre='(^|[=:"'"'"'])'
+    # Token boundaries: colon, any quote, }, semicolon, hash, whitespace, or EOL.
+    # } is included so ${PATH:+$PATH:}TARGET is correctly detected (the } closes
+    # the conditional expansion immediately before the path segment).
+    local pre='(^|[=:"'"'"'}])'
     local post='([:"'"'"';#]|[[:space:]]|$)'
 
     local p pat path_lines
