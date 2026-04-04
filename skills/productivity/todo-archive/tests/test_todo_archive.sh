@@ -188,7 +188,7 @@ test_small_valid_todo_archives_successfully() {
 }
 
 test_archive_succeeds_on_protected_todo() {
-  local root output history_count
+  local root output history_count shadow_file
   root=$(make_fixture)
   write_small_valid_todo "$root/data/default.md"
 
@@ -208,6 +208,13 @@ test_archive_succeeds_on_protected_todo() {
   [[ "$output" != *'Operation not permitted'* ]] || fail 'archive should not try to rename over a protected TODO directly'
   history_count=$(awk '/^# HISTORY/{flag=1;next}/^# DEFERRED/{flag=0} flag' "$root/data/default.md" | grep -cE '^- \[(x|-)\]' || true)
   [[ "$history_count" == "0" ]] || fail "expected 0 history tasks after protected archive, found $history_count"
+  shadow_file="$root/home/.codex/todo-shadow/TODO.md"
+  [[ -f "$shadow_file" ]] || fail 'shadow TODO should be refreshed after archive'
+  cmp -s "$shadow_file" "$root/data/default.md" || fail 'shadow TODO should match rebuilt canonical TODO'
+  local bak_file
+  bak_file=$(compgen -G "$root/home/.codex/todo-shadow/TODO.*.bak" | head -1)
+  [[ -n "$bak_file" ]] || fail 'persistent backup .bak should be created in todo-shadow'
+  grep -q '# HISTORY' "$bak_file" || fail 'persistent backup should contain pre-archive HISTORY section'
 
   if command -v chflags >/dev/null 2>&1; then
     chflags nouchg "$root/data/default.md" 2>/dev/null || true
