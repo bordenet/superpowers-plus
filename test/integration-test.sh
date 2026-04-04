@@ -11,7 +11,18 @@ HERMETIC_DIR=$(mktemp -d)
 export PERSONAL_SKILLS_DIR="$HERMETIC_DIR"
 HERMETIC_EMPTY=$(mktemp -d)
 export SUPERPOWERS_SKILLS_DIR="$HERMETIC_EMPTY"
-trap 'rm -rf "${HERMETIC_DIR:?}" "${HERMETIC_EMPTY:?}"' EXIT
+MCP_BOOTSTRAP_ATTEMPTED=false
+MCP_NODE_MODULES_PREEXISTED=false
+if [[ -d "$SCRIPT_DIR/mcp/node_modules" ]]; then
+    MCP_NODE_MODULES_PREEXISTED=true
+fi
+cleanup() {
+    rm -rf "${HERMETIC_DIR:?}" "${HERMETIC_EMPTY:?}"
+    if [[ "$MCP_BOOTSTRAP_ATTEMPTED" == "true" && "$MCP_NODE_MODULES_PREEXISTED" != "true" ]]; then
+        rm -rf "$SCRIPT_DIR/mcp/node_modules"
+    fi
+}
+trap cleanup EXIT
 
 # Deploy repo skills to flat layout (mimics install.sh behavior)
 for domain_dir in "$SCRIPT_DIR/skills/"*/; do
@@ -42,14 +53,36 @@ fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
 
 echo "=== Integration Tests (hermetic) ==="
 
+MCP_READY=true
+if [[ ! -d "$SCRIPT_DIR/mcp/node_modules/@modelcontextprotocol/sdk" ]]; then
+    echo ""
+    echo "--- MCP dependency bootstrap ---"
+    if [[ -d "$SCRIPT_DIR/mcp/node_modules" ]]; then
+        MCP_READY=false
+        fail "MCP dependencies missing from existing mcp/node_modules (run 'cd mcp && npm ci')"
+    else
+        MCP_BOOTSTRAP_ATTEMPTED=true
+        if (cd "$SCRIPT_DIR/mcp" && npm ci --silent >/dev/null 2>&1); then
+            pass "MCP dependencies installed"
+        else
+            MCP_READY=false
+            fail "MCP dependencies install failed"
+        fi
+    fi
+fi
+
 # 1. Smoke test
 echo ""
 echo "--- MCP Smoke Test ---"
-output=$(node mcp/smoke-test.js 2>&1)
-if echo "$output" | grep -q "All skills passed"; then
-    pass "MCP smoke test"
+if [[ "$MCP_READY" == "true" ]]; then
+    output=$(node mcp/smoke-test.js 2>&1)
+    if echo "$output" | grep -q "All skills passed"; then
+        pass "MCP smoke test"
+    else
+        fail "MCP smoke test: $output"
+    fi
 else
-    fail "MCP smoke test: $output"
+    fail "MCP smoke test skipped because MCP dependencies are unavailable"
 fi
 
 # 2. find-skills discovers skills (cache output for reuse)
