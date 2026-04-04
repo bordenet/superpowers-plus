@@ -957,12 +957,22 @@ if [[ -f "$MAINT_SCRIPT" ]] && command -v python3 &>/dev/null && command -v mkte
 
 # METRICS
 FIXTURE
+    # Cleanup helper: unprotect protected files before removing fixture dir.
+    # todo-engine.py sets chmod 444 (and possibly chflags uchg) on TODO.md.
+    _smoke_cleanup() {
+      local root="${1:?}"
+      find "$root" -name "*.md" -exec chmod u+w {} \; 2>/dev/null || true
+      if command -v chflags &>/dev/null; then
+        find "$root" -name "*.md" -exec chflags nouchg {} \; 2>/dev/null || true
+      fi
+      rm -rf "${root:?}"
+    }
     # Run maintenance in JSON mode against the fixture
     if ! result_json=$(HOME="$fixture_root/home" "$BASH" "$MAINT_SCRIPT" --json 2>&1); then
       echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
       echo "   Output: $(echo "$result_json" | head -3)"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: archive should have been performed
@@ -974,7 +984,7 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
 " 2>/dev/null; then
       echo "🟠 ERROR: TODO archive smoke test — archive did not complete as expected"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: resulting file should be under 50 lines (small TODO regression check)
@@ -982,17 +992,17 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
     if (( line_count >= 50 )); then
       echo "🟠 ERROR: TODO archive smoke test — result is $line_count lines (expected <50)"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: active task survived
     if ! grep -q '\[20260322-01\]' "$fixture_todo"; then
       echo "🟠 ERROR: TODO archive smoke test — active task was lost during archive"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
-    rm -rf "${fixture_root:?}"
+    _smoke_cleanup "$fixture_root"
   }
   _doctor_todo_smoke
 fi
