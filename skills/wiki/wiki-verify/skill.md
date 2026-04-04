@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: ['wiki-orchestrator']
   internal: false
+composition:
+  consumes: [wiki-content]
+  produces: [verification-report]
+  capabilities: [verifies-facts, validates-completeness]
+  priority: 30
 ---
 
 # Skill: wiki-verify

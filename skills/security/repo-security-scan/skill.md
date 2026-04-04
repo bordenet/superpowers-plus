@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes, repo-context]
+  produces: [security-report]
+  capabilities: [scans-secrets, detects-vulnerabilities]
+  priority: 25
 ---
 
 # repo-security-scan

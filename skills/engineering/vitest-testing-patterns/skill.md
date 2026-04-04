@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [test-suite]
+  capabilities: [fixes-tests, enforces-conventions]
+  priority: 35
 ---
 
 # vitest-testing-patterns

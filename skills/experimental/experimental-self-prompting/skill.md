@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge]
+  produces: [analysis-prompt]
+  capabilities: [generates-prompts, reframes-analysis]
+  priority: 20
 ---
 
 # ⚠️ EXPERIMENTAL: Self-Prompting ⚠️

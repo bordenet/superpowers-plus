@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [system-context]
+  produces: [readme-draft]
+  capabilities: [generates-docs]
+  priority: 20
 ---
 
 # README Authoring

@@ -380,6 +380,69 @@ test_critical_finding_exit_code_2
 test_errors_no_critical_exit_code_1
 test_warnings_only_exit_code_0
 echo ""
+echo "Step 4: composition metadata checks"
+
+# Test the composition check by extracting the exact grep pattern from the module.
+# We verify the module contains the expected pattern, then test that pattern in isolation.
+# This guards against both: (a) wrong grep target, (b) pattern drift from module.
+
+test_composition_check_pattern_matches_module() {
+  # Verify the exact implementation fragment in the doctor module.
+  # This fixed-string match ensures the module checks SKILL_YAML text (not a file path)
+  # and will fail if the variable name is changed or the pattern is moved to a comment.
+  local module="$SCRIPT_DIR/../doctor-modules/metadata-checks.sh"
+  # shellcheck disable=SC2016
+  local expected_fragment='grep -q '"'"'^composition:'"'"' <<< "${SKILL_YAML[$skill]}"'
+  if grep -Fq "$expected_fragment" "$module"; then
+    pass "doctor module composition check uses exact SKILL_YAML[\$skill] pattern"
+  else
+    fail "doctor module composition check does NOT match expected pattern — regression"
+  fi
+}
+
+test_composition_warning_fires_when_missing() {
+  # Use the same pattern the module uses: grep -q '^composition:' <<< "$yaml"
+  local yaml='name: no-comp
+description: Missing composition
+triggers: [test]
+anti_triggers: [not-test]'
+  local warnings=0
+  if ! grep -q '^composition:' <<< "$yaml"; then
+    ((warnings++)) || true
+  fi
+  if [[ "$warnings" -gt 0 ]]; then
+    pass "composition warning fires for skill without composition"
+  else
+    fail "composition warning did not fire for skill without composition"
+  fi
+}
+
+test_composition_no_warning_when_present() {
+  local yaml='name: has-comp
+description: Has composition
+triggers: [test]
+anti_triggers: [not-test]
+composition:
+  consumes: [challenge]
+  produces: [output]
+  capabilities: [does-stuff]
+  priority: 10'
+  local warnings=0
+  if ! grep -q '^composition:' <<< "$yaml"; then
+    ((warnings++)) || true
+  fi
+  if [[ "$warnings" -eq 0 ]]; then
+    pass "no composition warning when composition present"
+  else
+    fail "spurious composition warning for skill with composition"
+  fi
+}
+
+test_composition_check_pattern_matches_module
+test_composition_warning_fires_when_missing
+test_composition_no_warning_when_present
+
+echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAIL: $PASS passed, $FAIL failed, $SKIP skipped"

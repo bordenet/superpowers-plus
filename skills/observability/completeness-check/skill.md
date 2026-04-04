@@ -12,6 +12,11 @@ coordination:
   enables: ['verification-before-completion']
   escalates_to: ['thinking-orchestrator']
   internal: false
+composition:
+  consumes: [implementation, todo-items]
+  produces: [verification-report]
+  capabilities: [detects-incompleteness]
+  priority: 25
 ---
 
 # completeness-check
