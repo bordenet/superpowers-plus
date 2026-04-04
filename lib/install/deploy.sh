@@ -352,6 +352,87 @@ install_tools() {
     log_success "Installed $count tools to $tools_dest"
 }
 
+# _cli_bin_dir_in_profiles <dir>
+# Returns 0 if dir is referenced as a PATH token in a known POSIX shell profile,
+# 1 if it is absent from all of them.
+#
+# Profiles checked: ~/.bash_profile, ~/.bashrc, ~/.zshrc, ~/.zprofile, ~/.profile
+# Not checked: fish (config.fish), nushell — those use different PATH syntax.
+#
+# Matching rules:
+#   - Comment lines (leading #) are ignored.
+#   - Only lines containing a PATH assignment or mutation are considered.
+#   - The directory is matched as a colon-delimited token, not a substring.
+#   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
+#     are matched to avoid false negatives when the profile uses a variable form.
+_cli_bin_dir_in_profiles() {
+    local dir="$1"
+    local profiles=(
+        "$HOME/.bash_profile" "$HOME/.bashrc"
+        "$HOME/.zshrc"        "$HOME/.zprofile"
+        "$HOME/.profile"
+    )
+
+    # Escape ERE metacharacters in path fragments so unusual-but-valid characters
+    # (dots, plus signs, brackets, etc.) don't cause false negatives or positives.
+    # Uses explicit per-character substitutions for BSD/GNU sed portability —
+    # the [] character-class form ([][...]) is rejected by macOS BSD sed.
+    _esc_ere() { printf '%s' "$1" | sed \
+        -e 's/\./\\./g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' \
+        -e 's/+/\\+/g'  -e 's/\*/\\*/g' -e 's/?/\\?/g'  \
+        -e 's/(/\\(/g'  -e 's/)/\\)/g'  -e 's/{/\\{/g'  \
+        -e 's/}/\\}/g'  -e 's/\^/\\^/g' -e 's/|/\\|/g'; }
+    local esc_dir
+    esc_dir=$(_esc_ere "$dir")
+
+    # Build regex variants for $HOME-relative shorthand forms found in profiles.
+    # Single-quote prefix keeps $HOME literal (prevents bash expansion).
+    # \$, \{, \} are regex escapes recognised by grep -E.
+    local -a extra_pats=()
+    if [[ "$dir" == "$HOME/"* ]]; then
+        local rel="${dir#"$HOME/"}"
+        local esc_rel
+        esc_rel=$(_esc_ere "$rel")
+        # SC2016: single-quote prefix is intentional — we want literal \$HOME in
+        # the grep -E regex, not the expanded value of $HOME.
+        # SC2088: tilde in quotes is intentional — we're building a regex pattern
+        # to match the literal string ~/rel as written in profile files.
+        # shellcheck disable=SC2016,SC2088
+        extra_pats+=(
+            '\$HOME/'"$esc_rel"          # matches $HOME/.local/bin
+            '\$\{HOME\}/'"$esc_rel"      # matches ${HOME}/.local/bin
+            "~/$esc_rel"                 # matches ~/.local/bin
+        )
+    fi
+
+    # Token boundaries: colon, any quote, equals, or line start/end.
+    # This prevents /home/.local/bin-old from matching /home/.local/bin.
+    local pre='(^|[=:"'"'"'])'
+    local post='([:"'"'"']|$)'
+
+    local p pat path_lines
+    for p in "${profiles[@]}"; do
+        [[ -f "$p" ]] || continue
+        # Strip comment lines; keep only lines that assign/append to PATH itself.
+        # Anchored to avoid matching MANPATH, MY_PATH, LD_LIBRARY_PATH, etc.
+        path_lines=$(grep -v '^[[:space:]]*#' "$p" 2>/dev/null \
+            | grep -E '^[[:space:]]*(export[[:space:]]+)?PATH(\+)?=') || true
+        [[ -n "$path_lines" ]] || continue
+
+        # Check absolute path form
+        if printf '%s\n' "$path_lines" | grep -qE "${pre}${esc_dir}${post}"; then
+            return 0
+        fi
+        # Check $HOME/... shorthand forms
+        for pat in "${extra_pats[@]}"; do
+            if printf '%s\n' "$path_lines" | grep -qE "${pre}${pat}${post}"; then
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
 # Install CLI commands — symlink all tools/sp-*.sh to PATH as sp-*
 install_cli_commands() {
     local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
@@ -387,25 +468,14 @@ install_cli_commands() {
         }
     fi
 
-    # Verify bin_dir is exported in at least one shell profile.
-    # Check profiles rather than $PATH so we catch cross-shell gaps
-    # (e.g., installed from zsh but agent runs bash with no profile).
-    local profiles=(
-        "$HOME/.bash_profile" "$HOME/.bashrc"
-        "$HOME/.zshrc"        "$HOME/.zprofile"
-        "$HOME/.profile"
-    )
-    local found_in_profile=false
-    for p in "${profiles[@]}"; do
-        if [[ -f "$p" ]] && grep -q "$bin_dir" "$p" 2>/dev/null; then
-            found_in_profile=true
-            break
-        fi
-    done
-    if [[ "$found_in_profile" == "false" ]]; then
-        log_warn "sp-* commands installed to $bin_dir but that path is not in any shell profile."
-        log_warn "Commands may be invisible in some shells (e.g., if your agent uses a different shell)."
-        log_warn "Add to each relevant profile (~/.bash_profile, ~/.zshrc, etc.):"
+    # Verify bin_dir is referenced in at least one POSIX shell profile.
+    # Scanning profiles (not $PATH) catches cross-shell gaps — e.g., installing
+    # from zsh when an AI agent runs bash with no ~/.bash_profile.
+    # Fish/nushell configs are not checked (different PATH syntax).
+    if ! _cli_bin_dir_in_profiles "$bin_dir"; then
+        log_warn "sp-* commands installed to $bin_dir but that path was not found"
+        log_warn "in any POSIX shell profile (~/.bash_profile, ~/.bashrc, ~/.zshrc, etc.)."
+        log_warn "Commands may be invisible in some shells. Add to each relevant profile:"
         log_warn "  export PATH=\"${bin_dir}:\$PATH\""
     fi
 
