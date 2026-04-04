@@ -364,12 +364,17 @@ install_cli_commands() {
 
     [[ ${#sp_scripts[@]} -gt 0 ]] || return 0
 
-    # Find a writable bin directory on PATH
+    # Find a writable bin directory — prefer one that is already on PATH
     local bin_dir=""
     for candidate in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
         if [[ -d "$candidate" ]] && [[ -w "$candidate" ]]; then
-            bin_dir="$candidate"
-            break
+            # Prefer directories that are already on PATH
+            if [[ ":${PATH}:" == *":${candidate}:"* ]]; then
+                bin_dir="$candidate"
+                break
+            fi
+            # Remember first writable candidate even if not on PATH (fallback)
+            [[ -z "$bin_dir" ]] && bin_dir="$candidate"
         fi
     done
 
@@ -380,6 +385,28 @@ install_cli_commands() {
             log_warn "Cannot create $bin_dir — sp-* commands won't be on PATH"
             return 0
         }
+    fi
+
+    # Verify bin_dir is exported in at least one shell profile.
+    # Check profiles rather than $PATH so we catch cross-shell gaps
+    # (e.g., installed from zsh but agent runs bash with no profile).
+    local profiles=(
+        "$HOME/.bash_profile" "$HOME/.bashrc"
+        "$HOME/.zshrc"        "$HOME/.zprofile"
+        "$HOME/.profile"
+    )
+    local found_in_profile=false
+    for p in "${profiles[@]}"; do
+        if [[ -f "$p" ]] && grep -q "$bin_dir" "$p" 2>/dev/null; then
+            found_in_profile=true
+            break
+        fi
+    done
+    if [[ "$found_in_profile" == "false" ]]; then
+        log_warn "sp-* commands installed to $bin_dir but that path is not in any shell profile."
+        log_warn "Commands may be invisible in some shells (e.g., if your agent uses a different shell)."
+        log_warn "Add to each relevant profile (~/.bash_profile, ~/.zshrc, etc.):"
+        log_warn "  export PATH=\"${bin_dir}:\$PATH\""
     fi
 
     local installed=0
