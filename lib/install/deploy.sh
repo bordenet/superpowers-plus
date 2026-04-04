@@ -369,8 +369,9 @@ install_tools() {
 #   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
 #     are matched to avoid false negatives when the profile uses a variable form.
 #   - Trailing slash is normalised: ~/bin/ and ~/bin are treated as equivalent.
-#   - Known limitation: directories with spaces, # or ; in their name may match
-#     spuriously if another path starts with the same prefix (extremely unusual).
+#   - Matching is restricted to the PATH= value token; trailing commands or
+#     comments on the same line are not scanned, preventing false positives
+#     like: export PATH="$PATH"; echo "/target/dir"
 #   - Known limitation: per-command env exclusion uses a heuristic; shell control
 #     operators (&&, ||) and semicolon-joined forms are preserved as persistent.
 _cli_bin_dir_in_profiles() {
@@ -435,13 +436,21 @@ _cli_bin_dir_in_profiles() {
             | grep -vE '^[[:space:]]*PATH[+]?=[^[:space:];]*[[:space:]]+[^&|;#[:space:]]') || true
         [[ -n "$path_lines" ]] || continue
 
+        # Restrict matching to the PATH= value only — strip any trailing command or
+        # comment so "export PATH=$PATH; echo TARGET" is not falsely matched.
+        # [^;[:space:]]* captures the value (quoted or unquoted) up to the first
+        # space or semicolon; everything after is a trailing command/comment.
+        local value_lines
+        value_lines=$(printf '%s\n' "$path_lines" \
+            | sed -E 's/^([[:space:]]*(export[[:space:]]+)?PATH[+]?=[^;[:space:]]*)[[:space:];].*/\1/')
+
         # Check absolute path form; /? accepts optional trailing slash in the profile
-        if printf '%s\n' "$path_lines" | grep -qE "${pre}${esc_dir}/?${post}"; then
+        if printf '%s\n' "$value_lines" | grep -qE "${pre}${esc_dir}/?${post}"; then
             return 0
         fi
         # Check $HOME/... shorthand forms (also accept optional trailing slash)
         for pat in "${extra_pats[@]}"; do
-            if printf '%s\n' "$path_lines" | grep -qE "${pre}${pat}/?${post}"; then
+            if printf '%s\n' "$value_lines" | grep -qE "${pre}${pat}/?${post}"; then
                 return 0
             fi
         done

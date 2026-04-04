@@ -77,6 +77,10 @@ check "per-command temp env (quoted command)"       NOT_FOUND 'PATH=__FAKE_BIN__
 check "per-command temp env (relative ./tool)"      NOT_FOUND 'PATH=__FAKE_BIN__:$PATH ./tool'
 check "per-command temp env (relative ../tool)"     NOT_FOUND 'PATH=__FAKE_BIN__:$PATH ../tool'
 check "per-command temp env (variable \$CMD)"       NOT_FOUND 'PATH=__FAKE_BIN__:$PATH $CMD arg'
+check "target in trailing echo (semicolon)"         NOT_FOUND 'export PATH="$PATH"; echo "__FAKE_BIN__"'
+check "target in trailing echo (&&)"                NOT_FOUND 'export PATH="$PATH" && echo "__FAKE_BIN__"'
+check "target in trailing comment"                  NOT_FOUND 'export PATH="$PATH" # __FAKE_BIN__'
+check "target in trailing printf (semicolon bare)"  NOT_FOUND 'PATH="$PATH"; printf "%s" "__FAKE_BIN__"'
 
 echo ""
 echo "Results: ${PASS} passed, ${FAIL} failed"
