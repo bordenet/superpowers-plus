@@ -1,0 +1,31 @@
+# .agent-gates — repo-specific pre-commit gate configuration
+# Parsed as KEY=VALUE data by tools/pre-commit if present. NOT sourced.
+# Shell constructs (functions, expansions, conditionals) are not supported.
+# All variables are optional.
+#
+# CLASS: repo type hint (informational, shown in pre-commit output)
+#   Values: markdown-only | shell | node | python | mixed
+CLASS=shell
+
+# SKIP_SHELLCHECK: set to "true" to disable shellcheck (e.g. repo has no shell files)
+# SKIP_SHELLCHECK=true
+
+# EXTRA_LINT: command to run as an additional lint gate
+# EXTRA_LINT=npm run lint
+
+# EXTRA_TYPECHECK: command to run as an additional typecheck gate
+# EXTRA_TYPECHECK=npm run typecheck
+
+# EXTRA_TEST: command to run as an additional test gate (keep fast — pre-commit should be <10s)
+# EXTRA_TEST=bats test/
+
+# REQUIRE_CODE_REVIEW_SENTINEL: set to "true" to enable the pre-commit sentinel check.
+# When enabled, any commit touching code files (non-docs) requires a valid
+# .code-review-cleared file written by code-review-battery. The SHA-specific
+# check (sentinel SHA == pushed ref) still happens at pre-push. This pre-commit
+# check verifies only that battery was run at all before staging changes.
+REQUIRE_CODE_REVIEW_SENTINEL=true
+
+# REVIEW_TOKEN_TTL: How many seconds a review token is considered fresh (default: 300)
+# Increase for repos where review-to-commit time is longer (e.g., large test suites)
+# REVIEW_TOKEN_TTL=600

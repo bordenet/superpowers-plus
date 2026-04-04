@@ -78,3 +78,15 @@ When MCP tools are unavailable, adapters should document:
 - curl command equivalents
 - Required headers and authentication
 - Response parsing
+
+## Publishing Verification Contract
+
+Adapters MUST treat markdown safety checks as executable requirements, not prose advice.
+
+Before `create_page` or `update_page` returns success:
+
+1. **Pre-write artifact scan:** validate the outbound markdown for `\\[`, `\\]`, literal `&nbsp;`, literal `&mdash;`, empty hrefs, and malformed/collapsed tables.
+2. **Write the page** via the platform's primary API/tool.
+3. **Round-trip verification:** fetch the page again via `get_page`, re-run the same artifact scan on the persisted content, and fail closed if new artifacts appear.
+
+The shared reference implementation is `lib/wiki-publish.js` (`assertRoundTripArtifacts`) with `tools/wiki-markdown-validate.js` as the low-level CLI for artifact scans. Platform adapters may call the publish helper directly, use `lib/wiki-markdown.js`, or shell out to the CLI, but they MUST enforce equivalent checks before reporting success.

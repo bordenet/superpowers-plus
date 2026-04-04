@@ -54,7 +54,7 @@ Single-page edits, creates, and deletes → use wiki API directly.
 | 3. Link Verification | **BLOCK** | `link-verification`: Internal wiki + repo links block on failure |
 | 4. Secret Scan | **BLOCK** | Search for `password`, `secret`, `token`, `api_key`, `credential`, `private_key` |
 | 5. Slop Detection | ADVISORY | `eliminating-ai-slop`: GVR slop scoring |
-| 5.5 Table Discipline | ADVISORY | `markdown-table-discipline` |
+| 5.5 Markdown Structure | **BLOCK** | `wiki-markdown-structure-gate`: malformed tables, escaped wiki-link artifacts, unbalanced fences/callouts, heading hierarchy defects |
 | 6. Fact-Check | WARN | `wiki-debunker`: Count cited vs uncited claims |
 | 7. Publish | — | Execute via MCP tools (see Publishing Rules below) |
 
@@ -95,9 +95,16 @@ Fetch current state via your adapter's `get_page` operation BEFORE any edit. Nev
 
 ### Write Scope Restriction
 
-Only write to allowed roots defined by the current workspace or local overlay. Walk the parent chain to verify scope before writing.
+**🔴 NEVER create a top-level (root) page.** Every agent-created page MUST be a child of an existing page unless the user explicitly approves root-level placement with the exact collection identified and explicit confirmation that the page will have no parent.
 
-If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
+Only write to allowed roots defined by the platform-specific editing skill (e.g., `outline-wiki-editing`). The editing skill defines:
+- **Allowed collection identifiers** — first-pass filter
+- **Allowed root document identifiers** — parent-chain verification target
+- **Verification procedure** — walk parent chain from target → root, confirm root matches
+
+**This applies to both CREATE and UPDATE operations.** Walk the parent chain to verify scope before writing. If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
+
+**If the platform-specific editing skill is not loaded or unavailable → do NOT write. Fail closed.**
 
 ### Check for Duplicates Before Creating
 
@@ -109,7 +116,9 @@ Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YY
 
 ### Post-Update Verification
 
-After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, empty hrefs, malformed tables. Fix before reporting success.
+After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, literal `&mdash;`, empty hrefs, and malformed tables. Fix before reporting success.
+
+**Important:** Stage 5.5 is not a substitute for executable validation. `markdown-table-discipline` helps the agent author better tables, but the platform adapter must still run a real artifact scan before write and after round-trip fetch.
 </EXTREMELY_IMPORTANT>
 
 ---
@@ -157,6 +166,7 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 - **wiki-content-coherence**: Stage 2.5 — duplication detection
 - **link-verification**: Stage 3 — URL verification (HARD GATE)
 - **eliminating-ai-slop**: Stage 5 — prose quality
+- **wiki-markdown-structure-gate**: Stage 5.5 — deterministic structural markdown gate
 - **wiki-debunker**: Stage 6 — fact-checking
 - **wiki-verify**: Post-publish — version drift
 - **wiki-secret-audit**: Secret scanning

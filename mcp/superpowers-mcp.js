@@ -177,22 +177,33 @@ function extractFrontmatter(filePath) {
         continue;
       }
       if (inFrontmatter) {
-        // Handle bracket-multiline accumulation
+        // Handle bracket-multiline accumulation.
+        // Guard: /^\w+:(?:[^/]|$)/ detects a new top-level key starting before the
+        // bracket closes (malformed frontmatter). Abandon accumulation and fall
+        // through so the current line is parsed normally (fail-safe, not fail-swallow).
+        // Matches "key: value", "key:value", and "key:"; excludes URL continuations
+        // (http://...) where the character after the colon is a slash.
         if (triggerAccum !== null) {
-          triggerAccum += ' ' + line.trim();
-          if (hasUnquotedClosingBracket(triggerAccum)) {
-            triggers = parseInlineArray(extractBracketContent(triggerAccum));
-            triggerAccum = null;
+          if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }
+          else {
+            triggerAccum += ' ' + line.trim();
+            if (hasUnquotedClosingBracket(triggerAccum)) {
+              triggers = parseInlineArray(extractBracketContent(triggerAccum));
+              triggerAccum = null;
+            }
+            continue;
           }
-          continue;
         }
         if (antiTriggerAccum !== null) {
-          antiTriggerAccum += ' ' + line.trim();
-          if (hasUnquotedClosingBracket(antiTriggerAccum)) {
-            anti_triggers = parseInlineArray(extractBracketContent(antiTriggerAccum));
-            antiTriggerAccum = null;
+          if (line.match(/^\w+:(?:[^/]|$)/)) { antiTriggerAccum = null; }
+          else {
+            antiTriggerAccum += ' ' + line.trim();
+            if (hasUnquotedClosingBracket(antiTriggerAccum)) {
+              anti_triggers = parseInlineArray(extractBracketContent(antiTriggerAccum));
+              antiTriggerAccum = null;
+            }
+            continue;
           }
-          continue;
         }
 
         // Handle YAML-list accumulation

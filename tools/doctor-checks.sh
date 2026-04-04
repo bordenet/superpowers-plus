@@ -31,12 +31,14 @@ FIX_MODE=false
 FIX_SAFE=false
 SUMMARY_ONLY=false
 PURGE_ORPHANS=false
+FAIL_ON_FINDINGS=false
 for arg in "$@"; do
   case "$arg" in
-    --fix-safe)       FIX_SAFE=true; FIX_MODE=true ;;
-    --fix)            FIX_MODE=true ;;
-    --purge-orphans)  PURGE_ORPHANS=true ;;
-    --summary-only)   SUMMARY_ONLY=true ;;
+    --fix-safe)          FIX_SAFE=true; FIX_MODE=true ;;
+    --fix)               FIX_MODE=true ;;
+    --purge-orphans)     PURGE_ORPHANS=true ;;
+    --summary-only)      SUMMARY_ONLY=true ;;
+    --fail-on-findings)  FAIL_ON_FINDINGS=true ;;
   esac
 done
 
@@ -108,7 +110,7 @@ declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
 declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
 declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
 declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
-declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 30 lines
+declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 60 lines
 declare -A SKILL_BODY_START=()       # skill name → line number where body starts
 declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
 
@@ -120,7 +122,7 @@ while IFS= read -r f; do
   # Read file once, extract everything we need
   SKILL_LINES[$skill]=$(wc -l < "$f" | tr -d ' ')
   SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
-  SKILL_DELIM_COUNT[$skill]=$(head -30 "$f" | grep -c "^---$" || true)
+  SKILL_DELIM_COUNT[$skill]=$(head -60 "$f" | grep -c "^---$" || true)
   SKILL_HAS_BOM[$skill]=""
   # Portable BOM detection: xxd may not exist on minimal distros; od is POSIX
   if command -v xxd &>/dev/null; then
@@ -400,6 +402,12 @@ KNOWN_COLLISION_GROUPS=(
   "security-upgrade repo-security-scan"
   # Skill creation: authoring workflow vs writing conventions
   "skill-authoring writing-skills"
+  # Completion-gate chain: intentional multi-skill coverage for completion/merge phrases.
+  # "implementation complete" fires both implementation-tracker (archive prompt) and
+  # finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
+  # verification-before-completion (safety gate) and finishing-a-development-branch
+  # (branch options). coordination.requires is metadata only — not enforced at runtime.
+  "finishing-a-development-branch verification-before-completion implementation-tracker"
 )
 
 # Load overlay collision groups from all overlay source dirs
@@ -949,12 +957,22 @@ if [[ -f "$MAINT_SCRIPT" ]] && command -v python3 &>/dev/null && command -v mkte
 
 # METRICS
 FIXTURE
+    # Cleanup helper: unprotect protected files before removing fixture dir.
+    # todo-engine.py sets chmod 444 (and possibly chflags uchg) on TODO.md.
+    _smoke_cleanup() {
+      local root="${1:?}"
+      find "$root" -name "*.md" -exec chmod u+w {} \; 2>/dev/null || true
+      if command -v chflags &>/dev/null; then
+        find "$root" -name "*.md" -exec chflags nouchg {} \; 2>/dev/null || true
+      fi
+      rm -rf "${root:?}"
+    }
     # Run maintenance in JSON mode against the fixture
-    if ! result_json=$(HOME="$fixture_root/home" bash "$MAINT_SCRIPT" --json 2>&1); then
+    if ! result_json=$(HOME="$fixture_root/home" "$BASH" "$MAINT_SCRIPT" --json 2>&1); then
       echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
       echo "   Output: $(echo "$result_json" | head -3)"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: archive should have been performed
@@ -966,7 +984,7 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
 " 2>/dev/null; then
       echo "🟠 ERROR: TODO archive smoke test — archive did not complete as expected"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: resulting file should be under 50 lines (small TODO regression check)
@@ -974,17 +992,17 @@ assert data.get('after', {}).get('history_count', 99) == 0, 'history not cleared
     if (( line_count >= 50 )); then
       echo "🟠 ERROR: TODO archive smoke test — result is $line_count lines (expected <50)"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
     # Validate: active task survived
     if ! grep -q '\[20260322-01\]' "$fixture_todo"; then
       echo "🟠 ERROR: TODO archive smoke test — active task was lost during archive"
       ((ERRORS++))
-      rm -rf "${fixture_root:?}"
+      _smoke_cleanup "$fixture_root"
       return
     fi
-    rm -rf "${fixture_root:?}"
+    _smoke_cleanup "$fixture_root"
   }
   _doctor_todo_smoke
 fi
@@ -1440,3 +1458,9 @@ if [[ "$FIX_MODE" == "true" && "$FIXED" -gt 0 ]]; then
   echo "  📁 Backups: $BACKUP_DIR"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# --fail-on-findings: opt-in nonzero exit when any finding exists.
+# Default behavior (report-only) is preserved for all other callers.
+if [[ "$FAIL_ON_FINDINGS" == "true" && "$TOTAL" -gt 0 ]]; then
+  exit 1
+fi

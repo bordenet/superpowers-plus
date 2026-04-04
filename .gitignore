@@ -65,6 +65,10 @@ npm-debug.log*
 # Session state
 .superpowers-session
 
+# Code review sentinel (written by code-review-battery, read by pre-push hook)
+# Never commit — it is HEAD-specific and machine-local
+.code-review-cleared
+
 # wiki-instruction-guard local domain allowlist (org-specific, never committed)
 skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 
@@ -73,3 +77,14 @@ skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 .ip-check-patterns
 __pycache__/
 install-state/
+
+# Internal planning, design, and operational docs — not for public repo
+docs/superpowers/plans/
+docs/superpowers/specs/
+docs/superpowers/multi-agent/
+
+# Internal operational tooling — not for public repo
+tools/internal-sync.sh
+
+# Local AI agent guidance (machine-specific operational notes)
+.ai-guidance/
