@@ -13,6 +13,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **update-superpowers skill** - Documents the `sp-update` workflow: three-tier promotion, divergence recovery (auto-reset), cascading installs, and sp-doctor verification. (#447)
 - **docs/SKILLS.md** - Full 87-skill reference table organized by domain, moved out of README. (#450)
+- **`tools/wiki-markdown-validate.js`** - Shared wiki markdown artifact validator for escaped brackets, literal HTML entities, empty hrefs, and collapsed tables. Added `lib/wiki-markdown.js`, `lib/wiki-publish.js`, and regression tests. (#506)
 
 ### Changed
 
@@ -22,6 +23,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **entityType consumer policy hardened** — `issue-authoring`, `issue-editing`, and `issue-verify` now consistently hard-block on `"pull_request"` and `"other"`, and require explicit user confirmation for `"unknown"` on reference paths (mutation paths hard-block unconditionally). Policy table in `adapter-interface.md` is now deterministic — no "or WARN" branches at the interface layer. (#503)
 - **`exists` field is now `boolean | null`** — All adapter `get_issue` and `verify_link` responses use a tri-state `exists` field: `true` (confirmed found), `false` (confirmed 404), `null` (permission ambiguity — cannot determine, e.g. HTTP 401/403 or cross-workspace). Adapters must distinguish forbidden from not-found. `github-issues.md`, `jira.md`, and `platform-template.md` updated. (`null + "unknown"`) → WARN on reference paths, HARD BLOCK on mutation paths. (#505)
 - **AGENTS.md promotion model** — Added Cadence column to branching table. New prohibitions: dev→staging and staging→main promotions require explicit human instruction in the current active turn; context compaction invalidates prior authorization. (#504)
+- **Wiki adapter publish contract** — `skills/wiki/_adapters/adapter-interface.md`, `platform-template.md`, `wiki-orchestrator`, and README now explicitly require executable pre-write markdown validation plus post-write round-trip verification. This closes the gap where table discipline existed as guidance but adapter publish paths could still silently ship malformed markdown. (#506)
 
 ### Removed
 
