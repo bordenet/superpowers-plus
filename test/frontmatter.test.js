@@ -188,9 +188,9 @@ function stripFrontmatter(content) {
     const result = [];
     for (const line of lines) {
         if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
+            if (inFrontmatter && !frontmatterEnded) { frontmatterEnded = true; continue; }
+            if (!frontmatterEnded) { inFrontmatter = true; continue; }
+            // frontmatterEnded=true: body '---' — fall through to push
         }
         if (frontmatterEnded || !inFrontmatter) result.push(line);
     }
@@ -206,6 +206,8 @@ eq(stripFrontmatter("---\r\nname: x\n---\rBody\nLine2"), 'Body\nLine2', 'stripFr
 eq(stripFrontmatter("Just body text"), 'Just body text', 'stripFrontmatter: no frontmatter');
 // No trailing newline
 eq(stripFrontmatter("---\nname: x\n---\nBody"), 'Body', 'stripFrontmatter: no trailing newline');
+// Body contains --- horizontal rule (regression: was silently dropped)
+eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfter', 'stripFrontmatter: body --- preserved');
 
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);

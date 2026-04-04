@@ -85,7 +85,7 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
   triggers_raw="${SKILL_TRIGGERS_RAW[$skill]}"
   [[ -z "$triggers_raw" ]] && continue
   # Handle both inline arrays and multi-line items
-  if echo "$triggers_raw" | grep -q '^\s*-'; then
+  if echo "$triggers_raw" | grep -q '^[[:space:]]*-'; then
     # Multi-line format: each line is "  - "value""
     triggers=$(echo "$triggers_raw" | sed 's/^[[:space:]]*-[[:space:]]*//' | sed 's/^"//;s/"$//' | sed "s/^'//;s/'$//" | grep -v '^$' || true)
   else
