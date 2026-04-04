@@ -33,6 +33,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [dispatches-review]
+  priority: 25
 ---
 
 # Requesting Code Review

@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [todo-items]
+  produces: [verification-report]
+  capabilities: [verifies-issues]
+  priority: 25
 ---
 
 # Issue Identifier Verification

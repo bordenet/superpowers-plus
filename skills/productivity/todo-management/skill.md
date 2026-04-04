@@ -12,6 +12,11 @@ coordination:
   enables: ["todo-archive", "fallback-planning"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [task-description]
+  produces: [todo-items]
+  capabilities: [manages-tasks]
+  priority: 15
 ---
 
 # TODO Management

@@ -12,6 +12,11 @@ coordination:
   escalates_to: []
   internal: false
 anti_triggers: ['investigate bug', 'debug issue', 'systematic debugging']
+composition:
+  consumes: [implementation, todo-items]
+  produces: [progress-report]
+  capabilities: [tracks-progress, persists-state]
+  priority: 15
 ---
 
 # Implementation Tracker

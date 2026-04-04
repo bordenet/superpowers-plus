@@ -12,6 +12,11 @@ coordination:
   enables: ["public-repo-ip-audit"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [language-audit-report]
+  capabilities: [scans-language, gates-quality]
+  priority: 35
 ---
 
 # Professional Language Audit

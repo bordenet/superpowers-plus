@@ -21,6 +21,11 @@ coordination:
   enables: [pre-commit-gate]
   escalates_to: [progressive-code-review-gate]
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [reviews-code, gates-quality]
+  priority: 30
 ---
 
 # Micro Harsh Review

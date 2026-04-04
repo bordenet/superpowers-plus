@@ -18,6 +18,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [validated-table]
+  capabilities: [validates-markdown]
+  priority: 35
 ---
 
 # Markdown Table Discipline
