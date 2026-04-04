@@ -364,9 +364,9 @@ install_tools() {
 #   - Comment lines (leading #) are ignored.
 #   - Only lines that persistently assign/append to PATH are considered.
 #     Per-command env assignments (PATH=... command, no export) are excluded.
-#   - The directory is matched as a token (colon, quote, }, semicolon, space,
-#     comment, or line boundary), not a substring — prevents bin-old false hits.
-#     } is included so ${PATH:+$PATH:}TARGET idioms are correctly matched.
+#   - The directory is matched as a token. Quotes are treated as optional wrappers
+#     around real delimiters (=, :, }) — not as delimiters themselves. This prevents
+#     "PATH="$PATH"TARGET" from matching while "PATH="TARGET"" still does.
 #   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
 #     are matched to avoid false negatives when the profile uses a variable form.
 #   - Trailing slash is normalised: ~/bin/ and ~/bin are treated as equivalent.
@@ -414,11 +414,14 @@ _cli_bin_dir_in_profiles() {
         )
     fi
 
-    # Token boundaries: colon, any quote, }, semicolon, hash, whitespace, or EOL.
-    # } is included so ${PATH:+$PATH:}TARGET is correctly detected (the } closes
-    # the conditional expansion immediately before the path segment).
-    local pre='(^|[=:"'"'"'}])'
-    local post='([:"'"'"';#]|[[:space:]]|$)'
+    # Token boundaries: quotes are optional wrappers around a real delimiter.
+    # pre: a true boundary (=, :, }, or line-start) optionally followed by a quote.
+    # post: an optional closing quote followed by a true delimiter (: ; # space EOL).
+    # This ensures "..." or '...' can wrap path segments without quotes themselves
+    # acting as boundaries — so PATH="$PATH"TARGET is NOT_FOUND but PATH="$PATH":TARGET is.
+    # } is included in pre so ${PATH:+$PATH:}TARGET is correctly matched.
+    local pre='(^|[=:}])["'"'"']?'
+    local post='["'"'"']?([:;#]|[[:space:]]|$)'
 
     local p pat path_lines
     for p in "${profiles[@]}"; do

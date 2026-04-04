@@ -64,6 +64,7 @@ check "entry in ~/.bash_login"                      FOUND 'export PATH="__FAKE_B
 check "\${PATH:+\$PATH:} prefix unquoted"           FOUND 'export PATH=${PATH:+$PATH:}__FAKE_BIN__'
 check "\${PATH:+\$PATH:} prefix quoted"             FOUND 'export PATH="${PATH:+$PATH:}__FAKE_BIN__"'
 check "\${PATH:+\$PATH:} with \$HOME shorthand"     FOUND 'export PATH=${PATH:+$PATH:}$HOME/.local/bin'
+check "unquoted segment after closing quote"        FOUND 'export PATH="$PATH:"__FAKE_BIN__'
 
 echo "--- Should NOT FIND (true negatives) ---"
 check "commented out"                               NOT_FOUND '# export PATH="__FAKE_BIN__:$PATH"'
@@ -84,6 +85,9 @@ check "target in trailing echo (semicolon)"         NOT_FOUND 'export PATH="$PAT
 check "target in trailing echo (&&)"                NOT_FOUND 'export PATH="$PATH" && echo "__FAKE_BIN__"'
 check "target in trailing comment"                  NOT_FOUND 'export PATH="$PATH" # __FAKE_BIN__'
 check "target in trailing printf (semicolon bare)"  NOT_FOUND 'PATH="$PATH"; printf "%s" "__FAKE_BIN__"'
+check "target pasted after closing quote (no :)"    NOT_FOUND 'export PATH="$PATH"__FAKE_BIN__'
+check "target before opening quote (no :)"          NOT_FOUND 'export PATH=__FAKE_BIN__"$PATH"'
+check "target quoted then another quoted segment"   NOT_FOUND 'export PATH="__FAKE_BIN__""-old:$PATH"'
 
 echo ""
 echo "Results: ${PASS} passed, ${FAIL} failed"
