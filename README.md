@@ -169,7 +169,7 @@ Copy `.env.example` to `.env` for optional integrations:
 
 Skills form pipelines with explicit dependencies. The diagram shows inter-skill coordination; orchestrator-internal stages (de-dup, content generation) are omitted.
 
-> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, tables, fact-check, publish). Budget accordingly.
+> **Token budget:** Bulk/multi-page wiki work runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, tables, fact-check, publish). Single-page edit paths may bypass the orchestrator, but publish adapters must still do executable markdown artifact scans and post-write round-trip verification.
 
 ```mermaid
 graph LR
@@ -220,7 +220,7 @@ graph LR
 | Commit Gates | pre-commit → style → code review → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | output-verification (generated output) or exhaustive-audit (bulk edits) → verification | Context-dependent gates before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
+| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → tables → fact-check → publish | Quality gates before publish; adapters must verify persisted markdown artifacts before success; wiki-verify runs post-publish for drift |
 | Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
 
 ## Extending
