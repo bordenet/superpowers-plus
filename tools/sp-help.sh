@@ -68,8 +68,6 @@ _trunc() {
 _source_label() {
     case "$1" in
         superpowers-plus)     echo "superpowers-plus (base framework)" ;;
-        superpowers-[company])  echo "superpowers-[company] ([Company])" ;;
-        superpowers-[product])     echo "superpowers-[product] ([PRODUCT] / Team Delta)" ;;
         unknown)              echo "other" ;;
         *)                    echo "$1" ;;
     esac
@@ -262,9 +260,6 @@ show_skills() {
     fi
 
     echo -e "  ${WHITE}${total}${RESET} skills installed across ${WHITE}${num_sources}${RESET} sources"
-    echo ""
-    echo -e "  ${DIM}Wiki:${RESET}  ${ULINE}https://cb-outline.getoutline.com/doc/superpowers-skills-cASQJAkNFD${RESET}"
-    echo -e "  ${DIM}Audit:${RESET} ${ULINE}https://cb-outline.getoutline.com/doc/superpowers-audit-JZXrdyVBFg${RESET}"
     echo ""
 }
 

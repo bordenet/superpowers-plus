@@ -13,14 +13,26 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **update-superpowers skill** - Documents the `sp-update` workflow: three-tier promotion, divergence recovery (auto-reset), cascading installs, and sp-doctor verification. (#447)
 - **docs/SKILLS.md** - Full 87-skill reference table organized by domain, moved out of README. (#450)
+- **`tools/wiki-markdown-validate.js`** - Shared wiki markdown artifact validator for escaped brackets, literal HTML entities, empty hrefs, and collapsed tables. Added `lib/wiki-markdown.js`, `lib/wiki-publish.js`, and regression tests. (#506)
 
 ### Changed
 
 - **README overhaul** - Replaced hardcoded skill counts with dynamic language. Added Standout Skills table (9 key skills), Quick Start with trigger examples, pre-commit hooks note, and token budget advisory. Removed stale Development Process and Semantic Skill Matching sections. Three rounds of PHR, scored 8.5/10. (#450)
 - **GitHub repo description** - Fixed "orba" typo, updated to "Skills for AI coding assistants. Extends obra/superpowers."
+- **Issue-tracking adapter contract** — `adapter-interface.md` now defines a structured minimum output contract for `get_issue` (returns `exists`, `entityType`, `identifier`, `url`, `title`, `status`, `updatedAt`) and `verify_link` (returns structured `{exists, identifier, entityType}` — no bare exists/not-found). Adapters must discriminate `"issue"` from `"pull_request"`, `"other"`, and `"unknown"`. `github-issues.md` now documents PR discrimination via the `pull_request` response field, plus identifier normalization and a full output contract mapping. `jira.md` now includes `verify_link` and a complete output contract mapping. `platform-template.md` expanded from a stub into a full compliance spec. (#503)
+- **entityType consumer policy hardened** — `issue-authoring`, `issue-editing`, and `issue-verify` now consistently hard-block on `"pull_request"` and `"other"`, and require explicit user confirmation for `"unknown"` on reference paths (mutation paths hard-block unconditionally). Policy table in `adapter-interface.md` is now deterministic — no "or WARN" branches at the interface layer. (#503)
+- **`exists` field is now `boolean | null`** — All adapter `get_issue` and `verify_link` responses use a tri-state `exists` field: `true` (confirmed found), `false` (confirmed 404), `null` (permission ambiguity — cannot determine, e.g. HTTP 401/403 or cross-workspace). Adapters must distinguish forbidden from not-found. `github-issues.md`, `jira.md`, and `platform-template.md` updated. (`null + "unknown"`) → WARN on reference paths, HARD BLOCK on mutation paths. (#505)
+- **AGENTS.md promotion model** — Added Cadence column to branching table. New prohibitions: dev→staging and staging→main promotions require explicit human instruction in the current active turn; context compaction invalidates prior authorization. (#504)
+- **Wiki adapter publish contract** — `skills/wiki/_adapters/adapter-interface.md`, `platform-template.md`, `wiki-orchestrator`, and README now explicitly require executable pre-write markdown validation plus post-write round-trip verification. This closes the gap where table discipline existed as guidance but adapter publish paths could still silently ship malformed markdown. (#506)
+
+### Removed
+
+- **`azure-devops` issue tracker adapter** (`skills/issue-tracking/_adapters/azure-devops.md`) — Removed the shipped Azure DevOps adapter. Users who had `ISSUE_TRACKER_TYPE=azure-devops` should copy the deleted file from git history or recreate from `platform-template.md`. Migration: `git show origin/staging:skills/issue-tracking/_adapters/azure-devops.md > skills/issue-tracking/_adapters/azure-devops.md`. (#498)
+- **`tools/wiki-snapshot.sh`** — Removed Outline wiki pre-edit snapshot tool and its test suite (`tools/tests/test_wiki_snapshot.sh`). Users with shell automation calling this command will need to migrate to direct Outline API document-info calls (`POST /api/documents.info` with `{id: "<document-id>"}`). (#497)
 
 ### Fixed
 
+- **pre-push orphan docs-only exemption** - New branches with no common ancestor and only docs/metadata commits can now push without a code-review sentinel. Previously all no-base branches failed closed unconditionally. Uses `git log --name-only -m` to enumerate reachable history including merge-commit conflict resolutions; code files still cause fail-closed behavior.
 - **IP audit hardening** - Strengthened public repo IP guardrails for staged, range-based, and full-file checks. Wired shared audit into pre-commit, pre-push, harsh-review, install, and doctor flows. Added regression tests for diff lines, upstream-only refs, external hooksPath, and bash 3.2 re-exec. (#449)
 - **Doctor ahead-commit detection** - Check 19 now flags CRITICAL when the installed copy has local commits not on remote, preventing stale diverged installations. (#445)
 - **Trigger collisions** - Collapsed multi-line trigger arrays for `progressive-harsh-review` and `skill-health-check`. Resolved `expert-interviewer` trigger collision with `knowledge-capture`. (#443)
@@ -47,7 +59,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **sp-help** — Redesigned skill browser with credits, overlay indicators, grouped output by domain. Concise default output with grouped domain sections. Bash 3.2 compatible.
 - **sp-doctor** — Symlink-aware launcher. Resolves symlink before locating `doctor-checks.sh`. Check 14 skips git-tracked files.
 - **sp-update** — Self-updater with actionable diagnostics on merge failures.
-- **wiki-snapshot.sh** — Pre-edit snapshot tool for Outline documents (with test suite).
 - **Auto-symlink** — All `sp-*` CLI commands auto-symlinked during install.
 
 ### Added — Infrastructure
@@ -78,7 +89,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **TODO.md protection** — 7-layer defense system: OS-level immutability (`chflags uchg`), chmod 444, shadow backup with annihilation detection, honeypot at default path, path obscuring (removed from `.env`), stray path detection, structural validation. Prevents agent-driven data loss (incident 2026-03-23).
 - **Proprietary content scrub** — All proprietary references removed from public repo across 4 passes.
 - **Markdownlint audit** — 1,757 violations eliminated across the entire repo.
-- **YAML parser hardening** — Single-quote doubled-apostrophe escaping, bracket-multiline handling, state-machine trigger parser propagated to all consumers.
+- **YAML parser hardening** — Single-quote doubled-apostrophe escaping, bracket-multiline handling, state-machine trigger parser propagated to accumulator-based consumers (`superpowers-augment.js`, `mcp/superpowers-mcp.js`, `install-augment-superpowers.sh`). `lib/frontmatter.js` uses inline regex matching and does not support bracket-multiline; see its header for details.
 - **DAG generator** — Shared `parseInlineArray` from `lib/frontmatter.js`, CRLF normalization, empty array filtering, scalar unquoting.
 - **Smoke test** — Fixed process leak, rewrote to use real JSON-RPC protocol.
 - **Install** — `install_cli_commands` arithmetic crash under `set -e`. Arithmetic compatible with Bash 3.2.

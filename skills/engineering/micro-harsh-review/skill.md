@@ -7,6 +7,7 @@ triggers:
   - "micro harsh review"
   - "micro review"
   - "code quality check"
+aliases: [MHR]
 anti_triggers:
   - "PR review"
   - "pull request review"

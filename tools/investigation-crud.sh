@@ -64,7 +64,7 @@ Hypothesis Options:
   --id             Investigation UUID (required)
   --text           Hypothesis text (for add-hypothesis)
   --hypothesis     Hypothesis ID number (for add-evidence, set-verdict)
-  --source         Evidence source (e.g., mssql:staging-db, local:grep)
+  --source         Evidence source (e.g., db:example-conn, local:grep)
   --finding        What was found
   --verdict        confirmed, rejected, or inconclusive
   --reason         Reason for verdict

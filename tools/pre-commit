@@ -19,6 +19,10 @@ if [[ -z "$REPO_ROOT" ]]; then
     fi
 fi
 
+# Canonicalize to physical path so symlinked paths (/var → /private/var)
+# match the path stored in review tokens by harsh-review.sh (pwd -P).
+REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || true
+
 cd "$REPO_ROOT"
 
 # Colors
@@ -27,84 +31,319 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
+# -----------------------------------------------------------------------------
+# Per-repo manifest: .agent-gates (data-parsed, optional)
+#
+# Create .agent-gates in a repo to customise which checks run:
+#
+#   CLASS=node            # repo type: markdown-only | shell | node | python
+#   SKIP_SHELLCHECK=true  # disable shellcheck (e.g. repo has no shell files)
+#   SKIP_FILE_ENDINGS=true
+#   EXTRA_LINT="npm run lint"
+#   EXTRA_TYPECHECK="npm run typecheck"
+#   EXTRA_TEST="npm run test:affected"
+#
+# Repos without .agent-gates run all default checks (fail-safe default).
+#
+# SECURITY: .agent-gates is parsed as data (KEY=VALUE only), NOT sourced.
+# Sourcing it before Gate 0 would allow a staged .agent-gates change to
+# inject arbitrary shell code or unset REQUIRE_CODE_REVIEW_SENTINEL before
+# the sentinel check runs. Only the known keys listed below are extracted.
+# -----------------------------------------------------------------------------
+# Load .agent-gates from the committed HEAD version when .agent-gates is itself
+# staged — prevents a same-commit config change from disabling the gates it's
+# supposed to govern (REQUIRE_CODE_REVIEW_SENTINEL, SKIP_REVIEW_TOKEN, etc.).
+# Falls back to the working-tree file when .agent-gates is NOT staged.
+_agent_gates_source=""
+if git diff --cached --name-only | grep -qE '^\.agent-gates$'; then
+    # .agent-gates is staged: read from HEAD (last committed version)
+    if git cat-file -e HEAD:.agent-gates 2>/dev/null; then
+        _agent_gates_source="HEAD"
+    fi
+    # If no HEAD version exists (first commit), treat as no config — gates stay at defaults
+else
+    [[ -f "$REPO_ROOT/.agent-gates" ]] && _agent_gates_source="file"
+fi
+
+_GATES_PARSE_ERRORS=0
+_parse_agent_gates() {
+    local _key _remainder _val
+    while IFS='=' read -r _key _remainder; do
+        [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+        _key="${_key//[[:space:]]/}"
+        case "$_key" in
+            EXTRA_LINT|EXTRA_TYPECHECK|EXTRA_TEST)
+                # Command strings: do NOT strip '#' — these may contain '#' literally.
+                # Trim surrounding whitespace, then strip a MATCHING pair of quotes only
+                # (not individual leading/trailing quotes which would mangle commands that
+                # use quotes internally, e.g. EXTRA_TEST=printf '# ok\n').
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                if [[ "${_remainder:0:1}" == '"' && "${_remainder: -1}" == '"' && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                elif [[ "${_remainder:0:1}" == "'" && "${_remainder: -1}" == "'" && ${#_remainder} -ge 2 ]]; then
+                    _remainder="${_remainder:1:${#_remainder}-2}"
+                fi
+                printf -v "$_key" '%s' "$_remainder"
+                ;;
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                # Scalar/boolean/numeric keys: strip inline comments before trimming.
+                _remainder="${_remainder%%#*}"
+                _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                _val="$_remainder"
+                # Validate boolean keys
+                case "$_key" in
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                        if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                            echo -e "${RED}✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                    REVIEW_TOKEN_TTL)
+                        # Require a positive integer (> 0); TTL=0 causes instant expiry
+                        if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                            echo -e "${RED}✗ .agent-gates: invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)${NC}" >&2
+                            _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                            continue
+                        fi ;;
+                esac
+                printf -v "$_key" '%s' "$_val"
+                ;;
+            *) ;;
+        esac
+    done
+}
+case "$_agent_gates_source" in
+    # IMPORTANT: use process substitution (<(...)), NOT a pipeline, so _parse_agent_gates
+    # runs in the current shell and its variable assignments + _GATES_PARSE_ERRORS
+    # propagate back to this scope. A pipeline would run the function in a subshell
+    # and silently discard all parsed state.
+    HEAD) _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
+    file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
+esac
+
+# When .agent-gates is staged, validate the STAGED values (index blob) in
+# validation-only mode (do NOT apply them — that would allow self-disable).
+# Block the commit if the staged version has invalid key values so a broken
+# .agent-gates cannot land in the repo and brick the NEXT commit.
+# Applies even on first commit (no HEAD .agent-gates) because the staged file
+# will become HEAD and invalid values must be caught before they land.
+if git cat-file -e ":.agent-gates" 2>/dev/null; then
+    _validate_agent_gates_staged() {
+        local _key _remainder _val
+        while IFS='=' read -r _key _remainder; do
+            [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
+            _key="${_key//[[:space:]]/}"
+            case "$_key" in
+                REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ "$_val" != "true" && "$_val" != "false" ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+                REVIEW_TOKEN_TTL)
+                    _remainder="${_remainder%%#*}"
+                    _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
+                    _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
+                    _remainder="${_remainder#\"}" ; _remainder="${_remainder%\"}"
+                    _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
+                    _val="$_remainder"
+                    if [[ ! "$_val" =~ ^[1-9][0-9]*$ ]]; then
+                        echo -e "${RED}✗ .agent-gates (staged): invalid value for REVIEW_TOKEN_TTL: '$_val' (must be a positive integer > 0)${NC}" >&2
+                        _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
+                    fi ;;
+            esac
+        done
+    }
+    _validate_agent_gates_staged < <(git show ":.agent-gates" 2>/dev/null)
+fi
+# Variables optionally set by .agent-gates: CLASS EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  PRE-COMMIT: Running quality checks..."
+[[ -n "${CLASS:-}" ]] && echo "  Repo class: $CLASS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Get staged files
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+# Get staged files — include Renamed and Type-changed so rename-only code
+# commits are not silently exempted from quality gates (including Gate 0).
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMRT)
 
 if [[ -z "$STAGED_FILES" ]]; then
     echo -e "${GREEN}No files staged for commit.${NC}"
     exit 0
 fi
 
-ERRORS=0
+ERRORS=$_GATES_PARSE_ERRORS
+
+# -----------------------------------------------------------------------------
+# GATE 0: Code Review Sentinel (opt-in via REQUIRE_CODE_REVIEW_SENTINEL=true)
+#
+# Purpose: Early presence gate — verifies that code-review-battery was run
+#          before any code is committed. This is intentionally a "was battery
+#          run at all?" check, not an identity gate. SHA-specific enforcement
+#          (sentinel SHA == pushed ref SHA) happens in pre-push Gate 1.
+#
+# Why the split: battery runs POST-commit so HEAD is the actual commit SHA.
+#   pre-commit: sentinel must exist with a valid passing verdict
+#   pre-push:   sentinel SHA must match the exact ref being pushed
+# This two-checkpoint design means: run battery → push (not run battery →
+# commit → re-run battery → push). A staleness warning fires when the sentinel
+# is for a different HEAD, so the agent knows pre-push will require re-review.
+#
+# Policy files AGENTS.md and CLAUDE.md are treated as code (not docs) because
+# changes to them alter agent gate behavior. See staged_has_code() below.
+# -----------------------------------------------------------------------------
+SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
+
+staged_has_code() {
+    # Returns 0 (true) if staged files include any non-doc, non-metadata file.
+    # ACDMRT covers Added, Copied, Deleted, Modified, Renamed, Type-changed —
+    # deleted code files still require review clearance. Note: STAGED_FILES
+    # intentionally omits D because downstream content checks require the file
+    # to exist on disk; this helper is existence-independent.
+    #
+    # AGENTS.md and CLAUDE.md are policy files — treated as code. Changes to
+    # them alter agent gate behavior and require battery clearance. They are
+    # explicitly preserved by the awk filter before the generic .md exemption.
+    local staged_code
+    staged_code=$(git diff --cached --name-only --diff-filter=ACDMRT 2>/dev/null \
+        | awk '
+            /^\s*$/                             { next }
+            /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+            /^skills\//                         { print; next }
+            /\.(md|txt|rst)$/                   { next }
+            /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
+            { print }
+        ' \
+        | head -1 || true)
+    [[ -n "$staged_code" ]]
+}
+
+if [[ "${REQUIRE_CODE_REVIEW_SENTINEL:-false}" == "true" ]]; then
+    echo -e "${YELLOW}[0/5]${NC} Checking code review sentinel..."
+    if staged_has_code; then
+        if [[ ! -f "$SENTINEL_FILE" ]]; then
+            echo ""
+            echo -e "  ${RED}❌ COMMIT BLOCKED: No code review clearance.${NC}"
+            echo ""
+            echo "  Code changes require code-review-battery before committing."
+            echo "  Run battery → it writes .code-review-cleared → then commit."
+            echo ""
+            ERRORS=$((ERRORS + 1))
+        else
+            sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+            sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+            sentinel_verdict=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+            sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+            field_count=$(awk -F'|' '{print NF}' "$SENTINEL_FILE" 2>/dev/null || echo "0")
+
+            if [[ "$sentinel_ver" != "v1" || "$field_count" != "4" || -z "$sentinel_sha" || -z "$sentinel_ts" ]]; then
+                echo -e "  ${RED}❌ COMMIT BLOCKED: Sentinel format invalid (expected v1|SHA|VERDICT|TIMESTAMP, all fields non-empty).${NC}"
+                echo "  Delete .code-review-cleared and re-run code-review-battery."
+                ERRORS=$((ERRORS + 1))
+            elif [[ "$sentinel_verdict" != "PASS" && "$sentinel_verdict" != "PASS_WITH_NITS" ]]; then
+                echo -e "  ${RED}❌ COMMIT BLOCKED: Last review verdict was '${sentinel_verdict}'.${NC}"
+                echo "  Fix all Critical/Important findings and re-run code-review-battery."
+                ERRORS=$((ERRORS + 1))
+            else
+                echo -e "  ${GREEN}✓ Code review cleared: ${sentinel_verdict} (${sentinel_sha:0:8}, ${sentinel_ts})${NC}"
+                # Staleness warning: if sentinel covers a different HEAD, pre-push will
+                # require re-review once the commit creates a new SHA.
+                current_head=$(git rev-parse HEAD 2>/dev/null || echo "")
+                if [[ -n "$current_head" && "$sentinel_sha" != "$current_head" ]]; then
+                    echo -e "  ${YELLOW}  ⚠ Sentinel is for ${sentinel_sha:0:8}; HEAD is ${current_head:0:8}.${NC}"
+                    echo -e "  ${YELLOW}  Run battery on HEAD before pushing — pre-push will compare sentinel to pushed ref.${NC}"
+                else
+                    echo -e "  ${YELLOW}  pre-push will re-verify that this SHA matches the pushed ref.${NC}"
+                fi
+            fi
+        fi
+    else
+        echo -e "  ${YELLOW}  Docs/metadata only — sentinel not required.${NC}"
+    fi
+fi
 
 # -----------------------------------------------------------------------------
 # CHECK 1: File endings (single newline at EOF)
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[1/5]${NC} Checking file endings..."
 
-for file in $STAGED_FILES; do
-    [[ ! -f "$file" ]] && continue
-    
+while IFS= read -r file; do
+    [[ -z "$file" || ! -f "$file" ]] && continue
+
     # Skip binary files
     if file "$file" | grep -q "binary"; then
         continue
     fi
-    
-    # Check for extra blank lines at EOF
-    if tail -c 2 "$file" 2>/dev/null | xxd -p | grep -q "0a0a"; then
+
+    # Check for extra blank lines at EOF (cross-platform: wc -l, not xxd)
+    if [[ "$(tail -c 2 "$file" 2>/dev/null | wc -l)" -ge 2 ]]; then
         echo -e "${RED}  ✗ $file: extra blank line at EOF${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-    
+
     # Check for missing final newline
     if [[ $(tail -c 1 "$file" 2>/dev/null | wc -l) -eq 0 ]]; then
         echo -e "${RED}  ✗ $file: missing final newline${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 2: Shell script syntax
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[2/5]${NC} Checking shell scripts..."
 
-for file in $STAGED_FILES; do
-    [[ "$file" != *.sh ]] && continue
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
     [[ ! -f "$file" ]] && continue
-    
+    # Match *.sh files AND extensionless bash scripts (pre-commit, pre-push, etc.)
+    local_is_bash=false
+    if [[ "$file" == *.sh ]]; then
+        local_is_bash=true
+    elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+        local_is_bash=true
+    fi
+    [[ "$local_is_bash" == "true" ]] || continue
+
     if ! bash -n "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: bash syntax error${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-    
+
     # Check shebang
     shebang=$(head -n1 "$file")
     if [[ "$shebang" == "#!/bin/bash" ]]; then
         echo -e "${RED}  ✗ $file: use '#!/usr/bin/env bash' not '#!/bin/bash'${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 3: JSON syntax
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[3/5]${NC} Checking JSON files..."
 
-for file in $STAGED_FILES; do
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
     [[ "$file" != *.json ]] && continue
     [[ ! -f "$file" ]] && continue
-    
-    if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+
+    if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" 2>/dev/null; then
         echo -e "${RED}  ✗ $file: invalid JSON${NC}"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
-done
+done <<< "$STAGED_FILES"
 
 # -----------------------------------------------------------------------------
 # CHECK 4: Shellcheck (if available)
@@ -115,15 +354,22 @@ echo -e "${YELLOW}[4/5]${NC} Running shellcheck..."
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064"
 
 if command -v shellcheck &> /dev/null; then
-    for file in $STAGED_FILES; do
-        [[ "$file" != *.sh ]] && continue
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
         [[ ! -f "$file" ]] && continue
+        sc_is_bash=false
+        if [[ "$file" == *.sh ]]; then
+            sc_is_bash=true
+        elif head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)'; then
+            sc_is_bash=true
+        fi
+        [[ "$sc_is_bash" == "true" ]] || continue
 
         if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
             echo -e "${RED}  ✗ $file: shellcheck violations${NC}"
-            ((ERRORS++))
+            ERRORS=$((ERRORS + 1))
         fi
-    done
+    done <<< "$STAGED_FILES"
 else
     echo -e "  (shellcheck not installed, skipping)"
 fi
@@ -136,11 +382,148 @@ echo -e "${YELLOW}[5/5]${NC} Checking for proprietary IP..."
 IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
 if [[ -f "$IP_AUDIT_SCRIPT" ]]; then
     if ! bash "$IP_AUDIT_SCRIPT" --staged-only; then
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 else
     echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
+fi
+
+# -----------------------------------------------------------------------------
+# CHECK 6: Loose-ends scan (always runs; blocks only if REQUIRE_LOOSE_ENDS_CLEAN=true)
+#
+# Part A: scan-staged — greps staged diff for TODO/FIXME/HACK in code files.
+#         Surfaces code debt introduced in THIS commit so the agent can decide
+#         whether to record it via loose-ends.sh add before committing.
+#
+# Part B: check — audits open #loose-end items in the TODO store.
+#         Always warns; blocks the commit if REQUIRE_LOOSE_ENDS_CLEAN=true is
+#         set in .agent-gates (opt-in per repo, default: warn only).
+#
+# Why warn-only by default: some #loose-end items are legitimately deferred
+# across sessions. Blocking every commit would be too aggressive.
+# -----------------------------------------------------------------------------
+LOOSE_ENDS_SCRIPT="$SCRIPT_DIR/loose-ends.sh"
+
+if [[ -f "$LOOSE_ENDS_SCRIPT" ]]; then
+    echo -e "${YELLOW}[6/+]${NC} Scanning staged changes for code debt..."
+    # Capture output + exit status safely under set -euo pipefail using 'if'
+    scan_output=""; scan_ok=true
+    if ! scan_output=$(bash "$LOOSE_ENDS_SCRIPT" scan-staged 2>&1); then
+        scan_ok=false
+    fi
+    if [[ "$scan_ok" == "false" ]]; then
+        echo "$scan_output"
+        echo -e "  ${YELLOW}  Record via: loose-ends.sh add --desc '...' --note '...'${NC}"
+        if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo -e "  ${GREEN}✓ No code debt markers in staged changes.${NC}"
+    fi
+
+    echo -e "${YELLOW}[7/+]${NC} Checking for open #loose-end items..."
+    check_output=""; check_rc=0
+    check_output=$(bash "$LOOSE_ENDS_SCRIPT" check 2>&1) || check_rc=$?
+    if [[ $check_rc -eq 2 ]]; then
+        # Exit 2 = audit backend failure (todo-crud.sh unavailable/broken).
+        # Block unconditionally — a failed audit is not "clean".
+        echo "$check_output"
+        echo -e "  ${RED}✗ Loose-ends audit failed — fix todo backend before committing.${NC}"
+        ERRORS=$((ERRORS + 1))
+    elif [[ $check_rc -ne 0 ]]; then
+        # Exit 1 = findings present (open #loose-end items exist).
+        echo "$check_output"
+        if [[ "${REQUIRE_LOOSE_ENDS_CLEAN:-false}" == "true" ]]; then
+            echo -e "  ${RED}  REQUIRE_LOOSE_ENDS_CLEAN=true: resolve or justify all #loose-end items before committing.${NC}"
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo -e "  ${GREEN}✓ No open #loose-end items.${NC}"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# EXTRA CHECKS: Manifest-declared repo-specific gates (.agent-gates)
+# These run AFTER the base 5 checks. Declare in .agent-gates:
+#   EXTRA_LINT="npm run lint"
+#   EXTRA_TYPECHECK="npm run typecheck"
+#   EXTRA_TEST="npm run test:affected"
+# -----------------------------------------------------------------------------
+EXTRA_IDX=6
+for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
+    EXTRA_CMD="${!EXTRA_CMD_VAR:-}"
+    [[ -z "$EXTRA_CMD" ]] && continue
+    echo -e "${YELLOW}[${EXTRA_IDX}/+]${NC} Running ${EXTRA_CMD_VAR}: ${EXTRA_CMD}..."
+    if ! eval "$EXTRA_CMD" 2>&1; then
+        echo -e "${RED}  ✗ ${EXTRA_CMD_VAR} failed${NC}"
+        ERRORS=$((ERRORS + 1))
+    fi
+    EXTRA_IDX=$((EXTRA_IDX + 1))
+done
+
+# -----------------------------------------------------------------------------
+# REVIEW TOKEN CHECK: Verify harsh-review.sh ran recently
+# Skip if SKIP_REVIEW_TOKEN=true in .agent-gates
+# -----------------------------------------------------------------------------
+if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
+    REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
+    REVIEW_TTL="${REVIEW_TOKEN_TTL:-300}"
+    NOW=$(date +%s)
+    FOUND_VALID_TOKEN=false
+
+    # _token_epoch: extract epoch from both old (pure-digits) and new
+    # (<cksum>.<epoch>.<pid>) filename formats.
+    _token_epoch() { local b; b=$(basename "$1")
+        if [[ "$b" =~ ^[0-9]+$ ]]; then echo "$b"
+        else echo "$b" | awk -F'.' '{print $2}'; fi
+    }
+
+    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
+        for token_file in "$REVIEW_TOKEN_DIR"/*; do
+            [[ -f "$token_file" ]] || continue
+            token_ts=$(_token_epoch "$token_file")
+            [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
+            token_age=$((NOW - token_ts))
+            if [[ $token_age -le $REVIEW_TTL ]]; then
+                token_repo=$(cat "$token_file" 2>/dev/null || true)
+                if [[ "$token_repo" == "$REPO_ROOT" ]]; then
+                    FOUND_VALID_TOKEN=true
+                    # Consume the token (one-time use)
+                    rm -f "$token_file"
+                    break
+                fi
+            fi
+        done
+    fi
+
+    echo -e "${YELLOW}[+]${NC} Checking review token (TTL=${REVIEW_TTL}s)..."
+    if [[ "$FOUND_VALID_TOKEN" == "true" ]]; then
+        echo -e "${GREEN}  ✓ Valid review token found${NC}"
+    else
+        echo -e "${RED}  ✗ No valid review token found${NC}"
+        echo -e "${RED}    Run: bash tools/harsh-review.sh${NC}"
+        echo -e "${RED}    Or skip: SKIP_REVIEW_TOKEN=true in .agent-gates${NC}"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # Garbage-collect expired tokens — repo-scoped (only delete current repo's
+    # tokens to avoid inadvertently removing another repo's still-valid token).
+    if [[ -d "$REVIEW_TOKEN_DIR" ]]; then
+        for token_file in "$REVIEW_TOKEN_DIR"/*; do
+            [[ -f "$token_file" ]] || continue
+            token_ts=$(_token_epoch "$token_file")
+            [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
+            token_age=$((NOW - token_ts))
+            if [[ $token_age -gt $((REVIEW_TTL * 2)) ]]; then
+                token_repo=$(cat "$token_file" 2>/dev/null || true)
+                # Only remove tokens belonging to this repo
+                if [[ "$token_repo" == "$REPO_ROOT" ]]; then
+                    rm -f "$token_file"
+                fi
+            fi
+        done
+    fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -156,7 +539,7 @@ if [[ $ERRORS -gt 0 ]]; then
     echo "    git add <files>"
     echo "    git commit"
     echo ""
-    echo "  To bypass (NOT RECOMMENDED):"
+    echo "  To bypass (skips all gates — use only in emergencies):"
     echo "    git commit --no-verify"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 1

@@ -20,6 +20,29 @@ SKILLS_DIR="${SCRIPT_DIR}/../skills"
 # shellcheck source-path=SCRIPTDIR source=parse-frontmatter.sh
 source "${SCRIPT_DIR}/parse-frontmatter.sh"
 
+# Shared temp-file registry for cleanup (avoids trap stomping)
+# Shared temp-file registry for cleanup (avoids trap stomping)
+_VALIDATOR_TEMP_FILES=()
+_validator_cleanup() {
+    local f
+    for f in "${_VALIDATOR_TEMP_FILES[@]+"${_VALIDATOR_TEMP_FILES[@]}"}"; do
+        rm -f "$f"
+    done
+}
+trap '_validator_cleanup' EXIT
+
+_validator_mktemp() {
+    local f
+    f=$(mktemp)
+    _VALIDATOR_TEMP_FILES+=("$f")
+    printf '%s\n' "$f"
+}
+
+# Find all skill files (both skill.md and SKILL.md to match runtime discovery)
+_find_skill_files() {
+    find "$SKILLS_DIR" \( -name "skill.md" -o -name "SKILL.md" \) -type f | sort
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -70,12 +93,22 @@ is_explicit_skill() {
     return 1
 }
 
+get_skill_name() {
+    local skill_file="$1"
+    local declared_name
+
+    declared_name=$(frontmatter_field "$skill_file" "name" 2>/dev/null || true)
+    if [[ -n "$declared_name" ]]; then
+        printf '%s\n' "$declared_name"
+    else
+        basename "$(dirname "$skill_file")"
+    fi
+}
+
 # Extract triggers from skill.md YAML frontmatter
 # Looks for: triggers: ["phrase1", "phrase2"] or description with "Triggers on" / "Use when"
 extract_triggers() {
     local skill_file="$1"
-    local skill_name
-    skill_name=$(basename "$(dirname "$skill_file")")
 
     # Try to extract from 'triggers:' field first (preferred - new format)
     local triggers
@@ -111,7 +144,7 @@ build_registry() {
     
     while IFS= read -r skill_file; do
         local skill_name
-        skill_name=$(basename "$(dirname "$skill_file")")
+        skill_name=$(get_skill_name "$skill_file")
         local domain
         domain=$(basename "$(dirname "$(dirname "$skill_file")")")
         
@@ -133,10 +166,67 @@ build_registry() {
             printf '%b\n' "${YELLOW}$domain/$skill_name${NC}: (no triggers found)"
             echo ""
         fi
-    done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)
-    
+    done < <(_find_skill_files)
+
     echo "---"
     log_info "Total: $total_skills skills, $total_triggers triggers"
+}
+
+detect_duplicate_skill_names() {
+    log_info "Checking for duplicate declared skill names..."
+    echo ""
+
+    local temp_file
+    temp_file=$(_validator_mktemp)
+
+    while IFS= read -r skill_file; do
+        local skill_name
+        skill_name=$(get_skill_name "$skill_file")
+        printf '%s|%s\n' "$skill_name" "$skill_file" >> "$temp_file"
+    done < <(_find_skill_files)
+
+    local duplicates=0
+    local previous_name=""
+    local previous_path=""
+    local duplicate_paths=""
+
+    while IFS='|' read -r skill_name skill_path; do
+        if [[ "$skill_name" == "$previous_name" ]]; then
+            if [[ -z "$duplicate_paths" ]]; then
+                duplicate_paths="$previous_path"
+            fi
+            duplicate_paths+=$'\n'
+            duplicate_paths+="$skill_path"
+        else
+            if [[ -n "$duplicate_paths" ]]; then
+                log_error "DUPLICATE SKILL NAME: $previous_name"
+                while IFS= read -r path; do
+                    [[ -n "$path" ]] && echo "  - $path"
+                done <<< "$duplicate_paths"
+                ((duplicates++)) || true
+            fi
+            duplicate_paths=""
+        fi
+        previous_name="$skill_name"
+        previous_path="$skill_path"
+    done < <(sort "$temp_file")
+
+    if [[ -n "$duplicate_paths" ]]; then
+        log_error "DUPLICATE SKILL NAME: $previous_name"
+        while IFS= read -r path; do
+            [[ -n "$path" ]] && echo "  - $path"
+        done <<< "$duplicate_paths"
+        ((duplicates++)) || true
+    fi
+
+    echo ""
+    if [[ $duplicates -eq 0 ]]; then
+        log_success "No duplicate declared skill names"
+        return 0
+    fi
+
+    log_error "$duplicates duplicate skill name group(s) found"
+    return 1
 }
 
 # Intentional overlaps (skill pairs that SHOULD share triggers)
@@ -159,6 +249,11 @@ ALLOWED_OVERLAPS=(
     # Completion verification - both fire on "ready" and "complete" patterns
     "completeness-check:verification-before-completion"  # Both verify work is done
     "providing-code-review:verification-before-completion"  # Both fire on "ready for review"
+    # Thinking orchestrator routes TO child skills — overlaps are by design
+    "progressive-harsh-review:thinking-orchestrator"  # orchestrator routes "harsh review" → progressive-harsh-review
+    "think-twice:thinking-orchestrator"               # orchestrator routes "stuck in a loop" → think-twice
+    # Implementation lifecycle — tracker tracks progress; finishing handles merge/PR
+    "finishing-a-development-branch:implementation-tracker"  # both fire on "implementation complete"
 )
 
 is_allowed_overlap() {
@@ -187,10 +282,8 @@ detect_overlaps() {
     echo ""
 
     # Build trigger -> skill mapping using temp file (more portable than associative arrays)
-    # Use module-level var so cleanup trap can access it after function returns
-    _TRIGGER_TEMP_FILE=$(mktemp)
-    local temp_file="$_TRIGGER_TEMP_FILE"
-    trap 'rm -f "${_TRIGGER_TEMP_FILE:-}"' EXIT
+    local temp_file
+    temp_file=$(_validator_mktemp)
 
     local overlaps=0
     local allowed_overlaps=0
@@ -198,7 +291,7 @@ detect_overlaps() {
     # First pass: collect all triggers
     while IFS= read -r skill_file; do
         local skill_name
-        skill_name=$(basename "$(dirname "$skill_file")")
+        skill_name=$(get_skill_name "$skill_file")
 
         local triggers
         triggers=$(extract_triggers "$skill_file")
@@ -210,7 +303,7 @@ detect_overlaps() {
                 echo "$normalized|$skill_name" >> "$temp_file"
             fi
         done <<< "$triggers"
-    done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)
+    done < <(_find_skill_files)
 
     # Second pass: find duplicates
     local prev_trigger="" prev_skill=""
@@ -252,7 +345,7 @@ find_missing() {
 
     while IFS= read -r skill_file; do
         local skill_name
-        skill_name=$(basename "$(dirname "$skill_file")")
+        skill_name=$(get_skill_name "$skill_file")
         local domain
         domain=$(basename "$(dirname "$(dirname "$skill_file")")")
 
@@ -274,7 +367,7 @@ find_missing() {
         else
             ((superpower_count++)) || true
         fi
-    done < <(find "$SKILLS_DIR" -name "skill.md" -type f | sort)
+    done < <(_find_skill_files)
 
     echo ""
     log_info "Summary: $superpower_count superpowers, $explicit_count explicit skills"
@@ -300,13 +393,23 @@ full_audit() {
     log_info "For shipped-surface validation, refresh the install and run match-skills on every declared trigger."
     echo ""
     
-    detect_overlaps
+    local failures=0
+
+    detect_duplicate_skill_names || ((failures++)) || true
+    echo ""
+    detect_overlaps || ((failures++)) || true
     echo ""
     find_missing
     echo ""
-    
+
     log_info "Registry summary:"
     build_registry | tail -5
+
+    if [[ $failures -gt 0 ]]; then
+        echo ""
+        log_error "$failures audit check(s) failed"
+        return 1
+    fi
 }
 
 # Main
