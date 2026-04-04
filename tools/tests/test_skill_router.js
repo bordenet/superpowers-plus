@@ -1,6 +1,7 @@
 const assert = require('assert');
 const {
   applyHeuristicBoosts,
+  assertUniqueSkillNames,
   buildIntentBoosts,
   matchSkillsTfIdf,
 } = require('../../lib/skill-router');
@@ -64,11 +65,29 @@ function testTfidfPlanAndExecuteRouting() {
   assert.strictEqual(results[0].name, 'plan-and-execute');
 }
 
+function testDuplicateSkillNamesThrow() {
+  const duplicateSkills = [
+    { name: 'duplicate-skill', description: 'first', isSuperpower: true, triggers: ['first trigger'] },
+    { name: 'duplicate-skill', description: 'second', isSuperpower: true, triggers: ['second trigger'] },
+  ];
+
+  assert.throws(
+    () => assertUniqueSkillNames(duplicateSkills),
+    /Duplicate skill names detected: duplicate-skill/
+  );
+
+  assert.throws(
+    () => matchSkillsTfIdf('duplicate skill', duplicateSkills, 2),
+    /Duplicate skill names detected: duplicate-skill/
+  );
+}
+
 testEmbeddingHeuristicBoosts();
 testBroadNonStrategicQueryDoesNotTriggerIntentBoosts();
 testDesignTriadIntentBoostsWinOnCanonicalTrigger();
 testHeuristicBoostsIgnoreStaleCachedSkill();
 testTfidfStrategicRouting();
 testTfidfPlanAndExecuteRouting();
+testDuplicateSkillNamesThrow();
 
 console.log('skill-router tests passed');

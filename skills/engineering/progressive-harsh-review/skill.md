@@ -13,6 +13,7 @@ triggers:
   - ready to present plan
   - ready to present design
   - ready to present spec
+aliases: [PHR, harsh-review]
 anti_triggers:
   - code review
   - PR review

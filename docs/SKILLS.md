@@ -84,6 +84,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | Skill | Description |
 |-------|-------------|
 | `link-verification` | Verifies all links before writing. Hard gate in wiki-orchestrator pipeline. |
+| `wiki-markdown-structure-gate` | Blocks malformed wiki markdown structures before publish: tables, fences, callouts, heading hierarchy, escaped link artifacts. |
 | `wiki-content-coherence` | Detects duplicated sections, obsolete content, structural defects. |
 | `wiki-debunker` | Verifies factual claims against git history, tickets, transcripts, and PRs. |
 | `wiki-orchestrator` | Orchestrates bulk documentation projects with quality pipeline. |
