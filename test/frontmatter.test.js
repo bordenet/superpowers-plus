@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { parseFrontmatter, parseInlineArray, extractStringValue, findSkillFile } = require('../lib/frontmatter');
+const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile } = require('../lib/frontmatter');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,15 +29,15 @@ arrEq(parseInlineArray('[]'), [], 'empty array');
 arrEq(parseInlineArray('[unquoted, values]'), ['unquoted', 'values'], 'unquoted values');
 arrEq(parseInlineArray('["a\\\\b"]'), ['a\\b'], 'escaped backslash in array');
 
-// --- extractStringValue ---
-console.log('\n--- extractStringValue ---');
-eq(extractStringValue('"hello"'), 'hello', 'simple double-quoted');
-eq(extractStringValue("'hello'"), 'hello', 'simple single-quoted');
-eq(extractStringValue('plain text'), 'plain text', 'unquoted');
-eq(extractStringValue('"User says \\"build X\\""'), 'User says "build X"', 'escaped double-quotes');
-eq(extractStringValue('"path\\\\to\\\\file"'), 'path\\to\\file', 'escaped backslashes');
-eq(extractStringValue(''), '', 'empty string');
-eq(extractStringValue('"  spaced  "'), '  spaced  ', 'preserves internal spaces');
+// --- unquoteYaml ---
+console.log('\n--- unquoteYaml ---');
+eq(unquoteYaml('"hello"'), 'hello', 'simple double-quoted');
+eq(unquoteYaml("'hello'"), 'hello', 'simple single-quoted');
+eq(unquoteYaml('plain text'), 'plain text', 'unquoted');
+eq(unquoteYaml('"User says \\"build X\\""'), 'User says "build X"', 'escaped double-quotes');
+eq(unquoteYaml('"path\\\\to\\\\file"'), 'path\\to\\file', 'escaped backslashes');
+eq(unquoteYaml(''), '', 'empty string');
+eq(unquoteYaml('"  spaced  "'), '  spaced  ', 'preserves internal spaces');
 
 // --- parseFrontmatter: basic ---
 console.log('\n--- parseFrontmatter: basic ---');
@@ -132,12 +132,10 @@ const malformed = parseFrontmatter(malformedBracket);
 arrEq(malformed.anti_triggers, [], 'malformed unclosed bracket → empty anti_triggers (safe fallback)');
 eq(malformed.description, 'should still be parsed', 'field after malformed bracket still parsed correctly');
 
-// --- parseFrontmatter: bracket-multiline (known limitation) ---
-console.log('\n--- parseFrontmatter: bracket-multiline (known limitation) ---');
-// lib/frontmatter.js intentionally uses inline-only matching for arrays.
-// Bracket-multiline format (opening [ on one line, closing ] on another) is NOT
-// supported — the array is returned as empty. Consumers that need bracket-multiline
-// (superpowers-augment.js, superpowers-mcp.js) use accumulator-based parsers.
+// --- parseFrontmatter: bracket-multiline ---
+console.log('\n--- parseFrontmatter: bracket-multiline ---');
+// lib/frontmatter.js uses accumulator-based parsing for bracket-multiline arrays.
+// Opening [ on one line, closing ] on another — fully supported.
 const bracketMultiline = `---
 name: bmulti
 anti_triggers: ["first",
@@ -145,7 +143,7 @@ anti_triggers: ["first",
 ---
 # Body`;
 const bmulti = parseFrontmatter(bracketMultiline);
-arrEq(bmulti.anti_triggers, [], 'bracket-multiline not supported in reference parser (returns empty — known limitation)');
+arrEq(bmulti.anti_triggers, ['first', 'second'], 'bracket-multiline array parsed correctly');
 
 // --- findSkillFile ---
 console.log('\n--- findSkillFile ---');
