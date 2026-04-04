@@ -474,12 +474,24 @@ install_cli_commands() {
 
     [[ ${#sp_scripts[@]} -gt 0 ]] || return 0
 
-    # Find a writable bin directory — prefer one that is already on PATH
-    local bin_dir=""
+    # Find a writable bin directory — prefer one that is already on PATH.
+    # Normalize trailing slashes before comparing: PATH=$HOME/bin/:... should
+    # match candidate $HOME/bin just as well as an exact $HOME/bin entry.
+    local bin_dir="" candidate norm_candidate norm_seg seg
     for candidate in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
         if [[ -d "$candidate" ]] && [[ -w "$candidate" ]]; then
-            # Prefer directories that are already on PATH
-            if [[ ":${PATH}:" == *":${candidate}:"* ]]; then
+            # Prefer directories that are already on PATH (slash-normalized)
+            norm_candidate="${candidate%/}"
+            local on_path=0
+            local IFS_saved="$IFS"; IFS=":"
+            for seg in $PATH; do
+                norm_seg="${seg%/}"
+                if [[ "$norm_seg" == "$norm_candidate" ]]; then
+                    on_path=1; break
+                fi
+            done
+            IFS="$IFS_saved"
+            if [[ "$on_path" -eq 1 ]]; then
                 bin_dir="$candidate"
                 break
             fi
