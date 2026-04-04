@@ -9,6 +9,7 @@ import subprocess
 import sys
 from datetime import date
 from pathlib import Path
+from typing import Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PREFLIGHT = SCRIPT_DIR / "todo-preflight.sh"
@@ -36,7 +37,7 @@ def run_preflight() -> dict:
     return json.loads(result.stdout)
 
 
-def parse_iso_day(value: str | None):
+def parse_iso_day(value: Optional[str]):
     if not value:
         return None
     try:
