@@ -54,7 +54,7 @@ Single-page edits, creates, and deletes → use wiki API directly.
 | 3. Link Verification | **BLOCK** | `link-verification`: Internal wiki + repo links block on failure |
 | 4. Secret Scan | **BLOCK** | Search for `password`, `secret`, `token`, `api_key`, `credential`, `private_key` |
 | 5. Slop Detection | ADVISORY | `eliminating-ai-slop`: GVR slop scoring |
-| 5.5 Table Discipline | ADVISORY | `markdown-table-discipline` |
+| 5.5 Table Discipline | ADVISORY | `markdown-table-discipline` (authoring guidance only) |
 | 6. Fact-Check | WARN | `wiki-debunker`: Count cited vs uncited claims |
 | 7. Publish | — | Execute via MCP tools (see Publishing Rules below) |
 
@@ -116,7 +116,9 @@ Before `delete`/`archive`: fetch full document → save to `_deleted_backups/{YY
 
 ### Post-Update Verification
 
-After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, empty hrefs, malformed tables. Fix before reporting success.
+After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbsp;`, literal `&mdash;`, empty hrefs, and malformed tables. Fix before reporting success.
+
+**Important:** Stage 5.5 is not a substitute for executable validation. `markdown-table-discipline` helps the agent author better tables, but the platform adapter must still run a real artifact scan before write and after round-trip fetch.
 </EXTREMELY_IMPORTANT>
 
 ---

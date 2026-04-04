@@ -9,6 +9,7 @@ Use this file as the starting point for a provider-specific wiki adapter.
 - Canonical URL pattern for page links and anchors
 - Field mappings from generic wiki fields to provider fields
 - Any provider-specific rendering or API gotchas that shared skills should not hardcode
+- How the adapter executes the publishing verification contract (pre-write artifact scan + post-write round-trip verification)
 
 ## Table of Contents Behavior
 
@@ -32,3 +33,11 @@ Document how this platform handles TOCs:
 The **4+ H2/H3 heading threshold** is a global orchestrator rule (see wiki-orchestrator Stage 2), not adapter-specific.
 
 `toc_anchor_format` documents how the **platform** generates heading anchors (e.g., `#heading-slug`, `#user-content-heading-slug`). This is for agents generating manual anchor links, not for TOC insertion.
+
+## Publishing Verification Notes
+
+Document the exact command or function call your adapter uses to satisfy the adapter-interface publishing verification contract. Prefer `lib/wiki-publish.js` (`assertRoundTripArtifacts`) unless your platform needs a stronger wrapper. At minimum, specify:
+
+- How outbound markdown is scanned before write
+- How the page is re-fetched after write
+- What constitutes a hard failure (for example: escaped brackets, literal HTML entities, empty hrefs, malformed tables)
