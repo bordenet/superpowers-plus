@@ -352,6 +352,116 @@ install_tools() {
     log_success "Installed $count tools to $tools_dest"
 }
 
+# _cli_bin_dir_in_profiles <dir>
+# Returns 0 if dir is referenced as a PATH token in a known POSIX shell profile,
+# 1 if it is absent from all of them.
+#
+# Profiles checked: ~/.bash_profile, ~/.bash_login, ~/.bashrc,
+#                   ~/.zshrc, ~/.zprofile, ~/.profile
+# Not checked: fish (config.fish), nushell — those use different PATH syntax.
+#
+# Matching rules:
+#   - Comment lines (leading #) are ignored.
+#   - Only lines that persistently assign/append to PATH are considered.
+#     Per-command env assignments (PATH=... command, no export) are excluded.
+#   - The directory is matched as a token. Quotes are treated as optional wrappers
+#     around real delimiters (=, :, }) — not as delimiters themselves. This prevents
+#     "PATH="$PATH"TARGET" from matching while "PATH="TARGET"" still does.
+#   - Both the absolute path and common $HOME/..., ${HOME}/..., ~/... shorthands
+#     are matched to avoid false negatives when the profile uses a variable form.
+#   - Trailing slash is normalised: ~/bin/ and ~/bin are treated as equivalent.
+#   - Matching is restricted to the PATH= value token; trailing commands or
+#     comments on the same line are not scanned, preventing false positives
+#     like: export PATH="$PATH"; echo "/target/dir"
+#   - Known limitation: per-command env exclusion uses a heuristic; shell control
+#     operators (&&, ||) and semicolon-joined forms are preserved as persistent.
+_cli_bin_dir_in_profiles() {
+    local dir="${1%/}"   # strip trailing slash for consistent matching
+    local profiles=(
+        "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.bashrc"
+        "$HOME/.zshrc"        "$HOME/.zprofile"   "$HOME/.profile"
+    )
+
+    # Escape ERE metacharacters in path fragments so unusual-but-valid characters
+    # (dots, plus signs, brackets, etc.) don't cause false negatives or positives.
+    # Uses explicit per-character substitutions for BSD/GNU sed portability —
+    # the [] character-class form ([][...]) is rejected by macOS BSD sed.
+    _esc_ere() { printf '%s' "$1" | sed \
+        -e 's/\./\\./g' -e 's/\[/\\[/g' -e 's/\]/\\]/g' \
+        -e 's/+/\\+/g'  -e 's/\*/\\*/g' -e 's/?/\\?/g'  \
+        -e 's/(/\\(/g'  -e 's/)/\\)/g'  -e 's/{/\\{/g'  \
+        -e 's/}/\\}/g'  -e 's/\^/\\^/g' -e 's/|/\\|/g'; }
+    local esc_dir
+    esc_dir=$(_esc_ere "$dir")
+
+    # Build regex variants for $HOME-relative shorthand forms found in profiles.
+    # Single-quote prefix keeps $HOME literal (prevents bash expansion).
+    # \$, \{, \} are regex escapes recognised by grep -E.
+    local -a extra_pats=()
+    if [[ "$dir" == "$HOME/"* ]]; then
+        local rel="${dir#"$HOME/"}"
+        local esc_rel
+        esc_rel=$(_esc_ere "$rel")
+        # SC2016: single-quote prefix is intentional — we want literal \$HOME in
+        # the grep -E regex, not the expanded value of $HOME.
+        # SC2088: tilde in quotes is intentional — we're building a regex pattern
+        # to match the literal string ~/rel as written in profile files.
+        # shellcheck disable=SC2016,SC2088
+        extra_pats+=(
+            '\$HOME/'"$esc_rel"          # matches $HOME/.local/bin
+            '\$\{HOME\}/'"$esc_rel"      # matches ${HOME}/.local/bin
+            "~/$esc_rel"                 # matches ~/.local/bin
+        )
+    fi
+
+    # Token boundaries: quotes are optional wrappers around a real delimiter.
+    # pre: a true boundary (=, :, }, or line-start) optionally followed by a quote.
+    # post: an optional closing quote followed by a true delimiter (: ; # space EOL).
+    # This ensures "..." or '...' can wrap path segments without quotes themselves
+    # acting as boundaries — so PATH="$PATH"TARGET is NOT_FOUND but PATH="$PATH":TARGET is.
+    # } is included in pre so ${PATH:+$PATH:}TARGET is correctly matched.
+    local pre='(^|[=:}])["'"'"']?'
+    local post='["'"'"']?([:;#]|[[:space:]]|$)'
+
+    local p pat path_lines
+    for p in "${profiles[@]}"; do
+        [[ -f "$p" ]] || continue
+        # Strip comment lines; keep only lines that persistently assign/append
+        # to PATH itself. Anchored to exclude MANPATH, MY_PATH, LD_LIBRARY_PATH.
+        path_lines=$(grep -v '^[[:space:]]*#' "$p" 2>/dev/null \
+            | grep -E '^[[:space:]]*(export[[:space:]]+)?PATH(\+)?=') || true
+        [[ -n "$path_lines" ]] || continue
+        # Exclude per-command env assignments: PATH=<value> <command> (no export).
+        # Positive allowlist: keep bare PATH= lines only when the suffix is a shell
+        # operator (&&, ||, ;) or comment (#) or EOL. Anything else after whitespace
+        # is a per-command temp env.
+        # [^[:space:];]* stops at ; so PATH=val; export FOO is NOT wrongly excluded.
+        path_lines=$(printf '%s\n' "$path_lines" \
+            | grep -vE '^[[:space:]]*PATH[+]?=[^[:space:];]*[[:space:]]+[^&|;#[:space:]]') || true
+        [[ -n "$path_lines" ]] || continue
+
+        # Restrict matching to the PATH= value only — strip any trailing command or
+        # comment so "export PATH=$PATH; echo TARGET" is not falsely matched.
+        # [^;[:space:]]* captures the value (quoted or unquoted) up to the first
+        # space or semicolon; everything after is a trailing command/comment.
+        local value_lines
+        value_lines=$(printf '%s\n' "$path_lines" \
+            | sed -E 's/^([[:space:]]*(export[[:space:]]+)?PATH[+]?=[^;[:space:]]*)[[:space:];].*/\1/')
+
+        # Check absolute path form; /? accepts optional trailing slash in the profile
+        if printf '%s\n' "$value_lines" | grep -qE "${pre}${esc_dir}/?${post}"; then
+            return 0
+        fi
+        # Check $HOME/... shorthand forms (also accept optional trailing slash)
+        for pat in "${extra_pats[@]}"; do
+            if printf '%s\n' "$value_lines" | grep -qE "${pre}${pat}/?${post}"; then
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
 # Install CLI commands — symlink all tools/sp-*.sh to PATH as sp-*
 install_cli_commands() {
     local tools_dest="${CODEX_DIR}/superpowers-plus/tools"
@@ -364,12 +474,29 @@ install_cli_commands() {
 
     [[ ${#sp_scripts[@]} -gt 0 ]] || return 0
 
-    # Find a writable bin directory on PATH
-    local bin_dir=""
+    # Find a writable bin directory — prefer one that is already on PATH.
+    # Normalize trailing slashes before comparing: PATH=$HOME/bin/:... should
+    # match candidate $HOME/bin just as well as an exact $HOME/bin entry.
+    local bin_dir="" candidate norm_candidate norm_seg seg
     for candidate in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
         if [[ -d "$candidate" ]] && [[ -w "$candidate" ]]; then
-            bin_dir="$candidate"
-            break
+            # Prefer directories that are already on PATH (slash-normalized)
+            norm_candidate="${candidate%/}"
+            local on_path=0
+            local IFS_saved="$IFS"; IFS=":"
+            for seg in $PATH; do
+                norm_seg="${seg%/}"
+                if [[ "$norm_seg" == "$norm_candidate" ]]; then
+                    on_path=1; break
+                fi
+            done
+            IFS="$IFS_saved"
+            if [[ "$on_path" -eq 1 ]]; then
+                bin_dir="$candidate"
+                break
+            fi
+            # Remember first writable candidate even if not on PATH (fallback)
+            [[ -z "$bin_dir" ]] && bin_dir="$candidate"
         fi
     done
 
@@ -380,6 +507,17 @@ install_cli_commands() {
             log_warn "Cannot create $bin_dir — sp-* commands won't be on PATH"
             return 0
         }
+    fi
+
+    # Verify bin_dir is referenced in at least one POSIX shell profile.
+    # Scanning profiles (not $PATH) catches cross-shell gaps — e.g., installing
+    # from zsh when an AI agent runs bash with no ~/.bash_profile.
+    # Fish/nushell configs are not checked (different PATH syntax).
+    if ! _cli_bin_dir_in_profiles "$bin_dir"; then
+        log_warn "sp-* commands installed to $bin_dir but that path was not found"
+        log_warn "in any POSIX shell profile (~/.bash_profile, ~/.bashrc, ~/.zshrc, etc.)."
+        log_warn "Commands may be invisible in some shells. Add to each relevant profile:"
+        log_warn "  export PATH=\"${bin_dir}:\$PATH\""
     fi
 
     local installed=0
