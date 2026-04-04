@@ -1,12 +1,29 @@
 ---
 name: design-triad
 source: superpowers-plus
-triggers: ["three design options", "compare design approaches", "design comparison matrix", "evaluate design alternatives", "red team the design", "harsh design review", "generate design options", "design triad", "design options with adversarial review", "generate options compare and red team"]
-description: Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review (red teaming), and edge-case brainstorming before committing to a design. NOT for brainstorming (idea exploration) or writing plans (execution).
-summary: "Use when: choosing between design approaches. Skip when: implementation is already decided."
+triggers:
+  - three design options
+  - compare design approaches
+  - design comparison matrix
+  - evaluate design alternatives
+  - red team the design
+  - harsh design review
+  - generate design options
+  - design triad
+  - design options with adversarial review
+  - design decision needed
+  - choosing implementation approach
+anti_triggers:
+  - implement this design
+  - code review
+  - already decided on the approach
+  - continue implementing
+  - just writing tests
+description: "Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review, and edge-case brainstorming before committing to a design. Self-assessment trigger: invoke before committing to any architecture (see When to Use in skill body). NOT for brainstorming (idea exploration) or writing plans (execution)."
+summary: "Use when: choosing between design approaches, OR about to commit to an architecture (self-fire). Skip when: design already decided and implementation has started."
 coordination:
   group: thinking
-  order: 3
+  order: 1
   requires: []
   enables: []
   escalates_to: ["thinking-orchestrator"]
@@ -33,9 +50,18 @@ coordination:
 
 ## When to Use
 
-- Any design decision where the wrong choice would cost significant rework
-- Choosing between architectural approaches, data models, or integration patterns
-- NOT for: initial idea exploration (`brainstorming`), execution planning (`plan-and-execute`), bug fixing (`systematic-debugging`)
+**Intent-based (self-fire — first gate in the quality chain):**
+- **About to commit to a design approach before any code is written** — even without explicit user request
+- Any time you are about to choose between architectural patterns, data models, or integration approaches
+- Even if there is only a 1% chance the design decision is non-trivial, run this first
+
+**Explicit request:**
+- User asks to compare design approaches or generate options
+
+**NOT for:**
+- Initial idea exploration before a design exists → `brainstorming`
+- Execution planning after design is decided → `plan-and-execute`
+- Bug fixing → `systematic-debugging`
 
 ## Preflight
 

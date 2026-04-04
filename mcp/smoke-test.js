@@ -282,6 +282,38 @@ async function main() {
         '',
       ].join('\n'));
 
+      // Malformed-bracket fixture A: unclosed anti_triggers (antiTriggerAccum path).
+      // Description placed AFTER in no-space form ("description:\"...\"") — the narrower
+      // /^\w+:(?:\s|$)/ guard would miss this; /^\w+:(?:[^/]|$)/ correctly detects it.
+      const malformedDir = path.join(tmpDir, 'malformed-bracket-guard-test');
+      mkdirSync(malformedDir, { recursive: true });
+      writeFileSync(path.join(malformedDir, 'skill.md'), [
+        '---',
+        'name: malformed-bracket-guard-test',
+        'triggers: ["alpha", "beta"]',
+        'anti_triggers: ["unclosed',
+        'description:"payload correctly parsed"',
+        '---',
+        '# Malformed bracket guard test',
+        '',
+      ].join('\n'));
+
+      // Malformed-bracket fixture B: unclosed triggers (triggerAccum path).
+      // Also uses no-space description to prove both accumulator paths and the
+      // broader key-detection regex are exercised.
+      const malformedTriggersDir = path.join(tmpDir, 'malformed-trigger-guard-test');
+      mkdirSync(malformedTriggersDir, { recursive: true });
+      writeFileSync(path.join(malformedTriggersDir, 'skill.md'), [
+        '---',
+        'name: malformed-trigger-guard-test',
+        'anti_triggers: ["known", "good"]',
+        'triggers: ["unclosed',
+        'description:"trigger-guard payload parsed"',
+        '---',
+        '# Malformed trigger guard test',
+        '',
+      ].join('\n'));
+
       // Spawn a third client to pick up both skills
       const client3 = new McpClient(spawn(process.execPath, [SERVER_PATH], {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -309,6 +341,27 @@ async function main() {
           'regression: both skills appear in anti_trigger match results');
         assert(parserIdx < antiIdx,
           'regression: anti_trigger demotes skill below competitor');
+
+        // Malformed-bracket guard: description placed AFTER unclosed bracket.
+        // Old parser would swallow description into accumulator → empty description.
+        // New guarded parser abandons accumulation on the new key → correct description.
+        const malformedFindResult = await client3.send('tools/call', {
+          name: 'find_skills', arguments: {},
+        });
+        const malformedFindText = malformedFindResult?.content?.[0]?.text || '';
+        assert(malformedFindText.includes('malformed-bracket-guard-test'),
+          'regression: malformed-bracket skill is visible in find_skills');
+        // This assertion FAILS on the old parser (description was swallowed)
+        // and PASSES only with the guard that abandons accumulation on new keys.
+        assert(malformedFindText.includes('payload correctly parsed'),
+          'regression: malformed-bracket anti_triggers guard preserves description (antiTriggerAccum)');
+
+        // Fixture B: malformed triggers bracket (triggerAccum path).
+        // Description after unclosed triggers must also be visible.
+        assert(malformedFindText.includes('malformed-trigger-guard-test'),
+          'regression: malformed-trigger skill is visible in find_skills');
+        assert(malformedFindText.includes('trigger-guard payload parsed'),
+          'regression: malformed-bracket triggers guard preserves description (triggerAccum)');
       } finally {
         client3.kill();
       }

@@ -7,29 +7,29 @@ When investigating bugs that span multiple systems, use these patterns to gather
 
 ---
 
-## MSSQL (via MCP tools)
+## Database / SQL Store (via your configured database MCP tools)
 
 ### Diagnostic Queries
 
 | Pattern | When to Use | Evidence Source |
 |---------|-------------|----------------|
-| Compare row counts across environments | Data migration issues | `mssql:<connection>` |
-| Check recent modifications (`updated_at` columns) | Stale data suspicion | `mssql:<connection>` |
-| Verify connection targets | Wrong database suspicion | `mssql:<connection>` |
-| Query execution plans | Performance regressions | `mssql:<connection>` |
+| Compare row counts across environments | Data migration issues | `db:<connection>` |
+| Check recent modifications (`updated_at` columns) | Stale data suspicion | `db:<connection>` |
+| Verify connection targets | Wrong database suspicion | `db:<connection>` |
+| Query execution plans | Performance regressions | `db:<connection>` |
 
 ### Process
 
-1. **Identify the connection** — use `list_connections_mssql` to find available connections
-2. **Describe the table** — use `describe_table_mssql` to understand schema before querying
-3. **Run diagnostic query** — use `query_mssql` with targeted SELECT
-4. **Log finding** — record source as `mssql:<connection-name>` with a summary of what was found
+1. **Identify the connection** — use your database MCP's list-connections operation
+2. **Describe the table** — use your database MCP's describe-table operation to understand schema before querying
+3. **Run diagnostic query** — use your database MCP's query operation with targeted SELECT
+4. **Log finding** — record source as `db:<connection-name>` with a summary of what was found
 
 ### Example Evidence Entry
 
 ```json
 {
-  "source": "mssql:staging-db",
+  "source": "db:example-conn",
   "finding": "Users table has 1,247 rows; expected 1,500 after migration. 253 rows missing.",
   "timestamp": "2026-03-23T14:35:00Z"
 }
@@ -37,30 +37,30 @@ When investigating bugs that span multiple systems, use these patterns to gather
 
 ---
 
-## Azure DevOps (via MCP tools)
+## CI / Issue Tracker (via your configured MCP tools)
 
 ### Pipeline Run Analysis
 
 | Pattern | When to Use | Evidence Source |
 |---------|-------------|----------------|
-| Check recent pipeline runs | Build/deploy failures | `ado:<project>` |
-| Compare pipeline logs across runs | Intermittent failures | `ado:<project>` |
-| Review PR merge history | Regression hunting | `ado:<project>` |
-| Check work item state transitions | Process issues | `ado:<project>` |
+| Check recent pipeline runs | Build/deploy failures | `ci:<project>` |
+| Compare pipeline logs across runs | Intermittent failures | `ci:<project>` |
+| Review PR merge history | Regression hunting | `ci:<project>` |
+| Check work item state transitions | Process issues | `ci:<project>` |
 
 ### Process
 
-1. **Identify the project** — use `core_list_projects_azure-devops`
-2. **Find relevant pipelines/PRs** — use `repo_list_pull_requests_by_repo_or_project_azure-devops`
-3. **Check commit history** — use `repo_search_commits_azure-devops` with date filters
-4. **Log finding** — record source as `ado:<project-name>`
+1. **Identify the project** — use your issue tracker's project-list MCP tool
+2. **Find relevant pipelines/PRs** — use your VCS MCP's list-pull-requests operation
+3. **Check commit history** — use your VCS MCP's commit-search operation with date filters
+4. **Log finding** — record source as `ci:<project>`
 
 ### Work Item State Tracing
 
 When a bug correlates with a work item change:
 
-1. Get the work item: `wit_get_work_item_azure-devops`
-2. Check revisions: `wit_list_work_item_revisions_azure-devops`
+1. Get the work item using your issue tracker's get-issue MCP operation
+2. Check revision history using your issue tracker's list-revisions MCP operation
 3. Look for state changes that correlate with the bug's first appearance
 
 ---
@@ -126,8 +126,8 @@ Per the `adversarial-search` skill: **search for the WRONG thing, not the right 
 
 When evidence spans multiple tools, look for:
 
-1. **Temporal correlation** — did a deploy (ADO) happen right before the bug appeared?
-2. **Data consistency** — does the database (MSSQL) match what the API returns?
+1. **Temporal correlation** — did a deploy or pipeline run happen right before the bug appeared?
+2. **Data consistency** — does the database match what the API returns?
 3. **Documentation drift** — do the docs (wiki) describe the current behavior or the old behavior?
 4. **Ticket history** — was this bug reported before (Linear) and marked resolved prematurely?
 
