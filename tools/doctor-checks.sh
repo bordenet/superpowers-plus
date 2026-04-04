@@ -958,7 +958,7 @@ if [[ -f "$MAINT_SCRIPT" ]] && command -v python3 &>/dev/null && command -v mkte
 # METRICS
 FIXTURE
     # Run maintenance in JSON mode against the fixture
-    if ! result_json=$(HOME="$fixture_root/home" bash "$MAINT_SCRIPT" --json 2>&1); then
+    if ! result_json=$(HOME="$fixture_root/home" "$BASH" "$MAINT_SCRIPT" --json 2>&1); then
       echo "🟠 ERROR: TODO archive smoke test — maintenance script failed"
       echo "   Output: $(echo "$result_json" | head -3)"
       ((ERRORS++))
