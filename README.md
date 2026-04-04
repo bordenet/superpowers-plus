@@ -36,6 +36,8 @@ git clone https://github.com/bordenet/superpowers-plus.git && cd superpowers-plu
 
 Enable pre-commit gates: `bash tools/install-hooks.sh`
 
+These hooks are required if you want the full commit-gate chain to run locally before `git commit` and `git push`.
+
 Then tell your AI assistant what you're doing:
 
 | You say... | Skill triggered |
@@ -68,9 +70,17 @@ Then tell your AI assistant what you're doing:
 
 ## Installation
 
-**Prerequisites:** bash 4+, git, Node.js 18+. npm required for MCP server setup.
+**Prerequisites:** bash 4+, git, Node.js 18+. npm is only required for the optional MCP server below.
 
 > **macOS note:** macOS ships bash 3.2 (frozen at GPLv2 since 2007). Install modern bash first: `brew install bash`. The installer will detect the old version and tell you exactly how to fix it.
+
+### Choose Your Path
+
+- **Most users:** core install below (`git clone` + `bash install.sh`)
+- **Augment Agent only:** one-liner bootstrap for Ubuntu / Debian / WSL
+- **Claude Code:** use `install.sh` for complete setup, or `/plugin install` if `obra/superpowers` is already installed
+- **Codex / OpenCode / Gemini CLI:** use the platform-specific instructions below
+- **Claude Desktop or another MCP client:** do the core install first, then add the optional MCP server
 
 ### macOS / Linux / WSL
 
@@ -106,23 +116,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
 /plugin install https://github.com/bordenet/superpowers-plus
 ```
 
-### MCP Server
-
-1. `cd mcp && npm install`
-2. Add to your MCP config (e.g., `~/.claude/settings.json`):
-
-   ```json
-   {
-     "mcpServers": {
-       "superpowers-plus": {
-         "command": "node",
-         "args": ["/path/to/superpowers-plus/mcp/superpowers-mcp.js"]
-       }
-     }
-   }
-   ```
-
-3. Restart your client. Use the `find_skills` MCP tool to list available skills.
+Requires `obra/superpowers` to already be installed. For a complete setup that installs both, use the core `install.sh` path above.
 
 ### Codex
 
@@ -143,6 +137,37 @@ gemini extensions install https://github.com/obra/superpowers
 gemini extensions install https://github.com/bordenet/superpowers-plus
 ```
 
+### MCP Server (Optional)
+
+After completing the core install above, you can optionally expose the installed skills over MCP.
+
+Use this only if your client supports MCP and you want `superpowers-plus` skills exposed as MCP tools: `find_skills`, `use_skill`, and `match_skills`.
+
+If you're using the install paths above without an MCP client, you can skip this section.
+
+**Do I need this?**
+
+- **No** — if you're using the CLI or one of the install methods above
+- **Yes** — if you're using Claude Desktop or another MCP-compatible client and want the skills available as MCP tools
+
+1. `cd mcp && npm install`
+2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the output of `pwd` from your checkout:
+
+   ```json
+   {
+     "mcpServers": {
+       "superpowers-plus": {
+         "command": "node",
+         "args": ["/absolute/path/to/superpowers-plus/mcp/superpowers-mcp.js"]
+       }
+     }
+   }
+   ```
+
+3. Restart your client. Use the `find_skills` MCP tool to list available skills.
+
+If it does not appear, check `node --version`, rerun `cd mcp && npm install`, and confirm the config path points to this checkout.
+
 ### Using as a Dependency
 
 See [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-example.sh) for a robust install script template.
@@ -155,7 +180,7 @@ bash install.sh --upgrade
 
 ## Configuration
 
-Copy `.env.example` to `.env` for optional integrations:
+Copy `.env.example` to `~/.codex/.env` for runtime integrations. If you want installer-local defaults for `PERPLEXITY_API_KEY`, `WIKI_PLATFORM`, or `ISSUE_TRACKER_TYPE`, you may also create a repo-local `.env`.
 
 | Variable | Purpose |
 |----------|---------|
