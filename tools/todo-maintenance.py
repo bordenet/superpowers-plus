@@ -14,6 +14,14 @@ from typing import Optional
 SCRIPT_DIR = Path(__file__).resolve().parent
 PREFLIGHT = SCRIPT_DIR / "todo-preflight.sh"
 ARCHIVE_SCRIPT = SCRIPT_DIR.parent / "skills" / "productivity" / "todo-archive" / "todo-archive.sh"
+
+# macOS ships bash 3.2 (GPL2-frozen); many scripts require bash 4+.
+# Prefer a Homebrew-installed bash 4+ when available.
+_BASH_CANDIDATES = ["/opt/homebrew/bin/bash", "/usr/local/bin/bash", "bash"]
+BASH = next(
+    (b for b in _BASH_CANDIDATES if Path(b).is_file() and os.access(b, os.X_OK)),
+    "bash",
+)
 TASK_RE = re.compile(r"^- \[([ x/\-])\] \[(\d{8}-\d+)\] (.*)$")
 TAG_RE = re.compile(r"(#[A-Za-z0-9._/-]+)")
 META_RE = re.compile(r"^  - (Added|Done|Cancelled|Deferred):\s*([0-9]{4}-[0-9]{2}-[0-9]{2})")
@@ -156,7 +164,7 @@ def run_archive(todo_path: str) -> None:
     env = os.environ.copy()
     env["TODO_FILE_PATH"] = todo_path
     result = subprocess.run(
-        [str(ARCHIVE_SCRIPT), "--force"],
+        [BASH, str(ARCHIVE_SCRIPT), "--force"],
         capture_output=True,
         text=True,
         env=env,
