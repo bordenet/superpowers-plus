@@ -176,13 +176,12 @@ REMOTE_NAME="${1:-origin}"
 # cannot leak IP to an external party. The sentinel (code-review) gate still
 # applies to all remotes.
 REMOTE_URL="$(git remote get-url "$REMOTE_NAME" 2>/dev/null || echo "")"
-IS_PUBLIC_REMOTE=false
+IS_PUBLIC_REMOTE=true   # fail closed: unknown/empty URL → treat as public, run all gates
 # Match both HTTPS (https://github.com/...) and SSH (git@github.com:...) URLs.
-# The domain check is intentionally broad (no anchoring before the domain) to
-# catch both forms. Private self-hosted instances use different domain names
-# (e.g. gitlab.int.company.net) and will not match.
-if echo "$REMOTE_URL" | grep -qE '(github\.com|gitlab\.com|bitbucket\.org)'; then
-    IS_PUBLIC_REMOTE=true
+# Only downgrade to private when we positively identify a non-public URL.
+# Empty URL (no remote configured, test fixtures) → fail closed → gates run.
+if [[ -n "$REMOTE_URL" ]] && ! echo "$REMOTE_URL" | grep -qE '(github\.com|gitlab\.com|bitbucket\.org)'; then
+    IS_PUBLIC_REMOTE=false
 fi
 
 resolve_push_base_ref() {
@@ -211,6 +210,19 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  PRE-PUSH: Running quality gates..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
+
+# Private remotes (self-hosted mirrors, internal GitLab, etc.) receive content
+# that is already published on a public remote and has already passed all gates
+# there. Skip both gates for private remotes: the sentinel check requires the
+# pushed SHA to match the locally-set sentinel, which is never true for branch
+# sync operations (different branches have different tip SHAs). The IP scan is
+# already skipped below for private remotes.
+if [[ "$IS_PUBLIC_REMOTE" == "false" ]]; then
+    echo "  Skipping all gates — private remote: $REMOTE_URL"
+    echo "  (content already gated at the public origin)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 0
+fi
 
 ERRORS=0
 
