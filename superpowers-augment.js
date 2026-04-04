@@ -286,12 +286,14 @@ function extractFrontmatter(filePath) {
         let description = '';
         let triggers = [];
         let anti_triggers = [];
+        let aliases = [];
         let requires_mcp = [];
         let mcp_install_hint = '';
         let composition = null;
         let compress = true;
         let triggerAccum = null; // accumulates bracket-multiline trigger arrays
         let antiAccum = null;   // accumulates bracket-multiline anti_triggers arrays
+        let aliasAccum = null;  // accumulates bracket-multiline aliases arrays
         let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
 
         for (let i = 0; i < lines.length; i++) {
@@ -337,6 +339,17 @@ function extractFrontmatter(filePath) {
                         if (hasUnquotedClosingBracket(mcpAccum)) {
                             requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
                             mcpAccum = null;
+                        }
+                        continue;
+                    }
+                }
+                if (aliasAccum !== null) {
+                    if (line.match(/^\w+:(?:[^/]|$)/)) { aliasAccum = null; }
+                    else {
+                        aliasAccum += ' ' + line.trim();
+                        if (hasUnquotedClosingBracket(aliasAccum)) {
+                            aliases = parseInlineArray(extractBracketContent(aliasAccum));
+                            aliasAccum = null;
                         }
                         continue;
                     }
@@ -406,6 +419,18 @@ function extractFrontmatter(filePath) {
                     requires_mcp = parsed.values;
                     i = parsed.nextIndex;
                 }
+                // Check for aliases array — same 3 forms
+                if (line.match(/^aliases:\s*\[/)) {
+                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
+                        aliases = parseInlineArray(extractBracketContent(line));
+                    } else {
+                        aliasAccum = line;
+                    }
+                } else if (line.match(/^aliases:\s*$/)) {
+                    const parsed = parseYamlList(lines, i);
+                    aliases = parsed.values;
+                    i = parsed.nextIndex;
+                }
                 const match = line.match(/^(\w+):\s*(.+)$/);
                 if (match) {
                     const key = match[1];
@@ -419,9 +444,9 @@ function extractFrontmatter(filePath) {
                 }
             }
         }
-        return { name, description, triggers, anti_triggers, requires_mcp, mcp_install_hint, composition, compress };
+        return { name, description, triggers, anti_triggers, aliases, requires_mcp, mcp_install_hint, composition, compress };
     } catch (error) {
-        return { name: '', description: '', triggers: [], anti_triggers: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
+        return { name: '', description: '', triggers: [], anti_triggers: [], aliases: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
     }
 }
 
@@ -478,6 +503,7 @@ function findSkillsInDir(dir, sourceType) {
                 description: meta.description || '',
                 triggers: meta.triggers || [],
                 anti_triggers: meta.anti_triggers || [],
+                aliases: meta.aliases || [],
                 composition: meta.composition || null,
                 isSuperpower: hasTriggers,  // Superpowers have auto-triggers
                 sourceType,
@@ -701,10 +727,18 @@ function useSkill(skillName, options = {}) {
         const personalFile = findSkillFile(personalDir);
         if (personalFile) skillFile = personalFile;
     }
+    // Alias fallback: scan all installed skills for a matching alias (case-insensitive)
+    if (!skillFile && !forceSpp && !forceSpo) {
+        skillFile = resolveAlias(actualName);
+    }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
         if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
         if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
+        const suggestions = suggestSimilarSkills(actualName);
+        if (suggestions.length > 0) {
+            console.error('Did you mean: ' + suggestions.join(', ') + '?');
+        }
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
@@ -898,6 +932,56 @@ function buildSkillIndex() {
         deduped.push(skill);
     }
     return deduped;
+}
+
+/**
+ * Resolve a skill name via alias lookup.
+ * Scans all installed skills' frontmatter for an `aliases` field that
+ * contains the given name (case-insensitive).  Returns the skill file
+ * path or null.
+ */
+function resolveAlias(requestedName) {
+    const needle = requestedName.toLowerCase();
+    const allSkills = buildSkillIndex();
+    for (const skill of allSkills) {
+        if (!skill.aliases || skill.aliases.length === 0) continue;
+        if (skill.aliases.some(a => a.toLowerCase() === needle)) {
+            return skill.skillFile;
+        }
+    }
+    // Also try case-insensitive match on the skill name itself
+    for (const skill of allSkills) {
+        if (skill.name.toLowerCase() === needle) {
+            return skill.skillFile;
+        }
+    }
+    return null;
+}
+
+/**
+ * Find close matches for a skill name (for "did you mean?" suggestions).
+ * Returns up to 3 skill names that contain the search string.
+ */
+function suggestSimilarSkills(requestedName) {
+    const needle = requestedName.toLowerCase();
+    const allSkills = buildSkillIndex();
+    const matches = [];
+    for (const skill of allSkills) {
+        if (skill.name.toLowerCase().includes(needle) ||
+            needle.includes(skill.name.toLowerCase().replace(/-/g, ''))) {
+            matches.push(skill.name);
+        }
+        // Also check aliases for partial matches
+        if (skill.aliases) {
+            for (const alias of skill.aliases) {
+                if (alias.toLowerCase().includes(needle) || needle.includes(alias.toLowerCase())) {
+                    if (!matches.includes(skill.name)) matches.push(skill.name);
+                }
+            }
+        }
+        if (matches.length >= 3) break;
+    }
+    return matches;
 }
 
 function emitSkillIndex() {

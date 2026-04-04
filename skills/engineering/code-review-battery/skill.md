@@ -10,6 +10,7 @@ triggers:
   - specialist review
   - multi-reviewer
   - review with battery
+aliases: [CRB, review-battery]
 anti_triggers:
   - requesting code review
   - receiving code review
