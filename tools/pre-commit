@@ -459,7 +459,8 @@ for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     # Unlike eval, bash -c runs in a child process that cannot mutate
     # parent shell state (e.g., reset ERRORS=0 or alter PATH).
     # Still supports shell syntax (pipes, redirects, &&).
-    if ! bash -c "$EXTRA_CMD" 2>&1; then
+    # -eo pipefail: errexit + pipefail in child (no -u to allow bare $VAR in gates).
+    if ! bash -eo pipefail -c "$EXTRA_CMD" 2>&1; then
         echo -e "${RED}  ✗ ${EXTRA_CMD_VAR} failed${NC}"
         ERRORS=$((ERRORS + 1))
     fi
