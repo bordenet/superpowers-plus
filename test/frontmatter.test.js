@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile } = require('../lib/frontmatter');
+const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile, validateFrontmatter, extractFrontmatter } = require('../lib/frontmatter');
 const fs = require('fs');
 const path = require('path');
 
@@ -213,7 +213,6 @@ eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfte
 console.log('\n-- Error paths --');
 
 // extractFrontmatter with nonexistent file returns defaults
-const { extractFrontmatter } = require('../lib/frontmatter');
 const efResult = extractFrontmatter('/nonexistent/skill.md');
 eq(efResult.name, '', 'extractFrontmatter: nonexistent file returns empty name');
 assert(Array.isArray(efResult.triggers) && efResult.triggers.length === 0,
@@ -321,6 +320,140 @@ console.log('\n--- parseFrontmatter: defaults sync check ---');
 const parseDefKeys = Object.keys(parseFrontmatter('')).sort();
 const errorDefKeys = Object.keys(extractFrontmatter('/nonexistent/x.md')).sort();
 arrEq(parseDefKeys, errorDefKeys, 'parse defaults and error-path defaults have same keys');
+
+// --- validateFrontmatter ---
+console.log('\n--- validateFrontmatter: valid skill ---');
+{
+    const fm = parseFrontmatter(`---
+name: test-skill
+description: A test skill
+triggers: ["a", "b"]
+anti_triggers: ["c"]
+compress: true
+---
+# Body`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid frontmatter produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: missing name ---');
+{
+    const fm = parseFrontmatter('---\ndescription: test\n---');
+    const warnings = validateFrontmatter(fm, 'test.md');
+    assert(warnings.length > 0, 'missing name produces warnings');
+    assert(warnings[0].includes('name'), 'warning mentions name');
+    assert(warnings[0].includes('test.md'), 'warning includes source');
+}
+
+console.log('\n--- validateFrontmatter: valid composition ---');
+{
+    const fm = parseFrontmatter(`---
+name: composable-skill
+triggers: ["x"]
+composition:
+  produces: ["artifact-a"]
+  consumes: ["user-intent"]
+  capabilities: ["cap-1"]
+  priority: 10
+  optional: false
+  requires_all: true
+---`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid composition produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: unknown composition key ---');
+{
+    const fm = parseFrontmatter(`---
+name: bad-comp
+triggers: []
+composition:
+  produces: ["x"]
+  typo_key: true
+---`);
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('typo_key')), 'unknown composition key flagged');
+}
+
+console.log('\n--- validateFrontmatter: valid coordination ---');
+{
+    const fm = parseFrontmatter(`---
+name: coordinated-skill
+triggers: ["y"]
+coordination:
+  group: commit-gates
+  order: 1
+  requires: ["pre-commit-gate"]
+  enables: ["post-commit"]
+  escalates_to: ["think-twice"]
+  internal: false
+---`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid coordination produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: unknown coordination key ---');
+{
+    const fm = parseFrontmatter(`---
+name: bad-coord
+triggers: []
+coordination:
+  group: test
+  unknown_field: value
+---`);
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('unknown_field')), 'unknown coordination key flagged');
+}
+
+// --- validateFrontmatter: type coercion edge cases ---
+console.log('\n--- validateFrontmatter: non-string array elements ---');
+{
+    // Manually construct a frontmatter object with wrong element types
+    const fm = {
+        name: 'test-skill',
+        triggers: [1, null, 'valid'],
+        anti_triggers: ['ok'],
+        aliases: [],
+        requires_mcp: [],
+        compress: true,
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('triggers[0]') && w.includes('number')),
+        'non-string trigger element flagged (number)');
+    assert(warnings.some(w => w.includes('triggers[1]') && w.includes('object')),
+        'non-string trigger element flagged (null→object)');
+}
+
+console.log('\n--- validateFrontmatter: compress as string ---');
+{
+    const fm = {
+        name: 'test-skill',
+        triggers: [],
+        anti_triggers: [],
+        aliases: [],
+        requires_mcp: [],
+        compress: 'true',
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('compress') && w.includes('string')),
+        'string "true" for compress is flagged');
+}
+
+console.log('\n--- validateFrontmatter: composition nested array with non-string ---');
+{
+    const fm = {
+        name: 'test-skill',
+        triggers: [],
+        anti_triggers: [],
+        aliases: [],
+        requires_mcp: [],
+        compress: true,
+        composition: { produces: [42, 'valid'], consumes: [], capabilities: [], priority: 10 },
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('composition.produces[0]') && w.includes('number')),
+        'non-string composition.produces element flagged');
+}
 
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
