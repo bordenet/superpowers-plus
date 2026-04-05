@@ -209,6 +209,50 @@ eq(stripFrontmatter("---\nname: x\n---\nBody"), 'Body', 'stripFrontmatter: no tr
 // Body contains --- horizontal rule (regression: was silently dropped)
 eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfter', 'stripFrontmatter: body --- preserved');
 
+// --- Error path tests ---
+console.log('\n-- Error paths --');
+
+// extractFrontmatter with nonexistent file returns defaults
+const { extractFrontmatter } = require('../lib/frontmatter');
+const efResult = extractFrontmatter('/nonexistent/skill.md');
+eq(efResult.name, '', 'extractFrontmatter: nonexistent file returns empty name');
+assert(Array.isArray(efResult.triggers) && efResult.triggers.length === 0,
+    'extractFrontmatter: nonexistent file returns empty triggers array');
+
+// Empty frontmatter block
+const emptyFm = parseFrontmatter('');
+eq(emptyFm.name, '', 'parseFrontmatter: empty string returns empty name');
+
+// Malformed YAML (missing closing ---) — parser is lenient, still extracts fields
+const malformedResult = parseFrontmatter('---\nname: test\nno closing fence');
+eq(malformedResult.name, 'test', 'parseFrontmatter: lenient — extracts name without closing ---');
+
+// Completely empty file returns defaults
+const emptyFile = parseFrontmatter('\n\n\n');
+eq(emptyFile.name, '', 'parseFrontmatter: whitespace-only returns empty name');
+assert(Array.isArray(emptyFile.triggers), 'parseFrontmatter: whitespace-only returns triggers array');
+
+// extractFrontmatter with file containing no frontmatter
+const os = require('os');
+const tmpNoFm = path.join(os.tmpdir(), 'no-fm-test.md');
+fs.writeFileSync(tmpNoFm, '# Just a header\nSome content\n');
+const noFmResult = extractFrontmatter(tmpNoFm);
+eq(noFmResult.name, '', 'extractFrontmatter: file without frontmatter returns empty name');
+fs.unlinkSync(tmpNoFm);
+
+// Composition multiline YAML list parsing
+const tmpComp = path.join(os.tmpdir(), 'comp-test.md');
+fs.writeFileSync(tmpComp, '---\nname: comp-test\ncomposition:\n  produces:\n    - artifact-a\n    - artifact-b\n  consumes:\n    - input-x\n  priority: 10\n  optional: true\n---\n');
+const compResult = extractFrontmatter(tmpComp);
+assert(compResult.composition !== null, 'composition: parsed from multiline YAML');
+assert(Array.isArray(compResult.composition.produces), 'composition: produces is array');
+eq(compResult.composition.produces.length, 2, 'composition: 2 produces');
+eq(compResult.composition.produces[0], 'artifact-a', 'composition: first produce');
+eq(compResult.composition.consumes[0], 'input-x', 'composition: first consume');
+eq(compResult.composition.priority, 10, 'composition: priority parsed as number');
+eq(compResult.composition.optional, true, 'composition: optional parsed as boolean');
+fs.unlinkSync(tmpComp);
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);

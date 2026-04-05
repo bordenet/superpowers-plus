@@ -24,7 +24,10 @@ const {
 const workflowState = require('./lib/workflow-state');
 
 // Canonical frontmatter parser — single source of truth for all YAML parsing
-const { extractFrontmatter, findSkillFile } = require('./lib/frontmatter');
+const { extractFrontmatter, findSkillFile, stripFrontmatter } = require('./lib/frontmatter');
+
+// Unified skill discovery — single source of truth for directory scanning + dedup
+const { findSkillsInDir, deduplicateSkills, findAllSkills } = require('./lib/skill-discovery');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -201,78 +204,10 @@ function checkMcpPrerequisites(requiredServers) {
 }
 
 
-function findSkillsInDir(dir, sourceType) {
-    const skills = [];
-    if (!fs.existsSync(dir)) return skills;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-        // Skip support directories (_shared, _archive, _adapters, etc.)
-        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
-        // Handle both directories and symlinks to directories
-        const skillDir = path.join(dir, entry.name);
-        let isDir = false;
-        try {
-            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-        } catch (err) {
-            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
-            throw err; // surface real errors (EACCES, etc.)
-        }
-        if (!isDir) continue;
-        const skillFile = findSkillFile(skillDir);
-        if (skillFile) {
-            const meta = extractFrontmatter(skillFile);
-            const hasTriggers = meta.triggers && meta.triggers.length > 0;
-            const fileSize = fs.statSync(skillFile).size;
-            skills.push({
-                name: meta.name || entry.name,
-                description: meta.description || '',
-                triggers: meta.triggers || [],
-                anti_triggers: meta.anti_triggers || [],
-                aliases: meta.aliases || [],
-                composition: meta.composition || null,
-                isSuperpower: hasTriggers,  // Superpowers have auto-triggers
-                sourceType,
-                skillFile,
-                skillDir,
-                tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
-            });
-        } else {
-            // Recurse one level for domain-grouped layouts: skills/{domain}/{name}/skill.md
-            skills.push(...findSkillsInDir(skillDir, sourceType));
-        }
-    }
-    return skills;
-}
-
-function stripFrontmatter(content) {
-    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    let inFrontmatter = false;
-    let frontmatterEnded = false;
-    const contentLines = [];
-    for (const line of lines) {
-        if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
-        }
-        if (frontmatterEnded || !inFrontmatter) {
-            contentLines.push(line);
-        }
-    }
-    return contentLines.join('\n').trim();
-}
+// findSkillsInDir, stripFrontmatter, deduplicateSkills — imported from lib/ (see top of file)
 
 function findSkills(filterMode = 'all') {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
+    const deduped = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     // Categorize
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
@@ -357,6 +292,84 @@ function findSkills(filterMode = 'all') {
 }
 
 
+/**
+ * Resolve a skill name (possibly with namespace prefix) to a file path.
+ *
+ * Namespace prefixes:
+ *   superpowers:name → obra/superpowers skills only
+ *   spp:name         → superpowers-plus source repo only
+ *   spo:name         → overlay source repo only
+ *   (no prefix)      → personal dir → superpowers dir → alias fallback
+ *
+ * Dash shorthands: sp-X → superpowers-X, spp-X → spp:superpowers-X
+ *
+ * @param {string} skillName - Raw skill name (possibly with prefix)
+ * @returns {{ skillFile: string|null, actualName: string }} Resolved file and canonical name
+ */
+function resolveSkillNamespace(skillName) {
+    let forceSuperpowers = skillName.startsWith('superpowers:');
+    let forceSpp = skillName.startsWith('spp:');
+    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');
+    let actualName;
+
+    // Dash shorthand expansion
+    if (!forceSuperpowers && !forceSpp && !forceSpo) {
+        if (skillName.startsWith('spp-')) {
+            forceSpp = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {
+            forceSpo = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('sp-')) {
+            actualName = 'superpowers-' + skillName.slice(3);
+        }
+    }
+
+    if (!actualName) {
+        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
+        else actualName = skillName;
+    }
+
+    let skillFile = null;
+
+    if (forceSpp) {
+        if (!SPP_SOURCE_DIR) return { skillFile: null, actualName, error: 'SPP_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
+    } else if (forceSpo) {
+        if (!OVERLAY_SOURCE_DIR) return { skillFile: null, actualName, error: 'SP_OVERLAY_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
+    } else if (!forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) {
+            skillFile = personalFile;
+        } else {
+            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
+        }
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
+        const superpowersFile = findSkillFile(superpowersDir);
+        if (superpowersFile) skillFile = superpowersFile;
+    }
+
+    if (!skillFile && forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) skillFile = personalFile;
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        skillFile = resolveAlias(actualName);
+    }
+
+    return { skillFile, actualName };
+}
+
+
 function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
@@ -382,92 +395,17 @@ function useSkill(skillName, options = {}) {
         // Don't block — still load the skill, but the warning is impossible to miss
     }
 
-    // Namespace prefix resolution
-    // superpowers:name → obra/superpowers skills only
-    // spp:name         → superpowers-plus source repo only
-    // spo:name         → overlay source repo only (set SP_OVERLAY_SOURCE_DIR)
-    // name (no prefix) → installed dir (overlay overrides plus) → obra
-    //
-    // Dash shorthand (prefix expansion for fewer keystrokes):
-    // sp-X   → expands to superpowers-X, normal resolution
-    // spp-X  → expands to superpowers-X, spp: resolution
-    // spo-X  → expands to superpowers-X, spo: resolution
-    let forceSuperpowers = skillName.startsWith('superpowers:');
-    let forceSpp = skillName.startsWith('spp:');
-    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');  // spc: backward compat
-    let actualName;
+    // Resolve namespace prefix → file path
+    const resolved = resolveSkillNamespace(skillName);
+    const { actualName } = resolved;
+    let { skillFile } = resolved;
 
-    // Dash shorthand expansion: spp-X → spp:superpowers-X, spo-X → spo:superpowers-X, sp-X → superpowers-X
-    if (!forceSuperpowers && !forceSpp && !forceSpo) {
-        if (skillName.startsWith('spp-')) {
-            forceSpp = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {  // spc- backward compat
-            forceSpo = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('sp-')) {
-            actualName = 'superpowers-' + skillName.slice(3);
-        }
-    }
-
-    if (!actualName) {
-        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
-        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
-        else actualName = skillName;
-    }
-
-    let skillFile = null;
-
-    if (forceSpp) {
-        // spp: → search superpowers-plus source repo only
-        if (!SPP_SOURCE_DIR) {
-            console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
-    } else if (forceSpo) {
-        // spo: → search overlay source repo only
-        if (!OVERLAY_SOURCE_DIR) {
-            console.error('Error: spo: prefix used but overlay source repo not found.');
-            console.error('Set SP_OVERLAY_SOURCE_DIR env var to point to your overlay skill repo');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
-    } else if (!forceSuperpowers) {
-        // No prefix → personal/installed dir first (overlay overrides plus)
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) {
-            skillFile = personalFile;
-        } else {
-            // Domain-grouped fallback: skills/{domain}/{name}/skill.md
-            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
-        }
-    }
-
-    if (!skillFile && !forceSpp && !forceSpo) {
-        // Fall through to obra/superpowers
-        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
-        const superpowersFile = findSkillFile(superpowersDir);
-        if (superpowersFile) skillFile = superpowersFile;
-    }
-    // Fallback: if superpowers: prefix was used but skill not found in superpowers dir,
-    // check personal dir too (personal skills with triggers are listed as superpowers)
-    if (!skillFile && forceSuperpowers) {
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
-    }
-    // Alias fallback: scan all installed skills for a matching alias (case-insensitive)
-    if (!skillFile && !forceSpp && !forceSpo) {
-        skillFile = resolveAlias(actualName);
+    if (resolved.error) {
+        console.error('Error: ' + resolved.error);
+        process.exit(1);
     }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
-        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         const suggestions = suggestSimilarSkills(actualName);
         if (suggestions.length > 0) {
             console.error('Did you mean: ' + suggestions.join(', ') + '?');
@@ -558,73 +496,39 @@ function useSkill(skillName, options = {}) {
  * procedures, code examples, tables with data.
  * Per-skill opt-out: add `compress: false` to YAML frontmatter.
  */
+// Sections to strip — heading text patterns that are boilerplate/routing info.
+// "Failure Modes" and "SUBAGENT-STOP" are deliberately EXCLUDED (operational).
+const STRIP_SECTIONS = [
+    'When to Use', 'Overview', 'Common Rationalizations',
+    'Why (?:Order|This|It) Matters', 'Quick Reference',
+    'Related Skills', 'Cross[- ]?References', 'Integration with .*',
+    'Reference Files', 'When This Skill Fires', 'When NOT to Use',
+    'Manual Invocation', 'Incident Log', "I'm Stuck",
+];
+
 function compressSkillContent(text) {
     let result = text;
 
-    // 1. Strip DOT graphs (not renderable)
+    // Strip DOT graphs (not renderable in context)
     result = result.replace(/```dot[\s\S]*?```/g, '');
 
-    // 2. Strip EXTREMELY-IMPORTANT wrappers (keep content)
+    // Unwrap EXTREMELY-IMPORTANT wrappers (keep inner content)
     result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
 
-    // 3. Preserve SUBAGENT-STOP blocks (sub-agent dispatch control — never strip)
+    // Strip boilerplate heading sections (table-driven)
+    for (const heading of STRIP_SECTIONS) {
+        const midDoc = new RegExp(`##+ ${heading}[\\s\\S]*?(?=\\n## |\\n# )`, 'g');
+        const atEnd = new RegExp(`##+ ${heading}[\\s\\S]*$`, 'g');
+        result = result.replace(midDoc, '');
+        result = result.replace(atEnd, '');
+    }
 
-    // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
-    result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## When to Use[\s\S]*$/g, '');
-    result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## Overview\n[\s\S]*$/g, '');
-
-    // 5. Strip "Common Rationalizations" tables (lecturing)
-    result = result.replace(/##+ Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 6. Strip "Why Order Matters" / "Why This Matters" (philosophical)
-    result = result.replace(/##+ Why (?:Order|This|It) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 7. Strip "Quick Reference" section (duplicates main content)
-    result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 8. Preserve "Failure Modes" — may contain operational rules, not just boilerplate
-
-    // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
-    result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Related Skills[\s\S]*$/g, '');
-    result = result.replace(/##+ Cross[- ]?References[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Cross[- ]?References[\s\S]*$/g, '');
-    result = result.replace(/##+ Integration with [\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 10. Strip "Reference Files" (just pointers to other files)
-    result = result.replace(/##+ Reference Files[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Reference Files[\s\S]*$/g, '');
-
-    // 11. Strip "When This Skill Fires" (redundant with triggers)
-    result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## When This Skill Fires[\s\S]*$/g, '');
-
-    // 12. Strip "When NOT to Use" (routing info moved to "Scope Exclusions" or "Wrong skill?" blocks)
-    result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 13. Strip "Manual Invocation" (user already knows how to invoke)
-    result = result.replace(/##+ Manual Invocation[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 14. Strip "Incident Log" sections (historical, not procedural)
-    result = result.replace(/##+ Incident Log[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Incident Log[\s\S]*$/g, '');
-
-    // 15. Strip "I'm Stuck Escalation" pointers (generic)
-    result = result.replace(/##+ I'm Stuck[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ I'm Stuck[\s\S]*$/g, '');
-
-    // 16. Strip YAML frontmatter (already parsed by loader)
+    // Strip YAML frontmatter (already parsed), horizontal rules, HTML comments
     result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
-
-    // 17. Strip horizontal rules (visual only, wastes tokens)
     result = result.replace(/\n---\n/g, '\n');
-
-    // 18. Strip HTML comments
     result = result.replace(/<!--[\s\S]*?-->/g, '');
 
-    // 19. Collapse 3+ consecutive blank lines to 1
+    // Collapse excessive blank lines
     result = result.replace(/\n{3,}/g, '\n\n');
 
     return result.trim();
@@ -665,17 +569,7 @@ Process skills (debugging, brainstorming) before implementation skills.
 const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
 
 function buildSkillIndex() {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
-    return deduped;
+    return findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 }
 
 /**
@@ -766,16 +660,6 @@ switch (command) {
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
 
-
-
-
-
-
-
-
-
-
-
     case 'compose-pipeline': {
         const capability = args[0];
         if (!capability) {
@@ -790,9 +674,7 @@ switch (command) {
         }
 
         // Gather all skills with composition metadata
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
+        const allSkills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Filter to skills with composition blocks
         const composableSkills = allSkills.filter(s => s.composition !== null);
@@ -854,15 +736,7 @@ switch (command) {
         }
 
         // Gather all skills
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Determine method
         let method = 'auto';
@@ -908,15 +782,7 @@ switch (command) {
 
     case 'embed-skills': {
         // Pre-embed all skills (optional, for embedding mode)
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         const forceRefresh = args.includes('--force');
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
