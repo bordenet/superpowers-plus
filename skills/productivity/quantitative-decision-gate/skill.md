@@ -21,6 +21,11 @@ coordination:
   enables: [brainstorming, design-triad, plan-and-execute]
   escalates_to: [think-twice]
   internal: false
+composition:
+  consumes: [challenge, design-options]
+  produces: [decision-matrix]
+  capabilities: [quantifies-tradeoffs, gates-decisions]
+  priority: 15
 ---
 
 # Quantitative Decision Gate

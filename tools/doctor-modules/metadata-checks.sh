@@ -113,4 +113,12 @@ for dir in "${SOURCE_DIRS[@]}"; do
     2>/dev/null)
 done
 
+# --- Check: Missing Composition Metadata ---
+for skill in "${!SKILL_YAML[@]}"; do
+  if ! grep -q '^composition:' <<< "${SKILL_YAML[$skill]}"; then
+    echo "🟡 WARNING: $skill — missing composition metadata"
+    ((WARNINGS++))
+  fi
+done
+
 }

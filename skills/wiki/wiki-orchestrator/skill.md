@@ -12,6 +12,11 @@ coordination:
   enables: ["link-verification"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [goal, wiki-content]
+  produces: [wiki-plan, updated-wiki-content]
+  capabilities: [orchestrates-workflow, sequences-skills]
+  priority: 5
 ---
 
 # Wiki Orchestrator

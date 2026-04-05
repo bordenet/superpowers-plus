@@ -13,6 +13,11 @@ coordination:
   enables: ["professional-language-audit"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [reviews-code, gates-quality]
+  priority: 30
 ---
 
 # Progressive Code Review Gate
