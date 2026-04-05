@@ -24,7 +24,10 @@ const {
 const workflowState = require('./lib/workflow-state');
 
 // Canonical frontmatter parser — single source of truth for all YAML parsing
-const { extractFrontmatter, findSkillFile } = require('./lib/frontmatter');
+const { extractFrontmatter, findSkillFile, stripFrontmatter } = require('./lib/frontmatter');
+
+// Unified skill discovery — single source of truth for directory scanning + dedup
+const { findSkillsInDir, deduplicateSkills, findAllSkills } = require('./lib/skill-discovery');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -201,78 +204,10 @@ function checkMcpPrerequisites(requiredServers) {
 }
 
 
-function findSkillsInDir(dir, sourceType) {
-    const skills = [];
-    if (!fs.existsSync(dir)) return skills;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-        // Skip support directories (_shared, _archive, _adapters, etc.)
-        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
-        // Handle both directories and symlinks to directories
-        const skillDir = path.join(dir, entry.name);
-        let isDir = false;
-        try {
-            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-        } catch (err) {
-            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
-            throw err; // surface real errors (EACCES, etc.)
-        }
-        if (!isDir) continue;
-        const skillFile = findSkillFile(skillDir);
-        if (skillFile) {
-            const meta = extractFrontmatter(skillFile);
-            const hasTriggers = meta.triggers && meta.triggers.length > 0;
-            const fileSize = fs.statSync(skillFile).size;
-            skills.push({
-                name: meta.name || entry.name,
-                description: meta.description || '',
-                triggers: meta.triggers || [],
-                anti_triggers: meta.anti_triggers || [],
-                aliases: meta.aliases || [],
-                composition: meta.composition || null,
-                isSuperpower: hasTriggers,  // Superpowers have auto-triggers
-                sourceType,
-                skillFile,
-                skillDir,
-                tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
-            });
-        } else {
-            // Recurse one level for domain-grouped layouts: skills/{domain}/{name}/skill.md
-            skills.push(...findSkillsInDir(skillDir, sourceType));
-        }
-    }
-    return skills;
-}
-
-function stripFrontmatter(content) {
-    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    let inFrontmatter = false;
-    let frontmatterEnded = false;
-    const contentLines = [];
-    for (const line of lines) {
-        if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
-        }
-        if (frontmatterEnded || !inFrontmatter) {
-            contentLines.push(line);
-        }
-    }
-    return contentLines.join('\n').trim();
-}
+// findSkillsInDir, stripFrontmatter, deduplicateSkills — imported from lib/ (see top of file)
 
 function findSkills(filterMode = 'all') {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
+    const deduped = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     // Categorize
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
@@ -665,17 +600,7 @@ Process skills (debugging, brainstorming) before implementation skills.
 const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
 
 function buildSkillIndex() {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
-    return deduped;
+    return findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 }
 
 /**
@@ -766,16 +691,6 @@ switch (command) {
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
 
-
-
-
-
-
-
-
-
-
-
     case 'compose-pipeline': {
         const capability = args[0];
         if (!capability) {
@@ -790,9 +705,7 @@ switch (command) {
         }
 
         // Gather all skills with composition metadata
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
+        const allSkills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Filter to skills with composition blocks
         const composableSkills = allSkills.filter(s => s.composition !== null);
@@ -854,15 +767,7 @@ switch (command) {
         }
 
         // Gather all skills
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Determine method
         let method = 'auto';
@@ -908,15 +813,7 @@ switch (command) {
 
     case 'embed-skills': {
         // Pre-embed all skills (optional, for embedding mode)
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         const forceRefresh = args.includes('--force');
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);
