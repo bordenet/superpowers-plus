@@ -474,6 +474,16 @@ EOF
     local head_sha
     head_sha=$(git -C "$fixture" rev-parse HEAD)
     echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Stub todo-crud.sh so loose-ends check doesn't fail in CI (no ~/.codex/.env)
+    cat > "$fixture/tools/todo-crud.sh" << 'STUBEOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "cat" ]]; then
+    printf '# ACTIVE TASKS\n\n- [ ] [20260101-01] A normal task\n\n# HISTORY\n\n# DEFERRED\n'
+    exit 0
+fi
+exit 0
+STUBEOF
+    chmod +x "$fixture/tools/todo-crud.sh"
     # Step 3: stage .agent-gates again (different content) + code change — no token seeded
     echo "SKIP_REVIEW_TOKEN=true" > "$fixture/.agent-gates"
     printf 'change\n' >> "$fixture/README.md"
