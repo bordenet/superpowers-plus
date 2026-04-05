@@ -9,11 +9,40 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-04-05
+
+Quality uplift release. Project quality score: 5/10 → 8.5/10. 227 tests.
+
 ### Added
 
+- **`lib/skill-discovery.js`** — Unified skill discovery module. Single source of truth for `findSkillsInDir`, `deduplicateSkills`, `findAllSkills`. Supports both flat and domain-grouped skill layouts. (#543)
+- **`test/skill-discovery.test.js`** — 11 tests covering flat, domain-grouped, dedup, override, edge cases. (#543)
+- **`test/composition-engine.test.js`** — 15 tests for `getComposition`, `findProducers`, `buildPipeline`, `pipelineToMermaid`, `explainPipeline`. (#543)
+- **`test/skill-router.test.js`** — 25 tests for intent pattern matching, boost scoring, named constants. (#535)
+- **`test/workflow-state.test.js`** — 39 tests for state machine, gates, locks, phase advancement, expiry. (#538, #543)
+- **`.github/workflows/test.yml`** — CI pipeline with 3 job types: Node.js tests, shell tests (BATS + doctor), quality gates (harsh-review + dangerous-pattern-scan). (#537)
+- **`.nvmrc`** — Pin Node.js 20 for CI and local development. (#537)
+- **`docs/composition-artifacts.md`** — Taxonomy and reference for the composition engine. (#536)
+- **`docs/composition-manifest.json`** — Machine-readable skill composition metadata. (#536)
+- **`tools/doctor-modules/`** — 8 modular doctor check modules extracted from monolithic script. (#535)
+- **`tools/backfill-composition.sh`** — One-shot script to add `composition:` metadata to skill frontmatter. (#536)
+- **Composition metadata** — All 91 skills now have `composition:` blocks (`produces`, `consumes`, `capabilities`). (#536)
 - **update-superpowers skill** - Documents the `sp-update` workflow: three-tier promotion, divergence recovery (auto-reset), cascading installs, and sp-doctor verification. (#447)
 - **docs/SKILLS.md** - Full 87-skill reference table organized by domain, moved out of README. (#450)
 - **`tools/wiki-markdown-validate.js`** - Shared wiki markdown artifact validator for escaped brackets, literal HTML entities, empty hrefs, and collapsed tables. Added `lib/wiki-markdown.js`, `lib/wiki-publish.js`, and regression tests. (#506)
+
+### Changed
+
+- **Parser consolidation** — Single canonical parser in `lib/frontmatter.js`. Removed all inline parsers from `superpowers-augment.js` and `mcp/superpowers-mcp.js`. (#535)
+- **Composition parser fix** — Multiline YAML lists (`produces:\n  - item`) now parse correctly. Previously only inline `[bracket]` arrays worked. (#543)
+- **Skill router cleanup** — Named boost constants (`BOOST_EXACT_MATCH`, etc.), deduplicated intent patterns, documented scoring scale. (#535)
+- **Doctor script refactored** — Monolithic 1300-line script split into 8 modules under `tools/doctor-modules/`. Added `--help`, `--summary-only`, proper exit codes. (#535)
+- **DRY consolidation** — Removed 5 separate dedup patterns, 3 `findSkillsInDir` copies, inline `stripFrontmatter` duplicates. `superpowers-augment.js`: 965 → 830 lines (-14%). (#543)
+- **`resolveSkillNamespace()` extracted** — 93-line pure function from 188-line `useSkill()`. (#543)
+- **Table-driven `compressSkillContent()`** — 70 → 37 lines. `STRIP_SECTIONS` array replaces sequential regex rules. (#543)
+- **Workflow state integration** — `pre-push` records `code_review` gate evidence. `pre-commit` checks `canCommit()` when `WORKFLOW_ENFORCEMENT=enforce`. Default: advisory (no behavior change). (#538)
+- **MCP domain-grouped discovery** — `findSkillsInDir` recurses into domain subdirectories, supporting `skills/{domain}/{name}/skill.md` layouts. (#540, #542)
+- **CI fixes** — BATS test 21 stubbed for CI (#539), git identity configured (#541), `PERSONAL_SKILLS_DIR` set for skill discovery (#540, #542).
 
 ### Changed
 
