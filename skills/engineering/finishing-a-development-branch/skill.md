@@ -35,6 +35,10 @@ composition:
 
 # Finishing a Development Branch
 
+## When to Use
+
+Invoke when development work on a branch is complete and ready to review, commit, or ship.
+
 ## Overview
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
