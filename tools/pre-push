@@ -339,5 +339,14 @@ if [[ $ERRORS -gt 0 ]]; then
 else
     echo -e "${GREEN}  All gates passed. Push allowed.${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    # Record gate evidence in workflow state (advisory, non-blocking)
+    if command -v node >/dev/null 2>&1 && [[ -f "$REPO_ROOT/lib/workflow-state.js" ]]; then
+        node -e "
+            try {
+                const ws = require('$REPO_ROOT/lib/workflow-state');
+                ws.recordGate('code_review', { tool: 'pre-push', exit_code: 0 });
+            } catch(e) {}
+        " 2>/dev/null || true
+    fi
     exit 0
 fi

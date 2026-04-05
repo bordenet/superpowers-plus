@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [investigation-evidence]
+  produces: [verified-comment]
+  capabilities: [validates-assertions]
+  priority: 25
 ---
 
 # Issue Comment Debunker

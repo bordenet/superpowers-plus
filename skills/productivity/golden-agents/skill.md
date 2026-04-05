@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [repo-context]
+  produces: [agents-config]
+  capabilities: [generates-guidance]
+  priority: 20
 ---
 
 # Golden Agents

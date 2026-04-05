@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [refactored-code]
+  capabilities: [reduces-complexity, refactors-code]
+  priority: 15
 ---
 
 # cognitive-complexity-refactoring

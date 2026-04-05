@@ -17,6 +17,11 @@ jobs:
         with:
           fetch-depth: 0  # Full history for diff against main
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -198,6 +203,9 @@ jobs:
           bash -n tools/doctor-checks.sh
           shellcheck -e "SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016" tools/doctor-checks.sh
           echo "✓ doctor-checks.sh passes syntax and lint"
+
+      - name: Dangerous pattern scan
+        run: bash tools/dangerous-pattern-scan.sh
 
       - name: Summary
         if: always()

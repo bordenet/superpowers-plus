@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [research-results, markdown-content]
+  produces: [enriched-content]
+  capabilities: [merges-research, preserves-voice]
+  priority: 15
 ---
 
 # Incorporating Research

@@ -527,6 +527,24 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
+# OPTIONAL: Workflow state gate (only when WORKFLOW_ENFORCEMENT=enforce)
+# Default is "advisory" — no behavior change. Opt-in only.
+# -----------------------------------------------------------------------------
+if [[ "${WORKFLOW_ENFORCEMENT:-advisory}" == "enforce" ]]; then
+    if command -v node >/dev/null 2>&1 && [[ -f "$REPO_ROOT/lib/workflow-state.js" ]]; then
+        _ws_result=$(node -e "
+            const ws = require('$REPO_ROOT/lib/workflow-state');
+            const r = ws.canCommit();
+            if (!r.ready) { console.log(r.reason || r.missing.join(', ')); process.exit(1); }
+        " 2>&1) || {
+            echo -e "${RED}  ⛔ Workflow gate blocked commit: ${_ws_result}${NC}"
+            echo "     Set WORKFLOW_ENFORCEMENT=advisory to bypass."
+            ERRORS=$((ERRORS + 1))
+        }
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # RESULT
 # -----------------------------------------------------------------------------
 echo ""

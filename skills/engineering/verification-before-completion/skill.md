@@ -21,6 +21,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [implementation]
+  produces: [verification-report]
+  capabilities: [verifies-output, gates-quality]
+  priority: 25
 ---
 
 # Verification Before Completion
@@ -240,8 +245,4 @@ Provide the reviewer with:
 
 ## The Bottom Line
 
-**No shortcuts for verification.**
-
-Run the command. Read the output. THEN claim the result.
-
-This is non-negotiable.
+**No shortcuts.** Run the command. Read the output. THEN claim the result. Non-negotiable.

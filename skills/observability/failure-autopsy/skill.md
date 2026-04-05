@@ -23,6 +23,11 @@ coordination:
   enables: [quantitative-decision-gate, measurement-integrity]
   escalates_to: [think-twice]
   internal: false
+composition:
+  consumes: [incident-description]
+  produces: [root-cause, retrospective-notes]
+  capabilities: [post-mortem-analysis, extracts-lessons]
+  priority: 5
 ---
 
 # Failure Autopsy

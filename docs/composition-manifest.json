@@ -1,0 +1,428 @@
+{
+  "blast-radius-check": {
+    "consumes": ["code-changes"],
+    "produces": ["impact-analysis"],
+    "capabilities": ["analyzes-code", "traces-consumers"],
+    "priority": 10
+  },
+  "code-review-battery": {
+    "consumes": ["code-changes"],
+    "produces": ["review-feedback"],
+    "capabilities": ["dispatches-review", "parallel-review"],
+    "priority": 25
+  },
+  "cognitive-complexity-refactoring": {
+    "consumes": ["code-changes"],
+    "produces": ["refactored-code"],
+    "capabilities": ["reduces-complexity", "refactors-code"],
+    "priority": 15
+  },
+  "design-triad": {
+    "consumes": ["challenge", "goal"],
+    "produces": ["design-options", "decision-record"],
+    "capabilities": ["evaluates-options", "generates-designs"],
+    "priority": 5
+  },
+  "engineering-rigor": {
+    "consumes": ["code-changes"],
+    "produces": ["rigor-checklist"],
+    "capabilities": ["enforces-standards"],
+    "priority": 20
+  },
+  "field-rename-verification": {
+    "consumes": ["code-changes"],
+    "produces": ["verification-report"],
+    "capabilities": ["traces-data-flow", "verifies-contracts"],
+    "priority": 15
+  },
+  "finishing-a-development-branch": {
+    "consumes": ["code-changes"],
+    "produces": ["merge-ready-branch"],
+    "capabilities": ["orchestrates-workflow", "sequences-skills"],
+    "priority": 10
+  },
+  "git-branch-conventions": {
+    "consumes": ["branch-intent"],
+    "produces": ["branch-name"],
+    "capabilities": ["enforces-conventions"],
+    "priority": 40
+  },
+  "implementation-tracker": {
+    "consumes": ["implementation", "todo-items"],
+    "produces": ["progress-report"],
+    "capabilities": ["tracks-progress", "persists-state"],
+    "priority": 15
+  },
+  "micro-harsh-review": {
+    "consumes": ["code-changes"],
+    "produces": ["review-feedback"],
+    "capabilities": ["reviews-code", "gates-quality"],
+    "priority": 30
+  },
+  "output-verification": {
+    "consumes": ["implementation"],
+    "produces": ["verification-report"],
+    "capabilities": ["verifies-output", "gates-quality"],
+    "priority": 25
+  },
+  "pre-commit-gate": {
+    "consumes": ["code-changes"],
+    "produces": ["lint-results", "test-results"],
+    "capabilities": ["gates-quality"],
+    "priority": 30
+  },
+  "pre-push-quality-gate": {
+    "consumes": ["code-changes"],
+    "produces": ["lint-results", "test-results"],
+    "capabilities": ["gates-quality"],
+    "priority": 30
+  },
+  "progressive-code-review-gate": {
+    "consumes": ["code-changes"],
+    "produces": ["review-feedback"],
+    "capabilities": ["reviews-code", "gates-quality"],
+    "priority": 30
+  },
+  "progressive-harsh-review": {
+    "consumes": ["design-options", "phased-plan", "markdown-content"],
+    "produces": ["review-feedback"],
+    "capabilities": ["reviews-design", "gates-quality"],
+    "priority": 30
+  },
+  "providing-code-review": {
+    "consumes": ["code-changes"],
+    "produces": ["review-feedback"],
+    "capabilities": ["reviews-code"],
+    "priority": 25
+  },
+  "receiving-code-review": {
+    "consumes": ["review-feedback"],
+    "produces": ["code-changes"],
+    "capabilities": ["implements-feedback"],
+    "priority": 15
+  },
+  "requesting-code-review": {
+    "consumes": ["code-changes"],
+    "produces": ["review-feedback"],
+    "capabilities": ["dispatches-review"],
+    "priority": 25
+  },
+  "requirements-validation": {
+    "consumes": ["goal", "task-description"],
+    "produces": ["validation-report"],
+    "capabilities": ["validates-requirements", "detects-bias"],
+    "priority": 10
+  },
+  "systematic-debugging": {
+    "consumes": ["challenge", "code-changes"],
+    "produces": ["root-cause", "investigation-log"],
+    "capabilities": ["debugs-issues", "analyzes-code"],
+    "priority": 10
+  },
+  "test-driven-development": {
+    "consumes": ["goal", "task-description"],
+    "produces": ["test-suite", "implementation"],
+    "capabilities": ["generates-tests", "enforces-tdd"],
+    "priority": 10
+  },
+  "typescript-project-conventions": {
+    "consumes": ["code-changes"],
+    "produces": ["convention-report"],
+    "capabilities": ["enforces-conventions"],
+    "priority": 35
+  },
+  "typescript-strict-mode": {
+    "consumes": ["code-changes"],
+    "produces": ["typed-code"],
+    "capabilities": ["enforces-types"],
+    "priority": 35
+  },
+  "verification-before-completion": {
+    "consumes": ["implementation"],
+    "produces": ["verification-report"],
+    "capabilities": ["verifies-output", "gates-quality"],
+    "priority": 25
+  },
+  "vitest-testing-patterns": {
+    "consumes": ["code-changes"],
+    "produces": ["test-suite"],
+    "capabilities": ["fixes-tests", "enforces-conventions"],
+    "priority": 35
+  },
+  "experimental-self-prompting": {
+    "consumes": ["challenge"],
+    "produces": ["analysis-prompt"],
+    "capabilities": ["generates-prompts", "reframes-analysis"],
+    "priority": 20
+  },
+  "issue-authoring": {
+    "consumes": ["challenge", "task-description"],
+    "produces": ["created-issue"],
+    "capabilities": ["creates-issues", "validates-duplicates"],
+    "priority": 15
+  },
+  "issue-comment-debunker": {
+    "consumes": ["investigation-evidence"],
+    "produces": ["verified-comment"],
+    "capabilities": ["validates-assertions"],
+    "priority": 25
+  },
+  "issue-editing": {
+    "consumes": ["todo-items"],
+    "produces": ["updated-issue"],
+    "capabilities": ["edits-issues"],
+    "priority": 20
+  },
+  "issue-link-verification": {
+    "consumes": ["todo-items"],
+    "produces": ["verified-links"],
+    "capabilities": ["validates-links"],
+    "priority": 25
+  },
+  "issue-verify": {
+    "consumes": ["todo-items"],
+    "produces": ["verification-report"],
+    "capabilities": ["verifies-issues"],
+    "priority": 25
+  },
+  "completeness-check": {
+    "consumes": ["implementation", "todo-items"],
+    "produces": ["verification-report"],
+    "capabilities": ["detects-incompleteness"],
+    "priority": 25
+  },
+  "evolution-loop": {
+    "consumes": ["retrospective-notes"],
+    "produces": ["skill-updates"],
+    "capabilities": ["self-improves", "pattern-extraction"],
+    "priority": 40
+  },
+  "exhaustive-audit-validation": {
+    "consumes": ["implementation"],
+    "produces": ["verification-report"],
+    "capabilities": ["validates-completeness"],
+    "priority": 25
+  },
+  "failure-autopsy": {
+    "consumes": ["incident-description"],
+    "produces": ["root-cause", "retrospective-notes"],
+    "capabilities": ["post-mortem-analysis", "extracts-lessons"],
+    "priority": 5
+  },
+  "holistic-repo-verification": {
+    "consumes": ["code-changes"],
+    "produces": ["verification-report"],
+    "capabilities": ["verifies-repo-health"],
+    "priority": 30
+  },
+  "measurement-integrity": {
+    "consumes": ["metric-claim"],
+    "produces": ["verified-metric"],
+    "capabilities": ["cross-validates-metrics", "gates-quality"],
+    "priority": 30
+  },
+  "skill-health-check": {
+    "consumes": ["skill-ecosystem"],
+    "produces": ["skill-health-report"],
+    "capabilities": ["validates-structure"],
+    "priority": 30
+  },
+  "superpowers-doctor": {
+    "consumes": ["skill-ecosystem"],
+    "produces": ["diagnostic-report"],
+    "capabilities": ["diagnoses-health", "validates-skills"],
+    "priority": 25
+  },
+  "adversarial-search": {
+    "consumes": ["investigation-state", "challenge"],
+    "produces": ["investigation-evidence"],
+    "capabilities": ["inverts-search", "detects-bias"],
+    "priority": 10
+  },
+  "autonomous-chain-controller": {
+    "consumes": ["goal", "phased-plan"],
+    "produces": ["todo-items", "implementation"],
+    "capabilities": ["orchestrates-workflow", "sequences-skills"],
+    "priority": 3
+  },
+  "code-review": {
+    "consumes": ["code-changes"],
+    "produces": ["review-request-file"],
+    "capabilities": ["file-protocol-review"],
+    "priority": 25
+  },
+  "code-review-respond": {
+    "consumes": ["review-request-file"],
+    "produces": ["review-response-file"],
+    "capabilities": ["file-protocol-review"],
+    "priority": 25
+  },
+  "domain-design": {
+    "consumes": ["goal"],
+    "produces": ["skill-family-design"],
+    "capabilities": ["orchestrates-workflow", "designs-domains"],
+    "priority": 5
+  },
+  "enforce-style-guide": {
+    "consumes": ["code-changes"],
+    "produces": ["lint-results"],
+    "capabilities": ["gates-quality", "validates-style"],
+    "priority": 35
+  },
+  "fallback-planning": {
+    "consumes": ["phased-plan", "risk-surface"],
+    "produces": ["fallback-plan"],
+    "capabilities": ["generates-contingency"],
+    "priority": 15
+  },
+  "golden-agents": {
+    "consumes": ["repo-context"],
+    "produces": ["agents-config"],
+    "capabilities": ["generates-guidance"],
+    "priority": 20
+  },
+  "innovation": {
+    "consumes": ["challenge", "system-context"],
+    "produces": ["innovation-proposal"],
+    "capabilities": ["generates-ideas", "evaluates-options"],
+    "priority": 5
+  },
+  "quantitative-decision-gate": {
+    "consumes": ["challenge", "design-options"],
+    "produces": ["decision-matrix"],
+    "capabilities": ["quantifies-tradeoffs", "gates-decisions"],
+    "priority": 15
+  },
+  "skill-authoring": {
+    "consumes": ["goal", "skill-gap"],
+    "produces": ["new-skill"],
+    "capabilities": ["generates-skills", "validates-structure"],
+    "priority": 10
+  },
+  "superpowers-help": {
+    "consumes": [],
+    "produces": ["skill-catalog"],
+    "capabilities": ["enumerates-skills"],
+    "priority": 50
+  },
+  "think-twice": {
+    "consumes": ["challenge", "problem-statement"],
+    "produces": ["fresh-perspective", "decision-record"],
+    "capabilities": ["breaks-loops", "fresh-analysis"],
+    "priority": 5
+  },
+  "thinking-orchestrator": {
+    "consumes": ["challenge"],
+    "produces": ["routed-skill-output"],
+    "capabilities": ["routes-skills", "orchestrates-workflow"],
+    "priority": 3
+  },
+  "todo-archive": {
+    "consumes": ["todo-items"],
+    "produces": ["archived-tasks"],
+    "capabilities": ["archives-tasks", "searches-history"],
+    "priority": 40
+  },
+  "todo-guardian": {
+    "consumes": ["markdown-content"],
+    "produces": ["captured-loose-end"],
+    "capabilities": ["detects-deferral", "captures-todos"],
+    "priority": 10
+  },
+  "todo-management": {
+    "consumes": ["task-description"],
+    "produces": ["todo-items"],
+    "capabilities": ["manages-tasks"],
+    "priority": 15
+  },
+  "update-superpowers": {
+    "consumes": [],
+    "produces": ["updated-installation"],
+    "capabilities": ["updates-skills"],
+    "priority": 50
+  },
+  "expert-interviewer": {
+    "consumes": ["challenge", "domain-context"],
+    "produces": ["domain-knowledge", "interview-artifact"],
+    "capabilities": ["extracts-knowledge", "structures-interviews"],
+    "priority": 10
+  },
+  "incorporating-research": {
+    "consumes": ["research-results", "markdown-content"],
+    "produces": ["enriched-content"],
+    "capabilities": ["merges-research", "preserves-voice"],
+    "priority": 15
+  },
+  "perplexity-research": {
+    "consumes": ["challenge"],
+    "produces": ["research-results", "web-findings"],
+    "capabilities": ["searches-web", "synthesizes-sources"],
+    "priority": 10
+  },
+  "public-repo-ip-audit": {
+    "consumes": ["code-changes"],
+    "produces": ["ip-audit-report"],
+    "capabilities": ["scans-ip", "gates-quality"],
+    "priority": 30
+  },
+  "repo-security-scan": {
+    "consumes": ["code-changes", "repo-context"],
+    "produces": ["security-report"],
+    "capabilities": ["scans-secrets", "detects-vulnerabilities"],
+    "priority": 25
+  },
+  "security-upgrade": {
+    "consumes": ["code-changes"],
+    "produces": ["upgraded-dependencies"],
+    "capabilities": ["scans-cves", "upgrades-packages"],
+    "priority": 20
+  },
+  "wiki-orchestrator": {
+    "consumes": ["goal", "wiki-content"],
+    "produces": ["wiki-plan", "updated-wiki-content"],
+    "capabilities": ["orchestrates-workflow", "sequences-skills"],
+    "priority": 5
+  },
+  "wiki-verify": {
+    "consumes": ["wiki-content"],
+    "produces": ["verification-report"],
+    "capabilities": ["verifies-facts", "validates-completeness"],
+    "priority": 30
+  },
+  "detecting-ai-slop": {
+    "consumes": ["markdown-content"],
+    "produces": ["slop-score-report"],
+    "capabilities": ["analyzes-writing", "scores-quality"],
+    "priority": 30
+  },
+  "markdown-table-discipline": {
+    "consumes": ["markdown-content"],
+    "produces": ["validated-table"],
+    "capabilities": ["validates-markdown"],
+    "priority": 35
+  },
+  "plan-quality-gates": {
+    "consumes": ["phased-plan"],
+    "produces": ["plan-validation-report"],
+    "capabilities": ["validates-completeness", "gates-quality"],
+    "priority": 30
+  },
+  "professional-language-audit": {
+    "consumes": ["markdown-content"],
+    "produces": ["language-audit-report"],
+    "capabilities": ["scans-language", "gates-quality"],
+    "priority": 35
+  },
+  "readme-authoring": {
+    "consumes": ["system-context"],
+    "produces": ["readme-draft"],
+    "capabilities": ["generates-docs"],
+    "priority": 20
+  },
+  "writing-skills": {
+    "consumes": ["markdown-content"],
+    "produces": ["prose-quality-report"],
+    "capabilities": ["validates-prose", "reviews-content"],
+    "priority": 35
+  }
+}

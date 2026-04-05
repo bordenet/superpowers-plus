@@ -21,6 +21,11 @@ coordination:
   enables: [brainstorming, design-triad, plan-and-execute, test-driven-development]
   escalates_to: [think-twice, failure-autopsy]
   internal: false
+composition:
+  consumes: [goal, phased-plan]
+  produces: [todo-items, implementation]
+  capabilities: [orchestrates-workflow, sequences-skills]
+  priority: 3
 ---
 
 # Autonomous Chain Controller

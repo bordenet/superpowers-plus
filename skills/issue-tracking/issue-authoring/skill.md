@@ -12,6 +12,11 @@ coordination:
   enables: ['issue-verify']
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge, task-description]
+  produces: [created-issue]
+  capabilities: [creates-issues, validates-duplicates]
+  priority: 15
 ---
 
 # Issue Authoring

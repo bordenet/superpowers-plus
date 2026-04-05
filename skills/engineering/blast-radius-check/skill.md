@@ -12,6 +12,11 @@ coordination:
   enables: ["field-rename-verification"]
   escalates_to: ["engineering-rigor"]
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [impact-analysis]
+  capabilities: [analyzes-code, traces-consumers]
+  priority: 10
 ---
 
 # Blast Radius Check
