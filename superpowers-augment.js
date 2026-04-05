@@ -292,6 +292,84 @@ function findSkills(filterMode = 'all') {
 }
 
 
+/**
+ * Resolve a skill name (possibly with namespace prefix) to a file path.
+ *
+ * Namespace prefixes:
+ *   superpowers:name → obra/superpowers skills only
+ *   spp:name         → superpowers-plus source repo only
+ *   spo:name         → overlay source repo only
+ *   (no prefix)      → personal dir → superpowers dir → alias fallback
+ *
+ * Dash shorthands: sp-X → superpowers-X, spp-X → spp:superpowers-X
+ *
+ * @param {string} skillName - Raw skill name (possibly with prefix)
+ * @returns {{ skillFile: string|null, actualName: string }} Resolved file and canonical name
+ */
+function resolveSkillNamespace(skillName) {
+    let forceSuperpowers = skillName.startsWith('superpowers:');
+    let forceSpp = skillName.startsWith('spp:');
+    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');
+    let actualName;
+
+    // Dash shorthand expansion
+    if (!forceSuperpowers && !forceSpp && !forceSpo) {
+        if (skillName.startsWith('spp-')) {
+            forceSpp = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {
+            forceSpo = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('sp-')) {
+            actualName = 'superpowers-' + skillName.slice(3);
+        }
+    }
+
+    if (!actualName) {
+        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
+        else actualName = skillName;
+    }
+
+    let skillFile = null;
+
+    if (forceSpp) {
+        if (!SPP_SOURCE_DIR) return { skillFile: null, actualName, error: 'SPP_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
+    } else if (forceSpo) {
+        if (!OVERLAY_SOURCE_DIR) return { skillFile: null, actualName, error: 'SP_OVERLAY_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
+    } else if (!forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) {
+            skillFile = personalFile;
+        } else {
+            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
+        }
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
+        const superpowersFile = findSkillFile(superpowersDir);
+        if (superpowersFile) skillFile = superpowersFile;
+    }
+
+    if (!skillFile && forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) skillFile = personalFile;
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        skillFile = resolveAlias(actualName);
+    }
+
+    return { skillFile, actualName };
+}
+
+
 function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
@@ -317,92 +395,17 @@ function useSkill(skillName, options = {}) {
         // Don't block — still load the skill, but the warning is impossible to miss
     }
 
-    // Namespace prefix resolution
-    // superpowers:name → obra/superpowers skills only
-    // spp:name         → superpowers-plus source repo only
-    // spo:name         → overlay source repo only (set SP_OVERLAY_SOURCE_DIR)
-    // name (no prefix) → installed dir (overlay overrides plus) → obra
-    //
-    // Dash shorthand (prefix expansion for fewer keystrokes):
-    // sp-X   → expands to superpowers-X, normal resolution
-    // spp-X  → expands to superpowers-X, spp: resolution
-    // spo-X  → expands to superpowers-X, spo: resolution
-    let forceSuperpowers = skillName.startsWith('superpowers:');
-    let forceSpp = skillName.startsWith('spp:');
-    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');  // spc: backward compat
-    let actualName;
+    // Resolve namespace prefix → file path
+    const resolved = resolveSkillNamespace(skillName);
+    const { actualName } = resolved;
+    let { skillFile } = resolved;
 
-    // Dash shorthand expansion: spp-X → spp:superpowers-X, spo-X → spo:superpowers-X, sp-X → superpowers-X
-    if (!forceSuperpowers && !forceSpp && !forceSpo) {
-        if (skillName.startsWith('spp-')) {
-            forceSpp = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {  // spc- backward compat
-            forceSpo = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('sp-')) {
-            actualName = 'superpowers-' + skillName.slice(3);
-        }
-    }
-
-    if (!actualName) {
-        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
-        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
-        else actualName = skillName;
-    }
-
-    let skillFile = null;
-
-    if (forceSpp) {
-        // spp: → search superpowers-plus source repo only
-        if (!SPP_SOURCE_DIR) {
-            console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
-    } else if (forceSpo) {
-        // spo: → search overlay source repo only
-        if (!OVERLAY_SOURCE_DIR) {
-            console.error('Error: spo: prefix used but overlay source repo not found.');
-            console.error('Set SP_OVERLAY_SOURCE_DIR env var to point to your overlay skill repo');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
-    } else if (!forceSuperpowers) {
-        // No prefix → personal/installed dir first (overlay overrides plus)
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) {
-            skillFile = personalFile;
-        } else {
-            // Domain-grouped fallback: skills/{domain}/{name}/skill.md
-            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
-        }
-    }
-
-    if (!skillFile && !forceSpp && !forceSpo) {
-        // Fall through to obra/superpowers
-        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
-        const superpowersFile = findSkillFile(superpowersDir);
-        if (superpowersFile) skillFile = superpowersFile;
-    }
-    // Fallback: if superpowers: prefix was used but skill not found in superpowers dir,
-    // check personal dir too (personal skills with triggers are listed as superpowers)
-    if (!skillFile && forceSuperpowers) {
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
-    }
-    // Alias fallback: scan all installed skills for a matching alias (case-insensitive)
-    if (!skillFile && !forceSpp && !forceSpo) {
-        skillFile = resolveAlias(actualName);
+    if (resolved.error) {
+        console.error('Error: ' + resolved.error);
+        process.exit(1);
     }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
-        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         const suggestions = suggestSimilarSkills(actualName);
         if (suggestions.length > 0) {
             console.error('Did you mean: ' + suggestions.join(', ') + '?');
