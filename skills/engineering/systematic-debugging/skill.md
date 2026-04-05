@@ -15,6 +15,11 @@ coordination:
   enables: ["investigation-state", "think-twice"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
+composition:
+  consumes: [challenge, code-changes]
+  produces: [root-cause, investigation-log]
+  capabilities: [debugs-issues, analyzes-code]
+  priority: 10
 ---
 
 # Systematic Debugging

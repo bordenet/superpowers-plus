@@ -8,44 +8,71 @@ PASS=0; FAIL=0
 fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
 
+# Verify consumer is wired to lib/frontmatter.js (import check)
+check_consumer_wiring() {
+    local label="$1"
+    local source_file="$2"
+    local pattern="$3"
+    if grep -q "$pattern" "$source_file"; then
+        pass "$label imports extractFrontmatter from lib/frontmatter.js"
+    else
+        fail "$label: wiring not found — expected '$pattern' in $source_file"
+    fi
+}
+
+# Behavioral parser check
+# - JS consumers: require lib/frontmatter.js directly (single source of truth)
+# - Shell consumers (install-augment-superpowers.sh): VM-slice their inline parser
 run_parser_check() {
     local label="$1"
     local source_file="$2"
     local expect_requires_mcp="$3"
 
-    if PARSER_SOURCE="$source_file" TEST_SKILL="$TEST_SKILL" EXPECT_REQUIRES_MCP="$expect_requires_mcp" node <<'NODE'
+    # For install-augment-superpowers.sh: VM-slice the inline parser
+    if [[ "$source_file" == *.sh ]]; then
+        if PARSER_SOURCE="$source_file" TEST_SKILL="$TEST_SKILL" EXPECT_REQUIRES_MCP="$expect_requires_mcp" node <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
-
 const sourcePath = process.env.PARSER_SOURCE;
 const testSkill = process.env.TEST_SKILL;
 const expectRequiresMcp = process.env.EXPECT_REQUIRES_MCP === 'yes';
 const source = fs.readFileSync(sourcePath, 'utf8');
-
-let start = source.indexOf('function parseInlineArray(value) {');
-let end = source.indexOf('\nfunction compressSkillContent(', start);
-if (start === -1 || end === -1) {
-  start = source.indexOf('function extractFrontmatter(filePath) {');
-  end = source.indexOf('\nfunction findSkillFile(', start);
-}
-if (start === -1 || end === -1) {
-  throw new Error(`Could not locate parser block in ${sourcePath}`);
-}
-
-const context = { fs, console };
-vm.createContext(context);
+let start = source.indexOf('function extractFrontmatter(filePath) {');
+let end = source.indexOf('\nfunction findSkillFile(', start);
+if (start === -1 || end === -1) throw new Error(`Could not locate parser block in ${sourcePath}`);
+const context = { fs, console }; vm.createContext(context);
 vm.runInContext(source.slice(start, end), context);
-
 const meta = context.extractFrontmatter(testSkill);
+const triggers = Array.from(meta.triggers || []);
+assert.deepStrictEqual(triggers, ['first trigger', 'second trigger']);
+if (expectRequiresMcp) {
+  const requiresMcp = Array.from(meta.requires_mcp || []);
+  assert.deepStrictEqual(requiresMcp, ['linear', 'github-api']);
+}
+NODE
+        then
+            pass "$label parses multiline frontmatter"
+        else
+            fail "$label failed multiline frontmatter smoke test"
+        fi
+        return
+    fi
+
+    # For JS consumers: use lib/frontmatter.js directly (they delegate to it)
+    if TEST_SKILL="$TEST_SKILL" EXPECT_REQUIRES_MCP="$expect_requires_mcp" ROOT_DIR="$ROOT_DIR" node <<'NODE'
+const assert = require('assert');
+const { extractFrontmatter } = require(process.env.ROOT_DIR + '/lib/frontmatter');
+const testSkill = process.env.TEST_SKILL;
+const expectRequiresMcp = process.env.EXPECT_REQUIRES_MCP === 'yes';
+
+const meta = extractFrontmatter(testSkill);
 const triggers = Array.from(meta.triggers || []);
 assert.deepStrictEqual(triggers, ['first trigger', 'second trigger']);
 
 if (expectRequiresMcp) {
   const requiresMcp = Array.from(meta.requires_mcp || []);
   assert.deepStrictEqual(requiresMcp, ['linear', 'github-api']);
-} else {
-  assert.ok(!('requires_mcp' in meta));
 }
 NODE
     then
@@ -55,43 +82,49 @@ NODE
     fi
 }
 
+# Behavioral malformed-bracket guard check using lib/frontmatter.js directly
 run_malformed_bracket_check() {
     local label="$1"
     local source_file="$2"
 
-    if PARSER_SOURCE="$source_file" MALFORMED_SKILL="$MALFORMED_SKILL" node <<'NODE'
+    # For install-augment-superpowers.sh (still has inline parser): use VM-slice approach
+    if [[ "$source_file" == *.sh ]]; then
+        if PARSER_SOURCE="$source_file" MALFORMED_SKILL="$MALFORMED_SKILL" node <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
-
 const sourcePath = process.env.PARSER_SOURCE;
 const testSkill = process.env.MALFORMED_SKILL;
 const source = fs.readFileSync(sourcePath, 'utf8');
-
-let start = source.indexOf('function parseInlineArray(value) {');
-let end = source.indexOf('\nfunction compressSkillContent(', start);
-if (start === -1 || end === -1) {
-  start = source.indexOf('function extractFrontmatter(filePath) {');
-  end = source.indexOf('\nfunction findSkillFile(', start);
-}
-if (start === -1 || end === -1) {
-  throw new Error(`Could not locate parser block in ${sourcePath}`);
-}
-
-const context = { fs, console };
-vm.createContext(context);
+let start = source.indexOf('function extractFrontmatter(filePath) {');
+let end = source.indexOf('\nfunction findSkillFile(', start);
+if (start === -1 || end === -1) throw new Error(`Could not locate parser block in ${sourcePath}`);
+const context = { fs, console }; vm.createContext(context);
 vm.runInContext(source.slice(start, end), context);
-
 const meta = context.extractFrontmatter(testSkill);
+assert.strictEqual(meta.description, 'payload correctly parsed', `desc: "${meta.description}"`);
+const trigs = Array.from(meta.triggers || []);
+assert.deepStrictEqual(trigs, [], `triggers: ${JSON.stringify(trigs)}`);
+NODE
+        then
+            pass "$label malformed-bracket guard preserves subsequent fields (triggerAccum)"
+        else
+            fail "$label malformed-bracket guard: description was swallowed or triggers non-empty"
+        fi
+        return
+    fi
+
+    # For JS consumers: test behavior via lib/frontmatter.js (single source of truth)
+    if MALFORMED_SKILL="$MALFORMED_SKILL" ROOT_DIR="$ROOT_DIR" node <<'NODE'
+const assert = require('assert');
+const { extractFrontmatter } = require(process.env.ROOT_DIR + '/lib/frontmatter');
+const testSkill = process.env.MALFORMED_SKILL;
+const meta = extractFrontmatter(testSkill);
 // Guarded parser: description placed AFTER unclosed triggers bracket must survive.
-// Both augment and installer parse `triggers` via triggerAccum — this is the real
-// discriminating field. Old parser swallows description; guarded parser preserves it.
-assert.strictEqual(meta.description, 'payload correctly parsed',
-  `description should be preserved; got: "${meta.description}"`);
+assert.strictEqual(meta.description, 'payload correctly parsed', `desc: "${meta.description}"`);
 // Triggers must be empty — bracket never closed, accumulation abandoned
 const trigs = Array.from(meta.triggers || []);
-assert.deepStrictEqual(trigs, [],
-  `triggers should be empty after guard abandonment; got: ${JSON.stringify(trigs)}`);
+assert.deepStrictEqual(trigs, [], `triggers: ${JSON.stringify(trigs)}`);
 NODE
     then
         pass "$label malformed-bracket guard preserves subsequent fields (triggerAccum)"
@@ -122,8 +155,13 @@ requires_mcp:
 Body.
 EOF
 
+# Wiring checks: confirm JS consumers import from lib/frontmatter.js
+check_consumer_wiring "superpowers-augment" "$ROOT_DIR/superpowers-augment.js" "require.*lib/frontmatter"
+check_consumer_wiring "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" "require.*lib/frontmatter"
+
+# Behavioral parser checks (all JS consumers now delegate to lib/frontmatter.js)
 run_parser_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js" yes
-run_parser_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" no
+run_parser_check "superpowers-mcp" "$ROOT_DIR/mcp/superpowers-mcp.js" yes
 run_parser_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh" yes
 
 # Malformed-bracket guard: description appears AFTER an unclosed triggers bracket.
@@ -146,7 +184,7 @@ EOF
 run_malformed_bracket_check "superpowers-augment" "$ROOT_DIR/superpowers-augment.js"
 run_malformed_bracket_check "install-augment-superpowers" "$ROOT_DIR/install-augment-superpowers.sh"
 
-# augment antiAccum: malformed anti_triggers bracket; description must survive
+# antiAccum: malformed anti_triggers bracket; description must survive (via lib/frontmatter.js)
 MALFORMED_ANTI_SKILL="$TMP_DIR/malformed-anti-skill.md"
 cat > "$MALFORMED_ANTI_SKILL" <<'EOF'
 ---
@@ -157,24 +195,17 @@ description:"anti-guard payload parsed"
 ---
 Body.
 EOF
-if PARSER_SOURCE="$ROOT_DIR/superpowers-augment.js" MALFORMED_SKILL="$MALFORMED_ANTI_SKILL" node <<'NODE'
+if MALFORMED_SKILL="$MALFORMED_ANTI_SKILL" ROOT_DIR="$ROOT_DIR" node <<'NODE'
 const assert = require('assert');
-const fs = require('fs');
-const vm = require('vm');
-const source = fs.readFileSync(process.env.PARSER_SOURCE, 'utf8');
-let start = source.indexOf('function parseInlineArray(value) {');
-let end = source.indexOf('\nfunction compressSkillContent(', start);
-if (start === -1 || end === -1) { start = source.indexOf('function extractFrontmatter(filePath) {'); end = source.indexOf('\nfunction findSkillFile(', start); }
-if (start === -1 || end === -1) throw new Error('Could not locate parser block');
-const ctx = { fs, console }; vm.createContext(ctx); vm.runInContext(source.slice(start, end), ctx);
-const meta = ctx.extractFrontmatter(process.env.MALFORMED_SKILL);
+const { extractFrontmatter } = require(process.env.ROOT_DIR + '/lib/frontmatter');
+const meta = extractFrontmatter(process.env.MALFORMED_SKILL);
 assert.strictEqual(meta.description, 'anti-guard payload parsed', `desc: "${meta.description}"`);
 assert.deepStrictEqual(Array.from(meta.anti_triggers || []), [], `anti: ${JSON.stringify(meta.anti_triggers)}`);
 NODE
-then pass "superpowers-augment malformed-bracket guard preserves subsequent fields (antiAccum)"
-else fail "superpowers-augment antiAccum guard: description swallowed or anti_triggers non-empty"; fi
+then pass "lib/frontmatter malformed-bracket guard preserves subsequent fields (antiAccum)"
+else fail "lib/frontmatter antiAccum guard: description swallowed or anti_triggers non-empty"; fi
 
-# augment mcpAccum: malformed requires_mcp bracket; description must survive
+# mcpAccum: malformed requires_mcp bracket; description must survive (via lib/frontmatter.js)
 MALFORMED_MCP_AUGMENT="$TMP_DIR/malformed-mcp-augment-skill.md"
 cat > "$MALFORMED_MCP_AUGMENT" <<'EOF'
 ---
@@ -185,22 +216,15 @@ description:"mcp-augment payload parsed"
 ---
 Body.
 EOF
-if PARSER_SOURCE="$ROOT_DIR/superpowers-augment.js" MALFORMED_SKILL="$MALFORMED_MCP_AUGMENT" node <<'NODE'
+if MALFORMED_SKILL="$MALFORMED_MCP_AUGMENT" ROOT_DIR="$ROOT_DIR" node <<'NODE'
 const assert = require('assert');
-const fs = require('fs');
-const vm = require('vm');
-const source = fs.readFileSync(process.env.PARSER_SOURCE, 'utf8');
-let start = source.indexOf('function parseInlineArray(value) {');
-let end = source.indexOf('\nfunction compressSkillContent(', start);
-if (start === -1 || end === -1) { start = source.indexOf('function extractFrontmatter(filePath) {'); end = source.indexOf('\nfunction findSkillFile(', start); }
-if (start === -1 || end === -1) throw new Error('Could not locate parser block');
-const ctx = { fs, console }; vm.createContext(ctx); vm.runInContext(source.slice(start, end), ctx);
-const meta = ctx.extractFrontmatter(process.env.MALFORMED_SKILL);
+const { extractFrontmatter } = require(process.env.ROOT_DIR + '/lib/frontmatter');
+const meta = extractFrontmatter(process.env.MALFORMED_SKILL);
 assert.strictEqual(meta.description, 'mcp-augment payload parsed', `desc: "${meta.description}"`);
 assert.deepStrictEqual(Array.from(meta.requires_mcp || []), [], `mcp: ${JSON.stringify(meta.requires_mcp)}`);
 NODE
-then pass "superpowers-augment malformed-bracket guard preserves subsequent fields (mcpAccum)"
-else fail "superpowers-augment mcpAccum guard: description swallowed or requires_mcp non-empty"; fi
+then pass "lib/frontmatter malformed-bracket guard preserves subsequent fields (mcpAccum)"
+else fail "lib/frontmatter mcpAccum guard: description swallowed or requires_mcp non-empty"; fi
 
 # Installer mcpAccum path: requires_mcp is the second accumulator unique to the installer.
 # Use a malformed requires_mcp bracket to verify the mcpAccum guard.

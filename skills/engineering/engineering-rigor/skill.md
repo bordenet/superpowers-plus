@@ -12,6 +12,11 @@ coordination:
   enables: ['pre-commit-gate', 'blast-radius-check']
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [rigor-checklist]
+  capabilities: [enforces-standards]
+  priority: 20
 ---
 
 # Engineering Rigor

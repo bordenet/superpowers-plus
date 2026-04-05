@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { parseFrontmatter, parseInlineArray, extractStringValue, findSkillFile } = require('../lib/frontmatter');
+const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile } = require('../lib/frontmatter');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,15 +29,15 @@ arrEq(parseInlineArray('[]'), [], 'empty array');
 arrEq(parseInlineArray('[unquoted, values]'), ['unquoted', 'values'], 'unquoted values');
 arrEq(parseInlineArray('["a\\\\b"]'), ['a\\b'], 'escaped backslash in array');
 
-// --- extractStringValue ---
-console.log('\n--- extractStringValue ---');
-eq(extractStringValue('"hello"'), 'hello', 'simple double-quoted');
-eq(extractStringValue("'hello'"), 'hello', 'simple single-quoted');
-eq(extractStringValue('plain text'), 'plain text', 'unquoted');
-eq(extractStringValue('"User says \\"build X\\""'), 'User says "build X"', 'escaped double-quotes');
-eq(extractStringValue('"path\\\\to\\\\file"'), 'path\\to\\file', 'escaped backslashes');
-eq(extractStringValue(''), '', 'empty string');
-eq(extractStringValue('"  spaced  "'), '  spaced  ', 'preserves internal spaces');
+// --- unquoteYaml ---
+console.log('\n--- unquoteYaml ---');
+eq(unquoteYaml('"hello"'), 'hello', 'simple double-quoted');
+eq(unquoteYaml("'hello'"), 'hello', 'simple single-quoted');
+eq(unquoteYaml('plain text'), 'plain text', 'unquoted');
+eq(unquoteYaml('"User says \\"build X\\""'), 'User says "build X"', 'escaped double-quotes');
+eq(unquoteYaml('"path\\\\to\\\\file"'), 'path\\to\\file', 'escaped backslashes');
+eq(unquoteYaml(''), '', 'empty string');
+eq(unquoteYaml('"  spaced  "'), '  spaced  ', 'preserves internal spaces');
 
 // --- parseFrontmatter: basic ---
 console.log('\n--- parseFrontmatter: basic ---');
@@ -132,12 +132,10 @@ const malformed = parseFrontmatter(malformedBracket);
 arrEq(malformed.anti_triggers, [], 'malformed unclosed bracket → empty anti_triggers (safe fallback)');
 eq(malformed.description, 'should still be parsed', 'field after malformed bracket still parsed correctly');
 
-// --- parseFrontmatter: bracket-multiline (known limitation) ---
-console.log('\n--- parseFrontmatter: bracket-multiline (known limitation) ---');
-// lib/frontmatter.js intentionally uses inline-only matching for arrays.
-// Bracket-multiline format (opening [ on one line, closing ] on another) is NOT
-// supported — the array is returned as empty. Consumers that need bracket-multiline
-// (superpowers-augment.js, superpowers-mcp.js) use accumulator-based parsers.
+// --- parseFrontmatter: bracket-multiline ---
+console.log('\n--- parseFrontmatter: bracket-multiline ---');
+// lib/frontmatter.js uses accumulator-based parsing for bracket-multiline arrays.
+// Opening [ on one line, closing ] on another — fully supported.
 const bracketMultiline = `---
 name: bmulti
 anti_triggers: ["first",
@@ -145,7 +143,7 @@ anti_triggers: ["first",
 ---
 # Body`;
 const bmulti = parseFrontmatter(bracketMultiline);
-arrEq(bmulti.anti_triggers, [], 'bracket-multiline not supported in reference parser (returns empty — known limitation)');
+arrEq(bmulti.anti_triggers, ['first', 'second'], 'bracket-multiline array parsed correctly');
 
 // --- findSkillFile ---
 console.log('\n--- findSkillFile ---');
@@ -190,9 +188,9 @@ function stripFrontmatter(content) {
     const result = [];
     for (const line of lines) {
         if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
+            if (inFrontmatter && !frontmatterEnded) { frontmatterEnded = true; continue; }
+            if (!frontmatterEnded) { inFrontmatter = true; continue; }
+            // frontmatterEnded=true: body '---' — fall through to push
         }
         if (frontmatterEnded || !inFrontmatter) result.push(line);
     }
@@ -208,6 +206,52 @@ eq(stripFrontmatter("---\r\nname: x\n---\rBody\nLine2"), 'Body\nLine2', 'stripFr
 eq(stripFrontmatter("Just body text"), 'Just body text', 'stripFrontmatter: no frontmatter');
 // No trailing newline
 eq(stripFrontmatter("---\nname: x\n---\nBody"), 'Body', 'stripFrontmatter: no trailing newline');
+// Body contains --- horizontal rule (regression: was silently dropped)
+eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfter', 'stripFrontmatter: body --- preserved');
+
+// --- Error path tests ---
+console.log('\n-- Error paths --');
+
+// extractFrontmatter with nonexistent file returns defaults
+const { extractFrontmatter } = require('../lib/frontmatter');
+const efResult = extractFrontmatter('/nonexistent/skill.md');
+eq(efResult.name, '', 'extractFrontmatter: nonexistent file returns empty name');
+assert(Array.isArray(efResult.triggers) && efResult.triggers.length === 0,
+    'extractFrontmatter: nonexistent file returns empty triggers array');
+
+// Empty frontmatter block
+const emptyFm = parseFrontmatter('');
+eq(emptyFm.name, '', 'parseFrontmatter: empty string returns empty name');
+
+// Malformed YAML (missing closing ---) — parser is lenient, still extracts fields
+const malformedResult = parseFrontmatter('---\nname: test\nno closing fence');
+eq(malformedResult.name, 'test', 'parseFrontmatter: lenient — extracts name without closing ---');
+
+// Completely empty file returns defaults
+const emptyFile = parseFrontmatter('\n\n\n');
+eq(emptyFile.name, '', 'parseFrontmatter: whitespace-only returns empty name');
+assert(Array.isArray(emptyFile.triggers), 'parseFrontmatter: whitespace-only returns triggers array');
+
+// extractFrontmatter with file containing no frontmatter
+const os = require('os');
+const tmpNoFm = path.join(os.tmpdir(), 'no-fm-test.md');
+fs.writeFileSync(tmpNoFm, '# Just a header\nSome content\n');
+const noFmResult = extractFrontmatter(tmpNoFm);
+eq(noFmResult.name, '', 'extractFrontmatter: file without frontmatter returns empty name');
+fs.unlinkSync(tmpNoFm);
+
+// Composition multiline YAML list parsing
+const tmpComp = path.join(os.tmpdir(), 'comp-test.md');
+fs.writeFileSync(tmpComp, '---\nname: comp-test\ncomposition:\n  produces:\n    - artifact-a\n    - artifact-b\n  consumes:\n    - input-x\n  priority: 10\n  optional: true\n---\n');
+const compResult = extractFrontmatter(tmpComp);
+assert(compResult.composition !== null, 'composition: parsed from multiline YAML');
+assert(Array.isArray(compResult.composition.produces), 'composition: produces is array');
+eq(compResult.composition.produces.length, 2, 'composition: 2 produces');
+eq(compResult.composition.produces[0], 'artifact-a', 'composition: first produce');
+eq(compResult.composition.consumes[0], 'input-x', 'composition: first consume');
+eq(compResult.composition.priority, 10, 'composition: priority parsed as number');
+eq(compResult.composition.optional, true, 'composition: optional parsed as boolean');
+fs.unlinkSync(tmpComp);
 
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);

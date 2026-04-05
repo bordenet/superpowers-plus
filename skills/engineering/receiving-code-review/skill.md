@@ -17,6 +17,11 @@ coordination:
   enables: [code-review-respond]
   escalates_to: [think-twice]
   internal: false
+composition:
+  consumes: [review-feedback]
+  produces: [code-changes]
+  capabilities: [implements-feedback]
+  priority: 15
 ---
 # Code Review Reception
 
