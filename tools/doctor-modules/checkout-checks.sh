@@ -125,7 +125,19 @@ check_dirty_checkout() {
   if [[ "$safe_count" -gt 0 ]]; then
     echo "🔵 INFO: $label — $safe_count generated/install artifact(s) (safe to clean)"
     if can_fix moderate; then
+      # Remove gitignored files first
       git -C "$dir" clean -fdX --quiet 2>/dev/null || true
+      # Also remove untracked safe-pattern files/dirs (e.g. modules/) that are not gitignored
+      while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        # porcelain lines: "?? path" or "?? dir/" — strip the leading status chars
+        artifact="${line#\?\? }"
+        artifact="${artifact#"$dir/"}"
+        full_path="$dir/$artifact"
+        # Strip trailing slash for the path check
+        full_path="${full_path%/}"
+        [[ -e "$full_path" ]] && rm -rf "$full_path"
+      done <<< "$safe_changes"
       echo "  ✅ FIXED: cleaned generated artifacts"; ((FIXED++))
     fi
   fi
