@@ -30,6 +30,9 @@ const { extractFrontmatter, findSkillFile, stripFrontmatter } = require('./lib/f
 // Unified skill discovery — single source of truth for directory scanning + dedup
 const { findSkillsInDir, deduplicateSkills, findAllSkills } = require('./lib/skill-discovery');
 
+// Shared compression — single source of truth for content stripping
+const { compressSkillContent } = require('./lib/compress');
+
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
@@ -497,43 +500,7 @@ function useSkill(skillName, options = {}) {
  * procedures, code examples, tables with data.
  * Per-skill opt-out: add `compress: false` to YAML frontmatter.
  */
-// Sections to strip — heading text patterns that are boilerplate/routing info.
-// "Failure Modes" and "SUBAGENT-STOP" are deliberately EXCLUDED (operational).
-const STRIP_SECTIONS = [
-    'When to Use', 'Overview', 'Common Rationalizations',
-    'Why (?:Order|This|It) Matters', 'Quick Reference',
-    'Related Skills', 'Cross[- ]?References', 'Integration with .*',
-    'Reference Files', 'When This Skill Fires', 'When NOT to Use',
-    'Manual Invocation', 'Incident Log', "I'm Stuck",
-];
-
-function compressSkillContent(text) {
-    let result = text;
-
-    // Strip DOT graphs (not renderable in context)
-    result = result.replace(/```dot[\s\S]*?```/g, '');
-
-    // Unwrap EXTREMELY-IMPORTANT wrappers (keep inner content)
-    result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
-
-    // Strip boilerplate heading sections (table-driven)
-    for (const heading of STRIP_SECTIONS) {
-        const midDoc = new RegExp(`##+ ${heading}[\\s\\S]*?(?=\\n## |\\n# )`, 'g');
-        const atEnd = new RegExp(`##+ ${heading}[\\s\\S]*$`, 'g');
-        result = result.replace(midDoc, '');
-        result = result.replace(atEnd, '');
-    }
-
-    // Strip YAML frontmatter (already parsed), horizontal rules, HTML comments
-    result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
-    result = result.replace(/\n---\n/g, '\n');
-    result = result.replace(/<!--[\s\S]*?-->/g, '');
-
-    // Collapse excessive blank lines
-    result = result.replace(/\n{3,}/g, '\n\n');
-
-    return result.trim();
-}
+// compressSkillContent imported from lib/compress.js (see imports at top)
 
 function bootstrap() {
     writeSessionMarker();
