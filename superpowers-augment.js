@@ -236,6 +236,9 @@ function findSkillsInDir(dir, sourceType) {
                 skillDir,
                 tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
             });
+        } else {
+            // Recurse one level for domain-grouped layouts: skills/{domain}/{name}/skill.md
+            skills.push(...findSkillsInDir(skillDir, sourceType));
         }
     }
     return skills;
@@ -436,7 +439,12 @@ function useSkill(skillName, options = {}) {
         // No prefix → personal/installed dir first (overlay overrides plus)
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
         const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
+        if (personalFile) {
+            skillFile = personalFile;
+        } else {
+            // Domain-grouped fallback: skills/{domain}/{name}/skill.md
+            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
+        }
     }
 
     if (!skillFile && !forceSpp && !forceSpo) {
