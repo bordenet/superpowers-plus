@@ -41,43 +41,15 @@ const { extractFrontmatter, stripFrontmatter } = require('../lib/frontmatter');
 // Unified skill discovery — shared with superpowers-augment.js
 const { findSkillsInDir, findAllSkills } = require('../lib/skill-discovery');
 
+// Shared compression — single source of truth
+const { compressSkillContent } = require('../lib/compress');
+
 // Multi-source skill directories (personal overrides superpowers)
 const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
 
 // Legacy single-dir compat
 const skillsDir = PERSONAL_SKILLS_DIR;
-
-/**
- * Compress skill content by stripping boilerplate.
- * Ported from superpowers-augment.js for token efficiency.
- */
-function compressSkillContent(text) {
-  let result = text;
-  result = result.replace(/```dot[\s\S]*?```/g, '');
-  result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
-  result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## When to Use[\s\S]*$/g, '');
-  result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Overview\n[\s\S]*$/g, '');
-  result = result.replace(/## Common Rationalizations[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Why [^\n]+ Matters[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Quick Reference[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Related Skills[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Cross-References[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Integration with [^\n]*[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Reference Files[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## When NOT to Use[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Manual Invocation[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## Incident Log[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/## I'm Stuck[\s\S]*?(?=\n## )/g, '');
-  result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
-  result = result.replace(/\n---\n/g, '\n');
-  result = result.replace(/<!--[\s\S]*?-->/g, '');
-  result = result.replace(/\n{3,}/g, '\n\n');
-  return result.trim();
-}
 
 // stripFrontmatter — imported from lib/frontmatter (see top of file)
 // findSkillsInDir, findAllSkills — imported from lib/skill-discovery (see top of file)

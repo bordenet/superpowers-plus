@@ -6,7 +6,7 @@
 
 'use strict';
 
-const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile } = require('../lib/frontmatter');
+const { parseFrontmatter, parseInlineArray, unquoteYaml, findSkillFile, validateFrontmatter, extractFrontmatter, stripFrontmatter } = require('../lib/frontmatter');
 const fs = require('fs');
 const path = require('path');
 
@@ -178,24 +178,8 @@ walkDir(skillsDir);
 assert(realCount >= 50, `Parsed ${realCount} real skills (≥50)`);
 eq(emptyDesc, 0, `No empty/broken descriptions in ${realCount} skills`);
 
-// --- stripFrontmatter parity (inline implementation matching all 3 consumers) ---
+// --- stripFrontmatter parity (using production export from lib/frontmatter.js) ---
 console.log('\n--- stripFrontmatter CRLF parity ---');
-// Replicate the shared stripFrontmatter logic used by augment.js, MCP, and install-augment
-function stripFrontmatter(content) {
-    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    let inFrontmatter = false;
-    let frontmatterEnded = false;
-    const result = [];
-    for (const line of lines) {
-        if (line.trim() === '---') {
-            if (inFrontmatter && !frontmatterEnded) { frontmatterEnded = true; continue; }
-            if (!frontmatterEnded) { inFrontmatter = true; continue; }
-            // frontmatterEnded=true: body '---' — fall through to push
-        }
-        if (frontmatterEnded || !inFrontmatter) result.push(line);
-    }
-    return result.join('\n').trim();
-}
 // CRLF
 eq(stripFrontmatter("---\r\nname: x\r\n---\r\nBody\r\nLine2"), 'Body\nLine2', 'stripFrontmatter: CRLF');
 // CR-only
@@ -213,7 +197,6 @@ eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfte
 console.log('\n-- Error paths --');
 
 // extractFrontmatter with nonexistent file returns defaults
-const { extractFrontmatter } = require('../lib/frontmatter');
 const efResult = extractFrontmatter('/nonexistent/skill.md');
 eq(efResult.name, '', 'extractFrontmatter: nonexistent file returns empty name');
 assert(Array.isArray(efResult.triggers) && efResult.triggers.length === 0,
@@ -321,6 +304,232 @@ console.log('\n--- parseFrontmatter: defaults sync check ---');
 const parseDefKeys = Object.keys(parseFrontmatter('')).sort();
 const errorDefKeys = Object.keys(extractFrontmatter('/nonexistent/x.md')).sort();
 arrEq(parseDefKeys, errorDefKeys, 'parse defaults and error-path defaults have same keys');
+
+// --- validateFrontmatter ---
+console.log('\n--- validateFrontmatter: valid skill ---');
+{
+    const fm = parseFrontmatter(`---
+name: test-skill
+description: A test skill
+triggers: ["a", "b"]
+anti_triggers: ["c"]
+compress: true
+---
+# Body`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid frontmatter produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: missing name ---');
+{
+    const fm = parseFrontmatter('---\ndescription: test\n---');
+    const warnings = validateFrontmatter(fm, 'test.md');
+    assert(warnings.length > 0, 'missing name produces warnings');
+    assert(warnings[0].includes('name'), 'warning mentions name');
+    assert(warnings[0].includes('test.md'), 'warning includes source');
+}
+
+console.log('\n--- validateFrontmatter: valid composition ---');
+{
+    const fm = parseFrontmatter(`---
+name: composable-skill
+triggers: ["x"]
+composition:
+  produces: ["artifact-a"]
+  consumes: ["user-intent"]
+  capabilities: ["cap-1"]
+  priority: 10
+  optional: false
+  requires_all: true
+---`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid composition produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: unknown composition key (DEBUG-gated) ---');
+{
+    const fm = parseFrontmatter(`---
+name: bad-comp
+triggers: []
+composition:
+  produces: ["x"]
+  typo_key: true
+---`);
+    // Unknown keys are only flagged when DEBUG is set
+    const oldDebug = process.env.DEBUG;
+    process.env.DEBUG = '1';
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('typo_key')), 'unknown composition key flagged with DEBUG');
+    if (oldDebug !== undefined) process.env.DEBUG = oldDebug;
+    else delete process.env.DEBUG;
+}
+
+console.log('\n--- validateFrontmatter: valid coordination ---');
+{
+    const fm = parseFrontmatter(`---
+name: coordinated-skill
+triggers: ["y"]
+coordination:
+  group: commit-gates
+  order: 1
+  requires: ["pre-commit-gate"]
+  enables: ["post-commit"]
+  escalates_to: ["think-twice"]
+  internal: false
+---`);
+    const warnings = validateFrontmatter(fm);
+    eq(warnings.length, 0, 'valid coordination produces no warnings');
+}
+
+console.log('\n--- validateFrontmatter: unknown coordination key (DEBUG-gated) ---');
+{
+    const fm = parseFrontmatter(`---
+name: bad-coord
+triggers: []
+coordination:
+  group: test
+  unknown_field: value
+---`);
+    // Unknown keys are only flagged when DEBUG is set
+    const oldDebug = process.env.DEBUG;
+    process.env.DEBUG = '1';
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('unknown_field')), 'unknown coordination key flagged with DEBUG');
+    if (oldDebug !== undefined) process.env.DEBUG = oldDebug;
+    else delete process.env.DEBUG;
+}
+
+// --- validateFrontmatter: type coercion edge cases ---
+console.log('\n--- validateFrontmatter: non-string array elements ---');
+{
+    // Manually construct a frontmatter object with wrong element types
+    const fm = {
+        name: 'test-skill',
+        triggers: [1, null, 'valid'],
+        anti_triggers: ['ok'],
+        aliases: [],
+        requires_mcp: [],
+        compress: true,
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('triggers[0]') && w.includes('number')),
+        'non-string trigger element flagged (number)');
+    assert(warnings.some(w => w.includes('triggers[1]') && w.includes('object')),
+        'non-string trigger element flagged (null→object)');
+}
+
+console.log('\n--- validateFrontmatter: compress as string ---');
+{
+    const fm = {
+        name: 'test-skill',
+        triggers: [],
+        anti_triggers: [],
+        aliases: [],
+        requires_mcp: [],
+        compress: 'true',
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('compress') && w.includes('string')),
+        'string "true" for compress is flagged');
+}
+
+console.log('\n--- validateFrontmatter: composition nested array with non-string ---');
+{
+    const fm = {
+        name: 'test-skill',
+        triggers: [],
+        anti_triggers: [],
+        aliases: [],
+        requires_mcp: [],
+        compress: true,
+        composition: { produces: [42, 'valid'], consumes: [], capabilities: [], priority: 10 },
+    };
+    const warnings = validateFrontmatter(fm);
+    assert(warnings.some(w => w.includes('composition.produces[0]') && w.includes('number')),
+        'non-string composition.produces element flagged');
+}
+
+// --- validateFrontmatter: null/undefined guard (I1 fix) ---
+console.log('\n--- validateFrontmatter: null/undefined guard ---');
+{
+    const w1 = validateFrontmatter(null);
+    assert(w1.length === 1 && w1[0].includes('null'), 'null input returns warning');
+    const w2 = validateFrontmatter(undefined);
+    assert(w2.length === 1 && w2[0].includes('undefined'), 'undefined input returns warning');
+    const w3 = validateFrontmatter([]);
+    assert(w3.length === 1 && w3[0].includes('object'), 'array input returns warning');
+    const w4 = validateFrontmatter('string');
+    assert(w4.length === 1 && w4[0].includes('string'), 'string input returns warning');
+}
+
+// --- validateFrontmatter: NaN/Infinity numeric validation (I2 fix) ---
+console.log('\n--- validateFrontmatter: NaN/Infinity rejection ---');
+{
+    const base = { name: 'test', triggers: [], anti_triggers: [], aliases: [],
+        requires_mcp: [], compress: true };
+    const w1 = validateFrontmatter({ ...base, composition: { priority: NaN } });
+    assert(w1.some(w => w.includes('composition.priority') && w.includes('finite')),
+        'NaN composition.priority flagged');
+    const w2 = validateFrontmatter({ ...base, composition: { priority: Infinity } });
+    assert(w2.some(w => w.includes('composition.priority') && w.includes('finite')),
+        'Infinity composition.priority flagged');
+    const w3 = validateFrontmatter({ ...base, coordination: { order: NaN } });
+    assert(w3.some(w => w.includes('coordination.order') && w.includes('finite')),
+        'NaN coordination.order flagged');
+    // Valid number passes
+    const w4 = validateFrontmatter({ ...base, composition: { priority: 50 } });
+    assert(!w4.some(w => w.includes('priority')), 'valid priority accepted');
+}
+
+// --- validateFrontmatter: unknown keys behind DEBUG (I3 fix) ---
+console.log('\n--- validateFrontmatter: unknown keys behind DEBUG ---');
+{
+    const base = { name: 'test', triggers: [], anti_triggers: [], aliases: [],
+        requires_mcp: [], compress: true };
+    // Unknown keys should NOT produce warnings in non-DEBUG mode
+    const oldDebug = process.env.DEBUG;
+    delete process.env.DEBUG;
+    const w1 = validateFrontmatter({ ...base, composition: { collision_group: 'foo' } });
+    assert(!w1.some(w => w.includes('collision_group')),
+        'unknown composition key silent without DEBUG');
+    // x_ prefixed keys always silent
+    const w2 = validateFrontmatter({ ...base, coordination: { x_custom: 'bar' } });
+    assert(!w2.some(w => w.includes('x_custom')),
+        'x_-prefixed coordination key always silent');
+    // With DEBUG, unknown keys DO warn
+    process.env.DEBUG = '1';
+    const w3 = validateFrontmatter({ ...base, composition: { collision_group: 'foo' } });
+    assert(w3.some(w => w.includes('collision_group')),
+        'unknown composition key warns with DEBUG');
+    if (oldDebug !== undefined) process.env.DEBUG = oldDebug;
+    else delete process.env.DEBUG;
+}
+
+// --- compressSkillContent contract tests (I4 fix) ---
+console.log('\n--- compressSkillContent contract tests ---');
+{
+    const { compressSkillContent } = require('../lib/compress');
+    // Strips DOT graphs
+    eq(compressSkillContent('Before\n```dot\ndigraph{}\n```\nAfter'), 'Before\n\nAfter',
+        'compress: strips DOT graphs');
+    // Strips YAML frontmatter
+    eq(compressSkillContent('---\nname: x\n---\nBody'), 'Body',
+        'compress: strips frontmatter');
+    // Strips HTML comments
+    eq(compressSkillContent('Before <!-- hidden --> After'), 'Before  After',
+        'compress: strips HTML comments');
+    // Unwraps EXTREMELY-IMPORTANT
+    assert(compressSkillContent('<EXTREMELY-IMPORTANT>\nKeep this\n</EXTREMELY-IMPORTANT>').includes('Keep this'),
+        'compress: unwraps EXTREMELY-IMPORTANT');
+    // Strips boilerplate sections mid-doc
+    const midDoc = '## Procedure\nGood\n## When to Use\nBoilerplate\n## Next\nAlso good';
+    const compressed = compressSkillContent(midDoc);
+    assert(compressed.includes('Good'), 'compress: keeps non-boilerplate');
+    assert(!compressed.includes('Boilerplate'), 'compress: strips boilerplate mid-doc');
+    // Collapses blank lines
+    eq(compressSkillContent('A\n\n\n\nB'), 'A\n\nB',
+        'compress: collapses excessive blank lines');
+}
 
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
