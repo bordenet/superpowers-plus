@@ -253,6 +253,75 @@ eq(compResult.composition.priority, 10, 'composition: priority parsed as number'
 eq(compResult.composition.optional, true, 'composition: optional parsed as boolean');
 fs.unlinkSync(tmpComp);
 
+// --- Coordination block parsing ---
+console.log('\n--- parseFrontmatter: coordination ---');
+const coordSkill = `---
+name: domain-build
+source: superpowers-overlay
+summary: "Use when: building skills from a completed domain-design output."
+overrides: superpowers-plus/update-superpowers
+coordination:
+  group: overlay
+  order: 1
+  requires: []
+  enables:
+    - linear-comment-debunker
+  escalates_to: []
+  internal: false
+---
+# Body`;
+const coord = parseFrontmatter(coordSkill);
+eq(coord.source, 'superpowers-overlay', 'source: parsed');
+eq(coord.summary, 'Use when: building skills from a completed domain-design output.', 'summary: parsed');
+eq(coord.overrides, 'superpowers-plus/update-superpowers', 'overrides: parsed');
+assert(coord.coordination !== null, 'coordination: parsed');
+eq(coord.coordination.group, 'overlay', 'coordination: group parsed as string');
+eq(coord.coordination.order, 1, 'coordination: order parsed as integer');
+assert(Array.isArray(coord.coordination.requires), 'coordination: requires is array');
+eq(coord.coordination.requires.length, 0, 'coordination: empty inline array');
+arrEq(coord.coordination.enables, ['linear-comment-debunker'], 'coordination: multiline list parsed');
+eq(coord.coordination.internal, false, 'coordination: boolean false parsed');
+
+// --- Coordination + composition coexistence ---
+console.log('\n--- parseFrontmatter: coordination + composition coexist ---');
+const bothBlocks = `---
+name: both-blocks
+coordination:
+  group: linear
+  order: 2
+composition:
+  produces:
+    - output-a
+  priority: 50
+---
+# Body`;
+const both = parseFrontmatter(bothBlocks);
+assert(both.coordination !== null, 'coordination present when both blocks exist');
+assert(both.composition !== null, 'composition present when both blocks exist');
+eq(both.coordination.group, 'linear', 'coordination.group correct with both');
+eq(both.composition.priority, 50, 'composition.priority correct with both');
+arrEq(both.composition.produces, ['output-a'], 'composition.produces correct with both');
+
+// --- Default/error path: new fields have correct defaults ---
+console.log('\n--- parseFrontmatter: new field defaults ---');
+const emptyDefaults = parseFrontmatter('');
+assert(emptyDefaults.coordination === null, 'default: coordination is null');
+eq(emptyDefaults.source, '', 'default: source is empty string');
+eq(emptyDefaults.overrides, '', 'default: overrides is empty string');
+eq(emptyDefaults.summary, '', 'default: summary is empty string');
+
+const efDefaults = extractFrontmatter('/nonexistent/path/skill.md');
+assert(efDefaults.coordination === null, 'error-path: coordination is null');
+eq(efDefaults.source, '', 'error-path: source is empty string');
+eq(efDefaults.overrides, '', 'error-path: overrides is empty string');
+eq(efDefaults.summary, '', 'error-path: summary is empty string');
+
+// --- Defaults stay in sync (parse vs error-path) ---
+console.log('\n--- parseFrontmatter: defaults sync check ---');
+const parseDefKeys = Object.keys(parseFrontmatter('')).sort();
+const errorDefKeys = Object.keys(extractFrontmatter('/nonexistent/x.md')).sort();
+arrEq(parseDefKeys, errorDefKeys, 'parse defaults and error-path defaults have same keys');
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);

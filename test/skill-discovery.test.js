@@ -50,6 +50,28 @@ composition:
 Beta content.
 `);
 
+// Overlay-style skill with coordination + source + overrides + summary
+fs.mkdirSync(path.join(flatDir, 'overlay-skill'), { recursive: true });
+fs.writeFileSync(path.join(flatDir, 'overlay-skill', 'skill.md'), `---
+name: overlay-skill
+description: An overlay skill
+source: superpowers-overlay
+overrides: superpowers-plus/base-skill
+summary: "Use when: overlaying."
+triggers:
+  - overlay trigger
+coordination:
+  group: linear
+  order: 2
+  requires: []
+  enables:
+    - other-skill
+  internal: false
+---
+# Overlay
+Overlay content.
+`);
+
 // Set up domain-grouped layout: domain/{engineering}/{gamma}/skill.md
 fs.mkdirSync(path.join(domainDir, 'engineering', 'gamma'), { recursive: true });
 fs.writeFileSync(path.join(domainDir, 'engineering', 'gamma', 'skill.md'), `---
@@ -81,7 +103,7 @@ fs.mkdirSync(path.join(flatDir, '.git'), { recursive: true });
 
 test('findSkillsInDir finds flat skills', () => {
     const skills = findSkillsInDir(flatDir, 'personal');
-    assert(skills.length === 2, `Expected 2 skills, got ${skills.length}`);
+    assert(skills.length === 3, `Expected 3 skills, got ${skills.length}`);
 });
 
 test('findSkillsInDir returns correct metadata', () => {
@@ -100,6 +122,30 @@ test('findSkillsInDir handles composition metadata', () => {
     assert(beta, 'beta not found');
     assert(beta.composition, 'beta should have composition');
     assert(beta.composition.produces.includes('beta-artifact'), 'should produce beta-artifact');
+});
+
+test('findSkillsInDir propagates overlay fields (coordination, source, overrides, summary)', () => {
+    const skills = findSkillsInDir(flatDir, 'personal');
+    const overlay = skills.find(s => s.name === 'overlay-skill');
+    assert(overlay, 'overlay-skill not found');
+    assert.strictEqual(overlay.source, 'superpowers-overlay', 'source propagated');
+    assert.strictEqual(overlay.overrides, 'superpowers-plus/base-skill', 'overrides propagated');
+    assert.strictEqual(overlay.summary, 'Use when: overlaying.', 'summary propagated');
+    assert(overlay.coordination !== null, 'coordination propagated');
+    assert.strictEqual(overlay.coordination.group, 'linear', 'coordination.group');
+    assert.strictEqual(overlay.coordination.order, 2, 'coordination.order');
+    assert.deepStrictEqual(overlay.coordination.enables, ['other-skill'], 'coordination.enables');
+    assert.strictEqual(overlay.coordination.internal, false, 'coordination.internal');
+});
+
+test('findSkillsInDir returns empty defaults for skills without overlay fields', () => {
+    const skills = findSkillsInDir(flatDir, 'personal');
+    const alpha = skills.find(s => s.name === 'alpha');
+    assert(alpha, 'alpha not found');
+    assert.strictEqual(alpha.source, '', 'source defaults to empty');
+    assert.strictEqual(alpha.overrides, '', 'overrides defaults to empty');
+    assert.strictEqual(alpha.summary, '', 'summary defaults to empty');
+    assert.strictEqual(alpha.coordination, null, 'coordination defaults to null');
 });
 
 test('findSkillsInDir discovers domain-grouped skills', () => {
@@ -141,7 +187,7 @@ test('deduplicateSkills removes duplicates by name', () => {
 
 test('findAllSkills merges and deduplicates', () => {
     const skills = findAllSkills(flatDir, domainDir);
-    assert(skills.length === 4, `Expected 4, got ${skills.length}`);
+    assert(skills.length === 5, `Expected 5, got ${skills.length}`);
 });
 
 test('findAllSkills personal overrides superpowers', () => {
