@@ -14,6 +14,9 @@ const {
     buildPipeline,
     explainPipeline,
     pipelineToMermaid,
+    getCoordination,
+    resolveCoordinationChain,
+    getEscalationTargets,
 } = require('../lib/skill-router');
 
 let pass = 0, fail = 0;
@@ -161,6 +164,123 @@ test('explainPipeline includes all sections', () => {
 test('explainPipeline shows error for bad capability', () => {
     const output = explainPipeline('nonexistent', allSkills);
     assert(output.includes('CAPABILITY_NOT_FOUND'));
+});
+
+// ========================================================================
+// Coordination Engine tests
+// ========================================================================
+
+function makeCoordSkill(name, coordination) {
+    return { name, coordination, composition: null, description: `${name} skill`, triggers: [] };
+}
+
+// ---- getCoordination ----
+test('getCoordination extracts coordination metadata', () => {
+    const s = makeCoordSkill('a', { group: 'linear', order: 1, requires: [], enables: ['b'], escalates_to: ['think-twice'], internal: false });
+    const coord = getCoordination(s);
+    assert(coord !== null);
+    assert.strictEqual(coord.group, 'linear');
+    assert.strictEqual(coord.order, 1);
+    assert.deepStrictEqual(coord.enables, ['b']);
+    assert.deepStrictEqual(coord.escalates_to, ['think-twice']);
+    assert.strictEqual(coord.internal, false);
+});
+
+test('getCoordination returns null for no coordination', () => {
+    assert(getCoordination({ name: 'x', coordination: null }) === null);
+    assert(getCoordination({ name: 'x' }) === null);
+});
+
+test('getCoordination applies defaults', () => {
+    const coord = getCoordination(makeCoordSkill('min', {}));
+    assert.strictEqual(coord.group, '');
+    assert.strictEqual(coord.order, 0);
+    assert.deepStrictEqual(coord.requires, []);
+    assert.deepStrictEqual(coord.enables, []);
+    assert.deepStrictEqual(coord.escalates_to, []);
+    assert.strictEqual(coord.internal, false);
+});
+
+// ---- resolveCoordinationChain ----
+
+// PHR adversarial #1: A.enables=[B] + B.requires=[A] → NOT a cycle (same edge)
+test('resolveCoordinationChain: A.enables B + B.requires A is NOT a cycle', () => {
+    const a = makeCoordSkill('a', { order: 1, enables: ['b'], requires: [] });
+    const b = makeCoordSkill('b', { order: 2, enables: [], requires: ['a'] });
+    const result = resolveCoordinationChain('a', [a, b]);
+    assert.strictEqual(result.error, null, `unexpected error: ${result.error}`);
+    assert.deepStrictEqual(result.chain, ['a', 'b']);
+});
+
+// PHR adversarial #2: A.enables=[B] + B.enables=[A] → IS a cycle
+test('resolveCoordinationChain: A.enables B + B.enables A IS a cycle', () => {
+    const a = makeCoordSkill('a', { order: 1, enables: ['b'], requires: [] });
+    const b = makeCoordSkill('b', { order: 2, enables: ['a'], requires: [] });
+    const result = resolveCoordinationChain('a', [a, b]);
+    assert.strictEqual(result.error, 'CYCLE_DETECTED');
+});
+
+// PHR adversarial #3: B.requires=[missing] → blocked error, not warning
+test('resolveCoordinationChain: missing required skill is blocking error', () => {
+    const b = makeCoordSkill('b', { order: 1, enables: [], requires: ['missing-skill'] });
+    const result = resolveCoordinationChain('b', [b]);
+    assert.strictEqual(result.error, 'MISSING_REQUIRED_SKILL');
+    assert(result.explanation.some(l => l.includes('BLOCKED')));
+});
+
+// PHR adversarial #4: missing enabled skill is warning only (not error)
+test('resolveCoordinationChain: missing enabled skill is warning not error', () => {
+    const a = makeCoordSkill('a', { order: 1, enables: ['not-installed'], requires: [] });
+    const result = resolveCoordinationChain('a', [a]);
+    assert.strictEqual(result.error, null);
+    assert.deepStrictEqual(result.chain, ['a']);
+    assert(result.explanation.some(l => l.includes('WARN')));
+});
+
+// PHR adversarial #5: shuffled input array → same chain order (determinism)
+test('resolveCoordinationChain: deterministic regardless of input order', () => {
+    const a = makeCoordSkill('a', { order: 1, enables: ['b'], requires: [] });
+    const b = makeCoordSkill('b', { order: 2, enables: ['c'], requires: [] });
+    const c = makeCoordSkill('c', { order: 3, enables: [], requires: [] });
+    const result1 = resolveCoordinationChain('a', [a, b, c]);
+    const result2 = resolveCoordinationChain('a', [c, b, a]);
+    const result3 = resolveCoordinationChain('a', [b, a, c]);
+    assert.deepStrictEqual(result1.chain, result2.chain, 'shuffle 1 vs 2');
+    assert.deepStrictEqual(result1.chain, result3.chain, 'shuffle 1 vs 3');
+    assert.deepStrictEqual(result1.chain, ['a', 'b', 'c']);
+});
+
+test('resolveCoordinationChain: skill not found', () => {
+    const result = resolveCoordinationChain('nonexistent', []);
+    assert.strictEqual(result.error, 'SKILL_NOT_FOUND');
+});
+
+test('resolveCoordinationChain: three-step chain', () => {
+    const s1 = makeCoordSkill('step1', { order: 1, enables: ['step2'], requires: [] });
+    const s2 = makeCoordSkill('step2', { order: 2, enables: ['step3'], requires: [] });
+    const s3 = makeCoordSkill('step3', { order: 3, enables: [], requires: [] });
+    const result = resolveCoordinationChain('step1', [s1, s2, s3]);
+    assert.strictEqual(result.error, null);
+    assert.deepStrictEqual(result.chain, ['step1', 'step2', 'step3']);
+});
+
+// ---- getEscalationTargets ----
+test('getEscalationTargets returns available targets', () => {
+    const a = makeCoordSkill('a', { escalates_to: ['think-twice', 'missing'] });
+    const tt = makeCoordSkill('think-twice', {});
+    const result = getEscalationTargets('a', [a, tt]);
+    assert.deepStrictEqual(result.targets, ['think-twice']);
+    assert(result.explanation.some(l => l.includes('WARN') && l.includes('missing')));
+});
+
+test('getEscalationTargets returns empty for no coordination', () => {
+    const result = getEscalationTargets('plain', [noComp]);
+    assert.deepStrictEqual(result.targets, []);
+});
+
+test('getEscalationTargets returns empty for unknown skill', () => {
+    const result = getEscalationTargets('nonexistent', []);
+    assert.deepStrictEqual(result.targets, []);
 });
 
 // Cleanup
