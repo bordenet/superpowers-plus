@@ -11,6 +11,11 @@ coordination:
   enables: [providing-code-review, progressive-code-review-gate]
   escalates_to: [code-review-battery]
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-request-file]
+  capabilities: [file-protocol-review]
+  priority: 25
 ---
 
 # Code Review — Requesting Agent File Protocol

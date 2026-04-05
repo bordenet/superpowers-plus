@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: []
+  produces: [updated-installation]
+  capabilities: [updates-skills]
+  priority: 50
 ---
 
 # Update Superpowers

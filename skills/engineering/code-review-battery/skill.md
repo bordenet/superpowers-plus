@@ -24,6 +24,11 @@ coordination:
   escalates_to: []
   internal: false
 source: superpowers-plus
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [dispatches-review, parallel-review]
+  priority: 25
 ---
 
 # Code Review Battery

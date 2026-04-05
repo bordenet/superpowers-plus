@@ -12,6 +12,11 @@ coordination:
   enables: ["verification-before-completion"]
   escalates_to: ["engineering-rigor"]
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [verification-report]
+  capabilities: [traces-data-flow, verifies-contracts]
+  priority: 15
 ---
 
 # Field Rename Verification

@@ -11,6 +11,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge, domain-context]
+  produces: [domain-knowledge, interview-artifact]
+  capabilities: [extracts-knowledge, structures-interviews]
+  priority: 10
 ---
 
 # Expert Interviewer

@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge]
+  produces: [research-results, web-findings]
+  capabilities: [searches-web, synthesizes-sources]
+  priority: 10
 ---
 
 # Perplexity Research

@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [verification-report]
+  capabilities: [verifies-repo-health]
+  priority: 30
 ---
 
 # holistic-repo-verification

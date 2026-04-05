@@ -12,6 +12,11 @@ coordination:
   enables: ["think-twice", "verification-before-completion"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
+composition:
+  consumes: [investigation-state, challenge]
+  produces: [investigation-evidence]
+  capabilities: [inverts-search, detects-bias]
+  priority: 10
 ---
 
 # Adversarial Search

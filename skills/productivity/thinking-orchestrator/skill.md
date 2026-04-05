@@ -12,6 +12,11 @@ coordination:
   enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge]
+  produces: [routed-skill-output]
+  capabilities: [routes-skills, orchestrates-workflow]
+  priority: 3
 ---
 
 # Thinking Orchestrator
