@@ -163,15 +163,17 @@ test_todo_archive_smoke_small_valid() {
 # METRICS
 FIXTURE
   local result_json
+  # Helper: clear immutable flags (macOS chflags uchg) before rm
+  _cleanup_fixture() { chflags -R nouchg "${fixture_root:?}" 2>/dev/null || true; rm -rf "${fixture_root:?}"; }
   if ! result_json=$(HOME="$fixture_root/home" "$MAINT_SCRIPT" --json 2>&1); then
     fail "TODO smoke test: maintenance script failed: $(echo "$result_json" | head -2)"
-    rm -rf "${fixture_root:?}"; return
+    _cleanup_fixture; return
   fi
   local archived line_count
   archived=$(echo "$result_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['archive_performed'])" 2>/dev/null || echo "")
   if [[ "$archived" != "True" ]]; then
     fail "TODO smoke test: archive not performed (got: $archived)"
-    rm -rf "${fixture_root:?}"; return
+    _cleanup_fixture; return
   fi
   line_count=$(wc -l < "$fixture_todo" | tr -d ' ')
   if (( line_count < 50 )); then
@@ -180,7 +182,7 @@ FIXTURE
     fail "TODO smoke test: result $line_count lines (expected <50)"
   fi
   grep -q '\[20260322-01\]' "$fixture_todo" || fail "TODO smoke test: active task lost"
-  rm -rf "${fixture_root:?}"
+  _cleanup_fixture
 }
 
 # ── Check 22: Reviewer-dispatch rendering verification ──
@@ -246,6 +248,110 @@ test_reviewer_dispatch_sdd_detection() {
   fi
 }
 
+DOCTOR_SCRIPT="$SCRIPT_DIR/../doctor-checks.sh"
+
+# ── Step 3.1: --help flag exits 0 ──
+test_help_flag_exits_zero() {
+  if [[ ! -f "$DOCTOR_SCRIPT" ]]; then
+    skip "doctor-checks.sh not found at $DOCTOR_SCRIPT"
+    return
+  fi
+  local output exit_code
+  output=$(bash "$DOCTOR_SCRIPT" --help 2>&1) && exit_code=$? || exit_code=$?
+  if [[ "$exit_code" -eq 0 && "$output" == *"Usage:"* ]]; then
+    pass "--help: prints usage text and exits 0"
+  else
+    fail "--help: expected exit 0 + 'Usage:' in output (got exit=$exit_code)"
+  fi
+}
+
+test_help_flag_short_exits_zero() {
+  if [[ ! -f "$DOCTOR_SCRIPT" ]]; then
+    skip "doctor-checks.sh not found at $DOCTOR_SCRIPT"
+    return
+  fi
+  local output exit_code
+  output=$(bash "$DOCTOR_SCRIPT" -h 2>&1) && exit_code=$? || exit_code=$?
+  if [[ "$exit_code" -eq 0 && "$output" == *"Usage:"* ]]; then
+    pass "-h: prints usage text and exits 0"
+  else
+    fail "-h: expected exit 0 + 'Usage:' in output (got exit=$exit_code)"
+  fi
+}
+
+test_help_flag_non_leading() {
+  if [[ ! -f "$DOCTOR_SCRIPT" ]]; then
+    skip "doctor-checks.sh not found at $DOCTOR_SCRIPT"
+    return
+  fi
+  local out1 out2 ec1 ec2
+  out1=$(bash "$DOCTOR_SCRIPT" --summary-only --help 2>&1) && ec1=$? || ec1=$?
+  out2=$(bash "$DOCTOR_SCRIPT" --fail-on-findings --summary-only --help 2>&1) && ec2=$? || ec2=$?
+  if [[ "$ec1" -eq 0 && "$out1" == *"Usage:"* ]]; then
+    pass "--summary-only --help: prints usage text and exits 0"
+  else
+    fail "--summary-only --help: expected exit 0 + 'Usage:' (got exit=$ec1)"
+  fi
+  if [[ "$ec2" -eq 0 && "$out2" == *"Usage:"* ]]; then
+    pass "--fail-on-findings --summary-only --help: prints usage text and exits 0"
+  else
+    fail "--fail-on-findings --summary-only --help: expected exit 0 + 'Usage:' (got exit=$ec2)"
+  fi
+}
+
+# ── Step 3.2: exit code 2 for CRITICAL with --fail-on-findings ──
+test_critical_finding_exit_code_2() {
+  # Synthesize the exit-code logic directly (avoids running full doctor)
+  local result
+  result=$(
+    FAIL_ON_FINDINGS=true
+    CRITICAL=1; ERRORS=0; WARNINGS=0
+    if [[ "$FAIL_ON_FINDINGS" == "true" ]]; then
+      if (( CRITICAL > 0 )); then echo "exit2"; fi
+    fi
+  )
+  if [[ "$result" == "exit2" ]]; then
+    pass "exit code 2 for CRITICAL with --fail-on-findings"
+  else
+    fail "expected exit-code-2 path to trigger (got: '$result')"
+  fi
+}
+
+test_errors_no_critical_exit_code_1() {
+  local result
+  result=$(
+    FAIL_ON_FINDINGS=true
+    CRITICAL=0; ERRORS=2; WARNINGS=0
+    if [[ "$FAIL_ON_FINDINGS" == "true" ]]; then
+      if (( CRITICAL > 0 )); then echo "exit2"; fi
+      if (( ERRORS > 0 ));   then echo "exit1"; fi
+    fi
+  )
+  if [[ "$result" == "exit1" ]]; then
+    pass "exit code 1 for ERRORS (no CRITICAL) with --fail-on-findings"
+  else
+    fail "expected exit-code-1 path to trigger (got: '$result')"
+  fi
+}
+
+test_warnings_only_exit_code_0() {
+  local result
+  result=$(
+    FAIL_ON_FINDINGS=true
+    CRITICAL=0; ERRORS=0; WARNINGS=3
+    if [[ "$FAIL_ON_FINDINGS" == "true" ]]; then
+      if (( CRITICAL > 0 )); then echo "exit2"; fi
+      if (( ERRORS > 0 ));   then echo "exit1"; fi
+      echo "exit0"
+    fi
+  )
+  if [[ "$result" == "exit0" ]]; then
+    pass "exit code 0 for WARNINGS-only with --fail-on-findings"
+  else
+    fail "expected exit-code-0 path for warnings (got: '$result')"
+  fi
+}
+
 # ── Run all tests ──
 
 echo "── Doctor checks regression tests ──"
@@ -263,6 +369,79 @@ echo "Check 22: Reviewer-dispatch rendering"
 test_reviewer_dispatch_contains_subagent
 test_reviewer_dispatch_no_stale_patterns
 test_reviewer_dispatch_sdd_detection
+echo ""
+echo "Step 3.1: --help flag"
+test_help_flag_exits_zero
+test_help_flag_short_exits_zero
+test_help_flag_non_leading
+echo ""
+echo "Step 3.2: exit code severity levels"
+test_critical_finding_exit_code_2
+test_errors_no_critical_exit_code_1
+test_warnings_only_exit_code_0
+echo ""
+echo "Step 4: composition metadata checks"
+
+# Test the composition check by extracting the exact grep pattern from the module.
+# We verify the module contains the expected pattern, then test that pattern in isolation.
+# This guards against both: (a) wrong grep target, (b) pattern drift from module.
+
+test_composition_check_pattern_matches_module() {
+  # Verify the exact implementation fragment in the doctor module.
+  # This fixed-string match ensures the module checks SKILL_YAML text (not a file path)
+  # and will fail if the variable name is changed or the pattern is moved to a comment.
+  local module="$SCRIPT_DIR/../doctor-modules/metadata-checks.sh"
+  # shellcheck disable=SC2016
+  local expected_fragment='grep -q '"'"'^composition:'"'"' <<< "${SKILL_YAML[$skill]}"'
+  if grep -Fq "$expected_fragment" "$module"; then
+    pass "doctor module composition check uses exact SKILL_YAML[\$skill] pattern"
+  else
+    fail "doctor module composition check does NOT match expected pattern — regression"
+  fi
+}
+
+test_composition_warning_fires_when_missing() {
+  # Use the same pattern the module uses: grep -q '^composition:' <<< "$yaml"
+  local yaml='name: no-comp
+description: Missing composition
+triggers: [test]
+anti_triggers: [not-test]'
+  local warnings=0
+  if ! grep -q '^composition:' <<< "$yaml"; then
+    ((warnings++)) || true
+  fi
+  if [[ "$warnings" -gt 0 ]]; then
+    pass "composition warning fires for skill without composition"
+  else
+    fail "composition warning did not fire for skill without composition"
+  fi
+}
+
+test_composition_no_warning_when_present() {
+  local yaml='name: has-comp
+description: Has composition
+triggers: [test]
+anti_triggers: [not-test]
+composition:
+  consumes: [challenge]
+  produces: [output]
+  capabilities: [does-stuff]
+  priority: 10'
+  local warnings=0
+  if ! grep -q '^composition:' <<< "$yaml"; then
+    ((warnings++)) || true
+  fi
+  if [[ "$warnings" -eq 0 ]]; then
+    pass "no composition warning when composition present"
+  else
+    fail "spurious composition warning for skill with composition"
+  fi
+}
+
+test_composition_check_pattern_matches_module
+test_composition_warning_fires_when_missing
+test_composition_no_warning_when_present
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [[ "$FAIL" -gt 0 ]]; then

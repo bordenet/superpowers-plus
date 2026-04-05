@@ -28,6 +28,11 @@ coordination:
   enables: []
   escalates_to: ["thinking-orchestrator"]
   internal: false
+composition:
+  consumes: [challenge, goal]
+  produces: [design-options, decision-record]
+  capabilities: [evaluates-options, generates-designs]
+  priority: 5
 ---
 
 # Design Triad

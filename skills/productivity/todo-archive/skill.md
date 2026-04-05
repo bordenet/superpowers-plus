@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [todo-items]
+  produces: [archived-tasks]
+  capabilities: [archives-tasks, searches-history]
+  priority: 40
 ---
 
 # TODO Archive System

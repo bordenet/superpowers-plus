@@ -25,6 +25,11 @@ coordination:
   enables: [verification-before-completion]
   escalates_to: [quantitative-decision-gate]
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [captured-loose-end]
+  capabilities: [detects-deferral, captures-todos]
+  priority: 10
 ---
 
 # TODO Guardian

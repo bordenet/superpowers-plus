@@ -12,6 +12,11 @@ coordination:
   enables: ["writing-skills"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [goal, skill-gap]
+  produces: [new-skill]
+  capabilities: [generates-skills, validates-structure]
+  priority: 10
 ---
 
 # Skill Authoring

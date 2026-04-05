@@ -12,6 +12,11 @@ coordination:
   enables: ["skill-authoring", "brainstorming", "design-triad"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [goal]
+  produces: [skill-family-design]
+  capabilities: [orchestrates-workflow, designs-domains]
+  priority: 5
 ---
 
 # Domain Design Orchestrator
