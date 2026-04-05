@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, staging, dev]
+  push:
+    branches: [main, staging, dev]
+
+jobs:
+  node-tests:
+    name: Node.js Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install MCP dependencies
+        run: cd mcp && npm ci
+
+      - name: Frontmatter parser tests
+        run: node test/frontmatter.test.js
+
+      - name: Skill router tests
+        run: node test/skill-router.test.js
+
+      - name: MCP smoke test
+        run: cd mcp && npm test
+
+  shell-tests:
+    name: Shell Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install BATS
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          sudo /tmp/bats/install.sh /usr/local
+
+      - name: Commit gate tests (BATS)
+        run: bats tests/commit-gate-test.bats
+
+      - name: Doctor checks tests
+        run: bash tools/tests/test_doctor_checks.sh
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dangerous pattern scan
+        run: bash tools/dangerous-pattern-scan.sh
+
+      - name: IP disclosure audit
+        run: bash test/public-repo-ip-check.test.sh
