@@ -52,6 +52,8 @@ jobs:
 
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
+        env:
+          PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
   security-scan:
     name: Security Scan
