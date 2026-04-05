@@ -25,6 +25,15 @@ jobs:
       - name: Skill router tests
         run: node test/skill-router.test.js
 
+      - name: Skill discovery tests
+        run: node test/skill-discovery.test.js
+
+      - name: Composition engine tests
+        run: node test/composition-engine.test.js
+
+      - name: Workflow state tests
+        run: node test/workflow-state.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:

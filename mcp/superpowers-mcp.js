@@ -36,7 +36,10 @@ const homeDir = os.homedir();
 const { matchSkillsTfIdf } = require('../lib/skill-router');
 
 // Canonical frontmatter parser — single source of truth
-const { extractFrontmatter } = require('../lib/frontmatter');
+const { extractFrontmatter, stripFrontmatter } = require('../lib/frontmatter');
+
+// Unified skill discovery — shared with superpowers-augment.js
+const { findSkillsInDir, findAllSkills } = require('../lib/skill-discovery');
 
 // Multi-source skill directories (personal overrides superpowers)
 const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
@@ -76,107 +79,20 @@ function compressSkillContent(text) {
   return result.trim();
 }
 
-/**
- * Strip YAML frontmatter from content.
- */
-function stripFrontmatter(content) {
-  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  let inFrontmatter = false;
-  let frontmatterEnded = false;
-  const result = [];
-  for (const line of lines) {
-    if (line.trim() === '---') {
-      if (inFrontmatter) { frontmatterEnded = true; continue; }
-      inFrontmatter = true;
-      continue;
-    }
-    if (frontmatterEnded || !inFrontmatter) result.push(line);
-  }
-  return result.join('\n').trim();
-}
-
-/**
- * Find all SKILL.md files in a single directory (flat — matches CLI behavior).
- */
-function findSkillsInDir(dir, sourceType) {
-  const skills = [];
-  if (!fs.existsSync(dir)) return skills;
-  let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
-  catch { return skills; }
-
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name.startsWith('_')) continue;
-    const skillDir = path.join(dir, entry.name);
-    let isDir = entry.isDirectory();
-    if (!isDir && entry.isSymbolicLink()) {
-      try { isDir = fs.statSync(skillDir).isDirectory(); }
-      catch (e) { if (e.code === 'ENOENT' || e.code === 'ELOOP') continue; throw e; }
-    }
-    if (!isDir) continue;
-    // Look for skill.md (case-insensitive)
-    const candidates = ['skill.md', 'SKILL.md'];
-    let skillFile = null;
-    for (const c of candidates) {
-      const p = path.join(skillDir, c);
-      if (fs.existsSync(p)) { skillFile = p; break; }
-    }
-    if (skillFile) {
-      const meta = extractFrontmatter(skillFile);
-      const fileSize = fs.statSync(skillFile).size;
-      skills.push({
-        path: entry.name,
-        skillFile,
-        skillDir,
-        name: meta.name || entry.name,
-        description: meta.description || `Skill: ${entry.name}`,
-        anti_triggers: meta.anti_triggers || [],
-        dirName: entry.name,
-        triggers: meta.triggers || [],
-        compress: meta.compress,
-        isSuperpower: (meta.triggers || []).length > 0,
-        sourceType,
-        tokens: Math.round(fileSize / 4)
-      });
-    } else {
-      // Recurse one level for domain-grouped layouts: skills/{domain}/{name}/skill.md
-      skills.push(...findSkillsInDir(skillDir, sourceType));
-    }
-  }
-  return skills;
-}
-
-/**
- * Find all skills across all sources, with personal overriding superpowers.
- */
-function findAllSkills() {
-  const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-  const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-  const allSkills = [...personalSkills, ...superpowersSkills];
-  const seen = new Set();
-  return allSkills.filter(s => {
-    if (seen.has(s.name)) return false;
-    seen.add(s.name);
-    return true;
-  });
-}
-
-// Legacy compat wrapper
-function findSkills(dir, maxDepth = 4) {
-  return findSkillsInDir(dir, 'personal');
-}
+// stripFrontmatter — imported from lib/frontmatter (see top of file)
+// findSkillsInDir, findAllSkills — imported from lib/skill-discovery (see top of file)
 
 /**
  * Resolve a skill name to its SKILL.md path (searches all sources).
  */
 function resolveSkillPath(skillName) {
   const cleanName = skillName.replace(/^superpowers-plus:/, '').replace(/^superpowers:/, '');
-  const allSkills = findAllSkills();
+  const allSkills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
   for (const skill of allSkills) {
     if (skill.name === cleanName || skill.dirName === cleanName) return { skillFile: skill.skillFile, compress: skill.compress };
   }
   for (const skill of allSkills) {
-    if (skill.path.endsWith(cleanName)) return { skillFile: skill.skillFile, compress: skill.compress };
+    if (skill.dirName.endsWith(cleanName)) return { skillFile: skill.skillFile, compress: skill.compress };
   }
   return null;
 }
@@ -235,7 +151,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   if (name === 'find_skills') {
-    const skills = findAllSkills();
+    const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     if (skills.length === 0) {
       return { content: [{ type: 'text', text: 'No skills found.' }] };
     }
@@ -269,7 +185,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'match_skills') {
     const { query, top_n = 5 } = args;
-    const skills = findAllSkills();
+    const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     const results = matchSkillsTfIdf(query, skills, top_n);
     let output = `# Skill Match Results\n\nQuery: "${query}"\n\n`;
     output += '| Rank | Skill | Score | Type |\n|------|-------|-------|------|\n';

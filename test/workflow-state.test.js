@@ -100,6 +100,58 @@ const status = ws.getStatus();
 assert(status !== null && status.includes('feature-development'), 'getStatus includes workflow name');
 assert(status.includes('ADVISORY'), 'getStatus shows advisory mode by default');
 
+// ---- Test 13: recordSkillInvocation maps skills to phases ----
+cleanup();
+ws.initWorkflow('feature-development', {});
+ws.recordSkillInvocation('brainstorming');
+const state13 = ws.readState();
+assert(state13 !== null, 'state exists after recordSkillInvocation');
+assert(state13.passed_phases.includes('brainstorming'), 'records brainstorming phase');
+pass++; console.log('  ok: recordSkillInvocation records phase');
+
+// ---- Test 14: recordSkillInvocation advances current_phase ----
+assert(state13.current_phase === 1, `phase advanced to 1: got ${state13.current_phase}`);
+pass++; console.log('  ok: recordSkillInvocation advances phase');
+
+// ---- Test 15: checkCompletionGate returns false without evidence ----
+cleanup();
+ws.initWorkflow('feature-development', {});
+assert(ws.checkCompletionGate('code_review') === false, 'gate not passed without evidence');
+ws.recordGate('code_review', { tool: 'test' });
+assert(ws.checkCompletionGate('code_review') === true, 'gate passed after recording');
+pass++; console.log('  ok: checkCompletionGate tracks gate status correctly');
+
+// ---- Test 16: acquireLock / releaseLock ----
+cleanup();
+const lockFile = tmpStateFile + '.lock';
+const acquired = ws.acquireLock();
+assert(acquired === true, `acquireLock returns true: ${acquired}`);
+assert(fs.existsSync(lockFile), 'lock file created');
+ws.releaseLock();
+assert(!fs.existsSync(lockFile), 'lock file removed after release');
+pass++; console.log('  ok: acquireLock/releaseLock manage lock file');
+
+// ---- Test 17: writeState is atomic (uses tmp + rename) ----
+cleanup();
+ws.initWorkflow('test-atomic', {});
+const stateFile = tmpStateFile;
+assert(fs.existsSync(stateFile), 'state file exists');
+const content = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+assert(content.workflow === 'test-atomic', 'file has correct workflow');
+pass++; console.log('  ok: writeState creates valid JSON');
+
+// ---- Test 18: state expires after STATE_MAX_AGE_MS ----
+cleanup();
+ws.initWorkflow('test-expiry', {});
+// Manually backdate the created_at
+const expState = JSON.parse(fs.readFileSync(tmpStateFile, 'utf8'));
+const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 hours ago
+expState.created_at = oldDate.toISOString();
+fs.writeFileSync(tmpStateFile, JSON.stringify(expState));
+const expired = ws.readState();
+assert(expired === null, 'readState returns null for expired state');
+pass++; console.log('  ok: readState returns null for expired state');
+
 // ---- Cleanup ----
 cleanup();
 try { fs.rmSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
