@@ -27,6 +27,9 @@ jobs:
 
       - name: MCP smoke test
         run: cd mcp && npm test
+        env:
+          PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
+          SUPERPOWERS_SKILLS_DIR: /dev/null
 
   shell-tests:
     name: Shell Tests

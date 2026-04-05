@@ -138,6 +138,9 @@ function findSkillsInDir(dir, sourceType) {
         sourceType,
         tokens: Math.round(fileSize / 4)
       });
+    } else {
+      // Recurse one level for domain-grouped layouts: skills/{domain}/{name}/skill.md
+      skills.push(...findSkillsInDir(skillDir, sourceType));
     }
   }
   return skills;
