@@ -17,7 +17,8 @@ const {
   buildPipeline,
   explainPipeline,
   pipelineToMermaid,
-  getComposition
+  getComposition,
+  getCoordination
 } = require('./lib/skill-router');
 
 // Workflow state machine (advisory gate tracking)
@@ -747,10 +748,18 @@ switch (command) {
         const actualMethod = method === 'auto' ? routerInfo.default : method;
 
         try {
-            const matches = await semanticMatch(query, skills, { topN: 5, method });
+            // Fetch extra matches to account for internal filtering
+            const rawMatches = await semanticMatch(query, skills, { topN: 10, method });
+            // Filter out internal skills from user-facing output (PHR finding #2)
+            const matches = rawMatches.filter(m => {
+                const coord = getCoordination(m);
+                return !coord || !coord.internal;
+            }).slice(0, 5);
+
             console.log(`# Skill Match Results\n`);
             console.log(`Query: "${query}"`);
             console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
+            // Keep existing 4-column table structure stable for parsers (PHR finding #4)
             console.log('| Rank | Skill | Score | Type |');
             console.log('|------|-------|-------|------|');
             for (let i = 0; i < matches.length; i++) {
@@ -763,6 +772,20 @@ switch (command) {
             }
             console.log(`\nTop match: **${matches[0]?.name}**`);
             console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
+
+            // Show coordination info below the table (appended, not column change)
+            const coordMatches = matches.filter(m => getCoordination(m));
+            if (coordMatches.length > 0) {
+                console.log('\n## Coordination');
+                for (const m of coordMatches) {
+                    const coord = getCoordination(m);
+                    const parts = [`group: ${coord.group || '(none)'}`];
+                    if (coord.requires.length) parts.push(`requires: ${coord.requires.join(', ')}`);
+                    if (coord.enables.length) parts.push(`enables: ${coord.enables.join(', ')}`);
+                    if (coord.escalates_to.length) parts.push(`escalates: ${coord.escalates_to.join(', ')}`);
+                    console.log(`- **${m.name}**: ${parts.join(' | ')}`);
+                }
+            }
         } catch (err) {
             console.error('Error:', err.message);
             process.exit(1);
