@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: ["perplexity-research"]
   internal: false
+composition:
+  consumes: [challenge, problem-statement]
+  produces: [fresh-perspective, decision-record]
+  capabilities: [breaks-loops, fresh-analysis]
+  priority: 5
 ---
 
 # Think Twice

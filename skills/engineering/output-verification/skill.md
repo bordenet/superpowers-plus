@@ -12,6 +12,11 @@ coordination:
   enables: ["verification-before-completion"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [implementation]
+  produces: [verification-report]
+  capabilities: [verifies-output, gates-quality]
+  priority: 25
 ---
 
 # Output Verification

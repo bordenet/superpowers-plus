@@ -16,6 +16,11 @@ coordination:
   enables: ["verification-before-completion"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [goal, task-description]
+  produces: [test-suite, implementation]
+  capabilities: [generates-tests, enforces-tdd]
+  priority: 10
 ---
 
 # Test-Driven Development (TDD)

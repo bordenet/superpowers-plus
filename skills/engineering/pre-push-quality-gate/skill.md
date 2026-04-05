@@ -12,6 +12,11 @@ coordination:
   enables: ["push-authorization-gate"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [lint-results, test-results]
+  capabilities: [gates-quality]
+  priority: 30
 ---
 
 # Pre-Push Quality Gate
