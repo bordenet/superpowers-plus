@@ -525,6 +525,17 @@ function useSkill(skillName, options = {}) {
         workflowState.recordSkillInvocation(actualName);
     } catch (_) { /* non-fatal — advisory mode */ }
 
+    // Auto-init workflow for workflow-initiating skills
+    const WORKFLOW_INIT_SKILLS = ['feature-development', 'plan-and-execute', 'evolution-loop'];
+    if (WORKFLOW_INIT_SKILLS.includes(actualName)) {
+        try {
+            const existing = workflowState.readState();
+            if (!existing) {
+                workflowState.initWorkflow(actualName, { triggered_by: actualName });
+            }
+        } catch (_) { /* advisory */ }
+    }
+
 }
 
 /**
