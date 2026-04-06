@@ -26,9 +26,18 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [merge-ready-branch]
+  capabilities: [orchestrates-workflow, sequences-skills]
+  priority: 10
 ---
 
 # Finishing a Development Branch
+
+## When to Use
+
+Invoke when development work on a branch is complete and ready to review, commit, or ship.
 
 ## Overview
 

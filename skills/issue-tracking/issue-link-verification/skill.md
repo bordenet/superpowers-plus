@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [todo-items]
+  produces: [verified-links]
+  capabilities: [validates-links]
+  priority: 25
 ---
 
 # Issue Link Verification

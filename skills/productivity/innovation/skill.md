@@ -13,6 +13,11 @@ coordination:
   enables: ["brainstorming", "plan-and-execute", "think-twice"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [challenge, system-context]
+  produces: [innovation-proposal]
+  capabilities: [generates-ideas, evaluates-options]
+  priority: 5
 ---
 
 # Innovation

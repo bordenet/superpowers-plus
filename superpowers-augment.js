@@ -17,11 +17,21 @@ const {
   buildPipeline,
   explainPipeline,
   pipelineToMermaid,
-  getComposition
+  getComposition,
+  getCoordination
 } = require('./lib/skill-router');
 
 // Workflow state machine (advisory gate tracking)
 const workflowState = require('./lib/workflow-state');
+
+// Canonical frontmatter parser — single source of truth for all YAML parsing
+const { extractFrontmatter, findSkillFile, stripFrontmatter } = require('./lib/frontmatter');
+
+// Unified skill discovery — single source of truth for directory scanning + dedup
+const { findSkillsInDir, deduplicateSkills, findAllSkills } = require('./lib/skill-discovery');
+
+// Shared compression — single source of truth for content stripping
+const { compressSkillContent } = require('./lib/compress');
 
 const homeDir = os.homedir();
 const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
@@ -179,276 +189,7 @@ function transformOutput(text) {
     return result;
 }
 
-// State-machine parser for YAML inline arrays. Handles apostrophes inside
-// double-quoted strings ("what's next") and escaped quotes. Shared logic
-// with mcp/superpowers-mcp.js — keep in sync.
-function parseInlineArray(value) {
-    // Strip outer brackets if present
-    const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
-    const items = [];
-    let i = 0;
-    while (i < inner.length) {
-        while (i < inner.length && (inner[i] === ' ' || inner[i] === ',' || inner[i] === '\t')) i++;
-        if (i >= inner.length) break;
-        const quote = inner[i];
-        if (quote === '"' || quote === "'") {
-            let val = '';
-            i++; // skip opening quote
-            while (i < inner.length) {
-                if (quote === '"' && inner[i] === '\\' && i + 1 < inner.length) {
-                    val += inner[i + 1]; i += 2;
-                } else if (quote === "'" && inner[i] === "'" && i + 1 < inner.length && inner[i + 1] === "'") {
-                    val += "'"; i += 2; // YAML '' escape
-                } else if (inner[i] === quote) {
-                    i++; break;
-                } else {
-                    val += inner[i]; i++;
-                }
-            }
-            if (val) items.push(val);
-        } else {
-            let val = '';
-            while (i < inner.length && inner[i] !== ',') { val += inner[i]; i++; }
-            val = val.trim();
-            if (val) items.push(val);
-        }
-    }
-    return items;
-}
-
-// Check if a string has a closing ] outside of quotes.
-function hasUnquotedClosingBracket(s) {
-    let inQuote = null;
-    for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
-        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
-        if (c === '"' || c === "'") { inQuote = c; continue; }
-        if (c === ']') return true;
-    }
-    return false;
-}
-
-// Extract content between [ and the real closing ] (outside quotes).
-function extractBracketContent(s) {
-    const start = s.indexOf('[');
-    if (start === -1) return '';
-    let inQuote = null;
-    for (let i = start + 1; i < s.length; i++) {
-        const c = s[i];
-        if (c === '\\' && inQuote && i + 1 < s.length) { i++; continue; }
-        if (inQuote) { if (c === inQuote) inQuote = null; continue; }
-        if (c === '"' || c === "'") { inQuote = c; continue; }
-        if (c === ']') return s.slice(start + 1, i);
-    }
-    return s.slice(start + 1);
-}
-
-// Strip surrounding YAML quotes and unescape
-function unquoteYaml(s) {
-    if (s.startsWith('"') && s.endsWith('"')) {
-        return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-    }
-    if (s.startsWith("'") && s.endsWith("'")) {
-        return s.slice(1, -1).replace(/''/g, "'");
-    }
-    return s;
-}
-
-function parseYamlList(lines, startIndex) {
-    const values = [];
-    let nextIndex = startIndex;
-
-    for (let i = startIndex + 1; i < lines.length; i++) {
-        const itemMatch = lines[i].match(/^\s+-\s+(.+)$/);
-        if (itemMatch) {
-            values.push(unquoteYaml(itemMatch[1].trim()));
-            nextIndex = i;
-            continue;
-        }
-        if (lines[i].trim() === '') {
-            nextIndex = i;
-            continue;
-        }
-        break;
-    }
-
-    return { values, nextIndex };
-}
-
-function extractFrontmatter(filePath) {
-    try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-        let inFrontmatter = false;
-        let inComposition = false;
-        let name = '';
-        let description = '';
-        let triggers = [];
-        let anti_triggers = [];
-        let aliases = [];
-        let requires_mcp = [];
-        let mcp_install_hint = '';
-        let composition = null;
-        let compress = true;
-        let triggerAccum = null; // accumulates bracket-multiline trigger arrays
-        let antiAccum = null;   // accumulates bracket-multiline anti_triggers arrays
-        let aliasAccum = null;  // accumulates bracket-multiline aliases arrays
-        let mcpAccum = null;    // accumulates bracket-multiline requires_mcp arrays
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.trim() === '---') {
-                if (inFrontmatter) break;
-                inFrontmatter = true;
-                continue;
-            }
-            if (inFrontmatter) {
-                // Handle bracket-multiline accumulation.
-                // Guard: if a new top-level key starts before the bracket closes, the
-                // frontmatter is malformed — abandon accumulation and fall through so
-                // this line is parsed normally (fail-safe, not fail-swallow).
-                // /^\w+:(?:[^/]|$)/ matches "key: value", "key:value", and "key:" while
-                // excluding URL continuations (http://...) where the char after : is /.
-                if (triggerAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }
-                    else {
-                        triggerAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(triggerAccum)) {
-                            triggers = parseInlineArray(extractBracketContent(triggerAccum));
-                            triggerAccum = null;
-                        }
-                        continue;
-                    }
-                }
-                if (antiAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { antiAccum = null; }
-                    else {
-                        antiAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(antiAccum)) {
-                            anti_triggers = parseInlineArray(extractBracketContent(antiAccum));
-                            antiAccum = null;
-                        }
-                        continue;
-                    }
-                }
-                if (mcpAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { mcpAccum = null; }
-                    else {
-                        mcpAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(mcpAccum)) {
-                            requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
-                            mcpAccum = null;
-                        }
-                        continue;
-                    }
-                }
-                if (aliasAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { aliasAccum = null; }
-                    else {
-                        aliasAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(aliasAccum)) {
-                            aliases = parseInlineArray(extractBracketContent(aliasAccum));
-                            aliasAccum = null;
-                        }
-                        continue;
-                    }
-                }
-
-                // Check for composition block start
-                if (line.match(/^composition:/)) {
-                    inComposition = true;
-                    composition = {};
-                    continue;
-                }
-                // Parse composition fields (indented with 2 spaces)
-                if (inComposition && line.match(/^  \w+:/)) {
-                    const compMatch = line.match(/^  (\w+):\s*(.+)?$/);
-                    if (compMatch) {
-                        const key = compMatch[1];
-                        let value = compMatch[2] || '';
-                        // Parse array values
-                        if (value.startsWith('[')) {
-                            value = value.replace(/[\[\]]/g, '').split(',').map(v => v.trim().replace(/"/g, '')).filter(v => v);
-                        } else if (value === 'true') {
-                            value = true;
-                        } else if (value === 'false') {
-                            value = false;
-                        } else if (!isNaN(value) && value !== '') {
-                            value = parseInt(value, 10);
-                        }
-                        composition[key] = value;
-                    }
-                } else if (inComposition && !line.match(/^  /)) {
-                    inComposition = false; // End of composition block
-                }
-
-                // Check for triggers array — 3 forms
-                if (line.match(/^triggers:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        triggers = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        triggerAccum = line; // bracket-multiline
-                    }
-                } else if (line.match(/^triggers:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    triggers = parsed.values;
-                    i = parsed.nextIndex;
-                }
-                // Check for anti_triggers array — same 3 forms
-                if (line.match(/^anti_triggers:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        anti_triggers = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        antiAccum = line; // bracket-multiline
-                    }
-                } else if (line.match(/^anti_triggers:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    anti_triggers = parsed.values;
-                    i = parsed.nextIndex;
-                }
-                // Check for requires_mcp array — same 3 forms
-                if (line.match(/^requires_mcp:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        requires_mcp = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        mcpAccum = line;
-                    }
-                } else if (line.match(/^requires_mcp:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    requires_mcp = parsed.values;
-                    i = parsed.nextIndex;
-                }
-                // Check for aliases array — same 3 forms
-                if (line.match(/^aliases:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        aliases = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        aliasAccum = line;
-                    }
-                } else if (line.match(/^aliases:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    aliases = parsed.values;
-                    i = parsed.nextIndex;
-                }
-                const match = line.match(/^(\w+):\s*(.+)$/);
-                if (match) {
-                    const key = match[1];
-                    let value = match[2].trim();
-                    // Strip outer quotes and handle escaped quotes inside
-                    value = unquoteYaml(value);
-                    if (key === 'name') name = value;
-                    if (key === 'description') description = value;
-                    if (key === 'compress' && value === 'false') compress = false;
-                    if (key === 'mcp_install_hint') mcp_install_hint = value;
-                }
-            }
-        }
-        return { name, description, triggers, anti_triggers, aliases, requires_mcp, mcp_install_hint, composition, compress };
-    } catch (error) {
-        return { name: '', description: '', triggers: [], anti_triggers: [], aliases: [], requires_mcp: [], mcp_install_hint: '', composition: null, compress: true };
-    }
-}
+// extractFrontmatter and findSkillFile are imported from ./lib/frontmatter (see top of file)
 
 /**
  * Check if required MCP servers are registered in ~/.augment/settings.json.
@@ -467,84 +208,10 @@ function checkMcpPrerequisites(requiredServers) {
 }
 
 
-function findSkillFile(dir) {
-    const candidates = ['SKILL.md', 'skill.md'];
-    for (const filename of candidates) {
-        const filepath = path.join(dir, filename);
-        if (fs.existsSync(filepath)) return filepath;
-    }
-    return null;
-}
-
-function findSkillsInDir(dir, sourceType) {
-    const skills = [];
-    if (!fs.existsSync(dir)) return skills;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-        // Skip support directories (_shared, _archive, _adapters, etc.)
-        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
-        // Handle both directories and symlinks to directories
-        const skillDir = path.join(dir, entry.name);
-        let isDir = false;
-        try {
-            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-        } catch (err) {
-            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue; // broken/circular symlink
-            throw err; // surface real errors (EACCES, etc.)
-        }
-        if (!isDir) continue;
-        const skillFile = findSkillFile(skillDir);
-        if (skillFile) {
-            const meta = extractFrontmatter(skillFile);
-            const hasTriggers = meta.triggers && meta.triggers.length > 0;
-            const fileSize = fs.statSync(skillFile).size;
-            skills.push({
-                name: meta.name || entry.name,
-                description: meta.description || '',
-                triggers: meta.triggers || [],
-                anti_triggers: meta.anti_triggers || [],
-                aliases: meta.aliases || [],
-                composition: meta.composition || null,
-                isSuperpower: hasTriggers,  // Superpowers have auto-triggers
-                sourceType,
-                skillFile,
-                skillDir,
-                tokens: Math.round(fileSize / 4)  // ~4 chars per token approximation
-            });
-        }
-    }
-    return skills;
-}
-
-function stripFrontmatter(content) {
-    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    let inFrontmatter = false;
-    let frontmatterEnded = false;
-    const contentLines = [];
-    for (const line of lines) {
-        if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
-        }
-        if (frontmatterEnded || !inFrontmatter) {
-            contentLines.push(line);
-        }
-    }
-    return contentLines.join('\n').trim();
-}
+// findSkillsInDir, stripFrontmatter, deduplicateSkills — imported from lib/ (see top of file)
 
 function findSkills(filterMode = 'all') {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
+    const deduped = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     // Categorize
     const superpowers = deduped.filter(s => s.isSuperpower);
     const explicitSkills = deduped.filter(s => !s.isSuperpower);
@@ -629,6 +296,84 @@ function findSkills(filterMode = 'all') {
 }
 
 
+/**
+ * Resolve a skill name (possibly with namespace prefix) to a file path.
+ *
+ * Namespace prefixes:
+ *   superpowers:name → obra/superpowers skills only
+ *   spp:name         → superpowers-plus source repo only
+ *   spo:name         → overlay source repo only
+ *   (no prefix)      → personal dir → superpowers dir → alias fallback
+ *
+ * Dash shorthands: sp-X → superpowers-X, spp-X → spp:superpowers-X
+ *
+ * @param {string} skillName - Raw skill name (possibly with prefix)
+ * @returns {{ skillFile: string|null, actualName: string }} Resolved file and canonical name
+ */
+function resolveSkillNamespace(skillName) {
+    let forceSuperpowers = skillName.startsWith('superpowers:');
+    let forceSpp = skillName.startsWith('spp:');
+    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');
+    let actualName;
+
+    // Dash shorthand expansion
+    if (!forceSuperpowers && !forceSpp && !forceSpo) {
+        if (skillName.startsWith('spp-')) {
+            forceSpp = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {
+            forceSpo = true;
+            actualName = 'superpowers-' + skillName.slice(4);
+        } else if (skillName.startsWith('sp-')) {
+            actualName = 'superpowers-' + skillName.slice(3);
+        }
+    }
+
+    if (!actualName) {
+        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
+        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
+        else actualName = skillName;
+    }
+
+    let skillFile = null;
+
+    if (forceSpp) {
+        if (!SPP_SOURCE_DIR) return { skillFile: null, actualName, error: 'SPP_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
+    } else if (forceSpo) {
+        if (!OVERLAY_SOURCE_DIR) return { skillFile: null, actualName, error: 'SP_OVERLAY_SOURCE_DIR not set' };
+        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
+    } else if (!forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) {
+            skillFile = personalFile;
+        } else {
+            skillFile = findSkillInSourceRepo(PERSONAL_SKILLS_DIR, actualName);
+        }
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
+        const superpowersFile = findSkillFile(superpowersDir);
+        if (superpowersFile) skillFile = superpowersFile;
+    }
+
+    if (!skillFile && forceSuperpowers) {
+        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
+        const personalFile = findSkillFile(personalDir);
+        if (personalFile) skillFile = personalFile;
+    }
+
+    if (!skillFile && !forceSpp && !forceSpo) {
+        skillFile = resolveAlias(actualName);
+    }
+
+    return { skillFile, actualName };
+}
+
+
 function useSkill(skillName, options = {}) {
     if (!skillName) {
         console.error('Error: skill name required');
@@ -654,87 +399,17 @@ function useSkill(skillName, options = {}) {
         // Don't block — still load the skill, but the warning is impossible to miss
     }
 
-    // Namespace prefix resolution
-    // superpowers:name → obra/superpowers skills only
-    // spp:name         → superpowers-plus source repo only
-    // spo:name         → overlay source repo only (set SP_OVERLAY_SOURCE_DIR)
-    // name (no prefix) → installed dir (overlay overrides plus) → obra
-    //
-    // Dash shorthand (prefix expansion for fewer keystrokes):
-    // sp-X   → expands to superpowers-X, normal resolution
-    // spp-X  → expands to superpowers-X, spp: resolution
-    // spo-X  → expands to superpowers-X, spo: resolution
-    let forceSuperpowers = skillName.startsWith('superpowers:');
-    let forceSpp = skillName.startsWith('spp:');
-    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');  // spc: backward compat
-    let actualName;
+    // Resolve namespace prefix → file path
+    const resolved = resolveSkillNamespace(skillName);
+    const { actualName } = resolved;
+    let { skillFile } = resolved;
 
-    // Dash shorthand expansion: spp-X → spp:superpowers-X, spo-X → spo:superpowers-X, sp-X → superpowers-X
-    if (!forceSuperpowers && !forceSpp && !forceSpo) {
-        if (skillName.startsWith('spp-')) {
-            forceSpp = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {  // spc- backward compat
-            forceSpo = true;
-            actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('sp-')) {
-            actualName = 'superpowers-' + skillName.slice(3);
-        }
-    }
-
-    if (!actualName) {
-        if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
-        else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
-        else actualName = skillName;
-    }
-
-    let skillFile = null;
-
-    if (forceSpp) {
-        // spp: → search superpowers-plus source repo only
-        if (!SPP_SOURCE_DIR) {
-            console.error('Error: spp: prefix used but superpowers-plus source repo not found.');
-            console.error('Set SPP_SOURCE_DIR env var or clone superpowers-plus to a well-known path');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
-    } else if (forceSpo) {
-        // spo: → search overlay source repo only
-        if (!OVERLAY_SOURCE_DIR) {
-            console.error('Error: spo: prefix used but overlay source repo not found.');
-            console.error('Set SP_OVERLAY_SOURCE_DIR env var to point to your overlay skill repo');
-            process.exit(1);
-        }
-        skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
-    } else if (!forceSuperpowers) {
-        // No prefix → personal/installed dir first (overlay overrides plus)
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
-    }
-
-    if (!skillFile && !forceSpp && !forceSpo) {
-        // Fall through to obra/superpowers
-        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
-        const superpowersFile = findSkillFile(superpowersDir);
-        if (superpowersFile) skillFile = superpowersFile;
-    }
-    // Fallback: if superpowers: prefix was used but skill not found in superpowers dir,
-    // check personal dir too (personal skills with triggers are listed as superpowers)
-    if (!skillFile && forceSuperpowers) {
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
-    }
-    // Alias fallback: scan all installed skills for a matching alias (case-insensitive)
-    if (!skillFile && !forceSpp && !forceSpo) {
-        skillFile = resolveAlias(actualName);
+    if (resolved.error) {
+        console.error('Error: ' + resolved.error);
+        process.exit(1);
     }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
-        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
-        if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         const suggestions = suggestSimilarSkills(actualName);
         if (suggestions.length > 0) {
             console.error('Did you mean: ' + suggestions.join(', ') + '?');
@@ -800,6 +475,17 @@ function useSkill(skillName, options = {}) {
         workflowState.recordSkillInvocation(actualName);
     } catch (_) { /* non-fatal — advisory mode */ }
 
+    // Auto-init workflow for workflow-initiating skills
+    const WORKFLOW_INIT_SKILLS = ['feature-development', 'plan-and-execute', 'evolution-loop'];
+    if (WORKFLOW_INIT_SKILLS.includes(actualName)) {
+        try {
+            const existing = workflowState.readState();
+            if (!existing) {
+                workflowState.initWorkflow(actualName, { triggered_by: actualName });
+            }
+        } catch (_) { /* advisory */ }
+    }
+
 }
 
 /**
@@ -814,77 +500,7 @@ function useSkill(skillName, options = {}) {
  * procedures, code examples, tables with data.
  * Per-skill opt-out: add `compress: false` to YAML frontmatter.
  */
-function compressSkillContent(text) {
-    let result = text;
-
-    // 1. Strip DOT graphs (not renderable)
-    result = result.replace(/```dot[\s\S]*?```/g, '');
-
-    // 2. Strip EXTREMELY-IMPORTANT wrappers (keep content)
-    result = result.replace(/<EXTREMELY-IMPORTANT>\n?([\s\S]*?)<\/EXTREMELY-IMPORTANT>/g, '$1');
-
-    // 3. Preserve SUBAGENT-STOP blocks (sub-agent dispatch control — never strip)
-
-    // 4. Strip "When to Use" / "Overview" sections (trigger system handles routing)
-    result = result.replace(/## When to Use[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## When to Use[\s\S]*$/g, '');
-    result = result.replace(/## Overview\n[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## Overview\n[\s\S]*$/g, '');
-
-    // 5. Strip "Common Rationalizations" tables (lecturing)
-    result = result.replace(/##+ Common Rationalizations[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 6. Strip "Why Order Matters" / "Why This Matters" (philosophical)
-    result = result.replace(/##+ Why (?:Order|This|It) Matters[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 7. Strip "Quick Reference" section (duplicates main content)
-    result = result.replace(/## Quick Reference[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 8. Preserve "Failure Modes" — may contain operational rules, not just boilerplate
-
-    // 9. Strip "Related Skills" / "Cross-References" / "Integration with" (cross-ref bloat)
-    result = result.replace(/##+ Related Skills[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Related Skills[\s\S]*$/g, '');
-    result = result.replace(/##+ Cross[- ]?References[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Cross[- ]?References[\s\S]*$/g, '');
-    result = result.replace(/##+ Integration with [\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 10. Strip "Reference Files" (just pointers to other files)
-    result = result.replace(/##+ Reference Files[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Reference Files[\s\S]*$/g, '');
-
-    // 11. Strip "When This Skill Fires" (redundant with triggers)
-    result = result.replace(/## When This Skill Fires[\s\S]*?(?=\n## )/g, '');
-    result = result.replace(/## When This Skill Fires[\s\S]*$/g, '');
-
-    // 12. Strip "When NOT to Use" (routing info moved to "Scope Exclusions" or "Wrong skill?" blocks)
-    result = result.replace(/##+ When NOT to Use[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 13. Strip "Manual Invocation" (user already knows how to invoke)
-    result = result.replace(/##+ Manual Invocation[\s\S]*?(?=\n## |\n# |$)/g, '');
-
-    // 14. Strip "Incident Log" sections (historical, not procedural)
-    result = result.replace(/##+ Incident Log[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ Incident Log[\s\S]*$/g, '');
-
-    // 15. Strip "I'm Stuck Escalation" pointers (generic)
-    result = result.replace(/##+ I'm Stuck[\s\S]*?(?=\n## |\n# |$)/g, '');
-    result = result.replace(/##+ I'm Stuck[\s\S]*$/g, '');
-
-    // 16. Strip YAML frontmatter (already parsed by loader)
-    result = result.replace(/^---\n[\s\S]*?\n---\n*/g, '');
-
-    // 17. Strip horizontal rules (visual only, wastes tokens)
-    result = result.replace(/\n---\n/g, '\n');
-
-    // 18. Strip HTML comments
-    result = result.replace(/<!--[\s\S]*?-->/g, '');
-
-    // 19. Collapse 3+ consecutive blank lines to 1
-    result = result.replace(/\n{3,}/g, '\n\n');
-
-    return result.trim();
-}
+// compressSkillContent imported from lib/compress.js (see imports at top)
 
 function bootstrap() {
     writeSessionMarker();
@@ -921,17 +537,7 @@ Process skills (debugging, brainstorming) before implementation skills.
 const SKILL_INDEX_FILE = path.join(homeDir, '.codex', '.skill-index.json');
 
 function buildSkillIndex() {
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    const deduped = [];
-    for (const skill of allSkills) {
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        deduped.push(skill);
-    }
-    return deduped;
+    return findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 }
 
 /**
@@ -1022,16 +628,6 @@ switch (command) {
     case 'list-superpowers': findSkills('superpowers'); break;
     case 'list-skills': findSkills('explicit'); break;
 
-
-
-
-
-
-
-
-
-
-
     case 'compose-pipeline': {
         const capability = args[0];
         if (!capability) {
@@ -1046,9 +642,7 @@ switch (command) {
         }
 
         // Gather all skills with composition metadata
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
+        const allSkills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Filter to skills with composition blocks
         const composableSkills = allSkills.filter(s => s.composition !== null);
@@ -1110,15 +704,7 @@ switch (command) {
         }
 
         // Gather all skills
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         // Determine method
         let method = 'auto';
@@ -1129,10 +715,18 @@ switch (command) {
         const actualMethod = method === 'auto' ? routerInfo.default : method;
 
         try {
-            const matches = await semanticMatch(query, skills, { topN: 5, method });
+            // Fetch extra matches to account for internal filtering
+            const rawMatches = await semanticMatch(query, skills, { topN: 10, method });
+            // Filter out internal skills from user-facing output (PHR finding #2)
+            const matches = rawMatches.filter(m => {
+                const coord = getCoordination(m);
+                return !coord || !coord.internal;
+            }).slice(0, 5);
+
             console.log(`# Skill Match Results\n`);
             console.log(`Query: "${query}"`);
             console.log(`Method: ${actualMethod.toUpperCase()}${method === 'auto' ? ' (auto-selected)' : ''}\n`);
+            // Keep existing 4-column table structure stable for parsers (PHR finding #4)
             console.log('| Rank | Skill | Score | Type |');
             console.log('|------|-------|-------|------|');
             for (let i = 0; i < matches.length; i++) {
@@ -1145,6 +739,20 @@ switch (command) {
             }
             console.log(`\nTop match: **${matches[0]?.name}**`);
             console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
+
+            // Show coordination info below the table (appended, not column change)
+            const coordMatches = matches.filter(m => getCoordination(m));
+            if (coordMatches.length > 0) {
+                console.log('\n## Coordination');
+                for (const m of coordMatches) {
+                    const coord = getCoordination(m);
+                    const parts = [`group: ${coord.group || '(none)'}`];
+                    if (coord.requires.length) parts.push(`requires: ${coord.requires.join(', ')}`);
+                    if (coord.enables.length) parts.push(`enables: ${coord.enables.join(', ')}`);
+                    if (coord.escalates_to.length) parts.push(`escalates: ${coord.escalates_to.join(', ')}`);
+                    console.log(`- **${m.name}**: ${parts.join(' | ')}`);
+                }
+            }
         } catch (err) {
             console.error('Error:', err.message);
             process.exit(1);
@@ -1164,15 +772,7 @@ switch (command) {
 
     case 'embed-skills': {
         // Pre-embed all skills (optional, for embedding mode)
-        const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-        const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-        const allSkills = [...personalSkills, ...superpowersSkills];
-        const seen = new Set();
-        const skills = allSkills.filter(s => {
-            if (seen.has(s.name)) return false;
-            seen.add(s.name);
-            return true;
-        });
+        const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 
         const forceRefresh = args.includes('--force');
         console.log(`Embedding ${skills.length} skills...${forceRefresh ? ' (force refresh)' : ''}`);

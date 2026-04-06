@@ -54,13 +54,24 @@ NC='\033[0m'
 # staged — prevents a same-commit config change from disabling the gates it's
 # supposed to govern (REQUIRE_CODE_REVIEW_SENTINEL, SKIP_REVIEW_TOKEN, etc.).
 # Falls back to the working-tree file when .agent-gates is NOT staged.
+#
+# Bootstrap: when .agent-gates is staged but has NO HEAD version (first commit
+# introducing the file), read NON-SECURITY keys from the staged index blob.
+# Security-critical keys (SKIP_REVIEW_TOKEN, REQUIRE_CODE_REVIEW_SENTINEL)
+# stay at their safe defaults until .agent-gates exists in HEAD — preventing
+# a same-commit introduction from weakening the gates it's subject to.
 _agent_gates_source=""
+_agent_gates_bootstrap=false
 if git diff --cached --name-only | grep -qE '^\.agent-gates$'; then
-    # .agent-gates is staged: read from HEAD (last committed version)
+    # .agent-gates is staged: prefer HEAD (last committed version)
     if git cat-file -e HEAD:.agent-gates 2>/dev/null; then
         _agent_gates_source="HEAD"
+    elif git cat-file -e ":.agent-gates" 2>/dev/null; then
+        # Bootstrap: no HEAD version — read from staged index blob (not working tree).
+        # Non-security keys apply; security keys are pinned to defaults after parsing.
+        _agent_gates_source="staged"
+        _agent_gates_bootstrap=true
     fi
-    # If no HEAD version exists (first commit), treat as no config — gates stay at defaults
 else
     [[ -f "$REPO_ROOT/.agent-gates" ]] && _agent_gates_source="file"
 fi
@@ -121,9 +132,27 @@ case "$_agent_gates_source" in
     # runs in the current shell and its variable assignments + _GATES_PARSE_ERRORS
     # propagate back to this scope. A pipeline would run the function in a subshell
     # and silently discard all parsed state.
-    HEAD) _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
-    file) _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
+    HEAD)   _parse_agent_gates < <(git show HEAD:.agent-gates 2>/dev/null) ;;
+    staged) _parse_agent_gates < <(git show ":.agent-gates" 2>/dev/null) ;;
+    file)   _parse_agent_gates < "$REPO_ROOT/.agent-gates" ;;
 esac
+
+# Bootstrap safety: when .agent-gates is being introduced for the first time
+# (no HEAD version), pin ALL security-relevant keys to safe defaults.
+# This prevents a same-commit introduction from weakening the gates.
+# Security-relevant includes EXTRA_* commands which execute before the token
+# check and could mint a valid token, bypassing the review requirement.
+# Only declarative keys (CLASS, SKIP_SHELLCHECK, etc.) take effect on
+# first introduction; all executable and gate-weakening keys require the
+# file to exist in HEAD first.
+if [[ "$_agent_gates_bootstrap" == "true" ]]; then
+    SKIP_REVIEW_TOKEN=""
+    REQUIRE_CODE_REVIEW_SENTINEL=""
+    REVIEW_TOKEN_TTL=""
+    EXTRA_LINT=""
+    EXTRA_TYPECHECK=""
+    EXTRA_TEST=""
+fi
 
 # When .agent-gates is staged, validate the STAGED values (index blob) in
 # validation-only mode (do NOT apply them — that would allow self-disable).
@@ -455,7 +484,12 @@ for EXTRA_CMD_VAR in EXTRA_LINT EXTRA_TYPECHECK EXTRA_TEST; do
     EXTRA_CMD="${!EXTRA_CMD_VAR:-}"
     [[ -z "$EXTRA_CMD" ]] && continue
     echo -e "${YELLOW}[${EXTRA_IDX}/+]${NC} Running ${EXTRA_CMD_VAR}: ${EXTRA_CMD}..."
-    if ! eval "$EXTRA_CMD" 2>&1; then
+    # SECURITY: Use bash -c instead of eval for subshell isolation.
+    # Unlike eval, bash -c runs in a child process that cannot mutate
+    # parent shell state (e.g., reset ERRORS=0 or alter PATH).
+    # Still supports shell syntax (pipes, redirects, &&).
+    # -eo pipefail: errexit + pipefail in child (no -u to allow bare $VAR in gates).
+    if ! bash -eo pipefail -c "$EXTRA_CMD" 2>&1; then
         echo -e "${RED}  ✗ ${EXTRA_CMD_VAR} failed${NC}"
         ERRORS=$((ERRORS + 1))
     fi
@@ -523,6 +557,24 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
                 fi
             fi
         done
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# OPTIONAL: Workflow state gate (only when WORKFLOW_ENFORCEMENT=enforce)
+# Default is "advisory" — no behavior change. Opt-in only.
+# -----------------------------------------------------------------------------
+if [[ "${WORKFLOW_ENFORCEMENT:-advisory}" == "enforce" ]]; then
+    if command -v node >/dev/null 2>&1 && [[ -f "$REPO_ROOT/lib/workflow-state.js" ]]; then
+        _ws_result=$(node -e "
+            const ws = require('$REPO_ROOT/lib/workflow-state');
+            const r = ws.canCommit();
+            if (!r.ready) { console.log(r.reason || r.missing.join(', ')); process.exit(1); }
+        " 2>&1) || {
+            echo -e "${RED}  ⛔ Workflow gate blocked commit: ${_ws_result}${NC}"
+            echo "     Set WORKFLOW_ENFORCEMENT=advisory to bypass."
+            ERRORS=$((ERRORS + 1))
+        }
     fi
 fi
 

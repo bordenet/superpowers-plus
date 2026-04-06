@@ -12,6 +12,11 @@ coordination:
   enables: ["progressive-code-review-gate"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [lint-results]
+  capabilities: [gates-quality, validates-style]
+  priority: 35
 ---
 
 # enforce-style-guide

@@ -12,6 +12,11 @@ coordination:
   enables: ['issue-verify']
   escalates_to: []
   internal: false
+composition:
+  consumes: [todo-items]
+  produces: [updated-issue]
+  capabilities: [edits-issues]
+  priority: 20
 ---
 
 # Issue Editing

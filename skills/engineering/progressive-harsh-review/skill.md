@@ -29,6 +29,11 @@ coordination:
   enables: ["think-twice", "design-triad"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [design-options, phased-plan, markdown-content]
+  produces: [review-feedback]
+  capabilities: [reviews-design, gates-quality]
+  priority: 30
 ---
 
 # Progressive Harsh Review

@@ -12,6 +12,11 @@ coordination:
   enables: [receiving-code-review]
   escalates_to: [code-review-battery]
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [reviews-code]
+  priority: 25
 ---
 
 # Providing Code Review
