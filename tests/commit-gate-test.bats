@@ -104,6 +104,77 @@ _seed_token() {
     rm -rf "$fixture"
 }
 
+@test "harsh-review.sh direct run ignores ambient SP_OVERLAY_SOURCE_DIR" {
+    # When running harsh-review.sh directly (not via a wrapper), ambient
+    # SP_OVERLAY_SOURCE_DIR from .env must NOT redirect repo scoping.
+    local fixture overlay_dir
+    fixture=$(_create_fixture_repo)
+    overlay_dir=$(mktemp -d)
+    git -C "$overlay_dir" init -q
+    # Set ambient SP_OVERLAY_SOURCE_DIR (simulating .env export) WITHOUT the
+    # private protocol flag — must be ignored.
+    export SP_OVERLAY_SOURCE_DIR="$overlay_dir"
+    unset _SP_HARSH_REVIEW_OVERLAY
+    run bash "$fixture/tools/harsh-review.sh"
+    [ "$status" -eq 0 ]
+    local latest_token token_real fixture_real
+    latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
+    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    fixture_real=$(cd "$fixture" && pwd -P)
+    # Token must be scoped to the fixture repo (script's repo), NOT the overlay dir
+    [ "$token_real" = "$fixture_real" ]
+    rm -rf "$fixture" "$overlay_dir"
+    unset SP_OVERLAY_SOURCE_DIR
+}
+
+@test "harsh-review.sh overlay mode scopes token to overlay repo" {
+    # When the private protocol flag is set alongside SP_OVERLAY_SOURCE_DIR,
+    # the token must be scoped to the overlay repo, not the script's home repo.
+    local fixture overlay_repo
+    fixture=$(_create_fixture_repo)
+    overlay_repo=$(_create_fixture_repo)
+    # Simulate the wrapper contract: export both env vars
+    export SP_OVERLAY_SOURCE_DIR="$overlay_repo"
+    export _SP_HARSH_REVIEW_OVERLAY=1
+    # Run the fixture's copy of harsh-review.sh (simulates exec from wrapper)
+    run bash "$fixture/tools/harsh-review.sh"
+    [ "$status" -eq 0 ]
+    local latest_token token_real overlay_real
+    latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
+    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    overlay_real=$(cd "$overlay_repo" && pwd -P)
+    # Token must be scoped to the overlay repo
+    [ "$token_real" = "$overlay_real" ]
+    rm -rf "$fixture" "$overlay_repo"
+    unset SP_OVERLAY_SOURCE_DIR _SP_HARSH_REVIEW_OVERLAY
+}
+
+@test "harsh-review.sh overlay mode survives conflicting SP_OVERLAY_SOURCE_DIR in .env" {
+    # The wrapper snapshots SP_OVERLAY_SOURCE_DIR before .env is sourced.
+    # A conflicting export in .env must NOT redirect vendor-pattern loading
+    # away from the wrapper-selected overlay repo.
+    local fixture overlay_repo conflicting_repo
+    fixture=$(_create_fixture_repo)
+    overlay_repo=$(_create_fixture_repo)
+    conflicting_repo=$(_create_fixture_repo)
+    # Write a conflicting SP_OVERLAY_SOURCE_DIR into .env
+    mkdir -p "$HOME/.codex"
+    echo "export SP_OVERLAY_SOURCE_DIR=\"$conflicting_repo\"" > "$HOME/.codex/.env"
+    # Simulate the wrapper contract with the CORRECT overlay repo
+    export SP_OVERLAY_SOURCE_DIR="$overlay_repo"
+    export _SP_HARSH_REVIEW_OVERLAY=1
+    run bash "$fixture/tools/harsh-review.sh"
+    [ "$status" -eq 0 ]
+    local latest_token token_real overlay_real
+    latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
+    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    overlay_real=$(cd "$overlay_repo" && pwd -P)
+    # Token must be scoped to the wrapper's overlay repo, NOT the .env one
+    [ "$token_real" = "$overlay_real" ]
+    rm -rf "$fixture" "$overlay_repo" "$conflicting_repo"
+    unset SP_OVERLAY_SOURCE_DIR _SP_HARSH_REVIEW_OVERLAY
+}
+
 @test "token filename contains a unix timestamp field" {
     local fixture
     fixture=$(_create_fixture_repo)
@@ -574,6 +645,82 @@ STUBEOF
     rm -rf "$fixture"
     [ "$status" -ne 0 ]
     [[ "$output" == *"invalid value"* ]]
+}
+
+@test "pre-commit pins security keys to defaults on first .agent-gates introduction (bootstrap)" {
+    # Bootstrap security model: when .agent-gates is staged but has no HEAD version,
+    # non-security keys take effect but SKIP_REVIEW_TOKEN is pinned to its safe
+    # default (not skipped). This prevents a same-commit introduction from weakening
+    # the token gate. Without security pinning, this commit would pass because
+    # SKIP_REVIEW_TOKEN=true would be applied from the staged blob.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Provide valid sentinel so Gate 0 passes
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Stage .agent-gates with SKIP_REVIEW_TOKEN=true (first introduction — no HEAD version)
+    # Do NOT seed a review token — if pinning works, the hook requires a token and blocks.
+    echo "SKIP_REVIEW_TOKEN=true" > "$fixture/.agent-gates"
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must block: SKIP_REVIEW_TOKEN is pinned to safe default on first introduction
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"No valid review token found"* ]]
+}
+
+@test "pre-commit pins REVIEW_TOKEN_TTL to default on first .agent-gates introduction (bootstrap)" {
+    # Bootstrap security: an inflated TTL on first introduction must NOT allow
+    # reuse of a stale token that would have expired under the 300s default.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    # Provide valid sentinel so Gate 0 passes
+    local head_sha
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    # Seed a token that is 600 seconds old — expired under default 300s TTL
+    # but would be valid under the staged TTL=3600.
+    local repo_root cksum_val stale_ts
+    repo_root=$(cd "$fixture" && pwd -P)
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    stale_ts=$(( $(date +%s) - 600 ))
+    echo "$repo_root" > "$REVIEW_TOKEN_DIR/${cksum_val}.${stale_ts}.$$"
+    # Stage .agent-gates with inflated TTL (first introduction — no HEAD version)
+    echo "REVIEW_TOKEN_TTL=3600" > "$fixture/.agent-gates"
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must block: TTL is pinned to 300s default during bootstrap, so the
+    # 600-second-old token is expired. The inflated TTL must NOT take effect.
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"No valid review token found"* ]]
+}
+
+@test "pre-commit blocks bootstrap EXTRA_LINT that attempts to mint a review token" {
+    # Bootstrap security: EXTRA_* commands run before the token check.
+    # On first introduction, a malicious EXTRA_LINT could mint a valid token,
+    # bypassing the review requirement. Bootstrap must clear EXTRA_* vars.
+    local fixture
+    fixture=$(_create_fixture_repo)
+    local head_sha repo_root cksum_val
+    head_sha=$(git -C "$fixture" rev-parse HEAD)
+    echo "v1|${head_sha}|PASS|$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$fixture/.code-review-cleared"
+    repo_root=$(cd "$fixture" && pwd -P)
+    cksum_val=$(printf '%s' "$repo_root" | cksum | awk '{print $1}')
+    # Stage .agent-gates with EXTRA_LINT that mints a valid token
+    cat > "$fixture/.agent-gates" <<EOF
+EXTRA_LINT=echo "$repo_root" > "$REVIEW_TOKEN_DIR/${cksum_val}.$(date +%s).$$"
+EOF
+    printf '# code change\n' >> "$fixture/README.md"
+    git -C "$fixture" add .agent-gates README.md
+    run bash -c "cd '$fixture' && bash tools/pre-commit"
+    rm -rf "$fixture"
+    # Must block: EXTRA_LINT is cleared during bootstrap, so no token is minted.
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"No valid review token found"* ]]
 }
 
 @test "pre-commit blocks staged .agent-gates with invalid SKIP_DEFAULT_TESTS value" {

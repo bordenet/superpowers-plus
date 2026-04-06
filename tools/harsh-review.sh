@@ -17,12 +17,54 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# REPO_ROOT resolution — two invocation modes:
+#
+#   1. Direct run:  `bash /path/to/repo/tools/harsh-review.sh`
+#      REPO_ROOT = the git repo containing the script (via git -C on SCRIPT_DIR).
+#      This is correct regardless of the caller's working directory.
+#
+#   2. Overlay wrapper:  wrapper sets _SP_HARSH_REVIEW_OVERLAY=1 and exports
+#      SP_OVERLAY_SOURCE_DIR, then exec's this script.
+#      REPO_ROOT = SP_OVERLAY_SOURCE_DIR (validated as a git repo root).
+#
+# _SP_HARSH_REVIEW_OVERLAY is a private protocol between the wrapper and this
+# script.  It is NOT set in .env or any ambient config, so direct runs are
+# never accidentally redirected by a stale SP_OVERLAY_SOURCE_DIR export.
+# _overlay_mode tracks whether we're running via an overlay wrapper.
+# Used to gate both REPO_ROOT scoping and vendor-pattern loading.
+_overlay_mode=false
+_overlay_source_dir=""
+if [[ "${_SP_HARSH_REVIEW_OVERLAY:-}" == "1" && -n "${SP_OVERLAY_SOURCE_DIR:-}" ]]; then
+    # Snapshot the wrapper-supplied path BEFORE sourcing .env, which may
+    # overwrite SP_OVERLAY_SOURCE_DIR with a different repo's path.
+    _overlay_source_dir="$SP_OVERLAY_SOURCE_DIR"
+    REPO_ROOT="$(git -C "$_overlay_source_dir" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -z "$REPO_ROOT" ]]; then
+        echo "ERROR: SP_OVERLAY_SOURCE_DIR ($_overlay_source_dir) is not a git repo" >&2
+        exit 1
+    fi
+    _overlay_mode=true
+else
+    REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null || true)"
+    if [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    fi
+fi
+unset _SP_HARSH_REVIEW_OVERLAY
+
 cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 
 # shellcheck source=/dev/null
 [[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
-SP_OVERLAY_DIR="${SP_OVERLAY_SOURCE_DIR:-${SPC_SOURCE_DIR:-}}"
+# Only load overlay vendor patterns when explicitly in overlay mode.
+# Use _overlay_source_dir (snapshotted before .env sourcing), NOT the
+# potentially-overwritten SP_OVERLAY_SOURCE_DIR.
+if [[ "$_overlay_mode" == "true" ]]; then
+    SP_OVERLAY_DIR="$_overlay_source_dir"
+else
+    SP_OVERLAY_DIR=""
+fi
+unset _overlay_source_dir _overlay_mode
 
 # Colors
 if [[ -t 1 ]]; then
