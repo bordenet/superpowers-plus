@@ -12,6 +12,11 @@ coordination:
   enables: ["verification-before-completion"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [implementation]
+  produces: [verification-report]
+  capabilities: [validates-completeness]
+  priority: 25
 ---
 
 # Exhaustive Audit Validation

@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [upgraded-dependencies]
+  capabilities: [scans-cves, upgrades-packages]
+  priority: 20
 ---
 
 # Security Dependency Upgrade Workflow

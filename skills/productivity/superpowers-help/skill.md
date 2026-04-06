@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: []
+  produces: [skill-catalog]
+  capabilities: [enumerates-skills]
+  priority: 50
 ---
 
 # 🦸 Superpowers & Skills

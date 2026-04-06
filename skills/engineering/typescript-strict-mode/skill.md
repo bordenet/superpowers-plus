@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [typed-code]
+  capabilities: [enforces-types]
+  priority: 35
 ---
 
 # typescript-strict-mode

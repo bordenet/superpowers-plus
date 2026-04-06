@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [phased-plan]
+  produces: [plan-validation-report]
+  capabilities: [validates-completeness, gates-quality]
+  priority: 30
 ---
 
 # Plan Quality Gates

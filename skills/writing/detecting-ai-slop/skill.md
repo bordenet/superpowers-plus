@@ -12,6 +12,11 @@ coordination:
   enables: ['eliminating-ai-slop']
   escalates_to: []
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [slop-score-report]
+  capabilities: [analyzes-writing, scores-quality]
+  priority: 30
 ---
 
 # Detecting AI Slop

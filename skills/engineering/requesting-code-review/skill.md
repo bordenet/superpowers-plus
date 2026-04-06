@@ -33,6 +33,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [review-feedback]
+  capabilities: [dispatches-review]
+  priority: 25
 ---
 
 # Requesting Code Review
@@ -99,7 +104,7 @@ The autonomous review is not the human's job to request. You must do it yourself
 
 **Why this rule exists:** See the 2026-04-02b incident in `verification-before-completion` Incident History. The gate failed because the implementation→reporting transition was not recognized as a trigger despite an explicit incident log entry from earlier the same session. The fix: trigger on INTENT, not on output language.
 
-## When to Request Review
+## When to Use / When to Request Review
 
 **Always (hard gates):**
 - Before presenting ANY work as "ready/done/complete" to a human

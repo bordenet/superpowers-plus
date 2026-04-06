@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [branch-intent]
+  produces: [branch-name]
+  capabilities: [enforces-conventions]
+  priority: 40
 ---
 
 # git-branch-conventions

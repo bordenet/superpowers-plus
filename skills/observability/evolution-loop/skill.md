@@ -21,6 +21,11 @@ coordination:
   enables: [skill-authoring]
   escalates_to: []
   internal: false
+composition:
+  consumes: [retrospective-notes]
+  produces: [skill-updates]
+  capabilities: [self-improves, pattern-extraction]
+  priority: 40
 ---
 
 # Evolution Loop
