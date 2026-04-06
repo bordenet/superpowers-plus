@@ -12,6 +12,11 @@ coordination:
   enables: [pre-commit-gate]
   escalates_to: [think-twice]
   internal: false
+composition:
+  consumes: [review-request-file]
+  produces: [review-response-file]
+  capabilities: [file-protocol-review]
+  priority: 25
 ---
 
 # Code Review — Reviewer Agent File Protocol

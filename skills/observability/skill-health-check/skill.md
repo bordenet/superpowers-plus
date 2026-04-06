@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: ["superpowers-doctor"]
   internal: false
+composition:
+  consumes: [skill-ecosystem]
+  produces: [skill-health-report]
+  capabilities: [validates-structure]
+  priority: 30
 ---
 
 # Skill Health Check

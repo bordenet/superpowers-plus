@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [code-changes]
+  produces: [ip-audit-report]
+  capabilities: [scans-ip, gates-quality]
+  priority: 30
 ---
 
 # public-repo-ip-audit

@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [skill-ecosystem]
+  produces: [diagnostic-report]
+  capabilities: [diagnoses-health, validates-skills]
+  priority: 25
 ---
 
 # Superpowers Doctor

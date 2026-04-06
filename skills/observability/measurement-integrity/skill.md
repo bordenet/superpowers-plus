@@ -21,6 +21,11 @@ coordination:
   enables: [verification-before-completion]
   escalates_to: [failure-autopsy]
   internal: false
+composition:
+  consumes: [metric-claim]
+  produces: [verified-metric]
+  capabilities: [cross-validates-metrics, gates-quality]
+  priority: 30
 ---
 
 # Measurement Integrity

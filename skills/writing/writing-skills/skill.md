@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [markdown-content]
+  produces: [prose-quality-report]
+  capabilities: [validates-prose, reviews-content]
+  priority: 35
 ---
 
 # Writing Skills

@@ -12,6 +12,11 @@ coordination:
   enables: ["design-triad", "brainstorming"]
   escalates_to: ["feature-development"]
   internal: false
+composition:
+  consumes: [goal, task-description]
+  produces: [validation-report]
+  capabilities: [validates-requirements, detects-bias]
+  priority: 10
 ---
 
 # Requirements Validation

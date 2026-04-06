@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [phased-plan, risk-surface]
+  produces: [fallback-plan]
+  capabilities: [generates-contingency]
+  priority: 15
 ---
 
 # Fallback Planning
