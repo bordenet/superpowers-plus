@@ -352,9 +352,107 @@ test_warnings_only_exit_code_0() {
   fi
 }
 
+# ── Check 27: Agent content drift ──
+
+test_agent_checks_has_symlink_guard() {
+  local module="$SCRIPT_DIR/../doctor-modules/agent-checks.sh"
+  # Pattern is a literal string (not expanded) — grep searches for this exact text in .sh file
+  # shellcheck disable=SC2016
+  local symlink_guard='-L "$installed"'
+  if grep -Fq "$symlink_guard" "$module"; then
+    pass "agent-checks.sh has symlink guard before diff/cp"
+  else
+    fail "agent-checks.sh missing symlink guard — regression"
+  fi
+}
+
+test_agent_checks_has_backup_before_fix() {
+  local module="$SCRIPT_DIR/../doctor-modules/agent-checks.sh"
+  if grep -q 'agent_backup_dir' "$module" && grep -q 'cp.*installed.*agent_backup_dir\|cp.*agent_backup_dir\|backup_dir.*agents' "$module"; then
+    pass "agent-checks.sh backs up installed agent before overwriting"
+  else
+    fail "agent-checks.sh missing pre-fix backup — regression"
+  fi
+}
+
+test_agent_checks_detects_duplicate_sources() {
+  local module="$SCRIPT_DIR/../doctor-modules/agent-checks.sh"
+  if grep -q 'ambiguous source' "$module"; then
+    pass "agent-checks.sh reports ambiguous source for duplicate agent basenames"
+  else
+    fail "agent-checks.sh missing duplicate-source detection — regression"
+  fi
+}
+
+test_agent_checks_warns_on_missing_install() {
+  local module="$SCRIPT_DIR/../doctor-modules/agent-checks.sh"
+  if grep -q 'source agent not installed' "$module"; then
+    pass "agent-checks.sh warns when source agent has no installed counterpart"
+  else
+    fail "agent-checks.sh silently skips missing installs — regression"
+  fi
+}
+
+test_agent_drift_detection_functional() {
+  local tmp_src tmp_installed
+  tmp_src=$(mktemp -d "${TMPDIR:-/tmp}/agent-src-XXXXXX")
+  tmp_installed=$(mktemp -d "${TMPDIR:-/tmp}/agent-inst-XXXXXX")
+
+  # Source agent (correct model)
+  printf 'model: Code Review\nrole: reviewer\n' > "$tmp_src/code-reviewer.md"
+  # Installed agent (drifted — wrong model)
+  printf 'model: gpt-5.4\nrole: reviewer\n' > "$tmp_installed/code-reviewer.md"
+
+  local output
+  output=$(diff -q "$tmp_src/code-reviewer.md" "$tmp_installed/code-reviewer.md" 2>&1 || true)
+  if [[ -n "$output" ]]; then
+    pass "functional: drift detected between source and installed agent"
+  else
+    fail "functional: no drift detected — files are unexpectedly identical"
+  fi
+
+  # Verify model normalization: strip quotes so 'Code Review' == "Code Review"
+  local m1 m2
+  m1=$(grep -m1 '^model:' "$tmp_src/code-reviewer.md" \
+    | sed "s/model:[[:space:]]*//;s/['\"]//g;s/[[:space:]]*$//")
+  m2=$(grep -m1 '^model:' "$tmp_installed/code-reviewer.md" \
+    | sed "s/model:[[:space:]]*//;s/['\"]//g;s/[[:space:]]*$//")
+  if [[ "$m1" != "$m2" ]]; then
+    pass "functional: normalized model mismatch detected (src=$m1, installed=$m2)"
+  else
+    fail "functional: model normalization failed — models appear equal when they differ"
+  fi
+
+  rm -rf "${tmp_src:?}" "${tmp_installed:?}"
+}
+
+# ── .worktrees exclusion ──
+
+test_reference_checks_excludes_worktrees() {
+  local module="$SCRIPT_DIR/../doctor-modules/reference-checks.sh"
+  local worktrees_filter_count
+  worktrees_filter_count=$(grep -c '\.worktrees' "$module" || true)
+  # Expect exclusion on all 3 find calls (skill.md INSTALLED_MATCH_DIR, references/*.md, overlay skill.md)
+  if [[ "$worktrees_filter_count" -ge 3 ]]; then
+    pass "reference-checks.sh excludes .worktrees/ on all find calls ($worktrees_filter_count occurrences)"
+  else
+    fail "reference-checks.sh missing .worktrees exclusion (only $worktrees_filter_count occurrences, want ≥3)"
+  fi
+}
+
 # ── Run all tests ──
 
 echo "── Doctor checks regression tests ──"
+echo ""
+echo "Check 27: Agent content drift"
+test_agent_checks_has_symlink_guard
+test_agent_checks_has_backup_before_fix
+test_agent_checks_detects_duplicate_sources
+test_agent_checks_warns_on_missing_install
+test_agent_drift_detection_functional
+echo ""
+echo "Check 27 + reference-checks: .worktrees exclusion"
+test_reference_checks_excludes_worktrees
 echo ""
 echo "Check 19/20: Stale & dirty checkout detection"
 test_stale_checkout_detection
