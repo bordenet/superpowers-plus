@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 26 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 27 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -94,7 +94,7 @@ BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
 
 # Helper: should we fix this check?
-# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout), 21 (hook integrity)
+# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout), 21 (hook integrity), 27 (agent drift)
 # Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk), 20 (dirty checkout), 26 (workflow state)
 can_fix() {
   [[ "$FIX_MODE" != "true" ]] && return 1

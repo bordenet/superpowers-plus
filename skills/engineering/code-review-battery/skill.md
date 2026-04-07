@@ -123,8 +123,10 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 **3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
 
 ```bash
-git diff --diff-filter=RD --name-only main..HEAD   # old paths
-grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # scan ENTIRE repo
+# --name-status → R/D entries; awk $2 = old path; grep entire repo for references
+git diff --diff-filter=RD --name-status main..HEAD | awk '/^[RD]/{print $2}' \
+  | while IFS= read -r old; do grep -rn "$(basename "$old")" . \
+      --include="*.md" --include="*.ts" --include="*.sh"; done
 ```
 
 **MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
@@ -219,7 +221,7 @@ If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all 
 
 ### Gap Analysis + Error Handling
 
-Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
+Monolith catches something no specialist found → `candidates/`. Missed known exercise → add to that specialist's prompt. Recurring false positive → remove or qualify from rotation. Reviewer fails → note; no retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns
 
