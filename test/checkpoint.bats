@@ -231,3 +231,28 @@ json.dump(lock, open('$CHECKPOINT_DIR/wf-013.lock', 'w'))
     run python3 -c "import json; d=json.load(open('$CHECKPOINT_DIR/wf-018.json')); assert d['resumePrompt'] == '$PROMPT'"
     [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# 19. init without --force fails on existing checkpoint (data loss guard)
+# ---------------------------------------------------------------------------
+@test "init without --force fails on existing checkpoint" {
+    bash "$CHECKPOINT_SH" init "wf-019" "Guard Test" --steps 3
+    bash "$CHECKPOINT_SH" step "wf-019" --description "Step 1" --result success
+    run bash "$CHECKPOINT_SH" init "wf-019" "Guard Test"
+    [ "$status" -eq 1 ]
+    # Data must still be intact
+    run python3 -c "import json; d=json.load(open('$CHECKPOINT_DIR/wf-019.json')); assert d['currentStep']==1"
+    [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# 20. init with --force overwrites existing checkpoint
+# ---------------------------------------------------------------------------
+@test "init with --force overwrites existing checkpoint" {
+    bash "$CHECKPOINT_SH" init "wf-020" "Force Test" --steps 3
+    bash "$CHECKPOINT_SH" step "wf-020" --description "Step 1" --result success
+    run bash "$CHECKPOINT_SH" init "wf-020" "Force Test Reset" --force
+    [ "$status" -eq 0 ]
+    run python3 -c "import json; d=json.load(open('$CHECKPOINT_DIR/wf-020.json')); assert d['currentStep']==0"
+    [ "$status" -eq 0 ]
+}

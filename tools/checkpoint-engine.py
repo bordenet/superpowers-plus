@@ -100,6 +100,12 @@ def _read_checkpoint(workflow_id):
 
 def cmd_init(args):
     path = _checkpoint_path(args.workflow_id)
+    if os.path.isfile(path) and not args.force:
+        _error(
+            "Checkpoint '{}' already exists. Use --force to overwrite an existing checkpoint.".format(
+                args.workflow_id
+            )
+        )
     now = int(time.time())
     data = {
         "workflowId": args.workflow_id,
@@ -227,8 +233,9 @@ def cmd_lock(args):
             existing_expiry = existing.get("expiryEpoch", 0)
             if existing_expiry > now:
                 _error(
-                    "Workflow '{}' is locked by owner '{}' until epoch {} ({}s remaining). "
-                    "Fencing violation prevented.".format(
+                    "Lock contention: workflow '{}' is already locked by owner '{}' "
+                    "until epoch {} ({}s remaining). "
+                    "Note: this is an advisory lock — not atomically enforced.".format(
                         args.workflow_id,
                         existing.get("owner", "unknown"),
                         existing_expiry,
@@ -263,7 +270,7 @@ def cmd_unlock(args):
         _error("Cannot read lock file: {}".format(exc))
     if existing.get("owner") != args.owner:
         _error(
-            "Fencing violation: lock owned by '{}', cannot unlock with owner '{}'".format(
+            "Owner mismatch: lock held by '{}', cannot unlock with owner '{}'".format(
                 existing.get("owner", "unknown"), args.owner
             )
         )
@@ -281,7 +288,7 @@ def cmd_renew(args):
         _error("Cannot read lock file: {}".format(exc))
     if existing.get("owner") != args.owner:
         _error(
-            "Fencing violation: lock owned by '{}', cannot renew with owner '{}'".format(
+            "Owner mismatch: lock held by '{}', cannot renew with owner '{}'".format(
                 existing.get("owner", "unknown"), args.owner
             )
         )
@@ -305,6 +312,8 @@ def main():
     p_init.add_argument("workflow_id", help="Unique workflow identifier")
     p_init.add_argument("workflow_name", help="Human-readable workflow name")
     p_init.add_argument("--steps", type=int, default=0, help="Total expected steps")
+    p_init.add_argument("--force", action="store_true",
+                        help="Overwrite existing checkpoint (destructive)")
 
     p_step = sub.add_parser("step", help="Record a completed step")
     p_step.add_argument("workflow_id")
