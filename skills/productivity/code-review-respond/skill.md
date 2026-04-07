@@ -108,6 +108,23 @@ F3. [file:line] Description...
 7. **Don't soften your language.** If something is good, say so briefly and move on. Spend your time on problems.
 8. **Use this file's response template.** `providing-code-review` may inform your checklist, but its output format does not replace `# Code Review Response — Round {N}`.
 
+## Inbound Reference Check (MANDATORY when diff contains renames/moves/deletes)
+
+If the diff renames, moves, or deletes ANY file:
+
+1. **Identify old paths:** `git diff --diff-filter=RD --name-status | awk '/^[RD]/ { print $2 }'` (or extract from the diff provided)
+2. **Scan the ENTIRE repo** for references to each old path — not just the changed directory:
+   ```bash
+   grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh" --include="*.json"
+   ```
+3. **Any hit outside the changed directory is a CRITICAL finding.** It means a consumer was not updated and will break.
+
+**The #1 inbound-reference failure mode is scoping the search to the directory that was refactored.** Other modules, sibling skills, READMEs, config files, and test suites that reference the old paths will silently break.
+
+**If you skip this check when renames/moves/deletes are present, your review is structurally incomplete — regardless of how thorough the rest of the review is.**
+
+**Incident (2026-04-07):** Reviewer checked cross-refs within `module-a/` but never scanned `module-b/` (sibling module, same repo) which referenced old paths. Result: broken consumer shipped. The test suite had the same blind spot.
+
 ## Factual Verification Checklist (MANDATORY)
 
 Before writing your verdict, scan the reviewed content for any claims about external system state. For each claim found:
