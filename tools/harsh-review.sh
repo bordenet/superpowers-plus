@@ -385,12 +385,15 @@ done < <(get_files '\.(md|sh)$')
 # =============================================================================
 # CHECK 6B: Public Repo IP Audit (blocking on new changes)
 # =============================================================================
-log_check "Public repo IP audit (blocking on new changes)"
-
-if bash "$REPO_ROOT/tools/public-repo-ip-check.sh"; then
-    log_pass "public-repo-ip-check.sh"
+if [[ "$IS_OVERLAY" == "true" ]]; then
+    log_check "Public repo IP audit (SKIPPED — overlay/private repo)"
 else
-    log_fail "public-repo-ip-check.sh failed"
+    log_check "Public repo IP audit (blocking on new changes)"
+    if bash "$REPO_ROOT/tools/public-repo-ip-check.sh"; then
+        log_pass "public-repo-ip-check.sh"
+    else
+        log_fail "public-repo-ip-check.sh failed"
+    fi
 fi
 
 # =============================================================================
