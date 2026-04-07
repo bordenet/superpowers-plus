@@ -120,7 +120,16 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 - Changed signatures → all callers
 - Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained)
 
-**3. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context.
+**3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
+
+```bash
+git diff --diff-filter=RD --name-only main..HEAD   # old paths
+grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # scan ENTIRE repo
+```
+
+**MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
+
+**4. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context + inbound reference scan results.
 
 ### Phase 3: Aggregate
 
@@ -166,6 +175,7 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | >2 state/flag findings | Defect Finder (interaction-path focus) | Systemic timing/ordering |
 | >3 test quality issues | Standards Enforcer (mock-focused) | Shared mock infrastructure |
 | >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
+| Files renamed/moved/deleted without inbound scan | Guardian (inbound-reference focus) | Broken consumers outside the changed directory |
 | "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
 
 Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
@@ -207,13 +217,9 @@ The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA 
 
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
-### Gap Analysis
+### Gap Analysis + Error Handling
 
-Monolith found something no specialist found → propose candidate pattern. Known exercise missed → candidate pattern. Recurring false positive → anti-pattern candidate. All go to `candidates/`.
-
-### Error Handling
-
-Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
+Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns
 
