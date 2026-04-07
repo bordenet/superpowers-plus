@@ -39,6 +39,7 @@ NC='\033[0m'
 #   CLASS=node            # repo type: markdown-only | shell | node | python
 #   SKIP_SHELLCHECK=true  # disable shellcheck (e.g. repo has no shell files)
 #   SKIP_FILE_ENDINGS=true
+#   SKIP_IP_AUDIT=true    # skip IP audit entirely (private/internal repos — not applicable)
 #   EXTRA_LINT="npm run lint"
 #   EXTRA_TYPECHECK="npm run typecheck"
 #   EXTRA_TEST="npm run test:affected"
@@ -97,7 +98,7 @@ _parse_agent_gates() {
                 fi
                 printf -v "$_key" '%s' "$_remainder"
                 ;;
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_IP_AUDIT|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
                 # Scalar/boolean/numeric keys: strip inline comments before trimming.
                 _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
@@ -107,7 +108,7 @@ _parse_agent_gates() {
                 _val="$_remainder"
                 # Validate boolean keys
                 case "$_key" in
-                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_IP_AUDIT|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
                         if [[ "$_val" != "true" && "$_val" != "false" ]]; then
                             echo -e "${RED}✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')${NC}" >&2
                             _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
@@ -167,7 +168,7 @@ if git cat-file -e ":.agent-gates" 2>/dev/null; then
             [[ -z "$_key" || "$_key" =~ ^[[:space:]]*# ]] && continue
             _key="${_key//[[:space:]]/}"
             case "$_key" in
-                REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_IP_AUDIT|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
                     _remainder="${_remainder%%#*}"
                     _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
                     _remainder="${_remainder%"${_remainder##*[![:space:]]}"}"
@@ -408,14 +409,18 @@ fi
 # -----------------------------------------------------------------------------
 echo -e "${YELLOW}[5/5]${NC} Checking for proprietary IP..."
 
-IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
-if [[ -f "$IP_AUDIT_SCRIPT" ]]; then
-    if ! bash "$IP_AUDIT_SCRIPT" --staged-only; then
+if [[ "${SKIP_IP_AUDIT:-false}" == "true" ]]; then
+    echo -e "  (SKIP_IP_AUDIT=true — skipped for private/internal repo)"
+else
+    IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
+    if [[ -f "$IP_AUDIT_SCRIPT" ]]; then
+        if ! bash "$IP_AUDIT_SCRIPT" --staged-only; then
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
         ERRORS=$((ERRORS + 1))
     fi
-else
-    echo -e "${RED}  ✗ tools/public-repo-ip-check.sh missing${NC}"
-    ERRORS=$((ERRORS + 1))
 fi
 
 # -----------------------------------------------------------------------------
