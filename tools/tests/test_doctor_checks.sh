@@ -359,7 +359,8 @@ test_agent_checks_has_symlink_guard() {
   # Pattern is a literal string (not expanded) — grep searches for this exact text in .sh file
   # shellcheck disable=SC2016
   local symlink_guard='-L "$installed"'
-  if grep -Fq "$symlink_guard" "$module"; then
+  # Use -- to prevent grep treating the leading '-L' as an option flag (Linux BSD compat)
+  if grep -Fq -- "$symlink_guard" "$module"; then
     pass "agent-checks.sh has symlink guard before diff/cp"
   else
     fail "agent-checks.sh missing symlink guard — regression"
