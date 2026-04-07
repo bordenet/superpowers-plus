@@ -95,7 +95,7 @@ for dir in "${COMPARE_DIRS[@]}"; do
     if [[ -f "$installed_skill" ]] && diff -q "$src" "$installed_skill" > /dev/null 2>&1; then
       INSTALLED_MATCH_DIR[$skill]="$dir"
     fi
-  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
 done
 
 for dir in "${COMPARE_DIRS[@]}"; do
@@ -115,13 +115,13 @@ for dir in "${COMPARE_DIRS[@]}"; do
     fi
     REF_OWNER_DIR[$key]="$dir"
     REF_PRIORITY[$key]="$src_ref"
-  done < <(find "$search_root" -path "*/references/*.md" 2>/dev/null)
+  done < <(find "$search_root" -path "*/references/*.md" -not -path "*/.worktrees/*" 2>/dev/null)
   # Track overlay skill.md paths
   if [[ "$dir" != "$SP_PLUS_DIR" ]]; then
     while IFS= read -r src; do
       skill=$(basename "$(dirname "$src")")
       OVERLAY_SOURCE[$skill]="$src"
-    done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
+    done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
   fi
 done
 for key in "${!REF_PRIORITY[@]}"; do
