@@ -61,8 +61,10 @@ cd "$REPO_ROOT" || { echo "ERROR: Failed to cd to $REPO_ROOT" >&2; exit 1; }
 # potentially-overwritten SP_OVERLAY_SOURCE_DIR.
 if [[ "$_overlay_mode" == "true" ]]; then
     SP_OVERLAY_DIR="$_overlay_source_dir"
+    IS_OVERLAY=true
 else
     SP_OVERLAY_DIR=""
+    IS_OVERLAY=false
 fi
 unset _overlay_source_dir _overlay_mode
 
@@ -392,24 +394,37 @@ else
 fi
 
 # =============================================================================
-# CHECK 7: Required Files Exist
+# CHECK 7: Required Files Exist (sp+ layout only — skip for overlay repos)
 # =============================================================================
-log_check "Required repository files"
+if [[ "$IS_OVERLAY" == "true" ]]; then
+    log_check "Required repository files (SKIPPED — overlay repo)"
+else
+    log_check "Required repository files"
 
-REQUIRED_FILES=(
-    "README.md"
-    "AGENTS.md"
-    "CLAUDE.md"
-    "docs/CONTRIBUTING.md"
-    "docs/ARCHITECTURE.md"
-    ".editorconfig"
-)
+    REQUIRED_FILES=(
+        "README.md"
+        "AGENTS.md"
+        "CLAUDE.md"
+        "docs/CONTRIBUTING.md"
+        "docs/ARCHITECTURE.md"
+        ".editorconfig"
+    )
 
-for f in "${REQUIRED_FILES[@]}"; do
-    if [[ ! -f "$f" ]]; then
-        log_fail "Missing required file: $f"
-    fi
-done
+    for f in "${REQUIRED_FILES[@]}"; do
+        if [[ ! -f "$f" ]]; then
+            log_fail "Missing required file: $f"
+        fi
+    done
+fi
+
+# =============================================================================
+# CHECKS 8–9: Skill structure, frontmatter, companions, README drift
+# These checks are sp+-specific layout requirements. Overlay repos have their
+# own directory conventions, so we skip these entirely in overlay mode.
+# =============================================================================
+if [[ "$IS_OVERLAY" == "true" ]]; then
+    log_check "Skill structure / frontmatter / README drift (SKIPPED — overlay repo)"
+else
 
 # =============================================================================
 # CHECK 8: Skill Structure Validation
@@ -513,8 +528,6 @@ log_check "README skill count consistency"
 # Count actual skills
 ACTUAL_TOTAL=$(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
 
-
-
 # Count domains (directories under skills/ that contain skill files)
 ACTUAL_DOMAINS=0
 for domain_dir in skills/*/; do
@@ -556,6 +569,8 @@ if [[ -n "$README_LINE" ]]; then
 else
     log_warn "Could not parse skill count line from README.md"
 fi
+
+fi  # end IS_OVERLAY guard for checks 8–9
 
 # =============================================================================
 # SUMMARY
