@@ -1,6 +1,6 @@
 # Superpowers Doctor — Check Reference
 
-All 26 checks are implemented in `tools/doctor-checks.sh`.
+All 27 checks are implemented in `tools/doctor-checks.sh`.
 
 ```bash
 ./tools/doctor-checks.sh              # Diagnose only
@@ -40,6 +40,7 @@ All 26 checks are implemented in `tools/doctor-checks.sh`.
 | 24 | 🟡/🔴 | TODO honeypot integrity | Honeypot tampered/wrong perms/missing flag. **Skipped** when real TODO lives at `~/.codex/TODO.md`. Missing honeypot = WARNING (optional). Tampered = CRITICAL. | ✅ | safe |
 | 25 | 🟡 WARNING | TODO path validation | TODO path not configured, missing file, or stale registry | ❌ | — |
 | 26 | 🟡 WARNING | Stale workflow state | Abandoned workflow states older than 24h or corrupt state files | ✅ | moderate |
+| 27 | 🟠 ERROR | Agent content drift | `~/.augment/agents/` diverged from overlay source (model swap, content corruption) | ✅ | safe |
 
 **Pre-check:** WSL + NTFS mount detection — warns when skills are on `/mnt/c/...` where `chmod` is silently ignored.
 
@@ -47,7 +48,7 @@ All 26 checks are implemented in `tools/doctor-checks.sh`.
 
 | Tier | Flag | Checks Fixed | Risk |
 |------|------|-------------|------|
-| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19, 21, 24 | Non-destructive (sync, normalize, pull, restore hooks/honeypot) |
+| Safe | `--fix-safe` | 3, 9, 16, 17, 18, 19, 21, 24, 27 | Non-destructive (sync, normalize, pull, restore hooks/honeypot, agent sync) |
 | Moderate | `--fix` | All of safe + 12, 14, 20, 26 | Destructive (stash, clearing, archive stale state) |
 | Purge | `--fix --purge-orphans` | All of moderate + 8 | Removes orphaned installs (explicit opt-in) |
 

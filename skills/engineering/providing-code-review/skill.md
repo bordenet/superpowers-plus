@@ -78,6 +78,16 @@ grep -rn "functionName" --include="*.ts" .
 # Check if changes break existing callers
 # Are ALL callers updated?
 # Are tests updated for changed signatures?
+
+# 🔴 INBOUND REFERENCE SCAN (mandatory for renames/moves/deletes)
+# When files are renamed, moved, or deleted — scan the ENTIRE repo,
+# not just the changed directory. Other modules that reference old
+# paths will silently break.
+git diff --diff-filter=RD --name-status main..HEAD | awk '/^[RD]/ { print $2 }' \
+  | while IFS= read -r old; do
+    grep -rn "$(basename "$old")" . --include="*.md" --include="*.ts" \
+      --include="*.sh" --include="*.json"
+  done
 ```
 
 **Questions to answer:**
@@ -85,6 +95,7 @@ grep -rn "functionName" --include="*.ts" .
 - How many places call this code?
 - Did the PR update ALL of them?
 - Are there cross-repo consumers not in this diff?
+- **If files were renamed/moved/deleted:** Did the author grep the ENTIRE repo for references to the old paths — not just the directory they refactored?
 
 ### 3. Integration Point Check
 
@@ -141,6 +152,8 @@ If I can't answer YES to all → don't approve, ask questions or flag gaps
 | Changes in one repo without corresponding changes in dependent repos | Integration failure |
 | Tests pass but only mock the changed component | Real integration may fail |
 | "Rough draft" or "WIP" language but submitted for review | Incomplete work |
+| Files renamed/moved but blast radius scan limited to changed directory | Broken consumers in sibling modules (inbound reference blindness) |
+| Test suite validates only the refactored directory, not repo-wide | False-green: tests pass but broken refs exist outside test scope |
 
 ## Output Format for Code Review
 
