@@ -250,6 +250,8 @@ source "${SCRIPT_DIR}/doctor-modules/checkout-checks.sh"
 source "${SCRIPT_DIR}/doctor-modules/todo-checks.sh"
 # shellcheck source=tools/doctor-modules/integration-checks.sh
 source "${SCRIPT_DIR}/doctor-modules/integration-checks.sh"
+# shellcheck source=tools/doctor-modules/agent-checks.sh
+source "${SCRIPT_DIR}/doctor-modules/agent-checks.sh"
 
 _doctor_yaml_checks
 _doctor_metadata_checks     # Populates BASE_SOURCE — must run before reference-checks
@@ -259,6 +261,7 @@ _doctor_checkout_checks
 _doctor_trigger_checks
 _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
+_doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
 
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
@@ -271,12 +274,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 26 checks passed"
+    echo "✅ Doctor: all 27 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 26 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 27 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
