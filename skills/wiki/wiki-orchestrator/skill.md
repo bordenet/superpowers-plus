@@ -131,7 +131,7 @@ Only write to allowed roots defined by your platform-specific wiki editing skill
 
 **This applies to both CREATE and UPDATE operations.** Walk the parent chain to verify scope before writing. If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
 
-**If the platform-specific editing skill is not loaded or unavailable → do NOT write. Fail closed.**
+**If no platform adapter is loaded or available → do NOT write. Fail closed.**
 
 ### Check for Duplicates Before Creating
 

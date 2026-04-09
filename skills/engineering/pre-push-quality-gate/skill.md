@@ -133,12 +133,17 @@ _shallow=false
 _base=""
 
 if [[ "$_is_detached" == "DETACHED" ]]; then
-  # CI / detached HEAD: use FETCH_HEAD if present (set by git fetch in CI)
+  # CI / detached HEAD: use FETCH_HEAD if present (set by git fetch in CI).
+  # actions/checkout with fetch-depth:1 sets FETCH_HEAD but the common ancestor
+  # may not be in the shallow history — merge-base will fail. Check for both.
   if git rev-parse --verify FETCH_HEAD >/dev/null 2>&1; then
     _base=$(git merge-base HEAD FETCH_HEAD 2>/dev/null)
+    if [[ -z "$_base" ]] && git rev-parse --is-shallow-repository 2>/dev/null | grep -q true; then
+      # Shallow clone with FETCH_HEAD present but no common ancestor in history.
+      _shallow=true
+    fi
   elif git rev-parse --is-shallow-repository 2>/dev/null | grep -q true; then
-    # Shallow clone (e.g., actions/checkout fetch-depth:1) with no FETCH_HEAD.
-    # Cannot compute a merge-base; diff only the top commit directly.
+    # Shallow clone with no FETCH_HEAD at all.
     _shallow=true
   else
     _base=$(git merge-base HEAD HEAD^ 2>/dev/null)

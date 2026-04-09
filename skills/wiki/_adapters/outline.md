@@ -23,10 +23,10 @@ OUTLINE_API_KEY=ol_api_your_key_here
 | `list_collections` | `list_collections_outline` |
 | `create_page` | `create_document_outline` |
 | `update_page` | `update_document_outline` |
-| `get_page` | `list_documents_outline` (search by title/id) |
+| `get_page` | *(no direct MCP tool — use curl fallback with `documents.info`)* |
 | `search_pages` | `list_documents_outline` (with `query`) |
 | `delete_page` | *(no MCP tool — use API directly)* |
-| `archive_page` | `archive_board_core-boards` *(not available for Outline)* |
+| `archive_page` | *(no MCP tool — use API directly)* |
 | `move_page` | `move_document_outline` |
 | `verify_link` | curl against `$OUTLINE_API_URL` |
 
@@ -75,6 +75,18 @@ curl -s -H "Authorization: Bearer $OUTLINE_API_KEY" \
      -H "Content-Type: application/json" \
      "$OUTLINE_API_URL/api/documents.update" \
      -d '{"id":"...","text":"...","publish":true}'
+
+# Fetch a document by ID (for round-trip verification — no direct MCP tool)
+curl -s -H "Authorization: Bearer $OUTLINE_API_KEY" \
+     -H "Content-Type: application/json" \
+     "$OUTLINE_API_URL/api/documents.info" \
+     -d '{"id":"..."}' | jq '.data.text'
+
+# Archive a document
+curl -s -H "Authorization: Bearer $OUTLINE_API_KEY" \
+     -H "Content-Type: application/json" \
+     "$OUTLINE_API_URL/api/documents.archive" \
+     -d '{"id":"..."}'
 ```
 
 ## Publishing Verification Contract
@@ -82,8 +94,9 @@ curl -s -H "Authorization: Bearer $OUTLINE_API_KEY" \
 1. **Pre-write scan:** Run `tools/wiki-markdown-validate.js` on the outbound markdown.
    Check for: `\\[`, `\\]`, literal `&nbsp;`, literal `&mdash;`, empty hrefs, malformed tables.
 2. **Write:** Call `create_document_outline` or `update_document_outline`.
-3. **Round-trip:** Re-fetch with `list_documents_outline` (by `id`) and re-run the same artifact scan.
-   Fail closed if new artifacts appear in the persisted content.
+3. **Round-trip:** Re-fetch via curl `documents.info` (no direct MCP tool for ID-based fetch —
+   do NOT use `list_documents_outline` for this; it performs full-text search, not ID lookup).
+   Re-run the same artifact scan on the returned `.data.text`. Fail closed if new artifacts appear.
 
 ## Scope Guards (Outline-Specific)
 
