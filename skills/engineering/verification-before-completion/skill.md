@@ -100,6 +100,8 @@ BEFORE forming any response that presents results to the human:
 1. LOOSE-ENDS RETROSPECTIVE: See "Loose-Ends Retrospective" section below.
    - Scan session for unacted observations and deferred items.
    - Block on any must-address items before proceeding.
+   - URL VALIDATE: grep changed files/draft for `https?://` URLs; `curl -s -o /dev/null -w '%{http_code}' --max-time 8` each non-trivial one; remove any returning 4xx/5xx/timeout before responding.
+   - TRIGGER SCAN: grep draft for "ready to push", "let me commit", "about to merge", "I'll now push", "committing", "pushing to"; for each match confirm the required skill was invoked — if not, invoke it now.
 
 2. IDENTIFY: What command proves this claim?
 3. RUN: Execute the FULL command (fresh, complete)

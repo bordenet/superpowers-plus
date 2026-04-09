@@ -120,6 +120,27 @@ git commit --amend --no-edit
 
 Do NOT create a separate "fix lint" commit. Amend.
 
+## Step 5.5: URL Validation (if diff contains URLs)
+
+Run this step after Step 5 (amend) so the check targets the final SHA that will be pushed. Check all `http://` and `https://` URLs added or changed in the diff. Fabricated URLs break user trust and cause silent failures.
+
+```bash
+# Extract new/changed URLs from commits not yet on origin/<branch>
+git diff "$(git merge-base HEAD origin/dev)"..HEAD 2>/dev/null \
+  | grep -oE 'https?://[^[:space:]"'"'"'>)]+' | sort -u
+# For each non-trivial URL (exclude localhost, placeholder.*, example.com, 127.*):
+curl -o /dev/null -s -w '%{http_code}\n' --max-time 8 '<url>'
+```
+
+| HTTP status | Action |
+|-------------|--------|
+| 2xx | ✅ OK — URL is reachable |
+| 3xx | ⚠️ Verify redirect destination is correct |
+| 4xx / 5xx | ❌ BLOCK — remove or fix URL before pushing |
+| Timeout / no response | ❌ BLOCK — remove or fix URL before pushing |
+
+**No URLs in diff → skip this step.**
+
 ## Step 6: Show Summary, Then Push
 
 ```
