@@ -61,8 +61,9 @@ _check_mcp_server() {
         issues=$((issues + 1))
       elif [[ ! -f "$server_dir/node_modules/.package-lock.json" ]]; then
         # .package-lock.json only exists for npm ≥7; yarn/pnpm installs won't have it.
-        # Warn (not error) in case of a genuinely interrupted npm install.
-        echo "🔵 INFO: MCP server '${name}' — no .package-lock.json (yarn/pnpm install or npm <7 is fine)"
+        # Warn (not error): normal for yarn/pnpm/npm<7, but could indicate interrupted install.
+        echo "🟡 WARNING: MCP server '${name}' — no .package-lock.json (normal for yarn/pnpm/npm<7; verify install is complete)"
+        WARNINGS=$((WARNINGS + 1))
       fi
     fi
 
