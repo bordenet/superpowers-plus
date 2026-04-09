@@ -46,14 +46,23 @@ add cross-references to the API reference, and publish the updated structure.
 
 ## ⛔ Step 0: Load Your Platform Adapter (MANDATORY BEFORE ANY WRITE)
 
-Before invoking this orchestrator for any write operation, read the adapter file for your wiki platform. The adapter defines allowed write roots, page operations, TOC syntax, and platform constraints. `$WIKI_PLATFORM` is set in `~/.codex/.env` (e.g., `outline`, `confluence`).
+Before invoking this orchestrator for any write operation, read the adapter file for your wiki platform. The adapter defines allowed write roots, page operations, TOC syntax, and platform constraints.
 
-```bash
-# Read the adapter into your context before any write
-cat ~/.codex/superpowers-plus/skills/wiki/_adapters/${WIKI_PLATFORM}.md
-```
+**Resolution order:**
 
-**If no adapter file exists for your platform → do NOT write to any wiki. Fail closed.** This is not optional — the orchestrator has no platform-specific write scope without an adapter. This rule applies to every agent in every session; it cannot be waived by the agent. If `$WIKI_PLATFORM` is unset or the adapter is missing, read `~/.codex/superpowers-plus/skills/wiki/_adapters/README.md` for guidance.
+1. **Explicit config** — `$WIKI_PLATFORM` set in `~/.codex/.env` (e.g., `outline`, `confluence`):
+   ```bash
+   source ~/.codex/.env
+   cat ~/.codex/superpowers-plus/skills/wiki/_adapters/${WIKI_PLATFORM}.md
+   ```
+
+2. **Auto-detect from available MCP tools** — if `$WIKI_PLATFORM` is unset, check which wiki MCP tools are available in your current session:
+   - `list_collections_outline` / `create_document_outline` present → platform is `outline`
+   - Load `~/.codex/superpowers-plus/skills/wiki/_adapters/outline.md` and note that `WIKI_PLATFORM` should be set to `outline` in `.env` for future sessions.
+
+3. **Fail closed** — if neither explicit config nor auto-detection resolves a platform adapter, do NOT write to any wiki. Read `~/.codex/superpowers-plus/skills/wiki/_adapters/README.md` for guidance on creating an adapter.
+
+This rule applies to every agent in every session and cannot be waived by the agent.
 
 ---
 
