@@ -5,13 +5,16 @@
 
 _doctor_reference_checks() {
 # --- Check 5: Broken Internal References ---
-# Skips: fenced code blocks, directory tree diagrams, and inline prose mentions.
+# Skips: fenced code blocks, directory tree diagrams, inline prose mentions,
+#        doctor-ignore lines, and cross-skill paths (e.g., other-skill/references/X.md).
 # For examples.md/reference.md: only flags action directives (See/Read/Load/view/link syntax).
 # For references/*.md and modules/*.md: flags any non-code-block mention.
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"; skill_dir=$(dirname "$f")
   # 1. Structural paths (references/, modules/) — any mention outside code blocks
   #    Also skips opt-in files (lines containing "Opt-in" or "Create" before the reference)
+  #    Also skips doctor-ignore lines (consistent with Check 13).
+  #    Cross-skill paths (word/references/X.md) are neutralized in awk to avoid false positives.
   #    For modules/: also checks _shared/ dirs and installed modules dir as fallback.
   while read -r ref; do
     [[ -f "$skill_dir/$ref" ]] && continue
@@ -26,7 +29,13 @@ for skill in "${!SKILL_PATH[@]}"; do
       [[ "$found_shared" == "true" ]] && continue
     fi
     echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++))
-  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} {print}' "$f" \
+  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} /doctor-ignore/{next} {
+    # Neutralize cross-skill paths: word/references/ and word/modules/ become _XREF/
+    # so they will not match the downstream grep for local references/modules paths.
+    gsub(/[a-zA-Z0-9_-]+\/references\//, "_XREF/")
+    gsub(/[a-zA-Z0-9_-]+\/modules\//, "_XREF/")
+    print
+  }' "$f" \
     | grep -oE '(references/[a-zA-Z0-9_-]+\.md|modules/[a-zA-Z0-9_-]+\.md)' 2>/dev/null \
     | sort -u)
   # 2. Peer files (examples.md, reference.md) — only markdown link syntax [text](file.md)
