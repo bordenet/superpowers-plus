@@ -47,8 +47,7 @@ _check_mcp_server() {
     fi
 
     if [[ -f "$server_dir/package.json" ]]; then
-      if [[ ! -d "$server_dir/node_modules" ]] || \
-         [[ ! -f "$server_dir/node_modules/.package-lock.json" ]]; then
+      if [[ ! -d "$server_dir/node_modules" ]]; then
         echo "🟠 ERROR: MCP server '${name}' — node_modules missing at ${server_dir}"
         # Check if install.sh --repair is available
         local repo_dir
@@ -56,10 +55,14 @@ _check_mcp_server() {
         if [[ -f "$repo_dir/install.sh" ]]; then
           echo "   Fix: '${repo_dir}/install.sh' --repair ${name}"
         else
-          echo "   Fix: cd '${server_dir}' && npm install"
+          echo "   Fix: cd '${server_dir}' && npm install  (or yarn install / pnpm install)"
         fi
         ERRORS=$((ERRORS + 1))
         issues=$((issues + 1))
+      elif [[ ! -f "$server_dir/node_modules/.package-lock.json" ]]; then
+        # .package-lock.json only exists for npm ≥7; yarn/pnpm installs won't have it.
+        # Warn (not error) in case of a genuinely interrupted npm install.
+        echo "🔵 INFO: MCP server '${name}' — no .package-lock.json (yarn/pnpm install or npm <7 is fine)"
       fi
     fi
 
