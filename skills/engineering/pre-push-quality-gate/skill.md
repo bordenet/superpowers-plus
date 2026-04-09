@@ -120,6 +120,57 @@ git commit --amend --no-edit
 
 Do NOT create a separate "fix lint" commit. Amend.
 
+## Step 5.5: URL Validation (if diff contains URLs)
+
+Run this step after Step 5 (amend) so the check targets the final SHA that will be pushed. Check all `http://` and `https://` URLs added or changed in the diff. Fabricated URLs break user trust and cause silent failures.
+
+```bash
+# Determine merge base — detached HEAD (CI), tracking branch, repo config, or error
+_tracking=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+_config=$(git config branch.integration-base 2>/dev/null)
+_is_detached=$(git symbolic-ref HEAD 2>/dev/null || echo "DETACHED")
+_shallow=false
+_base=""
+
+if [[ "$_is_detached" == "DETACHED" ]]; then
+  # CI / detached HEAD: use FETCH_HEAD if present (set by git fetch in CI)
+  if git rev-parse --verify FETCH_HEAD >/dev/null 2>&1; then
+    _base=$(git merge-base HEAD FETCH_HEAD 2>/dev/null)
+  elif git rev-parse --is-shallow-repository 2>/dev/null | grep -q true; then
+    # Shallow clone (e.g., actions/checkout fetch-depth:1) with no FETCH_HEAD.
+    # Cannot compute a merge-base; diff only the top commit directly.
+    _shallow=true
+  else
+    _base=$(git merge-base HEAD HEAD^ 2>/dev/null)
+  fi
+elif [[ -n "$_tracking" ]]; then
+  _base=$(git merge-base HEAD "$_tracking" 2>/dev/null)
+elif [[ -n "$_config" ]]; then
+  _base=$(git merge-base HEAD "$_config" 2>/dev/null)
+else
+  echo "⚠ URL validation skipped: no tracking branch or branch.integration-base config."
+  echo "  Fix: git config branch.integration-base origin/main"
+fi
+
+if [[ "$_shallow" == "true" ]]; then
+  git diff HEAD^..HEAD 2>/dev/null | grep -oE 'https?://[^[:space:]"'"'"'>)]+' | sort -u
+elif [[ -n "$_base" ]]; then
+  git diff "${_base}"..HEAD | grep -oE 'https?://[^[:space:]"'"'"'>)]+' | sort -u
+fi
+
+# For each non-trivial URL (exclude localhost, placeholder.*, example.com, 127.*):
+curl -o /dev/null -s -w '%{http_code}\n' --max-time 8 '<url>'
+```
+
+| HTTP status | Action |
+|-------------|--------|
+| 2xx | ✅ OK — URL is reachable |
+| 3xx | ⚠️ Verify redirect destination is correct |
+| 4xx / 5xx | ❌ BLOCK — remove or fix URL before pushing |
+| Timeout / no response | ❌ BLOCK — remove or fix URL before pushing |
+
+**No URLs in diff → skip this step.**
+
 ## Step 6: Show Summary, Then Push
 
 ```

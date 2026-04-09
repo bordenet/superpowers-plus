@@ -18,7 +18,7 @@ coordination:
   group: decision-making
   order: 1
   requires: []
-  enables: [brainstorming, design-triad, plan-and-execute]
+  enables: [brainstorming, debate, plan-and-execute]
   escalates_to: [think-twice]
   internal: false
 composition:
@@ -30,7 +30,7 @@ composition:
 
 # Quantitative Decision Gate
 
-> **Wrong skill?** Design evaluation -> design-triad. Creative options -> brainstorming. Stuck -> think-twice.
+> **Wrong skill?** Design evaluation -> debate. Creative options -> brainstorming. Stuck -> think-twice.
 
 **Announce at start:** "I am using the **quantitative-decision-gate** skill to evaluate options quantitatively."
 
@@ -107,7 +107,7 @@ Record: decision, scores, 1-sentence rationale.
 ## Companion Skills
 
 - **think-twice**: When matrix reveals a trap
-- **design-triad**: Multi-option design evaluation
+- **debate**: Multi-option design evaluation
 - **brainstorming**: Generating options for the matrix
 - **plan-and-execute**: Executing the chosen option
 - **failure-autopsy**: Post-mortem if chosen option fails

@@ -88,3 +88,4 @@ tools/internal-sync.sh
 
 # Local AI agent guidance (machine-specific operational notes)
 .ai-guidance/
+.augment-review/
