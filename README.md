@@ -17,10 +17,10 @@ Each skill exists because it caught a real problem.
 | Skill | What it does |
 |-------|-------------|
 | [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. |
-| [**design-triad**](skills/engineering/design-triad/skill.md) | Generates 3+ design options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to a design. |
+| [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
 | [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
-| [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, design-triad, plan, TDD, review, verify. |
+| [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
 | [**detecting-ai-slop**](skills/writing/detecting-ai-slop/skill.md) | Scores text 0-100 for machine-generated patterns across lexical, structural, semantic, and stylometric dimensions. |
 | [**wiki-orchestrator**](skills/wiki/wiki-orchestrator/skill.md) | Pipeline for bulk documentation: de-dup, content, coherence, links, secrets, slop detection, fact-check, publish. |
@@ -56,7 +56,7 @@ Then tell your AI assistant what you're doing:
 
 | Domain | Examples |
 |--------|----------|
-| **engineering** | Code review battery, design triad, TDD, progressive review, systematic debugging, feature lifecycle |
+| **engineering** | Code review battery, debate, TDD, progressive review, systematic debugging, feature lifecycle |
 | **productivity** | TODO tracking, plan-and-execute, think-twice, adversarial search, domain design |
 | **writing** | AI slop detection/elimination, profanity gate, table discipline, skill authoring |
 | **wiki** | Orchestrator pipeline, link verification, credential scanning, fact-checking |

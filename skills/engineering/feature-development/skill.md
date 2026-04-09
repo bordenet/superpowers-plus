@@ -7,13 +7,13 @@ triggers: ["start feature", "new feature", "feature development workflow",
            "fix this", "add this", "modify code", "refactor this",
            "write code", "update the code"]
 anti_triggers: ["fix bug", "debug", "small change", "quick fix", "update docs"]
-description: "DEFAULT WORKFLOW for ANY code change. Orchestrates the full rigorous development lifecycle: brainstorming → think-twice → design-triad → progressive-harsh-review → plan-and-execute → progressive-harsh-review → commit. This fires AUTOMATICALLY for code changes unless the user explicitly opts out. Sequences existing skills so no phase is skipped."
+description: "DEFAULT WORKFLOW for ANY code change. Orchestrates the full rigorous development lifecycle: brainstorming → think-twice → debate → progressive-harsh-review → plan-and-execute → progressive-harsh-review → commit. This fires AUTOMATICALLY for code changes unless the user explicitly opts out. Sequences existing skills so no phase is skipped."
 summary: "Default for ALL code changes. Opt out only if user says 'skip the full workflow' or 'just do it quickly'. Brainstorm → think-twice → design → review → plan → implement → review → ship."
 coordination:
   group: engineering
   order: 1
   requires: []
-  enables: ["brainstorming", "think-twice", "design-triad",
+  enables: ["brainstorming", "think-twice", "debate",
             "progressive-code-review-gate", "plan-and-execute",
             "requirements-validation", "todo-management",
             "output-verification", "verification-before-completion"]
@@ -28,7 +28,7 @@ composition:
 
 # Feature Development
 
-> **Wrong skill?** Bug fix → `systematic-debugging`. Design comparison → `design-triad`. Pre-commit checks → `pre-commit-gate`. Workflow
+> **Wrong skill?** Bug fix → `systematic-debugging`. Design comparison → `debate`. Pre-commit checks → `pre-commit-gate`. Workflow
 >
 > **Purpose:** Orchestrate the full rigorous development lifecycle so no phase is skipped.
 > **Pattern:** This skill SEQUENCES existing skills — it does not replace them.
@@ -84,7 +84,7 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
 ### Phase 3: Design
 
-**Invoke:** `design-triad`
+**Invoke:** `debate`
 
 1. Generate ≥3 genuinely distinct design options
 2. Build comparison matrix (≤5 criteria)
@@ -132,7 +132,7 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 
 ## Phase Skip Prevention
 
-**You MUST NOT skip phases.** "I already know the approach" → think-twice catches blind spots. "Only one design option" → design-triad requires ≥3. "Too small" → the 2026-03-27 incident was "just a small script."
+**You MUST NOT skip phases.** "I already know the approach" → think-twice catches blind spots. "Only one design option" → debate requires ≥3. "Too small" → the 2026-03-27 incident was "just a small script."
 
 **Opt-out is user-initiated ONLY.** The agent never decides to skip.
 
@@ -142,7 +142,7 @@ Each phase has an **exit gate** — you cannot proceed until the gate passes.
 |-------|--------------|---------|
 | Brainstorm | `brainstorming` | Explore intent, gather context, surface assumptions |
 | Fresh Perspective | `think-twice` | Sub-agent catches blind spots |
-| Design | `design-triad` | ≥3 options, comparison, selection |
+| Design | `debate` | ≥3 options, comparison, selection |
 | Harsh Review (Design) | `progressive-code-review-gate` | Red-team the design |
 | Plan & Execute | `plan-and-execute` + `adversarial-search` | Structured implementation with self-review |
 | Harsh Review (Impl) | `progressive-code-review-gate` | Red-team the implementation (min 2 rounds) |
@@ -173,7 +173,7 @@ npm run lint && npm test
 ## Companion Skills
 
 - **brainstorming**: Generating options and alternatives
-- **design-triad**: Evaluating design alternatives
+- **debate**: Evaluating design alternatives
 - **plan-and-execute**: Structured planning workflow
 - **progressive-code-review-gate**: Code review enforcement
 - **test-driven-development**: TDD workflow

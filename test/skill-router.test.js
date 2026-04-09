@@ -54,8 +54,8 @@ console.log('\n--- No duplicate patterns ---');
 // --- Intent pattern matching ---
 console.log('\n--- Intent pattern matching: known queries → expected boosts ---');
 {
-  const b1 = buildIntentBoosts('design triad');
-  assert((b1['design-triad'] || 0) >= BOOST_STANDARD, 'design triad → design-triad boosted');
+  const b1 = buildIntentBoosts('debate the options');
+  assert((b1['debate'] || 0) >= BOOST_STANDARD, 'debate the options → debate boosted');
 
   const b2 = buildIntentBoosts('plan and execute');
   assert((b2['plan-and-execute'] || 0) >= BOOST_STANDARD, 'plan and execute → plan-and-execute boosted');
@@ -73,10 +73,10 @@ console.log('\n--- Intent pattern matching: known queries → expected boosts --
 // --- Boost accumulation: no doubled boosts from removed duplicates ---
 console.log('\n--- Boost accumulation (no doubling from removed duplicates) ---');
 {
-  const b = buildIntentBoosts('design triad');
-  const raw = b['design-triad'] || 0;
+  const b = buildIntentBoosts('debate the options');
+  const raw = b['debate'] || 0;
   // Before dedup fix, "design triad" matched twice → 6. After fix it should be 3.
-  assert(raw <= BOOST_STANDARD, `design-triad boost is ≤ BOOST_STANDARD (got ${raw})`);
+  assert(raw <= BOOST_STANDARD, `debate boost is ≤ BOOST_STANDARD (got ${raw})`);
 }
 
 // --- Empty/edge queries ---
@@ -97,7 +97,7 @@ console.log('\n--- TF-IDF basics ---');
 {
   const mockSkills = [
     { name: 'systematic-debugging', triggers: ['debug', 'fix bug', 'test failing', 'error', 'exception', 'crash'], description: 'Systematic debugging process', anti_triggers: [] },
-    { name: 'design-triad', triggers: ['design triad', 'compare design approaches', 'three options'], description: 'Three design options comparison', anti_triggers: [] },
+    { name: 'debate', triggers: ['debate', 'compare approaches', 'debate the options'], description: 'Structured decision options comparison', anti_triggers: [] },
     { name: 'writing-plans', triggers: ['plan', 'write plan', 'roadmap'], description: 'Writing implementation plans', anti_triggers: [] },
   ];
 
