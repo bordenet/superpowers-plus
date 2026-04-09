@@ -11,10 +11,10 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `code-review-battery` | Dispatches 5 parallel specialist reviewers instead of one shallow pass. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
-| `design-triad` | Generates 3+ design options, builds comparison matrix, red-teams the winner. |
+| `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
 | `engineering-rigor` | Hub skill pointing to pre-commit-gate, blast-radius-check, and providing-code-review. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
-| `feature-development` | Full lifecycle orchestrator: brainstorm, design-triad, plan, TDD, review, verify. |
+| `feature-development` | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | `field-rename-verification` | Traces READ, STORE, PASS paths when renaming fields or changing API contracts. |
 | `finishing-a-development-branch` | Guides completion of development work when implementation is done: mandates code review, presents merge/PR/cleanup options. |
 | `git-branch-conventions` | Enforces semantic prefix naming on branch creation. |

@@ -42,11 +42,11 @@ else
   fail 'wiki-instruction-guard missing from superpowers list (multiline trigger parsing broke)'
 fi
 
-# design-triad triggers (validated during fix/design-triad-completion-gate)
-assert_top_match "design options with adversarial review" "design-triad"
-assert_top_match "generate options compare and red team" "design-triad"
-assert_top_match "three design options" "design-triad"
-assert_top_match "compare design approaches" "design-triad"
+# debate triggers (formerly design-triad)
+assert_top_match "decision options with adversarial review" "debate"
+assert_top_match "generate options compare and red team" "debate"
+assert_top_match "debate the options" "debate"
+assert_top_match "compare approaches" "debate"
 assert_top_match "what's the best approach for retry logic placement" "thinking-orchestrator"
 assert_top_match "where to store retry logic" "thinking-orchestrator"
 

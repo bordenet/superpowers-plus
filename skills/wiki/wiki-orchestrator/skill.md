@@ -44,6 +44,28 @@ add cross-references to the API reference, and publish the updated structure.
 
 ---
 
+## ⛔ Step 0: Load Your Platform Adapter (MANDATORY BEFORE ANY WRITE)
+
+Before invoking this orchestrator for any write operation, read the adapter file for your wiki platform. The adapter defines allowed write roots, page operations, TOC syntax, and platform constraints.
+
+**Resolution order:**
+
+1. **Explicit config** — `$WIKI_PLATFORM` set in `~/.codex/.env` (e.g., `outline`, `confluence`):
+   ```bash
+   source ~/.codex/.env
+   cat ~/.codex/superpowers-plus/skills/wiki/_adapters/${WIKI_PLATFORM}.md
+   ```
+
+2. **Auto-detect from available MCP tools** — if `$WIKI_PLATFORM` is unset, check which wiki MCP tools are available in your current session:
+   - `list_collections_outline` / `create_document_outline` present → platform is `outline`
+   - Load `~/.codex/superpowers-plus/skills/wiki/_adapters/outline.md` and note that `WIKI_PLATFORM` should be set to `outline` in `.env` for future sessions.
+
+3. **Fail closed** — if neither explicit config nor auto-detection resolves a platform adapter, do NOT write to any wiki. Read `~/.codex/superpowers-plus/skills/wiki/_adapters/README.md` for guidance on creating an adapter.
+
+This rule applies to every agent in every session and cannot be waived by the agent.
+
+---
+
 ## ⛔ The Pipeline
 
 <EXTREMELY_IMPORTANT>
@@ -102,7 +124,7 @@ Fetch current state via your adapter's `get_page` operation BEFORE any edit. Nev
 
 **🔴 NEVER create a top-level (root) page.** Every agent-created page MUST be a child of an existing page unless the user explicitly approves root-level placement with the exact collection identified and explicit confirmation that the page will have no parent.
 
-Only write to allowed roots defined by the platform-specific editing skill (e.g., `outline-wiki-editing`). The editing skill defines:
+Only write to allowed roots defined by your platform-specific wiki editing skill/adapter (see `skills/wiki/_adapters/` for available adapters). The editing skill defines:
 - **Allowed collection identifiers** — first-pass filter
 - **Allowed root document identifiers** — parent-chain verification target
 - **Verification procedure** — walk parent chain from target → root, confirm root matches
