@@ -94,7 +94,7 @@ flowchart TD
 
     TO[thinking-orchestrator]:::orch
     FD[feature-development]:::new
-    DT[design-triad]:::new
+    DB[debate]:::new
     PAE["plan-and-execute [BASE]"]:::base
     TWT[think-twice]:::new
     AS[adversarial-search]:::new
@@ -253,7 +253,7 @@ All 91 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream 
 
 | Domain | Count | Skills |
 |--------|-------|--------|
-| **engineering** | 36 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, design-triad, engineering-rigor, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, pre-push-quality-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, typescript-project-conventions, typescript-strict-mode, verification-before-completion **[OVERRIDE]**, vitest-testing-patterns |
+| **engineering** | 36 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, debate, engineering-rigor, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, pre-push-quality-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, typescript-project-conventions, typescript-strict-mode, verification-before-completion **[OVERRIDE]**, vitest-testing-patterns |
 | **experimental** | 1 | experimental-self-prompting |
 | **issue-tracking** | 5 | issue-authoring, issue-comment-debunker, issue-editing, issue-link-verification, issue-verify |
 | **observability** | 8 | completeness-check, evolution-loop, exhaustive-audit-validation, failure-autopsy, holistic-repo-verification, measurement-integrity, skill-health-check, superpowers-doctor |
