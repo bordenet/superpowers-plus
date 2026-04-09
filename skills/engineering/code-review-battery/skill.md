@@ -50,7 +50,7 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 
 | Gate (order) | Self-fires when | Short-circuit if |
 |---|---|---|
-| 1. `design-triad` | About to commit to a design before coding | Already ran this session |
+| 1. `debate` | About to commit to a design before coding | Already ran this session |
 | 2. `progressive-harsh-review` | About to present a non-code deliverable | Already ran on this artifact |
 | **3. `code-review-battery`** | **About to present/commit/push code** | **Valid sentinel for HEAD exists** |
 | 4. `verification-before-completion` | About to write any results-presenting response | Sentinel SHA == HEAD → skip re-dispatch |
