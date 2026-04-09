@@ -24,6 +24,7 @@ You are MOST at risk when working ON quality infrastructure (`skills/`, `tools/`
 - ❌ NEVER describe output without reading it back (`use-skill output-verification`)
 - ❌ NEVER claim done without `use-skill verification-before-completion`
 - ❌ NEVER decide a workflow phase is unnecessary — only the user can opt out
+- ❌ NEVER emit a response containing "ready to push", "let me commit", "about to merge", "I'll now push", "committing", or "pushing to" without first scanning your draft for required-skill triggers — if any apply, invoke the skill BEFORE emitting (full list: see `verification-before-completion` TRIGGER SCAN)
 - ✅ If a gate is broken, fix it AND apply the fix to your own work in the same PR
 
 **Enforcement:** `./tools/harsh-review.sh` + pre-commit hooks + bootstrap auto-triggers (completion-gate chain, commit-gate chain). All apply uniformly — no meta-work exemption.
@@ -48,6 +49,7 @@ Install hook: `./tools/install-hooks.sh`
 | Shebang format | `#!/usr/bin/env bash` |
 | JSON syntax | `python3 -c "import json..."` |
 | Required files | README.md, AGENTS.md, etc. |
+| **`skills/` changes** | **`code-review-battery` + PHR (`holistic-repo-review`) required before committing** (enforced by pre-commit sentinel gate; sentinel must exist with PASS/PASS_WITH_NITS verdict) |
 
 All files must end with **exactly one newline** (`0a`).
 
