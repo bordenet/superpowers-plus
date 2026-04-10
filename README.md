@@ -57,7 +57,7 @@ Then tell your AI assistant what you're doing:
 | Domain | Examples |
 |--------|----------|
 | **engineering** | Code review battery, debate, TDD, progressive review, systematic debugging, feature lifecycle |
-| **productivity** | TODO tracking, plan-and-execute, think-twice, adversarial search, domain design |
+| **productivity** | TODO tracking (see [task tagging taxonomy](skills/productivity/todo-management/references/taxonomy.md)), plan-and-execute, think-twice, adversarial search, domain design |
 | **writing** | AI slop detection/elimination, profanity gate, table discipline, skill authoring |
 | **wiki** | Orchestrator pipeline, link verification, credential scanning, fact-checking |
 | **observability** | Completeness checks, evolution loop, audit validation, diagnostics |
@@ -253,8 +253,19 @@ graph LR
 ```text
 obra/superpowers (framework)
     └── superpowers-plus (this repo)
-            └── your-org-skills
+            └── your-org-skills (private)
 ```
+
+`superpowers-plus` is a public foundation. Skills become significantly more powerful when you build a private enterprise repo that overlays, extends, and overloads it with organization-specific integrations:
+
+| Layer | Examples |
+|-------|---------|
+| **Issue tracking** | Jira, Linear, Azure DevOps work items, GitHub Issues |
+| **Version control** | Azure DevOps Repos, GitLab, GitHub |
+| **Meeting intelligence** | Fathom, Otter.ai, your enterprise meeting recorder |
+| **Knowledge bases** | Confluence, MediaWiki, Outline Wiki |
+
+Private skills can shadow or extend public ones: route `todo-management` tasks to Jira instead of a local file, add company-specific rules to `code-review-battery`, or wire `wiki-orchestrator` directly to your Confluence instance. Give agents MCP server access to these systems and they gain context from your entire stack automatically — issue history, meeting transcripts, internal docs, and your team's conventions all become first-class inputs.
 
 See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
@@ -299,7 +310,7 @@ Utility scripts in `tools/`:
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Full Skill Reference](docs/SKILLS.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [Full Skill Reference](docs/SKILLS.md) · [Task Tagging Taxonomy](skills/productivity/todo-management/references/taxonomy.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
 
 ## License
 
