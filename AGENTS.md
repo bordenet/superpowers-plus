@@ -50,6 +50,7 @@ Install hook: `./tools/install-hooks.sh`
 | JSON syntax | `python3 -c "import json..."` |
 | Required files | README.md, AGENTS.md, etc. |
 | **`skills/` changes** | **`code-review-battery` + PHR (`holistic-repo-review`) required before committing** (enforced by pre-commit sentinel gate; sentinel must exist with PASS/PASS_WITH_NITS verdict) |
+| **Sentinel writer** | **`tools/run-battery.sh` is the ONLY permitted way to write `.code-review-cleared`.** Writing it directly (via `echo`, redirect, or any other tool) is a critical policy violation — equivalent to bypassing the gate entirely. The script runs the automated suite first; it refuses to write the sentinel if any check fails. |
 
 All files must end with **exactly one newline** (`0a`).
 
