@@ -12,6 +12,12 @@ fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
 skip() { echo "  skip: $1"; ((SKIP++)) || true; }
 
+# Skip in CI — requires personal skills directory (~/.agents/skills/) not present on CI runners.
+if [[ "${CI:-}" == "true" ]]; then
+  echo "SKIP: trigger routing tests require personal skills dir — not available in CI"
+  exit 0
+fi
+
 # Check if match-skills is available
 if ! node "$ADAPTER" match-skills "test" >/dev/null 2>&1; then
   echo "SKIP: match-skills not available (superpowers not installed?)"
