@@ -83,10 +83,11 @@ grep -rn "functionName" --include="*.ts" .
 # When files are renamed, moved, or deleted — scan the ENTIRE repo,
 # not just the changed directory. Other modules that reference old
 # paths will silently break.
-git diff --diff-filter=RD --name-only main..HEAD | while read old; do
-  grep -rn "$(basename "$old")" . --include="*.md" --include="*.ts" \
-    --include="*.sh" --include="*.json" | grep -v "$(dirname "$old")"
-done
+git diff --diff-filter=RD --name-status main..HEAD | awk '/^[RD]/ { print $2 }' \
+  | while IFS= read -r old; do
+    grep -rn "$(basename "$old")" . --include="*.md" --include="*.ts" \
+      --include="*.sh" --include="*.json"
+  done
 ```
 
 **Questions to answer:**

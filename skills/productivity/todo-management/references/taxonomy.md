@@ -1,7 +1,7 @@
 # TODO Management — Tagging Taxonomy
 
 > Reference material for the `todo-management` skill.
-> See `skill.md` for core guidance.
+> See `SKILL.md` for core guidance.
 
 Tags are auto-inferred from keywords in the task description. **Customize for your organization** by adding domain-specific tags.
 
@@ -29,10 +29,10 @@ Tags are auto-inferred from keywords in the task description. **Customize for yo
 
 | Tag | Trigger Context |
 |-----|-----------------|
-| `#team` | Team member names, "team", "direct report" (customize: `#delta-team`, `#your-team`) |
+| `#team` | Team member names, "team", "direct report" (customize: `#eng-team`, `#your-team`) |
 | `#1on1` | "1:1", "one-on-one", "sync with [name]" |
 | `#product` | "product", "feature", "roadmap" (customize: `#your-product`) |
-| `#process` | "process", "workflow", "documentation" |
+| `#process` | "process", "workflow" (not "documentation" — prefer `#engineering-docs` for doc tasks) |
 
 ## Plan Tags (effort-scoped)
 
@@ -44,7 +44,14 @@ Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
 | `#fallback-<risk-name>` | Contingency tasks under a plan | `#fallback-db-connection-limit` |
 | `#plan` | ⚠️ **Deprecated** | Use `#plan-<identifier>` for effort isolation |
 
-**Fallback tags:** Created by `fallback-planning` skill. Always nested under the parent `#plan-*` tag. Query with `#fallback-*` to see all contingency tasks, or `#plan-auth-fix #fallback-*` to see fallbacks for a specific effort.
+> **⚠️ Deprecation Notice — `#plan`**
+> Deprecated in favor of `#plan-<identifier>` (scoped effort isolation).
+> Existing `#plan`-tagged tasks remain readable by all tools but will not be grouped
+> with scoped efforts and are silently excluded from stale-plan reporting.
+> To migrate: replace `#plan` with `#plan-<your-identifier>` on each affected task.
+> Use `todo-crud.sh list --tag plan` to find candidates.
+
+**Fallback tags:** Created by the `fallback-planning` skill. Always nested under the parent `#plan-*` tag. Query with `#fallback-*` to see all contingency tasks, or `#plan-auth-fix #fallback-*` to see fallbacks for a specific effort.
 
 **Identifier derivation:**
 
@@ -57,8 +64,8 @@ Use `#plan-<identifier>` to group tasks by effort for parallel work isolation.
 
 ```markdown
 ## P1 - Today
-- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering
-- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering
+- [ ] [20250315-01] Update config schema #plan-config-refactor #engineering-backend
+- [ ] [20250315-02] Add validation layer #plan-config-refactor #engineering-backend
 - [ ] [20250315-03] Fix auth token refresh #plan-auth-fix #engineering-backend
 - [ ] [20250315-04] Add auth retry tests #plan-auth-fix #engineering-testing
 ```

@@ -13,7 +13,7 @@ coordination:
   group: thinking
   order: 1
   requires: []
-  enables: ["design-triad"]
+  enables: ["debate"]
   escalates_to: ["thinking-orchestrator"]
   internal: false
 composition:
@@ -31,11 +31,11 @@ composition:
 
 - Before any creative work: creating features, building components, adding functionality, or modifying behavior
 - User says "design a feature," "build a new," "explore approaches"
-- NOT for: bug fixing (`systematic-debugging`), extracting existing knowledge (`expert-interviewer`), choosing between known options (`design-triad`)
+- NOT for: bug fixing (`systematic-debugging`), extracting existing knowledge (`expert-interviewer`), choosing between known options (`debate`)
 
 Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
 
-> **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `design-triad`.
+> **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `debate`.
 
 ### Ensemble Mode (Multi-Perspective)
 
@@ -58,7 +58,7 @@ Do NOT write any code or take implementation action until you have presented a d
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, commit
 7. **Spec review loop** — dispatch spec-document-reviewer subagent; fix issues; max 3 iterations then escalate to human
 8. **User reviews written spec** — ask user to review before proceeding
-9. **Transition** — invoke `plan-and-execute` skill (or `design-triad` first if ≥3 viable approaches need formal comparison)
+9. **Transition** — invoke `plan-and-execute` skill (or `debate` first if ≥3 viable approaches need formal comparison)
 
 ## Understanding the Idea
 
@@ -90,7 +90,7 @@ Do NOT write any code or take implementation action until you have presented a d
 1. Write spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 2. Run spec review loop (subagent reviewer, max 3 iterations)
 3. User reviews written spec
-4. **If ≥3 viable approaches emerged** — invoke `design-triad` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones)
+4. **If ≥3 viable approaches emerged** — invoke `debate` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones)
 5. Invoke `plan-and-execute` skill for implementation plan
 
 ## Key Principles

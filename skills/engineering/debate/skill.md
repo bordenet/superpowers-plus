@@ -1,26 +1,27 @@
 ---
-name: design-triad
+name: debate
 source: superpowers-plus
+aliases: [thunderdome, design-triad]
 triggers:
-  - three design options
-  - compare design approaches
-  - design comparison matrix
-  - evaluate design alternatives
-  - red team the design
-  - harsh design review
-  - generate design options
-  - design triad
-  - design options with adversarial review
+  - debate the options
+  - compare approaches
+  - comparison matrix
+  - evaluate alternatives
+  - red team the decision
+  - harsh decision review
+  - generate options and compare
   - design decision needed
   - choosing implementation approach
+  - decision options with adversarial review
+  - structured decision making
 anti_triggers:
   - implement this design
   - code review
   - already decided on the approach
   - continue implementing
   - just writing tests
-description: "Use when selecting a design approach for a feature or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review, and edge-case brainstorming before committing to a design. Self-assessment trigger: invoke before committing to any architecture (see When to Use in skill body). NOT for brainstorming (idea exploration) or writing plans (execution)."
-summary: "Use when: choosing between design approaches, OR about to commit to an architecture (self-fire). Skip when: design already decided and implementation has started."
+description: "Use when selecting an approach for a feature, decision, or significant change. Enforces generation of 3+ distinct options, structured comparison, harsh review, and edge-case brainstorming before committing. Self-assessment trigger: invoke before committing to any architecture or significant decision (see When to Use in skill body). NOT for brainstorming (idea exploration) or writing plans (execution)."
+summary: "Use when: choosing between approaches, OR about to commit to an architecture/decision (self-fire). Skip when: decision already made and implementation has started."
 coordination:
   group: thinking
   order: 1
@@ -30,18 +31,18 @@ coordination:
   internal: false
 composition:
   consumes: [challenge, goal]
-  produces: [design-options, decision-record]
-  capabilities: [evaluates-options, generates-designs]
+  produces: [decision-options, decision-record]
+  capabilities: [evaluates-options, generates-options]
   priority: 5
 ---
 
-# Design Triad
+# Debate
 
 > **Wrong skill?** Brainstorming many ideas → `brainstorming`. Requirements validation → `requirements-validation`. Feature workflow → `feature-development`.
 >
-> **Core principle:** Never commit to a design without considering at least three alternatives and surviving a harsh review.
+> **Core principle:** Never commit to a decision without considering at least three alternatives and surviving a harsh review.
 
-**Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
+**Announce at start:** "I'm using the **debate** skill to evaluate decision options."
 
 ## Companion Skills
 
@@ -56,12 +57,12 @@ composition:
 ## When to Use
 
 **Intent-based (self-fire — first gate in the quality chain):**
-- **About to commit to a design approach before any code is written** — even without explicit user request
+- **About to commit to an approach before any code is written** — even without explicit user request
 - Any time you are about to choose between architectural patterns, data models, or integration approaches
-- Even if there is only a 1% chance the design decision is non-trivial, run this first
+- Even if there is only a 1% chance the decision is non-trivial, run this first
 
 **Explicit request:**
-- User asks to compare design approaches or generate options
+- User asks to compare approaches or generate options
 
 **NOT for:**
 - Initial idea exploration before a design exists → `brainstorming`
@@ -73,7 +74,7 @@ composition:
 ⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1. Pick ONE:
 
 1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
-2. **Requirements or architecture need investigation** — pause design-triad, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
+2. **Requirements or architecture need investigation** — pause debate, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
 3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, proceeding without formal validation." Then proceed to Step 1.
 
 Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.
