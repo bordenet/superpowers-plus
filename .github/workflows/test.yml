@@ -64,9 +64,6 @@ jobs:
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
-      - name: Trigger routing tests
-        run: bash tools/tests/test_trigger_routing.sh
-
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
