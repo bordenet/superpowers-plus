@@ -78,7 +78,7 @@ SOURCE_DIRS=("$SP_PLUS_DIR")
 # Auto-discover overlay sources: any *_SOURCE_DIR env var in .env
 # (e.g., SPC_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
 # Each overlay repo registers itself during install via: VARNAME_SOURCE_DIR="/path/to/repo"
-# Canonical naming convention: use a repo-specific prefix (e.g., SPC_ for superpowers-overlay)
+# Canonical naming convention: use a repo-specific prefix (e.g., SPO_ for superpowers-overlay)
 # to avoid collisions. Generic names like SP_OVERLAY_SOURCE_DIR are deprecated.
 while IFS='=' read -r varname varval; do
   [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
