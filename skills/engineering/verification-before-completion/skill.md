@@ -103,7 +103,7 @@ BEFORE forming any response that presents results to the human:
    - URL VALIDATE: grep changed files/draft for `https?://` URLs; `curl -s -o /dev/null -w '%{http_code}' --max-time 8` each non-trivial one; remove any returning 4xx/5xx/timeout before responding.
    - TRIGGER SCAN: grep draft for "ready to push", "let me commit", "about to merge", "I'll now push", "committing", "pushing to"; for each match confirm the required skill was invoked — if not, invoke it now.
 
-2. IDENTIFY: What command proves this claim?
+2. IDENTIFY: What command proves this claim? *(If `output-verification` already ran this step, Steps 2–4 are pre-satisfied for artifact claims; skip to Step 5. Still run for non-artifact claims.)*
 3. RUN: Execute the FULL command (fresh, complete)
 4. READ: Full output, check exit code, count failures
 5. VERIFY: Does output confirm the claim?

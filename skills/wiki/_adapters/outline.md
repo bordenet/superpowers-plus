@@ -43,12 +43,30 @@ OUTLINE_API_KEY=ol_api_your_key_here
 
 ## Table of Contents Behavior
 
+<EXTREMELY_IMPORTANT>
+Outline does NOT auto-generate an in-page TOC. toc_behavior is `manual`.
+Use `+++` toggle blocks ONLY. HTML `<details>`, `:::details`, and `<summary>` render as raw tags and do NOT work.
+</EXTREMELY_IMPORTANT>
+
 | Field | Value | Notes |
 |-------|-------|-------|
-| `toc_behavior` | `auto` | Outline renders TOC from headings automatically |
-| `toc_syntax` | *(blank)* | Do NOT insert manual TOC markup |
-| `toc_placement` | *(blank)* | |
-| `toc_anchor_format` | `#heading-slug` | Outline lowercases and hyphenates heading text |
+| `toc_behavior` | `manual` | Outline does NOT auto-generate an in-page TOC. Insert a `+++` toggle block on pages with 4+ H2/H3 headings. |
+| `toc_syntax` | `+++` | Wrap a bullet list of anchor links in `+++` markers (Outline toggle block). `<details>` and `:::details` are NOT valid — they render as raw HTML. |
+| `toc_placement` | After intro paragraph, before first H2. No intro paragraph? Place on first line. | |
+| `toc_anchor_format` | `#h-{slug}` | Outline prepends `h-` to the slug. Never use bare `#{slug}`. |
+
+### Correct TOC format
+
+```markdown
++++
+**Table of contents**
+- [Section One](#h-section-one)
+- [Section Two](#h-section-two)
+  - [Sub-section](#h-sub-section)
++++
+```
+
+Slug rules: lowercase, strip non-word chars, spaces to hyphens, collapse hyphens, prepend `h-`.
 
 ## URL Patterns
 
