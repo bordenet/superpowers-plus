@@ -155,7 +155,7 @@ If you're using the install paths above without an MCP client, you can skip this
 
 **Requires:** Node.js 18+. Verify: `node --version` (npm is bundled with Node.js — no separate install needed)
 
-> **Security scope:** The MCP server binds to localhost only and exposes no authentication. Use it for local single-user development; do not expose the node process to network interfaces in shared or server environments.
+> **Security scope:** The MCP server binds to localhost only and exposes no authentication (see `mcp/superpowers-mcp.js` — search for `listen` to verify the bind address). Use it for local single-user development; do not expose the node process to network interfaces in shared or server environments.
 
 1. `cd mcp && npm install`
 2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the absolute path from `pwd` in your checkout (no trailing slash, no `~/` shorthand — use the full path):
@@ -205,7 +205,7 @@ If skills aren't loading, see [Troubleshooting](#troubleshooting).
 
 ## Configuration
 
-Copy `.env.example` to `~/.codex/.env` for runtime integrations, then set permissions: `chmod 600 ~/.codex/.env`. All variables are optional unless noted. Invalid values for adapter keys cause runtime errors when those features are invoked; check `skills/issue-tracking/_adapters/` and `skills/wiki/_adapters/` for the list of valid values.
+Copy `.env.example` to `~/.codex/.env` for runtime integrations, then set permissions: `chmod 600 ~/.codex/.env`. All variables are optional unless noted. Invalid values for adapter keys cause runtime errors when those features are invoked; check `skills/issue-tracking/_adapters/` and `skills/wiki/_adapters/` for the list of valid values. If `~/.codex/.env` does not exist when a skill tries to read it, the skill will emit a `source: no such file` error — run `bash tools/todo-preflight.sh --create-if-missing` to initialize it.
 
 | Variable | Required? | Purpose |
 |----------|-----------|---------|
@@ -280,6 +280,8 @@ The commit-gate chain (style → code review → language → IP audit) runs aut
 
 **`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit.
 
+**Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`).
+
 > **Token budget:** A wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → fact-check → publish) typically costs 30–50k tokens per edit. Run `bash tools/skill-cost-analyzer.sh` before scheduling bulk changes to estimate impact.
 
 ## Extending
@@ -342,7 +344,8 @@ Utility scripts in `tools/`:
 | `This script requires bash` | You ran with sh or zsh. Use: `bash install.sh` |
 | `Missing required commands: git` | macOS: `xcode-select --install`. Linux: `sudo apt install git` |
 | `Missing required commands: node` | macOS: `brew install node`. Linux: `sudo apt install nodejs` |
-| Install partially failed | Run `bash install.sh --verbose` to see which step failed; then `bash tools/doctor-checks.sh` for full diagnosis |
+| Install partially failed | Run `bash install.sh --verbose` to see which step failed; then `bash tools/doctor-checks.sh` for full diagnosis. Re-running `bash install.sh` is safe — it skips already-completed steps. |
+| `.env missing / source error` | Run `bash tools/todo-preflight.sh --create-if-missing` to initialize `~/.codex/.env` from `.env.example`. Then `chmod 600 ~/.codex/.env`. |
 | Perplexity tools not found | Verify `PERPLEXITY_API_KEY` in `~/.codex/.env`, then run `bash setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env`; verify adapter exists in `skills/issue-tracking/_adapters/` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env`; verify adapter exists in `skills/wiki/_adapters/` |
