@@ -87,7 +87,7 @@ Then tell your AI assistant what you're doing:
 ```bash
 git clone https://github.com/bordenet/superpowers-plus.git
 cd superpowers-plus
-bash install.sh      # use 'bash' explicitly, not ./install.sh
+bash install.sh      # use 'bash' explicitly — macOS default shell is zsh; ./install.sh may pick the wrong interpreter
 ```
 
 The installer:
@@ -98,7 +98,7 @@ The installer:
 - Auto-detects your platform and offers to install missing dependencies
 - Auto-fixes Windows CRLF line endings if detected
 
-**Windows/WSL:** Run `wsl --install -d Ubuntu` first, then use the commands above from within WSL.
+**Windows/WSL:** Run `wsl --install -d Ubuntu` first, then use the commands above from within WSL. If you cloned superpowers-plus on Windows *before* running the installer, repair line endings with: `bash tools/harsh-review.sh --fix`
 
 **Linux containers (Docker/CI):** Works as root without sudo. The installer detects the environment automatically.
 
@@ -147,11 +147,14 @@ If you're using the install paths above without an MCP client, you can skip this
 
 **Do I need this?**
 
-- **No** — if you're using the CLI or one of the install methods above
+- **No** — if you're using the CLI or one of the install methods above (git clone + bash)
 - **Yes** — if you're using Claude Desktop or another MCP-compatible client and want the skills available as MCP tools
+- **Yes** — if you're using Claude Code plugin and want skills exposed as tools (not just rules)
+
+**Requires:** Node.js 18+. Verify: `node --version`
 
 1. `cd mcp && npm install`
-2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the output of `pwd` from your checkout:
+2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the absolute path from `pwd` in your checkout (no trailing slash, no `~/` shorthand — use the full path):
 
    ```json
    {
@@ -164,9 +167,9 @@ If you're using the install paths above without an MCP client, you can skip this
    }
    ```
 
-3. Restart your client. Use the `find_skills` MCP tool to list available skills.
+3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~91 available skill names.
 
-If it does not appear, check `node --version`, rerun `cd mcp && npm install`, and confirm the config path points to this checkout.
+If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
 ### Using as a Dependency
 
@@ -178,17 +181,36 @@ See [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-exa
 bash install.sh --upgrade
 ```
 
+### Verify Installation
+
+After running `install.sh`, confirm skills loaded successfully:
+
+```bash
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | head -5
+# Expected: ~91 skill names listed
+```
+
+Run a full 22-point diagnostic:
+
+```bash
+bash tools/doctor-checks.sh
+# Expected: all 22 checks passing
+```
+
+If skills aren't loading, see [Troubleshooting](#troubleshooting).
+
 ## Configuration
 
-Copy `.env.example` to `~/.codex/.env` for runtime integrations. If you want installer-local defaults for `PERPLEXITY_API_KEY`, `WIKI_PLATFORM`, or `ISSUE_TRACKER_TYPE`, you may also create a repo-local `.env`.
+Copy `.env.example` to `~/.codex/.env` for runtime integrations. All variables are optional unless noted. Invalid values for adapter keys cause runtime errors when those features are invoked; check `skills/issue-tracking/_adapters/` and `skills/wiki/_adapters/` for the list of valid values.
 
-| Variable | Purpose |
-|----------|---------|
-| `ISSUE_TRACKER_TYPE` | Adapter key; shipped adapters: `github`, `jira`; see `skills/issue-tracking/_adapters/platform-template.md` for others |
-| `WIKI_PLATFORM` | Adapter key; see `skills/wiki/_adapters/platform-template.md` to add yours |
-| `PERPLEXITY_API_KEY` | Enables deep research escalation (~$0.01/query) |
-| `THINK_TWICE_USE_PERPLEXITY` | `false` by default; set `true` to let think-twice escalate to Perplexity |
-| `OPENAI_API_KEY` | Enables embedding-based skill matching (optional; TF-IDF works without it) |
+| Variable | Required? | Purpose |
+|----------|-----------|---------|
+| `ISSUE_TRACKER_TYPE` | Optional | Adapter key; shipped adapters: `github`, `jira`; see `skills/issue-tracking/_adapters/platform-template.md` for others |
+| `WIKI_PLATFORM` | Optional | Adapter key; see `skills/wiki/_adapters/platform-template.md` to add yours |
+| `TODO_FILE_PATH` | Optional | Path to your persistent TODO.md file; used by `todo-crud.sh` and all todo-management tools |
+| `PERPLEXITY_API_KEY` | Optional | Enables deep research escalation (~$0.01/query); a stuck agent can trigger many queries — monitor spend and disable in shared environments |
+| `THINK_TWICE_USE_PERPLEXITY` | Optional | `false` by default; set `true` to let think-twice escalate to Perplexity when stuck |
+| `OPENAI_API_KEY` | Optional | Enables embedding-based skill matching; TF-IDF runs without it (free but slower) |
 
 ## Skill Coordination
 
@@ -248,6 +270,14 @@ graph LR
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → markdown structure → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
 | Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
 
+### Quality Gates Policy
+
+The commit-gate chain (style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
+
+**`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit.
+
+> **Token budget:** A wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → fact-check → publish) typically costs 30–50k tokens per edit. Run `bash tools/skill-cost-analyzer.sh` before scheduling bulk changes to estimate impact.
+
 ## Extending
 
 ```text
@@ -256,7 +286,9 @@ obra/superpowers (framework)
             └── your-org-skills (private)
 ```
 
-`superpowers-plus` is a public foundation. Skills become significantly more powerful when you build a private enterprise repo that overlays, extends, and overloads it with organization-specific integrations:
+**Solo developers:** Core skills — `systematic-debugging`, `code-review-battery`, `feature-development`, `think-twice`, `verification-before-completion` — work fully offline with just git and GitHub. No external integrations required.
+
+**Enterprise teams:** `superpowers-plus` is a public foundation. Skills become significantly more powerful when you build a private enterprise repo that overlays, extends, and overloads it with organization-specific integrations:
 
 | Layer | Examples |
 |-------|---------|
@@ -266,6 +298,12 @@ obra/superpowers (framework)
 | **Knowledge bases** | Confluence, MediaWiki, Outline Wiki |
 
 Private skills can shadow or extend public ones: route `todo-management` tasks to Jira instead of a local file, add company-specific rules to `code-review-battery`, or wire `wiki-orchestrator` directly to your Confluence instance. Give agents MCP server access to these systems and they gain context from your entire stack automatically — issue history, meeting transcripts, internal docs, and your team's conventions all become first-class inputs.
+
+**Enterprise overlay security checklist:**
+- Store API keys in `~/.codex/.env` — never hardcode them in skills
+- Private skills that call external systems should log API activity for audit trails
+- Review private MCP servers before deployment (supply chain risk)
+- `PERPLEXITY_API_KEY` and `OPENAI_API_KEY` send context to external APIs — evaluate data classification before enabling in sensitive workflows
 
 See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
@@ -296,15 +334,18 @@ Utility scripts in `tools/`:
 
 | Problem | Fix |
 |---------|-----|
-| `bash 3.2 is too old` | macOS: `brew install bash`, then `/opt/homebrew/bin/bash install.sh` |
+| `bash 3.2 is too old` | macOS Apple Silicon: `brew install bash`, then `/opt/homebrew/bin/bash install.sh`. Intel Mac: `/usr/local/bin/bash install.sh` |
 | `This script requires bash` | You ran with sh or zsh. Use: `bash install.sh` |
 | `Missing required commands: git` | macOS: `xcode-select --install`. Linux: `sudo apt install git` |
 | `Missing required commands: node` | macOS: `brew install node`. Linux: `sudo apt install nodejs` |
-| Perplexity tools not found | Run `./setup/mcp-perplexity.sh` |
-| Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env` |
-| Wiki operations fail | Set `WIKI_PLATFORM` in `.env` |
-| Skills not loading | Re-run `bash install.sh`; check `~/.codex/skills/` exists |
-| Stale skill count | `bash install.sh --upgrade`; verify with `find-skills` |
+| Install partially failed | Run `bash install.sh --verbose` to see which step failed; then `bash tools/doctor-checks.sh` for full diagnosis |
+| Perplexity tools not found | Verify `PERPLEXITY_API_KEY` in `~/.codex/.env`, then run `./setup/mcp-perplexity.sh` |
+| Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env`; verify adapter exists in `skills/issue-tracking/_adapters/` |
+| Wiki operations fail | Set `WIKI_PLATFORM` in `.env`; verify adapter exists in `skills/wiki/_adapters/` |
+| Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
+| CRLF errors on WSL | Cloned on Windows before running installer: `bash tools/harsh-review.sh --fix` |
+| Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
+| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~91 |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `./tools/doctor-checks.sh --fix-safe` |
 
