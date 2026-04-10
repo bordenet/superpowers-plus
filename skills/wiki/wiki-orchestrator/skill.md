@@ -44,6 +44,28 @@ add cross-references to the API reference, and publish the updated structure.
 
 ---
 
+## ⛔ Step 0: Load Your Platform Adapter (MANDATORY BEFORE ANY WRITE)
+
+Before invoking this orchestrator for any write operation, read the adapter file for your wiki platform. The adapter defines allowed write roots, page operations, TOC syntax, and platform constraints.
+
+**Resolution order:**
+
+1. **Explicit config** — `$WIKI_PLATFORM` set in `~/.codex/.env` (e.g., `outline`, `confluence`):
+   ```bash
+   source ~/.codex/.env
+   cat ~/.codex/superpowers-plus/skills/wiki/_adapters/${WIKI_PLATFORM}.md
+   ```
+
+2. **Auto-detect from available MCP tools** — if `$WIKI_PLATFORM` is unset, check which wiki MCP tools are available in your current session:
+   - `list_collections_outline` / `create_document_outline` present → platform is `outline`
+   - Load `~/.codex/superpowers-plus/skills/wiki/_adapters/outline.md` and note that `WIKI_PLATFORM` should be set to `outline` in `.env` for future sessions.
+
+3. **Fail closed** — if neither explicit config nor auto-detection resolves a platform adapter, do NOT write to any wiki. Read `~/.codex/superpowers-plus/skills/wiki/_adapters/README.md` for guidance on creating an adapter.
+
+This rule applies to every agent in every session and cannot be waived by the agent.
+
+---
+
 ## ⛔ The Pipeline
 
 <EXTREMELY_IMPORTANT>
@@ -59,7 +81,7 @@ Single-page edits, creates, and deletes → use wiki API directly.
 | 3. Link Verification | **BLOCK** | `link-verification`: Internal wiki + repo links block on failure |
 | 4. Secret Scan | **BLOCK** | Search for `password`, `secret`, `token`, `api_key`, `credential`, `private_key` |
 | 5. Slop Detection | ADVISORY | `eliminating-ai-slop`: GVR slop scoring |
-| 5.5 Markdown Structure | **BLOCK** | `wiki-markdown-structure-gate`: malformed tables, escaped wiki-link artifacts, unbalanced fences/callouts, heading hierarchy defects |
+| 5.5 Markdown Structure | **BLOCK** | `wiki-markdown-structure-gate`: malformed tables, escaped wiki-link artifacts, unbalanced fences/callouts, heading hierarchy defects, missing TOC on `toc_behavior=manual` pages with 4+ H2/H3 headings |
 | 6. Fact-Check | WARN | `wiki-debunker`: Count cited vs uncited claims |
 | 7. Publish | — | Execute via MCP tools (see Publishing Rules below) |
 
@@ -81,7 +103,7 @@ Single-page edits, creates, and deletes → use wiki API directly.
   - `toc_behavior=auto`: Do not add manual TOC markup. The platform renders a TOC automatically.
   - `toc_behavior=manual`: Insert the adapter's `toc_syntax` markup. Placement: after the intro paragraph and before the first H2. If the page has no intro paragraph (starts directly with H2), place the TOC markup on the first line before the first H2.
   - `toc_behavior=unsupported`: Do not insert any TOC markup. The platform has no TOC support.
-  - **Skip if TOC already exists:** Do not add a TOC if the page already contains the adapter's `toc_syntax` markup, or a heading matching `Contents` or `Table of Contents` (case-insensitive).
+  - **Skip if TOC already exists:** Do not add a TOC if the page already contains the adapter's declared `toc_syntax` markup (outside fenced code blocks). A generic `Contents` or `Table of Contents` heading alone does not qualify — the adapter's structural format is required.
   - Pages with ≤3 H2/H3 headings do not need a TOC.
 
 ---
@@ -102,14 +124,14 @@ Fetch current state via your adapter's `get_page` operation BEFORE any edit. Nev
 
 **🔴 NEVER create a top-level (root) page.** Every agent-created page MUST be a child of an existing page unless the user explicitly approves root-level placement with the exact collection identified and explicit confirmation that the page will have no parent.
 
-Only write to allowed roots defined by the platform-specific editing skill (e.g., `outline-wiki-editing`). The editing skill defines:
+Only write to allowed roots defined by your platform-specific wiki editing skill/adapter (see `skills/wiki/_adapters/` for available adapters). The editing skill defines:
 - **Allowed collection identifiers** — first-pass filter
 - **Allowed root document identifiers** — parent-chain verification target
 - **Verification procedure** — walk parent chain from target → root, confirm root matches
 
 **This applies to both CREATE and UPDATE operations.** Walk the parent chain to verify scope before writing. If out of scope → STOP and ask user. Do NOT assume a parent is in-scope just because its title sounds relevant.
 
-**If the platform-specific editing skill is not loaded or unavailable → do NOT write. Fail closed.**
+**If no platform adapter is loaded or available → do NOT write. Fail closed.**
 
 ### Check for Duplicates Before Creating
 
@@ -130,8 +152,8 @@ After every update, fetch the document again. Scan for `\[`, `\]`, literal `&nbs
 
 ## Checklists
 
-**Before Creating:** Check duplicates → Verify write scope → Secret scan → Verify links → `create_page`
-**Before Editing:** Fetch current state → Use as base → Secret scan → Verify links → Warn about layout loss → `update_page` → Verify result
+**Before Creating:** Check duplicates → Verify write scope → **TOC check** (count H2/H3 outside code fences; if ≥4 on `toc_behavior=manual`, add TOC per adapter format) → Secret scan → Verify links → **Structure gate** (`wiki-markdown-structure-gate`) → `create_page`
+**Before Editing:** Fetch current state → Use as base → **TOC check** (count H2/H3 outside code fences; if ≥4 on `toc_behavior=manual` and no TOC, add one) → Secret scan → Verify links → Warn about layout loss → **Structure gate** (`wiki-markdown-structure-gate`) → `update_page` → Verify result
 **Before Deleting:** Fetch full content → Backup with frontmatter → Verify backup → Search for inbound links → Delete
 
 ---

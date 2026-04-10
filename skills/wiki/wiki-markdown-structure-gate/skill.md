@@ -3,7 +3,7 @@ name: wiki-markdown-structure-gate
 source: superpowers-plus
 triggers: ["wiki table syntax", "fix malformed wiki table", "audit wiki markdown structure", "broken admonition block", "bad code fence in wiki", "heading hierarchy in wiki", "wiki formatting gate", "escaped wiki link artifact"]
 anti_triggers: ["database table", "sql table", "schema table"]
-description: Deterministic structural markdown gate for wiki publishing. Catches malformed tables, escaped wiki-link artifacts, unbalanced code or callout fences, and heading hierarchy defects before publish.
+description: Deterministic structural markdown gate for wiki publishing. Catches malformed tables, escaped wiki-link artifacts, unbalanced code or callout fences, heading hierarchy defects, and missing TOC on manual-TOC platforms with 4+ headings before publish.
 summary: "Use when: wiki content needs a structural markdown gate before publish."
 coordination:
   group: wiki-pipeline
@@ -40,6 +40,7 @@ composition:
 | Code fences | Opening and closing fences are unbalanced |
 | Callout fences | `:::info` / `:::warning` / similar blocks are unbalanced |
 | Heading hierarchy | H3+ appears before any H2, or headings skip a level |
+| Missing TOC | **Only when `toc_behavior=manual`:** Page has **4+ body H2/H3 headings** (excluding headings inside fenced code blocks — both backtick and tilde fences) AND no valid TOC exists. Detection: use **only** the platform adapter's declared `toc_syntax` markup — do not accept a generic `Contents` or `Table of Contents` heading as sufficient. A heading alone is not a TOC; the adapter's structural format is required. For Outline: look for a `+++` toggle block (outside fenced code blocks) whose first content line contains `Table of contents`. Pages with ≤3 H2/H3 headings are exempt. **Does not apply** when `toc_behavior=auto` (platform renders TOC) or `toc_behavior=unsupported` (platform has no TOC support). If no adapter config is found, fail closed as adapter misconfiguration — do not silently skip. See `wiki-orchestrator` Stage 2 for the full rule and `outline-wiki-editing` for the Outline-specific TOC format. No waiver mechanism exists — all `manual` pages with 4+ headings must have a TOC. |
 
 ## Advisory Findings
 
@@ -52,7 +53,13 @@ Warn but do not block on:
 ## Procedure
 
 1. Fetch current content or read the generated draft
-2. Run a deterministic structural scan over markdown
+2. Run a deterministic structural scan over markdown:
+   a. Parse fenced code blocks (track opening/closing backtick `` ``` `` and tilde `~~~` lines) to exclude their content from heading counts. Match fence style and length — a closing fence must use the same character and at least the same count as its opening fence.
+   b. Count H2/H3 headings outside code fences
+   c. Look up the platform adapter's `toc_behavior` setting
+   d. If `toc_behavior=manual` AND heading count ≥ 4 AND no existing TOC markup found → emit BLOCK finding
+   e. If `toc_behavior=auto` or `toc_behavior=unsupported` → skip the TOC check (no block)
+   f. If no adapter config is available → emit BLOCK as adapter misconfiguration
 3. Report line-numbered failures
 4. Fix all BLOCK findings before publish
 5. Re-run the scan after edits
@@ -66,6 +73,7 @@ Warn but do not block on:
 |------|----------|------|--------|
 | 14 | BLOCK | malformed-table | row has 2 cells, expected 3 |
 | 43 | BLOCK | escaped-wiki-link | `\[Guide\[/doc/...` |
+| — | BLOCK | missing-toc | 7 H2/H3 headings found, no TOC markup detected |
 | 88 | WARN | wide-table | 6 columns, likely to wrap in wiki UI |
 
 Gate: ❌ BLOCKED
@@ -84,6 +92,7 @@ Gate: ❌ BLOCKED
 | Pipeline claims a table gate but no skill exists | Add and install this skill; keep docs and routing aligned |
 | Structural checks are advisory only | Treat malformed markdown as BLOCK, not WARN |
 | Only links/secrets are checked | Add deterministic structural scanning before publish |
+| Long pages published without TOC | Agent skipped heading count. This gate blocks on `toc_behavior=manual` platforms when 4+ H2/H3 headings exist outside code fences and no TOC markup is present. Does not fire for `auto` (platform renders TOC) or `unsupported` (no TOC available). |
 
 ## Companion Skills
 
