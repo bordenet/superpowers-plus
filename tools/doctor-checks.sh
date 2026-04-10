@@ -76,14 +76,39 @@ SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 
 # Auto-discover overlay sources: any *_SOURCE_DIR env var in .env
-# (e.g., SP_OVERLAY_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
+# (e.g., SPC_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
 # Each overlay repo registers itself during install via: VARNAME_SOURCE_DIR="/path/to/repo"
+# Canonical naming convention: use a repo-specific prefix (e.g., SPC_ for superpowers-overlay)
+# to avoid collisions. Generic names like SP_OVERLAY_SOURCE_DIR are deprecated.
 while IFS='=' read -r varname varval; do
   [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
   [[ "$varname" =~ _SOURCE_DIR$ ]] || continue
   _dir="${varval//[\"\']}"
   [[ -n "$_dir" && -d "$_dir" ]] && SOURCE_DIRS+=("$_dir")
 done < <(grep '_SOURCE_DIR=' "$HOME/.codex/.env" 2>/dev/null || true)
+
+# Deduplicate SOURCE_DIRS by canonical path (guards against case-insensitive FS duplicates
+# where two *_SOURCE_DIR vars resolve to the same physical directory, e.g.,
+# SPC_SOURCE_DIR=.../tools/ and LEGACY_SOURCE_DIR=.../Tools/ on macOS APFS).
+# Note: realpath resolves symlinks and removes ./../ but does NOT normalize case on macOS
+# APFS (case-insensitive, case-preserving). The dedup here is defense-in-depth; the
+# primary protection is each overlay installer writing exactly one canonical variable.
+# Guard: only run when there are overlay entries to deduplicate (SOURCE_DIRS has >1 entry).
+if [[ ${#SOURCE_DIRS[@]} -gt 1 ]]; then
+  declare -A _seen_canon
+  _deduped=("${SOURCE_DIRS[0]}")
+  _seen_canon["$(realpath "${SOURCE_DIRS[0]}" 2>/dev/null || echo "${SOURCE_DIRS[0]}")"]="1"
+  for _d in "${SOURCE_DIRS[@]:1}"; do
+    _canon="$(realpath "$_d" 2>/dev/null || echo "$_d")"
+    if [[ -z "${_seen_canon[$_canon]+set}" ]]; then
+      _deduped+=("$_d")
+      _seen_canon["$_canon"]="1"
+    fi
+  done
+  SOURCE_DIRS=("${_deduped[@]}")
+  unset _seen_canon _deduped _d _canon
+fi
+
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
 # Managed checkout paths (git repos maintained by install.sh)
