@@ -19,8 +19,17 @@ VERDICT="PASS"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --verdict)
+            if [[ $# -lt 2 ]]; then
+                echo "❌ --verdict requires a value: PASS or PASS_WITH_NITS" >&2
+                echo "Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS]" >&2
+                exit 1
+            fi
             VERDICT="$2"
             shift 2
+            ;;
+        --verdict=*)
+            VERDICT="${1#--verdict=}"
+            shift
             ;;
         *)
             echo "Unknown flag: $1" >&2
