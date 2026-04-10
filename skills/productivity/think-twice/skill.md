@@ -69,6 +69,8 @@ Continuously monitor for these signals. When cumulative score ≥ 7, invoke thin
 | Knowledge (API docs, error codes, facts) | `perplexity-research` | `think-twice` for fresh reasoning |
 | Both (stuck + need facts) | `think-twice` | `perplexity-research` with refined query |
 
+> ⚠️ **Cost gate:** `perplexity-research` calls a paid API. Before escalating, confirm the knowledge gap cannot be resolved with a web search or by re-reading existing context. If escalating: inform the user a paid API call is being made.
+
 ## Consultation Prompt Quality
 
 The prompt sent to the sub-agent determines outcome quality. MUST include:
