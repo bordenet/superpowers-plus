@@ -157,7 +157,7 @@ If you're using the install paths above without an MCP client, you can skip this
 
 > **Security scope:** The MCP server binds to localhost only and exposes no authentication (see `mcp/superpowers-mcp.js` — search for `listen` to verify the bind address). Use it for local single-user development; do not expose the node process to network interfaces in shared or server environments.
 
-1. `cd mcp && npm install`
+1. `cd mcp && npm install` — review `mcp/package-lock.json` for unexpected transitive dependencies before running in sensitive environments
 2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the absolute path from `pwd` in your checkout (no trailing slash, no `~/` shorthand — use the full path):
 
    ```json
@@ -280,7 +280,7 @@ The commit-gate chain (style → code review → language → IP audit) runs aut
 
 **`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit.
 
-**Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`).
+**Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`). If `SUPERPOWERS_SKILLS_DIR` points to a nonexistent or incomplete directory the runtime falls back to `~/.codex/skills/`; verify with `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` after setting the variable.
 
 > **Token budget:** A wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → fact-check → publish) typically costs 30–50k tokens per edit. Run `bash tools/skill-cost-analyzer.sh` before scheduling bulk changes to estimate impact.
 
