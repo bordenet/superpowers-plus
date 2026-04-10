@@ -18,15 +18,15 @@ anti_triggers:
   - code review
   - PR review
   - review someone's PR
-  - design review inside design-triad
+  - design review inside debate
   - quick feedback
-description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after design-triad). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
+description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
 summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery."
 coordination:
   group: quality
   order: 2
   requires: []
-  enables: ["think-twice", "design-triad"]
+  enables: ["think-twice", "debate"]
   escalates_to: []
   internal: false
 composition:
@@ -64,7 +64,7 @@ composition:
 
 **NOT for:**
 - Code PRs → use `code-review-battery` instead
-- Design comparison (choosing between options) → `design-triad` handles that
+- Design comparison (choosing between options) → `debate` handles that
 - Initial brainstorming (too early — nothing to review yet)
 
 ## The Three Personas
@@ -133,7 +133,7 @@ On REJECT:
 
 1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
 2. **Chain to remediation skills:**
-   - Design issues → `design-triad` (generate alternatives)
+   - Design issues → `debate` (generate alternatives)
    - Stuck/circular → `think-twice` (fresh perspective)
    - Plan issues → `plan-and-execute` (replan)
 3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.

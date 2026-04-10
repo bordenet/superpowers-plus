@@ -117,7 +117,7 @@ When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: te
 
 ## Companion Skills
 
-- `design-triad` — when test architecture decisions arise (≥3 approaches to test a complex feature)
+- `debate` — when test architecture decisions arise (≥3 approaches to test a complex feature)
 - `systematic-debugging` — when tests fail for non-obvious reasons, switch to root-cause investigation
 - `verification-before-completion` — after TDD cycle, verify ALL tests pass before claiming done
 - **feature-development**: Full feature workflow

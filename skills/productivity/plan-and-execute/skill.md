@@ -43,7 +43,7 @@ composition:
 
 - Single-step tasks (just do them)
 - Pure bug fixes (use `investigation-state`)
-- **Code features needing requirements + design phases** → use `feature-development` instead (it adds requirements-validation and design-triad phases that this skill omits)
+- **Code features needing requirements + design phases** → use `feature-development` instead (it adds requirements-validation and debate phases that this skill omits)
 - When a plan already exists and phases are already enrolled in TODO.md → use `todo-management` directly to resume execution
 
 ### Choosing Between `plan-and-execute` and `feature-development`
@@ -52,7 +52,7 @@ composition:
 |--------|----------|--------------------------|
 | General-purpose challenge (process, research, docs) | ✅ | |
 | Code feature needing formal requirements validation | | ✅ |
-| Code feature needing design-triad (≥3 options) | | ✅ |
+| Code feature needing debate (≥3 options) | | ✅ |
 | Code or non-code work where you already know WHAT to build | ✅ | |
 | Multi-phase work that needs stress-testing and retros | ✅ | |
 
