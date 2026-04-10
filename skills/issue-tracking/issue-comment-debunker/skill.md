@@ -56,6 +56,12 @@ Invoke **BEFORE** any of these actions:
 
 ## Pre-Comment Checklist
 
+<EXTREMELY_IMPORTANT>
+
+**HARD HALT before proceeding:** If you cannot cite a specific tool call (view, read, grep, query) that retrieved the evidence for each claim in your draft comment, STOP. Do NOT proceed to the checklist steps below. Rewrite the comment to contain only claims you have directly observed from tool output.
+
+</EXTREMELY_IMPORTANT>
+
 Before posting ANY comment to your issue tracker:
 
 ### 0. Validate the Target Issue

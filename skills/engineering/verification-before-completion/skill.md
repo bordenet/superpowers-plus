@@ -102,6 +102,7 @@ BEFORE forming any response that presents results to the human:
    - Block on any must-address items before proceeding.
 
 2. IDENTIFY: What command proves this claim?
+   **Note — output-verification pre-satisfies this:** If `output-verification` has already run in this same response step (it fires first, order=0), Steps 2–4 (IDENTIFY, RUN, READ) are already satisfied for artifact-description claims. Continue from Step 5 (VERIFY) for those claims. Still run Steps 2–4 for any non-artifact claims (e.g., "tests pass," "PR created").
 3. RUN: Execute the FULL command (fresh, complete)
 4. READ: Full output, check exit code, count failures
 5. VERIFY: Does output confirm the claim?
