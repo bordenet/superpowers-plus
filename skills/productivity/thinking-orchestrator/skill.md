@@ -1,15 +1,15 @@
 ---
 name: thinking-orchestrator
 source: superpowers-plus
-triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "evaluate alternatives", "what would you recommend", "what's the best place"]
-anti_triggers: ["just implement it with no alternatives", "one obvious answer", "no tradeoffs needed", "already decided — just do it"]
+triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "which option", "which is better", "how should this be structured", "recommend a strategy", "what would you recommend", "what's the best place"]
+anti_triggers: ["just implement it with no alternatives", "one obvious answer", "no tradeoffs needed", "already decided — just do it", "evaluate alternatives", "compare approaches", "comparison matrix", "evaluate options"]
 description: Hub skill for thinking and metacognition. Routes to the correct thinking skill based on context — adversarial-search, think-twice, verification-before-completion, exhaustive-audit-validation, or completeness-check. Load this skill when ANY thinking trigger fires; it will dispatch to the right child.
-summary: "Use when: routing to the right thinking skill (brainstorming vs design-triad vs think-twice)."
+summary: "Use when: routing to the right thinking skill (brainstorming vs debate vs think-twice)."
 coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "design-triad", "plan-and-execute"]
+  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "debate", "plan-and-execute"]
   escalates_to: []
   internal: false
 composition:
@@ -44,7 +44,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Running grep/find/search | `adversarial-search` | Scope justification gate |
 | User asks for rigor/depth | `adversarial-search` (Depth Challenge) | Shallow Response Check before delivering |
 | Starting a new feature, full development workflow | `feature-development` | Orchestrate requirements → design → plan → implement → verify |
-| Strategic / structural / ambiguous question (3+ plausible answers, affects long-lived artifacts, involves tradeoffs) | `design-triad` → then `plan-and-execute` if winner has implementation consequences | Prevent shallow recommendations |
+| Strategic / structural / ambiguous question (3+ plausible answers, affects long-lived artifacts, involves tradeoffs) | `debate` → then `plan-and-execute` if winner has implementation consequences | Prevent shallow recommendations |
 | Debugging a bug, starting/resuming investigation | `investigation-state` | Persist hypotheses, evidence, eliminated approaches |
 | Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
 | Describing/approving generated output (files, PDFs, API responses) | `output-verification` then `verification-before-completion` | No claims about output without inspection |
@@ -69,7 +69,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `completeness-check` | Repo audit | Detect incomplete/abandoned work |
 | `investigation-state` | Debugging | Persist investigation context across sessions |
 | `feature-development` | Feature work | Orchestrate full feature lifecycle |
-| `design-triad` | Decision quality | 3+ options, comparison, harsh review |
+| `debate` | Decision quality | 3+ options, comparison, harsh review |
 | `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
 
 ## The Iron Law
@@ -103,12 +103,12 @@ If your current context matches more than one route:
 Before delivering ANY analysis, evaluation, recommendation, or review, answer ALL of these:
 
 1. **Did the user ask for depth?** Check for: "rigorous review", "thorough analysis", "comprehensive review", "in-depth analysis", "deep dive", "harsh review", "full analysis", "leave no stone unturned"
-2. **Is this a strategic/structural/ambiguous question?** Check for: the question has 3+ plausible answers, affects long-lived artifacts (docs, architecture, process), involves tradeoffs, or determines where/how something will live long-term. If YES → route to `design-triad` before answering.
+2. **Is this a strategic/structural/ambiguous question?** Check for: the question has 3+ plausible answers, affects long-lived artifacts (docs, architecture, process), involves tradeoffs, or determines where/how something will live long-term. If YES → route to `debate` before answering.
 3. **How many dimensions of the problem did I consider?** If < 3, you are being shallow.
 4. **Did I challenge my own conclusions?** If not, you are exhibiting confirmation bias.
 5. **Would the user say "you only pursued part of it"?** If yes, STOP and expand scope.
 6. **Am I about to deliver a short answer to a complex question?** Short != rigorous.
-7. **Am I about to recommend without generating alternatives first?** If yes, STOP. Route to `design-triad`.
+7. **Am I about to recommend without generating alternatives first?** If yes, STOP. Route to `debate`.
 
 **If ANY answer is concerning, go back and deepen the analysis before responding.**
 
@@ -146,7 +146,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js use-skill brainstorming
 ## Companion Skills
 
 - **think-twice**: Deep analysis when stuck · **brainstorming**: Generating options
-- **design-triad**: Evaluating design alternatives · **adversarial-search**: Deep investigation
+- **debate**: Evaluating design alternatives · **adversarial-search**: Deep investigation
 - **plan-and-execute**: Structured planning workflow
 - **quantitative-decision-gate**: Decision matrix scoring
 - **autonomous-chain-controller**: Full workflow automation

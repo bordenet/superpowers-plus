@@ -160,12 +160,6 @@ check_code_review_sentinel() {
     return 0
 }
 
-IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
-if [[ ! -f "$IP_AUDIT_SCRIPT" ]]; then
-    echo -e "${RED}Missing tools/public-repo-ip-check.sh — push blocked.${NC}"
-    exit 1
-fi
-
 # Remote name is passed as $1 by git
 REMOTE_NAME="${1:-origin}"
 
@@ -222,6 +216,13 @@ if [[ "$IS_PUBLIC_REMOTE" == "false" ]]; then
     echo "  (content already gated at the public origin)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 0
+fi
+
+# Public remote: require the IP audit script to be present.
+IP_AUDIT_SCRIPT="$REPO_ROOT/tools/public-repo-ip-check.sh"
+if [[ ! -f "$IP_AUDIT_SCRIPT" ]]; then
+    echo -e "${RED}Missing tools/public-repo-ip-check.sh — push blocked.${NC}"
+    exit 1
 fi
 
 ERRORS=0

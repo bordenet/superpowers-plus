@@ -18,7 +18,7 @@ coordination:
   group: orchestration
   order: 1
   requires: []
-  enables: [brainstorming, design-triad, plan-and-execute, test-driven-development]
+  enables: [brainstorming, debate, plan-and-execute, test-driven-development]
   escalates_to: [think-twice, failure-autopsy]
   internal: false
 composition:
@@ -47,9 +47,9 @@ composition:
 # Example: Chain selection for "build login page"
 echo "Task: build login page"
 echo "Complexity: MEDIUM (5 skills)"
-echo "Chain: brainstorming -> design-triad -> plan-and-execute -> TDD -> verify"
+echo "Chain: brainstorming -> debate -> plan-and-execute -> TDD -> verify"
 echo "Gate 1: brainstorming output has >=3 options? YES"
-echo "Gate 2: design-triad scored all options? YES"
+echo "Gate 2: debate scored all options? YES"
 echo "Gate 3: plan has phases? YES -> continue"
 ```
 
@@ -65,7 +65,7 @@ Chain: [ordered skill list]
 
 | Task Type | Chain |
 |-----------|-------|
-| New feature | brainstorming -> design-triad -> plan-and-execute -> TDD -> review -> verify |
+| New feature | brainstorming -> debate -> plan-and-execute -> TDD -> review -> verify |
 | Bug fix | systematic-debugging -> TDD -> review -> verify |
 | Distributed incident | debug-conductor -> (investigators forked) -> evidence-adjudicator -> failure-autopsy |
 | Refactor | blast-radius-check -> plan -> TDD -> review -> verify |
@@ -121,7 +121,7 @@ All skills done + gates passed + verification + TODO sweep.
 
 - **plan-and-execute**: Planning within chain
 - **brainstorming**: Options at chain start
-- **design-triad**: Design selection
+- **debate**: Design selection
 - **verification-before-completion**: Final gate
 - **todo-guardian**: Between-gate enforcement
 - **quantitative-decision-gate**: Branch-point decisions
