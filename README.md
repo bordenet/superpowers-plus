@@ -52,13 +52,13 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-**91 skills** across 9 domains:
+**~91 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
 | **engineering** | Code review battery, debate, TDD, progressive review, systematic debugging, feature lifecycle |
 | **productivity** | TODO tracking (see [task tagging taxonomy](skills/productivity/todo-management/references/taxonomy.md)), plan-and-execute, think-twice, adversarial search, domain design |
-| **writing** | AI slop detection/elimination, profanity gate, table discipline, skill authoring |
+| **writing** | AI slop detection/elimination, professional-language-audit, table discipline, writing-skills authoring |
 | **wiki** | Orchestrator pipeline, link verification, credential scanning, fact-checking |
 | **observability** | Completeness checks, evolution loop, audit validation, diagnostics |
 | **issue-tracking** | Authoring, editing, verification, link checks, comment debunking |
@@ -108,6 +108,8 @@ The installer:
 curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 ```
 
+> **Security note:** Review the script before piping: `curl -fsSL <url> | less` — then re-run with `| bash` once satisfied.
+
 Installs obra/superpowers + the Augment adapter. Does **not** install the full skill suite; use git clone above for that.
 
 ### Claude Code
@@ -151,7 +153,9 @@ If you're using the install paths above without an MCP client, you can skip this
 - **Yes** — if you're using Claude Desktop or another MCP-compatible client and want the skills available as MCP tools
 - **Yes** — if you're using Claude Code plugin and want skills exposed as tools (not just rules)
 
-**Requires:** Node.js 18+. Verify: `node --version`
+**Requires:** Node.js 18+. Verify: `node --version` (npm is bundled with Node.js — no separate install needed)
+
+> **Security scope:** The MCP server binds to localhost only and exposes no authentication. Use it for local single-user development; do not expose the node process to network interfaces in shared or server environments.
 
 1. `cd mcp && npm install`
 2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the absolute path from `pwd` in your checkout (no trailing slash, no `~/` shorthand — use the full path):
@@ -201,7 +205,7 @@ If skills aren't loading, see [Troubleshooting](#troubleshooting).
 
 ## Configuration
 
-Copy `.env.example` to `~/.codex/.env` for runtime integrations. All variables are optional unless noted. Invalid values for adapter keys cause runtime errors when those features are invoked; check `skills/issue-tracking/_adapters/` and `skills/wiki/_adapters/` for the list of valid values.
+Copy `.env.example` to `~/.codex/.env` for runtime integrations, then set permissions: `chmod 600 ~/.codex/.env`. All variables are optional unless noted. Invalid values for adapter keys cause runtime errors when those features are invoked; check `skills/issue-tracking/_adapters/` and `skills/wiki/_adapters/` for the list of valid values.
 
 | Variable | Required? | Purpose |
 |----------|-----------|---------|
@@ -339,7 +343,7 @@ Utility scripts in `tools/`:
 | `Missing required commands: git` | macOS: `xcode-select --install`. Linux: `sudo apt install git` |
 | `Missing required commands: node` | macOS: `brew install node`. Linux: `sudo apt install nodejs` |
 | Install partially failed | Run `bash install.sh --verbose` to see which step failed; then `bash tools/doctor-checks.sh` for full diagnosis |
-| Perplexity tools not found | Verify `PERPLEXITY_API_KEY` in `~/.codex/.env`, then run `./setup/mcp-perplexity.sh` |
+| Perplexity tools not found | Verify `PERPLEXITY_API_KEY` in `~/.codex/.env`, then run `bash setup/mcp-perplexity.sh` |
 | Issue tracking fails | Set `ISSUE_TRACKER_TYPE` in `.env`; verify adapter exists in `skills/issue-tracking/_adapters/` |
 | Wiki operations fail | Set `WIKI_PLATFORM` in `.env`; verify adapter exists in `skills/wiki/_adapters/` |
 | Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
@@ -347,7 +351,7 @@ Utility scripts in `tools/`:
 | Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
 | Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~91 |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
-| Doctor reports drift | `./tools/doctor-checks.sh --fix-safe` |
+| Doctor reports drift | `bash tools/doctor-checks.sh --fix-safe` |
 
 ## Documentation
 
