@@ -32,6 +32,28 @@ composition:
 
 **Announce at start:** "I'm using the **plan-and-execute** skill to orchestrate this work."
 
+## Quick Mode (Simple Features)
+
+For single-phase work with clear scope (bug fix, small feature, config update, single-file edit) — use this lightweight path instead of the full phased procedure below.
+
+> **Note:** This skill's anti_triggers suppress it for "small change", "quick fix", etc. Quick Mode is for cases where you're already inside plan-and-execute (triggered by a broader planning phrase) and scope turns out to be simple — OR where you load this skill explicitly for its Quick Mode path.
+
+1. State the goal in one sentence
+2. List files to create or modify
+3. Execute the work
+4. Run `unified-commit-gate` before committing
+5. Verify the deliverables match the stated goal
+
+**When MCP `add_tasks` is available, use it directly for task tracking — do NOT also load `todo-management`.**
+
+**Auto-escalate to the full procedure below if any of these appear during execution:**
+- 3+ subtasks emerge that weren't visible at the start
+- External dependency or blocked work discovered
+- Scope changes from the user mid-work
+- Work spans multiple repos, services, or teams
+
+If any auto-escalate signal fires, continue reading the full skill below.
+
 ## When to Use
 
 - Any multi-phase challenge (code, process, research, documentation, design)
