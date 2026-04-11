@@ -12,12 +12,6 @@ fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
 skip() { echo "  skip: $1"; ((SKIP++)) || true; }
 
-# Skip in CI — requires personal skills directory (~/.agents/skills/) not present on CI runners.
-if [[ "${CI:-}" == "true" ]]; then
-  echo "SKIP: trigger routing tests require personal skills dir — not available in CI"
-  exit 0
-fi
-
 # Check if match-skills is available
 if ! node "$ADAPTER" match-skills "test" >/dev/null 2>&1; then
   echo "SKIP: match-skills not available (superpowers not installed?)"
@@ -48,11 +42,11 @@ else
   fail 'wiki-instruction-guard missing from superpowers list (multiline trigger parsing broke)'
 fi
 
-# design-triad routing (skill lives in debate/ dir with name: design-triad)
-assert_top_match "design options with adversarial review" "design-triad"
-assert_top_match "harsh design review" "design-triad"
-assert_top_match "design triad review" "design-triad"
-assert_top_match "three design options compare" "design-triad"
+# debate triggers (formerly design-triad)
+assert_top_match "design options with adversarial review" "debate"
+assert_top_match "generate options compare and red team" "debate"
+assert_top_match "three design options" "debate"
+assert_top_match "compare design approaches" "debate"
 assert_top_match "what's the best approach for retry logic placement" "thinking-orchestrator"
 assert_top_match "where to store retry logic" "thinking-orchestrator"
 
@@ -70,7 +64,7 @@ assert_top_match "enforce the style guide" "enforce-style-guide"
 assert_top_match "review my changes" "requesting-code-review"
 assert_top_match "implement review suggestions" "receiving-code-review"
 assert_top_match "run progressive harsh review" "progressive-harsh-review"
-assert_top_match "design comparison matrix" "design-triad"
+assert_top_match "design comparison matrix" "debate"
 
 echo ""
 echo "── Results: $PASS passed, $FAIL failed, $SKIP skipped ──"

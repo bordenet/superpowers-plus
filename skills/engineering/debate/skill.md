@@ -1,5 +1,5 @@
 ---
-name: design-triad
+name: debate
 source: superpowers-plus
 triggers:
   - /sp-debate
@@ -42,7 +42,7 @@ composition:
 >
 > **Core principle:** Never commit to a design without considering at least three alternatives and surviving a harsh review.
 
-**Announce at start:** "I'm using the **design-triad** skill to evaluate design options."
+**Announce at start:** "I'm using the **debate** skill to evaluate design options."
 
 ## Companion Skills
 
@@ -74,7 +74,7 @@ composition:
 ⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1. Pick ONE:
 
 1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
-2. **Requirements or architecture need investigation** — pause design-triad, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
+2. **Requirements or architecture need investigation** — pause debate, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
 3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, proceeding without formal validation." Then proceed to Step 1.
 
 Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.
