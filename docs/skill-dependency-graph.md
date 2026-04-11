@@ -36,7 +36,7 @@ graph TD
   subgraph thinking["Thinking"]
     brainstorming["brainstorming"]
     adversarial_search["adversarial-search"]
-    design_triad["design-triad"]
+    debate["debate"]
     innovation["innovation"]
     thinking_orchestrator["thinking-orchestrator"]
   end
@@ -166,21 +166,21 @@ graph TD
 
   blast_radius_check -->|enables| field_rename_verification
   blast_radius_check ==>|escalates to| engineering_rigor
-  brainstorming -->|enables| design_triad
+  brainstorming -->|enables| debate
   brainstorming ==>|escalates to| thinking_orchestrator
   code_review_battery -->|enables| progressive_code_review_gate
   systematic_debugging -->|then| debug_conductor
   debug_conductor -->|enables| investigation_state
   debug_conductor -->|enables| failure_autopsy
   debug_conductor ==>|escalates to| thinking_orchestrator
-  design_triad ==>|escalates to| thinking_orchestrator
+  debate ==>|escalates to| thinking_orchestrator
   engineering_rigor -->|enables| pre_commit_gate
   engineering_rigor -->|enables| blast_radius_check
   debug_conductor -->|then| evidence_adjudicator
   evidence_adjudicator ==>|escalates to| debug_conductor
   feature_development -->|enables| brainstorming
   feature_development -->|enables| think_twice
-  feature_development -->|enables| design_triad
+  feature_development -->|enables| debate
   feature_development ==>|escalates to| thinking_orchestrator
   field_rename_verification -->|enables| verification_before_completion
   field_rename_verification ==>|escalates to| engineering_rigor
@@ -197,7 +197,7 @@ graph TD
   enforce_style_guide -->|then| progressive_code_review_gate
   progressive_code_review_gate -->|enables| professional_language_audit
   progressive_harsh_review -->|enables| think_twice
-  progressive_harsh_review -->|enables| design_triad
+  progressive_harsh_review -->|enables| debate
   code_review -->|then| providing_code_review
   providing_code_review -->|enables| receiving_code_review
   providing_code_review ==>|escalates to| code_review_battery
@@ -205,7 +205,7 @@ graph TD
   receiving_code_review ==>|escalates to| think_twice
   debug_conductor -->|then| reproduction_experiment_investigator
   reproduction_experiment_investigator ==>|escalates to| debug_conductor
-  requirements_validation -->|enables| design_triad
+  requirements_validation -->|enables| debate
   requirements_validation -->|enables| brainstorming
   requirements_validation ==>|escalates to| feature_development
   debug_conductor -->|then| state_consistency_investigator
@@ -235,7 +235,7 @@ graph TD
   adversarial_search -->|enables| verification_before_completion
   adversarial_search ==>|escalates to| thinking_orchestrator
   autonomous_chain_controller -->|enables| brainstorming
-  autonomous_chain_controller -->|enables| design_triad
+  autonomous_chain_controller -->|enables| debate
   autonomous_chain_controller -->|enables| plan_and_execute
   autonomous_chain_controller -->|enables| test_driven_development
   autonomous_chain_controller ==>|escalates to| think_twice
@@ -246,17 +246,17 @@ graph TD
   code_review_respond ==>|escalates to| think_twice
   domain_design -->|enables| skill_authoring
   domain_design -->|enables| brainstorming
-  domain_design -->|enables| design_triad
+  domain_design -->|enables| debate
   plan_and_execute -->|then| fallback_planning
   innovation -->|enables| brainstorming
-  innovation -->|enables| design_triad
+  innovation -->|enables| debate
   plan_and_execute -->|enables| brainstorming
   plan_and_execute -->|enables| think_twice
   plan_and_execute -->|enables| todo_management
   plan_and_execute -->|enables| plan_quality_gates
   plan_and_execute ==>|escalates to| thinking_orchestrator
   quantitative_decision_gate -->|enables| brainstorming
-  quantitative_decision_gate -->|enables| design_triad
+  quantitative_decision_gate -->|enables| debate
   quantitative_decision_gate -->|enables| plan_and_execute
   quantitative_decision_gate ==>|escalates to| think_twice
   skill_authoring -->|enables| writing_skills
@@ -268,7 +268,7 @@ graph TD
   thinking_orchestrator -->|enables| completeness_check
   thinking_orchestrator -->|enables| investigation_state
   thinking_orchestrator -->|enables| feature_development
-  thinking_orchestrator -->|enables| design_triad
+  thinking_orchestrator -->|enables| debate
   thinking_orchestrator -->|enables| plan_and_execute
   todo_management -->|then| todo_archive
   todo_management -->|then| todo_guardian
@@ -293,7 +293,7 @@ graph TD
 | Group | Skills | Purpose |
 |-------|--------|---------|
 | Engineering | `cognitive-complexity-refactoring`, `engineering-rigor`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `typescript-project-conventions`, `typescript-strict-mode`, `vitest-testing-patterns`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Coordinated skill group |
-| Thinking | `brainstorming`, `adversarial-search`, `design-triad`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
+| Thinking | `brainstorming`, `adversarial-search`, `debate`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
 | Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
 | Debugging | `investigation-state` | Coordinated skill group |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |

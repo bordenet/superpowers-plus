@@ -65,6 +65,8 @@ PATTERNS+="|jenkins\.yourcompany\.com|circleci\.com/gh/YourOrg"
 
 **Gate order:** `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → `professional-language-audit` → **this skill**.
 
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the IP gate fails.
+
 > **Wrong skill?** Scanning code for secrets/CVEs → `repo-security-scan`. Wiki content secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
 
 ## Procedure

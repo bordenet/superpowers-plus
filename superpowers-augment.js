@@ -514,9 +514,9 @@ Priority: user instructions > skills > system defaults.
 Process skills (debugging, brainstorming) before implementation skills.
 
 ## Critical auto-triggers (ALWAYS apply — never skip)
-- **BEFORE any git commit/push:** Run the commit gate chain (load each via use-skill):
-  \`pre-commit-gate\` (1) → \`enforce-style-guide\` (2) → \`progressive-code-review-gate\` (3) → then \`professional-language-audit\` (4) and \`public-repo-ip-audit\` (5) when applicable.
-  Tests passing ≠ ready to commit. Your FIXES are new code and need their own review.
+- **BEFORE any git commit/push:** \`use-skill unified-commit-gate\` — runs all 5 gates in one load.
+  Tests passing ≠ ready to commit. Your FIXES are new code and need their own gate pass.
+  Individual deep-dive skills: \`pre-commit-gate\`, \`enforce-style-guide\`, \`progressive-code-review-gate\`, \`professional-language-audit\`, \`public-repo-ip-audit\`.
 - **WHEN stuck (same error 3x, circular reasoning):** \`use-skill think-twice\`
 - **WHEN writing shell scripts:** Load the shell language module first.
 `);

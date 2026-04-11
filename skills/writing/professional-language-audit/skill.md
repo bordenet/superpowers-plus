@@ -120,6 +120,8 @@ Patterns are loaded from `.profanity-patterns.txt` (in `scripts/` or repo root).
 
 **Gate 4** in the commit-gates chain: `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → **this** → `public-repo-ip-audit` → commit.
 
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the language gate fails.
+
 **Pre-wiki**: Run profanity regex before publishing. BLOCK on match.
 **Pre-commit**: Scan staged `.md` files:
 
