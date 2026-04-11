@@ -100,13 +100,13 @@ Before writing feature code, validate the architectural approach:
 | Follows existing patterns or introduces new? | New pattern without documented justification |
 | What breaks if the adjacent system changes? | Tight coupling without interface boundaries |
 
-If any question surfaces a red flag, address it BEFORE implementation. Use `design-triad` for structured design evaluation.
+If any question surfaces a red flag, address it BEFORE implementation. Use `debate` for structured design evaluation.
 
 ## Companion Skills
 
 - `output-verification` — Hard gate: no claims about output without inspection
 - `code-review-battery` — Parallel specialized review with 5 focused agents
-- `design-triad` — Structured design evaluation with 3+ options
+- `debate` — Structured design evaluation with 3+ options
 - `requirements-validation` — Validate requirements before design
 - `field-rename-verification` — Specific focus on field renames
 - `verification-before-completion` — General completion checklist

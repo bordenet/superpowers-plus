@@ -21,7 +21,7 @@ composition:
 
 # Fallback Planning
 
-> **Wrong skill?** Primary plan creation → `plan-and-execute`. Feature planning → `brainstorming`. Design comparison → `design-triad`.
+> **Wrong skill?** Primary plan creation → `plan-and-execute`. Feature planning → `brainstorming`. Design comparison → `debate`.
 >
 > **Core principle:** A plan without fallbacks is a plan that restarts from scratch when things go wrong.
 
@@ -31,11 +31,11 @@ composition:
 
 - **plan-and-execute**: Primary plan creation
 - **brainstorming**: Generating fallback options
-- **design-triad**: Evaluating alternatives
+- **debate**: Evaluating alternatives
 
 ## When to Use
 
-- After a primary plan has been created and risks identified (via `design-triad` harsh review)
+- After a primary plan has been created and risks identified (via `debate` harsh review)
 - When the cost of restarting from scratch exceeds the cost of pre-building a contingency
 - When a different agent or session may need to pick up fallback execution cold
 
