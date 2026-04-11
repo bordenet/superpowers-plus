@@ -205,16 +205,15 @@ If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 ```bash
 # Run AFTER Correlated-Failure Detection — only if no re-examination was triggered.
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
-# It validates clean worktree, runs automated checks, then writes the sentinel.
+# It runs automated checks then writes the sentinel.
 tools/run-battery.sh --verdict PASS
 # or: tools/run-battery.sh --verdict PASS_WITH_NITS
 ```
 
-> ❌ **Never write `.code-review-cleared` directly with `echo`.** The guarded script
-> enforces a clean committed worktree so the sentinel SHA matches the reviewed code.
-> Direct writes bypass this guard and create a sentinel that may not match what was reviewed.
+> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`
+> so that automated checks run before the sentinel is written.
 
-The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA (must match the ref being pushed), and verdict (`PASS` or `PASS_WITH_NITS`). **Do not skip this step** — without the sentinel, the push will be blocked.
+**Timing:** Battery may run before or after `git commit`. The sentinel records the SHA at time of writing (`HEAD`). If battery ran pre-commit, the sentinel will be stale after commit — run battery again before pushing. The pre-push hook is the authoritative validator: it checks that sentinel SHA matches the ref being pushed. **Do not skip this step** — without a valid sentinel, the push will be blocked.
 
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 

@@ -54,14 +54,15 @@ echo "  completed before calling this script. This script only"
 echo "  covers automated verification."
 echo ""
 
-# Guard: sentinel must be written for a clean committed state.
-# Staged-but-uncommitted changes mean the sentinel would reference the wrong SHA.
-# Exclude .code-review-cleared itself (the battery writes it; it may be tracked).
-if ! git diff --quiet -- ':!.code-review-cleared' 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+# Guard: block when there are UNSTAGED modifications (truly dirty worktree).
+# Staged-but-uncommitted changes are allowed: battery may run pre-commit and the
+# sentinel is written for current HEAD; pre-push then validates SHA on the pushed ref.
+# Exclude .code-review-cleared itself (battery writes it; may be tracked by git).
+if ! git diff --quiet -- ':!.code-review-cleared' 2>/dev/null; then
     echo ""
-    echo "❌ Dirty worktree detected."
-    echo "   The sentinel must reference a committed SHA. Commit all changes first:"
-    echo "     git commit -m 'your message'"
+    echo "❌ Unstaged modifications detected."
+    echo "   Stage or stash changes before running battery:"
+    echo "     git add <files>   # or: git stash"
     echo "   Then re-run: tools/run-battery.sh"
     echo ""
     exit 1
