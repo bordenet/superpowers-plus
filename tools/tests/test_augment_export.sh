@@ -69,15 +69,30 @@ if [[ $hermetic_result -ne 0 ]]; then
     fail "export_augment_menu_skills() exited $hermetic_result"
 fi
 
+# Compute expected export dir name for a skill (mirrors deploy.sh logic).
+# Augment IDE uses directory name as slash command, so we export to sp-* names.
+_test_dest_name() {
+    local skill="$1"
+    local skill_file="$SKILLS_DIR/$skill/skill.md"
+    local t=""
+    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp-[^"]*"' | head -1 | tr -d '"')
+    if [[ -z "$t" ]]; then
+        t=$(grep -m1 '^ *- /sp-' "$skill_file" 2>/dev/null | sed 's/^ *- //')
+    fi
+    local dest="${t#/}"
+    echo "${dest:-$skill}"
+}
+
 hermetic_missing=0
 for skill in "${CURATED[@]}"; do
-    if [[ ! -d "$TEMP_EXPORT_DIR/$skill" ]]; then
-        fail "hermetic: $skill — directory missing in export output"
+    dest=$(_test_dest_name "$skill")
+    if [[ ! -d "$TEMP_EXPORT_DIR/$dest" ]]; then
+        fail "hermetic: $skill — directory missing in export output (expected: $dest)"
         ((hermetic_missing++)) || true
-    elif [[ ! -f "$TEMP_EXPORT_DIR/$skill/SKILL.md" ]]; then
-        fail "hermetic: $skill — SKILL.md not present (rename failed?)"
+    elif [[ ! -f "$TEMP_EXPORT_DIR/$dest/SKILL.md" ]]; then
+        fail "hermetic: $skill — SKILL.md not present in $dest (rename failed?)"
     else
-        pass "hermetic: $skill — exported with SKILL.md"
+        pass "hermetic: $skill → $dest — exported with SKILL.md"
     fi
 done
 if [[ $hermetic_missing -eq 0 ]]; then
@@ -98,10 +113,11 @@ if [[ ! -d "$MENU_DIR" ]]; then
 else
     live_missing=0
     for skill in "${CURATED[@]}"; do
-        if [[ -d "$MENU_DIR/$skill" ]] && [[ -f "$MENU_DIR/$skill/SKILL.md" ]]; then
-            pass "live: $skill — OK"
+        dest=$(_test_dest_name "$skill")
+        if [[ -d "$MENU_DIR/$dest" ]] && [[ -f "$MENU_DIR/$dest/SKILL.md" ]]; then
+            pass "live: $skill → $dest — OK"
         else
-            fail "live: $skill — missing or malformed"
+            fail "live: $skill — missing or malformed (expected: $MENU_DIR/$dest)"
             ((live_missing++)) || true
         fi
     done
