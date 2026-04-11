@@ -3,6 +3,7 @@ name: code-review-battery
 description: Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses
 summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) in parallel with source context for ripple analysis. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
+  - /sp-deepreview
   - code review battery
   - battery review
   - parallel review
@@ -50,7 +51,7 @@ Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct s
 
 | Gate (order) | Self-fires when | Short-circuit if |
 |---|---|---|
-| 1. `debate` | About to commit to a design before coding | Already ran this session |
+| 1. `design-triad` | About to commit to a design before coding | Already ran this session |
 | 2. `progressive-harsh-review` | About to present a non-code deliverable | Already ran on this artifact |
 | **3. `code-review-battery`** | **About to present/commit/push code** | **Valid sentinel for HEAD exists** |
 | 4. `verification-before-completion` | About to write any results-presenting response | Sentinel SHA == HEAD → skip re-dispatch |
@@ -123,10 +124,8 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 **3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
 
 ```bash
-# --name-status → R/D entries; awk $2 = old path; grep entire repo for references
-git diff --diff-filter=RD --name-status main..HEAD | awk '/^[RD]/{print $2}' \
-  | while IFS= read -r old; do grep -rn "$(basename "$old")" . \
-      --include="*.md" --include="*.ts" --include="*.sh"; done
+git diff --diff-filter=RD --name-only main..HEAD   # old paths
+grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # scan ENTIRE repo
 ```
 
 **MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
@@ -204,24 +203,23 @@ Correlated-failure flags do NOT change verdicts directly — they trigger expand
 If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
 ```bash
-# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered
-# The SHA must be the commit being reviewed/pushed (usually HEAD on the current branch).
-# If you are reviewing a specific ref that differs from HEAD, use that ref's SHA.
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-VERDICT="PASS"           # or PASS_WITH_NITS — set this once, use it below
-REVIEWED_SHA=$(git rev-parse HEAD 2>/dev/null)
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-echo "v1|${REVIEWED_SHA}|${VERDICT}|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
-echo "✅ Sentinel written: v1|${REVIEWED_SHA:0:8}|${VERDICT}|${TIMESTAMP}"
+# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered.
+# tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
+# It runs automated checks then writes the sentinel.
+tools/run-battery.sh --verdict PASS
+# or: tools/run-battery.sh --verdict PASS_WITH_NITS
 ```
 
-The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA (must match the ref being pushed), and verdict (`PASS` or `PASS_WITH_NITS`). **Do not skip this step** — without the sentinel, the push will be blocked.
+> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`
+> so that automated checks run before the sentinel is written.
+
+**Timing:** Battery may run before or after `git commit`. The sentinel records the SHA at time of writing (`HEAD`). If battery ran pre-commit, the sentinel will be stale after commit — run battery again before pushing. The pre-push hook is the authoritative validator: it checks that sentinel SHA matches the ref being pushed. **Do not skip this step** — without a valid sentinel, the push will be blocked.
 
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
 ### Gap Analysis + Error Handling
 
-Monolith catches something no specialist found → `candidates/`. Missed known exercise → add to that specialist's prompt. Recurring false positive → remove or qualify from rotation. Reviewer fails → note; no retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
+Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns
 

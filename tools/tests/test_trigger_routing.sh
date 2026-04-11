@@ -48,17 +48,29 @@ else
   fail 'wiki-instruction-guard missing from superpowers list (multiline trigger parsing broke)'
 fi
 
-# debate triggers (formerly design-triad)
-assert_top_match "decision options with adversarial review" "debate"
-assert_top_match "generate options compare and red team" "debate"
-assert_top_match "debate the options" "debate"
-assert_top_match "compare approaches" "debate"
+# design-triad routing (skill lives in debate/ dir with name: design-triad)
+assert_top_match "design options with adversarial review" "design-triad"
+assert_top_match "harsh design review" "design-triad"
+assert_top_match "design triad review" "design-triad"
+assert_top_match "three design options compare" "design-triad"
 assert_top_match "what's the best approach for retry logic placement" "thinking-orchestrator"
 assert_top_match "where to store retry logic" "thinking-orchestrator"
 
 # Other critical routing (add as regressions are found)
 assert_top_match "I am stuck in a loop" "think-twice"
 assert_top_match "create a plan and execute it" "plan-and-execute"
+
+# Augment slash menu: newly added /sp-* skills (feat/augment-slash-commands)
+assert_top_match "upgrade superpowers and reinstall" "update-superpowers"
+assert_top_match "run the superpowers doctor checks" "superpowers-doctor"
+assert_top_match "run failure autopsy on what went wrong" "failure-autopsy"
+assert_top_match "generate radical innovation options" "innovation"
+assert_top_match "holistic repo health verification" "holistic-repo-verification"
+assert_top_match "enforce the style guide" "enforce-style-guide"
+assert_top_match "review my changes" "requesting-code-review"
+assert_top_match "implement review suggestions" "receiving-code-review"
+assert_top_match "run progressive harsh review" "progressive-harsh-review"
+assert_top_match "design comparison matrix" "design-triad"
 
 echo ""
 echo "── Results: $PASS passed, $FAIL failed, $SKIP skipped ──"
