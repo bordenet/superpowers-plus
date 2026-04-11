@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 26 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 28 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -76,14 +76,39 @@ SP_PLUS_DIR="${SPP_SOURCE_DIR:-$REPO_ROOT}"
 SOURCE_DIRS=("$SP_PLUS_DIR")
 
 # Auto-discover overlay sources: any *_SOURCE_DIR env var in .env
-# (e.g., SP_OVERLAY_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
+# (e.g., SPC_SOURCE_DIR, MYTEAM_SOURCE_DIR, etc.)
 # Each overlay repo registers itself during install via: VARNAME_SOURCE_DIR="/path/to/repo"
+# Canonical naming convention: use a repo-specific prefix (e.g., SPO_ for superpowers-overlay)
+# to avoid collisions. Generic names like SP_OVERLAY_SOURCE_DIR are deprecated.
 while IFS='=' read -r varname varval; do
   [[ "$varname" == "SPP_SOURCE_DIR" ]] && continue  # base, not overlay
   [[ "$varname" =~ _SOURCE_DIR$ ]] || continue
   _dir="${varval//[\"\']}"
   [[ -n "$_dir" && -d "$_dir" ]] && SOURCE_DIRS+=("$_dir")
 done < <(grep '_SOURCE_DIR=' "$HOME/.codex/.env" 2>/dev/null || true)
+
+# Deduplicate SOURCE_DIRS by canonical path (guards against case-insensitive FS duplicates
+# where two *_SOURCE_DIR vars resolve to the same physical directory, e.g.,
+# SPC_SOURCE_DIR=.../tools/ and LEGACY_SOURCE_DIR=.../Tools/ on macOS APFS).
+# Note: realpath resolves symlinks and removes ./../ but does NOT normalize case on macOS
+# APFS (case-insensitive, case-preserving). The dedup here is defense-in-depth; the
+# primary protection is each overlay installer writing exactly one canonical variable.
+# Guard: only run when there are overlay entries to deduplicate (SOURCE_DIRS has >1 entry).
+if [[ ${#SOURCE_DIRS[@]} -gt 1 ]]; then
+  declare -A _seen_canon
+  _deduped=("${SOURCE_DIRS[0]}")
+  _seen_canon["$(realpath "${SOURCE_DIRS[0]}" 2>/dev/null || echo "${SOURCE_DIRS[0]}")"]="1"
+  for _d in "${SOURCE_DIRS[@]:1}"; do
+    _canon="$(realpath "$_d" 2>/dev/null || echo "$_d")"
+    if [[ -z "${_seen_canon[$_canon]+set}" ]]; then
+      _deduped+=("$_d")
+      _seen_canon["$_canon"]="1"
+    fi
+  done
+  SOURCE_DIRS=("${_deduped[@]}")
+  unset _seen_canon _deduped _d _canon
+fi
+
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
 # Managed checkout paths (git repos maintained by install.sh)
@@ -94,7 +119,7 @@ BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0
 
 # Helper: should we fix this check?
-# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout), 21 (hook integrity)
+# Safe checks: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout), 21 (hook integrity), 27 (agent drift)
 # Moderate checks: 8 (orphan), 12 (deprecated), 14 (junk), 20 (dirty checkout), 26 (workflow state)
 can_fix() {
   [[ "$FIX_MODE" != "true" ]] && return 1
@@ -208,7 +233,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (26 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (28 checks)"
 echo ""
 
 
@@ -250,6 +275,10 @@ source "${SCRIPT_DIR}/doctor-modules/checkout-checks.sh"
 source "${SCRIPT_DIR}/doctor-modules/todo-checks.sh"
 # shellcheck source=tools/doctor-modules/integration-checks.sh
 source "${SCRIPT_DIR}/doctor-modules/integration-checks.sh"
+# shellcheck source=tools/doctor-modules/agent-checks.sh
+source "${SCRIPT_DIR}/doctor-modules/agent-checks.sh"
+# shellcheck source=tools/doctor-modules/mcp-checks.sh
+source "${SCRIPT_DIR}/doctor-modules/mcp-checks.sh"
 
 _doctor_yaml_checks
 _doctor_metadata_checks     # Populates BASE_SOURCE — must run before reference-checks
@@ -259,6 +288,8 @@ _doctor_checkout_checks
 _doctor_trigger_checks
 _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
+_doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
+_doctor_mcp_checks          # Check 28: MCP server dependency health
 
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
@@ -271,12 +302,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 26 checks passed"
+    echo "✅ Doctor: all 28 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 26 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 28 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."

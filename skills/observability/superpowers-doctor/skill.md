@@ -3,7 +3,7 @@ name: superpowers-doctor
 source: superpowers-plus
 triggers: ["/sp-doctor", "superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]
 anti_triggers: ["write a skill", "create skill file", "skill format"]
-description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 22 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, structural defects, stale/dirty managed checkouts, TODO archive regressions, and reviewer-dispatch rendering issues. Modeled after brew doctor."
+description: "Industrial-grade integrity check for the local skill ecosystem. Iterates across EVERY installed skill with 27 harsh diagnostic checks spanning 4 severity tiers. Finds broken YAML, name mismatches, dead references, trigger collisions, orphaned installs, oversized skills, content corruption, reference file drift, CRLF line endings, UTF-8 BOM, structural defects, stale/dirty managed checkouts, TODO archive regressions, reviewer-dispatch rendering issues, and agent content drift. Modeled after brew doctor."
 summary: "Use when: diagnosing skill installation or configuration issues."
 coordination:
   group: observability
@@ -26,7 +26,7 @@ composition:
 >
 > **Wrong skill?** Structural lint only → `skill-health-check`. Writing/authoring skills → `skill-authoring`. Updating skills → `update-superpowers`.
 
-Industrial-grade integrity check. Iterates across **every installed skill** with 26 checks across 4 severity tiers. No skill escapes scrutiny.
+Industrial-grade integrity check. Iterates across **every installed skill** with 27 checks across 4 severity tiers. No skill escapes scrutiny.
 
 ## When to Use
 
@@ -49,11 +49,11 @@ Industrial-grade integrity check. Iterates across **every installed skill** with
 | `--fix --purge-orphans` | Also remove orphaned installs (skills not in any source repo) |
 | `--summary-only` | One-line pass/fail (used by post-install hook) |
 
-**10 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18, 19, 20). The remaining 12 require human judgment.
+**11 checks are auto-fixable** (3, 8, 9, 12, 14, 16, 17, 18, 19, 20, 27). The remaining 12 require human judgment.
 
 **Graduated intervention:**
 
-- `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout pull) — non-destructive
+- `--fix-safe` fixes: 3 (name), 9 (drift), 16 (ref drift), 17 (CRLF), 18 (BOM), 19 (stale checkout pull), 27 (agent drift) — non-destructive
 - `--fix` adds: 12 (deprecated triggers), 14 (junk removal), 20 (dirty checkout stash+clean) — destructive
 - `--purge-orphans` adds: 8 (orphan removal) — requires explicit opt-in because locally-created skills are not necessarily garbage
 
