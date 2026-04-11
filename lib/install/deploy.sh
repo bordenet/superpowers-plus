@@ -443,7 +443,16 @@ _cli_bin_dir_in_profiles() {
         [[ -f "$p" ]] || continue
         # Strip comment lines; keep only lines that persistently assign/append
         # to PATH itself. Anchored to exclude MANPATH, MY_PATH, LD_LIBRARY_PATH.
+        #
+        # Normalize guard-prefixed assignments before filtering — e.g.:
+        #   [[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"
+        # The sed strips everything up to and including the last "&&" (or "||")
+        # before "export PATH" / "PATH", so the remaining token is a plain
+        # assignment that all subsequent checks already handle correctly.
+        # Using [^#]* (not .*) keeps the substitution from crossing into
+        # trailing # comments on the same line.
         path_lines=$(grep -v '^[[:space:]]*#' "$p" 2>/dev/null \
+            | sed -E 's/^[^#]*(&&|\|\|)[[:space:]]+(export[[:space:]]+PATH)/\2/' \
             | grep -E '^[[:space:]]*(export[[:space:]]+)?PATH(\+)?=') || true
         [[ -n "$path_lines" ]] || continue
         # Exclude per-command env assignments: PATH=<value> <command> (no export).
