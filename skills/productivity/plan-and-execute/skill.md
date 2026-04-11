@@ -41,7 +41,7 @@ For single-phase work with clear scope (bug fix, small feature, config update, s
 1. State the goal in one sentence
 2. List files to create or modify
 3. Execute the work
-4. Run `unified-commit-gate` before committing
+4. Run `use-skill unified-commit-gate` before committing
 5. Verify the deliverables match the stated goal
 
 **When MCP `add_tasks` is available, use it directly for task tracking — do NOT also load `todo-management`.**
