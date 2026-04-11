@@ -596,7 +596,7 @@ AUGMENT_MENU_SKILLS=(
     systematic-debugging
     think-twice
     plan-and-execute
-    design-triad
+    debate
     progressive-harsh-review
     perplexity-research
     detecting-ai-slop

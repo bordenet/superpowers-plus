@@ -54,29 +54,11 @@ For single-phase work with clear scope (bug fix, small feature, config update, s
 
 If any auto-escalate signal fires, continue reading the full skill below.
 
-## When to Use
+## When to Use / Not Use
 
-- Any multi-phase challenge (code, process, research, documentation, design)
-- Work that benefits from structured planning before execution
-- Projects where plan quality directly impacts outcome quality
-- When the user says "let's plan this out" or "break this into phases"
-
-## When NOT to Use
-
-- Single-step tasks (just do them)
-- Pure bug fixes (use `investigation-state`)
-- **Code features needing requirements + design phases** → use `feature-development` instead (it adds requirements-validation and debate phases that this skill omits)
-- When a plan already exists and phases are already enrolled in TODO.md → use `todo-management` directly to resume execution
-
-### Choosing Between `plan-and-execute` and `feature-development`
-
-| Signal | Use This | Use `feature-development` |
-|--------|----------|--------------------------|
-| General-purpose challenge (process, research, docs) | ✅ | |
-| Code feature needing formal requirements validation | | ✅ |
-| Code feature needing debate (≥3 options) | | ✅ |
-| Code or non-code work where you already know WHAT to build | ✅ | |
-| Multi-phase work that needs stress-testing and retros | ✅ | |
+**Use:** Multi-phase challenge (code, process, research, docs, design) where planning before execution reduces risk.
+**Skip:** Single-step tasks (just do them). Pure bug fixes → `investigation-state`. Plan already enrolled in TODO.md → `todo-management` to resume.
+**Use `feature-development` instead** when the work is a code feature needing requirements validation or a design debate (≥3 options).
 
 ---
 
