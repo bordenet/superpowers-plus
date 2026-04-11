@@ -108,8 +108,6 @@ Report: file, violation, total count. Format: `❌ [file]: [violation]`. Status:
 ## Chain Position & Behavior
 
 Gate 2 (after `pre-commit-gate`). Checks: -h/--help, -v/--verbose, --what-if (destructive), `set -euo pipefail`, <400 lines, ShellCheck. ANY fail → STOP → fix → re-audit → 100% clean before gate 3.
-4. Re-audit after each fix
-5. Repeat until clean
 
 **DO NOT COMMIT** until this skill reports zero violations.
 
@@ -130,6 +128,8 @@ Key requirements:
 **Remember**: This skill exists because 80% of scripts were non-compliant. Never let that happen again.
 
 ## Commit Gate Coordination
+
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the style gate fails.
 
 Multiple skills fire on "before commit". Execute in this order:
 

@@ -41,7 +41,7 @@ For single-phase work with clear scope (bug fix, small feature, config update, s
 1. State the goal in one sentence
 2. List files to create or modify
 3. Execute the work
-4. Run `unified-commit-gate` before committing
+4. Run `use-skill unified-commit-gate` before committing
 5. Verify the deliverables match the stated goal
 
 **When MCP `add_tasks` is available, use it directly for task tracking — do NOT also load `todo-management`.**
@@ -215,7 +215,6 @@ This is NOT failure — it's the system working as designed. Continuing with a b
 ## Resuming a Project
 
 If a project was started in a previous session:
-
 1. Check TODO.md for `#plan-<project>` items via `todo-crud.sh list`
 2. Identify the last completed phase
 3. Run a retrospective on the completed phase
