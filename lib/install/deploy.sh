@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 # lib/install/deploy.sh
 # PURPOSE: Skill, adapter, rule, and template deployment to platform-specific
-#          directories (~/.codex/skills/, ~/.claude/skills/).
+#          directories (~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/).
 # SOURCED BY: install.sh — do not run directly.
-# GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR,
+# GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_MENU_DIR,
 #               CODEX_DIR, FORCE, VERBOSE
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
@@ -588,6 +588,117 @@ install_cli_commands() {
     fi
 }
 
+# Curated skills exported to Augment IDE's native slash menu (~/.agents/skills/).
+# These appear in the Augment "/" command palette when set to "Manual" mode.
+# Keep this list small — only high-frequency, user-facing skills belong here.
+AUGMENT_MENU_SKILLS=(
+    brainstorming
+    systematic-debugging
+    think-twice
+    plan-and-execute
+    design-triad
+    progressive-harsh-review
+    perplexity-research
+    detecting-ai-slop
+    eliminating-ai-slop
+    todo-management
+    pre-commit-gate
+    pre-push-quality-gate
+    superpowers-help
+    providing-code-review
+    code-review-battery
+    requesting-code-review
+    receiving-code-review
+    verification-before-completion
+    test-driven-development
+    blast-radius-check
+    repo-security-scan
+    finishing-a-development-branch
+    update-superpowers
+    superpowers-doctor
+    failure-autopsy
+    innovation
+    holistic-repo-verification
+    enforce-style-guide
+)
+
+# Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
+# Copies the skill directory and renames skill.md → SKILL.md (Augment convention).
+# Called from install_skills() after main deployment completes.
+export_augment_menu_skills() {
+    [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
+
+    log_info "Exporting curated skills to Augment slash menu..."
+    mkdir -p "$AUGMENT_MENU_DIR"
+
+    local exported=0
+    local missing=0
+
+    for skill_name in "${AUGMENT_MENU_SKILLS[@]}"; do
+        # Find the installed skill in the primary deployment target
+        local source_dir="$SKILLS_DIR/$skill_name"
+        if [[ ! -d "$source_dir" ]]; then
+            log_warn "  Curated skill not found: $skill_name (expected in $SKILLS_DIR)"
+            missing=$((missing + 1))
+            continue
+        fi
+
+        local dest="$AUGMENT_MENU_DIR/$skill_name"
+        rm -rf "${dest:?}" 2>/dev/null || true
+        mkdir -p "$dest"
+
+        # Copy all files from the installed skill
+        local f
+        while IFS= read -r -d '' f; do
+            cp "$f" "$dest/" || log_warn "Failed to copy $(basename "$f") for $skill_name"
+        done < <(find "$source_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+
+        # Copy subdirectories
+        local d
+        while IFS= read -r -d '' d; do
+            cp -R "$d" "$dest/" || log_warn "Failed to copy dir $(basename "$d") for $skill_name"
+        done < <(find "$source_dir" -maxdepth 1 -type d -not -path "$source_dir" -print0 2>/dev/null)
+
+        # Augment convention: SKILL.md (uppercase). Two-step rename needed on
+        # case-insensitive filesystems (macOS APFS) where mv skill.md SKILL.md is a no-op.
+        if [[ -f "$dest/skill.md" ]]; then
+            mv "$dest/skill.md" "$dest/_skill_tmp.md"
+            mv "$dest/_skill_tmp.md" "$dest/SKILL.md"
+        fi
+
+        exported=$((exported + 1))
+        log_verbose "  Exported: $skill_name"
+    done
+
+    # Prune skills removed from the curated list
+    declare -A menu_map=()
+    for skill_name in "${AUGMENT_MENU_SKILLS[@]}"; do
+        menu_map["$skill_name"]=1
+    done
+    for installed_dir in "$AUGMENT_MENU_DIR"/*/; do
+        [[ -d "$installed_dir" ]] || continue
+        local dir_name
+        dir_name=$(basename "$installed_dir")
+        if [[ -z "${menu_map[$dir_name]:-}" ]]; then
+            # Only prune if it looks like a superpowers-managed skill
+            if grep -q '^source: superpowers-plus$' "$installed_dir/SKILL.md" 2>/dev/null || \
+               grep -q '^source: superpowers-plus$' "$installed_dir/skill.md" 2>/dev/null; then
+                rm -rf "${installed_dir:?}"
+                log_verbose "  Pruned stale Augment menu skill: $dir_name"
+            fi
+        fi
+    done
+
+    local expected="${#AUGMENT_MENU_SKILLS[@]}"
+    if [[ $missing -gt 0 ]]; then
+        log_warn "Augment slash menu: $missing/$expected curated skill(s) missing — slash commands may be incomplete"
+    fi
+    if [[ $exported -gt 0 ]]; then
+        log_success "Exported $exported/$expected skill(s) to Augment slash menu ($AUGMENT_MENU_DIR)"
+    fi
+}
+
+
 # Install all skills from this repository (supports domain-based structure)
 install_skills() {
     log_info "Installing skills from superpowers-plus..."
@@ -685,6 +796,9 @@ install_skills() {
     else
         : > "$manifest"
     fi
+
+    # Export curated subset to Augment IDE slash menu
+    export_augment_menu_skills
 }
 
 

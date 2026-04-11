@@ -2,6 +2,7 @@
 name: design-triad
 source: superpowers-plus
 triggers:
+  - /sp-debate
   - three design options
   - compare design approaches
   - design comparison matrix

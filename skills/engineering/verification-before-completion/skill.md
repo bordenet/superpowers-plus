@@ -5,12 +5,7 @@ overrides: superpowers/verification-before-completion
 # Override rationale: Adds intent-based auto-fire triggers (fires on INTERNAL AGENT STATE,
 # not on output phrase detection). Adds sentinel short-circuit (if battery sentinel exists
 # for HEAD, skip battery re-dispatch). Adds incident history tracking.
-triggers:
-  - verify completion
-  - verification before completion
-  - run verification check
-  - check evidence before completing
-  - verify before completing
+triggers: ["/sp-verify", "verify completion", "verification before completion", "run verification check", "check evidence before completing", "verify before completing"]
 anti_triggers: ["still working on", "implementation in progress", "not done yet", "continuing to implement", "midway through"]
 description: "Use before claiming any work is complete, fixed, or passing — and before writing any response that presents results to a human. Requires evidence before assertions. If code was changed, check battery sentinel (or dispatch battery) before the completion claim. See AUTO-FIRE section in skill body for self-assessment trigger conditions."
 summary: "Use when: forming any response that presents results (even without 'done'/'shipped' language). Skip when: still actively working. Code changes require battery sentinel for HEAD or battery dispatch."
@@ -102,6 +97,7 @@ BEFORE forming any response that presents results to the human:
    - Block on any must-address items before proceeding.
 
 2. IDENTIFY: What command proves this claim?
+   **Note — output-verification pre-satisfies this:** If `output-verification` has already run in this same response step (it fires first, order=0), Steps 2–4 (IDENTIFY, RUN, READ) are already satisfied for artifact-description claims. Continue from Step 5 (VERIFY) for those claims. Still run Steps 2–4 for any non-artifact claims (e.g., "tests pass," "PR created").
 3. RUN: Execute the FULL command (fresh, complete)
 4. READ: Full output, check exit code, count failures
 5. VERIFY: Does output confirm the claim?

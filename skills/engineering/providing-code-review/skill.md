@@ -1,7 +1,7 @@
 ---
 name: providing-code-review
 source: superpowers-plus
-triggers: ["review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
+triggers: ["/sp-review", "review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]
 anti_triggers: ["send to reviewer agent", "execute reviewer findings", "pre-commit check", "I am the reviewer agent"]
 description: Code review gate - apply engineering rigor when reviewing PRs. Trace data flow, check blast radius, verify integration points.
 summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own code."
@@ -78,6 +78,15 @@ grep -rn "functionName" --include="*.ts" .
 # Check if changes break existing callers
 # Are ALL callers updated?
 # Are tests updated for changed signatures?
+
+# 🔴 INBOUND REFERENCE SCAN (mandatory for renames/moves/deletes)
+# When files are renamed, moved, or deleted — scan the ENTIRE repo,
+# not just the changed directory. Other modules that reference old
+# paths will silently break.
+git diff --diff-filter=RD --name-only main..HEAD | while read old; do
+  grep -rn "$(basename "$old")" . --include="*.md" --include="*.ts" \
+    --include="*.sh" --include="*.json" | grep -v "$(dirname "$old")"
+done
 ```
 
 **Questions to answer:**
@@ -85,6 +94,7 @@ grep -rn "functionName" --include="*.ts" .
 - How many places call this code?
 - Did the PR update ALL of them?
 - Are there cross-repo consumers not in this diff?
+- **If files were renamed/moved/deleted:** Did the author grep the ENTIRE repo for references to the old paths — not just the directory they refactored?
 
 ### 3. Integration Point Check
 
@@ -141,6 +151,8 @@ If I can't answer YES to all → don't approve, ask questions or flag gaps
 | Changes in one repo without corresponding changes in dependent repos | Integration failure |
 | Tests pass but only mock the changed component | Real integration may fail |
 | "Rough draft" or "WIP" language but submitted for review | Incomplete work |
+| Files renamed/moved but blast radius scan limited to changed directory | Broken consumers in sibling modules (inbound reference blindness) |
+| Test suite validates only the refactored directory, not repo-wide | False-green: tests pass but broken refs exist outside test scope |
 
 ## Output Format for Code Review
 
