@@ -108,8 +108,6 @@ Report: file, violation, total count. Format: `❌ [file]: [violation]`. Status:
 ## Chain Position & Behavior
 
 Gate 2 (after `pre-commit-gate`). Checks: -h/--help, -v/--verbose, --what-if (destructive), `set -euo pipefail`, <400 lines, ShellCheck. ANY fail → STOP → fix → re-audit → 100% clean before gate 3.
-4. Re-audit after each fix
-5. Repeat until clean
 
 **DO NOT COMMIT** until this skill reports zero violations.
 
