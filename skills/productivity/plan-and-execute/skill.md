@@ -32,29 +32,33 @@ composition:
 
 **Announce at start:** "I'm using the **plan-and-execute** skill to orchestrate this work."
 
-## When to Use
+## Quick Mode (Simple Features)
 
-- Any multi-phase challenge (code, process, research, documentation, design)
-- Work that benefits from structured planning before execution
-- Projects where plan quality directly impacts outcome quality
-- When the user says "let's plan this out" or "break this into phases"
+For single-phase work with clear scope (bug fix, small feature, config update, single-file edit) — use this lightweight path instead of the full phased procedure below.
 
-## When NOT to Use
+> **Note:** This skill's anti_triggers suppress it for "small change", "quick fix", etc. Quick Mode is for cases where you're already inside plan-and-execute (triggered by a broader planning phrase) and scope turns out to be simple — OR where you load this skill explicitly for its Quick Mode path.
 
-- Single-step tasks (just do them)
-- Pure bug fixes (use `investigation-state`)
-- **Code features needing requirements + design phases** → use `feature-development` instead (it adds requirements-validation and design-triad phases that this skill omits)
-- When a plan already exists and phases are already enrolled in TODO.md → use `todo-management` directly to resume execution
+1. State the goal in one sentence
+2. List files to create or modify
+3. Execute the work
+4. Run `unified-commit-gate` before committing
+5. Verify the deliverables match the stated goal
 
-### Choosing Between `plan-and-execute` and `feature-development`
+**When MCP `add_tasks` is available, use it directly for task tracking — do NOT also load `todo-management`.**
 
-| Signal | Use This | Use `feature-development` |
-|--------|----------|--------------------------|
-| General-purpose challenge (process, research, docs) | ✅ | |
-| Code feature needing formal requirements validation | | ✅ |
-| Code feature needing design-triad (≥3 options) | | ✅ |
-| Code or non-code work where you already know WHAT to build | ✅ | |
-| Multi-phase work that needs stress-testing and retros | ✅ | |
+**Auto-escalate to the full procedure below if any of these appear during execution:**
+- 3+ subtasks emerge that weren't visible at the start
+- External dependency or blocked work discovered
+- Scope changes from the user mid-work
+- Work spans multiple repos, services, or teams
+
+If any auto-escalate signal fires, continue reading the full skill below.
+
+## When to Use / Not Use
+
+**Use:** Multi-phase challenge (code, process, research, docs, design) where planning before execution reduces risk.
+**Skip:** Single-step tasks (just do them). Pure bug fixes → `investigation-state`. Plan already enrolled in TODO.md → `todo-management` to resume.
+**Use `feature-development` instead** when the work is a code feature needing requirements validation or a design debate (≥3 options).
 
 ---
 

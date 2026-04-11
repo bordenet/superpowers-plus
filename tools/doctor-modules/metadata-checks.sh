@@ -20,7 +20,7 @@ for dir in "${SOURCE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r sd; do
     _source_skill_names[$(basename "$sd")]=1
-  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -exec dirname {} \; 2>/dev/null)
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" -exec dirname {} \; 2>/dev/null)
 done
 while IFS= read -r installed; do
   skill=$(basename "$installed")
@@ -51,7 +51,7 @@ for dir in "${COMPARE_DIRS[@]}"; do
       BASE_SOURCE["$skill"]="$src"
     fi
     PRIORITY_SOURCE[$skill]="$src"
-  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" 2>/dev/null)
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
 done
 for skill in "${!PRIORITY_SOURCE[@]}"; do
   src="${PRIORITY_SOURCE[$skill]}"; installed="$INSTALLED_DIR/$skill/skill.md"

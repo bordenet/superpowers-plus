@@ -56,6 +56,8 @@ npm test    # or: vitest --run
 **After this gate passes, the remaining commit gates run in order:**
 enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5) → commit → push.
 
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use individual skills for deep-dive when a specific gate fails.
+
 > **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
 > `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
 > (e.g., `rm -rf ~/.codex/something`) produce warnings, not blocks. <!-- doctor-ignore -->
