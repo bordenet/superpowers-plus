@@ -625,6 +625,20 @@ AUGMENT_MENU_SKILLS=(
 # Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
 # Copies the skill directory and renames skill.md → SKILL.md (Augment convention).
 # Called from install_skills() after main deployment completes.
+# Extract the first /sp-* trigger from a skill.md file.
+# Handles both inline YAML array: triggers: ["/sp-foo", ...]
+# and block list format:  triggers:\n  - /sp-foo
+_extract_sp_trigger() {
+    local skill_file="$1"
+    local t
+    # Inline array: triggers: ["/sp-foo", ...]
+    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp-[^"]*"' | head -1 | tr -d '"')
+    [[ -n "$t" ]] && echo "$t" && return
+    # Block list: - /sp-foo
+    t=$(grep -m1 '^ *- /sp-' "$skill_file" 2>/dev/null | sed 's/^ *- //')
+    echo "$t"
+}
+
 export_augment_menu_skills() {
     [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
 
@@ -633,6 +647,9 @@ export_augment_menu_skills() {
 
     local exported=0
     local missing=0
+
+    # Track exported sp-* dir names for pruning
+    declare -A exported_names=()
 
     for skill_name in "${AUGMENT_MENU_SKILLS[@]}"; do
         # Find the installed skill in the primary deployment target
@@ -643,7 +660,15 @@ export_augment_menu_skills() {
             continue
         fi
 
-        local dest="$AUGMENT_MENU_DIR/$skill_name"
+        # Derive slash-command directory name from first /sp-* trigger.
+        # Augment IDE uses the directory name as the slash command (/sp-foo).
+        local sp_trigger dest_name
+        sp_trigger=$(_extract_sp_trigger "$source_dir/skill.md")
+        dest_name="${sp_trigger#/}"       # strip leading /
+        dest_name="${dest_name:-$skill_name}"  # fallback: use skill name
+        exported_names["$dest_name"]=1
+
+        local dest="$AUGMENT_MENU_DIR/$dest_name"
         rm -rf "${dest:?}" 2>/dev/null || true
         mkdir -p "$dest"
 
@@ -666,20 +691,21 @@ export_augment_menu_skills() {
             mv "$dest/_skill_tmp.md" "$dest/SKILL.md"
         fi
 
+        # Update name: field so Augment shows the sp-* label in the slash menu.
+        if [[ -n "$sp_trigger" ]] && [[ "$dest_name" != "$skill_name" ]]; then
+            sed -i '' "s/^name: .*/name: $dest_name/" "$dest/SKILL.md" 2>/dev/null || true
+        fi
+
         exported=$((exported + 1))
-        log_verbose "  Exported: $skill_name"
+        log_verbose "  Exported: $skill_name → /$dest_name"
     done
 
-    # Prune skills removed from the curated list
-    declare -A menu_map=()
-    for skill_name in "${AUGMENT_MENU_SKILLS[@]}"; do
-        menu_map["$skill_name"]=1
-    done
+    # Prune skills removed from the curated list (including old non-sp-* dirs).
     for installed_dir in "$AUGMENT_MENU_DIR"/*/; do
         [[ -d "$installed_dir" ]] || continue
         local dir_name
         dir_name=$(basename "$installed_dir")
-        if [[ -z "${menu_map[$dir_name]:-}" ]]; then
+        if [[ -z "${exported_names[$dir_name]:-}" ]]; then
             # Only prune if it looks like a superpowers-managed skill
             if grep -q '^source: superpowers-plus$' "$installed_dir/SKILL.md" 2>/dev/null || \
                grep -q '^source: superpowers-plus$' "$installed_dir/skill.md" 2>/dev/null; then
