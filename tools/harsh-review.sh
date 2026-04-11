@@ -153,7 +153,7 @@ get_files() {
             git diff --cached --name-only 2>/dev/null
         } | sort -u | grep -E "$pattern" || true
     else
-        find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -E "$pattern" || true
+        find . -type f 2>/dev/null | grep -v '/node_modules/' | grep -v '/\.git/' | grep -v '/\.agents/' | grep -E "$pattern" || true
     fi
 }
 
@@ -184,7 +184,7 @@ get_all_text_files() {
 
 get_all_text_files_full() {
     {
-        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" || true
+        find . -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.js" -o -name "*.ts" -o -name "*.yaml" -o -name "*.yml" -o -name "*.example" \) 2>/dev/null | grep -v node_modules | grep -v ".git" | grep -v "/\.agents/" || true
         # Extensionless bash hooks under tools/
         find . -path './tools/*' -type f ! -name "*.*" 2>/dev/null | grep -v ".git" | while IFS= read -r f; do
             head -1 "$f" 2>/dev/null | grep -qE '^#!.*(bash)' && echo "$f"

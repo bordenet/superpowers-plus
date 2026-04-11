@@ -8,6 +8,7 @@ overrides: superpowers/requesting-code-review
 # as ready — and integrates with the commit-gate and completion-gate chains.
 # Triggers are INTENT-BASED (what the agent is about to do), not output-phrase-based.
 triggers:
+  - /sp-request
   - request code review
   - review my changes
   - before merging

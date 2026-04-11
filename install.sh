@@ -100,6 +100,9 @@ SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
 CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 # Augment Agent: superpowers-augment.js reads from ~/.codex/skills/ (SKILLS_DIR above)
+# Augment IDE slash menu: user-level ~/.agents/skills/ (curated subset only — SKILL.md format)
+# Augment discovers skills here regardless of which workspace is open.
+AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
 FORCE=false
@@ -391,6 +394,9 @@ print_summary() {
     echo ""
     echo "  Augment Agent:     $SKILLS_DIR"
     echo "                     (superpowers-augment.js)"
+    echo ""
+    echo "  Augment slash menu: $AUGMENT_MENU_DIR"
+    echo "                      (curated /sp-* commands)"
     echo ""
     echo "Personal skills:"
     for skill_dir in "$SKILLS_DIR/"*/; do

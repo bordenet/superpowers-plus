@@ -1,7 +1,7 @@
 ---
 name: update-superpowers
 source: superpowers-plus
-triggers: ["update superpowers", "upgrade superpowers", "pull superpowers", "refresh superpowers", "update skills", "upgrade skills", "sp-update", "superpowers-update", "sp-update --branch", "update superpowers staging", "update superpowers dev"]
+triggers: ["/sp-update", "update superpowers", "upgrade superpowers", "pull superpowers", "refresh superpowers", "update skills", "upgrade skills", "sp-update", "superpowers-update", "sp-update --branch", "update superpowers staging", "update superpowers dev"]
 anti_triggers: ["install superpowers", "uninstall superpowers"]
 description: "Update superpowers-plus to latest, reruns the install cascade (obra/superpowers → superpowers-plus → configured overlays), and verify with sp-doctor. Supports --branch to update a specific superpowers-plus branch."
 summary: "Use when: updating superpowers to latest and ensuring the full skill chain is healthy."

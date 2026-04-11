@@ -1,7 +1,7 @@
 ---
 name: pre-push-quality-gate
 source: superpowers-plus
-triggers: ["git push", "push to", "pushing", "ready to push", "about to push", "push branch", "push origin", "push remote"]
+triggers: ["/sp-push", "git push", "push to", "pushing", "ready to push", "about to push", "push branch", "push origin", "push remote"]
 anti_triggers: ["review PR", "deploy to", "merge to main"]
 description: "Mandatory quality gate before ANY git push. Auto-detects repo toolchain (Biome/ESLint, tsc, vitest/jest) and runs lint+typecheck+test. Output must be shown in conversation. No push without proof."
 summary: "Use when: about to push code to any remote. Blocks push until lint/typecheck/test pass."

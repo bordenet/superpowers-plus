@@ -3,6 +3,7 @@ name: code-review-battery
 description: Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses
 summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) in parallel with source context for ripple analysis. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
+  - /sp-deepreview
   - code review battery
   - battery review
   - parallel review
@@ -202,18 +203,17 @@ Correlated-failure flags do NOT change verdicts directly — they trigger expand
 If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
 ```bash
-# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered
-# The SHA must be the commit being reviewed/pushed (usually HEAD on the current branch).
-# If you are reviewing a specific ref that differs from HEAD, use that ref's SHA.
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-VERDICT="PASS"           # or PASS_WITH_NITS — set this once, use it below
-REVIEWED_SHA=$(git rev-parse HEAD 2>/dev/null)
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-echo "v1|${REVIEWED_SHA}|${VERDICT}|${TIMESTAMP}" > "${REPO_ROOT}/.code-review-cleared"
-echo "✅ Sentinel written: v1|${REVIEWED_SHA:0:8}|${VERDICT}|${TIMESTAMP}"
+# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered.
+# tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
+# It runs automated checks then writes the sentinel.
+tools/run-battery.sh --verdict PASS
+# or: tools/run-battery.sh --verdict PASS_WITH_NITS
 ```
 
-The pre-push hook reads `.code-review-cleared` and validates format (`v1`), SHA (must match the ref being pushed), and verdict (`PASS` or `PASS_WITH_NITS`). **Do not skip this step** — without the sentinel, the push will be blocked.
+> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`
+> so that automated checks run before the sentinel is written.
+
+**Timing:** Battery may run before or after `git commit`. The sentinel records the SHA at time of writing (`HEAD`). If battery ran pre-commit, the sentinel will be stale after commit — run battery again before pushing. The pre-push hook is the authoritative validator: it checks that sentinel SHA matches the ref being pushed. **Do not skip this step** — without a valid sentinel, the push will be blocked.
 
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 

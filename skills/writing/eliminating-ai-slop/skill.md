@@ -1,7 +1,7 @@
 ---
 name: eliminating-ai-slop
 source: superpowers-plus
-triggers: ["remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "write prose for docs", "draft a message", "compose an email", "write a post", "edit this writing", "review my prose"]
+triggers: ["/sp-write", "remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "write prose for docs", "draft a message", "compose an email", "write a post", "edit this writing", "review my prose"]
 anti_triggers: ["write code", "implement function", "create test", "fix bug", "system prompt", "agent instructions"]
 description: Use when writing or editing ANY prose a human will read. Covers messaging (Teams, Slack, Discord), email, social/professional (LinkedIn, Twitter), documentation (wiki, README, commits, PRs), and business writing (meeting notes, status updates, tickets). Operates in interactive mode (confirms before rewriting) or automatic mode (GVR loop). Does NOT fire for AI-to-AI content (prompts, system instructions, agent config).
 summary: "Use when: writing or editing prose a human will read. Skip when: writing AI-to-AI content."
