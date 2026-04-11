@@ -526,6 +526,18 @@ console.log('\n--- compressSkillContent contract tests ---');
     const compressed = compressSkillContent(midDoc);
     assert(compressed.includes('Good'), 'compress: keeps non-boilerplate');
     assert(!compressed.includes('Boilerplate'), 'compress: strips boilerplate mid-doc');
+    // Strips Companion Skills section (routing/navigation metadata)
+    const withCompanion = '## Procedure\nKeep this\n## Companion Skills\nsome routing\n## Next\nAlso keep';
+    const compressedCompanion = compressSkillContent(withCompanion);
+    assert(compressedCompanion.includes('Keep this'), 'compress: keeps content before Companion Skills');
+    assert(!compressedCompanion.includes('Companion Skills'), 'compress: strips Companion Skills section');
+    assert(!compressedCompanion.includes('some routing'), 'compress: strips Companion Skills content');
+    // Strips Escalation Path section (routing/navigation metadata)
+    const withEscalation = '## Procedure\nKeep this\n## Escalation Path\nif stuck, try X\n## Output\nAlso keep';
+    const compressedEscalation = compressSkillContent(withEscalation);
+    assert(compressedEscalation.includes('Keep this'), 'compress: keeps content before Escalation Path');
+    assert(!compressedEscalation.includes('Escalation Path'), 'compress: strips Escalation Path section');
+    assert(!compressedEscalation.includes('if stuck, try X'), 'compress: strips Escalation Path content');
     // Collapses blank lines
     eq(compressSkillContent('A\n\n\n\nB'), 'A\n\nB',
         'compress: collapses excessive blank lines');
