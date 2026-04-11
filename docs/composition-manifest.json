@@ -17,10 +17,10 @@
     "capabilities": ["reduces-complexity", "refactors-code"],
     "priority": 15
   },
-  "design-triad": {
+  "debate": {
     "consumes": ["challenge", "goal"],
-    "produces": ["design-options", "decision-record"],
-    "capabilities": ["evaluates-options", "generates-designs"],
+    "produces": ["decision-options", "decision-record"],
+    "capabilities": ["evaluates-options", "generates-options"],
     "priority": 5
   },
   "engineering-rigor": {
