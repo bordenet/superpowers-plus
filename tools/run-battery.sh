@@ -54,9 +54,23 @@ echo "  completed before calling this script. This script only"
 echo "  covers automated verification."
 echo ""
 
+# Guard: block when there are UNSTAGED modifications (truly dirty worktree).
+# Staged-but-uncommitted changes are allowed: battery may run pre-commit and the
+# sentinel is written for current HEAD; pre-push then validates SHA on the pushed ref.
+# Exclude .code-review-cleared itself (battery writes it; may be tracked by git).
+if ! git diff --quiet -- ':!.code-review-cleared' 2>/dev/null; then
+    echo ""
+    echo "❌ Unstaged modifications detected."
+    echo "   Stage or stash changes before running battery:"
+    echo "     git add <files>   # or: git stash"
+    echo "   Then re-run: tools/run-battery.sh"
+    echo ""
+    exit 1
+fi
+
 ERRORS=0
 
-echo "─── Step 1/3: harsh-review ───"
+echo "─── Step 1/4: harsh-review ───"
 if "$SCRIPT_DIR/harsh-review.sh"; then
     echo "✓ harsh-review passed"
 else
@@ -65,7 +79,7 @@ else
 fi
 echo ""
 
-echo "─── Step 2/3: trigger routing tests ───"
+echo "─── Step 2/4: trigger routing tests ───"
 if bash "$SCRIPT_DIR/tests/test_trigger_routing.sh" 2>&1; then
     echo "✓ trigger routing tests passed"
 else
@@ -74,7 +88,16 @@ else
 fi
 echo ""
 
-echo "─── Step 3/3: skill router unit tests ───"
+echo "─── Step 3/4: Augment export integrity ───"
+if bash "$SCRIPT_DIR/tests/test_augment_export.sh" 2>&1; then
+    echo "✓ Augment export tests passed"
+else
+    echo "❌ Augment export tests FAILED"
+    ERRORS=$((ERRORS + 1))
+fi
+echo ""
+
+echo "─── Step 4/4: skill router unit tests ───"
 if node "$REPO_ROOT/test/skill-router.test.js" 2>&1; then
     echo "✓ skill router tests passed"
 else

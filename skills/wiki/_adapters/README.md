@@ -6,8 +6,8 @@ Platform-specific configurations for wiki skills.
 
 | Platform | Adapter | Status |
 |----------|---------|--------|
-| **Outline** | [outline.md](outline.md) | ✅ Supported |
-| Custom platform | [platform-template.md](platform-template.md) | ⚙️ Configure locally |
+| Outline | [outline.md](outline.md) | ✅ Supported |
+| Your current wiki platform | [platform-template.md](platform-template.md) | ⚙️ Configure locally |
 | Confluence | — | 🔮 Future |
 | Notion | — | 🔮 Future |
 | GitBook | — | 🔮 Future |

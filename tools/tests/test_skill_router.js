@@ -8,7 +8,7 @@ const {
 
 const strategicSkills = [
   { name: 'thinking-orchestrator', description: 'Routes strategic questions', isSuperpower: true, triggers: ["what's the best approach", 'where should we put'] },
-  { name: 'debate', description: 'Compare decision alternatives', isSuperpower: true, triggers: ['debate the options', 'compare approaches'] },
+  { name: 'debate', description: 'Compare design alternatives', isSuperpower: true, triggers: ['design options', 'compare design approaches'] },
   { name: 'plan-and-execute', description: 'Turn a chosen design into a plan', isSuperpower: true, triggers: ['plan and execute'] },
   { name: 'test-driven-development', description: 'Write tests first', isSuperpower: true, triggers: ['tdd'] },
 ];
@@ -38,7 +38,7 @@ function testBroadNonStrategicQueryDoesNotTriggerIntentBoosts() {
 }
 
 function testDebateIntentBoostsWinOnCanonicalTrigger() {
-  const boosts = buildIntentBoosts('compare approaches');
+  const boosts = buildIntentBoosts('compare design approaches');
   assert(boosts['debate'] >= 3);
 }
 
