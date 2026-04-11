@@ -55,7 +55,7 @@ console.log('\n--- No duplicate patterns ---');
 console.log('\n--- Intent pattern matching: known queries → expected boosts ---');
 {
   const b1 = buildIntentBoosts('design triad');
-  assert((b1['design-triad'] || 0) >= BOOST_STANDARD, 'design triad → design-triad boosted');
+  assert((b1['debate'] || 0) >= BOOST_STANDARD, 'design triad → debate boosted');
 
   const b2 = buildIntentBoosts('plan and execute');
   assert((b2['plan-and-execute'] || 0) >= BOOST_STANDARD, 'plan and execute → plan-and-execute boosted');
@@ -74,9 +74,9 @@ console.log('\n--- Intent pattern matching: known queries → expected boosts --
 console.log('\n--- Boost accumulation (no doubling from removed duplicates) ---');
 {
   const b = buildIntentBoosts('design triad');
-  const raw = b['design-triad'] || 0;
+  const raw = b['debate'] || 0;
   // Before dedup fix, "design triad" matched twice → 6. After fix it should be 3.
-  assert(raw <= BOOST_STANDARD, `design-triad boost is ≤ BOOST_STANDARD (got ${raw})`);
+  assert(raw <= BOOST_STANDARD, `debate boost is ≤ BOOST_STANDARD (got ${raw})`);
 }
 
 // --- Empty/edge queries ---
@@ -97,7 +97,7 @@ console.log('\n--- TF-IDF basics ---');
 {
   const mockSkills = [
     { name: 'systematic-debugging', triggers: ['debug', 'fix bug', 'test failing', 'error', 'exception', 'crash'], description: 'Systematic debugging process', anti_triggers: [] },
-    { name: 'design-triad', triggers: ['design triad', 'compare design approaches', 'three options'], description: 'Three design options comparison', anti_triggers: [] },
+    { name: 'debate', triggers: ['design triad', 'compare design approaches', 'three options'], description: 'Three design options comparison', anti_triggers: [] },
     { name: 'writing-plans', triggers: ['plan', 'write plan', 'roadmap'], description: 'Writing implementation plans', anti_triggers: [] },
   ];
 
