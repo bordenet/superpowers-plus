@@ -7,6 +7,7 @@ overrides: superpowers/finishing-a-development-branch
 # version goes straight to "verify tests → present options," which allows
 # unreviewed work to be presented as ready for human action.
 triggers:
+  - /sp-finish
   - finishing a branch
   - branch is done
   - ready to merge

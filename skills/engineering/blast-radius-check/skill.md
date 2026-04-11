@@ -1,7 +1,7 @@
 ---
 name: blast-radius-check
 source: superpowers-plus
-triggers: ["refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "multi-component change", "cross-service change"]
+triggers: ["/sp-blast", "refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "multi-component change", "cross-service change"]
 anti_triggers: ["review this PR", "code review", "review these changes", "write new"]
 description: Blast radius analysis - search for ALL usages before modifying any existing code. Prevents breaking unrelated consumers by scoping impact before scoping fix.
 summary: "Use when: modifying existing code. Skip when: writing new isolated code."

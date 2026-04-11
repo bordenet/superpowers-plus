@@ -1,7 +1,7 @@
 ---
 name: plan-and-execute
 source: superpowers-plus
-triggers: ["plan and execute", "plan-and-execute", "challenge me", "give me a challenge",
+triggers: ["/sp-plan", "plan and execute", "plan-and-execute", "challenge me", "give me a challenge",
            "here's a challenge", "devise a plan", "phased execution", "break into phases",
            "execute in phases", "plan then execute", "structured execution",
            "project plan with phases", "plan with retrospectives", "measure twice cut once",

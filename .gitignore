@@ -88,3 +88,7 @@ tools/internal-sync.sh
 
 # Local AI agent guidance (machine-specific operational notes)
 .ai-guidance/
+.augment-review/
+
+# Generated Augment workspace skills (exported by install.sh, not committed)
+.agents/

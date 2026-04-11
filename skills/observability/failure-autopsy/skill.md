@@ -2,6 +2,7 @@
 name: failure-autopsy
 source: superpowers-plus
 triggers:
+  - /sp-autopsy
   - "that was wrong"
   - "I was wrong"
   - "misdiagnosed"
