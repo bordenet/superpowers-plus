@@ -71,6 +71,7 @@ check '[[ -d ]] && guard — absolute path'           FOUND '[[ -d "__FAKE_BIN__
 check '[[ -d ]] && guard — $HOME form'              FOUND '[[ -d "$HOME/.local/bin" ]] && export PATH="$HOME/.local/bin:$PATH"'
 check '[ -d ] && guard — $HOME form (POSIX test)'  FOUND '[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"'
 check '|| fallback guard — absolute path'           FOUND '[[ -d "__FAKE_BIN__" ]] || export PATH="__FAKE_BIN__:$PATH"'
+check '[[ -d ]] && guard — PATH+= (no export)'     FOUND '[[ -d "__FAKE_BIN__" ]] && PATH+="__FAKE_BIN__:"'
 
 echo "--- Should NOT FIND (true negatives) ---"
 check "commented out"                               NOT_FOUND '# export PATH="__FAKE_BIN__:$PATH"'
