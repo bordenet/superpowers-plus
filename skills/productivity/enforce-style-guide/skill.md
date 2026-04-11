@@ -131,6 +131,8 @@ Key requirements:
 
 ## Commit Gate Coordination
 
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the style gate fails.
+
 Multiple skills fire on "before commit". Execute in this order:
 
 | Order | Skill | Purpose | Scope |

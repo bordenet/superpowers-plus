@@ -177,6 +177,8 @@ After fixing nits, run a **targeted** battery round:
 
 ## Commit Gate Chain
 
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the code review gate fails.
+
 ```text
 pre-commit-gate (1) → enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5)
 ```

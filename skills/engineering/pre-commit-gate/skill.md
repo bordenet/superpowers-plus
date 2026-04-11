@@ -1,7 +1,7 @@
 ---
 name: pre-commit-gate
 source: superpowers-plus
-triggers: ["/sp-commit", "before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "commit:pre-check", "commit:gate"]
+triggers: ["/sp-pre-commit", "pre-commit check", "run pre-commit", "pre-commit gate", "gate 1", "commit:pre-check", "lint before commit", "run tests before commit"]
 anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]
 description: Pre-commit quality gate - run lint, typecheck, test LOCALLY before committing. Prevents wasted CI time and embarrassing build failures.
 summary: "Use when: about to commit code. Skip when: drafting or exploring."
@@ -56,7 +56,7 @@ npm test    # or: vitest --run
 **After this gate passes, the remaining commit gates run in order:**
 enforce-style-guide (2) → progressive-code-review-gate (3) → professional-language-audit (4) → public-repo-ip-audit (5) → commit → push.
 
-> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use individual skills for deep-dive when a specific gate fails.
+> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the pre-commit gate fails.
 
 > **Step 0** only runs when `.sh` files are staged. It detects unguarded `rm -rf`,
 > `chmod 777`, `curl | bash`, and other destructive patterns. Hardcoded safe paths
