@@ -8,7 +8,7 @@ const {
 
 const strategicSkills = [
   { name: 'thinking-orchestrator', description: 'Routes strategic questions', isSuperpower: true, triggers: ["what's the best approach", 'where should we put'] },
-  { name: 'design-triad', description: 'Compare design alternatives', isSuperpower: true, triggers: ['design options', 'compare design approaches'] },
+  { name: 'debate', description: 'Compare design alternatives', isSuperpower: true, triggers: ['design options', 'compare design approaches'] },
   { name: 'plan-and-execute', description: 'Turn a chosen design into a plan', isSuperpower: true, triggers: ['plan and execute'] },
   { name: 'test-driven-development', description: 'Write tests first', isSuperpower: true, triggers: ['tdd'] },
 ];
@@ -22,14 +22,14 @@ function testEmbeddingHeuristicBoosts() {
   const baseResults = [
     { name: 'test-driven-development', description: '', isSuperpower: true, score: 0.95 },
     { name: 'thinking-orchestrator', description: '', isSuperpower: true, score: 0.40 },
-    { name: 'design-triad', description: '', isSuperpower: true, score: 0.39 },
+    { name: 'debate', description: '', isSuperpower: true, score: 0.39 },
     { name: 'plan-and-execute', description: '', isSuperpower: true, score: 0.38 },
   ];
 
   applyHeuristicBoosts(baseResults, strategicSkills, query.toLowerCase(), query.toLowerCase().split(/\s+/));
   baseResults.sort((a, b) => b.score - a.score);
 
-  assertOrderedNames(baseResults, ['thinking-orchestrator', 'design-triad', 'plan-and-execute']);
+  assertOrderedNames(baseResults, ['thinking-orchestrator', 'debate', 'plan-and-execute']);
 }
 
 function testBroadNonStrategicQueryDoesNotTriggerIntentBoosts() {
@@ -37,9 +37,9 @@ function testBroadNonStrategicQueryDoesNotTriggerIntentBoosts() {
   assert.deepStrictEqual(boosts, {});
 }
 
-function testDesignTriadIntentBoostsWinOnCanonicalTrigger() {
+function testDebateIntentBoostsWinOnCanonicalTrigger() {
   const boosts = buildIntentBoosts('compare design approaches');
-  assert(boosts['design-triad'] >= 3);
+  assert(boosts['debate'] >= 3);
 }
 
 function testHeuristicBoostsIgnoreStaleCachedSkill() {
@@ -84,7 +84,7 @@ function testDuplicateSkillNamesThrow() {
 
 testEmbeddingHeuristicBoosts();
 testBroadNonStrategicQueryDoesNotTriggerIntentBoosts();
-testDesignTriadIntentBoostsWinOnCanonicalTrigger();
+testDebateIntentBoostsWinOnCanonicalTrigger();
 testHeuristicBoostsIgnoreStaleCachedSkill();
 testTfidfStrategicRouting();
 testTfidfPlanAndExecuteRouting();

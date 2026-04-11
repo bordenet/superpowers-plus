@@ -9,7 +9,7 @@ coordination:
   group: engineering
   order: 1
   requires: []
-  enables: ["design-triad", "brainstorming"]
+  enables: ["debate", "brainstorming"]
   escalates_to: ["feature-development"]
   internal: false
 composition:
@@ -23,13 +23,13 @@ composition:
 
 > **Core principle:** Every requirement must be testable. Contradictions must be surfaced, not silently resolved.
 >
-> **Wrong skill?** Feature design → `design-triad` or `brainstorming`. Implementation planning → `plan-and-execute`. Validating code output → `output-verification`.
+> **Wrong skill?** Feature design → `debate` or `brainstorming`. Implementation planning → `plan-and-execute`. Validating code output → `output-verification`.
 
 **Announce at start:** "I'm using the **requirements-validation** skill to validate these requirements."
 
 ## Companion Skills
 
-- **design-triad**: Evaluating design options from requirements
+- **debate**: Evaluating design options from requirements
 - **brainstorming**: Generating approaches that meet requirements
 - **plan-and-execute**: Implementing validated requirements
 
