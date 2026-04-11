@@ -2,6 +2,8 @@
 name: progressive-harsh-review
 source: superpowers-plus
 triggers:
+  - /sp-phr
+  - /sp-redteam
   - harsh review
   - progressive review
   - red team this
