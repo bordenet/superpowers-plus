@@ -1,7 +1,7 @@
 ---
 name: think-twice
 source: superpowers-plus
-triggers: ["second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same"]
+triggers: ["/sp-rethink", "second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same"]
 anti_triggers: ["use perplexity", "research this", "Perplexity API"]
 description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
 summary: "Use when: stuck in a loop, circular reasoning, or same error 3+ times."
@@ -68,6 +68,8 @@ Continuously monitor for these signals. When cumulative score ≥ 7, invoke thin
 | Reasoning (logic, approach, design) | `think-twice` | `perplexity-research` |
 | Knowledge (API docs, error codes, facts) | `perplexity-research` | `think-twice` for fresh reasoning |
 | Both (stuck + need facts) | `think-twice` | `perplexity-research` with refined query |
+
+> ⚠️ **Cost gate:** `perplexity-research` calls a paid API. Before escalating, confirm the knowledge gap cannot be resolved with a web search or by re-reading existing context. If escalating: inform the user a paid API call is being made.
 
 ## Consultation Prompt Quality
 

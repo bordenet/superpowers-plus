@@ -6,7 +6,7 @@ overrides: superpowers/test-driven-development
 # Refactor cycle with explicit gates at each phase. Removes language-specific
 # examples (handled by golden-agents language modules instead).
 aliases: [TDD]
-triggers: ["write tests first", "TDD", "test-driven", "write failing test", "red green refactor", "implement with tests"]
+triggers: ["/sp-tdd", "write tests first", "TDD", "test-driven", "write failing test", "red green refactor", "implement with tests"]
 anti_triggers: ["fix this bug", "debug this", "unexpected behavior", "error in production"]
 description: Use when implementing any feature or bugfix, before writing implementation code
 coordination:

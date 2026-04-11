@@ -112,7 +112,7 @@ F3. [file:line] Description...
 
 If the diff renames, moves, or deletes ANY file:
 
-1. **Identify old paths:** `git diff --diff-filter=RD --name-status | awk '/^[RD]/ { print $2 }'` (or extract from the diff provided)
+1. **Identify old paths:** `git diff --diff-filter=RD --name-only` (or extract from the diff provided)
 2. **Scan the ENTIRE repo** for references to each old path — not just the changed directory:
    ```bash
    grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh" --include="*.json"
