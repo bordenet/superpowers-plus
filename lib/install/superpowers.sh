@@ -133,10 +133,19 @@ update_superpowers() {
         return 1
     fi
 
+    # Fetch first — separate from pull so refs update even if merge fails.
+    # Shallow-clone fallback: if full fetch fails (rewritten history on a
+    # depth-1 clone can't negotiate objects), re-fetch with --depth 1.
+    log_verbose "Fetching latest from origin..."
+    if ! (cd "$SUPERPOWERS_DIR" && git fetch origin 2>/dev/null); then
+        log_verbose "Full fetch failed — trying shallow fetch..."
+        (cd "$SUPERPOWERS_DIR" && git fetch --depth 1 origin main 2>/dev/null) || true
+    fi
+
     log_verbose "Pulling latest changes from origin main"
     if ! (cd "$SUPERPOWERS_DIR" && git pull --ff-only origin main 2>&1); then
         # Distinguish: diverged history (force-push/rewrite) vs local-ahead vs local changes.
-        # git pull fetches before merging, so origin/main is current even on failure.
+        # Refs are current from the explicit fetch above.
         # If origin/main IS ancestor of HEAD → local has extra commits → do not auto-reset.
         # If origin/main is NOT ancestor of HEAD → true divergence → auto-reset.
         if (cd "$SUPERPOWERS_DIR" && git merge-base --is-ancestor origin/main HEAD 2>/dev/null); then
@@ -185,10 +194,15 @@ upgrade_existing() {
     before_sha=$(git rev-parse --short HEAD)
     log_verbose "Current version: $before_sha"
 
-    # Fetch first — we need fresh remote refs regardless of strategy
+    # Fetch first — we need fresh remote refs regardless of strategy.
+    # Shallow-clone fallback: if full fetch fails (rewritten history on a
+    # depth-1 clone can't negotiate objects), re-fetch with --depth 1.
     log_verbose "Fetching from origin..."
     if ! git fetch origin 2>&1; then
-        error_exit "Failed to fetch from origin"
+        log_verbose "Full fetch failed — trying shallow fetch..."
+        if ! git fetch --depth 1 origin main 2>&1; then
+            error_exit "Failed to fetch from origin (tried full and shallow)"
+        fi
     fi
 
     # If --force, reset directly to origin/main (handles divergent history + local changes)
