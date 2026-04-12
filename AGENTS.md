@@ -76,7 +76,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ## Project-Specific Guidelines
 
 ### 🔴 Dev Repo Path
-ALL work MUST happen in `~/git/Personal/superpowers-plus`. Never edit installed copies (`~/.codex/`).
+ALL work MUST happen in this repository (the directory containing this AGENTS.md). Never edit installed copies (`~/.codex/`). If unsure of the path, run `git rev-parse --show-toplevel`.
 
 ### Quality Gates (sp+-specific)
 - Run `./tools/harsh-review.sh` before any commit; install hooks: `./tools/install-hooks.sh`
