@@ -62,8 +62,10 @@ docs/superpowers/specs/
 docs/superpowers/multi-agent/
 # Internal operational tooling — not for public repo
 tools/internal-sync.sh
-# Local AI agent guidance (machine-specific operational notes)
-.ai-guidance/
+# Local AI agent guidance — .ai-guidance/invariants.md IS tracked (repo-wide rules)
+# Add machine-specific files here individually if needed
 .augment-review/
 # Generated Augment workspace skills (exported by install.sh, not committed)
 .agents/
+ADOPT-PROMPT.md
+AGENTS.md.original
