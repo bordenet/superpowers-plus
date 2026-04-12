@@ -173,12 +173,21 @@ success "Directories created"
 # Use -e (not -d) to support git worktrees where .git is a file
 if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
-    verbose "Running git pull in ~/.codex/superpowers"
     pushd ~/.codex/superpowers > /dev/null
     _sp_update_ok=true
+
+    # Fetch first — separate from pull so refs update even if merge fails.
+    # Shallow-clone fallback: if full fetch fails (rewritten history on a
+    # depth-1 clone can't negotiate objects), re-fetch with --depth 1.
+    verbose "Fetching latest from origin..."
+    if ! git fetch origin --quiet 2>/dev/null; then
+        verbose "Full fetch failed — trying shallow fetch..."
+        git fetch --depth 1 origin main --quiet 2>/dev/null || true
+    fi
+
     if ! git pull --ff-only --quiet origin main 2>/dev/null; then
         # Detect diverged history (force-push/rewrite) vs local-ahead vs missing ref.
-        # git pull fetches before merging, so origin/main is current even after failure.
+        # Refs are current from the explicit fetch above.
         # Three-way check: if origin/main IS ancestor of HEAD → local is ahead (don't reset).
         # If neither is ancestor of the other → true divergence (history rewrite → auto-reset).
         # If origin/main doesn't exist → fall back to master branch.
