@@ -135,9 +135,12 @@ When the user says "update my superpowers" or "sp-update":
 1. Parse for `--branch <name>` — if specified, use it; otherwise sp-update uses current branch
 2. Run `sp-update --branch <branch> --verbose` (if branch specified) or `sp-update --verbose` (if not)
 3. Run `sp-doctor` to verify installation health
-4. If sp-doctor reports errors, investigate (some may require manual fixes)
-5. Run `node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap` to confirm skills load
-6. Report summary: branch used, installation status, any doctor findings
+4. Clean up install-artifact permission drift: `cd ~/.codex/superpowers-plus && git restore .`
+   - `install.sh` sets execute bits on `tools/doctor-modules/*.sh` and `tools/tests/*.sh` that the repo tracks as non-executable; this leaves the worktree dirty after every update
+   - `git restore .` reverts the permission changes without losing any content; the scripts remain functional
+5. If sp-doctor reports errors, investigate (some may require manual fixes)
+6. Run `node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap` to confirm skills load
+7. Report summary: branch used, installation status, any doctor findings
 
 **Key behaviors:**
 - sp-update fetches, checks out, and pulls the specified branch (or current if not specified)
@@ -164,3 +167,4 @@ When the user says "update my superpowers" or "sp-update":
 | Fast-forward merge fails | Non-FF history, sp-update auto-resets | sp-update force-resets to remote (intentional safety) |
 | install.sh fails | Install exits with error, skills not deployed | Check error message, may need manual `install.sh --upgrade --verbose` |
 | sp-doctor reports errors | Content drift, version mismatches, divergence | Investigate each error; use `doctor-checks.sh --fix` for safe auto-fixes |
+| Uncommitted changes after update | `install.sh` sets execute bits on `tools/doctor-modules/*.sh` and `tools/tests/*.sh` that the repo tracks as 100644; sp-doctor flags this as uncommitted changes | `cd ~/.codex/superpowers-plus && git restore .` — reverts permission-only changes, no content lost |
