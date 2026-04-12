@@ -218,33 +218,34 @@ superpowers-plus uses [Semantic Versioning](https://semver.org/):
 
 | Change Type | Version Bump | Example |
 |-------------|--------------|---------|
-| Bug fixes, minor updates | PATCH | 2.1.0 → 2.1.1 |
-| New skills, features | MINOR | 2.1.0 → 2.2.0 |
-| Breaking changes | MAJOR | 2.1.0 → 3.0.0 |
+| Bug fixes, minor updates | PATCH | 1.0.0 → 1.0.1 |
+| New skills, features | MINOR | 1.0.0 → 1.1.0 |
+| Breaking changes | MAJOR | 1.0.0 → 2.0.0 |
 
 ### Creating a Release
 
-**Most steps are automated, but tag creation requires a manual step due to branch protection.**
+Releases map 1:1 with git tags. Each release is created by pushing an annotated tag.
 
 #### Step 1: Prepare the Release
 
 1. **Update version in `install.sh`:**
 
    ```bash
-   VERSION="2.3.0"
+   VERSION="X.Y.Z"
    ```
 
 2. **Update CHANGELOG.md:**
    - Move `[Unreleased]` items to new version section
-   - Add date: `## [2.3.0] - YYYY-MM-DD`
+   - Add date: `## [X.Y.Z] - YYYY-MM-DD`
+   - Add compare link at bottom: `[X.Y.Z]: https://github.com/bordenet/superpowers-plus/compare/vPREVIOUS...vX.Y.Z`
 
 3. **Create PR and merge to main:**
 
    ```bash
-   git checkout -b chore/release-2.3.0
+   git checkout -b chore/release-X.Y.Z
    git add -A
-   git commit -m "chore: release v2.3.0"
-   git push origin chore/release-2.3.0
+   git commit -m "chore: release vX.Y.Z"
+   git push origin chore/release-X.Y.Z
    # Create PR, wait for CI, merge
    ```
 
@@ -255,29 +256,15 @@ After the PR is merged to main:
 ```bash
 git checkout main
 git pull origin main
-git tag -a v2.3.0 -m "Release v2.3.0"
-git push origin v2.3.0
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin vX.Y.Z
 ```
 
 > **Why manual?** Branch protection requires PRs for all pushes to `main`. PATs cannot bypass this without disabling protection entirely. The 5-second manual tag step preserves branch security.
 
 #### Step 3: Automation Takes Over
 
-Once the tag is pushed, automation handles everything else:
-
-| Step | Automated By | Trigger |
-|------|--------------|---------|
-| Create GitHub Release | `release.yml` | Tag push (`v*`) |
-| Dispatch to standalone marketplace | `release.yml` | Tag push |
-| Update `marketplace.json` to new version | marketplace `version-sync.yml` | `repository_dispatch` |
-
-#### What's Still Manual
-
-| Task | Why |
-|------|-----|
-| Update CHANGELOG.md | Human judgment needed for categorization |
-| Create and push git tag | Branch protection prevents automated pushes |
-| PR to `obra/superpowers-marketplace` | External repo, requires maintainer approval |
+Once the tag is pushed, `release.yml` creates the GitHub Release with changelog notes extracted from CHANGELOG.md.
 
 ### Version Check
 
@@ -285,9 +272,4 @@ Users can verify their installed version:
 
 ```bash
 ./install.sh --version
-# install.sh version 2.3.0
 ```
-
-### CI Version Consistency Check
-
-CI checks version consistency across `install.sh`, `plugin.json`, and `marketplace.json`. If versions are inconsistent, the build will fail. Update all three files when bumping versions.

@@ -259,18 +259,9 @@ INSTALLATION METHODS
            curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
        Updates: Re-run the curl command
 
-    3. GITHUB RELEASES (version-pinned)
-       For: Reproducible installations, CI/CD
-       Steps:
-           1. Visit https://github.com/bordenet/superpowers-plus/releases
-           2. Download desired version tarball
-           3. Extract and run ./install.sh
-       Updates: Download newer release manually
-
 VERSION INFO
     Current: Run ./install.sh --version
-    Check for updates: Compare with latest at
-        https://github.com/bordenet/superpowers-plus/releases
+    Check for updates: git fetch origin && git log --oneline HEAD..origin/main
 
 AUTHOR
     Matt J Bordenet
