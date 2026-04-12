@@ -111,12 +111,17 @@ main() {
 
     log_info "Remote: $remote | Branch: $target_branch"
 
-    # Fetch
+    # Fetch — separate from merge so refs update even if merge fails later.
+    # Shallow-clone fallback: if full fetch fails (rewritten history on a
+    # depth-1 clone can't negotiate objects), re-fetch with --depth 1.
     log_info "Fetching $remote..."
-    git fetch "$remote" "$target_branch" --quiet || {
-        log_error "Failed to fetch $remote/$target_branch"
-        exit 1
-    }
+    if ! git fetch "$remote" "$target_branch" --quiet 2>/dev/null; then
+        log_warn "Full fetch failed — trying shallow fetch..."
+        git fetch --depth 1 "$remote" "$target_branch" --quiet 2>/dev/null || {
+            log_error "Failed to fetch $remote/$target_branch (tried full and shallow)"
+            exit 1
+        }
+    fi
 
     # Switch branch if needed
     if [[ "$target_branch" != "$current_branch" ]]; then
