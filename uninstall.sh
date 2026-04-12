@@ -51,6 +51,7 @@ CODEX_DIR="${HOME}/.codex"
 ENV_FILE="${CODEX_DIR}/.env"
 SKILLS_DIR="${CODEX_DIR}/skills"
 CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
+AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 INSTALL_STATE_DIR="${CODEX_DIR}/superpowers-plus/install-state"
 MANAGED_DIR="${CODEX_DIR}/superpowers-plus"
 ADAPTER_DIR="${CODEX_DIR}/superpowers-augment"
@@ -64,7 +65,6 @@ DRY_RUN=false
 YES=false
 PURGE=false
 VERBOSE=false
-[[ ! -t 0 ]] && YES=true
 
 # --- Colors ---
 if [[ -t 1 ]]; then
@@ -220,6 +220,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Non-interactive stdin requires explicit --yes (fail closed; dry-run is exempt)
+if [[ ! -t 0 && "$YES" != "true" && "$DRY_RUN" != "true" ]]; then
+    echo "Error: stdin is not a terminal. Use --yes for non-interactive uninstall." >&2
+    exit 1
+fi
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -251,7 +257,7 @@ main() {
 
     # Summary
     echo "Will remove:"
-    echo "  ${#skills[@]} skill(s) from ~/.codex/skills/ and ~/.claude/skills/"
+    echo "  ${#skills[@]} skill(s) from ~/.codex/skills/, ~/.claude/skills/, and ~/.agents/skills/"
     echo "  ${#rules[@]} rule(s) from ~/.augment/rules/ (if not shared)"
     echo "  ${#tools[@]} tool(s) from ~/.codex/superpowers-plus/tools/"
     echo "  ${#templates[@]} template(s) from ~/.codex/templates/"
@@ -282,6 +288,25 @@ main() {
         skill_count=$((skill_count + 1))
     done
     log_success "Removed $skill_count skill(s)"
+
+    # Step 1b: Remove Augment slash menu skills (~/.agents/skills/)
+    # Only removes skills tagged 'source: superpowers-plus' to avoid touching
+    # skills installed by overlays or the user directly.
+    log_info "Removing Augment slash menu skills..."
+    local augment_count=0
+    if [[ -d "$AUGMENT_MENU_DIR" ]]; then
+        for skill_dir in "$AUGMENT_MENU_DIR"/*/; do
+            [[ -d "$skill_dir" ]] || continue
+            local skill_dir_name
+            skill_dir_name="$(basename "$skill_dir")"
+            is_safe_name "$skill_dir_name" || continue
+            if grep -q 'source: superpowers-plus' "${skill_dir}SKILL.md" 2>/dev/null; then
+                run_rm "$skill_dir"
+                augment_count=$((augment_count + 1))
+            fi
+        done
+    fi
+    log_success "Removed $augment_count Augment slash menu skill(s)"
 
     # Step 2: Remove rules (only if not shared with another overlay)
     log_info "Removing rules..."
@@ -344,7 +369,7 @@ main() {
     if [[ "$DRY_RUN" == "true" ]]; then
         echo "This was a dry run. No files were removed."
     else
-        echo "Skills, tools, rules, templates, and adapter have been removed."
+        echo "Skills (including Augment slash menu), tools, rules, templates, and adapter have been removed."
         if [[ "$PURGE" != "true" ]]; then
             echo ""
             echo "To also remove managed checkout and runtime data:"
