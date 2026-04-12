@@ -308,9 +308,10 @@ install_tools() {
     local count=0
     declare -A current_tools=()
     for tool in "$tools_src"/*; do
-        [[ ! -f "$tool" ]] && continue
         local basename
         basename=$(basename "$tool")
+        # Skip generated Python bytecode directories — never deploy those.
+        [[ "$basename" == "__pycache__" ]] && continue
         current_tools["$basename"]=1
     done
 
@@ -318,29 +319,56 @@ install_tools() {
         while IFS= read -r stale_tool; do
             [[ -z "$stale_tool" ]] && continue
             if [[ -z "${current_tools[$stale_tool]:-}" ]] && [[ -e "$tools_dest/$stale_tool" ]]; then
-                rm -f "$tools_dest/$stale_tool" || log_warn "Failed to remove stale tool: $stale_tool"
+                if [[ -d "$tools_dest/$stale_tool" ]]; then
+                    rm -rf "${tools_dest:?}/${stale_tool:?}" || log_warn "Failed to remove stale tool dir: $stale_tool"
+                else
+                    rm -f "$tools_dest/$stale_tool" || log_warn "Failed to remove stale tool: $stale_tool"
+                fi
                 log_verbose "Removed stale tool: $stale_tool"
             fi
         done < "$manifest"
     fi
 
     for tool in "$tools_src"/*; do
-        [[ ! -f "$tool" ]] && continue
         local basename
         basename=$(basename "$tool")
-        local dest="${tools_dest}/${basename}"
+        # Skip generated Python bytecode directories — never deploy those.
+        [[ "$basename" == "__pycache__" ]] && continue
 
-        if [[ -f "$dest" ]] && cmp -s "$tool" "$dest"; then
-            log_verbose "Tool already up to date: $basename"
-        else
-            cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
-            log_verbose "Installed tool: $basename"
+        if [[ -f "$tool" ]]; then
+            local dest="${tools_dest}/${basename}"
+            if [[ -f "$dest" ]] && cmp -s "$tool" "$dest"; then
+                log_verbose "Tool already up to date: $basename"
+            else
+                cp "$tool" "$dest" || { log_warn "Failed to copy $basename"; continue; }
+                log_verbose "Installed tool: $basename"
+            fi
+            # Always ensure execute bits (repairs broken perms even if content unchanged)
+            if [[ "$basename" == *.sh ]] || [[ "$basename" == "pre-commit" ]] || [[ "$basename" == "pre-push" ]]; then
+                chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
+            fi
+            count=$((count + 1))
+        elif [[ -d "$tool" ]]; then
+            # Sync tool subdirectory one level deep (e.g. doctor-modules/, tests/).
+            local dest_subdir="${tools_dest}/${basename}"
+            create_dir "$dest_subdir"
+            local f fname fdest
+            for f in "$tool"/*; do
+                [[ ! -f "$f" ]] && continue
+                fname=$(basename "$f")
+                fdest="${dest_subdir}/${fname}"
+                if [[ -f "$fdest" ]] && cmp -s "$f" "$fdest"; then
+                    log_verbose "Tool already up to date: $basename/$fname"
+                else
+                    cp "$f" "$fdest" || { log_warn "Failed to copy $basename/$fname"; continue; }
+                    log_verbose "Installed tool: $basename/$fname"
+                fi
+                if [[ "$fname" == *.sh ]]; then
+                    chmod +x "$fdest" 2>/dev/null || log_verbose "chmod +x skipped for $basename/$fname (NTFS mount?)"
+                fi
+                count=$((count + 1))
+            done
         fi
-        # Always ensure execute bits (repairs broken perms even if content unchanged)
-        if [[ "$basename" == *.sh ]] || [[ "$basename" == "pre-commit" ]] || [[ "$basename" == "pre-push" ]]; then
-            chmod +x "$dest" 2>/dev/null || log_verbose "chmod +x skipped for $basename (NTFS mount?)"
-        fi
-        count=$((count + 1))
     done
 
     if [[ ${#current_tools[@]} -gt 0 ]]; then
