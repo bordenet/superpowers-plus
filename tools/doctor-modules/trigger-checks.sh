@@ -31,8 +31,9 @@ KNOWN_COLLISION_GROUPS=(
   "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review progressive-harsh-review"
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
-  # Pre-commit chain: ordered sequential checks before commit
-  "pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
+  # Pre-commit chain: unified-commit-gate is the hub that delegates to the individual gate skills.
+  # All share commit/push triggers by design — suppress collisions within this group.
+  "unified-commit-gate pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
   # PR verification: complementary pre-PR checks
