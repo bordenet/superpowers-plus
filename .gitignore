@@ -67,3 +67,5 @@ tools/internal-sync.sh
 .augment-review/
 # Generated Augment workspace skills (exported by install.sh, not committed)
 .agents/
+ADOPT-PROMPT.md
+AGENTS.md.original
