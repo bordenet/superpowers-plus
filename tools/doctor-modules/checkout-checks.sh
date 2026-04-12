@@ -67,7 +67,7 @@ check_stale_checkout() {
     # target, not a working directory. Changes must go through the source repo.
     echo "🔴 CRITICAL: $label — ${ahead} local commit(s) not on origin/main"
     echo "   Installed copies must never be edited directly."
-    echo "   Edit source repos in ~/GitHub/, then reinstall."
+    echo "   Edit source repos, then reinstall."
     git -C "$dir" log --oneline "origin/main..HEAD" 2>/dev/null | head -5 | while IFS= read -r line; do
       echo "   $line"
     done
