@@ -658,6 +658,7 @@ AUGMENT_MENU_SKILLS=(
     innovation
     holistic-repo-verification
     enforce-style-guide
+    sp-bughunt
 )
 
 # Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
