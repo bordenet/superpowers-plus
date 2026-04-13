@@ -240,6 +240,38 @@ class TodoEngineTests(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()):
                 eng.write_file(str(self.todo_path), wrong_p_order)
 
+    # -- Bug #2 fix: pop-before-remove in backup rotation --
+
+    def test_backup_rotation_tolerates_unremovable_file(self):
+        """If oldest backup can't be deleted, rotation continues and a WARNING is emitted."""
+        eng = self.engine
+        import glob as _glob
+        # Pre-create BAK_MAX_KEEP + 2 .bak files so rotation must remove 2
+        bak_dir = self.engine.SHADOW_DIR
+        os.makedirs(bak_dir, exist_ok=True)
+        for i in range(eng.BAK_MAX_KEEP + 2):
+            ts = f"20260101-{i:06d}"
+            p = os.path.join(bak_dir, f"TODO.{ts}.bak")
+            with open(p, "w") as f:
+                f.write(f"backup {i}\n")
+        all_before = sorted(_glob.glob(os.path.join(bak_dir, "TODO.*.bak")))
+        oldest = all_before[0]
+        # Save the real os.remove before patching so the mock can delegate to it
+        real_remove = os.remove
+        def selective_fail(path):
+            if path == oldest:
+                raise OSError("locked — cannot delete")
+            real_remove(path)
+        with mock.patch("os.remove", side_effect=selective_fail):
+            with contextlib.redirect_stderr(io.StringIO()) as captured:
+                eng.backup(str(self.todo_path))
+            self.assertIn("WARNING", captured.getvalue())
+        # Rotation must have continued past the stuck file:
+        # worst case = BAK_MAX_KEEP (good) + 1 (stuck oldest) + 1 (new backup) = BAK_MAX_KEEP + 2
+        # but the fix ensures it deletes subsequent files, keeping total ≤ BAK_MAX_KEEP + 1
+        all_after = sorted(_glob.glob(os.path.join(bak_dir, "TODO.*.bak")))
+        self.assertLessEqual(len(all_after), eng.BAK_MAX_KEEP + 1)
+
     def test_complete_with_note_moves_to_history(self):
         """Verify completion moves task to HISTORY with note metadata."""
         eng = self.engine
