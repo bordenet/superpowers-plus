@@ -20,16 +20,8 @@ anti_triggers:
   - reproduce this bug
   - security scan
   - scan for secrets
-description: >
-  Proactive adversarial bug hunt — dispatches a parallel explore sub-agent to
-  read the codebase with an adversarial mindset, then independently verifies
-  each candidate to catch false positives and missed findings. Returns N worst
-  bugs ranked by severity with exact file, line, mechanism, and failure mode.
-  Use when you want to proactively find the highest-impact bugs in a codebase,
-  not when debugging a known failure (use sp-debug for that).
-summary: >
-  Use when: proactively hunting for the worst latent bugs in a repo or path.
-  Produces severity-ranked findings with file+line+failure-mode. Default: top 2.
+description: "Proactive adversarial bug hunt — dispatches a parallel explore sub-agent to read the codebase with an adversarial mindset, then independently verifies each candidate to catch false positives and missed findings. Returns N worst bugs ranked by severity with exact file, line, mechanism, and failure mode. Use when you want to proactively find the highest-impact bugs in a codebase, not when debugging a known failure (use sp-debug for that)."
+summary: "Use when: proactively hunting for the worst latent bugs in a repo or path. Produces severity-ranked findings with file+line+failure-mode. Default: top 2."
 coordination:
   group: engineering
   order: 2
