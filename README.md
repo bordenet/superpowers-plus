@@ -54,7 +54,7 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-**~91 skills** across 9 domains:
+**~93 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
@@ -173,7 +173,7 @@ If you're using the install paths above without an MCP client, you can skip this
    }
    ```
 
-3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~91 available skill names.
+3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~93 available skill names.
 
 If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
@@ -193,7 +193,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | head -5
-# Expected: ~91 skill names listed
+# Expected: ~93 skill names listed
 ```
 
 Run a full 22-point diagnostic:
@@ -355,7 +355,7 @@ Utility scripts in `tools/`:
 | Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
 | CRLF errors on WSL | Cloned on Windows before running installer: `bash tools/harsh-review.sh --fix` |
 | Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
-| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~91 |
+| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~93 |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `bash tools/doctor-checks.sh --fix-safe` |
 
