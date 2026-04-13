@@ -194,15 +194,25 @@ def backup(todo_path: str) -> str:
     # copy2 would propagate uchg/immutability flags to the backup,
     # making old backups undeletable during rotation.
     shutil.copyfile(todo_path, bak)
-    # Rotate: delete all but newest BAK_MAX_KEEP
+    # Rotate: delete all but newest BAK_MAX_KEEP.
+    # Store target BEFORE popping — if os.remove() raises OSError, the item
+    # would already be gone from the list but still on disk, causing the loop
+    # to terminate early while leaving the file in place and deleting a newer
+    # valid backup on the next call instead.
     import glob
     bak_pattern = os.path.join(SHADOW_DIR, "TODO.*.bak")
     existing = sorted(glob.glob(bak_pattern))
     while len(existing) > BAK_MAX_KEEP:
+        target = existing[0]
         try:
-            os.remove(existing.pop(0))
-        except OSError:
-            pass
+            os.remove(target)
+            existing.pop(0)  # only pop after confirmed removal
+        except OSError as exc:
+            print(
+                f"WARNING: backup rotation could not delete {target}: {exc}",
+                file=sys.stderr,
+            )
+            existing.pop(0)  # still pop to avoid infinite loop on permanently stuck files
     return bak
 
 # ---------------------------------------------------------------------------
@@ -329,6 +339,98 @@ def validate_structure(content: str) -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# Annihilation Detection — Layer 5 shadow-comparison gate
+# ---------------------------------------------------------------------------
+# Maintains a plain copy of TODO.md at SHADOW_DIR/TODO.md (distinct from the
+# timestamped .bak rotation files).  Before each write, the incoming content
+# is compared against the shadow to catch size wipeouts and bulk task drops.
+# Escape hatch: delete the shadow file to bypass for one write (e.g. bulk archive).
+
+SHADOW_TODO_FILENAME = "TODO.md"   # plain copy, not a timestamped .bak
+ANNIHILATION_SIZE_RATIO = 0.40     # block if new content < 40% of shadow (>60% drop)
+MAX_ACTIVE_TASK_DROP = 5           # block if active task count drops by more than this
+
+
+def _shadow_todo_path() -> str:
+    return os.path.join(SHADOW_DIR, SHADOW_TODO_FILENAME)
+
+
+def _count_active_tasks(content: str) -> int:
+    """Count open/in-progress tasks (- [ ] / - [/]) in the ACTIVE TASKS section."""
+    active_section = content.split("# HISTORY")[0] if "# HISTORY" in content else content
+    return len(re.findall(r"^- \[[ /]\]", active_section, re.MULTILINE))
+
+
+def _check_annihilation(new_content: str) -> None:
+    """Compare incoming content against shadow; block suspicious wipeouts.
+
+    Three checks (all bypass-able by deleting the shadow file):
+      1. Size: new content < 40% of shadow → blocked
+      2. Task-zero: active tasks drop to 0 from >0 → blocked
+      3. Large drop: active tasks drop by more than MAX_ACTIVE_TASK_DROP → blocked
+
+    Soft failures (shadow unreadable, shadow is a directory): warn and allow.
+    No shadow present: allow (first run) and create shadow afterwards.
+    """
+    shadow = _shadow_todo_path()
+    if not os.path.exists(shadow):
+        return  # First write — no baseline yet; shadow will be created after write
+
+    # Attempt to read shadow; degrade gracefully on any error
+    try:
+        with open(shadow, "r") as f:
+            shadow_content = f.read()
+    except OSError as exc:
+        print(
+            f"WARNING: Cannot read shadow TODO.md for annihilation check: {exc}. "
+            f"Proceeding without check.",
+            file=sys.stderr,
+        )
+        return
+
+    # Check 1: size drop
+    shadow_size = len(shadow_content.encode("utf-8"))
+    new_size = len(new_content.encode("utf-8"))
+    if shadow_size > 0 and new_size < shadow_size * ANNIHILATION_SIZE_RATIO:
+        pct = int((1 - new_size / shadow_size) * 100)
+        _error(
+            f"REFUSED TO WRITE: new content is {pct}% smaller than the shadow backup "
+            f"({new_size} bytes vs {shadow_size} bytes). This looks like an "
+            f"annihilation attempt. Delete {shadow} to bypass if this shrink is intentional."
+        )
+
+    # Check 2 & 3: active task counts
+    shadow_active = _count_active_tasks(shadow_content)
+    new_active = _count_active_tasks(new_content)
+    if shadow_active > 0 and new_active == 0:
+        _error(
+            f"REFUSED TO WRITE: All {shadow_active} active tasks would be deleted. "
+            f"Delete {shadow} to bypass if this is intentional."
+        )
+    if shadow_active > 0 and (shadow_active - new_active) > MAX_ACTIVE_TASK_DROP:
+        _error(
+            f"REFUSED TO WRITE: Active task count would drop from {shadow_active} to "
+            f"{new_active} (loss of {shadow_active - new_active} tasks exceeds limit of "
+            f"{MAX_ACTIVE_TASK_DROP}). Delete {shadow} to bypass if this is intentional."
+        )
+
+
+def _update_shadow(content: str) -> None:
+    """Write the just-committed content to the shadow file for future comparisons."""
+    shadow = _shadow_todo_path()
+    os.makedirs(SHADOW_DIR, exist_ok=True)
+    try:
+        with open(shadow, "w") as f:
+            f.write(content)
+    except OSError as exc:
+        print(
+            f"WARNING: Could not update shadow TODO.md ({shadow}): {exc}. "
+            f"Next write will not have annihilation detection.",
+            file=sys.stderr,
+        )
+
+
 def _clear_immutable(path: str) -> None:
     """Clear OS-level immutable flag (chflags/chattr) if present.
 
@@ -439,12 +541,14 @@ def write_file(path: str, content: str) -> None:
     _validate_canonical_path(path)
     validate_structure(content)
     content = _normalize_whitespace(content)
+    _check_annihilation(content)   # Layer 5: shadow-based wipeout detection
     _unprotect_file(path)
     try:
         with open(path, "w") as f:
             f.write(content)
     finally:
         _protect_file(path)
+    _update_shadow(content)        # Keep shadow in sync for future comparisons
 
 
 def find_section_end(content: str, section_re: re.Pattern) -> int:
