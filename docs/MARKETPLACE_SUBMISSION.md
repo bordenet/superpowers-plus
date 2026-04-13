@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have skill.md with frontmatter | ✅ PASS | 58/58 skills validated |
+| Skills have skill.md with frontmatter | ✅ PASS | 91/91 skills validated |
 
 ## Draft Submission
 
@@ -31,7 +31,7 @@ AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite lo
 
 ### Full Description
 
-superpowers-plus extends Jesse Vincent's obra/superpowers with 58 domain skills across 9 categories:
+superpowers-plus extends Jesse Vincent's obra/superpowers with 91 domain skills across 9 categories:
 
 **Flagship Writing Skills:**
 
@@ -40,14 +40,14 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 58 domain skills 
 
 **Additional Domains:**
 
-- Engineering (15 skills): blast radius, debate, TDD, code review, systematic debugging, feature lifecycle
-- Productivity (14 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring
+- Engineering (37 skills): blast radius, debate, TDD, code review, systematic debugging, feature lifecycle, investigation state, debug conductor, sub-agent development, commit gates, typescript conventions
+- Productivity (19 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring, code-review, plan-and-execute, autonomous chain controller, fallback planning, golden agents
 - Writing (7 skills): slop detection/elimination, profanity gates, table discipline, README authoring, skill file authoring
-- Wiki (6 skills): orchestrator pipeline, link checks, credential scanning, fact-checking, content coherence
+- Wiki (8 skills): orchestrator pipeline, link checks, credential scanning, fact-checking, content coherence, markdown structure gate, wiki refactor, wiki verify
 - Issue tracking (5 skills): provider-neutral issue-tracker adapters
-- Observability (4 skills): completeness checks, audit validation, repo verification, diagnostics
+- Observability (8 skills): completeness checks, audit validation, repo verification, diagnostics, evolution loop, failure autopsy, measurement integrity, skill health check
 - Security (4 skills): CVE scanning, IP protection, instruction guard, repo security scan
-- Research (2 skills): Perplexity integration
+- Research (3 skills): Perplexity integration, expert interviewer, incorporating research
 - Experimental (1 skill): self-prompting
 
 ### Installation Command
@@ -82,7 +82,7 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 58 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 91 skills for wiki, issue tracking, security",
      "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "author": {
@@ -97,12 +97,11 @@ If users report install failures:
    - Description: Short summary focusing on slop detection differentiation
    - Reference: Link to obra/superpowers as the prerequisite/base
 
-## TODO — DEPRIORITIZED
+## Status: Indefinitely Deferred
 
-> **Status:** Indefinitely deferred. Anthropic's plugin marketplace acceptance is unlikely.
-> These items are preserved for reference only — do not actively pursue.
+Anthropic's plugin marketplace acceptance is unlikely. The steps below are preserved as a reference snapshot; do not actively pursue.
 
-- [ ] Monitor Anthropic's plugin directory submission form: <https://clau.de/plugin-directory-submission>
-- [ ] Verify current PR requirements (check open PRs for examples)
-- [ ] Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
-- [ ] Confirm obra/superpowers prerequisite is documented clearly (no auto-install via marketplace)
+- Monitor Anthropic's plugin directory submission form: <https://clau.de/plugin-directory-submission>
+- Verify current PR requirements (check open PRs for examples)
+- Test direct install: `/plugin install https://github.com/bordenet/superpowers-plus`
+- Confirm obra/superpowers prerequisite is documented clearly (no auto-install via marketplace)

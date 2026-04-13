@@ -293,29 +293,29 @@ graph TD
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Engineering | `cognitive-complexity-refactoring`, `engineering-rigor`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `typescript-project-conventions`, `typescript-strict-mode`, `vitest-testing-patterns`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Coordinated skill group |
+| Engineering | `cognitive-complexity-refactoring`, `engineering-rigor`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `typescript-project-conventions`, `typescript-strict-mode`, `vitest-testing-patterns`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Full engineering lifecycle: feature development, debugging, code review, commit gates, TypeScript conventions, and testing patterns |
 | Thinking | `brainstorming`, `adversarial-search`, `debate`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
-| Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
-| Debugging | `investigation-state` | Coordinated skill group |
+| Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Parallel and progressive code review pipeline: battery dispatch, persona-based review, receiving and responding to feedback |
+| Debugging | `investigation-state` | Persists investigation state (hypotheses, evidence, confidence) across multi-session debugging |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `unified-commit-gate`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit; `unified-commit-gate` is the entry point (`/sp-commit`) |
-| Quality | `progressive-harsh-review` | Coordinated skill group |
-| Experimental | `experimental-self-prompting` | Coordinated skill group |
-| Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
-| Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
-| Meta Improvement | `evolution-loop` | Coordinated skill group |
-| Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
-| Orchestration | `autonomous-chain-controller` | Coordinated skill group |
-| Productivity | `plan-and-execute`, `domain-design`, `fallback-planning`, `golden-agents`, `skill-authoring`, `todo-archive`, `todo-management` | Coordinated skill group |
-| Decision Making | `quantitative-decision-gate` | Coordinated skill group |
-| Meta | `superpowers-help` | Coordinated skill group |
+| Quality | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables (plans, documents, designs). Score <6 = reject. |
+| Experimental | `experimental-self-prompting` | Experimental self-prompting skill for bootstrapping AI behavior modifications |
+| Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Provider-neutral issue lifecycle: create, edit, verify, link, and fact-check issues across GitHub, Jira, and other trackers |
+| Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Health monitoring for the skill ecosystem: repo verification, diagnostics, completeness auditing, and skill health checks |
+| Meta Improvement | `evolution-loop` | Retrospective improvement loop: extracts lessons from failures and metrics to drive skill updates |
+| Quality Feedback | `failure-autopsy`, `measurement-integrity` | Post-mortem analysis and measurement integrity checks to surface systemic failure patterns |
+| Orchestration | `autonomous-chain-controller` | Auto-detects required skill chain for a task and executes it end-to-end with quality gates between steps |
+| Productivity | `plan-and-execute`, `domain-design`, `fallback-planning`, `golden-agents`, `skill-authoring`, `todo-archive`, `todo-management` | High-level planning and workflow automation: phased execution, TODO management, domain design, fallback planning, skill authoring |
+| Decision Making | `quantitative-decision-gate` | Blocks decisions until options are quantified and compared with a numeric score |
+| Meta | `superpowers-help` | Enumerates all installed skills with auto-trigger vs explicit classification |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
-| Todo Enforcement | `todo-guardian` | Coordinated skill group |
-| Research | `expert-interviewer`, `incorporating-research` | Coordinated skill group |
-| Security | `repo-security-scan`, `security-upgrade`, `wiki-instruction-guard` | Coordinated skill group |
-| Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Coordinated skill group |
+| Todo Enforcement | `todo-guardian` | Captures loose ends and deferred work before claiming done; escalates to quantitative review if backlog grows |
+| Research | `expert-interviewer`, `incorporating-research` | Structured knowledge acquisition: expert interviewing and incorporating external research into work |
+| Security | `repo-security-scan`, `security-upgrade`, `wiki-instruction-guard` | CVE scanning, dependency upgrades, IP protection, and wiki instruction injection guard |
+| Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Point-in-time wiki quality checks: link verification, fact-checking, secret scanning, and post-publish drift detection |
 | Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence`, `wiki-refactor` | Wiki authoring quality pipeline |
-| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `markdown-table-discipline` | Coordinated skill group |
+| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `markdown-table-discipline` | AI writing quality: slop detection/scoring (0–100), GVR rewrite loop, language audit, table discipline, README authoring |
 
 ## Legend
 
