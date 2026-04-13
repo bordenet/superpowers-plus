@@ -6,7 +6,7 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.0.0] - 2026-04-13
 
 ### Added
 
@@ -62,14 +62,4 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Trailing newline issues in 67+ files
 - Shell script shebangs standardized
 
-## [1.0.0] - 2026-02-15
-
-### Added
-
-- Initial release with 35 skills across 9 domains
-- Multi-platform installer (install.sh)
-- Augment adapter (superpowers-augment.js)
-- Skill trigger validator
-
-[Unreleased]: https://github.com/bordenet/superpowers-plus/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/bordenet/superpowers-plus/releases/tag/v1.0.0

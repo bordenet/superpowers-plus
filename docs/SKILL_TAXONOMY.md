@@ -110,7 +110,7 @@ flowchart TD
     FDAB["finishing-a-development-branch [OVERRIDE]"]:::ovrd
 
     TO -->|enables| FD
-    TO -->|enables| DT
+    TO -->|enables| DB
     TO -->|enables| PAE
     TO -->|enables| TWT
     TO -->|enables| AS
@@ -121,7 +121,7 @@ flowchart TD
     TO -->|enables| IS
 
     FD -->|invokes| BST
-    FD -->|invokes| DT
+    FD -->|invokes| DB
     FD -->|invokes| PAE
     FD -->|invokes| TDD
     FD -->|invokes| CRB
