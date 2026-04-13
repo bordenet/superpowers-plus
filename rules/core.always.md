@@ -71,11 +71,11 @@ The TODO.md path is NOT in `.env`, NOT in environment variables. It is stored in
 2. **Structural validation** — `write_file()` rejects content missing required headers/sections
 3. **OS immutability** — TODO.md is `chflags uchg` (macOS) / `chattr +i` (Linux) — `Operation not permitted` for ALL writes, even chmod attempts
 4. **chmod 444** — secondary protection layer if immutability unavailable
-5. **Shadow + annihilation detection** — pre-write comparison blocks >60% size drops
+5. **Annihilation detection** — `write_file()` compares against `~/.codex/todo-shadow/TODO.md`; blocks >60% size drops, writes that zero out all active tasks, or drops of more than 5 active tasks at once
 6. **Stray path detection** — `_validate_canonical_path()` refuses writes to any non-canonical path
 7. **Path obscuring** — path removed from `.env`, stored in private registry; honeypot at default location
 
-**If annihilation detection blocks a legitimate write:** delete `~/.codex/todo-shadow/TODO.md` and retry.
+**If annihilation detection blocks a legitimate write** (e.g. bulk-archiving many completed tasks): delete `~/.codex/todo-shadow/TODO.md` and retry. The shadow is recreated on the next successful write.
 
 ### Incidents
 | Date | What Happened |
