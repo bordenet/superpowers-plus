@@ -640,7 +640,7 @@ AUGMENT_MENU_SKILLS=(
     detecting-ai-slop
     eliminating-ai-slop
     todo-management
-    pre-commit-gate
+    unified-commit-gate
     pre-push-quality-gate
     superpowers-help
     providing-code-review
