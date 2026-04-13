@@ -86,6 +86,59 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# --- Overlay discovery and update ---
+# Finds all managed overlay repos in ~/.codex/superpowers-*/ and updates each one.
+# An overlay qualifies if it has both install.sh and install-state/ present.
+# Overlays that are part of the core chain (superpowers-plus, superpowers,
+# superpowers-augment) are skipped — they're handled by the sp-update core.
+run_overlay_updates() {
+    local codex_dir="$HOME/.codex"
+    local found_any=false
+    local overlay_dir overlay_name
+
+    # Core dirs that are NOT user overlays — skip them
+    local skip_list=" superpowers superpowers-plus superpowers-augment "
+
+    for overlay_dir in "$codex_dir"/superpowers-*/; do
+        [[ -d "$overlay_dir" ]] || continue
+        overlay_name=$(basename "$overlay_dir")
+
+        # Skip core dirs
+        [[ "$skip_list" == *" $overlay_name "* ]] && continue
+
+        # Must have install.sh and install-state/ to qualify as a managed overlay
+        [[ -f "$overlay_dir/install.sh" ]] || continue
+        [[ -d "$overlay_dir/install-state" ]] || continue
+
+        found_any=true
+        log_info "Updating overlay: $overlay_name..."
+
+        # Pull latest from remote — best effort; continue if it fails
+        if [[ -d "$overlay_dir/.git" ]]; then
+            if git -C "$overlay_dir" pull --ff-only --quiet 2>/dev/null; then
+                [[ "$VERBOSE" == "true" ]] && log_info "  $overlay_name: pulled latest"
+            else
+                log_warn "  $overlay_name: git pull failed — continuing with existing version"
+            fi
+        fi
+
+        # Run the overlay's installer with --upgrade to deploy its skills
+        local overlay_args=("--upgrade" "--yes")
+        [[ "$VERBOSE" == "true" ]] && overlay_args+=("--verbose")
+
+        if bash "$overlay_dir/install.sh" "${overlay_args[@]}"; then
+            log_success "Overlay updated: $overlay_name"
+        else
+            log_warn "Overlay update failed: $overlay_name"
+            log_warn "  Run manually: bash $overlay_dir/install.sh --upgrade"
+        fi
+    done
+
+    if [[ "$found_any" == "false" ]]; then
+        [[ "$VERBOSE" == "true" ]] && log_info "No managed overlays found in $codex_dir"
+    fi
+}
+
 # --- Main ---
 main() {
     local managed_dir
@@ -222,6 +275,9 @@ main() {
     else
         log_warn "install.sh not found — skipping re-deploy"
     fi
+
+    # Update any installed overlay repos (superpowers-recruiting, superpowers-cari, etc.)
+    run_overlay_updates
 
     # Run superpowers-doctor to report installation health after update.
     # Advisory only: doctor warnings do not fail sp-update because they are
