@@ -61,7 +61,8 @@ graph TD
   end
 
   subgraph commit-gates["Commit Gates"]
-    pre_commit_gate["pre-commit-gate"]
+    unified_commit_gate["unified-commit-gate (/sp-commit)"]
+    pre_commit_gate["pre-commit-gate (Gate 1)"]
     enforce_style_guide["enforce-style-guide"]
     progressive_code_review_gate["progressive-code-review-gate"]
     professional_language_audit["professional-language-audit"]
@@ -297,7 +298,7 @@ graph TD
 | Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
 | Debugging | `investigation-state` | Coordinated skill group |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
-| Commit Gates | `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
+| Commit Gates | `unified-commit-gate`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit; `unified-commit-gate` is the entry point (`/sp-commit`) |
 | Quality | `progressive-harsh-review` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
 | Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |

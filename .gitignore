@@ -69,3 +69,11 @@ tools/internal-sync.sh
 .agents/
 ADOPT-PROMPT.md
 AGENTS.md.original
+# Junk / scratch files (slop-sync was accidentally committed in history)
+slop-sync
+# Windows platform artifacts (legacy from Claude Code Windows era)
+hooks/run-hook.cmd
+.codex/*.cmd
+# Gemini local generated files (machine-specific, not project source)
+.gemini/mcp-server/
+.gemini/skills

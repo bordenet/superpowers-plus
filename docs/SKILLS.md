@@ -12,7 +12,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
-| `engineering-rigor` | Hub skill pointing to pre-commit-gate, blast-radius-check, and providing-code-review. |
+| `engineering-rigor` | Hub skill pointing to unified-commit-gate, blast-radius-check, and providing-code-review. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `feature-development` | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | `field-rename-verification` | Traces READ, STORE, PASS paths when renaming fields or changing API contracts. |
@@ -24,7 +24,8 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `llm-behavior-investigator` | Diagnoses LLM/prompt behavior issues: tool selection, prompt regressions, parsing failures. |
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
-| `pre-commit-gate` | Runs lint, typecheck, test locally before committing. |
+| `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |
+| `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. |
 | `pre-push-quality-gate` | Mandatory quality gate before any git push: auto-detects toolchain (Biome/ESLint, tsc, vitest/jest) and runs lint+typecheck+test. |
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
 | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <6 = reject. |
