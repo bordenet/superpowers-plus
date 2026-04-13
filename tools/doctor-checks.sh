@@ -51,7 +51,18 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Source .env for overlay path (SP_OVERLAY_SOURCE_DIR) and other config
 # shellcheck source=/dev/null
-[[ -f "$HOME/.codex/.env" ]] && source "$HOME/.codex/.env"
+if [[ -f "$HOME/.codex/.env" ]]; then
+    if ! source "$HOME/.codex/.env" 2>/dev/null; then
+        echo "[WARN] ~/.codex/.env has syntax errors — skipping source"
+        echo "       Fix: check for unquoted angle-bracket placeholders (e.g., VAR=<value>)"
+        # Fall back to grep-based extraction for critical vars
+        while IFS='=' read -r _key _val; do
+            [[ "$_key" =~ ^#|^$ ]] && continue
+            [[ "$_val" == '<'* ]] && continue  # skip placeholders
+            export "$_key=$_val" 2>/dev/null || true
+        done < "$HOME/.codex/.env"
+    fi
+fi
 
 # Fix modes: none < safe < moderate (--fix)
 # --fix-safe:  Non-destructive only (sync drift, CRLF, BOM, name mismatch, ref sync)
