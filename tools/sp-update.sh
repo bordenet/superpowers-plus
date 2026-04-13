@@ -87,6 +87,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- Overlay discovery and update ---
+# Finds all managed overlay repos in ~/.codex/superpowers-*/ and updates each one.
 # Qualification: real git repo (not a symlink) with install.sh and install-state/.
 # Overlays that are part of the core chain (superpowers-plus, superpowers,
 # superpowers-augment) are skipped — they're handled by the sp-update core.
@@ -326,7 +327,7 @@ main() {
         log_warn "install.sh not found — skipping re-deploy"
     fi
 
-    # Update any installed overlay repos (private overlays)
+    # Update any installed overlay repos discovered in ~/.codex/superpowers-*/
     run_overlay_updates
 
     # Run superpowers-doctor to report installation health after update.
