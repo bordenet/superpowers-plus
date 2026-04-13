@@ -17,7 +17,7 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 |-------|---------|
 | **obra/superpowers (base)** | Core framework skills: `plan-and-execute`, `investigation-state`, and ~50 others |
 | **superpowers-plus overrides** | 9 skills that replace upstream versions with additional enforcement gates |
-| **superpowers-plus additions** | 80 net-new skills covering engineering, wiki, security, research, and more |
+| **superpowers-plus additions** | 82 net-new skills covering engineering, wiki, security, research, and more |
 
 ---
 
@@ -250,7 +250,7 @@ flowchart LR
 
 ## Domain Reference
 
-All 91 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
+All 93 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
 
 | Domain | Count | Skills |
 |--------|-------|--------|
@@ -266,5 +266,5 @@ All 91 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream 
 
 ---
 
-*2026-04-09. 91 skills across 9 domains (9 overrides, 2 base, 80 net-new).*
+*2026-04-13. 93 skills across 9 domains (9 overrides, 2 base, 82 net-new).*
 *Full skill descriptions: [SKILLS.md](SKILLS.md)*
