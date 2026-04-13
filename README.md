@@ -25,6 +25,7 @@ Each skill exists because it caught a real problem.
 | [**detecting-ai-slop**](skills/writing/detecting-ai-slop/skill.md) | Scores text 0-100 for machine-generated patterns across lexical, structural, semantic, and stylometric dimensions. |
 | [**wiki-orchestrator**](skills/wiki/wiki-orchestrator/skill.md) | Pipeline for bulk documentation: de-dup, content, coherence, links, secrets, slop detection, fact-check, publish. |
 | [**evolution-loop**](skills/observability/evolution-loop/skill.md) | Self-improvement cycle: scans failures for recurring patterns, generates skill updates, tracks metrics over time. |
+| [**unified-commit-gate**](skills/engineering/unified-commit-gate/skill.md) | Runs all 5 commit gates in sequence (lint/build/test → style → code review → language → IP audit). Slash command: `/sp-commit`. Deep-dive into any gate via its individual skill. |
 
 ## Quick Start
 
@@ -47,6 +48,7 @@ Then tell your AI assistant what you're doing:
 | "Review this code" | `code-review-battery` dispatches 5 parallel reviewers |
 | "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
 | "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
+| "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
 
 **CLI matching** (for debugging): `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"`
 
@@ -225,7 +227,8 @@ Skills form pipelines with explicit dependencies. The diagram shows inter-skill 
 ```mermaid
 graph LR
   subgraph commit-gates["Commit Gates"]
-    pre_commit_gate["pre-commit-gate"] --> enforce_style_guide["enforce-style-guide"]
+    unified_commit_gate["unified-commit-gate (/sp-commit)"] --> pre_commit_gate["pre-commit-gate (Gate 1)"]
+    pre_commit_gate --> enforce_style_guide["enforce-style-guide"]
     enforce_style_guide --> progressive_code_review_gate["progressive-code-review-gate"]
     progressive_code_review_gate --> professional_language_audit["professional-language-audit"]
     professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
@@ -268,7 +271,7 @@ graph LR
 
 | Group | Flow | Purpose |
 |-------|------|---------|
-| Commit Gates | pre-commit → style → code review → language → IP audit | Quality checks before `git commit` |
+| Commit Gates | `/sp-commit` → unified-commit-gate → pre-commit (Gate 1) → style → code review → language → IP audit | Quality checks before `git commit` |
 | Completion Gate | output-verification (generated output) or exhaustive-audit (bulk edits) → verification | Context-dependent gates before claiming done |
 | Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
 | Wiki Pipeline | orchestrator → coherence → links → secrets → slop → markdown structure → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
@@ -276,7 +279,7 @@ graph LR
 
 ### Quality Gates Policy
 
-The commit-gate chain (style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
+The commit-gate chain (`unified-commit-gate` → pre-commit → style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
 
 **`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit.
 

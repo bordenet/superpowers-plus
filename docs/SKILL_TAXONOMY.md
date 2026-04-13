@@ -140,14 +140,15 @@ Linear enforcement pipeline. Every commit must clear all gates in sequence.
 ```mermaid
 flowchart LR
     ER[engineering-rigor]
-    PCG[pre-commit-gate]
+    UCG[unified-commit-gate /sp-commit]
+    PCG[pre-commit-gate Gate 1]
     ESG[enforce-style-guide]
     PCRG[progressive-code-review-gate]
     PLA[professional-language-audit]
     PRIA[public-repo-ip-audit]
     DONE([commit allowed])
 
-    ER --> PCG --> ESG --> PCRG --> PLA --> PRIA --> DONE
+    ER --> UCG --> PCG --> ESG --> PCRG --> PLA --> PRIA --> DONE
 ```
 
 ---
@@ -253,7 +254,7 @@ All 91 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream 
 
 | Domain | Count | Skills |
 |--------|-------|--------|
-| **engineering** | 36 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, debate, engineering-rigor, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, pre-push-quality-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, typescript-project-conventions, typescript-strict-mode, verification-before-completion **[OVERRIDE]**, vitest-testing-patterns |
+| **engineering** | 37 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, debate, engineering-rigor, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, pre-push-quality-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, typescript-project-conventions, typescript-strict-mode, unified-commit-gate, verification-before-completion **[OVERRIDE]**, vitest-testing-patterns |
 | **experimental** | 1 | experimental-self-prompting |
 | **issue-tracking** | 5 | issue-authoring, issue-comment-debunker, issue-editing, issue-link-verification, issue-verify |
 | **observability** | 8 | completeness-check, evolution-loop, exhaustive-audit-validation, failure-autopsy, holistic-repo-verification, measurement-integrity, skill-health-check, superpowers-doctor |
