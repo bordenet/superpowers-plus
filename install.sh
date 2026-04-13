@@ -200,7 +200,7 @@ OPTIONS
     -v, --verbose
         Show detailed progress information
 
-    --upgrade
+    --upgrade, --update
         Explicitly upgrade an existing superpowers installation. Requires
         superpowers to already be installed. Shows before/after version
         comparison. Use with --force to discard local changes first.
@@ -282,7 +282,7 @@ while [[ $# -gt 0 ]]; do
         -y|--yes) YES=true; shift ;;
         --check) CHECK=true; shift ;;
         --force) FORCE=true; shift ;;
-        --upgrade) UPGRADE=true; shift ;;
+        --upgrade|--update) UPGRADE=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
             printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
