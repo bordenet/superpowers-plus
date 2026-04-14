@@ -16,7 +16,7 @@ Each skill exists because it caught a real problem.
 
 | Skill | What it does |
 |-------|-------------|
-| [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. |
+| [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
 | [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
@@ -45,7 +45,7 @@ Then tell your AI assistant what you're doing:
 |------------|-----------------|
 | "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
 | "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
-| "Review this code" | `code-review-battery` dispatches 5 parallel reviewers |
+| "Review this code" or `/sp-cr-battery [min-score]` | `code-review-battery` dispatches 5 parallel reviewers (optional 1.0–10.0 quality threshold, default 7.0) |
 | "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
 | "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
 | "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
@@ -281,7 +281,7 @@ graph LR
 
 The commit-gate chain (`unified-commit-gate` → pre-commit → style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
 
-**`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit.
+**`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit. The sentinel format is `v1|SHA|VERDICT|TIMESTAMP|min-score=N`; write it only via `tools/run-battery.sh [--min-score N] --verdict PASS`. The primary slash command is `/sp-cr-battery`.
 
 **Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`). If `SUPERPOWERS_SKILLS_DIR` points to a nonexistent or incomplete directory the runtime falls back to `~/.codex/skills/`; verify with `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` after setting the variable.
 
@@ -322,6 +322,8 @@ Utility scripts in `tools/`:
 
 | Tool | Purpose |
 |------|---------|
+| `run-battery.sh` | Runs the automated quality suite (harsh-review, trigger tests, export integrity, skill router tests); writes the `.code-review-cleared` sentinel. Accepts `--verdict PASS\|PASS_WITH_NITS` and optional `--min-score N` (1.0–10.0, default 7.0). |
+| `commit-gate.sh` | Runs lint/test/harsh-review and mints a short-lived review token consumed by the pre-commit hook. |
 | `doctor-checks.sh` | 22-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
