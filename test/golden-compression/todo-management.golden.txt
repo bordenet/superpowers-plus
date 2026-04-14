@@ -109,6 +109,10 @@ Conversational TODO management. Captures tasks in ≤15 seconds, P1/P2/P3 priori
 | **P3** | Backlog | ∞ | Complete when capacity allows |
 
 **P1 Overload:** If P1 count > 5, warn: "You have [N] P1s. That's unsustainable—want to demote any?"
+## References
+- **Tags**: Auto-inferred. Use `#plan-<id>` for parallel work. Full taxonomy: `references/taxonomy.md`
+- **File format**: `references/file-format-and-operations.md` (sections, IDs, operations, lock workflow)
+- **Context-Aware**: `references/context-aware-standard.md` — enforce on `#plan-*` tasks
 ## Guardrails
 P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress. Plan tasks without Context-Aware fields → warn.
 
