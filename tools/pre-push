@@ -218,15 +218,53 @@ echo "  PRE-PUSH: Running quality gates..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Private remotes (self-hosted mirrors, internal GitLab, etc.) receive content
-# that is already published on a public remote and has already passed all gates
-# there. Skip both gates for private remotes: the sentinel check requires the
-# pushed SHA to match the locally-set sentinel, which is never true for branch
-# sync operations (different branches have different tip SHAs). The IP scan is
-# already skipped below for private remotes.
-if [[ "$IS_PUBLIC_REMOTE" == "false" ]]; then
-    echo "  Skipping all gates — private remote: $REMOTE_URL"
-    echo "  (content already gated at the public origin)"
+# Private remotes are downstream mirrors of origin. They MUST only receive SHAs
+# that already exist on origin/ — locally-created commits must never be pushed
+# here directly. All changes go to origin first; private mirrors are synced by
+# pushing origin/<branch> refs, not local branch refs.
+#
+# Valid:   git push <mirror> origin/main:main   → SHA matches origin/main ✓
+# Blocked: git push <mirror> HEAD:main          → SHA not on origin ✗
+#
+# The mirror check only applies when origin itself is a known public host.
+# If origin is absent or is also a private URL (e.g., test fixtures, local
+# bare repos), we cannot enforce the mirror policy — fall through to normal gates.
+ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
+ORIGIN_IS_PUBLIC=false
+if echo "$ORIGIN_URL" | grep -qE '(github\.com|gitlab\.com|bitbucket\.org)'; then
+    ORIGIN_IS_PUBLIC=true
+fi
+if [[ "$IS_PUBLIC_REMOTE" == "false" && "$ORIGIN_IS_PUBLIC" == "true" ]]; then
+    echo "  Private remote: $REMOTE_URL"
+    echo "  Enforcing mirror-only policy: pushed SHAs must exist on origin."
+    echo ""
+    MIRROR_ERRORS=0
+    while read -r _ local_sha remote_ref _; do
+        [[ "$local_sha" == "0000000000000000000000000000000000000000" ]] && continue
+        branch="${remote_ref#refs/heads/}"
+        origin_sha="$(git rev-parse "origin/$branch" 2>/dev/null || true)"
+        if [[ -z "$origin_sha" ]]; then
+            echo -e "  ${RED}❌ PUSH BLOCKED: origin/$branch does not exist.${NC}"
+            echo "  Push to origin first, then sync: git push <mirror> origin/$branch:$branch"
+            MIRROR_ERRORS=$((MIRROR_ERRORS + 1))
+        elif [[ "$local_sha" != "$origin_sha" ]]; then
+            echo -e "  ${RED}❌ PUSH BLOCKED: $branch — pushed SHA is not on origin/$branch.${NC}"
+            echo "    Pushing:        ${local_sha:0:8}"
+            echo "    origin/$branch: ${origin_sha:0:8}"
+            echo "  Push to origin first, then sync: git push <mirror> origin/$branch:$branch"
+            MIRROR_ERRORS=$((MIRROR_ERRORS + 1))
+        else
+            echo -e "  ${GREEN}✓ $branch — ${local_sha:0:8} matches origin/$branch${NC}"
+        fi
+    done
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    if [[ $MIRROR_ERRORS -gt 0 ]]; then
+        echo -e "${RED}  PUSH BLOCKED: $MIRROR_ERRORS mirror policy violation(s).${NC}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        exit 1
+    fi
+    echo -e "${GREEN}  Mirror policy satisfied. Push allowed.${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 0
 fi
