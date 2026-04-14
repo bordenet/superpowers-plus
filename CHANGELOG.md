@@ -6,6 +6,12 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- `code-review-battery`: `/sp-codereview-battery` slash command (primary, discoverable). `/sp-deepreview` retained as legacy synonym. `/sp-prism` added as metaphor alias (one diff → 5 focused review lenses), documented in skill body and description.
+
 ## [1.0.0] - 2026-04-13
 
 ### Added
