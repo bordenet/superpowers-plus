@@ -36,10 +36,49 @@ assert(!compressSkillContent('## Anti-Patterns\nsome patterns\n\n## Procedure\nr
     'strips Anti-Patterns sections');
 assert(!compressSkillContent('## Rationalizations to Reject\n| a | b |\n\n## Procedure\nreal').includes('Reject'),
     'strips Rationalizations to Reject');
-assert(!compressSkillContent('## References\n- link1\n- link2\n\n## Procedure\nreal').includes('link1'),
-    'strips References sections');
-assert(!compressSkillContent('## Reference: Shell Guide\ncontent\n\n## Procedure\nreal').includes('Shell Guide'),
-    'strips Reference: variant sections');
+// References and Incident Log/Record/History are now PRESERVED (incident 2026-04-14).
+// Stripping them deleted pointers to reference files and recurrence-prevention context.
+assert(compressSkillContent('## References\n- link1\n- link2\n\n## Procedure\nreal').includes('link1'),
+    'preserves References sections (incident 2026-04-14)');
+assert(compressSkillContent('## Incident Log\n| Date | Issue |\n|------|-------|\n| 2026-02-20 | Bad URL |\n\n## Procedure\nreal').includes('Bad URL'),
+    'preserves Incident Log sections (incident 2026-04-14)');
+assert(compressSkillContent('## Incident Record\n| Date | What |\n|------|------|\n| 2026 | Bug |\n\n## Procedure\nreal').includes('Bug'),
+    'preserves Incident Record sections (incident 2026-04-14)');
+assert(compressSkillContent('## Incident History\n| Date | What |\n|------|------|\n| 2026 | Bug |\n\n## Procedure\nreal').includes('Bug'),
+    'preserves Incident History sections (incident 2026-04-14)');
+assert(compressSkillContent('## Hallucination Prevention\n\n<EXTREMELY_IMPORTANT>\nNEVER fabricate.\n</EXTREMELY_IMPORTANT>\n\n## Procedure\nreal').includes('NEVER fabricate'),
+    'preserves Hallucination Prevention sections (incident 2026-04-14)');
+
+// EXTREMELY_IMPORTANT extraction and rescue
+console.log('\n--- EXTREMELY_IMPORTANT extraction ---');
+// Rescue from stripped section: block inside a stripped heading is appended at EOF
+const rescued = compressSkillContent('## When to Use\nboilerplate\n\n<EXTREMELY_IMPORTANT>\nCRITICAL RULE\n</EXTREMELY_IMPORTANT>\n\n## Procedure\nreal');
+assert(rescued.includes('CRITICAL RULE'), 'rescues EXTREMELY_IMPORTANT from stripped sections');
+assert(!rescued.includes('boilerplate'), 'still strips boilerplate around rescued block');
+assert(rescued.includes('Critical Rules (preserved from compression)'), 'rescued blocks get a synthetic heading');
+
+// Hyphenated variant
+assert(compressSkillContent('## Procedure\n<EXTREMELY-IMPORTANT>\nhyphenated rule\n</EXTREMELY-IMPORTANT>\ncontent').includes('hyphenated rule'),
+    'preserves EXTREMELY-IMPORTANT (hyphenated variant)');
+
+// Empty block produces clean output (no blank-line injection, no placeholders)
+eq(compressSkillContent('<EXTREMELY_IMPORTANT>\n</EXTREMELY_IMPORTANT>\nrest'), 'rest',
+    'empty EXTREMELY_IMPORTANT block produces clean output');
+
+// Both variants in same document
+const both = compressSkillContent('<EXTREMELY_IMPORTANT>\nrule-A\n</EXTREMELY_IMPORTANT>\n<EXTREMELY-IMPORTANT>\nrule-B\n</EXTREMELY-IMPORTANT>\ncontent');
+assert(both.includes('rule-A') && both.includes('rule-B'),
+    'handles both tag variants in same document');
+
+// Cross-variant tags do NOT match (underscore open, hyphen close)
+const crossVariant = compressSkillContent('<EXTREMELY_IMPORTANT>\nrule\n</EXTREMELY-IMPORTANT>\ncontent');
+assert(crossVariant.includes('<EXTREMELY_IMPORTANT>') || crossVariant.includes('rule'),
+    'cross-variant tags do not silently match');
+
+// Tags inside code blocks are NOT extracted
+const codeExample = '## Guide\n```xml\n<EXTREMELY_IMPORTANT>\nexample\n</EXTREMELY_IMPORTANT>\n```\nreal';
+assert(compressSkillContent(codeExample).includes('<EXTREMELY_IMPORTANT>'),
+    'EXTREMELY_IMPORTANT inside code block is NOT extracted');
 
 // Preserved sections
 assert(compressSkillContent('## Failure Modes\n| a | b |\n\n## Other\ntext').includes('Failure Modes'),
@@ -86,7 +125,7 @@ console.log('\n--- Golden file regression ---');
 const goldenDir = path.join(__dirname, 'golden-compression');
 const { stripFrontmatter } = require('../lib/frontmatter');
 const skills = ['plan-and-execute', 'code-review-battery', 'verification-before-completion',
-                'todo-management', 'pre-push-quality-gate'];
+                'todo-management', 'pre-push-quality-gate', 'link-verification'];
 
 for (const skill of skills) {
     const goldenPath = path.join(goldenDir, `${skill}.golden.txt`);

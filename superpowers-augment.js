@@ -495,15 +495,8 @@ function useSkill(skillName, options = {}) {
 }
 
 /**
- * Compress skill content by stripping repeated boilerplate patterns.
- * Strips: DOT graphs, EXTREMELY-IMPORTANT wrappers (keeps inner text),
- * "When to Use", "Overview", "Common Rationalizations", "Why X Matters",
- * "Quick Reference", "Related Skills", "Cross-References", "Integration with",
- * "Reference Files", "When This Skill Fires", "When NOT to Use",
- * "Manual Invocation", "Incident Log", "I'm Stuck", YAML frontmatter (redundant),
- * horizontal rules, HTML comments, excessive blank lines.
- * Preserves: Failure Modes, SUBAGENT-STOP, HARD-GATE blocks, checklists,
- * procedures, code examples, tables with data.
+ * Compress skill content — see lib/compress.js for the authoritative
+ * strip/preserve lists and EXTREMELY_IMPORTANT extraction logic.
  * Per-skill opt-out: add `compress: false` to YAML frontmatter.
  */
 // compressSkillContent imported from lib/compress.js (see imports at top)
