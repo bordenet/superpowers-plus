@@ -1,5 +1,7 @@
 Analyzing 61 skills...
 
+> **Note:** Token costs below are estimated from **raw, uncompressed** file sizes (`fileSize / 4`). Actual injection cost is lower — `lib/compress.js` strips boilerplate sections (20–40% reduction). Operative content (`<EXTREMELY_IMPORTANT>` blocks, `Failure Modes`, `Incident Log`, `References`, `Hallucination Prevention`) is preserved. See `docs/ARCHITECTURE.md § Skill Content Compression`.
+
 Domain	Skill	Size	Aux	Refs (n/lines)	Chains	Verify	SubAgents	Est. Cost
 ------------------------------------------------------------------------
 engineering	subagent-driven-development	67	0	0/0	1	0	14	45.3 (high)
