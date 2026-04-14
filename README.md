@@ -287,6 +287,8 @@ The commit-gate chain (`unified-commit-gate` → pre-commit → style → code r
 
 > **Token budget:** A wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → fact-check → publish) typically costs 30–50k tokens per edit. Run `bash tools/skill-cost-analyzer.sh` before scheduling bulk changes to estimate impact.
 
+> **Compression:** Skills are compressed before injection via `lib/compress.js` (20–40% token reduction). Boilerplate sections (`When to Use`, `Examples`, etc.) are stripped. Operative content — `<EXTREMELY_IMPORTANT>` blocks, `Failure Modes`, `Incident Log`, `References`, `Hallucination Prevention` — is preserved unconditionally. Add `compress: false` to a skill's YAML frontmatter to opt out. See `docs/ARCHITECTURE.md § Skill Content Compression` for details.
+
 ## Extending
 
 ```text
