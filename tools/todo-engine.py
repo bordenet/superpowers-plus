@@ -237,6 +237,13 @@ def _normalize_whitespace(content: str) -> str:
 # refuses to write content that does not match the canonical TODO.md structure.
 
 # Required top-level headers in the order they must appear.
+# FORMAT EVOLUTION NOTE: Adding a new required section (e.g. "# RECURRING") is a
+# breaking change — all existing TODO.md files must be migrated before deploying the
+# updated engine, or write_file() will refuse ALL writes to unmigrated files.
+# Migration procedure: (1) run todo-maintenance.sh --dry-run to find affected files,
+# (2) add the new header to each file via todo-crud.sh migrate-header (if implemented),
+# or (3) temporarily remove the new entry from REQUIRED_HEADERS, deploy, migrate, then
+# add it back. Never remove existing entries — that weakens the structural guarantee.
 REQUIRED_HEADERS = ["# ACTIVE TASKS", "# HISTORY", "# DEFERRED", "# METRICS"]
 
 # Required priority subsections under # ACTIVE TASKS, in order.
@@ -264,6 +271,14 @@ def validate_structure(content: str) -> None:
       4. Priority subsections (P1/P2/P3) present, unique, and in order.
       5. Content has at least one non-header, non-separator line (task, date,
          metadata) to prevent scaffold-only wipes.
+
+    SCOPE: Guards calls that go through write_file() (i.e., todo-crud.sh operations).
+    First-time file creation via todo-preflight.sh --create-if-missing writes a
+    scaffold directly via heredoc, intentionally bypassing this gate — the system
+    is authoring the template, not an agent overwriting existing content.
+    OS-level immutability (chflags uchg / chattr +i) guards against direct writes
+    by agent tools (save-file, str-replace-editor, shell redirects) that never reach
+    this function. See the 7-layer enforcement table in core.always.md.
     """
     lines = content.split("\n")
 
