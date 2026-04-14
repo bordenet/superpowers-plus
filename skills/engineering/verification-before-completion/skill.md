@@ -147,7 +147,7 @@ Any `must-address` item → **STOP** → fix → restart gate from Step 1.
 ### Step 0 — Sentinel short-circuit (run FIRST, before dispatching anything)
 
 ```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
 cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
 echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 # Check for uncommitted/staged changes (unreviewed code not yet in HEAD)
