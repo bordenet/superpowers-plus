@@ -16,7 +16,7 @@ Each skill exists because it caught a real problem.
 
 | Skill | What it does |
 |-------|-------------|
-| [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. |
+| [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. Slash command: `/sp-codereview-battery`. |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
 | [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
@@ -45,7 +45,7 @@ Then tell your AI assistant what you're doing:
 |------------|-----------------|
 | "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
 | "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
-| "Review this code" | `code-review-battery` dispatches 5 parallel reviewers |
+| "Review this code" or `/sp-codereview-battery` | `code-review-battery` dispatches 5 parallel reviewers |
 | "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
 | "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
 | "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
