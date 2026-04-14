@@ -408,8 +408,14 @@ function useSkill(skillName, options = {}) {
         console.error('Error: ' + resolved.error);
         process.exit(1);
     }
+    // Alias fallback: scan all installed skills for a matching alias (case-insensitive)
+    if (!skillFile && !forceSpp && !forceSpo) {
+        skillFile = resolveAlias(actualName);
+    }
     if (!skillFile) {
         console.error('Error: Skill "' + skillName + '" not found');
+        if (forceSpp) console.error('Searched superpowers-plus source: ' + SPP_SOURCE_DIR);
+        if (forceSpo) console.error('Searched overlay source: ' + OVERLAY_SOURCE_DIR);
         const suggestions = suggestSimilarSkills(actualName);
         if (suggestions.length > 0) {
             console.error('Did you mean: ' + suggestions.join(', ') + '?');
@@ -524,6 +530,9 @@ Process skills (debugging, brainstorming) before implementation skills.
     // Build and emit the skill index (O(1) token cost regardless of skill count)
     emitSkillIndex();
 
+    // Warn on alias collisions once at bootstrap (non-fatal, stderr only)
+    detectAliasCollisions();
+
     // Show workflow state if active (advisory — costs 1 line when active, 0 when not)
     const wsStatus = workflowState.getStatus();
     if (wsStatus) {
@@ -540,22 +549,30 @@ function buildSkillIndex() {
     return findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
 }
 
+// Module-level skill index cache — avoids re-scanning the filesystem on
+// every resolveAlias / suggestSimilarSkills call within one process.
+let _cachedSkillIndex = null;
+function _getSkillIndex() {
+    if (!_cachedSkillIndex) _cachedSkillIndex = buildSkillIndex();
+    return _cachedSkillIndex;
+}
+
 /**
  * Resolve a skill name via alias lookup.
- * Scans all installed skills' frontmatter for an `aliases` field that
- * contains the given name (case-insensitive).  Returns the skill file
- * path or null.
+ * Checks the `aliases` frontmatter field (case-insensitive exact match),
+ * then falls back to a case-insensitive name match.  Returns the skill
+ * file path or null.  Uses the module-level cache to avoid repeated scans.
  */
 function resolveAlias(requestedName) {
     const needle = requestedName.toLowerCase();
-    const allSkills = buildSkillIndex();
+    const allSkills = _getSkillIndex();
+    // Tier 1: exact alias match
     for (const skill of allSkills) {
-        if (!skill.aliases || skill.aliases.length === 0) continue;
-        if (skill.aliases.some(a => a.toLowerCase() === needle)) {
+        if (skill.aliases && skill.aliases.some(a => a.toLowerCase() === needle)) {
             return skill.skillFile;
         }
     }
-    // Also try case-insensitive match on the skill name itself
+    // Tier 2: case-insensitive name match
     for (const skill of allSkills) {
         if (skill.name.toLowerCase() === needle) {
             return skill.skillFile;
@@ -565,29 +582,63 @@ function resolveAlias(requestedName) {
 }
 
 /**
+ * Detect alias collisions across all installed skills.
+ * Emits a console.error warning for any alias declared by more than one skill.
+ * Called once at bootstrap — non-fatal (first-registered skill wins).
+ */
+function detectAliasCollisions() {
+    const allSkills = _getSkillIndex();
+    const aliasMap = new Map(); // alias → [skill names]
+    for (const skill of allSkills) {
+        if (!skill.aliases) continue;
+        for (const alias of skill.aliases) {
+            const key = alias.toLowerCase();
+            if (!aliasMap.has(key)) aliasMap.set(key, []);
+            aliasMap.get(key).push(skill.name);
+        }
+    }
+    for (const [alias, owners] of aliasMap) {
+        if (owners.length > 1) {
+            console.error(`[superpowers-augment] WARNING: Alias "${alias}" claimed by multiple skills: ${owners.join(', ')} — first match wins`);
+        }
+    }
+}
+
+/**
  * Find close matches for a skill name (for "did you mean?" suggestions).
- * Returns up to 3 skill names that contain the search string.
+ * Returns up to 3 skill names ranked by match quality:
+ *   1. Exact alias match
+ *   2. Alias prefix/substring match
+ *   3. Skill name contains the query (or query contains stripped name)
+ * Consistent ordering regardless of filesystem directory enumeration order.
  */
 function suggestSimilarSkills(requestedName) {
     const needle = requestedName.toLowerCase();
-    const allSkills = buildSkillIndex();
-    const matches = [];
+    const allSkills = _getSkillIndex();
+    const tier1 = []; // exact alias
+    const tier2 = []; // alias substring
+    const tier3 = []; // name substring
+    const added = new Set();
+
+    const push = (tier, name) => {
+        if (!added.has(name)) { tier.push(name); added.add(name); }
+    };
+
     for (const skill of allSkills) {
-        if (skill.name.toLowerCase().includes(needle) ||
-            needle.includes(skill.name.toLowerCase().replace(/-/g, ''))) {
-            matches.push(skill.name);
-        }
-        // Also check aliases for partial matches
+        const nameLower = skill.name.toLowerCase();
         if (skill.aliases) {
             for (const alias of skill.aliases) {
-                if (alias.toLowerCase().includes(needle) || needle.includes(alias.toLowerCase())) {
-                    if (!matches.includes(skill.name)) matches.push(skill.name);
-                }
+                const al = alias.toLowerCase();
+                if (al === needle)                     push(tier1, skill.name);
+                else if (al.includes(needle) || needle.includes(al)) push(tier2, skill.name);
             }
         }
-        if (matches.length >= 3) break;
+        if (nameLower.includes(needle) || needle.includes(nameLower.replace(/-/g, ''))) {
+            push(tier3, skill.name);
+        }
     }
-    return matches;
+
+    return [...tier1, ...tier2, ...tier3].slice(0, 3);
 }
 
 function emitSkillIndex() {
