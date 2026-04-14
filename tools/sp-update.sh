@@ -327,7 +327,7 @@ main() {
         log_warn "install.sh not found — skipping re-deploy"
     fi
 
-    # Update any installed overlay repos discovered in ~/.codex/superpowers-*/
+    # Update any installed overlay repos (private overlays)
     run_overlay_updates
 
     # Run superpowers-doctor to report installation health after update.
