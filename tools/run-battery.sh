@@ -5,6 +5,7 @@
 #          This is the ONLY permitted way to write the sentinel file.
 #          Run AFTER completing the AI judgment component of code-review-battery.
 # USAGE:   tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]
+#            N = quality threshold, 1.0–10.0 (default 7.0)
 # EXIT:    0 = all checks pass, sentinel written
 #          1 = failure, sentinel NOT written
 # -----------------------------------------------------------------------------
@@ -16,7 +17,7 @@ cd "$REPO_ROOT"
 
 # --- Parse flags ---
 VERDICT="PASS"
-MIN_SCORE=""
+MIN_SCORE="7.0"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --verdict)
@@ -35,6 +36,7 @@ while [[ $# -gt 0 ]]; do
         --min-score)
             if [[ $# -lt 2 ]]; then
                 echo "❌ --min-score requires a value (1.0–10.0)" >&2
+                echo "Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]" >&2
                 exit 1
             fi
             MIN_SCORE="$2"
@@ -57,12 +59,10 @@ if [[ "$VERDICT" != "PASS" && "$VERDICT" != "PASS_WITH_NITS" ]]; then
     exit 1
 fi
 
-if [[ -n "$MIN_SCORE" ]]; then
-    if ! [[ "$MIN_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || \
-       ! awk -v s="$MIN_SCORE" 'BEGIN { exit !(s >= 1.0 && s <= 10.0) }'; then
-        echo "❌ Invalid --min-score '$MIN_SCORE'. Must be a number between 1.0 and 10.0." >&2
-        exit 1
-    fi
+if ! [[ "$MIN_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || \
+   ! awk -v s="$MIN_SCORE" 'BEGIN { exit !(s >= 1.0 && s <= 10.0) }'; then
+    echo "❌ Invalid --min-score '$MIN_SCORE'. Must be a number between 1.0 and 10.0." >&2
+    exit 1
 fi
 
 echo "═══════════════════════════════════════════════════════════"
@@ -140,19 +140,13 @@ fi
 # Do NOT commit .code-review-cleared; push immediately after this script.
 SHA=$(git rev-parse HEAD)
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-if [[ -n "$MIN_SCORE" ]]; then
-    echo "v1|${SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
-else
-    echo "v1|${SHA}|${VERDICT}|${TIMESTAMP}" > "$REPO_ROOT/.code-review-cleared"
-fi
+echo "v1|${SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✅ BATTERY PASSED — sentinel written."
 echo ""
 echo "  Verdict:   ${VERDICT}"
-if [[ -n "$MIN_SCORE" ]]; then
-    echo "  Min-score: ${MIN_SCORE}"
-fi
+echo "  Min-score: ${MIN_SCORE}"
 echo "  Commit:    ${SHA:0:8}"
 echo "  Timestamp: ${TIMESTAMP}"
 echo ""

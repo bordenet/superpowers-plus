@@ -45,7 +45,7 @@ Then tell your AI assistant what you're doing:
 |------------|-----------------|
 | "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
 | "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
-| "Review this code" or `/sp-codereview-battery` | `code-review-battery` dispatches 5 parallel reviewers |
+| "Review this code" or `/sp-codereview-battery [min-score]` | `code-review-battery` dispatches 5 parallel reviewers (optional 1.0–10.0 quality threshold, default 7.0) |
 | "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
 | "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
 | "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
