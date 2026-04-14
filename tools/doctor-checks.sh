@@ -11,6 +11,10 @@
 
 # shellcheck disable=SC2044  # find loops are safe here — skill paths never contain spaces
 set -uo pipefail
+# NOTE on arithmetic style: this script uses both ((VAR++)) and VAR=$((VAR + 1)).
+# Both are safe here because set -e is NOT active (set -uo pipefail, not -euo).
+# Under set -e, ((VAR++)) exits non-zero when VAR is 0 (arithmetic result = 0).
+# mcp-checks.sh uses VAR=$((VAR + 1)) (POSIX-portable); both forms are acceptable.
 
 for _arg in "$@"; do
   [[ "$_arg" == "--help" || "$_arg" == "-h" ]] && { _help_flag=1; break; }
@@ -260,7 +264,7 @@ if [[ -f /proc/version ]] && grep -Eqi 'microsoft|wsl' /proc/version 2>/dev/null
       echo "🟡 WARNING: Skills installed on NTFS mount ($INSTALLED_DIR)"
       echo "   chmod is silently ignored on NTFS. Move skills to a native Linux path."
       echo "   Recommended: ~/.codex/skills/ on ext4 (e.g., ~/)"
-      ((WARNINGS++))
+      WARNINGS=$((WARNINGS + 1))
       ;;
   esac
 fi
