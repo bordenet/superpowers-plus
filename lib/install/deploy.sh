@@ -661,23 +661,27 @@ AUGMENT_MENU_SKILLS=(
     sp-bughunt
 )
 
-# Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
-# Copies the skill directory and renames skill.md → SKILL.md (Augment convention).
-# Called from install_skills() after main deployment completes.
 # Extract the first /sp-* trigger from a skill.md file.
 # Handles both inline YAML array: triggers: ["/sp-foo", ...]
 # and block list format:  triggers:\n  - /sp-foo
+# Also handles single-quoted form: triggers: ['/sp-foo', ...]
 _extract_sp_trigger() {
     local skill_file="$1"
     local t
-    # Inline array: triggers: ["/sp-foo", ...]
+    # Inline array, double-quoted: triggers: ["/sp-foo", ...]
     t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp-[^"]*"' | head -1 | tr -d '"')
+    [[ -n "$t" ]] && echo "$t" && return
+    # Inline array, single-quoted: triggers: ['/sp-foo', ...]
+    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o "'/sp-[^']*'" | head -1 | tr -d "'")
     [[ -n "$t" ]] && echo "$t" && return
     # Block list: - /sp-foo
     t=$(grep -m1 '^ *- /sp-' "$skill_file" 2>/dev/null | sed 's/^ *- //')
     echo "$t"
 }
 
+# Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
+# Copies the skill directory and renames skill.md → SKILL.md (Augment convention).
+# Called from install_skills() after main deployment completes.
 export_augment_menu_skills() {
     [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
 
@@ -704,7 +708,10 @@ export_augment_menu_skills() {
         local sp_trigger dest_name
         sp_trigger=$(_extract_sp_trigger "$source_dir/skill.md")
         dest_name="${sp_trigger#/}"       # strip leading /
-        dest_name="${dest_name:-$skill_name}"  # fallback: use skill name
+        if [[ -z "$dest_name" ]]; then
+            log_warn "  No /sp-* trigger found for $skill_name — exporting as /$skill_name (check skill.md triggers: field)"
+            dest_name="$skill_name"
+        fi
         exported_names["$dest_name"]=1
 
         local dest="$AUGMENT_MENU_DIR/$dest_name"
@@ -731,8 +738,15 @@ export_augment_menu_skills() {
         fi
 
         # Update name: field so Augment shows the sp-* label in the slash menu.
+        # Use python3 for portable in-place edit (sed -i '' fails on Linux GNU sed).
         if [[ -n "$sp_trigger" ]] && [[ "$dest_name" != "$skill_name" ]]; then
-            sed -i '' "s/^name: .*/name: $dest_name/" "$dest/SKILL.md" 2>/dev/null || true
+            python3 -c "
+import sys, re
+path = sys.argv[1]; new_name = sys.argv[2]
+with open(path, 'r') as f: content = f.read()
+content = re.sub(r'^name: .*', 'name: ' + new_name, content, count=1, flags=re.MULTILINE)
+with open(path, 'w') as f: f.write(content)
+" "$dest/SKILL.md" "$dest_name" || log_warn "Failed to update name: field in $dest/SKILL.md"
         fi
 
         exported=$((exported + 1))
