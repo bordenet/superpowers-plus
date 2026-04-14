@@ -65,21 +65,49 @@ function testTfidfPlanAndExecuteRouting() {
   assert.strictEqual(results[0].name, 'plan-and-execute');
 }
 
-function testDuplicateSkillNamesThrow() {
+function testDuplicateSkillNamesWarnsNotThrows() {
+  // assertUniqueSkillNames now warns (console.error) instead of throwing.
+  // Throwing crashed matchSkills on every query when a user has duplicate skill dirs.
   const duplicateSkills = [
     { name: 'duplicate-skill', description: 'first', isSuperpower: true, triggers: ['first trigger'] },
     { name: 'duplicate-skill', description: 'second', isSuperpower: true, triggers: ['second trigger'] },
   ];
 
-  assert.throws(
-    () => assertUniqueSkillNames(duplicateSkills),
-    /Duplicate skill names detected: duplicate-skill/
-  );
+  const errors = [];
+  const origError = console.error;
+  console.error = (...args) => errors.push(args.join(' '));
 
-  assert.throws(
-    () => matchSkillsTfIdf('duplicate skill', duplicateSkills, 2),
-    /Duplicate skill names detected: duplicate-skill/
-  );
+  try {
+    assert.doesNotThrow(() => assertUniqueSkillNames(duplicateSkills));
+    assert(errors.some(e => e.includes('duplicate-skill')),
+      'Expected a console.error warning mentioning the duplicate skill name');
+
+    // matchSkillsTfIdf must also not throw — should warn then proceed
+    errors.length = 0;
+    assert.doesNotThrow(() => matchSkillsTfIdf('duplicate skill', duplicateSkills, 2));
+    assert(errors.some(e => e.includes('duplicate-skill')),
+      'Expected matchSkillsTfIdf to warn about duplicate skill names');
+  } finally {
+    console.error = origError;
+  }
+}
+
+function testValidateIntentPatternsWarnsOnDuplicate() {
+  // validateIntentPatterns uses the same warn-not-throw approach
+  const { validateIntentPatterns } = require('../../lib/skill-router');
+  const errors = [];
+  const origError = console.error;
+  console.error = (...args) => errors.push(args.join(' '));
+  try {
+    const patternWithDupe = [
+      { patterns: ['commit', 'pre-commit'], skills: ['pre-commit-gate'] },
+      { patterns: ['commit'], skills: ['sp-commit'] },  // 'commit' is a duplicate
+    ];
+    assert.doesNotThrow(() => validateIntentPatterns(patternWithDupe));
+    assert(errors.some(e => e.includes('commit')), 'Expected duplicate pattern warning');
+  } finally {
+    console.error = origError;
+  }
 }
 
 testEmbeddingHeuristicBoosts();
@@ -88,6 +116,7 @@ testDebateIntentBoostsWinOnCanonicalTrigger();
 testHeuristicBoostsIgnoreStaleCachedSkill();
 testTfidfStrategicRouting();
 testTfidfPlanAndExecuteRouting();
-testDuplicateSkillNamesThrow();
+testDuplicateSkillNamesWarnsNotThrows();
+testValidateIntentPatternsWarnsOnDuplicate();
 
 console.log('skill-router tests passed');
