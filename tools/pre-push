@@ -123,9 +123,9 @@ check_code_review_sentinel() {
     local field_count
     field_count=$(awk -F'|' '{print NF}' "$SENTINEL_FILE" 2>/dev/null || echo "0")
 
-    if [[ "$sentinel_ver" != "v1" ]] || [[ "$field_count" != "4" ]] || [[ -z "$sentinel_sha" ]] || [[ -z "$sentinel_ts" ]]; then
+    if [[ "$sentinel_ver" != "v1" ]] || [[ "$field_count" -lt 4 ]] || [[ "$field_count" -gt 5 ]] || [[ -z "$sentinel_sha" ]] || [[ -z "$sentinel_ts" ]]; then
         echo ""
-        echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel file format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP, all fields non-empty).${NC}"
+        echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel file format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP[|min-score=N], all fields non-empty).${NC}"
         echo ""
         echo "  Delete .code-review-cleared and re-run code-review-battery."
         echo ""
