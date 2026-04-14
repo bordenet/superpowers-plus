@@ -54,7 +54,7 @@ Apply this protocol whenever you are about to show a human your work — PR link
 **Step 1 — Read the sentinel, HEAD SHA, and worktree state:**
 
 ```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
 cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
 echo "HEAD: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
