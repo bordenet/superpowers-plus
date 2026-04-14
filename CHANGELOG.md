@@ -12,6 +12,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `code-review-battery`: `/sp-cr-battery` slash command (primary, short, easy to type). `/sp-deepreview` retained as legacy synonym.
 - `code-review-battery`: optional `[min-score]` argument (1.0–10.0, default 7.0) sets a numeric quality threshold. Score formula: `10.0 − (Critical×2.5) − (Important×1.5) − (Minor×0.25) − (durable<50% ? 0.5 : 0)`, floor 0.0. Score below threshold aborts Phase 6 (no sentinel written). `tools/run-battery.sh` gains `--min-score N` flag; sentinel always records the threshold as field 5 (`min-score=N`).
+- `link-verification` golden regression file for compression tests
+
+### Fixed
+
+- **Compression safety (incident 2026-04-14):** `STRIP_SECTIONS` was deleting operative safety content — `Hallucination Prevention` sections (containing `<EXTREMELY_IMPORTANT>` URL verification rules), `References` sections (pointers to `references/incidents.md`), and `Incident Log/Record/History` sections. All three are now preserved. Wiki authoring was producing broken hyperlinks as a result.
+- **`<EXTREMELY_IMPORTANT>` block extraction:** Blocks are now extracted before section stripping and restored after, so they survive even if their parent heading is stripped. Blocks rescued from stripped sections are appended under a `## Critical Rules (preserved from compression)` synthetic heading. Code blocks containing EI tags are protected from extraction.
+- **Pre-push mirror policy:** `git fetch origin` now runs before SHA comparison on private-remote pushes to prevent stale-ref bypass. Fetch failure blocks the push (`exit 1`).
+- **Stale JSDoc:** `superpowers-augment.js` compression comment now points to `lib/compress.js` as authoritative source.
+- **GitLab mirror policy:** Added to `.ai-guidance/invariants.md` (repo-level, always in agent context).
 
 ## [1.0.0] - 2026-04-13
 
