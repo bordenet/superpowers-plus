@@ -81,7 +81,7 @@ git diff @{u}..HEAD      # pre-push unpushed commits
 
 Check sentinel first:
 ```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')/.code-review-cleared"
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
 cat "$SENTINEL" 2>/dev/null && git diff --quiet && git diff --cached --quiet && echo "CLEARED"
 ```
 
