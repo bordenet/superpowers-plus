@@ -1,9 +1,11 @@
 ---
 name: code-review-battery
-description: Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses
+description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses. Invoke as: /sp-codereview-battery"
 summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) in parallel with source context for ripple analysis. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
+  - /sp-codereview-battery
   - /sp-deepreview
+  - /sp-prism
   - code review battery
   - battery review
   - parallel review
@@ -34,7 +36,7 @@ composition:
 
 # Code Review Battery
 
-> **Wrong skill?** File-protocol review handoff → `code-review`. Reviewing a PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`.
+> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. **Slash commands:** `/sp-codereview-battery` (primary), `/sp-deepreview` (legacy), `/sp-prism` (prism = one diff → 5 focused review lenses).
 
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
@@ -218,7 +220,6 @@ tools/run-battery.sh --verdict PASS
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
 ### Gap Analysis + Error Handling
-
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns
