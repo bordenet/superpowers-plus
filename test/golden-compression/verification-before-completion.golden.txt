@@ -161,5 +161,12 @@ Provide the reviewer with:
 **Tests:** `✅ [34/34 pass]` vs `❌ "Should pass now"`
 
 **Build:** `✅ [exit 0]` vs `❌ "Linter passed"`
+## Incident History
+| Date | Violation | Impact |
+|------|-----------|--------|
+| 2026-03-13 | Said "Shipped! 🚀" after git push before verifying PR created | Trust erosion, required post-hoc verification |
+| 2026-03-23 | Claimed "Fixed" without dispatching code reviewer | State leak caught only after user forced review |
+| 2026-04-02a | Presented work as "ready to commit and push" without running code review battery | Human caught the gap; unreviewed code nearly shipped |
+| 2026-04-02b | Committed, pushed branch, shared MR link + summary — no battery run | Wrong approach shipped to MR. Battery (when forced) found safety regression. Skills had explicit incident history from same session yet gate still failed. Transition from "implementation" to "reporting" was not recognized as trigger. Fix: sentinel file gate in pre-push hook + explicit "writing a summary" trigger. |
 ## The Bottom Line
 **No shortcuts.** Run the command. Read the output. THEN claim the result. Non-negotiable.
