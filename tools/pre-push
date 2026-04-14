@@ -238,6 +238,17 @@ if [[ "$IS_PUBLIC_REMOTE" == "false" && "$ORIGIN_IS_PUBLIC" == "true" ]]; then
     echo "  Private remote: $REMOTE_URL"
     echo "  Enforcing mirror-only policy: pushed SHAs must exist on origin."
     echo ""
+    # Fetch origin to ensure refs are current — stale local refs would let
+    # locally-created commits pass the SHA comparison. Network cost is
+    # acceptable: this path only fires for private-remote pushes (rare).
+    # Incident 2026-04-14: without this fetch, the check compared against
+    # stale local refs, which could be spoofed via git update-ref.
+    if ! git fetch origin --quiet 2>/dev/null; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: Could not fetch origin — cannot verify SHAs exist on origin.${NC}"
+        echo "  Mirror-policy requires current origin refs. Check network and retry."
+        echo "  If you must push offline, use: git push --no-verify"
+        exit 1
+    fi
     MIRROR_ERRORS=0
     while read -r _ local_sha remote_ref _; do
         [[ "$local_sha" == "0000000000000000000000000000000000000000" ]] && continue
