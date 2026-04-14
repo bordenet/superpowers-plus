@@ -5,7 +5,6 @@ summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardi
 triggers:
   - /sp-codereview-battery
   - /sp-deepreview
-  - /sp-prism
   - code review battery
   - battery review
   - parallel review
@@ -36,7 +35,7 @@ composition:
 
 # Code Review Battery
 
-> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. **Slash commands:** `/sp-codereview-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy), `/sp-prism` (prism = one diff → 5 focused review lenses).
+> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. **Slash commands:** `/sp-codereview-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
 
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
