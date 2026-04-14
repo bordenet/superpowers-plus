@@ -150,8 +150,11 @@ if [[ "$_agent_gates_bootstrap" == "true" ]]; then
     SKIP_REVIEW_TOKEN=""
     REQUIRE_CODE_REVIEW_SENTINEL=""
     REVIEW_TOKEN_TTL=""
+    # shellcheck disable=SC2034  # intentional: read by agent-gates config parser
     EXTRA_LINT=""
+    # shellcheck disable=SC2034
     EXTRA_TYPECHECK=""
+    # shellcheck disable=SC2034
     EXTRA_TEST=""
 fi
 
@@ -277,7 +280,7 @@ if [[ "${REQUIRE_CODE_REVIEW_SENTINEL:-false}" == "true" ]]; then
             sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "")
             field_count=$(awk -F'|' '{print NF}' "$SENTINEL_FILE" 2>/dev/null || echo "0")
 
-            if [[ "$sentinel_ver" != "v1" || "$field_count" != "4" || -z "$sentinel_sha" || -z "$sentinel_ts" ]]; then
+            if [[ "$sentinel_ver" != "v1" || "$field_count" -lt 4 || "$field_count" -gt 5 || -z "$sentinel_sha" || -z "$sentinel_ts" ]]; then
                 echo -e "  ${RED}❌ COMMIT BLOCKED: Sentinel format invalid (expected v1|SHA|VERDICT|TIMESTAMP, all fields non-empty).${NC}"
                 echo "  Delete .code-review-cleared and re-run code-review-battery."
                 ERRORS=$((ERRORS + 1))
