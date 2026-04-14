@@ -92,3 +92,12 @@
 | Event-driven reminders | ⚠️ Partial | Requires platform support; can approximate with trigger refinement |
 | Altitude raising | ✅ Yes | Replace checklists with heuristics + 1 example |
 | Cost tiering | ✅ Yes | Skip expensive skills when confidence is low |
+
+## Implementation: `lib/compress.js`
+
+The actual compression implementation uses a two-phase pipeline applied after selective loading (conditional loading above):
+
+- **Phase 1 (structural):** Section stripping by heading pattern — removes `When to Use`, `Examples`, `Anti-Patterns`, etc. This is the "selective loading" strategy applied at the section level.
+- **Phase 2 (density):** Prose reduction outside code blocks — removes redundant formatting, collapses whitespace.
+
+**Critical constraint (incident 2026-04-14):** Compression must preserve operative sections — `Failure Modes`, `Hallucination Prevention`, `Incident Log/Record/History`, `References` (pointer sections), and `<EXTREMELY_IMPORTANT>` blocks. Stripping these caused wiki authoring to regress (broken hyperlinks from fabricated URLs). The pipeline now extracts EI blocks before section stripping and restores them after. See `lib/compress.js` for the authoritative strip/preserve lists.
