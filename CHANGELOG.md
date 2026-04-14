@@ -6,6 +6,13 @@ superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers)
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- `code-review-battery`: `/sp-cr-battery` slash command (primary, short, easy to type). `/sp-deepreview` retained as legacy synonym.
+- `code-review-battery`: optional `[min-score]` argument (1.0–10.0, default 7.0) sets a numeric quality threshold. Score formula: `10.0 − (Critical×2.5) − (Important×1.5) − (Minor×0.25) − (durable<50% ? 0.5 : 0)`, floor 0.0. Score below threshold aborts Phase 6 (no sentinel written). `tools/run-battery.sh` gains `--min-score N` flag; sentinel always records the threshold as field 5 (`min-score=N`).
+
 ## [1.0.0] - 2026-04-13
 
 ### Added
