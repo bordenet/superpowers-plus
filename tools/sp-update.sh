@@ -87,24 +87,60 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- Overlay discovery and update ---
-# Finds all managed overlay repos in ~/.codex/superpowers-*/ and updates each one.
-# An overlay qualifies if it has both install.sh and install-state/ present.
+# Qualification: real git repo (not a symlink) with install.sh and install-state/.
 # Overlays that are part of the core chain (superpowers-plus, superpowers,
 # superpowers-augment) are skipped — they're handled by the sp-update core.
+# Passes --yes only (not --upgrade) to avoid re-driving the superpowers-plus update
+# that main() already completed; git pull here handles repo freshness.
 run_overlay_updates() {
+    # Guard: HOME must be set — unset HOME with set -u kills main() otherwise
+    if [[ -z "${HOME:-}" ]]; then
+        log_warn "HOME is unset — skipping overlay updates"
+        return 0
+    fi
+
     local codex_dir="$HOME/.codex"
     local found_any=false
-    local overlay_dir overlay_name
+    local overlay_dir overlay_name pull_err install_rc
+    local -a overlay_args  # declared as array to avoid SC2178
+
+    # Guard: codex_dir must exist before attempting lockfile creation
+    if [[ ! -d "$codex_dir" ]]; then
+        [[ "$VERBOSE" == "true" ]] && log_info "No codex dir ($codex_dir) — skipping overlay updates"
+        return 0
+    fi
+
+    # Concurrency guard — one sp-update runs overlays at a time
+    local lock_file="$codex_dir/.sp-update-overlays.lock"
+    if ! (set -C; : > "$lock_file") 2>/dev/null; then
+        log_warn "Overlay update skipped: lockfile present ($lock_file). Remove if no sp-update is running."
+        return 0
+    fi
+    # RETURN fires on normal/return exit; EXIT fires on signal-induced exit (SIGINT, SIGTERM).
+    # rm -f is idempotent — safe to fire on both signals; double-fire on normal exit is harmless.
+    # Note: bash traps are process-global; callers must not set a competing EXIT trap.
+    # shellcheck disable=SC2064  # intentional: expand $lock_file now, not at fire-time
+    trap "rm -f \"$lock_file\"" RETURN EXIT
 
     # Core dirs that are NOT user overlays — skip them
     local skip_list=" superpowers superpowers-plus superpowers-augment "
 
     for overlay_dir in "$codex_dir"/superpowers-*/; do
         [[ -d "$overlay_dir" ]] || continue
+
+        # Reject symlinks — overlays must be real directories with known provenance
+        [[ -L "${overlay_dir%/}" ]] && continue
+
         overlay_name=$(basename "$overlay_dir")
 
         # Skip core dirs
         [[ "$skip_list" == *" $overlay_name "* ]] && continue
+
+        # Must be a git repo — no git means no provenance verification, no execution
+        if [[ ! -d "$overlay_dir/.git" ]]; then
+            log_warn "  $overlay_name: not a git repo — skipping (unmanaged directory)"
+            continue
+        fi
 
         # Must have install.sh and install-state/ to qualify as a managed overlay
         [[ -f "$overlay_dir/install.sh" ]] || continue
@@ -113,24 +149,38 @@ run_overlay_updates() {
         found_any=true
         log_info "Updating overlay: $overlay_name..."
 
-        # Pull latest from remote — best effort; continue if it fails
-        if [[ -d "$overlay_dir/.git" ]]; then
-            if git -C "$overlay_dir" pull --ff-only --quiet 2>/dev/null; then
-                [[ "$VERBOSE" == "true" ]] && log_info "  $overlay_name: pulled latest"
-            else
-                log_warn "  $overlay_name: git pull failed — continuing with existing version"
-            fi
+        # Pull latest from remote — best effort; capture stderr for verbose diagnostics
+        pull_err=""
+        if pull_err=$(git -C "$overlay_dir" pull --ff-only --quiet 2>&1); then
+            [[ "$VERBOSE" == "true" ]] && log_info "  $overlay_name: pulled latest"
+        else
+            log_warn "  $overlay_name: git pull failed — continuing with existing version"
+            [[ "$VERBOSE" == "true" ]] && printf '%s\n' "$pull_err" >&2
         fi
 
-        # Run the overlay's installer with --upgrade to deploy its skills
-        local overlay_args=("--upgrade" "--yes")
+        # Deploy skills from the current checkout.
+        # Do NOT pass --upgrade: that would re-drive the superpowers-plus update
+        # that main() already handled, potentially colliding with remote configuration.
+        overlay_args=("--yes")
         [[ "$VERBOSE" == "true" ]] && overlay_args+=("--verbose")
 
-        if bash "$overlay_dir/install.sh" "${overlay_args[@]}"; then
+        install_rc=0
+        if command -v timeout &>/dev/null; then
+            timeout 120 bash "$overlay_dir/install.sh" "${overlay_args[@]}" || install_rc=$?
+            if [[ $install_rc -eq 124 ]]; then
+                log_warn "Overlay timed out (120s): $overlay_name — skipping"
+                log_warn "  Run manually: bash '$overlay_dir/install.sh'"
+                continue
+            fi
+        else
+            bash "$overlay_dir/install.sh" "${overlay_args[@]}" || install_rc=$?
+        fi
+
+        if [[ $install_rc -eq 0 ]]; then
             log_success "Overlay updated: $overlay_name"
         else
             log_warn "Overlay update failed: $overlay_name"
-            log_warn "  Run manually: bash $overlay_dir/install.sh --upgrade"
+            log_warn "  Run manually: bash '$overlay_dir/install.sh'"
         fi
     done
 
