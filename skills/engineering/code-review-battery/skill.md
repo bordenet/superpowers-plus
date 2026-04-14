@@ -1,8 +1,9 @@
 ---
 name: code-review-battery
-description: Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses
+description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across 5 focused lenses. Invoke as: /sp-cr-battery [min-score] (optional 1.0–10.0 quality threshold, default 7.0)"
 summary: Dispatches 5 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) in parallel with source context for ripple analysis. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
+  - /sp-cr-battery
   - /sp-deepreview
   - code review battery
   - battery review
@@ -34,7 +35,7 @@ composition:
 
 # Code Review Battery
 
-> **Wrong skill?** File-protocol review handoff → `code-review`. Reviewing a PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`.
+> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. **Slash commands:** `/sp-cr-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
 
 Dispatch 5 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
@@ -166,6 +167,7 @@ After all reviewers return:
 **Report format**: Header (activated/skipped reviewers) → Critical → Important → Minor (full, or "[N] Minor findings suppressed") → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary (`Findings: [N] Critical, [N] Important, [N] Minor ([N] suppressed) | Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`).
 
 **Metrics**: Durable check rate (≥50%), convergent finding count, unresolved Critical count (target: 0). Offline: precision ≥75%, high-sev precision ≥80%, Round 2 yield ≤20%.
+**Score** (after all fix rounds): `10.0 − (Critical×2.5) − (Important×1.5) − (Minor×0.25) − (durable<50% ? 0.5 : 0)`, floor 0.0. Calibration: 0 findings → 10.0; 1 Important → 8.5; 1 Critical → 7.5; 2 Importants + low durable → 6.5. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0). Score < threshold → abort Phase 6.
 
 ### Phase 4: Escalation (Round 2)
 
@@ -183,8 +185,7 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 
 ### Phase 5: Convergence
 
-**STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable check rate ≥50%.
-**CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
+**STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable ≥50%. **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 
 ### Correlated-Failure Detection
 
@@ -203,11 +204,11 @@ Correlated-failure flags do NOT change verdicts directly — they trigger expand
 If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
 ```bash
-# Run AFTER Correlated-Failure Detection — only if no re-examination was triggered.
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
-# It runs automated checks then writes the sentinel.
-tools/run-battery.sh --verdict PASS
-# or: tools/run-battery.sh --verdict PASS_WITH_NITS
+# Pass --min-score with the threshold from the invocation (default 7.0).
+tools/run-battery.sh --verdict PASS                              # min-score 7.0 (default)
+tools/run-battery.sh --verdict PASS --min-score 9.1              # explicit threshold
+tools/run-battery.sh --verdict PASS_WITH_NITS --min-score 8.0    # nits verdict + threshold
 ```
 
 > ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`
@@ -218,7 +219,6 @@ tools/run-battery.sh --verdict PASS
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 
 ### Gap Analysis + Error Handling
-
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns

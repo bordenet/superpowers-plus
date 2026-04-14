@@ -8,7 +8,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 |-------|-------------|
 | `blast-radius-check` | Search for ALL usages before modifying existing code. Prevents breaking unrelated consumers. |
 | `brainstorming` | Explores user intent, requirements, and design before implementation. Fires before creative work. |
-| `code-review-battery` | Dispatches 5 parallel specialist reviewers instead of one shallow pass. |
+| `code-review-battery` | Dispatches 5 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). `/sp-deepreview` is a legacy synonym. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
