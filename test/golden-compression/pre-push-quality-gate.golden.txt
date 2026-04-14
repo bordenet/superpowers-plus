@@ -157,3 +157,11 @@ npx biome check . && npx tsc --noEmit
 ```
 
 Two commands. 10 seconds. Non-negotiable. If either fails, fix before pushing.
+## Incident Record
+| Date | What Happened |
+|------|---------------|
+| 2026-03-31 | Pushed without running Biome. CI caught 18 lint errors. |
+| 2026-03-31 | Pushed after script-generated JSON. Biome not re-run after file write. |
+| 2026-03-31 | Ran Biome but not tsc. CI failed on TS4111 type errors. |
+| 2026-04-01 | Ran tsc+vitest but skipped Biome. CI failed on 2 formatting errors. |
+| 2026-04-01 | Pushed without Biome. Optional chain + formatting errors broke CI. |

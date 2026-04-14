@@ -105,6 +105,39 @@ lib/skill-router.js
 └── matchSkills()          # Unified interface (auto-selects method)
 ```
 
+## Skill Content Compression
+
+When skills are loaded by `superpowers-augment.js` or `mcp/superpowers-mcp.js`, their content passes through `lib/compress.js` to reduce token cost (typically 20–40% reduction).
+
+### Two-Phase Pipeline
+
+**Phase 1 (structural):** Strips boilerplate sections by heading pattern (`STRIP_SECTIONS`), removes DOT graphs and HTML comments. Sections like `When to Use`, `Examples`, `Anti-Patterns`, `Companion Skills` are stripped — they aid human navigation but not agent execution.
+
+**Phase 2 (density):** Reduces prose verbosity outside code blocks — removes bold/italic markup from headings, collapses whitespace, strips navigation boilerplate.
+
+### Preserved Content
+
+These survive compression unconditionally:
+
+| Content | Why |
+|---------|-----|
+| `<EXTREMELY_IMPORTANT>` blocks | Operative safety gates (e.g., URL verification rules) |
+| `Failure Modes` sections | Runtime error-handling context |
+| `Incident Log/Record/History` | Recurrence-prevention context — real past failures |
+| `References` sections | Pointers to reference files (e.g., `references/incidents.md`) |
+| `Hallucination Prevention` | URL fabrication prevention rules |
+| Code blocks, tables, checklists | Procedural content |
+
+`<EXTREMELY_IMPORTANT>` blocks are **extracted before** section stripping and **restored after**, so they survive even when their parent heading is in `STRIP_SECTIONS`. Blocks rescued from stripped sections are appended under `## Critical Rules (preserved from compression)`.
+
+### Opt-out
+
+Add `compress: false` to a skill's YAML frontmatter to skip compression entirely.
+
+### Incident 2026-04-14
+
+`STRIP_SECTIONS` included `Hallucination Prevention`, `References`, and `Incident Log/Record/History`. This deleted URL verification rules from `link-verification` and `issue-link-verification`, deleted pointers to 78 lines of incident history, and deleted recurrence-prevention context. Wiki authoring regressed to producing broken hyperlinks. All three patterns were removed from `STRIP_SECTIONS` and the `<EXTREMELY_IMPORTANT>` extraction mechanism was added as a safety net.
+
 ## Skill Structure
 
 A skill is a directory containing `skill.md`:
