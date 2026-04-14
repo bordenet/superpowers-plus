@@ -24,6 +24,16 @@ Hard rules. No exceptions without explicit human instruction.
 - NEVER write `.code-review-cleared` directly — only `tools/run-battery.sh` may write it
 - NEVER emit "ready to push / commit / merge" without checking for required-skill triggers
 
+## GitLab Mirror Policy
+
+- `origin` (GitHub) is source of truth — ALL changes go here first via PR
+- `gitlab` remote is a **downstream mirror** — receives ONLY `origin/main` after merge
+- ❌ NEVER push `dev` or `staging` to `gitlab`
+- ❌ NEVER push locally-created commits to `gitlab` — only `origin/<branch>:<branch>` refs
+- ✅ Valid sync: `git push gitlab origin/main:main` (SHA must match `origin/main`)
+- The pre-push hook enforces this: SHAs pushed to private remotes must exist on `origin`
+- Incident 2026-04-14: agent pushed `dev` and `staging` to `gitlab` before this policy existed in the pre-push hook
+
 ## Install Artifacts
 
 - After `sp-update` or `install.sh`, run `git restore .` in `~/.codex/superpowers-plus/`
