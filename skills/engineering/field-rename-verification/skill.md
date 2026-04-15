@@ -10,7 +10,7 @@ coordination:
   order: 4
   requires: ["blast-radius-check"]
   enables: ["verification-before-completion"]
-  escalates_to: ["engineering-rigor"]
+  escalates_to: []
   internal: false
 composition:
   consumes: [code-changes]
