@@ -1,6 +1,7 @@
 ---
 name: requesting-code-review
 source: superpowers-plus
+augment_menu: true
 overrides: superpowers/requesting-code-review
 # Override rationale: Routes review requests through code-review-battery (the
 # superpowers-plus specialist engine) instead of the upstream single-reviewer
@@ -40,6 +41,8 @@ composition:
   capabilities: [dispatches-review]
   priority: 25
 ---
+
+> **Wrong skill?** Pre-commit/push → `unified-commit-gate`. Reviewing someone else's PR → `providing-code-review`. Implementing feedback you received → `receiving-code-review`. Inter-agent file handoff → `inter-agent-review-protocol`.
 
 # Requesting Code Review
 

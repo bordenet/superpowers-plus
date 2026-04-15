@@ -1,6 +1,7 @@
 ---
 name: sp-bughunt
 source: superpowers-plus
+augment_menu: true
 triggers:
   - /sp-bughunt
   - spot the worst bugs

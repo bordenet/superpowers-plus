@@ -1,6 +1,7 @@
 ---
 name: failure-autopsy
 source: superpowers-plus
+augment_menu: true
 triggers:
   - /sp-autopsy
   - "that was wrong"
