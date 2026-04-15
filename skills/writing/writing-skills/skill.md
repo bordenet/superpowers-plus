@@ -49,7 +49,7 @@ Then markdown body: core procedure, checklists, rules. Scale section depth to co
 | Type | Purpose | Example |
 |------|---------|---------|
 | **Technique** | How-to guide | brainstorming, systematic-debugging |
-| **Pattern** | Mental model / guard | eliminating-ai-slop, engineering-rigor |
+| **Pattern** | Mental model / guard | eliminating-ai-slop, unified-commit-gate |
 | **Reference** | API/tool docs | perplexity-research, todo-management |
 
 ## Directory Structure

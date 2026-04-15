@@ -1,6 +1,7 @@
 ---
 name: systematic-debugging
 source: superpowers-plus
+augment_menu: true
 overrides: superpowers/systematic-debugging
 # Override rationale: Condensed from 296→88 lines. Focuses on root-cause-first
 # discipline with explicit "NO FIXES WITHOUT INVESTIGATION" gate. Removes
