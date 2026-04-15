@@ -41,6 +41,8 @@ composition:
   priority: 25
 ---
 
+> **Wrong skill?** Pre-commit/push → `unified-commit-gate`. Reviewing someone else's PR → `providing-code-review`. Implementing feedback you received → `receiving-code-review`. Inter-agent file handoff → `inter-agent-review-protocol`.
+
 # Requesting Code Review
 
 Dispatch `code-review-battery` to catch issues before they cascade. The battery dispatches 5 specialist reviewers in parallel — each focused on a distinct set of review dimensions — producing deeper analysis than any single-pass review.

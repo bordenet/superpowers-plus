@@ -10,7 +10,7 @@ coordination:
   order: 2
   requires: []
   enables: ["field-rename-verification"]
-  escalates_to: ["engineering-rigor"]
+  escalates_to: ["unified-commit-gate"]
   internal: false
 composition:
   consumes: [code-changes]
@@ -141,7 +141,7 @@ grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs
-- `engineering-rigor` — Philosophy and overview
+
 - **autonomous-chain-controller**: Chain-aware refactoring
 
 ## Failure Modes

@@ -26,7 +26,7 @@ composition:
 
 That question IS this skill. Everything below exists to answer it well.
 
-**Wrong skill?** Incremental feature ideas → `brainstorming`. Bug fixes → `systematic-debugging`. Cleanup → `engineering-rigor`.
+**Wrong skill?** Incremental feature ideas → `brainstorming`. Bug fixes → `systematic-debugging`. Cleanup → `pre-commit-gate`.
 
 ## When to Use
 

@@ -34,6 +34,8 @@ composition:
   priority: 10
 ---
 
+> **Wrong skill?** Quick pre-commit check → `unified-commit-gate`. Presenting results mid-work → `verification-before-completion`. Reviewing someone's PR → `providing-code-review`.
+
 # Finishing a Development Branch
 
 ## When to Use
@@ -112,7 +114,7 @@ Which option?
 
 **Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree.
 
-**Option 2 (Push and create PR):** Push branch → create PR → cleanup worktree. Note: `pre-push-quality-gate` fires before push.
+**Option 2 (Push and create PR):** Push branch → create PR → cleanup worktree. Note: `unified-commit-gate` (push mode) fires before push.
 
 **Option 3 (Keep as-is):** Report status. Keep worktree.
 
@@ -144,5 +146,5 @@ For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — kee
 - **code-review-battery**: The review engine Step 0 dispatches
 - **progressive-code-review-gate**: Verdict mapping and dispatch procedure
 - **verification-before-completion**: Fires before this skill (completion-gate order 2)
-- **pre-push-quality-gate**: Fires when Option 2 triggers a push
+- **unified-commit-gate** (push mode): Fires when Option 2 triggers a push
 - **subagent-driven-development**: Calls this skill after all tasks complete

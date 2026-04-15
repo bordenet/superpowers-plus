@@ -8,7 +8,7 @@ summary: "Use when: reviewing someone else's PR. Skip when: reviewing your own c
 coordination:
   group: code-quality
   order: 3
-  requires: [code-review]
+  requires: [inter-agent-review-protocol]
   enables: [receiving-code-review]
   escalates_to: [code-review-battery]
   internal: false
@@ -48,7 +48,7 @@ When reviewing a PR, check changes, or provide feedback on someone else's implem
 - Verifying integration points
 - Running the actual changes locally
 
-This allows the same bugs to slip through that engineering-rigor prevents in your own work.
+This allows the same bugs to slip through that disciplined pre-commit checks prevent in your own work.
 
 ## Code Review Checklist
 
@@ -204,6 +204,6 @@ When providing code review, structure feedback as:
 - **code-review-battery**: Parallel specialist reviews (heavier than this checklist)
 - **receiving-code-review**: How the PR author should process your feedback
 - **progressive-code-review-gate**: Pre-commit gate (uses this checklist internally)
-- **code-review**: File-protocol review (requesting side)
+- **inter-agent-review-protocol**: File-protocol review (requesting side)
 - **code-review-respond**: File-protocol review (reviewer side)
 - **micro-harsh-review**: Per-batch review (lighter)

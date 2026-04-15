@@ -23,6 +23,8 @@ composition:
   priority: 25
 ---
 
+> **Wrong skill?** Pre-commit/push gate → `unified-commit-gate`. Branch done workflow → `finishing-a-development-branch`. Reviewing someone's PR → `providing-code-review`. Presenting a non-code artifact → `progressive-harsh-review`.
+
 # Verification Before Completion
 
 ## When to Use

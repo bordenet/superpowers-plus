@@ -244,5 +244,5 @@ Monolith found something no specialist found → candidate pattern → `candidat
 
 - **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
 - **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
-- **code-review**: File-protocol review (alternative dispatch method)
+- **inter-agent-review-protocol**: File-protocol review (alternative dispatch method)
 - **micro-harsh-review**: Per-batch review
