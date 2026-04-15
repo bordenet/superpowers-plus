@@ -1,6 +1,7 @@
 ---
 name: finishing-a-development-branch
 source: superpowers-plus
+augment_menu: true
 overrides: superpowers/finishing-a-development-branch
 # Override rationale: Adds mandatory Step 0 (autonomous code review via
 # code-review-battery) before presenting integration options. The upstream

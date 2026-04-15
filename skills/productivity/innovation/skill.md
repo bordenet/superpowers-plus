@@ -1,6 +1,7 @@
 ---
 name: innovation
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-innovate", "innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "what if we started from scratch", "step-change improvement", "what's the boldest move"]
 anti_triggers: ["fix this bug", "small refactor", "add this field", "update the docs", "incremental improvement", "quick win", "minor change", "cleanup", "fix our CI", "best practice", "refactor", "moonshot refactor", "reimagine the docs"]
 description: "Use when: user wants a single high-conviction innovation answer — the smartest, most radically innovative, accretive, useful, and compelling addition to this project right now. Skip when: incremental ideas (brainstorming), bug fixes (systematic-debugging), implementation planning (plan-and-execute), or ops/repair tasks."

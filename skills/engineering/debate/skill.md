@@ -1,6 +1,7 @@
 ---
 name: debate
 source: superpowers-plus
+augment_menu: true
 triggers:
   - /sp-debate
   - three design options

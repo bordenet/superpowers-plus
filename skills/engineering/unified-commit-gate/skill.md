@@ -1,6 +1,7 @@
 ---
 name: unified-commit-gate
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-commit", "/sp-push", "before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "commit gate", "commit:gate", "git push", "ready to push", "about to push", "push branch", "push origin", "push remote"]
 anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]
 description: "Unified quality gate for commit and push: lint/build/test, style, adversarial code review, language audit, and IP scan. For push: adds sentinel check and proof-of-output requirement. Replaces all 5 individual gate skills plus pre-push-quality-gate."

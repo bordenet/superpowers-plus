@@ -26,6 +26,7 @@ coordination:
   escalates_to: []
   internal: false
 source: superpowers-plus
+augment_menu: true
 composition:
   consumes: [code-changes]
   produces: [review-feedback]

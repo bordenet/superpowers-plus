@@ -1,6 +1,7 @@
 ---
 name: requesting-code-review
 source: superpowers-plus
+augment_menu: true
 overrides: superpowers/requesting-code-review
 # Override rationale: Routes review requests through code-review-battery (the
 # superpowers-plus specialist engine) instead of the upstream single-reviewer
