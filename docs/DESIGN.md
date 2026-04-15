@@ -100,7 +100,7 @@ There are two separate systems that use `triggers` and `anti_triggers`:
 
 ### 2a. AI-Native Trigger Matching (Primary)
 
-The primary trigger mechanism is **semantic matching by the LLM itself**. At session start, `bootstrap` emits a compact skill index. The AI reads each skill's `triggers` list and decides contextually when to invoke a skill — no string matching code is involved.
+The primary trigger mechanism is **semantic matching by the LLM itself**. At session start, `bootstrap` emits a compact skill index. The AI reads each skill's `triggers` list and decides contextually when to invoke a skill — no string matching code is involved. On Claude Code, skill invocation uses the native Skill tool rather than a CLI call; the index delivery and decision logic are otherwise identical.
 
 ```mermaid
 sequenceDiagram
