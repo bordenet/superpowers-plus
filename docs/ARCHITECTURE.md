@@ -65,7 +65,7 @@ Each skill is identified by its directory name, not the filename.
 
 ## Semantic Skill Matching
 
-Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** that matches natural language queries to skills based on meaning, not just keywords.
+Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** that matches natural language queries to skills based on meaning, not just keywords. For the full scoring algorithm (TF-IDF + intent pattern boosts + anti-trigger penalties), see [DESIGN.md § Semantic Skill Router](DESIGN.md#3-semantic-skill-router).
 
 ### Usage
 
@@ -182,14 +182,16 @@ coordination:
 
 ### Frontmatter Fields
 
+For the complete field reference including `composition`, `aliases`, `requires_mcp`, `compress`, and `summary`, see [DESIGN.md § Frontmatter Schema](DESIGN.md#1-frontmatter-schema).
+
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Skill identifier (must match directory name) |
 | `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
 | `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
-| `anti_triggers` | No | Array of phrases that should NOT trigger this skill (WARN if missing) |
+| `anti_triggers` | No | Array of phrases that should NOT trigger this skill |
 | `description` | Yes | One-line description for skill discovery |
-| `coordination` | Yes | DAG metadata: `group`, `order`, `internal` (required), plus `requires`, `enables`, `escalates_to` |
+| `coordination` | No | DAG metadata: `group`, `order`, `internal`, `requires`, `enables`, `escalates_to` |
 | `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
 
 ### Superpower vs Explicit Skill Examples

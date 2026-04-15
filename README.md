@@ -220,62 +220,20 @@ Copy `.env.example` to `~/.codex/.env` for runtime integrations, then set permis
 
 ## Skill Coordination
 
-Skills form pipelines with explicit dependencies. The diagram shows inter-skill coordination; orchestrator-internal stages (de-dup, content generation) are omitted.
+Skills form pipelines with explicit dependencies. Each pipeline has its own dedicated diagram in [docs/SKILL_TAXONOMY.md](docs/SKILL_TAXONOMY.md):
 
-> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (de-dup, content, coherence, links, secrets, slop, markdown structure, fact-check, publish). Budget accordingly.
+| Pipeline | Diagram | Purpose |
+|----------|---------|---------|
+| Commit Gates | [Commit Gate Chain](docs/SKILL_TAXONOMY.md#commit-gate-chain) | `/sp-commit` → 5 sequential gates before `git commit` |
+| Completion Gate | [Completion Gate](docs/SKILL_TAXONOMY.md#completion-gate) | output-verification or exhaustive-audit → verification-before-completion |
+| Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
+| Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
+| Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 93 skills with typed edges (enables / escalates-to) |
 
-```mermaid
-graph LR
-  subgraph commit-gates["Commit Gates"]
-    unified_commit_gate["unified-commit-gate (/sp-commit)"] --> pre_commit_gate["pre-commit-gate (Gate 1)"]
-    pre_commit_gate --> enforce_style_guide["enforce-style-guide"]
-    enforce_style_guide --> progressive_code_review_gate["progressive-code-review-gate"]
-    progressive_code_review_gate --> professional_language_audit["professional-language-audit"]
-    professional_language_audit --> public_repo_ip_audit["public-repo-ip-audit"]
-  end
+For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 
-  subgraph completion-gate["Completion Gate"]
-    output_verification["output-verification"] -->|generated output| verification_before_completion["verification-before-completion"]
-    exhaustive_audit_validation["exhaustive-audit-validation"] -->|bulk edits| verification_before_completion
-  end
-
-  subgraph thinking["Thinking"]
-    thinking_orchestrator["thinking-orchestrator"]
-  end
-
-  subgraph wiki-pipeline["Wiki Pipeline"]
-    wiki_orchestrator["wiki-orchestrator"] --> wiki_content_coherence["wiki-content-coherence"]
-    wiki_content_coherence --> link_verification["link-verification"]
-    link_verification --> wiki_secret_audit["wiki-secret-audit"]
-    wiki_secret_audit --> eliminating_ai_slop["eliminating-ai-slop"]
-    eliminating_ai_slop --> markdown_table_discipline["wiki-markdown-structure-gate"]
-    markdown_table_discipline --> wiki_debunker["wiki-debunker"]
-    wiki_debunker --> publish["Publish"]
-  end
-
-  publish -.->|post-publish| wiki_verify["wiki-verify"]
-
-  subgraph stuck-escalation["Stuck Escalation"]
-    think_twice["think-twice"] ==> perplexity_research["perplexity-research"]
-  end
-
-  thinking_orchestrator -->|enables| adversarial_search["adversarial-search"]
-  thinking_orchestrator -->|enables| think_twice
-  thinking_orchestrator -->|enables| output_verification
-  thinking_orchestrator -->|enables| verification_before_completion
-  thinking_orchestrator -->|enables| exhaustive_audit_validation
-  thinking_orchestrator -->|enables| completeness_check["completeness-check"]
-  thinking_orchestrator -->|enables| investigation_state["investigation-state"]
-  thinking_orchestrator -->|enables| feature_development["feature-development"]
-```
-
-| Group | Flow | Purpose |
-|-------|------|---------|
-| Commit Gates | `/sp-commit` → unified-commit-gate → pre-commit (Gate 1) → style → code review → language → IP audit | Quality checks before `git commit` |
-| Completion Gate | output-verification (generated output) or exhaustive-audit (bulk edits) → verification | Context-dependent gates before claiming done |
-| Thinking | orchestrator → child skills | Routes to correct thinking skill by context |
-| Wiki Pipeline | orchestrator → coherence → links → secrets → slop → markdown structure → fact-check → publish | Quality gates before publish; wiki-verify runs post-publish for drift |
-| Stuck Escalation | think-twice ⟹ perplexity-research | Try free reasoning first, escalate to Perplexity |
+> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (coherence → links → secrets → slop → markdown structure → fact-check → publish). Budget accordingly.
 
 ### Quality Gates Policy
 
