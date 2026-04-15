@@ -101,7 +101,7 @@ Target: **~1,500 words**. When exceeded: move completed tasks to summary table, 
 | Skill | Relationship |
 |-------|--------------|
 | `writing-plans` | Chains into this skill |
-| `engineering-rigor` | Complementary discipline |
+
 
 ## Failure Modes
 

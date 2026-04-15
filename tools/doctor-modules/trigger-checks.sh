@@ -36,8 +36,6 @@ KNOWN_COLLISION_GROUPS=(
   "unified-commit-gate pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
-  # PR verification: complementary pre-PR checks
-  "holistic-repo-verification engineering-rigor"
   # Security: vulnerability scanning vs repo secret scanning
   "security-upgrade repo-security-scan"
   # Skill creation: authoring workflow vs writing conventions

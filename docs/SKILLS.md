@@ -12,7 +12,6 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
-| `engineering-rigor` | Hub skill pointing to unified-commit-gate, blast-radius-check, and providing-code-review. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `feature-development` | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | `field-rename-verification` | Traces READ, STORE, PASS paths when renaming fields or changing API contracts. |
@@ -25,8 +24,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |
-| `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. |
-| `pre-push-quality-gate` | Mandatory quality gate before any git push: auto-detects toolchain (Biome/ESLint, tsc, vitest/jest) and runs lint+typecheck+test. |
+| `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. Push mode adds sentinel check and proof-of-output requirement. |
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
 | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <6 = reject. |
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
@@ -39,10 +37,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `systematic-debugging` | Root-cause-first investigation: reproduce, hypothesize, isolate, fix. |
 | `test-driven-development` | Write tests before implementation code. |
 | `timeline-trace-investigator` | Reconstructs incident timelines from traces, logs, deployments, and metrics. |
-| `typescript-project-conventions` | Import ordering, file size limits, path aliases, error handling conventions. |
-| `typescript-strict-mode` | Strict null checks, no explicit any, proper unknown handling. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
-| `vitest-testing-patterns` | Patterns for mocking SDK constructors, capturing event handlers, handling flaky tests. |
 
 ## Productivity
 
@@ -51,7 +46,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `adversarial-search` | Forces search for the WRONG thing to prevent confirmation bias. |
 | `autonomous-chain-controller` | Auto-detects required skill chain and executes with quality gates between steps. |
 | `code-review-respond` | Acts as the reviewer agent for file protocol handoff. |
-| `code-review` | Sends work to a separate reviewer agent via file protocol. |
+| `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
 | `domain-design` | Designs new skill families from scratch: research, brainstorm, review, prioritize, document. |
 | `enforce-style-guide` | Checks shebang, error handling, help flags, line limits, ShellCheck compliance. |
 | `fallback-planning` | Generates machine-agnostic fallback TODOs for top risks in an implementation plan. |

@@ -1,10 +1,11 @@
 ---
 name: unified-commit-gate
 source: superpowers-plus
-triggers: ["/sp-commit", "before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "commit gate", "commit:gate"]
+augment_menu: true
+triggers: ["/sp-commit", "/sp-push", "before commit", "ready to commit", "about to commit", "git commit", "committing", "push this", "before push", "commit gate", "commit:gate", "git push", "ready to push", "about to push", "push branch", "push origin", "push remote"]
 anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]
-description: "Unified pre-commit quality gate: lint/build/test, style, adversarial code review, language audit, and IP scan. Replaces loading all 5 individual gates. Deep-dive: load the individual gate skill."
-summary: "Use when: about to commit code. Runs all 5 gates in sequence. Deep-dive into any gate: use-skill <gate-name>."
+description: "Unified quality gate for commit and push: lint/build/test, style, adversarial code review, language audit, and IP scan. For push: adds sentinel check and proof-of-output requirement. Replaces all 5 individual gate skills plus pre-push-quality-gate."
+summary: "Use when: about to commit or push code. Runs all 5 gates; push mode adds sentinel check and proof-of-output requirement. Deep-dive into any gate: use-skill <gate-name>."
 coordination:
   group: commit-gates
   order: 0
@@ -19,19 +20,42 @@ composition:
   priority: 30
 ---
 
+> **Wrong skill?** Single gate deep-dive → load that gate's individual skill (`pre-commit-gate`, `progressive-code-review-gate`, etc.). Presenting results to human → `verification-before-completion`. Reviewing someone else's PR → `providing-code-review`.
+
 # Unified Commit Gate
 
 ## When to Use
 
-**Invoke twice per change:** before `git commit` and before `git push`. No pre-push hook enforces this — invocation is your responsibility, not the toolchain's. Skipping is a policy violation, not a technical error.
+**Before `git commit`:** Run Gates 1–4 (lint/build/test, style, code review, language audit). **Before `git push` (Push Mode):** same gates plus sentinel check and proof-of-output requirement.
 
-**Gate applicability by invocation point:**
+**Gate applicability:**
 - **Before commit:** Gates 1 (lint/build/test), 2 (style), 3 (code review), 4 (language audit). Skip Gates 2 and 4 when no applicable file types are staged — you control invocation, nothing is automatic. Each invocation re-evaluates; results are not cached across invocations.
-- **Before push (per remote target):** Gate 5 (IP audit) runs once per remote you push to; if pushing to multiple remotes, run Gate 5 once per remote. Skipped for remotes you determine to be private — when in doubt, run the audit anyway.
+- **Before push (Push Mode):** All gates apply, plus sentinel check and proof-of-output requirement (see Push Mode section below). Gate 5 (IP audit) runs once per remote you push to; if pushing to multiple remotes, run Gate 5 once per remote. Skipped for confirmed private remotes — when in doubt, run the audit anyway.
 
 **Not for:** code-review-only analysis (use `progressive-code-review-gate` directly instead). Debugging a single gate failure (load that gate's individual skill).
 
 If any gate fails and the fix is non-obvious, load the individual deep-dive skill: `use-skill <gate-name>`.
+
+## Push Mode
+
+When invoked at push time (`git push`, `/sp-push`), all gates apply plus:
+
+1. **Show output** — every gate result must appear in the conversation. "It passed" without visible output is a violation.
+2. **Sentinel check** — before pushing any branch with code changes, verify `.code-review-cleared` exists for HEAD:
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
+HEAD=$(git rev-parse HEAD 2>/dev/null)
+cat "$SENTINEL" 2>/dev/null | grep -q "sha:${HEAD}" && echo "CLEARED" || echo "NOT CLEARED — run code-review-battery first"
+```
+
+| Sentinel state | Action |
+|---|---|
+| Valid for HEAD | Proceed to push |
+| Missing or wrong SHA | Run `code-review-battery`, then push |
+| Docs-only push (`.md`, `.txt`, `.rst`, `.gitignore`, `.editorconfig`, `README`, `CHANGELOG`, `LICENSE`, `.env.example`) | Sentinel not required |
+
+3. **Gate 5 (IP audit)** runs once per remote target. Run it for each remote you push to. Skip for confirmed private remotes — when in doubt, run it.
 
 ---
 

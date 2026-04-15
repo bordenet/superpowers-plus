@@ -1,6 +1,7 @@
 ---
 name: progressive-harsh-review
 source: superpowers-plus
+augment_menu: true
 triggers:
   - /sp-phr
   - /sp-redteam

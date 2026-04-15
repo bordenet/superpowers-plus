@@ -93,7 +93,7 @@ User reply:
 |--------|---------|-------------|
 | "Fix the race condition in the booking queue" | Bug fix | `systematic-debugging` |
 | "Add email confirmation to the booking flow" | Incremental feature | `brainstorming` or implement directly |
-| "Clean up the service layer abstractions" | Refactor | `engineering-rigor` |
+| "Clean up the service layer abstractions" | Refactor | `pre-commit-gate` |
 
 ---
 
