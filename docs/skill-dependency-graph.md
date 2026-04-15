@@ -162,7 +162,7 @@ graph TD
   end
 
   blast_radius_check -->|enables| field_rename_verification
-  blast_radius_check ==>|escalates to| engineering_rigor
+  blast_radius_check ==>|escalates to| unified_commit_gate
   brainstorming -->|enables| debate
   brainstorming ==>|escalates to| thinking_orchestrator
   code_review_battery -->|enables| progressive_code_review_gate
@@ -171,8 +171,6 @@ graph TD
   debug_conductor -->|enables| failure_autopsy
   debug_conductor ==>|escalates to| thinking_orchestrator
   debate ==>|escalates to| thinking_orchestrator
-  engineering_rigor -->|enables| pre_commit_gate
-  engineering_rigor -->|enables| blast_radius_check
   debug_conductor -->|then| evidence_adjudicator
   evidence_adjudicator ==>|escalates to| debug_conductor
   feature_development -->|enables| brainstorming
@@ -180,7 +178,6 @@ graph TD
   feature_development -->|enables| debate
   feature_development ==>|escalates to| thinking_orchestrator
   field_rename_verification -->|enables| verification_before_completion
-  field_rename_verification ==>|escalates to| engineering_rigor
   debug_conductor -->|then| infra_config_investigator
   infra_config_investigator ==>|escalates to| debug_conductor
   investigation_state -->|enables| think_twice
