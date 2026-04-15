@@ -2,6 +2,8 @@
 
 Visual reference for the skill hierarchy of superpowers-plus: orchestration chains, domain groupings, and the explicit boundary between the [obra/superpowers](https://github.com/obra/superpowers) upstream base and superpowers-plus overrides and additions.
 
+> **This document covers pipeline topology (which skills call which).** For how triggers fire, how skill names are resolved, how compression works, and the full frontmatter schema, see [DESIGN.md](DESIGN.md).
+
 > **Legend**
 > - **[OVERRIDE]** — superpowers-plus replaces this upstream obra/superpowers skill with a stricter, hardened version
 > - **[BASE]** — installed from obra/superpowers unchanged; superpowers-plus adds nothing to it
@@ -23,35 +25,35 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 
 ## Override Map
 
-Nine upstream skills are replaced by superpowers-plus. Each is a **complete replacement**, not a wrapper — it installs in the same slot as the upstream version.
+Nine upstream skills are replaced by superpowers-plus. Each is a **complete replacement**, not a wrapper — it installs in the same slot as the upstream version. *(Diagram uses shortened labels: `finishing-a-dev-branch` = `finishing-a-development-branch`, `subagent-driven-dev` = `subagent-driven-development`.)*
 
 ```mermaid
-flowchart LR
+flowchart TD
     classDef base fill:#dbeafe,stroke:#3b82f6
     classDef ovrd fill:#fef9c3,stroke:#ca8a04
 
-    subgraph upstream["obra/superpowers — BASE SKILLS REPLACED"]
+    subgraph upstream["base"]
         b1[brainstorming]:::base
-        b2[finishing-a-development-branch]:::base
+        b2[finishing-a-dev-branch]:::base
         b3[receiving-code-review]:::base
         b4[requesting-code-review]:::base
-        b5[subagent-driven-development]:::base
+        b5[subagent-driven-dev]:::base
         b6[systematic-debugging]:::base
         b7[test-driven-development]:::base
         b8[verification-before-completion]:::base
         b9[writing-skills]:::base
     end
 
-    subgraph sp_plus["superpowers-plus — OVERRIDES"]
-        p1["brainstorming [OVERRIDE]"]:::ovrd
-        p2["finishing-a-development-branch [OVERRIDE]"]:::ovrd
-        p3["receiving-code-review [OVERRIDE]"]:::ovrd
-        p4["requesting-code-review [OVERRIDE]"]:::ovrd
-        p5["subagent-driven-development [OVERRIDE]"]:::ovrd
-        p6["systematic-debugging [OVERRIDE]"]:::ovrd
-        p7["test-driven-development [OVERRIDE]"]:::ovrd
-        p8["verification-before-completion [OVERRIDE]"]:::ovrd
-        p9["writing-skills [OVERRIDE]"]:::ovrd
+    subgraph sp_plus["overrides"]
+        p1["brainstorming<br/>[OVERRIDE]"]:::ovrd
+        p2["finishing-a-dev-branch<br/>[OVERRIDE]"]:::ovrd
+        p3["receiving-code-review<br/>[OVERRIDE]"]:::ovrd
+        p4["requesting-code-review<br/>[OVERRIDE]"]:::ovrd
+        p5["subagent-driven-dev<br/>[OVERRIDE]"]:::ovrd
+        p6["systematic-debugging<br/>[OVERRIDE]"]:::ovrd
+        p7["test-driven-development<br/>[OVERRIDE]"]:::ovrd
+        p8["verification-before-completion<br/>[OVERRIDE]"]:::ovrd
+        p9["writing-skills<br/>[OVERRIDE]"]:::ovrd
     end
 
     b1 -.->|replaced by| p1
@@ -95,19 +97,19 @@ flowchart TD
     TO[thinking-orchestrator]:::orch
     FD[feature-development]:::new
     DB[debate]:::new
-    PAE["plan-and-execute [BASE]"]:::base
+    PAE["plan-and-execute<br/>[BASE]"]:::base
     TWT[think-twice]:::new
     AS[adversarial-search]:::new
-    VBC["verification-before-completion [OVERRIDE]"]:::ovrd
+    VBC["verification-before-completion<br/>[OVERRIDE]"]:::ovrd
     OV[output-verification]:::new
     EAV[exhaustive-audit-validation]:::new
     CS[completeness-check]:::new
-    IS["investigation-state [BASE]"]:::base
+    IS["investigation-state<br/>[BASE]"]:::base
     PR[perplexity-research]:::new
-    BST["brainstorming [OVERRIDE]"]:::ovrd
-    TDD["test-driven-development [OVERRIDE]"]:::ovrd
+    BST["brainstorming<br/>[OVERRIDE]"]:::ovrd
+    TDD["test-driven-development<br/>[OVERRIDE]"]:::ovrd
     CRB[code-review-battery]:::new
-    FDAB["finishing-a-development-branch [OVERRIDE]"]:::ovrd
+    FDAB["finishing-a-development-branch<br/>[OVERRIDE]"]:::ovrd
 
     TO -->|enables| FD
     TO -->|enables| DB
@@ -138,10 +140,10 @@ flowchart TD
 Linear enforcement pipeline. Every commit must clear all gates in sequence.
 
 ```mermaid
-flowchart LR
+flowchart TD
     ER[engineering-rigor]
-    UCG[unified-commit-gate /sp-commit]
-    PCG[pre-commit-gate Gate 1]
+    UCG[unified-commit-gate<br/>/sp-commit]
+    PCG[pre-commit-gate<br/>Gate 1]
     ESG[enforce-style-guide]
     PCRG[progressive-code-review-gate]
     PLA[professional-language-audit]
@@ -163,8 +165,8 @@ flowchart TD
 
     OV[output-verification]
     EAV[exhaustive-audit-validation]
-    VBC["verification-before-completion [OVERRIDE]"]:::ovrd
-    FDAB["finishing-a-development-branch [OVERRIDE]"]:::ovrd
+    VBC["verification-before-completion<br/>[OVERRIDE]"]:::ovrd
+    FDAB["finishing-a-development-branch<br/>[OVERRIDE]"]:::ovrd
 
     OV -->|generated output| VBC
     EAV -->|bulk edits| VBC
@@ -184,7 +186,7 @@ flowchart LR
     LV[link-verification]
     WSA[wiki-secret-audit]
     EAS[eliminating-ai-slop]
-    WMSG[wiki-markdown-structure-gate]
+    WMSG[wiki-markdown<br/>structure-gate]
     WD[wiki-debunker]
     PUB([Publish])
     WV[wiki-verify]
@@ -204,14 +206,14 @@ flowchart TD
     classDef ovrd fill:#fef9c3,stroke:#ca8a04
 
     DC[debug-conductor]
-    SD["systematic-debugging [OVERRIDE]"]:::ovrd
+    SD["systematic-debugging<br/>[OVERRIDE]"]:::ovrd
     DC -->|requires| SD
 
-    subgraph subs["Internal sub-agents — dispatched by debug-conductor only"]
+    subgraph subs["Internal sub-agents (not user-invocable)"]
         EA[evidence-adjudicator]
         ICI[infra-config-investigator]
         LBI[llm-behavior-investigator]
-        REI[reproduction-experiment-investigator]
+        REI[reproduction-experiment<br/>investigator]
         SCI[state-consistency-investigator]
         TTI[timeline-trace-investigator]
     end
@@ -232,9 +234,9 @@ flowchart TD
 flowchart LR
     classDef ovrd fill:#fef9c3,stroke:#ca8a04
 
-    RQR["requesting-code-review [OVERRIDE]"]:::ovrd
+    RQR["requesting-code-review<br/>[OVERRIDE]"]:::ovrd
     CRB[code-review-battery]
-    RCV["receiving-code-review [OVERRIDE]"]:::ovrd
+    RCV["receiving-code-review<br/>[OVERRIDE]"]:::ovrd
     CRR[code-review-respond]
     PCRG[progressive-code-review-gate]
     PHR[progressive-harsh-review]
