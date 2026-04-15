@@ -1,6 +1,7 @@
 ---
 name: plan-and-execute
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-plan", "plan and execute", "plan-and-execute", "challenge me", "give me a challenge",
            "here's a challenge", "devise a plan", "phased execution", "break into phases",
            "execute in phases", "plan then execute", "structured execution",

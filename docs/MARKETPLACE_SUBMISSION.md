@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have skill.md with frontmatter | ✅ PASS | 93/93 skills validated |
+| Skills have skill.md with frontmatter | ✅ PASS | 88/88 skills validated |
 
 ## Draft Submission
 
@@ -27,7 +27,7 @@
 
 ### Short Description (for directory listing)
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 93 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 88 skills for wiki, issue tracking, security.
 
 ### Full Description
 
@@ -41,7 +41,7 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 93 domain skills 
 **Additional Domains:**
 
 - Engineering (37 skills): blast radius, debate, TDD, code review, systematic debugging, feature lifecycle, investigation state, debug conductor, sub-agent development, commit gates, typescript conventions
-- Productivity (19 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring, code-review, plan-and-execute, autonomous chain controller, fallback planning, golden agents
+- Productivity (19 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring, inter-agent-review-protocol, plan-and-execute, autonomous chain controller, fallback planning, golden agents
 - Writing (7 skills): slop detection/elimination, profanity gates, table discipline, README authoring, skill file authoring
 - Wiki (8 skills): orchestrator pipeline, link checks, credential scanning, fact-checking, content coherence, markdown structure gate, wiki refactor, wiki verify
 - Issue tracking (5 skills): provider-neutral issue-tracker adapters
@@ -82,7 +82,7 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 93 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 88 skills for wiki, issue tracking, security",
      "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "author": {

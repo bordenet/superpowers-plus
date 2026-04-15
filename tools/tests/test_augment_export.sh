@@ -26,13 +26,22 @@ if [[ ! -d "$SKILLS_DIR" ]]; then
 fi
 
 # Extract curated skills from AUGMENT_MENU_SKILLS array
-mapfile -t CURATED < <(
-    awk '/^AUGMENT_MENU_SKILLS=\(/{found=1; next} found && /^\)/{exit} found{gsub(/[[:space:]]/, ""); print}' "$DEPLOY_SH" \
-    | grep -v '^$'
-)
+# Dynamic discovery: build curated list from installed skills with augment_menu: true.
+# This mirrors the deploy.sh approach (no hardcoded array; skills opt in via frontmatter).
+CURATED=()
+for _skill_dir in "$SKILLS_DIR"/*/; do
+    [[ -d "$_skill_dir" ]] || continue
+    _skill_file=""
+    [[ -f "$_skill_dir/skill.md" ]] && _skill_file="$_skill_dir/skill.md"
+    [[ -f "$_skill_dir/SKILL.md" ]] && _skill_file="$_skill_dir/SKILL.md"
+    [[ -z "$_skill_file" ]] && continue
+    grep -q '^augment_menu: *true' "$_skill_file" 2>/dev/null || continue
+    CURATED+=("$(basename "$_skill_dir")")
+done
 EXPECTED="${#CURATED[@]}"
 if [[ $EXPECTED -eq 0 ]]; then
-    echo "FAIL: Could not parse AUGMENT_MENU_SKILLS from deploy.sh" >&2
+    echo "FAIL: No skills with 'augment_menu: true' found in $SKILLS_DIR" >&2
+    echo "      Run ./install.sh to deploy skills, then re-run the battery." >&2
     exit 1
 fi
 
