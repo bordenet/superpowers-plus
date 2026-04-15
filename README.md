@@ -54,7 +54,7 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-**~93 skills** across 9 domains:
+**88 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
@@ -173,7 +173,7 @@ If you're using the install paths above without an MCP client, you can skip this
    }
    ```
 
-3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~93 available skill names.
+3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~88 available skill names.
 
 If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
@@ -193,7 +193,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | head -5
-# Expected: ~93 skill names listed
+# Expected: ~88 skill names listed
 ```
 
 Run a full 22-point diagnostic:
@@ -229,7 +229,7 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
 | Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
 | Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
-| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 93 skills with typed edges (enables / escalates-to) |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 88 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 
@@ -317,7 +317,7 @@ Utility scripts in `tools/`:
 | Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
 | CRLF errors on WSL | Cloned on Windows before running installer: `bash tools/harsh-review.sh --fix` |
 | Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
-| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~93 |
+| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~88 |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `bash tools/doctor-checks.sh --fix-safe` |
 

@@ -32,6 +32,7 @@ anti_triggers: ["phrase to suppress"]     # string[], optional — suppress acti
 aliases: ["alt-name"]                     # string[], optional — alternate lookup names
 overrides: superpowers/skill-name         # string, optional — declares upstream skill being replaced
 summary: "Short summary for probe mode"  # string, optional — shown by use-skill --probe
+augment_menu: false                       # boolean, optional, default false — true exports skill to ~/.agents/skills/ slash menu
 compress: true                            # boolean, optional, default true — set false to skip compression
 requires_mcp: ["server-name"]             # string[], optional — MCP servers that must be registered
 mcp_install_hint: "path/to/install.sh"   # string, optional — shown when requires_mcp not met
@@ -64,6 +65,7 @@ composition:                              # object, optional — capability/arti
 | `aliases` | No | string[] | `[]` | Alternate lookup names |
 | `overrides` | No | string | — | Declares upstream skill being replaced |
 | `summary` | No | string | — | Short description for `--probe` mode |
+| `augment_menu` | No | boolean | `false` | Set `true` to export this skill to `~/.agents/skills/` (Augment IDE slash menu). Command name is the first `/sp*` trigger; falls back to the skill directory name |
 | `compress` | No | boolean | `true` | Set `false` to skip compression |
 | `requires_mcp` | No | string[] | `[]` | Required MCP server names |
 | `mcp_install_hint` | No | string | — | Install script shown when MCP is missing |
@@ -81,16 +83,6 @@ composition:                              # object, optional — capability/arti
 | `composition.priority` | No | integer | `50` | Execution priority (ascending) |
 | `composition.optional` | No | boolean | `false` | Skill may be skipped |
 | `composition.requires_all` | No | boolean | `false` | All `consumes` must be satisfied |
-
-### Superpower vs Explicit Skill
-
-The presence and content of `triggers` determines whether a skill is a *superpower* (auto-triggered) or an *explicit skill* (must be invoked by name):
-
-```
-triggers: ["update wiki page"]   → SUPERPOWER — AI invokes when trigger matches user query
-triggers: []                     → EXPLICIT SKILL — AI invokes only when asked by name
-(triggers absent)                → EXPLICIT SKILL
-```
 
 ---
 
@@ -344,7 +336,7 @@ These headings and their content are removed as boilerplate — they aid human n
 | Tables | Structured data |
 | Checklists | Procedural steps |
 
-> **Incident 2026-04-14:** `STRIP_SECTIONS` previously included `Hallucination Prevention`, `References`, and `Incident Log`. This deleted URL verification rules from `link-verification` and `issue-link-verification`, causing wiki authoring to produce broken hyperlinks. All three were removed from `STRIP_SECTIONS`. The `<EXTREMELY_IMPORTANT>` pre-extraction mechanism was added as a safety net. See [ARCHITECTURE.md § Incident 2026-04-14](ARCHITECTURE.md#incident-2026-04-14).
+> **Incident 2026-04-14:** `STRIP_SECTIONS` previously included `Hallucination Prevention`, `References`, and `Incident Log`. This deleted URL verification rules from `link-verification` and `issue-link-verification`, causing wiki authoring to produce broken hyperlinks. All three were removed from `STRIP_SECTIONS`. The `<EXTREMELY_IMPORTANT>` pre-extraction mechanism was added as a safety net. See [ARCHITECTURE.md § Incident 2026-04-14](ARCHITECTURE.md#incident-2026-04-14) for the operational record.
 
 ---
 
@@ -398,7 +390,7 @@ sequenceDiagram
 flowchart LR
     TWT[think-twice] ==>|escalates_to| PR[perplexity-research]
     SD[systematic-debugging] ==>|escalates_to| TO[thinking-orchestrator]
-    BL[blast-radius-check] ==>|escalates_to| ER[engineering-rigor]
+    BL[blast-radius-check] ==>|escalates_to| UCG[unified-commit-gate]
 ```
 
 For the full escalation map across all skills, see [skill-dependency-graph.md](skill-dependency-graph.md).
