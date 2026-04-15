@@ -29,7 +29,6 @@
 | engineering | feature-development | 181 | 0 | 0/0 | 18 | 0 | 5 | 54.6 🔴 |
 | productivity | thinking-orchestrator | 152 | 0 | 0/0 | 18 | 0 | 5 | 54.0 🔴 |
 | engineering | requesting-code-review | 178 | 0 | 0/0 | 6 | 0 | 11 | 48.5 🔴 |
-
 | productivity | plan-and-execute | 249 | 0 | 6/628 | 11 | 1 | 2 | 46.5 🔴 |
 | engineering | debate | 196 | 0 | 0/0 | 11 | 1 | 3 | 35.9 🔴 |
 | productivity | autonomous-chain-controller | 128 | 0 | 0/0 | 16 | 0 | 0 | 34.5 🔴 |
@@ -103,7 +102,6 @@
 | wiki | wiki-content-coherence | 119 | 0 | 0/0 | 4 | 0 | 0 | 10.3 🟡 |
 | productivity | fallback-planning | 118 | 0 | 0/0 | 4 | 0 | 0 | 10.3 🟡 |
 | observability | measurement-integrity | 103 | 0 | 0/0 | 4 | 0 | 0 | 10.0 🟡 |
-
 | wiki | wiki-markdown-structure-gate | 101 | 0 | 0/0 | 3 | 0 | 0 | 8.0 🟡 |
 | research | expert-interviewer | 147 | 0 | 0/0 | 1 | 0 | 1 | 7.9 🟢 |
 | productivity | todo-archive | 196 | 0 | 0/0 | 1 | 0 | 0 | 5.9 🟢 |
