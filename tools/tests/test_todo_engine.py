@@ -11,6 +11,7 @@ import importlib.util
 import io
 import os
 import tempfile
+import time
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -1221,6 +1222,83 @@ class ShadowBackupTests(unittest.TestCase):
             self.assertIn("WARNING", stderr_output)
         finally:
             os.rmdir(shadow)  # Cleanup
+
+
+    def test_stale_shadow_skips_count_checks_allows_large_drop(self):
+        """Stale shadow (older than TODO.md) skips active-task-count checks.
+
+        Simulates cross-machine sync: shadow was written on Machine A with many
+        active tasks; TODO.md was then modified on Machine B (completing tasks)
+        and synced via OneDrive.  The shadow mtime is older than the TODO.md
+        mtime, so the count-based checks should be skipped.
+        """
+        eng = self.engine
+        # Create shadow with 8 active tasks by writing directly (not via engine,
+        # so we control the mtime gap).
+        tasks = ""
+        for i in range(1, 9):
+            tasks += f"- [ ] [20260323-{i:02d}] Task {i} with description #test\n"
+        big_shadow = (
+            f"# ACTIVE TASKS\n\n## P1 - Today\n\n{tasks}\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            "# HISTORY\n\n---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        shadow_path = self._shadow_path()
+        os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
+        Path(shadow_path).write_text(big_shadow)
+
+        # Back-date the shadow to simulate it being written 120 seconds ago
+        # (i.e., before the TODO.md was last modified on another machine).
+        stale_mtime = time.time() - 120
+        os.utime(shadow_path, (stale_mtime, stale_mtime))
+
+        # New TODO.md content: only 1 active task (drop of 7 > MAX of 5) — padded
+        # so size stays above 40% to avoid triggering the size check.
+        history_padding = "\n".join(
+            f"- [x] [20260323-{i:02d}] Completed task {i}\n  - Done: 2026-04-15"
+            for i in range(2, 9)
+        )
+        one_task = (
+            "# ACTIVE TASKS\n\n## P1 - Today\n\n"
+            "- [ ] [20260323-01] Task 1 with a longer description for padding #test\n\n"
+            "## P2 - This Week\n\n## P3 - Backlog\n\n---\n\n"
+            f"# HISTORY\n\n{history_padding}\n\n"
+            "---\n\n# DEFERRED\n\n---\n\n# METRICS\n"
+        )
+        self.todo_path.write_text(one_task)
+        # Touch TODO.md to now (newer than the back-dated shadow)
+        now = time.time()
+        os.utime(str(self.todo_path), (now, now))
+
+        # Write should succeed (stale shadow → count checks skipped)
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buf):
+            eng.write_file(str(self.todo_path), one_task)
+        stderr_output = stderr_buf.getvalue()
+        self.assertIn("stale", stderr_output.lower(),
+                      "Expected stale-shadow warning in stderr")
+        self.assertNotIn("REFUSED", stderr_output,
+                         "Should not be blocked on stale shadow")
+        self.assertIn("# ACTIVE TASKS", self.todo_path.read_text())
+
+    def test_stale_shadow_still_blocks_catastrophic_size_wipeout(self):
+        """Even a stale shadow blocks a >60% size wipeout (check 1 always runs)."""
+        eng = self.engine
+        # Create a large shadow and back-date it
+        big_content = SAMPLE_TODO + "\n" + ("- [ ] [20260323-99] Filler task\n" * 50)
+        shadow_path = self._shadow_path()
+        os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
+        Path(shadow_path).write_text(big_content)
+        stale_mtime = time.time() - 120
+        os.utime(shadow_path, (stale_mtime, stale_mtime))
+
+        # Touch the todo_path to be newer than shadow
+        now = time.time()
+        os.utime(str(self.todo_path), (now, now))
+
+        # Write tiny content — this should still be blocked (size check always runs)
+        with self.assertRaises(SystemExit):
+            eng.write_file(str(self.todo_path), SAMPLE_TODO)
 
 
 if __name__ == "__main__":

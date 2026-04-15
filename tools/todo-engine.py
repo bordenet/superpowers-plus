@@ -377,13 +377,22 @@ def _count_active_tasks(content: str) -> int:
     return len(re.findall(r"^- \[[ /]\]", active_section, re.MULTILINE))
 
 
-def _check_annihilation(new_content: str) -> None:
+SHADOW_STALE_SECONDS = 60  # Shadow older than TODO.md by this much → treat as stale
+
+
+def _check_annihilation(new_content: str, todo_path: str) -> None:
     """Compare incoming content against shadow; block suspicious wipeouts.
 
     Three checks (all bypass-able by deleting the shadow file):
       1. Size: new content < 40% of shadow → blocked
       2. Task-zero: active tasks drop to 0 from >0 → blocked
       3. Large drop: active tasks drop by more than MAX_ACTIVE_TASK_DROP → blocked
+
+    Cross-machine stale detection: if the shadow is older than the real TODO.md
+    by more than SHADOW_STALE_SECONDS, the shadow was written on a different
+    machine (TODO.md synced via OneDrive/Dropbox while shadow stayed local).
+    In that case checks 2 & 3 are skipped — the size check (check 1) still
+    runs as a last-resort catastrophic-wipeout guard.
 
     Soft failures (shadow unreadable, shadow is a directory): warn and allow.
     No shadow present: allow (first run) and create shadow afterwards.
@@ -404,7 +413,25 @@ def _check_annihilation(new_content: str) -> None:
         )
         return
 
-    # Check 1: size drop
+    # Cross-machine stale detection: shadow predates the real TODO.md, meaning
+    # work happened on another machine (OneDrive synced the file, shadow stayed local).
+    # Skip count-based checks — the size check still catches catastrophic wipeouts.
+    shadow_stale = False
+    try:
+        shadow_mtime = os.path.getmtime(shadow)
+        todo_mtime = os.path.getmtime(todo_path)
+        if shadow_mtime < todo_mtime - SHADOW_STALE_SECONDS:
+            print(
+                f"WARNING: Shadow is stale (shadow written {int(todo_mtime - shadow_mtime)}s "
+                f"before TODO.md was last modified). This is normal after cross-machine sync. "
+                f"Skipping active-task-count checks; shadow will be refreshed after write.",
+                file=sys.stderr,
+            )
+            shadow_stale = True
+    except OSError:
+        pass  # If we can't stat, proceed with normal checks
+
+    # Check 1: size drop (always runs — catches catastrophic wipeouts even on stale shadow)
     shadow_size = len(shadow_content.encode("utf-8"))
     new_size = len(new_content.encode("utf-8"))
     if shadow_size > 0 and new_size < shadow_size * ANNIHILATION_SIZE_RATIO:
@@ -414,6 +441,9 @@ def _check_annihilation(new_content: str) -> None:
             f"({new_size} bytes vs {shadow_size} bytes). This looks like an "
             f"annihilation attempt. Delete {shadow} to bypass if this shrink is intentional."
         )
+
+    if shadow_stale:
+        return  # Skip count checks — shadow baseline is from a different machine
 
     # Check 2 & 3: active task counts
     shadow_active = _count_active_tasks(shadow_content)
@@ -556,7 +586,7 @@ def write_file(path: str, content: str) -> None:
     _validate_canonical_path(path)
     validate_structure(content)
     content = _normalize_whitespace(content)
-    _check_annihilation(content)   # Layer 5: shadow-based wipeout detection
+    _check_annihilation(content, path)   # Layer 5: shadow-based wipeout detection
     _unprotect_file(path)
     try:
         with open(path, "w") as f:

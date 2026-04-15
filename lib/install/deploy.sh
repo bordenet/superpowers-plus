@@ -626,95 +626,70 @@ install_cli_commands() {
     fi
 }
 
-# Curated skills exported to Augment IDE's native slash menu (~/.agents/skills/).
-# These appear in the Augment "/" command palette when set to "Manual" mode.
-# Keep this list small — only high-frequency, user-facing skills belong here.
-AUGMENT_MENU_SKILLS=(
-    brainstorming
-    systematic-debugging
-    think-twice
-    plan-and-execute
-    debate
-    progressive-harsh-review
-    perplexity-research
-    detecting-ai-slop
-    eliminating-ai-slop
-    todo-management
-    unified-commit-gate
-    pre-push-quality-gate
-    superpowers-help
-    providing-code-review
-    code-review-battery
-    requesting-code-review
-    receiving-code-review
-    verification-before-completion
-    test-driven-development
-    blast-radius-check
-    repo-security-scan
-    finishing-a-development-branch
-    update-superpowers
-    superpowers-doctor
-    failure-autopsy
-    innovation
-    holistic-repo-verification
-    enforce-style-guide
-    sp-bughunt
-)
+# Dynamic Augment menu discovery: skills opt in to the Augment IDE slash menu
+# via `augment_menu: true` in their frontmatter. No hardcoded list anywhere.
+# The slash-command name is the first /sp* trigger in the skill's triggers list
+# (covers /sp-*, /spr-*, /spc-*, etc.), falling back to the skill directory name.
+# Stale-prune is scoped to the calling installer's own source: value so installers
+# from different overlay repos never
+# clobber each other's slash menu entries.
 
-# Extract the first /sp-* trigger from a skill.md file.
-# Handles both inline YAML array: triggers: ["/sp-foo", ...]
-# and block list format:  triggers:\n  - /sp-foo
-# Also handles single-quoted form: triggers: ['/sp-foo', ...]
+# Extract the first /sp* trigger from a skill.md file (covers /sp-, /spr-, /spc-).
+# Handles inline YAML array (double/single-quoted) and block list formats.
 _extract_sp_trigger() {
     local skill_file="$1"
     local t
-    # Inline array, double-quoted: triggers: ["/sp-foo", ...]
-    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp-[^"]*"' | head -1 | tr -d '"')
+    # Inline array, double-quoted: triggers: ["/sp-foo", "/spr-bar", ...]
+    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp[^"]*"' | head -1 | tr -d '"')
     [[ -n "$t" ]] && echo "$t" && return
     # Inline array, single-quoted: triggers: ['/sp-foo', ...]
-    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o "'/sp-[^']*'" | head -1 | tr -d "'")
+    t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o "'/sp[^']*'" | head -1 | tr -d "'")
     [[ -n "$t" ]] && echo "$t" && return
-    # Block list: - /sp-foo
-    t=$(grep -m1 '^ *- /sp-' "$skill_file" 2>/dev/null | sed 's/^ *- //')
+    # Block list: - /sp-foo  or  - /spr-bar
+    t=$(grep -m1 '^ *- /sp' "$skill_file" 2>/dev/null | sed 's/^ *- //')
     echo "$t"
 }
 
-# Export curated skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
-# Copies the skill directory and renames skill.md → SKILL.md (Augment convention).
+# Export opted-in skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
+# Gate: skill must declare `augment_menu: true` in frontmatter.
+# Name: derived from first /sp* trigger; falls back to skill directory name.
+# Prune: only removes entries whose source: matches $1 (the calling installer's
+#        source value), so other repos' slash-menu skills are never touched.
 # Called from install_skills() after main deployment completes.
 export_augment_menu_skills() {
+    local prune_source="${1:-}"   # e.g. "superpowers-plus" or "superpowers-myoverlay"
     [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
 
-    log_info "Exporting curated skills to Augment slash menu..."
+    log_info "Exporting augment_menu skills to Augment slash menu..."
     mkdir -p "$AUGMENT_MENU_DIR"
 
     local exported=0
-    local missing=0
-
-    # Track exported sp-* dir names for pruning
     declare -A exported_names=()
 
-    for skill_name in "${AUGMENT_MENU_SKILLS[@]}"; do
-        # Find the installed skill in the primary deployment target
-        local source_dir="$SKILLS_DIR/$skill_name"
-        if [[ ! -d "$source_dir" ]]; then
-            log_warn "  Curated skill not found: $skill_name (expected in $SKILLS_DIR)"
-            missing=$((missing + 1))
-            continue
-        fi
+    local skill_dir skill_name skill_file sp_trigger dest_name dest
+    for skill_dir in "$SKILLS_DIR"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        skill_name=$(basename "$skill_dir")
 
-        # Derive slash-command directory name from first /sp-* trigger.
-        # Augment IDE uses the directory name as the slash command (/sp-foo).
-        local sp_trigger dest_name
-        sp_trigger=$(_extract_sp_trigger "$source_dir/skill.md")
-        dest_name="${sp_trigger#/}"       # strip leading /
-        if [[ -z "$dest_name" ]]; then
-            log_warn "  No /sp-* trigger found for $skill_name — exporting as /$skill_name (check skill.md triggers: field)"
+        # Locate skill file (skill.md preferred; SKILL.md accepted)
+        skill_file=""
+        [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+        [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+        [[ -z "$skill_file" ]] && continue
+
+        # Gate: only export skills that explicitly opt in
+        grep -q '^augment_menu: *true' "$skill_file" 2>/dev/null || continue
+
+        # Command name: first /sp* trigger, else skill directory name
+        sp_trigger=$(_extract_sp_trigger "$skill_file")
+        if [[ -n "$sp_trigger" ]]; then
+            dest_name="${sp_trigger#/}"
+        else
             dest_name="$skill_name"
         fi
         exported_names["$dest_name"]=1
 
-        local dest="$AUGMENT_MENU_DIR/$dest_name"
+        dest="$AUGMENT_MENU_DIR/$dest_name"
         rm -rf "${dest:?}" 2>/dev/null || true
         mkdir -p "$dest"
 
@@ -722,13 +697,13 @@ export_augment_menu_skills() {
         local f
         while IFS= read -r -d '' f; do
             cp "$f" "$dest/" || log_warn "Failed to copy $(basename "$f") for $skill_name"
-        done < <(find "$source_dir" -maxdepth 1 -type f -print0 2>/dev/null)
+        done < <(find "$skill_dir" -maxdepth 1 -type f -print0 2>/dev/null)
 
-        # Copy subdirectories
+        # Copy subdirectories (reference files, examples, etc.)
         local d
         while IFS= read -r -d '' d; do
             cp -R "$d" "$dest/" || log_warn "Failed to copy dir $(basename "$d") for $skill_name"
-        done < <(find "$source_dir" -maxdepth 1 -type d -not -path "$source_dir" -print0 2>/dev/null)
+        done < <(find "$skill_dir" -maxdepth 1 -type d -not -path "$skill_dir" -print0 2>/dev/null)
 
         # Augment convention: SKILL.md (uppercase). Two-step rename needed on
         # case-insensitive filesystems (macOS APFS) where mv skill.md SKILL.md is a no-op.
@@ -737,9 +712,9 @@ export_augment_menu_skills() {
             mv "$dest/_skill_tmp.md" "$dest/SKILL.md"
         fi
 
-        # Update name: field so Augment shows the sp-* label in the slash menu.
+        # Update name: field so Augment shows the slash-command label.
         # Use python3 for portable in-place edit (sed -i '' fails on Linux GNU sed).
-        if [[ -n "$sp_trigger" ]] && [[ "$dest_name" != "$skill_name" ]]; then
+        if [[ "$dest_name" != "$skill_name" ]]; then
             python3 -c "
 import sys, re
 path = sys.argv[1]; new_name = sys.argv[2]
@@ -753,28 +728,24 @@ with open(path, 'w') as f: f.write(content)
         log_verbose "  Exported: $skill_name → /$dest_name"
     done
 
-    # Prune skills removed from the curated list (including old non-sp-* dirs).
-    for installed_dir in "$AUGMENT_MENU_DIR"/*/; do
-        [[ -d "$installed_dir" ]] || continue
-        local dir_name
-        dir_name=$(basename "$installed_dir")
-        if [[ -z "${exported_names[$dir_name]:-}" ]]; then
-            # Only prune if it looks like a superpowers-managed skill
-            if grep -q '^source: superpowers-plus$' "$installed_dir/SKILL.md" 2>/dev/null || \
-               grep -q '^source: superpowers-plus$' "$installed_dir/skill.md" 2>/dev/null; then
-                rm -rf "${installed_dir:?}"
-                log_verbose "  Pruned stale Augment menu skill: $dir_name"
+    # Prune stale entries from THIS installer's source only.
+    # Skills installed by other overlay repos are never pruned here.
+    if [[ -n "$prune_source" ]]; then
+        local installed_dir dir_name
+        for installed_dir in "$AUGMENT_MENU_DIR"/*/; do
+            [[ -d "$installed_dir" ]] || continue
+            dir_name=$(basename "$installed_dir")
+            if [[ -z "${exported_names[$dir_name]:-}" ]]; then
+                if grep -q "^source: ${prune_source}$" "$installed_dir/SKILL.md" 2>/dev/null || \
+                   grep -q "^source: ${prune_source}$" "$installed_dir/skill.md" 2>/dev/null; then
+                    rm -rf "${installed_dir:?}"
+                    log_verbose "  Pruned stale Augment menu skill: $dir_name"
+                fi
             fi
-        fi
-    done
+        done
+    fi
 
-    local expected="${#AUGMENT_MENU_SKILLS[@]}"
-    if [[ $missing -gt 0 ]]; then
-        log_warn "Augment slash menu: $missing/$expected curated skill(s) missing — slash commands may be incomplete"
-    fi
-    if [[ $exported -gt 0 ]]; then
-        log_success "Exported $exported/$expected skill(s) to Augment slash menu ($AUGMENT_MENU_DIR)"
-    fi
+    log_success "Exported $exported skill(s) to Augment slash menu ($AUGMENT_MENU_DIR)"
 }
 
 
@@ -876,8 +847,8 @@ install_skills() {
         : > "$manifest"
     fi
 
-    # Export curated subset to Augment IDE slash menu
-    export_augment_menu_skills
+    # Export opted-in skills to Augment IDE slash menu; prune stale sp+ entries only
+    export_augment_menu_skills "superpowers-plus"
 }
 
 

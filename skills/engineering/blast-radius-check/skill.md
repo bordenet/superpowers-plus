@@ -1,6 +1,7 @@
 ---
 name: blast-radius-check
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-blast", "refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "multi-component change", "cross-service change"]
 anti_triggers: ["review this PR", "code review", "review these changes", "write new"]
 description: Blast radius analysis - search for ALL usages before modifying any existing code. Prevents breaking unrelated consumers by scoping impact before scoping fix.
@@ -10,7 +11,7 @@ coordination:
   order: 2
   requires: []
   enables: ["field-rename-verification"]
-  escalates_to: ["engineering-rigor"]
+  escalates_to: ["unified-commit-gate"]
   internal: false
 composition:
   consumes: [code-changes]
@@ -137,11 +138,65 @@ grep -rn "newFieldName" --include="*.ts" --include="*.js" repo1/ repo2/ repo3/
 grep -rn "new_field_name\|NewFieldName\|NEW_FIELD_NAME" .
 ```
 
+## Skill Deletion Protocol
+
+Deleting or renaming a skill is a **high blast-radius operation**. Skills are referenced in many forms across many file types. Run this exact sequence **before** any deletion or rename.
+
+### Step 1: Full Reference Inventory (run first — before any edits)
+
+```bash
+SKILL="skill-name"          # e.g., engineering-rigor
+MERMAID="${SKILL//-/_}"     # e.g., engineering_rigor
+
+# All text files — hyphenated skill name
+grep -rn "$SKILL" . --include="*.md" --include="*.sh" \
+  --include="*.js" --include="*.json" --include="*.yaml" 2>/dev/null
+
+# Mermaid node and edge declarations — underscore form
+grep -rn "$MERMAID" . --include="*.md" 2>/dev/null
+
+# Structured data files — these FAIL harsh-review if stale
+grep -n "\"$SKILL\"" tools/high-cost-skills.json \
+  docs/composition-manifest.json 2>/dev/null
+```
+
+Build a complete list of every hit before touching a single file. If the count is higher than expected, that's the real blast radius.
+
+### Step 2: Edit All Files
+
+Use the inventory from Step 1 as a checklist. Touch every file on the list — including:
+
+| Location | What to check |
+|----------|---------------|
+| `skills/*/skill.md` | `coordination.requires`, `.enables`, `.escalates_to` |
+| `tools/high-cost-skills.json` | Array entries |
+| `docs/composition-manifest.json` | Object keys |
+| `docs/skill-dependency-graph.md` | Node declarations AND edge declarations (underscore form) |
+| `lib/intent-patterns.js` | Skill name strings |
+| `docs/*.md` prose | Companion skill tables, "Wrong skill?" headers |
+
+### Step 3: Re-run the Identical Grep
+
+After all edits, re-run the same grep commands from Step 1. Zero hits = done.
+
+```bash
+grep -rn "$SKILL\|$MERMAID" . --include="*.md" --include="*.sh" \
+  --include="*.js" --include="*.json" 2>/dev/null | grep -v CHANGELOG
+```
+
+### Step 4: harsh-review.sh
+
+```bash
+bash tools/harsh-review.sh
+```
+
+CHECK 4c will fail if any structured file still references the deleted skill. A passing gate is mandatory before commit.
+
 ## Companion Skills
 
 - `pre-commit-gate` — Before committing changes
 - `providing-code-review` — When reviewing others' PRs
-- `engineering-rigor` — Philosophy and overview
+
 - **autonomous-chain-controller**: Chain-aware refactoring
 
 ## Failure Modes
