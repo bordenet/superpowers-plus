@@ -390,7 +390,7 @@ sequenceDiagram
 flowchart LR
     TWT[think-twice] ==>|escalates_to| PR[perplexity-research]
     SD[systematic-debugging] ==>|escalates_to| TO[thinking-orchestrator]
-    BL[blast-radius-check] ==>|escalates_to| ER[engineering-rigor]
+    BL[blast-radius-check] ==>|escalates_to| UCG[unified-commit-gate]
 ```
 
 For the full escalation map across all skills, see [skill-dependency-graph.md](skill-dependency-graph.md).

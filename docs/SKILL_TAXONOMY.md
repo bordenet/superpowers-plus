@@ -141,7 +141,6 @@ Linear enforcement pipeline. Every commit must clear all gates in sequence.
 
 ```mermaid
 flowchart TD
-    ER[engineering-rigor]
     UCG[unified-commit-gate<br/>/sp-commit]
     PCG[pre-commit-gate<br/>Gate 1]
     ESG[enforce-style-guide]

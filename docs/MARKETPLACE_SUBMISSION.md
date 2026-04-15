@@ -41,7 +41,7 @@ superpowers-plus extends Jesse Vincent's obra/superpowers with 93 domain skills 
 **Additional Domains:**
 
 - Engineering (37 skills): blast radius, debate, TDD, code review, systematic debugging, feature lifecycle, investigation state, debug conductor, sub-agent development, commit gates, typescript conventions
-- Productivity (19 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring, code-review, plan-and-execute, autonomous chain controller, fallback planning, golden agents
+- Productivity (19 skills): TODO tracking, adversarial search, domain design, think-twice, innovation, skill authoring, inter-agent-review-protocol, plan-and-execute, autonomous chain controller, fallback planning, golden agents
 - Writing (7 skills): slop detection/elimination, profanity gates, table discipline, README authoring, skill file authoring
 - Wiki (8 skills): orchestrator pipeline, link checks, credential scanning, fact-checking, content coherence, markdown structure gate, wiki refactor, wiki verify
 - Issue tracking (5 skills): provider-neutral issue-tracker adapters

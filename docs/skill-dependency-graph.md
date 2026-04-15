@@ -11,14 +11,10 @@ This document visualizes the coordination relationships between skills in superp
 graph TD
   subgraph engineering["Engineering"]
     cognitive_complexity_refactoring["cognitive-complexity-refactoring"]
-    engineering_rigor["engineering-rigor"]
     feature_development["feature-development"]
     git_branch_conventions["git-branch-conventions"]
     implementation_tracker["implementation-tracker"]
     requirements_validation["requirements-validation"]
-    typescript_project_conventions["typescript-project-conventions"]
-    typescript_strict_mode["typescript-strict-mode"]
-    vitest_testing_patterns["vitest-testing-patterns"]
     blast_radius_check["blast-radius-check"]
     debug_conductor["debug-conductor"]
     systematic_debugging["systematic-debugging"]
@@ -44,7 +40,7 @@ graph TD
   subgraph code-quality["Code Quality"]
     code_review_battery["code-review-battery"]
     micro_harsh_review["micro-harsh-review"]
-    code_review["code-review"]
+    inter_agent_review_protocol["inter-agent-review-protocol"]
     providing_code_review["providing-code-review"]
     receiving_code_review["receiving-code-review"]
     code_review_respond["code-review-respond"]
@@ -293,9 +289,9 @@ graph TD
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Engineering | `cognitive-complexity-refactoring`, `engineering-rigor`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `typescript-project-conventions`, `typescript-strict-mode`, `vitest-testing-patterns`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Full engineering lifecycle: feature development, debugging, code review, commit gates, TypeScript conventions, and testing patterns |
+| Engineering | `cognitive-complexity-refactoring`, `feature-development`, `git-branch-conventions`, `implementation-tracker`, `requirements-validation`, `blast-radius-check`, `debug-conductor`, `systematic-debugging`, `field-rename-verification`, `test-driven-development`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Full engineering lifecycle: feature development, debugging, code review, and commit gates |
 | Thinking | `brainstorming`, `adversarial-search`, `debate`, `innovation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
-| Code Quality | `code-review-battery`, `micro-harsh-review`, `code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Parallel and progressive code review pipeline: battery dispatch, persona-based review, receiving and responding to feedback |
+| Code Quality | `code-review-battery`, `micro-harsh-review`, `inter-agent-review-protocol`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Parallel and progressive code review pipeline: battery dispatch, persona-based review, receiving and responding to feedback |
 | Debugging | `investigation-state` | Persists investigation state (hypotheses, evidence, confidence) across multi-session debugging |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `unified-commit-gate`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit; `unified-commit-gate` is the entry point (`/sp-commit`) |
