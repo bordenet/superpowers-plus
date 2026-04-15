@@ -2,7 +2,7 @@
 
 > **Note:** Costs below are estimated from **raw, uncompressed** file sizes (`fileSize / 4`). Actual injection cost is lower — `lib/compress.js` strips boilerplate sections (20–40% reduction). Operative content (`<EXTREMELY_IMPORTANT>` blocks, `Failure Modes`, `Incident Log`, `References`, `Hallucination Prevention`) is preserved. See `docs/ARCHITECTURE.md § Skill Content Compression`.
 >
-> **Generated:** 2026-04-15 · **Skills analyzed:** 93
+> **Generated:** 2026-04-15 · **Skills analyzed:** 88
 > **Regenerate:** `bash tools/skill-cost-analyzer.sh`
 
 ## Column Key
@@ -106,11 +106,8 @@
 | research | expert-interviewer | 147 | 0 | 0/0 | 1 | 0 | 1 | 7.9 🟢 |
 | productivity | todo-archive | 196 | 0 | 0/0 | 1 | 0 | 0 | 5.9 🟢 |
 | engineering | implementation-tracker | 112 | 0 | 0/0 | 1 | 0 | 0 | 4.2 🟢 |
-| engineering | vitest-testing-patterns | 180 | 0 | 0/0 | 0 | 0 | 0 | 3.6 🟢 |
 | productivity | update-superpowers | 170 | 0 | 0/0 | 0 | 0 | 0 | 3.4 🟢 |
 | engineering | cognitive-complexity-refactoring | 174 | 0 | 0/0 | 0 | 0 | 0 | 3.4 🟢 |
-| engineering | typescript-strict-mode | 161 | 0 | 0/0 | 0 | 0 | 0 | 3.2 🟢 |
-| engineering | typescript-project-conventions | 160 | 0 | 0/0 | 0 | 0 | 0 | 3.2 🟢 |
 | engineering | git-branch-conventions | 123 | 0 | 0/0 | 0 | 0 | 0 | 2.4 🟢 |
 
 ## Cost Tiers

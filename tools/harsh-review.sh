@@ -323,6 +323,38 @@ else
 fi
 
 # =============================================================================
+# CHECK 4b: Markdown Table Integrity (blank rows splitting tables)
+# A blank line between two table rows breaks the table into two fragments —
+# most renderers stop parsing the table at the first blank line.
+# This check runs unconditionally (no external tool required).
+# =============================================================================
+log_check "Markdown table integrity (no blank rows inside tables)"
+
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    [[ ! -f "$file" ]] && continue
+
+    result=$(python3 - "$file" <<'PYEOF'
+import sys
+with open(sys.argv[1]) as f:
+    lines = f.readlines()
+bad = []
+for i, line in enumerate(lines):
+    if line.rstrip('\n') == '' and 0 < i < len(lines) - 1:
+        prev_table = lines[i-1].startswith('|')
+        next_table = any(lines[j].startswith('|') for j in range(i+1, min(i+3, len(lines))))
+        if prev_table and next_table:
+            bad.append(i+1)
+if bad:
+    print(' '.join(str(n) for n in bad))
+PYEOF
+)
+    if [[ -n "$result" ]]; then
+        log_fail "$file: blank row(s) inside markdown table at line(s): $result"
+    fi
+done < <(get_files '\.md$')
+
+# =============================================================================
 # CHECK 5: Shebang Consistency
 # =============================================================================
 log_check "Shebang consistency (#!/usr/bin/env bash)"
