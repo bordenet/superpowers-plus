@@ -125,7 +125,7 @@ console.log('\n--- Golden file regression ---');
 const goldenDir = path.join(__dirname, 'golden-compression');
 const { stripFrontmatter } = require('../lib/frontmatter');
 const skills = ['plan-and-execute', 'code-review-battery', 'verification-before-completion',
-                'todo-management', 'pre-push-quality-gate', 'link-verification'];
+                'todo-management', 'finishing-a-development-branch', 'link-verification'];
 
 for (const skill of skills) {
     const goldenPath = path.join(goldenDir, `${skill}.golden.txt`);

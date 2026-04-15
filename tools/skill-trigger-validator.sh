@@ -242,8 +242,6 @@ ALLOWED_OVERLAPS=(
     "pre-commit-gate:professional-language-audit" # Both fire on "before commit"
     "pre-commit-gate:progressive-code-review-gate" # Both fire on commit/push triggers
     "professional-language-audit:progressive-code-review-gate" # Both fire on "before commit"
-    # PR creation checks
-    "engineering-rigor:holistic-repo-verification" # Both fire before creating PR
     # AI slop skills - detecting and eliminating are complementary
     "detecting-ai-slop:eliminating-ai-slop"   # Detect first, then eliminate - same triggers
     # Completion verification - both fire on "ready" and "complete" patterns
