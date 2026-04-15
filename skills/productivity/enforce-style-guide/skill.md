@@ -1,6 +1,7 @@
 ---
 name: enforce-style-guide
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-style", "check style", "enforce coding standards", "lint this", "style guide", "commit:style", "commit:lint"]
 anti_triggers: ["design discussion", "architecture question", "security scan for secrets", "language audit for profanity", "check prose style"]
 description: Enforce coding standards before any commit. Checks shebang, error handling, help flags, verbose flags, line limits, ShellCheck compliance, and syntax validation.

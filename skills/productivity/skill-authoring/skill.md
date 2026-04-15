@@ -67,7 +67,7 @@ This skill enables superpowers-plus to extend itself. Three modes:
 I'll help create a TypeScript strict mode skill.
 
 **Proposed skill:**
-- Name: `typescript-strict-mode` (overlay)
+- Name: `domain-specific-conventions` (overlay)
 - Domain: `engineering`
 - Triggers: ["strict mode violations", "typescript strict", "check strict mode", "ts strict"]
 

@@ -23,12 +23,6 @@
     "capabilities": ["evaluates-options", "generates-options"],
     "priority": 5
   },
-  "engineering-rigor": {
-    "consumes": ["code-changes"],
-    "produces": ["rigor-checklist"],
-    "capabilities": ["enforces-standards"],
-    "priority": 20
-  },
   "field-rename-verification": {
     "consumes": ["code-changes"],
     "produces": ["verification-report"],
@@ -66,12 +60,6 @@
     "priority": 25
   },
   "pre-commit-gate": {
-    "consumes": ["code-changes"],
-    "produces": ["lint-results", "test-results"],
-    "capabilities": ["gates-quality"],
-    "priority": 30
-  },
-  "pre-push-quality-gate": {
     "consumes": ["code-changes"],
     "produces": ["lint-results", "test-results"],
     "capabilities": ["gates-quality"],
@@ -125,29 +113,11 @@
     "capabilities": ["generates-tests", "enforces-tdd"],
     "priority": 10
   },
-  "typescript-project-conventions": {
-    "consumes": ["code-changes"],
-    "produces": ["convention-report"],
-    "capabilities": ["enforces-conventions"],
-    "priority": 35
-  },
-  "typescript-strict-mode": {
-    "consumes": ["code-changes"],
-    "produces": ["typed-code"],
-    "capabilities": ["enforces-types"],
-    "priority": 35
-  },
   "verification-before-completion": {
     "consumes": ["implementation"],
     "produces": ["verification-report"],
     "capabilities": ["verifies-output", "gates-quality"],
     "priority": 25
-  },
-  "vitest-testing-patterns": {
-    "consumes": ["code-changes"],
-    "produces": ["test-suite"],
-    "capabilities": ["fixes-tests", "enforces-conventions"],
-    "priority": 35
   },
   "experimental-self-prompting": {
     "consumes": ["challenge"],
@@ -245,7 +215,7 @@
     "capabilities": ["orchestrates-workflow", "sequences-skills"],
     "priority": 3
   },
-  "code-review": {
+  "inter-agent-review-protocol": {
     "consumes": ["code-changes"],
     "produces": ["review-request-file"],
     "capabilities": ["file-protocol-review"],

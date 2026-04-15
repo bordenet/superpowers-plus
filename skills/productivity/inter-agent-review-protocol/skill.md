@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: inter-agent-review-protocol
 source: superpowers-plus
 description: Use when sending work to a separate reviewer agent or executing reviewer findings via the ~/.codex/superpowers-review/ request.md → response.md file protocol
 triggers: ["send to reviewer agent", "execute reviewer findings", "implement reviewer response", "superpowers-review"]
