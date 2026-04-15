@@ -355,6 +355,110 @@ PYEOF
 done < <(get_files '\.md$')
 
 # =============================================================================
+# CHECK 4c: Orphaned Skill References (sp+ only)
+# Detects references to skills that no longer exist in the registry.
+# FAIL: JSON indexes (high-cost-skills.json, composition-manifest.json) and
+#       Mermaid node declarations in skill-dependency-graph.md.
+# WARN: Coordination fields (requires/enables/escalates_to) — cross-repo refs OK.
+# =============================================================================
+if [[ "$IS_OVERLAY" == "true" ]]; then
+    log_check "Orphaned skill references (SKIPPED — overlay repo)"
+else
+    log_check "Orphaned skill references (JSON indexes + Mermaid nodes)"
+
+    python3 - "$REPO_ROOT" <<'PYEOF'
+import sys, os, json, re
+
+repo_root = sys.argv[1]
+errors = []
+warns  = []
+
+# 1. Build valid skill set from directory names
+skills_root = os.path.join(repo_root, 'skills')
+valid = set()
+if os.path.isdir(skills_root):
+    for domain in os.listdir(skills_root):
+        dd = os.path.join(skills_root, domain)
+        if os.path.isdir(dd):
+            for skill in os.listdir(dd):
+                if os.path.exists(os.path.join(dd, skill, 'skill.md')):
+                    valid.add(skill)
+
+if not valid:
+    sys.exit(0)  # No skills dir — overlay or empty repo, skip
+
+# 2. high-cost-skills.json
+hcs_path = os.path.join(repo_root, 'tools', 'high-cost-skills.json')
+if os.path.exists(hcs_path):
+    with open(hcs_path) as f:
+        hcs = json.load(f)
+    for name in hcs:
+        if name not in valid:
+            errors.append(f'FAIL  high-cost-skills.json: orphaned skill: {name!r}')
+
+# 3. docs/composition-manifest.json
+cm_path = os.path.join(repo_root, 'docs', 'composition-manifest.json')
+if os.path.exists(cm_path):
+    with open(cm_path) as f:
+        cm = json.load(f)
+    for name in cm:
+        if name not in valid:
+            errors.append(f'FAIL  composition-manifest.json: orphaned skill: {name!r}')
+
+# 4. skill-dependency-graph.md Mermaid node declarations
+graph_path = os.path.join(repo_root, 'docs', 'skill-dependency-graph.md')
+if os.path.exists(graph_path):
+    with open(graph_path) as f:
+        lines = f.readlines()
+    for i, line in enumerate(lines, 1):
+        m = re.search(r'\["([a-z][a-z0-9-]+)', line)
+        if not m:
+            continue
+        name = m.group(1)
+        if name not in valid:
+            errors.append(f'FAIL  skill-dependency-graph.md:{i}: orphaned Mermaid node: {name!r}')
+
+# 5. Coordination fields (WARN only — cross-repo refs are legitimate)
+for domain in os.listdir(skills_root):
+    dd = os.path.join(skills_root, domain)
+    if not os.path.isdir(dd):
+        continue
+    for skill in os.listdir(dd):
+        sf = os.path.join(dd, skill, 'skill.md')
+        if not os.path.exists(sf):
+            continue
+        with open(sf) as f:
+            content = f.read()
+        if not content.startswith('---'):
+            continue
+        end = content.find('\n---', 3)
+        if end == -1:
+            continue
+        frontmatter = content[3:end]
+        for field in ('requires', 'enables', 'escalates_to'):
+            m = re.search(rf'{field}:\s*\[(.*?)\]', frontmatter, re.DOTALL)
+            if not m:
+                continue
+            items = re.findall(r'["\']?([a-z][a-z0-9-]+)["\']?', m.group(1))
+            for item in items:
+                if item and item not in valid:
+                    warns.append(f'WARN  {skill}/skill.md coordination.{field}: cross-repo ref: {item!r}')
+
+for w in warns:
+    print(w)
+for e in errors:
+    print(e)
+
+if errors:
+    sys.exit(1)
+PYEOF
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        log_fail "Orphaned skill references detected (see output above)"
+    fi
+fi
+
+# =============================================================================
 # CHECK 5: Shebang Consistency
 # =============================================================================
 log_check "Shebang consistency (#!/usr/bin/env bash)"
