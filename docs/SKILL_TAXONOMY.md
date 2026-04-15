@@ -252,15 +252,15 @@ flowchart LR
 
 ## Domain Reference
 
-All 93 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
+All 88 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
 
 | Domain | Count | Skills |
 |--------|-------|--------|
-| **engineering** | 38 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, debate, engineering-rigor, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, pre-push-quality-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, sp-bughunt, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, typescript-project-conventions, typescript-strict-mode, unified-commit-gate, verification-before-completion **[OVERRIDE]**, vitest-testing-patterns |
+| **engineering** | 33 | blast-radius-check, brainstorming **[OVERRIDE]**, code-review-battery, cognitive-complexity-refactoring, debug-conductor, debate, evidence-adjudicator†, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, implementation-tracker, infra-config-investigator†, investigation-state **[BASE]**, llm-behavior-investigator†, micro-harsh-review, output-verification, pre-commit-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, sp-bughunt, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, unified-commit-gate, verification-before-completion **[OVERRIDE]** |
 | **experimental** | 1 | experimental-self-prompting |
 | **issue-tracking** | 5 | issue-authoring, issue-comment-debunker, issue-editing, issue-link-verification, issue-verify |
 | **observability** | 8 | completeness-check, evolution-loop, exhaustive-audit-validation, failure-autopsy, holistic-repo-verification, measurement-integrity, skill-health-check, superpowers-doctor |
-| **productivity** | 19 | adversarial-search, autonomous-chain-controller, code-review, code-review-respond, domain-design, enforce-style-guide, fallback-planning, golden-agents, innovation, plan-and-execute **[BASE]**, quantitative-decision-gate, skill-authoring, superpowers-help, think-twice, thinking-orchestrator, todo-archive, todo-guardian, todo-management, update-superpowers |
+| **productivity** | 19 | adversarial-search, autonomous-chain-controller, code-review-respond, domain-design, enforce-style-guide, fallback-planning, golden-agents, innovation, inter-agent-review-protocol, plan-and-execute **[BASE]**, quantitative-decision-gate, skill-authoring, superpowers-help, think-twice, thinking-orchestrator, todo-archive, todo-guardian, todo-management, update-superpowers |
 | **research** | 3 | expert-interviewer, incorporating-research, perplexity-research |
 | **security** | 4 | public-repo-ip-audit, repo-security-scan, security-upgrade, wiki-instruction-guard |
 | **wiki** | 8 | link-verification, wiki-content-coherence, wiki-debunker, wiki-markdown-structure-gate, wiki-orchestrator, wiki-refactor, wiki-secret-audit, wiki-verify |
@@ -268,5 +268,5 @@ All 93 skills grouped by filesystem domain. **[OVERRIDE]** replaces an upstream 
 
 ---
 
-*2026-04-13. 93 skills across 9 domains (9 overrides, 2 base, 82 net-new).*
+*2026-04-15. 88 skills across 9 domains (9 overrides, 2 base, 77 net-new).*
 *Full skill descriptions: [SKILLS.md](SKILLS.md)*

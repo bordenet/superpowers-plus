@@ -13,7 +13,7 @@
 | Public GitHub repo | ✅ PASS | github.com/bordenet/superpowers-plus |
 | README with install instructions | ✅ PASS | Multiple install methods |
 | MIT License | ✅ PASS | LICENSE file present |
-| Skills have skill.md with frontmatter | ✅ PASS | 93/93 skills validated |
+| Skills have skill.md with frontmatter | ✅ PASS | 88/88 skills validated |
 
 ## Draft Submission
 
@@ -27,7 +27,7 @@
 
 ### Short Description (for directory listing)
 
-AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 93 skills for wiki, issue tracking, security.
+AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR rewrite loop) plus 88 skills for wiki, issue tracking, security.
 
 ### Full Description
 
@@ -82,7 +82,7 @@ If users report install failures:
    ```json
    {
      "name": "superpowers-plus",
-     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 93 skills for wiki, issue tracking, security",
+     "description": "AI slop detection (300+ patterns) and elimination (GVR loop) plus 88 skills for wiki, issue tracking, security",
      "version": "2.5.1",
      "homepage": "https://github.com/bordenet/superpowers-plus",
      "author": {
