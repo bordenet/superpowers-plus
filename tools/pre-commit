@@ -427,6 +427,44 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# CHECK: .gitignore integrity (detect patterns fused into separator comments)
+#
+# Prevents the class of failure where an agent collapses:
+#   # =========
+#   .DS_Store
+# into:
+#   # =========.DS_Store    ← git treats whole line as comment; pattern is lost
+#
+# Only runs when .gitignore is staged. Reads the staged blob so it catches
+# the exact content that would be committed, not any working-tree edits.
+# -----------------------------------------------------------------------------
+if echo "$STAGED_FILES" | grep -q '^\.gitignore$'; then
+    echo -e "${YELLOW}[+]${NC} Validating .gitignore for fused patterns..."
+    _gi_errors=0
+    while IFS= read -r _gi_line; do
+        # A separator-comment line (8+ of =, -, _, *) immediately followed by
+        # a character that is NOT a separator, NOT #, and NOT space means a
+        # gitignore pattern was collapsed onto the comment. Git treats the whole
+        # line as a comment; the pattern is silently lost.
+        # The captured group must start with a non-separator char so pure
+        # separator lines (# ====) and double-comment lines (# ====# text)
+        # do not produce false positives.
+        if [[ "$_gi_line" =~ ^#[[:space:]]*[-=_*]{8,}([^[:space:]#=_*-].*) ]]; then
+            _gi_fused="${BASH_REMATCH[1]}"
+            echo -e "${RED}  ✗ '${_gi_fused}' is fused into a comment — git will not apply it:${NC}"
+            echo -e "    ${_gi_line}"
+            _gi_errors=$((_gi_errors + 1))
+        fi
+    done < <(git show ":.gitignore" 2>/dev/null)
+    if [[ $_gi_errors -gt 0 ]]; then
+        echo -e "${RED}  Fix: each pattern must be on its own line, not appended to a comment.${NC}"
+        ERRORS=$((ERRORS + _gi_errors))
+    else
+        echo -e "${GREEN}  ✓ .gitignore patterns are well-formed${NC}"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # CHECK 6: Loose-ends scan (always runs; blocks only if REQUIRE_LOOSE_ENDS_CLEAN=true)
 #
 # Part A: scan-staged — greps staged diff for TODO/FIXME/HACK in code files.
