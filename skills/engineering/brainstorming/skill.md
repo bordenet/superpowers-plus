@@ -1,6 +1,7 @@
 ---
 name: brainstorming
 source: superpowers-plus
+augment_menu: true
 overrides: superpowers/brainstorming
 # Override rationale: Condensed from 164→96 lines for LLM context efficiency.
 # Adds anti_triggers, mandatory announce-at-start, and structured output format.
