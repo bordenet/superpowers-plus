@@ -1,6 +1,7 @@
 ---
 name: think-twice
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-rethink", "second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same"]
 anti_triggers: ["use perplexity", "research this", "Perplexity API"]
 description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.

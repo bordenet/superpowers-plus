@@ -47,7 +47,7 @@ lib/install/
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
 ├── deps.sh          # Package manager detection, dependency install, Node.js version check
 ├── superpowers.sh   # obra/superpowers clone, update, upgrade, version check
-├── deploy.sh        # Skill, adapter, rule, template deployment to 3 target dirs
+├── deploy.sh        # Skill, adapter, rule deployment across ~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/, ~/.augment/rules/
 └── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
 ```
 
@@ -65,110 +65,29 @@ Each skill is identified by its directory name, not the filename.
 
 ## Semantic Skill Matching
 
-Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** that matches natural language queries to skills based on meaning, not just keywords. For the full scoring algorithm (TF-IDF + intent pattern boosts + anti-trigger penalties), see [DESIGN.md § Semantic Skill Router](DESIGN.md#3-semantic-skill-router).
-
-### Usage
-
-```bash
-# Find skills matching a natural language query
-node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"
-
-# Force TF-IDF (local, no API) or embedding (OpenAI) method
-node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --tfidf "review this PR"
-node ~/.codex/superpowers-augment/superpowers-augment.js match-skills --embedding "stuck on a bug"
-```
-
-### How It Works
-
-The router uses a **hybrid TF-IDF + Intent Pattern** approach:
-
-| Component | Purpose |
-|-----------|---------|
-| **TF-IDF Engine** | Matches query terms to skill descriptions using term frequency-inverse document frequency |
-| **Stemming** | Reduces words to roots (e.g., "failing" → "fail") for better matching |
-| **Query Expansion** | Maps domain concepts (e.g., "stuck" → "think-twice", "debug") |
-| **Intent Patterns** | Boosts skills when high-confidence phrases are detected (e.g., "resume" → cv-review skills) |
-
-### Default Behavior
-
-- **Local-first**: Uses TF-IDF by default (no external API calls)
-- **Optional enhancement**: If `OPENAI_API_KEY` is set, embeddings are available via `--embedding` flag
-- **100% offline**: Works without network connectivity
-
-### Architecture
-
-```typescript
-lib/skill-router.js
-├── buildTfIdfIndex()      # Builds document index from skill descriptions
-├── matchSkillsTfIdf()     # Local TF-IDF matching with intent boosts
-├── matchSkillsEmbedding() # OpenAI embedding matching (optional)
-└── matchSkills()          # Unified interface (auto-selects method)
-```
+Beyond static trigger phrases, superpowers-plus includes a **semantic skill router** (`lib/skill-router.js`) that matches natural language queries to skills using hybrid TF-IDF + intent pattern scoring. CLI: `superpowers-augment.js match-skills "query"`. For the full algorithm, scoring pipeline, query expansion, and embedding mode, see [DESIGN.md § Semantic Skill Router](DESIGN.md#3-semantic-skill-router).
 
 ## Skill Content Compression
 
-When skills are loaded by `superpowers-augment.js` or `mcp/superpowers-mcp.js`, their content passes through `lib/compress.js` to reduce token cost (typically 20–40% reduction).
-
-### Two-Phase Pipeline
-
-**Phase 1 (structural):** Strips boilerplate sections by heading pattern (`STRIP_SECTIONS`), removes DOT graphs and HTML comments. Sections like `When to Use`, `Examples`, `Anti-Patterns`, `Companion Skills` are stripped — they aid human navigation but not agent execution.
-
-**Phase 2 (density):** Reduces prose verbosity outside code blocks — removes bold/italic markup from headings, collapses whitespace, strips navigation boilerplate.
-
-### Preserved Content
-
-These survive compression unconditionally:
-
-| Content | Why |
-|---------|-----|
-| `<EXTREMELY_IMPORTANT>` blocks | Operative safety gates (e.g., URL verification rules) |
-| `Failure Modes` sections | Runtime error-handling context |
-| `Incident Log/Record/History` | Recurrence-prevention context — real past failures |
-| `References` sections | Pointers to reference files (e.g., `references/incidents.md`) |
-| `Hallucination Prevention` | URL fabrication prevention rules |
-| Code blocks, tables, checklists | Procedural content |
-
-`<EXTREMELY_IMPORTANT>` blocks are **extracted before** section stripping and **restored after**, so they survive even when their parent heading is in `STRIP_SECTIONS`. Blocks rescued from stripped sections are appended under `## Critical Rules (preserved from compression)`.
-
-### Opt-out
-
-Add `compress: false` to a skill's YAML frontmatter to skip compression entirely.
+Skills are compressed by `lib/compress.js` on load (typically 20–40% token reduction). Add `compress: false` to frontmatter to opt out. For the full two-phase pipeline, stripped sections list, and preserved-content rules, see [DESIGN.md § Compression Pipeline](DESIGN.md#5-compression-pipeline).
 
 ### Incident 2026-04-14
 
-`STRIP_SECTIONS` included `Hallucination Prevention`, `References`, and `Incident Log/Record/History`. This deleted URL verification rules from `link-verification` and `issue-link-verification`, deleted pointers to 78 lines of incident history, and deleted recurrence-prevention context. Wiki authoring regressed to producing broken hyperlinks. All three patterns were removed from `STRIP_SECTIONS` and the `<EXTREMELY_IMPORTANT>` extraction mechanism was added as a safety net.
+`STRIP_SECTIONS` included `Hallucination Prevention`, `References`, and `Incident Log/Record/History`. This deleted URL verification rules from `link-verification` and `issue-link-verification`, deleted pointers to 78 lines of incident history, and deleted recurrence-prevention context. Wiki authoring regressed to producing broken hyperlinks. All three patterns were removed from `STRIP_SECTIONS` and the `<EXTREMELY_IMPORTANT>` pre-extraction mechanism was added as a safety net.
 
 ## Skill Structure
 
 A skill is a directory containing `skill.md`:
 
-```markdown
+```
 skills/{domain}/{skill-name}/
 └── skill.md              # Required: skill definition
 ```
 
-### skill.md Format
+### skill.md Content Sections
 
 ```markdown
----
-name: skill-name
-source: superpowers-plus
-triggers: ["trigger phrase 1", "trigger phrase 2", "trigger phrase 3"]
-anti_triggers: ["phrase that should NOT trigger this skill"]
-description: One-line description of what the skill does.
-coordination:
-  group: domain-name
-  order: 1
-  requires: []
-  enables: []
-  escalates_to: []
-  internal: false
----
-
 # Skill Name
-
-## When to Invoke
-[Trigger conditions]
 
 ## Procedure
 [Step-by-step instructions]
@@ -180,66 +99,18 @@ coordination:
 [Known failure modes and remediation]
 ```
 
-### Frontmatter Fields
-
-For the complete field reference including `composition`, `aliases`, `requires_mcp`, `compress`, and `summary`, see [DESIGN.md § Frontmatter Schema](DESIGN.md#1-frontmatter-schema).
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Skill identifier (must match directory name) |
-| `source` | Yes | Repository that owns this skill (e.g., `superpowers-plus`) |
-| `triggers` | No | Array of phrases that auto-invoke this skill. **If present and non-empty, the skill is a "superpower" (auto-triggered).** If absent or empty, the skill is "explicit" (must be invoked by name). |
-| `anti_triggers` | No | Array of phrases that should NOT trigger this skill |
-| `description` | Yes | One-line description for skill discovery |
-| `coordination` | No | DAG metadata: `group`, `order`, `internal`, `requires`, `enables`, `escalates_to` |
-| `overrides` | No | If this skill overrides another, specify `repo/skill-name` |
-
-### Superpower vs Explicit Skill Examples
-
-**Superpower (auto-triggered):**
-
-```yaml
----
-name: wiki-orchestrator
-source: superpowers-plus
-triggers: ["update wiki page", "push to wiki", "edit wiki"]
-description: Orchestrates wiki editing workflows — download, edit, publish.
----
-```
-
-**Explicit Skill (manual invocation):**
-
-```yaml
----
-name: superpowers-help
-source: superpowers-plus
-triggers: []  # Empty array = explicit
-description: Lists available skills.
----
-```
-
-Or simply omit triggers entirely:
-
-```yaml
----
-name: superpowers-help
-source: superpowers-plus
-description: Lists available skills.
----
-```
+For the complete frontmatter schema (`name`, `source`, `triggers`, `augment_menu`, `coordination`, `composition`, and all other fields), see [DESIGN.md § Frontmatter Schema](DESIGN.md#1-frontmatter-schema).
 
 ### Downstream Override Declaration
 
-When extending superpowers-plus, downstream repos can declare their override:
+When extending superpowers-plus, downstream repos declare their override in frontmatter:
 
 ```yaml
----
 name: link-verification
 source: your-org-repo
 overrides: superpowers-plus/link-verification
-triggers: ["verify links", "check URL", "add code reference"]
+triggers: ["verify links", "check URL"]
 description: Org-specific link verification with internal URL patterns.
----
 ```
 
 This enables tooling to audit which version is active at runtime.
@@ -265,16 +136,37 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 
 ## Multi-Target Deployment
 
-`install.sh` (via `lib/install/deploy.sh`) deploys skills to three locations for different AI tools:
+`install.sh` (via `lib/install/deploy.sh`) deploys skills to four locations:
 
 | Target | Install Path | Notes |
 |--------|--------------|-------|
 | Augment Agent | `~/.codex/skills/` | Primary path for superpowers-augment.js |
 | Claude Code | `~/.claude/skills/` | Native Skill tool path |
+| Augment slash menu | `~/.agents/skills/` | Skills with `augment_menu: true` in Augment IDE command palette |
 | Rules | `~/.augment/rules/` | Always-on agent rules |
 | Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
 Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
+
+### Augment Slash Menu — Dynamic Discovery
+
+Skills are exported to `~/.agents/skills/` via **explicit opt-in** — no hardcoded list. The rule:
+
+> Any skill installed to `~/.codex/skills/` that declares `augment_menu: true` in its frontmatter is exported to `~/.agents/skills/`. The directory (slash command) name is the first `/sp*` trigger in `triggers:` (covering `/sp-`, `/spr-`, `/spc-` prefixes), falling back to the skill directory name.
+
+```yaml
+# This skill will appear as /sp-debug in the Augment command palette
+augment_menu: true
+triggers: ["/sp-debug", "debug this", "test failure"]
+```
+
+This keeps the slash menu curated: skills must explicitly declare intent to appear there. Overlay repos control their own slash menu presence independently, with zero changes to superpowers-plus, as long as:
+1. Their installer sets `AUGMENT_MENU_DIR="${HOME}/.agents/skills"` and calls `export_augment_menu_skills "source-name"`
+2. Skills they want in the menu carry `augment_menu: true` in their frontmatter
+
+Some overlay repos deploy their skills directly to `~/.agents/skills/` by skill name using their own install mechanism, bypassing `augment_menu: true`. These repos manage their own stale-prune logic independently.
+
+**Stale-prune isolation:** Each installer passes its own `source:` value to `export_augment_menu_skills`. Pruning only removes entries whose `SKILL.md` has a matching `source:` line. Entries from other installers and user-created entries (no `source:` field) are never touched.
 
 ## Shared Modules
 
@@ -346,10 +238,4 @@ Skills read `ISSUE_TRACKER_TYPE` environment variable to select the adapter.
 
 ## Bootstrapping
 
-At conversation start, AI assistants run:
-
-```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
-```
-
-This emits the skill invocation rules (priority ordering, 1% chance rule) directly to the conversation.
+At conversation start, AI assistants run `superpowers-augment.js bootstrap`, which scans skill directories, deduplicates, writes `~/.codex/.skill-index.json`, and emits the skill invocation rules into the session. For the full sequence diagram and session-staleness logic, see [DESIGN.md § Bootstrap Flow](DESIGN.md#8-bootstrap-flow).
