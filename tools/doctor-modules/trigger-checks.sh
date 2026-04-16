@@ -10,6 +10,19 @@ EXPLICIT_LIST=""
 # Parse EXPLICIT_SKILLS array from validator using awk (portable, no line-count limit)
 # Match only the closing ')' on its own line (not ')' inside comments like "(upgrades packages)")
 [[ -f "$VALIDATOR" ]] && EXPLICIT_LIST=$(awk '/^EXPLICIT_SKILLS=/{found=1; next} found && /^[[:space:]]*\)/{exit} found{gsub(/#.*/, ""); gsub(/[[:space:]"]+/, ""); if ($0 != "") print}' "$VALIDATOR" 2>/dev/null || echo "")
+# Load overlay-specific explicit skill lists (one skill name per line, # for comments).
+# Private overlays use this to suppress warnings for intentionally dormant skills
+# without leaking internal skill names into this public repo.
+for _overlay_dir in "${SOURCE_DIRS[@]}"; do
+  [[ "$_overlay_dir" == "$SP_PLUS_DIR" ]] && continue
+  _es_file="${_overlay_dir}/tools/doctor-explicit-skills.txt"
+  if [[ -f "$_es_file" ]]; then
+    while IFS= read -r _es_skill; do
+      [[ -z "$_es_skill" || "$_es_skill" =~ ^# ]] && continue
+      EXPLICIT_LIST="${EXPLICIT_LIST}"$'\n'"${_es_skill}"
+    done < "$_es_file"
+  fi
+done
 for skill in "${!SKILL_PATH[@]}"; do
   if [[ -z "${SKILL_HAS_TRIGGERS[$skill]:-}" ]] && ! echo "$EXPLICIT_LIST" | grep -q "^${skill}$"; then
     echo "🟡 WARNING: $skill — no triggers and not in EXPLICIT_SKILLS"; ((WARNINGS++))
