@@ -20,6 +20,25 @@ VERDICT="PASS"
 MIN_SCORE="7.0"
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --help|-h)
+            cat << 'EOF'
+Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]
+
+Run the automated quality suite and write .code-review-cleared.
+This is the ONLY permitted way to write the sentinel file.
+Run AFTER completing the AI judgment component of code-review-battery.
+
+Options:
+  --verdict     PASS or PASS_WITH_NITS (default: PASS)
+  --min-score   Quality threshold 1.0–10.0 (default: 7.0)
+  -h, --help    Show this help
+
+Exit codes:
+  0  All checks pass, sentinel written
+  1  Failure, sentinel NOT written
+EOF
+            exit 0
+            ;;
         --verdict)
             if [[ $# -lt 2 ]]; then
                 echo "❌ --verdict requires a value: PASS or PASS_WITH_NITS" >&2
