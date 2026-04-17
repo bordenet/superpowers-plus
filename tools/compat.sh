@@ -197,10 +197,11 @@ _is_wsl_ntfs() {
   return 1
 }
 
-# --- Help for this file ---
+# --- Help (only when executed directly, not sourced) ---
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  cat << 'HELP'
+if ! (return 0 2>/dev/null); then
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        cat << 'HELP'
 tools/compat.sh — Cross-platform compatibility shims
 
 SOURCE this file; do not execute directly.
@@ -218,5 +219,6 @@ Example:
   sed_inplace 's/foo/bar/' myfile.txt
   epoch=$(date_to_epoch "2026-01-15")
 HELP
-  exit 0
+        exit 0
+    fi
 fi
