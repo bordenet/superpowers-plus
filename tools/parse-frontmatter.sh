@@ -13,6 +13,22 @@
 
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat << 'EOF'
+parse-frontmatter.sh — Extract YAML frontmatter fields from skill.md files
+
+Usage (as a sourced library):
+  source "$(dirname "$0")/parse-frontmatter.sh"
+  value=$(frontmatter_field "path/to/skill.md" "name")
+
+Usage (standalone):
+  ./parse-frontmatter.sh path/to/skill.md name
+  ./parse-frontmatter.sh path/to/skill.md description
+  ./parse-frontmatter.sh path/to/skill.md           # dumps all frontmatter
+EOF
+    exit 0
+fi
+
 # Extract the raw YAML frontmatter block (between first and second ---)
 frontmatter_block() {
   local file="$1"

@@ -67,42 +67,64 @@ if [[ -d "$HOME/.codex/superpowers" ]]; then
     log_pass "Superpowers framework installed"
 else
     log_fail "Superpowers framework not found at ~/.codex/superpowers/"
-    ((errors++))
+    errors=$((errors + 1))
 fi
 
 if [[ -f "$HOME/.codex/superpowers-augment/superpowers-augment.js" ]]; then
     log_pass "Superpowers-augment bridge installed"
 else
     log_fail "Superpowers-augment bridge not found"
-    ((errors++))
+    errors=$((errors + 1))
 fi
 echo ""
 
-# Test 2: Perplexity skill
+# Test 2: Perplexity skill (check every modern deployment target; any one passes)
 echo "--- Perplexity Research Skill ---"
-SKILL_PATH="$HOME/.codex/superpowers/skills/perplexity-research/SKILL.md"
-if [[ -f "$SKILL_PATH" ]]; then
-    log_pass "Skill file exists"
-    
-    # Check YAML frontmatter
-    if head -5 "$SKILL_PATH" | grep -q "name: perplexity-research"; then
-        log_pass "Skill has correct name in frontmatter"
+# Order matters: first hit wins the display. Legacy path last so modern
+# installs are reported first. The `sp-research` name is what install.sh
+# produces when deploying to ~/.agents/skills/ (augment_menu export).
+SKILL_CANDIDATES=(
+    "$HOME/.agents/skills/sp-research/SKILL.md"
+    "$HOME/.codex/skills/perplexity-research/skill.md"
+    "$HOME/.codex/skills/perplexity-research/SKILL.md"
+    "$HOME/.claude/skills/perplexity-research/skill.md"
+    "$HOME/.claude/skills/perplexity-research/SKILL.md"
+    "$HOME/.codex/superpowers/skills/perplexity-research/SKILL.md"
+)
+found_skill_path=""
+for candidate in "${SKILL_CANDIDATES[@]}"; do
+    if [[ -f "$candidate" ]]; then
+        found_skill_path="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$found_skill_path" ]]; then
+    log_pass "Skill file found at $found_skill_path"
+    # Accept either the canonical 'perplexity-research' or the slash-menu
+    # rename 'sp-research'; both are valid per lib/install/deploy.sh.
+    if head -10 "$found_skill_path" | grep -qE '^name:[[:space:]]*(perplexity-research|sp-research)[[:space:]]*$'; then
+        log_pass "Skill frontmatter has expected name"
     else
-        log_fail "Skill frontmatter incorrect"
-        ((errors++))
+        log_fail "Skill frontmatter name is neither perplexity-research nor sp-research"
+        errors=$((errors + 1))
     fi
 else
-    log_fail "Skill not installed at $SKILL_PATH"
-    ((errors++))
+    log_fail "Skill not installed at any known path:"
+    for candidate in "${SKILL_CANDIDATES[@]}"; do echo "        $candidate"; done
+    echo "        Fix: run  bash install.sh  from the superpowers-plus repo root"
+    errors=$((errors + 1))
 fi
 
-# Check discoverability
+# Check discoverability via superpowers-augment.js. Anchor the match so
+# hypothetical suffixes like `perplexity-research-extra` don't pass.
 if command -v node &>/dev/null && [[ -f "$HOME/.codex/superpowers-augment/superpowers-augment.js" ]]; then
-    if node "$HOME/.codex/superpowers-augment/superpowers-augment.js" find-skills 2>/dev/null | grep -q "superpowers:perplexity-research"; then
-        log_pass "Skill discoverable as superpowers:perplexity-research"
+    if node "$HOME/.codex/superpowers-augment/superpowers-augment.js" find-skills 2>/dev/null \
+            | grep -qE '(^|[^A-Za-z0-9_-])(superpowers:)?(perplexity-research|sp-research)([^A-Za-z0-9_-]|$)'; then
+        log_pass "Skill discoverable via superpowers-augment find-skills"
     else
         log_fail "Skill not discoverable via find-skills"
-        ((errors++))
+        errors=$((errors + 1))
     fi
 fi
 echo ""
@@ -110,68 +132,102 @@ echo ""
 # Test 3: Stats file
 echo "--- Stats Tracking ---"
 STATS_FILE="$HOME/.codex/perplexity-stats.json"
-if [[ -f "$STATS_FILE" ]]; then
-    log_pass "Stats file exists"
-    
-    if jq empty "$STATS_FILE" 2>/dev/null; then
-        log_pass "Stats file is valid JSON"
-        
-        # Check required fields
-        for field in total_invocations successful unsuccessful success_rate; do
-            if jq -e "has(\"$field\")" "$STATS_FILE" &>/dev/null; then
-                log_pass "Stats has field: $field"
-            else
-                log_fail "Stats missing field: $field"
-                ((errors++))
-            fi
-        done
-        
-        # Show current stats
+STATS_INIT_HINT="scripts/perplexity-stats.sh show   # initializes the stats file"
+# `jq empty` passes on a 0-byte file (no input = no error), so we also assert
+# the file has content and parses to an object. An empty/corrupt file gets a
+# single actionable error rather than a cascade of "missing field" failures.
+if [[ ! -f "$STATS_FILE" ]]; then
+    log_fail "Stats file not found at $STATS_FILE"
+    echo "        Fix: $STATS_INIT_HINT"
+    errors=$((errors + 1))
+elif [[ ! -s "$STATS_FILE" ]] || ! jq -e 'type == "object"' "$STATS_FILE" &>/dev/null; then
+    log_fail "Stats file at $STATS_FILE is empty or not a JSON object"
+    echo "        Fix: $STATS_INIT_HINT"
+    errors=$((errors + 1))
+else
+    log_pass "Stats file exists and is a JSON object"
+    missing_fields=()
+    for field in total_invocations successful unsuccessful success_rate; do
+        if jq -e "has(\"$field\")" "$STATS_FILE" &>/dev/null; then
+            log_pass "Stats has field: $field"
+        else
+            missing_fields+=("$field")
+        fi
+    done
+    if (( ${#missing_fields[@]} > 0 )); then
+        log_fail "Stats missing fields: ${missing_fields[*]}"
+        echo "        Fix: $STATS_INIT_HINT"
+        errors=$((errors + 1))
+    else
         total=$(jq -r '.total_invocations' "$STATS_FILE")
         success_rate=$(jq -r '.success_rate' "$STATS_FILE")
         log_info "Current stats: $total invocations, ${success_rate}% success rate"
-    else
-        log_fail "Stats file is not valid JSON"
-        ((errors++))
     fi
-else
-    log_fail "Stats file not found at $STATS_FILE"
-    ((errors++))
 fi
 echo ""
 
-# Test 4: MCP Configuration
+# Test 4: MCP configuration — must find the server in at least one client
 echo "--- Perplexity MCP Configuration ---"
 mcp_found=false
 
-# Check Claude Desktop
+# Reusable jq probe: returns 0 iff .mcpServers.perplexity exists and is an object
+_has_perplexity_server() {
+    local cfg="$1"
+    [[ -f "$cfg" ]] || return 1
+    command -v jq &>/dev/null || return 1
+    jq -e '.mcpServers.perplexity | type == "object"' "$cfg" &>/dev/null
+}
+
+# Claude Desktop
 CLAUDE_DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
-if [[ -f "$CLAUDE_DESKTOP_CONFIG" ]]; then
-    if grep -q "perplexity" "$CLAUDE_DESKTOP_CONFIG" 2>/dev/null; then
-        log_pass "Perplexity MCP configured in Claude Desktop"
-        mcp_found=true
-    fi
+if _has_perplexity_server "$CLAUDE_DESKTOP_CONFIG"; then
+    log_pass "Perplexity MCP configured in Claude Desktop"
+    mcp_found=true
+elif [[ -f "$CLAUDE_DESKTOP_CONFIG" ]]; then
+    log_warn "Claude Desktop config present but lacks .mcpServers.perplexity"
+    warnings=$((warnings + 1))
 fi
 
-# Check Claude Code CLI
+# Claude Code CLI
 if command -v claude &>/dev/null; then
-    if claude mcp list 2>/dev/null | grep -q "perplexity"; then
+    if claude mcp list 2>/dev/null | grep -qE '^[[:space:]]*perplexity[[:space:]]*:'; then
         log_pass "Perplexity MCP configured in Claude Code CLI"
         mcp_found=true
     fi
 fi
 
-# Check for npm package
-if npm list -g @perplexity-ai/mcp-server &>/dev/null 2>&1; then
-    log_pass "Perplexity MCP package installed globally"
-else
-    log_warn "Perplexity MCP package not found globally (may be installed locally)"
-    ((warnings++))
+# Augment Code
+AUGMENT_SETTINGS="$HOME/.augment/settings.json"
+if _has_perplexity_server "$AUGMENT_SETTINGS"; then
+    log_pass "Perplexity MCP configured in Augment Code ($AUGMENT_SETTINGS)"
+    mcp_found=true
+elif [[ -f "$AUGMENT_SETTINGS" ]]; then
+    log_warn "Augment settings.json present but lacks .mcpServers.perplexity"
+    warnings=$((warnings + 1))
 fi
 
 if [[ "$mcp_found" == false ]]; then
-    log_warn "Could not verify MCP configuration (may still work in Augment)"
-    ((warnings++))
+    log_fail "Perplexity MCP not configured in any detected client"
+    echo "        Fix: ./setup/mcp-perplexity.sh"
+    errors=$((errors + 1))
+fi
+echo ""
+
+# Test 5: API key resolvable
+echo "--- Perplexity API Key ---"
+key_source=""
+if [[ -n "${PERPLEXITY_API_KEY:-}" ]]; then
+    key_source="environment"
+elif [[ -f "$HOME/.codex/.env" ]] && \
+     grep -qE '^[[:space:]]*(export[[:space:]]+)?PERPLEXITY_API_KEY[[:space:]]*=' "$HOME/.codex/.env"; then
+    key_source="$HOME/.codex/.env"
+fi
+if [[ -n "$key_source" ]]; then
+    log_pass "PERPLEXITY_API_KEY resolvable (source: $key_source)"
+else
+    log_fail "PERPLEXITY_API_KEY not set in environment or ~/.codex/.env"
+    echo "        Fix: ./setup/mcp-perplexity.sh  (will prompt and persist)"
+    errors=$((errors + 1))
 fi
 echo ""
 
@@ -183,12 +239,12 @@ if [[ $errors -eq 0 ]]; then
     if [[ $warnings -eq 0 ]]; then
         log_pass "All tests passed! Perplexity integration is ready."
     else
-        log_pass "All critical tests passed ($warnings warnings)"
+        log_pass "All critical tests passed ($warnings warning(s))"
     fi
     exit 0
 else
     log_fail "$errors test(s) failed, $warnings warning(s)"
     echo ""
-    echo "To fix, run: ./setup/install-perplexity-skill.sh"
+    echo "To fix, run: ./setup/mcp-perplexity.sh"
     exit 1
 fi

@@ -94,7 +94,7 @@ sp-update automatically runs the cascading install. The flow is:
 2. Deploys superpowers-plus skills to ~/.codex/skills/
 3. Deploys work tools to ~/.local/bin/
 
-All skills are installed to `~/.codex/skills/` and `~/.claude/skills/`. If you need to re-run the install manually:
+All skills are installed to `~/.codex/skills/`. If you need to re-run the install manually:
 
 ```bash
 cd ~/.codex/superpowers-plus && bash install.sh --upgrade --verbose
