@@ -160,6 +160,9 @@ _doctor_hook_integrity() {
   [[ -f "$HOOK_INSTALL_SCRIPT" ]] || return 0
   git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1 || return 0
   hooks_dir="$(git -C "$REPO_ROOT" rev-parse --git-path hooks 2>/dev/null || echo "$REPO_ROOT/.git/hooks")"
+  # git rev-parse --git-path returns a relative path when the repo uses a standard
+  # .git directory; make it absolute so checks work regardless of $CWD.
+  [[ "$hooks_dir" = /* ]] || hooks_dir="$REPO_ROOT/$hooks_dir"
 
   if [[ ! -d "$hooks_dir" ]]; then
     issues+=(".git/hooks directory missing")
