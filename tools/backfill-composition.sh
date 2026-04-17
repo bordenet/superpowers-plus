@@ -7,6 +7,20 @@
 # before the closing --- of the YAML frontmatter.
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat << 'EOF'
+Usage: tools/backfill-composition.sh <manifest.json>
+
+Reads a JSON manifest mapping skill names to composition metadata.
+For each skill, if its skill.md lacks a composition: block, inserts one
+before the closing --- of the YAML frontmatter.
+
+Arguments:
+  manifest.json   Path to composition manifest JSON file
+EOF
+    exit 0
+fi
+
 MANIFEST="${1:?Usage: $0 <manifest.json>}"
 SKILLS_DIR="skills"
 UPDATED=0

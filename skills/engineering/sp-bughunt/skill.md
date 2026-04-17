@@ -39,7 +39,7 @@ composition:
 
 # sp-bughunt — Adversarial Bug Hunt
 
-> **Wrong skill?** Known failure to debug → `sp-debug`. Security secrets/vulns → `sp-scan`. Code review of a diff → `sp-deepreview`. PR inline review → `sp-review`.
+> **Wrong skill?** Known failure to debug → `sp-debug`. Security secrets/vulns → `sp-scan`. Code review of a diff → `code-review-battery`. PR inline review → `sp-review`.
 
 Proactively find the highest-severity latent bugs in a codebase — bugs that cause
 silent failures, data corruption, incorrect behavior, or security issues — without
@@ -52,7 +52,7 @@ waiting for them to surface in production.
 - After adding a significant feature, to check for emergent issues
 - Periodic hygiene ("what's lurking in this codebase?")
 
-NOT for: debugging a known failure (`sp-debug`), reviewing a PR diff (`sp-deepreview`),
+NOT for: debugging a known failure (`sp-debug`), reviewing a PR diff (`code-review-battery`),
 security credential scanning (`sp-scan`).
 
 ## Parameters
