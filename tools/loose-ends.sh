@@ -24,10 +24,11 @@ RED='\033[0;31m'; YELLOW='\033[0;33m'; GREEN='\033[0;32m'; NC='\033[0m'
 
 usage() {
     local rc="${1:-1}"
-    echo "Usage: loose-ends.sh <check|add|scan-staged> [options]"
+    echo "Usage: loose-ends.sh <check|add|scan-staged|-h|--help> [options]"
     echo "  check                       Audit open #loose-end items"
     echo "  add --desc TEXT --note TEXT  Record a loose end (--note required)"
     echo "  scan-staged                 Grep staged diff for TODO/FIXME/HACK"
+    echo "  -h, --help                  Show this help"
     exit "$rc"
 }
 
