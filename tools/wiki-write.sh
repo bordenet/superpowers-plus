@@ -63,6 +63,10 @@ EOF
 log_err()   { printf '[wiki-write] ERROR: %s\n' "$*" >&2; }
 log_info()  { [[ "$VERBOSE" -eq 1 ]] && printf '[wiki-write] %s\n' "$*" >&2 || true; }
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || "${1:-}" == "help" ]]; then
+    show_help; exit 0
+fi
+
 [[ -z "${WIKI_API_KEY:-}" ]] && { log_err "WIKI_API_KEY not set"; exit 2; }
 [[ -z "${WIKI_API_URL:-}" ]] && { log_err "WIKI_API_URL not set"; exit 2; }
 command -v jq   >/dev/null 2>&1 || { log_err "jq required"; exit 2; }
