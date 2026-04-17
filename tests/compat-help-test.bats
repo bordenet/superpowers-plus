@@ -8,13 +8,17 @@
     [[ "${output}" != *"tools/compat.sh — Cross-platform"* ]]
 }
 
-@test "skill-cost-analyzer.sh --help does not leak compat help" {
+@test "skill-cost-analyzer.sh --help shows usage, not compat help" {
     run ./tools/skill-cost-analyzer.sh --help
+    [ "$status" -eq 0 ]
+    [[ "${output}" == *"Usage"* ]]
     [[ "${output}" != *"tools/compat.sh — Cross-platform"* ]]
 }
 
-@test "test-content-coherence.sh --help does not leak compat help" {
+@test "test-content-coherence.sh --help shows usage, not compat help" {
     run ./tools/test-content-coherence.sh --help
+    [ "$status" -eq 0 ]
+    [[ "${output}" == *"Usage"* ]]
     [[ "${output}" != *"tools/compat.sh — Cross-platform"* ]]
 }
 

@@ -12,6 +12,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/compat.sh"
 require_bash4 "$@"
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: tools/skill-cost-analyzer.sh [--markdown]"
+    echo "  (no args)    Print skill token cost table to stdout"
+    echo "  --markdown   Write table to docs/SKILL_TOKEN_COSTS.md"
+    exit 0
+fi
+
 # skill-cost-analyzer.sh — Estimates relative token cost of each skill
 #
 # Metrics:
