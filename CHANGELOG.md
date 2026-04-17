@@ -16,6 +16,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Dormant-skill audit (2026-04-17):** repaired `compat.sh` `--help` leak in sourced-mode scripts (`todo-crud`, `skill-cost-analyzer`, `test-content-coherence`); corrected stale `sp-deepreview` references in `sp-bughunt` to `code-review-battery`; added `--help` handling to `loose-ends`, `run-battery`, `backfill-composition`, `wiki-read`, `wiki-write`, `parse-frontmatter`, `test-content-coherence`; restored executable bit on `test_frontmatter_parsers.sh`; removed deprecated `~/.claude/skills/` path from `update-superpowers`.
 - **Compression safety (incident 2026-04-14):** `STRIP_SECTIONS` was deleting operative safety content — `Hallucination Prevention` sections (containing `<EXTREMELY_IMPORTANT>` URL verification rules), `References` sections (pointers to `references/incidents.md`), and `Incident Log/Record/History` sections. All three are now preserved. Wiki authoring was producing broken hyperlinks as a result.
 - **`<EXTREMELY_IMPORTANT>` block extraction:** Blocks are now extracted before section stripping and restored after, so they survive even if their parent heading is stripped. Blocks rescued from stripped sections are appended under a `## Critical Rules (preserved from compression)` synthetic heading. Code blocks containing EI tags are protected from extraction.
 - **Pre-push mirror policy:** `git fetch origin` now runs before SHA comparison on private-remote pushes to prevent stale-ref bypass. Fetch failure blocks the push (`exit 1`).
