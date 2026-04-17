@@ -23,11 +23,12 @@ TODO_CRUD="$TOOL_DIR/todo-crud.sh"
 RED='\033[0;31m'; YELLOW='\033[0;33m'; GREEN='\033[0;32m'; NC='\033[0m'
 
 usage() {
+    local rc="${1:-1}"
     echo "Usage: loose-ends.sh <check|add|scan-staged> [options]"
     echo "  check                       Audit open #loose-end items"
     echo "  add --desc TEXT --note TEXT  Record a loose end (--note required)"
     echo "  scan-staged                 Grep staged diff for TODO/FIXME/HACK"
-    exit 1
+    exit "$rc"
 }
 
 # ---------------------------------------------------------------------------
@@ -177,8 +178,9 @@ cmd_scan_staged() {
 # ---------------------------------------------------------------------------
 [[ $# -eq 0 ]] && usage
 case "$1" in
-    check)        shift; cmd_check "$@" ;;
-    add)          shift; cmd_add "$@" ;;
-    scan-staged)  shift; cmd_scan_staged "$@" ;;
-    *)            echo -e "${RED}Unknown subcommand: $1${NC}" >&2; usage ;;
+    -h|--help|help) usage 0 ;;
+    check)          shift; cmd_check "$@" ;;
+    add)            shift; cmd_add "$@" ;;
+    scan-staged)    shift; cmd_scan_staged "$@" ;;
+    *)              echo -e "${RED}Unknown subcommand: $1${NC}" >&2; usage 1 ;;
 esac
