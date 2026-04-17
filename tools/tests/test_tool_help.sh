@@ -9,14 +9,11 @@ FAIL=0
 for tool in loose-ends.sh run-battery.sh backfill-composition.sh \
             wiki-read.sh wiki-write.sh parse-frontmatter.sh \
             todo-crud.sh skill-cost-analyzer.sh test-content-coherence.sh; do
-    # Use || true to absorb SIGPIPE (141) when head -1 closes the pipe early
-    out=$({ "$ROOT/tools/$tool" --help 2>&1 || true; } | head -1) || true
-    first_line_lower="$(echo "$out" | tr '[:upper:]' '[:lower:]')"
-    if [[ "$first_line_lower" == unknown* ]] \
-    || [[ "$first_line_lower" == error* ]] \
-    || [[ "$out" == *"compat.sh — Cross-platform"* ]] \
-    || [[ -z "$out" ]]; then
-        echo "FAIL: $tool --help → '$out'"
+    # Use || true to absorb SIGPIPE (141) when head -5 closes the pipe early
+    out=$({ "$ROOT/tools/$tool" --help 2>&1 || true; } | head -5) || true
+    if [[ "$out" != *"Usage"* && "$out" != *"usage"* ]] \
+    || [[ "$out" == *"compat.sh — Cross-platform"* ]]; then
+        echo "FAIL: $tool --help → '$(echo "$out" | head -1)'"
         FAIL=$((FAIL + 1))
     else
         echo "  ok: $tool --help"
