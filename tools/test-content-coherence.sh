@@ -10,6 +10,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/compat.sh
 source "${SCRIPT_DIR}/compat.sh"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: tools/test-content-coherence.sh"
+    echo "Runs inline test cases for the wiki-content-coherence skill algorithm."
+    echo "No arguments required. Exit 0 = all tests passed."
+    exit 0
+fi
+
 require_bash4 "$@"
 
 PASS=0
