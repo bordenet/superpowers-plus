@@ -27,12 +27,10 @@ Hard rules. No exceptions without explicit human instruction.
 ## GitLab Mirror Policy
 
 - `origin` (GitHub) is source of truth — ALL changes go here first via PR
-- `gitlab` remote is a **downstream mirror** — receives ONLY `origin/main` after merge
-- ❌ NEVER push `dev` or `staging` to `gitlab`
+- `gitlab` remote is a **full three-branch mirror** — `main`, `staging`, and `dev` must all stay in sync
 - ❌ NEVER push locally-created commits to `gitlab` — only `origin/<branch>:<branch>` refs
-- ✅ Valid sync: `git push gitlab origin/main:main` (SHA must match `origin/main`)
+- ✅ Valid sync: `git push gitlab origin/main:main origin/staging:staging origin/dev:dev`
 - The pre-push hook enforces this: SHAs pushed to private remotes must exist on `origin`
-- Incident 2026-04-14: agent pushed `dev` and `staging` to `gitlab` before this policy existed in the pre-push hook
 
 ## Install Artifacts
 
