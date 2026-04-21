@@ -1,8 +1,8 @@
 ---
 name: wiki-refactor
 source: superpowers-plus
-triggers: ["refactor wiki", "restructure wiki", "deduplicate wiki", "wiki overhaul", "reorganize wiki pages", "wiki:refactor"]
-anti_triggers: ["edit single wiki page", "write wiki page", "update wiki content", "wiki:edit"]
+triggers: ["refactor wiki", "restructure wiki", "deduplicate wiki", "wiki overhaul", "reorganize wiki pages", "wiki:refactor", "reorganize all wiki pages"]
+anti_triggers: ["edit single wiki page", "write wiki page", "update wiki content", "wiki:edit", "refactor wiki page", "deduplicate wiki content"]
 description: Conductor skill for full wiki refactoring. Orchestrates a 7-phase pipeline — discovery, deduplication, information architecture, writing plan, progressive rewrite + review, quality metrics, and safe delivery. Enforces PRD protection (hard gate), human checkpoint after planning, scope caps, and content snapshot/drift detection.
 summary: "Use when: a wiki needs structural overhaul, not single-page edits."
 composition:
