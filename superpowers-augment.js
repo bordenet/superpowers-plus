@@ -308,7 +308,7 @@ function findSkills(filterMode = 'all') {
  * Dash shorthands: sp-X → superpowers-X, spp-X → spp:superpowers-X
  *
  * @param {string} skillName - Raw skill name (possibly with prefix)
- * @returns {{ skillFile: string|null, actualName: string }} Resolved file and canonical name
+ * @returns {{ skillFile: string|null, actualName: string, forceSpp: boolean, forceSpo: boolean, error?: string }} Resolved file, canonical name, and namespace flags
  */
 function resolveSkillNamespace(skillName) {
     let forceSuperpowers = skillName.startsWith('superpowers:');
@@ -370,7 +370,7 @@ function resolveSkillNamespace(skillName) {
         skillFile = resolveAlias(actualName);
     }
 
-    return { skillFile, actualName };
+    return { skillFile, actualName, forceSpp, forceSpo };
 }
 
 
@@ -401,7 +401,7 @@ function useSkill(skillName, options = {}) {
 
     // Resolve namespace prefix → file path
     const resolved = resolveSkillNamespace(skillName);
-    const { actualName } = resolved;
+    const { actualName, forceSpp, forceSpo } = resolved;
     let { skillFile } = resolved;
 
     if (resolved.error) {
