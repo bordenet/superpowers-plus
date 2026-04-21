@@ -239,7 +239,9 @@ verbose "Writing superpowers-augment.js adapter script"
 # leaving a partial/corrupt adapter at the target path when curl is killed,
 # the network drops mid-transfer, or the canonical file itself is corrupt.
 _adapter_target=~/.codex/superpowers-augment/superpowers-augment.js
-_adapter_tmp="${_adapter_target}.tmp.$$"
+# Keep the .js suffix so `node --check` can determine the module format
+# (Node 22+ rejects files without a recognised extension).
+_adapter_tmp="${_adapter_target%.js}.tmp.$$.js"
 trap 'rm -f "$_adapter_tmp"' EXIT
 
 _adapter_source_path="${BASH_SOURCE[0]:-}"

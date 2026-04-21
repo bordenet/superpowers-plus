@@ -65,6 +65,9 @@ jobs:
       - name: Commit gate tests (BATS)
         run: bats tests/commit-gate-test.bats
 
+      - name: Installer integration tests (BATS)
+        run: bats tests/install-test.bats
+
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
         env:
