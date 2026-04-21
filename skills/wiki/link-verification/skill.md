@@ -1,7 +1,7 @@
 ---
 name: link-verification
 source: superpowers-plus
-triggers: ["add code reference", "link to repo", "reference the wiki page", "cite the issue ticket", "verify links", "check if URL exists", "verify this URL", "check this link", "wiki:verify-links", "link:verify"]
+triggers: ["add code reference", "link to repo", "reference the wiki page", "cite the issue ticket", "verify links", "check if URL exists", "verify this URL", "check this link", "wiki:verify-links", "link:verify", "fix wiki links", "fix broken links", "check broken links"]
 anti_triggers: ["verify issue links", "check ticket URLs", "issue link"]
 description: Use when adding repository links, code references, internal wiki links, or external URLs to documentation. Invoke BEFORE writing any link to prevent hallucination. Also invoked by wiki-orchestrator as HARD GATE (Stage 3, after content generation, before publish).
 summary: "Use when: writing wiki pages with URLs. Hard gate — verify before publish."
@@ -19,157 +19,82 @@ coordination:
   internal: false
 ---
 
-# Link Verification
+# link-verification
 
-> **Purpose:** Prevent hallucinated links in documentation
-> **Last Updated:** 2026-02-28
-> **Incident:** Hallucinated `github.com/your-org/*` links on Speech: Deepgram and Telephony: Telnyx wiki pages
->
-> **Wrong skill?** Verifying links in issue tickets → `issue-link-verification`. Checking wiki page content accuracy → `wiki-verify`. Scanning for secrets → `wiki-secret-audit`.
+Hard gate for internal wiki, repo, and external URLs. **AI models hallucinate
+URLs.** Verify before write. Wrong skill? Issue tickets →
+`issue-link-verification` · Wiki claims → `wiki-verify`.
 
-## Orchestrator Integration
+## Gate (exit `0` ok · `1` block · `2` warn-only)
 
-This skill is invoked by `wiki-orchestrator` as a **HARD GATE** for internal wiki links.
+| Type | Example | On failure |
+|------|---------|------------|
+| Internal wiki | `/doc/slug-xyz123` | **HARD BLOCK** (404) |
+| Repo | `https://github.com/{org}/{repo}` | **HARD BLOCK** (often hallucinated) |
+| Issue ref | `#1234`, `ORG-42` | WARN (may be private) |
+| External | `https://example.com` | WARN (transient downtime) |
 
-### Batch Verification Mode
+Exit `1` → orchestrator MUST halt publish; exit `2` → publish with user ack.
 
-When called by orchestrator, extract ALL links from content and verify each:
+## Procedure
 
-```markdown
-## Link Verification Report
-
-| # | Link Text | URL | Type | Status | Notes |
-|---|-----------|-----|------|--------|-------|
-| 1 | Deployment Guide | /doc/deployment-xyz | Internal Wiki | ✅ PASS | Resolves to "Deployment Guide" |
-| 2 | service-repo | [your-repo-host]/... | Repository | ✅ PASS | Repo exists |
-| 3 | Old Page | /doc/old-page-123 | Internal Wiki | ❌ FAIL | 404 - not found |
-| 4 | Example.com | https://example.com | External | ⚠️ WARN | 503 - may be temporary |
-
-**Summary:** 2 ✅ PASS | 1 ❌ FAIL | 1 ⚠️ WARN
-**Gate Status:** ❌ BLOCKED (internal wiki link failure)
-```
-
-### Gate Logic
-
-| Link Type | On Failure | Reason |
-|-----------|------------|--------|
-| Internal Wiki (`/doc/...`) | **HARD BLOCK** | Readers get 404, unacceptable |
-| Repository Link | **HARD BLOCK** | Likely hallucinated |
-| Issue Reference | **WARN** | May be private |
-| External URL | **WARN** | Sites have downtime |
-
-### Link Extraction Pattern
-
-Extract all markdown links from content:
-
-```regex
-\[([^\]]+)\]\(([^)]+)\)
-```
-
-Also extract bare URLs:
-
-```regex
-https?://[^\s<>\[\]()]+
-```
-
-## When to Use
-
-Invoke when:
-
-- Writing wiki page with "Code References" section
-- Adding links to README or documentation
-- Documenting architecture with repository links
-- Any time you're about to write a URL to source code
-- **Adding internal wiki links** (e.g., `/doc/page-slug-xyz123`)
-
-## ⛔ The Rule
-
-<EXTREMELY_IMPORTANT>
-
-**VERIFY BEFORE YOU WRITE. Evidence before assertion.**
-
-**AI models frequently hallucinate repository URLs. Always verify before linking.**
-
-| Pattern | Reality | Action |
-|---------|---------|--------|
-| `github.com/assumed-org/*` | **MAY NOT EXIST** | ⚠️ Verify — often hallucinated |
-| `[your-repo-host]/org/*` | Verify via API | Query your repo host API to verify |
-
-</EXTREMELY_IMPORTANT>
-
-## Verification
-
-Before ANY link: query API → get exact name → construct URL from response → URL-encode specials.
-GitHub: `github-api GET /repos/{owner}/{repo}`. 404 = doesn't exist = don't write it.
-
-## Known Hallucination Patterns
-
-| Pattern | Why Wrong |
-|---------|-----------|
-| `github.com/{company}/{repo}` | AI assumes GitHub universal |
-| Line-number links | File structure changes |
-| `main` branch | May be `master` or other |
-| `/doc/made-up-slug` | Wiki links fabricated without API check |
-
-## Internal Wiki Links
-
-<EXTREMELY_IMPORTANT>
-Wiki links are just as hallucination-prone as external links. Use wiki adapter `get_page(id)` to verify. See `skills/wiki/_adapters/`.
-
-```markdown
-# Verify wiki page exists
-adapter.get_page(id: "PAGE_SLUG_HERE")  # true + title = exists, false = hallucinated
-"not_found"
-```
-
-### If Page Doesn't Exist
-
-1. Search for the correct page: `documents.search` with keywords
-2. Get the correct URL slug from search results
-3. Use the verified slug in your link
-
-### Incident: 2026-02-20
-
-Hallucinated `/doc/example-page-xyz789` on Getting Started page.
-Real page: `/doc/correct-page-abc123`.
-
-**This was caught by user, not by agent. Unacceptable.**
-
-</EXTREMELY_IMPORTANT>
-
-## Code References Section Template
-
-See [`references/code-references-template.md`](references/code-references-template.md).
-
-## Example
+### 1 — Extract links
 
 ```bash
-# Verify a wiki link exists before using it
-curl -s -o /dev/null -w "%{http_code}" "https://wiki.example.com/doc/page-slug"
-# 200 → OK. 404 → fix before publishing.
+{ grep -nE '\[[^]]+\]\([^)]+\)' draft.md
+  grep -nEo 'https?://[^[:space:]<>()]+' draft.md; } > links.txt
 ```
 
-## Incident Log
+### 2 — Verify each link (exit-code contract)
 
-| Date | Page | Issue | Resolution |
-|------|------|-------|------------|
-| Example | Example Page | Fake repository links | Fixed to verified repo URLs |
-| Example | Example Page | Hallucinated internal wiki link | Fixed to correct page URL |
+```bash
+block=0; warn=0
+while IFS= read -r line; do
+  url=$(echo "$line" | sed -E 's/.*\(([^)]+)\).*/\1/; s/.*: //')
+  case "$url" in
+    /doc/*)
+      tools/wiki-read.sh get "${url#/doc/}" > /dev/null 2>&1 \
+        && echo "PASS  wiki  $url" \
+        || { echo "FAIL  wiki  $url"; block=1; } ;;
+    https://github.com/*)
+      repo=$(echo "$url" | sed -E 's#https://github\.com/([^/]+/[^/]+).*#\1#')
+      gh api "repos/$repo" > /dev/null 2>&1 \
+        && echo "PASS  repo  $url" \
+        || { echo "FAIL  repo  $url"; block=1; } ;;
+    http*://*)
+      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$url")
+      [ "$code" = 200 ] && echo "PASS  ext   $url" \
+        || { echo "WARN  ext   $url (HTTP $code)"; warn=1; } ;;
+  esac
+done < links.txt
+exit $(( block ? 1 : (warn ? 2 : 0) ))
+```
 
-## Failure Modes
+### 3 — On FAIL (wiki or repo)
+
+1. `tools/wiki-read.sh search "<keywords>"` (wiki) or `gh search repos "<name>"` (GitHub)
+2. Replace the link in the draft with the verified URL
+3. Re-run Step 2. Do NOT publish until exit `0` or `2`.
+
+## Hallucination patterns to never trust blind
+
+| Pattern | Why wrong |
+|---------|-----------|
+| `github.com/{assumed-org}/{repo}` | Model assumes GitHub is universal |
+| File links with line numbers | File structure changes |
+| `main` branch | May be `master` or other |
+| `/doc/made-up-slug` | Wiki slug fabricated without API check |
+
+## Failure modes
 
 | Failure | Fix |
 |---------|-----|
-| Link returns 200 but content doesn't match description | Read the target page title — verify it matches your anchor text |
-| Wiki slug verified for existence but wrong page | Compare the returned page title against what you're linking to |
-| Batch verification skips link on timeout, marks as "warn" | Retry once; if still failing, mark as "fail" not "warn" |
-| Checking internal wiki links only — missing broken external URLs | Verify ALL link types: wiki, repo, issue, and external |
+| 200 but content doesn't match | Read target title; confirm anchor match |
+| Wiki slug valid but wrong page | Compare `wiki-read.sh get` title against anchor |
+| Timeout → WARN by default | Retry once; then mark FAIL not WARN |
+| Only checked wiki, skipped external | Run Step 2 for ALL types every time |
 
-## Companion Skills
+Background, incident log, and code-references template: see
+`references/code-references-template.md` if present.
 
-- **wiki-orchestrator**: Content structure and download-before-edit workflow
-- **wiki-verify**: Post-hoc verification of wiki claims
-- **verification-before-completion**: General verification skill
-- **wiki-content-coherence**: Wiki page coherence checks
-- **wiki-debunker**: Wiki claim verification
-- **issue-link-verification**: Issue link checking
+Companions: wiki-orchestrator · wiki-verify · wiki-content-coherence · wiki-debunker · issue-link-verification · verification-before-completion
