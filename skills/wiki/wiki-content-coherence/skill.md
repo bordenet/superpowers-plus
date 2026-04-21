@@ -2,7 +2,7 @@
 name: wiki-content-coherence
 source: superpowers-plus
 triggers: ["check wiki page coherence", "refactor wiki page", "deduplicate wiki content", "audit wiki page structure", "wiki:coherence-check"]
-anti_triggers: ["verify wiki facts", "fact-check", "check claims accuracy"]
+anti_triggers: ["verify wiki facts", "fact-check", "check claims accuracy", "verify wiki", "reorganize wiki pages", "wiki overhaul"]
 description: Use when wiki pages have been edited multiple times and may contain duplicated sections, obsolete content, or structural defects. Runs as Stage 2.5 in wiki-orchestrator pipeline (between Content Generation and Link Verification). Also available standalone. Gate type is ADVISORY with escalation for HIGH severity.
 summary: "Use when: editing wiki pages that cross-reference other pages."
 coordination:
