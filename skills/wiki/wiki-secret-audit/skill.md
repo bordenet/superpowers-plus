@@ -19,170 +19,68 @@ coordination:
   internal: false
 ---
 
-# Wiki Secret Audit
+# wiki-secret-audit
 
-> **Adapter:** See `skills/wiki/_adapters/` for platform-specific configuration
-> This skill enables retroactive scanning of existing wiki pages for exposed secrets.
->
-> **Wrong skill?** Scanning code repos for secrets → `repo-security-scan`. Executing wiki instructions safely → `wiki-instruction-guard`. Checking wiki page accuracy → `wiki-verify`.
+Scan wiki pages for exposed credentials, tokens, and keys. Wrong skill? Code
+repos → `repo-security-scan` · Wiki-sourced instruction safety →
+`wiki-instruction-guard` · Version claims → `wiki-verify`.
 
-## Companion Skills
+## Procedure
 
-- **repo-security-scan**: Scanning code repos for secrets (this skill scans wiki)
-- **wiki-instruction-guard**: Blocking dangerous wiki-sourced instructions
-- **wiki-orchestrator**: Full wiki editing pipeline
-
-## When to Use
-
-Invoke this skill when:
-
-- Auditing existing wiki pages for credentials
-- After a security incident to find other potential leaks
-- Periodically scanning high-risk wiki areas
-- User says: "scan wiki for secrets", "audit wiki security", "check for exposed credentials"
-
----
-
-## Audit Procedure
-
-### Step 1: Define Scope
-
-Determine which pages to scan using your adapter's operations:
-
-```markdown
-# Option A: Single page
-# Use adapter's get_page operation
-
-# Option B: Collection (all pages)
-# Use adapter's list_pages operation
-
-# Option C: Search by keyword (high-risk content)
-# Use adapter's search_pages operation with query: "password OR connection string OR api key"
-```
-
-### Step 2: Fetch and Scan Each Page
-
-For each page in scope:
-
-1. **Fetch content** via adapter's `get_page` operation
-2. **Search for secret patterns** (see patterns below)
-3. **Log findings** in the report format below
-
-### Step 3: Generate Report
-
-Use this format for findings:
-
-```markdown
-## Wiki Secret Audit Report
-
-**Date:** YYYY-MM-DD
-**Scope:** [Collection name / Page list]
-**Scanned:** X pages
-
-### 🔴 Findings (Secrets Detected)
-
-| Page | URL | Pattern | Line | Match Preview |
-|------|-----|---------|------|---------------|
-| Page Title | /doc/slug | Password Assignment | 42 | `Password=j69...` |
-
-### ✅ Clean Pages
-
-- Page A (no secrets)
-- Page B (no secrets)
-
-### Actions Required
-
-1. [Page Title] — Remove/redact credential at line 42
-2. [Page Title] — Rotate exposed API key, then redact
-```
-
----
-
-## Secret Patterns to Search
-
-Search for these regex patterns (case-insensitive):
-
-### HIGH Priority (Real Credentials)
-
-```regex
-# SQL Connection Strings
-(Server|Data Source)=[^;]*Password=[^;]+
-
-# Database URLs
-(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@
-
-# Password Assignments
-password\s*[:=]\s*['"]?[A-Za-z0-9_!@#$%^&*()-]{8,}
-
-# Bearer Tokens
-Bearer\s+[A-Za-z0-9_-]{20,}
-
-# API Keys
-(api[_-]?key|apikey)\s*[:=]\s*['"]?[A-Za-z0-9_-]{20,}
-
-# Private Keys
------BEGIN\s+(RSA|EC|OPENSSH)?\s*PRIVATE\s+KEY-----
-
-# AWS Keys
-AKIA[0-9A-Z]{16}
-
-# Known Service Tokens (add your platform-specific patterns)
-sk-[A-Za-z0-9]{32,}         # OpenAI
-gh[pousr]_[A-Za-z0-9]{30,}  # GitHub
-xox[baprs]-[A-Za-z0-9-]{10,} # Slack
-sk_live_[A-Za-z0-9]{20,}    # Stripe
-```
-
-### EXCLUDE (False Positives)
-
-Skip matches that are:
-
-- Environment variable references: `$PASSWORD`, `${VAR}`, `process.env.VAR`
-- Redacted placeholders: `[REDACTED]`, `<YOUR_VALUE>`
-- Documentation examples: "password must be 8+ chars"
-
----
-
-## High-Risk Wiki Areas
-
-Prioritize scanning these areas:
-
-| Area | Why High Risk |
-|------|---------------|
-| Development setup docs | Often contain real connection strings |
-| Environment configuration | Database credentials, API keys |
-| Architecture docs | Service-to-service auth |
-| Runbooks | Production access credentials |
-| Personal notes | Quick dumps may include secrets |
-
----
-
-## Remediation Steps
-
-When secrets are found:
-
-1. **IMMEDIATE:** Remove/redact the secret from wiki page
-2. **ROTATE:** Change the compromised credential (password, key, token)
-3. **AUDIT:** Check if credential was accessed by unauthorized parties
-4. **DOCUMENT:** Log the incident in the audit report
-5. **NOTIFY:** Inform relevant team members
-
----
-
-## Related Resources
-
-- **Shared Module:** `skills/_shared/secret-detection.md`
-- **PRE_PUSH_WIKI_AUDIT:** `skills/wiki/PRE_PUSH_WIKI_AUDIT.md`
-
-## Example
+### 1 — Collect scope into `scan.md`
 
 ```bash
-# Scan wiki content for exposed secrets
-grep -rn "password\|api[_-]key\|secret\|token\|Bearer " wiki/ --include="*.md" |   grep -v "example\|placeholder\|YOUR_" | head -20
+# Single page:
+tools/wiki-read.sh get "$PAGE_ID" | jq -r '.text' > scan.md
+
+# Bulk (search or list): pipe through get to assemble one corpus
+tools/wiki-read.sh {search '"password" OR "api key"' --limit 50|list --collection "$UUID" --limit 500} \
+  | jq -r '.[].id' | while read id; do
+      tools/wiki-read.sh get "$id" | jq -r '"== " + .url + " ==\n" + .text'
+    done > scan.md
 ```
 
-## Failure Modes
+### 2 — Run the pattern scan
 
-- **Regex-only scanning:** Relying solely on pattern matching without checking for encoded/obfuscated secrets (base64, URL-encoded)
-- **Ignoring wiki history:** Checking only the current page content but not previous revisions where a secret may have been exposed
-- **False negatives on tokens:** API tokens that don't match common patterns (e.g., custom-format internal tokens)
+```bash
+grep -n -E -i '(Server|Data Source)=[^;]*Password=[^;]+|\
+(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@|\
+password[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9_!@#$%^&*()-]{8,}|\
+Bearer[[:space:]]+[A-Za-z0-9_-]{20,}|\
+(api[_-]?key|apikey)[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9_-]{20,}|\
+-----BEGIN[[:space:]]+(RSA|EC|OPENSSH)?[[:space:]]*PRIVATE[[:space:]]+KEY-----|\
+AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{32,}|\
+gh[pousr]_[A-Za-z0-9]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}|\
+sk_live_[A-Za-z0-9]{20,}' scan.md \
+  | grep -v -E '\$\{?[A-Z_]+\}?|process\.env\.|\[REDACTED\]|<YOUR_' \
+  | tee findings.txt
+```
+
+Exit `0` + empty `findings.txt` → clean. Non-empty → report + remediate.
+
+### 3 — Report + remediate
+
+Report each finding as `<url>:<line>: <pattern> — <preview>`. Then remediate
+in this order: (1) redact in wiki via `tools/wiki-write.sh update`;
+(2) rotate the upstream credential; (3) audit access logs; (4) notify owner.
+
+## Exclusions (drop from findings)
+
+Env refs (`$VAR`, `${VAR}`, `process.env.VAR`) · placeholders (`[REDACTED]`,
+`<YOUR_VALUE>`, `xxx...`) · docs guidance ("password must be 8+ chars").
+
+## High-risk areas (prioritize)
+
+Development setup · environment configuration · architecture docs · runbooks ·
+personal notes sections.
+
+## Failure modes
+
+| Failure | Fix |
+|---------|-----|
+| Obfuscated secrets (base64, url-encoded) | Grep additionally for high-entropy blocks ≥40 chars |
+| Page history not scanned | `wiki-read.sh get` returns current only; use adapter's revision tool |
+| Custom-format internal token missed | Add org regex to the grep alternation above |
+| `wiki-write.sh` exit 1 on redaction | STOP; ask user; do not retry |
+
+Related: `skills/_shared/secret-detection.md`

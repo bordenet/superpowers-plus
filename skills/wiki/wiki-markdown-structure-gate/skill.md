@@ -19,83 +19,60 @@ composition:
   priority: 18
 ---
 
-# Wiki Markdown Structure Gate
+# wiki-markdown-structure-gate
 
-> **Purpose:** Block structurally broken wiki markdown before publish.
-> **Gate:** BLOCK for structural defects. WARN for readability/layout risks.
-> **Pipeline:** Stage 5.5 in wiki-orchestrator, after slop review and before fact-check.
-
-## When to Use
-
-- Before publishing bulk or coordinated wiki edits
-- When a page contains tables, toggles, callouts, or many internal links
-- When users report broken rendering after a wiki update
-
-## Hard-Block Defects
-
-| Check | Block When |
-|-------|------------|
-| Table structure | Missing separator row, inconsistent cell counts, collapsed rows, stray empty row like `|` |
-| Escaped wiki links | `\[title\[/doc/...` or similar escaped internal-link artifacts |
-| Code fences | Opening and closing fences are unbalanced |
-| Callout fences | `:::info` / `:::warning` / similar blocks are unbalanced |
-| Heading hierarchy | H3+ appears before any H2, or headings skip a level |
-| Missing TOC | **Only when `toc_behavior=manual`:** Page has **4+ body H2/H3 headings** (excluding headings inside fenced code blocks — both backtick and tilde fences) AND no valid TOC exists. Detection: use **only** the platform adapter's declared `toc_syntax` markup — do not accept a generic `Contents` or `Table of Contents` heading as sufficient. A heading alone is not a TOC; the adapter's structural format is required. For Outline: look for a `+++` toggle block (outside fenced code blocks) whose first content line contains `Table of contents`. Pages with ≤3 H2/H3 headings are exempt. **Does not apply** when `toc_behavior=auto` (platform renders TOC) or `toc_behavior=unsupported` (platform has no TOC support). If no adapter config is found, fail closed as adapter misconfiguration — do not silently skip. See `wiki-orchestrator` Stage 2 for the full rule and `outline-wiki-editing` for the Outline-specific TOC format. No waiver mechanism exists — all `manual` pages with 4+ headings must have a TOC. |
-
-## Advisory Findings
-
-Warn but do not block on:
-
-- Very wide tables that are likely to wrap badly
-- Dense cells containing many links or long inline code spans
-- Repeated manual TOCs that should be consolidated
+Block structurally broken wiki markdown before publish. Stage 5.5 in
+`wiki-orchestrator`. Validator: `tools/wiki-markdown-validate.js`.
 
 ## Procedure
 
-1. Fetch current content or read the generated draft
-2. Run a deterministic structural scan over markdown:
-   a. Parse fenced code blocks (track opening/closing backtick `` ``` `` and tilde `~~~` lines) to exclude their content from heading counts. Match fence style and length — a closing fence must use the same character and at least the same count as its opening fence.
-   b. Count H2/H3 headings outside code fences
-   c. Look up the platform adapter's `toc_behavior` setting
-   d. If `toc_behavior=manual` AND heading count ≥ 4 AND no existing TOC markup found → emit BLOCK finding
-   e. If `toc_behavior=auto` or `toc_behavior=unsupported` → skip the TOC check (no block)
-   f. If no adapter config is available → emit BLOCK as adapter misconfiguration
-3. Report line-numbered failures
-4. Fix all BLOCK findings before publish
-5. Re-run the scan after edits
-
-## Report Format
-
-```markdown
-## Markdown Structure Report: [Page Title]
-
-| Line | Severity | Type | Detail |
-|------|----------|------|--------|
-| 14 | BLOCK | malformed-table | row has 2 cells, expected 3 |
-| 43 | BLOCK | escaped-wiki-link | `\[Guide\[/doc/...` |
-| — | BLOCK | missing-toc | 7 H2/H3 headings found, no TOC markup detected |
-| 88 | WARN | wide-table | 6 columns, likely to wrap in wiki UI |
-
-Gate: ❌ BLOCKED
+```bash
+# On generated draft
+node tools/wiki-markdown-validate.js draft.md
+# On fetched body (pipe stdin, strip YAML if present)
+tools/wiki-read.sh get "$PAGE_ID" | jq -r '.text' \
+  | node tools/wiki-markdown-validate.js --stdin
 ```
 
-## Enforcement Notes
+Exit `0` → pass (publish allowed). Non-zero → BLOCK: read stderr for line
+numbers, fix, re-run. Do not publish until exit `0`.
 
-- This skill is the structural markdown gate referenced by `wiki-orchestrator` and the README pipeline.
-- Platform-specific editors should still run their own post-publish fetch/verify step.
-- If the platform has a local sync/push tool, wire this gate into that tool as a fail-closed validator.
+## What the gate blocks
 
-## Failure Modes
+| Check | Block when |
+|-------|------------|
+| Table structure | Missing separator row, inconsistent cell counts, stray `\|` row |
+| Escaped wiki-links | `\[title\[/doc/...` and similar round-trip artifacts |
+| Code fences | Unbalanced backtick (`` ``` ``) or tilde (`~~~`) fences |
+| Callout fences | Unbalanced `:::info` / `:::warning` / similar |
+| Heading hierarchy | H3+ before any H2, or a level skipped |
+| Missing TOC | `toc_behavior=manual` **and** ≥4 body H2/H3 (outside fences) **and** no adapter `toc_syntax` |
+
+A generic `Contents` heading does not satisfy the TOC rule — only the
+adapter's declared `toc_syntax` counts. Outline example: a `+++` toggle whose
+first line contains `Table of contents`. If no adapter config is resolvable,
+the gate fails closed as misconfiguration.
+
+## Advisory (WARN, do not block)
+
+Very wide tables · dense cells with many links · duplicate manual TOCs.
+
+## Enforcement notes
+
+- Canonical gate invoked by `wiki-orchestrator` Stage 5.5
+- Also runs post-fetch inside `tools/wiki-write.sh` verification step
+- Never waive a BLOCK finding — fix or halt
+
+## Failure modes
 
 | Failure | Fix |
 |---------|-----|
-| Pipeline claims a table gate but no skill exists | Add and install this skill; keep docs and routing aligned |
-| Structural checks are advisory only | Treat malformed markdown as BLOCK, not WARN |
-| Only links/secrets are checked | Add deterministic structural scanning before publish |
-| Long pages published without TOC | Agent skipped heading count. This gate blocks on `toc_behavior=manual` platforms when 4+ H2/H3 headings exist outside code fences and no TOC markup is present. Does not fire for `auto` (platform renders TOC) or `unsupported` (no TOC available). |
+| Structural checks treated as advisory | Treat BLOCK as halt; only WARN is advisory |
+| Only links/secrets checked before publish | Run this gate (Stage 5.5) on every draft |
+| Long page published without TOC | Insert adapter `toc_syntax` after intro; re-run |
+| Heading count included fenced code | Validator already excludes fences; re-run if you hand-rolled the count |
 
-## Companion Skills
+## Companion skills
 
-- **wiki-orchestrator**: Runs this as Stage 5.5 in the wiki pipeline
-- **wiki-content-coherence**: Detects duplication and broader structure problems earlier in the pipeline
-- **wiki-debunker**: Fact-checking after structure is clean
+wiki-orchestrator (invokes this at Stage 5.5) · wiki-content-coherence ·
+wiki-debunker
