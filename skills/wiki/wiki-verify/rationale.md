@@ -26,9 +26,13 @@ fallback when per-page metadata is impractical.
 - When `wiki-orchestrator` triggers the verification stage after a bulk edit
 - Any time a config value, vendor choice, or file path has moved
 
-## Interactive flow details
+## Default mode: --fix
 
-The default interactive flow prompts per finding:
+`wiki-verify` auto-applies all fixes without prompting. This is the default
+because most invocations happen in automated pipelines (post-publish drift
+checks, orchestrator stages) where interactive prompts stall execution.
+
+Use `--interactive` to review fixes before applying:
 
 ```text
 ⚠️  STALE: Deepgram SDK version
@@ -37,8 +41,8 @@ The default interactive flow prompts per finding:
     → [U]pdate / [S]kip / [A]ll / [Q]uit? _
 ```
 
-Haiku-tier agents should invoke with `--fix` (skips prompts). Larger models
-may prefer interactive mode when the user is in the loop.
+All model tiers can use the default. Prefer `--interactive` when the user is
+present and changes are high-risk (e.g. live production wiki, no rollback).
 
 ## Authoritative-source ordering
 
