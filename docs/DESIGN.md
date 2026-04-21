@@ -503,7 +503,7 @@ flowchart TD
     IN --> DASH{Dash shorthand?}
     DASH -->|sp-X| EXP1[expand to superpowers-X<br/>no force flag]
     DASH -->|spp-X| EXP2[expand to superpowers-X<br/>forceSpp=true]
-    DASH -->|spo-X / spc-X| EXP3[expand to superpowers-X<br/>forceSpo=true]
+    DASH -->|spo-X| EXP3[expand to superpowers-X<br/>forceSpo=true]
     DASH -->|none| PREFIX
 
     EXP1 --> PREFIX
@@ -513,7 +513,7 @@ flowchart TD
     PREFIX{Namespace prefix?}
     PREFIX -->|superpowers:| FORCE_SPO2[forceSuperpowers=true<br/>strip prefix]
     PREFIX -->|spp:| FORCE_SPP[search SPP_SOURCE_DIR<br/>find skill in domain subdirs]
-    PREFIX -->|spo: / spc:| FORCE_SPO[search SP_OVERLAY_SOURCE_DIR]
+    PREFIX -->|spo:| FORCE_SPO[search SP_OVERLAY_SOURCE_DIR]
     PREFIX -->|none| PERSONAL
 
     PERSONAL[search ~/.codex/skills/ personal dir]
@@ -539,9 +539,9 @@ flowchart TD
 | (none) | personal → superpowers → alias | Normal usage |
 | `superpowers:` | obra/superpowers installed dir | Load unoverridden base skill |
 | `spp:` | `SPP_SOURCE_DIR` (superpowers-plus source repo) | Load from source, not installed copy |
-| `spo:` / `spc:` | `SP_OVERLAY_SOURCE_DIR` (overlay repo source) | Load from overlay source |
+| `spo:` | `SP_OVERLAY_SOURCE_DIR` (overlay repo source) | Load from overlay source |
 | `sp-X` | expands to `superpowers-X`, then normal resolution | Convenience shorthand |
 | `spp-X` | expands to `superpowers-X` in spp source | Dev convenience |
-| `spo-X` / `spc-X` | expands to `superpowers-X` in overlay source | Dev convenience |
+| `spo-X` | expands to `superpowers-X` in overlay source | Dev convenience |
 
 `SPP_SOURCE_DIR` defaults to the directory containing `superpowers-augment.js` (self-discovery), falling back to `~/.codex/superpowers-plus`. Set `SUPERPOWERS_SKILLS_DIR` or `PERSONAL_SKILLS_DIR` env vars to override discovery paths.
