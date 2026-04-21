@@ -16,6 +16,18 @@ OUTLINE_API_URL=https://your-outline-instance.com
 OUTLINE_API_KEY=ol_api_your_key_here
 ```
 
+## Preferred Entrypoint: `tools/wiki-write.sh`
+
+For create/update/move operations, prefer the one-shot wrapper over hand-rolling MCP calls, curl fallbacks, or multi-step preflight ceremony:
+
+```bash
+~/.codex/superpowers-plus/tools/wiki-write.sh create --parent UUID --title STR --content FILE [--collection UUID]
+~/.codex/superpowers-plus/tools/wiki-write.sh update --doc UUID [--title STR] --content FILE
+~/.codex/superpowers-plus/tools/wiki-write.sh move   --doc UUID --parent UUID
+```
+
+The wrapper runs scope check → API write → round-trip re-fetch verification in a single call, and emits parseable JSON on stdout (`{"ok":true,"id":"...","url":"...","title":"..."}`). Exit codes: `0` verified, `1` scope violation, `2` env/arg error, `3` API error, `4` verification failed. Use the lower-level MCP tool table below only when the one-shot does not cover the operation (e.g. `list_collections`, `search_pages`, `get_page`, `delete_page`, `archive_page`).
+
 ## MCP Tool Mappings
 
 | Generic Operation | MCP Tool |

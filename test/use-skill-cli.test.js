@@ -98,6 +98,28 @@ console.log('\n--- use-skill: no skill name argument ---');
   assert(r.code === 1, `exits 1 on missing argument (got: ${r.code}, want: 1)`);
 }
 
+console.log('\n--- use-skill: spo: without SP_OVERLAY_SOURCE_DIR (early-error return shape) ---');
+{
+  // Regression guard for the return-shape fix: the overlay early-error path
+  // previously omitted forceSpp/forceSpo from its return object. Callers that
+  // destructure those flags after inspecting .error would have observed
+  // undefined instead of documented booleans. The CLI surfaces the early-error
+  // message verbatim, so "SP_OVERLAY_SOURCE_DIR not set" appearing without any
+  // ReferenceError is proof the early return is now structurally complete.
+  const env = Object.assign({}, process.env);
+  delete env.SP_OVERLAY_SOURCE_DIR;
+  const result = spawnSync('node', [CLI, 'use-skill', 'spo:any-name'], {
+    env, encoding: 'utf8', timeout: 20000,
+  });
+  const combined = (result.stdout || '') + (result.stderr || '');
+  assertNotContains(combined, 'forceSpp is not defined',
+    'overlay early-error path does not crash with forceSpp ReferenceError');
+  assertNotContains(combined, 'forceSpo is not defined',
+    'overlay early-error path does not crash with forceSpo ReferenceError');
+  assertContains(combined, 'SP_OVERLAY_SOURCE_DIR not set',
+    'surfaces the documented early-error message');
+}
+
 console.log('\n--- bootstrap: still works ---');
 {
   const r = run(['bootstrap']);
