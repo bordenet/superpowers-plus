@@ -1,7 +1,7 @@
 ---
 name: wiki-verify
 source: superpowers-plus
-triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy", "check wiki accuracy", "verify wiki facts"]
+triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy", "check wiki accuracy", "verify wiki facts", "audit the wiki"]
 anti_triggers: ["edit wiki", "update wiki page", "create wiki page", "write wiki"]
 description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and auto-applies fixes by default.
 summary: "Use when: wiki references codebase details that may have drifted. Skip when: reading wiki only."
