@@ -313,7 +313,7 @@ function findSkills(filterMode = 'all') {
 function resolveSkillNamespace(skillName) {
     let forceSuperpowers = skillName.startsWith('superpowers:');
     let forceSpp = skillName.startsWith('spp:');
-    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');
+    let forceSpo = skillName.startsWith('spo:');
     let actualName;
 
     // Dash shorthand expansion
@@ -321,7 +321,7 @@ function resolveSkillNamespace(skillName) {
         if (skillName.startsWith('spp-')) {
             forceSpp = true;
             actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {
+        } else if (skillName.startsWith('spo-')) {
             forceSpo = true;
             actualName = 'superpowers-' + skillName.slice(4);
         } else if (skillName.startsWith('sp-')) {
@@ -332,17 +332,17 @@ function resolveSkillNamespace(skillName) {
     if (!actualName) {
         if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
         else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^spo:/, '');
         else actualName = skillName;
     }
 
     let skillFile = null;
 
     if (forceSpp) {
-        if (!SPP_SOURCE_DIR) return { skillFile: null, actualName, error: 'SPP_SOURCE_DIR not set' };
+        if (!SPP_SOURCE_DIR) return { skillFile: null, actualName, forceSpp: true, forceSpo: false, error: 'SPP_SOURCE_DIR not set' };
         skillFile = findSkillInSourceRepo(SPP_SOURCE_DIR, actualName);
     } else if (forceSpo) {
-        if (!OVERLAY_SOURCE_DIR) return { skillFile: null, actualName, error: 'SP_OVERLAY_SOURCE_DIR not set' };
+        if (!OVERLAY_SOURCE_DIR) return { skillFile: null, actualName, forceSpp: false, forceSpo: true, error: 'SP_OVERLAY_SOURCE_DIR not set' };
         skillFile = findSkillInSourceRepo(OVERLAY_SOURCE_DIR, actualName);
     } else if (!forceSuperpowers) {
         const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);

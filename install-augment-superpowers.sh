@@ -28,6 +28,7 @@ fi
 # --- Configuration ---
 VERSION="1.0.0"
 SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+SUPERPOWERS_PLUS_RAW="https://raw.githubusercontent.com/bordenet/superpowers-plus/main"
 VERBOSE=false
 
 # --- Colors (disabled if not a TTY) ---
@@ -228,364 +229,50 @@ verbose "Creating ~/.codex/superpowers-augment directory"
 mkdir -p ~/.codex/superpowers-augment
 verbose "Writing superpowers-augment.js adapter script"
 
-# Create the self-contained adapter script (compatible with obra/superpowers v4.2.0+)
-cat > ~/.codex/superpowers-augment/superpowers-augment.js << 'ADAPTER_EOF'
-#!/usr/bin/env node
-/**
- * superpowers-augment.js - Skill loader for Augment Code
- * Replaces the old superpowers-codex wrapper with direct skill discovery
- * Compatible with obra/superpowers v4.2.0+
- */
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+# Install the canonical adapter. Prefer a local checkout (when this installer is
+# run from a clone) and fall back to fetching main from GitHub (curl-pipe-bash
+# install path). The old approach embedded a stale copy of the adapter inline;
+# that copy routinely drifted behind the canonical file and shipped broken
+# releases (see incident in PR for context). Always use the upstream source.
+#
+# Stage to a temp file, node-check it, then atomic rename. This avoids
+# leaving a partial/corrupt adapter at the target path when curl is killed,
+# the network drops mid-transfer, or the canonical file itself is corrupt.
+_adapter_target=~/.codex/superpowers-augment/superpowers-augment.js
+# Keep the .js suffix so `node --check` can determine the module format
+# (Node 22+ rejects files without a recognised extension).
+_adapter_tmp="${_adapter_target%.js}.tmp.$$.js"
+trap 'rm -f "$_adapter_tmp"' EXIT
 
-const homeDir = os.homedir();
-const SUPERPOWERS_SKILLS_DIR = path.join(homeDir, '.codex', 'superpowers', 'skills');
-const PERSONAL_SKILLS_DIR = path.join(homeDir, '.codex', 'skills');
+_adapter_source_path="${BASH_SOURCE[0]:-}"
+_adapter_staged=false
+if [[ -n "$_adapter_source_path" && -f "$_adapter_source_path" ]]; then
+    _adapter_script_dir="$(cd "$(dirname "$_adapter_source_path")" && pwd)"
+    if [[ -f "$_adapter_script_dir/superpowers-augment.js" ]]; then
+        verbose "Copying canonical adapter from local checkout: $_adapter_script_dir/superpowers-augment.js"
+        cp "$_adapter_script_dir/superpowers-augment.js" "$_adapter_tmp"
+        _adapter_staged=true
+    fi
+fi
+if [[ "$_adapter_staged" != true ]]; then
+    verbose "Fetching canonical adapter from ${SUPERPOWERS_PLUS_RAW}/superpowers-augment.js"
+    if ! curl -fsSL "${SUPERPOWERS_PLUS_RAW}/superpowers-augment.js" -o "$_adapter_tmp"; then
+        echo "ERROR: Failed to download canonical superpowers-augment.js from ${SUPERPOWERS_PLUS_RAW}" >&2
+        exit 1
+    fi
+fi
 
-const TOOL_MAPPINGS = [
-    [/\bTodoWrite\b/g, 'todo-crud.sh (add/complete/move/defer) — NEVER use str-replace-editor or save-file on TODO.md. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh add -p P2 -d "description" -t "#tag"'],
-    [/\bTodoRead\b/g, 'todo-crud.sh cat (full file) or todo-crud.sh list (filtered) — NEVER use view tool on TODO.md directly. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh cat'],
-    [/Task tool with superpowers:code-reviewer type/g, 'sub-agent-code-reviewer tool'],
-    [/Task tool \(superpowers:code-reviewer\):/g, 'sub-agent-code-reviewer tool:'],
-    [/Dispatch superpowers:code-reviewer subagent/g, 'Dispatch sub-agent-code-reviewer'],
-    [/\bcode-reviewer subagent\b/g, 'sub-agent-code-reviewer'],
-    [/\bcode reviewer subagent\b/g, 'sub-agent-code-reviewer'],
-    [/Dispatch final code-reviewer/g, 'Dispatch final sub-agent-code-reviewer'],
-    [/\bTask\b tool(?! with superpowers:code-reviewer type| \(superpowers:code-reviewer\))/g, 'launch-process (or handle directly)'],
-    [/\bRead\b tool/g, 'view tool'],
-    [/\bWrite\b tool/g, 'save-file tool'],
-    [/\bEdit\b tool/g, 'str-replace-editor tool'],
-    [/`Read`/g, '`view`'],
-    [/`Write`/g, '`save-file`'],
-    [/`Edit`/g, '`str-replace-editor`'],
-    [/\bBash\b tool/g, 'launch-process tool'],
-    [/`Bash`/g, '`launch-process`'],
-    [/Skill tool/g, 'superpowers-augment use-skill command'],
-    [/superpowers-codex/g, 'superpowers-augment'],
-];
+# node is a hard prerequisite verified earlier in the installer, so this
+# check always runs. A failure here indicates either a corrupt fetch or a
+# local-checkout with a syntactically broken adapter — fail closed in either
+# case, leaving the previously-installed adapter (if any) untouched.
+if ! node --check "$_adapter_tmp" 2>/dev/null; then
+    echo "ERROR: Staged superpowers-augment.js failed node --check (corrupt download or local file?)" >&2
+    exit 1
+fi
 
-function transformOutput(text) {
-    let result = text;
-    for (const [pattern, replacement] of TOOL_MAPPINGS) {
-        result = result.replace(pattern, replacement);
-    }
-    return result;
-}
-
-function extractFrontmatter(filePath) {
-    try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-        let inFrontmatter = false;
-        let name = '';
-        let description = '';
-        let triggers = [];
-        let requires_mcp = [];
-        let triggerAccum = null;
-        let mcpAccum = null;
-
-        // State-machine parser for YAML inline arrays — handles apostrophes
-        // inside double-quoted strings. Keep in sync with mcp/superpowers-mcp.js.
-        function parseInlineArray(value) {
-            const inner = value.replace(/^\s*\[/, '').replace(/\]\s*$/, '');
-            const items = [];
-            let idx = 0;
-            while (idx < inner.length) {
-                while (idx < inner.length && (inner[idx] === ' ' || inner[idx] === ',' || inner[idx] === '\t')) idx++;
-                if (idx >= inner.length) break;
-                const quote = inner[idx];
-                if (quote === '"' || quote === "'") {
-                    let val = '';
-                    idx++;
-                    while (idx < inner.length) {
-                        if (quote === '"' && inner[idx] === '\\' && idx + 1 < inner.length) { val += inner[idx + 1]; idx += 2; }
-                        else if (quote === "'" && inner[idx] === "'" && idx + 1 < inner.length && inner[idx + 1] === "'") { val += "'"; idx += 2; }
-                        else if (inner[idx] === quote) { idx++; break; }
-                        else { val += inner[idx]; idx++; }
-                    }
-                    if (val) items.push(val);
-                } else {
-                    let val = '';
-                    while (idx < inner.length && inner[idx] !== ',') { val += inner[idx]; idx++; }
-                    val = val.trim();
-                    if (val) items.push(val);
-                }
-            }
-            return items;
-        }
-
-        function hasUnquotedClosingBracket(s) {
-            let inQuote = null;
-            for (let ci = 0; ci < s.length; ci++) {
-                const c = s[ci];
-                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
-                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
-                if (c === '"' || c === "'") { inQuote = c; continue; }
-                if (c === ']') return true;
-            }
-            return false;
-        }
-
-        function extractBracketContent(s) {
-            const start = s.indexOf('[');
-            if (start === -1) return '';
-            let inQuote = null;
-            for (let ci = start + 1; ci < s.length; ci++) {
-                const c = s[ci];
-                if (c === '\\' && inQuote && ci + 1 < s.length) { ci++; continue; }
-                if (inQuote) { if (c === inQuote) inQuote = null; continue; }
-                if (c === '"' || c === "'") { inQuote = c; continue; }
-                if (c === ']') return s.slice(start + 1, ci);
-            }
-            return s.slice(start + 1);
-        }
-
-        function unquoteYaml(s) {
-            if (s.startsWith('"') && s.endsWith('"'))
-                return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-            if (s.startsWith("'") && s.endsWith("'"))
-                return s.slice(1, -1).replace(/''/g, "'");
-            return s;
-        }
-
-        function parseYamlList(lines, startIndex) {
-            const values = [];
-            let nextIndex = startIndex;
-            for (let li = startIndex + 1; li < lines.length; li++) {
-                const itemMatch = lines[li].match(/^\s+-\s+(.+)$/);
-                if (itemMatch) {
-                    values.push(unquoteYaml(itemMatch[1].trim()));
-                    nextIndex = li;
-                    continue;
-                }
-                if (lines[li].trim() === '') { nextIndex = li; continue; }
-                break;
-            }
-            return { values, nextIndex };
-        }
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.trim() === '---') {
-                if (inFrontmatter) break;
-                inFrontmatter = true;
-                continue;
-            }
-            if (inFrontmatter) {
-                // Handle bracket-multiline accumulation
-                if (triggerAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { triggerAccum = null; }  // abandon on new YAML key
-                    else {
-                        triggerAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(triggerAccum)) {
-                            triggers = parseInlineArray(extractBracketContent(triggerAccum));
-                            triggerAccum = null;
-                        }
-                        continue;
-                    }
-                }
-                if (mcpAccum !== null) {
-                    if (line.match(/^\w+:(?:[^/]|$)/)) { mcpAccum = null; }      // abandon on new YAML key
-                    else {
-                        mcpAccum += ' ' + line.trim();
-                        if (hasUnquotedClosingBracket(mcpAccum)) {
-                            requires_mcp = parseInlineArray(extractBracketContent(mcpAccum));
-                            mcpAccum = null;
-                        }
-                        continue;
-                    }
-                }
-
-                // Triggers — 3 forms
-                if (line.match(/^triggers:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        triggers = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        triggerAccum = line;
-                    }
-                } else if (line.match(/^triggers:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    triggers = parsed.values;
-                    i = parsed.nextIndex;
-                }
-
-                // requires_mcp — same 3 forms
-                if (line.match(/^requires_mcp:\s*\[/)) {
-                    if (hasUnquotedClosingBracket(line.slice(line.indexOf('[') + 1))) {
-                        requires_mcp = parseInlineArray(extractBracketContent(line));
-                    } else {
-                        mcpAccum = line;
-                    }
-                } else if (line.match(/^requires_mcp:\s*$/)) {
-                    const parsed = parseYamlList(lines, i);
-                    requires_mcp = parsed.values;
-                    i = parsed.nextIndex;
-                }
-
-                const match = line.match(/^(\w+):\s*(.+)$/);
-                if (match) {
-                    const key = match[1];
-                    let value = unquoteYaml(match[2].trim());
-                    if (key === 'name') name = value;
-                    if (key === 'description') description = value;
-                }
-            }
-        }
-        return { name, description, triggers, requires_mcp };
-    } catch (error) {
-        return { name: '', description: '', triggers: [], requires_mcp: [] };
-    }
-}
-
-function findSkillFile(dir) {
-    const candidates = ['SKILL.md', 'skill.md'];
-    for (const filename of candidates) {
-        const filepath = path.join(dir, filename);
-        if (fs.existsSync(filepath)) return filepath;
-    }
-    return null;
-}
-
-function findSkillsInDir(dir, sourceType) {
-    const skills = [];
-    if (!fs.existsSync(dir)) return skills;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-        // Skip support directories (_shared, _archive, _adapters, etc.)
-        if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
-        const skillDir = path.join(dir, entry.name);
-        // Handle both directories and symlinks to directories
-        let isDir = false;
-        try {
-            isDir = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(skillDir).isDirectory());
-        } catch (err) {
-            if (err.code === 'ENOENT' || err.code === 'ELOOP') continue;
-            throw err;
-        }
-        if (!isDir) continue;
-        const skillFile = findSkillFile(skillDir);
-        if (skillFile) {
-            const meta = extractFrontmatter(skillFile);
-            skills.push({
-                name: meta.name || entry.name,
-                description: meta.description || '',
-                sourceType,
-                skillFile,
-                skillDir
-            });
-        }
-    }
-    return skills;
-}
-
-function stripFrontmatter(content) {
-    const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    let inFrontmatter = false;
-    let frontmatterEnded = false;
-    const contentLines = [];
-    for (const line of lines) {
-        if (line.trim() === '---') {
-            if (inFrontmatter) { frontmatterEnded = true; continue; }
-            inFrontmatter = true;
-            continue;
-        }
-        if (frontmatterEnded || !inFrontmatter) {
-            contentLines.push(line);
-        }
-    }
-    return contentLines.join('\n').trim();
-}
-
-function findSkills() {
-    console.log('Available skills:');
-    console.log('==================\n');
-    const personalSkills = findSkillsInDir(PERSONAL_SKILLS_DIR, 'personal');
-    const superpowersSkills = findSkillsInDir(SUPERPOWERS_SKILLS_DIR, 'superpowers');
-    const allSkills = [...personalSkills, ...superpowersSkills];
-    const seen = new Set();
-    for (const skill of allSkills) {
-        const displayName = skill.sourceType === 'superpowers' ? 'superpowers:' + skill.name : skill.name;
-        if (seen.has(skill.name)) continue;
-        seen.add(skill.name);
-        console.log(displayName);
-        if (skill.description) {
-            console.log('  ' + skill.description + '\n');
-        } else {
-            console.log();
-        }
-    }
-    console.log('Usage:');
-    console.log('  superpowers-augment use-skill <skill-name>   # Load a specific skill\n');
-    console.log('Skill naming:');
-    console.log('  Superpowers skills: superpowers:skill-name (from ~/.codex/superpowers/skills/)');
-    console.log('  Personal skills: skill-name (from ~/.codex/skills/)');
-    console.log('  Personal skills override superpowers skills when names match.\n');
-    console.log('Note: All skills are disclosed at session start via bootstrap.');
-}
-
-function useSkill(skillName) {
-    if (!skillName) {
-        console.error('Error: skill name required');
-        console.error('Usage: superpowers-augment use-skill <skill-name>');
-        process.exit(1);
-    }
-    const forceSuperpowers = skillName.startsWith('superpowers:');
-    const actualName = forceSuperpowers ? skillName.replace(/^superpowers:/, '') : skillName;
-    let skillFile = null;
-    if (!forceSuperpowers) {
-        const personalDir = path.join(PERSONAL_SKILLS_DIR, actualName);
-        const personalFile = findSkillFile(personalDir);
-        if (personalFile) skillFile = personalFile;
-    }
-    if (!skillFile) {
-        const superpowersDir = path.join(SUPERPOWERS_SKILLS_DIR, actualName);
-        const superpowersFile = findSkillFile(superpowersDir);
-        if (superpowersFile) skillFile = superpowersFile;
-    }
-    if (!skillFile) {
-        console.error('Error: Skill "' + skillName + '" not found');
-        console.error('Run "superpowers-augment find-skills" to see available skills');
-        process.exit(1);
-    }
-    const content = fs.readFileSync(skillFile, 'utf8');
-    const stripped = stripFrontmatter(content);
-    const transformed = transformOutput(stripped);
-    console.log('# Skill: ' + skillName + '\n');
-    console.log(transformed);
-}
-
-function bootstrap() {
-    console.log('# Superpowers Bootstrap\n');
-    console.log('Loading skill system for Augment Code...\n');
-    const usingSuperpowersFile = findSkillFile(path.join(SUPERPOWERS_SKILLS_DIR, 'using-superpowers'));
-    if (usingSuperpowersFile) {
-        const content = fs.readFileSync(usingSuperpowersFile, 'utf8');
-        const stripped = stripFrontmatter(content);
-        const transformed = transformOutput(stripped);
-        console.log(transformed);
-        console.log('\n---\n');
-    }
-    findSkills();
-}
-
-const command = process.argv[2];
-const args = process.argv.slice(3);
-
-switch (command) {
-    case 'bootstrap': bootstrap(); break;
-    case 'use-skill': useSkill(args[0]); break;
-    case 'find-skills': findSkills(); break;
-    default:
-        console.log('Superpowers for Augment\n');
-        console.log('Usage:');
-        console.log('  node superpowers-augment.js bootstrap      # Initialize session with skills');
-        console.log('  node superpowers-augment.js use-skill <n>  # Load a specific skill');
-        console.log('  node superpowers-augment.js find-skills    # List all available skills');
-        break;
-}
-ADAPTER_EOF
+mv "$_adapter_tmp" "$_adapter_target"
+trap - EXIT
 
 chmod +x ~/.codex/superpowers-augment/superpowers-augment.js
 success "Adapter installed"
