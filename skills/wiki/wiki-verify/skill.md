@@ -3,7 +3,7 @@ name: wiki-verify
 source: superpowers-plus
 triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy", "check wiki accuracy", "verify wiki facts", "audit the wiki"]
 anti_triggers: ["edit wiki", "update wiki page", "create wiki page", "write wiki"]
-description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and updates stale content interactively.
+description: Use when wiki pages reference codebase details (versions, repos, configs) that may drift. Verifies claims against authoritative sources and auto-applies fixes by default.
 summary: "Use when: wiki references codebase details that may have drifted. Skip when: reading wiki only."
 coordination:
   group: wiki
@@ -30,9 +30,9 @@ pipeline → `wiki-orchestrator`.
 
 | Mode | Flag | Behavior |
 |------|------|----------|
-| Interactive | (default) | Prompt before each fix |
+| Fix | (default) | Auto-apply all fixes (Haiku-safe) |
+| Interactive | `--interactive` | Prompt before each fix |
 | Report | `--report` | Output diff only, no writes |
-| Fix | `--fix` | Auto-apply fixes (Haiku-safe) |
 
 ## Procedure
 
@@ -72,11 +72,11 @@ Mark each: `✅ CURRENT` · `⚠️ STALE` · `❌ WRONG` · `❓ UNVERIFIABLE`.
 
 ### 4 — Apply fixes (mode-dependent)
 
-- `--fix`: write corrected body to `page.md`, re-run Stage 5.5
+- Default / `--fix`: write corrected body to `page.md`, re-run Stage 5.5
   (`node tools/wiki-markdown-validate.js page.md`), then
   `tools/wiki-write.sh update --doc "$PAGE_ID" --content page.md`.
+- `--interactive`: prompt `[U]pdate / [S]kip / [A]ll / [Q]uit` per finding.
 - `--report`: emit diff to stdout, exit 0.
-- Interactive (default): prompt `[U]pdate / [S]kip / [A]ll / [Q]uit` per finding.
 
 ### 5 — Maintenance footer (required after any write)
 
@@ -97,4 +97,4 @@ config · `.env.example`. Registry fallback: `superpowers-plus/wiki-sources.yaml
 | False STALE on pinned version | Respect lock-file / `pinned:` annotations |
 | `wiki-write.sh` exit 1 | STOP; ask user; do not retry |
 
-Background, interactive-flow details, authoritative-source ordering: `rationale.md`.
+Background, mode rationale, authoritative-source ordering: `rationale.md`.
