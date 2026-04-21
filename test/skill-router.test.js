@@ -267,6 +267,73 @@ console.log('\n--- stem function ---');
   eq(stem('deployment'), 'deploy', 'deployment → deploy (strip -ment)');
 }
 
+// --- Wiki skill router regression tests (deferred item 1) ---
+// Load real wiki skills from disk and assert exactly one skill is selected for
+// each realistic prompt. Guards against trigger/anti_trigger overlap regressions.
+console.log('\n--- Wiki skill router: trigger/anti_trigger overlap regression ---');
+{
+  const { extractFrontmatter } = require('../lib/frontmatter');
+  const fs = require('fs');
+  const path = require('path');
+
+  const wikiDir = path.join(__dirname, '..', 'skills', 'wiki');
+  const wikiSkills = fs.readdirSync(wikiDir)
+    .filter(d => fs.statSync(path.join(wikiDir, d)).isDirectory())
+    .map(d => {
+      const fm = extractFrontmatter(path.join(wikiDir, d, 'skill.md'));
+      fm.anti_triggers = fm.anti_triggers || [];
+      return fm;
+    })
+    .filter(s => s.name);
+
+  assert(wikiSkills.length === 8, `loaded 8 wiki skills (got ${wikiSkills.length})`);
+
+  /**
+   * Asserts that `prompt` routes to `expectedSkill` as #1 result among wiki skills.
+   * Also asserts the winning margin is > 0 (no exact tie).
+   */
+  function assertRoutes(prompt, expectedSkill, label) {
+    const results = matchSkillsTfIdf(prompt, wikiSkills, wikiSkills.length);
+    const top = results[0];
+    const second = results[1];
+    eq(top && top.name, expectedSkill,
+      `${label}: "${prompt}" → ${expectedSkill} (got: ${top ? top.name : 'none'}, score: ${top ? top.score.toFixed(4) : 'n/a'})`);
+    // Ensure deterministic: top score must strictly beat second place
+    assert(!second || top.score > second.score,
+      `${label}: "${prompt}" has clear winner (${top ? top.score.toFixed(4) : '?'} > ${second ? second.score.toFixed(4) : '?'})`);
+  }
+
+  // 1. Broken-link repair → link-verification (not wiki-orchestrator)
+  assertRoutes('fix wiki links on this page', 'link-verification', 'link-fix');
+
+  // 2. General wiki audit → wiki-verify (not wiki-orchestrator or wiki-secret-audit)
+  assertRoutes('audit the wiki', 'wiki-verify', 'audit-wiki');
+
+  // 3. Credential scan → wiki-secret-audit (not wiki-orchestrator)
+  assertRoutes('scan wiki for credentials', 'wiki-secret-audit', 'secret-scan');
+
+  // 4. Staleness check → wiki-verify, wiki-content-coherence must NOT win
+  assertRoutes('verify wiki', 'wiki-verify', 'verify-wiki');
+
+  // 5. Single-page coherence refactor → wiki-content-coherence (not wiki-refactor)
+  assertRoutes('refactor wiki page', 'wiki-content-coherence', 'single-page-refactor');
+
+  // 6. Multi-page structural overhaul → wiki-refactor (not wiki-orchestrator)
+  assertRoutes('reorganize all wiki pages', 'wiki-refactor', 'multi-page-reorganize');
+
+  // 7. Factual claim validation → wiki-debunker (not wiki-verify)
+  assertRoutes('fact-check this wiki page', 'wiki-debunker', 'fact-check');
+
+  // 8. Single-page coherence check → wiki-content-coherence
+  assertRoutes('check wiki page coherence', 'wiki-content-coherence', 'coherence-check');
+
+  // 9. Markdown structure validation → wiki-markdown-structure-gate
+  assertRoutes('validate wiki markdown structure', 'wiki-markdown-structure-gate', 'markdown-gate');
+
+  // 10. Deduplication within one page → wiki-content-coherence (not wiki-refactor)
+  assertRoutes('deduplicate wiki content', 'wiki-content-coherence', 'single-page-dedup');
+}
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);
