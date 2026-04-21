@@ -19,155 +19,82 @@ composition:
   priority: 30
 ---
 
-# Skill: wiki-verify
+# wiki-verify
 
-> **Wrong skill?** Checking links in wiki → `link-verification`. Scanning for secrets → `wiki-secret-audit`. Full wiki editing → `wiki-orchestrator`. Content duplication → `wiki-content-coherence`.
-
-## Triggers
-
-- "Verify this wiki page"
-- "Fact-check the vendor page"
-- "Check if wiki is up to date"
-- "Run wiki audit"
-- "Verify all pages in wiki-sources.yaml"
-- Before pushing wiki changes
-- When you notice potentially stale technical claims
+Detect stale codebase claims (version numbers, repo names, file paths, config
+values) in wiki pages. Wrong skill? Links → `link-verification` · Secrets →
+`wiki-secret-audit` · Fact-check decisions/dates → `wiki-debunker` · Edit
+pipeline → `wiki-orchestrator`.
 
 ## Modes
 
 | Mode | Flag | Behavior |
 |------|------|----------|
-| **Interactive** | (default) | Prompt before each fix |
-| **Report** | `--report` | Output diff only, no changes |
-| **Fix** | `--fix` | Auto-fix without prompts |
+| Interactive | (default) | Prompt before each fix |
+| Report | `--report` | Output diff only, no writes |
+| Fix | `--fix` | Auto-apply fixes (Haiku-safe) |
 
-## Source Discovery
+## Procedure
 
-### Step 1: Check Page Tail Section
-
-Look for a `## 🔍 Verification Sources` section at the bottom of the wiki page:
-
-```markdown
-
-## 🔍 Verification Sources
-
-<!-- wiki-verify:sources
-repos:
-  - backend-service
-  - settings-service
-files:
-  - backend-service/package.json#dependencies
-  - settings-service/src/integrations/**
--->
-
-*🔄 AI-maintained — invoke wiki-verify skill to update*
-```
-
-### Step 2: Fallback to Central Registry
-
-If no tail section found, check `superpowers-plus/wiki-sources.yaml`:
-
-```yaml
-pages:
-  - id: example-vendors-page-abc123
-    url: https://your-wiki.example.com/doc/example-vendors-page-abc123
-    sources:
-      repos: [backend-service, your-shared-lib]
-      files: [backend-service/package.json]
-```
-
-### Step 3: No Sources Configured
-
-If neither exists, STOP and report:
-> "This page has no verification sources configured. Add a tail section or entry in wiki-sources.yaml."
-
-## Claim Types to Verify
-
-| Claim Type | Example in Wiki | How to Verify |
-|------------|-----------------|---------------|
-| **Version numbers** | "SDK v3.2.1" | Check `package.json` or `requirements.txt` |
-| **Repo existence** | "backend-service repo" | Repository adapter or git |
-| **File paths** | "`src/integrations/service.ts`" | Git file existence check |
-| **Vendor names** | "We use Service X for Y" | Grep codebase for imports/configs |
-| **Config values** | "Default timeout: 30s" | Check config files |
-| **PR/commit refs** | "Fixed in PR #123" | Repository adapter |
-| **Dates** | "Added in January 2026" | Git history |
-
-## Verification Process
+### 1 — Fetch page
 
 ```bash
-1. Fetch wiki page content (use adapter's get_page operation)
-2. Parse tail section OR lookup in wiki-sources.yaml
-3. Clone/fetch relevant repos if not local
-4. Extract verifiable claims from page content
-5. For each claim:
-   a. Query authoritative source
-   b. Compare wiki content vs source
-   c. Classify: ✅ CURRENT | ⚠️ STALE | ❌ WRONG | ❓ UNVERIFIABLE
-6. Report or fix based on mode
+tools/wiki-read.sh get "$PAGE_ID" > page.json
+jq -r '.text' page.json > page.md
 ```
 
-## Interactive Flow (Default)
+### 2 — Discover verification sources (tail block or registry)
 
-```text
-🔍 Verifying: YourProduct Production Stack & Vendors
-
-Sources: backend-service (package.json), settings-service
-
-Checking 12 claims...
-
-⚠️  STALE: Deepgram SDK version
-    Wiki says: v3.2.1
-    package.json says: v3.4.0
-    → [U]pdate / [S]kip / [A]ll / [Q]uit? _
-
-✅ CURRENT: Twilio integration (found in src/integrations/twilio.ts)
-✅ CURRENT: OpenAI dependency (gpt-4o-mini in config)
-
-❌ WRONG: "Redis for caching"
-    Wiki says: Redis
-    Codebase shows: No Redis imports found
-    → [D]elete claim / [S]kip / [Q]uit? _
-
-Summary: 10 ✅ | 1 ⚠️ updated | 1 ❌ skipped
+```markdown
+## 🔍 Verification Sources
+<!-- wiki-verify:sources
+repos: [backend-service, settings-service]
+files: [backend-service/package.json#dependencies]
+-->
 ```
 
-## After Verification
+Fallback: `superpowers-plus/wiki-sources.yaml` entry keyed by page id. Neither
+present → STOP: "no verification sources configured."
 
-1. Ensure the maintenance footer exists (see below)
-2. Push changes via adapter's update_page operation
-3. Report summary to user
+### 3 — Classify each claim
 
-## Required Page Footer
+| Claim type | Source | Pass if |
+|------------|--------|---------|
+| Version `vX.Y.Z` | `package.json` / `requirements.txt` | exact match |
+| Repo name | `git ls-remote` / adapter | repo exists |
+| File path | `git cat-file -e HEAD:<path>` | exit 0 |
+| Import / vendor | `grep -r <name> src/` | any hit |
+| Config value | target config file | exact match |
+| PR / commit ref | `gh api`, `git log` | reference resolves |
+| Date claim | `git log --after/--before` | commit exists |
 
-Add if missing: `*🔄 AI-maintained — invoke wiki-verify skill to update*`
-Place after `## 🔍 Verification Sources` section. Omit "Last verified" dates and page URLs.
+Mark each: `✅ CURRENT` · `⚠️ STALE` · `❌ WRONG` · `❓ UNVERIFIABLE`.
 
-## Authoritative Sources
+### 4 — Apply fixes (mode-dependent)
 
-Git repos (`git show/log`) · repository adapter · `package.json` · `requirements.txt` · config files (YAML/JSON/TOML) · `.env.example`.
+- `--fix`: write corrected body to `page.md`, re-run Stage 5.5
+  (`node tools/wiki-markdown-validate.js page.md`), then
+  `tools/wiki-write.sh update --doc "$PAGE_ID" --content page.md`.
+- `--report`: emit diff to stdout, exit 0.
+- Interactive (default): prompt `[U]pdate / [S]kip / [A]ll / [Q]uit` per finding.
 
-## Registry
+### 5 — Maintenance footer (required after any write)
 
-Central fallback: `superpowers-plus/wiki-sources.yaml`. Add new wiki pages with codebase dependencies here.
+Page MUST end with `*🔄 AI-maintained — invoke wiki-verify skill to update*`
+placed after `## 🔍 Verification Sources`. Omit dates and URLs.
 
-## Companion Skills
+## Authoritative sources
 
-- **wiki-debunker**: Deeper fact-checking of specific claims
-- **link-verification**: Checking wiki page links
-- **wiki-orchestrator**: Full wiki editing pipeline
+`git show/log` · repo adapter · `package.json` · `requirements.txt` · YAML/JSON/TOML
+config · `.env.example`. Registry fallback: `superpowers-plus/wiki-sources.yaml`.
 
-## When to Use
-
-- After wiki pages referencing code/configs are updated
-- During periodic wiki health reviews
-- When a service version or dependency is upgraded
-- When wiki-orchestrator pipeline triggers verification stage
-
-## Failure Modes
+## Failure modes
 
 | Failure | Fix |
 |---------|-----|
-| Verification source is also stale | Cross-reference multiple sources (repo, docs, API) |
-| UNVERIFIABLE claims left unmarked | Flag and tag for human review — don't silently skip |
-| False positive STALE on intentionally pinned versions | Check for `pinned:` or version lock annotations |
+| Source itself stale | Cross-reference ≥2 sources (repo + API) |
+| UNVERIFIABLE left silent | Flag with `citation-needed` tag |
+| False STALE on pinned version | Respect lock-file / `pinned:` annotations |
+| `wiki-write.sh` exit 1 | STOP; ask user; do not retry |
+
+Background, interactive-flow details, authoritative-source ordering: `rationale.md`.
