@@ -26,20 +26,20 @@ Hard rules. No exceptions without explicit human instruction.
 
 ## 🔴 Remote Naming & Source of Truth
 
-**In this clone:**
-- `upstream` = https://github.com/bordenet/superpowers-plus (PUBLIC SOURCE OF TRUTH)
-- `origin`   = https://gitlab.int.callbox.net/mbordenet/superpowers-plus (private mirror)
+**Remote naming convention:**
+- `upstream` = GitHub (public source of truth)
+- `origin`   = private mirror (GitLab or equivalent)
 
 **ALL CHANGES GO TO GITHUB (`upstream`) FIRST — ALWAYS.**
 
 Correct promotion flow:
 1. Push feature branch to `upstream` (GitHub)
 2. Open PR on GitHub: feature → dev → staging → main
-3. After GitHub main is updated, sync the GitLab mirror:
+3. After GitHub main is updated, sync the private mirror:
    `git push origin upstream/main:main upstream/staging:staging upstream/dev:dev`
 
-❌ NEVER promote through GitLab first and then try to backfill GitHub.
-❌ NEVER push locally-created commits to `origin` (GitLab) — only `upstream/<branch>:<branch>` refs.
+❌ NEVER promote through the private mirror first and then try to backfill GitHub.
+❌ NEVER push locally-created commits to `origin` — only `upstream/<branch>:<branch>` refs.
 
 ## Install Artifacts
 
