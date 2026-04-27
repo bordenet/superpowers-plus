@@ -97,6 +97,11 @@ install_skill() {
     fi
 
     for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+        # Skip the Augment target (~/.codex/skills/) when --skip-augment is set.
+        # Claude Code (~/.claude/skills/) still receives the skill.
+        if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$target_dir" == "$SKILLS_DIR" ]]; then
+            continue
+        fi
         mkdir -p "$target_dir"
         local dest="$target_dir/$dest_name"
 
@@ -147,6 +152,11 @@ install_skill() {
 
 # Install the superpowers-augment adapter
 install_adapter() {
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping superpowers-augment adapter (--skip-augment)"
+        return 0
+    fi
+
     log_info "Installing superpowers-augment adapter..."
 
     local adapter_src="$SCRIPT_DIR/superpowers-augment.js"
@@ -695,6 +705,10 @@ _skill_dest_name() {
 export_augment_menu_skills() {
     local prune_source="${1:-}"   # e.g. "superpowers-plus" or "superpowers-myoverlay"
     [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping Augment slash menu export (--skip-augment)"
+        return 0
+    fi
 
     log_info "Exporting augment_menu skills to Augment slash menu..."
     mkdir -p "$AUGMENT_MENU_DIR"
@@ -848,7 +862,12 @@ install_skills() {
     if [[ ${#current_skill_names[@]} -eq 0 ]]; then
         log_warn "No skills were installed — skipping prune to prevent mass deletion"
     else
-        prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+        # When --skip-augment is set we did not write to $SKILLS_DIR this run.
+        # Don't prune that location — leave any pre-existing Augment artifacts
+        # untouched (per --skip-augment contract: skip, don't clean up).
+        if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
+            prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+        fi
         prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
     fi
 
@@ -856,6 +875,10 @@ install_skills() {
     if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
         for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
             [[ -z "$target_dir" || ! -d "$target_dir" ]] && continue
+            # Skip Augment skills target when --skip-augment is set
+            if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$target_dir" == "$SKILLS_DIR" ]]; then
+                continue
+            fi
             local shared_dest="$target_dir/_shared"
             rm -rf "${shared_dest:?}" 2>/dev/null || true
             cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
@@ -886,6 +909,11 @@ install_skills() {
 
 # Install rules from rules/ directory
 install_rules() {
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping rules install (--skip-augment) — target is ~/.augment/rules/"
+        return 0
+    fi
+
     log_info "Installing rules from superpowers-plus..."
 
     local rules_src="$SCRIPT_DIR/rules"
