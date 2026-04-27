@@ -110,8 +110,11 @@ VERBOSE=false
 UPGRADE=false
 CHECK=false
 YES=false
-# Skip all Augment-specific deployment steps. Off by default (Augment installs).
+# Skip all Augment-specific deployment steps. Off by default.
 # Honors SKIP_AUGMENT env var so chain installers propagate without arg parsing.
+# Track inheritance so we can warn if it came from the ambient env (CI leakage).
+_SKIP_AUGMENT_FROM_ENV=false
+[[ -n "${SKIP_AUGMENT:-}" ]] && _SKIP_AUGMENT_FROM_ENV=true
 SKIP_AUGMENT="${SKIP_AUGMENT:-false}"
 
 # Auto-detect non-interactive context (piped input, curl | bash, etc.)
@@ -297,7 +300,7 @@ while [[ $# -gt 0 ]]; do
         --check) CHECK=true; shift ;;
         --force) FORCE=true; shift ;;
         --upgrade|--update) UPGRADE=true; shift ;;
-        --skip-augment) SKIP_AUGMENT=true; shift ;;
+        --skip-augment) SKIP_AUGMENT=true; _SKIP_AUGMENT_FROM_ENV=false; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
             printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
@@ -310,6 +313,16 @@ done
 # Lib modules (deploy.sh, etc.) read SKIP_AUGMENT via the environment so we
 # don't have to thread it through every function signature.
 export SKIP_AUGMENT
+
+# Visibility for env-var inheritance: if the caller's environment had
+# SKIP_AUGMENT=true and the user did NOT pass --skip-augment on the command line,
+# emit a one-liner so the silent skip is observable (CI matrices, leaked direnv,
+# etc.). Logging functions are already sourced.
+if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$_SKIP_AUGMENT_FROM_ENV" == "true" ]]; then
+    log_warn "SKIP_AUGMENT=true inherited from environment (no --skip-augment flag passed)"
+    log_warn "  Augment-specific install steps will be skipped. Unset SKIP_AUGMENT to opt back in."
+fi
+unset _SKIP_AUGMENT_FROM_ENV
 
 # --- Validate and Summarize (kept in orchestrator for visibility) ---
 
@@ -328,7 +341,7 @@ validate_installation() {
     fi
 
     # Check Augment skills directory (~/.codex/skills) — skipped when --skip-augment
-    if [[ "$SKIP_AUGMENT" == "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
         log_verbose "Augment skills directory: skipped (--skip-augment)"
     elif [[ ! -d "$SKILLS_DIR" ]]; then
         log_error "Augment skills directory not found: $SKILLS_DIR"
@@ -346,7 +359,7 @@ validate_installation() {
     fi
 
     # Count installed personal skills (check both SKILL.md and skill.md)
-    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
         local skill_count=0
         for skill_dir in "$SKILLS_DIR/"*/; do
             if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
@@ -406,7 +419,7 @@ print_summary() {
     echo "  Claude Code:       $CLAUDE_SKILLS_DIR"
     echo "                     (native Skill tool)"
     echo ""
-    if [[ "$SKIP_AUGMENT" == "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
         echo "  Augment:           skipped (--skip-augment)"
         echo ""
     else
@@ -418,11 +431,18 @@ print_summary() {
         echo ""
     fi
     echo "Personal skills:"
-    local _skills_listing_dir="$CLAUDE_SKILLS_DIR"
-    [[ "$SKIP_AUGMENT" != "true" ]] && _skills_listing_dir="$SKILLS_DIR"
-    for skill_dir in "$_skills_listing_dir/"*/; do
-        [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; } && echo "  • $(basename "$skill_dir")"
-    done
+    # Source of truth for "what this installer just deployed" is the manifest
+    # written by install_skills() — using $SKILLS_DIR directly mis-attributes
+    # obra/superpowers core skills under --skip-augment (CLAUDE_SKILLS_DIR also
+    # holds non-personal entries).
+    local manifest="${HOME}/.codex/superpowers-plus/install-state/skills.manifest"
+    if [[ -s "$manifest" ]]; then
+        while IFS= read -r _name; do
+            [[ -n "$_name" ]] && echo "  • $_name"
+        done < "$manifest"
+    else
+        echo "  (none recorded — manifest not found)"
+    fi
     echo ""
     echo "Optional integrations:"
     if [[ -n "${PERPLEXITY_API_KEY:-}" ]]; then
@@ -447,7 +467,7 @@ print_summary() {
     fi
     echo "Verify with:"
     echo "  Claude Code:   /explain-code (or other skill slash commands)"
-    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
         echo "  Augment Agent: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
     fi
     echo ""
@@ -535,7 +555,7 @@ check_prerequisites() {
 
     # Deployment targets
     local _targets=("$CLAUDE_SKILLS_DIR")
-    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
         _targets=("$SKILLS_DIR" "${_targets[@]}")
     fi
     for target in "${_targets[@]}"; do
@@ -581,7 +601,7 @@ main() {
         create_dir "$HOME/.codex/superpowers-review/active"
         create_dir "$HOME/.codex/superpowers-review/archive"
         post_install_migrations
-        if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
             install_rules
             install_adapter
         else
@@ -629,23 +649,23 @@ main() {
     post_install_migrations
 
     # Install rules (Augment-only target — ~/.augment/rules/)
-    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
         install_rules
     else
         log_info "Skipping Augment rules install (--skip-augment)"
     fi
 
-    # Install templates
+    # NOT Augment-specific — runs in both modes (templates ship for all targets)
     install_templates
 
-    # Install tools (todo-preflight.sh, todo-lock.sh, etc.)
+    # NOT Augment-specific — runs in both modes (todo-preflight, todo-lock, etc.)
     install_tools
 
-    # Install CLI commands (sp-update symlink to PATH)
+    # NOT Augment-specific — runs in both modes (sp-update symlink for shell PATH)
     install_cli_commands
 
     # Install adapter (Augment-only — ~/.codex/superpowers-augment/)
-    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+    if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
         install_adapter
     else
         log_info "Skipping Augment adapter install (--skip-augment)"
