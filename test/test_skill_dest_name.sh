@@ -96,10 +96,10 @@ check "empty dir: falls back to basename" \
     "$(_skill_dest_name "$TMPDIR/empty-dir")" "empty-dir"
 
 # -------------------------------------------------------------------
-# install_skill path-traversal guard
+# install_skill allowlist validation
 # -------------------------------------------------------------------
 echo ""
-echo "=== install_skill path-traversal guard ==="
+echo "=== install_skill allowlist validation ==="
 
 mk_skill "$TMPDIR/traversal-skill" 'triggers: ["/sp-ok"]'
 # Fake a safe environment so install_skill does not try to copy files
@@ -113,11 +113,32 @@ log_warn()    { :; }
 log_success() { :; }
 error_exit()  { echo "error_exit: $*" >&2; exit 1; }
 
-path_traversal_blocked=0
-if ! (install_skill "$TMPDIR/traversal-skill" "../../evil" 2>/dev/null); then
-    path_traversal_blocked=1
-fi
-check "path traversal in dest_name is rejected" "$path_traversal_blocked" "1"
+# Allowlist rejects path traversal
+blocked=0
+if ! (install_skill "$TMPDIR/traversal-skill" "../../evil" 2>/dev/null); then blocked=1; fi
+check "path traversal (../../evil) is rejected" "$blocked" "1"
+
+# Allowlist rejects ".." (no slash, but still dangerous)
+blocked=0
+if ! (install_skill "$TMPDIR/traversal-skill" ".." 2>/dev/null); then blocked=1; fi
+check 'dest_name=".." is rejected' "$blocked" "1"
+
+# Allowlist rejects "." (same-dir target)
+blocked=0
+if ! (install_skill "$TMPDIR/traversal-skill" "." 2>/dev/null); then blocked=1; fi
+check 'dest_name="." is rejected' "$blocked" "1"
+
+# Empty string is safe: ${2:-$skill_name} substitutes the source basename,
+# so the install proceeds normally rather than being rejected.
+allowed=0
+if (install_skill "$TMPDIR/traversal-skill" "" 2>/dev/null); then allowed=1; fi
+check 'dest_name="" falls back to basename (safe default)' "$allowed" "1"
+
+# Allowlist permits a valid sp-name
+mk_skill "$TMPDIR/valid-skill" 'triggers: ["/sp-valid"]'
+valid=0
+if install_skill "$TMPDIR/valid-skill" "sp-valid" 2>/dev/null; then valid=1; fi
+check "valid sp-name is accepted" "$valid" "1"
 
 # -------------------------------------------------------------------
 # Summary
