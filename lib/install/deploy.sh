@@ -45,12 +45,22 @@ _resolve_upstream_dir() {
 # When a skill declares `overrides:`, stage the upstream companion files first
 # (reference docs, scripts, prompts), then overlay the override's skill.md on
 # top. This ensures companion files from the upstream source survive the override.
+# $1 = source skill directory
+# $2 = (optional) destination folder name override (defaults to source basename).
+#      Supply the sp-trigger name (e.g. "sp-brainstorm") so Claude Code exposes
+#      the correct /sp-* slash command rather than the legacy folder name.
 install_skill() {
     local skill_dir="$1"
+    local dest_name="${2:-}"
     local skill_name
     skill_name=$(basename "$skill_dir")
+    [[ -z "$dest_name" ]] && dest_name="$skill_name"
 
-    log_verbose "Installing skill: $skill_name"
+    if [[ "$dest_name" != "$skill_name" ]]; then
+        log_verbose "Installing skill: $skill_name (as $dest_name)"
+    else
+        log_verbose "Installing skill: $skill_name"
+    fi
 
     # Check if SKILL.md or skill.md exists
     if [[ ! -f "$skill_dir/SKILL.md" ]] && [[ ! -f "$skill_dir/skill.md" ]]; then
@@ -81,12 +91,12 @@ install_skill() {
 
     for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
         mkdir -p "$target_dir"
-        local dest="$target_dir/$skill_name"
+        local dest="$target_dir/$dest_name"
 
         # Always start with a clean destination
         if [[ -d "$dest" ]]; then
             rm -rf "${dest:?}" || \
-                error_exit "Failed to remove existing skill: $skill_name"
+                error_exit "Failed to remove existing skill: $dest_name"
         fi
         mkdir -p "$dest"
 
@@ -124,7 +134,7 @@ install_skill() {
         done < <(find "$skill_dir" -maxdepth 1 -type d -not -path "$skill_dir" -print0 2>/dev/null)
     done
 
-    log_success "Installed: $skill_name"
+    log_success "Installed: $dest_name"
     return 0
 }
 
@@ -650,6 +660,25 @@ _extract_sp_trigger() {
     echo "$t"
 }
 
+# Compute the install destination name for a skill directory.
+# Uses the first /sp* trigger from the skill file if present;
+# otherwise falls back to the source directory basename.
+_skill_dest_name() {
+    local skill_dir="$1"
+    local skill_file=""
+    [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+    [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+    if [[ -n "$skill_file" ]]; then
+        local sp_trigger
+        sp_trigger=$(_extract_sp_trigger "$skill_file")
+        if [[ -n "$sp_trigger" ]]; then
+            printf '%s\n' "${sp_trigger#/}"
+            return
+        fi
+    fi
+    basename "$skill_dir"
+}
+
 # Export opted-in skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
 # Gate: skill must declare `augment_menu: true` in frontmatter.
 # Name: derived from first /sp* trigger; falls back to skill directory name.
@@ -776,12 +805,12 @@ install_skills() {
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            current_skill_names+=("$(basename "$domain_or_skill")")
+            current_skill_names+=("$(_skill_dest_name "$domain_or_skill")")
         else
             for skill_dir in "$domain_or_skill"*/; do
                 [[ ! -d "$skill_dir" ]] && continue
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    current_skill_names+=("$(basename "$skill_dir")")
+                    current_skill_names+=("$(_skill_dest_name "$skill_dir")")
                 fi
             done
         fi
@@ -798,7 +827,7 @@ install_skills() {
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            if install_skill "$domain_or_skill"; then
+            if install_skill "$domain_or_skill" "$(_skill_dest_name "$domain_or_skill")"; then
                 installed=$((installed + 1))
             else
                 skipped=$((skipped + 1))
@@ -810,7 +839,7 @@ install_skills() {
                 nested_name=$(basename "$skill_dir")
                 [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    if install_skill "$skill_dir"; then
+                    if install_skill "$skill_dir" "$(_skill_dest_name "$skill_dir")"; then
                         installed=$((installed + 1))
                     else
                         skipped=$((skipped + 1))
