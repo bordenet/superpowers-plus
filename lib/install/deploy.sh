@@ -45,12 +45,29 @@ _resolve_upstream_dir() {
 # When a skill declares `overrides:`, stage the upstream companion files first
 # (reference docs, scripts, prompts), then overlay the override's skill.md on
 # top. This ensures companion files from the upstream source survive the override.
+# $1 = source skill directory
+# $2 = (optional) destination folder name override (defaults to source basename).
+#      Supply the sp-trigger name (e.g. "sp-brainstorm") so Claude Code exposes
+#      the correct /sp-* slash command rather than the legacy folder name.
 install_skill() {
     local skill_dir="$1"
     local skill_name
     skill_name=$(basename "$skill_dir")
+    local dest_name="${2:-$skill_name}"
 
-    log_verbose "Installing skill: $skill_name"
+    # Allowlist: dest_name must be a non-empty plain name (letters, digits, hyphens, underscores).
+    # This rejects "/", "..", ".", empty string, and any embedded special characters that
+    # could escape the target directory when concatenated into $SKILLS_DIR/$dest_name.
+    if [[ ! "$dest_name" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+        log_warn "Skipping skill '$skill_name': unsafe dest name '$dest_name' (must match ^[A-Za-z0-9][A-Za-z0-9_-]*\$)"
+        return 1
+    fi
+
+    if [[ "$dest_name" != "$skill_name" ]]; then
+        log_verbose "Installing skill: $skill_name (as $dest_name)"
+    else
+        log_verbose "Installing skill: $skill_name"
+    fi
 
     # Check if SKILL.md or skill.md exists
     if [[ ! -f "$skill_dir/SKILL.md" ]] && [[ ! -f "$skill_dir/skill.md" ]]; then
@@ -81,12 +98,12 @@ install_skill() {
 
     for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
         mkdir -p "$target_dir"
-        local dest="$target_dir/$skill_name"
+        local dest="$target_dir/$dest_name"
 
         # Always start with a clean destination
         if [[ -d "$dest" ]]; then
             rm -rf "${dest:?}" || \
-                error_exit "Failed to remove existing skill: $skill_name"
+                error_exit "Failed to remove existing skill: $dest_name"
         fi
         mkdir -p "$dest"
 
@@ -124,7 +141,7 @@ install_skill() {
         done < <(find "$skill_dir" -maxdepth 1 -type d -not -path "$skill_dir" -print0 2>/dev/null)
     done
 
-    log_success "Installed: $skill_name"
+    log_success "Installed: $dest_name"
     return 0
 }
 
@@ -650,6 +667,25 @@ _extract_sp_trigger() {
     echo "$t"
 }
 
+# Compute the install destination name for a skill directory.
+# Uses the first /sp* trigger from the skill file if present;
+# otherwise falls back to the source directory basename.
+_skill_dest_name() {
+    local skill_dir="$1"
+    local skill_file=""
+    [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+    [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+    if [[ -n "$skill_file" ]]; then
+        local sp_trigger
+        sp_trigger=$(_extract_sp_trigger "$skill_file")
+        if [[ -n "$sp_trigger" ]]; then
+            printf '%s\n' "${sp_trigger#/}"
+            return
+        fi
+    fi
+    basename "$skill_dir"
+}
+
 # Export opted-in skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
 # Gate: skill must declare `augment_menu: true` in frontmatter.
 # Name: derived from first /sp* trigger; falls back to skill directory name.
@@ -768,6 +804,9 @@ install_skills() {
     local skipped=0
     local current_skill_names=()
 
+    # Single-pass: compute dest name once per skill, record for pruner, then install.
+    # Pruning runs after install; both are safe because old and new names never collide
+    # (different folder names), and install_skill already rm -rf's any existing dest.
     for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
         [[ ! -d "$domain_or_skill" ]] && continue
         local dir_name
@@ -776,29 +815,10 @@ install_skills() {
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            current_skill_names+=("$(basename "$domain_or_skill")")
-        else
-            for skill_dir in "$domain_or_skill"*/; do
-                [[ ! -d "$skill_dir" ]] && continue
-                if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    current_skill_names+=("$(basename "$skill_dir")")
-                fi
-            done
-        fi
-    done
-
-    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-
-    for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
-        [[ ! -d "$domain_or_skill" ]] && continue
-        local dir_name
-        dir_name=$(basename "$domain_or_skill")
-
-        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
-
-        if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            if install_skill "$domain_or_skill"; then
+            local _dn
+            _dn=$(_skill_dest_name "$domain_or_skill")
+            if install_skill "$domain_or_skill" "$_dn"; then
+                current_skill_names+=("$_dn")   # only track on success
                 installed=$((installed + 1))
             else
                 skipped=$((skipped + 1))
@@ -810,7 +830,10 @@ install_skills() {
                 nested_name=$(basename "$skill_dir")
                 [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    if install_skill "$skill_dir"; then
+                    local _dn
+                    _dn=$(_skill_dest_name "$skill_dir")
+                    if install_skill "$skill_dir" "$_dn"; then
+                        current_skill_names+=("$_dn")   # only track on success
                         installed=$((installed + 1))
                     else
                         skipped=$((skipped + 1))
@@ -819,6 +842,15 @@ install_skills() {
             done
         fi
     done
+
+    # Guard: only prune when at least one skill installed successfully.
+    # An empty list would cause the pruner to delete every previously managed skill.
+    if [[ ${#current_skill_names[@]} -eq 0 ]]; then
+        log_warn "No skills were installed — skipping prune to prevent mass deletion"
+    else
+        prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+        prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    fi
 
     # Deploy _shared/ support directory (not a skill, but referenced by skills)
     if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
