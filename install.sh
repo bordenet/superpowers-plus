@@ -110,6 +110,9 @@ VERBOSE=false
 UPGRADE=false
 CHECK=false
 YES=false
+# Skip all Augment-specific deployment steps. Off by default (Augment installs).
+# Honors SKIP_AUGMENT env var so chain installers propagate without arg parsing.
+SKIP_AUGMENT="${SKIP_AUGMENT:-false}"
 
 # Auto-detect non-interactive context (piped input, curl | bash, etc.)
 if ! [[ -t 0 ]]; then
@@ -219,6 +222,17 @@ OPTIONS
         asking for confirmation. Also enabled automatically when stdin is
         not a TTY (e.g., when called from another script or via pipe).
 
+    --skip-augment
+        Skip all Augment-specific deployment steps. Claude Code still receives
+        skills (~/.claude/skills/), but the following are skipped:
+          - Augment skills directory   (~/.codex/skills/)
+          - Augment slash menu         (~/.agents/skills/)
+          - Augment adapter bridge     (~/.codex/superpowers-augment/)
+          - Augment auto-loaded rules  (~/.augment/rules/)
+        Off by default. Existing Augment artifacts are NOT cleaned up — remove
+        them manually if you want a fully clean state. Honors the SKIP_AUGMENT
+        environment variable, which chain installers use to propagate the flag.
+
     --version
         Display version information and exit
 
@@ -283,6 +297,7 @@ while [[ $# -gt 0 ]]; do
         --check) CHECK=true; shift ;;
         --force) FORCE=true; shift ;;
         --upgrade|--update) UPGRADE=true; shift ;;
+        --skip-augment) SKIP_AUGMENT=true; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
             printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
@@ -291,6 +306,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Lib modules (deploy.sh, etc.) read SKIP_AUGMENT via the environment so we
+# don't have to thread it through every function signature.
+export SKIP_AUGMENT
 
 # --- Validate and Summarize (kept in orchestrator for visibility) ---
 
@@ -308,8 +327,10 @@ validate_installation() {
         log_verbose "superpowers skills directory: OK"
     fi
 
-    # Check Augment skills directory (~/.codex/skills)
-    if [[ ! -d "$SKILLS_DIR" ]]; then
+    # Check Augment skills directory (~/.codex/skills) — skipped when --skip-augment
+    if [[ "$SKIP_AUGMENT" == "true" ]]; then
+        log_verbose "Augment skills directory: skipped (--skip-augment)"
+    elif [[ ! -d "$SKILLS_DIR" ]]; then
         log_error "Augment skills directory not found: $SKILLS_DIR"
         errors=$((errors + 1))
     else
@@ -325,17 +346,19 @@ validate_installation() {
     fi
 
     # Count installed personal skills (check both SKILL.md and skill.md)
-    local skill_count=0
-    for skill_dir in "$SKILLS_DIR/"*/; do
-        if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
-            skill_count=$((skill_count + 1))
-        fi
-    done
+    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        local skill_count=0
+        for skill_dir in "$SKILLS_DIR/"*/; do
+            if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
+                skill_count=$((skill_count + 1))
+            fi
+        done
 
-    if [[ $skill_count -eq 0 ]]; then
-        log_warn "No personal skills installed in $SKILLS_DIR"
-    else
-        log_verbose "Found $skill_count personal skill(s) in Augment location"
+        if [[ $skill_count -eq 0 ]]; then
+            log_warn "No personal skills installed in $SKILLS_DIR"
+        else
+            log_verbose "Found $skill_count personal skill(s) in Augment location"
+        fi
     fi
 
     # Count Claude Code skills
@@ -383,14 +406,21 @@ print_summary() {
     echo "  Claude Code:       $CLAUDE_SKILLS_DIR"
     echo "                     (native Skill tool)"
     echo ""
-    echo "  Augment Agent:     $SKILLS_DIR"
-    echo "                     (superpowers-augment.js)"
-    echo ""
-    echo "  Augment slash menu: $AUGMENT_MENU_DIR"
-    echo "                      (curated /sp-* commands)"
-    echo ""
+    if [[ "$SKIP_AUGMENT" == "true" ]]; then
+        echo "  Augment:           skipped (--skip-augment)"
+        echo ""
+    else
+        echo "  Augment Agent:     $SKILLS_DIR"
+        echo "                     (superpowers-augment.js)"
+        echo ""
+        echo "  Augment slash menu: $AUGMENT_MENU_DIR"
+        echo "                      (curated /sp-* commands)"
+        echo ""
+    fi
     echo "Personal skills:"
-    for skill_dir in "$SKILLS_DIR/"*/; do
+    local _skills_listing_dir="$CLAUDE_SKILLS_DIR"
+    [[ "$SKIP_AUGMENT" != "true" ]] && _skills_listing_dir="$SKILLS_DIR"
+    for skill_dir in "$_skills_listing_dir/"*/; do
         [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; } && echo "  • $(basename "$skill_dir")"
     done
     echo ""
@@ -417,7 +447,9 @@ print_summary() {
     fi
     echo "Verify with:"
     echo "  Claude Code:   /explain-code (or other skill slash commands)"
-    echo "  Augment Agent: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
+    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        echo "  Augment Agent: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
+    fi
     echo ""
 }
 
@@ -502,7 +534,11 @@ check_prerequisites() {
     log_success "skills available: $skill_count"
 
     # Deployment targets
-    for target in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+    local _targets=("$CLAUDE_SKILLS_DIR")
+    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        _targets=("$SKILLS_DIR" "${_targets[@]}")
+    fi
+    for target in "${_targets[@]}"; do
         if [[ -d "$target" ]]; then
             log_success "target: $target (exists)"
         else
@@ -545,10 +581,14 @@ main() {
         create_dir "$HOME/.codex/superpowers-review/active"
         create_dir "$HOME/.codex/superpowers-review/archive"
         post_install_migrations
-        install_rules
+        if [[ "$SKIP_AUGMENT" != "true" ]]; then
+            install_rules
+            install_adapter
+        else
+            log_info "Skipping Augment rules + adapter (--skip-augment)"
+        fi
         install_templates
         install_tools
-        install_adapter
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
@@ -588,8 +628,12 @@ main() {
     # Run migrations (clean stale overrides, detect orphaned TODO.md)
     post_install_migrations
 
-    # Install rules
-    install_rules
+    # Install rules (Augment-only target — ~/.augment/rules/)
+    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        install_rules
+    else
+        log_info "Skipping Augment rules install (--skip-augment)"
+    fi
 
     # Install templates
     install_templates
@@ -600,8 +644,12 @@ main() {
     # Install CLI commands (sp-update symlink to PATH)
     install_cli_commands
 
-    # Install adapter
-    install_adapter
+    # Install adapter (Augment-only — ~/.codex/superpowers-augment/)
+    if [[ "$SKIP_AUGMENT" != "true" ]]; then
+        install_adapter
+    else
+        log_info "Skipping Augment adapter install (--skip-augment)"
+    fi
 
     # Sync managed checkout (~/.codex/superpowers-plus) if it exists
     sync_managed_checkout
