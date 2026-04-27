@@ -99,11 +99,26 @@ skills/{domain}/{skill-name}/
 └── reference.md    # OPTIONAL
 ```
 
-### 🔴 Git Workflow — 3-Tier (dev → staging → main)
-- Features branch from `dev`, PR back into `dev`
-- `dev → staging`: explicit human instruction only (never auto-promote after a single feature)
-- `staging → main`: explicit human instruction + batch review approval
+### 🔴 Git Workflow — GitHub First, Always
+
+**Remotes in this clone:**
+- `upstream` = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
+- `origin`   = GitLab (private mirror) — synced FROM GitHub, never promoted through
+
+**ALL changes go to GitHub (`upstream`) first via PR. GitLab is downstream.**
+
+3-Tier promotion (all on GitHub `upstream`):
+1. Feature branch → push to `upstream`, open PR into `upstream/dev`
+2. `dev → staging`: explicit human instruction only
+3. `staging → main`: explicit human instruction + batch review approval
+
+After GitHub main is updated, sync GitLab mirror:
+```
+git push origin upstream/main:main upstream/staging:staging upstream/dev:dev
+```
+
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
-- Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
+- ❌ NEVER promote through GitLab and then backfill GitHub
+- Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
