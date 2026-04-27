@@ -55,8 +55,13 @@ install_skill() {
     skill_name=$(basename "$skill_dir")
     local dest_name="${2:-$skill_name}"
 
-    # Reject path-traversal: dest_name must be a plain directory name with no slashes.
-    [[ "$dest_name" == */* ]] && error_exit "Refusing unsafe dest name for skill '$skill_name': $dest_name"
+    # Allowlist: dest_name must be a non-empty plain name (letters, digits, hyphens, underscores).
+    # This rejects "/", "..", ".", empty string, and any embedded special characters that
+    # could escape the target directory when concatenated into $SKILLS_DIR/$dest_name.
+    if [[ ! "$dest_name" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+        log_warn "Skipping skill '$skill_name': unsafe dest name '$dest_name' (must match ^[A-Za-z0-9][A-Za-z0-9_-]*\$)"
+        return 1
+    fi
 
     if [[ "$dest_name" != "$skill_name" ]]; then
         log_verbose "Installing skill: $skill_name (as $dest_name)"
@@ -812,8 +817,8 @@ install_skills() {
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             local _dn
             _dn=$(_skill_dest_name "$domain_or_skill")
-            current_skill_names+=("$_dn")
             if install_skill "$domain_or_skill" "$_dn"; then
+                current_skill_names+=("$_dn")   # only track on success
                 installed=$((installed + 1))
             else
                 skipped=$((skipped + 1))
@@ -827,8 +832,8 @@ install_skills() {
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
                     local _dn
                     _dn=$(_skill_dest_name "$skill_dir")
-                    current_skill_names+=("$_dn")
                     if install_skill "$skill_dir" "$_dn"; then
+                        current_skill_names+=("$_dn")   # only track on success
                         installed=$((installed + 1))
                     else
                         skipped=$((skipped + 1))
@@ -838,8 +843,14 @@ install_skills() {
         fi
     done
 
-    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    # Guard: only prune when at least one skill installed successfully.
+    # An empty list would cause the pruner to delete every previously managed skill.
+    if [[ ${#current_skill_names[@]} -eq 0 ]]; then
+        log_warn "No skills were installed — skipping prune to prevent mass deletion"
+    else
+        prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+        prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    fi
 
     # Deploy _shared/ support directory (not a skill, but referenced by skills)
     if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
