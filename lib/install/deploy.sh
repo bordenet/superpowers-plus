@@ -51,10 +51,12 @@ _resolve_upstream_dir() {
 #      the correct /sp-* slash command rather than the legacy folder name.
 install_skill() {
     local skill_dir="$1"
-    local dest_name="${2:-}"
     local skill_name
     skill_name=$(basename "$skill_dir")
-    [[ -z "$dest_name" ]] && dest_name="$skill_name"
+    local dest_name="${2:-$skill_name}"
+
+    # Reject path-traversal: dest_name must be a plain directory name with no slashes.
+    [[ "$dest_name" == */* ]] && error_exit "Refusing unsafe dest name for skill '$skill_name': $dest_name"
 
     if [[ "$dest_name" != "$skill_name" ]]; then
         log_verbose "Installing skill: $skill_name (as $dest_name)"
@@ -797,6 +799,9 @@ install_skills() {
     local skipped=0
     local current_skill_names=()
 
+    # Single-pass: compute dest name once per skill, record for pruner, then install.
+    # Pruning runs after install; both are safe because old and new names never collide
+    # (different folder names), and install_skill already rm -rf's any existing dest.
     for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
         [[ ! -d "$domain_or_skill" ]] && continue
         local dir_name
@@ -805,29 +810,10 @@ install_skills() {
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            current_skill_names+=("$(_skill_dest_name "$domain_or_skill")")
-        else
-            for skill_dir in "$domain_or_skill"*/; do
-                [[ ! -d "$skill_dir" ]] && continue
-                if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    current_skill_names+=("$(_skill_dest_name "$skill_dir")")
-                fi
-            done
-        fi
-    done
-
-    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-
-    for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
-        [[ ! -d "$domain_or_skill" ]] && continue
-        local dir_name
-        dir_name=$(basename "$domain_or_skill")
-
-        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
-
-        if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            if install_skill "$domain_or_skill" "$(_skill_dest_name "$domain_or_skill")"; then
+            local _dn
+            _dn=$(_skill_dest_name "$domain_or_skill")
+            current_skill_names+=("$_dn")
+            if install_skill "$domain_or_skill" "$_dn"; then
                 installed=$((installed + 1))
             else
                 skipped=$((skipped + 1))
@@ -839,7 +825,10 @@ install_skills() {
                 nested_name=$(basename "$skill_dir")
                 [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    if install_skill "$skill_dir" "$(_skill_dest_name "$skill_dir")"; then
+                    local _dn
+                    _dn=$(_skill_dest_name "$skill_dir")
+                    current_skill_names+=("$_dn")
+                    if install_skill "$skill_dir" "$_dn"; then
                         installed=$((installed + 1))
                     else
                         skipped=$((skipped + 1))
@@ -848,6 +837,9 @@ install_skills() {
             done
         fi
     done
+
+    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
 
     # Deploy _shared/ support directory (not a skill, but referenced by skills)
     if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
