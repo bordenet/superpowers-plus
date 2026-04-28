@@ -104,10 +104,6 @@ function extractAllProtectedBlocks(text) {
     return blocks;
 }
 
-function blockKey(skillRel, b, idx) {
-    return `${skillRel}::${b.kind}::${b.name}::${idx}`;
-}
-
 // --- Baseline generation ---
 
 function buildBaseline() {
@@ -164,22 +160,56 @@ function detect() {
     for (const [rel, expected] of Object.entries(baseline.skills)) {
         const skillPath = path.join(SKILLS_DIR, rel);
         if (!fs.existsSync(skillPath)) {
-            // Skill removed entirely — that's a different concern; log warning
-            console.warn(`  ⚠️  ${rel}: skill.md no longer exists (skill removed?)`);
+            // Skill file missing — treat as failure. Protected content is gone from the
+            // loader's reach regardless of whether the file was deleted or archived.
+            // Run --update to explicitly remove the skill from the baseline when
+            // a deletion or archival is intentional.
+            if (isWaived(waivers, rel)) continue;
+            failures.push(
+                `  FAIL: ${rel}: skill.md no longer exists. If intentional (deletion/archive), run --update to remove from baseline.`
+            );
             continue;
         }
         const raw = stripFrontmatter(fs.readFileSync(skillPath, 'utf8'));
         const current = extractAllProtectedBlocks(raw);
-        const currentHashes = new Map(current.map(b => [hash(normalize(b.content)), b]));
-        const currentByName = new Map(current.map(b => [`${b.kind}::${b.name}`, b]));
+
+        // Hash consumption map: tracks remaining instances of each hash so that
+        // two baseline blocks with identical normalized content each need a surviving
+        // counterpart (prevents a single surviving block from satisfying both checks).
+        const currentHashCounts = new Map();
+        for (const b of current) {
+            const h = hash(normalize(b.content));
+            currentHashCounts.set(h, (currentHashCounts.get(h) || 0) + 1);
+        }
+
+        // Name multimap: collects ALL current blocks per kind::name key so that
+        // duplicate-named sections (e.g. two "Failure Modes" headings) are each
+        // independently matchable rather than the last silently winning.
+        const currentByNameGroups = new Map();
+        for (const b of current) {
+            const key = `${b.kind}::${b.name}`;
+            if (!currentByNameGroups.has(key)) currentByNameGroups.set(key, []);
+            currentByNameGroups.get(key).push(b);
+        }
+        // Per-name occurrence counter (reset per skill).
+        const nameOccurrence = {};
 
         for (const exp of expected) {
             checked++;
             const key = `${exp.kind}::${exp.name}`;
-            const matchByHash = currentHashes.get(exp.normalized_hash);
-            const matchByName = currentByName.get(key);
 
-            if (matchByHash) continue; // identical normalized content present
+            // Hash match: consume one instance so identical blocks aren't reused.
+            const hashCount = currentHashCounts.get(exp.normalized_hash) || 0;
+            if (hashCount > 0) {
+                currentHashCounts.set(exp.normalized_hash, hashCount - 1);
+                continue; // identical normalized content present
+            }
+
+            // Name match: pick the occurrence at the same position as in the baseline.
+            const occIdx = nameOccurrence[key] || 0;
+            nameOccurrence[key] = occIdx + 1;
+            const group = currentByNameGroups.get(key) || [];
+            const matchByName = group[occIdx] || null;
 
             if (!matchByName) {
                 if (isWaived(waivers, rel)) continue;
@@ -188,7 +218,7 @@ function detect() {
                 );
                 continue;
             }
-            // Same name, different normalized content — likely rewrite.
+            // Same name/position, different normalized content — likely rewrite.
             // Apply length floor.
             const shrink = 1 - matchByName.content.length / exp.length;
             if (shrink > SHRINK_FLOOR) {
