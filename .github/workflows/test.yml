@@ -40,6 +40,25 @@ jobs:
       - name: Compression safety gate
         run: node test/compression-safety.test.js
 
+      - name: EI-move detector
+        run: node test/ei-move-detector.test.js
+        env:
+          # Waivers are declared in the PR body as: EI-WAIVER: <skill> -<pct>% — <reason>
+          # The detector's loadWaivers() splits on newlines and scans for the pattern.
+          EI_WAIVERS: ${{ github.event.pull_request.body }}
+
+      - name: Operative-move detector
+        run: node test/operative-move-detector.test.js
+        env:
+          # Waivers are declared in the PR body as: OP-WAIVER: <skill> <pattern> -<n> — <reason>
+          OP_WAIVERS: ${{ github.event.pull_request.body }}
+
+      - name: Hub-anchor validator
+        run: node test/hub-anchor-validator.test.js
+
+      - name: Skill-invocation smoke
+        run: node test/skill-invocation-smoke.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:
