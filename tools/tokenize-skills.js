@@ -103,7 +103,11 @@ function main() {
         process.stdout.write([repoName, skillName, rel, chars, tokens, tokenizerName].join('\t') + '\n');
     }
     process.stdout.write(['#TOTAL', repoName, skills.length + ' skills', totalChars, totalTokens, tokenizerName].join('\t') + '\n');
-    if (encoder) encoder.free();
 }
 
-main();
+try {
+    main();
+} finally {
+    // Free tiktoken WASM allocator even if main() throws mid-loop.
+    if (encoder) encoder.free();
+}

@@ -145,10 +145,11 @@ for (const skill of skills) {
     const raw = fs.readFileSync(skillFile, 'utf8');
     const compressed = compressSkillContent(stripFrontmatter(raw));
 
-    if (updateMode && !fs.existsSync(goldenPath)) {
+    if (updateMode) {
         const header = `# Skill: ${skill}\n\n`;
+        const existed = fs.existsSync(goldenPath);
         fs.writeFileSync(goldenPath, header + compressed + '\n');
-        console.log(`  ✏️  ${skill}: golden written (${compressed.length} chars)`);
+        console.log(`  ✏️  ${skill}: golden ${existed ? 'updated' : 'written'} (${compressed.length} chars)`);
         continue;
     }
 
