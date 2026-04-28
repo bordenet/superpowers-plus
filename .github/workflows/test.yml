@@ -40,6 +40,18 @@ jobs:
       - name: Compression safety gate
         run: node test/compression-safety.test.js
 
+      - name: EI-move detector
+        run: node test/ei-move-detector.test.js
+
+      - name: Operative-move detector
+        run: node test/operative-move-detector.test.js
+
+      - name: Hub-anchor validator
+        run: node test/hub-anchor-validator.test.js
+
+      - name: Skill-invocation smoke
+        run: node test/skill-invocation-smoke.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:
