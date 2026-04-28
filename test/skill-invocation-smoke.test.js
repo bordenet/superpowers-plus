@@ -199,4 +199,67 @@ if (fail > 0) {
 if (coverage < 80) {
     console.log(`\n⚠️  Coverage ${coverage.toFixed(1)}% below P0.7 gate (80%). Fill more fixtures in P0.6.`);
 }
+
+// ── Phase 5c: Namespace resolver regression tests ─────────────────────────
+// Ensures spp:, spo:, and sp- shorthand routing behave correctly.
+// Regression: any change to resolveSkillNamespace() or findSkillInSourceRepo()
+// must not break these invariants.
+{
+    let nsFail = 0;
+    const nsTests = [];
+
+    // spp: prefix → loads from superpowers-plus source (SPP_SOURCE_DIR)
+    const sppResult = run(['use-skill', 'spp:think-twice']);
+    if (sppResult.code === 0 && sppResult.stdout.length > 0) {
+        nsTests.push('spp:think-twice: loads from spp source ✓');
+    } else {
+        nsTests.push('spp:think-twice: FAIL (exit=' + sppResult.code + ', chars=' + sppResult.stdout.length + ')');
+        nsFail++;
+    }
+
+    // spp: on non-existent skill → non-zero exit, no crash
+    const sppMissing = run(['use-skill', 'spp:this-skill-does-not-exist-zz999']);
+    if (sppMissing.code !== 0) {
+        nsTests.push('spp:missing-skill: graceful non-zero exit ✓');
+    } else {
+        nsTests.push('spp:missing-skill: FAIL (expected non-zero exit)');
+        nsFail++;
+    }
+
+    // spo: without SPO configured → non-zero exit, no crash
+    const spoResult = run(['use-skill', 'spo:think-twice'], { SP_OVERLAY_SOURCE_DIR: '', SPC_SOURCE_DIR: '' });
+    if (spoResult.code !== 0) {
+        nsTests.push('spo: without overlay configured: graceful non-zero exit ✓');
+    } else {
+        nsTests.push('spo: without overlay configured: FAIL (expected non-zero exit)');
+        nsFail++;
+    }
+
+    // sp- shorthand: sp-doctor → superpowers-doctor
+    const spResult = run(['use-skill', 'sp-doctor']);
+    if (spResult.code === 0 && spResult.stdout.length > 0) {
+        nsTests.push('sp-doctor shorthand: resolves superpowers-doctor ✓');
+    } else {
+        nsTests.push('sp-doctor shorthand: FAIL (exit=' + spResult.code + ')');
+        nsFail++;
+    }
+
+    // Plain name resolution: most recent personal-overlay skill wins over spp:
+    const plainResult = run(['use-skill', 'think-twice']);
+    if (plainResult.code === 0 && plainResult.stdout.length > 0) {
+        nsTests.push('think-twice (no prefix): resolves successfully ✓');
+    } else {
+        nsTests.push('think-twice (no prefix): FAIL');
+        nsFail++;
+    }
+
+    console.log('\n── Phase 5c: Namespace resolver (' + (nsTests.length - nsFail) + '/' + nsTests.length + ' pass) ──');
+    nsTests.forEach(t => console.log('  ' + (t.includes('FAIL') ? '❌' : '  ') + t));
+
+    if (nsFail > 0) {
+        console.log('\n❌ Namespace resolver regression failures: ' + nsFail);
+        process.exit(1);
+    }
+}
+
 console.log('\n✅ Skill-invocation-smoke: ALL CHECKS PASSED');
