@@ -48,9 +48,13 @@ function run(args, extraEnv) {
         },
         extraEnv || {}
     );
-    const r = spawnSync('node', [CLI, ...args], { env, encoding: 'utf8', timeout: 30000 });
+    // 5 000 ms: ~66× the measured 75ms CLI latency; absorbs 10× CI slowdown.
+    // At 30 000 ms and ≥80% coverage (~72 skills × 3 triggers × 2 spawns),
+    // worst-case CI time would exceed any standard job timeout.
+    const r = spawnSync('node', [CLI, ...args], { env, encoding: 'utf8', timeout: 5000 });
     return {
         code: r.status,
+        timedOut: r.signal === 'SIGTERM' && r.status === null,
         stdout: r.stdout || '',
         stderr: r.stderr || '',
         combined: (r.stdout || '') + (r.stderr || ''),
@@ -87,12 +91,14 @@ function parseCompositionUses(skillPath) {
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
     const fm = m[1];
-    // Naive parser: look for composition.uses block
+    // Parse only the uses: sub-key under composition:, not other sub-keys
+    // (e.g. excludes:, optional:) which would produce false resolution targets.
+    const compBlock = fm.match(/^composition:\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+    if (!compBlock) return [];
+    const usesBlock = compBlock[1].match(/^\s+uses:\s*\n([\s\S]*?)(?=^\s{0,3}\S|\Z)/m);
+    if (!usesBlock) return [];
     const uses = [];
-    const block = fm.match(/composition:\s*\n([\s\S]*?)(\n\S|$)/);
-    if (!block) return [];
-    const inner = block[1];
-    for (const line of inner.split('\n')) {
+    for (const line of usesBlock[1].split('\n')) {
         const u = line.match(/^\s*-\s*([\w-]+)\s*$/);
         if (u) uses.push(u[1]);
     }
@@ -124,11 +130,16 @@ for (const [name, fx] of Object.entries(skills)) {
     const isDraft = typeof fx.verified_by === 'string' && fx.verified_by.startsWith('auto-seed');
 
     // 1. use-skill returns body containing every substring.
-    // Try bare name first; on resolver miss (some names collide with namespace
-    // prefixes like "sp-"), fall back to explicit spp: prefix.
+    // Try bare name first; on resolver miss (non-zero exit), fall back to
+    // explicit spp: prefix. Empty stdout is caught after the fallback by the
+    // body.length assertion — don't use it as a fallback trigger.
     let r = run(['use-skill', name]);
-    if (r.code !== 0 || r.stdout.length === 0) {
+    if (r.code !== 0) {
         r = run(['use-skill', `spp:${name}`]);
+    }
+    if (r.timedOut) {
+        assert(false, `${name}: use-skill TIMED OUT (CLI too slow or hung)`);
+        continue;
     }
     if (r.code !== 0) {
         assert(false, `${name}: use-skill exited ${r.code}: ${r.combined.slice(0, 200)}`);

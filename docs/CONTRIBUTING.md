@@ -201,6 +201,18 @@ This repo runs four optimization-safety detectors in CI on every PR:
 | `test/hub-anchor-validator.test.js` | Cross-skill `Step N` references whose target anchor disappeared |
 | `test/skill-invocation-smoke.test.js` | `use-skill` body missing per-skill expected substrings, or trigger phrases that no longer rank in top-3 |
 
+The `hub-anchor-validator` auto-discovers hub skills — skills that orchestrate others by cross-referencing their `Step N` / `Stage N` anchors. To register a skill as a hub and enable this validation, declare the skills it references in frontmatter:
+
+```yaml
+---
+name: my-hub-skill
+composition:
+  uses: [target-skill-a, target-skill-b]
+---
+```
+
+Any `Step N` / `Stage N` reference inside that skill will then be verified against the target skill's headings on every PR.
+
 Each detector compares the current skill state against a baseline manifest committed to the repo:
 
 - `test/ei-baseline.json`
@@ -222,13 +234,15 @@ node test/compress.test.js --update
 
 Stage the regenerated baseline alongside your skill change in the same commit and explain in the PR body why the change is intentional.
 
-**For shrinkage that exceeds the 30% length-floor on a protected block**, add a waiver string to your commit message:
+**For shrinkage that exceeds the 30% length-floor on a protected block**, add a waiver string to your **PR body** (not the commit message — CI reads the PR body via the `EI_WAIVERS`/`OP_WAIVERS` environment variables):
 
 ```
 EI-WAIVER: skills/<domain>/<skill> -42% — split block into clearer sub-sections
 ```
 
 (Equivalently for operative-move-detector: `OP-WAIVER: <skill> <pattern> -<n> — <reason>`.)
+
+**For a skill deletion or archival**, run `--update` to remove the skill from the baseline rather than using a waiver. Archived skills are no longer loaded at runtime — their protected content is effectively deleted from the agent's context.
 
 If you don't know whether the failure is intentional, don't run `--update` — open the PR with the failure visible and ask in review.
 

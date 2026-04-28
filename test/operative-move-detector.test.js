@@ -95,7 +95,12 @@ function detect() {
     for (const [rel, expected] of Object.entries(baseline.skills)) {
         const sp = path.join(SKILLS_DIR, rel);
         if (!fs.existsSync(sp)) {
-            console.warn(`  ⚠️  ${rel}: skill.md missing`);
+            // Skill file missing — treat as failure. Archived/deleted skills lose
+            // all their operative patterns from the loader's reach. Run --update to
+            // explicitly remove the skill from the baseline when intentional.
+            failures.push(
+                `  FAIL: ${rel}: skill.md no longer exists. If intentional (deletion/archive), run --update to remove from baseline.`
+            );
             continue;
         }
         const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));
