@@ -19,11 +19,26 @@ const path = require('path');
 let encoder = null;
 let tokenizerName = 'chars-fallback';
 try {
-    const { encoding_for_model, get_encoding } = require('tiktoken');
+    const { get_encoding } = require('tiktoken');
     encoder = get_encoding('cl100k_base');
     tokenizerName = 'tiktoken-cl100k_base';
-} catch (_) {
-    // fallback set above
+} catch (e) {
+    // Loud, unmissable warning. The fallback is a 4× ratio approximation —
+    // tolerable for relative ranking, NOT for accurate token-budget claims.
+    process.stderr.write(
+        '\n' +
+        '═══════════════════════════════════════════════════════════════════════\n' +
+        '⚠️  tokenize-skills: tiktoken unavailable — falling back to chars/4 heuristic.\n' +
+        '   Numbers in the output TSV will be approximate (typically off by 1.5×–2×).\n' +
+        '   To get accurate counts:  npm install --no-save tiktoken\n' +
+        `   (load error: ${e && e.code ? e.code : e && e.message ? e.message : 'unknown'})\n` +
+        '═══════════════════════════════════════════════════════════════════════\n\n'
+    );
+    // Honor a strict-mode env var so CI can fail-loud instead of silently falling back.
+    if (process.env.TOKENIZE_REQUIRE_TIKTOKEN === '1') {
+        process.stderr.write('TOKENIZE_REQUIRE_TIKTOKEN=1 set — aborting rather than using fallback.\n');
+        process.exit(2);
+    }
 }
 
 function tokensFor(text) {
