@@ -235,7 +235,11 @@ while IFS= read -r f; do
         SKILL_TRIGGERS_RAW[$skill]=""
       elif echo "$triggers_line" | grep -qE 'triggers: \['; then
         # Inline array spanning multiple lines: triggers: ["foo",\n   "bar"]
-        # Collect the opening line plus all continuation lines until ']' appears.
+        # Two sub-formats exist:
+        #   (a) closing ] on its own line:  triggers: [\n  "foo"\n]
+        #   (b) closing ] at end of last:   triggers: ["foo",\n  "bar"]
+        # In both cases /\]/ stops at the first line that contains ']', which is correct
+        # because no trigger name in this codebase contains a literal ']' character.
         multiline_inline=$(echo "$yaml_block" | awk '
           /^triggers:/{found=1; print; next}
           found && /\]/{print; exit}
