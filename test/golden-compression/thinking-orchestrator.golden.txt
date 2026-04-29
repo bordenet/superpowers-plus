@@ -1,0 +1,79 @@
+# Skill: thinking-orchestrator
+
+# Thinking Orchestrator
+> Source: `superpowers-plus`
+
+This is the **hub skill** for metacognition and thinking quality. It routes to the correct child skill based on what you are doing right now.
+## Routing Table
+| Context | Route To | Why |
+|---------|----------|-----|
+| About to report "no issue found" / "already correct" | `adversarial-search` | Prevent confirmation bias |
+| User reports bug/inconsistency you disagree with | `adversarial-search` | Search for the BAD value, not the good one |
+| Running grep/find/search | `adversarial-search` | Scope justification gate |
+| User asks for rigor/depth | `adversarial-search` (Depth Challenge) | Shallow Response Check before delivering |
+| Starting a new feature, full development workflow | `feature-development` | Orchestrate requirements → design → plan → implement → verify |
+| Strategic / structural / ambiguous question (3+ plausible answers, affects long-lived artifacts, involves tradeoffs) | `debate` → then `plan-and-execute` if winner has implementation consequences | Prevent shallow recommendations |
+| Debugging a bug, starting/resuming investigation | `investigation-state` | Persist hypotheses, evidence, eliminated approaches |
+| Stuck in loop, circular reasoning, same fix 3+ times | `think-twice` | Fresh sub-agent with zero context |
+| Describing/approving generated output (files, PDFs, API responses) | `output-verification` then `verification-before-completion` | No claims about output without inspection |
+| Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
+| Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
+| Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
+| Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥6 to pass) |
+| Complex debugging across service boundaries | `systematic-debugging` + `investigation-state` | Serial-first: reproduce → hypothesize → isolate → fix |
+| Debugging stalled after systematic-debugging + think-twice (rubric ≥6) | `debug-conductor` | Escalation to conductor-led forked investigation (requires serial attempt first) |
+| Declared P1/P2 production incident with explicit user override | `debug-conductor` | Direct escalation (bypass serial-first for active incidents only) |
+| None of the above | PAUSE — "Am I about to give a shallow answer?" | Route to `adversarial-search` if yes |
+## Child Skills
+| Skill | Domain | Purpose |
+|-------|--------|---------|
+| `adversarial-search` | Investigation | Counter confirmation bias, enforce exhaustive scope |
+| `think-twice` | Stuck detection | Break loops via fresh sub-agent |
+| `output-verification` | Output inspection | Hard gate: no claims about output without reading it |
+| `exhaustive-audit-validation` | Bulk completion | Item-by-item tracking for audits/refactors |
+| `verification-before-completion` | All completion | Evidence-based completion claims |
+| `completeness-check` | Repo audit | Detect incomplete/abandoned work |
+| `investigation-state` | Debugging | Persist investigation context across sessions |
+| `feature-development` | Feature work | Orchestrate full feature lifecycle |
+| `debate` | Decision quality | 3+ options, comparison, harsh review |
+| `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
+## The Iron Law
+```bash
+NEVER SKIP THE ROUTER. If a thinking trigger fires, route to the child skill.
+Do not handle it inline. The child skills have process steps you will miss.
+```
+## When Multiple Routes Apply
+If your current context matches more than one route:
+
+1. **Investigation + Completion**: Run `adversarial-search` first (verify findings), then `verification-before-completion` (verify the fix)
+2. **Stuck + Investigation**: Run `think-twice` first (get unstuck), then `adversarial-search` (investigate properly)
+3. **Bulk completion**: Always `exhaustive-audit-validation` before `verification-before-completion`
+4. **Rigor + Completion**: Run `adversarial-search` Depth Challenge first, then `verification-before-completion`
+## Shallow Response Check
+Before delivering ANY analysis, evaluation, recommendation, or review, answer ALL of these:
+
+1. **Did the user ask for depth?** Check for: "rigorous review", "thorough analysis", "comprehensive review", "in-depth analysis", "deep dive", "harsh review", "full analysis", "leave no stone unturned"
+2. **Is this a strategic/structural/ambiguous question?** Check for: the question has 3+ plausible answers, affects long-lived artifacts (docs, architecture, process), involves tradeoffs, or determines where/how something will live long-term. If YES → route to `debate` before answering.
+3. **How many dimensions of the problem did I consider?** If < 3, you are being shallow.
+4. **Did I challenge my own conclusions?** If not, you are exhibiting confirmation bias.
+5. **Would the user say "you only pursued part of it"?** If yes, STOP and expand scope.
+6. **Am I about to deliver a short answer to a complex question?** Short != rigorous.
+7. **Am I about to recommend without generating alternatives first?** If yes, STOP. Route to `debate`.
+
+**If ANY answer is concerning, go back and deepen the analysis before responding.**
+### Common Shallow Analysis Patterns
+| Pattern | What You Did | What You Should Have Done |
+|---------|-------------|--------------------------|
+| Surface scan | Looked at 2 of 5 files and said "looks good" | Examined all 5 files systematically |
+| Premature conclusion | Found one issue and stopped | Asked "are there MORE issues?" |
+| Narrow framing | Analyzed from one angle | Analyzed from multiple angles (user, technical, operational) |
+| Scope reduction | Silently dropped part of the request | Addressed every part, or explicitly flagged what was deferred |
+| Confident ignorance | Declared "no problem" without evidence | Searched exhaustively before concluding |
+## Failure Modes
+| Failure | Recovery |
+|---------|----------|
+| Handling thinking task inline (most common) | NEVER handle inline. Use routing table → dispatch to child skill |
+| Wrong routing — e.g., `verification-before-completion` instead of `adversarial-search` | Check the routing table. When two skills match, prefer the more specific one |
+| Skipping orchestrator — invoking child directly | Check if a different child was more appropriate first |
+| Trigger saturation — multiple triggers fire simultaneously | Pick the highest-priority match from the routing table |
+| Missing routing case | PAUSE → "Am I about to give a shallow answer?" → if yes, route to `adversarial-search` |
