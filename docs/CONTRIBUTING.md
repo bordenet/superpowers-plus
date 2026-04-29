@@ -230,7 +230,12 @@ node test/operative-move-detector.test.js --update
 
 # Re-emit goldens for skills you touched
 node test/compress.test.js --update
+
+# Add/refresh fixture entry for the smoke test (required for new skills)
+node tools/seed-invocation-fixtures.js
 ```
+
+Auto-seeded fixture entries (those whose triggers are "too generic to assert top-3") should have their `triggers` array filled in manually after seeding — see the fixture file's `verified_by` field.
 
 Stage the regenerated baseline alongside your skill change in the same commit and explain in the PR body why the change is intentional.
 
@@ -245,6 +250,32 @@ EI-WAIVER: skills/<domain>/<skill> -42% — split block into clearer sub-section
 **For a skill deletion or archival**, run `--update` to remove the skill from the baseline rather than using a waiver. Archived skills are no longer loaded at runtime — their protected content is effectively deleted from the agent's context.
 
 If you don't know whether the failure is intentional, don't run `--update` — open the PR with the failure visible and ask in review.
+
+### Measurement Tools
+
+The following tools are used by the optimization program and are not part of the normal skill-authoring workflow. They are checked in for reproducibility.
+
+| Tool | Purpose | When to re-run |
+|------|---------|----------------|
+| `node tools/tokenize-skills.js <repo-root>` | Counts tiktoken tokens per skill, writes TSV to stdout | After bulk skill changes to update token inventory |
+| `node tools/measure-comp-headroom.js` | Estimates filler-trim headroom per skill | After drafting new skills or major rewrites |
+| `bash tools/test-archive-skip.sh <repo-root>` | Verifies `_*` directories are excluded from loader | After adding or removing `_archive/` directories |
+| `node tools/classify-skill-blocks.js` | Classifies EI / operative / declarative blocks per skill | Before optimization triage decisions |
+
+Output files committed under `tools/optimization-baseline/` are point-in-time snapshots. Regenerate them only when the baseline measurement needs to change; include the regenerated file in the PR.
+
+### Measurement Tools
+
+The following tools are used by the optimization program and are not part of the normal skill-authoring workflow.
+
+| Tool | Purpose | When to re-run |
+|------|---------|----------------|
+| `node tools/tokenize-skills.js <repo-root>` | Counts tiktoken tokens per skill, writes TSV to stdout | After bulk skill changes |
+| `node tools/measure-comp-headroom.js` | Estimates filler-trim headroom per skill | Before optimization triage |
+| `bash tools/test-archive-skip.sh <repo-root>` | Verifies `_*` dirs are excluded from loader | After adding/removing `_archive/` |
+| `node tools/classify-skill-blocks.js` | Classifies EI/operative/declarative blocks per skill | Before triage decisions |
+
+Output files under `tools/optimization-baseline/` are point-in-time snapshots. Include regenerated files in the same PR as the skill change.
 
 ### Auto-Fix Available
 
