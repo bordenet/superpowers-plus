@@ -48,12 +48,13 @@ function parseFrontmatterTriggers(skillPath) {
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
     const fm = m[1];
-    // Match indented lines only (stops at next top-level key or EOF).
-    const tBlock = fm.match(/^triggers:\n((?:[ \t][^\n]*\n?)*)/m);
+    // Match indented lines (including optional blank lines between items).
+    // Stops at the first non-blank, non-indented line or EOF.
+    const tBlock = fm.match(/^triggers:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
     if (!tBlock) return [];
     const out = [];
     for (const line of tBlock[1].split('\n')) {
-        const t = line.match(/^\s*-\s*"?([^"\n]+?)"?\s*$/);
+        const t = line.match(/^\s*-\s*['"]?([^'"\n]+?)['"]?\s*$/);
         if (t) out.push(t[1].trim());
     }
     return out;

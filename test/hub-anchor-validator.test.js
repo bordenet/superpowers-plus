@@ -36,7 +36,7 @@ const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 // Canonical hubs from the plan + any skill declaring composition.uses[].
 const CANONICAL_HUBS = new Set(['think-twice', 'debate', 'debug-conductor']);
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, warnings = 0;
 const failures = [];
 
 function findAllSkills(dir) {
@@ -61,8 +61,13 @@ function hasCompositionUses(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return false;
-    return /^\s*composition:\s*\n[\s\S]*?\suses:/m.test(m[1]) ||
-        /^\s*coordination:\s*\n[\s\S]*?\snext:/m.test(m[1]);
+    const fm = m[1];
+    // Extract the composition: block using indentation-based matching so we only
+    // look for uses: within that block, not in any sibling top-level key.
+    const compBlock = fm.match(/^composition:\n((?:[ \t][^\n]*\n?)*)/m);
+    const coordBlock = fm.match(/^coordination:\n((?:[ \t][^\n]*\n?)*)/m);
+    return (compBlock && /^\s*uses:/m.test(compBlock[1])) ||
+        (coordBlock && /^\s*next:/m.test(coordBlock[1]));
 }
 
 function discoverHubs(allSkills) {
@@ -158,6 +163,7 @@ for (const [hubName, hubPath] of hubs.entries()) {
             // Skill not in index — could be a false positive (common word matching
             // a skill name) OR a renamed/deleted skill. Emit a warning but do not
             // count as pass so the pass count reflects only verified anchors.
+            warnings++;
             console.log(`  ⚠️  ${hubName} → ${ref.target}: skill not in index (false positive or renamed skill — review manually)`);
             continue;
         }
@@ -173,7 +179,7 @@ for (const [hubName, hubPath] of hubs.entries()) {
     }
 }
 
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n${pass} passed, ${fail} failed, ${warnings} unresolvable (review manually)`);
 if (fail > 0) {
     console.log('\nFailures:');
     failures.forEach(f => console.log(f));
