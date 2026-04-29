@@ -147,6 +147,13 @@ for key in "${!REF_PRIORITY[@]}"; do
     continue
   fi
   installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
+  # Also accept the reference at the source-named path: some installers use the
+  # source directory name (brainstorming/) rather than the alias (sp-brainstorm/).
+  if [[ ! -f "$installed_ref" ]]; then
+    src_skill_dir="${DEST_NAME_SOURCE[$skill_dir]:-$skill_dir}"
+    src_installed_ref="$INSTALLED_DIR/$src_skill_dir/references/$ref_name"
+    [[ -f "$src_installed_ref" ]] && installed_ref="$src_installed_ref"
+  fi
   if [[ ! -f "$installed_ref" ]]; then
     # If this ref only exists in overlay and the installed skill matches the base, skip it
     if [[ -n "${REF_IS_OVERLAY_ONLY[$key]:-}" ]]; then

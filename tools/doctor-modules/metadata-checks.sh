@@ -22,7 +22,9 @@ done
 while IFS= read -r installed; do
   skill=$(basename "$installed")
   [[ "$skill" == "_shared" || "$skill" == "doctor-backups" ]] && continue
-  if [[ -z "${DEST_NAMES_SET[$skill]:-}" ]]; then
+  # Accept both alias-named installs (sp-brainstorm) AND source-named installs
+  # (brainstorming) — some installers use source names in INSTALLED_DIR.
+  if [[ -z "${DEST_NAMES_SET[$skill]:-}" && -z "${SOURCE_DEST_NAME[$skill]:-}" ]]; then
     echo "🟡 WARNING: $skill — orphaned install (not in any source repo)"
     echo "  ℹ️  To remove: re-run with --fix --purge-orphans"
     ((WARNINGS++))
