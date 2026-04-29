@@ -54,8 +54,10 @@ function parseFrontmatterTriggers(skillPath) {
     if (!tBlock) return [];
     const out = [];
     for (const line of tBlock[1].split('\n')) {
-        const t = line.match(/^\s*-\s*['"]?([^'"\n]+?)['"]?\s*$/);
-        if (t) out.push(t[1].trim());
+        // Use alternation to correctly handle apostrophes inside double-quoted
+        // strings (e.g. "when user says 'fix this'") and vice versa.
+        const t = line.match(/^\s*-\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^\n'"]+))\s*$/);
+        if (t) out.push((t[1] ?? t[2] ?? t[3]).trim());
     }
     return out;
 }
