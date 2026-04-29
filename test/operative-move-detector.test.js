@@ -65,6 +65,12 @@ function isWaived(waivers, skill, pattern, drop) {
     return waivers.some(w => w.skill === skill && w.pattern === pattern && drop <= w.drop);
 }
 
+// Whole-skill waiver: any OP-WAIVER entry for this skill regardless of pattern/drop.
+// Used for the missing-file case where all patterns are effectively gone.
+function isSkillWaived(waivers, skill) {
+    return waivers.some(w => w.skill === skill);
+}
+
 // --- Baseline ---
 
 function buildBaseline() {
@@ -95,12 +101,15 @@ function detect() {
     for (const [rel, expected] of Object.entries(baseline.skills)) {
         const sp = path.join(SKILLS_DIR, rel);
         if (!fs.existsSync(sp)) {
-            // Skill file missing — treat as failure. Archived/deleted skills lose
-            // all their operative patterns from the loader's reach. Run --update to
-            // explicitly remove the skill from the baseline when intentional.
-            failures.push(
-                `  FAIL: ${rel}: skill.md no longer exists. If intentional (deletion/archive), run --update to remove from baseline.`
-            );
+            // Skill file missing — treat as failure unless waived.
+            // Archived/deleted skills lose all their operative patterns from the
+            // loader's reach. Run --update to explicitly remove from baseline when
+            // intentional. Waiver check mirrors ei-move-detector behavior.
+            if (!isSkillWaived(waivers, rel)) {
+                failures.push(
+                    `  FAIL: ${rel}: skill.md no longer exists. If intentional (deletion/archive), run --update to remove from baseline.`
+                );
+            }
             continue;
         }
         const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));

@@ -48,7 +48,7 @@ function parseFrontmatterTriggers(skillPath) {
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
     const fm = m[1];
-    const tBlock = fm.match(/^triggers:\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+    const tBlock = fm.match(/^triggers:\s*\n([\s\S]*?)(?=^\S|$)/m);
     if (!tBlock) return [];
     const out = [];
     for (const line of tBlock[1].split('\n')) {

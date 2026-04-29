@@ -155,10 +155,10 @@ for (const [hubName, hubPath] of hubs.entries()) {
         if (ref.target === hubName) continue; // self-reference, not cross
         const targetPath = index.get(ref.target);
         if (!targetPath) {
-            // The skill name match was likely a false positive (e.g. word that
-            // happens to match a skill name). Treat as pass — there's no skill
-            // to validate against.
-            pass++;
+            // Skill not in index — could be a false positive (common word matching
+            // a skill name) OR a renamed/deleted skill. Emit a warning but do not
+            // count as pass so the pass count reflects only verified anchors.
+            console.log(`  ⚠️  ${hubName} → ${ref.target}: skill not in index (false positive or renamed skill — review manually)`);
             continue;
         }
         const targetText = readBody(targetPath);
