@@ -25,9 +25,6 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const yaml = (() => {
-    try { return require('js-yaml'); } catch { return null; }
-})();
 
 const ROOT = path.resolve(__dirname, '..');
 const CLI = path.join(ROOT, 'superpowers-augment.js');
