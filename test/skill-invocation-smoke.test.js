@@ -126,6 +126,7 @@ function parseCompositionUses(skillPath) {
         { label: 'bare bullet emits nothing', fm: '---\ntriggers:\n  - \n---\n', want: [] },
         { label: 'trailing-spaces bullet emits nothing', fm: '---\ntriggers:\n  -   \n---\n', want: [] },
         { label: 'blank line between items', fm: '---\ntriggers:\n  - first\n\n  - second\n---\n', want: ['first', 'second'] },
+        { label: 'no frontmatter returns empty', fm: 'no yaml here\nbody text\n', want: [] },
     ];
     let pfFail = 0;
     for (const c of cases) {
