@@ -36,7 +36,7 @@ const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 // Canonical hubs from the plan + any skill declaring composition.uses[].
 const CANONICAL_HUBS = new Set(['think-twice', 'debate', 'debug-conductor']);
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, warnings = 0;
 const failures = [];
 
 function findAllSkills(dir) {
@@ -61,8 +61,19 @@ function hasCompositionUses(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return false;
-    return /^\s*composition:\s*\n[\s\S]*?\suses:/m.test(m[1]) ||
-        /^\s*coordination:\s*\n[\s\S]*?\snext:/m.test(m[1]);
+    // The frontmatter regex stops just before the closing \n---, so the last
+    // frontmatter line has no trailing \n. Append one so the block regex can
+    // match it (the block regex requires each line to end with \n).
+    const fm = m[1] + '\n';
+    // Extract the composition/coordination block using indentation-based matching
+    // (blank-line-tolerant) so we only look for uses:/next: within that block,
+    // not in any sibling top-level key. Pattern mirrors parseCompositionUses().
+    const compBlock = fm.match(/^composition:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
+    const coordBlock = fm.match(/^coordination:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
+    // Double-bang ensures a boolean return even when both blocks are null,
+    // preserving the boolean contract implied by the early `return false` above.
+    return !!((compBlock && /^\s*uses:/m.test(compBlock[1])) ||
+        (coordBlock && /^\s*next:/m.test(coordBlock[1])));
 }
 
 function discoverHubs(allSkills) {
@@ -155,10 +166,11 @@ for (const [hubName, hubPath] of hubs.entries()) {
         if (ref.target === hubName) continue; // self-reference, not cross
         const targetPath = index.get(ref.target);
         if (!targetPath) {
-            // The skill name match was likely a false positive (e.g. word that
-            // happens to match a skill name). Treat as pass — there's no skill
-            // to validate against.
-            pass++;
+            // Skill not in index — could be a false positive (common word matching
+            // a skill name) OR a renamed/deleted skill. Emit a warning but do not
+            // count as pass so the pass count reflects only verified anchors.
+            warnings++;
+            console.log(`  ⚠️  ${hubName} → ${ref.target}: skill not in index (false positive or renamed skill — review manually)`);
             continue;
         }
         const targetText = readBody(targetPath);
@@ -173,7 +185,7 @@ for (const [hubName, hubPath] of hubs.entries()) {
     }
 }
 
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n${pass} passed, ${fail} failed, ${warnings} unresolvable (review manually)`);
 if (fail > 0) {
     console.log('\nFailures:');
     failures.forEach(f => console.log(f));
