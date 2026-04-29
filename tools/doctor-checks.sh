@@ -126,6 +126,19 @@ fi
 
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
+# Build alias-aware dest name index (skill-naming.sh maps source dir → /sp* trigger install name).
+# Populated once here; used by Checks 3, 8, 9, 11, 16 to suppress false positives when a skill
+# installs under its /sp* trigger name instead of its source directory name.
+# shellcheck source=lib/install/skill-naming.sh
+source "${REPO_ROOT}/lib/install/skill-naming.sh"
+# shellcheck disable=SC2034  # used cross-module via sourced files
+declare -A SOURCE_DEST_NAME=()   # source_dir → dest_name (e.g. brainstorming → sp-brainstorm)
+# shellcheck disable=SC2034  # used cross-module via sourced files
+declare -A DEST_NAME_SOURCE=()   # dest_name  → source_dir
+# shellcheck disable=SC2034  # used cross-module via sourced files
+declare -A DEST_NAMES_SET=()     # dest_name  → "1"  (membership set for O(1) lookup)
+_build_dest_name_index "${COMPARE_DIRS[@]}"
+
 # Managed checkout paths (git repos maintained by install.sh)
 MANAGED_SPP_DIR="$HOME/.codex/superpowers-plus"
 MANAGED_OBRA_DIR="$HOME/.codex/superpowers"

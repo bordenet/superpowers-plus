@@ -81,14 +81,28 @@ for i in "${!KNOWN_COLLISION_GROUPS[@]}"; do
   done
 done
 
-# Check if two skills share a collision group
+# Check if two skills share a collision group.
+# Alias-aware: resolves each skill to its canonical name (SKILL_YAML_NAME) so that
+# alias installs like sp-rethink (installed from think-twice) match groups that list
+# the source name 'think-twice'.
 in_same_group() {
   local a="$1" b="$2"
-  for ga in ${skill_group[$a]:-}; do
-    for gb in ${skill_group[$b]:-}; do
+  local ca="${SKILL_YAML_NAME[$a]:-$a}" cb="${SKILL_YAML_NAME[$b]:-$b}"
+  for ga in ${skill_group[$a]:-} ${skill_group[$ca]:-}; do
+    for gb in ${skill_group[$b]:-} ${skill_group[$cb]:-}; do
       [[ "$ga" == "$gb" ]] && return 0
     done
   done
+  return 1
+}
+
+# Check if two skills are alias pairs (same source skill installed under two names).
+# Skills installed via skill-naming.sh carry the source name: field; if both share
+# the same YAML name: value they are the same skill, not a real collision.
+is_alias_pair() {
+  local a="$1" b="$2"
+  local na="${SKILL_YAML_NAME[$a]:-}" nb="${SKILL_YAML_NAME[$b]:-}"
+  [[ -n "$na" && "$na" == "$nb" ]] && return 0
   return 1
 }
 
@@ -113,11 +127,13 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
       if echo ", $existing," | grep -q ", ${skill},"; then
         continue
       fi
-      # Check if all colliding skills are in the same known group
+      # Check if all colliding skills are in the same known group OR are alias pairs.
+      # Alias pairs: the same source skill installed under two names (e.g. sp-doctor and
+      # superpowers-doctor) share triggers by design — suppress those collisions.
       all_known=true
       while IFS= read -r prev_skill; do
         [[ -z "$prev_skill" ]] && continue
-        if ! in_same_group "$prev_skill" "$skill"; then
+        if ! in_same_group "$prev_skill" "$skill" && ! is_alias_pair "$prev_skill" "$skill"; then
           all_known=false; break
         fi
       done <<< "$(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//')"
