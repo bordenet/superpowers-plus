@@ -28,7 +28,8 @@ _extract_sp_trigger() {
     [[ -n "$t" ]] && echo "$t" && return
     # Format 2: multi-line inline array — triggers line ends with bare '[' (no closing ']').
     # Collect continuation lines up to (exclusive) the closing ']' line.
-    if grep -qE '^triggers:[ \t]*\[[ \t]*$' "$skill_file" 2>/dev/null; then
+    # Use [[:blank:]] (POSIX) instead of [ \t] — \t inside [...] is literal 't' on BSD grep.
+    if grep -qE '^triggers:[[:blank:]]*\[[[:blank:]]*$' "$skill_file" 2>/dev/null; then
         local multiline_body
         multiline_body=$(awk '/^triggers:/{f=1;next} f && /^[[:space:]]*\]/{exit} f{print}' \
             "$skill_file" 2>/dev/null)
