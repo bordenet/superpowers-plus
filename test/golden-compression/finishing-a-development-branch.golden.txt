@@ -1,0 +1,69 @@
+# Skill: finishing-a-development-branch
+
+# Finishing a Development Branch
+## The Process
+### 🔴 Step 0: Autonomous Code Review (NON-NEGOTIABLE)
+**Before verifying tests, before presenting options — check the sentinel, then run battery if needed.**
+
+First, run the `code-review-battery` Phase 0 sentinel check:
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
+
+| Result | Action |
+|--------|--------|
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` | Battery evidence confirmed. Skip dispatch, proceed to Step 1. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed to Step 1 when the battery verdict is PASS or PASS_WITH_NITS.** |
+
+If you skip this step and present work as "ready" to the human, you have violated the gate.
+
+**Why this step exists:** See the 2026-04-02 incident in `verification-before-completion` Incident History.
+### Step 1: Verify Tests
+**After Step 0 passes, verify tests pass:**
+
+```bash
+# Run project's test suite
+npm test / cargo test / pytest / go test ./...
+```
+
+**If tests fail:** Stop. Show failures. Do not proceed to Step 2.
+
+**If tests pass:** Continue to Step 2.
+### Step 2: Determine Base Branch
+```bash
+git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+```
+
+Or ask: "This branch split from main — is that correct?"
+### Step 3: Present Options
+Present exactly these 4 options:
+
+```
+Implementation complete. What would you like to do?
+
+1. Merge back to <base-branch> locally
+2. Push and create a Pull Request
+3. Keep the branch as-is (I'll handle it later)
+4. Discard this work
+
+Which option?
+```
+### Step 4: Execute Choice
+**Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree.
+
+**Option 2 (Push and create PR):** Push branch → create PR → cleanup worktree. Note: `unified-commit-gate` (push mode) fires before push.
+
+**Option 3 (Keep as-is):** Report status. Keep worktree.
+
+**Option 4 (Discard):** Confirm first (require typed "discard"). Then delete branch and cleanup worktree.
+### Step 5: Cleanup Worktree
+For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — keep worktree.
+## Red Flags
+- Presenting work as "ready" without completing Step 0
+- Proceeding with failing tests
+- Force-pushing without explicit request
+- Merging without verifying tests on result

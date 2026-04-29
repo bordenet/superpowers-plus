@@ -40,6 +40,27 @@ jobs:
       - name: Compression safety gate
         run: node test/compression-safety.test.js
 
+      - name: EI-move detector
+        run: node test/ei-move-detector.test.js
+        env:
+          # Waivers are declared in the PR body as: EI-WAIVER: <skill> -<pct>% — <reason>
+          # On push events github.event.pull_request is null so EI_WAIVERS is
+          # empty — waivers without a paired --update will fail post-merge push
+          # CI. Always run --update when using a waiver before merging.
+          EI_WAIVERS: ${{ github.event_name == 'pull_request' && github.event.pull_request.body || '' }}
+
+      - name: Operative-move detector
+        run: node test/operative-move-detector.test.js
+        env:
+          # Waivers are declared in the PR body as: OP-WAIVER: <skill> <pattern> -<n> — <reason>
+          OP_WAIVERS: ${{ github.event_name == 'pull_request' && github.event.pull_request.body || '' }}
+
+      - name: Hub-anchor validator
+        run: node test/hub-anchor-validator.test.js
+
+      - name: Skill-invocation smoke
+        run: node test/skill-invocation-smoke.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:
@@ -59,7 +80,10 @@ jobs:
 
       - name: Install BATS
         run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          git clone --depth 1 --branch v1.11.0 \
+            https://github.com/bats-core/bats-core.git /tmp/bats
+          # Pin to known-good commit SHA to prevent mutable-tag supply chain risk
+          git -C /tmp/bats checkout 41fb1bc31d1849b406fb18d4a6d8c6644b8300e7
           sudo /tmp/bats/install.sh /usr/local
 
       - name: Commit gate tests (BATS)
