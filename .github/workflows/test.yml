@@ -82,7 +82,9 @@ jobs:
         run: |
           git clone --depth 1 --branch v1.11.0 \
             https://github.com/bats-core/bats-core.git /tmp/bats
-          # Pin to known-good commit SHA to prevent mutable-tag supply chain risk
+          # Pin to the v1.11.0 annotated tag object SHA (not the commit SHA) to
+          # prevent mutable-tag supply chain risk. If the tag is rewritten to a
+          # new tag object, this SHA will no longer be present and CI will fail.
           git -C /tmp/bats checkout 41fb1bc31d1849b406fb18d4a6d8c6644b8300e7
           sudo /tmp/bats/install.sh /usr/local
 
