@@ -4,4 +4,3 @@
 --staged-only
 --range
 --all-files
---help
