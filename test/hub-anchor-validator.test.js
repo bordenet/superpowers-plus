@@ -61,14 +61,19 @@ function hasCompositionUses(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return false;
-    const fm = m[1];
+    // The frontmatter regex stops just before the closing \n---, so the last
+    // frontmatter line has no trailing \n. Append one so the block regex can
+    // match it (the block regex requires each line to end with \n).
+    const fm = m[1] + '\n';
     // Extract the composition/coordination block using indentation-based matching
     // (blank-line-tolerant) so we only look for uses:/next: within that block,
     // not in any sibling top-level key. Pattern mirrors parseCompositionUses().
     const compBlock = fm.match(/^composition:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
     const coordBlock = fm.match(/^coordination:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
-    return (compBlock && /^\s*uses:/m.test(compBlock[1])) ||
-        (coordBlock && /^\s*next:/m.test(coordBlock[1]));
+    // Double-bang ensures a boolean return even when both blocks are null,
+    // preserving the boolean contract implied by the early `return false` above.
+    return !!((compBlock && /^\s*uses:/m.test(compBlock[1])) ||
+        (coordBlock && /^\s*next:/m.test(coordBlock[1])));
 }
 
 function discoverHubs(allSkills) {
