@@ -190,6 +190,82 @@ All PRs must pass these checks:
 
 **CI will block merge if any check fails.**
 
+### Skill-Optimization Baselines
+
+This repo runs four optimization-safety detectors in CI on every PR:
+
+| Detector | Catches |
+|----------|---------|
+| `test/ei-move-detector.test.js` | `<EXTREMELY_IMPORTANT>` / Hallucination Prevention / Incident Log / References / Failure Modes blocks moved out of `skill.md` |
+| `test/operative-move-detector.test.js` | Drops in `## Step N` / `⛔` / HARD-GATE table rows / fenced code blocks |
+| `test/hub-anchor-validator.test.js` | Cross-skill `Step N` references whose target anchor disappeared |
+| `test/skill-invocation-smoke.test.js` | `use-skill` body missing per-skill expected substrings, or trigger phrases that no longer rank in top-3 |
+
+The `hub-anchor-validator` auto-discovers hub skills — skills that orchestrate others by cross-referencing their `Step N` / `Stage N` anchors. To register a skill as a hub and enable this validation, declare the skills it references in frontmatter:
+
+```yaml
+---
+name: my-hub-skill
+composition:
+  uses: [target-skill-a, target-skill-b]
+---
+```
+
+Any `Step N` / `Stage N` reference inside that skill will then be verified against the target skill's headings on every PR.
+
+Each detector compares the current skill state against a baseline manifest committed to the repo:
+
+- `test/ei-baseline.json`
+- `test/operative-baseline.json`
+- `test/skill-invocation-fixtures.json`
+
+**If your PR fails one of these detectors AND the change is intentional**, regenerate the affected baseline:
+
+```bash
+# Update EI / protected-section baseline
+node test/ei-move-detector.test.js --update
+
+# Update operative-pattern baseline
+node test/operative-move-detector.test.js --update
+
+# Re-emit goldens for skills you touched
+node test/compress.test.js --update
+
+# Add/refresh fixture entry for the smoke test (required for new skills)
+node tools/seed-invocation-fixtures.js
+```
+
+Auto-seeded fixture entries (those whose triggers are "too generic to assert top-3") should have their `triggers` array filled in manually after seeding — see the fixture file's `verified_by` field.
+
+Stage the regenerated baseline alongside your skill change in the same commit and explain in the PR body why the change is intentional.
+
+**For shrinkage that exceeds the 30% length-floor on a protected block**, add a waiver string to your **PR body** (not the commit message — CI reads the PR body via the `EI_WAIVERS`/`OP_WAIVERS` environment variables):
+
+```
+EI-WAIVER: skills/<domain>/<skill> -42% — split block into clearer sub-sections
+```
+
+(Equivalently for operative-move-detector: `OP-WAIVER: <skill> <pattern> -<n> — <reason>`.)
+
+**For a skill deletion or archival**, run `--update` to remove the skill from the baseline rather than using a waiver. Archived skills are no longer loaded at runtime — their protected content is effectively deleted from the agent's context.
+
+If you don't know whether the failure is intentional, don't run `--update` — open the PR with the failure visible and ask in review.
+
+### Measurement Tools
+
+The following tools are used by the optimization program and are not part of the normal skill-authoring workflow. They are checked in for reproducibility.
+
+| Tool | Purpose | When to re-run |
+|------|---------|----------------|
+| `node tools/tokenize-skills.js <repo-root>` | Counts tiktoken tokens per skill, writes TSV to stdout | After bulk skill changes to update token inventory |
+| `node tools/measure-comp-headroom.js` | Estimates filler-trim headroom per skill | After drafting new skills or major rewrites |
+| `bash tools/test-archive-skip.sh <repo-root>` | Verifies `_*` directories are excluded from loader | After adding or removing `_archive/` directories |
+| `node tools/classify-skill-blocks.js` | Classifies EI / operative / declarative blocks per skill | Before optimization triage decisions |
+
+Output files committed under `tools/optimization-baseline/` are point-in-time snapshots. Regenerate them only when the baseline measurement needs to change; include the regenerated file in the PR.
+
+
+
 ### Auto-Fix Available
 
 ```bash

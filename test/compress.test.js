@@ -124,22 +124,41 @@ assert(!compressSkillContent('content   \nnext').includes('   '), 'strips traili
 console.log('\n--- Golden file regression ---');
 const goldenDir = path.join(__dirname, 'golden-compression');
 const { stripFrontmatter } = require('../lib/frontmatter');
-const skills = ['plan-and-execute', 'code-review-battery', 'verification-before-completion',
-                'todo-management', 'finishing-a-development-branch', 'link-verification'];
+const skills = [
+    // Originals (pre-optimization program)
+    'plan-and-execute', 'code-review-battery', 'verification-before-completion',
+    'todo-management', 'finishing-a-development-branch', 'link-verification',
+    // P0.6 additions: in-scope optimization targets
+    'readme-authoring', 'debug-conductor', 'progressive-code-review-gate',
+    'feature-development', 'thinking-orchestrator', 'sp-bughunt',
+    'autonomous-chain-controller', 'progressive-harsh-review',
+    'investigation-state', 'think-twice', 'debate',
+];
+
+const updateMode = process.argv.includes('--update');
 
 for (const skill of skills) {
     const goldenPath = path.join(goldenDir, `${skill}.golden.txt`);
-    if (!fs.existsSync(goldenPath)) {
-        console.log(`  ⏭️  ${skill}: golden file not found (run with --update to create)`);
-        continue;
-    }
     const skillFile = findSkillFile(skill);
     if (!skillFile) { console.log(`  ⏭️  ${skill}: skill.md not found`); continue; }
 
     const raw = fs.readFileSync(skillFile, 'utf8');
     const compressed = compressSkillContent(stripFrontmatter(raw));
-    const golden = fs.readFileSync(goldenPath, 'utf8');
 
+    if (updateMode) {
+        const header = `# Skill: ${skill}\n\n`;
+        const existed = fs.existsSync(goldenPath);
+        fs.writeFileSync(goldenPath, header + compressed + '\n');
+        console.log(`  ✏️  ${skill}: golden ${existed ? 'updated' : 'written'} (${compressed.length} chars)`);
+        continue;
+    }
+
+    if (!fs.existsSync(goldenPath)) {
+        console.log(`  ⏭️  ${skill}: golden file not found (run with --update to create)`);
+        continue;
+    }
+
+    const golden = fs.readFileSync(goldenPath, 'utf8');
     // Compare content after the "# Skill: name" header (golden includes it, compressed doesn't)
     const goldenBody = golden.replace(/^# Skill: [^\n]+\n\n/, '');
     eq(compressed, goldenBody.trim(), `golden regression: ${skill}`);

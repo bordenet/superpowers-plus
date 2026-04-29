@@ -1,0 +1,539 @@
+{
+  "generated_at": "2026-04-28T04:19:36.701Z",
+  "skills": {
+    "engineering/blast-radius-check/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 6
+    },
+    "engineering/brainstorming/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/branch-sync-gate/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "engineering/code-review-battery/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 4
+    },
+    "engineering/cognitive-complexity-refactoring/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
+    },
+    "engineering/debate/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 5,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/debug-conductor/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/evidence-adjudicator/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "engineering/feature-development/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 2
+    },
+    "engineering/field-rename-verification/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
+    },
+    "engineering/finishing-a-development-branch/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "engineering/git-branch-conventions/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "engineering/implementation-tracker/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/infra-config-investigator/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/investigation-state/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 3
+    },
+    "engineering/llm-behavior-investigator/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/micro-harsh-review/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "engineering/output-verification/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "engineering/pre-commit-gate/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "engineering/progressive-code-review-gate/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 3,
+      "code_fences": 4
+    },
+    "engineering/progressive-harsh-review/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 3,
+      "code_fences": 2
+    },
+    "engineering/providing-code-review/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "engineering/receiving-code-review/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/reproduction-experiment-investigator/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/requesting-code-review/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 3
+    },
+    "engineering/requirements-validation/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 2,
+      "hard_gate_table": 1,
+      "code_fences": 2
+    },
+    "engineering/sp-bughunt/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 2
+    },
+    "engineering/state-consistency-investigator/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "engineering/subagent-driven-development/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/systematic-debugging/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/test-driven-development/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 2
+    },
+    "engineering/timeline-trace-investigator/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "engineering/unified-commit-gate/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 9
+    },
+    "engineering/verification-before-completion/skill.md": {
+      "step_headings": 2,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 4
+    },
+    "experimental/experimental-self-prompting/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 3
+    },
+    "issue-tracking/issue-authoring/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 3
+    },
+    "issue-tracking/issue-comment-debunker/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 1,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "issue-tracking/issue-editing/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "issue-tracking/issue-link-verification/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 1
+    },
+    "issue-tracking/issue-verify/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "observability/completeness-check/skill.md": {
+      "step_headings": 3,
+      "stop_markers": 1,
+      "hard_gate_table": 0,
+      "code_fences": 3
+    },
+    "observability/evolution-loop/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "observability/exhaustive-audit-validation/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 4
+    },
+    "observability/failure-autopsy/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "observability/holistic-repo-verification/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 6
+    },
+    "observability/measurement-integrity/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "observability/skill-health-check/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "observability/superpowers-doctor/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/adversarial-search/skill.md": {
+      "step_headings": 3,
+      "stop_markers": 1,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/autonomous-chain-controller/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 1
+    },
+    "productivity/code-review-respond/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "productivity/domain-design/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 1,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "productivity/enforce-style-guide/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 1,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/fallback-planning/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 2
+    },
+    "productivity/golden-agents/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
+    },
+    "productivity/innovation/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/inter-agent-review-protocol/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/plan-and-execute/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "productivity/quantitative-decision-gate/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/skill-authoring/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "productivity/superpowers-help/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 5
+    },
+    "productivity/think-twice/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "productivity/thinking-orchestrator/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 2
+    },
+    "productivity/todo-archive/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 8
+    },
+    "productivity/todo-guardian/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 3
+    },
+    "productivity/todo-management/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 4
+    },
+    "productivity/update-superpowers/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "research/expert-interviewer/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "research/incorporating-research/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "research/perplexity-research/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "security/public-repo-ip-audit/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 1
+    },
+    "security/repo-security-scan/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 6
+    },
+    "security/security-upgrade/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 1,
+      "hard_gate_table": 0,
+      "code_fences": 7
+    },
+    "security/wiki-instruction-guard/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 1
+    },
+    "wiki/link-verification/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 2
+    },
+    "wiki/wiki-content-coherence/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "wiki/wiki-debunker/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
+    "wiki/wiki-markdown-structure-gate/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 2,
+      "code_fences": 1
+    },
+    "wiki/wiki-orchestrator/skill.md": {
+      "step_headings": 2,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 3
+    },
+    "wiki/wiki-refactor/skill.md": {
+      "step_headings": 3,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "wiki/wiki-secret-audit/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "wiki/wiki-verify/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "writing/detecting-ai-slop/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    },
+    "writing/eliminating-ai-slop/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "writing/markdown-table-discipline/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
+    },
+    "writing/plan-quality-gates/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 2,
+      "hard_gate_table": 1,
+      "code_fences": 3
+    },
+    "writing/professional-language-audit/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 1,
+      "hard_gate_table": 6,
+      "code_fences": 6
+    },
+    "writing/readme-authoring/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
+    "writing/writing-skills/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 2
+    }
+  }
+}

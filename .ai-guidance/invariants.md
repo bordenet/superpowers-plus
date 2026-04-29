@@ -24,13 +24,22 @@ Hard rules. No exceptions without explicit human instruction.
 - NEVER write `.code-review-cleared` directly — only `tools/run-battery.sh` may write it
 - NEVER emit "ready to push / commit / merge" without checking for required-skill triggers
 
-## GitLab Mirror Policy
+## 🔴 Remote Naming & Source of Truth
 
-- `origin` (GitHub) is source of truth — ALL changes go here first via PR
-- `gitlab` remote is a **full three-branch mirror** — `main`, `staging`, and `dev` must all stay in sync
-- ❌ NEVER push locally-created commits to `gitlab` — only `origin/<branch>:<branch>` refs
-- ✅ Valid sync: `git push gitlab origin/main:main origin/staging:staging origin/dev:dev`
-- The pre-push hook enforces this: SHAs pushed to private remotes must exist on `origin`
+**Remote naming convention:**
+- `upstream` = GitHub (public source of truth)
+- `origin`   = private mirror (GitLab or equivalent)
+
+**ALL CHANGES GO TO GITHUB (`upstream`) FIRST — ALWAYS.**
+
+Correct promotion flow:
+1. Push feature branch to `upstream` (GitHub)
+2. Open PR on GitHub: feature → dev → staging → main
+3. After GitHub main is updated, sync the private mirror:
+   `git push origin upstream/main:main upstream/staging:staging upstream/dev:dev`
+
+❌ NEVER promote through the private mirror first and then try to backfill GitHub.
+❌ NEVER push locally-created commits to `origin` — only `upstream/<branch>:<branch>` refs.
 
 ## Install Artifacts
 
