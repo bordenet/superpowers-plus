@@ -264,18 +264,7 @@ The following tools are used by the optimization program and are not part of the
 
 Output files committed under `tools/optimization-baseline/` are point-in-time snapshots. Regenerate them only when the baseline measurement needs to change; include the regenerated file in the PR.
 
-### Measurement Tools
 
-The following tools are used by the optimization program and are not part of the normal skill-authoring workflow.
-
-| Tool | Purpose | When to re-run |
-|------|---------|----------------|
-| `node tools/tokenize-skills.js <repo-root>` | Counts tiktoken tokens per skill, writes TSV to stdout | After bulk skill changes |
-| `node tools/measure-comp-headroom.js` | Estimates filler-trim headroom per skill | Before optimization triage |
-| `bash tools/test-archive-skip.sh <repo-root>` | Verifies `_*` dirs are excluded from loader | After adding/removing `_archive/` |
-| `node tools/classify-skill-blocks.js` | Classifies EI/operative/declarative blocks per skill | Before triage decisions |
-
-Output files under `tools/optimization-baseline/` are point-in-time snapshots. Include regenerated files in the same PR as the skill change.
 
 ### Auto-Fix Available
 

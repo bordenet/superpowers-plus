@@ -67,8 +67,15 @@ function isWaived(waivers, skill, pattern, drop) {
 
 // Whole-skill waiver: any OP-WAIVER entry for this skill regardless of pattern/drop.
 // Used for the missing-file case where all patterns are effectively gone.
+// NOTE: a narrowly-scoped waiver (e.g. -1 on a single pattern) also satisfies this
+// check — log a visible warning so reviewers know the waiver scope was broadened.
 function isSkillWaived(waivers, skill) {
-    return waivers.some(w => w.skill === skill);
+    const w = waivers.find(e => e.skill === skill);
+    if (w) {
+        console.log(`  ⚠️  ${skill}: missing-file waived by OP-WAIVER entry (pattern=${w.pattern}, drop=${w.drop})`);
+        return true;
+    }
+    return false;
 }
 
 // --- Baseline ---

@@ -82,6 +82,8 @@ jobs:
         run: |
           git clone --depth 1 --branch v1.11.0 \
             https://github.com/bats-core/bats-core.git /tmp/bats
+          # Pin to known-good commit SHA to prevent mutable-tag supply chain risk
+          git -C /tmp/bats checkout 41fb1bc31d1849b406fb18d4a6d8c6644b8300e7
           sudo /tmp/bats/install.sh /usr/local
 
       - name: Commit gate tests (BATS)
