@@ -1,0 +1,176 @@
+skill	section_heading	level	line_start	line_end	tag	chars	reviewer_status
+readme-authoring	Approach	2	8	18	OP	371	unverified
+readme-authoring	When to Use	2	19	27	OP	165	unverified
+readme-authoring	README Structure (Priority Order)	2	28	29	OP	0	unverified
+readme-authoring	1. Header (First Screen) - REQUIRED	3	30	44	OP	362	unverified
+readme-authoring	2. Badges (3-5 max)	3	45	56	OP	221	unverified
+readme-authoring	3. Table of Contents (if >500 lines)	3	57	59	OP	12	unverified
+readme-authoring	Contents (auto-generate via TOC extension, skip for short READMEs)	2	60	62	OP	4	unverified
+readme-authoring	4. Quick Start (REQUIRED)	3	63	66	OP	95	unverified
+readme-authoring	5. Usage Examples (REQUIRED)	3	67	70	OP	64	unverified
+readme-authoring	6-12. Remaining Sections	3	71	82	OP	452	unverified
+readme-authoring	Anti-Patterns	2	83	90	OP	374	unverified
+readme-authoring	Audit Checklist	2	91	97	OP	207	unverified
+readme-authoring	Maintenance Mode	2	98	106	OP	240	unverified
+readme-authoring	GVR Transparency	2	107	118	OP	229	unverified
+readme-authoring	Companion Skills	2	119	126	OP	282	unverified
+readme-authoring	Example	2	127	134	OP	141	unverified
+readme-authoring	Failure Modes	2	135	140	OP	311	unverified
+readme-authoring	References	2	141	145	OP	423	unverified
+debug-conductor	When to Use	2	5	11	OP	258	unverified
+debug-conductor	When NOT to Use	2	12	17	OP	188	unverified
+debug-conductor	Example Invocation	2	18	25	OP	254	unverified
+debug-conductor	The Conductor Protocol	2	26	27	OP	0	unverified
+debug-conductor	Phase 1: Incident Triage	3	28	43	OP	647	unverified
+debug-conductor	Phase 2: Fork Decision	3	44	68	OP	1307	unverified
+debug-conductor	Phase 3: Investigator Assignment (Fork Path)	3	69	84	OP	754	unverified
+debug-conductor	Phase 4: Evidence Collection & Validation	3	85	94	OP	439	unverified
+debug-conductor	Phase 5: Adjudication	3	95	105	OP	519	unverified
+debug-conductor	Phase 6: Resolution	3	106	117	OP	643	unverified
+debug-conductor	Bounded Forking Constraints	2	118	128	OP	470	unverified
+debug-conductor	Failure Modes	2	129	139	OP	853	unverified
+debug-conductor	Companion Skills	2	140	147	OP	389	unverified
+code-review-battery	When to Use	2	9	26	OP	1060	unverified
+code-review-battery	Procedure	2	27	28	OP	0	unverified
+code-review-battery	Phase 0: Sentinel Check (canonical skip gate — run before dispatching anything)	3	29	47	OP	1112	unverified
+code-review-battery	Phase 1: Triage	3	48	75	OP	1493	unverified
+code-review-battery	Phase 2: Diff + Source Context + Dispatch	3	76	100	OP	1362	unverified
+code-review-battery	Phase 3: Aggregate	3	101	136	OP	3642	unverified
+code-review-battery	Phase 4: Escalation (Round 2)	3	137	150	OP	836	unverified
+code-review-battery	Phase 5: Convergence	3	151	154	OP	188	unverified
+code-review-battery	Correlated-Failure Detection	3	155	164	OP	1052	unverified
+code-review-battery	Phase 6: Finalize Verdict + Write Sentinel	3	165	185	OP	1334	unverified
+code-review-battery	Gap Analysis + Error Handling	3	186	188	OP	178	unverified
+code-review-battery	Anti-Patterns	2	189	198	OP	855	unverified
+code-review-battery	Failure Modes	2	199	207	OP	490	unverified
+code-review-battery	Companion Skills	2	208	213	OP	301	unverified
+progressive-code-review-gate	When to Use	2	3	13	OP	496	unverified
+progressive-code-review-gate	Procedure	2	14	15	OP	0	unverified
+progressive-code-review-gate	Step 1: Gather the diff	3	16	31	OP	420	unverified
+progressive-code-review-gate	Step 2: Check sentinel, then dispatch battery if needed	3	32	101	OP	3046	unverified
+progressive-code-review-gate	Step 3: Process results	3	102	109	OP	245	unverified
+progressive-code-review-gate	Step 3a: Targeted re-review (PASS_WITH_NITS loop)	3	110	124	OP	955	unverified
+progressive-code-review-gate	Step 4: Track rounds	3	125	130	OP	211	unverified
+progressive-code-review-gate	What This Gate Does NOT Do	2	131	137	OP	385	unverified
+progressive-code-review-gate	Anti-Patterns	2	138	145	OP	313	unverified
+progressive-code-review-gate	Failure Modes	2	146	155	OP	815	unverified
+progressive-code-review-gate	Commit Gate Chain	2	156	163	OP	312	unverified
+progressive-code-review-gate	Companion Skills	2	164	172	OP	449	unverified
+feature-development	When to Use	2	11	16	OP	195	unverified
+feature-development	When to Use — DEFAULT for Code Changes	2	17	22	OP	243	unverified
+feature-development	Opt-Out Conditions	2	23	28	OP	187	unverified
+feature-development	The Workflow	2	29	38	OP	247	unverified
+feature-development	Phase 1: Brainstorming	3	39	47	OP	287	unverified
+feature-development	Phase 2: Fresh Perspective	3	48	56	OP	296	unverified
+feature-development	Phase 3: Design	3	57	66	OP	298	unverified
+feature-development	Phase 4: Harsh Review (Design)	3	67	75	OP	299	unverified
+feature-development	Phase 5: Plan & Execute	3	76	86	OP	463	unverified
+feature-development	Phase 6: Harsh Review (Implementation)	3	87	96	OP	354	unverified
+feature-development	Phase 7: Ship	3	97	104	OP	337	unverified
+feature-development	Phase Skip Prevention	2	105	110	OP	278	unverified
+feature-development	Integration Map	2	111	122	OP	688	unverified
+feature-development	Incident History	2	123	126	OP	213	unverified
+feature-development	Example	2	127	135	OP	198	unverified
+feature-development	Failure Modes	2	136	144	OP	482	unverified
+feature-development	Companion Skills	2	145	153	OP	381	unverified
+thinking-orchestrator	When to Use	2	7	16	OP	576	unverified
+thinking-orchestrator	Routing Table	2	17	38	OP	2333	unverified
+thinking-orchestrator	Child Skills	2	39	53	OP	908	unverified
+thinking-orchestrator	The Iron Law	2	54	60	OP	167	unverified
+thinking-orchestrator	Anti-Patterns	2	61	67	OP	410	unverified
+thinking-orchestrator	When Multiple Routes Apply	2	68	77	OP	528	unverified
+thinking-orchestrator	Shallow Response Check	2	78	93	COMP	1148	unverified
+thinking-orchestrator	EI BLOCK	0	80	104	OP	1823	unverified
+thinking-orchestrator	Common Shallow Analysis Patterns	3	94	105	OP	661	unverified
+thinking-orchestrator	Example	2	106	114	OP	292	unverified
+thinking-orchestrator	Failure Modes	2	115	124	OP	674	unverified
+thinking-orchestrator	Companion Skills	2	125	131	OP	345	unverified
+plan-and-execute	Quick Mode (Simple Features)	2	8	29	OP	1131	unverified
+plan-and-execute	When to Use / Not Use	2	30	37	OP	406	unverified
+plan-and-execute	The Workflow	2	38	46	OP	158	unverified
+plan-and-execute	Phase A: Challenge Intake	3	47	57	OP	344	unverified
+plan-and-execute	Phase B: Devise the Plan	3	58	68	OP	442	unverified
+plan-and-execute	Phase C: Stress-Test the Plan	3	69	91	OP	1143	unverified
+plan-and-execute	Phase D: Phase Enrollment	3	92	108	OP	1058	unverified
+plan-and-execute	Phase E: Execute (The Loop)	3	109	112	OP	32	unverified
+plan-and-execute	Step 1: Pre-Phase Retrospective	4	113	126	OP	728	unverified
+plan-and-execute	Step 2: Improve Upcoming TODOs	4	127	141	OP	974	unverified
+plan-and-execute	Step 3: Execute the Phase	4	142	151	OP	571	unverified
+plan-and-execute	Step 4: Post-Phase Verification	4	152	159	OP	206	unverified
+plan-and-execute	Phase Skip Prevention	2	160	173	OP	594	unverified
+plan-and-execute	Mid-Execution Replanning	2	174	187	OP	615	unverified
+plan-and-execute	Resuming a Project	2	188	198	OP	284	unverified
+plan-and-execute	Integration Map	2	199	211	OP	590	unverified
+plan-and-execute	Failure Modes	2	212	222	OP	808	unverified
+sp-bughunt	When to Use	2	9	18	OP	439	unverified
+sp-bughunt	Parameters	2	19	28	OP	330	unverified
+sp-bughunt	Protocol (4 phases — complete in order)	2	29	30	OP	0	unverified
+sp-bughunt	Phase 1: Scope Resolution	3	31	38	OP	380	unverified
+sp-bughunt	Phase 2: Adversarial Exploration (sub-agent)	3	39	60	OP	742	unverified
+sp-bughunt	Phase 3: Independent Verification (mandatory)	3	61	73	OP	617	unverified
+sp-bughunt	Phase 4: Ranked Report	3	74	78	OP	75	unverified
+sp-bughunt	Bug #N — <title> (<VERIFIED_SEVERITY>)	3	79	89	OP	360	unverified
+sp-bughunt	Quality Gates	2	90	96	OP	516	unverified
+sp-bughunt	Failure Modes	2	97	104	OP	619	unverified
+autonomous-chain-controller	When to Use	2	7	13	OP	170	unverified
+autonomous-chain-controller	Example	3	14	25	OP	356	unverified
+autonomous-chain-controller	Chain Protocol	2	26	27	OP	0	unverified
+autonomous-chain-controller	Phase 1: Classify	3	28	33	OP	94	unverified
+autonomous-chain-controller	Phase 2: Select Chain	3	34	44	OP	512	unverified
+autonomous-chain-controller	Phase 3: Execute with Gates	3	45	55	OP	241	unverified
+autonomous-chain-controller	Phase 4: Completion	3	56	61	OP	66	unverified
+autonomous-chain-controller	Failure Detectors	2	62	71	OP	361	unverified
+autonomous-chain-controller	Anti-Patterns	2	72	80	OP	368	unverified
+autonomous-chain-controller	Failure Modes	2	81	89	OP	305	unverified
+autonomous-chain-controller	Companion Skills	2	90	98	OP	322	unverified
+progressive-harsh-review	Companion Skills	2	10	16	OP	242	unverified
+progressive-harsh-review	When to Use	2	17	31	OP	636	unverified
+progressive-harsh-review	The Three Personas	2	32	33	OP	0	unverified
+progressive-harsh-review	Persona 1: JuniorDevNitpicker (Surface Quality)	3	34	42	OP	499	unverified
+progressive-harsh-review	Persona 2: SeniorArchCritic (Structural Quality)	3	43	51	OP	569	unverified
+progressive-harsh-review	Persona 3: ProdOpsHardass (Operational Quality)	3	52	60	OP	577	unverified
+progressive-harsh-review	The Process	2	61	62	OP	0	unverified
+progressive-harsh-review	Step 1: Dispatch Review	3	63	76	OP	527	unverified
+progressive-harsh-review	Step 2: Score and Aggregate	3	77	82	OP	599	unverified
+progressive-harsh-review	Step 3: Verdict	3	83	91	OP	392	unverified
+progressive-harsh-review	Step 4: Remediation (if needed)	3	92	102	OP	395	unverified
+progressive-harsh-review	Step 5: Correlated-Failure Detection	3	103	112	OP	901	unverified
+progressive-harsh-review	Step 6: Convergence	3	113	117	OP	242	unverified
+progressive-harsh-review	Scoring Output Format	2	118	120	OP	12	unverified
+progressive-harsh-review	Persona: SeniorArchCritic	3	121	131	OP	378	unverified
+progressive-harsh-review	Example	2	132	140	OP	187	unverified
+progressive-harsh-review	Anti-Patterns	2	141	150	OP	519	unverified
+progressive-harsh-review	Failure Modes	2	151	159	OP	696	unverified
+investigation-state	Companion Skills	2	11	17	OP	230	unverified
+investigation-state	When to Use	2	18	25	OP	270	unverified
+investigation-state	Core Principles	2	26	30	OP	152	unverified
+investigation-state	Session Start: Stale Investigation Check	2	31	36	OP	200	unverified
+investigation-state	Investigation Lifecycle	2	37	47	OP	406	unverified
+investigation-state	Tooling	2	48	71	OP	1222	unverified
+investigation-state	Starting a New Investigation	2	72	80	OP	272	unverified
+investigation-state	Hypothesis Tracking	2	81	93	OP	588	unverified
+investigation-state	Eliminated Approaches	2	94	105	OP	281	unverified
+investigation-state	Persistence	2	106	116	OP	273	unverified
+investigation-state	Concurrent Investigations	2	117	120	OP	125	unverified
+investigation-state	Markdown Export	2	121	132	OP	218	unverified
+investigation-state	Failure Modes	2	133	141	OP	525	unverified
+think-twice	When to Use	2	7	13	OP	249	unverified
+think-twice	Process	2	14	29	OP	856	unverified
+think-twice	Stuck-Signal Auto-Detection	2	30	42	OP	423	unverified
+think-twice	Escalation Path	2	43	52	OP	592	unverified
+think-twice	Consultation Prompt Quality	2	53	68	OP	609	unverified
+think-twice	References	2	69	74	OP	174	unverified
+think-twice	Failure Modes	2	75	87	OP	475	unverified
+think-twice	Companion Skills	2	88	99	OP	577	unverified
+debate	Companion Skills	2	9	18	OP	423	unverified
+debate	When to Use	2	19	33	OP	635	unverified
+debate	Preflight	2	34	43	OP	1273	unverified
+debate	The Process (5 Steps)	2	44	53	OP	647	unverified
+debate	Step 1: Generate Options	2	54	63	OP	504	unverified
+debate	Step 2: Compare	2	64	79	OP	812	unverified
+debate	Step 3: Harsh Review (Red Team)	2	80	99	OP	1183	unverified
+debate	Step 4: Edge Cases	2	100	107	OP	258	unverified
+debate	Step 5: Iterate	2	108	124	OP	1026	unverified
+debate	Output	2	125	133	OP	191	unverified
+debate	Example: Comparison Matrix Output	2	134	145	OP	443	unverified
+debate	Rationalizations to Reject	2	146	158	OP	943	unverified

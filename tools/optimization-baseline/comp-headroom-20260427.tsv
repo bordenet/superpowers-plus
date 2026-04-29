@@ -1,0 +1,17 @@
+skill	total	filler_hits	filler_save	long_paras	long_para_chars	long_para_save	total_save	pct
+readme-authoring	4718	0	0	0	0	0	0	0.0%
+debug-conductor	7307	0	0	2	1043	156	156	2.1%
+code-review-battery	15151	0	0	2	1086	163	163	1.1%
+progressive-code-review-gate	8018	1	8	2	993	149	157	2.0%
+feature-development	6415	0	0	4	1339	201	201	3.1%
+thinking-orchestrator	8476	3	24	2	1353	203	227	2.7%
+plan-and-execute	10963	0	0	8	2461	369	369	3.4%
+sp-bughunt	4810	0	0	1	323	48	48	1.0%
+autonomous-chain-controller	3256	0	0	0	0	0	0	0.0%
+progressive-harsh-review	8346	0	0	2	1040	156	156	1.9%
+investigation-state	5588	0	0	1	343	51	51	0.9%
+think-twice	4352	0	0	0	0	0	0	0.0%
+debate	9009	1	8	6	2579	387	395	4.4%
+
+Aggregate: 96409 chars total, 1923 reducible chars (2.0%)
+Approx tokens: 24102 total, 481 reducible (4 chars/token rough)
