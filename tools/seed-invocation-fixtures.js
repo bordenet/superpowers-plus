@@ -47,7 +47,10 @@ function parseFrontmatterTriggers(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
-    const fm = m[1];
+    // The frontmatter regex stops just before the closing \n---, so the last
+    // frontmatter line has no trailing \n. Append one so the block regex can
+    // match it (the block regex requires each line to end with \n).
+    const fm = m[1] + '\n';
     // Match indented lines (including optional blank lines between items).
     // Stops at the first non-blank, non-indented line or EOF.
     const tBlock = fm.match(/^triggers:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
@@ -57,7 +60,10 @@ function parseFrontmatterTriggers(skillPath) {
         // Use alternation to correctly handle apostrophes inside double-quoted
         // strings (e.g. "when user says 'fix this'") and vice versa.
         const t = line.match(/^\s*-\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^\n'"]+))\s*$/);
-        if (t) out.push((t[1] ?? t[2] ?? t[3]).trim());
+        if (t) {
+            const v = (t[1] ?? t[2] ?? t[3]).trim();
+            if (v) out.push(v); // guard: don't emit empty strings from bare bullets
+        }
     }
     return out;
 }
