@@ -90,12 +90,17 @@ function parseCompositionUses(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
-    const fm = m[1];
+    // The frontmatter regex stops just before the closing \n---, so the last
+    // frontmatter line has no trailing \n. Append one so the block regex can
+    // match it (the block regex requires each line to end with \n).
+    const fm = m[1] + '\n';
     // Parse only the uses: sub-key under composition:, not other sub-keys
     // (e.g. excludes:, optional:) which would produce false resolution targets.
-    const compBlock = fm.match(/^composition:\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+    // Match indented lines (including optional blank lines between items).
+    // Stops at the first non-blank, non-indented line or EOF.
+    const compBlock = fm.match(/^composition:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
     if (!compBlock) return [];
-    const usesBlock = compBlock[1].match(/^\s+uses:\s*\n([\s\S]*?)(?=^\s{0,3}\S|\Z)/m);
+    const usesBlock = compBlock[1].match(/^[ \t]+uses:\n((?:(?:[ \t]{2,}[^\n]*)?\n)*)/m);
     if (!usesBlock) return [];
     const uses = [];
     for (const line of usesBlock[1].split('\n')) {
@@ -103,6 +108,38 @@ function parseCompositionUses(skillPath) {
         if (u) uses.push(u[1]);
     }
     return uses;
+}
+
+// ── parseFrontmatterTriggers unit test (runs inline before main suite) ────────
+// Imports the actual implementation from the seeder so any change to the
+// production function is immediately reflected here (no divergence-prone copy).
+{
+    const { parseFrontmatterTriggers: parseFmTriggers } =
+        require('../tools/seed-invocation-fixtures');
+    // Real skill.md files always end with a trailing newline, so each trigger
+    // line ends with \n. The blank-line-tolerant regex requires this. Test
+    // strings include a trailing \n in the triggers block to match file reality.
+    const cases = [
+        { label: 'double-quoted with apostrophe', fm: '---\ntriggers:\n  - "let\'s continue"\n---\n', want: ["let's continue"] },
+        { label: 'single-quoted with double-quote', fm: '---\ntriggers:\n  - \'say "hello"\'\n---\n', want: ['say "hello"'] },
+        { label: 'unquoted phrase', fm: '---\ntriggers:\n  - unquoted phrase\n---\n', want: ['unquoted phrase'] },
+        { label: 'bare bullet emits nothing', fm: '---\ntriggers:\n  - \n---\n', want: [] },
+        { label: 'trailing-spaces bullet emits nothing', fm: '---\ntriggers:\n  -   \n---\n', want: [] },
+        { label: 'blank line between items', fm: '---\ntriggers:\n  - first\n\n  - second\n---\n', want: ['first', 'second'] },
+        { label: 'no frontmatter returns empty', fm: 'no yaml here\nbody text\n', want: [] },
+    ];
+    let pfFail = 0;
+    for (const c of cases) {
+        const got = JSON.stringify(parseFmTriggers(c.fm));
+        const want = JSON.stringify(c.want);
+        if (got === want) {
+            pass++;
+        } else {
+            fail++; pfFail++;
+            failures.push(`parseFmTriggers[${c.label}]: got ${got}, want ${want}`);
+        }
+    }
+    if (pfFail === 0) console.log(`parseFrontmatterTriggers unit: ${cases.length}/${cases.length} pass ✓`);
 }
 
 // --- Run ---
@@ -181,6 +218,65 @@ for (const [name, fx] of Object.entries(skills)) {
     }
 }
 
+// ── Phase 5c: Namespace resolver regression tests ─────────────────────────
+// Ensures spp:, spo:, and sp- shorthand routing behave correctly.
+// Regression: any change to resolveSkillNamespace() or findSkillInSourceRepo()
+// must not break these invariants.
+// Results are merged into the global fail/failures counters so the summary
+// line below correctly reflects all failures (not just fixture failures).
+{
+    const nsTests = [];
+
+    // spp: prefix → loads from superpowers-plus source (SPP_SOURCE_DIR)
+    const sppResult = run(['use-skill', 'spp:think-twice']);
+    if (sppResult.code === 0 && sppResult.stdout.length > 0) {
+        nsTests.push('spp:think-twice: loads from spp source ✓');
+    } else {
+        nsTests.push('spp:think-twice: FAIL (exit=' + sppResult.code + ', chars=' + sppResult.stdout.length + ')');
+        fail++; failures.push('Phase 5c: spp:think-twice failed to load from spp source');
+    }
+
+    // spp: on non-existent skill → non-zero exit, no crash
+    const sppMissing = run(['use-skill', 'spp:this-skill-does-not-exist-zz999']);
+    if (sppMissing.code !== 0) {
+        nsTests.push('spp:missing-skill: graceful non-zero exit ✓');
+    } else {
+        nsTests.push('spp:missing-skill: FAIL (expected non-zero exit)');
+        fail++; failures.push('Phase 5c: spp:missing-skill expected non-zero exit but got 0');
+    }
+
+    // spo: without SPO configured → non-zero exit, no crash
+    const spoResult = run(['use-skill', 'spo:think-twice'], { SP_OVERLAY_SOURCE_DIR: '', SPC_SOURCE_DIR: '' });
+    if (spoResult.code !== 0) {
+        nsTests.push('spo: without overlay configured: graceful non-zero exit ✓');
+    } else {
+        nsTests.push('spo: without overlay configured: FAIL (expected non-zero exit)');
+        fail++; failures.push('Phase 5c: spo:think-twice with no overlay configured should fail but exited 0');
+    }
+
+    // sp- shorthand: sp-doctor → superpowers-doctor
+    const spResult = run(['use-skill', 'sp-doctor']);
+    if (spResult.code === 0 && spResult.stdout.length > 0) {
+        nsTests.push('sp-doctor shorthand: resolves superpowers-doctor ✓');
+    } else {
+        nsTests.push('sp-doctor shorthand: FAIL (exit=' + spResult.code + ')');
+        fail++; failures.push('Phase 5c: sp-doctor shorthand failed to resolve superpowers-doctor');
+    }
+
+    // Plain name resolution: most recent personal-overlay skill wins over spp:
+    const plainResult = run(['use-skill', 'think-twice']);
+    if (plainResult.code === 0 && plainResult.stdout.length > 0) {
+        nsTests.push('think-twice (no prefix): resolves successfully ✓');
+    } else {
+        nsTests.push('think-twice (no prefix): FAIL');
+        fail++; failures.push('Phase 5c: think-twice plain name resolution failed');
+    }
+
+    const nsPassed = nsTests.filter(t => !t.includes('FAIL')).length;
+    console.log('\n── Phase 5c: Namespace resolver (' + nsPassed + '/' + nsTests.length + ' pass) ──');
+    nsTests.forEach(t => console.log('  ' + (t.includes('FAIL') ? '❌' : '  ') + t));
+}
+
 const coverage = totalInScope === 0 ? 0 : (withFixtures / totalInScope) * 100;
 console.log(`\nFixture coverage: ${withFixtures}/${totalInScope} (${coverage.toFixed(1)}%)`);
 console.log(`${pass} passed, ${fail} failed, ${skipped} skipped, ${warnings} warning(s)`);
@@ -199,67 +295,4 @@ if (fail > 0) {
 if (coverage < 80) {
     console.log(`\n⚠️  Coverage ${coverage.toFixed(1)}% below P0.7 gate (80%). Fill more fixtures in P0.6.`);
 }
-
-// ── Phase 5c: Namespace resolver regression tests ─────────────────────────
-// Ensures spp:, spo:, and sp- shorthand routing behave correctly.
-// Regression: any change to resolveSkillNamespace() or findSkillInSourceRepo()
-// must not break these invariants.
-{
-    let nsFail = 0;
-    const nsTests = [];
-
-    // spp: prefix → loads from superpowers-plus source (SPP_SOURCE_DIR)
-    const sppResult = run(['use-skill', 'spp:think-twice']);
-    if (sppResult.code === 0 && sppResult.stdout.length > 0) {
-        nsTests.push('spp:think-twice: loads from spp source ✓');
-    } else {
-        nsTests.push('spp:think-twice: FAIL (exit=' + sppResult.code + ', chars=' + sppResult.stdout.length + ')');
-        nsFail++;
-    }
-
-    // spp: on non-existent skill → non-zero exit, no crash
-    const sppMissing = run(['use-skill', 'spp:this-skill-does-not-exist-zz999']);
-    if (sppMissing.code !== 0) {
-        nsTests.push('spp:missing-skill: graceful non-zero exit ✓');
-    } else {
-        nsTests.push('spp:missing-skill: FAIL (expected non-zero exit)');
-        nsFail++;
-    }
-
-    // spo: without SPO configured → non-zero exit, no crash
-    const spoResult = run(['use-skill', 'spo:think-twice'], { SP_OVERLAY_SOURCE_DIR: '', SPC_SOURCE_DIR: '' });
-    if (spoResult.code !== 0) {
-        nsTests.push('spo: without overlay configured: graceful non-zero exit ✓');
-    } else {
-        nsTests.push('spo: without overlay configured: FAIL (expected non-zero exit)');
-        nsFail++;
-    }
-
-    // sp- shorthand: sp-doctor → superpowers-doctor
-    const spResult = run(['use-skill', 'sp-doctor']);
-    if (spResult.code === 0 && spResult.stdout.length > 0) {
-        nsTests.push('sp-doctor shorthand: resolves superpowers-doctor ✓');
-    } else {
-        nsTests.push('sp-doctor shorthand: FAIL (exit=' + spResult.code + ')');
-        nsFail++;
-    }
-
-    // Plain name resolution: most recent personal-overlay skill wins over spp:
-    const plainResult = run(['use-skill', 'think-twice']);
-    if (plainResult.code === 0 && plainResult.stdout.length > 0) {
-        nsTests.push('think-twice (no prefix): resolves successfully ✓');
-    } else {
-        nsTests.push('think-twice (no prefix): FAIL');
-        nsFail++;
-    }
-
-    console.log('\n── Phase 5c: Namespace resolver (' + (nsTests.length - nsFail) + '/' + nsTests.length + ' pass) ──');
-    nsTests.forEach(t => console.log('  ' + (t.includes('FAIL') ? '❌' : '  ') + t));
-
-    if (nsFail > 0) {
-        console.log('\n❌ Namespace resolver regression failures: ' + nsFail);
-        process.exit(1);
-    }
-}
-
 console.log('\n✅ Skill-invocation-smoke: ALL CHECKS PASSED');
