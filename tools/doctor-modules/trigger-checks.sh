@@ -101,12 +101,16 @@ in_same_group() {
 }
 
 # Check if two skills are alias pairs (same source skill installed under two names).
-# Skills installed via skill-naming.sh carry the source name: field; if both share
-# the same YAML name: value they are the same skill, not a real collision.
+# Works in both directions:
+#   1. YAML name: if both installed skills share the same name: value they share a source.
+#   2. Index: DEST_NAME_SOURCE maps alias→source, covering cases where only one is installed.
 is_alias_pair() {
   local a="$1" b="$2"
   local na="${SKILL_YAML_NAME[$a]:-}" nb="${SKILL_YAML_NAME[$b]:-}"
+  # Same YAML name: value → same source skill, different install names
   [[ -n "$na" && "$na" == "$nb" ]] && return 0
+  # Index cross-check: a is an alias whose source is b, or vice versa
+  [[ "${DEST_NAME_SOURCE[$a]:-}" == "$b" || "${DEST_NAME_SOURCE[$b]:-}" == "$a" ]] && return 0
   return 1
 }
 

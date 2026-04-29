@@ -58,6 +58,12 @@ for dir in "${COMPARE_DIRS[@]}"; do
 done
 for skill in "${!PRIORITY_SOURCE[@]}"; do
   src="${PRIORITY_SOURCE[$skill]}"; installed="$INSTALLED_DIR/$skill/skill.md"
+  # Some installers use the source dir name (brainstorming/) rather than the alias (sp-brainstorm/).
+  # Fall back to the source-named path so drift is detected regardless of install convention.
+  if [[ ! -f "$installed" ]]; then
+    src_name="${DEST_NAME_SOURCE[$skill]:-$skill}"
+    installed="$INSTALLED_DIR/$src_name/skill.md"
+  fi
   [[ ! -f "$installed" ]] && continue
   if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
     # If overlay has "overrides:" and installed matches the base source, that's OK
