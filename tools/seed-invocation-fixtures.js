@@ -26,8 +26,6 @@ const FIXTURES = path.join(ROOT, 'test', 'skill-invocation-fixtures.json');
 const GOLDEN_DIR = path.join(ROOT, 'test', 'golden-compression');
 const SKILLS_DIR = path.join(ROOT, 'skills');
 
-const fixtures = JSON.parse(fs.readFileSync(FIXTURES, 'utf8'));
-
 function findSkillFile(name) {
     function walk(dir) {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -43,8 +41,10 @@ function findSkillFile(name) {
     return walk(SKILLS_DIR);
 }
 
-function parseFrontmatterTriggers(skillPath) {
-    const raw = fs.readFileSync(skillPath, 'utf8');
+// parseFrontmatterTriggers accepts raw file content (not a path) so it can be
+// imported and unit-tested directly in skill-invocation-smoke.test.js without
+// requiring temporary files. The calling site reads the file separately.
+function parseFrontmatterTriggers(raw) {
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
     // The frontmatter regex stops just before the closing \n---, so the last
@@ -94,27 +94,36 @@ function pickExpectedSubstrings(goldenPath) {
     return [candidates[0], candidates[stride], candidates[stride * 2]].slice(0, 3);
 }
 
-const today = new Date().toISOString().slice(0, 10);
-let seeded = 0;
+// Export parseFrontmatterTriggers so the smoke test unit block can import the
+// actual implementation rather than maintaining a divergence-prone copy.
+module.exports = { parseFrontmatterTriggers };
 
-for (const name of Object.keys(fixtures.skills)) {
-    const sf = findSkillFile(name);
-    if (!sf) {
-        console.log(`  ⏭️  ${name}: skill.md not found`);
-        continue;
+// Guard: only run the main seeding logic when executed directly, not when
+// require()'d by a test importing parseFrontmatterTriggers.
+if (require.main === module) {
+    const fixtures = JSON.parse(fs.readFileSync(FIXTURES, 'utf8'));
+    const today = new Date().toISOString().slice(0, 10);
+    let seeded = 0;
+
+    for (const name of Object.keys(fixtures.skills)) {
+        const sf = findSkillFile(name);
+        if (!sf) {
+            console.log(`  ⏭️  ${name}: skill.md not found`);
+            continue;
+        }
+        const subs = pickExpectedSubstrings(path.join(GOLDEN_DIR, `${name}.golden.txt`));
+        const trigs = parseFrontmatterTriggers(fs.readFileSync(sf, 'utf8'))
+            .filter(t => t.length >= 4 && t.split(' ').length >= 2)
+            .slice(0, 3);
+        fixtures.skills[name].expected_substrings = subs;
+        fixtures.skills[name].triggers = trigs;
+        fixtures.skills[name].verified_by = 'auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)';
+        fixtures.skills[name].verified_at = today;
+        seeded++;
+        console.log(`  ✅ ${name}: ${subs.length} substrings, ${trigs.length} triggers`);
     }
-    const subs = pickExpectedSubstrings(path.join(GOLDEN_DIR, `${name}.golden.txt`));
-    const trigs = parseFrontmatterTriggers(sf)
-        .filter(t => t.length >= 4 && t.split(' ').length >= 2)
-        .slice(0, 3);
-    fixtures.skills[name].expected_substrings = subs;
-    fixtures.skills[name].triggers = trigs;
-    fixtures.skills[name].verified_by = 'auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)';
-    fixtures.skills[name].verified_at = today;
-    seeded++;
-    console.log(`  ✅ ${name}: ${subs.length} substrings, ${trigs.length} triggers`);
-}
 
-fixtures._status = `P0.6 auto-seeded ${today} — reviewer must verify each entry and replace verified_by stub`;
-fs.writeFileSync(FIXTURES, JSON.stringify(fixtures, null, 4) + '\n');
-console.log(`\n✅ ${seeded} skills seeded → ${path.relative(process.cwd(), FIXTURES)}`);
+    fixtures._status = `P0.6 auto-seeded ${today} — reviewer must verify each entry and replace verified_by stub`;
+    fs.writeFileSync(FIXTURES, JSON.stringify(fixtures, null, 4) + '\n');
+    console.log(`\n✅ ${seeded} skills seeded → ${path.relative(process.cwd(), FIXTURES)}`);
+}
