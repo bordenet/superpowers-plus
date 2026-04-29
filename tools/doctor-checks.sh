@@ -227,14 +227,28 @@ while IFS= read -r f; do
     triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
     if [[ -n "$triggers_line" ]]; then
       if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
-        # Inline array with content: triggers: ["foo", "bar"]
+        # Inline array, single line: triggers: ["foo", "bar"]
         SKILL_HAS_TRIGGERS[$skill]="yes"
         SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
       elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
         # Inline empty array: triggers: []
         SKILL_TRIGGERS_RAW[$skill]=""
+      elif echo "$triggers_line" | grep -qE 'triggers: \['; then
+        # Inline array spanning multiple lines: triggers: ["foo",\n   "bar"]
+        # Collect the opening line plus all continuation lines until ']' appears.
+        multiline_inline=$(echo "$yaml_block" | awk '
+          /^triggers:/{found=1; print; next}
+          found && /\]/{print; exit}
+          found{print}
+        ')
+        if echo "$multiline_inline" | grep -qE '"[^"]+"|'"'"'[^'"'"']+'"'"''; then
+          SKILL_HAS_TRIGGERS[$skill]="yes"
+          SKILL_TRIGGERS_RAW[$skill]="$multiline_inline"
+        else
+          SKILL_TRIGGERS_RAW[$skill]=""
+        fi
       else
-        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
+        # Multi-line YAML list: triggers:\n  - "foo"\n  - "bar"
         multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
         if [[ -n "$multiline_items" ]]; then
           SKILL_HAS_TRIGGERS[$skill]="yes"

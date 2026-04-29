@@ -59,6 +59,10 @@ KNOWN_COLLISION_GROUPS=(
   # verification-before-completion (safety gate) and finishing-a-development-branch
   # (branch options). coordination.requires is metadata only — not enforced at runtime.
   "finishing-a-development-branch verification-before-completion implementation-tracker"
+  # PR review pair: branch-sync-gate fires on "review this PR" to ensure the reviewer is
+  # on the latest commit before providing-code-review starts the actual review.
+  # Both trigger intentionally — sync first, then review.
+  "providing-code-review branch-sync-gate"
 )
 
 # Load overlay collision groups from all overlay source dirs
