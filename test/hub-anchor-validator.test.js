@@ -62,10 +62,11 @@ function hasCompositionUses(skillPath) {
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return false;
     const fm = m[1];
-    // Extract the composition: block using indentation-based matching so we only
-    // look for uses: within that block, not in any sibling top-level key.
-    const compBlock = fm.match(/^composition:\n((?:[ \t][^\n]*\n?)*)/m);
-    const coordBlock = fm.match(/^coordination:\n((?:[ \t][^\n]*\n?)*)/m);
+    // Extract the composition/coordination block using indentation-based matching
+    // (blank-line-tolerant) so we only look for uses:/next: within that block,
+    // not in any sibling top-level key. Pattern mirrors parseCompositionUses().
+    const compBlock = fm.match(/^composition:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
+    const coordBlock = fm.match(/^coordination:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
     return (compBlock && /^\s*uses:/m.test(compBlock[1])) ||
         (coordBlock && /^\s*next:/m.test(coordBlock[1]));
 }
