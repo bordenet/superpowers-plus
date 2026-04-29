@@ -24,6 +24,12 @@ done
 for skill in "${!SKILL_YAML_NAME[@]}"; do
   yaml_name="${SKILL_YAML_NAME[$skill]}"
   if [[ -n "$yaml_name" && "$yaml_name" != "$skill" ]]; then
+    # Alias install: skill installs under its /sp* trigger name (e.g. sp-review from providing-code-review).
+    # Only suppress when the YAML name matches the canonical source name for this alias —
+    # a corrupted name (e.g. name: garbage in sp-brainstorm/skill.md) must still be caught.
+    if [[ "${DEST_NAME_SOURCE[$skill]:-}" == "$yaml_name" ]]; then
+      continue
+    fi
     echo "🔴 CRITICAL: $skill — name: '$yaml_name' ≠ directory '$skill'"; ((CRITICAL++))
     if can_fix safe; then
       if backup_skill "$(dirname "${SKILL_PATH[$skill]}")"; then
