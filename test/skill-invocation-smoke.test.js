@@ -90,7 +90,10 @@ function parseCompositionUses(skillPath) {
     const raw = fs.readFileSync(skillPath, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) return [];
-    const fm = m[1];
+    // The frontmatter regex stops just before the closing \n---, so the last
+    // frontmatter line has no trailing \n. Append one so the block regex can
+    // match it (the block regex requires each line to end with \n).
+    const fm = m[1] + '\n';
     // Parse only the uses: sub-key under composition:, not other sub-keys
     // (e.g. excludes:, optional:) which would produce false resolution targets.
     // Match indented lines (including optional blank lines between items).
@@ -105,6 +108,53 @@ function parseCompositionUses(skillPath) {
         if (u) uses.push(u[1]);
     }
     return uses;
+}
+
+// ── parseFrontmatterTriggers unit test (runs inline before main suite) ────────
+// Ensures the quote-handling alternation in seed-invocation-fixtures.js is
+// correct. Mirrors the function directly to keep it testable without a build step.
+{
+    function parseFmTriggers(raw) {
+        const m = raw.match(/^---\n([\s\S]*?)\n---/);
+        if (!m) return [];
+        // The frontmatter regex stops just before the closing \n---, so the last
+        // frontmatter line has no trailing \n. Append one so the block regex can
+        // match it (the block regex requires each line to end with \n).
+        const fm = m[1] + '\n';
+        const tBlock = fm.match(/^triggers:\n((?:(?:[ \t][^\n]*)?\n)*)/m);
+        if (!tBlock) return [];
+        const out = [];
+        for (const line of tBlock[1].split('\n')) {
+            const t = line.match(/^\s*-\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^\n'"]+))\s*$/);
+            if (t) {
+                const v = (t[1] ?? t[2] ?? t[3]).trim();
+                if (v) out.push(v);
+            }
+        }
+        return out;
+    }
+    // Real skill.md files always end with a trailing newline, so each trigger
+    // line ends with \n. The blank-line-tolerant regex requires this. Test
+    // strings include a trailing \n in the triggers block to match file reality.
+    const cases = [
+        { label: 'double-quoted with apostrophe', fm: '---\ntriggers:\n  - "let\'s continue"\n---\n', want: ["let's continue"] },
+        { label: 'single-quoted with double-quote', fm: '---\ntriggers:\n  - \'say "hello"\'\n---\n', want: ['say "hello"'] },
+        { label: 'unquoted phrase', fm: '---\ntriggers:\n  - unquoted phrase\n---\n', want: ['unquoted phrase'] },
+        { label: 'bare bullet emits nothing', fm: '---\ntriggers:\n  - \n---\n', want: [] },
+        { label: 'blank line between items', fm: '---\ntriggers:\n  - first\n\n  - second\n---\n', want: ['first', 'second'] },
+    ];
+    let pfFail = 0;
+    for (const c of cases) {
+        const got = JSON.stringify(parseFmTriggers(c.fm));
+        const want = JSON.stringify(c.want);
+        if (got === want) {
+            pass++;
+        } else {
+            fail++; pfFail++;
+            failures.push(`parseFmTriggers[${c.label}]: got ${got}, want ${want}`);
+        }
+    }
+    if (pfFail === 0) console.log('parseFrontmatterTriggers unit: 5/5 pass ✓');
 }
 
 // --- Run ---
