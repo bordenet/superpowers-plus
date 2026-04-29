@@ -149,6 +149,8 @@ _setup_index() {
   # shellcheck source=lib/install/skill-naming.sh
   source "$REPO_ROOT/lib/install/skill-naming.sh"
   declare -gA SOURCE_DEST_NAME=() DEST_NAME_SOURCE=() DEST_NAMES_SET=()
+  # bats 1.5+ merges stderr into $output by default; the warning goes to >&2 but
+  # is captured in $output under the default run mode.
   run _build_dest_name_index "$TEST_TMPDIR/repo-e"
-  [[ "$output" =~ "WARNING" ]] || [[ "$stderr" =~ "WARNING" ]]
+  [[ "$output" =~ "WARNING" ]]
 }
