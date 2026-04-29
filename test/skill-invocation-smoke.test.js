@@ -93,9 +93,10 @@ function parseCompositionUses(skillPath) {
     const fm = m[1];
     // Parse only the uses: sub-key under composition:, not other sub-keys
     // (e.g. excludes:, optional:) which would produce false resolution targets.
-    const compBlock = fm.match(/^composition:\s*\n([\s\S]*?)(?=^\S|$)/m);
+    // Match indented lines only (stops at next top-level key or EOF).
+    const compBlock = fm.match(/^composition:\n((?:[ \t][^\n]*\n?)*)/m);
     if (!compBlock) return [];
-    const usesBlock = compBlock[1].match(/^\s+uses:\s*\n([\s\S]*?)(?=^\s{0,3}\S|$)/m);
+    const usesBlock = compBlock[1].match(/^[ \t]+uses:\n((?:[ \t]{2,}[^\n]*\n?)*)/m);
     if (!usesBlock) return [];
     const uses = [];
     for (const line of usesBlock[1].split('\n')) {
