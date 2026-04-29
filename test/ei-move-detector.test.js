@@ -143,6 +143,11 @@ function loadWaivers() {
     return out;
 }
 
+// EI waivers are skill-scoped only (no pattern axis — see operative-move-detector
+// for the 3-field match). The pct field is documentation-only: it records the
+// magnitude approved by the reviewer but is NOT enforced as an upper bound.
+// A narrowly-declared waiver (e.g. -12%) therefore also covers larger shrinkage.
+// If stricter bounds are needed in the future, compare shrink <= w.pct here.
 function isWaived(waivers, skill) {
     return waivers.some(w => w.skill === skill);
 }
