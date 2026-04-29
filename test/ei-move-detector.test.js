@@ -11,8 +11,10 @@
  *   1. Every <EXTREMELY_IMPORTANT> block must still be present (normalized match)
  *   2. Every protected section (Hallucination Prevention, Incident Log/Record/
  *      History, References, Failure Modes) must still be present
- *   3. No protected block may shrink below the 30% length-floor (chars)
- *      without an explicit reviewer waiver string in commit message:
+ *   3. No protected block may shrink by more than 30% of its baseline char count
+ *      (i.e., the block must retain at least 70% of its original length)
+ *      without a reviewer waiver declared in the PR body (not the commit
+ *      message — CI reads EI_WAIVERS from github.event.pull_request.body):
  *      "EI-WAIVER: <skill> -<pct>% — <reason>"
  *
  * Normalization: lowercase, collapse all whitespace runs to single space,
@@ -202,6 +204,10 @@ function detect() {
             const hashCount = currentHashCounts.get(exp.normalized_hash) || 0;
             if (hashCount > 0) {
                 currentHashCounts.set(exp.normalized_hash, hashCount - 1);
+                // Keep nameOccurrence aligned so that a second same-named block
+                // (e.g. two "Failure Modes" headings) uses the correct position
+                // index when its turn comes — not always group[0].
+                nameOccurrence[key] = (nameOccurrence[key] || 0) + 1;
                 continue; // identical normalized content present
             }
 
