@@ -1,5 +1,5 @@
 {
-  "_comment": "Canonical Claude Code hooks spec — union of items 1-10. Populated in PR-2 with items 1, 2, 10; PR-3 adds items 3, 9. See tools/claude-hooks/ for hook scripts. install-claude-guardrails.sh merges this into ~/.claude/settings.json.",
+  "_comment": "Canonical Claude Code hooks spec — union of items 1-10. PR-2: items 1, 2, 10; PR-3: items 3, 9; PR-4: items 5, 6. See tools/claude-hooks/ for hook scripts. install-claude-guardrails.sh merges this into ~/.claude/settings.json.",
   "hooks": {
     "PreToolUse": [
       {
@@ -38,6 +38,17 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/pre-compact-reinject.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/user-prompt-submit-skill-router.sh"
           }
         ]
       }
