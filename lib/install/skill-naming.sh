@@ -80,7 +80,6 @@ _build_dest_name_index() {
             dest_name=$(_skill_dest_name "$skill_path")
             # Warn when two source skills claim the same /sp* alias — last-writer-wins
             # is silent otherwise, which would corrupt the reverse map used by the doctor.
-            # shellcheck disable=SC2034
             if [[ -n "${DEST_NAME_SOURCE[$dest_name]:-}" && \
                   "${DEST_NAME_SOURCE[$dest_name]}" != "$src_name" ]]; then
                 echo "[skill-naming] WARNING: alias '$dest_name' claimed by both '${DEST_NAME_SOURCE[$dest_name]}' and '$src_name' — last writer wins" >&2
