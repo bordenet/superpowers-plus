@@ -1,5 +1,5 @@
 {
-  "_comment": "Canonical Claude Code hooks spec — union of items 1-10. Populated in PR-2 with items 1, 2, 10. See tools/claude-hooks/ for hook scripts. install-claude-guardrails.sh merges this into ~/.claude/settings.json.",
+  "_comment": "Canonical Claude Code hooks spec — union of items 1-10. Populated in PR-2 with items 1, 2, 10; PR-3 adds items 3, 9. See tools/claude-hooks/ for hook scripts. install-claude-guardrails.sh merges this into ~/.claude/settings.json.",
   "hooks": {
     "PreToolUse": [
       {
@@ -16,6 +16,28 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/pre-tool-use-red-autonomy.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-start-rules-integrity.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/pre-compact-reinject.sh"
           }
         ]
       }
