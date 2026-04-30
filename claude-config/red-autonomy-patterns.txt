@@ -1,0 +1,25 @@
+# red-autonomy-patterns.txt — patterns that classify a Bash command as a RED
+# action requiring explicit human approval in the current conversation (item 10).
+#
+# FORMAT: One extended-regex per line. Lines beginning with # are comments.
+#         Each pattern is matched against tool_input.command via grep -E.
+#
+# A RED action without an approval token in the current session causes the
+# pre-tool-use-red-autonomy.sh hook to exit 2 (block).
+#
+# See item 10 in the wiki for the approval-token protocol.
+
+# Push to any remote
+(^|[^A-Za-z0-9_])git[[:space:]]+push([[:space:]]|$)
+
+# Force push
+(^|[^A-Za-z0-9_])git[[:space:]]+push[[:space:]]+.*(--force|-f([[:space:]]|$))
+
+# Branch deletion
+(^|[^A-Za-z0-9_])git[[:space:]]+branch[[:space:]]+-D
+
+# Reads of the private TODO.md path (via cat/view/less etc.)
+(^|[^A-Za-z0-9_])(cat|view|less|more|head|tail)[[:space:]]+.*~/\.codex/TODO\.md
+
+# Writes to the private TODO.md path
+(^|[^A-Za-z0-9_])(echo[[:space:]]+.+>[[:space:]]+|tee[[:space:]]+).*~/\.codex/TODO\.md

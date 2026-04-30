@@ -126,19 +126,6 @@ fi
 
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
-# Build alias-aware dest name index (skill-naming.sh maps source dir → /sp* trigger install name).
-# Populated once here; used by Checks 3, 8, 9, 11, 16 to suppress false positives when a skill
-# installs under its /sp* trigger name instead of its source directory name.
-# shellcheck source=lib/install/skill-naming.sh
-source "${REPO_ROOT}/lib/install/skill-naming.sh"
-# shellcheck disable=SC2034  # used cross-module via sourced files
-declare -A SOURCE_DEST_NAME=()   # source_dir → dest_name (e.g. brainstorming → sp-brainstorm)
-# shellcheck disable=SC2034  # used cross-module via sourced files
-declare -A DEST_NAME_SOURCE=()   # dest_name  → source_dir
-# shellcheck disable=SC2034  # used cross-module via sourced files
-declare -A DEST_NAMES_SET=()     # dest_name  → "1"  (membership set for O(1) lookup)
-_build_dest_name_index "${COMPARE_DIRS[@]}"
-
 # Managed checkout paths (git repos maintained by install.sh)
 MANAGED_SPP_DIR="$HOME/.codex/superpowers-plus"
 MANAGED_OBRA_DIR="$HOME/.codex/superpowers"
@@ -227,32 +214,14 @@ while IFS= read -r f; do
     triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
     if [[ -n "$triggers_line" ]]; then
       if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
-        # Inline array, single line: triggers: ["foo", "bar"]
+        # Inline array with content: triggers: ["foo", "bar"]
         SKILL_HAS_TRIGGERS[$skill]="yes"
         SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
       elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
         # Inline empty array: triggers: []
         SKILL_TRIGGERS_RAW[$skill]=""
-      elif echo "$triggers_line" | grep -qE 'triggers: \['; then
-        # Inline array spanning multiple lines: triggers: ["foo",\n   "bar"]
-        # Two sub-formats exist:
-        #   (a) closing ] on its own line:  triggers: [\n  "foo"\n]
-        #   (b) closing ] at end of last:   triggers: ["foo",\n  "bar"]
-        # In both cases /\]/ stops at the first line that contains ']', which is correct
-        # because no trigger name in this codebase contains a literal ']' character.
-        multiline_inline=$(echo "$yaml_block" | awk '
-          /^triggers:/{found=1; print; next}
-          found && /\]/{print; exit}
-          found{print}
-        ')
-        if echo "$multiline_inline" | grep -qE '"[^"]+"|'"'"'[^'"'"']+'"'"''; then
-          SKILL_HAS_TRIGGERS[$skill]="yes"
-          SKILL_TRIGGERS_RAW[$skill]="$multiline_inline"
-        else
-          SKILL_TRIGGERS_RAW[$skill]=""
-        fi
       else
-        # Multi-line YAML list: triggers:\n  - "foo"\n  - "bar"
+        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
         multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
         if [[ -n "$multiline_items" ]]; then
           SKILL_HAS_TRIGGERS[$skill]="yes"

@@ -1,0 +1,6 @@
+--patterns
+--history
+--verbose
+--staged-only
+--range
+--all-files
