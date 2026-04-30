@@ -5,9 +5,9 @@
 # Item 10 of the Claude Code 12-point guardrails plan.
 # RED actions: git push, force push, branch deletion, TODO.md writes, etc.
 # Approval phrases (case-insensitive, word-bounded): "approve push",
-# "approve release", "release approved", "you may push", "proceed with push",
-# "promote to main", "ship it".
-# Token is single-use per session; consumed hash stored in session-env file.
+# "approve release", "release approved", "you may push", "proceed with push".
+# File-based tokens are single-use; transcript-based tokens are reusable (phrase
+# persists in transcript). Consumed hashes stored in ~/.claude/consumed/.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -31,7 +31,9 @@ SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | 
 # Fallback: transcript_path removed from Claude Code hook payload in newer versions.
 # If absent, locate the transcript by session_id under ~/.claude/projects/.
 if [[ -z "$TRANSCRIPT" && -n "$SESSION_ID" ]]; then
-  TRANSCRIPT="$(find "$HOME/.claude/projects/" -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)"
+  # SESSION_ID is sanitized to [a-zA-Z0-9_-] so path traversal via -name is impossible.
+  # UUID session IDs make same-name collisions near-zero; head -1 handles the rare edge case.
+  TRANSCRIPT="$(find "$HOME/.claude/projects/" -maxdepth 3 -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)"
 fi
 
 PATTERNS_FILE="${CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE:-$HOME/.config/claude-hooks/red-autonomy-patterns.txt}"
@@ -83,8 +85,8 @@ extract_approval_token() {
   # This avoids the transcript-timing race condition entirely.
   local APPROVAL_FILE="$SESSION_ENV_DIR/${SESSION_ID}.push-approval"
   if [[ -f "$APPROVAL_FILE" ]]; then
-    local cat; cat="$(tr -cd '[:lower:]' < "$APPROVAL_FILE" | head -c 10)"
-    case "$cat" in push|release) echo "$cat"; return 0 ;; esac
+    local token_text; token_text="$(tr -cd '[:lower:]' < "$APPROVAL_FILE" | head -c 10)"
+    case "$token_text" in push|release) echo "$token_text"; return 0 ;; esac
   fi
 
   # Method 2: scan transcript for approval phrase in last user message.
@@ -98,8 +100,6 @@ APPROVAL_PHRASES = [
     r'\brelease\s+approved\b',
     r'\byou\s+may\s+push\b',
     r'\bproceed\s+with\s+push\b',
-    r'\bpromote\s+to\s+main\b',
-    r'\bship\s+it\b',
 ]
 
 transcript_path = sys.argv[1]
@@ -139,7 +139,7 @@ for phrase in APPROVAL_PHRASES:
     m = re.search(phrase, text_lower)
     if m:
         # Determine category (push vs release); suffix ":tr" marks transcript origin.
-        if "push" in phrase or "ship" in phrase or "promote" in phrase:
+        if "push" in phrase:
             print("push:tr")
         else:
             print("release:tr")
