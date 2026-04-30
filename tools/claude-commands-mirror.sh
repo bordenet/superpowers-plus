@@ -8,6 +8,7 @@ set -euo pipefail
 
 SRC="${AUGMENT_MENU_DIR:-$HOME/.agents/skills}"
 DST="${CLAUDE_COMMANDS_DIR:-$HOME/.claude/commands}"
+SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 
 VERBOSE=0
 WHAT_IF=0
@@ -69,6 +70,14 @@ for skill_dir in "$SRC"/*/; do
     desc="$(awk '/^description:/{$1=""; sub(/^ /,""); gsub(/^"|"$/,""); print; exit}' "$skill_md")"
 
     [[ -z "$name" ]] && { log_warn "no name: in $skill_md — skipping"; continue; }
+    [[ "$name" =~ ^[a-zA-Z0-9_-]+$ ]] || { log_warn "invalid name in $skill_md — skipping"; continue; }
+
+    # If a ~/.claude/skills/<name>/ entry exists, it takes precedence — skip the mirror
+    # to avoid showing two entries with the same name in the slash-command menu.
+    if [[ -d "$SKILLS_DIR/$name" ]]; then
+        log_verbose "  skipped (skills-dir entry exists): $name"
+        continue
+    fi
 
     out="$DST/${name}.md"
     if [[ "$WHAT_IF" -eq 0 ]]; then
