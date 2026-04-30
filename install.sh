@@ -499,6 +499,29 @@ run_post_validation_checks() {
     fi
 }
 
+# Migrate consumed-approval records from the old session-env location to the new consumed/ dir.
+# The red-autonomy hook moved consumed hashes in PR-4; this prevents replay of pre-upgrade tokens.
+migrate_consumed_approvals() {
+    local old_dir="$HOME/.claude/session-env"
+    local new_dir="$HOME/.claude/consumed"
+    if ! compgen -G "$old_dir/*.consumed-approvals.txt" >/dev/null 2>&1; then
+        return 0
+    fi
+    mkdir -p "$new_dir"
+    local f dest
+    for f in "$old_dir"/*.consumed-approvals.txt; do
+        dest="$new_dir/$(basename "$f")"
+        if [[ -f "$dest" ]]; then
+            # Destination already exists (hook wrote new records post-upgrade); merge to avoid overwrite.
+            cat "$f" >> "$dest"
+            rm -f "$f"
+        else
+            mv "$f" "$dest"
+        fi
+    done
+    log_verbose "Migrated consumed-approval records to $new_dir"
+}
+
 # Install Claude Code lifecycle hooks and merge settings.json (kill-switched by default)
 install_claude_guardrails() {
     local guardrails_script="$SCRIPT_DIR/setup/install-claude-guardrails.sh"
@@ -627,6 +650,8 @@ main() {
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
+        migrate_consumed_approvals
+        install_claude_commands_mirror
         install_claude_guardrails
         print_summary
         return
@@ -693,6 +718,8 @@ main() {
     # Validate
     validate_installation
     run_post_validation_checks
+    migrate_consumed_approvals
+    install_claude_commands_mirror
     install_claude_guardrails
 
     # Print summary
