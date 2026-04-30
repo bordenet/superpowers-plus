@@ -8,10 +8,10 @@ Skills for AI coding assistants that enforce the practices AI would otherwise sk
 
 | Platform | Status |
 |----------|--------|
+| **Claude Code** | ✅ Full support — skills, lifecycle hooks (SessionStart, PreCompact, PreToolUse), commit gates, pre-push hooks, and red-autonomy guardrails all install and run cleanly. |
 | **Augment Code** | ✅ Full support — skills, routing, commit gates, pre-push hooks, and MCP integrations install and run cleanly. |
-| **Claude Code** | ⚠️ In progress — skills and rules load into context, but the deterministic enforcement layer (lifecycle hooks, permission gates) is not yet wired. Behavior is more variable than on Augment Code. |
 
-Augment Code is the recommended platform. Claude Code parity work is underway; until it ships, treat Claude Code support as experimental.
+Both platforms are fully supported. The deterministic enforcement layer (lifecycle hooks, permission gates, approval tokens) now ships for Claude Code.
 
 ## What This Is
 
