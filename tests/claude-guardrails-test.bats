@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # claude-guardrails-test.bats — parity harness for the Claude Code guardrails
-# program (items 1-12). Grows one test per hook PR. All 20 tests must be
+# program (items 1-12). Grows one test per hook PR. All 49 tests must be
 # green before the program is declared complete.
 #
 # DEPENDENCIES: bats-core >=1.8.0, jq, git, python3, claude CLI (>=2.1.116)
@@ -425,7 +425,7 @@ _fixture_transcript() {
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
 
-@test "item 11a: fresh install produces all PR-2 and PR-3 hook artifacts" {
+@test "item 11a: fresh install produces all shipped hook artifacts (PR-2 through PR-5)" {
   local fake_home
   fake_home="$(_fresh_home)"
   SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
@@ -438,7 +438,9 @@ _fixture_transcript() {
       pre-tool-use-git-identity.sh \
       pre-tool-use-red-autonomy.sh \
       session-start-rules-integrity.sh \
-      pre-compact-reinject.sh; do
+      pre-compact-reinject.sh \
+      post-tool-use-verify.sh \
+      subagent-stop-claims-evidence.sh; do
     [[ -f "$fake_home/.claude/hooks/$hook" ]] || {
       echo "MISSING: $hook"
       missing=1
@@ -836,11 +838,123 @@ if not any('user-prompt-submit-skill-router' in c for c in cmds):
 }
 
 # ---------------------------------------------------------------------------
-# Placeholder stubs for items 7-8 (populated per-PR as hooks land)
+# Item 7 — PostToolUse verify
 # ---------------------------------------------------------------------------
 
-# item 7  (PR-5): PostToolUse verify
-# @test "item 7: PostToolUse verify surfaces commit summary" { skip "PR-5 not yet merged"; }
+@test "item 7: PostToolUse verify surfaces commit summary" {
+  local repo
+  repo="$(mktemp -d)"
+  git -C "$repo" init -q
+  git -C "$repo" config user.email "test@test.com"
+  git -C "$repo" config user.name "Test"
+  echo "hello" > "$repo/file.txt"
+  git -C "$repo" add file.txt
+  git -C "$repo" commit -q -m "initial"
+  local hook="$REPO_ROOT/tools/claude-hooks/post-tool-use-verify.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m hi"},"tool_response":{"exit_code":0},"cwd":"%s"}' "$repo")"
+  rm -rf "$repo"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"1 file changed"* ]] || [[ "$output" == *"insertion"* ]]
+}
 
-# item 8  (PR-5): SubagentStop claims-evidence
-# @test "item 8: claims-evidence flags unpaired claim" { skip "PR-5 not yet merged"; }
+@test "item 7: PostToolUse verify bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
+  local hook="$REPO_ROOT/tools/claude-hooks/post-tool-use-verify.sh"
+  CLAUDE_HOOKS_BYPASS=1 run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m hi"},"tool_response":{"exit_code":0},"cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 7: PostToolUse verify wired into settings-hooks-spec.json (PostToolUse)" {
+  python3 -c "
+import json, sys
+with open('$REPO_ROOT/claude-config/settings-hooks-spec.json') as f:
+    spec = json.load(f)
+hooks = spec.get('hooks', {})
+if 'PostToolUse' not in hooks:
+    print('PostToolUse missing from settings-hooks-spec.json')
+    sys.exit(1)
+cmds = [h.get('command','') for blk in hooks['PostToolUse'] for h in blk.get('hooks',[])]
+if not any('post-tool-use-verify' in c for c in cmds):
+    print('post-tool-use-verify not in PostToolUse hooks')
+    sys.exit(1)
+"
+}
+
+@test "item 7: PostToolUse verify surfaces push-verified message" {
+  local repo
+  repo="$(mktemp -d)"
+  git -C "$repo" init -q
+  git -C "$repo" config user.email "test@test.com"
+  git -C "$repo" config user.name "Test"
+  git -C "$repo" commit -q --allow-empty -m "base"
+  # Use a local branch as the tracking ref pointing at HEAD so @{u}..HEAD = 0 commits
+  git -C "$repo" branch -q upstream-ref
+  git -C "$repo" branch --set-upstream-to=upstream-ref HEAD 2>/dev/null || true
+  local hook="$REPO_ROOT/tools/claude-hooks/post-tool-use-verify.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"tool_response":{"exit_code":0},"cwd":"%s"}' "$repo")"
+  rm -rf "$repo"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"push verified"* ]] || [[ "$output" == *"ahead of remote"* ]]
+}
+
+@test "item 7: PostToolUse verify skips output when tool exit code is non-zero" {
+  local hook="$REPO_ROOT/tools/claude-hooks/post-tool-use-verify.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m hi"},"tool_response":{"exit_code":1},"cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+# ---------------------------------------------------------------------------
+# Item 8 — SubagentStop claims-evidence
+# ---------------------------------------------------------------------------
+
+@test "item 8: claims-evidence flags unpaired 'fixed' claim" {
+  local tpath
+  tpath="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"I fixed the bug. Tests pass."}\n' > "$tpath"
+  local hook="$REPO_ROOT/tools/claude-hooks/subagent-stop-claims-evidence.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"SubagentStop","transcript_path":"%s","stop_hook_active":false}' "$tpath")"
+  rm -f "$tpath"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"unpaired claims:"* ]]
+  [[ "$output" == *"fixed"* ]]
+}
+
+@test "item 8: claims-evidence reports clean when evidence is paired" {
+  local tpath
+  tpath="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"I fixed the bug.\\n```\\nexit 0\\n```\\n"}\n' > "$tpath"
+  local hook="$REPO_ROOT/tools/claude-hooks/subagent-stop-claims-evidence.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"SubagentStop","transcript_path":"%s","stop_hook_active":false}' "$tpath")"
+  rm -f "$tpath"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"all claims paired with evidence"* ]]
+}
+
+@test "item 8: claims-evidence bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
+  local hook="$REPO_ROOT/tools/claude-hooks/subagent-stop-claims-evidence.sh"
+  CLAUDE_HOOKS_BYPASS=1 run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"SubagentStop","transcript_path":"/tmp/nonexistent.jsonl","stop_hook_active":false}')"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 8: claims-evidence wired into settings-hooks-spec.json (SubagentStop)" {
+  python3 -c "
+import json, sys
+with open('$REPO_ROOT/claude-config/settings-hooks-spec.json') as f:
+    spec = json.load(f)
+hooks = spec.get('hooks', {})
+if 'SubagentStop' not in hooks:
+    print('SubagentStop missing from settings-hooks-spec.json')
+    sys.exit(1)
+cmds = [h.get('command','') for blk in hooks['SubagentStop'] for h in blk.get('hooks',[])]
+if not any('subagent-stop-claims-evidence' in c for c in cmds):
+    print('subagent-stop-claims-evidence not in SubagentStop hooks')
+    sys.exit(1)
+"
+}
