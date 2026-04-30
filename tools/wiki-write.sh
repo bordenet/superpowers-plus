@@ -155,6 +155,22 @@ _build_payload_move() {
 }
 
 
+# Structural markdown gate — blocks H1 titles, malformed tables, and other
+# Outline violations before content reaches the API.
+if [[ "$ACTION" != "move" ]]; then
+    _validate="${SCRIPT_DIR}/wiki-markdown-validate.js"
+    if [[ -f "$_validate" ]] && command -v node >/dev/null 2>&1; then
+        log_info "structural gate: wiki-markdown-validate.js"
+        _validate_out="$(node "$_validate" "$CONTENT_FILE" 2>&1)"
+        _validate_rc=$?
+        if [[ $_validate_rc -ne 0 ]]; then
+            printf '%s\n' "$_validate_out" >&2
+            log_err "content failed structural gate — fix violations and retry"
+            exit 2
+        fi
+    fi
+fi
+
 case "$ACTION" in
     create) payload=$(_build_payload_create); verb="documents.create" ;;
     update) payload=$(_build_payload_update); verb="documents.update" ;;
