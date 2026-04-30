@@ -41,6 +41,7 @@ numbers, fix, re-run. Do not publish until exit `0`.
 
 | Check | Block when |
 |-------|------------|
+| H1 heading | Any `# Title` line in the body — Outline renders the page title automatically; H1 creates a redundant duplicate |
 | Table structure | Missing separator row, inconsistent cell counts, stray `\|` row |
 | Escaped wiki-links | `\[title\[/doc/...` and similar round-trip artifacts |
 | Code fences | Unbalanced backtick (`` ``` ``) or tilde (`~~~`) fences |

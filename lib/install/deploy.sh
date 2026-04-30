@@ -1025,3 +1025,27 @@ install_templates() {
         log_success "Installed $installed template(s) to $templates_dir"
     fi
 }
+
+# Mirror Augment slash-menu skills to Claude Code custom commands (item 5).
+# Reads SKILL.md files from AUGMENT_MENU_DIR and writes ~/.claude/commands/<name>.md.
+# Skipped when AUGMENT_MENU_DIR is empty or missing (i.e. --skip-augment context).
+install_claude_commands_mirror() {
+    local mirror_script="${SCRIPT_DIR}/tools/claude-commands-mirror.sh"
+    if [[ ! -f "$mirror_script" ]]; then
+        log_verbose "claude-commands-mirror.sh not found — skipping"
+        return 0
+    fi
+    if [[ ! -d "${AUGMENT_MENU_DIR:-}" ]]; then
+        log_verbose "Augment slash menu not populated — skipping Claude commands mirror"
+        return 0
+    fi
+    local verbose_flag=""
+    [[ "${VERBOSE:-false}" == "true" ]] && verbose_flag="--verbose"
+    # shellcheck disable=SC2086
+    if AUGMENT_MENU_DIR="$AUGMENT_MENU_DIR" bash "$mirror_script" $verbose_flag >/dev/null; then
+        log_info "Claude commands mirror: OK"
+    else
+        log_warn "Claude commands mirror exited non-zero — run manually: bash tools/claude-commands-mirror.sh"
+        return 0
+    fi
+}
