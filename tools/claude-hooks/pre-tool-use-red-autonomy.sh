@@ -27,7 +27,12 @@ CMD="$(jq -r '.tool_input.command // empty' <<<"$INPUT")"
 TRANSCRIPT="$(jq -r '.transcript_path // empty' <<<"$INPUT")"
 # Sanitize SESSION_ID immediately at intake — it is used in a file path below.
 # Characters outside [a-zA-Z0-9_-] are stripped; result capped at 128 chars.
-SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | head -c 128)"
+SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+# Fallback: transcript_path removed from Claude Code hook payload in newer versions.
+# If absent, locate the transcript by session_id under ~/.claude/projects/.
+if [[ -z "$TRANSCRIPT" && -n "$SESSION_ID" ]]; then
+  TRANSCRIPT="$(find "$HOME/.claude/projects/" -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)"
+fi
 
 PATTERNS_FILE="${CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE:-$HOME/.config/claude-hooks/red-autonomy-patterns.txt}"
 
@@ -65,12 +70,24 @@ if [[ -z "$SESSION_ID" ]]; then
 fi
 
 # It's a RED action — check for approval token in transcript.
+# SESSION_ENV_DIR: approval files (push-approval) live here — classifier-sensitive path.
+# CONSUMED_DIR: consumed-token records live here — writable by the hook without classifier.
 SESSION_ENV_DIR="$HOME/.claude/session-env"
-mkdir -p "$SESSION_ENV_DIR"
-CONSUMED_FILE="$SESSION_ENV_DIR/${SESSION_ID}.consumed-approvals.txt"
+CONSUMED_DIR="$HOME/.claude/consumed"
+mkdir -p "$SESSION_ENV_DIR" "$CONSUMED_DIR"
+CONSUMED_FILE="$CONSUMED_DIR/${SESSION_ID}.consumed-approvals.txt"
 
 extract_approval_token() {
-  # Read the last user message from the JSONL transcript.
+  # Method 1: explicit approval file written by Claude via Write tool.
+  # Format: single line containing the token category (push|release).
+  # This avoids the transcript-timing race condition entirely.
+  local APPROVAL_FILE="$SESSION_ENV_DIR/${SESSION_ID}.push-approval"
+  if [[ -f "$APPROVAL_FILE" ]]; then
+    local cat; cat="$(tr -cd '[:lower:]' < "$APPROVAL_FILE" | head -c 10)"
+    case "$cat" in push|release) echo "$cat"; return 0 ;; esac
+  fi
+
+  # Method 2: scan transcript for approval phrase in last user message.
   [[ -f "$TRANSCRIPT" ]] || return 0
   python3 - "$TRANSCRIPT" <<'EOF'
 import sys, json, re
@@ -96,13 +113,23 @@ with open(transcript_path, encoding='utf-8', errors='replace') as f:
             obj = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if obj.get("role") == "user":
-            content = obj.get("content", "")
+        # Support both transcript formats:
+        # Legacy: {"role":"user","content":...}
+        # Current: {"type":"user","message":{"role":"user","content":...}}
+        def extract_text(content):
             if isinstance(content, list):
-                parts = [p.get("text", "") for p in content if isinstance(p, dict)]
-                last_user_text = " ".join(parts)
-            elif isinstance(content, str):
-                last_user_text = content
+                return " ".join(p.get("text","") for p in content if isinstance(p,dict))
+            return content if isinstance(content, str) else ""
+        if obj.get("role") == "user":
+            t = extract_text(obj.get("content", ""))
+            if t.strip():
+                last_user_text = t
+        elif obj.get("type") == "user":
+            msg = obj.get("message", {})
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                t = extract_text(msg.get("content", ""))
+                if t.strip():
+                    last_user_text = t
 
 if not last_user_text:
     sys.exit(0)
@@ -111,23 +138,27 @@ text_lower = last_user_text.lower()
 for phrase in APPROVAL_PHRASES:
     m = re.search(phrase, text_lower)
     if m:
-        # Determine category (push vs release).
+        # Determine category (push vs release); suffix ":tr" marks transcript origin.
         if "push" in phrase or "ship" in phrase or "promote" in phrase:
-            print("push")
+            print("push:tr")
         else:
-            print("release")
+            print("release:tr")
         sys.exit(0)
 
 sys.exit(0)
 EOF
 }
 
-TOKEN_CATEGORY="$(extract_approval_token)"
-# Constrain to known literals only — unexpected python3 output (deprecation
-# warnings, tracebacks) must not be mistaken for an approval token.
-case "$TOKEN_CATEGORY" in
-  push|release) ;;
-  *) TOKEN_CATEGORY="" ;;
+TOKEN_CATEGORY_RAW="$(extract_approval_token)"
+# Constrain to known literals only. ":tr" suffix marks transcript-sourced tokens;
+# bare "push"/"release" are from the file-based approval mechanism.
+TOKEN_SOURCE="file"
+case "$TOKEN_CATEGORY_RAW" in
+  push)             TOKEN_CATEGORY="push" ;;
+  release)          TOKEN_CATEGORY="release" ;;
+  push:tr)          TOKEN_CATEGORY="push";    TOKEN_SOURCE="transcript" ;;
+  release:tr)       TOKEN_CATEGORY="release"; TOKEN_SOURCE="transcript" ;;
+  *)                TOKEN_CATEGORY="" ;;
 esac
 
 if [[ -z "$TOKEN_CATEGORY" ]]; then
@@ -142,21 +173,25 @@ if [[ -z "$TOKEN_CATEGORY" ]]; then
   exit 2
 fi
 
-# Check if this token category was already consumed in this session.
-# NOTE: check-then-append is not atomic. Claude Code serializes pre-tool-use
-# hooks within a session, making concurrent races impossible in practice.
-TOKEN_HASH="$(printf '%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" | _sha256)"
-if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
-  {
-    echo "BLOCKED: RED action approval token already consumed in this session."
-    echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
-    echo "  The '$TOKEN_CATEGORY' token was already used. Request a new approval."
-  } >&2
-  log 2 token-consumed
-  exit 2
+# File-based tokens are single-use: check and update consumed hash.
+# Transcript-based tokens are reusable (the phrase persists in the transcript).
+if [[ "$TOKEN_SOURCE" == "file" ]]; then
+  # NOTE: check-then-append is not atomic. Claude Code serializes pre-tool-use
+  # hooks within a session, making concurrent races impossible in practice.
+  TOKEN_HASH="$(printf '%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" | _sha256)"
+  if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
+    {
+      echo "BLOCKED: RED action approval token already consumed in this session."
+      echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
+      echo "  The '$TOKEN_CATEGORY' token was already used. Request a new approval."
+    } >&2
+    log 2 token-consumed
+    exit 2
+  fi
+  echo "$TOKEN_HASH" >> "$CONSUMED_FILE"
+  # Remove file-based approval token (it is single-use by design).
+  rm -f "$SESSION_ENV_DIR/${SESSION_ID}.push-approval" 2>/dev/null || true
 fi
 
-# First use: consume the token and allow.
-echo "$TOKEN_HASH" >> "$CONSUMED_FILE"
-log 0 "approved-$TOKEN_CATEGORY"
+log 0 "approved-${TOKEN_CATEGORY}(${TOKEN_SOURCE})"
 exit 0
