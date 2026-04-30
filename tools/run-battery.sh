@@ -110,6 +110,20 @@ fi
 
 ERRORS=0
 
+echo "─── Step 0/4: install --upgrade (sync routing catalog) ───"
+INSTALL_SCRIPT="$REPO_ROOT/install.sh"
+if [[ -x "$INSTALL_SCRIPT" ]]; then
+    if bash "$INSTALL_SCRIPT" --upgrade > /tmp/run-battery-install.log 2>&1; then
+        echo "✓ install --upgrade succeeded"
+    else
+        echo "❌ install --upgrade FAILED — see /tmp/run-battery-install.log"
+        ERRORS=$((ERRORS + 1))
+    fi
+else
+    echo "⚠  install.sh not found or not executable — skipping catalog sync"
+fi
+echo ""
+
 echo "─── Step 1/4: harsh-review ───"
 if "$SCRIPT_DIR/harsh-review.sh"; then
     echo "✓ harsh-review passed"
