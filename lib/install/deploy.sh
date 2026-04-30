@@ -1046,6 +1046,6 @@ install_claude_commands_mirror() {
         log_info "Claude commands mirror: OK"
     else
         log_warn "Claude commands mirror exited non-zero — run manually: bash tools/claude-commands-mirror.sh"
-        return 1
+        return 0
     fi
 }

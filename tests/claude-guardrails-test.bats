@@ -330,7 +330,7 @@ _fixture_transcript() {
   [ "$status" -eq 0 ]
 }
 
-@test "item 10: RED-autonomy file-based token is single-use" {
+@test "item 10: RED-autonomy file-based token is single-use (consumed-hash anti-replay)" {
   local fake_home
   fake_home="$(_fresh_home)"
 
@@ -343,17 +343,24 @@ _fixture_transcript() {
   mkdir -p "$fake_home/.claude/session-env"
   echo "push" > "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
 
-  # First invocation: file token present → allow (and token consumed)
+  # First invocation: file token present → allow (and token consumed, file deleted)
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
   [ "$status" -eq 0 ]
 
-  # Second invocation: file token deleted, no transcript approval → block
+  # Consumed-hash file must now exist in the new consumed/ directory
+  [ -f "$fake_home/.claude/consumed/test-session-filetoken.consumed-approvals.txt" ]
+
+  # Write a NEW file-based token (simulating a replay attempt)
+  echo "push" > "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
+
+  # Second invocation: token hash already in consumed file → block with "already consumed"
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
   rm -f "$TPATH"
   rm -rf "$fake_home"
   [ "$status" -eq 2 ]
+  [[ "$output" == *"already consumed"* ]]
 }
 
 @test "item 10: RED-autonomy fail-open when session_id is absent" {
@@ -648,8 +655,8 @@ _fixture_dangling_rule() {
 
   # Create two skills
   mkdir -p "$aug_dir/foo" "$aug_dir/bar"
-  printf -- 'name: "foo"\ndescription: "Do foo things"\n' > "$aug_dir/foo/SKILL.md"
-  printf -- 'name: "bar"\ndescription: "Do bar things"\n' > "$aug_dir/bar/SKILL.md"
+  printf -- '---\nname: "foo"\ndescription: "Do foo things"\n---\n\nBody.\n' > "$aug_dir/foo/SKILL.md"
+  printf -- '---\nname: "bar"\ndescription: "Do bar things"\n---\n\nBody.\n' > "$aug_dir/bar/SKILL.md"
 
   # Mirror both skills
   AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
@@ -687,6 +694,25 @@ _fixture_dangling_rule() {
 
   # User command must survive — it has no source: "claude-commands-mirror" marker
   [ -f "$cmd_dir/user-cmd.md" ]
+
+  rm -rf "$aug_dir" "$cmd_dir"
+}
+
+@test "item 5: slash-menu mirror --what-if does not write or delete files" {
+  local aug_dir cmd_dir
+  aug_dir="$(mktemp -d)"
+  cmd_dir="$(mktemp -d)"
+
+  mkdir -p "$aug_dir/foo"
+  printf -- '---\nname: "foo"\ndescription: "Do foo things"\n---\n\nBody.\n' \
+    > "$aug_dir/foo/SKILL.md"
+
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh" --what-if
+  [ "$status" -eq 0 ]
+
+  # --what-if must not write any command file
+  [ ! -f "$cmd_dir/foo.md" ]
 
   rm -rf "$aug_dir" "$cmd_dir"
 }
@@ -732,6 +758,22 @@ _fixture_dangling_rule() {
   [ -z "$output" ]
 
   rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router exits 0 when SKILLS_DIR absent (never blocks)" {
+  # Verifies the 'never blocks' contract: a missing skills dir must not cause exit 1.
+  local cache_dir
+  cache_dir="$(mktemp -d)"
+
+  CODEX_SKILLS_DIR="/nonexistent-skills-dir-$$" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"hello","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+
+  rm -rf "$cache_dir"
 }
 
 @test "item 6: skill-router bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
