@@ -7,7 +7,8 @@
 # Approval phrases (case-insensitive, word-bounded): "approve push",
 # "approve release", "release approved", "you may push", "proceed with push",
 # "promote to main", "ship it".
-# Token is single-use per session; consumed hash stored in session-env file.
+# File-based tokens are single-use; transcript-based tokens are reusable (phrase
+# persists in transcript). Consumed hashes stored in ~/.claude/consumed/.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -83,8 +84,8 @@ extract_approval_token() {
   # This avoids the transcript-timing race condition entirely.
   local APPROVAL_FILE="$SESSION_ENV_DIR/${SESSION_ID}.push-approval"
   if [[ -f "$APPROVAL_FILE" ]]; then
-    local cat; cat="$(tr -cd '[:lower:]' < "$APPROVAL_FILE" | head -c 10)"
-    case "$cat" in push|release) echo "$cat"; return 0 ;; esac
+    local token_text; token_text="$(tr -cd '[:lower:]' < "$APPROVAL_FILE" | head -c 10)"
+    case "$token_text" in push|release) echo "$token_text"; return 0 ;; esac
   fi
 
   # Method 2: scan transcript for approval phrase in last user message.
