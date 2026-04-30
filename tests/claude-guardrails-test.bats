@@ -392,7 +392,7 @@ _fixture_transcript() {
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
 
-@test "item 11a: fresh install produces all PR-2 hook artifacts" {
+@test "item 11a: fresh install produces all PR-2 and PR-3 hook artifacts" {
   local fake_home
   fake_home="$(_fresh_home)"
   SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
@@ -400,7 +400,12 @@ _fixture_transcript() {
     bash "$INSTALLER" >/dev/null 2>&1 || true
 
   local missing=0
-  for hook in pre-tool-use-internal-terms.sh pre-tool-use-git-identity.sh pre-tool-use-red-autonomy.sh; do
+  for hook in \
+      pre-tool-use-internal-terms.sh \
+      pre-tool-use-git-identity.sh \
+      pre-tool-use-red-autonomy.sh \
+      session-start-rules-integrity.sh \
+      pre-compact-reinject.sh; do
     [[ -f "$fake_home/.claude/hooks/$hook" ]] || {
       echo "MISSING: $hook"
       missing=1
@@ -411,12 +416,164 @@ _fixture_transcript() {
 }
 
 # ---------------------------------------------------------------------------
-# Placeholder stubs for items 3, 5-9 (populated per-PR as hooks land)
+# Item 3 — SessionStart rules-file integrity
 # ---------------------------------------------------------------------------
 
-# item 3  (PR-3): SessionStart rules integrity
-# @test "item 3a: SessionStart blocks on dangling symlink" { skip "PR-3 not yet merged"; }
-# @test "item 3b: SessionStart passes when rules intact"   { skip "PR-3 not yet merged"; }
+# Helper: create a fake rules dir with a dangling symlink
+_fixture_dangling_rule() {
+  RULES_DIR_TMP="$(mktemp -d)"
+  ln -s "$RULES_DIR_TMP/nonexistent-target.md" "$RULES_DIR_TMP/dangling.md"
+  echo "$RULES_DIR_TMP"
+}
+
+@test "item 3a: SessionStart blocks on dangling symlink in rules dir" {
+  local rules_dir hook_input fake_home
+  rules_dir="$(_fixture_dangling_rule)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment"
+  # Symlink the fake rules dir into the fake home
+  ln -s "$rules_dir" "$fake_home/.augment/rules"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$REPO_ROOT")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$rules_dir" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"DANGLING:"* ]] || [[ "${lines[*]}" == *"DANGLING:"* ]]
+}
+
+@test "item 3b: SessionStart passes when rules files are intact" {
+  local fake_home rules_dir
+  fake_home="$(_fresh_home)"
+  rules_dir="$fake_home/.augment/rules"
+  mkdir -p "$rules_dir"
+  # Real file (not a dangling symlink)
+  echo "# test rule" > "$rules_dir/test-rule.md"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$REPO_ROOT")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"integrity OK"* ]] || [[ "${lines[*]}" == *"integrity OK"* ]]
+}
+
+@test "item 3c: SessionStart blocks (exit 2) and reports MISSING when rules dir absent" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  # .augment/rules/ does not exist
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$REPO_ROOT")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"MISSING:"* ]] || [[ "${lines[*]}" == *"MISSING:"* ]]
+}
+
+@test "item 3e: SessionStart blocks (exit 2) and reports WARNING when rules dir has no .md files" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  # Dir exists but contains no .md files
+  touch "$fake_home/.augment/rules/not-a-rule.txt"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$REPO_ROOT")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"WARNING:"* ]] || [[ "${lines[*]}" == *"WARNING:"* ]]
+}
+
+@test "item 3d: SessionStart bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
+  CLAUDE_HOOKS_BYPASS=1 run bash "$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh" \
+    <<<"$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"/tmp","matcher":"startup"}')"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Item 9 — PreCompact CLAUDE.md re-inject
+# ---------------------------------------------------------------------------
+
+@test "item 9a: PreCompact re-injects CLAUDE.md top 50 lines" {
+  local ws
+  ws="$(mktemp -d)"
+  printf '# Test CLAUDE.md\nsome content\n' > "$ws/CLAUDE.md"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-compact-reinject.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreCompact","session_id":"test-session","trigger":"auto","cwd":"%s"}' "$ws")"
+
+  rm -rf "$ws"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"CLAUDE.md (top 50 lines)"* ]] || [[ "${lines[*]}" == *"CLAUDE.md (top 50 lines)"* ]]
+  [[ "$output" == *"Test CLAUDE.md"* ]] || [[ "${lines[*]}" == *"Test CLAUDE.md"* ]]
+}
+
+@test "item 9b: PreCompact uses workspace fallback CLAUDE.md when cwd has none" {
+  local ws fake_home
+  # Use an isolated tmpdir with no CLAUDE.md in the walk path but a workspace fallback
+  ws="$(TMPDIR=/tmp mktemp -d)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/git"
+  printf '# Workspace CLAUDE.md\nfallback content\n' > "$fake_home/git/CLAUDE.md"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-compact-reinject.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreCompact","session_id":"test-session","trigger":"auto","cwd":"%s"}' "$ws")"
+
+  rm -rf "$ws" "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"CLAUDE.md (top 50 lines)"* ]] || [[ "${lines[*]}" == *"CLAUDE.md (top 50 lines)"* ]]
+  [[ "$output" == *"fallback content"* ]] || [[ "${lines[*]}" == *"fallback content"* ]]
+}
+
+@test "item 9b2: PreCompact emits no-CLAUDE.md message when none found anywhere" {
+  local ws fake_home
+  # Fake HOME with no ~/git/CLAUDE.md, cwd in /tmp (no CLAUDE.md in walk path)
+  ws="$(TMPDIR=/tmp mktemp -d)"
+  fake_home="$(_fresh_home)"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-compact-reinject.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreCompact","session_id":"test-session","trigger":"auto","cwd":"%s"}' "$ws")"
+
+  rm -rf "$ws" "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no CLAUDE.md found"* ]] || [[ "${lines[*]}" == *"no CLAUDE.md found"* ]]
+}
+
+@test "item 9c: PreCompact includes scope file content when present" {
+  local ws fake_home scope_dir
+  ws="$(mktemp -d)"
+  fake_home="$(_fresh_home)"
+  scope_dir="$fake_home/.claude/session-env"
+  mkdir -p "$scope_dir"
+  echo "task: implement PR-3 hooks" > "$scope_dir/test-session-123.scope.txt"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-compact-reinject.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreCompact","session_id":"test-session-123","trigger":"auto","cwd":"%s"}' "$ws")"
+
+  rm -rf "$ws" "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"implement PR-3 hooks"* ]] || [[ "${lines[*]}" == *"implement PR-3 hooks"* ]]
+}
+
+@test "item 9d: PreCompact bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
+  CLAUDE_HOOKS_BYPASS=1 run bash "$REPO_ROOT/tools/claude-hooks/pre-compact-reinject.sh" \
+    <<<"$(printf '{"hook_event_name":"PreCompact","session_id":"test","trigger":"auto","cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Placeholder stubs for items 5-8 (populated per-PR as hooks land)
+# ---------------------------------------------------------------------------
 
 # item 5  (PR-4): slash-mirror
 # @test "item 5: slash-menu mirror produces one command per skill" { skip "PR-4 not yet merged"; }
@@ -429,6 +586,3 @@ _fixture_transcript() {
 
 # item 8  (PR-5): SubagentStop claims-evidence
 # @test "item 8: claims-evidence flags unpaired claim" { skip "PR-5 not yet merged"; }
-
-# item 9  (PR-3): PreCompact re-inject
-# @test "item 9: PreCompact re-injects CLAUDE.md head" { skip "PR-3 not yet merged"; }
