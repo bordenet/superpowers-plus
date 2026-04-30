@@ -499,6 +499,21 @@ run_post_validation_checks() {
     fi
 }
 
+# Install Claude Code lifecycle hooks and merge settings.json (kill-switched by default)
+install_claude_guardrails() {
+    local guardrails_script="$SCRIPT_DIR/setup/install-claude-guardrails.sh"
+    if [[ ! -f "$guardrails_script" ]]; then
+        log_warn "install-claude-guardrails.sh not found — skipping Claude hooks install"
+        return 0
+    fi
+    if bash "$guardrails_script" >/dev/null 2>&1; then
+        log_info "Claude Code guardrails: OK (SUPERPOWERS_CLAUDE_GUARDRAILS=${SUPERPOWERS_CLAUDE_GUARDRAILS:-0})"
+    else
+        log_warn "Claude Code guardrails installer exited non-zero — run manually:"
+        log_warn "  bash setup/install-claude-guardrails.sh"
+    fi
+}
+
 # Check mode — validate prerequisites without installing
 check_prerequisites() {
     log_info "Checking prerequisites for superpowers-plus..."
@@ -612,6 +627,7 @@ main() {
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
+        install_claude_guardrails
         print_summary
         return
     fi
@@ -677,6 +693,7 @@ main() {
     # Validate
     validate_installation
     run_post_validation_checks
+    install_claude_guardrails
 
     # Print summary
     print_summary
