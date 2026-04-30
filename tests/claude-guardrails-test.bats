@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # claude-guardrails-test.bats — parity harness for the Claude Code guardrails
-# program (items 1-12). Grows one test per hook PR. All 49 tests must be
+# program (items 1-12). Grows one test per hook PR. All 50 tests must be
 # green before the program is declared complete.
 #
 # DEPENDENCIES: bats-core >=1.8.0, jq, git, python3, claude CLI (>=2.1.116)
@@ -717,6 +717,30 @@ _fixture_dangling_rule() {
   [ ! -f "$cmd_dir/foo.md" ]
 
   rm -rf "$aug_dir" "$cmd_dir"
+}
+
+@test "item 5: slash-menu mirror skips when claude skills-dir entry exists for same name" {
+  local aug_dir cmd_dir skills_dir
+  aug_dir="$(mktemp -d)"
+  cmd_dir="$(mktemp -d)"
+  skills_dir="$(mktemp -d)"
+
+  # Augment menu has skill named "foo"
+  mkdir -p "$aug_dir/foo"
+  printf -- '---\nname: foo\ndescription: "Augment version"\n---\n\nBody.\n' \
+    > "$aug_dir/foo/SKILL.md"
+
+  # ~/.claude/skills/foo/ already exists (e.g., overlay installed it there)
+  mkdir -p "$skills_dir/foo"
+
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" CLAUDE_SKILLS_DIR="$skills_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+  [ "$status" -eq 0 ]
+
+  # Command file must NOT be written — skills-dir entry takes precedence
+  [ ! -f "$cmd_dir/foo.md" ]
+
+  rm -rf "$aug_dir" "$cmd_dir" "$skills_dir"
 }
 
 # ---------------------------------------------------------------------------
