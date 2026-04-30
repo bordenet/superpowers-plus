@@ -598,14 +598,204 @@ _fixture_dangling_rule() {
 }
 
 # ---------------------------------------------------------------------------
-# Placeholder stubs for items 5-8 (populated per-PR as hooks land)
+# Item 5 — slash-menu mirror
 # ---------------------------------------------------------------------------
 
-# item 5  (PR-4): slash-mirror
-# @test "item 5: slash-menu mirror produces one command per skill" { skip "PR-4 not yet merged"; }
+@test "item 5: slash-menu mirror produces one command per skill" {
+  local aug_dir cmd_dir
+  aug_dir="$(mktemp -d)"
+  cmd_dir="$(mktemp -d)"
 
-# item 6  (PR-4): UserPromptSubmit skill router
-# @test "item 6: skill-router advises on matching prompt" { skip "PR-4 not yet merged"; }
+  # Create two minimal SKILL.md entries in the Augment menu dir
+  for skill in foo bar; do
+    mkdir -p "$aug_dir/$skill"
+    printf -- '---\nname: %s\ndescription: "Do %s things"\n---\n\nBody.\n' \
+      "$skill" "$skill" > "$aug_dir/$skill/SKILL.md"
+  done
+
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+
+  [ "$status" -eq 0 ]
+  [ -f "$cmd_dir/foo.md" ]
+  [ -f "$cmd_dir/bar.md" ]
+  grep -q "Invoke the \`foo\` skill" "$cmd_dir/foo.md"
+  grep -q 'description: "Do foo things"' "$cmd_dir/foo.md"
+
+  rm -rf "$aug_dir" "$cmd_dir"
+}
+
+@test "item 5: slash-menu mirror skips gracefully when source dir absent" {
+  local cmd_dir
+  cmd_dir="$(mktemp -d)"
+  AUGMENT_MENU_DIR="/no/such/dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+  rm -rf "$cmd_dir"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 5: install_claude_commands_mirror wired into install.sh" {
+  grep -qE '^\s+install_claude_commands_mirror\b' "$REPO_ROOT/install.sh" || {
+    echo "install.sh is missing an install_claude_commands_mirror call site"
+    return 1
+  }
+}
+
+@test "item 5: slash-menu mirror prunes stale managed commands" {
+  local aug_dir cmd_dir
+  aug_dir="$(mktemp -d)"
+  cmd_dir="$(mktemp -d)"
+
+  # Create two skills
+  mkdir -p "$aug_dir/foo" "$aug_dir/bar"
+  printf -- 'name: "foo"\ndescription: "Do foo things"\n' > "$aug_dir/foo/SKILL.md"
+  printf -- 'name: "bar"\ndescription: "Do bar things"\n' > "$aug_dir/bar/SKILL.md"
+
+  # Mirror both skills
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+  [ "$status" -eq 0 ]
+  [ -f "$cmd_dir/foo.md" ]
+  [ -f "$cmd_dir/bar.md" ]
+
+  # Remove bar skill and re-run mirror
+  rm -rf "$aug_dir/bar"
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+  [ "$status" -eq 0 ]
+
+  # foo.md should still exist; bar.md should be pruned
+  [ -f "$cmd_dir/foo.md" ]
+  [ ! -f "$cmd_dir/bar.md" ]
+
+  rm -rf "$aug_dir" "$cmd_dir"
+}
+
+@test "item 5: slash-menu mirror does not prune user-created commands" {
+  local aug_dir cmd_dir
+  aug_dir="$(mktemp -d)"
+  cmd_dir="$(mktemp -d)"
+
+  # Create a user-written command (description: only, no source: marker)
+  printf -- '---\ndescription: "User custom command"\n---\n\nDo something custom.\n' \
+    > "$cmd_dir/user-cmd.md"
+
+  # Run mirror with no skills
+  AUGMENT_MENU_DIR="$aug_dir" CLAUDE_COMMANDS_DIR="$cmd_dir" \
+    run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
+  [ "$status" -eq 0 ]
+
+  # User command must survive — it has no source: "claude-commands-mirror" marker
+  [ -f "$cmd_dir/user-cmd.md" ]
+
+  rm -rf "$aug_dir" "$cmd_dir"
+}
+
+# ---------------------------------------------------------------------------
+# Item 6 — UserPromptSubmit skill router
+# ---------------------------------------------------------------------------
+
+@test "item 6: skill-router advises on matching prompt" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  # Create a minimal skill.md for brainstorming
+  mkdir -p "$skills_dir/brainstorming"
+  printf -- '---\nname: brainstorming\ndescription: "Use this before any creative work — exploring user intent and design"\n---\n\nBody.\n' \
+    > "$skills_dir/brainstorming/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"Help me brainstorm a new feature","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: brainstorming"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router exits 0 and emits nothing for empty prompt" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
+  CLAUDE_HOOKS_BYPASS=1 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"brainstorm something","cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "item 6: skill-router rebuilds cache when skill.md is newer" {
+  local skills_dir cache_dir cache_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+
+  mkdir -p "$skills_dir/myskill"
+  printf -- '---\nname: myskill\ndescription: "A test skill"\n---\nBody.\n' \
+    > "$skills_dir/myskill/skill.md"
+
+  # First run — builds cache
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+  [ -f "$cache_file" ]
+  local mtime1
+  mtime1="$(stat -f '%m' "$cache_file" 2>/dev/null || stat -c '%Y' "$cache_file")"
+
+  # Touch skill.md to be newer than cache, then run again
+  sleep 1
+  touch "$skills_dir/myskill/skill.md"
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+  local mtime2
+  mtime2="$(stat -f '%m' "$cache_file" 2>/dev/null || stat -c '%Y' "$cache_file")"
+
+  # Cache must have been regenerated (newer mtime)
+  [ "$mtime2" -gt "$mtime1" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router wired into settings-hooks-spec.json (UserPromptSubmit)" {
+  python3 -c "
+import json, sys
+with open('$REPO_ROOT/claude-config/settings-hooks-spec.json') as f:
+    spec = json.load(f)
+hooks = spec.get('hooks', {})
+if 'UserPromptSubmit' not in hooks:
+    print('UserPromptSubmit missing from settings-hooks-spec.json')
+    sys.exit(1)
+cmds = [h.get('command','') for blk in hooks['UserPromptSubmit'] for h in blk.get('hooks',[])]
+if not any('user-prompt-submit-skill-router' in c for c in cmds):
+    print('user-prompt-submit-skill-router not in UserPromptSubmit hooks')
+    sys.exit(1)
+"
+}
+
+# ---------------------------------------------------------------------------
+# Placeholder stubs for items 7-8 (populated per-PR as hooks land)
+# ---------------------------------------------------------------------------
 
 # item 7  (PR-5): PostToolUse verify
 # @test "item 7: PostToolUse verify surfaces commit summary" { skip "PR-5 not yet merged"; }
