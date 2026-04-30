@@ -4,6 +4,15 @@
 
 Skills for AI coding assistants that enforce the practices AI would otherwise skip. Extends [obra/superpowers](https://github.com/obra/superpowers). Can be used for non-coding workloads, too!
 
+## Platform Support
+
+| Platform | Status |
+|----------|--------|
+| **Augment Code** | ✅ Full support — skills, routing, commit gates, pre-push hooks, and MCP integrations install and run cleanly. |
+| **Claude Code** | ⚠️ In progress — skills and rules load into context, but the deterministic enforcement layer (lifecycle hooks, permission gates) is not yet wired. Behavior is more variable than on Augment Code. |
+
+Augment Code is the recommended platform. Claude Code parity work is underway; until it ships, treat Claude Code support as experimental.
+
 ## What This Is
 
 AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification.

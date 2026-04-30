@@ -313,7 +313,7 @@ function findSkills(filterMode = 'all') {
 function resolveSkillNamespace(skillName) {
     let forceSuperpowers = skillName.startsWith('superpowers:');
     let forceSpp = skillName.startsWith('spp:');
-    let forceSpo = skillName.startsWith('spo:');
+    let forceSpo = skillName.startsWith('spo:') || skillName.startsWith('spc:');
     let actualName;
 
     // Dash shorthand expansion
@@ -321,7 +321,7 @@ function resolveSkillNamespace(skillName) {
         if (skillName.startsWith('spp-')) {
             forceSpp = true;
             actualName = 'superpowers-' + skillName.slice(4);
-        } else if (skillName.startsWith('spo-')) {
+        } else if (skillName.startsWith('spo-') || skillName.startsWith('spc-')) {
             forceSpo = true;
             actualName = 'superpowers-' + skillName.slice(4);
         } else if (skillName.startsWith('sp-')) {
@@ -332,7 +332,7 @@ function resolveSkillNamespace(skillName) {
     if (!actualName) {
         if (forceSuperpowers) actualName = skillName.replace(/^superpowers:/, '');
         else if (forceSpp) actualName = skillName.replace(/^spp:/, '');
-        else if (forceSpo) actualName = skillName.replace(/^spo:/, '');
+        else if (forceSpo) actualName = skillName.replace(/^sp[oc]:/, '');
         else actualName = skillName;
     }
 

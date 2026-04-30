@@ -15,16 +15,17 @@ done
 # were being silently deleted. This destroyed wiki-editing skills and their
 # API access patterns, causing agents to give up on wiki access entirely.
 # Use --purge-orphans to explicitly opt into orphan removal.
-#
-# Alias-aware (2026-04-29): skills that install under a /sp* trigger name (e.g. sp-review
-# from providing-code-review) are in DEST_NAMES_SET with their alias as the key.
-# Using DEST_NAMES_SET avoids false-positive orphan reports for legitimately aliased installs.
+declare -A _source_skill_names=()
+for dir in "${SOURCE_DIRS[@]}"; do
+  search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  while IFS= read -r sd; do
+    _source_skill_names[$(basename "$sd")]=1
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" -exec dirname {} \; 2>/dev/null)
+done
 while IFS= read -r installed; do
   skill=$(basename "$installed")
   [[ "$skill" == "_shared" || "$skill" == "doctor-backups" ]] && continue
-  # Accept both alias-named installs (sp-brainstorm) AND source-named installs
-  # (brainstorming) — some installers use source names in INSTALLED_DIR.
-  if [[ -z "${DEST_NAMES_SET[$skill]:-}" && -z "${SOURCE_DEST_NAME[$skill]:-}" ]]; then
+  if [[ -z "${_source_skill_names[$skill]:-}" ]]; then
     echo "🟡 WARNING: $skill — orphaned install (not in any source repo)"
     echo "  ℹ️  To remove: re-run with --fix --purge-orphans"
     ((WARNINGS++))
@@ -39,31 +40,21 @@ done < <(find "$INSTALLED_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null)
 
 # --- Check 9: Source-Install Content Drift ---
 # Tracks priority source (overlay wins over base) AND base source for overlay-aware comparison.
-# Alias-aware (2026-04-29): keys are dest names (e.g. sp-brainstorm) not source names
-# (brainstorming) so that the installed path $INSTALLED_DIR/$dest/skill.md is found correctly.
 declare -A PRIORITY_SOURCE
 # BASE_SOURCE is declared globally in doctor-checks.sh; just populate it here.
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
-    src_skill=$(basename "$(dirname "$src")")
-    # Compute the actual install dest name (e.g. sp-brainstorm for brainstorming source)
-    dest_skill="${SOURCE_DEST_NAME[$src_skill]:-$src_skill}"
+    skill=$(basename "$(dirname "$src")")
     # If this is the base (plus) dir, record it separately
     if [[ "$dir" == "$SP_PLUS_DIR" ]]; then
-      BASE_SOURCE["$dest_skill"]="$src"
+      BASE_SOURCE["$skill"]="$src"
     fi
-    PRIORITY_SOURCE[$dest_skill]="$src"
+    PRIORITY_SOURCE[$skill]="$src"
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
 done
 for skill in "${!PRIORITY_SOURCE[@]}"; do
   src="${PRIORITY_SOURCE[$skill]}"; installed="$INSTALLED_DIR/$skill/skill.md"
-  # Some installers use the source dir name (brainstorming/) rather than the alias (sp-brainstorm/).
-  # Fall back to the source-named path so drift is detected regardless of install convention.
-  if [[ ! -f "$installed" ]]; then
-    src_name="${DEST_NAME_SOURCE[$skill]:-$skill}"
-    installed="$INSTALLED_DIR/$src_name/skill.md"
-  fi
   [[ ! -f "$installed" ]] && continue
   if ! diff -q "$src" "$installed" > /dev/null 2>&1; then
     # If overlay has "overrides:" and installed matches the base source, that's OK

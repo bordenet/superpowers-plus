@@ -99,12 +99,10 @@ declare -A INSTALLED_MATCH_DIR
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
-    src_skill=$(basename "$(dirname "$src")")
-    # Alias-aware: resolve to the install dest name (e.g. brainstorming → sp-brainstorm)
-    dest_skill="${SOURCE_DEST_NAME[$src_skill]:-$src_skill}"
-    installed_skill="$INSTALLED_DIR/$dest_skill/skill.md"
+    skill=$(basename "$(dirname "$src")")
+    installed_skill="$INSTALLED_DIR/$skill/skill.md"
     if [[ -f "$installed_skill" ]] && diff -q "$src" "$installed_skill" > /dev/null 2>&1; then
-      INSTALLED_MATCH_DIR[$dest_skill]="$dir"
+      INSTALLED_MATCH_DIR[$skill]="$dir"
     fi
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
 done
@@ -112,11 +110,9 @@ done
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src_ref; do
-    src_skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
+    skill_dir=$(basename "$(dirname "$(dirname "$src_ref")")")
     ref_name=$(basename "$src_ref")
-    # Alias-aware: key uses dest name so installed_ref path resolves correctly
-    dest_skill_dir="${SOURCE_DEST_NAME[$src_skill_dir]:-$src_skill_dir}"
-    key="${dest_skill_dir}/${ref_name}"
+    key="${skill_dir}/${ref_name}"
     if [[ "$dir" != "$SP_PLUS_DIR" && -z "${REF_PRIORITY[$key]:-}" ]]; then
       REF_IS_OVERLAY_ONLY[$key]="true"
     elif [[ "$dir" == "$SP_PLUS_DIR" ]]; then
@@ -129,12 +125,11 @@ for dir in "${COMPARE_DIRS[@]}"; do
     REF_OWNER_DIR[$key]="$dir"
     REF_PRIORITY[$key]="$src_ref"
   done < <(find "$search_root" -path "*/references/*.md" -not -path "*/.worktrees/*" 2>/dev/null)
-  # Track overlay skill.md paths (keyed by dest name for OVERLAY_SOURCE lookup)
+  # Track overlay skill.md paths
   if [[ "$dir" != "$SP_PLUS_DIR" ]]; then
     while IFS= read -r src; do
-      src_skill=$(basename "$(dirname "$src")")
-      dest_skill="${SOURCE_DEST_NAME[$src_skill]:-$src_skill}"
-      OVERLAY_SOURCE[$dest_skill]="$src"
+      skill=$(basename "$(dirname "$src")")
+      OVERLAY_SOURCE[$skill]="$src"
     done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
   fi
 done
@@ -147,13 +142,6 @@ for key in "${!REF_PRIORITY[@]}"; do
     continue
   fi
   installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
-  # Also accept the reference at the source-named path: some installers use the
-  # source directory name (brainstorming/) rather than the alias (sp-brainstorm/).
-  if [[ ! -f "$installed_ref" ]]; then
-    src_skill_dir="${DEST_NAME_SOURCE[$skill_dir]:-$skill_dir}"
-    src_installed_ref="$INSTALLED_DIR/$src_skill_dir/references/$ref_name"
-    [[ -f "$src_installed_ref" ]] && installed_ref="$src_installed_ref"
-  fi
   if [[ ! -f "$installed_ref" ]]; then
     # If this ref only exists in overlay and the installed skill matches the base, skip it
     if [[ -n "${REF_IS_OVERLAY_ONLY[$key]:-}" ]]; then
