@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 28 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 29 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -248,7 +248,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (28 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (29 checks)"
 echo ""
 
 
@@ -294,6 +294,8 @@ source "${SCRIPT_DIR}/doctor-modules/integration-checks.sh"
 source "${SCRIPT_DIR}/doctor-modules/agent-checks.sh"
 # shellcheck source=tools/doctor-modules/mcp-checks.sh
 source "${SCRIPT_DIR}/doctor-modules/mcp-checks.sh"
+# shellcheck source=tools/doctor-modules/guardrails-checks.sh
+source "${SCRIPT_DIR}/doctor-modules/guardrails-checks.sh"
 
 _doctor_yaml_checks
 _doctor_metadata_checks     # Populates BASE_SOURCE — must run before reference-checks
@@ -305,6 +307,7 @@ _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
 _doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
 _doctor_mcp_checks          # Check 28: MCP server dependency health
+_doctor_guardrails_checks   # Check 29: Augment-surface SHA256 drift vs guardrails baseline
 
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only
@@ -317,12 +320,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 28 checks passed"
+    echo "✅ Doctor: all 29 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 28 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 29 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
