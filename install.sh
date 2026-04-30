@@ -504,11 +504,22 @@ run_post_validation_checks() {
 migrate_consumed_approvals() {
     local old_dir="$HOME/.claude/session-env"
     local new_dir="$HOME/.claude/consumed"
-    if compgen -G "$old_dir/*.consumed-approvals.txt" >/dev/null 2>&1; then
-        mkdir -p "$new_dir"
-        mv "$old_dir"/*.consumed-approvals.txt "$new_dir/" 2>/dev/null || true
-        log_verbose "Migrated consumed-approval records to $new_dir"
+    if ! compgen -G "$old_dir/*.consumed-approvals.txt" >/dev/null 2>&1; then
+        return 0
     fi
+    mkdir -p "$new_dir"
+    local f dest
+    for f in "$old_dir"/*.consumed-approvals.txt; do
+        dest="$new_dir/$(basename "$f")"
+        if [[ -f "$dest" ]]; then
+            # Destination already exists (hook wrote new records post-upgrade); merge to avoid overwrite.
+            cat "$f" >> "$dest"
+            rm -f "$f"
+        else
+            mv "$f" "$dest"
+        fi
+    done
+    log_verbose "Migrated consumed-approval records to $new_dir"
 }
 
 # Install Claude Code lifecycle hooks and merge settings.json (kill-switched by default)
