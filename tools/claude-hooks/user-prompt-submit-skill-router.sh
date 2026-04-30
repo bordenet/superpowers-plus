@@ -79,7 +79,14 @@ skills_dir = sys.argv[1]
 cache_path = sys.argv[2]
 entries = []
 
-for skill_name in os.listdir(skills_dir):
+try:
+    skill_names = os.listdir(skills_dir)
+except OSError:
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        json.dump([], f)
+    sys.exit(0)
+
+for skill_name in skill_names:
     skill_file = os.path.join(skills_dir, skill_name, 'skill.md')
     if not os.path.isfile(skill_file):
         continue
