@@ -127,3 +127,55 @@ setup_file() {
 @test "P2e: commit-gate.sh --help exits 0" {
   bash "$REPO_ROOT/tools/commit-gate.sh" --help >/dev/null 2>&1
 }
+
+# ---------------------------------------------------------------------------
+# P2f — Check 29: guardrails-baseline drift detection (P8)
+# ---------------------------------------------------------------------------
+@test "P2f: sp-doctor check 29 exists (guardrails-checks.sh sourced)" {
+  [[ -f "$REPO_ROOT/tools/doctor-modules/guardrails-checks.sh" ]] \
+    || { echo "MISSING: tools/doctor-modules/guardrails-checks.sh"; return 1; }
+  grep -q "_doctor_guardrails_checks" "$REPO_ROOT/tools/doctor-checks.sh" \
+    || { echo "MISSING: _doctor_guardrails_checks not wired into doctor-checks.sh"; return 1; }
+}
+
+@test "P2f: sp-doctor check 29 is silent-pass when baseline files are unmodified" {
+  [[ -f "$BASELINE" ]] || skip "no baseline file — re-run scripts/capture-augment-baseline.sh"
+  # Run sp-doctor and check that no guardrails-baseline error/warning is emitted
+  local out
+  out="$(bash "$REPO_ROOT/tools/sp-doctor.sh" 2>&1)"
+  if echo "$out" | grep -q "guardrails-baseline"; then
+    echo "UNEXPECTED guardrails-baseline finding:"
+    echo "$out" | grep "guardrails-baseline"
+    return 1
+  fi
+}
+
+@test "P2f: sp-doctor check 29 detects drift when a baseline file is modified" {
+  [[ -f "$BASELINE" ]] || skip "no baseline file"
+  # Get the first tracked file from the baseline
+  local tracked_file
+  tracked_file="$(python3 -c "
+import json
+with open('$BASELINE') as f:
+    d = json.load(f)
+keys = list(d.get('file_hashes', {}).keys())
+print(keys[0]) if keys else print('')
+")"
+  [[ -n "$tracked_file" ]] || skip "no file_hashes in baseline"
+  local abs_file="$REPO_ROOT/$tracked_file"
+  [[ -f "$abs_file" ]] || skip "tracked file missing: $tracked_file"
+
+  # Temporarily append a byte to trigger drift; trap ensures restore on any exit.
+  trap "truncate -s -1 \"$abs_file\" 2>/dev/null || true" EXIT
+  echo "" >> "$abs_file"
+  local out rc=0
+  out="$(bash "$REPO_ROOT/tools/sp-doctor.sh" 2>&1)" || rc=$?
+
+  truncate -s -1 "$abs_file"
+  trap - EXIT
+
+  echo "$out" | grep -q "guardrails-baseline" || {
+    echo "FAIL: sp-doctor did not flag drift for modified $tracked_file"
+    return 1
+  }
+}
