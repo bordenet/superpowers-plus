@@ -567,6 +567,7 @@ main() {
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
+        install_claude_commands_mirror
         install_claude_guardrails
         print_summary
         return
@@ -625,6 +626,7 @@ main() {
     # Validate
     validate_installation
     run_post_validation_checks
+    install_claude_commands_mirror
     install_claude_guardrails
 
     # Print summary
