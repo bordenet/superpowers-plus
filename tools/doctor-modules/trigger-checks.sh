@@ -59,10 +59,6 @@ KNOWN_COLLISION_GROUPS=(
   # verification-before-completion (safety gate) and finishing-a-development-branch
   # (branch options). coordination.requires is metadata only — not enforced at runtime.
   "finishing-a-development-branch verification-before-completion implementation-tracker"
-  # PR review pair: branch-sync-gate fires on "review this PR" to ensure the reviewer is
-  # on the latest commit before providing-code-review starts the actual review.
-  # Both trigger intentionally — sync first, then review.
-  "providing-code-review branch-sync-gate"
 )
 
 # Load overlay collision groups from all overlay source dirs
@@ -85,32 +81,14 @@ for i in "${!KNOWN_COLLISION_GROUPS[@]}"; do
   done
 done
 
-# Check if two skills share a collision group.
-# Alias-aware: resolves each skill to its canonical name (SKILL_YAML_NAME) so that
-# alias installs like sp-rethink (installed from think-twice) match groups that list
-# the source name 'think-twice'.
+# Check if two skills share a collision group
 in_same_group() {
   local a="$1" b="$2"
-  local ca="${SKILL_YAML_NAME[$a]:-$a}" cb="${SKILL_YAML_NAME[$b]:-$b}"
-  for ga in ${skill_group[$a]:-} ${skill_group[$ca]:-}; do
-    for gb in ${skill_group[$b]:-} ${skill_group[$cb]:-}; do
+  for ga in ${skill_group[$a]:-}; do
+    for gb in ${skill_group[$b]:-}; do
       [[ "$ga" == "$gb" ]] && return 0
     done
   done
-  return 1
-}
-
-# Check if two skills are alias pairs (same source skill installed under two names).
-# Works in both directions:
-#   1. YAML name: if both installed skills share the same name: value they share a source.
-#   2. Index: DEST_NAME_SOURCE maps alias→source, covering cases where only one is installed.
-is_alias_pair() {
-  local a="$1" b="$2"
-  local na="${SKILL_YAML_NAME[$a]:-}" nb="${SKILL_YAML_NAME[$b]:-}"
-  # Same YAML name: value → same source skill, different install names
-  [[ -n "$na" && "$na" == "$nb" ]] && return 0
-  # Index cross-check: a is an alias whose source is b, or vice versa
-  [[ "${DEST_NAME_SOURCE[$a]:-}" == "$b" || "${DEST_NAME_SOURCE[$b]:-}" == "$a" ]] && return 0
   return 1
 }
 
@@ -135,13 +113,11 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
       if echo ", $existing," | grep -q ", ${skill},"; then
         continue
       fi
-      # Check if all colliding skills are in the same known group OR are alias pairs.
-      # Alias pairs: the same source skill installed under two names (e.g. sp-doctor and
-      # superpowers-doctor) share triggers by design — suppress those collisions.
+      # Check if all colliding skills are in the same known group
       all_known=true
       while IFS= read -r prev_skill; do
         [[ -z "$prev_skill" ]] && continue
-        if ! in_same_group "$prev_skill" "$skill" && ! is_alias_pair "$prev_skill" "$skill"; then
+        if ! in_same_group "$prev_skill" "$skill"; then
           all_known=false; break
         fi
       done <<< "$(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//')"
