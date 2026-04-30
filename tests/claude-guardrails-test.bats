@@ -308,7 +308,7 @@ _fixture_transcript() {
   [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
 }
 
-@test "item 10: RED-autonomy honors 'approve push' token (single-use)" {
+@test "item 10: RED-autonomy transcript token is reusable (phrase persists in transcript)" {
   local fake_home
   fake_home="$(_fresh_home)"
 
@@ -317,12 +317,38 @@ _fixture_transcript() {
   local input
   input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"transcript_path":"%s","session_id":"test-session-approved","cwd":"/tmp"}' "$TPATH")"
 
-  # First invocation: token present → allow
+  # First invocation: approval phrase in transcript → allow
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
   [ "$status" -eq 0 ]
 
-  # Second invocation: token consumed → block
+  # Second invocation: phrase still in transcript → allow (transcript tokens are reusable)
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  rm -f "$TPATH"
+  rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: RED-autonomy file-based token is single-use" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"transcript_path":"%s","session_id":"test-session-filetoken","cwd":"/tmp"}' "$TPATH")"
+
+  # Write a file-based approval token
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "push" > "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
+
+  # First invocation: file token present → allow (and token consumed)
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  [ "$status" -eq 0 ]
+
+  # Second invocation: file token deleted, no transcript approval → block
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
   rm -f "$TPATH"
