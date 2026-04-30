@@ -168,6 +168,8 @@ if [[ "$ACTION" != "move" ]]; then
             log_err "content failed structural gate — fix violations and retry"
             exit 2
         fi
+    else
+        log_warn "structural gate skipped — wiki-markdown-validate.js or node not found"
     fi
 fi
 
