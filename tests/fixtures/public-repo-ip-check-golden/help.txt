@@ -1,0 +1,9 @@
+Usage: tools/public-repo-ip-check.sh [--patterns "REGEX"] [--history] [--verbose] [--staged-only] [--range RANGE] [--all-files]
+
+Options:
+  --patterns "REGEX"  Custom pattern regex
+  --history           Also check full git history
+  --verbose           Show matching lines (use with care)
+  --staged-only       Check only staged additions
+  --range RANGE       Check only a commit range
+  --all-files         Scan all tracked files (diagnostic)
