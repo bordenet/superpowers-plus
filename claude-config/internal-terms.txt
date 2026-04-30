@@ -1,0 +1,16 @@
+# internal-terms.txt — template for the PreToolUse git-push IP scan (item 1).
+#
+# USAGE: One pattern per line. Empty lines and # comments are ignored.
+#        grep -iF matches case-insensitively against commit bodies and diffs.
+#
+# THIS FILE IS THE PUBLIC TEMPLATE — it ships in the superpowers-plus repo.
+# Work-specific terms live in the superpowers-callbox overlay and are copied
+# here by the superpowers-callbox installer (overwrite-protected if customised).
+#
+# The hook (tools/claude-hooks/pre-tool-use-internal-terms.sh) will warn if
+# this file is empty. Add at least one term for the hook to be effective.
+#
+# Examples (do not commit real internal terms to a public repo):
+#   acme-internal-product
+#   secret-codename
+#   internal.acme.com

@@ -1,0 +1,434 @@
+#!/usr/bin/env bats
+# claude-guardrails-test.bats — parity harness for the Claude Code guardrails
+# program (items 1-12). Grows one test per hook PR. All 20 tests must be
+# green before the program is declared complete.
+#
+# DEPENDENCIES: bats-core >=1.8.0, jq, git, python3, claude CLI (>=2.1.116)
+#
+# RUN: bats tests/claude-guardrails-test.bats
+# EXIT: 0 = all shipped tests pass, non-zero = regression
+
+setup_file() {
+  REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd -P)"
+  export REPO_ROOT
+  INSTALLER="$REPO_ROOT/setup/install-claude-guardrails.sh"
+  export INSTALLER
+
+  # Record which Claude Code CLI version this run tested against.
+  local claude_ver
+  claude_ver="$(claude --version 2>/dev/null | grep -oE '[0-9]+([.][0-9]+){2}' | head -1 || echo 'absent')"
+  echo "# parity test against claude CLI = $claude_ver" >&3
+  echo "$claude_ver" > "${BATS_FILE_TMPDIR}/claude-version.txt"
+
+  # Fail hard if bats-core is too old (< 1.8.0 lacks BATS_FILE_TMPDIR).
+  [[ -n "${BATS_FILE_TMPDIR:-}" ]] || {
+    echo "bats-core >= 1.8.0 required (BATS_FILE_TMPDIR missing)" >&2
+    return 1
+  }
+}
+
+teardown_file() {
+  cp "${BATS_FILE_TMPDIR}/claude-version.txt" \
+     "${BATS_FILE_TMPDIR}/../parity-last-cli-version.txt" 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------------------
+# Helper: create a throw-away HOME dir so the installer has no side-effects
+# ---------------------------------------------------------------------------
+_fresh_home() {
+  local tmp
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/.claude" "$tmp/.config/claude-hooks"
+  echo "$tmp"
+}
+
+# ---------------------------------------------------------------------------
+# Item 11 tests
+# ---------------------------------------------------------------------------
+
+# 11d — kill switch (P3): SUPERPOWERS_CLAUDE_GUARDRAILS=0 must block all writes
+@test "item 11d: kill switch (SUPERPOWERS_CLAUDE_GUARDRAILS=0) blocks all writes" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+
+  SUPERPOWERS_CLAUDE_GUARDRAILS=0 HOME="$fake_home" \
+    run bash "$INSTALLER"
+
+  [ "$status" -eq 0 ]
+
+  # Nothing must have been written to ~/.claude/hooks/ or ~/.claude/settings.json
+  local hook_count settings_exists
+  hook_count="$(find "$fake_home/.claude/hooks" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+  settings_exists=0
+  [[ -f "$fake_home/.claude/settings.json" ]] && settings_exists=1
+
+  [ "$hook_count" -eq 0 ] || {
+    echo "Kill switch ON but $hook_count hook(s) were written"
+    return 1
+  }
+  [ "$settings_exists" -eq 0 ] || {
+    echo "Kill switch ON but settings.json was written"
+    return 1
+  }
+
+  rm -rf "$fake_home"
+}
+
+# 11c — bypass clause present in every shipped hook (build-time gate)
+@test "item 11c: bypass clause present in every shipped hook script" {
+  local h missing=0
+  for h in "$REPO_ROOT/tools/claude-hooks/"*.sh; do
+    [[ -f "$h" ]] || continue
+    if ! grep -q 'CLAUDE_HOOKS_BYPASS' "$h"; then
+      echo "MISSING bypass clause: $h"
+      missing=1
+    fi
+  done
+  [ "$missing" -eq 0 ]
+}
+
+# 11b — idempotency: install twice, settings.json hash must not change
+# (PR-1: with empty spec, the merge is a no-op; tests the idempotency path)
+@test "item 11b: re-running installer is idempotent (empty spec, kill switch OFF)" {
+  local fake_home before after
+  fake_home="$(_fresh_home)"
+  # First run
+  SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
+    bash "$INSTALLER" >/dev/null 2>&1 || true
+  # Capture settings hash (may not exist if claude CLI absent — that's OK)
+  if [[ -f "$fake_home/.claude/settings.json" ]]; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      before="$(sha256sum "$fake_home/.claude/settings.json" | cut -d' ' -f1)"
+    else
+      before="$(shasum -a 256 "$fake_home/.claude/settings.json" | cut -d' ' -f1)"
+    fi
+    # Second run
+    SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
+      bash "$INSTALLER" >/dev/null 2>&1 || true
+    if command -v sha256sum >/dev/null 2>&1; then
+      after="$(sha256sum "$fake_home/.claude/settings.json" | cut -d' ' -f1)"
+    else
+      after="$(shasum -a 256 "$fake_home/.claude/settings.json" | cut -d' ' -f1)"
+    fi
+    [ "$before" = "$after" ] || {
+      echo "settings.json changed on second run: $before -> $after"
+      return 1
+    }
+  fi
+  rm -rf "$fake_home"
+}
+
+# PR-1 — installer wired into install.sh
+@test "PR-1: install.sh --upgrade calls install-claude-guardrails.sh (kill switch ON)" {
+  # Structural gate: install.sh must have an install_claude_guardrails call site
+  # (leading whitespace distinguishes a call from the function definition line).
+  grep -qE '^\s+install_claude_guardrails\b' "$REPO_ROOT/install.sh" || {
+    echo "install.sh is missing an install_claude_guardrails call site"
+    return 1
+  }
+
+  # Behavioral gate: the guardrails installer creates hook .sh files when invoked directly.
+  # (install.sh --upgrade cannot run hermetically because upgrade_existing requires a live
+  # .codex/superpowers git repo; item 11a covers the installer's full artifact creation.)
+  local fake_home
+  fake_home="$(_fresh_home)"
+  SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
+    XDG_CONFIG_HOME="$fake_home/.config" \
+    bash "$INSTALLER" >/dev/null 2>&1 || true
+
+  local hook_count
+  hook_count="$(find "$fake_home/.claude/hooks" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+  [[ "$hook_count" -gt 0 ]] || {
+    echo "Expected hook .sh files to be installed but found none"
+    return 1
+  }
+
+  rm -rf "$fake_home"
+}
+
+@test "PR-1: install.sh --upgrade with kill switch OFF leaves ~/.claude/hooks absent" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  # Remove the pre-created hooks dir so we can test it stays absent
+  rm -rf "$fake_home/.claude/hooks"
+
+  SUPERPOWERS_CLAUDE_GUARDRAILS=0 HOME="$fake_home" \
+    XDG_CONFIG_HOME="$fake_home/.config" \
+    bash "$REPO_ROOT/install.sh" --upgrade >/dev/null 2>&1 || true
+
+  local hook_count
+  hook_count="$(find "$fake_home/.claude/hooks" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$hook_count" -eq 0 ] || {
+    echo "Kill switch OFF but $hook_count hook script(s) were installed"
+    return 1
+  }
+
+  rm -rf "$fake_home"
+}
+
+# ---------------------------------------------------------------------------
+# Fixture helpers for PR-2 tests
+# ---------------------------------------------------------------------------
+
+# Create a git repo with a github.com remote and one "unpushed" commit.
+# Sets REPO, UPSTREAM_BASE, PAT_FILE in the caller's scope.
+# The commit message contains the string passed as $1.
+_fixture_repo_with_commit() {
+  local commit_msg="${1:-safe commit}"
+  REPO="$(mktemp -d)"
+  git -C "$REPO" init -q
+  git -C "$REPO" config user.email "test@test.com"
+  git -C "$REPO" config user.name "Test"
+  # Base commit (simulates the upstream)
+  git -C "$REPO" commit -q --allow-empty -m "base"
+  # Create a local branch that acts as the upstream tracking ref
+  git -C "$REPO" branch upstream-base
+  git -C "$REPO" branch --set-upstream-to=upstream-base HEAD 2>/dev/null \
+    || git -C "$REPO" branch --set-upstream-to=upstream-base master 2>/dev/null \
+    || git -C "$REPO" branch --set-upstream-to=upstream-base main 2>/dev/null || true
+  # Add the "unpushed" commit with our content
+  git -C "$REPO" commit -q --allow-empty -m "$commit_msg"
+  # Set github.com remote (non-functional URL; hook only checks the URL string)
+  git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
+}
+
+# Create a minimal AGENTS.md identity table in $REPO.
+_fixture_agents_identity() {
+  local repo="$1" expected_email="${2:-bordenet@users.noreply.github.com}"
+  cat > "$repo/AGENTS.md" <<AGENTS_EOF
+# AI Agent Guidelines
+| Context | Email | Git User |
+|---------|-------|----------|
+| github.com/* | $expected_email | testuser |
+| Work repos | work@example.com | workuser |
+AGENTS_EOF
+}
+
+# Create a minimal JSONL transcript file.
+# $1 = last user message text (empty = no user message with approval)
+_fixture_transcript() {
+  local msg="${1:-hello world}"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"I will help."}\n' > "$TPATH"
+  printf '{"role":"user","content":"%s"}\n' "$msg" >> "$TPATH"
+}
+
+# ---------------------------------------------------------------------------
+# Item 1 — PreToolUse internal-terms scan
+# ---------------------------------------------------------------------------
+
+@test "item 1: internal-terms scan blocks push to github.com" {
+  _fixture_repo_with_commit "contains callbox-internal-secret-codename in commit message"
+  PAT_FILE="$(mktemp)"
+  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"internal-terms detected"* ]] || [[ "${lines[*]}" == *"internal-terms detected"* ]]
+}
+
+@test "item 1: internal-terms scan allows push with no pattern match" {
+  _fixture_repo_with_commit "safe commit with nothing to hide"
+  PAT_FILE="$(mktemp)"
+  echo "super-secret-term-xyz" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 1: bypass clause (CLAUDE_HOOKS_BYPASS=1) allows everything" {
+  CLAUDE_HOOKS_BYPASS=1 run bash "$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"cwd":"/tmp"}')"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Item 2 — PreToolUse git identity verification
+# ---------------------------------------------------------------------------
+
+@test "item 2: git-identity blocks commit with wrong email" {
+  _fixture_repo_with_commit "test commit"
+  _fixture_agents_identity "$REPO" "bordenet@users.noreply.github.com"
+  git -C "$REPO" config user.email "wrong@example.com"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-git-identity.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"%s"}' "$REPO")"
+  rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"identity mismatch"* ]] || [[ "${lines[*]}" == *"identity mismatch"* ]]
+}
+
+@test "item 2: git-identity allows commit with correct email" {
+  _fixture_repo_with_commit "test commit"
+  _fixture_agents_identity "$REPO" "bordenet@users.noreply.github.com"
+  git -C "$REPO" config user.email "bordenet@users.noreply.github.com"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-git-identity.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"%s"}' "$REPO")"
+  rm -rf "$REPO"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 2: git-identity allows when no AGENTS.md anywhere in tree" {
+  local bare_repo
+  # Use /tmp explicitly to ensure the temp dir is not under ~/git (workspace root),
+  # which would cause the hook's directory walker to find ~/git/AGENTS.md.
+  bare_repo="$(TMPDIR=/tmp mktemp -d)"
+  git -C "$bare_repo" init -q
+  git -C "$bare_repo" config user.email "wrong@example.com"
+  git -C "$bare_repo" config user.name "Wrong User"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-git-identity.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"%s"}' "$bare_repo")"
+  rm -rf "$bare_repo"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"identity mismatch"* ]] || {
+    echo "Fail-open fired 'identity mismatch' unexpectedly: $output"
+    return 1
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Item 10 — PreToolUse RED-autonomy gate
+# ---------------------------------------------------------------------------
+
+@test "item 10: RED-autonomy blocks git push without approval" {
+  _fixture_transcript "please help me with the code"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"test-session-noap","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: RED-autonomy honors 'approve push' token (single-use)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+
+  _fixture_transcript "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"transcript_path":"%s","session_id":"test-session-approved","cwd":"/tmp"}' "$TPATH")"
+
+  # First invocation: token present → allow
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  [ "$status" -eq 0 ]
+
+  # Second invocation: token consumed → block
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  rm -f "$TPATH"
+  rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: RED-autonomy fail-open when session_id is absent" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  # Omit session_id entirely from the hook input
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 0 ]
+  # No consumed-approvals file should be written when session_id is absent
+  local consumed_count
+  consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$consumed_count" -eq 0 ] || {
+    echo "BUG: consumed-approvals file written with empty session_id"
+    return 1
+  }
+  rm -rf "$fake_home"
+}
+
+@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-open" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  # session_id of all-special chars ("../..") sanitizes to "" (empty) → must fail-open.
+  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path — wrong test.
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"../../","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 0 ]
+  # No consumed-approvals file should be written when session_id sanitizes to empty
+  local consumed_count
+  consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$consumed_count" -eq 0 ] || {
+    echo "BUG: consumed-approvals file written with empty-sanitized session_id"
+    return 1
+  }
+  rm -rf "$fake_home"
+}
+
+@test "item 10: is_red_action matches second pattern in multi-line file" {
+  local fake_home pat_file
+  fake_home="$(_fresh_home)"
+  pat_file="$(mktemp)"
+  # Matching pattern is NOT on line 1 — exercises grep -f multi-line handling (B1 fix)
+  printf '# comment\nno-match-pattern\ngit push\n' > "$pat_file"
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$pat_file" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"multi-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$pat_file" "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# Item 11a — fresh install produces all PR-2 hook artifacts
+# ---------------------------------------------------------------------------
+
+@test "item 11a: fresh install produces all PR-2 hook artifacts" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  SUPERPOWERS_CLAUDE_GUARDRAILS=1 HOME="$fake_home" \
+    XDG_CONFIG_HOME="$fake_home/.config" \
+    bash "$INSTALLER" >/dev/null 2>&1 || true
+
+  local missing=0
+  for hook in pre-tool-use-internal-terms.sh pre-tool-use-git-identity.sh pre-tool-use-red-autonomy.sh; do
+    [[ -f "$fake_home/.claude/hooks/$hook" ]] || {
+      echo "MISSING: $hook"
+      missing=1
+    }
+  done
+  rm -rf "$fake_home"
+  [ "$missing" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Placeholder stubs for items 3, 5-9 (populated per-PR as hooks land)
+# ---------------------------------------------------------------------------
+
+# item 3  (PR-3): SessionStart rules integrity
+# @test "item 3a: SessionStart blocks on dangling symlink" { skip "PR-3 not yet merged"; }
+# @test "item 3b: SessionStart passes when rules intact"   { skip "PR-3 not yet merged"; }
+
+# item 5  (PR-4): slash-mirror
+# @test "item 5: slash-menu mirror produces one command per skill" { skip "PR-4 not yet merged"; }
+
+# item 6  (PR-4): UserPromptSubmit skill router
+# @test "item 6: skill-router advises on matching prompt" { skip "PR-4 not yet merged"; }
+
+# item 7  (PR-5): PostToolUse verify
+# @test "item 7: PostToolUse verify surfaces commit summary" { skip "PR-5 not yet merged"; }
+
+# item 8  (PR-5): SubagentStop claims-evidence
+# @test "item 8: claims-evidence flags unpaired claim" { skip "PR-5 not yet merged"; }
+
+# item 9  (PR-3): PreCompact re-inject
+# @test "item 9: PreCompact re-injects CLAUDE.md head" { skip "PR-3 not yet merged"; }

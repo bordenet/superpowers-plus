@@ -120,6 +120,7 @@ console.log('\n--- use-skill: spo: without SP_OVERLAY_SOURCE_DIR (early-error re
     'surfaces the documented early-error message');
 }
 
+
 console.log('\n--- bootstrap: still works ---');
 {
   const r = run(['bootstrap']);
