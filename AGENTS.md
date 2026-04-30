@@ -122,3 +122,25 @@ git push origin upstream/main:main upstream/staging:staging upstream/dev:dev
 - ❌ NEVER promote through GitLab and then backfill GitHub
 - Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
+
+## Claude Code guardrails
+
+Non-regression scaffolding for the Claude Code self-debug action plan. PR-0 ships
+**zero active behavior** — it is pure scaffolding and baseline capture.
+
+Source of truth: internal wiki — search "claude-code-self-debug-12-point-action-plan"
+
+**Environment variables** (all default OFF; add to your local `~/.codex/.env`):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SUPERPOWERS_CLAUDE_GUARDRAILS` | `0` | P3 kill switch — enables the full guardrails subsystem (PR-3+) |
+| `CLAUDE_HOOKS_BYPASS` | `0` | Per-hook bypass for ops escape hatch (PR-1+) |
+| `AUGMENT_PARITY_OFF` | `0` | Parity-mode toggle for cross-tool validation (PR-2+) |
+
+**Baseline capture** (non-regression check):
+```bash
+bash scripts/capture-augment-baseline.sh           # overwrite baseline
+bash scripts/capture-augment-baseline.sh --check   # detect drift since baseline
+```
+Baseline file: `tests/fixtures/augment-baseline-pre-claude-guardrails.json`
