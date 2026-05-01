@@ -214,6 +214,16 @@ _fixture_transcript() {
 }
 
 # ---------------------------------------------------------------------------
+# Item 4 — CLAUDE.md imperative coverage
+# ---------------------------------------------------------------------------
+
+@test "item 4: every CLAUDE.md imperative is mapped to a hook or deferred" {
+  run bash "$BATS_TEST_DIRNAME/helpers/assert-imperative-coverage.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"item 4 PASS"* ]]
+}
+
+# ---------------------------------------------------------------------------
 # Item 1 — PreToolUse internal-terms scan
 # ---------------------------------------------------------------------------
 
