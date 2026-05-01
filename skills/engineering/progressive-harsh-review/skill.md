@@ -23,7 +23,7 @@ anti_triggers:
   - review someone's PR
   - design review inside debate
   - quick feedback
-description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <6 = REJECT. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
+description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, testability, edge cases, and security. Score <7 = REJECT. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
 summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery."
 coordination:
   group: quality
@@ -126,8 +126,8 @@ Each persona scores 1-10 on each dimension. **Aggregation rule:** take the **wei
 | Weighted Mean | Verdict | Action |
 |---------------|---------|--------|
 | ≥8 | **PASS** | Ship it |
-| 6-7 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when mean ≥8 or Round 2 finds no new issues. |
-| <6 | **REJECT** | Root-cause analysis → remediate → full re-review |
+| 7–7.9 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when mean ≥8 or Round 2 finds no new issues. |
+| <7 | **REJECT** | Root-cause analysis → remediate → full re-review |
 | Any | **REJECT (veto)** | Critical veto fired — fix the cited defect, full re-review |
 
 ### Step 4: Remediation (if needed)
@@ -153,7 +153,7 @@ Flags trigger re-examination, not automatic verdict changes.
 
 ### Step 6: Convergence
 
-- **Exit when:** Final round weighted mean ≥6 AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
+- **Exit when:** Final round weighted mean ≥7 AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Scoring Output Format
@@ -167,7 +167,7 @@ Flags trigger re-examination, not automatic verdict changes.
 | Testability | 6 | No unit tests for lock race condition |
 | Edge Cases | 5 | What if process dies mid-lock? |
 | Security/Perf | 7 | Lock file readable by any user |
-**Weighted Average: 6.5 → PASS_WITH_FIXES**
+**Weighted Average: 6.5 → REJECT** (below 7.0 threshold)
 ```
 
 ## Example
