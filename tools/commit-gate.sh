@@ -59,7 +59,7 @@ _parse_agent_gates_cg() {
                 fi
                 printf -v "$_key" '%s' "$_remainder"
                 ;;
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK|AUGMENT_PARITY_OFF)
                 # Scalar/boolean/numeric: strip inline comments, then validate.
                 _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
@@ -68,7 +68,7 @@ _parse_agent_gates_cg() {
                 _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
                 _val="$_remainder"
                 case "$_key" in
-                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK)
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK|AUGMENT_PARITY_OFF)
                         if [[ "$_val" != "true" && "$_val" != "false" ]]; then
                             echo "✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')" >&2
                             _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
@@ -151,6 +151,41 @@ else
         printf '%b\n' "${RED}  ✗ Baseline drift detected — re-capture or revert tool changes${NC}"
         printf '%b\n' "${RED}    Run: bash scripts/capture-augment-baseline.sh${NC}"
         ERRORS=$((ERRORS + 1))
+    fi
+    STEP=$((STEP + 1))
+fi
+
+# Parity validation — verify Claude Code hooks are consistent (shellcheck-clean,
+# bypass-clause present). Skipped when AUGMENT_PARITY_OFF=true in .agent-gates
+# or when the hooks directory does not exist (graceful on fresh installs).
+_HOOKS_DIR="$REPO_ROOT/tools/claude-hooks"
+if [[ "${AUGMENT_PARITY_OFF:-false}" == "true" ]]; then
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Parity validation skipped (AUGMENT_PARITY_OFF=true)"
+    STEP=$((STEP + 1))
+elif [[ ! -d "$_HOOKS_DIR" ]]; then
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Parity validation skipped — no claude-hooks/ directory"
+    STEP=$((STEP + 1))
+else
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Checking parity (Claude Code hooks)..."
+    _PARITY_ERRORS=0
+    _HOOK_COUNT=0
+    for _hook in "$_HOOKS_DIR"/*.sh; do
+        [[ -f "$_hook" ]] || continue
+        _HOOK_COUNT=$((_HOOK_COUNT + 1))
+        _hname="$(basename "$_hook")"
+        if ! bash -n "$_hook" 2>/dev/null; then
+            printf '%b\n' "${RED}  ✗ Syntax error: $_hname${NC}"
+            _PARITY_ERRORS=$((_PARITY_ERRORS + 1))
+        fi
+        if ! grep -q 'CLAUDE_HOOKS_BYPASS' "$_hook"; then
+            printf '%b\n' "${RED}  ✗ Missing bypass clause: $_hname${NC}"
+            _PARITY_ERRORS=$((_PARITY_ERRORS + 1))
+        fi
+    done
+    if [[ $_PARITY_ERRORS -eq 0 ]]; then
+        printf '%b\n' "${GREEN}  ✓ Parity OK ($_HOOK_COUNT hooks valid)${NC}"
+    else
+        ERRORS=$((ERRORS + _PARITY_ERRORS))
     fi
     STEP=$((STEP + 1))
 fi
