@@ -27,6 +27,12 @@ Wrong skill? Single-page edit → `wiki-orchestrator` · Content coherence →
 `wiki-content-coherence` · Link check → `link-verification`. Background:
 `rationale.md`.
 
+## When to Use
+
+- When asked to do a full-wiki refactor: eliminate duplication, improve information architecture, or elevate prose quality across many pages
+- Triggered by: `refactor wiki`, `wiki overhaul`, `reorganize wiki pages`, `wiki:refactor`, `reorganize all wiki pages`
+- Wrong skill? Single-page edit → `wiki-orchestrator` · Page-level coherence → `wiki-content-coherence`
+
 ## 🔴 PRD protection (non-negotiable)
 
 Detect PRD pages (case-insensitive): filename/title contains `PRD`; body H1/H2

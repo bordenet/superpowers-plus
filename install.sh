@@ -94,7 +94,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_DIR="${HOME}/.codex"
 SKILLS_DIR="${CODEX_DIR}/skills"
 SUPERPOWERS_DIR="${CODEX_DIR}/superpowers"
-SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+export SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
 
 # Platform-specific skill deployment paths
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
@@ -310,9 +310,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Lib modules (deploy.sh, etc.) read SKIP_AUGMENT via the environment so we
-# don't have to thread it through every function signature.
-export SKIP_AUGMENT
+# Lib modules (deploy.sh, etc.) read these via the environment so we
+# don't have to thread them through every function signature.
+# VERBOSE is read by logging.sh (log_verbose). YES is read by deps.sh.
+# SUPERPOWERS_REPO is read by superpowers.sh.
+export SKIP_AUGMENT VERBOSE YES
 
 # Visibility for env-var inheritance: if the caller's environment had
 # SKIP_AUGMENT=true and the user did NOT pass --skip-augment on the command line,

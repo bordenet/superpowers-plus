@@ -25,6 +25,13 @@ Hard gate for internal wiki, repo, and external URLs. **AI models hallucinate
 URLs.** Verify before write. Wrong skill? Issue tickets →
 `issue-link-verification` · Wiki claims → `wiki-verify`.
 
+## When to Use
+
+- Before writing any wiki page that contains URLs, repo links, or issue references
+- When asked to "verify links", "check broken links", or "fix wiki links"
+- Triggered by: `verify links`, `check this link`, `wiki:verify-links`, `link:verify`
+- Wrong skill? Issue ticket links → `issue-link-verification` · Claim accuracy → `wiki-verify`
+
 ## Gate (exit `0` ok · `1` block · `2` warn-only)
 
 | Type | Example | On failure |

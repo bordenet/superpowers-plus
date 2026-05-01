@@ -102,19 +102,19 @@ skills/{domain}/{skill-name}/
 ### 🔴 Git Workflow — GitHub First, Always
 
 **Remotes in this clone:**
-- `upstream` = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
-- `origin`   = GitLab (private mirror) — synced FROM GitHub, never promoted through
+- `origin`  = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
+- `gitlab`  = GitLab (private mirror) — synced FROM GitHub, never promoted through
 
-**ALL changes go to GitHub (`upstream`) first via PR. GitLab is downstream.**
+**ALL changes go to GitHub (`origin`) first via PR. GitLab is downstream.**
 
-3-Tier promotion (all on GitHub `upstream`):
-1. Feature branch → push to `upstream`, open PR into `upstream/dev`
+3-Tier promotion (all on GitHub `origin`):
+1. Feature branch → push to `origin`, open PR into `origin/dev`
 2. `dev → staging`: explicit human instruction only
 3. `staging → main`: explicit human instruction + batch review approval
 
 After GitHub main is updated, sync GitLab mirror:
 ```
-git push origin upstream/main:main upstream/staging:staging upstream/dev:dev
+git push gitlab origin/main:main origin/staging:staging origin/dev:dev
 ```
 
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`

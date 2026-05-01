@@ -25,6 +25,12 @@ Scan wiki pages for exposed credentials, tokens, and keys. Wrong skill? Code
 repos → `repo-security-scan` · Wiki-sourced instruction safety →
 `wiki-instruction-guard` · Version claims → `wiki-verify`.
 
+## When to Use
+
+- When asked to scan wiki pages for exposed credentials, API keys, or tokens
+- Triggered by: `scan wiki for secrets`, `audit wiki for credentials`, `find leaked tokens in wiki`, `wiki security scan`
+- Wrong skill? Code repos → `repo-security-scan` · Claim accuracy → `wiki-verify`
+
 ## Procedure
 
 ### 1 — Collect scope into `scan.md`

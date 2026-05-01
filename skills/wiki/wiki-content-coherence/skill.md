@@ -26,6 +26,13 @@ Detect duplication and structural drift in a single wiki page. Stage 2.5 in
 `wiki-orchestrator` (between content generation and link verification).
 Advisory gate; HIGH severity → user review before publish.
 
+## When to Use
+
+- When asked to check a single wiki page for duplication, redundant sections, or structural drift
+- Triggered by: `check wiki page coherence`, `refactor wiki page`, `deduplicate wiki content`, `audit wiki page structure`, `wiki:coherence-check`
+- Stage 2.5 in `wiki-orchestrator`; HIGH severity findings block publish until reviewed
+- Wrong skill? Multi-page refactor → `wiki-refactor` · Fact accuracy → `wiki-verify`
+
 ## Scope
 
 Single page only. Skip pages <500 words. Abort >10,000 words.
