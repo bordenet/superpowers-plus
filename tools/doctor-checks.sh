@@ -205,9 +205,13 @@ in_yaml{
   if(line~/^name:[ \t]*/){n=line;sub(/^name:[ \t]*/,"",n);gsub(/["']/,"",n);yname=n}
   if(line~/^triggers:[ \t]*\[.+\]/){trigs=line;ml_trig=0}
   else if(line~/^triggers:[ \t]*\[\]/){trigs="";ml_trig=0}
+  # Multi-line inline array: triggers: ["foo", "bar",   (has [ + content, no closing ])
+  else if(line~/^triggers:[ \t]*\[.+/ && index(line,"]")==0){trigs=line;ml_trig=2}
   else if(line~/^triggers:/){ml_trig=1;trigs=""}
-  else if(ml_trig && line~/^[[:space:]]+-/){trigs=trigs?trigs"\x01"line:line}
-  else if(ml_trig && line!~/^[[:space:]]/){ml_trig=0}
+  # ml_trig==2: accumulate inline continuation lines until ] is found
+  else if(ml_trig==2){trigs=trigs"\x01"line;if(index(line,"]")>0)ml_trig=0}
+  else if(ml_trig==1 && line~/^[[:space:]]+-/){trigs=trigs?trigs"\x01"line:line}
+  else if(ml_trig>0 && line!~/^[[:space:]]/){ml_trig=0}
   print line; next
 }
 {if(index($0,"\r")>0) crlf=1}
