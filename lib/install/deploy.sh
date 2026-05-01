@@ -696,6 +696,41 @@ _skill_dest_name() {
     basename "$skill_dir"
 }
 
+# Remove stale skills from the legacy ~/.augment/skills/ directory.
+# This directory was the Augment IDE skill path before the migration to
+# ~/.agents/skills/ (removed in #106). Augment IDE reads both paths natively,
+# so stale entries here surface outdated trigger phrases and descriptions.
+# Prune: only removes entries whose source: matches $1 so other installers'
+#        skills (e.g. superpowers-callbox) are never touched by this installer.
+# Skipped when --skip-augment is set or when the directory does not exist.
+prune_legacy_augment_skills() {
+    local prune_source="${1:-}"
+    [[ -z "$prune_source" ]] && return 0
+    [[ "${SKIP_AUGMENT:-false}" == "true" ]] && return 0
+
+    local legacy_dir="${HOME}/.augment/skills"
+    [[ -d "$legacy_dir" ]] || return 0
+
+    local pruned=0
+    local skill_dir skill_file
+    for skill_dir in "$legacy_dir"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        skill_file=""
+        [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+        [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+        [[ -z "$skill_file" ]] && continue
+        if grep -Eq "^source: ${prune_source}$" "$skill_file" 2>/dev/null; then
+            rm -rf "${skill_dir:?}" || { log_warn "Failed to prune legacy skill: $(basename "$skill_dir")"; continue; }
+            log_verbose "  Pruned legacy ~/.augment/skills/$(basename "$skill_dir") (source: $prune_source)"
+            pruned=$((pruned + 1))
+        fi
+    done
+
+    if [[ $pruned -gt 0 ]]; then
+        log_success "Pruned $pruned legacy skill(s) from ~/.augment/skills/ (migrated to ~/.agents/skills/)"
+    fi
+}
+
 # Export opted-in skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
 # Gate: skill must declare `augment_menu: true` in frontmatter.
 # Name: derived from first /sp* trigger; falls back to skill directory name.
@@ -901,6 +936,9 @@ install_skills() {
     else
         : > "$manifest"
     fi
+
+    # Remove stale entries from legacy ~/.augment/skills/ (migrated to ~/.agents/skills/)
+    prune_legacy_augment_skills "superpowers-plus"
 
     # Export opted-in skills to Augment IDE slash menu; prune stale sp+ entries only
     export_augment_menu_skills "superpowers-plus"
