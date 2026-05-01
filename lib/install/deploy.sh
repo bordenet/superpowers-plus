@@ -45,12 +45,29 @@ _resolve_upstream_dir() {
 # When a skill declares `overrides:`, stage the upstream companion files first
 # (reference docs, scripts, prompts), then overlay the override's skill.md on
 # top. This ensures companion files from the upstream source survive the override.
+# $1 = source skill directory
+# $2 = (optional) destination folder name override (defaults to source basename).
+#      Supply the sp-trigger name (e.g. "sp-brainstorm") so Claude Code exposes
+#      the correct /sp-* slash command rather than the legacy folder name.
 install_skill() {
     local skill_dir="$1"
     local skill_name
     skill_name=$(basename "$skill_dir")
+    local dest_name="${2:-$skill_name}"
 
-    log_verbose "Installing skill: $skill_name"
+    # Allowlist: dest_name must be a non-empty plain name (letters, digits, hyphens, underscores).
+    # This rejects "/", "..", ".", empty string, and any embedded special characters that
+    # could escape the target directory when concatenated into $SKILLS_DIR/$dest_name.
+    if [[ ! "$dest_name" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+        log_warn "Skipping skill '$skill_name': unsafe dest name '$dest_name' (must match ^[A-Za-z0-9][A-Za-z0-9_-]*\$)"
+        return 1
+    fi
+
+    if [[ "$dest_name" != "$skill_name" ]]; then
+        log_verbose "Installing skill: $skill_name (as $dest_name)"
+    else
+        log_verbose "Installing skill: $skill_name"
+    fi
 
     # Check if SKILL.md or skill.md exists
     if [[ ! -f "$skill_dir/SKILL.md" ]] && [[ ! -f "$skill_dir/skill.md" ]]; then
@@ -80,13 +97,18 @@ install_skill() {
     fi
 
     for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+        # Skip the Augment target (~/.codex/skills/) when --skip-augment is set.
+        # Claude Code (~/.claude/skills/) still receives the skill.
+        if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$target_dir" == "$SKILLS_DIR" ]]; then
+            continue
+        fi
         mkdir -p "$target_dir"
-        local dest="$target_dir/$skill_name"
+        local dest="$target_dir/$dest_name"
 
         # Always start with a clean destination
         if [[ -d "$dest" ]]; then
             rm -rf "${dest:?}" || \
-                error_exit "Failed to remove existing skill: $skill_name"
+                error_exit "Failed to remove existing skill: $dest_name"
         fi
         mkdir -p "$dest"
 
@@ -124,12 +146,17 @@ install_skill() {
         done < <(find "$skill_dir" -maxdepth 1 -type d -not -path "$skill_dir" -print0 2>/dev/null)
     done
 
-    log_success "Installed: $skill_name"
+    log_success "Installed: $dest_name"
     return 0
 }
 
 # Install the superpowers-augment adapter
 install_adapter() {
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping superpowers-augment adapter (--skip-augment)"
+        return 0
+    fi
+
     log_info "Installing superpowers-augment adapter..."
 
     local adapter_src="$SCRIPT_DIR/superpowers-augment.js"
@@ -650,6 +677,60 @@ _extract_sp_trigger() {
     echo "$t"
 }
 
+# Compute the install destination name for a skill directory.
+# Uses the first /sp* trigger from the skill file if present;
+# otherwise falls back to the source directory basename.
+_skill_dest_name() {
+    local skill_dir="$1"
+    local skill_file=""
+    [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+    [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+    if [[ -n "$skill_file" ]]; then
+        local sp_trigger
+        sp_trigger=$(_extract_sp_trigger "$skill_file")
+        if [[ -n "$sp_trigger" ]]; then
+            printf '%s\n' "${sp_trigger#/}"
+            return
+        fi
+    fi
+    basename "$skill_dir"
+}
+
+# Remove stale skills from the legacy ~/.augment/skills/ directory.
+# This directory was the Augment IDE skill path before the migration to
+# ~/.agents/skills/ (removed in #106). Augment IDE reads both paths natively,
+# so stale entries here surface outdated trigger phrases and descriptions.
+# Prune: only removes entries whose source: matches $1 so other installers'
+#        skills (e.g. superpowers-callbox) are never touched by this installer.
+# Skipped when --skip-augment is set or when the directory does not exist.
+prune_legacy_augment_skills() {
+    local prune_source="${1:-}"
+    [[ -z "$prune_source" ]] && return 0
+    [[ "${SKIP_AUGMENT:-false}" == "true" ]] && return 0
+
+    local legacy_dir="${HOME}/.augment/skills"
+    [[ -d "$legacy_dir" ]] || return 0
+
+    local pruned=0
+    local skill_dir skill_file
+    for skill_dir in "$legacy_dir"/*/; do
+        [[ -d "$skill_dir" ]] || continue
+        skill_file=""
+        [[ -f "$skill_dir/skill.md" ]] && skill_file="$skill_dir/skill.md"
+        [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
+        [[ -z "$skill_file" ]] && continue
+        if grep -Eq "^source: ${prune_source}$" "$skill_file" 2>/dev/null; then
+            rm -rf "${skill_dir:?}" || { log_warn "Failed to prune legacy skill: $(basename "$skill_dir")"; continue; }
+            log_verbose "  Pruned legacy ~/.augment/skills/$(basename "$skill_dir") (source: $prune_source)"
+            pruned=$((pruned + 1))
+        fi
+    done
+
+    if [[ $pruned -gt 0 ]]; then
+        log_success "Pruned $pruned legacy skill(s) from ~/.augment/skills/ (migrated to ~/.agents/skills/)"
+    fi
+}
+
 # Export opted-in skills to ~/.agents/skills/ for Augment IDE slash menu discovery.
 # Gate: skill must declare `augment_menu: true` in frontmatter.
 # Name: derived from first /sp* trigger; falls back to skill directory name.
@@ -659,6 +740,10 @@ _extract_sp_trigger() {
 export_augment_menu_skills() {
     local prune_source="${1:-}"   # e.g. "superpowers-plus" or "superpowers-myoverlay"
     [[ -z "${AUGMENT_MENU_DIR:-}" ]] && return 0
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping Augment slash menu export (--skip-augment)"
+        return 0
+    fi
 
     log_info "Exporting augment_menu skills to Augment slash menu..."
     mkdir -p "$AUGMENT_MENU_DIR"
@@ -768,6 +853,9 @@ install_skills() {
     local skipped=0
     local current_skill_names=()
 
+    # Single-pass: compute dest name once per skill, record for pruner, then install.
+    # Pruning runs after install; both are safe because old and new names never collide
+    # (different folder names), and install_skill already rm -rf's any existing dest.
     for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
         [[ ! -d "$domain_or_skill" ]] && continue
         local dir_name
@@ -776,29 +864,10 @@ install_skills() {
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            current_skill_names+=("$(basename "$domain_or_skill")")
-        else
-            for skill_dir in "$domain_or_skill"*/; do
-                [[ ! -d "$skill_dir" ]] && continue
-                if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    current_skill_names+=("$(basename "$skill_dir")")
-                fi
-            done
-        fi
-    done
-
-    prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-    prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
-
-    for domain_or_skill in "$SCRIPT_DIR/skills/"*/; do
-        [[ ! -d "$domain_or_skill" ]] && continue
-        local dir_name
-        dir_name=$(basename "$domain_or_skill")
-
-        [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
-
-        if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
-            if install_skill "$domain_or_skill"; then
+            local _dn
+            _dn=$(_skill_dest_name "$domain_or_skill")
+            if install_skill "$domain_or_skill" "$_dn"; then
+                current_skill_names+=("$_dn")   # only track on success
                 installed=$((installed + 1))
             else
                 skipped=$((skipped + 1))
@@ -810,7 +879,10 @@ install_skills() {
                 nested_name=$(basename "$skill_dir")
                 [[ "$nested_name" == _* ]] && continue  # Skip _adapters in domain dirs
                 if [[ -f "$skill_dir/skill.md" ]] || [[ -f "$skill_dir/SKILL.md" ]]; then
-                    if install_skill "$skill_dir"; then
+                    local _dn
+                    _dn=$(_skill_dest_name "$skill_dir")
+                    if install_skill "$skill_dir" "$_dn"; then
+                        current_skill_names+=("$_dn")   # only track on success
                         installed=$((installed + 1))
                     else
                         skipped=$((skipped + 1))
@@ -820,10 +892,28 @@ install_skills() {
         fi
     done
 
+    # Guard: only prune when at least one skill installed successfully.
+    # An empty list would cause the pruner to delete every previously managed skill.
+    if [[ ${#current_skill_names[@]} -eq 0 ]]; then
+        log_warn "No skills were installed — skipping prune to prevent mass deletion"
+    else
+        # When --skip-augment is set we did not write to $SKILLS_DIR this run.
+        # Don't prune that location — leave any pre-existing Augment artifacts
+        # untouched (per --skip-augment contract: skip, don't clean up).
+        if [[ "${SKIP_AUGMENT:-false}" != "true" ]]; then
+            prune_stale_managed_skills "$SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+        fi
+        prune_stale_managed_skills "$CLAUDE_SKILLS_DIR" "$manifest" "${current_skill_names[@]}"
+    fi
+
     # Deploy _shared/ support directory (not a skill, but referenced by skills)
     if [[ -d "$SCRIPT_DIR/skills/_shared" ]]; then
         for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
             [[ -z "$target_dir" || ! -d "$target_dir" ]] && continue
+            # Skip Augment skills target when --skip-augment is set
+            if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$target_dir" == "$SKILLS_DIR" ]]; then
+                continue
+            fi
             local shared_dest="$target_dir/_shared"
             rm -rf "${shared_dest:?}" 2>/dev/null || true
             cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
@@ -847,6 +937,9 @@ install_skills() {
         : > "$manifest"
     fi
 
+    # Remove stale entries from legacy ~/.augment/skills/ (migrated to ~/.agents/skills/)
+    prune_legacy_augment_skills "superpowers-plus"
+
     # Export opted-in skills to Augment IDE slash menu; prune stale sp+ entries only
     export_augment_menu_skills "superpowers-plus"
 }
@@ -854,6 +947,11 @@ install_skills() {
 
 # Install rules from rules/ directory
 install_rules() {
+    if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
+        log_verbose "Skipping rules install (--skip-augment) — target is ~/.augment/rules/"
+        return 0
+    fi
+
     log_info "Installing rules from superpowers-plus..."
 
     local rules_src="$SCRIPT_DIR/rules"
@@ -963,5 +1061,29 @@ install_templates() {
 
     if [[ $installed -gt 0 ]]; then
         log_success "Installed $installed template(s) to $templates_dir"
+    fi
+}
+
+# Mirror Augment slash-menu skills to Claude Code custom commands (item 5).
+# Reads SKILL.md files from AUGMENT_MENU_DIR and writes ~/.claude/commands/<name>.md.
+# Skipped when AUGMENT_MENU_DIR is empty or missing (i.e. --skip-augment context).
+install_claude_commands_mirror() {
+    local mirror_script="${SCRIPT_DIR}/tools/claude-commands-mirror.sh"
+    if [[ ! -f "$mirror_script" ]]; then
+        log_verbose "claude-commands-mirror.sh not found — skipping"
+        return 0
+    fi
+    if [[ ! -d "${AUGMENT_MENU_DIR:-}" ]]; then
+        log_verbose "Augment slash menu not populated — skipping Claude commands mirror"
+        return 0
+    fi
+    local verbose_flag=""
+    [[ "${VERBOSE:-false}" == "true" ]] && verbose_flag="--verbose"
+    # shellcheck disable=SC2086
+    if AUGMENT_MENU_DIR="$AUGMENT_MENU_DIR" bash "$mirror_script" $verbose_flag >/dev/null; then
+        log_info "Claude commands mirror: OK"
+    else
+        log_warn "Claude commands mirror exited non-zero — run manually: bash tools/claude-commands-mirror.sh"
+        return 0
     fi
 }

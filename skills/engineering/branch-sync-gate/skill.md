@@ -51,7 +51,7 @@ composition:
 
 This is not optional. It is not skippable. It applies even if you were just working on the branch 5 minutes ago.
 
-## When This Fires
+## When to Use
 
 Any time you are about to:
 - Resume or continue work on a branch that exists on a remote
@@ -107,6 +107,15 @@ If you find yourself already mid-work and realize you haven't pulled — stop, p
 | Pull after writing code | Pull before writing code |
 | Merge conflicts on push | Prevented by pulling first |
 | Re-fixing what a teammate already fixed | Prevented by pulling first |
+
+## Failure Modes
+
+| Symptom | Fix |
+|---------|-----|
+| `git fetch` hangs | Check network / VPN; run `git remote -v` to verify remote URL |
+| Merge conflict after pull | `git status` to identify conflicts; resolve, then `git rebase --continue` |
+| Branch doesn't exist on remote | Verify with `git branch -r`; may be a new local-only branch |
+| Remote HEAD diverged too far | Consider `git fetch origin && git log --oneline origin/branch` before rebasing |
 
 ## Companion Skills
 

@@ -86,22 +86,18 @@ _check_mcp_server() {
 # NOTE: _check_mcp_server leaks to global function namespace; cleaned up at end of _doctor_mcp_checks
 
 # --- Source 1: Augment settings.json ---
+# Single jq call extracts all server fields as TSV (O(1) processes vs O(N) prev).
+# @tsv escapes tab/newline in values — safe since server names/paths never contain tabs.
 if [[ -f "$augment_settings" ]] && command -v jq &>/dev/null; then
-  local server_names
-  server_names=$(jq -r '.mcpServers // {} | to_entries[]
-    | select(.value.type != "http" and .value.type != "sse")
-    | .key' "$augment_settings" 2>/dev/null || true)
-
-  local name
-  while IFS= read -r name; do
-    [[ -z "$name" ]] && continue
+  local name cmd first_arg
+  while IFS=$'\t' read -r name cmd first_arg; do
+    [[ -z "$name" || -z "$cmd" ]] && continue
     found_any=true
-    local cmd first_arg
-    cmd=$(jq -r --arg n "$name" '.mcpServers[$n].command // empty' "$augment_settings" 2>/dev/null || true)
-    first_arg=$(jq -r --arg n "$name" '.mcpServers[$n].args[0] // empty' "$augment_settings" 2>/dev/null || true)
-    [[ -z "$cmd" ]] && continue
     _check_mcp_server "$name" "$cmd" "$first_arg"
-  done <<< "$server_names"
+  done < <(jq -r '.mcpServers // {} | to_entries[]
+    | select(.value.type != "http" and .value.type != "sse")
+    | [.key, (.value.command // ""), (.value.args[0] // "")] | @tsv' \
+    "$augment_settings" 2>/dev/null || true)
 fi
 
 # --- Source 2: Claude Code (if available) ---

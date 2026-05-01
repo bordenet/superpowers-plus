@@ -23,8 +23,13 @@ for _overlay_dir in "${SOURCE_DIRS[@]}"; do
     done < "$_es_file"
   fi
 done
+# Build O(1) set from EXPLICIT_LIST (avoids one echo|grep fork per skill)
+declare -A _explicit_set=()
+while IFS= read -r _es; do
+  [[ -n "$_es" ]] && _explicit_set["$_es"]=1
+done <<< "$EXPLICIT_LIST"
 for skill in "${!SKILL_PATH[@]}"; do
-  if [[ -z "${SKILL_HAS_TRIGGERS[$skill]:-}" ]] && ! echo "$EXPLICIT_LIST" | grep -q "^${skill}$"; then
+  if [[ -z "${SKILL_HAS_TRIGGERS[$skill]:-}" && -z "${_explicit_set[$skill]:-}" ]]; then
     echo "🟡 WARNING: $skill — no triggers and not in EXPLICIT_SKILLS"; ((WARNINGS++))
   fi
 done
@@ -40,13 +45,16 @@ done
 # trigger-sharing warnings from this doctor. Those are NOT public repo
 # bugs — add the overlay collision groups to your private repo's config.
 KNOWN_COLLISION_GROUPS=(
-  # Hub→child: thinking-orchestrator delegates to specialized skills
-  "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review progressive-harsh-review"
+  # Hub→child: thinking-orchestrator delegates to specialized skills.
+  # Names are INSTALLED dir names (from ~/.codex/skills/), not source dir names:
+  #   think-twice → sp-rethink, progressive-harsh-review → sp-phr,
+  #   verification-before-completion → sp-verify, providing-code-review → sp-review
+  "thinking-orchestrator adversarial-search sp-rethink completeness-check sp-verify exhaustive-audit-validation sp-review sp-phr"
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
-  # Pre-commit chain: unified-commit-gate is the hub; the 5 gate skills are its delegates.
-  # Hub and all siblings share commit/push triggers — suppress all pairwise collisions within this group.
-  "unified-commit-gate pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
+  # Pre-commit chain: unified-commit-gate (→sp-commit) is the hub; delegate skills share
+  # commit/push triggers. enforce-style-guide → sp-style after renaming.
+  "sp-commit sp-style progressive-code-review-gate professional-language-audit public-repo-ip-audit"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
   # Security: vulnerability scanning vs repo secret scanning
@@ -55,10 +63,13 @@ KNOWN_COLLISION_GROUPS=(
   "skill-authoring writing-skills"
   # Completion-gate chain: intentional multi-skill coverage for completion/merge phrases.
   # "implementation complete" fires both implementation-tracker (archive prompt) and
-  # finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
-  # verification-before-completion (safety gate) and finishing-a-development-branch
-  # (branch options). coordination.requires is metadata only — not enforced at runtime.
-  "finishing-a-development-branch verification-before-completion implementation-tracker"
+  # sp-finish / finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
+  # sp-verify (safety gate) and sp-finish (branch options).
+  # finishing-a-development-branch is the source name; sp-finish is the installed name.
+  "sp-finish sp-verify implementation-tracker"
+  # Review-sync chain: "review this PR" intentionally fires both sp-review (code review)
+  # and sp-sync (branch-sync-gate) — pull first, then review.
+  "sp-review sp-sync"
 )
 
 # Load overlay collision groups from all overlay source dirs
@@ -96,31 +107,34 @@ declare -A trigger_map
 for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
   triggers_raw="${SKILL_TRIGGERS_RAW[$skill]}"
   [[ -z "$triggers_raw" ]] && continue
-  # Handle both inline arrays and multi-line items
-  if echo "$triggers_raw" | grep -q '^[[:space:]]*-'; then
-    # Multi-line format: each line is "  - "value""
-    triggers=$(echo "$triggers_raw" | sed 's/^[[:space:]]*-[[:space:]]*//' | sed 's/^"//;s/"$//' | sed "s/^'//;s/'$//" | grep -v '^$' || true)
-  else
-    # Inline format: triggers: ["foo", "bar"]
-    triggers=$(echo "$triggers_raw" | sed 's/triggers://' | tr -d '[]' | tr ',' '\n' | sed 's/^[[:space:]]*"//;s/"[[:space:]]*$//' | grep -v '^$' || true)
-  fi
+  # Parse trigger strings from raw value using awk (1 fork vs 4-6 prev).
+  # Multi-line: lines starting with "  - "; inline: triggers: ["foo","bar"]
+  triggers=$(awk '
+    /^[[:space:]]*-/ {
+      gsub(/^[[:space:]]*-[[:space:]]*/, ""); gsub(/^["'"'"']|["'"'"']$/, ""); if ($0) print; next
+    }
+    /^triggers:/ {
+      gsub(/^triggers:[[:space:]]*\[|\]/, "")
+      n = split($0, a, /[,]+/)
+      for (i=1; i<=n; i++) { gsub(/^[[:space:]"'"'"']+|[[:space:]"'"'"']+$/, "", a[i]); if (a[i]) print a[i] }
+    }
+  ' <<< "$triggers_raw")
   while IFS= read -r trigger; do
     [[ -z "$trigger" ]] && continue
-    lt=$(echo "$trigger" | tr '[:upper:]' '[:lower:]')
+    lt="${trigger,,}"  # bash lowercase — 0 forks (bash 4.0+)
     if [[ -n "${trigger_map[$lt]:-}" ]]; then
       existing="${trigger_map[$lt]}"
-      # Skip if skill is already in the map for this trigger (self-collision)
-      if echo ", $existing," | grep -q ", ${skill},"; then
-        continue
-      fi
+      # Skip if this skill is already recorded for this trigger
+      [[ ", $existing," == *", ${skill},"* ]] && continue
       # Check if all colliding skills are in the same known group
       all_known=true
-      while IFS= read -r prev_skill; do
+      IFS=', ' read -ra _prev_skills <<< "$existing"
+      for prev_skill in "${_prev_skills[@]}"; do
         [[ -z "$prev_skill" ]] && continue
         if ! in_same_group "$prev_skill" "$skill"; then
           all_known=false; break
         fi
-      done <<< "$(echo "$existing" | tr ',' '\n' | sed 's/^[[:space:]]*//')"
+      done
       if [[ "$all_known" == "false" ]]; then
         echo "🟡 WARNING: trigger '$trigger' shared by: $existing AND $skill"; ((WARNINGS++))
       fi
@@ -134,10 +148,10 @@ done
 # not incidental mentions of the word "deprecated" in unrelated content.
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"
-  yaml_block="${SKILL_YAML[$skill]}"
-  # Check frontmatter for deprecated: true
+  yaml_lc="${SKILL_YAML[$skill],,}"  # lowercase once — 0 forks
+  # Check frontmatter for deprecated: (case-insensitive, bash string op)
   is_deprecated=false
-  echo "$yaml_block" | grep -qi "^deprecated:" && is_deprecated=true
+  [[ "$yaml_lc" == *$'\n'deprecated:* || "$yaml_lc" == deprecated:* ]] && is_deprecated=true
   # Check first 10 lines after frontmatter for prominent deprecation markers
   if [[ "$is_deprecated" == "false" ]]; then
     body_start="${SKILL_BODY_START[$skill]:-}"

@@ -61,6 +61,27 @@ assert.strictEqual(stripFrontmatter('---\nid: abc\n---\n\nbody\n'), 'body\n');
 assert.strictEqual(stripFrontmatter('---\r\nid: abc\r\n---\r\n\r\nbody\r\n'), 'body\n');
 assert.deepStrictEqual(stripFrontmatterWithOffset('---\nid: abc\n---\n\nbody\n'), { markdown: 'body\n', lineOffset: 4 });
 assert.deepStrictEqual(prepareMarkdownForValidation('---\nid: abc\n---\n\nbody\n', { stripFrontmatter: true }), { markdown: 'body\n', lineOffset: 4 });
+// H1 heading detection — Outline renders the title automatically
+const h1Doc = '# My Page Title\n\nSome body text.';
+const h1Issues = findMarkdownArtifacts(h1Doc);
+assert.strictEqual(h1Issues.length, 1);
+assert.match(h1Issues[0], /H1 heading found/);
+assert.match(h1Issues[0], /line 1:/);
+
+// H1 inside a code fence must NOT be flagged (it's example content)
+const h1InFence = '```markdown\n# Example heading in fence\n```\nNormal text.';
+assert.deepStrictEqual(findMarkdownArtifacts(h1InFence), []);
+
+// H1 inside a blockquote must also be flagged (structuralLine strips the > prefix)
+const h1InBlockquote = '> # Blockquoted Title\n\nSome body text.';
+const h1BqIssues = findMarkdownArtifacts(h1InBlockquote);
+assert.strictEqual(h1BqIssues.length, 1);
+assert.match(h1BqIssues[0], /H1 heading found/);
+assert.match(h1BqIssues[0], /line 1:/);
+
+// H2+ headings are not blocked
+assert.deepStrictEqual(findMarkdownArtifacts('## Section\n### Sub-section'), []);
+
 assert.doesNotThrow(() => assertArtifactFree('Clean line'));
 assert.throws(() => assertArtifactFree('[doc]()', { label: 'sample' }), /sample:\n  - line 1: empty href found/);
 assert.throws(() => assertRoundTripArtifacts({ outboundMarkdown: '[doc]()', persistedMarkdown: 'clean' }), /outbound markdown:/);

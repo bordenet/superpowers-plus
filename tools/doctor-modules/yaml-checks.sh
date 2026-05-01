@@ -24,11 +24,23 @@ done
 for skill in "${!SKILL_YAML_NAME[@]}"; do
   yaml_name="${SKILL_YAML_NAME[$skill]}"
   if [[ -n "$yaml_name" && "$yaml_name" != "$skill" ]]; then
-    echo "🔴 CRITICAL: $skill — name: '$yaml_name' ≠ directory '$skill'"; ((CRITICAL++))
-    if can_fix safe; then
-      if backup_skill "$(dirname "${SKILL_PATH[$skill]}")"; then
-        sed_inplace "s/^name:.*$/name: $skill/" "${SKILL_PATH[$skill]}"
-        echo "  ✅ FIXED: name → '$skill'"; ((FIXED++))
+    # Exempt intentional trigger-alias installs: if "/$skill" appears in the skill's
+    # triggers list, the skill was installed under its slash-command alias directory
+    # (e.g. name: debate lives in sp-debate/ because /sp-debate is its trigger).
+    # The name/directory mismatch is deliberate — suppress the CRITICAL in this case.
+    _triggers="${SKILL_TRIGGERS_RAW[$skill]:-}"
+    # Fallback: multi-line inline arrays (e.g. "triggers: [\"/sp-plan\",\n  ...]") are not
+    # fully captured by SKILL_TRIGGERS_RAW; scan SKILL_YAML when SKILL_TRIGGERS_RAW is empty.
+    [[ -z "$_triggers" ]] && _triggers="${SKILL_YAML[$skill]:-}"
+    if [[ -n "$_triggers" ]] && echo "$_triggers" | grep -qE "^[[:space:]]*-[[:space:]]+[\"']*/${skill}[\"']*[[:space:]]*$|[\"']/${skill}[\"']"; then
+      : # Intentional alias install — name: differs from directory by design
+    else
+      echo "🔴 CRITICAL: $skill — name: '$yaml_name' ≠ directory '$skill'"; ((CRITICAL++))
+      if can_fix safe; then
+        if backup_skill "$(dirname "${SKILL_PATH[$skill]}")"; then
+          sed_inplace "s/^name:.*$/name: $skill/" "${SKILL_PATH[$skill]}"
+          echo "  ✅ FIXED: name → '$skill'"; ((FIXED++))
+        fi
       fi
     fi
   fi
@@ -62,11 +74,19 @@ for skill in "${!SKILL_YAML[@]}"; do
 done
 
 # --- Check 15: Structure Quality ---
+# Single awk pass replaces 3 separate grep -Eqi file reads per skill (528 forks → 176 forks).
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"; issues=""
-  grep -Eqi 'when to use|when to invoke' "$f" || issues="${issues}missing 'When to Use'; "
-  grep -q '```' "$f" || issues="${issues}no code examples; "
-  grep -Eqi 'failure|fix:|recovery|troubleshoot' "$f" || issues="${issues}no failure modes; "
+  read -r _has_wtu _has_code _has_fail < <(awk '
+    BEGIN { w=0; c=0; f=0 }
+    tolower($0) ~ /when to use|when to invoke/ { w=1 }
+    /```/ { c=1 }
+    tolower($0) ~ /failure|fix:|recovery|troubleshoot/ { f=1 }
+    END { print w, c, f }
+  ' "$f")
+  [[ "${_has_wtu:-0}" == "0" ]] && issues="${issues}missing 'When to Use'; "
+  [[ "${_has_code:-0}" == "0" ]] && issues="${issues}no code examples; "
+  [[ "${_has_fail:-0}" == "0" ]] && issues="${issues}no failure modes; "
   [[ -n "$issues" ]] && echo "🔵 INFO: $skill — $issues"
 done
 

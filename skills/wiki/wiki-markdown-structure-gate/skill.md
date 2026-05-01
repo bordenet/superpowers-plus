@@ -24,6 +24,12 @@ composition:
 Block structurally broken wiki markdown before publish. Stage 5.5 in
 `wiki-orchestrator`. Validator: `tools/wiki-markdown-validate.js`.
 
+## When to Use
+
+- Before publishing any wiki page — run as Stage 5.5 in `wiki-orchestrator`
+- When asked to audit or fix wiki markdown structure, table syntax, heading hierarchy, or broken code fences
+- Triggered by: `audit wiki markdown structure`, `fix malformed wiki table`, `wiki formatting gate`, `broken admonition block`
+
 ## Procedure
 
 ```bash
@@ -41,6 +47,7 @@ numbers, fix, re-run. Do not publish until exit `0`.
 
 | Check | Block when |
 |-------|------------|
+| H1 heading | Any `# Title` line in the body — Outline renders the page title automatically; H1 creates a redundant duplicate |
 | Table structure | Missing separator row, inconsistent cell counts, stray `\|` row |
 | Escaped wiki-links | `\[title\[/doc/...` and similar round-trip artifacts |
 | Code fences | Unbalanced backtick (`` ``` ``) or tilde (`~~~`) fences |

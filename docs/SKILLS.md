@@ -99,7 +99,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `holistic-repo-verification` | Verifies ALL repository health aspects: CI, Pages, custom workflows. |
 | `measurement-integrity` | Forces cross-validation and confidence qualification before reporting metrics. |
 | `skill-health-check` | Structural lint for skill files: validates YAML, line counts, coordination metadata. |
-| `superpowers-doctor` | 22-check diagnostic across all installed skills. Modeled after `brew doctor`. |
+| `superpowers-doctor` | 29-check diagnostic across all installed skills. Modeled after `brew doctor`. |
 
 ## Issue Tracking
 

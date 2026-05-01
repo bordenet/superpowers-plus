@@ -8,10 +8,8 @@ Skills for AI coding assistants that enforce the practices AI would otherwise sk
 
 | Platform | Status |
 |----------|--------|
+| **Claude Code** | ✅ Full support — skills, lifecycle hooks (SessionStart, PreCompact, PreToolUse), commit gates, pre-push hooks, and red-autonomy guardrails all install and run cleanly. |
 | **Augment Code** | ✅ Full support — skills, routing, commit gates, pre-push hooks, and MCP integrations install and run cleanly. |
-| **Claude Code** | ⚠️ In progress — skills and rules load into context, but the deterministic enforcement layer (lifecycle hooks, permission gates) is not yet wired. Behavior is more variable than on Augment Code. |
-
-Augment Code is the recommended platform. Claude Code parity work is underway; until it ships, treat Claude Code support as experimental.
 
 ## What This Is
 
@@ -27,7 +25,7 @@ Each skill exists because it caught a real problem.
 |-------|-------------|
 | [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches 5 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst) instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
-| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 7 = rejected. |
+| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
@@ -201,15 +199,15 @@ bash install.sh --upgrade
 After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js find-skills | head -5
-# Expected: ~89 skill names listed
+node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
+# Expected: skill catalog printed without errors (superpowers-plus contributes 89 skills)
 ```
 
-Run a full 22-point diagnostic:
+Run the full 29-check diagnostic:
 
 ```bash
 bash tools/doctor-checks.sh
-# Expected: all 22 checks passing
+# Expected: "All 29 checks passed. Your superpowers are in perfect health."
 ```
 
 If skills aren't loading, see [Troubleshooting](#troubleshooting).
@@ -241,8 +239,6 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 89 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
-
-> **Token budget:** Skills chain. A wiki edit runs the full wiki-orchestrator pipeline (coherence → links → secrets → slop → markdown structure → fact-check → publish). Budget accordingly.
 
 ### Quality Gates Policy
 
@@ -293,7 +289,7 @@ Utility scripts in `tools/`:
 |------|---------|
 | `run-battery.sh` | Runs the automated quality suite (harsh-review, trigger tests, export integrity, skill router tests); writes the `.code-review-cleared` sentinel. Accepts `--verdict PASS\|PASS_WITH_NITS` and optional `--min-score N` (1.0–10.0, default 7.0). |
 | `commit-gate.sh` | Runs lint/test/harsh-review and mints a short-lived review token consumed by the pre-commit hook. |
-| `doctor-checks.sh` | 22-check diagnostic across all installed skills |
+| `doctor-checks.sh` | 29-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
 | `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash` |
@@ -326,7 +322,7 @@ Utility scripts in `tools/`:
 | Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
 | CRLF errors on WSL | Cloned on Windows before running installer: `bash tools/harsh-review.sh --fix` |
 | Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
-| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills \| wc -l` — expect ~89 |
+| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills` — catalog should print without errors |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `bash tools/doctor-checks.sh --fix-safe` |
 
