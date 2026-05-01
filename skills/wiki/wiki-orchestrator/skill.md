@@ -26,6 +26,13 @@ edits use `tools/wiki-write.sh` directly. Wrong skill? Links → `link-verificat
 · Facts → `wiki-debunker` · Drift → `wiki-verify` · Secrets → `wiki-secret-audit`
 · Full refactor → `wiki-refactor`. Background: `rationale.md`.
 
+## When to Use
+
+- When asked to document something in the wiki, publish content, or run bulk wiki updates
+- Triggered by: `document X in wiki`, `wiki:create`, `wiki:update`, `wiki:publish`, `bulk wiki update`
+- Single-page edits can skip directly to `tools/wiki-write.sh`. This skill is for multi-page or pipeline-driven writes.
+- Wrong skill? Links → `link-verification` · Facts → `wiki-debunker` · Drift → `wiki-verify` · Secrets → `wiki-secret-audit`
+
 ## Step 0 — Load adapter (before any write)
 
 ```bash
