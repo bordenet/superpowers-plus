@@ -26,7 +26,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |
 | `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. Push mode adds sentinel check and proof-of-output requirement. |
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
-| `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <6 = reject. |
+| `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <7 = reject. |
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
 | `receiving-code-review` | Technical rigor when receiving feedback. No performative agreement. |
 | `requesting-code-review` | Dispatches the code-review-battery before presenting code changes to a human. Skips if valid sentinel exists. |
