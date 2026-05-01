@@ -96,11 +96,25 @@ declare -A REF_IS_BASE_ONLY     # Track refs that only exist in base, not overla
 declare -A OVERLAY_SOURCE       # Track overlay skill.md paths for comparison
 declare -A INSTALLED_MATCH_DIR
 
+# Source skill-naming to map source dir names → install dir names (e.g., brainstorming → sp-brainstorm).
+# When a skill.md declares triggers: ["/sp-brainstorm", ...], install.sh deploys it under sp-brainstorm/,
+# not brainstorming/. Without this mapping the installed-ref path is wrong and every reference file
+# under renamed skills is reported as missing.
+# shellcheck disable=SC2034  # DEST_NAME_SOURCE/DEST_NAMES_SET populated by _build_dest_name_index; unused here
+declare -A SOURCE_DEST_NAME=() DEST_NAME_SOURCE=() DEST_NAMES_SET=()
+_REF_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
+# shellcheck source=../lib/install/skill-naming.sh
+if [[ -f "$_REF_NAMING_LIB" ]]; then
+    source "$_REF_NAMING_LIB"
+    _build_dest_name_index "${COMPARE_DIRS[@]}"
+fi
+
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
     skill=$(basename "$(dirname "$src")")
-    installed_skill="$INSTALLED_DIR/$skill/skill.md"
+    install_name="${SOURCE_DEST_NAME[$skill]:-$skill}"
+    installed_skill="$INSTALLED_DIR/$install_name/skill.md"
     if [[ -f "$installed_skill" ]] && diff -q "$src" "$installed_skill" > /dev/null 2>&1; then
       INSTALLED_MATCH_DIR[$skill]="$dir"
     fi
@@ -136,16 +150,18 @@ done
 for key in "${!REF_PRIORITY[@]}"; do
   src_ref="${REF_PRIORITY[$key]}"
   skill_dir="${key%%/*}"; ref_name="${key##*/}"
+  # Translate source skill dir name to its installed dir name (handles sp-* trigger renaming).
+  install_dir="${SOURCE_DEST_NAME[$skill_dir]:-$skill_dir}"
   matched_dir="${INSTALLED_MATCH_DIR[$skill_dir]:-}"
   ref_owner_dir="${REF_OWNER_DIR[$key]:-}"
   if [[ -n "$matched_dir" && -n "$ref_owner_dir" && "$matched_dir" != "$ref_owner_dir" ]]; then
     continue
   fi
-  installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
+  installed_ref="$INSTALLED_DIR/$install_dir/references/$ref_name"
   if [[ ! -f "$installed_ref" ]]; then
     # If this ref only exists in overlay and the installed skill matches the base, skip it
     if [[ -n "${REF_IS_OVERLAY_ONLY[$key]:-}" ]]; then
-      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      installed_skill="$INSTALLED_DIR/$install_dir/skill.md"
       base_skill="${BASE_SOURCE[$skill_dir]:-}"
       if [[ -n "$base_skill" && -f "$installed_skill" ]] && diff -q "$base_skill" "$installed_skill" > /dev/null 2>&1; then
         continue  # Installed skill is base version, overlay-only ref not expected
@@ -153,7 +169,7 @@ for key in "${!REF_PRIORITY[@]}"; do
     fi
     # If this ref only exists in base and the installed skill matches the overlay, skip it
     if [[ -n "${REF_IS_BASE_ONLY[$key]:-}" ]]; then
-      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      installed_skill="$INSTALLED_DIR/$install_dir/skill.md"
       overlay_skill="${OVERLAY_SOURCE[$skill_dir]:-}"
       if [[ -n "$overlay_skill" && -f "$installed_skill" ]] && diff -q "$overlay_skill" "$installed_skill" > /dev/null 2>&1; then
         continue  # Installed skill is overlay version, base-only ref not expected
@@ -178,7 +194,7 @@ for key in "${!REF_PRIORITY[@]}"; do
       echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
-      if backup_skill "$INSTALLED_DIR/$skill_dir" && cp "$src_ref" "$installed_ref"; then
+      if backup_skill "$INSTALLED_DIR/$install_dir" && cp "$src_ref" "$installed_ref"; then
         echo "  ✅ FIXED: synced $skill_dir/references/$ref_name"; ((FIXED++))
       fi
     fi
