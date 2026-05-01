@@ -45,13 +45,16 @@ done
 # trigger-sharing warnings from this doctor. Those are NOT public repo
 # bugs — add the overlay collision groups to your private repo's config.
 KNOWN_COLLISION_GROUPS=(
-  # Hub→child: thinking-orchestrator delegates to specialized skills
-  "thinking-orchestrator adversarial-search think-twice completeness-check verification-before-completion exhaustive-audit-validation providing-code-review progressive-harsh-review"
+  # Hub→child: thinking-orchestrator delegates to specialized skills.
+  # Names are INSTALLED dir names (from ~/.codex/skills/), not source dir names:
+  #   think-twice → sp-rethink, progressive-harsh-review → sp-phr,
+  #   verification-before-completion → sp-verify, providing-code-review → sp-review
+  "thinking-orchestrator adversarial-search sp-rethink completeness-check sp-verify exhaustive-audit-validation sp-review sp-phr"
   # Detect→Fix: complementary slop detection and elimination
   "detecting-ai-slop eliminating-ai-slop"
-  # Pre-commit chain: unified-commit-gate is the hub; the 5 gate skills are its delegates.
-  # Hub and all siblings share commit/push triggers — suppress all pairwise collisions within this group.
-  "unified-commit-gate pre-commit-gate enforce-style-guide progressive-code-review-gate professional-language-audit public-repo-ip-audit"
+  # Pre-commit chain: unified-commit-gate (→sp-commit) is the hub; delegate skills share
+  # commit/push triggers. enforce-style-guide → sp-style after renaming.
+  "sp-commit sp-style progressive-code-review-gate professional-language-audit public-repo-ip-audit"
   # Resume screening: generic vs source-specific
   "resume-screening cv-review-external"
   # Security: vulnerability scanning vs repo secret scanning
@@ -60,10 +63,13 @@ KNOWN_COLLISION_GROUPS=(
   "skill-authoring writing-skills"
   # Completion-gate chain: intentional multi-skill coverage for completion/merge phrases.
   # "implementation complete" fires both implementation-tracker (archive prompt) and
-  # finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
-  # verification-before-completion (safety gate) and finishing-a-development-branch
-  # (branch options). coordination.requires is metadata only — not enforced at runtime.
-  "finishing-a-development-branch verification-before-completion implementation-tracker"
+  # sp-finish / finishing-a-development-branch (branch wrap-up). "ready to merge" fires both
+  # sp-verify (safety gate) and sp-finish (branch options).
+  # finishing-a-development-branch is the source name; sp-finish is the installed name.
+  "sp-finish sp-verify implementation-tracker"
+  # Review-sync chain: "review this PR" intentionally fires both sp-review (code review)
+  # and sp-sync (branch-sync-gate) — pull first, then review.
+  "sp-review sp-sync"
 )
 
 # Load overlay collision groups from all overlay source dirs

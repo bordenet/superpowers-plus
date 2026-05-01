@@ -16,13 +16,44 @@ done
 # API access patterns, causing agents to give up on wiki access entirely.
 # Use --purge-orphans to explicitly opt into orphan removal.
 declare -A _source_skill_names=()
+# skill-naming.sh is sourced by reference-checks.sh, but metadata-checks runs FIRST.
+# Source it here directly so _skill_dest_name is available for the .agents/skills/ scan.
+# The library is idempotent (loaded-guard at top), so double-sourcing is safe.
+_METADATA_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
+# shellcheck source=../lib/install/skill-naming.sh
+# shellcheck disable=SC1091
+[[ -f "$_METADATA_NAMING_LIB" ]] && source "$_METADATA_NAMING_LIB"
+_has_dest_name_fn=0
+declare -f _skill_dest_name > /dev/null 2>&1 && _has_dest_name_fn=1
 for dir in "${SOURCE_DIRS[@]}"; do
+  # 1. Traditional skills/ subdir: lowercase skill.md.
+  #    Install dir name is derived from the /sp-* trigger (e.g. superpowers-doctor → sp-doctor).
+  #    Store BOTH the source dir name AND the install target name so orphan detection
+  #    doesn't flag renamed installs as orphaned.
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
-  # Use find -name skill.md and strip filename in bash — avoids per-file dirname subprocess.
   while IFS= read -r sd; do
     sd="${sd%/skill.md}"  # strip filename — 0 forks vs dirname subprocess
-    _source_skill_names["${sd##*/}"]=1
+    _sname="${sd##*/}"
+    _source_skill_names["$_sname"]=1
+    # Also register the install-target name (derived from /sp-* trigger if present)
+    if [[ "$_has_dest_name_fn" -eq 1 ]]; then
+      _dest="$(_skill_dest_name "$sd")"
+      [[ -n "$_dest" && "$_dest" != "$_sname" ]] && _source_skill_names["$_dest"]=1
+    fi
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
+  # 2. .agents/skills/ subdir: SKILL.md format; install name derived from sp-trigger
+  #    (e.g. source dir 'brainstorming' → installed as 'sp-brainstorm').
+  #    _skill_dest_name() handles this mapping; fall back to dir basename if unavailable.
+  if [[ -d "$dir/.agents/skills" ]]; then
+    while IFS= read -r sd; do
+      _skill_dir="${sd%/*}"  # parent dir — works for both SKILL.md and skill.md
+      if [[ "$_has_dest_name_fn" -eq 1 ]]; then
+        _source_skill_names[$(_skill_dest_name "$_skill_dir")]=1
+      else
+        _source_skill_names["${_skill_dir##*/}"]=1
+      fi
+    done < <(find "$dir/.agents/skills" -name "SKILL.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
+  fi
 done
 while IFS= read -r installed; do
   skill=$(basename "$installed")
