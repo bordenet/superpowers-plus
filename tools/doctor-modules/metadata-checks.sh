@@ -26,11 +26,20 @@ _METADATA_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
 _has_dest_name_fn=0
 declare -f _skill_dest_name > /dev/null 2>&1 && _has_dest_name_fn=1
 for dir in "${SOURCE_DIRS[@]}"; do
-  # 1. Traditional skills/ subdir: lowercase skill.md, install dir name == source dir name.
+  # 1. Traditional skills/ subdir: lowercase skill.md.
+  #    Install dir name is derived from the /sp-* trigger (e.g. superpowers-doctor → sp-doctor).
+  #    Store BOTH the source dir name AND the install target name so orphan detection
+  #    doesn't flag renamed installs as orphaned.
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r sd; do
     sd="${sd%/skill.md}"  # strip filename — 0 forks vs dirname subprocess
-    _source_skill_names["${sd##*/}"]=1
+    _sname="${sd##*/}"
+    _source_skill_names["$_sname"]=1
+    # Also register the install-target name (derived from /sp-* trigger if present)
+    if [[ "$_has_dest_name_fn" -eq 1 ]]; then
+      _dest="$(_skill_dest_name "$sd")"
+      [[ -n "$_dest" && "$_dest" != "$_sname" ]] && _source_skill_names["$_dest"]=1
+    fi
   done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
   # 2. .agents/skills/ subdir: SKILL.md format; install name derived from sp-trigger
   #    (e.g. source dir 'brainstorming' → installed as 'sp-brainstorm').
