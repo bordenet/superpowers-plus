@@ -39,6 +39,16 @@ Usage: capture-augment-baseline.sh [--check] [--help]
 EOF
 }
 
+# Portable SHA256 — macOS uses shasum, Linux uses sha256sum
+sha256_of() {
+    local f="$1"
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$f" | awk '{print $1}'
+    else
+        shasum -a 256 "$f" | awk '{print $1}'
+    fi
+}
+
 # Print relative paths of every .sh under lib/install/, sorted
 collect_install_scripts() {
     if [[ -d "$REPO_ROOT/lib/install" ]]; then
