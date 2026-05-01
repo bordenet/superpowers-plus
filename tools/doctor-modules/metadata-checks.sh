@@ -18,9 +18,11 @@ done
 declare -A _source_skill_names=()
 for dir in "${SOURCE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
+  # Use find -name skill.md and strip filename in bash — avoids per-file dirname subprocess.
   while IFS= read -r sd; do
-    _source_skill_names[$(basename "$sd")]=1
-  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" -exec dirname {} \; 2>/dev/null)
+    sd="${sd%/skill.md}"  # strip filename — 0 forks vs dirname subprocess
+    _source_skill_names["${sd##*/}"]=1
+  done < <(find "$search_root" -name "skill.md" -not -path "*/references/*" -not -path "*/.worktrees/*" 2>/dev/null)
 done
 while IFS= read -r installed; do
   skill=$(basename "$installed")
@@ -45,8 +47,8 @@ declare -A PRIORITY_SOURCE
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
-    skill=$(basename "$(dirname "$src")")
-    # If this is the base (plus) dir, record it separately
+    # Extract skill name via bash string op — avoids basename+dirname subprocess pair.
+    _parent="${src%/skill.md}"; skill="${_parent##*/}"
     if [[ "$dir" == "$SP_PLUS_DIR" ]]; then
       BASE_SOURCE["$skill"]="$src"
     fi
@@ -114,8 +116,10 @@ for dir in "${SOURCE_DIRS[@]}"; do
 done
 
 # --- Check: Missing Composition Metadata ---
+# Bash string match replaces grep fork per skill (176 forks → 0).
 for skill in "${!SKILL_YAML[@]}"; do
-  if ! grep -q '^composition:' <<< "${SKILL_YAML[$skill]}"; then
+  _yaml="${SKILL_YAML[$skill]}"
+  if [[ "$_yaml" != *$'\n'composition:* && "$_yaml" != composition:* ]]; then
     echo "🟡 WARNING: $skill — missing composition metadata"
     ((WARNINGS++))
   fi
