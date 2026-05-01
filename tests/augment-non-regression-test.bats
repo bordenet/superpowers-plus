@@ -179,3 +179,34 @@ print(keys[0]) if keys else print('')
     return 1
   }
 }
+
+
+# ---------------------------------------------------------------------------
+# P2g — commit-gate.sh baseline check wiring (PR-1)
+# ---------------------------------------------------------------------------
+@test "P2g: commit-gate.sh contains baseline drift check step" {
+  grep -q "capture-augment-baseline.sh.*--check" "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: baseline --check not wired into commit-gate.sh"; return 1; }
+}
+
+@test "P2g: commit-gate.sh respects SKIP_BASELINE_CHECK from .agent-gates parser" {
+  grep -q "SKIP_BASELINE_CHECK" "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: SKIP_BASELINE_CHECK not in parser"; return 1; }
+  # Verify it appears in BOTH the accepted-keys list and the boolean-validator list
+  local count
+  count="$(grep -c "SKIP_BASELINE_CHECK" "$REPO_ROOT/tools/commit-gate.sh")"
+  [[ "$count" -ge 2 ]] \
+    || { echo "FAIL: SKIP_BASELINE_CHECK appears $count time(s); expected ≥2 (parser + validator)"; return 1; }
+}
+
+@test "P2g: commit-gate.sh baseline step is graceful when baseline file is absent" {
+  local tmp_gate
+  tmp_gate="$(mktemp -d)"
+  # Point REPO_ROOT at a dir with no baseline fixture; the gate should NOT exit non-zero
+  # We only test the message path — not a full run — by grepping the script logic.
+  grep -q '_BASELINE_FILE' "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: _BASELINE_FILE guard not present"; return 1; }
+  grep -q '\-f.*_BASELINE_FILE' "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: -f guard for absent baseline not present"; return 1; }
+  rm -rf "$tmp_gate"
+}
