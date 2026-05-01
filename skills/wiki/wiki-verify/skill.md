@@ -26,6 +26,12 @@ values) in wiki pages. Wrong skill? Links → `link-verification` · Secrets →
 `wiki-secret-audit` · Fact-check decisions/dates → `wiki-debunker` · Edit
 pipeline → `wiki-orchestrator`.
 
+## When to Use
+
+- When asked to verify that a wiki page's version numbers, file paths, or config values match the current codebase
+- Triggered by: `verify this wiki page`, `check if wiki is up to date`, `validate wiki accuracy`, `audit the wiki`, `is this documentation stale`
+- Wrong skill? Links → `link-verification` · Secrets → `wiki-secret-audit` · Fact-check decisions → `wiki-debunker`
+
 ## Modes
 
 | Mode | Flag | Behavior |

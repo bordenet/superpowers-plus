@@ -27,6 +27,12 @@ ownership. **NO CLAIM WITHOUT CITATION.** Wrong skill? Version / config /
 file-path drift → `wiki-verify` · Edit pipeline → `wiki-orchestrator` · Links
 → `link-verification`.
 
+## When to Use
+
+- When asked to fact-check, verify claims, or find evidence for a wiki page's assertions
+- Triggered by: `verify these claims`, `fact-check this`, `is this accurate`, `cite sources for`
+- Wrong skill? Version/file-path drift → `wiki-verify` · Edit pipeline → `wiki-orchestrator` · Links → `link-verification`
+
 ## Source authority matrix
 
 | Claim type | Authoritative | NOT authoritative |
