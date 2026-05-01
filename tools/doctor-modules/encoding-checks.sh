@@ -18,8 +18,8 @@ for skill in "${!SKILL_PATH[@]}"; do
 done
 # Also check reference files (still need find here — refs aren't in the cache)
 while IFS= read -r f; do
-  skill=$(basename "$(dirname "$(dirname "$f")")")
-  ref_name=$(basename "$f")
+  # Extract skill name and ref filename using bash string ops (no subprocess forks).
+  _ref_parent="${f%/references/*}"; skill="${_ref_parent##*/}"; ref_name="${f##*/}"
   if grep -q $'\r' "$f" 2>/dev/null; then
     echo "🟠 ERROR: $skill/references/$ref_name — CRLF line endings"; ((ERRORS++))
     if can_fix safe; then
