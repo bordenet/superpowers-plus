@@ -118,8 +118,7 @@ done
 # --- Check: Missing Composition Metadata ---
 # Bash string match replaces grep fork per skill (176 forks → 0).
 for skill in "${!SKILL_YAML[@]}"; do
-  _yaml="${SKILL_YAML[$skill]}"
-  if [[ "$_yaml" != *$'\n'composition:* && "$_yaml" != composition:* ]]; then
+  if ! grep -q '^composition:' <<< "${SKILL_YAML[$skill]}"; then
     echo "🟡 WARNING: $skill — missing composition metadata"
     ((WARNINGS++))
   fi
