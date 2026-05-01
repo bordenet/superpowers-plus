@@ -292,7 +292,7 @@ graph TD
 | Debugging | `investigation-state` | Persists investigation state (hypotheses, evidence, confidence) across multi-session debugging |
 | Completion Gate | `exhaustive-audit-validation`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `unified-commit-gate`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit; `unified-commit-gate` is the entry point (`/sp-commit`) |
-| Quality | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables (plans, documents, designs). Score <6 = reject. |
+| Quality | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables (plans, documents, designs). Score <7 = reject. |
 | Experimental | `experimental-self-prompting` | Experimental self-prompting skill for bootstrapping AI behavior modifications |
 | Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Provider-neutral issue lifecycle: create, edit, verify, link, and fact-check issues across GitHub, Jira, and other trackers |
 | Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Health monitoring for the skill ecosystem: repo verification, diagnostics, completeness auditing, and skill health checks |
