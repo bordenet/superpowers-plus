@@ -207,7 +207,7 @@ Run the full 29-check diagnostic:
 
 ```bash
 bash tools/doctor-checks.sh
-# Expected: "All 29 checks passed" (0 critical, 0 errors)
+# Expected: "All 29 checks passed. Your superpowers are in perfect health."
 ```
 
 If skills aren't loading, see [Troubleshooting](#troubleshooting).
