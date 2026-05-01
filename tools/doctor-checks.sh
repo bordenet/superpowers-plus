@@ -179,65 +179,91 @@ declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
 declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
 declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
 declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
-declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 60 lines
+declare -A SKILL_DELIM_COUNT=()      # skill name → 2 if opening+closing --- found, 0-1 if malformed (only ≥2 threshold is tested)
 declare -A SKILL_BODY_START=()       # skill name → line number where body starts
 declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
 # Cross-module shared state (declared global so modules can read/write freely)
 declare -A BASE_SOURCE=()            # skill name → base skill.md path (built by metadata-checks)
+
+# Pre-cache awk: single pass over each skill.md extracts all metadata fields.
+# Outputs yaml block lines then a sentinel: ##M##\t<NR>\t<delim>\t<body>\t<crlf>\t<first>\t<yname>\t<trigs>
+# Multi-line trigger items joined with \x01 separator (restored to \n in bash).
+_PRECACHE_AWK=$(cat << 'AWKSRC'
+BEGIN{d=0;crlf=0;body=0;yname="";in_yaml=0;first="";trigs="";ml_trig=0}
+NR==1{
+  first=$0; sub(/\r$/,"",first)
+  if(index($0,"\r")>0) crlf=1
+  if(first=="---"){d++;in_yaml=1;next}
+}
+/^---\r?$/ && NR>1{
+  if(!body){d++;if(in_yaml){body=NR;in_yaml=0}}
+  next
+}
+in_yaml{
+  line=$0; sub(/\r$/,"",line)
+  if(index($0,"\r")>0) crlf=1
+  if(line~/^name:[ \t]*/){n=line;sub(/^name:[ \t]*/,"",n);gsub(/["']/,"",n);yname=n}
+  if(line~/^triggers:[ \t]*\[.+\]/){trigs=line;ml_trig=0}
+  else if(line~/^triggers:[ \t]*\[\]/){trigs="";ml_trig=0}
+  else if(line~/^triggers:/){ml_trig=1;trigs=""}
+  else if(ml_trig && line~/^[[:space:]]+-/){trigs=trigs?trigs"\x01"line:line}
+  else if(ml_trig && line!~/^[[:space:]]/){ml_trig=0}
+  print line; next
+}
+{if(index($0,"\r")>0) crlf=1}
+END{printf "##M##\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",NR,d,body,crlf,first,yname,trigs}
+AWKSRC
+)
 
 while IFS= read -r f; do
   ALL_SKILL_FILES+=("$f")
   skill=$(basename "$(dirname "$f")")
   SKILL_PATH[$skill]="$f"
 
-  # Read file once, extract everything we need
-  SKILL_LINES[$skill]=$(wc -l < "$f" | tr -d ' ')
-  SKILL_FIRST_LINE[$skill]=$(head -1 "$f")
-  SKILL_DELIM_COUNT[$skill]=$(head -60 "$f" | grep -c "^---$" || true)
+  # BOM detection needs a separate subprocess (reads only first 3 bytes)
   SKILL_HAS_BOM[$skill]=""
-  # Portable BOM detection: xxd may not exist on minimal distros; od is POSIX
   if command -v xxd &>/dev/null; then
     [[ "$(xxd -l 3 -p "$f" 2>/dev/null)" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
   else
     [[ "$(dd if="$f" bs=1 count=3 2>/dev/null | od -A n -t x1 2>/dev/null | tr -d ' \n')" == "efbbbf" ]] && SKILL_HAS_BOM[$skill]="yes"
   fi
-  SKILL_HAS_CRLF[$skill]=""
-  # Portable CRLF detection: grep -P is GNU-only; use printf for the \r literal
-  grep -q $'\r' "$f" 2>/dev/null && SKILL_HAS_CRLF[$skill]="yes"
 
-  # Parse YAML block (once per skill instead of 6+ times)
+  # Single awk pass replaces: wc-l, head-1, head-60|grep-c, grep-q $'\r',
+  # awk×2 for yaml+body-start, echo|grep×3, echo|grep|sed, echo|awk (triggers).
+  mapfile -t _cache < <(awk "$_PRECACHE_AWK" "$f")
+  _meta="${_cache[-1]}"
+  _n="${#_cache[@]}"
+  IFS=$'\t' read -r _ _lines _delim _body _crlf_flag _first _yname _trigs_raw <<< "$_meta"
+
+  SKILL_LINES[$skill]="${_lines}"
+  SKILL_FIRST_LINE[$skill]="${_first}"
+  SKILL_DELIM_COUNT[$skill]="${_delim}"
+  SKILL_HAS_CRLF[$skill]=""
+  [[ "${_crlf_flag}" == "1" ]] && SKILL_HAS_CRLF[$skill]="yes"
+
   if [[ "${SKILL_FIRST_LINE[$skill]}" == "---" && "${SKILL_DELIM_COUNT[$skill]}" -ge 2 ]]; then
     SKILL_YAML_VALID[$skill]="yes"
-    yaml_block=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{exit} found{print}' "$f")
-    SKILL_YAML[$skill]="$yaml_block"
-    SKILL_YAML_NAME[$skill]=$(echo "$yaml_block" | grep "^name:" | sed 's/name:[[:space:]]*//' | tr -d '"'"'" || true)
-    triggers_line=$(echo "$yaml_block" | grep "^triggers:" || true)
-    if [[ -n "$triggers_line" ]]; then
-      if echo "$triggers_line" | grep -qE 'triggers: \[.+\]'; then
-        # Inline array with content: triggers: ["foo", "bar"]
-        SKILL_HAS_TRIGGERS[$skill]="yes"
-        SKILL_TRIGGERS_RAW[$skill]="$triggers_line"
-      elif echo "$triggers_line" | grep -qE 'triggers: \[\]'; then
-        # Inline empty array: triggers: []
-        SKILL_TRIGGERS_RAW[$skill]=""
-      else
-        # Multi-line array: triggers:\n  - "foo"\n  - "bar"
-        multiline_items=$(echo "$yaml_block" | awk '/^triggers:/{found=1; next} found && /^[[:space:]]+-/{print; next} found{exit}')
-        if [[ -n "$multiline_items" ]]; then
-          SKILL_HAS_TRIGGERS[$skill]="yes"
-          SKILL_TRIGGERS_RAW[$skill]="$multiline_items"
-        else
-          SKILL_TRIGGERS_RAW[$skill]=""
-        fi
-      fi
+    if [[ $_n -gt 1 ]]; then
+      _yaml=$(printf '%s\n' "${_cache[@]:0:$((_n-1))}")
     else
+      _yaml=""
+    fi
+    SKILL_YAML[$skill]="${_yaml}"
+    SKILL_YAML_NAME[$skill]="${_yname}"
+    SKILL_BODY_START[$skill]="${_body}"
+    if [[ -n "${_trigs_raw}" ]]; then
+      SKILL_HAS_TRIGGERS[$skill]="yes"
+      SKILL_TRIGGERS_RAW[$skill]="${_trigs_raw//$'\x01'/$'\n'}"
+    else
+      SKILL_HAS_TRIGGERS[$skill]=""
       SKILL_TRIGGERS_RAW[$skill]=""
     fi
-    SKILL_BODY_START[$skill]=$(awk 'NR==1 && /^---$/{found++; next} /^---$/{found++; print NR; exit}' "$f")
   else
     SKILL_YAML_VALID[$skill]=""
     SKILL_YAML[$skill]=""
     SKILL_YAML_NAME[$skill]=""
+    SKILL_HAS_TRIGGERS[$skill]=""
+    SKILL_TRIGGERS_RAW[$skill]=""
   fi
 done < <(find "$INSTALLED_DIR" -maxdepth 2 -name "skill.md" -not -path "*/references/*" 2>/dev/null | sort)
 
@@ -297,6 +323,18 @@ source "${SCRIPT_DIR}/doctor-modules/mcp-checks.sh"
 # shellcheck source=tools/doctor-modules/guardrails-checks.sh
 source "${SCRIPT_DIR}/doctor-modules/guardrails-checks.sh"
 
+# mcp-checks has no SKILL_* array dependency — run it in the background while
+# sequential checks execute. Output and counters are collected after the last check.
+_mcp_tmpout=$(mktemp)
+_mcp_tmpstat=$(mktemp)
+# shellcheck disable=SC2030  # Intentional: subshell shadows counters; results collected via stat file
+(
+  CRITICAL=0; ERRORS=0; WARNINGS=0; FIXED=0
+  _doctor_mcp_checks
+  printf '%d %d %d %d\n' "$CRITICAL" "$ERRORS" "$WARNINGS" "$FIXED" > "$_mcp_tmpstat"
+) > "$_mcp_tmpout" 2>&1 &
+_mcp_pid=$!
+
 _doctor_yaml_checks
 _doctor_metadata_checks     # Populates BASE_SOURCE — must run before reference-checks
 _doctor_reference_checks    # Reads BASE_SOURCE (Check 16 requires it)
@@ -306,8 +344,22 @@ _doctor_trigger_checks
 _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
 _doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
-_doctor_mcp_checks          # Check 28: MCP server dependency health
 _doctor_guardrails_checks   # Check 29: Augment-surface SHA256 drift vs guardrails baseline
+
+# Collect mcp-checks (Check 28) — join background job, merge output + counters
+wait "$_mcp_pid"; _mcp_exit=$?
+cat "$_mcp_tmpout"
+# Guard: if the subshell crashed before writing the stat file, surface it rather than silently dropping findings
+# shellcheck disable=SC2031  # ERRORS is in parent scope here; SC2031 fires because of earlier subshell shadow
+if [[ "$_mcp_exit" -ne 0 && ! -s "$_mcp_tmpstat" ]]; then
+  echo "🟠 ERROR: mcp-checks subprocess failed (exit $_mcp_exit) — findings may be incomplete"; ((ERRORS++))
+fi
+# shellcheck disable=SC2031  # Intentional: merging counters from subshell via stat file
+if read -r _mc _me _mw _mf < "$_mcp_tmpstat" 2>/dev/null; then
+  CRITICAL=$((CRITICAL + _mc)); ERRORS=$((ERRORS + _me))
+  WARNINGS=$((WARNINGS + _mw)); FIXED=$((FIXED + _mf))
+fi
+rm -f "$_mcp_tmpout" "$_mcp_tmpstat"
 
 # --- Summary ---
 # Restore stdout if it was redirected for --summary-only

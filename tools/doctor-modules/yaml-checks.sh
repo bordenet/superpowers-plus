@@ -74,11 +74,19 @@ for skill in "${!SKILL_YAML[@]}"; do
 done
 
 # --- Check 15: Structure Quality ---
+# Single awk pass replaces 3 separate grep -Eqi file reads per skill (528 forks → 176 forks).
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"; issues=""
-  grep -Eqi 'when to use|when to invoke' "$f" || issues="${issues}missing 'When to Use'; "
-  grep -q '```' "$f" || issues="${issues}no code examples; "
-  grep -Eqi 'failure|fix:|recovery|troubleshoot' "$f" || issues="${issues}no failure modes; "
+  read -r _has_wtu _has_code _has_fail < <(awk '
+    BEGIN { w=0; c=0; f=0 }
+    tolower($0) ~ /when to use|when to invoke/ { w=1 }
+    /```/ { c=1 }
+    tolower($0) ~ /failure|fix:|recovery|troubleshoot/ { f=1 }
+    END { print w, c, f }
+  ' "$f")
+  [[ "${_has_wtu:-0}" == "0" ]] && issues="${issues}missing 'When to Use'; "
+  [[ "${_has_code:-0}" == "0" ]] && issues="${issues}no code examples; "
+  [[ "${_has_fail:-0}" == "0" ]] && issues="${issues}no failure modes; "
   [[ -n "$issues" ]] && echo "🔵 INFO: $skill — $issues"
 done
 
