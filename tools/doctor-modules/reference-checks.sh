@@ -10,43 +10,52 @@ _doctor_reference_checks() {
 # For examples.md/reference.md: only flags action directives (See/Read/Load/view/link syntax).
 # For references/*.md and modules/*.md: flags any non-code-block mention.
 for skill in "${!SKILL_PATH[@]}"; do
-  f="${SKILL_PATH[$skill]}"; skill_dir=$(dirname "$f")
-  # 1. Structural paths (references/, modules/) — any mention outside code blocks
-  #    Also skips opt-in files (lines containing "Opt-in" or "Create" before the reference)
-  #    Also skips doctor-ignore lines (consistent with Check 13).
-  #    Cross-skill paths (word/references/X.md) are neutralized in awk to avoid false positives.
-  #    For modules/: also checks _shared/ dirs and installed modules dir as fallback.
-  while read -r ref; do
-    [[ -f "$skill_dir/$ref" ]] && continue
-    # For modules/: check shared module locations (e.g., _shared/module.md, installed modules/)
-    if [[ "$ref" == modules/* ]]; then
-      mod_name="${ref#modules/}"
-      found_shared=false
-      for sdir in "${SOURCE_DIRS[@]}"; do
-        [[ -f "$sdir/_shared/$mod_name" ]] && { found_shared=true; break; }
-      done
-      [[ -f "$INSTALLED_DIR/../modules/$mod_name" ]] && found_shared=true
-      [[ "$found_shared" == "true" ]] && continue
+  f="${SKILL_PATH[$skill]}"; skill_dir="${f%/skill.md}"
+  # Single awk pass extracts both structural refs (references/, modules/) and peer-file
+  # markdown links (examples.md, reference.md) — replaces two separate awk+grep+sort
+  # pipelines (7 forks/skill) with one awk (1 fork/skill).
+  # Output lines: "S:<ref>" for structural, "P:<ref>" for peer links.
+  while IFS= read -r _tagged_ref; do
+    _type="${_tagged_ref:0:2}"; ref="${_tagged_ref:2}"
+    if [[ "$_type" == "S:" ]]; then
+      [[ -f "$skill_dir/$ref" ]] && continue
+      if [[ "$ref" == modules/* ]]; then
+        mod_name="${ref#modules/}"
+        found_shared=false
+        for sdir in "${SOURCE_DIRS[@]}"; do
+          [[ -f "$sdir/_shared/$mod_name" ]] && { found_shared=true; break; }
+        done
+        [[ -f "$INSTALLED_DIR/../modules/$mod_name" ]] && found_shared=true
+        [[ "$found_shared" == "true" ]] && continue
+      fi
+      echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++))
+    else  # P:
+      [[ -z "$ref" ]] && continue
+      [[ ! -f "$skill_dir/$ref" ]] && { echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++)); }
     fi
-    echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++))
-  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} /[Oo]pt-in/{next} /doctor-ignore/{next} {
-    # Neutralize cross-skill paths: word/references/ and word/modules/ become _XREF/
-    # so they will not match the downstream grep for local references/modules paths.
-    gsub(/[a-zA-Z0-9_-]+\/references\//, "_XREF/")
-    gsub(/[a-zA-Z0-9_-]+\/modules\//, "_XREF/")
-    print
-  }' "$f" \
-    | grep -oE '(references/[a-zA-Z0-9_-]+\.md|modules/[a-zA-Z0-9_-]+\.md)' 2>/dev/null \
-    | sort -u)
-  # 2. Peer files (examples.md, reference.md) — only markdown link syntax [text](file.md)
-  #    Excludes inline code (backticks), prose mentions, and substring matches
-  while read -r ref; do
-    [[ -z "$ref" ]] && continue
-    [[ ! -f "$skill_dir/$ref" ]] && { echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++)); }
-  done < <(awk '/^```/{c=!c;next} c{next} /[├└│]/{next} {print}' "$f" \
-    | grep -oE '\]\((examples\.md|reference\.md)\)' 2>/dev/null \
-    | grep -oE '(examples\.md|reference\.md)' \
-    | sort -u)
+  done < <(awk '
+    /^```/{c=!c;next} c{next} /[├└│]/{next}
+    {
+      line=$0
+      # Structural refs: neutralize cross-skill paths then extract references/modules mentions
+      if (line !~ /[Oo]pt-in/ && line !~ /doctor-ignore/) {
+        l2=line
+        gsub(/[a-zA-Z0-9_-]+\/references\//, "_XREF/", l2)
+        gsub(/[a-zA-Z0-9_-]+\/modules\//, "_XREF/", l2)
+        while (match(l2, /(references\/[a-zA-Z0-9_-]+\.md|modules\/[a-zA-Z0-9_-]+\.md)/)) {
+          m=substr(l2,RSTART,RLENGTH)
+          if (!seen_s[m]++) print "S:" m
+          l2=substr(l2,RSTART+RLENGTH)
+        }
+      }
+      # Peer-file links: markdown link syntax ](examples.md) or ](reference.md)
+      while (match(line, /\]\((examples\.md|reference\.md)\)/)) {
+        m=substr(line,RSTART+2,RLENGTH-3)
+        if (!seen_p[m]++) print "P:" m
+        line=substr(line,RSTART+RLENGTH)
+      }
+    }
+  ' "$f")
 done
 
 # --- Check 13: Dead File Path References ---
@@ -96,11 +105,25 @@ declare -A REF_IS_BASE_ONLY     # Track refs that only exist in base, not overla
 declare -A OVERLAY_SOURCE       # Track overlay skill.md paths for comparison
 declare -A INSTALLED_MATCH_DIR
 
+# Source skill-naming to map source dir names → install dir names (e.g., brainstorming → sp-brainstorm).
+# When a skill.md declares triggers: ["/sp-brainstorm", ...], install.sh deploys it under sp-brainstorm/,
+# not brainstorming/. Without this mapping the installed-ref path is wrong and every reference file
+# under renamed skills is reported as missing.
+# shellcheck disable=SC2034  # DEST_NAME_SOURCE/DEST_NAMES_SET populated by _build_dest_name_index; unused here
+declare -A SOURCE_DEST_NAME=() DEST_NAME_SOURCE=() DEST_NAMES_SET=()
+_REF_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
+# shellcheck source=../lib/install/skill-naming.sh
+if [[ -f "$_REF_NAMING_LIB" ]]; then
+    source "$_REF_NAMING_LIB"
+    _build_dest_name_index "${COMPARE_DIRS[@]}"
+fi
+
 for dir in "${COMPARE_DIRS[@]}"; do
   search_root="$dir"; [[ -d "$dir/skills" ]] && search_root="$dir/skills"
   while IFS= read -r src; do
     skill=$(basename "$(dirname "$src")")
-    installed_skill="$INSTALLED_DIR/$skill/skill.md"
+    install_name="${SOURCE_DEST_NAME[$skill]:-$skill}"
+    installed_skill="$INSTALLED_DIR/$install_name/skill.md"
     if [[ -f "$installed_skill" ]] && diff -q "$src" "$installed_skill" > /dev/null 2>&1; then
       INSTALLED_MATCH_DIR[$skill]="$dir"
     fi
@@ -136,16 +159,18 @@ done
 for key in "${!REF_PRIORITY[@]}"; do
   src_ref="${REF_PRIORITY[$key]}"
   skill_dir="${key%%/*}"; ref_name="${key##*/}"
+  # Translate source skill dir name to its installed dir name (handles sp-* trigger renaming).
+  install_dir="${SOURCE_DEST_NAME[$skill_dir]:-$skill_dir}"
   matched_dir="${INSTALLED_MATCH_DIR[$skill_dir]:-}"
   ref_owner_dir="${REF_OWNER_DIR[$key]:-}"
   if [[ -n "$matched_dir" && -n "$ref_owner_dir" && "$matched_dir" != "$ref_owner_dir" ]]; then
     continue
   fi
-  installed_ref="$INSTALLED_DIR/$skill_dir/references/$ref_name"
+  installed_ref="$INSTALLED_DIR/$install_dir/references/$ref_name"
   if [[ ! -f "$installed_ref" ]]; then
     # If this ref only exists in overlay and the installed skill matches the base, skip it
     if [[ -n "${REF_IS_OVERLAY_ONLY[$key]:-}" ]]; then
-      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      installed_skill="$INSTALLED_DIR/$install_dir/skill.md"
       base_skill="${BASE_SOURCE[$skill_dir]:-}"
       if [[ -n "$base_skill" && -f "$installed_skill" ]] && diff -q "$base_skill" "$installed_skill" > /dev/null 2>&1; then
         continue  # Installed skill is base version, overlay-only ref not expected
@@ -153,7 +178,7 @@ for key in "${!REF_PRIORITY[@]}"; do
     fi
     # If this ref only exists in base and the installed skill matches the overlay, skip it
     if [[ -n "${REF_IS_BASE_ONLY[$key]:-}" ]]; then
-      installed_skill="$INSTALLED_DIR/$skill_dir/skill.md"
+      installed_skill="$INSTALLED_DIR/$install_dir/skill.md"
       overlay_skill="${OVERLAY_SOURCE[$skill_dir]:-}"
       if [[ -n "$overlay_skill" && -f "$installed_skill" ]] && diff -q "$overlay_skill" "$installed_skill" > /dev/null 2>&1; then
         continue  # Installed skill is overlay version, base-only ref not expected
@@ -178,7 +203,7 @@ for key in "${!REF_PRIORITY[@]}"; do
       echo "🟠 ERROR: $skill_dir/references/$ref_name — drift (${change_pct}% changed)"; ((ERRORS++))
     fi
     if can_fix safe; then
-      if backup_skill "$INSTALLED_DIR/$skill_dir" && cp "$src_ref" "$installed_ref"; then
+      if backup_skill "$INSTALLED_DIR/$install_dir" && cp "$src_ref" "$installed_ref"; then
         echo "  ✅ FIXED: synced $skill_dir/references/$ref_name"; ((FIXED++))
       fi
     fi
