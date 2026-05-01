@@ -179,7 +179,7 @@ declare -A SKILL_TRIGGERS_RAW=()     # skill name → raw triggers: line
 declare -A SKILL_HAS_CRLF=()         # skill name → "yes" | ""
 declare -A SKILL_HAS_BOM=()          # skill name → "yes" | ""
 declare -A SKILL_FIRST_LINE=()       # skill name → first line of file
-declare -A SKILL_DELIM_COUNT=()      # skill name → count of --- delimiters in first 60 lines
+declare -A SKILL_DELIM_COUNT=()      # skill name → 2 if opening+closing --- found, 0-1 if malformed (only ≥2 threshold is tested)
 declare -A SKILL_BODY_START=()       # skill name → line number where body starts
 declare -A SKILL_YAML_VALID=()       # skill name → "yes" if frontmatter is well-formed
 # Cross-module shared state (declared global so modules can read/write freely)
@@ -347,8 +347,13 @@ _doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ 
 _doctor_guardrails_checks   # Check 29: Augment-surface SHA256 drift vs guardrails baseline
 
 # Collect mcp-checks (Check 28) — join background job, merge output + counters
-wait "$_mcp_pid"
+wait "$_mcp_pid"; _mcp_exit=$?
 cat "$_mcp_tmpout"
+# Guard: if the subshell crashed before writing the stat file, surface it rather than silently dropping findings
+# shellcheck disable=SC2031  # ERRORS is in parent scope here; SC2031 fires because of earlier subshell shadow
+if [[ "$_mcp_exit" -ne 0 && ! -s "$_mcp_tmpstat" ]]; then
+  echo "🟠 ERROR: mcp-checks subprocess failed (exit $_mcp_exit) — findings may be incomplete"; ((ERRORS++))
+fi
 # shellcheck disable=SC2031  # Intentional: merging counters from subshell via stat file
 if read -r _mc _me _mw _mf < "$_mcp_tmpstat" 2>/dev/null; then
   CRITICAL=$((CRITICAL + _mc)); ERRORS=$((ERRORS + _me))
