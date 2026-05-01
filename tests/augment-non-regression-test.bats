@@ -210,3 +210,28 @@ print(keys[0]) if keys else print('')
     || { echo "MISSING: -f guard for absent baseline not present"; return 1; }
   rm -rf "$tmp_gate"
 }
+
+# P2h — commit-gate.sh parity validation wiring (PR-2)
+# ---------------------------------------------------------------------------
+@test "P2h: commit-gate.sh contains parity validation step" {
+  grep -q "AUGMENT_PARITY_OFF" "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: AUGMENT_PARITY_OFF not wired into commit-gate.sh"; return 1; }
+  grep -q "CLAUDE_HOOKS_BYPASS" "$REPO_ROOT/tools/claude-hooks/pre-tool-use-git-identity.sh" 2>/dev/null \
+    || { echo "MISSING: expected claude-hooks/pre-tool-use-git-identity.sh with bypass clause"; return 1; }
+}
+
+@test "P2h: commit-gate.sh respects AUGMENT_PARITY_OFF from .agent-gates parser" {
+  # AUGMENT_PARITY_OFF must appear in both the accepted-keys list and the boolean-validator list
+  local count
+  count="$(grep -c "AUGMENT_PARITY_OFF" "$REPO_ROOT/tools/commit-gate.sh")"
+  [[ "$count" -ge 2 ]] \
+    || { echo "FAIL: AUGMENT_PARITY_OFF appears $count time(s); expected ≥2 (parser + validator)"; return 1; }
+}
+
+@test "P2h: commit-gate.sh parity step is graceful when claude-hooks/ directory is absent" {
+  # Verify the guard exists in the script — no directory = skip, not error
+  grep -q '_HOOKS_DIR' "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: _HOOKS_DIR guard not present"; return 1; }
+  grep -q '\-d.*_HOOKS_DIR' "$REPO_ROOT/tools/commit-gate.sh" \
+    || { echo "MISSING: -d guard for absent hooks dir not present"; return 1; }
+}
