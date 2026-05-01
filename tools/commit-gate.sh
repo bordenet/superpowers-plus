@@ -59,7 +59,7 @@ _parse_agent_gates_cg() {
                 fi
                 printf -v "$_key" '%s' "$_remainder"
                 ;;
-            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+            CLASS|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|REQUIRE_CODE_REVIEW_SENTINEL|REVIEW_TOKEN_TTL|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK)
                 # Scalar/boolean/numeric: strip inline comments, then validate.
                 _remainder="${_remainder%%#*}"
                 _remainder="${_remainder#"${_remainder%%[![:space:]]*}"}"
@@ -68,7 +68,7 @@ _parse_agent_gates_cg() {
                 _remainder="${_remainder#\'}" ; _remainder="${_remainder%\'}"
                 _val="$_remainder"
                 case "$_key" in
-                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS)
+                    REQUIRE_CODE_REVIEW_SENTINEL|SKIP_SHELLCHECK|SKIP_FILE_ENDINGS|SKIP_REVIEW_TOKEN|REQUIRE_LOOSE_ENDS_CLEAN|SKIP_DEFAULT_TESTS|SKIP_BASELINE_CHECK)
                         if [[ "$_val" != "true" && "$_val" != "false" ]]; then
                             echo "✗ .agent-gates: invalid value for $_key: '$_val' (must be 'true' or 'false')" >&2
                             _GATES_PARSE_ERRORS=$((_GATES_PARSE_ERRORS + 1))
@@ -131,6 +131,28 @@ if [[ -z "${EXTRA_TEST:-}" && "${SKIP_DEFAULT_TESTS:-false}" != "true" ]]; then
         fi
         STEP=$((STEP + 1))
     fi
+fi
+
+# Baseline drift check — compare tracked tool SHAs against the committed baseline.
+# Skipped if: SKIP_BASELINE_CHECK=true in .agent-gates, or baseline file is absent.
+_BASELINE_FILE="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
+if [[ "${SKIP_BASELINE_CHECK:-false}" == "true" ]]; then
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Baseline check skipped (SKIP_BASELINE_CHECK=true)"
+    STEP=$((STEP + 1))
+elif [[ ! -f "$_BASELINE_FILE" ]]; then
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Baseline check skipped — no baseline found"
+    printf '%b\n' "${YELLOW}  ⚠  Run: bash scripts/capture-augment-baseline.sh${NC}"
+    STEP=$((STEP + 1))
+else
+    printf '%b\n' "${YELLOW}[${STEP}]${NC} Checking baseline drift..."
+    if bash "$REPO_ROOT/scripts/capture-augment-baseline.sh" --check 2>&1; then
+        printf '%b\n' "${GREEN}  ✓ No baseline drift${NC}"
+    else
+        printf '%b\n' "${RED}  ✗ Baseline drift detected — re-capture or revert tool changes${NC}"
+        printf '%b\n' "${RED}    Run: bash scripts/capture-augment-baseline.sh${NC}"
+        ERRORS=$((ERRORS + 1))
+    fi
+    STEP=$((STEP + 1))
 fi
 
 # Run harsh-review.sh (writes token on success)
