@@ -110,19 +110,11 @@ fi
 
 ERRORS=0
 
-echo "─── Step 0/4: install --upgrade (sync routing catalog) ───"
-INSTALL_SCRIPT="$REPO_ROOT/install.sh"
-if [[ -x "$INSTALL_SCRIPT" ]]; then
-    if bash "$INSTALL_SCRIPT" --upgrade > /tmp/run-battery-install.log 2>&1; then
-        echo "✓ install --upgrade succeeded"
-    else
-        echo "❌ install --upgrade FAILED — see /tmp/run-battery-install.log"
-        ERRORS=$((ERRORS + 1))
-    fi
-else
-    echo "⚠  install.sh not found or not executable — skipping catalog sync"
-fi
-echo ""
+# NOTE: install --upgrade is intentionally NOT run here.
+# Running it as a battery step has unacceptable side-effects: it mutates the
+# live routing catalog before the routing tests run, changing the system under
+# test mid-suite. If you need to sync the catalog before running the battery,
+# run `bash install.sh --upgrade` manually first.
 
 echo "─── Step 1/4: harsh-review ───"
 if "$SCRIPT_DIR/harsh-review.sh"; then
