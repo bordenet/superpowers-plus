@@ -29,3 +29,7 @@ REQUIRE_CODE_REVIEW_SENTINEL=true
 # REVIEW_TOKEN_TTL: How many seconds a review token is considered fresh (default: 300)
 # Increase for repos where review-to-commit time is longer (e.g., large test suites)
 # REVIEW_TOKEN_TTL=600
+
+# SKIP_REVIEW_TOKEN: Disable the in-session harsh-review token gate.
+# The pre-push gate (sentinel SHA check) still runs before any push.
+SKIP_REVIEW_TOKEN=true
