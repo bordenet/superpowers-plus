@@ -837,7 +837,8 @@ _fixture_dangling_rule() {
   [ "$status" -eq 0 ]
   [ -f "$cache_file" ]
   local mtime1
-  mtime1="$(stat -f '%m' "$cache_file" 2>/dev/null || stat -c '%Y' "$cache_file")"
+  # Portable mtime: Linux uses stat -c '%Y'; macOS uses stat -f '%m'
+  mtime1="$(stat -c '%Y' "$cache_file" 2>/dev/null || stat -f '%m' "$cache_file")"
 
   # Touch skill.md to be newer than cache, then run again
   sleep 1
@@ -847,7 +848,8 @@ _fixture_dangling_rule() {
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
   [ "$status" -eq 0 ]
   local mtime2
-  mtime2="$(stat -f '%m' "$cache_file" 2>/dev/null || stat -c '%Y' "$cache_file")"
+  # Portable mtime: Linux uses stat -c '%Y'; macOS uses stat -f '%m'
+  mtime2="$(stat -c '%Y' "$cache_file" 2>/dev/null || stat -f '%m' "$cache_file")"
 
   # Cache must have been regenerated (newer mtime)
   [ "$mtime2" -gt "$mtime1" ]
