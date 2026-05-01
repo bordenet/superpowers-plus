@@ -200,14 +200,14 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-# Expected: 89 skills listed (superpowers-plus; installed overlays add more)
+# Expected: skill catalog printed without errors (superpowers-plus contributes 89 skills)
 ```
 
-Run the full 27-check diagnostic:
+Run the full 29-check diagnostic:
 
 ```bash
 bash tools/doctor-checks.sh
-# Expected: 0 critical, 0 errors
+# Expected: "All 29 checks passed" (0 critical, 0 errors)
 ```
 
 If skills aren't loading, see [Troubleshooting](#troubleshooting).
@@ -289,7 +289,7 @@ Utility scripts in `tools/`:
 |------|---------|
 | `run-battery.sh` | Runs the automated quality suite (harsh-review, trigger tests, export integrity, skill router tests); writes the `.code-review-cleared` sentinel. Accepts `--verdict PASS\|PASS_WITH_NITS` and optional `--min-score N` (1.0–10.0, default 7.0). |
 | `commit-gate.sh` | Runs lint/test/harsh-review and mints a short-lived review token consumed by the pre-commit hook. |
-| `doctor-checks.sh` | 27-check diagnostic across all installed skills |
+| `doctor-checks.sh` | 29-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
 | `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash` |
@@ -322,7 +322,7 @@ Utility scripts in `tools/`:
 | Push blocked by IP audit | Run `bash tools/public-repo-ip-check.sh` to see what matched; if a false positive, add an exception pattern to `.ip-patterns` |
 | CRLF errors on WSL | Cloned on Windows before running installer: `bash tools/harsh-review.sh --fix` |
 | Skills not loading | Run `bash tools/doctor-checks.sh` to diagnose; then `bash install.sh --upgrade` if checks fail |
-| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills` — expect 89 skills listed |
+| Stale skill count | `bash install.sh --upgrade`; verify with `node ... find-skills` — catalog should print without errors |
 | TODO lock timeout | Another agent holds the lock; `todo-lock.sh steal` |
 | Doctor reports drift | `bash tools/doctor-checks.sh --fix-safe` |
 
