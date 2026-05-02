@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Skills for AI coding assistants that enforce the practices AI would otherwise skip. Extends [obra/superpowers](https://github.com/obra/superpowers). Can be used for non-coding workloads, too!
+Skills for AI coding assistants that enforce the practices AI would otherwise skip. Built on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). Can be used for non-coding workloads, too!
 
 ## Platform Support
 
@@ -15,7 +15,7 @@ Skills for AI coding assistants that enforce the practices AI would otherwise sk
 
 AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification.
 
-Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) is a framework for teaching AI agents reusable procedures. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
+Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent is a framework for teaching AI agents reusable procedures; superpowers-plus builds on it via a maintained fork ([bordenet/superpowers](https://github.com/bordenet/superpowers)) for governance stability. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
 
 Each skill exists because it caught a real problem.
 
@@ -87,7 +87,7 @@ Then tell your AI assistant what you're doing:
 
 - **Most users:** core install below (`git clone` + `bash install.sh`)
 - **Augment Agent only:** one-liner bootstrap for Ubuntu / Debian / WSL
-- **Claude Code:** use `install.sh` for complete setup, or `/plugin install` if `obra/superpowers` is already installed
+- **Claude Code:** use `install.sh` for complete setup, or `/plugin install` for plugin-only mode
 - **Codex / OpenCode / Gemini CLI:** use the platform-specific instructions below
 - **Claude Desktop or another MCP client:** do the core install first, then add the optional MCP server
 
@@ -119,7 +119,7 @@ curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/inst
 
 > **Security note:** Review the script before piping: `curl -fsSL <url> | less` — then re-run with `| bash` once satisfied.
 
-Installs obra/superpowers + the Augment adapter. Does **not** install the full skill suite; use git clone above for that.
+Installs the superpowers core framework (bordenet/superpowers) + the Augment adapter. Does **not** install the full skill suite; use git clone above for that.
 
 ### Claude Code
 
@@ -127,7 +127,7 @@ Installs obra/superpowers + the Augment adapter. Does **not** install the full s
 /plugin install https://github.com/bordenet/superpowers-plus
 ```
 
-Requires `obra/superpowers` to already be installed. For a complete setup that installs both, use the core `install.sh` path above.
+Plugin mode installs skills only. For a complete setup that includes superpowers-core, use the `install.sh` path above.
 
 ### Codex
 
@@ -144,7 +144,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/bordenet/su
 ### Gemini CLI
 
 ```bash
-gemini extensions install https://github.com/obra/superpowers
+gemini extensions install https://github.com/bordenet/superpowers
 gemini extensions install https://github.com/bordenet/superpowers-plus
 ```
 
@@ -255,10 +255,15 @@ The commit-gate chain (`unified-commit-gate` → pre-commit → style → code r
 ## Extending
 
 ```text
-obra/superpowers (framework)
-    └── superpowers-plus (this repo)
-            └── your-org-skills (private)
+obra/superpowers (Jesse Vincent, MIT — upstream)
+    └── bordenet/superpowers (maintained fork — governance stability)
+            └── superpowers-plus (this repo)
+                    └── your-org-skills (private)
 ```
+
+## Upstream & Attribution
+
+superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT license). We track the upstream periodically; see [CONTRIBUTING.md](CONTRIBUTING.md) for the upstream pull process. Jesse's original copyright is preserved in the fork's LICENSE file.
 
 **Solo developers:** Core skills — `systematic-debugging`, `code-review-battery`, `feature-development`, `think-twice`, `verification-before-completion` — work fully offline with just git and GitHub. No external integrations required.
 
