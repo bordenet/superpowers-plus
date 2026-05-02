@@ -24,6 +24,6 @@
     "lib/install/migrate.sh": "c67293da7161671389418ed0455e4805d148649d6848e5aad54fb65fc8f65551",
     "lib/install/platform.sh": "88292fb06d1eceab1d5cc4de852b26c8304615d8b5639c2512f7a4582e20c916",
     "lib/install/skill-naming.sh": "48d94aa5b00b5a0f34bc06dd5a7b961443741eed7ef506e50e036eed24c3ecd1",
-    "lib/install/superpowers.sh": "cd9838b5cdcbbc0008b491d398208e1945e1375870a9469e701d4f50f079bae8"
+    "lib/install/superpowers.sh": "07bc3c6d5ba01c025e3566a10446f8691532705f62722f3f174cb08f6c9c6134"
   }
 }

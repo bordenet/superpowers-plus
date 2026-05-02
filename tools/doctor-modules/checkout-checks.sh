@@ -12,7 +12,7 @@ command -v timeout &>/dev/null && _timeout_cmd="timeout 10"
 command -v gtimeout &>/dev/null && _timeout_cmd="gtimeout 10"
 declare -A _fetch_ok=()
 if command -v git &>/dev/null; then
-for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:superpowers-core"; do
   managed_dir="${managed_entry%%:*}"
   if [[ -d "$managed_dir/.git" ]]; then
     # shellcheck disable=SC2086
@@ -75,7 +75,7 @@ check_stale_checkout() {
     ((CRITICAL++))
   fi
 }
-for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:superpowers-core"; do
   managed_dir="${managed_entry%%:*}"
   managed_label="${managed_entry##*:}"
   check_stale_checkout "$managed_dir" "$managed_label"
@@ -142,7 +142,7 @@ check_dirty_checkout() {
     fi
   fi
 }
-for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:obra/superpowers"; do
+for managed_entry in "$MANAGED_SPP_DIR:superpowers-plus" "$MANAGED_OBRA_DIR:superpowers-core"; do
   managed_dir="${managed_entry%%:*}"
   managed_label="${managed_entry##*:}"
   check_dirty_checkout "$managed_dir" "$managed_label"
