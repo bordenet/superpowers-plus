@@ -673,16 +673,24 @@ main() {
         install_superpowers
     elif ! _is_git_repo "$SUPERPOWERS_DIR"; then
         # Directory exists with skills/ but is not a git repo — cannot update
-        log_warn "obra/superpowers exists but is not a git repo: $SUPERPOWERS_DIR"
+        log_warn "superpowers-core exists but is not a git repo: $SUPERPOWERS_DIR"
         log_warn "Cannot update or verify version. Run with --force to reinstall."
-        error_exit "Unmanaged obra/superpowers installation detected"
+        error_exit "Unmanaged superpowers-core installation detected"
     else
-        log_success "obra/superpowers already installed"
+        # Migrate remote from obra upstream to our fork if needed (runs on every update)
+        local _current_remote
+        _current_remote=$(git -C "$SUPERPOWERS_DIR" remote get-url origin 2>/dev/null || echo "")
+        if [[ "$_current_remote" == *"obra/superpowers"* ]] && [[ "$_current_remote" != "$SUPERPOWERS_REPO" ]]; then
+            log_info "Migrating superpowers-core remote to fork..."
+            git -C "$SUPERPOWERS_DIR" remote set-url origin "$SUPERPOWERS_REPO"
+            log_success "Remote updated: $_current_remote → $SUPERPOWERS_REPO"
+        fi
+        log_success "superpowers-core already installed"
         # Try to update — warn prominently if update fails
         if ! update_superpowers; then
             local checkout_age
             checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
-            log_warn "Continuing with existing obra/superpowers (last updated: $checkout_age)"
+            log_warn "Continuing with existing superpowers-core (last updated: $checkout_age)"
         fi
     fi
 
