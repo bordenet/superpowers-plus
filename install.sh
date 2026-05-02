@@ -94,7 +94,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_DIR="${HOME}/.codex"
 SKILLS_DIR="${CODEX_DIR}/skills"
 SUPERPOWERS_DIR="${CODEX_DIR}/superpowers"
-export SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+# Fork of Jesse Vincent's obra/superpowers (MIT). Upstream: https://github.com/obra/superpowers
+# We maintain this fork for governance stability; upstream improvements are reviewed and merged
+# periodically. See CONTRIBUTING.md for the upstream pull process.
+export SUPERPOWERS_REPO="https://github.com/bordenet/superpowers.git"
 
 # Platform-specific skill deployment paths
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
@@ -193,10 +196,11 @@ SYNOPSIS
     install.sh [OPTIONS]
 
 DESCRIPTION
-    superpowers-plus extends obra/superpowers by Jesse Vincent with additional
+    superpowers-plus extends the superpowers-core framework (bordenet/superpowers,
+    a maintained fork of Jesse Vincent's obra/superpowers, MIT) with additional
     skills for wiki editing, issue tracking, security audits, and AI text quality.
 
-    This installer clones obra/superpowers (if not present) and deploys all
+    This installer clones superpowers-core (if not present) and deploys all
     superpowers-plus skills to ~/.codex/skills/. Safe to run multiple times.
 
 OPTIONS
@@ -218,7 +222,7 @@ OPTIONS
 
     --check
         Validate prerequisites without installing anything. Reports the
-        status of Node.js, git, obra/superpowers, and skill counts.
+        status of Node.js, git, superpowers-core, and skill counts.
 
     -y, --yes
         Auto-accept all prompts (e.g., dependency installation) without
@@ -285,7 +289,8 @@ AUTHOR
 
 SEE ALSO
     Repository: https://github.com/bordenet/superpowers-plus
-    Superpowers core: https://github.com/obra/superpowers
+    Superpowers upstream: https://github.com/obra/superpowers (Jesse Vincent, MIT)
+    Superpowers fork:     https://github.com/bordenet/superpowers
     Changelog: https://github.com/bordenet/superpowers-plus/blob/main/CHANGELOG.md
 EOF
     exit 0
@@ -416,7 +421,7 @@ print_summary() {
     echo "========================================"
     echo ""
     echo "Installed to:"
-    echo "  obra/superpowers:  $SUPERPOWERS_DIR"
+    echo "  superpowers-core:  $SUPERPOWERS_DIR"
     echo ""
     echo "  Claude Code:       $CLAUDE_SKILLS_DIR"
     echo "                     (native Skill tool)"
@@ -572,20 +577,20 @@ check_prerequisites() {
         fail=$((fail + 1))
     fi
 
-    # obra/superpowers (presence + git repo + skills/)
+    # superpowers-core (presence + git repo + skills/)
     if [[ -d "$SUPERPOWERS_DIR" ]]; then
         if ! _is_git_repo "$SUPERPOWERS_DIR"; then
-            log_warn "obra/superpowers: exists but is NOT a git repo (use --force to reinstall)"
+            log_warn "superpowers-core: exists but is NOT a git repo (use --force to reinstall)"
             fail=$((fail + 1))
         elif [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
-            log_warn "obra/superpowers: git repo exists but skills/ directory is missing (use --force to reinstall)"
+            log_warn "superpowers-core: git repo exists but skills/ directory is missing (use --force to reinstall)"
             fail=$((fail + 1))
         else
-            log_success "obra/superpowers: installed at $SUPERPOWERS_DIR (git repo)"
+            log_success "superpowers-core: installed at $SUPERPOWERS_DIR (git repo)"
             ok=$((ok + 1))
         fi
     else
-        log_warn "obra/superpowers: NOT INSTALLED (will be installed)"
+        log_warn "superpowers-core: NOT INSTALLED (will be installed)"
     fi
 
     # Skills
