@@ -37,11 +37,11 @@ _make_skill() {
     local dir="$SKILLS_DIR/$name"
     mkdir -p "$dir"
     if [[ "$trigger" == "none" ]]; then
-        printf -- "---\nname: %s\ntriggers: []\n---\n" "$name" > "$dir/skill.md"
+        printf -- "---\nname: %s\naugment_menu: true\ntriggers: []\n---\n" "$name" > "$dir/skill.md"
     elif [[ "$quote" == "single" ]]; then
-        printf -- "---\nname: %s\ntriggers: ['%s']\n---\n" "$name" "$trigger" > "$dir/skill.md"
+        printf -- "---\nname: %s\naugment_menu: true\ntriggers: ['%s']\n---\n" "$name" "$trigger" > "$dir/skill.md"
     else
-        printf -- "---\nname: %s\ntriggers: [\"%s\"]\n---\n" "$name" "$trigger" > "$dir/skill.md"
+        printf -- "---\nname: %s\naugment_menu: true\ntriggers: [\"%s\"]\n---\n" "$name" "$trigger" > "$dir/skill.md"
     fi
 }
 
@@ -118,7 +118,7 @@ _make_skill() {
     printf "source: superpowers-plus\n" > "$AUGMENT_MENU_DIR/sp-old/SKILL.md"
 
     AUGMENT_MENU_SKILLS=("brainstorming")
-    export_augment_menu_skills
+    export_augment_menu_skills "superpowers-plus"
     [[ ! -d "$AUGMENT_MENU_DIR/sp-old" ]]
 }
 

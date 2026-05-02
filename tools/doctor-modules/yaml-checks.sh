@@ -77,6 +77,7 @@ done
 # Single awk pass replaces 3 separate grep -Eqi file reads per skill (528 forks → 176 forks).
 for skill in "${!SKILL_PATH[@]}"; do
   f="${SKILL_PATH[$skill]}"; issues=""
+  [[ ! -f "$f" ]] && continue  # Skip stubs/virtual paths (e.g. test fixtures)
   read -r _has_wtu _has_code _has_fail < <(awk '
     BEGIN { w=0; c=0; f=0 }
     tolower($0) ~ /when to use|when to invoke/ { w=1 }
