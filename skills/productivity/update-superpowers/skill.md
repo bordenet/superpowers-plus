@@ -4,7 +4,7 @@ source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-update", "update superpowers", "upgrade superpowers", "pull superpowers", "refresh superpowers", "update skills", "upgrade skills", "superpowers-update", "sp-update --branch", "update superpowers staging", "update superpowers dev"]
 anti_triggers: ["install superpowers", "uninstall superpowers"]
-description: "Update superpowers-plus to latest, reruns the install cascade (obra/superpowers → superpowers-plus → configured overlays), and verify with sp-doctor. Supports --branch to update a specific superpowers-plus branch."
+description: "Update superpowers-plus to latest, reruns the install cascade (superpowers-core fork → superpowers-plus → configured overlays), and verify with sp-doctor. Supports --branch to update a specific superpowers-plus branch."
 summary: "Use when: updating superpowers to latest and ensuring the full skill chain is healthy."
 coordination:
   group: productivity
@@ -76,7 +76,7 @@ sp-update --verbose
 2. Checks out the branch (if specified)
 3. Fast-forward merges or force-resets to latest remote
 4. Runs `install.sh --upgrade` to cascade the install
-   - `install.sh` updates obra/superpowers from origin main
+   - `install.sh` updates superpowers-core (bordenet/superpowers fork) from origin main
    - Deploys superpowers-plus assets and skills to ~/.codex/skills/
    - Overlay installs are NOT handled by sp-update; they're auto-discovered by sp-doctor
 
@@ -146,7 +146,7 @@ When the user says "update my superpowers" or "sp-update":
 **Key behaviors:**
 - sp-update fetches, checks out, and pulls the specified branch (or current if not specified)
 - sp-update auto-resets diverged branches to prevent stale installations
-- sp-update cascades: obra/superpowers → superpowers-plus → skill deployment
+- sp-update cascades: superpowers-core → superpowers-plus → skill deployment
 - sp-doctor REPORTS issues (use `--fix-safe` or `doctor-checks.sh --fix` for auto-fixes)
 - Overlay source dirs are auto-discovered by sp-doctor, not by sp-update
 

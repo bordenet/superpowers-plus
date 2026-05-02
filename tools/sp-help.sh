@@ -78,7 +78,8 @@ _source_label() {
 show_header() {
     echo -e "${WHITE}⚡ Superpowers${RESET} ${DIM}— AI coding skill ecosystem${RESET}"
     echo ""
-    echo -e "  ${DIM}Upstream:${RESET}  ${ULINE}https://github.com/obra/superpowers${RESET}"
+    echo -e "  ${DIM}Core:${RESET}      ${ULINE}https://github.com/obra/superpowers${RESET} by Jesse Vincent (MIT)"
+    echo -e "  ${DIM}Fork:${RESET}      ${ULINE}https://github.com/bordenet/superpowers${RESET}"
     echo -e "  ${DIM}Extended:${RESET}  ${ULINE}https://github.com/bordenet/superpowers-plus${RESET}"
     local spp_version=""
     if [[ -d "$SPP_DIR/.git" ]] && command -v git >/dev/null 2>&1; then

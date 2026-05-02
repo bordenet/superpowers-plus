@@ -193,7 +193,7 @@ DESCRIPTION
 OPTIONS
     --dry-run       Show what would be removed without removing anything
     --yes, -y       Skip confirmation prompt
-    --purge         Also remove managed checkout, obra/superpowers, adapter,
+    --purge         Also remove managed checkout, superpowers-core (bordenet/superpowers fork), adapter,
                     and runtime data (doctor-backups, review dirs, session)
     --verbose, -v   Show detailed progress
     --version       Show version
@@ -264,7 +264,7 @@ main() {
     echo "  Adapter: ~/.codex/superpowers-augment/"
     if [[ "$PURGE" == "true" ]]; then
         echo "  [PURGE] Managed checkout: ~/.codex/superpowers-plus/"
-        echo "  [PURGE] obra/superpowers: ~/.codex/superpowers/"
+        echo "  [PURGE] superpowers-core (bordenet/superpowers fork): ~/.codex/superpowers/"
         echo "  [PURGE] Runtime: doctor-backups, review dirs, session markers"
     fi
     echo ""

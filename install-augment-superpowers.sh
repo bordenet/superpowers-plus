@@ -27,7 +27,7 @@ fi
 
 # --- Configuration ---
 VERSION="1.0.0"
-SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+SUPERPOWERS_REPO="https://github.com/bordenet/superpowers.git"  # fork of obra/superpowers by Jesse Vincent (MIT)
 SUPERPOWERS_PLUS_RAW="https://raw.githubusercontent.com/bordenet/superpowers-plus/main"
 VERBOSE=false
 
@@ -64,14 +64,14 @@ SYNOPSIS
     curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 
 DESCRIPTION
-    Installs the superpowers skill system (from obra/superpowers) and configures
+    Installs the superpowers skill system (bordenet/superpowers, fork of obra/superpowers by Jesse Vincent, MIT) and configures
     it to work with Augment Code. This enables AI-assisted workflows with
     structured skills for brainstorming, debugging, TDD, and more.
 
     The installer is self-contained and can be run via curl pipe or directly.
 
 WHAT GETS INSTALLED
-    ~/.codex/superpowers/           Superpowers core (cloned from obra/superpowers)
+    ~/.codex/superpowers/           Superpowers core (cloned from bordenet/superpowers fork)
     ~/.codex/superpowers-augment/   Augment adapter (translates tool names)
     ~/.codex/skills/                Your personal skills directory (empty)
     ~/.augment/rules/               Augment auto-load rule
@@ -109,7 +109,8 @@ AUTHOR
     Matt J Bordenet
 
 SEE ALSO
-    https://github.com/obra/superpowers
+    https://github.com/obra/superpowers (Jesse Vincent, MIT — upstream)
+    https://github.com/bordenet/superpowers (fork)
     https://augmentcode.com
 EOF
     exit 0
@@ -170,7 +171,7 @@ verbose "Creating ~/.augment/rules"
 mkdir -p ~/.augment/rules
 success "Directories created"
 
-# Install superpowers (obra/superpowers)
+# Install superpowers (bordenet/superpowers fork of obra/superpowers by Jesse Vincent, MIT)
 # Use -e (not -d) to support git worktrees where .git is a file
 if [[ -e ~/.codex/superpowers/.git ]]; then
     info "Superpowers already installed, updating..."
@@ -216,7 +217,7 @@ if [[ -e ~/.codex/superpowers/.git ]]; then
     popd > /dev/null
     [[ "$_sp_update_ok" == true ]] && success "Superpowers updated"
 else
-    info "Installing superpowers from obra/superpowers..."
+    info "Installing superpowers-core..."
     verbose "Cloning $SUPERPOWERS_REPO to ~/.codex/superpowers"
     rm -rf ~/.codex/superpowers 2>/dev/null || true
     git clone --quiet "$SUPERPOWERS_REPO" ~/.codex/superpowers
