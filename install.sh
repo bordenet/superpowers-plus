@@ -724,6 +724,16 @@ main() {
     install_claude_commands_mirror
     install_claude_guardrails
 
+    # F5: Clean install-artifact permission drift.
+    # install_tools copies to ~/.codex/superpowers-plus/tools/ and sets +x on those
+    # files — the managed checkout tracks them as non-executable (100644), so every
+    # install run leaves the managed checkout worktree dirty. git restore reverts the
+    # permission-only changes without losing any content; the scripts remain functional.
+    local _mgd="${CODEX_DIR}/superpowers-plus"
+    if [[ -d "${_mgd}/.git" ]]; then
+        git -C "$_mgd" restore . 2>/dev/null || true
+    fi
+
     # Print summary
     print_summary
 }
