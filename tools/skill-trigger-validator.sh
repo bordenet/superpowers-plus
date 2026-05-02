@@ -81,6 +81,7 @@ EXPLICIT_SKILLS=(
     "infra-config-investigator"     # Internal: dispatched by debug-conductor
     "reproduction-experiment-investigator" # Internal: dispatched by debug-conductor
     "evidence-adjudicator"          # Internal: dispatched by debug-conductor
+    "superpowers-product-mode"      # Explicit-only: no auto-triggers by design (PM mode)
 )
 
 is_explicit_skill() {
