@@ -177,11 +177,12 @@ _doctor_hook_integrity() {
       continue
     fi
     [[ -x "$installed" ]] || issues+=("$hook_name is not executable")
-    # Strip the sp-env-cleanup patch block (added by sp-update at deploy time) from
-    # the installed hook before comparing — that block is intentional and should not
-    # be flagged as staleness. Strip through the closing 'fi', then squeeze any
-    # resulting consecutive blank lines so extra trailing blanks don't cause a mismatch.
-    installed_base="$(sed '/^# LOCAL: sp-env-cleanup/,/^fi$/d' "$installed" | cat -s)"
+    # Strip the sp-env-cleanup patch block (added by sp-patch-hooks.sh after hook
+    # installation) before comparing — that block is intentional and must not be
+    # flagged as staleness. The block header is '# sp-env-cleanup:'; strip through
+    # the closing 'fi', then squeeze consecutive blank lines so trailing blanks
+    # don't cause a mismatch.
+    installed_base="$(sed '/^# sp-env-cleanup:/,/^fi$/d' "$installed" | cat -s)"
     expected_norm="$(cat -s "$expected")"
     if ! cmp -s <(printf '%s' "$expected_norm") <(printf '%s' "$installed_base"); then
       issues+=("$hook_name differs from tools/$hook_name")
