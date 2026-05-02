@@ -70,6 +70,9 @@ KNOWN_COLLISION_GROUPS=(
   # Review-sync chain: "review this PR" intentionally fires both sp-review (code review)
   # and sp-sync (branch-sync-gate) — pull first, then review.
   "sp-review sp-sync"
+  # F9: sp-* short names alias the full installed skill names — same skill, two trigger sets.
+  "sp-update update-superpowers"
+  "sp-doctor superpowers-doctor"
 )
 
 # Load overlay collision groups from all overlay source dirs
