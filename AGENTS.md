@@ -117,6 +117,10 @@ After GitHub main is updated, sync GitLab mirror:
 git push gitlab origin/main:main origin/staging:staging origin/dev:dev
 ```
 
+After any release to `main`, open a sync PR (merge commit) to bring promotion history back to `dev`:
+`git checkout -b chore/sync-dev-with-main origin/main && git push origin chore/sync-dev-with-main`
+Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on `main` that never reach `dev` without this.
+
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
 - ❌ NEVER promote through GitLab and then backfill GitHub
