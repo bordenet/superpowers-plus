@@ -4,7 +4,6 @@ source: superpowers-plus
 augment_menu: true
 triggers:
   - /sp-debate
-  - debate
   - three design options
   - compare design approaches
   - design comparison matrix
