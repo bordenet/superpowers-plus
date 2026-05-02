@@ -771,6 +771,7 @@ export_augment_menu_skills() {
             dest_name="${sp_trigger#/}"
         else
             dest_name="$skill_name"
+            log_warn "No /sp-* trigger found for $skill_name; exporting as /$dest_name"
         fi
         exported_names["$dest_name"]=1
 
@@ -811,6 +812,13 @@ with open(path, 'w') as f: f.write(content)
 
         exported=$((exported + 1))
         log_verbose "  Exported: $skill_name → /$dest_name"
+    done
+
+    # Warn about skills explicitly listed in AUGMENT_MENU_SKILLS that weren't found.
+    # Use "${arr[@]+${arr[@]}}" to safely expand an array that may be unset under set -u.
+    local _s
+    for _s in "${AUGMENT_MENU_SKILLS[@]+"${AUGMENT_MENU_SKILLS[@]}"}"; do
+        [[ -d "$SKILLS_DIR/$_s" ]] || log_warn "Augment menu skill not found: $_s"
     done
 
     # Prune stale entries from THIS installer's source only.
