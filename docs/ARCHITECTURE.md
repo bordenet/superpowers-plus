@@ -22,11 +22,11 @@ This distinction matters for user queries:
 
 ## Framework Integration
 
-superpowers-plus extends [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent, a skill framework for AI coding assistants. The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
+superpowers-plus builds on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). The fork gives superpowers-plus governance stability — upstream obra improvements are reviewed and merged periodically per [CONTRIBUTING.md](../CONTRIBUTING.md). The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
 
 ```bash
 ~/.codex/
-├── superpowers/          # obra/superpowers (cloned by install.sh)
+├── superpowers/          # superpowers core (fork of obra/superpowers by Jesse Vincent)
 │   └── skills/           # Core framework skills (mostly superpowers)
 ├── skills/               # Your personal skills (this repo)
 ├── superpowers-augment/  # Wrapper script for skill discovery
@@ -46,7 +46,7 @@ lib/install/
 ├── logging.sh       # Colors, log_*, error_exit, create_dir
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
 ├── deps.sh          # Package manager detection, dependency install, Node.js version check
-├── superpowers.sh   # obra/superpowers clone, update, upgrade, version check
+├── superpowers.sh   # superpowers-core clone, update, upgrade, version check + fork remote migration
 ├── deploy.sh        # Skill, adapter, rule deployment across ~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/, ~/.augment/rules/
 └── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
 ```

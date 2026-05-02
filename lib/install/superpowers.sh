@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # lib/install/superpowers.sh
-# PURPOSE: obra/superpowers git management — clone, update, upgrade, version check.
+# PURPOSE: superpowers-core git management — clone, update, upgrade, version check.
+#          superpowers-core is bordenet/superpowers, a maintained fork of
+#          Jesse Vincent's obra/superpowers (MIT). See CONTRIBUTING.md.
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: SUPERPOWERS_DIR, SUPERPOWERS_REPO, CODEX_DIR, FORCE, VERBOSE
 # REQUIRES: lib/install/logging.sh
@@ -96,6 +98,14 @@ install_superpowers() {
     # If directory exists but not forced, try to update instead
     if [[ -d "$SUPERPOWERS_DIR" ]]; then
         if _is_git_repo "$SUPERPOWERS_DIR"; then
+            # Migrate remote from obra upstream to our fork if needed
+            local current_remote
+            current_remote=$(git -C "$SUPERPOWERS_DIR" remote get-url origin 2>/dev/null || echo "")
+            if [[ "$current_remote" == *"obra/superpowers"* ]] && [[ "$current_remote" != "$SUPERPOWERS_REPO" ]]; then
+                log_info "Migrating superpowers remote to fork..."
+                git -C "$SUPERPOWERS_DIR" remote set-url origin "$SUPERPOWERS_REPO"
+                log_success "Remote updated: $current_remote → $SUPERPOWERS_REPO"
+            fi
             log_info "Superpowers directory exists, updating..."
             if ! update_superpowers; then
                 return 1
