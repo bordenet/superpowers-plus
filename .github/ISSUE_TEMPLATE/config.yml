@@ -3,3 +3,6 @@ contact_links:
   - name: Documentation
     url: https://github.com/bordenet/superpowers-plus/blob/main/README.md
     about: Check the README before opening an issue
+  - name: Ask a question
+    url: https://github.com/bordenet/superpowers-plus/discussions
+    about: Use Discussions for questions that don't fit a template

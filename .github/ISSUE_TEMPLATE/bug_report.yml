@@ -51,6 +51,8 @@ body:
         1. Install superpowers-plus
         2. Trigger skill X
         3. See error
+    validations:
+      required: true
 
   - type: textarea
     id: context

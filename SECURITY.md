@@ -13,7 +13,7 @@
 
 Please report security concerns privately via one of these channels:
 
-- **GitHub Private Vulnerability Reporting**: Use the [Report a vulnerability](../../security/advisories/new) button on the Security tab
+- **GitHub Private Vulnerability Reporting**: Use the [Report a vulnerability](https://github.com/bordenet/superpowers-plus/security/advisories/new) button on the Security tab (private reporting is enabled on this repo)
 - **GitHub**: Contact [@bordenet](https://github.com/bordenet) directly
 
 Include in your report:
