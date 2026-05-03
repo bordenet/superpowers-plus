@@ -1,0 +1,51 @@
+name: Feature Request
+description: Suggest a new skill or improvement to an existing one
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea? We want to hear it. Describe the problem you're solving, not just the solution.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Request type
+      options:
+        - New skill
+        - Improvement to existing skill
+        - New hook or gate
+        - Install / tooling improvement
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the gap or friction you're experiencing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like to see it addressed?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else did you consider or try?
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: I reviewed the existing skills to confirm this gap is not already covered
+          required: false
