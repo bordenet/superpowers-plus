@@ -26,7 +26,7 @@ This Code of Conduct applies to all project spaces (GitHub issues, pull requests
 
 ## Enforcement
 
-Violations may be reported **privately** via [GitHub Security Advisories](https://github.com/bordenet/superpowers-plus/security/advisories/new) (select "Other" for the vulnerability type) or by direct message to [@bordenet](https://github.com/bordenet). Do not use public issues or public Discussions for sensitive reports. All reports will be reviewed promptly and confidentially. Maintainers will take appropriate action, up to and including a permanent ban from the project.
+Violations may be reported privately by contacting [@bordenet](https://github.com/bordenet) via GitHub. Do not use public issues or public Discussions for sensitive reports. All reports will be reviewed promptly and confidentially. Maintainers will take appropriate action, up to and including a permanent ban from the project.
 
 ## Attribution
 
