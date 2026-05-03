@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a broken skill, hook, or install script
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out as much detail as you can.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Claude Code
+        - Augment Code
+        - Both
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: skill
+    attributes:
+      label: Skill or Component
+      description: Which skill, hook, or script is affected?
+      placeholder: "e.g. unified-commit-gate, install.sh, pre-tool-use-red-autonomy"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the behavior you observed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Install superpowers-plus
+        2. Trigger skill X
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment
+      description: OS, shell, Claude Code version, relevant env vars
+      render: shell
