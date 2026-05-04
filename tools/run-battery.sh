@@ -19,6 +19,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$REPO_ROOT" ]]; then
   REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
 fi
+[[ -n "$REPO_ROOT" ]] || { echo "❌ Cannot locate a git repo from CWD or script dir" >&2; exit 1; }
 cd "$REPO_ROOT"
 
 # --- Parse flags ---
@@ -150,7 +151,7 @@ fi
 echo ""
 
 echo "─── Step 4/4: skill router unit tests ───"
-if node "$REPO_ROOT/test/skill-router.test.js" 2>&1; then
+if node "$SCRIPT_DIR/../test/skill-router.test.js" 2>&1; then
     echo "✓ skill router tests passed"
 else
     echo "❌ skill router tests FAILED"
