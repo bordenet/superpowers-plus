@@ -12,7 +12,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
+# Resolve repo root from the caller's CWD so the sentinel lands in the right
+# repo when run-battery.sh is invoked from an overlay (e.g. superpowers-swat).
+# Fall back to the script's own repo only when not called from inside a git tree.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" ]]; then
+  REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
+fi
 cd "$REPO_ROOT"
 
 # --- Parse flags ---
