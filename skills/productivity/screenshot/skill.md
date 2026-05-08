@@ -74,12 +74,12 @@ macOS:
 WSL (detected via /proc/version containing "Microsoft" or "microsoft"):
   Try in order:
     1. username=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
-    2. If empty → username=$USER
-    3. If still empty → username=$(whoami)
-    4. If all fail → stop; print: "Could not determine Windows username for WSL
-       path resolution. Set SCREENSHOT_DIR manually in ~/.codex/.env."
-  Construct: /mnt/c/Users/<username>/Pictures/Screenshots
-  Note: if the username contains spaces or special characters, quote the path.
+    2. Sanitize: `username="${username//[^a-zA-Z0-9._-]/}"` (whitelist alphanumeric, dot, underscore, hyphen)
+    3. If empty → username=$USER
+    4. If still empty → username=$(whoami)
+    5. If all fail → stop; print: "Could not determine Windows username for WSL path resolution. Set SCREENSHOT_DIR manually in ~/.codex/.env."
+  Construct: `/mnt/c/Users/"${username}"/Pictures/Screenshots` (quote to prevent injection)
+  Note: Sanitization removes special characters; if username is unrecognizable after sanitization, fall back to next method.
 
 Linux (non-WSL):
   try $XDG_SCREENSHOTS_DIR (rarely set — not part of XDG Base Dir spec; treat
@@ -95,12 +95,32 @@ Windows (PowerShell):
   set SCREENSHOT_DIR manually.
 ```
 
-**Validate before persisting:** After discovery returns a path, verify it is an existing directory (`[ -d "$path" ]` or equivalent) before writing to `.env`. If the check fails, fall back to the next discovery step rather than persisting an invalid path.
+**Validate before persisting:** After discovery returns a path, resolve it to a canonical path using `realpath` to prevent symlink and traversal attacks:
+```bash
+resolved_path=$(realpath "$path" 2>/dev/null) || { echo "Invalid path"; return 1; }
+[ -d "$resolved_path" ] || { echo "Path is not a directory"; return 1; }
+path="$resolved_path"
+```
+If the check fails, fall back to the next discovery step rather than persisting an invalid path.
 
-**Persist after discovery (upsert, not append-only):**
+**Persist after discovery (atomic upsert, not append-only):**
 
-- If `SCREENSHOT_DIR` key is already present in `~/.codex/.env` (checked via grep): use the Edit tool to replace the existing `SCREENSHOT_DIR=<old value>` line with `SCREENSHOT_DIR=<discovered_path>`. This handles stale paths and avoids shell quoting issues with paths that contain spaces or special characters.
-- If the key is absent: use the Bash tool to append: `echo "SCREENSHOT_DIR=<discovered_path>" >> ~/.codex/.env` (quote the path in the echo if it contains spaces).
+Use atomic writes to prevent concurrent modification race conditions:
+```bash
+tmp=$(mktemp ~/.codex/.env.XXXXXX 2>/dev/null) || { echo "Cannot create temp file"; exit 1; }
+trap "rm -f '$tmp'" EXIT
+grep -v "^SCREENSHOT_DIR=" ~/.codex/.env > "$tmp" 2>/dev/null || true
+echo "SCREENSHOT_DIR=$discovered_path" >> "$tmp"
+mv "$tmp" ~/.codex/.env 2>/dev/null || { echo "Write failed"; exit 1; }
+```
+
+This approach:
+1. Creates a temporary file atomically
+2. Removes any existing SCREENSHOT_DIR line(s)
+3. Appends the new value
+4. Atomically replaces .env (mv is atomic on same filesystem)
+
+This prevents duplicate keys and ensures consistency even with concurrent invocations.
 
 If the write fails (read-only `.env`): print "Add `SCREENSHOT_DIR=<path>` to `~/.codex/.env` to persist this setting." Then proceed with the discovered path for this session only.
 
