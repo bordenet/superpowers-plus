@@ -228,91 +228,11 @@ If no marker is found in CWD: proceed without injection, no error, no mention.
 
 ## Execution Traces
 
-### Trace A: `/sp-ss 2 fix` (first-discovery branch — SCREENSHOT_DIR not yet set)
+**Trace A** (`/sp-ss 2 fix`, first-discovery): No SCREENSHOT_DIR key → run macOS discovery (fallback ~/Desktop) → list 4 images, select 2 → read both → fix intent + project context injection (React+TS detected).
 
-```
-1. Parse: N=2, intent="fix"
+**Trace B** (`/sp-ss 1 compare`, hard-gate): Read cached SCREENSHOT_DIR from .env → list 6 images → hard gate: N=1 < 2 required → STOP with "compare requires N≥2".
 
-2. Step 1 — Folder resolution:
-   grep "^SCREENSHOT_DIR=" ~/.codex/.env → (no output — key absent)
-   First-discovery branch: run macOS discovery:
-     defaults read com.apple.screencapture location → "NOT_SET" (empty/error)
-     Fallback: ~/Desktop
-   Key absent → append: echo "SCREENSHOT_DIR=/Users/matt/Desktop" >> ~/.codex/.env
-   Resolved path: /Users/matt/Desktop
-
-3. Step 2 — File listing (case-insensitive *.png,*.jpg,... on ~/Desktop):
-   Found 4 image files; newest two:
-     Screenshot 2026-05-07 at 1.24.54 PM.png  (age: 3 min)
-     Screenshot 2026-05-07 at 1.20.11 PM.png  (age: 7 min)
-   Staleness check: newest is 3 min old → no warning
-   Select 2 files (N=2, cap=4 — no truncation)
-
-4. Step 3 — Read images:
-   Read "Screenshot 2026-05-07 at 1.24.54 PM.png" → success (2.1MB, under 10MB limit)
-   Read "Screenshot 2026-05-07 at 1.20.11 PM.png" → success (1.8MB)
-
-5. Step 4 — Intent dispatch:
-   intent="fix" → matches Priority 3 (fix/error/bug)
-   Context injection: check CWD for project markers
-     Found: package.json → name="my-app", deps include "react", "typescript"
-     Inject prefix: "Project: my-app (React + TypeScript)."
-   Dispatch: diagnose error shown in screenshots within my-app React+TS context
-```
-
-### Trace B: `/sp-ss 1 compare` (hard-gate failure)
-
-```
-1. Parse: N=1, intent="compare"
-
-2. Step 1 — Folder resolution:
-   grep "^SCREENSHOT_DIR=" ~/.codex/.env → /Users/matt/Desktop (key present, path exists)
-   Use cached path, skip discovery.
-
-3. Step 2 — File listing:
-   Found 6 image files; newest one selected.
-
-   (Step 3 skipped — hard gate fires before image read)
-
-4. Step 4 — Intent dispatch:
-   intent="compare" → matches Priority 1 (compare/diff/vs)
-   Hard gate: N=1 < 2 required
-   STOP. Print: "compare requires N≥2 screenshots. Try /sp-ss 2 compare."
-   No images read. No dispatch.
-```
-
-### Trace C: `/sp-ss huh` (stale path — upsert-update branch)
-
-```
-1. Parse: N=1, intent="huh"
-
-2. Step 1 — Folder resolution:
-   grep "^SCREENSHOT_DIR=" ~/.codex/.env → /Volumes/External/Screenshots
-   Path check: /Volumes/External/Screenshots does not exist (drive unmounted)
-   Stale path detected → run platform discovery:
-     macOS: defaults read com.apple.screencapture location → (empty/error)
-     Fallback: ~/Desktop
-   Key already present in .env → Edit tool: replace line
-     SCREENSHOT_DIR=/Volumes/External/Screenshots
-     with: SCREENSHOT_DIR=/Users/matt/Desktop
-   Resolved path: /Users/matt/Desktop
-
-3. Step 2 — File listing:
-   Found 3 image files; newest one:
-     Screenshot 2026-05-07 at 1.24.54 PM.png  (age: 47 min)
-   Staleness check: 47 min > SCREENSHOT_STALENESS_MINUTES (30) →
-     Print: "Newest screenshot is 47 min old — is this the right one?"
-     Proceed immediately.
-   Select 1 file.
-
-4. Step 3 — Read image:
-   Read "Screenshot 2026-05-07 at 1.24.54 PM.png" → success (1.9MB)
-
-5. Step 4 — Intent dispatch:
-   intent="huh" → matches Priority 5 (huh/explain/describe)
-   No context injection for huh intent.
-   Dispatch: describe what the screenshot shows.
-```
+**Trace C** (`/sp-ss huh`, stale path): Read stale SCREENSHOT_DIR (/Volumes/External, unmounted) → re-discover to ~/Desktop → atomically update .env via temp+grep+mv → list 3 images, staleness warning (47 min > 30 min threshold) → huh intent dispatch.
 
 ## Companion Skills
 
