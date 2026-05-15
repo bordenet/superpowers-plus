@@ -575,7 +575,15 @@ check_prerequisites() {
 # Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
 _migrate_remove_obra_clone() {
     local obra_dir="${HOME}/.codex/superpowers"
-    if [[ -d "$obra_dir" ]]; then
+    if [[ -L "$obra_dir" ]]; then
+        # Symlink: remove the symlink only — never follow it into the target directory.
+        log_info "Removing legacy obra/superpowers symlink (not following target)..."
+        if rm -f "$obra_dir"; then
+            log_success "Removed legacy symlink: $obra_dir"
+        else
+            log_warn "Could not remove symlink $obra_dir — remove manually"
+        fi
+    elif [[ -d "$obra_dir" ]]; then
         log_info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
         if rm -rf "${obra_dir:?}"; then
             log_success "Removed legacy obra clone: $obra_dir"

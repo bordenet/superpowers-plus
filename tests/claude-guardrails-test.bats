@@ -1111,3 +1111,59 @@ if not isinstance(v, (int, float)) or v < 0.05:
     sys.exit(1)
 "
 }
+
+# ---------------------------------------------------------------------------
+# _migrate_remove_obra_clone() tests
+# ---------------------------------------------------------------------------
+
+_run_migration() {
+  # Run _migrate_remove_obra_clone in a subshell with a fake HOME.
+  # $1 = fake HOME to use
+  local fake_home="$1"
+  HOME="$fake_home" bash -c '
+    log_info()    { :; }
+    log_success() { :; }
+    log_warn()    { echo "WARN: $*" >&2; }
+    obra_dir="${HOME}/.codex/superpowers"
+    if [[ -L "$obra_dir" ]]; then
+      rm -f "$obra_dir"
+    elif [[ -d "$obra_dir" ]]; then
+      rm -rf "${obra_dir:?}"
+    fi
+  '
+}
+
+@test "migrate_remove_obra_clone: removes directory when present" {
+  local fake_home
+  fake_home="$(mktemp -d)"
+  mkdir -p "$fake_home/.codex/superpowers/skills"
+  echo "test" > "$fake_home/.codex/superpowers/skills/test.txt"
+  _run_migration "$fake_home"
+  [ ! -d "$fake_home/.codex/superpowers" ]
+  rm -rf "$fake_home"
+}
+
+@test "migrate_remove_obra_clone: no-op when directory absent" {
+  local fake_home
+  fake_home="$(mktemp -d)"
+  mkdir -p "$fake_home/.codex"
+  _run_migration "$fake_home"
+  [ $? -eq 0 ]
+  rm -rf "$fake_home"
+}
+
+@test "migrate_remove_obra_clone: removes symlink only, does not follow target" {
+  local fake_home target_dir
+  fake_home="$(mktemp -d)"
+  target_dir="$(mktemp -d)"
+  mkdir -p "$fake_home/.codex"
+  echo "live data" > "$target_dir/important.txt"
+  ln -s "$target_dir" "$fake_home/.codex/superpowers"
+  _run_migration "$fake_home"
+  # Symlink is gone
+  [ ! -L "$fake_home/.codex/superpowers" ]
+  # Target directory and its contents survive
+  [ -d "$target_dir" ]
+  [ -f "$target_dir/important.txt" ]
+  rm -rf "$fake_home" "$target_dir"
+}

@@ -177,15 +177,18 @@ for key, val in spec.items():
     if key.startswith('_') or key == 'hooks':
         continue
     if isinstance(val, bool):
+        was_absent = key not in target
         target.setdefault(key, val)
-        if key not in target or target[key] == val:
+        if was_absent:
             scalars_written.append(f"{key}={val}")
+        # when key already exists with a different value, setdefault preserves it — not logged
     elif isinstance(val, (int, float)):
         existing = target.get(key)
-        if isinstance(existing, (int, float)):
+        # bool is a subclass of int in Python — guard both spec and existing sides.
+        if isinstance(existing, (int, float)) and not isinstance(existing, bool):
             target[key] = max(existing, val)
         else:
-            target[key] = val   # missing or wrong type: install spec floor
+            target[key] = val   # missing, wrong type, or bool: install spec floor
         scalars_written.append(f"{key}={target[key]}")
     else:
         if key not in target:

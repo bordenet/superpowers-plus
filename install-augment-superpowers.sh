@@ -26,7 +26,7 @@ if [ "${BASH_VERSINFO[0]}" -lt 3 ]; then
 fi
 
 # --- Configuration ---
-VERSION="1.0.0"
+VERSION="2.6.0"
 SUPERPOWERS_PLUS_RAW="https://raw.githubusercontent.com/bordenet/superpowers-plus/main"
 # Note: obra/superpowers skills are bundled in superpowers-plus as of v2.6.0.
 # This installer no longer clones bordenet/superpowers separately.
@@ -174,7 +174,14 @@ mkdir -p ~/.augment/rules
 success "Directories created"
 
 # Migration: remove the old obra/superpowers clone if present (folded into superpowers-plus in v2.6.0)
-if [[ -d ~/.codex/superpowers ]]; then
+if [[ -L ~/.codex/superpowers ]]; then
+    info "Removing legacy obra/superpowers symlink (not following target)..."
+    if rm -f ~/.codex/superpowers; then
+        success "Removed legacy symlink"
+    else
+        warn "Could not remove symlink ~/.codex/superpowers — remove manually"
+    fi
+elif [[ -d ~/.codex/superpowers ]]; then
     info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
     if rm -rf ~/.codex/superpowers; then
         success "Removed legacy obra clone"

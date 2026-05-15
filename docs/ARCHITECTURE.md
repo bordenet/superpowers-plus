@@ -147,7 +147,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 | Rules | `~/.augment/rules/` | Always-on agent rules |
 | Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
-Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
+Note: `superpowers-augment.js` scans `~/.codex/skills/` and any additional paths configured by the installer. As of v2.6.0 the `~/.codex/superpowers/` clone no longer exists.
 
 ### Augment Slash Menu — Dynamic Discovery
 
