@@ -103,7 +103,6 @@ CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
-FORCE=false
 VERBOSE=false
 UPGRADE=false
 CHECK=false
@@ -296,7 +295,6 @@ while [[ $# -gt 0 ]]; do
         -v|--verbose) VERBOSE=true; shift ;;
         -y|--yes) YES=true; shift ;;
         --check) CHECK=true; shift ;;
-        --force) FORCE=true; shift ;;
         --upgrade|--update) UPGRADE=true; shift ;;
         --skip-augment) SKIP_AUGMENT=true; _SKIP_AUGMENT_FROM_ENV=false; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
@@ -576,7 +574,11 @@ _migrate_remove_obra_clone() {
     local obra_dir="${HOME}/.codex/superpowers"
     if [[ -d "$obra_dir" ]]; then
         log_info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
-        rm -rf "${obra_dir:?}" && log_success "Removed legacy obra clone: $obra_dir" || log_warn "Could not remove $obra_dir — remove manually"
+        if rm -rf "${obra_dir:?}"; then
+            log_success "Removed legacy obra clone: $obra_dir"
+        else
+            log_warn "Could not remove $obra_dir — remove manually"
+        fi
     fi
 }
 

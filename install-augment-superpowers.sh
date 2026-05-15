@@ -176,7 +176,11 @@ success "Directories created"
 # Migration: remove the old obra/superpowers clone if present (folded into superpowers-plus in v2.6.0)
 if [[ -d ~/.codex/superpowers ]]; then
     info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
-    rm -rf ~/.codex/superpowers && success "Removed legacy obra clone" || warn "Could not remove ~/.codex/superpowers — remove manually"
+    if rm -rf ~/.codex/superpowers; then
+        success "Removed legacy obra clone"
+    else
+        warn "Could not remove ~/.codex/superpowers — remove manually"
+    fi
 fi
 
 # Install superpowers-augment adapter
