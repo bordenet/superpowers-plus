@@ -994,3 +994,120 @@ if not any('subagent-stop-claims-evidence' in c for c in cmds):
     sys.exit(1)
 "
 }
+
+@test "scalar merge: skillListingBudgetFraction written when absent" {
+  local tmp_settings
+  tmp_settings="$(mktemp)"
+  echo '{"hooks":{}}' > "$tmp_settings"
+  local tmp_spec
+  tmp_spec="$(mktemp)"
+  echo '{"skillListingBudgetFraction":0.05,"hooks":{}}' > "$tmp_spec"
+  SETTINGS_JSON="$tmp_settings" SPEC_JSON="$tmp_spec" \
+    SUPERPOWERS_CLAUDE_GUARDRAILS=1 SUPERPOWERS_CLAUDE_GUARDRAILS_BYPASS_CLAUSE=1 \
+    run python3 - "$tmp_settings" "$tmp_spec" <<'PY'
+import json, sys, os
+target_path, spec_path = sys.argv[1], sys.argv[2]
+with open(target_path) as f: target = json.load(f)
+with open(spec_path)   as f: spec   = json.load(f)
+for key, val in spec.items():
+    if key.startswith('_') or key == 'hooks':
+        continue
+    if isinstance(val, bool):
+        target.setdefault(key, val)
+    elif isinstance(val, (int, float)):
+        existing = target.get(key)
+        if isinstance(existing, (int, float)):
+            target[key] = max(existing, val)
+        else:
+            target[key] = val
+    else:
+        if key not in target:
+            target[key] = val
+with open(target_path, 'w') as f: json.dump(target, f)
+PY
+  result="$(python3 -c "import json; d=json.load(open('$tmp_settings')); print(d.get('skillListingBudgetFraction'))")"
+  rm -f "$tmp_settings" "$tmp_spec"
+  [ "$result" = "0.05" ]
+}
+
+@test "scalar merge: max() never lowers a user-raised numeric value" {
+  local tmp_settings
+  tmp_settings="$(mktemp)"
+  echo '{"skillListingBudgetFraction":0.10,"hooks":{}}' > "$tmp_settings"
+  local tmp_spec
+  tmp_spec="$(mktemp)"
+  echo '{"skillListingBudgetFraction":0.05,"hooks":{}}' > "$tmp_spec"
+  python3 - "$tmp_settings" "$tmp_spec" <<'PY'
+import json, sys
+target_path, spec_path = sys.argv[1], sys.argv[2]
+with open(target_path) as f: target = json.load(f)
+with open(spec_path)   as f: spec   = json.load(f)
+for key, val in spec.items():
+    if key.startswith('_') or key == 'hooks':
+        continue
+    if isinstance(val, bool):
+        target.setdefault(key, val)
+    elif isinstance(val, (int, float)):
+        existing = target.get(key)
+        if isinstance(existing, (int, float)):
+            target[key] = max(existing, val)
+        else:
+            target[key] = val
+    else:
+        if key not in target:
+            target[key] = val
+with open(target_path, 'w') as f: json.dump(target, f)
+PY
+  result="$(python3 -c "import json; d=json.load(open('$tmp_settings')); print(d.get('skillListingBudgetFraction'))")"
+  rm -f "$tmp_settings" "$tmp_spec"
+  [ "$result" = "0.1" ]
+}
+
+@test "scalar merge: boolean spec value not coerced to int via bool-subclass-of-int" {
+  local tmp_settings
+  tmp_settings="$(mktemp)"
+  echo '{"hooks":{}}' > "$tmp_settings"
+  local tmp_spec
+  tmp_spec="$(mktemp)"
+  echo '{"testBoolKey":true,"hooks":{}}' > "$tmp_spec"
+  python3 - "$tmp_settings" "$tmp_spec" <<'PY'
+import json, sys
+target_path, spec_path = sys.argv[1], sys.argv[2]
+with open(target_path) as f: target = json.load(f)
+with open(spec_path)   as f: spec   = json.load(f)
+for key, val in spec.items():
+    if key.startswith('_') or key == 'hooks':
+        continue
+    if isinstance(val, bool):
+        target.setdefault(key, val)
+    elif isinstance(val, (int, float)):
+        existing = target.get(key)
+        if isinstance(existing, (int, float)):
+            target[key] = max(existing, val)
+        else:
+            target[key] = val
+    else:
+        if key not in target:
+            target[key] = val
+with open(target_path, 'w') as f: json.dump(target, f)
+PY
+  # Must be boolean true, not integer 1
+  result="$(python3 -c "import json; d=json.load(open('$tmp_settings')); v=d.get('testBoolKey'); print(type(v).__name__, v)")"
+  rm -f "$tmp_settings" "$tmp_spec"
+  [ "$result" = "bool True" ]
+}
+
+@test "settings-hooks-spec.json contains skillListingBudgetFraction at 0.05 or higher" {
+  python3 -c "
+import json, sys
+with open('$REPO_ROOT/claude-config/settings-hooks-spec.json') as f:
+    spec = json.load(f)
+v = spec.get('skillListingBudgetFraction')
+if v is None:
+    print('skillListingBudgetFraction missing from spec')
+    sys.exit(1)
+if not isinstance(v, (int, float)) or v < 0.05:
+    print(f'skillListingBudgetFraction={v} is below minimum 0.05')
+    sys.exit(1)
+"
+}
