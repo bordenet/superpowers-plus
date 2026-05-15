@@ -27,8 +27,9 @@ fi
 
 # --- Configuration ---
 VERSION="1.0.0"
-SUPERPOWERS_REPO="https://github.com/bordenet/superpowers.git"  # fork of obra/superpowers by Jesse Vincent (MIT)
 SUPERPOWERS_PLUS_RAW="https://raw.githubusercontent.com/bordenet/superpowers-plus/main"
+# Note: obra/superpowers skills are bundled in superpowers-plus as of v2.6.0.
+# This installer no longer clones bordenet/superpowers separately.
 VERBOSE=false
 
 # --- Colors (disabled if not a TTY) ---
@@ -64,14 +65,15 @@ SYNOPSIS
     curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/install-augment-superpowers.sh | bash
 
 DESCRIPTION
-    Installs the superpowers skill system (bordenet/superpowers, fork of obra/superpowers by Jesse Vincent, MIT) and configures
-    it to work with Augment Code. This enables AI-assisted workflows with
-    structured skills for brainstorming, debugging, TDD, and more.
+    Installs the Augment adapter for superpowers-plus and configures it to work
+    with Augment Code. This enables AI-assisted workflows with structured skills
+    for brainstorming, debugging, TDD, and more.
 
     The installer is self-contained and can be run via curl pipe or directly.
+    As of superpowers-plus v2.6.0, obra/superpowers skills are bundled directly
+    in the superpowers-plus skills tree — no separate clone is required.
 
 WHAT GETS INSTALLED
-    ~/.codex/superpowers/           Superpowers core (cloned from bordenet/superpowers fork)
     ~/.codex/superpowers-augment/   Augment adapter (translates tool names)
     ~/.codex/skills/                Your personal skills directory (empty)
     ~/.augment/rules/               Augment auto-load rule
@@ -109,8 +111,8 @@ AUTHOR
     Matt J Bordenet
 
 SEE ALSO
-    https://github.com/obra/superpowers (Jesse Vincent, MIT — upstream)
-    https://github.com/bordenet/superpowers (fork)
+    https://github.com/bordenet/superpowers-plus
+    https://github.com/obra/superpowers (Jesse Vincent, MIT — obra/superpowers upstream)
     https://augmentcode.com
 EOF
     exit 0
@@ -171,57 +173,10 @@ verbose "Creating ~/.augment/rules"
 mkdir -p ~/.augment/rules
 success "Directories created"
 
-# Install superpowers (bordenet/superpowers fork of obra/superpowers by Jesse Vincent, MIT)
-# Use -e (not -d) to support git worktrees where .git is a file
-if [[ -e ~/.codex/superpowers/.git ]]; then
-    info "Superpowers already installed, updating..."
-    pushd ~/.codex/superpowers > /dev/null
-    _sp_update_ok=true
-
-    # Fetch first — separate from pull so refs update even if merge fails.
-    # Shallow-clone fallback: if full fetch fails (rewritten history on a
-    # depth-1 clone can't negotiate objects), re-fetch with --depth 1.
-    verbose "Fetching latest from origin..."
-    if ! git fetch origin --quiet 2>/dev/null; then
-        verbose "Full fetch failed — trying shallow fetch..."
-        git fetch --depth 1 origin main --quiet 2>/dev/null || true
-    fi
-
-    if ! git pull --ff-only --quiet origin main 2>/dev/null; then
-        # Detect diverged history (force-push/rewrite) vs local-ahead vs missing ref.
-        # Refs are current from the explicit fetch above.
-        # Three-way check: if origin/main IS ancestor of HEAD → local is ahead (don't reset).
-        # If neither is ancestor of the other → true divergence (history rewrite → auto-reset).
-        # If origin/main doesn't exist → fall back to master branch.
-        if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
-            verbose "origin/main not found, trying master branch..."
-            if ! git pull --ff-only --quiet origin master 2>/dev/null; then
-                warn "Could not update superpowers (fast-forward failed)"
-                warn "To reset manually: cd ~/.codex/superpowers && git fetch && git reset --hard origin/main"
-                _sp_update_ok=false
-            fi
-        elif git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
-            # origin/main IS ancestor of HEAD: local has extra commits — do not auto-reset
-            warn "Could not update superpowers (local checkout is ahead of origin/main)"
-            warn "To reset manually: cd ~/.codex/superpowers && git reset --hard origin/main"
-            _sp_update_ok=false
-        else
-            # origin/main is NOT ancestor of HEAD: true divergence (history rewrite/force-push)
-            verbose "Diverged history detected — auto-resetting to origin/main"
-            if ! git reset --hard origin/main --quiet 2>/dev/null; then
-                warn "Auto-reset failed — run: cd ~/.codex/superpowers && git reset --hard origin/main"
-                _sp_update_ok=false
-            fi
-        fi
-    fi
-    popd > /dev/null
-    [[ "$_sp_update_ok" == true ]] && success "Superpowers updated"
-else
-    info "Installing superpowers-core..."
-    verbose "Cloning $SUPERPOWERS_REPO to ~/.codex/superpowers"
-    rm -rf ~/.codex/superpowers 2>/dev/null || true
-    git clone --quiet "$SUPERPOWERS_REPO" ~/.codex/superpowers
-    success "Superpowers installed"
+# Migration: remove the old obra/superpowers clone if present (folded into superpowers-plus in v2.6.0)
+if [[ -d ~/.codex/superpowers ]]; then
+    info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
+    rm -rf ~/.codex/superpowers && success "Removed legacy obra clone" || warn "Could not remove ~/.codex/superpowers — remove manually"
 fi
 
 # Install superpowers-augment adapter
@@ -325,15 +280,7 @@ info "Verifying installation..."
 verbose "Running post-install verification checks"
 echo ""
 
-# Test 1: Check superpowers skills directory (v4.2.0+ no longer has superpowers-codex)
-verbose "Checking for superpowers skills directory"
-if [[ -d ~/.codex/superpowers/skills ]]; then
-    success "Superpowers core installed"
-else
-    error "Superpowers core not found"
-fi
-
-# Test 2: Check adapter
+# Test 1: Check adapter
 verbose "Checking for superpowers-augment.js adapter"
 if [[ -f ~/.codex/superpowers-augment/superpowers-augment.js ]]; then
     success "Augment adapter installed"
@@ -374,7 +321,6 @@ echo "  Installation Complete! ($PLATFORM)"
 echo "=============================================="
 echo ""
 echo "Installed:"
-echo "  • ~/.codex/superpowers/          - Core skill library"
 echo "  • ~/.codex/superpowers-augment/  - Augment adapter"
 echo "  • ~/.codex/skills/               - Your personal skills (empty)"
 echo "  • ~/.augment/rules/              - Augment auto-load rule"

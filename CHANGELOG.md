@@ -8,6 +8,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## v2.6.0 (2026-05-15)
+
+### Breaking Changes
+
+- **obra/superpowers fold-in** — The installer no longer clones `bordenet/superpowers` as a
+  separate prerequisite. All 14 obra skills are now included directly in the superpowers-plus
+  skills tree. Existing installations will have `~/.codex/superpowers/` removed automatically
+  on the next `./install.sh` run.
+
+### Changed
+
+- Removed `lib/install/superpowers.sh` and all install logic for the obra clone.
+- Skills that previously used `overrides: superpowers/<name>` are now standalone.
+- Five new skills added from obra: `dispatching-parallel-agents`, `executing-plans`,
+  `using-git-worktrees`, `using-superpowers`, `writing-plans`.
+- `install.sh` v2.6.0: remove `SUPERPOWERS_DIR` / `SUPERPOWERS_REPO` variables.
+- `lib/install/migrate.sh`: removed `migrate_todo_skill_overrides()` (used SUPERPOWERS_DIR).
+- `lib/install/deploy.sh`: removed dead `superpowers)` case from `_resolve_upstream_dir()`.
+- `install-augment-superpowers.sh`: removed obra clone step; adds migration to remove legacy clone.
+
 ### Added
 
 - `code-review-battery`: `/sp-cr-battery` slash command (primary, short, easy to type). `/sp-deepreview` retained as legacy synonym.
