@@ -4,13 +4,16 @@
 # PURPOSE: Post-install migrations — clean stale overrides, detect orphaned files.
 #          All migrations are idempotent (safe to run multiple times).
 # SOURCED BY: install.sh — do not run directly.
-# GLOBALS READ: SKILLS_DIR
+# GLOBALS READ: SKILLS_DIR, HOME
 # REQUIRES: lib/install/logging.sh
 # NOTE: These migrations were introduced in v2.5.0 for the todo-management
 #       deterministic path migration. They will be removed around v2.8.0
 #       once the migration period has elapsed.
-#       As of v2.6.0 this module no longer references obra/superpowers — the
-#       obra clone is removed by _migrate_remove_obra_clone() in install.sh.
+#       TODO(remove-after=v2.8.0): remove this entire module when the migration
+#       period elapses and all users have been on v2.5.0+ long enough.
+# NOTE: install-augment-superpowers.sh contains an inline copy of
+#       _migrate_remove_obra_clone() (search "Remove legacy obra"). Any behavioral
+#       change to the function below must be mirrored there manually.
 # -----------------------------------------------------------------------------
 
 # Guard: this module must be sourced by install.sh, not run directly.
@@ -19,8 +22,30 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
+# Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
+_migrate_remove_obra_clone() {
+    local obra_dir="${HOME}/.codex/superpowers"
+    if [[ -L "$obra_dir" ]]; then
+        # Symlink: remove the symlink only — never follow it into the target directory.
+        log_warn "Removing legacy obra/superpowers symlink at $obra_dir (not following target)..."
+        if rm -f "$obra_dir"; then
+            log_success "Removed legacy symlink: $obra_dir"
+        else
+            log_warn "Could not remove symlink $obra_dir — remove manually"
+        fi
+    elif [[ -d "$obra_dir" ]]; then
+        log_warn "Removing legacy obra/superpowers clone at $obra_dir (folded into superpowers-plus in v2.6.0)..."
+        if rm -rf "${obra_dir:?}"; then
+            log_success "Removed legacy obra clone: $obra_dir"
+        else
+            log_warn "Could not remove $obra_dir — remove manually"
+        fi
+    fi
+}
+
 post_install_migrations() {
     log_verbose "Running post-install migrations..."
+    _migrate_remove_obra_clone
     deploy_todo_honeypot
     detect_orphaned_todo_files
 }
