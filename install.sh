@@ -572,19 +572,6 @@ check_prerequisites() {
     fi
 }
 
-# Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
-_migrate_remove_obra_clone() {
-    local obra_dir="${HOME}/.codex/superpowers"
-    if [[ -d "$obra_dir" ]]; then
-        log_info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
-        if rm -rf "${obra_dir:?}"; then
-            log_success "Removed legacy obra clone: $obra_dir"
-        else
-            log_warn "Could not remove $obra_dir — remove manually"
-        fi
-    fi
-}
-
 # Main installation flow
 main() {
     echo ""
@@ -604,8 +591,6 @@ main() {
 
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
-        # Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
-        _migrate_remove_obra_clone
         # Reinstall personal skills, rules, templates after upgrade
         install_skills
         create_dir "$HOME/.codex/superpowers-review/active"
@@ -628,9 +613,6 @@ main() {
         print_summary
         return
     fi
-
-    # Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
-    _migrate_remove_obra_clone
 
     # Install skills
     install_skills

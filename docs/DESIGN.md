@@ -486,7 +486,7 @@ As of v2.6.0, all skills (including the 14 obra/superpowers originals) are insta
 ~/.codex/skills/<name>/skill.md    (personal — the only lookup tier)
 ```
 
-Overlay repos (superpowers-callbox, etc.) install additional skills into `~/.codex/skills/` alongside the base set; name collisions are resolved by last-installed-wins during `install_skills()`.
+Overlay repos (org-specific extensions, etc.) install additional skills into `~/.codex/skills/` alongside the base set; name collisions are resolved by last-installed-wins during `install_skills()`.
 
 ---
 
