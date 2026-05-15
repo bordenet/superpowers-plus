@@ -103,6 +103,8 @@ CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
+# shellcheck disable=SC2034  # FORCE read by lib/install/deploy.sh consumers
+FORCE=false
 VERBOSE=false
 UPGRADE=false
 CHECK=false
@@ -295,6 +297,7 @@ while [[ $# -gt 0 ]]; do
         -v|--verbose) VERBOSE=true; shift ;;
         -y|--yes) YES=true; shift ;;
         --check) CHECK=true; shift ;;
+        --force) FORCE=true; shift ;;
         --upgrade|--update) UPGRADE=true; shift ;;
         --skip-augment) SKIP_AUGMENT=true; _SKIP_AUGMENT_FROM_ENV=false; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
