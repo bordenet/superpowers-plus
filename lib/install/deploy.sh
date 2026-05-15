@@ -6,6 +6,9 @@
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_MENU_DIR,
 #               CODEX_DIR, FORCE, VERBOSE
+# NOTE: As of v2.6.0 the superpowers) case in _resolve_upstream_dir() is removed.
+#       obra/superpowers is folded into the skills/ tree; overrides: superpowers/*
+#       declarations no longer appear in any skill.md.
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
@@ -22,10 +25,6 @@ _resolve_upstream_dir() {
 
     local upstream_dir=""
     case "$source_name" in
-        superpowers)
-            # obra/superpowers: flat structure at ~/.codex/superpowers/skills/
-            upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
-            ;;
         *)
             # Other sources (superpowers-plus, overlay repos, etc.)
             # Search the source repo's skills/ tree for the skill name
