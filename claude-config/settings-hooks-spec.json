@@ -1,5 +1,6 @@
 {
-  "_comment": "Canonical Claude Code hooks spec — union of items 1-10. PR-2: items 1, 2, 10; PR-3: items 3, 9; PR-4: items 5, 6; PR-5: items 7, 8. See tools/claude-hooks/ for hook scripts. install-claude-guardrails.sh merges this into ~/.claude/settings.json.",
+  "_comment": "Canonical Claude Code settings spec. install-claude-guardrails.sh merges this into ~/.claude/settings.json. Hooks: PR-2: items 1,2,10; PR-3: items 3,9; PR-4: items 5,6; PR-5: items 7,8. See tools/claude-hooks/ for hook scripts.",
+  "skillListingBudgetFraction": 0.05,
   "hooks": {
     "PreToolUse": [
       {
