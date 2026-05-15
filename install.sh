@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 # Script: install.sh
 # PURPOSE: Install superpowers-plus skills with platform detection, dependency
-#          management, and multi-target deployment. Clones/updates obra/superpowers
-#          as a prerequisite, validates environment variables, and deploys skills
-#          to ~/.codex/skills/ and ~/.claude/skills/.
+#          management, and multi-target deployment. Validates environment variables
+#          and deploys skills to ~/.codex/skills/ and ~/.claude/skills/. All 14
+#          obra/superpowers skills are bundled directly in the skills/ tree (v2.6.0+).
 # USAGE: ./install.sh [options]
 #        -h, --help      Show help message
 #        -v, --verbose   Enable verbose output
@@ -13,13 +13,13 @@
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
 # PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
-# VERSION: 2.5.2
+# VERSION: 2.6.0
 # ARCHITECTURE: This file is a thin orchestrator. Implementation lives in
 #               lib/install/*.sh modules, sourced in dependency order below.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.5.2"
+VERSION="2.6.0"
 
 # --- Shell & Bash Version Guard ---
 # Detect if accidentally run under /bin/sh, dash, zsh, etc.
@@ -93,11 +93,6 @@ unset _missing_cmds _cmd
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_DIR="${HOME}/.codex"
 SKILLS_DIR="${CODEX_DIR}/skills"
-SUPERPOWERS_DIR="${CODEX_DIR}/superpowers"
-# Fork of Jesse Vincent's obra/superpowers (MIT). Upstream: https://github.com/obra/superpowers
-# We maintain this fork for governance stability; upstream improvements are reviewed and merged
-# periodically. See CONTRIBUTING.md for the upstream pull process.
-export SUPERPOWERS_REPO="https://github.com/bordenet/superpowers.git"
 
 # Platform-specific skill deployment paths
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
@@ -108,6 +103,7 @@ CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
+# shellcheck disable=SC2034  # FORCE read by lib/install/deploy.sh consumers
 FORCE=false
 VERBOSE=false
 UPGRADE=false
@@ -161,8 +157,7 @@ source "${INSTALL_LIB_DIR}/logging.sh"      # Colors, log_*, error_exit, create_
 source "${INSTALL_LIB_DIR}/platform.sh"      # detect_platform, detect_linux_distro, WSL checks
 # shellcheck source=lib/install/deps.sh
 source "${INSTALL_LIB_DIR}/deps.sh"          # check_dependencies, check_node_version
-# shellcheck source=lib/install/superpowers.sh
-source "${INSTALL_LIB_DIR}/superpowers.sh"   # install/update/upgrade_superpowers
+# superpowers.sh removed — obra/superpowers folded into skills tree in v2.6.0
 # shellcheck source=lib/install/deploy.sh
 source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates/tools
 # shellcheck source=lib/install/migrate.sh
@@ -196,12 +191,13 @@ SYNOPSIS
     install.sh [OPTIONS]
 
 DESCRIPTION
-    superpowers-plus extends the superpowers-core framework (bordenet/superpowers,
-    a maintained fork of Jesse Vincent's obra/superpowers, MIT) with additional
-    skills for wiki editing, issue tracking, security audits, and AI text quality.
+    superpowers-plus ships 40+ skills for wiki editing, issue tracking, security
+    audits, AI text quality, and engineering workflows. All 14 obra/superpowers
+    skills (Jesse Vincent, MIT) are bundled directly in the skills/ tree as of
+    v2.6.0 — no separate clone required.
 
-    This installer clones superpowers-core (if not present) and deploys all
-    superpowers-plus skills to ~/.codex/skills/. Safe to run multiple times.
+    Deploys all skills to ~/.codex/skills/ and ~/.claude/skills/. Safe to run
+    multiple times.
 
 OPTIONS
     -h, --help
@@ -244,7 +240,6 @@ OPTIONS
         Display version information and exit
 
 WHAT GETS INSTALLED
-    ~/.codex/superpowers/   obra/superpowers core (cloned from GitHub)
     ~/.codex/skills/        Personal skills for Augment (via superpowers-augment.js)
     ~/.claude/skills/       Personal skills for Claude Code (native Skill tool)
 EXAMPLES
@@ -289,9 +284,8 @@ AUTHOR
 
 SEE ALSO
     Repository: https://github.com/bordenet/superpowers-plus
-    Superpowers upstream: https://github.com/obra/superpowers (Jesse Vincent, MIT)
-    Superpowers fork:     https://github.com/bordenet/superpowers
     Changelog: https://github.com/bordenet/superpowers-plus/blob/main/CHANGELOG.md
+    obra/superpowers upstream: https://github.com/obra/superpowers (Jesse Vincent, MIT)
 EOF
     exit 0
 }
@@ -318,7 +312,6 @@ done
 # Lib modules (deploy.sh, etc.) read these via the environment so we
 # don't have to thread them through every function signature.
 # VERBOSE is read by logging.sh (log_verbose). YES is read by deps.sh.
-# SUPERPOWERS_REPO is read by superpowers.sh.
 export SKIP_AUGMENT VERBOSE YES
 
 # Visibility for env-var inheritance: if the caller's environment had
@@ -338,14 +331,6 @@ validate_installation() {
     log_info "Validating installation..."
 
     local errors=0
-
-    # Check superpowers skills directory (v4.2.0+ uses skills/ directory)
-    if [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
-        log_error "superpowers skills directory not found"
-        errors=$((errors + 1))
-    else
-        log_verbose "superpowers skills directory: OK"
-    fi
 
     # Check Augment skills directory (~/.codex/skills) — skipped when --skip-augment
     if [[ "${SKIP_AUGMENT:-false}" == "true" ]]; then
@@ -390,22 +375,6 @@ validate_installation() {
     done
     log_verbose "Found $claude_skill_count personal skill(s) in Claude Code location"
 
-    # Count superpowers skills (check both SKILL.md and skill.md)
-    local sp_skill_count=0
-    if [[ -d "$SUPERPOWERS_DIR/skills" ]]; then
-        for skill_dir in "$SUPERPOWERS_DIR/skills/"*/; do
-            if [[ -d "$skill_dir" ]] && { [[ -f "$skill_dir/SKILL.md" ]] || [[ -f "$skill_dir/skill.md" ]]; }; then
-                sp_skill_count=$((sp_skill_count + 1))
-            fi
-        done
-        log_verbose "Found $sp_skill_count superpowers skill(s)"
-    fi
-
-    # Check obra/superpowers version is recent enough
-    if ! check_obra_version; then
-        log_warn "obra/superpowers may be too old for this version of superpowers-plus"
-    fi
-
     if [[ $errors -gt 0 ]]; then
         error_exit "Validation failed with $errors error(s)"
     fi
@@ -421,8 +390,6 @@ print_summary() {
     echo "========================================"
     echo ""
     echo "Installed to:"
-    echo "  superpowers-core:  $SUPERPOWERS_DIR"
-    echo ""
     echo "  Claude Code:       $CLAUDE_SKILLS_DIR"
     echo "                     (native Skill tool)"
     echo ""
@@ -577,22 +544,6 @@ check_prerequisites() {
         fail=$((fail + 1))
     fi
 
-    # superpowers-core (presence + git repo + skills/)
-    if [[ -d "$SUPERPOWERS_DIR" ]]; then
-        if ! _is_git_repo "$SUPERPOWERS_DIR"; then
-            log_warn "superpowers-core: exists but is NOT a git repo (use --force to reinstall)"
-            fail=$((fail + 1))
-        elif [[ ! -d "$SUPERPOWERS_DIR/skills" ]]; then
-            log_warn "superpowers-core: git repo exists but skills/ directory is missing (use --force to reinstall)"
-            fail=$((fail + 1))
-        else
-            log_success "superpowers-core: installed at $SUPERPOWERS_DIR (git repo)"
-            ok=$((ok + 1))
-        fi
-    else
-        log_warn "superpowers-core: NOT INSTALLED (will be installed)"
-    fi
-
     # Skills
     local skill_count
     skill_count=$(find "$SCRIPT_DIR/skills" -name "skill.md" 2>/dev/null | wc -l | tr -d ' ')
@@ -621,6 +572,19 @@ check_prerequisites() {
     fi
 }
 
+# Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
+_migrate_remove_obra_clone() {
+    local obra_dir="${HOME}/.codex/superpowers"
+    if [[ -d "$obra_dir" ]]; then
+        log_info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
+        if rm -rf "${obra_dir:?}"; then
+            log_success "Removed legacy obra clone: $obra_dir"
+        else
+            log_warn "Could not remove $obra_dir — remove manually"
+        fi
+    fi
+}
+
 # Main installation flow
 main() {
     echo ""
@@ -640,7 +604,8 @@ main() {
 
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
-        upgrade_existing
+        # Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
+        _migrate_remove_obra_clone
         # Reinstall personal skills, rules, templates after upgrade
         install_skills
         create_dir "$HOME/.codex/superpowers-review/active"
@@ -664,35 +629,8 @@ main() {
         return
     fi
 
-    # Handle standard install/update modes
-    if ! check_superpowers; then
-        install_superpowers
-    elif [[ "$FORCE" == "true" ]]; then
-        log_info "Force flag set, reinstalling superpowers..."
-        rm -rf "${SUPERPOWERS_DIR:?}"
-        install_superpowers
-    elif ! _is_git_repo "$SUPERPOWERS_DIR"; then
-        # Directory exists with skills/ but is not a git repo — cannot update
-        log_warn "superpowers-core exists but is not a git repo: $SUPERPOWERS_DIR"
-        log_warn "Cannot update or verify version. Run with --force to reinstall."
-        error_exit "Unmanaged superpowers-core installation detected"
-    else
-        # Migrate remote from obra upstream to our fork if needed (runs on every update)
-        local _current_remote
-        _current_remote=$(git -C "$SUPERPOWERS_DIR" remote get-url origin 2>/dev/null || echo "")
-        if [[ "$_current_remote" == *"obra/superpowers"* ]] && [[ "$_current_remote" != "$SUPERPOWERS_REPO" ]]; then
-            log_info "Migrating superpowers-core remote to fork..."
-            git -C "$SUPERPOWERS_DIR" remote set-url origin "$SUPERPOWERS_REPO"
-            log_success "Remote updated: $_current_remote → $SUPERPOWERS_REPO"
-        fi
-        log_success "superpowers-core already installed"
-        # Try to update — warn prominently if update fails
-        if ! update_superpowers; then
-            local checkout_age
-            checkout_age=$(cd "$SUPERPOWERS_DIR" && git log -1 --format='%cr' HEAD 2>/dev/null || echo "unknown")
-            log_warn "Continuing with existing superpowers-core (last updated: $checkout_age)"
-        fi
-    fi
+    # Migration: remove the old obra/superpowers clone (folded into superpowers-plus in v2.6.0)
+    _migrate_remove_obra_clone
 
     # Install skills
     install_skills
