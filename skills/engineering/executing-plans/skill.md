@@ -1,6 +1,17 @@
 ---
 name: executing-plans
+source: superpowers-plus
+triggers: ["execute this plan", "implement the plan", "execute plan file", "carry out this plan", "run the plan"]
+anti_triggers: ["write a plan", "create a plan", "plan this out"]
 description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+summary: "Use when: executing a written implementation plan. Reviews and executes all tasks."
+coordination:
+  group: engineering
+  order: 3
+  requires: ["writing-plans"]
+  enables: ["subagent-driven-development"]
+  escalates_to: []
+  internal: false
 ---
 
 # Executing Plans
