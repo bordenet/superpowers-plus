@@ -4,11 +4,13 @@
 # PURPOSE: Post-install migrations — clean stale overrides, detect orphaned files.
 #          All migrations are idempotent (safe to run multiple times).
 # SOURCED BY: install.sh — do not run directly.
-# GLOBALS READ: SUPERPOWERS_DIR, SKILLS_DIR
+# GLOBALS READ: SKILLS_DIR
 # REQUIRES: lib/install/logging.sh
 # NOTE: These migrations were introduced in v2.5.0 for the todo-management
 #       deterministic path migration. They will be removed around v2.8.0
 #       once the migration period has elapsed.
+#       As of v2.6.0 this module no longer references obra/superpowers — the
+#       obra clone is removed by _migrate_remove_obra_clone() in install.sh.
 # -----------------------------------------------------------------------------
 
 # Guard: this module must be sourced by install.sh, not run directly.
@@ -19,72 +21,8 @@ fi
 
 post_install_migrations() {
     log_verbose "Running post-install migrations..."
-    migrate_todo_skill_overrides
     deploy_todo_honeypot
     detect_orphaned_todo_files
-}
-
-# Migration: Clean stale todo-management overrides from ~/.codex/superpowers/skills/
-#
-# Problem: Adopter repos sometimes copy a stale
-# todo-management override into ~/.codex/superpowers/skills/, which is meant to
-# be managed by obra/superpowers only. This stale copy lacks the deterministic
-# default path and dual-persistence fixes. When the skill loader sees both copies,
-# it may use the wrong one.
-#
-# Fix: If ~/.codex/superpowers/skills/todo-management/skill.md exists AND its
-# source field says it came from something other than obra/superpowers, remove it.
-# The authoritative copy at ~/.codex/skills/todo-management/ (deployed by this
-# installer) will take precedence.
-migrate_todo_skill_overrides() {
-    local obra_skill="$SUPERPOWERS_DIR/skills/todo-management/skill.md"
-
-    # Only act if the file exists
-    [[ -f "$obra_skill" ]] || return 0
-
-    # Check if it's a stale override (source != superpowers, not obra-native)
-    local source_field
-    source_field=$(grep -m1 '^source:' "$obra_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
-
-    case "$source_field" in
-        ""|superpowers|obra)
-            # This is a legitimate obra/superpowers-native skill — leave it
-            ;;
-        *)
-            # This is a stale override from an adopter
-            log_warn "Found stale todo-management override in obra directory (source: $source_field)"
-            log_info "Removing stale override from $SUPERPOWERS_DIR/skills/todo-management/"
-            rm -rf "${SUPERPOWERS_DIR:?}/skills/todo-management" || {
-                log_warn "Could not remove stale override (permission denied?)"
-            }
-            log_success "Cleaned stale todo-management override"
-            ;;
-    esac
-
-    # Also check personal skills directory (~/.codex/skills/) for stale overrides.
-    # Defense-in-depth: if an adopter previously deployed a stale copy here,
-    # clean it before this installer deploys the correct version.
-    local personal_skill="$SKILLS_DIR/todo-management/skill.md"
-    [[ -f "$personal_skill" ]] || return 0
-
-    local personal_source
-    personal_source=$(grep -m1 '^source:' "$personal_skill" 2>/dev/null | sed 's/^source:[[:space:]]*//' || echo "")
-
-    case "$personal_source" in
-        ""|superpowers|obra|superpowers-plus)
-            # Legitimate — leave it (will be overwritten by this installer anyway)
-            return 0
-            ;;
-        *)
-            log_warn "Found stale todo-management override in personal skills (source: $personal_source)"
-            log_info "Removing stale override from $SKILLS_DIR/todo-management/"
-            rm -rf "${SKILLS_DIR:?}/todo-management" || {
-                log_warn "Could not remove stale override (permission denied?)"
-                return 0
-            }
-            log_success "Cleaned stale todo-management override from personal skills"
-            ;;
-    esac
 }
 
 # Migration: Deploy honeypot at ~/.codex/TODO.md when the real TODO lives elsewhere
