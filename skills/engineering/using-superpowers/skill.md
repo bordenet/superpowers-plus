@@ -1,6 +1,17 @@
 ---
 name: using-superpowers
+source: superpowers-plus
+triggers: ["session start", "how do I use skills", "what skills are available", "list skills", "using superpowers"]
+anti_triggers: []
 description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+summary: "Use when: starting any conversation. Establishes skill invocation protocol."
+coordination:
+  group: meta
+  order: 0
+  requires: []
+  enables: []
+  escalates_to: []
+  internal: false
 ---
 
 <SUBAGENT-STOP>

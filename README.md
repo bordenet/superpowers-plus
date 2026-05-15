@@ -61,7 +61,7 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-**90 skills** across 9 domains:
+**95 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
@@ -200,7 +200,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-# Expected: skill catalog printed without errors (superpowers-plus contributes 90 skills)
+# Expected: skill catalog printed without errors (superpowers-plus contributes 95 skills)
 ```
 
 Run the full 29-check diagnostic:
@@ -236,7 +236,7 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
 | Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
 | Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
-| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 90 skills with typed edges (enables / escalates-to) |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 95 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 
