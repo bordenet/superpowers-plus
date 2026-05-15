@@ -127,8 +127,10 @@ fi
 COMPARE_DIRS=("${SOURCE_DIRS[@]}")
 
 # Managed checkout paths (git repos maintained by install.sh)
+# Note: obra clone (~/.codex/superpowers) removed in v2.6.0 — obra skills bundled directly.
 MANAGED_SPP_DIR="$HOME/.codex/superpowers-plus"
-MANAGED_OBRA_DIR="$HOME/.codex/superpowers"
+# Array allows future entries to be added without for-loop quoting issues
+MANAGED_CHECKOUT_ENTRIES=("$MANAGED_SPP_DIR:superpowers-plus")
 
 BACKUP_DIR="$HOME/.codex/doctor-backups/$(date +%Y-%m-%d_%H-%M-%S)-$$"
 FIXED=0; CRITICAL=0; ERRORS=0; WARNINGS=0

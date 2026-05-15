@@ -1117,20 +1117,19 @@ if not isinstance(v, (int, float)) or v < 0.05:
 # ---------------------------------------------------------------------------
 
 _run_migration() {
-  # Run _migrate_remove_obra_clone in a subshell with a fake HOME.
-  # $1 = fake HOME to use
+  # Run the real _migrate_remove_obra_clone() from lib/install/migrate.sh.
+  # Sources the module in a subshell with a fake HOME and stubbed log functions.
   local fake_home="$1"
-  HOME="$fake_home" bash -c '
-    log_info()    { :; }
-    log_success() { :; }
-    log_warn()    { echo "WARN: $*" >&2; }
-    obra_dir="${HOME}/.codex/superpowers"
-    if [[ -L "$obra_dir" ]]; then
-      rm -f "$obra_dir"
-    elif [[ -d "$obra_dir" ]]; then
-      rm -rf "${obra_dir:?}"
-    fi
-  '
+  local repo_root
+  repo_root="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
+  HOME="$fake_home" bash -s "$repo_root" << 'ENDSOURCE'
+log_info()    { :; }
+log_success() { :; }
+log_warn()    { echo "WARN: $*" >&2; }
+log_verbose() { :; }
+source "$1/lib/install/migrate.sh"
+_migrate_remove_obra_clone
+ENDSOURCE
 }
 
 @test "migrate_remove_obra_clone: removes directory when present" {
