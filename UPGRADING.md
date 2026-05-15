@@ -21,13 +21,13 @@ Before upgrading, check the current state:
 
 ```bash
 # Check current version
-cd ~/.codex/superpowers && git log -1 --oneline
+cd ~/path/to/superpowers-plus && git log -1 --oneline
 
-# Check for local modifications
-cd ~/.codex/superpowers && git status
+# Check for local modifications in the repo
+cd ~/path/to/superpowers-plus && git status
 ```
 
-If `git status` shows modifications, decide whether to:
+If `git status` shows modifications to the superpowers-plus repo, decide whether to:
 
 - Preserve them: Use standard `--upgrade` (may fail if conflicts exist)
 - Discard them: Use `--upgrade --force`
@@ -51,10 +51,8 @@ bash install.sh --upgrade --verbose
 
 **What it does:**
 
-1. Requires superpowers already installed
-2. Runs `git fetch origin` + `git pull --ff-only origin main`
-3. Shows version comparison (e.g., `abc1234 → def5678`)
-4. Reinstalls all personal skills
+1. Runs `_migrate_remove_obra_clone` (removes legacy `~/.codex/superpowers/` if present — safe no-op otherwise)
+2. Reinstalls all personal skills, rules, templates
 
 ### Force Upgrade (`--upgrade --force`)
 
@@ -71,9 +69,7 @@ bash install.sh --upgrade --force --verbose
 
 **What it does:**
 
-1. Runs `git reset --hard HEAD` (discards uncommitted changes)
-2. Runs `git clean -fd` (removes untracked files)
-3. Then performs standard upgrade
+1. Same as standard upgrade, but the `--force` flag is reserved for future use (no git reset behavior — edit the superpowers-plus repo directly if needed)
 
 ### Complete Reinstall (`--force` without `--upgrade`)
 
@@ -90,9 +86,8 @@ bash install.sh --force --verbose
 
 **What it does:**
 
-1. Removes `~/.codex/superpowers` entirely
-2. Fresh clone from `https://github.com/obra/superpowers.git`
-3. Reinstalls all personal skills
+1. Removes `~/.codex/superpowers` if present (legacy clone — safe no-op if already gone)
+2. Reinstalls all personal skills from the bundled skills/ tree
 
 ---
 
@@ -140,5 +135,5 @@ Users may request upgrades with phrases like:
 | "superpowers not installed" | Run `bash install.sh` (without --upgrade) first |
 | "not a git repository" | Run `bash install.sh --force` to reinstall |
 | "Fast-forward pull failed" | Run `bash install.sh --upgrade --force` |
-| Skills not loading | Check `~/.codex/skills/` and `~/.codex/superpowers/skills/` exist |
+| Skills not loading | Check `~/.codex/skills/` and `~/.claude/skills/` exist |
 | Wrong skill count | Run `bash install.sh` to reinstall personal skills |
