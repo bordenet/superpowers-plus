@@ -54,6 +54,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `innovation` | Produces a single high-conviction innovation answer for the project. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
 | `quantitative-decision-gate` | Forces decision matrix evaluation before escalating questions to the user. |
+| `screenshot` | Visual input bridge. Grabs N most recent screenshots and dispatches to fix, explain, compare, spec, do-this, or free-form intent. Cross-platform discovery. `/sp-ss [N] [intent]`. |
 | `skill-authoring` | Creates new skills from descriptions, patterns, or codebase analysis. |
 | `superpowers-help` | Dynamically enumerates all installed skills at runtime. |
 | `think-twice` | Detects stuck loops, dispatches fresh sub-agent with zero shared context. |
