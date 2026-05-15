@@ -6,9 +6,10 @@
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_MENU_DIR,
 #               CODEX_DIR, VERBOSE
-# NOTE: As of v2.6.0 the superpowers) case in _resolve_upstream_dir() is removed.
-#       obra/superpowers is folded into the skills/ tree; overrides: superpowers/*
-#       declarations no longer appear in any skill.md.
+# NOTE: As of v2.6.0 the superpowers) case in _resolve_upstream_dir() emits a
+#       deprecation warning instead of resolving a path. No bundled skills use
+#       overrides: superpowers/* anymore; the case is retained to warn overlay
+#       skills that still declare it.
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
