@@ -5,7 +5,7 @@
 #          directories (~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/).
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_MENU_DIR,
-#               CODEX_DIR, FORCE, VERBOSE
+#               CODEX_DIR, VERBOSE
 # NOTE: As of v2.6.0 the superpowers) case in _resolve_upstream_dir() is removed.
 #       obra/superpowers is folded into the skills/ tree; overrides: superpowers/*
 #       declarations no longer appear in any skill.md.
