@@ -66,9 +66,10 @@ When an AI agent invokes a skill, it looks in these locations (in order):
 |----------|---------|---------|
 | `~/.codex/skills/` | Primary skills (Augment Agent + superpowers-augment.js) | First |
 | `~/.claude/skills/` | Claude Code native Skill tool path | Second |
-| `~/.codex/superpowers/skills/` | obra/superpowers framework skills | Third |
 
 Your org's `install.sh` should deploy to `~/.codex/skills/` and `~/.claude/skills/` to ensure your overrides take precedence.
+
+> **v2.6.0:** `~/.codex/superpowers/` (the legacy obra/superpowers clone) no longer exists. All obra skills are bundled in the `skills/` tree.
 
 ---
 
