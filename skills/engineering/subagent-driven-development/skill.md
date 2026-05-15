@@ -1,7 +1,6 @@
 ---
 name: subagent-driven-development
 source: superpowers-plus
-overrides: superpowers/subagent-driven-development
 # Override rationale: Condensed from 277→91 lines. Adds two-stage review pattern
 # (spec compliance + code quality), inline role descriptions instead of external
 # prompt template files, and platform-agnostic sub-agent dispatch.

@@ -2,7 +2,6 @@
 name: receiving-code-review
 source: superpowers-plus
 augment_menu: true
-overrides: superpowers/receiving-code-review
 # Override rationale: Adds Systemic Verification gate (search for OTHER instances
 # of same pattern beyond reviewer's checklist), adds triggers array for auto-fire,
 # and refines implementation order with systemic check step. obra's version lacks

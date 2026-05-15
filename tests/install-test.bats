@@ -67,7 +67,7 @@ _installer_in_tmpdir() {
 @test "success path: all artefacts created and installer exits 0" {
     _run_installer
     [ "$status" -eq 0 ]
-    [ -d "$HOME/.codex/superpowers/skills" ]
+    [ ! -d "$HOME/.codex/superpowers" ]
     [ -f "$HOME/.codex/superpowers-augment/superpowers-augment.js" ]
     [ -f "$HOME/.augment/rules/superpowers.always.md" ]
 }
