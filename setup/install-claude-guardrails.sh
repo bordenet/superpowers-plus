@@ -168,6 +168,16 @@ for event, want_blocks in spec.get('hooks', {}).items():
         for h in w.get('hooks', []):
             if h.get('command') not in existing_cmds:
                 match.setdefault('hooks', []).append(h)
+# Merge non-hooks scalar settings from spec.
+# Numeric: take max (never lower a value the user has raised).
+# Other types: setdefault (don't overwrite user's existing value).
+for key, val in spec.items():
+    if key.startswith('_') or key == 'hooks':
+        continue
+    if isinstance(val, (int, float)) and isinstance(target.get(key), (int, float)):
+        target[key] = max(target[key], val)
+    else:
+        target.setdefault(key, val)
 tmp = target_path + '.tmp'
 with open(tmp, 'w') as f: json.dump(target, f, indent=2, sort_keys=True)
 os.replace(tmp, target_path)
