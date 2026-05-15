@@ -1,6 +1,17 @@
 ---
 name: writing-plans
+source: superpowers-plus
+triggers: ["/sp-plan", "write a plan", "create a plan", "plan this out", "implementation plan", "before touching code", "spec is ready"]
+anti_triggers: ["execute the plan", "carry out the plan", "implement the plan"]
 description: Use when you have a spec or requirements for a multi-step task, before touching code
+summary: "Use when: you have a spec for a multi-step task. Writes a comprehensive implementation plan."
+coordination:
+  group: thinking
+  order: 2
+  requires: []
+  enables: ["executing-plans", "subagent-driven-development"]
+  escalates_to: []
+  internal: false
 ---
 
 # Writing Plans

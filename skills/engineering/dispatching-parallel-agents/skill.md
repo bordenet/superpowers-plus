@@ -1,6 +1,17 @@
 ---
 name: dispatching-parallel-agents
+source: superpowers-plus
+triggers: ["dispatch agents in parallel", "run agents concurrently", "parallel agents", "multiple independent tasks", "parallelize this"]
+anti_triggers: ["sequential tasks", "depends on previous", "one at a time"]
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+summary: "Use when: facing 2+ independent tasks. Dispatches parallel agents."
+coordination:
+  group: engineering
+  order: 4
+  requires: []
+  enables: []
+  escalates_to: ["subagent-driven-development"]
+  internal: false
 ---
 
 # Dispatching Parallel Agents

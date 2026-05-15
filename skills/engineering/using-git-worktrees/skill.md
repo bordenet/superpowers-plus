@@ -1,6 +1,17 @@
 ---
 name: using-git-worktrees
+source: superpowers-plus
+triggers: ["/sp-worktree", "create a worktree", "isolated workspace", "start feature work in isolation", "new worktree", "git worktree add"]
+anti_triggers: ["switch branches", "checkout branch", "merge branch", "already in a worktree"]
 description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification
+summary: "Use when: starting feature work that needs isolation. Creates isolated git worktrees."
+coordination:
+  group: engineering
+  order: 1
+  requires: []
+  enables: ["writing-plans", "executing-plans"]
+  escalates_to: []
+  internal: false
 ---
 
 # Using Git Worktrees
