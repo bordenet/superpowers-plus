@@ -34,7 +34,7 @@ const { findSkillsInDir, deduplicateSkills, findAllSkills } = require('./lib/ski
 const { compressSkillContent } = require('./lib/compress');
 
 const homeDir = os.homedir();
-const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'superpowers', 'skills');
+const SUPERPOWERS_SKILLS_DIR = process.env.SUPERPOWERS_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const PERSONAL_SKILLS_DIR = process.env.PERSONAL_SKILLS_DIR || path.join(homeDir, '.codex', 'skills');
 const SESSION_FILE = path.join(homeDir, '.codex', '.superpowers-session');
 
@@ -280,7 +280,6 @@ function findSkills(filterMode = 'all') {
     console.log('  superpowers-augment find-skills superpowers  # List only superpowers (auto-triggered)');
     console.log('  superpowers-augment find-skills explicit     # List only explicit skills\n');
     console.log('Naming convention:');
-    console.log('  superpowers:skill-name  → from ~/.codex/superpowers/skills/ (obra/superpowers)');
     console.log('  skill-name              → from ~/.codex/skills/ (personal/superpowers-plus)');
     console.log('  Personal skills override superpowers skills when names match.');
     console.log('');
