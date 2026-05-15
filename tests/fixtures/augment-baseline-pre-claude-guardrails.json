@@ -18,10 +18,10 @@
     "tools/dangerous-pattern-scan.sh": "dccbd5c8fb50d27b190ab50e3d5960930133bf1121331f2d702703ec3368d032",
     "tools/run-battery.sh": "2bce65a4b7702fd1ab3c0301212e513ec00af4581883abe5b8d11a12c0d322fc",
     "tools/sp-doctor.sh": "aac3ed8bfbe5f5367b76bc2e825de0b79259d7e817c28624cd58cb550641d2f5",
-    "lib/install/deploy.sh": "3813934ebfb45e0e8b1bc59ec75f79177cf9d18ac31571ac12bf044b393472c9",
+    "lib/install/deploy.sh": "a2e99cb01bb833c01e8046d848e75d6a4c514411df4fb9de35bf4a25bfccef23",
     "lib/install/deps.sh": "30d5f1113cc69ab381651141faed0d8395f918b3478cc518b902df76c98ab187",
     "lib/install/logging.sh": "4553cec5e2dd35d5ed22d0c1c9879e4a8913f5ed35b56f1738438c7a6af131d2",
-    "lib/install/migrate.sh": "94fc246293c6671e65d795dcda53e225055b33da3de96e66d6e9a961e91e38b3",
+    "lib/install/migrate.sh": "4a83d8879528e187ddaac6a09b6c3ec1a8e226ceb9eb2312edff65210e1badd3",
     "lib/install/platform.sh": "88292fb06d1eceab1d5cc4de852b26c8304615d8b5639c2512f7a4582e20c916",
     "lib/install/skill-naming.sh": "48d94aa5b00b5a0f34bc06dd5a7b961443741eed7ef506e50e036eed24c3ecd1"
   }
