@@ -46,12 +46,13 @@ lib/install/
 ├── logging.sh       # Colors, log_*, error_exit, create_dir
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
 ├── deps.sh          # Package manager detection, dependency install, Node.js version check
-├── superpowers.sh   # superpowers-core clone, update, upgrade, version check + fork remote migration
 ├── deploy.sh        # Skill, adapter, rule deployment across ~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/, ~/.augment/rules/
-└── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
+└── migrate.sh       # Post-install migrations (orphaned TODO.md detection, legacy clone removal)
 ```
 
-Modules are sourced in dependency order: `logging` → `platform` → `deps` → `superpowers` → `deploy` → `migrate`. Globals (`VERBOSE`, `FORCE`, `SKILLS_DIR`, etc.) are shared via shell environment.
+Modules are sourced in dependency order: `logging` → `platform` → `deps` → `deploy` → `migrate`. Globals (`VERBOSE`, `SKILLS_DIR`, etc.) are shared via shell environment.
+
+> **v2.6.0:** `lib/install/superpowers.sh` was removed — all 14 obra/superpowers skills are bundled directly in the `skills/` tree. The separate `~/.codex/superpowers/` clone is no longer required and is migrated away on the next install.
 
 ## Skill Discovery
 
@@ -146,7 +147,7 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 | Rules | `~/.augment/rules/` | Always-on agent rules |
 | Tools | `~/.codex/superpowers-plus/tools/` | Utility scripts (todo-lock.sh, etc.) |
 
-Note: `superpowers-augment.js` scans `~/.codex/skills/`, `~/.codex/superpowers/skills/`, and any additional paths configured by the installer.
+Note: `superpowers-augment.js` scans `~/.codex/skills/` and any additional paths configured by the installer. As of v2.6.0 the `~/.codex/superpowers/` clone no longer exists.
 
 ### Augment Slash Menu — Dynamic Discovery
 
