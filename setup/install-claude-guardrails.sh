@@ -168,13 +168,39 @@ for event, want_blocks in spec.get('hooks', {}).items():
         for h in w.get('hooks', []):
             if h.get('command') not in existing_cmds:
                 match.setdefault('hooks', []).append(h)
+# Merge non-hooks scalar settings from spec.
+# bool guard first (bool is a subclass of int in Python).
+# Numeric: take max (never lower a value the user has raised).
+# Other types: setdefault (don't overwrite user's existing value).
+scalars_written = []
+for key, val in spec.items():
+    if key.startswith('_') or key == 'hooks':
+        continue
+    if isinstance(val, bool):
+        target.setdefault(key, val)
+        if key not in target or target[key] == val:
+            scalars_written.append(f"{key}={val}")
+    elif isinstance(val, (int, float)):
+        existing = target.get(key)
+        if isinstance(existing, (int, float)):
+            target[key] = max(existing, val)
+        else:
+            target[key] = val   # missing or wrong type: install spec floor
+        scalars_written.append(f"{key}={target[key]}")
+    else:
+        if key not in target:
+            target[key] = val
+            scalars_written.append(f"{key}={val!r}")
 tmp = target_path + '.tmp'
-with open(tmp, 'w') as f: json.dump(target, f, indent=2, sort_keys=True)
+with open(tmp, 'w') as f: json.dump(target, f, indent=2)
 os.replace(tmp, target_path)
-print(f"merged: events={len(target.get('hooks', {}))}", flush=True)
+scalars_str = ', '.join(scalars_written) if scalars_written else 'none'
+print(f"merged: events={len(target.get('hooks', {}))}, scalars=[{scalars_str}]", flush=True)
 PY
-  python3 -c "import json; json.load(open('$SETTINGS_JSON'))" \
+  python3 - "$SETTINGS_JSON" <<'VALIDATE' \
     || { log_error "settings.json is invalid JSON after merge"; return 1; }
+import json, sys; json.load(open(sys.argv[1]))
+VALIDATE
   log_info "settings.json merged (hooks events: $(python3 -c "import json; d=json.load(open('$SETTINGS_JSON')); print(len(d.get('hooks', {})))"))"
 }
 
