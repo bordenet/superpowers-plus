@@ -7,6 +7,13 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# LOCAL: sp-env-cleanup — stash dirty managed repos before quality checks
+# (no-op if not installed; re-apply after install.sh with sp-patch-hooks.sh)
+if [[ -x "${HOME}/.codex/tools/sp-env-cleanup.sh" ]]; then
+    "${HOME}/.codex/tools/sp-env-cleanup.sh" --quiet
+fi
+
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 

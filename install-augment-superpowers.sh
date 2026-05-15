@@ -89,7 +89,7 @@ OPTIONS
         Display version information and exit
 
 PREREQUISITES
-    • git - For cloning the superpowers repository
+    • git - Required for workspace tooling and managed checkout sync
     • node - For running the superpowers-augment adapter
 
 EXAMPLES
@@ -173,22 +173,26 @@ verbose "Creating ~/.augment/rules"
 mkdir -p ~/.augment/rules
 success "Directories created"
 
-# Migration: remove the old obra/superpowers clone if present (folded into superpowers-plus in v2.6.0)
-if [[ -L ~/.codex/superpowers ]]; then
-    info "Removing legacy obra/superpowers symlink (not following target)..."
-    if rm -f ~/.codex/superpowers; then
+# Remove legacy obra/superpowers clone if present (folded into superpowers-plus in v2.6.0).
+# NOTE: This duplicates _migrate_remove_obra_clone() in lib/install/migrate.sh.
+#       Any behavioral change there must be mirrored here manually.
+_obra_legacy_dir="$HOME/.codex/superpowers"
+if [[ -L "$_obra_legacy_dir" ]]; then
+    warn "Removing legacy obra/superpowers symlink at $_obra_legacy_dir (not following target)..."
+    if rm -f "$_obra_legacy_dir"; then
         success "Removed legacy symlink"
     else
-        warn "Could not remove symlink ~/.codex/superpowers — remove manually"
+        warn "Could not remove symlink $_obra_legacy_dir — remove manually"
     fi
-elif [[ -d ~/.codex/superpowers ]]; then
-    info "Removing legacy obra/superpowers clone (folded into superpowers-plus in v2.6.0)..."
-    if rm -rf ~/.codex/superpowers; then
+elif [[ -d "$_obra_legacy_dir" ]]; then
+    warn "Removing legacy obra/superpowers clone at $_obra_legacy_dir (folded into superpowers-plus in v2.6.0)..."
+    if rm -rf "${_obra_legacy_dir:?}"; then
         success "Removed legacy obra clone"
     else
-        warn "Could not remove ~/.codex/superpowers — remove manually"
+        warn "Could not remove $_obra_legacy_dir — remove manually"
     fi
 fi
+unset _obra_legacy_dir
 
 # Install superpowers-augment adapter
 info "Installing superpowers-augment adapter..."
