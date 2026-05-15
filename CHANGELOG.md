@@ -51,6 +51,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Test assertion fix (`tests/install-test.bats`):** The success-path test previously
+  asserted that `~/.codex/superpowers/skills` *was created* — the opposite of the intended
+  behavior. Corrected to assert that `~/.codex/superpowers` is *absent* after install.
+  All prior green CI runs on this test were validating the wrong condition.
+- **Migration function placement:** `_migrate_remove_obra_clone()` moved from `install.sh`
+  to `lib/install/migrate.sh` and called via `post_install_migrations()` — consistent with
+  all other migration functions.
+- **Migration observability:** Pre-deletion log calls changed from `log_info` to `log_warn`
+  so permanent directory removal is visible in warning-filtered output.
+- **Doctor/uninstall stale obra references:** Removed `MANAGED_OBRA_DIR` from
+  `tools/doctor-checks.sh` and `tools/doctor-modules/checkout-checks.sh`; updated
+  `uninstall.sh --purge` help text to reflect v2.6.0 state.
+- **`install-augment-superpowers.sh` safety:** Added `${var:?}` guard to rm-rf path and
+  added cross-reference comment to paired function in `migrate.sh`.
+
+### Tests Added
+
+- 7 new BATS tests in `tests/claude-guardrails-test.bats`: 3 scalar-merge unit tests,
+  1 settings-spec assertion, 3 `_migrate_remove_obra_clone()` migration tests (directory,
+  no-op, symlink-only). Migration tests now source the real function from `migrate.sh`.
+- Known gap: `install_skills()` in `install.sh` lacks BATS coverage (it's an `install.sh`
+  function; `tests/install-test.bats` covers `install-augment-superpowers.sh`). A dedicated
+  `tests/install-main-test.bats` is the right fix; tracked as a follow-up.
+
 - **`resolveSkillNamespace` early-error return shape:** the two early-error returns (`SPP_SOURCE_DIR not set`, `SP_OVERLAY_SOURCE_DIR not set`) now include `forceSpp: false, forceSpo: false` to match the documented return contract. Not a live bug (the caller checks `.error` first), but tightens the JSDoc to return-value correspondence.
 - **Dormant-skill audit (2026-04-17):** repaired `compat.sh` `--help` leak in sourced-mode scripts (`todo-crud`, `skill-cost-analyzer`, `test-content-coherence`); corrected stale `sp-deepreview` references in `sp-bughunt` to `code-review-battery`; added `--help` handling to `loose-ends`, `run-battery`, `backfill-composition`, `wiki-read`, `wiki-write`, `parse-frontmatter`, `test-content-coherence`; restored executable bit on `test_frontmatter_parsers.sh`; removed deprecated `~/.claude/skills/` path from `update-superpowers`.
 - **Compression safety (incident 2026-04-14):** `STRIP_SECTIONS` was deleting operative safety content — `Hallucination Prevention` sections (containing `<EXTREMELY_IMPORTANT>` URL verification rules), `References` sections (pointers to `references/incidents.md`), and `Incident Log/Record/History` sections. All three are now preserved. Wiki authoring was producing broken hyperlinks as a result.

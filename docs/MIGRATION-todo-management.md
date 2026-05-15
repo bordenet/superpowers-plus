@@ -103,7 +103,8 @@ cd ~/your-repo && ./install.sh
 grep 'source:' ~/.codex/skills/todo-management/skill.md
 # Expected: source: superpowers-plus
 
-# Verify obra directory is clean
-grep 'source:' ~/.codex/superpowers/skills/todo-management/skill.md 2>/dev/null
-# Expected: no output (file should not exist) or source: superpowers
+# As of v2.6.0, ~/.codex/superpowers/ is removed by the migration. Verify the
+# bundled skill is deployed at the new canonical location:
+grep 'source:' ~/.codex/skills/todo-management/skill.md 2>/dev/null
+# Expected: source: superpowers-plus (bundled skill deployed correctly)
 ```
