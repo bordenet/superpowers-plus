@@ -25,6 +25,10 @@ _resolve_upstream_dir() {
 
     local upstream_dir=""
     case "$source_name" in
+        superpowers)
+            # Retired source name: obra/superpowers was folded into superpowers-plus in v2.6.0.
+            log_warn "Skill declares 'overrides: superpowers/$upstream_skill' — obra/superpowers is retired (v2.6.0+). Remove the overrides: line from this skill's frontmatter."
+            ;;
         *)
             # Other sources (superpowers-plus, overlay repos, etc.)
             # Search the source repo's skills/ tree for the skill name
