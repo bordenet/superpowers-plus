@@ -292,7 +292,7 @@ else
     error "Augment adapter not found"
 fi
 
-# Test 3: Check rule file
+# Test 2: Check rule file
 verbose "Checking for Augment auto-load rule"
 if [[ -f ~/.augment/rules/superpowers.always.md ]]; then
     success "Augment auto-load rule installed"
@@ -300,7 +300,7 @@ else
     error "Augment rule not found"
 fi
 
-# Test 4: Run bootstrap to verify it works
+# Test 3: Run bootstrap to verify it works
 info "Testing bootstrap command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap"
 if node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap > /dev/null 2>&1; then
@@ -309,7 +309,7 @@ else
     error "Bootstrap command failed"
 fi
 
-# Test 5: List skills
+# Test 4: List skills
 info "Testing find-skills command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
 SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")

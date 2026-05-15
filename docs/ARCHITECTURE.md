@@ -46,12 +46,13 @@ lib/install/
 ├── logging.sh       # Colors, log_*, error_exit, create_dir
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
 ├── deps.sh          # Package manager detection, dependency install, Node.js version check
-├── superpowers.sh   # superpowers-core clone, update, upgrade, version check + fork remote migration
 ├── deploy.sh        # Skill, adapter, rule deployment across ~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/, ~/.augment/rules/
-└── migrate.sh       # Post-install migrations (stale overrides, orphaned TODO.md)
+└── migrate.sh       # Post-install migrations (orphaned TODO.md detection, legacy clone removal)
 ```
 
-Modules are sourced in dependency order: `logging` → `platform` → `deps` → `superpowers` → `deploy` → `migrate`. Globals (`VERBOSE`, `FORCE`, `SKILLS_DIR`, etc.) are shared via shell environment.
+Modules are sourced in dependency order: `logging` → `platform` → `deps` → `deploy` → `migrate`. Globals (`VERBOSE`, `SKILLS_DIR`, etc.) are shared via shell environment.
+
+> **v2.6.0:** `lib/install/superpowers.sh` was removed — all 14 obra/superpowers skills are bundled directly in the `skills/` tree. The separate `~/.codex/superpowers/` clone is no longer required and is migrated away on the next install.
 
 ## Skill Discovery
 
