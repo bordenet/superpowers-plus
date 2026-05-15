@@ -72,6 +72,7 @@ _installer_in_tmpdir() {
     [ -f "$HOME/.augment/rules/superpowers.always.md" ]
 }
 
+
 @test "success path: Augment auto-load rule contains bootstrap command" {
     _run_installer
     [ "$status" -eq 0 ]
