@@ -80,11 +80,15 @@ if offending_lines:
     print("  ERROR: commit message contains non-ASCII characters.", file=sys.stderr)
     print("  GitLab pre-receive rejects non-ASCII commit messages.", file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Offending lines:", file=sys.stderr)
+    print("  Offending lines (open the file to see the characters on these lines):", file=sys.stderr)
+    all_lines = text.splitlines()
     for lineno in offending_lines:
-        print("    Line {}".format(lineno), file=sys.stderr)
+        line_text = all_lines[lineno - 1] if lineno - 1 < len(all_lines) else ""
+        bad_chars = sorted({ch for ch in line_text if ord(ch) > 127})
+        codepoints = ", ".join("U+{:04X}".format(ord(c)) for c in bad_chars)
+        print("    Line {}: {}".format(lineno, codepoints), file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Replace the characters above with ASCII equivalents and retry.", file=sys.stderr)
+    print("  Replace these characters with ASCII equivalents and retry.", file=sys.stderr)
     print("", file=sys.stderr)
     sys.exit(1)
 PYEOF

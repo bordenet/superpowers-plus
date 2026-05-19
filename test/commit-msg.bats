@@ -34,7 +34,7 @@ setup() {
     printf 'feat: add feature \xe2\x80\x94 closes #42\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
-    # Verify conversion: file should now be pure ASCII
+    grep -qF -- '- closes' "$MSG"   # exact substitution: em dash → hyphen
     run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
@@ -43,6 +43,7 @@ setup() {
     printf 'feat: range 1\xe2\x80\x932 supported\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    grep -qF '1-2' "$MSG"        # exact substitution: en dash → hyphen
     run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
@@ -52,6 +53,7 @@ setup() {
     printf 'docs: use \xe2\x80\x9csmart\xe2\x80\x9d quotes\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    grep -qF '"smart"' "$MSG"    # exact substitution: curly quotes → straight quotes
     run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
@@ -60,6 +62,7 @@ setup() {
     printf 'refactor: A \xe2\x86\x92 B migration\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    grep -qF 'A -> B' "$MSG"     # exact substitution: → → ->
     run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
@@ -68,6 +71,7 @@ setup() {
     printf 'chore: \xe2\x80\xa2 item one\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    grep -qF -- '- item one' "$MSG"  # exact substitution: bullet → hyphen
     run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
@@ -86,12 +90,14 @@ setup() {
 @test "commit-msg: rejection output contains 'non-ASCII'" {
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
     run bash "$HOOK" "$MSG"
+    [ "$status" -ne 0 ]
     [[ "$output" == *"non-ASCII"* ]]
 }
 
 @test "commit-msg: rejection output contains offending line number" {
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
     run bash "$HOOK" "$MSG"
+    [ "$status" -ne 0 ]
     [[ "$output" == *"Line 1"* ]]
 }
 

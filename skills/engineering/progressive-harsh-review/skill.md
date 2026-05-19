@@ -20,6 +20,8 @@ triggers:
   - before pushing design docs
   - run PHR on skill
   - gate skill push with PHR
+  - review skill file
+  - review this skill
 aliases: [PHR, harsh-review]
 anti_triggers:
   - code review
