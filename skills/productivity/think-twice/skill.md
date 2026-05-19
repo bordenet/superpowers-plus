@@ -55,7 +55,7 @@ composition:
 
 **This is not advisory. It is a mandatory stop.**
 
-After every tool-call response, score your current state. When cumulative score ≥ 7, **STOP immediately and invoke think-twice before any further action** — even mid-task, even if you think you know what to try next.
+At each natural stopping point (end of a tool-call batch, before issuing the next set of actions), score your current state. When cumulative score ≥ 7, **STOP immediately and invoke think-twice before any further action** — even mid-task, even if you think you know what to try next.
 
 | Signal | Weight |
 |--------|--------|
@@ -69,7 +69,7 @@ After every tool-call response, score your current state. When cumulative score 
 **Skill-router consecutive match rule (additional mandatory trigger):**
 If `[skill-router]` flags `think-twice` on **2 consecutive user turns**, invoke immediately — regardless of score. The skill-router sees the stuck pattern before confirmation bias does.
 
-**When auto-detected, skip Process step 2 (asking the user) and dispatch directly.** Asking "should I think-twice?" while stuck IS a stuck behavior.
+**When auto-detected, skip [Process step 2](#process) (asking the user) and dispatch directly.** Asking "should I think-twice?" while stuck IS a stuck behavior. Exception: if the user has explicitly said "skip think-twice" or "don't use think-twice" in the current conversation, honor that override for this turn.
 
 **Rationalization traps — these thoughts mean invoke NOW:**
 - "I know what's wrong, I just need X" → This IS the circular reasoning signal (score +3).
