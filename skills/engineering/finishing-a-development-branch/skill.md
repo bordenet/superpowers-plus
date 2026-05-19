@@ -69,11 +69,11 @@ git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "
 |--------|--------|
 | Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff has no `skills/` or `docs/` `.md` files | Battery evidence confirmed. Proceed directly to Step 1. |
 | Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff touches `skills/**/*.md`, `docs/**/*.md`, or root-level spec `.md` files | Battery passed. **Also invoke PHR** (`/sp-phr`) before Step 1 — see below. |
-| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then apply the PHR row above if skill/doc `.md` files were changed. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then apply Row 2 above (PHR required) if `skills/` or `docs/` `.md` files were changed, otherwise apply Row 1 (no PHR needed). |
 
 **PHR is mandatory when the diff touches `skills/**/*.md`, `docs/**/*.md`, or spec `.md` files at the repo root.**
 
-Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files that describe design/architecture (e.g., `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md`, dependency lockfiles.
+Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files that describe design/architecture (e.g., `DESIGN.md`, `ARCHITECTURE.md`, `AGENTS.md`). Excludes: `CHANGELOG.md`, `README.md`.
 
 The battery runs automated linting and tests — it does NOT run PHR. Invoke `progressive-harsh-review` (`/sp-phr`) for these files before proceeding to Step 1. A passing battery sentinel is NOT a substitute for PHR on skill and design artifacts.
 
