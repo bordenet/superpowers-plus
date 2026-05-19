@@ -280,7 +280,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (29 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (30 checks)"
 echo ""
 
 
@@ -378,12 +378,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 29 checks passed"
+    echo "✅ Doctor: all 30 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 29 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 30 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."

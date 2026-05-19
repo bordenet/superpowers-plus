@@ -45,4 +45,34 @@ for k, v in d.get('file_hashes', {}).items():
 " 2>/dev/null)
 fi
 
+
+# --- Check 30 (advisory): bare source .env calls in installed skills ---
+# Bare 'source ~/.codex/.env' in skill code blocks fails silently when .env
+# contains enc:v1: encrypted values — the ciphertext lands as the API token
+# and every curl call returns 401. Advisory only; plaintext-env users unaffected.
+local _bare_env_hits=()
+while IFS= read -r _hit; do
+  _bare_env_hits+=("$_hit")
+done < <(
+  grep -rn 'source ~/.codex/.env' "$INSTALLED_DIR" \
+    --include="*.md" --include="*.sh" 2>/dev/null |
+  grep -v '/_archive/' |
+  grep -Pv ':\d+:[ \t]' |
+  grep -Pv ':\d+:#'
+)
+if [[ ${#_bare_env_hits[@]} -gt 0 ]]; then
+  echo "🟡 ADVISORY (Check 30): ${#_bare_env_hits[@]} bare 'source ~/.codex/.env' call(s) in installed skills"
+  echo "   enc:v1: encrypted .env values arrive as ciphertext -> API calls return 401"
+  local _shown=0
+  for _hit in "${_bare_env_hits[@]}"; do
+    (( _shown++ )) || true
+    [[ $_shown -gt 5 ]] && break
+    echo "   $_hit"
+  done
+  [[ ${#_bare_env_hits[@]} -gt 5 ]] && echo "   ... and $((${#_bare_env_hits[@]} - 5)) more"
+  echo "   Fix: run sp-update to pull the latest cb-env-aware skill versions"
+  echo "   (Advisory only — does not affect users with plaintext ~/.codex/.env)"
+  WARNINGS=$((WARNINGS + 1))
+fi
+
 }
