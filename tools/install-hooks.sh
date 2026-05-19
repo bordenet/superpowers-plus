@@ -20,8 +20,9 @@ USAGE
   ./tools/install-hooks.sh
 
 DESCRIPTION
-  Installs the repo's pre-commit and pre-push hooks into .git/hooks/.
-  Backs up any existing hook to a matching .bak file before replacement.
+  Installs the repo's pre-commit, pre-push, and commit-msg hooks into .git/hooks/.
+  Backs up any existing hook to a matching .bak file before replacement (first install only;
+  subsequent installs overwrite the hook without updating the .bak).
 
   To bypass: git commit --no-verify
 HELP
@@ -49,7 +50,7 @@ mkdir -p "$REVIEW_TOKEN_DIR"
 echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
 
 # Install pre-commit hook
-if [[ -f "$HOOKS_DIR/pre-commit" ]]; then
+if [[ -f "$HOOKS_DIR/pre-commit" ]] && [[ ! -f "$HOOKS_DIR/pre-commit.bak" ]]; then
     echo "⚠️  Existing pre-commit hook found. Backing up to pre-commit.bak"
     mv "$HOOKS_DIR/pre-commit" "$HOOKS_DIR/pre-commit.bak"
 fi
@@ -59,7 +60,7 @@ chmod +x "$HOOKS_DIR/pre-commit"
 echo "✓ Installed pre-commit hook"
 
 # Install pre-push hook
-if [[ -f "$HOOKS_DIR/pre-push" ]]; then
+if [[ -f "$HOOKS_DIR/pre-push" ]] && [[ ! -f "$HOOKS_DIR/pre-push.bak" ]]; then
     echo "⚠️  Existing pre-push hook found. Backing up to pre-push.bak"
     mv "$HOOKS_DIR/pre-push" "$HOOKS_DIR/pre-push.bak"
 fi
@@ -68,11 +69,22 @@ cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
 chmod +x "$HOOKS_DIR/pre-push"
 echo "✓ Installed pre-push hook"
 
+# Install commit-msg hook (ASCII enforcement + auto-conversion)
+if [[ -f "$HOOKS_DIR/commit-msg" ]] && [[ ! -f "$HOOKS_DIR/commit-msg.bak" ]]; then
+    echo "⚠️  Existing commit-msg hook found. Backing up to commit-msg.bak"
+    mv "$HOOKS_DIR/commit-msg" "$HOOKS_DIR/commit-msg.bak"
+fi
+
+cp "$SCRIPT_DIR/commit-msg" "$HOOKS_DIR/commit-msg"
+chmod +x "$HOOKS_DIR/commit-msg"
+echo "✓ Installed commit-msg hook"
+
 echo ""
 echo "Done! The following hooks are now active:"
 echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
 echo "                JSON validity, IP scan, review token"
 echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
+echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
