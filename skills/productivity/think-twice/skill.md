@@ -49,9 +49,13 @@ composition:
 
 5. **If score <50:** Offer retry with refined prompt (max 1 retry) or proceed with best suggestion.
 
-## Stuck-Signal Auto-Detection
+## Stuck-Signal Auto-Detection (HARD GATE)
 
-Continuously monitor for these signals. When cumulative score ≥ 7, invoke think-twice **automatically**:
+<EXTREMELY_IMPORTANT>
+
+**This is not advisory. It is a mandatory stop.**
+
+After every tool-call response, score your current state. When cumulative score ≥ 7, **STOP immediately and invoke think-twice before any further action** — even mid-task, even if you think you know what to try next.
 
 | Signal | Weight |
 |--------|--------|
@@ -61,6 +65,20 @@ Continuously monitor for these signals. When cumulative score ≥ 7, invoke thin
 | Exhaustion language ("I've tried everything") | 3 |
 | Uncertainty hedging ("I'm not sure why") | 2 |
 | Approach change without rationale | 2 |
+
+**Skill-router consecutive match rule (additional mandatory trigger):**
+If `[skill-router]` flags `think-twice` on **2 consecutive user turns**, invoke immediately — regardless of score. The skill-router sees the stuck pattern before confirmation bias does.
+
+**When auto-detected, skip Process step 2 (asking the user) and dispatch directly.** Asking "should I think-twice?" while stuck IS a stuck behavior.
+
+**Rationalization traps — these thoughts mean invoke NOW:**
+- "I know what's wrong, I just need X" → This IS the circular reasoning signal (score +3).
+- "The next attempt will be different" → It won't be without a fresh frame.
+- "The user wants me to keep pushing" → They want results. Think-twice produces results.
+- "The skill-router matches too broadly" → 2 consecutive matches is not a false positive.
+- "This is a permission/tooling problem, not a reasoning problem" → Tooling blockers frequently ARE reasoning problems in disguise — the framing itself is a stuck signal.
+
+</EXTREMELY_IMPORTANT>
 
 ## Escalation Path
 
