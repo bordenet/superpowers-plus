@@ -77,23 +77,10 @@ test_non_override_install() {
     fi
 }
 
-# ── Test 3: Override skill.md content is from the override, not upstream ──
+# ── Test 3: Override content check (skipped — obra upstream removed in v2.6.0) ──
 test_override_content_wins() {
-    local skill="test-driven-development"
-    local installed="$HOME/.codex/skills/$skill/skill.md"
-    local upstream="$HOME/.codex/superpowers/skills/$skill/SKILL.md"
-
-    if [[ ! -f "$installed" || ! -f "$upstream" ]]; then
-        fail "$skill — missing files for content comparison"
-        return
-    fi
-
-    # Override should have different content than upstream
-    if ! diff -q "$installed" "$upstream" >/dev/null 2>&1; then
-        pass "$skill — override content differs from upstream (expected)"
-    else
-        fail "$skill — override content identical to upstream (override not applied)"
-    fi
+    ((SKIP++)) || true
+    echo "skip: test-driven-development — obra upstream path removed in v2.6.0; skills are now standalone"
 }
 
 # ── Run tests ──
