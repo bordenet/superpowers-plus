@@ -52,7 +52,7 @@ Two invocation paths share steps 1, 3, 4, and 5. They differ only at step 2.
 
 3. **Dispatch** (in priority order):
    - Sub-agent (`sub-agent-explore`, read-only) — free, instant; always available
-   - Perplexity `reason` — only if `THINK_TWICE_USE_PERPLEXITY=true` in `.env` (~$0.01/query); at most 2 Perplexity calls per conversation. **Cap behavior differs by path:** Path A — inform user and ask "use Perplexity again?" before proceeding. Path B — skip Perplexity silently and fall back to sub-agent (do not interrupt the task to ask). Additional calls require user to say "use Perplexity again" or re-invoke `/sp-rethink`.
+   - Perplexity `reason` — only if `THINK_TWICE_USE_PERPLEXITY=true` in `.env` (~$0.01/query); at most 2 Perplexity calls per conversation (calls 1–2 proceed without asking; call 3 is blocked). **Cap behavior differs by path:** Path A — on call 3, inform user and ask "use Perplexity again?" before proceeding; if user says yes, make the call and increment the cap by 1 for that explicit consent (subsequent calls still require consent). Path B — on call 3, skip Perplexity silently and fall back to sub-agent (do not interrupt the task to ask). Additional calls require user to say "use Perplexity again" or re-invoke `/sp-rethink`.
    - Manual fallback — save prompt to file, user pastes into another LLM
 
 4. **Score response:** Relevance (30%) + Novelty (25%) + Specificity (25%) + Feasibility (20%). Report score, key recommendations, suggested next step.
@@ -157,7 +157,7 @@ These scenarios define correct behavior for this skill:
 | Agent detects "same fix 3+ times" + "circular reasoning" + hedging pattern on 2 consecutive turns (score = 8) | **Invoke, Path B.** First message = announcement text, then dispatch |
 | Agent detects exhaustion language + approach-change-without-rationale + uncertainty hedging (score = 7) | **Invoke, Path B.** First message = announcement text |
 | User says "skip think-twice" after threshold fires | Honor override for this turn — do not invoke |
-| Third Perplexity call attempted via Path A | Block — ask user "use Perplexity again?" before proceeding |
+| Third Perplexity call attempted via Path A | Block — ask user "use Perplexity again?"; if YES, make the call and increment cap to 3; further calls still require consent |
 | Third Perplexity call would fire via Path B (auto-detected) | Skip Perplexity silently; dispatch sub-agent instead — do not interrupt the task |
 
 ## Companion Skills

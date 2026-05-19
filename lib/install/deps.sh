@@ -118,7 +118,7 @@ check_dependencies() {
     [[ -n "$LINUX_DISTRO" ]] && log_verbose "Linux distribution: $LINUX_DISTRO"
 
     local missing=()
-    local required_deps=("git" "node")
+    local required_deps=("git" "node" "python3")
 
     for dep in "${required_deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then

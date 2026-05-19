@@ -20,6 +20,8 @@ triggers:
   - before pushing design docs
   - run PHR on skill
   - gate skill push with PHR
+  - review skill file
+  - review this skill
 aliases: [PHR, harsh-review]
 anti_triggers:
   - code review
@@ -104,6 +106,17 @@ Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
 **Dimension weights:** Correctness 25%, Simplicity 10%, Edge Cases 25%, Testability 10%, Security/Perf 30%.
 
 ## The Process
+
+### Step 0: Fresh-Reader Pre-Check (author-noise audit)
+
+Before dispatching personas, grep the artifact for author-noise leakage — content only the author would recognize that will confuse a fresh reader:
+
+- Machine-local paths (e.g., `/Users/matt/`, `/home/runner/`, `/tmp/build-123/`)
+- Invented identifiers not defined in the artifact (e.g., referencing a function that doesn't exist in the diff)
+- Process commentary left in ("I added this because...", "TODO from our discussion", "per the Slack thread")
+- Internal ticket/PR references a public reader cannot resolve
+
+If any are found, flag them as **Minor author-noise findings** in the report. Do NOT score down for these — they are editorial, not correctness failures. Remove them before shipping if found.
 
 ### Step 1: Dispatch Review
 
