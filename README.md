@@ -203,11 +203,11 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 # Expected: skill catalog printed without errors (superpowers-plus contributes 95 skills)
 ```
 
-Run the full 29-check diagnostic:
+Run the full 30-check diagnostic:
 
 ```bash
 bash tools/doctor-checks.sh
-# Expected: "All 29 checks passed. Your superpowers are in perfect health."
+# Expected: "All 30 checks passed. Your superpowers are in perfect health."
 ```
 
 If skills aren't loading, see [Troubleshooting](#troubleshooting).
@@ -294,7 +294,7 @@ Utility scripts in `tools/`:
 |------|---------|
 | `run-battery.sh` | Runs the automated quality suite (harsh-review, trigger tests, export integrity, skill router tests); writes the `.code-review-cleared` sentinel. Accepts `--verdict PASS\|PASS_WITH_NITS` and optional `--min-score N` (1.0–10.0, default 7.0). |
 | `commit-gate.sh` | Runs lint/test/harsh-review and mints a short-lived review token consumed by the pre-commit hook. |
-| `doctor-checks.sh` | 29-check diagnostic across all installed skills |
+| `doctor-checks.sh` | 30-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
 | `dangerous-pattern-scan.sh` | Pre-commit scanner for `rm -rf`, `chmod 777`, `curl\|bash` |
