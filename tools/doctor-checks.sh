@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 29 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 30 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -280,7 +280,7 @@ if [[ "$SUMMARY_ONLY" == "true" ]]; then
   exec 3>&1 1>/dev/null  # Save stdout to fd 3, redirect stdout to /dev/null
 fi
 
-echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (29 checks)"
+echo "🩺 Superpowers Doctor — $TOTAL_SKILLS skills scanned (30 checks)"
 echo ""
 
 
@@ -350,7 +350,7 @@ _doctor_trigger_checks
 _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
 _doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
-_doctor_guardrails_checks   # Check 29: Augment-surface SHA256 drift vs guardrails baseline
+_doctor_guardrails_checks   # Checks 29-30: guardrails baseline drift + bare-env advisory
 
 # Collect mcp-checks (Check 28) — join background job, merge output + counters
 wait "$_mcp_pid"; _mcp_exit=$?
@@ -378,12 +378,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 TOTAL=$((CRITICAL + ERRORS + WARNINGS))
 if [[ "$SUMMARY_ONLY" == "true" ]]; then
   if [[ "$TOTAL" -eq 0 ]]; then
-    echo "✅ Doctor: all 29 checks passed"
+    echo "✅ Doctor: all 30 checks passed"
   else
     echo "⚠️  Doctor: $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   fi
 elif [[ "$TOTAL" -eq 0 ]]; then
-  echo "✅ All 29 checks passed. Your superpowers are in perfect health."
+  echo "✅ All 30 checks passed. Your superpowers are in perfect health."
 else
   echo "  $CRITICAL critical · $ERRORS errors · $WARNINGS warnings"
   echo "  Your superpowers need $TOTAL fixes."
