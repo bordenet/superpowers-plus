@@ -108,10 +108,10 @@ npm test / cargo test / pytest / go test ./...
 ### Step 2: Determine Base Branch
 
 ```bash
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+git merge-base HEAD main 2>/dev/null
 ```
 
-Or ask: "This branch split from main — is that correct?"
+If this returns a SHA, use `main` as the base. If it returns nothing (non-zero exit), the branch has no `main` ancestor — surface this explicitly: "Could not determine base branch automatically (git merge-base returned nothing). What branch did this work split from?"
 
 ### Step 3: Present Options
 

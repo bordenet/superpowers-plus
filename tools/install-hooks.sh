@@ -91,6 +91,7 @@ echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. ext
 echo "                JSON validity, IP scan, review token"
 echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
 echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
+echo "                (requires python3 in PATH — install: brew install python3)"
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
