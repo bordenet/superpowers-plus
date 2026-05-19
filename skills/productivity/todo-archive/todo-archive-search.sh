@@ -11,8 +11,13 @@
 set -euo pipefail
 
 # --- Resolve paths ---
-# shellcheck source=/dev/null
-source ~/.codex/.env 2>/dev/null || true
+# shellcheck disable=SC2016  # single quotes intentional: vars expand in cb-env's subshell
+if command -v cb-env &>/dev/null; then
+  TODO_FILE_PATH=$(cb-env -- bash -c 'printf "%s" "$TODO_FILE_PATH"')
+else
+  # shellcheck source=/dev/null
+  source ~/.codex/.env 2>/dev/null || true
+fi
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
 
