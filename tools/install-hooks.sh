@@ -68,11 +68,22 @@ cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
 chmod +x "$HOOKS_DIR/pre-push"
 echo "✓ Installed pre-push hook"
 
+# Install commit-msg hook (ASCII enforcement + auto-conversion)
+if [[ -f "$HOOKS_DIR/commit-msg" ]]; then
+    echo "⚠️  Existing commit-msg hook found. Backing up to commit-msg.bak"
+    mv "$HOOKS_DIR/commit-msg" "$HOOKS_DIR/commit-msg.bak"
+fi
+
+cp "$SCRIPT_DIR/commit-msg" "$HOOKS_DIR/commit-msg"
+chmod +x "$HOOKS_DIR/commit-msg"
+echo "✓ Installed commit-msg hook"
+
 echo ""
 echo "Done! The following hooks are now active:"
 echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
 echo "                JSON validity, IP scan, review token"
 echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
+echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
