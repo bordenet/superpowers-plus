@@ -14,15 +14,24 @@ echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
 ```
 
+Then, **regardless of sentinel state**, enumerate which `.md` files were changed:
+
+```bash
+BASE=$(git merge-base HEAD main 2>/dev/null || git rev-parse HEAD^)
+git diff "$BASE"..HEAD --name-only | grep -E '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$' || echo "NO_MD_FILES_CHANGED"
+```
+
+If this command outputs any `.md` file paths (not `NO_MD_FILES_CHANGED`), PHR is required (Row 2).
+
 | Result | Action |
 |--------|--------|
-| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff has no `skills/` or `docs/` `.md` files | Battery evidence confirmed. Proceed directly to Step 1. |
-| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff touches `skills/**/*.md`, `docs/**/*.md`, or root-level spec `.md` files | Battery passed. **Also invoke PHR** (`/sp-phr`) before Step 1 — see below. |
-| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then apply Row 2 above (PHR required) if `skills/` or `docs/` `.md` files were changed, otherwise apply Row 1 (no PHR needed). |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check → `NO_MD_FILES_CHANGED` | Battery evidence confirmed. Proceed directly to Step 1. |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists any files | Battery passed. **Also invoke PHR** (`/sp-phr`) on the listed files before Step 1 — see below. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then re-run the md-file check above: if it lists any files, also invoke PHR; otherwise proceed to Step 1 directly. |
 
-**PHR is mandatory when the diff touches `skills/**/*.md`, `docs/**/*.md`, or spec `.md` files at the repo root.**
+**PHR is mandatory when the md-file check lists any `.md` files.**
 
-Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files that describe design/architecture (e.g., `DESIGN.md`, `ARCHITECTURE.md`, `AGENTS.md`). Excludes: `CHANGELOG.md`, `README.md`.
+Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `AGENTS.md`, `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md` (these two are excluded by the regex above — add them to a post-grep exclusion if needed).
 
 The battery runs automated linting and tests — it does NOT run PHR. Invoke `progressive-harsh-review` (`/sp-phr`) for these files before proceeding to Step 1. A passing battery sentinel is NOT a substitute for PHR on skill and design artifacts.
 
@@ -44,10 +53,10 @@ npm test / cargo test / pytest / go test ./...
 **If tests pass:** Continue to Step 2.
 ### Step 2: Determine Base Branch
 ```bash
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+git merge-base HEAD main 2>/dev/null
 ```
 
-Or ask: "This branch split from main — is that correct?"
+If this returns a SHA, use `main` as the base. If it returns nothing (non-zero exit), the branch has no `main` ancestor — surface this explicitly: "Could not determine base branch automatically (git merge-base returned nothing). What branch did this work split from?"
 ### Step 3: Present Options
 Present exactly these 4 options:
 

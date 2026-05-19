@@ -27,6 +27,15 @@ START FROM: Failure modes and state transitions. Trace error handling paths and 
 PRIORITIZE: Operational safety, monitoring/logging coverage, backward compatibility, deployment risk, 3 AM resilience.
 **Dimension weights:** Correctness 25%, Simplicity 10%, Edge Cases 25%, Testability 10%, Security/Perf 30%.
 ## The Process
+### Step 0: Fresh-Reader Pre-Check (author-noise audit)
+Before dispatching personas, grep the artifact for author-noise leakage — content only the author would recognize that will confuse a fresh reader:
+
+- Machine-local paths (e.g., `/Users/matt/`, `/home/runner/`, `/tmp/build-123/`)
+- Invented identifiers not defined in the artifact (e.g., referencing a function that doesn't exist in the diff)
+- Process commentary left in ("I added this because...", "TODO from our discussion", "per the Slack thread")
+- Internal ticket/PR references a public reader cannot resolve
+
+If any are found, flag them as **Minor author-noise findings** in the report. Do NOT score down for these — they are editorial, not correctness failures. Remove them before shipping if found.
 ### Step 1: Dispatch Review
 **HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
 
