@@ -48,7 +48,11 @@ composition:
 
 ```bash
 EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
-source ~/.codex/.env 2>/dev/null
+if command -v cb-env &>/dev/null; then
+  TODO_FILE_PATH=$(cb-env -- bash -c 'printf "%s" "$TODO_FILE_PATH"')
+else
+  source ~/.codex/.env 2>/dev/null || true
+fi
 TODO_FILE_PATH="${EXPLICIT_TODO_FILE_PATH:-${TODO_FILE_PATH:-$HOME/.codex/TODO.md}}"
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
