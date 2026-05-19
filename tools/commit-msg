@@ -19,25 +19,26 @@ command -v python3 >/dev/null 2>&1 || {
 
 # Convert Unicode punctuation to ASCII, then reject any remaining non-ASCII.
 # Uses Python for detection (avoids grep -P which requires GNU grep / ugrep).
-# Exit codes from Python: 0=clean, 1=non-ASCII found (diagnostic printed), 2=internal error
+# Python exit codes: 0=clean, 1=non-ASCII found (diagnostic printed), 2=internal error
 _python_exit=0
 python3 - "$COMMIT_MSG_FILE" <<'PYEOF' || _python_exit=$?
 import sys, os
 
+# Unicode escape sequences ensure correct characters regardless of file encoding.
 SUBSTITUTIONS = [
-    ('—', '-'),   # em dash      —
-    ('–', '-'),   # en dash      –
-    ('‒', '-'),   # figure dash  ‒
-    ('‐', '-'),   # hyphen       ‐
-    ('→', '->'),  # right arrow  →
-    ('←', '<-'),  # left arrow   ←
-    ('…', '...'), # ellipsis     …
-    (''', "'"),   # left single  '
-    (''', "'"),   # right single '
-    ('"', '"'),   # left double  "
-    ('"', '"'),   # right double "
-    ('·', '*'),   # middle dot   ·
-    ('•', '-'),   # bullet       •
+    ('—', '-'),    # em dash      —
+    ('–', '-'),    # en dash      –
+    ('‒', '-'),    # figure dash  ‒
+    ('‐', '-'),    # hyphen       ‐
+    ('→', '->'),   # right arrow  →
+    ('←', '<-'),   # left arrow   ←
+    ('…', '...'),  # ellipsis     …
+    ('‘', "'"),    # left single  ‘
+    ('’', "'"),    # right single ’
+    ('“', '"'),    # left double  “
+    ('”', '"'),    # right double ”
+    ('·', '*'),    # middle dot   ·
+    ('•', '-'),    # bullet       •
 ]
 
 path = sys.argv[1]
