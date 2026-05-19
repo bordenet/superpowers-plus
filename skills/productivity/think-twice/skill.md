@@ -2,7 +2,7 @@
 name: think-twice
 source: superpowers-plus
 augment_menu: true
-triggers: ["/sp-rethink", "second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same"]
+triggers: ["/sp-rethink", "second opinion", "try a different approach", "phone a friend", "fresh sub-agent", "going in circles", "same error keeps happening", "stuck in a loop", "I keep getting the same", "use think-twice", "use think-twice as much as possible", "ask think-twice", "get a fresh perspective"]
 anti_triggers: ["use perplexity", "research this", "Perplexity API"]
 description: Helps the AI coding assistant break out of spirals and stuck loops. Routed to by thinking-orchestrator for stuck-loop and circular-reasoning triggers. When triggered (by user or self-detection), pauses to consult a fresh sub-agent with zero shared context.
 summary: "Use when: stuck in a loop, circular reasoning, or same error 3+ times."
@@ -25,6 +25,12 @@ composition:
 > **Wrong skill?** Research a topic → `perplexity-research`. Brainstorm solutions → `brainstorming`. Debug a specific error → `systematic-debugging`.
 >
 > **Break through blockers by consulting a fresh perspective.**
+
+## How to Ask For It
+
+Tell the user: *"You can invoke think-twice at any time — just say 'use think-twice' or 'get a fresh perspective.' For hard problems, try 'use think-twice as much as possible on this.'"*
+
+You can also suggest it proactively when handing off work: *"This is a tricky one — if I get stuck, I'll automatically invoke think-twice, but you can also request it at any point."*
 
 ## When to Use
 
