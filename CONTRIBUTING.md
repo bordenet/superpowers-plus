@@ -6,14 +6,17 @@ superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/s
 
 ### Pulling upstream improvements from obra/superpowers
 
+> **v2.6.0 note:** The local obra clone tier (`~/.codex/superpowers/`) was removed in v2.6.0.
+> Sync happens directly in the superpowers-plus source repo, not through an installed clone.
+
 ```bash
-# One-time setup
-git -C ~/.codex/superpowers remote add upstream https://github.com/obra/superpowers.git
+# In your local superpowers-plus source checkout (one-time setup)
+git remote add obra https://github.com/obra/superpowers.git
 
 # Periodic sync (review before merging)
-git -C ~/.codex/superpowers fetch upstream
-git -C ~/.codex/superpowers log HEAD..upstream/main --oneline   # preview changes
-git -C ~/.codex/superpowers merge upstream/main                 # integrate
+git fetch obra
+git log HEAD..obra/main --oneline   # preview changes
+git merge obra/main                 # integrate
 ```
 
 Review each upstream commit before merging. Changes to core skills (`brainstorming`, `systematic-debugging`, etc.) may need override updates in superpowers-plus.
