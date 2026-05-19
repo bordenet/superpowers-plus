@@ -12,46 +12,69 @@ set -euo pipefail
 COMMIT_MSG_FILE="$1"
 [[ -f "$COMMIT_MSG_FILE" ]] || exit 0
 
-# Auto-convert known safe Unicode → ASCII substitutions in-place.
-python3 - "$COMMIT_MSG_FILE" <<'PYEOF'
-import sys, re
+command -v python3 >/dev/null 2>&1 || {
+    echo "  ERROR: commit-msg hook requires python3 (not found in PATH)" >&2
+    exit 1
+}
+
+# Auto-convert known safe Unicode → ASCII substitutions in-place (atomic write).
+python3 - "$COMMIT_MSG_FILE" <<'PYEOF' || { echo "  ERROR: Unicode substitution step failed" >&2; exit 1; }
+import sys, os
 
 SUBSTITUTIONS = [
-    ('—', '-'),   # em dash   — → -
-    ('–', '-'),   # en dash   – → -
-    ('‒', '-'),   # figure dash
-    ('‐', '-'),   # hyphen
-    ('→', '->'),  # right arrow →
-    ('←', '<-'),  # left arrow  ←
-    ('…', '...'), # ellipsis   …
-    ('‘', "'"),   # left single quote  '
-    ('’', "'"),   # right single quote '
-    ('“', '"'),   # left double quote  "
-    ('”', '"'),   # right double quote "
-    ('·', '*'),   # middle dot ·
-    ('•', '-'),   # bullet     •
+    ('—', '-'),   # em dash      —
+    ('–', '-'),   # en dash      –
+    ('‒', '-'),   # figure dash  ‒
+    ('‐', '-'),   # hyphen       ‐
+    ('→', '->'),  # right arrow  →
+    ('←', '<-'),  # left arrow   ←
+    ('…', '...'), # ellipsis     …
+    ('‘', "'"),   # left single  '
+    ('’', "'"),   # right single '
+    ('“', '"'),   # left double  "
+    ('”', '"'),   # right double "
+    ('·', '*'),   # middle dot   ·
+    ('•', '-'),   # bullet       •
 ]
 
 path = sys.argv[1]
-with open(path, encoding='utf-8', errors='replace') as f:
-    text = f.read()
+
+try:
+    with open(path, encoding='utf-8', errors='strict') as f:
+        text = f.read()
+except UnicodeDecodeError as e:
+    print("  ERROR: commit message is not valid UTF-8 at byte {}.".format(e.start), file=sys.stderr)
+    sys.exit(1)
 
 for src, dst in SUBSTITUTIONS:
     text = text.replace(src, dst)
 
-with open(path, 'w', encoding='utf-8') as f:
-    f.write(text)
+# Atomic write: tmp + rename avoids truncating the original on failure.
+tmp = path + '.commit-msg-tmp'
+try:
+    with open(tmp, 'w', encoding='utf-8') as f:
+        f.write(text)
+    os.replace(tmp, path)
+except Exception as exc:
+    try:
+        os.unlink(tmp)
+    except OSError:
+        pass
+    print("  ERROR: failed to write substituted commit message: {}".format(exc), file=sys.stderr)
+    sys.exit(1)
 PYEOF
 
 # After substitutions, reject any remaining non-ASCII characters.
-if LC_ALL=C grep -Pn '[^\x00-\x7F]' "$COMMIT_MSG_FILE" >/dev/null 2>&1; then
+# Capture once; display line numbers only (avoids echoing content to CI logs).
+offending=$(LC_ALL=C grep -Pn '[^\x00-\x7F]' "$COMMIT_MSG_FILE" 2>/dev/null || true)
+if [[ -n "$offending" ]]; then
     echo "" >&2
     echo "  ERROR: commit message contains non-ASCII characters." >&2
     echo "  GitLab pre-receive rejects non-ASCII commit messages." >&2
     echo "" >&2
     echo "  Offending lines:" >&2
-    LC_ALL=C grep -Pn '[^\x00-\x7F]' "$COMMIT_MSG_FILE" | while IFS= read -r line; do
-        echo "    $line" >&2
+    printf '%s\n' "$offending" | cut -d: -f1 | while IFS= read -r lineno; do
+        echo "    Line $lineno" >&2
     done
     echo "" >&2
     echo "  Replace the characters above with ASCII equivalents and retry." >&2

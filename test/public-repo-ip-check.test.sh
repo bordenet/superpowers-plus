@@ -155,6 +155,14 @@ SKIP_REVIEW_TOKEN=true
 REQUIRE_CODE_REVIEW_SENTINEL=false
 EOF
 (cd "$repo" && bash tools/install-hooks.sh >/dev/null 2>&1)
+# Verify all expected hooks were installed
+for hook in pre-commit pre-push commit-msg; do
+    if [[ -f "$hooks_dir/$hook" ]] && [[ -x "$hooks_dir/$hook" ]]; then
+        pass "install-hooks.sh installed $hook"
+    else
+        fail "install-hooks.sh did not install $hook (missing or not executable)"
+    fi
+done
 printf 'safe external hook test\n' >> "$repo/README.md"
 git -C "$repo" add README.md
 if (cd "$repo" && "$hooks_dir/pre-commit" >/dev/null 2>&1); then
