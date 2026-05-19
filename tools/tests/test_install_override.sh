@@ -7,7 +7,7 @@ set -euo pipefail
 # the installer stages upstream companion files first, then overlays the
 # override's skill.md on top.
 
-PASS=0; FAIL=0; SKIP=0
+PASS=0; FAIL=0
 fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
 
@@ -77,30 +77,16 @@ test_non_override_install() {
     fi
 }
 
-# ── Test 3: Override skill.md content is from the override, not upstream ──
-test_override_content_wins() {
-    local skill="test-driven-development"
-    local installed="$HOME/.codex/skills/$skill/skill.md"
-    local upstream="$HOME/.codex/superpowers/skills/$skill/SKILL.md"
-
-    if [[ ! -f "$installed" || ! -f "$upstream" ]]; then
-        fail "$skill — missing files for content comparison"
-        return
-    fi
-
-    # Override should have different content than upstream
-    if ! diff -q "$installed" "$upstream" >/dev/null 2>&1; then
-        pass "$skill — override content differs from upstream (expected)"
-    else
-        fail "$skill — override content identical to upstream (override not applied)"
-    fi
-}
+# ── Test 3 retired v2.6.0 ──
+# The "override content wins over upstream" invariant was tested by comparing
+# installed skill.md against the obra clone tier (~/.codex/superpowers/skills/).
+# That tier was removed in v2.6.0; skills are now standalone. The invariant no
+# longer applies. See CHANGELOG.md for the v2.6.0 migration notes.
 
 # ── Run tests ──
 test_override_companion_preservation
 test_non_override_install
-test_override_content_wins
 
 echo ""
-echo "── Results: $PASS passed, $FAIL failed, $SKIP skipped ──"
+echo "── Results: $PASS passed, $FAIL failed ──"
 [[ $FAIL -eq 0 ]]
