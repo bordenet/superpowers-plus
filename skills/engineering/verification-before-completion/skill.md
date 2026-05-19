@@ -2,7 +2,6 @@
 name: verification-before-completion
 source: superpowers-plus
 augment_menu: true
-overrides: superpowers/verification-before-completion
 # Override rationale: Adds intent-based auto-fire triggers (fires on INTERNAL AGENT STATE,
 # not on output phrase detection). Adds sentinel short-circuit (if battery sentinel exists
 # for HEAD, skip battery re-dispatch). Adds incident history tracking.
