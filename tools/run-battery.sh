@@ -100,6 +100,11 @@ echo "  The code-review-battery AI judgment component MUST be"
 echo "  completed before calling this script. This script only"
 echo "  covers automated verification."
 echo ""
+echo "  ⚠  PHR PREREQUISITE (skill/design changes)"
+echo "  If the diff touches skills/ or design docs, run /sp-phr"
+echo "  BEFORE this script. harsh-review.sh (Step 1) is a linter,"
+echo "  NOT progressive-harsh-review. PHR is a separate AI gate."
+echo ""
 
 # Guard: block when there are UNSTAGED modifications (truly dirty worktree).
 # Staged-but-uncommitted changes are allowed: battery may run pre-commit and the
