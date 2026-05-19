@@ -16,6 +16,10 @@ triggers:
   - ready to present plan
   - ready to present design
   - ready to present spec
+  - before pushing skill changes
+  - before pushing design docs
+  - run PHR on skill
+  - gate skill push with PHR
 aliases: [PHR, harsh-review]
 anti_triggers:
   - code review
