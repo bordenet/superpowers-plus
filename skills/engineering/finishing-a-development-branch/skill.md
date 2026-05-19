@@ -67,14 +67,17 @@ git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "
 
 | Result | Action |
 |--------|--------|
-| Valid sentinel for HEAD AND `WORKTREE_CLEAN` | Battery evidence confirmed. Skip dispatch, proceed to PHR check below. |
-| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff has no `skills/` or `docs/` `.md` files | Battery evidence confirmed. Proceed directly to Step 1. |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND diff touches `skills/**/*.md`, `docs/**/*.md`, or root-level spec `.md` files | Battery passed. **Also invoke PHR** (`/sp-phr`) before Step 1 — see below. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then apply the PHR row above if skill/doc `.md` files were changed. |
 
-**Then: PHR is mandatory for skill files, design docs, and spec changes.**
+**PHR is mandatory when the diff touches `skills/**/*.md`, `docs/**/*.md`, or spec `.md` files at the repo root.**
 
-The battery runs automated linting and tests — it does NOT run PHR. If the diff touches any `.md` files under `skills/`, or any design/spec documents, invoke `progressive-harsh-review` (`/sp-phr`) before proceeding to Step 1. A passing battery sentinel is NOT a substitute for PHR on non-code artifacts.
+Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files that describe design/architecture (e.g., `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md`, dependency lockfiles.
 
-> **Why separate?** `run-battery.sh` calls `harsh-review.sh` (a shell linter), not the multi-persona PHR skill. PHR is an AI judgment gate; the battery is an automated script gate. Both are required.
+The battery runs automated linting and tests — it does NOT run PHR. Invoke `progressive-harsh-review` (`/sp-phr`) for these files before proceeding to Step 1. A passing battery sentinel is NOT a substitute for PHR on skill and design artifacts.
+
+> **Why separate?** `run-battery.sh` calls `harsh-review.sh` (a shell linter), not the multi-persona PHR skill. PHR is an AI judgment gate; the battery is an automated script gate. Both are required for skill/design changes.
 
 If you skip this step and present work as "ready" to the human, you have violated the gate.
 
