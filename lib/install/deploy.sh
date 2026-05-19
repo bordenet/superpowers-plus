@@ -5,7 +5,11 @@
 #          directories (~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/).
 # SOURCED BY: install.sh — do not run directly.
 # GLOBALS READ: SCRIPT_DIR, SKILLS_DIR, CLAUDE_SKILLS_DIR, AUGMENT_MENU_DIR,
-#               CODEX_DIR, FORCE, VERBOSE
+#               CODEX_DIR, VERBOSE
+# NOTE: As of v2.6.0 the superpowers) case in _resolve_upstream_dir() emits a
+#       deprecation warning instead of resolving a path. No bundled skills use
+#       overrides: superpowers/* anymore; the case is retained to warn overlay
+#       skills that still declare it.
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
@@ -23,8 +27,8 @@ _resolve_upstream_dir() {
     local upstream_dir=""
     case "$source_name" in
         superpowers)
-            # obra/superpowers: flat structure at ~/.codex/superpowers/skills/
-            upstream_dir="${SUPERPOWERS_DIR}/skills/${upstream_skill}"
+            # Retired source name: obra/superpowers was folded into superpowers-plus in v2.6.0.
+            log_warn "Skill declares 'overrides: superpowers/$upstream_skill' — obra/superpowers is retired (v2.6.0+). Remove the overrides: line from this skill's frontmatter."
             ;;
         *)
             # Other sources (superpowers-plus, overlay repos, etc.)
