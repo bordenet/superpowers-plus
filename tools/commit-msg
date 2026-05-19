@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# commit-msg hook — enforce ASCII-only commit messages
+# PURPOSE: Auto-convert common Unicode punctuation to ASCII equivalents, then
+#          reject any remaining non-ASCII characters with a clear diagnostic.
+#          GitLab pre-receive hooks block non-ASCII commit messages; catching
+#          them here gives a fast, local fix rather than a remote rejection.
+# INSTALL: ./tools/install-hooks.sh
+# -----------------------------------------------------------------------------
+set -euo pipefail
+
+COMMIT_MSG_FILE="${1:-}"
+[[ -f "$COMMIT_MSG_FILE" ]] || exit 0
+
+command -v python3 >/dev/null 2>&1 || {
+    echo "  ERROR: commit-msg hook requires python3 (not found in PATH)" >&2
+    exit 1
+}
+
+# Convert Unicode punctuation to ASCII, then reject any remaining non-ASCII.
+# Uses Python for detection (avoids grep -P which requires GNU grep / ugrep).
+# Python exit codes: 0=clean, 1=non-ASCII found (diagnostic printed), 2=internal error
+_python_exit=0
+python3 - "$COMMIT_MSG_FILE" <<'PYEOF' || _python_exit=$?
+import sys, os
+
+# Unicode escape sequences ensure correct characters regardless of file encoding.
+SUBSTITUTIONS = [
+    ('—', '-'),    # em dash      —
+    ('–', '-'),    # en dash      –
+    ('‒', '-'),    # figure dash  ‒
+    ('‐', '-'),    # hyphen       ‐
+    ('→', '->'),   # right arrow  →
+    ('←', '<-'),   # left arrow   ←
+    ('…', '...'),  # ellipsis     …
+    ('‘', "'"),    # left single  ‘
+    ('’', "'"),    # right single ’
+    ('“', '"'),    # left double  “
+    ('”', '"'),    # right double ”
+    ('·', '*'),    # middle dot   ·
+    ('•', '-'),    # bullet       •
+]
+
+path = sys.argv[1]
+
+try:
+    with open(path, encoding='utf-8', errors='strict') as f:
+        text = f.read()
+except UnicodeDecodeError as e:
+    print("  ERROR: commit message is not valid UTF-8 at byte {}.".format(e.start), file=sys.stderr)
+    sys.exit(2)
+
+for src, dst in SUBSTITUTIONS:
+    text = text.replace(src, dst)
+
+# Atomic write: tmp + rename avoids truncating the original on failure.
+tmp = path + '.commit-msg-tmp'
+try:
+    with open(tmp, 'w', encoding='utf-8') as f:
+        f.write(text)
+    os.replace(tmp, path)
+except Exception as exc:
+    try:
+        os.unlink(tmp)
+    except OSError:
+        pass
+    print("  ERROR: failed to write substituted commit message: {}".format(exc), file=sys.stderr)
+    sys.exit(2)
+
+# Check for remaining non-ASCII (portable: no grep -P required).
+offending_lines = []
+for i, line in enumerate(text.splitlines(), 1):
+    for ch in line:
+        if ord(ch) > 127:
+            offending_lines.append(i)
+            break
+
+if offending_lines:
+    print("", file=sys.stderr)
+    print("  ERROR: commit message contains non-ASCII characters.", file=sys.stderr)
+    print("  GitLab pre-receive rejects non-ASCII commit messages.", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  Offending lines:", file=sys.stderr)
+    for lineno in offending_lines:
+        print("    Line {}".format(lineno), file=sys.stderr)
+    print("", file=sys.stderr)
+    print("  Replace the characters above with ASCII equivalents and retry.", file=sys.stderr)
+    print("", file=sys.stderr)
+    sys.exit(1)
+PYEOF
+
+case "$_python_exit" in
+    0) exit 0 ;;
+    1) exit 1 ;;  # non-ASCII rejected; Python printed the diagnostic
+    *) echo "  ERROR: Unicode substitution step failed (exit ${_python_exit})" >&2; exit 1 ;;
+esac
