@@ -95,6 +95,13 @@ setup() {
     [[ "$output" == *"Line 1"* ]]
 }
 
+@test "commit-msg: rejection output contains correct line number for non-ASCII on line 2" {
+    printf 'clean first line\nfix: caf\xc3\xa9 endpoint\n' > "$MSG"
+    run bash "$HOOK" "$MSG"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Line 2"* ]]
+}
+
 # ---------------------------------------------------------------------------
 # Hook file integrity
 # ---------------------------------------------------------------------------
