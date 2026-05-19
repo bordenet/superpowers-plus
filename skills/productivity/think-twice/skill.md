@@ -35,27 +35,36 @@ composition:
 
 ## Process
 
+Two invocation paths share steps 1, 3, 4, and 5. They differ only at step 2.
+
+**Path A — Manual (user asked for think-twice or `/sp-rethink`):**
+
 1. **Generate consultation prompt** (see `references/consultation-prompt-template.md`):
    Problem statement, technical context, what was tried + outcomes, exact error messages, minimal code snippet, constraints, specific ask. Must be self-contained, <2000 tokens.
 
 2. **Ask user:** "Want to review the prompt before I dispatch, or send now?"
 
 3. **Dispatch** (in priority order):
-   - Sub-agent (`sub-agent-explore`) — free, instant
-   - Perplexity `reason` — only if `THINK_TWICE_USE_PERPLEXITY=true` in `.env` (~$0.01/query)
+   - Sub-agent (`sub-agent-explore`, read-only) — free, instant
+   - Perplexity `reason` — only if `THINK_TWICE_USE_PERPLEXITY=true` in `.env` (~$0.01/query); at most 2 Perplexity calls per conversation. To make additional calls the user must explicitly say "use Perplexity again" or re-invoke `/sp-rethink`
    - Manual fallback — save prompt to file, user pastes into another LLM
 
 4. **Score response:** Relevance (30%) + Novelty (25%) + Specificity (25%) + Feasibility (20%). Report score, key recommendations, suggested next step.
 
 5. **If score <50:** Offer retry with refined prompt (max 1 retry) or proceed with best suggestion.
 
+**Path B — Auto-detected (stuck signals reached threshold):**
+
+Steps 1, 3, 4, 5 are identical. Skip step 2 — dispatch immediately without asking the user to review the prompt first. Announce to the user: "Stuck-signal threshold reached — dispatching think-twice sub-agent."
+
 ## Stuck-Signal Auto-Detection (HARD GATE)
 
-<EXTREMELY_IMPORTANT>
-
-**This is not advisory. It is a mandatory stop.**
-
-At each natural stopping point (end of a tool-call batch, before issuing the next set of actions), score your current state. When cumulative score ≥ 7, **STOP immediately and invoke think-twice before any further action** — even mid-task, even if you think you know what to try next.
+> [!IMPORTANT]
+> **This is not advisory. It is a mandatory stop.**
+>
+> Before issuing your next assistant message to the user, score your current session state using the table below. When cumulative score ≥ 7, **invoke think-twice before responding** — even mid-task, even if you think you know what to try next.
+>
+> **Event-count signals** (same fix, same error, exhaustion) are already quantified by their labels — score them as written. **The hedging pattern signal** (weight 2) applies only if it occurs on at least 2 consecutive turns or 3+ non-consecutive turns in the current conversation — a single hedge on a genuinely uncertain question does not count.
 
 | Signal | Weight |
 |--------|--------|
@@ -63,22 +72,21 @@ At each natural stopping point (end of a tool-call batch, before issuing the nex
 | Circular reasoning (referencing own failed output) | 3 |
 | Same error 3+ times after fixes | 3 |
 | Exhaustion language ("I've tried everything") | 3 |
-| Uncertainty hedging ("I'm not sure why") | 2 |
+| Uncertainty hedging pattern — recurring across multiple steps | 2 |
 | Approach change without rationale | 2 |
 
-**Skill-router consecutive match rule (additional mandatory trigger):**
-If `[skill-router]` flags `think-twice` on **2 consecutive user turns**, invoke immediately — regardless of score. The skill-router sees the stuck pattern before confirmation bias does.
+**In-context repetition rule:** If you have scored ≥ 7 on two consecutive turns and the situation has not improved, invoke immediately — the framing itself is stuck.
 
-**When auto-detected, skip [Process step 2](#process) (asking the user) and dispatch directly.** Asking "should I think-twice?" while stuck IS a stuck behavior. Exception: if the user has explicitly said "skip think-twice" or "don't use think-twice" in the current conversation, honor that override for this turn.
+**When auto-detected, use Path B (defined in Process above).** Do not ask "should I think-twice?" — that IS a stuck behavior. Exception: if the user has explicitly said "skip think-twice" or "don't use think-twice" in the current conversation, honor that override for this turn.
+
+> **Required announcement (Path B only):** Your next message MUST begin with this exact text:
+> *"Stuck-signal threshold reached — dispatching think-twice sub-agent."*
 
 **Rationalization traps — these thoughts mean invoke NOW:**
 - "I know what's wrong, I just need X" → This IS the circular reasoning signal (score +3).
 - "The next attempt will be different" → It won't be without a fresh frame.
 - "The user wants me to keep pushing" → They want results. Think-twice produces results.
-- "The skill-router matches too broadly" → 2 consecutive matches is not a false positive.
 - "This is a permission/tooling problem, not a reasoning problem" → Tooling blockers frequently ARE reasoning problems in disguise — the framing itself is a stuck signal.
-
-</EXTREMELY_IMPORTANT>
 
 ## Escalation Path
 
@@ -108,9 +116,11 @@ The prompt sent to the sub-agent determines outcome quality. MUST include:
 
 ## References
 
-- `references/consultation-prompt-template.md` — Prompt template
-- `references/scoring-rubric.md` — Scoring dimensions
-- `prompts/consultant-persona.md` — Sub-agent persona
+All three files exist in the skill directory. Use the Read tool to load each one before executing step 1:
+
+- `references/consultation-prompt-template.md` — Prompt template for consultation prompt generation
+- `references/scoring-rubric.md` — Scoring rubric for evaluating the sub-agent response
+- `prompts/consultant-persona.md` — Persona prompt for the dispatched sub-agent
 
 ## Failure Modes
 
@@ -119,11 +129,29 @@ The prompt sent to the sub-agent determines outcome quality. MUST include:
 | Sub-agent inherits same flawed assumptions | Provide raw symptoms only, not prior conclusions |
 | Agent ignores stuck signals and keeps looping | Enforce cumulative score threshold — 7+ is mandatory |
 | Fresh perspective is too shallow | Sub-agent must produce root-cause hypothesis, not just "try X" |
+| Hard gate fires on normal uncertainty (false positive) | User says "skip think-twice" or "don't use think-twice" — the agent must honor this override for the current turn. If false positives are systemic, the threshold may need raising or signal weights recalibrating. |
+| Auto-dispatch surprises user mid-task | Announce before dispatching: "Stuck-signal threshold reached — dispatching think-twice sub-agent." |
 
 ```bash
 # Example: invoke think-twice when stuck
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill think-twice
 ```
+
+## Acceptance Criteria
+
+These scenarios define correct behavior for this skill:
+
+| Scenario | Expected behavior |
+|----------|------------------|
+| User invokes `/sp-rethink` | Path A: load refs, generate prompt, ask user before dispatching |
+| Agent detects "same fix tried 3+ times" (score = 3) | No invoke — threshold not reached |
+| Agent detects "same error 3+ times" + "circular reasoning" (score = 6) | No invoke — threshold not reached |
+| Agent detects "same fix 3+ times" + "same error 3+ times" (score = 6) | No invoke — threshold not reached |
+| Agent detects "same fix 3+ times" + "circular reasoning" (score = 6) + single hedge | Single hedge does not add to score — no invoke |
+| Agent detects "same fix 3+ times" + "circular reasoning" + hedging pattern on 2 consecutive turns (score = 8) | **Invoke, Path B.** First message = announcement text, then dispatch |
+| Agent detects exhaustion language + approach-change-without-rationale + uncertainty hedging (score = 7) | **Invoke, Path B.** First message = announcement text |
+| User says "skip think-twice" after threshold fires | Honor override for this turn — do not invoke |
+| Third Perplexity call attempted in same conversation | Block — ask user "use Perplexity again?" before proceeding |
 
 ## Companion Skills
 
