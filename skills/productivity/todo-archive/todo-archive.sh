@@ -37,8 +37,13 @@ LINE_THRESHOLD=400 # Soft limit triggering auto-archive
 
 # --- Resolve paths (BEFORE arg parsing to avoid .env clobbering flags) ---
 EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
-# shellcheck source=/dev/null
-source ~/.codex/.env 2>/dev/null || true
+# shellcheck disable=SC2016  # single quotes intentional: vars expand in cb-env's subshell
+if command -v cb-env &>/dev/null; then
+  TODO_FILE_PATH=$(cb-env -- bash -c 'printf "%s" "$TODO_FILE_PATH"')
+else
+  # shellcheck source=/dev/null
+  source ~/.codex/.env 2>/dev/null || true
+fi
 if [[ -n "$EXPLICIT_TODO_FILE_PATH" ]]; then
   TODO_FILE_PATH="$EXPLICIT_TODO_FILE_PATH"
 fi
