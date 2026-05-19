@@ -9,11 +9,12 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-COMMIT_MSG_FILE="${1:-}"
+COMMIT_MSG_FILE="${1:-}"  # ${1:-} avoids set -u error when called without args (e.g., in tests)
 [[ -f "$COMMIT_MSG_FILE" ]] || exit 0
 
 command -v python3 >/dev/null 2>&1 || {
     echo "  ERROR: commit-msg hook requires python3 (not found in PATH)" >&2
+    echo "  Install: brew install python3  OR  sudo apt-get install python3" >&2
     exit 1
 }
 
@@ -59,6 +60,7 @@ try:
     with open(tmp, 'w', encoding='utf-8') as f:
         f.write(text)
     os.replace(tmp, path)
+    # Any stale .commit-msg-tmp from a prior crash is overwritten above and cleaned up by os.replace.
 except Exception as exc:
     try:
         os.unlink(tmp)
@@ -80,11 +82,15 @@ if offending_lines:
     print("  ERROR: commit message contains non-ASCII characters.", file=sys.stderr)
     print("  GitLab pre-receive rejects non-ASCII commit messages.", file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Offending lines:", file=sys.stderr)
+    print("  Offending lines (open the file to see the characters on these lines):", file=sys.stderr)
+    all_lines = text.splitlines()
     for lineno in offending_lines:
-        print("    Line {}".format(lineno), file=sys.stderr)
+        line_text = all_lines[lineno - 1] if lineno - 1 < len(all_lines) else ""
+        bad_chars = sorted({ch for ch in line_text if ord(ch) > 127})
+        codepoints = ", ".join("U+{:04X}".format(ord(c)) for c in bad_chars)
+        print("    Line {}: {}".format(lineno, codepoints), file=sys.stderr)
     print("", file=sys.stderr)
-    print("  Replace the characters above with ASCII equivalents and retry.", file=sys.stderr)
+    print("  Replace these characters with ASCII equivalents and retry.", file=sys.stderr)
     print("", file=sys.stderr)
     sys.exit(1)
 PYEOF
