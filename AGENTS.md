@@ -80,6 +80,7 @@ ALL work MUST happen in this repository (the directory containing this AGENTS.md
 
 ### Quality Gates (sp+-specific)
 - Run `./tools/harsh-review.sh` before any commit; install hooks: `./tools/install-hooks.sh`
+- `commit-msg` hook: auto-converts smart quotes, em dashes, arrows, etc. to ASCII; rejects any remaining non-ASCII. If a commit is rejected, edit the message to use ASCII equivalents.
 - Skills changes: `code-review-battery` + PHR required (pre-commit sentinel enforced)
 - **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation.
 - ❌ NEVER emit "ready to push", "let me commit", "about to merge", "committing", or "pushing to" without first scanning for required-skill triggers
