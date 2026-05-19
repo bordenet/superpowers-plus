@@ -456,9 +456,8 @@ sequenceDiagram
     SA->>SA: print protocol header<br/>(skill check rule, auto-triggers, critical gates)
 
     SA->>SD: findAllSkills(personalDir, superpowersDir)
-    SD->>FS: scan ~/.codex/skills/ (personal)
-    SD->>FS: scan ~/.codex/superpowers/skills/ (obra/superpowers)
-    SD->>SD: deduplicateSkills()<br/>personal wins over superpowers on name collision
+    SD->>FS: scan ~/.codex/skills/ (personal — includes bundled obra skills since v2.6.0)
+    SD->>SD: deduplicateSkills()<br/>personal skills win on name collision
     SD-->>SA: deduplicated skill array
 
     SA->>FS: write ~/.codex/.skill-index.json
@@ -481,14 +480,13 @@ sequenceDiagram
 
 ### Skill Discovery Priority
 
-When the same skill name exists in both directories, **personal skills win**:
+As of v2.6.0, all skills (including the 14 obra/superpowers originals) are installed directly into `~/.codex/skills/`. The separate `~/.codex/superpowers/skills/` tier no longer exists.
 
 ```
-~/.codex/skills/<name>/skill.md    (personal — higher priority)
-~/.codex/superpowers/skills/<name>/skill.md  (obra/superpowers — lower priority)
+~/.codex/skills/<name>/skill.md    (personal — the only lookup tier)
 ```
 
-This is the override mechanism: superpowers-plus installs its skills into `~/.codex/skills/`, so they shadow the obra/superpowers versions.
+Overlay repos (org-specific extensions, etc.) install additional skills into `~/.codex/skills/` alongside the base set; name collisions are resolved by last-installed-wins during `install_skills()`.
 
 ---
 
@@ -518,17 +516,13 @@ flowchart TD
 
     PERSONAL[search ~/.codex/skills/ personal dir]
     PERSONAL -->|found| DONE
-    PERSONAL -->|not found| SUPERPOWERS_DIR
-
-    SUPERPOWERS_DIR[search ~/.codex/superpowers/skills/]
-    SUPERPOWERS_DIR -->|found| DONE
-    SUPERPOWERS_DIR -->|not found| ALIAS
+    PERSONAL -->|not found| ALIAS
 
     ALIAS[resolveAlias: scan all skills for matching alias]
     ALIAS -->|found| DONE
     ALIAS -->|not found| ERROR[error + similarity suggestions<br/>from matchSkillsTfIdf]
 
-    FORCE_SPO2 --> SUPERPOWERS_DIR
+    FORCE_SPO2 --> PERSONAL
     DONE[return skillFile + actualName]
 ```
 
@@ -536,8 +530,8 @@ flowchart TD
 
 | Prefix | Resolves To | Use Case |
 |--------|------------|----------|
-| (none) | personal → superpowers → alias | Normal usage |
-| `superpowers:` | obra/superpowers installed dir | Load unoverridden base skill |
+| (none) | personal → alias | Normal usage |
+| `superpowers:` | personal dir (obra skills bundled there since v2.6.0) | Load a skill by explicit namespace |
 | `spp:` | `SPP_SOURCE_DIR` (superpowers-plus source repo) | Load from source, not installed copy |
 | `spo:` | `SP_OVERLAY_SOURCE_DIR` (overlay repo source) | Load from overlay source |
 | `sp-X` | expands to `superpowers-X`, then normal resolution | Convenience shorthand |

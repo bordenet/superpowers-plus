@@ -11,7 +11,6 @@ This directory contains **templates and tools** for generating AI guidance files
 | `TEMPLATE-full.md` | Full template with placeholders |
 | `TEMPLATE-minimal.md` | Minimal template (~100 lines) |
 | `migrate-agents.sh` | Migrate existing AGENTS.md to Golden Agents format |
-| `EVALUATION-REPORT.md` | Framework testing documentation |
 | `AGENTS.md`, etc. | Example guidance files for this directory (demonstration) |
 
 ## Generate AGENTS.md for other projects
@@ -20,15 +19,6 @@ This directory contains **templates and tools** for generating AI guidance files
 # Using golden-agents (recommended)
 ~/.golden-agents/generate-agents.sh --language=go --type=cli-tools --path=./my-project
 ```
-
-## Other Files
-
-| File | Purpose |
-|------|---------|
-| `migrate-agents.sh` | Migrate existing AGENTS.md to Golden Agents format |
-| `TEMPLATE-full.md` | Full template with placeholders |
-| `TEMPLATE-minimal.md` | Minimal template (~100 lines) |
-| `EVALUATION-REPORT.md` | Framework testing documentation |
 
 ## See Also
 

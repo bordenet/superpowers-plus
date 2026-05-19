@@ -8,8 +8,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## v2.6.0 (2026-05-15)
+
+### Breaking Changes
+
+- **obra/superpowers fold-in** — The installer no longer clones `bordenet/superpowers` as a
+  separate prerequisite. All 14 obra skills are now included directly in the superpowers-plus
+  skills tree. Existing installations will have `~/.codex/superpowers/` removed automatically
+  on the next `./install.sh` run.
+
+### Changed
+
+- Removed `lib/install/superpowers.sh` and all install logic for the obra clone.
+- Skills that previously used `overrides: superpowers/<name>` are now standalone.
+- Five new skills added from obra: `dispatching-parallel-agents`, `executing-plans`,
+  `using-git-worktrees`, `using-superpowers`, `writing-plans`.
+- `install.sh` v2.6.0: remove `SUPERPOWERS_DIR` / `SUPERPOWERS_REPO` variables.
+- `lib/install/migrate.sh`: removed `migrate_todo_skill_overrides()` (used SUPERPOWERS_DIR).
+- `lib/install/deploy.sh`: removed dead `superpowers)` case from `_resolve_upstream_dir()`.
+- `install-augment-superpowers.sh`: removed obra clone step; adds migration to remove legacy clone.
+
 ### Added
 
+- `settings-hooks-spec.json` now ships `skillListingBudgetFraction: 0.05` — with 230+ skills
+  installed the default 1% budget silently drops ~231 skill descriptions from Claude's context,
+  breaking auto-triggering. `install-claude-guardrails.sh` now merges non-hooks scalar settings
+  from the spec using `max(current, spec)` for numeric keys (never lowers a user-raised value)
+  and `setdefault` for other types. Re-running install is safe and idempotent.
 - `code-review-battery`: `/sp-cr-battery` slash command (primary, short, easy to type). `/sp-deepreview` retained as legacy synonym.
 - `code-review-battery`: optional `[min-score]` argument (1.0–10.0, default 7.0) sets a numeric quality threshold. Score formula: `10.0 − (Critical×2.5) − (Important×1.5) − (Minor×0.25) − (durable<50% ? 0.5 : 0)`, floor 0.0. Score below threshold aborts Phase 6 (no sentinel written). `tools/run-battery.sh` gains `--min-score N` flag; sentinel always records the threshold as field 5 (`min-score=N`).
 - `link-verification` golden regression file for compression tests
@@ -25,6 +50,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`spc:` / `spc-` skill-loader prefix** removed from the public loader (`superpowers-augment.js`) and `docs/DESIGN.md`. It was a silent alias of `spo:` / `spo-` and carried organization-specific branding that did not belong in the public artifact. The generic overlay route (`spo:` + `SP_OVERLAY_SOURCE_DIR`) is unchanged. **Migration:** in `use-skill <name>` call sites, `s/spc:/spo:/g` and `s/spc-/spo-/g`. Overlay repos wanting custom branding can wrap the loader in their own script that rewrites prefixes before invoking `use-skill`. **Unaffected:** the Augment slash-menu `/spc-*` trigger-extraction subsystem (`lib/install/deploy.sh`, `docs/ARCHITECTURE.md`, ADR-002) is a separate concept — it picks slash-command directory names from `triggers:` frontmatter and has nothing to do with loader namespace resolution.
 
 ### Fixed
+
+- **Test assertion fix (`tests/install-test.bats`):** The success-path test previously
+  asserted that `~/.codex/superpowers/skills` *was created* — the opposite of the intended
+  behavior. Corrected to assert that `~/.codex/superpowers` is *absent* after install.
+  All prior green CI runs on this test were validating the wrong condition.
+- **Migration function placement:** `_migrate_remove_obra_clone()` moved from `install.sh`
+  to `lib/install/migrate.sh` and called via `post_install_migrations()` — consistent with
+  all other migration functions.
+- **Migration observability:** Pre-deletion log calls changed from `log_info` to `log_warn`
+  so permanent directory removal is visible in warning-filtered output.
+- **Doctor/uninstall stale obra references:** Removed `MANAGED_OBRA_DIR` from
+  `tools/doctor-checks.sh` and `tools/doctor-modules/checkout-checks.sh`; updated
+  `uninstall.sh --purge` help text to reflect v2.6.0 state.
+- **`install-augment-superpowers.sh` safety:** Added `${var:?}` guard to rm-rf path and
+  added cross-reference comment to paired function in `migrate.sh`.
+
+### Tests Added
+
+- 7 new BATS tests in `tests/claude-guardrails-test.bats`: 3 scalar-merge unit tests,
+  1 settings-spec assertion, 3 `_migrate_remove_obra_clone()` migration tests (directory,
+  no-op, symlink-only). Migration tests now source the real function from `migrate.sh`.
+- Known gap: `install_skills()` in `install.sh` lacks BATS coverage (it's an `install.sh`
+  function; `tests/install-test.bats` covers `install-augment-superpowers.sh`). A dedicated
+  `tests/install-main-test.bats` is the right fix; tracked as a follow-up.
 
 - **`resolveSkillNamespace` early-error return shape:** the two early-error returns (`SPP_SOURCE_DIR not set`, `SP_OVERLAY_SOURCE_DIR not set`) now include `forceSpp: false, forceSpo: false` to match the documented return contract. Not a live bug (the caller checks `.error` first), but tightens the JSDoc to return-value correspondence.
 - **Dormant-skill audit (2026-04-17):** repaired `compat.sh` `--help` leak in sourced-mode scripts (`todo-crud`, `skill-cost-analyzer`, `test-content-coherence`); corrected stale `sp-deepreview` references in `sp-bughunt` to `code-review-battery`; added `--help` handling to `loose-ends`, `run-battery`, `backfill-composition`, `wiki-read`, `wiki-write`, `parse-frontmatter`, `test-content-coherence`; restored executable bit on `test_frontmatter_parsers.sh`; removed deprecated `~/.claude/skills/` path from `update-superpowers`.
