@@ -57,7 +57,7 @@ done < <(
   grep -rn 'source ~/.codex/.env' "$INSTALLED_DIR" \
     --include="*.md" --include="*.sh" 2>/dev/null |
   grep -v '/_archive/' |
-  grep -Ev ':[0-9]+:[[:space:]]' |
+  grep -Ev ':[0-9]+:[[:space:]]' |  # else-branch fallbacks are always indented >= 1 space
   grep -Ev ':[0-9]+:#'
 )
 if [[ ${#_bare_env_hits[@]} -gt 0 ]]; then

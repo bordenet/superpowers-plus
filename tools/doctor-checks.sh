@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-checks.sh — Run all 29 superpowers-doctor diagnostic checks
+# doctor-checks.sh — Run all 30 superpowers-doctor diagnostic checks
 #
 # Usage:
 #   ./doctor-checks.sh                # Run all checks (report only)
@@ -350,7 +350,7 @@ _doctor_trigger_checks
 _doctor_todo_checks
 _doctor_integration_checks  # Check 26 runs before Check 23 (inside module)
 _doctor_agent_checks        # Check 27: agent content drift (~/.augment/agents/ vs source)
-_doctor_guardrails_checks   # Check 29: Augment-surface SHA256 drift vs guardrails baseline
+_doctor_guardrails_checks   # Checks 29-30: guardrails baseline drift + bare-env advisory
 
 # Collect mcp-checks (Check 28) — join background job, merge output + counters
 wait "$_mcp_pid"; _mcp_exit=$?

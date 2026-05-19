@@ -39,7 +39,7 @@ edits use `tools/wiki-write.sh` directly. Wrong skill? Links → `link-verificat
 if command -v cb-env &>/dev/null; then
   WIKI_PLATFORM=$(cb-env -- bash -c 'printf "%s" "$WIKI_PLATFORM"')
 else
-  source ~/.codex/.env 2>/dev/null
+  source ~/.codex/.env 2>/dev/null || true
 fi
 : "${WIKI_PLATFORM:?set WIKI_PLATFORM in ~/.codex/.env (e.g. outline)}"
 cat "$HOME/.codex/superpowers-plus/skills/wiki/_adapters/${WIKI_PLATFORM}.md"
