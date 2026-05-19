@@ -51,7 +51,7 @@ EXPLICIT_TODO_FILE_PATH="${TODO_FILE_PATH:-}"
 if command -v cb-env &>/dev/null; then
   TODO_FILE_PATH=$(cb-env -- bash -c 'printf "%s" "$TODO_FILE_PATH"')
 else
-  source ~/.codex/.env 2>/dev/null
+  source ~/.codex/.env 2>/dev/null || true
 fi
 TODO_FILE_PATH="${EXPLICIT_TODO_FILE_PATH:-${TODO_FILE_PATH:-$HOME/.codex/TODO.md}}"
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
