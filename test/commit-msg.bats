@@ -43,6 +43,8 @@ setup() {
     printf 'feat: range 1\xe2\x80\x932 supported\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
+    [ "$status" -eq 0 ]
 }
 
 @test "commit-msg: converts smart double quotes to ASCII and exits 0" {
@@ -50,17 +52,23 @@ setup() {
     printf 'docs: use \xe2\x80\x9csmart\xe2\x80\x9d quotes\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
+    [ "$status" -eq 0 ]
 }
 
 @test "commit-msg: converts right arrow to ASCII and exits 0" {
     printf 'refactor: A \xe2\x86\x92 B migration\n' > "$MSG"
     run bash "$HOOK" "$MSG"
     [ "$status" -eq 0 ]
+    run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
+    [ "$status" -eq 0 ]
 }
 
 @test "commit-msg: converts bullet to hyphen and exits 0" {
     printf 'chore: \xe2\x80\xa2 item one\n' > "$MSG"
     run bash "$HOOK" "$MSG"
+    [ "$status" -eq 0 ]
+    run python3 -c "import sys; s=open(sys.argv[1]).read(); sys.exit(0 if all(ord(c)<128 for c in s) else 1)" "$MSG"
     [ "$status" -eq 0 ]
 }
 
@@ -71,19 +79,19 @@ setup() {
 @test "commit-msg: rejects non-convertible non-ASCII (e-acute U+00E9)" {
     # U+00E9 = 0xC3 0xA9 in UTF-8; not in SUBSTITUTIONS table
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
-    run bash "$HOOK" "$MSG" 2>&1
+    run bash "$HOOK" "$MSG"
     [ "$status" -ne 0 ]
 }
 
 @test "commit-msg: rejection output contains 'non-ASCII'" {
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
-    run bash "$HOOK" "$MSG" 2>&1
+    run bash "$HOOK" "$MSG"
     [[ "$output" == *"non-ASCII"* ]]
 }
 
 @test "commit-msg: rejection output contains offending line number" {
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
-    run bash "$HOOK" "$MSG" 2>&1
+    run bash "$HOOK" "$MSG"
     [[ "$output" == *"Line 1"* ]]
 }
 

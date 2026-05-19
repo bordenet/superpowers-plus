@@ -9,7 +9,7 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-COMMIT_MSG_FILE="$1"
+COMMIT_MSG_FILE="${1:-}"
 [[ -f "$COMMIT_MSG_FILE" ]] || exit 0
 
 command -v python3 >/dev/null 2>&1 || {

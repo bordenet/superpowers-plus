@@ -20,8 +20,9 @@ USAGE
   ./tools/install-hooks.sh
 
 DESCRIPTION
-  Installs the repo's pre-commit and pre-push hooks into .git/hooks/.
-  Backs up any existing hook to a matching .bak file before replacement.
+  Installs the repo's pre-commit, pre-push, and commit-msg hooks into .git/hooks/.
+  Backs up any existing hook to a matching .bak file before replacement (first install only;
+  subsequent installs overwrite the hook without updating the .bak).
 
   To bypass: git commit --no-verify
 HELP
