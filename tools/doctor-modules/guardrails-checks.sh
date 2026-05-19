@@ -57,8 +57,8 @@ done < <(
   grep -rn 'source ~/.codex/.env' "$INSTALLED_DIR" \
     --include="*.md" --include="*.sh" 2>/dev/null |
   grep -v '/_archive/' |
-  grep -Pv ':\d+:[ \t]' |
-  grep -Pv ':\d+:#'
+  grep -Ev ':[0-9]+:[[:space:]]' |
+  grep -Ev ':[0-9]+:#'
 )
 if [[ ${#_bare_env_hits[@]} -gt 0 ]]; then
   echo "🟡 ADVISORY (Check 30): ${#_bare_env_hits[@]} bare 'source ~/.codex/.env' call(s) in installed skills"
