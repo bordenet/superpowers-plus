@@ -63,10 +63,10 @@ echo ""
 
 # Test 1: Superpowers framework
 echo "--- Superpowers Framework ---"
-if [[ -d "$HOME/.codex/superpowers" ]]; then
+if [[ -d "$HOME/.codex/superpowers-plus" ]]; then
     log_pass "Superpowers framework installed"
 else
-    log_fail "Superpowers framework not found at ~/.codex/superpowers/"
+    log_fail "Superpowers framework not found at ~/.codex/superpowers-plus"
     errors=$((errors + 1))
 fi
 
@@ -80,16 +80,14 @@ echo ""
 
 # Test 2: Perplexity skill (check every modern deployment target; any one passes)
 echo "--- Perplexity Research Skill ---"
-# Order matters: first hit wins the display. Legacy path last so modern
-# installs are reported first. The `sp-research` name is what install.sh
-# produces when deploying to ~/.agents/skills/ (augment_menu export).
+# Order matters: first hit wins the display. The `sp-research` name is what
+# install.sh produces when deploying to ~/.agents/skills/ (augment_menu export).
 SKILL_CANDIDATES=(
     "$HOME/.agents/skills/sp-research/SKILL.md"
     "$HOME/.codex/skills/perplexity-research/skill.md"
     "$HOME/.codex/skills/perplexity-research/SKILL.md"
     "$HOME/.claude/skills/perplexity-research/skill.md"
     "$HOME/.claude/skills/perplexity-research/SKILL.md"
-    "$HOME/.codex/superpowers/skills/perplexity-research/SKILL.md"
 )
 found_skill_path=""
 for candidate in "${SKILL_CANDIDATES[@]}"; do
