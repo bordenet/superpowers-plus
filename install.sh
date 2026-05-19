@@ -64,7 +64,7 @@ fi
 # --- Early Prerequisite Check ---
 # Fail fast with actionable messages before we get deep into the installer.
 _missing_cmds=""
-for _cmd in git node; do
+for _cmd in git node python3; do
     if ! command -v "$_cmd" &>/dev/null; then
         _missing_cmds="$_missing_cmds $_cmd"
     fi
@@ -76,12 +76,14 @@ if [[ -n "$_missing_cmds" ]]; then
     echo "╠══════════════════════════════════════════════════════════════════╣" >&2
     if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "║  macOS fix:                                                    ║" >&2
-        [[ "$_missing_cmds" == *git* ]]  && echo "║    xcode-select --install   (includes git)                      ║" >&2
-        [[ "$_missing_cmds" == *node* ]] && echo "║    brew install node        (or: https://nodejs.org)             ║" >&2
+        [[ "$_missing_cmds" == *git* ]]     && echo "║    xcode-select --install       (includes git)                  ║" >&2
+        [[ "$_missing_cmds" == *node* ]]    && echo "║    brew install node            (or: https://nodejs.org)         ║" >&2
+        [[ "$_missing_cmds" == *python3* ]] && echo "║    brew install python3                                          ║" >&2
     else
         echo "║  Linux fix:                                                    ║" >&2
-        [[ "$_missing_cmds" == *git* ]]  && echo "║    sudo apt install git     (or yum/dnf/apk)                    ║" >&2
-        [[ "$_missing_cmds" == *node* ]] && echo "║    sudo apt install nodejs  (or: https://nodejs.org)             ║" >&2
+        [[ "$_missing_cmds" == *git* ]]     && echo "║    sudo apt install git         (or yum/dnf/apk)                 ║" >&2
+        [[ "$_missing_cmds" == *node* ]]    && echo "║    sudo apt install nodejs      (or: https://nodejs.org)         ║" >&2
+        [[ "$_missing_cmds" == *python3* ]] && echo "║    sudo apt install python3     (or yum/dnf/apk)                 ║" >&2
     fi
     echo "╚══════════════════════════════════════════════════════════════════╝" >&2
     echo "" >&2
