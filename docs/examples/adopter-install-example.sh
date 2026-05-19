@@ -161,7 +161,7 @@ verify_installation() {
     local errors=0
     
     [[ -f "$HOME/.codex/superpowers-augment/superpowers-augment.js" ]] || { warn "Adapter missing"; ((errors++)); }
-    [[ -d "$HOME/.codex/superpowers/skills" ]] || { warn "Superpowers skills missing"; ((errors++)); }
+    [[ -d "$HOME/.codex/skills" ]] || { warn "Superpowers skills missing"; ((errors++)); }
     
     if [[ $errors -gt 0 ]]; then
         fail "Installation verification failed ($errors errors)"
