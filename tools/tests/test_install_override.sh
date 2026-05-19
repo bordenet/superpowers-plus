@@ -7,7 +7,7 @@ set -euo pipefail
 # the installer stages upstream companion files first, then overlays the
 # override's skill.md on top.
 
-PASS=0; FAIL=0; SKIP=0
+PASS=0; FAIL=0
 fail() { echo "FAIL: $*" >&2; ((FAIL++)) || true; }
 pass() { echo "  ok: $1"; ((PASS++)) || true; }
 
@@ -77,17 +77,16 @@ test_non_override_install() {
     fi
 }
 
-# ── Test 3: Override content check (skipped — obra upstream removed in v2.6.0) ──
-test_override_content_wins() {
-    ((SKIP++)) || true
-    echo "skip: test-driven-development — obra upstream path removed in v2.6.0; skills are now standalone"
-}
+# ── Test 3 retired v2.6.0 ──
+# The "override content wins over upstream" invariant was tested by comparing
+# installed skill.md against the obra clone tier (~/.codex/superpowers/skills/).
+# That tier was removed in v2.6.0; skills are now standalone. The invariant no
+# longer applies. See CHANGELOG.md for the v2.6.0 migration notes.
 
 # ── Run tests ──
 test_override_companion_preservation
 test_non_override_install
-test_override_content_wins
 
 echo ""
-echo "── Results: $PASS passed, $FAIL failed, $SKIP skipped ──"
+echo "── Results: $PASS passed, $FAIL failed ──"
 [[ $FAIL -eq 0 ]]

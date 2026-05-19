@@ -111,6 +111,10 @@ else
     log_fail "Skill not installed at any known path:"
     for candidate in "${SKILL_CANDIDATES[@]}"; do echo "        $candidate"; done
     echo "        Fix: run  bash install.sh  from the superpowers-plus repo root"
+    if [[ -d "$HOME/.codex/superpowers/skills" ]]; then
+        log_warn "Found legacy v2.5 path ~/.codex/superpowers/skills -- run install.sh to migrate to v2.6+"
+        warnings=$((warnings + 1))
+    fi
     errors=$((errors + 1))
 fi
 
