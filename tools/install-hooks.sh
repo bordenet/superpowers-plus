@@ -53,6 +53,8 @@ echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
 if [[ -f "$HOOKS_DIR/pre-commit" ]] && [[ ! -f "$HOOKS_DIR/pre-commit.bak" ]]; then
     echo "⚠️  Existing pre-commit hook found. Backing up to pre-commit.bak"
     mv "$HOOKS_DIR/pre-commit" "$HOOKS_DIR/pre-commit.bak"
+elif [[ -f "$HOOKS_DIR/pre-commit" ]] && ! cmp -s "$HOOKS_DIR/pre-commit" "$SCRIPT_DIR/pre-commit"; then
+    echo "⚠️  Overwriting modified pre-commit hook (existing .bak retained from first install)"
 fi
 
 cp "$SCRIPT_DIR/pre-commit" "$HOOKS_DIR/pre-commit"
@@ -63,6 +65,8 @@ echo "✓ Installed pre-commit hook"
 if [[ -f "$HOOKS_DIR/pre-push" ]] && [[ ! -f "$HOOKS_DIR/pre-push.bak" ]]; then
     echo "⚠️  Existing pre-push hook found. Backing up to pre-push.bak"
     mv "$HOOKS_DIR/pre-push" "$HOOKS_DIR/pre-push.bak"
+elif [[ -f "$HOOKS_DIR/pre-push" ]] && ! cmp -s "$HOOKS_DIR/pre-push" "$SCRIPT_DIR/pre-push"; then
+    echo "⚠️  Overwriting modified pre-push hook (existing .bak retained from first install)"
 fi
 
 cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
@@ -73,6 +77,8 @@ echo "✓ Installed pre-push hook"
 if [[ -f "$HOOKS_DIR/commit-msg" ]] && [[ ! -f "$HOOKS_DIR/commit-msg.bak" ]]; then
     echo "⚠️  Existing commit-msg hook found. Backing up to commit-msg.bak"
     mv "$HOOKS_DIR/commit-msg" "$HOOKS_DIR/commit-msg.bak"
+elif [[ -f "$HOOKS_DIR/commit-msg" ]] && ! cmp -s "$HOOKS_DIR/commit-msg" "$SCRIPT_DIR/commit-msg"; then
+    echo "⚠️  Overwriting modified commit-msg hook (existing .bak retained from first install)"
 fi
 
 cp "$SCRIPT_DIR/commit-msg" "$HOOKS_DIR/commit-msg"
@@ -85,6 +91,7 @@ echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. ext
 echo "                JSON validity, IP scan, review token"
 echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
 echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
+echo "                (requires python3 in PATH — install: brew install python3)"
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
