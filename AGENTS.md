@@ -79,10 +79,11 @@ node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
 ALL work MUST happen in this repository (the directory containing this AGENTS.md). Never edit installed copies (`~/.codex/`). If unsure of the path, run `git rev-parse --show-toplevel`.
 
 ### Quality Gates (sp+-specific)
-- Run `./tools/harsh-review.sh` before any commit; install hooks: `./tools/install-hooks.sh`
+- **Full test surface**: `./tools/test-all.sh` runs shellcheck + harsh-review + bats + node test/*. This is the single entry point — the framework block above lists `bats test/` for parity with golden-agents conventions, but the actual suite is larger. Use `--fast` for a node+bats-only inner loop; CI must run the full suite.
+- Run `./tools/harsh-review.sh` (subset of `test-all.sh`) before any commit; install hooks: `./tools/install-hooks.sh`
 - `commit-msg` hook: auto-converts smart quotes, em dashes, arrows, etc. to ASCII; rejects any remaining non-ASCII. If a commit is rejected, edit the message to use ASCII equivalents. Requires `python3` in PATH (hook exits 1 with an explicit error if missing).
-- Skills changes: `code-review-battery` + PHR required (pre-commit sentinel enforced)
-- **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation.
+- Skills changes: `code-review-battery` + PHR required (pre-commit sentinel enforced). The PHR-trigger file list comes from `tools/md-files-changed.sh` — the single source of truth for the regex and exclusions.
+- **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--staged]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation. With `--staged`, the sentinel records `tree:<sha>` and the post-commit hook promotes it to the new HEAD SHA, eliminating the stage→battery→commit→battery double-run.
 - ❌ NEVER emit "ready to push", "let me commit", "about to merge", "committing", or "pushing to" without first scanning for required-skill triggers
 
 ### TODO Tools
