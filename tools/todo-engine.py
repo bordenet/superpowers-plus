@@ -23,6 +23,7 @@ import datetime
 import json
 import os
 import re
+import tempfile
 import shutil
 import subprocess
 import sys
@@ -588,12 +589,31 @@ def write_file(path: str, content: str) -> None:
     content = _normalize_whitespace(content)
     _check_annihilation(content, path)   # Layer 5: shadow-based wipeout detection
     _unprotect_file(path)
+    tmp = None  # initialized before try so except can guard os.remove if mkstemp fails
     try:
-        with open(path, "w") as f:
+        target_dir = os.path.dirname(os.path.abspath(path))
+        tmp_fd, tmp = tempfile.mkstemp(dir=target_dir, prefix=".todo-write.tmp.")
+        with os.fdopen(tmp_fd, "w") as f:
             f.write(content)
-    finally:
-        _protect_file(path)
-    _update_shadow(content)        # Keep shadow in sync for future comparisons
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        if tmp is not None:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        try:
+            _protect_file(path)
+        except RuntimeError as _pexc:
+            print(f"[todo-engine] WARNING: could not re-protect after failed write: {_pexc}", file=sys.stderr)
+        raise
+    # Narrow the mkstemp 0600 window before _protect_file adds the immutable flag.
+    os.chmod(path, FILE_MODE_PROTECTED)
+    _update_shadow(content)   # update shadow before protect; stale shadow on protect
+                              # failure would cause false wipeout detection next run
+    _protect_file(path)       # write succeeded — protect is mandatory, surface errors
 
 
 def find_section_end(content: str, section_re: re.Pattern) -> int:

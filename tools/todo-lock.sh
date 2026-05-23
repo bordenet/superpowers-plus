@@ -153,10 +153,13 @@ cmd_acquire() {
   while true; do
     # Try atomic mkdir
     if mkdir "$LOCK_DIR" 2>/dev/null; then
-      # Trap: if killed between mkdir and _write_meta, clean up orphaned lock dir
+      # Trap EXIT in addition to INT/TERM: if _write_meta fails under set -euo pipefail
+      # bash exits before LOCK_ACQUIRED=true is printed, orphaning the lock dir.
+      # EXIT fires on both error-exit and signal-induced exit; _force_remove is idempotent.
+      trap '_force_remove' EXIT
       trap '_force_remove; exit 130' INT TERM
       _write_meta
-      trap - INT TERM  # clear trap after metadata is written
+      trap - INT TERM EXIT  # clear all traps after metadata is written
       _log "ACQUIRED lock (host=${HOSTNAME_SHORT} pid=${MY_PID} ttl=${ttl}s)"
       echo "LOCK_ACQUIRED=true"
       echo "LOCK_DIR=$LOCK_DIR"

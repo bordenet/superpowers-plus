@@ -106,6 +106,16 @@ setup() {
     [[ "$output" == *"UTF-8"* ]]
 }
 
+@test "commit-msg: non-UTF-8 emits exactly one ERROR block (no double diagnostic)" {
+    # Regression: exit code 2 from python (non-UTF-8) used to also trip the
+    # shell wildcard branch and print a second misleading "substitution step failed".
+    printf 'fix: bad \xff\xfe encoding\n' > "$MSG"
+    run bash "$HOOK" "$MSG"
+    [ "$status" -ne 0 ]
+    error_count=$(echo "$output" | grep -c 'ERROR:')
+    [ "$error_count" -eq 1 ]
+}
+
 @test "commit-msg: rejection output contains 'non-ASCII'" {
     printf 'fix: caf\xc3\xa9 endpoint\n' > "$MSG"
     run bash "$HOOK" "$MSG"
