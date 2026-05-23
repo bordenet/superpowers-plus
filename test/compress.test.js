@@ -136,6 +136,7 @@ const skills = [
 ];
 
 const updateMode = process.argv.includes('--update');
+const driftedSkills = [];
 
 for (const skill of skills) {
     const goldenPath = path.join(goldenDir, `${skill}.golden.txt`);
@@ -161,7 +162,23 @@ for (const skill of skills) {
     const golden = fs.readFileSync(goldenPath, 'utf8');
     // Compare content after the "# Skill: name" header (golden includes it, compressed doesn't)
     const goldenBody = golden.replace(/^# Skill: [^\n]+\n\n/, '');
+    const failedBefore = fail;
     eq(compressed, goldenBody.trim(), `golden regression: ${skill}`);
+    if (fail > failedBefore) driftedSkills.push(skill);
+}
+
+if (driftedSkills.length > 0 && !updateMode) {
+    console.log('');
+    console.log('────────────────────────────────────────────────────────────');
+    console.log('  GOLDEN FILE DRIFT detected for:');
+    for (const s of driftedSkills) console.log(`    - ${s}`);
+    console.log('');
+    console.log('  If the skill .md change was intentional, regenerate goldens:');
+    console.log('    node test/compress.test.js --update');
+    console.log('  then re-run:');
+    console.log('    node test/compress.test.js');
+    console.log('  and inspect the diff in test/golden-compression/ before committing.');
+    console.log('────────────────────────────────────────────────────────────');
 }
 
 function findSkillFile(name) {

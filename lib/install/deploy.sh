@@ -302,6 +302,12 @@ prune_stale_managed_skills() {
     if [[ -f "$manifest" ]]; then
         while IFS= read -r stale_skill; do
             [[ -z "$stale_skill" ]] && continue
+            # Reject entries that contain path separators or start with '.' —
+            # a corrupt/malicious manifest could otherwise traverse outside target_dir.
+            if [[ "$stale_skill" == */* || "$stale_skill" == .* ]]; then
+                log_warn "Skipping unsafe manifest entry: '$stale_skill'"
+                continue
+            fi
             if [[ -z "${current_skill_map[$stale_skill]:-}" ]] && [[ -d "$target_dir/$stale_skill" ]]; then
                 rm -rf "${target_dir:?}/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
                 log_verbose "Removed stale skill: $stale_skill"

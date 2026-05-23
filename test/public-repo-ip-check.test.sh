@@ -17,7 +17,7 @@ new_repo() {
     local dir="$1"
     mkdir -p "$dir/tools"
     local tool
-    for tool in install-hooks.sh pre-commit pre-push commit-msg public-repo-ip-check.sh; do
+    for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh; do
         cp "$SCRIPT_DIR/tools/$tool" "$dir/tools/$tool"
         chmod +x "$dir/tools/$tool"
     done
@@ -156,7 +156,7 @@ REQUIRE_CODE_REVIEW_SENTINEL=false
 EOF
 (cd "$repo" && bash tools/install-hooks.sh >/dev/null 2>&1)
 # Verify all expected hooks were installed
-for hook in pre-commit pre-push commit-msg; do
+for hook in pre-commit pre-push commit-msg post-commit; do
     if [[ -f "$hooks_dir/$hook" ]] && [[ -x "$hooks_dir/$hook" ]]; then
         pass "install-hooks.sh installed $hook"
     else
