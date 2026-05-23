@@ -63,6 +63,8 @@ fi
 
 # --- Early Prerequisite Check ---
 # Fail fast with actionable messages before we get deep into the installer.
+# python3 is required by todo-crud.sh, todo-engine.py, harsh-review.sh, the
+# commit-msg hook, and several doctor/hook helpers — not optional.
 _missing_cmds=""
 for _cmd in git node python3; do
     if ! command -v "$_cmd" &>/dev/null; then

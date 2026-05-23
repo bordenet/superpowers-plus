@@ -190,9 +190,22 @@ echo ""
 echo "  Next step: git push"
 echo ""
 # Only emit the PHR reminder when the diff actually touches skill/design .md files.
-_BASE=$(git merge-base HEAD main 2>/dev/null || git rev-parse HEAD^ 2>/dev/null || true)
-if [[ -n "$_BASE" ]] && git diff "$_BASE"..HEAD --name-only 2>/dev/null \
-        | grep -qE '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$'; then
+# Fallback chain: local main -> origin/main -> master -> origin/master -> HEAD^.
+# README.md and CHANGELOG.md match the main regex but are filtered out post-grep.
+_BASE=$(git merge-base HEAD main 2>/dev/null \
+    || git merge-base HEAD origin/main 2>/dev/null \
+    || git merge-base HEAD master 2>/dev/null \
+    || git merge-base HEAD origin/master 2>/dev/null \
+    || git rev-parse HEAD^ 2>/dev/null \
+    || true)
+if [[ -z "$_BASE" ]]; then
+    # Unresolvable base (orphan/root commit); over-warn rather than under-warn.
+    echo "  ⚠  PHR REMINDER: Could not determine merge base (no main/master ancestor)."
+    echo "     Review the full branch diff manually and confirm /sp-phr was completed if any .md files changed."
+    echo ""
+elif git diff "$_BASE"..HEAD --name-only 2>/dev/null \
+        | grep -E '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$' \
+        | grep -qvE '^(README|CHANGELOG)\.md$'; then
     echo "  ⚠  PHR REQUIRED: This diff touches skills/ or docs/ .md files."
     echo "     Confirm /sp-phr was completed before pushing."
     echo "     Battery linting != progressive harsh review."
