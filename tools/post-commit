@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Hook: post-commit
+# PURPOSE: Reduce the stage→battery→commit→battery double-run.
+#
+# Two paths:
+#
+#   1. Staged-mode sentinel (`v1|tree:<sha>|...`)
+#      Promote the sentinel to `v1|<new-HEAD-sha>|...` if the new commit's
+#      tree matches the recorded tree SHA. This is the common case: caller
+#      ran `tools/run-battery.sh --staged` before `git commit`.
+#
+#   2. HEAD-mode sentinel (`v1|<old-sha>|...`)
+#      Promote the sentinel to the new HEAD when the diff vs the recorded
+#      SHA is empty (amend-only change, no tree delta).
+#
+# Anything else: leave the sentinel alone. pre-push will refuse the push and
+# the caller will re-run the battery — the safe default.
+#
+# INSTALL: ./tools/install-hooks.sh (this hook is installed alongside the
+#          existing pre-commit/pre-push/commit-msg hooks)
+# BYPASS:  git commit --no-verify ... has no effect on this hook (post-commit
+#          runs after the commit succeeds; bypassing pre-commit does not skip
+#          this). Set SP_SKIP_POST_COMMIT=1 if you need to disable it.
+# -----------------------------------------------------------------------------
+set -uo pipefail
+
+[[ "${SP_SKIP_POST_COMMIT:-0}" == "1" ]] && exit 0
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
+
+[[ -f "$SENTINEL_FILE" ]] || exit 0
+
+sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+sentinel_verdict=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+sentinel_score=$(cut -d'|' -f5 < "$SENTINEL_FILE" 2>/dev/null || echo "")
+
+[[ "$sentinel_ver" == "v1" ]] || exit 0
+[[ "$sentinel_verdict" == "PASS" || "$sentinel_verdict" == "PASS_WITH_NITS" ]] || exit 0
+
+new_head=$(git rev-parse HEAD 2>/dev/null || echo "")
+new_tree=$(git rev-parse "HEAD^{tree}" 2>/dev/null || echo "")
+[[ -n "$new_head" && -n "$new_tree" ]] || exit 0
+
+promote() {
+    local line="v1|${new_head}|${sentinel_verdict}|${sentinel_ts}"
+    [[ -n "$sentinel_score" ]] && line="${line}|${sentinel_score}"
+    echo "$line" > "$SENTINEL_FILE"
+    echo "✓ post-commit: sentinel promoted to ${new_head:0:8} (was ${1})"
+}
+
+case "$sentinel_sha" in
+    tree:*)
+        recorded_tree="${sentinel_sha#tree:}"
+        if [[ "$recorded_tree" == "$new_tree" ]]; then
+            promote "tree:${recorded_tree:0:8}"
+        else
+            echo "⚠ post-commit: staged tree (${recorded_tree:0:8}) does not match new HEAD tree (${new_tree:0:8})."
+            echo "  Sentinel left as-is; re-run tools/run-battery.sh before pushing."
+        fi
+        ;;
+    *)
+        # HEAD-mode sentinel. Promote only when the new HEAD has zero diff
+        # against the recorded SHA (amend-without-changes / cherry-pick-same).
+        if git rev-parse --verify "$sentinel_sha" >/dev/null 2>&1; then
+            if git diff --quiet "$sentinel_sha" HEAD 2>/dev/null; then
+                promote "${sentinel_sha:0:8}"
+            fi
+        fi
+        ;;
+esac
+
+exit 0
