@@ -54,7 +54,9 @@ SYNOPSIS
 
 OPTIONS
     --branch <name>   Branch to update (default: current branch)
-    --force           Reset local changes before updating (git reset --hard)
+    --force           Reset local changes and untracked files before updating
+                      (git reset --hard + git clean -fd). DESTRUCTIVE.
+                      Required when local branch has diverged from remote.
     --verbose, -v     Show detailed progress
     --help, -h        Show this help
 
@@ -62,6 +64,7 @@ EXAMPLES
     sp-update                       # Update current branch
     sp-update --branch staging      # Switch to and update staging
     sp-update --branch dev --force  # Force-update dev, discarding local changes
+    sp-update --force               # Required if local branch has diverged from remote
 EOF
     exit 0
 }
@@ -284,10 +287,14 @@ main() {
             exit 1
         fi
     else
-        # Local has diverged from remote (ahead and/or behind) — force reset to latest
-        log_warn "Local branch has diverged from $remote/$target_branch — forcing reset to latest"
-        git reset --hard "$remote/$target_branch" --quiet
-        git clean -fd --quiet
+        # Local has diverged from remote (ahead and/or behind).
+        # FORCE=true cannot reach here: the early force-reset above makes HEAD an
+        # ancestor of the remote ref, so merge-base --is-ancestor returns true above.
+        log_error "Local branch has diverged from $remote/$target_branch."
+        log_error "(remote force-push or local commits not on remote)"
+        log_info "Re-run with --force to reset to remote state."
+        log_info "(Automation callers that previously relied on auto-reset must pass --force explicitly.)"
+        exit 1
     fi
 
     local after_sha
