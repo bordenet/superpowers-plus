@@ -18,7 +18,7 @@
     "tools/dangerous-pattern-scan.sh": "dccbd5c8fb50d27b190ab50e3d5960930133bf1121331f2d702703ec3368d032",
     "tools/run-battery.sh": "50f06e940f93a716b6b119d21c9d4cfc2086bfaed5e01bcaa151bef4b320fd6f",
     "tools/sp-doctor.sh": "aac3ed8bfbe5f5367b76bc2e825de0b79259d7e817c28624cd58cb550641d2f5",
-    "lib/install/deploy.sh": "a2e99cb01bb833c01e8046d848e75d6a4c514411df4fb9de35bf4a25bfccef23",
+    "lib/install/deploy.sh": "2ec9eeea8460e8efb8fd09a922ee594ffce8f19a2fe721ac066fe163cb929f6e",
     "lib/install/deps.sh": "1422b09a5e55d4c5e191d793c77494e2032d7a0ec34916e91a18f20f7fd7f85a",
     "lib/install/logging.sh": "4553cec5e2dd35d5ed22d0c1c9879e4a8913f5ed35b56f1738438c7a6af131d2",
     "lib/install/migrate.sh": "4a83d8879528e187ddaac6a09b6c3ec1a8e226ceb9eb2312edff65210e1badd3",
