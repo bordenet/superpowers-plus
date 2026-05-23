@@ -14,7 +14,7 @@ COMMIT_MSG_FILE="${1:-}"  # ${1:-} avoids set -u error when called without args 
 
 command -v python3 >/dev/null 2>&1 || {
     echo "  ERROR: commit-msg hook requires python3 (not found in PATH)" >&2
-    echo "  Install: brew install python3  OR  sudo apt-get install python3" >&2
+    echo "  Install: brew install python3  OR  sudo apt install python3  (or yum/dnf/apk)" >&2
     exit 1
 }
 
@@ -98,5 +98,6 @@ PYEOF
 case "$_python_exit" in
     0) exit 0 ;;
     1) exit 1 ;;  # non-ASCII rejected; Python printed the diagnostic
+    2) exit 1 ;;  # non-UTF-8 / I/O error; Python printed the diagnostic
     *) echo "  ERROR: Unicode substitution step failed (exit ${_python_exit})" >&2; exit 1 ;;
 esac

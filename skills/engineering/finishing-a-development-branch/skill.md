@@ -65,14 +65,19 @@ echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
 ```
 
-Then, **regardless of sentinel state**, enumerate which `.md` files were changed:
+Then, **regardless of sentinel state**, enumerate which `.md` files were changed via the canonical helper:
 
 ```bash
-BASE=$(git merge-base HEAD main 2>/dev/null || git rev-parse HEAD^)
-git diff "$BASE"..HEAD --name-only | grep -E '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$' || echo "NO_MD_FILES_CHANGED"
+# Exit 0 → files listed on stdout; exit 1 → no PHR-relevant files; exit 2 → NO_BASE_FOUND.
+tools/md-files-changed.sh
+case $? in
+    0) echo ">>> PHR REQUIRED for the files listed above" ;;
+    1) echo "NO_MD_FILES_CHANGED" ;;
+    2) echo "NO_BASE_FOUND — cannot determine diff scope; review the full branch manually" ;;
+esac
 ```
 
-If this command outputs any `.md` file paths (not `NO_MD_FILES_CHANGED`), PHR is required (Row 2).
+The helper is the single source of truth for the PHR-trigger regex and exclusions (`README.md`, `CHANGELOG.md`); `tools/run-battery.sh` consumes the same script. If the helper outputs any `.md` file paths, PHR is required (Row 2). If exit code is 2 (`NO_BASE_FOUND`), treat PHR as required by default and review the full branch manually.
 
 | Result | Action |
 |--------|--------|
@@ -82,7 +87,7 @@ If this command outputs any `.md` file paths (not `NO_MD_FILES_CHANGED`), PHR is
 
 **PHR is mandatory when the md-file check lists any `.md` files.**
 
-Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `AGENTS.md`, `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md` (these two are excluded by the regex above — add them to a post-grep exclusion if needed).
+Scope: any `.md` file under `skills/` or `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `AGENTS.md`, `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md` (excluded by the post-grep `grep -vE` filter, not by the main regex — the main regex matches them).
 
 The battery runs automated linting and tests — it does NOT run PHR. Invoke `progressive-harsh-review` (`/sp-phr`) for these files before proceeding to Step 1. A passing battery sentinel is NOT a substitute for PHR on skill and design artifacts.
 
@@ -108,10 +113,13 @@ npm test / cargo test / pytest / go test ./...
 ### Step 2: Determine Base Branch
 
 ```bash
-git merge-base HEAD main 2>/dev/null
+git merge-base HEAD main 2>/dev/null \
+    || git merge-base HEAD origin/main 2>/dev/null \
+    || git merge-base HEAD master 2>/dev/null \
+    || git merge-base HEAD origin/master 2>/dev/null
 ```
 
-If this returns a SHA, use `main` as the base. If it returns nothing (non-zero exit), the branch has no `main` ancestor — surface this explicitly: "Could not determine base branch automatically (git merge-base returned nothing). What branch did this work split from?"
+If any of these returns a SHA, use that branch as the base. If all fail, the branch has no recognizable integration ancestor — surface this explicitly: "Could not determine base branch automatically (no `main`/`master` ancestor found). What branch did this work split from?"
 
 ### Step 3: Present Options
 
