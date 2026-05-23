@@ -21,8 +21,11 @@ USAGE
 
 DESCRIPTION
   Installs the repo's pre-commit, pre-push, and commit-msg hooks into .git/hooks/.
-  Backs up any existing hook to a matching .bak file before replacement (first install only;
-  subsequent installs overwrite the hook without updating the .bak).
+  Backs up any existing hook to a matching .bak file on first install. On subsequent
+  installs, if the currently installed hook diverges from BOTH the incoming source
+  and the original .bak (i.e., user-layered modifications), the current hook is
+  rotated to .bak.YYYYMMDD-HHMMSS before being overwritten. The original .bak is
+  never replaced.
 
   To bypass: git commit --no-verify
 HELP
@@ -49,49 +52,52 @@ REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
 mkdir -p "$REVIEW_TOKEN_DIR"
 echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
 
-# Install pre-commit hook
-if [[ -f "$HOOKS_DIR/pre-commit" ]] && [[ ! -f "$HOOKS_DIR/pre-commit.bak" ]]; then
-    echo "⚠️  Existing pre-commit hook found. Backing up to pre-commit.bak"
-    mv "$HOOKS_DIR/pre-commit" "$HOOKS_DIR/pre-commit.bak"
-elif [[ -f "$HOOKS_DIR/pre-commit" ]] && ! cmp -s "$HOOKS_DIR/pre-commit" "$SCRIPT_DIR/pre-commit"; then
-    echo "⚠️  Overwriting modified pre-commit hook (existing .bak retained from first install)"
-fi
+# Install a hook with safe-overwrite semantics:
+#   - First install: rename existing hook to <name>.bak (preserves pre-superpowers state).
+#   - Subsequent install on a hook whose content differs from BOTH the .bak and the
+#     incoming source: rotate the current installed hook to <name>.bak.<timestamp>
+#     so user-layered modifications (husky/lefthook overlays, ad-hoc edits) are not
+#     silently lost. The original .bak is never overwritten.
+install_hook() {
+    local name="$1"
+    local dest="$HOOKS_DIR/$name"
+    local src="$SCRIPT_DIR/$name"
+    local bak="$dest.bak"
 
-cp "$SCRIPT_DIR/pre-commit" "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/pre-commit"
-echo "✓ Installed pre-commit hook"
+    if [[ -f "$dest" ]] && [[ ! -f "$bak" ]]; then
+        echo "⚠️  Existing $name hook found. Backing up to $name.bak"
+        mv "$dest" "$bak"
+    elif [[ -f "$dest" ]] && ! cmp -s "$dest" "$src"; then
+        # Hook differs from incoming source. If it also differs from .bak, the user
+        # has layered changes on top of the installed version — preserve them.
+        if [[ ! -f "$bak" ]] || ! cmp -s "$dest" "$bak"; then
+            local ts rotated
+            ts=$(date +%Y%m%d-%H%M%S)
+            rotated="$dest.bak.$ts"
+            echo "⚠️  $name hook diverges from both source and .bak; rotating to $(basename "$rotated")"
+            cp "$dest" "$rotated"
+        fi
+    fi
 
-# Install pre-push hook
-if [[ -f "$HOOKS_DIR/pre-push" ]] && [[ ! -f "$HOOKS_DIR/pre-push.bak" ]]; then
-    echo "⚠️  Existing pre-push hook found. Backing up to pre-push.bak"
-    mv "$HOOKS_DIR/pre-push" "$HOOKS_DIR/pre-push.bak"
-elif [[ -f "$HOOKS_DIR/pre-push" ]] && ! cmp -s "$HOOKS_DIR/pre-push" "$SCRIPT_DIR/pre-push"; then
-    echo "⚠️  Overwriting modified pre-push hook (existing .bak retained from first install)"
-fi
+    cp "$src" "$dest"
+    chmod +x "$dest"
+    echo "✓ Installed $name hook"
+}
 
-cp "$SCRIPT_DIR/pre-push" "$HOOKS_DIR/pre-push"
-chmod +x "$HOOKS_DIR/pre-push"
-echo "✓ Installed pre-push hook"
-
-# Install commit-msg hook (ASCII enforcement + auto-conversion)
-if [[ -f "$HOOKS_DIR/commit-msg" ]] && [[ ! -f "$HOOKS_DIR/commit-msg.bak" ]]; then
-    echo "⚠️  Existing commit-msg hook found. Backing up to commit-msg.bak"
-    mv "$HOOKS_DIR/commit-msg" "$HOOKS_DIR/commit-msg.bak"
-elif [[ -f "$HOOKS_DIR/commit-msg" ]] && ! cmp -s "$HOOKS_DIR/commit-msg" "$SCRIPT_DIR/commit-msg"; then
-    echo "⚠️  Overwriting modified commit-msg hook (existing .bak retained from first install)"
-fi
-
-cp "$SCRIPT_DIR/commit-msg" "$HOOKS_DIR/commit-msg"
-chmod +x "$HOOKS_DIR/commit-msg"
-echo "✓ Installed commit-msg hook"
+install_hook pre-commit
+install_hook pre-push
+install_hook commit-msg
+install_hook post-commit
 
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
-echo "                JSON validity, IP scan, review token"
-echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
-echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
-echo "                (requires python3 in PATH — install: brew install python3)"
+echo "  • pre-commit:  sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
+echo "                 JSON validity, IP scan, review token"
+echo "  • pre-push:    sentinel SHA must match HEAD + proprietary IP scan"
+echo "  • commit-msg:  auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
+echo "                 (requires python3 in PATH — install: brew install python3)"
+echo "  • post-commit: promotes a tree:* sentinel (from run-battery.sh --staged) to the new"
+echo "                 HEAD SHA when the tree matches, removing the need for a second battery run."
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"
