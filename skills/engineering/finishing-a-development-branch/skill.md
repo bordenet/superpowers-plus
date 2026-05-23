@@ -65,26 +65,19 @@ echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
 ```
 
-Then, **regardless of sentinel state**, enumerate which `.md` files were changed:
+Then, **regardless of sentinel state**, enumerate which `.md` files were changed via the canonical helper:
 
 ```bash
-BASE=$(git merge-base HEAD main 2>/dev/null \
-    || git merge-base HEAD origin/main 2>/dev/null \
-    || git merge-base HEAD master 2>/dev/null \
-    || git merge-base HEAD origin/master 2>/dev/null \
-    || git rev-parse HEAD^ 2>/dev/null \
-    || true)
-if [[ -z "$BASE" ]]; then
-    echo "NO_BASE_FOUND — cannot determine diff scope; review the full branch manually"
-else
-    git diff "$BASE"..HEAD --name-only \
-      | grep -E '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$' \
-      | grep -vE '^(README|CHANGELOG)\.md$' \
-      || echo "NO_MD_FILES_CHANGED"
-fi
+# Exit 0 → files listed on stdout; exit 1 → no PHR-relevant files; exit 2 → NO_BASE_FOUND.
+tools/md-files-changed.sh
+case $? in
+    0) echo ">>> PHR REQUIRED for the files listed above" ;;
+    1) echo "NO_MD_FILES_CHANGED" ;;
+    2) echo "NO_BASE_FOUND — cannot determine diff scope; review the full branch manually" ;;
+esac
 ```
 
-If this command outputs any `.md` file paths (not `NO_MD_FILES_CHANGED` or `NO_BASE_FOUND`), PHR is required (Row 2). If `NO_BASE_FOUND`, treat PHR as required by default and review the full branch manually.
+The helper is the single source of truth for the PHR-trigger regex and exclusions (`README.md`, `CHANGELOG.md`); `tools/run-battery.sh` consumes the same script. If the helper outputs any `.md` file paths, PHR is required (Row 2). If exit code is 2 (`NO_BASE_FOUND`), treat PHR as required by default and review the full branch manually.
 
 | Result | Action |
 |--------|--------|

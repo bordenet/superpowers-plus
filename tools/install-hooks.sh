@@ -87,14 +87,17 @@ install_hook() {
 install_hook pre-commit
 install_hook pre-push
 install_hook commit-msg
+install_hook post-commit
 
 echo ""
 echo "Done! The following hooks are now active:"
-echo "  • pre-commit: sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
-echo "                JSON validity, IP scan, review token"
-echo "  • pre-push:   sentinel SHA must match HEAD + proprietary IP scan"
-echo "  • commit-msg: auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
-echo "                (requires python3 in PATH — install: brew install python3)"
+echo "  • pre-commit:  sentinel presence, file endings, shell syntax (incl. extensionless hooks),"
+echo "                 JSON validity, IP scan, review token"
+echo "  • pre-push:    sentinel SHA must match HEAD + proprietary IP scan"
+echo "  • commit-msg:  auto-converts em dashes/arrows to ASCII; rejects any remaining non-ASCII"
+echo "                 (requires python3 in PATH — install: brew install python3)"
+echo "  • post-commit: promotes a tree:* sentinel (from run-battery.sh --staged) to the new"
+echo "                 HEAD SHA when the tree matches, removing the need for a second battery run."
 echo ""
 echo "Before your FIRST commit (bootstrap):"
 echo "  1. Run code-review-battery          — writes .code-review-cleared sentinel"

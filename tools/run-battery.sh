@@ -5,7 +5,12 @@
 #          This is the ONLY permitted way to write the sentinel file.
 #          Run AFTER completing the AI judgment component of code-review-battery.
 # USAGE:   tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]
-#            N = quality threshold, 1.0–10.0 (default 7.0)
+#                               [--staged]
+#            N        = quality threshold, 1.0–10.0 (default 7.0)
+#            --staged = verify the staged tree instead of HEAD. The sentinel
+#                       records the index tree SHA (via `git write-tree`)
+#                       prefixed with "tree:" so a follow-up commit can claim
+#                       it without re-running the full battery.
 # EXIT:    0 = all checks pass, sentinel written
 #          1 = failure, sentinel NOT written
 # -----------------------------------------------------------------------------
@@ -25,11 +30,13 @@ cd "$REPO_ROOT"
 # --- Parse flags ---
 VERDICT="PASS"
 MIN_SCORE="7.0"
+STAGED_MODE=0
+USAGE_LINE="Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N] [--staged]"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help|-h)
             cat << 'EOF'
-Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]
+Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N] [--staged]
 
 Run the automated quality suite and write .code-review-cleared.
 This is the ONLY permitted way to write the sentinel file.
@@ -38,6 +45,9 @@ Run AFTER completing the AI judgment component of code-review-battery.
 Options:
   --verdict     PASS or PASS_WITH_NITS (default: PASS)
   --min-score   Quality threshold 1.0–10.0 (default: 7.0)
+  --staged      Verify the staged tree rather than HEAD. The sentinel
+                records `tree:<git-write-tree-sha>`; the post-commit hook
+                promotes it to the new HEAD SHA when the tree matches.
   -h, --help    Show this help
 
 Exit codes:
@@ -49,7 +59,7 @@ EOF
         --verdict)
             if [[ $# -lt 2 ]]; then
                 echo "❌ --verdict requires a value: PASS or PASS_WITH_NITS" >&2
-                echo "Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]" >&2
+                echo "$USAGE_LINE" >&2
                 exit 1
             fi
             VERDICT="$2"
@@ -62,7 +72,7 @@ EOF
         --min-score)
             if [[ $# -lt 2 ]]; then
                 echo "❌ --min-score requires a value (1.0–10.0)" >&2
-                echo "Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]" >&2
+                echo "$USAGE_LINE" >&2
                 exit 1
             fi
             MIN_SCORE="$2"
@@ -72,9 +82,13 @@ EOF
             MIN_SCORE="${1#--min-score=}"
             shift
             ;;
+        --staged)
+            STAGED_MODE=1
+            shift
+            ;;
         *)
             echo "Unknown flag: $1" >&2
-            echo "Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N]" >&2
+            echo "$USAGE_LINE" >&2
             exit 1
             ;;
     esac
@@ -110,6 +124,8 @@ echo ""
 # Staged-but-uncommitted changes are allowed: battery may run pre-commit and the
 # sentinel is written for current HEAD; pre-push then validates SHA on the pushed ref.
 # Exclude .code-review-cleared itself (battery writes it; may be tracked by git).
+# In --staged mode we additionally require there to BE a staged tree (else the
+# tree-SHA sentinel is meaningless).
 if ! git diff --quiet -- ':!.code-review-cleared' 2>/dev/null; then
     echo ""
     echo "❌ Unstaged modifications detected."
@@ -118,6 +134,14 @@ if ! git diff --quiet -- ':!.code-review-cleared' 2>/dev/null; then
     echo "   Then re-run: tools/run-battery.sh"
     echo ""
     exit 1
+fi
+
+if [[ "$STAGED_MODE" -eq 1 ]]; then
+    if git diff --cached --quiet 2>/dev/null; then
+        echo "❌ --staged passed but no changes are staged."
+        echo "   Stage the changes you intend to commit, then re-run with --staged."
+        exit 1
+    fi
 fi
 
 ERRORS=0
@@ -173,43 +197,58 @@ if [[ $ERRORS -gt 0 ]]; then
 fi
 
 # All automated checks passed — write sentinel.
-# The sentinel SHA must match the commit being pushed.
-# Do NOT commit .code-review-cleared; push immediately after this script.
-SHA=$(git rev-parse HEAD)
+# In HEAD mode the sentinel SHA must match the commit being pushed.
+# In --staged mode the sentinel records the staged tree SHA; the post-commit
+# hook promotes it to the new HEAD SHA when the tree matches.
+# Do NOT commit .code-review-cleared; push immediately after this script
+# (or after the commit, when running in --staged mode).
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-echo "v1|${SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
+if [[ "$STAGED_MODE" -eq 1 ]]; then
+    TREE_SHA=$(git write-tree)
+    SENTINEL_SHA="tree:${TREE_SHA}"
+    SENTINEL_LABEL="Tree:      ${TREE_SHA:0:8} (staged)"
+    NEXT_STEP="git commit            # post-commit hook promotes the sentinel to the new HEAD SHA"
+else
+    SENTINEL_SHA=$(git rev-parse HEAD)
+    SENTINEL_LABEL="Commit:    ${SENTINEL_SHA:0:8}"
+    NEXT_STEP="git push"
+fi
+echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✅ BATTERY PASSED — sentinel written."
 echo ""
 echo "  Verdict:   ${VERDICT}"
 echo "  Min-score: ${MIN_SCORE}"
-echo "  Commit:    ${SHA:0:8}"
+echo "  ${SENTINEL_LABEL}"
 echo "  Timestamp: ${TIMESTAMP}"
 echo ""
-echo "  Next step: git push"
+echo "  Next step: ${NEXT_STEP}"
 echo ""
 # Only emit the PHR reminder when the diff actually touches skill/design .md files.
-# Fallback chain: local main -> origin/main -> master -> origin/master -> HEAD^.
-# README.md and CHANGELOG.md match the main regex but are filtered out post-grep.
-_BASE=$(git merge-base HEAD main 2>/dev/null \
-    || git merge-base HEAD origin/main 2>/dev/null \
-    || git merge-base HEAD master 2>/dev/null \
-    || git merge-base HEAD origin/master 2>/dev/null \
-    || git rev-parse HEAD^ 2>/dev/null \
-    || true)
-if [[ -z "$_BASE" ]]; then
-    # Unresolvable base (orphan/root commit); over-warn rather than under-warn.
-    echo "  ⚠  PHR REMINDER: Could not determine merge base (no main/master ancestor)."
-    echo "     Review the full branch diff manually and confirm /sp-phr was completed if any .md files changed."
+# Delegated to tools/md-files-changed.sh — single source of truth for the
+# regex + exclusion (also consumed by the finishing-a-development-branch skill).
+if MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" 2>/dev/null); then
+    echo "  ⚠  PHR REQUIRED: This diff touches skills/ or docs/ .md files:"
+    while IFS= read -r f; do
+        [[ -n "$f" ]] && echo "       - $f"
+    done <<< "$MD_HITS"
     echo ""
-elif git diff "$_BASE"..HEAD --name-only 2>/dev/null \
-        | grep -E '(^skills/|^docs/).*\.md$|^[A-Z][A-Za-z_-]*\.md$' \
-        | grep -qvE '^(README|CHANGELOG)\.md$'; then
-    echo "  ⚠  PHR REQUIRED: This diff touches skills/ or docs/ .md files."
-    echo "     Confirm /sp-phr was completed before pushing."
+    echo "     Dispatch progressive-harsh-review BEFORE pushing:"
+    echo "       /sp-phr"
+    echo "     or, programmatically:"
+    echo "       node ~/.codex/superpowers-augment/superpowers-augment.js use-skill progressive-harsh-review"
+    echo ""
     echo "     Battery linting != progressive harsh review."
     echo ""
+else
+    PHR_EXIT=$?
+    if [[ "$PHR_EXIT" -eq 2 ]]; then
+        echo "  ⚠  PHR REMINDER: Could not determine merge base (no main/master ancestor)."
+        echo "     Review the full branch diff manually and confirm /sp-phr was completed if any .md files changed."
+        echo ""
+    fi
+    # exit 1 means "no PHR-relevant files changed" — no reminder needed.
 fi
 echo "  ⚠  Do NOT commit .code-review-cleared or make additional"
 echo "     commits before pushing. The sentinel expires if HEAD"
