@@ -31,6 +31,8 @@ SUPERPOWERS_PLUS_RAW="https://raw.githubusercontent.com/bordenet/superpowers-plu
 # Note: obra/superpowers skills are bundled in superpowers-plus as of v2.6.0.
 # This installer no longer clones bordenet/superpowers separately.
 VERBOSE=false
+# Max seconds to wait for node subcommands during post-install verification
+NODE_CMD_TIMEOUT=30
 
 # --- Colors (disabled if not a TTY) ---
 if [[ -t 1 ]]; then
@@ -311,28 +313,73 @@ else
     error "Augment rule not found"
 fi
 
+# Canonical bootstrap command as array — prevents word-split on paths with spaces.
+_BOOTSTRAP_CMD=("node" "$HOME/.codex/superpowers-augment/superpowers-augment.js" "bootstrap")
+
+# Discover timeout command once; used for both bootstrap and find-skills tests.
+# Build as an array to avoid word-split antipattern.
+# gtimeout (GNU coreutils) is preferred on macOS where the built-in BSD timeout
+# has different signal-delivery semantics; on Linux both are equivalent.
+_timeout_cmd=()
+command -v timeout  &>/dev/null && _timeout_cmd=("timeout"  "$NODE_CMD_TIMEOUT")
+command -v gtimeout &>/dev/null && _timeout_cmd=("gtimeout" "$NODE_CMD_TIMEOUT")
+
 # Test 3: Run bootstrap to verify it works
+# BOOTSTRAP_OK: "true" = verified, "false" = failed, "skipped" = no timeout command available
+BOOTSTRAP_OK="skipped"
 info "Testing bootstrap command..."
-verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap"
-if node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap > /dev/null 2>&1; then
-    success "Bootstrap command works"
+verbose "Running: ${_BOOTSTRAP_CMD[*]}"
+if [[ ${#_timeout_cmd[@]} -eq 0 ]]; then
+    # Skip rather than risk an unbounded hang — installer safety > advisory check.
+    warn "timeout/gtimeout not found — skipping bootstrap verification to avoid potential hang"
+    warn "Run manually after install: ${_BOOTSTRAP_CMD[*]}"
 else
-    error "Bootstrap command failed"
+    bootstrap_rc=0
+    bootstrap_output=""
+    bootstrap_output=$("${_timeout_cmd[@]}" "${_BOOTSTRAP_CMD[@]}" 2>&1) || bootstrap_rc=$?
+    if [[ $bootstrap_rc -eq 0 ]]; then
+        success "Bootstrap command works"
+        BOOTSTRAP_OK="true"
+    elif [[ $bootstrap_rc -eq 124 ]]; then
+        BOOTSTRAP_OK="false"
+        warn "Bootstrap verification timed out after ${NODE_CMD_TIMEOUT}s (node may be slow to start)"
+        warn "Run manually after install: ${_BOOTSTRAP_CMD[*]}"
+    else
+        BOOTSTRAP_OK="false"
+        first_line=$(printf '%s' "$bootstrap_output" | head -1)
+        warn "Bootstrap verification failed${first_line:+ — $first_line}"
+        warn "Skills will not load until bootstrap runs successfully."
+        warn "Run this command after opening a new shell:"
+        warn "  ${_BOOTSTRAP_CMD[*]}"
+    fi
 fi
 
 # Test 4: List skills
 info "Testing find-skills command..."
 verbose "Running: node ~/.codex/superpowers-augment/superpowers-augment.js find-skills"
-SKILL_COUNT=$(node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
+SKILL_COUNT=0
+if [[ ${#_timeout_cmd[@]} -gt 0 ]]; then
+    SKILL_COUNT=$("${_timeout_cmd[@]}" node ~/.codex/superpowers-augment/superpowers-augment.js find-skills 2>/dev/null | grep '^Summary:' | grep -oE '[0-9]+ total' | head -1 | grep -oE '[0-9]+' || echo "0")
+else
+    warn "timeout/gtimeout not found — skipping find-skills check"
+fi
 if [[ "$SKILL_COUNT" -gt 0 ]]; then
     success "Found $SKILL_COUNT total installed skills"
-else
+elif [[ ${#_timeout_cmd[@]} -gt 0 ]]; then
     warn "No skills found (this may be normal for first install)"
 fi
 
 echo ""
 echo "=============================================="
-echo "  Installation Complete! ($PLATFORM)"
+if [[ "$BOOTSTRAP_OK" == "true" ]]; then
+    echo "  Installation Complete! ($PLATFORM)"
+elif [[ "$BOOTSTRAP_OK" == "skipped" ]]; then
+    echo "  Installation Complete ($PLATFORM)"
+    echo "  (Bootstrap check skipped — timeout/gtimeout not available)"
+else
+    echo "  Installation Complete* ($PLATFORM)"
+    echo "  *Bootstrap verification failed — see warnings above"
+fi
 echo "=============================================="
 echo ""
 echo "Installed:"
@@ -342,8 +389,11 @@ echo "  • ~/.augment/rules/              - Augment auto-load rule"
 echo ""
 echo "Next steps:"
 echo "  1. Restart Augment (or start a new conversation)"
-echo "  2. The superpowers system should auto-load"
-echo "  3. Ask Augment to run: node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap"
+if [[ "$BOOTSTRAP_OK" == "true" ]]; then
+    echo "  2. The superpowers system should auto-load"
+else
+    echo "  2. Run bootstrap manually: ${_BOOTSTRAP_CMD[*]}"
+fi
 echo ""
 echo "To add superpowers to a specific workspace:"
 echo "  mkdir -p .augment/rules"
