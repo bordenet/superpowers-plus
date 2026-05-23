@@ -16,7 +16,7 @@
     {
       "name": "superpowers-plus",
       "description": "AI slop detection (300+ patterns, 0-100 scoring) and elimination (GVR loop) plus 93 skills for wiki, issue tracking, security. Extends obra/superpowers.",
-      "version": "2.5.2",
+      "version": "2.6.0",
       "source": "./"
     }
   ]
