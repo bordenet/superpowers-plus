@@ -39,11 +39,36 @@ if [[ ! -s "$TMP_PAT" ]]; then
   rm -f "$TMP_PAT"; log 0 no-active-patterns; exit 0
 fi
 
-# Scan unpushed commit messages + diff for any pattern (case-insensitive, fixed-string).
-SCAN="$(
-  { git log "@{u}..HEAD" --format='%B' 2>/dev/null; git diff "@{u}..HEAD" 2>/dev/null; } \
-  | tr '[:upper:]' '[:lower:]'
-)"
+# Determine the scan range. The invariant: SCAN must reflect every commit
+# (message AND patch content) that this push would publish to $REMOTE.
+#
+# Single expression handles all three scenarios consistently:
+#   * upstream-tracked branch pushing to its upstream remote
+#   * first push of a new branch (no upstream, no fetch yet)
+#   * multi-remote layouts (refs/remotes/gitlab/* covers HEAD but pushing to
+#     refs/remotes/origin/* on github -- the prior fix's --not --remotes
+#     excluded ANY remote, which was a fail-open in this case)
+#
+# `--not --remotes="$REMOTE"` (with implicit /* suffix per git-log(1)) excludes
+# only commits reachable from refs/remotes/$REMOTE/*. When that ref set is
+# empty (fresh `git remote add` with no fetch), the --not clause is empty and
+# the scan includes all of HEAD's history -- the conservative behavior we
+# want for a security gate. The explicit HEAD positive ref is required: a
+# bare `--not --remotes=...` has no anchor and prints nothing when the
+# pattern matches no refs.
+#
+# `-p --pretty=format:%B` produces both commit messages and patches in one
+# stream, replacing the prior `git log ... + git diff ...` pair. This closes
+# the gap where the no-upstream fallback used `git diff HEAD` (working-tree
+# only) and missed secrets committed into files on a clean working tree.
+SCAN_LOG_ARGS=(log HEAD --not "--remotes=$REMOTE" -p --pretty=format:'%B')
+SCAN="$(git "${SCAN_LOG_ARGS[@]}" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)"
+
+# Audit-trail discriminator for the no-upstream path -- lets operators tell
+# which scan strategy fired without having to re-run the hook.
+if ! git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+  log 0 "no-upstream-fallback-scan (remote=$REMOTE)"
+fi
 HITS="$(echo "$SCAN" | grep -i -F -f "$TMP_PAT" | sort -u | head -20 || true)"
 rm -f "$TMP_PAT"
 

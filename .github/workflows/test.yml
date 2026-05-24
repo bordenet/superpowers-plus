@@ -97,6 +97,9 @@ jobs:
       - name: Claude guardrails regression tests (BATS)
         run: bats tests/claude-guardrails-test.bats
 
+      - name: Wiki-write regression tests (BATS, sp-bughunt #3)
+        run: bats tests/wiki-write-test.bats
+
       - name: Augment non-regression tests (BATS)
         run: bats tests/augment-non-regression-test.bats
         env:
