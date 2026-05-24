@@ -61,6 +61,7 @@ EOF
 }
 
 log_err()   { printf '[wiki-write] ERROR: %s\n' "$*" >&2; }
+log_warn()  { printf '[wiki-write] WARN: %s\n' "$*" >&2; }
 log_info()  { [[ "$VERBOSE" -eq 1 ]] && printf '[wiki-write] %s\n' "$*" >&2 || true; }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || "${1:-}" == "help" ]]; then

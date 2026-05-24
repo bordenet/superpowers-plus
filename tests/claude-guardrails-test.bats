@@ -192,6 +192,21 @@ _fixture_repo_with_commit() {
   git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
 }
 
+# Create a fresh repo with one commit and a github.com remote but NO upstream
+# tracking branch — simulates the first push of a new feature branch. Sets the
+# global REPO. Used by Bug #1 regression test (sp-bughunt port).
+_fixture_repo_with_commit_no_upstream() {
+  local commit_msg="${1:-safe commit}"
+  REPO="$(mktemp -d)"
+  git -C "$REPO" init -q
+  git -C "$REPO" config user.email "test@test.com"
+  git -C "$REPO" config user.name "Test"
+  # Single commit on the current branch; no upstream-tracking ref is configured.
+  git -C "$REPO" commit -q --allow-empty -m "$commit_msg"
+  # github.com remote URL — required for the hook to even start scanning.
+  git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
+}
+
 # Create a minimal AGENTS.md identity table in $REPO.
 _fixture_agents_identity() {
   local repo="$1" expected_email="${2:-bordenet@users.noreply.github.com}"
@@ -248,6 +263,35 @@ _fixture_transcript() {
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 1: internal-terms scan blocks first-push (no upstream tracking ref)" {
+  # Regression for sp-bughunt #1: previously @{u}..HEAD failed silently when
+  # the branch had no upstream, producing an empty SCAN and a fail-open push.
+  _fixture_repo_with_commit_no_upstream "leak callbox-internal-secret-codename on new branch"
+  PAT_FILE="$(mktemp)"
+  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"internal-terms detected"* ]] || [[ "${lines[*]}" == *"internal-terms detected"* ]]
+}
+
+@test "item 1: internal-terms scan allows first-push (no upstream) when commit is clean" {
+  # Companion to the regression: confirm the no-upstream branch still allows
+  # a clean push (no false positives from the fallback range).
+  _fixture_repo_with_commit_no_upstream "perfectly safe commit message"
+  PAT_FILE="$(mktemp)"
+  echo "should-never-appear-in-commit" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"cwd":"%s"}' "$REPO")"
   rm -f "$PAT_FILE"; rm -rf "$REPO"
   [ "$status" -eq 0 ]
 }

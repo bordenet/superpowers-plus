@@ -152,6 +152,48 @@ const expired = ws.readState();
 assert(expired === null, 'readState returns null for expired state');
 pass++; console.log('  ok: readState returns null for expired state');
 
+// ---- Test 19: acquireLock fails closed on non-EEXIST error (sp-bughunt #2) ----
+// Regression: previously, any err.code !== 'EEXIST' returned true (fail-open),
+// letting two writers both believe they held the lock. Verify the fix returns
+// false on a stubbed EACCES (and similar).
+cleanup();
+try { fs.rmSync(lockFile, { force: true }); } catch { /* ignore */ }
+const origOpenSync = fs.openSync;
+let stubCalls = 0;
+fs.openSync = function (p, ...rest) {
+    if (p === lockFile) {
+        stubCalls++;
+        const e = new Error('stubbed EACCES');
+        e.code = 'EACCES';
+        throw e;
+    }
+    return origOpenSync.call(fs, p, ...rest);
+};
+try {
+    const acquiredOnEacces = ws.acquireLock();
+    assert(acquiredOnEacces === false,
+        `acquireLock must fail closed on EACCES: got ${acquiredOnEacces}`);
+    assert(stubCalls === 1, `openSync stub must have been called exactly once: ${stubCalls}`);
+    assert(!fs.existsSync(lockFile), 'no lock file should exist after a failed acquire');
+} finally {
+    fs.openSync = origOpenSync;
+}
+pass++; console.log('  ok: acquireLock fails closed on non-EEXIST error (EACCES)');
+
+// ---- Test 20: acquireLock fails closed on unreadable lock file ----
+// Regression: previously, an unreadable lock (corrupted/partial write) returned
+// true under the "advisory" justification, letting a second writer clobber.
+// Verify the fix returns false.
+cleanup();
+try { fs.rmSync(lockFile, { force: true }); } catch { /* ignore */ }
+// Create a lock file with invalid JSON so the inner JSON.parse throws.
+fs.writeFileSync(lockFile, 'NOT JSON ' + Date.now());
+const acquiredOnBadJson = ws.acquireLock();
+assert(acquiredOnBadJson === false,
+    `acquireLock must fail closed on unreadable lock: got ${acquiredOnBadJson}`);
+try { fs.rmSync(lockFile, { force: true }); } catch { /* ignore */ }
+pass++; console.log('  ok: acquireLock fails closed on unreadable lock file');
+
 // ---- Cleanup ----
 cleanup();
 try { fs.rmSync(tmpDir, { recursive: true }); } catch { /* ignore */ }

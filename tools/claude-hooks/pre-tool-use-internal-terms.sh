@@ -40,10 +40,26 @@ if [[ ! -s "$TMP_PAT" ]]; then
 fi
 
 # Scan unpushed commit messages + diff for any pattern (case-insensitive, fixed-string).
-SCAN="$(
-  { git log "@{u}..HEAD" --format='%B' 2>/dev/null; git diff "@{u}..HEAD" 2>/dev/null; } \
-  | tr '[:upper:]' '[:lower:]'
-)"
+#
+# Upstream-tracking selection:
+#   - If the current branch has an upstream (@{u}), scan @{u}..HEAD (only the
+#     commits that this push would actually publish).
+#   - If no upstream is set (first push of a new branch), @{u}..HEAD fails
+#     silently and would produce empty SCAN -> hook would fail open. Fall back
+#     to "all local commits not present on any remote" (--not --remotes) plus
+#     the working-tree diff, which covers the first-push case correctly.
+if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+  RANGE_LOG="$(git log '@{u}..HEAD' --format='%B' 2>/dev/null || true)"
+  RANGE_DIFF="$(git diff '@{u}..HEAD' 2>/dev/null || true)"
+else
+  # HEAD --not --remotes = commits reachable from HEAD but not from any
+  # remote-tracking ref. The explicit HEAD is required: a bare --not --remotes
+  # has no positive ref to start from and prints nothing when refs/remotes/ is
+  # empty (e.g. fresh `git remote add origin` with no fetch yet).
+  RANGE_LOG="$(git log HEAD --not --remotes --format='%B' 2>/dev/null || true)"
+  RANGE_DIFF="$(git diff HEAD 2>/dev/null || true)"
+fi
+SCAN="$(printf '%s\n%s' "$RANGE_LOG" "$RANGE_DIFF" | tr '[:upper:]' '[:lower:]')"
 HITS="$(echo "$SCAN" | grep -i -F -f "$TMP_PAT" | sort -u | head -20 || true)"
 rm -f "$TMP_PAT"
 
