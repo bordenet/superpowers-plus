@@ -296,6 +296,75 @@ _fixture_transcript() {
   [ "$status" -eq 0 ]
 }
 
+@test "item 1: internal-terms scan catches secret in COMMITTED FILE (sp-bughunt round-1)" {
+  # Round-1 finding: the no-upstream fallback used `git diff HEAD` which only
+  # shows working-tree-vs-HEAD changes. A secret committed INTO a file (clean
+  # working tree, new branch with no upstream) was invisible -> fail open.
+  # The v2 fix uses `git log HEAD --not --remotes="$REMOTE" -p` which scans
+  # commit messages AND patch content. This test pins that behavior.
+  REPO="$(mktemp -d)"
+  git -C "$REPO" init -q
+  git -C "$REPO" config user.email "t@t.com"
+  git -C "$REPO" config user.name "T"
+  printf 'token: callbox-internal-secret-codename-in-file\n' > "$REPO/.env"
+  git -C "$REPO" add .env
+  git -C "$REPO" commit -q -m "Innocuous-looking commit message"
+  git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
+  PAT_FILE="$(mktemp)"
+  echo "callbox-internal-secret-codename-in-file" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"internal-terms detected"* ]] || [[ "${lines[*]}" == *"internal-terms detected"* ]]
+}
+
+@test "item 1: internal-terms scan blocks with empty refs/remotes/ (post add, pre fetch)" {
+  # Round-1 SeniorArchCritic finding: pin the documented behavior of the
+  # no-upstream fallback when `git remote add` ran but no fetch ever
+  # populated refs/remotes/. The --not --remotes="$REMOTE" clause matches
+  # nothing -> scan walks all of HEAD's history (conservative fail-closed).
+  _fixture_repo_with_commit_no_upstream "leak callbox-internal-secret-codename"
+  # Belt-and-suspenders: verify refs/remotes/ really is empty.
+  [[ -z "$(git -C "$REPO" for-each-ref refs/remotes 2>/dev/null)" ]]
+  PAT_FILE="$(mktemp)"
+  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 1: internal-terms blocks when secret reachable via non-target remote (multi-remote)" {
+  # Round-1 Guardian finding: when refs/remotes/<other-remote>/main covers
+  # HEAD, the prior --not --remotes (no pattern) excluded those commits and
+  # silently allowed a push to a DIFFERENT remote (github) that had never
+  # seen them. The v2 fix uses --remotes="$REMOTE" so only the push target's
+  # tracking refs are excluded.
+  REPO="$(mktemp -d)"
+  git -C "$REPO" init -q
+  git -C "$REPO" config user.email "t@t.com"
+  git -C "$REPO" config user.name "T"
+  git -C "$REPO" commit -q --allow-empty -m "leak callbox-internal-secret-codename via multi-remote"
+  # Simulate: an internal mirror remote already has this commit.
+  git -C "$REPO" update-ref refs/remotes/gitlab/main HEAD
+  # Now add a github remote (the actual push target) -- never fetched.
+  git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
+  PAT_FILE="$(mktemp)"
+  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"cwd":"%s"}' "$REPO")"
+  rm -f "$PAT_FILE"; rm -rf "$REPO"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"internal-terms detected"* ]] || [[ "${lines[*]}" == *"internal-terms detected"* ]]
+}
+
 @test "item 1: bypass clause (CLAUDE_HOOKS_BYPASS=1) allows everything" {
   CLAUDE_HOOKS_BYPASS=1 run bash "$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"cwd":"/tmp"}')"

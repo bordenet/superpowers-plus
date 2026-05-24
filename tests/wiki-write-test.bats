@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# wiki-write-test.bats — regression tests for tools/wiki-write.sh
+# wiki-write-test.bats -- regression tests for tools/wiki-write.sh
 #
 # Initially seeded with the sp-bughunt #3 regression: the script invoked an
 # undefined `log_warn` in its no-node skip branch, which under `set -euo
@@ -14,45 +14,45 @@ setup_file() {
 }
 
 @test "wiki-write: log_warn is defined (sp-bughunt #3 regression)" {
-  # The fix adds `log_warn()` alongside log_err and log_info. The structural
-  # gate's no-node skip branch calls it; without the definition, set -euo
-  # pipefail kills the script with 'command not found'.
+  # Cheap structural check: log_warn must be defined alongside log_err and
+  # log_info. Catches the original "function never declared" bug.
   local script="$REPO_ROOT/tools/wiki-write.sh"
   grep -q '^log_warn()' "$script"
 }
 
-@test "wiki-write: no-node skip path runs without crash (sp-bughunt #3)" {
-  # Invoke wiki-write.sh with a non-existent validator script and a PATH that
-  # excludes node. The structural-gate else-branch must emit the warning and
-  # proceed to the API call (which will fail later on real-API absence, but
-  # that's a different exit path — what we test here is that log_warn does NOT
-  # crash the script with 127).
-  local script="$REPO_ROOT/tools/wiki-write.sh"
-  local tmp
-  tmp="$(mktemp -d)"
-  local content="$tmp/content.md"
-  printf '# Title\n\nbody\n' > "$content"
-
-  # Move the bundled validator out of the way so the else-branch fires.
-  # We don't modify the real file — we run with SCRIPT_DIR pointing at an
-  # empty dir via the wiki-write internal resolution. But wiki-write resolves
-  # SCRIPT_DIR from its own location, so the simplest path is to clear node
-  # from PATH and confirm the script reaches log_warn without crashing.
+@test "wiki-write: log_warn behaves like a stderr WARN logger (sp-bughunt #3)" {
+  # Behavioral test: source ONLY the log_* helper definitions out of
+  # wiki-write.sh (so we skip the global env-var checks that exit early),
+  # then invoke log_warn directly. This exercises the exact callsite that
+  # was broken pre-fix without trying to walk the full create/update flow.
   #
-  # The script is set -euo pipefail; if log_warn is undefined, exit code is
-  # 127. With the fix, the script proceeds to the curl/API call which fails
-  # at a different point with a different (non-127) exit code.
-  WIKI_API_KEY=dummy WIKI_API_URL="http://127.0.0.1:1" PATH="/usr/bin:/bin" \
-    run bash "$script" create \
-      --parent "00000000-0000-0000-0000-000000000000" \
-      --title "test" \
-      --content "$content"
+  # The earlier version of this test invoked wiki-write.sh end-to-end and
+  # passed vacuously: the script exited at the scope-check before ever
+  # reaching log_warn, so a regressed script (log_warn deleted again) would
+  # still satisfy `status -ne 127`. Three sp-bughunt round-1 reviewers
+  # independently caught the false-positive; this rewrite addresses it.
+  local script="$REPO_ROOT/tools/wiki-write.sh"
+  # Extract the three log_* function definitions (each is a single line in
+  # this script: `log_NAME() { ... }`). The sed range matches lines starting
+  # with `log_` followed by a parenthesis.
+  local helpers
+  helpers="$(sed -n '/^log_[a-z]*()/p' "$script")"
+  [[ -n "$helpers" ]] || {
+    echo "FAILED to extract log_* helpers from $script" >&2
+    return 1
+  }
+  # VERBOSE must be defined for log_info; default it to 0 so the helper
+  # definitions parse cleanly when sourced in isolation.
+  run bash -c "VERBOSE=0; $helpers
+  log_warn 'gate skipped' 2>&1 1>/dev/null"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[wiki-write] WARN: gate skipped"* ]]
+}
 
-  # log_warn-not-defined would yield status 127 ("command not found").
-  # Any other non-zero status (3 = API error, etc.) indicates the script
-  # got past the log_warn call.
-  rm -rf "$tmp"
-  [ "$status" -ne 127 ]
-  # Negative assertion on the exact failure signature:
-  [[ "$output" != *"log_warn: command not found"* ]]
+@test "wiki-write: log_warn output prefix matches sibling helpers (sp-bughunt #3)" {
+  # Tightens the contract: log_warn must use the same `[wiki-write] LEVEL:`
+  # prefix as log_err and log_info. A future "fix" that names the function
+  # but emits a different prefix would break grep-based log filtering.
+  local script="$REPO_ROOT/tools/wiki-write.sh"
+  grep -E "^log_warn\(\)\s*\{.*\[wiki-write\] WARN:" "$script"
 }
