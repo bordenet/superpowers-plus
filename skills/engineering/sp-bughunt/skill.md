@@ -2,142 +2,239 @@
 name: sp-bughunt
 source: superpowers-plus
 augment_menu: true
-triggers:
-  - /sp-bughunt
-  - spot the worst bugs
-  - find the worst bugs
-  - what are the worst bugs
-  - hunt for bugs
-  - bug hunt
-  - find critical bugs
-  - audit for bugs
-  - worst bugs in
-  - top N bugs
-  - most dangerous bugs
-anti_triggers:
-  - debug this error
-  - fix this failure
-  - test is failing
-  - reproduce this bug
-  - security scan
-  - scan for secrets
-description: "Proactive adversarial bug hunt — dispatches a parallel explore sub-agent to read the codebase with an adversarial mindset, then independently verifies each candidate to catch false positives and missed findings. Returns N worst bugs ranked by severity with exact file, line, mechanism, and failure mode. Use when you want to proactively find the highest-impact bugs in a codebase, not when debugging a known failure (use sp-debug for that)."
-summary: "Use when: proactively hunting for the worst latent bugs in a repo or path. Produces severity-ranked findings with file+line+failure-mode. Default: top 2."
+triggers: ["/sp-bughunt", "spot the worst bugs", "find the worst bugs", "what are the worst bugs", "hunt for bugs", "bug hunt", "find critical bugs", "audit for bugs", "worst bugs in", "top N bugs", "most dangerous bugs"]
+anti_triggers: ["debug this error", "fix this failure", "test is failing", "reproduce this bug", "security scan", "scan for secrets", "review this plan", "review this design doc"]
+description: "Proactive adversarial bug hunt. A sub-agent collects candidates; each candidate flows through five named gates (anti-hallucination re-read, sibling-divergence, test-coverage adjudication, reachability evidence, confidence scoring) and a final verification pass. Outputs ranked Confirmed bugs plus two named risk lists (Unreachable, Low-Confidence) plus a transparent rejection log. Not for debugging a known failure (sp-debug) or secret scanning (sp-scan)."
+summary: "Use when: proactively hunting the worst latent bugs. Five-gate funnel with language-aware test/sibling discovery, named confidence-modes, and an audit-trail header. Default: top 2."
 coordination:
   group: engineering
   order: 2
   requires: []
-  enables: ["sp-debug", "sp-verify"]
-  escalates_to: []
+  enables: ["surgical-fix", "test-driven-development"]
+  escalates_to: ["progressive-harsh-review"]
   internal: false
 composition:
-  consumes: [repo-path, scope-hint]
-  produces: [bug-report, severity-ranking]
-  capabilities: [adversarial-analysis, parallel-exploration]
-  priority: 15
+  consumes: [repo-path, scope-hint, confidence-mode]
+  produces: [bug-report, unreachable-risks, low-confidence-risks, rejection-list, audit-trail]
+  capabilities: [adversarial-analysis, sibling-divergence-check, reachability-gate, confidence-scoring, hallucination-recovery]
+  priority: 35
+  optional: false
+  requires_all: false
 ---
 
-# sp-bughunt — Adversarial Bug Hunt
+# sp-bughunt -- Adversarial Bug Hunt
 
-> **Wrong skill?** Known failure to debug → `sp-debug`. Security secrets/vulns → `sp-scan`. Code review of a diff → `code-review-battery`. PR inline review → `sp-review`.
+> **Wrong skill?** Known failure -> `sp-debug`. Secrets/vulns -> `sp-scan`. PR diff -> `code-review-battery`. PR inline -> `sp-review`. Adversarial review of plans/docs -> `sp-phr` (canonical name `progressive-harsh-review`).
+>
+> **Companion:** `reference.md` (parser examples, language-aware sibling/test patterns, full Failure Modes catalogue, full report templates).
 
-Proactively find the highest-severity latent bugs in a codebase — bugs that cause
-silent failures, data corruption, incorrect behavior, or security issues — without
-waiting for them to surface in production.
+Proactively find the highest-severity latent bugs -- silent failures, data corruption, incorrect behavior, security issues -- before they reach production.
+
+**Announce at start:** "I'm using the **sp-bughunt** skill; resolving scope now."
 
 ## When to Use
 
-- User says "spot the worst bugs", "find the worst N bugs", "bug hunt", "what's the worst bug in X"
-- Before a release or audit, to find latent issues that haven't triggered yet
-- After adding a significant feature, to check for emergent issues
-- Periodic hygiene ("what's lurking in this codebase?")
+- User asks "spot the worst bugs", "find the worst N bugs", "bug hunt", "what's lurking in X"
+- Before a release or audit; after a significant feature lands; periodic hygiene
 
-NOT for: debugging a known failure (`sp-debug`), reviewing a PR diff (`code-review-battery`),
-security credential scanning (`sp-scan`).
+Built-in: sibling comparison (high-yield signal), language-aware test-coverage adjudication, anti-hallucination invariants applied at every gate.
+
+NOT for: debugging a known failure (`sp-debug`), reviewing a PR diff (`code-review-battery`), credential scanning (`sp-scan`), adversarial review of non-code deliverables (`sp-phr`).
 
 ## Parameters
 
 | Parameter | Default | Description |
-|-----------|---------|-------------|
-| `N` | 2 | Number of worst bugs to return |
-| `scope` | current repo | Directory or file glob to search |
-| `focus` | all | `logic`, `security`, `data-loss`, `performance`, or `all` |
+|---|---|---|
+| `N` | 2 | Number of worst Confirmed bugs to return |
+| `scope` | current repo | Directory or file glob; resolved in Phase 1 to a concrete file list within the repo root |
+| `focus` | all | Enum: `logic`, `security`, `data-loss`, `performance`, `all`. Validated; any other value rejected. |
+| `confidence-mode` | release-prep | Enum: `release-gate` (T=9.0), `release-prep` (T=8.0), `hygiene` (T=7.0). See parser rule below. |
 
-Parse from user message. If ambiguous, use defaults and note them.
+**Parser rule:** any numeric `X` token following `above`, `>=`, `at least`, or `threshold` resolves to the **smallest mode >= X**, clamped to the enum range. So `above 6.5 -> hygiene` (7.0), `above 7.5 -> release-prep` (8.0), `above 9.5 -> release-gate` (9.0, clamped). A bare integer sets `N`. The audit-trail header echoes the resolved mode and the user input it was resolved from.
 
-## Protocol (4 phases — complete in order)
+## Anti-Hallucination Invariants
 
-### Phase 1: Scope Resolution
+These three re-reads bind every gate that consumes sub-agent output. They are constraints, not phases.
 
-1. Identify the target path from the user's message (default: current repo root)
-2. List key files likely to contain high-severity bugs:
-   - Entry points, auth/security paths, data write paths, background jobs, shell scripts
-   - Avoid: auto-generated files, vendored deps, pure config, markdown
-3. Note any focus constraint (`logic` / `security` / `data-loss` / `performance`)
+| Invariant | When it binds | Action |
+|---|---|---|
+| **I1. Full-Function Re-read** | Before scoring or labeling any candidate | Load the entire function from disk -- never trust the sub-agent's excerpt. A misquoted `slice(0, i-1)` reads as off-by-one when the source is actually `slice(0, i)`. |
+| **I2. Sibling Source Re-read** | Before claiming sibling divergence | Open both sibling files from disk and diff the analogous functions. Never accept the sub-agent's paraphrase. |
+| **I3. Live-Disk Final Re-read** | Before emitting any candidate in the final report | Re-fetch the cited lines. If they no longer match the report's evidence quote, halt and re-run the affected gates. |
+
+## Confidence Score Bands (parametric)
+
+Let `T` be the threshold from `confidence-mode`. Bands partition the score line with no gap and no overlap:
+
+| Band | Routing |
+|---|---|
+| `score >= T` | Confirmed bug list |
+| `T - 2.0 <= score < T` | Low-Confidence Risks list |
+| `score < T - 2.0` | Discarded (logged) |
+
+Raising T to 9.0 shifts the latent band to `[7.0, 9.0)` -- no gap at any T.
+
+## Prioritized Bug Patterns
+
+1. **Ordering / sequencing errors** -- step A happens after step B that invalidates A's precondition (e.g. no-change dedup placed after a truncation that mutates the buffer being deduped).
+2. **Sibling inconsistencies** -- two parallel implementations diverge subtly. Ordering bugs are most often *discovered* via sibling comparison.
+
+## Protocol (5 phases; Phase 3 contains five named gates A-E)
+
+The orchestrator (you) runs all phases. The sub-agent runs Phase 2 only. Gates A-E are orchestrator-side per-candidate checks inside Phase 3. The audit trail records gate firings, gate fail-opens, and outcomes.
+
+### Phase 1: Scope Resolution & Input Sanitization
+
+1. Require a git repo. Run `git rev-parse --show-toplevel`; if it fails, abort with `not-in-git-repo`.
+2. Resolve `scope` to an explicit list of file paths. **Step order (cheap rejections first):** (a) reject paths containing control characters (NUL, `\n`, etc.); (b) canonicalize each path with `realpath` (GNU `realpath -e` semantics: resolve all symlinks, path must exist, abort with `path-resolution-failure` otherwise; on BSD/macOS, run `realpath` followed by `test -e "$resolved"` to enforce existence); (c) reject any canonicalized path outside `git rev-parse --show-toplevel`; (d) reject if the resolved list exceeds **500 files** (require narrower scope; chunking by top-level subdirectory is the recommended strategy for legacy modules that exceed the cap).
+3. Validate `focus` against the enum; reject any other value.
+4. Resolve `confidence-mode` per the parser rule; record the resolved mode and source input in the audit-trail header.
+5. Detect language(s) from extensions in scope; select sibling glob and test-file discovery patterns from `reference.md` (sections 2 and 3).
 
 ### Phase 2: Adversarial Exploration (sub-agent)
 
-Dispatch a **single `explore` sub-agent** with this instruction template:
+**Substitute resolved values before dispatching.** Do not pass through angle-bracket placeholders. Cap candidates at `min(N*3, 30)`. Read budget: 80 files. Format the file list as a quoted one-per-line block to defend against control-character paths.
 
-```
-You are doing an adversarial bug audit of <SCOPE>.
-Find the worst <N> bugs — bugs that cause silent failures, data corruption,
-incorrect behavior, or security issues. Focus on <FOCUS>.
+Sub-agent prompt template (text shown; substitute literals before sending):
+
+```text
+Adversarial bug audit of the file list below.
+Find the worst <MIN(N*3, 30)> bug candidates: silent failures, data
+corruption, incorrect behavior, or security issues.
+
+[Include only if focus != all] Focus on <FOCUS>.
+
+Prioritize:
+  (a) ordering errors where step A invalidates step B's precondition
+  (b) sibling inconsistencies where two parallel implementations diverge
 
 For each candidate:
-- Read the relevant code carefully (do not skim)
-- Explain the exact lines involved
-- Explain WHY it is a bug (not a style issue)
-- Describe the failure mode (what actually goes wrong)
+- Read the code carefully
+- Quote exact lines with file:line
+- Explain WHY it is a bug
+- Describe the failure mode
+- Name a concrete production caller with file:line
+- List sibling files implementing similar logic, if any
 - Rate severity: CRITICAL / HIGH / MEDIUM / LOW
 
-Rank all candidates by severity. Return the top <N> with exact file paths
-and line numbers. Be thorough — read as many files as you need.
+Read at most 80 files. If you hit the cap, return what you have plus a
+list of files you did not reach. Return all candidates -- the orchestrator
+gates them. Do not pre-filter.
+
+Files:
+<RESOLVED FILE LIST, one per line, double-quoted>
 ```
 
-Do NOT attempt to verify candidates yourself during this phase — just collect.
+**Re-dispatch trigger:** if the sub-agent reports >= 20% of the resolved file list unreached, re-dispatch with a narrower scope. **Cap re-dispatch at 2.** If still >= 20% unreached after the cap, proceed with partial coverage and record `re-dispatch-exhausted=true` in the audit trail.
 
-### Phase 3: Independent Verification (mandatory)
+**Minimum-yield gate:** if the sub-agent returns 0 candidates AND files-reached >= 50% of the resolved list, the orchestrator must emit a `low-yield-justification` block in the report header citing scope size, files actually read, and why fewer candidates surfaced. A zero-bug report with no justification block is treated as a failed run, not a passing run.
 
-For EACH candidate the sub-agent returned:
+### Phase 3: Per-Candidate Gates (A, B, D, C, E) then deferred routing
 
-1. **Read the actual lines** — do not rely on the sub-agent's quotes (they may be paraphrased or hallucinated)
-2. **Trace the failure path** — follow the code to confirm the bad outcome actually occurs
-3. **Check for mitigations** — is there error handling elsewhere that prevents the failure?
-4. **Classify each finding:**
-   - ✅ Confirmed — real bug, failure mode verified
-   - ⚠️ Partial — real issue but severity overstated or understated
-   - ❌ False positive — not a bug (explain why)
-5. **Add any findings the sub-agent missed** that you notice during verification
+Invariants I1, I2, I3 bind throughout. Gates run in order **A, B, D, C, E** and each gate **records** its output without making a terminal routing decision (except two short-circuits noted below). After all gates complete, a single deferred **Routing Decision** examines the accumulated outputs and assigns the candidate to one of {Confirmed, Unreachable Risks, Low-Confidence Risks, Rejections}. This eliminates the look-ahead problem where a later gate's outcome was needed to route an earlier gate's label.
 
-### Phase 4: Ranked Report
+**Definitions used by the gates:**
+- **Hops-to-boundary** = the count of call-graph edges traversed from the candidate function to the nearest user-input boundary, where a boundary is any of: HTTP route, queue consumer, scheduled task, signal handler, IPC endpoint, CLI entry point.
+- **Sibling found** = Gate B located at least one analogous file via the language-aware patterns (`reference.md` §2) and successfully diffed analogous functions per I2.
 
-Present findings ranked by verified severity. For each confirmed bug:
+**Gates (recording only, except short-circuits):**
 
-```
-### Bug #N — <title> (<VERIFIED_SEVERITY>)
+| Gate | Records | Short-circuit |
+|---|---|---|
+| **A. Anti-Hallucination Re-read** | Apply I1; record `match` or `misquote`. | `misquote` -> immediately halt this candidate; route to Rejections (reason: `sub-agent misquote`). |
+| **B. Sibling Divergence** | Apply I2; record `sibling-status` in {`divergence-cleaner`, `divergence-same-bug`, `same-impl`, `no-sibling`} plus patterns tried. | None. |
+| **D. Test-Coverage Adjudication** | Apply I1 on the test file via discovery algorithm (`reference.md` §3). Record `test-label` from the table below. | `covered-passing-intentional` or `covered-passing-misread` -> halt; route to Rejections (reason: `test confirms intentional` or `sub-agent misread`). |
+| **C. Reachability Evidence** | Named caller + call site + verified calling convention. Record `reachability ∈ {pass, fail}` and (if pass) `hops-to-boundary ∈ {1, 2, 3}` (3-hop trace cap). | If `fail`, Gate E is **skipped** (no scores produced). The candidate does not halt here; it proceeds to Routing Decision. |
+| **E. Confidence Scoring** | Score 3 orthogonal axes (table below). Record `Correctness`, `Testability`, `Severity`, average, and floor pass/fail per axis. | Skipped only when Gate C recorded `fail`. |
 
-**File:** `<path>`, `<function>()`, line <N>
-**Mechanism:** <one sentence: what the code does wrong>
-**Failure mode:** <what actually happens to the user/system>
-**Evidence:** <exact code snippet, ≤8 lines>
-**Fix sketch:** <one-paragraph description of the correct approach>
-```
+**Gate D label values** (semantics in `reference.md` §4): `uncovered`, `covered-passing-intentional`, `covered-passing-misread`, `covered-passing-test-buggy`, `covered-skipped`, `no-test-infrastructure`, `unsure`. The first two are the only short-circuits; the rest record and continue.
 
-Include a brief note for each ❌ false positive explaining why it was rejected.
+**Gate E axes (1-10 each):**
+
+| Axis | Anchors |
+|---|---|
+| **Correctness** | 10 = contradicts a documented invariant AND Gate B shows clean sibling divergence; 7 = clear logic error confirmed by I1; 4 = arguable; 1 = defensible behavior |
+| **Testability** | 10 = failing test in <=5 lines; 7 = straightforward fixture; 4 = nontrivial setup; 1 = non-deterministic |
+| **Severity** | 10 = permanent unrecoverable data loss via a specific user action (strict; duplicate writes with new timestamps are **not** data loss) **OR** authentication/authorization bypass with a clear exploit path **OR** cross-tenant data exposure in multi-tenant SaaS; 7 = silent corruption recoverable from logs; 4 = degraded UX with workaround; 1 = cosmetic |
+
+**Hard floors:** Correctness >= 5, Severity >= 4 (Testability has no floor; non-deterministic bugs are real).
+
+### Phase 3 Routing Decision (applied after all gates record)
+
+Evaluate rules in priority order. The **first** rule that matches wins; later rules do not apply to that candidate.
+
+| # | Condition | Route |
+|---|---|---|
+| 1 | A-misquote (short-circuit fired) | Rejections (`sub-agent misquote`) -- no scores |
+| 2 | D label is `covered-passing-intentional` | Rejections (`test confirms intentional`) -- no scores |
+| 3 | D label is `covered-passing-misread` | Rejections (`sub-agent misread`) -- no scores |
+| 4 | Gate E ran AND any floor violated | Rejections (`floor violation: <axis>=<X>, floor=<F>`) -- scores shown |
+| 5 | Gate C `fail` | Unreachable Risks (no Gate E scores; Gate D label and Gate B status are recorded) |
+| 6 | D label is `unsure` | Low-Confidence Risks (Gate E scores shown) |
+| 7 | D label is `no-test-infrastructure` AND NOT (`sibling-status` in {`divergence-cleaner`, `divergence-same-bug`} OR (C-pass AND hops <= 1)) | Low-Confidence Risks (counts as `D-no-test-infra-demoted`; scores shown) |
+| 8 | E-avg < T - 2.0 | Rejections (`below latent band`; scores shown) |
+| 9 | E-avg in [T - 2.0, T) | Low-Confidence Risks (scores shown) |
+| 10 | E-avg >= T AND `sibling-status` == `no-sibling` AND NOT (C-pass AND hops <= 2) AND Gate E Correctness < 8 | Low-Confidence Risks (`B-no-sibling` compensating-rule demotion; scores shown) |
+| 11 | Otherwise | Confirmed |
+
+**Routing-rule counters.** The audit-trail header carries one counter per rule: `routing-rule-fired: r1=<n>, r2=<n>, r3=<n>, r4=<n>, r5=<n>, r6=<n>, r7=<n>, r8=<n>, r9=<n>, r10=<n>, r11=<n>`. For Gate-D-label fail-opens (`D-no-test-infra-compensated`, `D-unsure`, `D-covered-skipped`) the counter is separately tracked because those labels are recorded at Gate D regardless of which routing rule eventually fires (e.g. `D-no-test-infra-compensated` increments at Gate D when the compensating signal is present and rule 7 therefore does **not** fire). The Phase 5 header section below enumerates both counter families.
+
+Floor violation (rule 4) takes precedence over every demotion below it -- a floor-violating candidate is always Rejected, never Low-Confidence. D=`unsure` (rule 6) takes precedence over score-band rules 8 and 9 by design: when the orchestrator cannot determine coverage, fail-closed escalation to human review (Low-Confidence Risks) is the intended behavior regardless of the score.
+
+### Phase 4: Final Verification (Confirmed survivors only)
+
+1. **Apply I3** -- re-fetch cited lines from disk. If they no longer match the evidence quote, halt and return that candidate to Gate A. After a second I3 mismatch, route to Rejections with reason `disk-drift`. Increment `Phase4-I3-rerun` on the first mismatch.
+2. **Mitigation surface check** -- enumerate each: try/catch chain, retry/circuit breaker, feature-flag wrapper, transaction rollback / idempotency keys, rate limiters / WAF / external mitigations. Record `checked: <surface>, present: yes|no, evidence: <file:line or null>` per surface.
+3. **"Fully neutralizes" criterion:** a mitigation fully neutralizes the failure only if it prevents the failure mode entirely **under all inputs in scope** and the orchestrator can quote the file:line proving it. If proven, subtract 3 from Severity, **re-check the Severity floor**, and re-route through the Phase 3 Routing Decision (starting at rule 4 for floor check). Increment `Phase4-mitigation-downgrade` whenever the subtraction moves the candidate out of Confirmed. Explicit list movement: if the candidate now lands in Low-Confidence Risks per rule 9 or rule 10, **physically move the entry from the Bugs section to the Low-Confidence Risks section**; if it lands in Rejections per rule 4 or rule 8, **move it to Rejections**. Record `original Severity X, post-mitigation Y` in the candidate's audit data.
+4. **Final classification:** `confirmed`, `partial` (real, narrower scope), or `false-positive` (move out with reason).
+5. Add findings the sub-agent missed that surfaced in Gates B or this phase. New findings must traverse Phase 3 Gates A-E (recording only) and the Phase 3 Routing Decision before joining any output list.
+
+### Phase 5: Ranked Report
+
+The report header is the execution-evidence sentinel: a reviewer can verify the run by reading the header alone -- evaluations, pass-throughs, fail-opens, phase counters, outcomes, and (if triggered) the `low-yield-justification` block together prove the orchestrator executed each phase. **Full report templates:** `reference.md` §6.
+
+**Apply I3 before emitting** every Confirmed bug, every Unreachable Risk, and every Low-Confidence Risk -- not just Confirmed survivors. Disk may have drifted between Phase 3 and Phase 5; the invariant binds at the moment of emission. On a Phase 5 I3 mismatch, apply the same escape as Phase 4 step 1: first mismatch returns the candidate to Phase 3 Gate A (full re-traversal of A-B-D-C-E and the Routing Decision); second mismatch routes to Rejections with reason `disk-drift-at-emission`. The same `Phase4-I3-rerun` counter is incremented (the counter name covers both Phase 4 and Phase 5 I3 reruns; rename mentally as "I3-rerun" if clearer).
+
+The header **must** include:
+- Resolved parameters (with the source value `confidence-mode` was snapped from; `source=default` if no user input)
+- **Gate evaluations** per gate (A, B, D, C, E) -- candidates that reached the gate
+- **Gate passes-to-next** per gate -- candidates that left the gate without short-circuit or downstream-skip (Gate B has no short-circuit; its passes-to-next always equals evaluations and is shown for uniform parsing)
+- **Routing-rule counters**: `r1=<n>` through `r11=<n>` (one per rule in the Phase 3 Routing Decision table)
+- **Gate D label fail-open counters** (recorded at Gate D, independent of which routing rule fires): `D-no-test-infra-compensated`, `D-no-test-infra-demoted`, `D-unsure`, `D-covered-skipped`
+- **Gate B demotion counter**: `B-no-sibling` (the no-sibling-status that, combined with low Correctness and weak reachability, triggers rule 10)
+- **Phase 4 event counters**: `Phase4-mitigation-downgrade`, `Phase4-I3-rerun` (covers Phase 4 step 1 and Phase 5 emission mismatches)
+- **Phase counters**: `Phase1-sanitization-rejections`, `Phase2-re-dispatches`, `re-dispatch-exhausted ∈ {true, false}`
+- **Per-outcome counts**: `confirmed`, `unreachable-risk`, `low-confidence-risk`, `rejected`, `sub-agent-candidates-returned`, `files-unreached`
+- A `low-yield-justification` block when triggered
+- A `WARNING: coverage incomplete (<X>% of resolved scope unread)` banner above the parameters block when `re-dispatch-exhausted=true`
+
+Output sections (fixed order): **Bugs** -> **Unreachable Risks** -> **Low-Confidence Risks** -> **Rejections**. Confirmed bugs and both Risk lists include `Sibling check` and `Test coverage` fields (Gate D label is recorded for every candidate that reached Gate D, so the field is present for Unreachable Risks and Low-Confidence Risks). Rejections from short-circuits (rules 1, 2, 3) emit `scores: skipped` and `sibling: <recorded-status-or-skipped>`. Unreachable Risks omit Gate E scores (E was skipped by Gate C demotion); other lists show full scores.
+
+If no candidate clears the threshold, that is a valid output **provided** the audit-trail counts show meaningful evaluations and (when triggered) a `low-yield-justification` block.
+
+> **Backwards compatibility:** report format diverges from v1; downstream parsers detect format by the presence of the `Audit trail -- gate evaluations:` header line. See `reference.md` §8 for the migration note.
+
+> **Legacy expectation:** on brownfield repos with no test infrastructure and no obvious sibling family (e.g. legacy ColdFusion modules), expect most candidates to route to Low-Confidence Risks. That is the fail-closed design, not a defect. The audit-trail header lets you verify the gates actually fired.
 
 ## Quality Gates
 
-- **Never skip Phase 3.** Sub-agents hallucinate line numbers and misquote code. Independent verification is what separates real findings from plausible-sounding fiction.
-- **Severity must be justified.** "Critical" requires a concrete failure path — not theoretical or requiring unusual preconditions.
-- **False positives must be explicit.** If the sub-agent found N candidates and you confirm M < N, list the rejected ones and why.
-- **File+line is mandatory.** A bug without an exact location is not actionable.
+- **Invariants I1, I2, I3 are unconditional** on every gate that consumes sub-agent output, including emission in Phase 5.
+- **Gate execution rule:** Gate A runs on every candidate. If A short-circuits (`misquote`), B/D/C/E are skipped. Otherwise B runs. After B, D runs. If D short-circuits (`covered-passing-intentional` or `covered-passing-misread`), C and E are skipped. Otherwise C runs. If C records `fail`, E is skipped (Unreachable Risks demotion happens at Routing Decision). Otherwise E runs. Any deviation from this sequence is a red flag.
+- **Every non-short-circuited candidate has a test-coverage label.** "I didn't check" is not acceptable; use `unsure` as the fail-closed sentinel.
+- **Every Confirmed bug has a named caller and verified calling convention** (Gate C recorded `pass`).
+- **Confidence scores and floor pass/fail are shown** on every candidate that reached Gate E (Confirmed, Low-Confidence Risk, and Gate-E-scored Rejections). Short-circuited Rejections (rules 1, 2, 3) and Unreachable Risks (rule 5) legitimately emit `scores: skipped`.
+- **"Data loss" is reserved for permanent unrecoverable loss via a specific user action.** Duplicate writes with new timestamps are a deduplication failure, not data loss.
+- **Zero-bug results require a `low-yield-justification` block** when the sub-agent returns 0 candidates from a >=50%-reached file list. The audit-trail counts plus the justification block make a zero-bug result auditable.
+- **File+line is mandatory** on every Confirmed bug and every Risk entry.
+- **Confidence-mode is named.** Numeric input is snapped per the parser rule; the audit-trail header echoes the snapped mode and the source value.
 
-## Failure Modes
+## Failure Modes (highest signal)
 
-| Failure | Symptom | Recovery |
-|---------|---------|----------|
-| Accepted sub-agent output without verification | Reported wrong line numbers or non-bugs | Re-read actual code; mark as unverified until confirmed |
-| Searched only obvious files | Missed bugs in utility code or error paths | Expand scope; check all callers of the suspicious function |
-| Confused style issues for bugs | Low-severity "findings" crowd out real bugs | Re-apply severity rubric: must have a concrete failure mode |
-| Sub-agent timed out or missed files | Incomplete exploration | Manually read the high-risk files from Phase 1's list |
+Full catalogue in `reference.md` §7. The four highest-signal modes:
+
+| Mode | Symptom | Recovery |
+|---|---|---|
+| Off-by-one misread of intentional design | Sub-agent flagged `slice(0, currentIndex)` as off-by-one; a passing test explicitly validated the behavior as "replace current and forward". | Gate A (I1) + Gate D `covered-passing-intentional` -> Rejections unless agent can quote a specific incorrect assertion (`covered-passing-test-buggy`). |
+| Fabricated caller evidence | Sub-agent claimed an IndexedDB race reachable from `ensureState`; `ensureState` uses sequential `await`. | Gate C concurrency principle (`reference.md` §5); 3-hop cap; demote to Unreachable Risks if no concurrent caller exists. |
+| Missing sibling cross-check | Real bug (dedup after truncation) was visible only by diffing `validator-storage.js` vs `validator-project-storage.js`. | Gate B with language-aware patterns + I2 (re-read both siblings from disk). |
+| No-test-infrastructure inverts the gate | Brownfield repo with zero tests; every candidate labeled "uncovered" inflates bug claims. | Gate D distinguishes `no-test-infrastructure` from `uncovered`; the former requires a compensating signal (Gate B divergence OR Gate C passed with hops <= 1) to continue. |
