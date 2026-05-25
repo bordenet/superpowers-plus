@@ -59,6 +59,8 @@ Each persona scores 1-10 on each dimension. **Aggregation rule:** take the **wei
 | 7–7.9 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit when mean ≥8 or Round 2 finds no new issues. |
 | <7 | **REJECT** | Root-cause analysis → remediate → full re-review |
 | Any | **REJECT (veto)** | Critical veto fired — fix the cited defect, full re-review |
+
+> Project-min override: a project floor (e.g. 9.5) supersedes the band; anything below is PASS_WITH_FIXES.
 ### Step 4: Remediation (if needed)
 On REJECT:
 
@@ -77,8 +79,33 @@ After scoring, scan persona outputs for **shared blind spots**:
 
 Flags trigger re-examination, not automatic verdict changes.
 ### Step 6: Convergence
-- **Exit when:** Final round weighted mean ≥7 AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
+- **Exit when:** Final round weighted mean ≥8 (or project min if higher) AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
+## Sentinel Write After PASS (MANDATORY)
+When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict
+table above, AND ≥ the project minimum if one is set, AND no active critical
+vetoes, AND no correlated-failure flags), **immediately** run:
+
+```bash
+tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
+```
+
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`.
+The pre-push hook's Gate 4 reads this sentinel; without it, any push
+that touches skill/design .md files is refused at the local pre-push hook
+(developer-machine self-discipline, not a server-side security boundary).
+
+**Only PASS clears the gate.** PASS_WITH_FIXES (mean 7.0-7.9 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
+
+Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any
+subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
+
+> **Why this is mandatory:** PHR was discipline-only for too long --
+> skill changes shipped without running it repeatedly. The sentinel +
+> Gate 4 closes the loop. Note Gate 4 is a productivity guardrail
+> (catches forgetting), not a tamper-proof security control. Code
+> review must still verify PHR actually ran, not just that the sentinel
+> is present.
 ## Scoring Output Format
 ```markdown
 ### Persona: SeniorArchCritic
@@ -99,3 +126,4 @@ Flags trigger re-examination, not automatic verdict changes.
 | Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
 | Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
 | Only reviewed happy path | ProdOpsHardass must consider failure, rollback, 3am scenarios |
+| Skipped sentinel write after PASS | Pre-push Gate 4 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
