@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# Script: merge-discipline-preflight.sh
+# Script: branch-flow-preflight.sh
 # PURPOSE: Validate (source, target) branch pair against the canonical flow
-#          and write .merge-discipline-cleared sentinel on PASS.
+#          and write .branch-flow-cleared sentinel on PASS.
 #          Refuses ANY (source, target) pair that violates merge-discipline.
 #
-# USAGE:   tools/merge-discipline-preflight.sh <source-branch> <target-branch>
-#          tools/merge-discipline-preflight.sh --identical-check <err1> <err2>
+# USAGE:   tools/branch-flow-preflight.sh <source-branch> <target-branch>
+#          tools/branch-flow-preflight.sh --identical-check <err1> <err2>
 # EXIT:    0 on PASS, non-zero on FAIL with specific reason on stderr.
-# WRITES:  .merge-discipline-cleared sentinel (mode 0644) on PASS, format:
+# WRITES:  .branch-flow-cleared sentinel (mode 0644) on PASS, format:
 #          v1|<HEAD-sha>|<source>|<target>|<utc-iso-timestamp>
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"
-SENTINEL="$REPO_ROOT/.merge-discipline-cleared"
+SENTINEL="$REPO_ROOT/.branch-flow-cleared"
 
 RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; NC=$'\033[0m'
 
@@ -179,7 +179,7 @@ SOURCE_SHA="$(git rev-parse --verify "$SOURCE" 2>/dev/null \
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET}|${TS}" > "$SENTINEL"
 chmod 0644 "$SENTINEL"
-ok "merge-discipline preflight cleared for ${SOURCE} -> ${TARGET}"
+ok "branch-flow preflight cleared for ${SOURCE} -> ${TARGET}"
 ok "sentinel written: $(basename "$SENTINEL")"
 
 # --- 7. Reminder of strategy + delete-branch policy -----------------------
