@@ -155,6 +155,20 @@
       ],
       "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
       "verified_at": "2026-04-29"
+    },
+    "merge-discipline": {
+      "expected_substrings": [
+        "The Only Flow That Exists",
+        "dev -> staging -> main",
+        "Feature/fix branches branch off"
+      ],
+      "triggers": [
+        "promote dev to staging",
+        "merge to main",
+        "back-sync"
+      ],
+      "verified_by": "auto-seed (skill enforces single dev->staging->main flow)",
+      "verified_at": "2026-05-24"
     }
   }
 }
