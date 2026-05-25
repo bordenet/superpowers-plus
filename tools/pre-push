@@ -38,7 +38,7 @@ NC='\033[0m'
 #          intentional — policy-enforced, not security-enforced.
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
-MERGE_DISCIPLINE_SENTINEL="$REPO_ROOT/.merge-discipline-cleared"
+BRANCH_FLOW_SENTINEL="$REPO_ROOT/.branch-flow-cleared"
 
 # Reads filenames from stdin, prints the first one that is classified as code,
 # or prints nothing if all files are docs/metadata. Used by both range_is_docs_only()
@@ -290,13 +290,13 @@ fi
 
 ERRORS=0
 
-# merge-discipline sentinel check (Gate 3): when pushing to dev|staging|main,
-# verify that .merge-discipline-cleared exists, is v1 format, and its target
+# branch-flow sentinel check (Gate 3): when pushing to dev|staging|main,
+# verify that .branch-flow-cleared exists, is v1 format, and its target
 # field matches the ref being pushed. The sentinel is written by
-# tools/merge-discipline-preflight.sh; if missing or mismatched, the push is
+# tools/branch-flow-preflight.sh; if missing or mismatched, the push is
 # blocked. This closes the round-1+2 PHR critical that the sentinel was
 # advisory only and never read.
-check_merge_discipline_sentinel() {
+check_branch_flow_sentinel() {
     local target_branch="$1"
     local pushed_sha="$2"
     case "$target_branch" in
@@ -306,41 +306,41 @@ check_merge_discipline_sentinel() {
     # Self-detect: skip Gate 3 entirely if the repo doesn't have the
     # merge-discipline preflight tooling installed. This keeps the hook
     # portable across test fixtures and repos that don't use this skill.
-    if [[ ! -f "$REPO_ROOT/tools/merge-discipline-preflight.sh" ]]; then
-        echo "  (skipped - tools/merge-discipline-preflight.sh not present in this repo)"
+    if [[ ! -f "$REPO_ROOT/tools/branch-flow-preflight.sh" ]]; then
+        echo "  (skipped - tools/branch-flow-preflight.sh not present in this repo)"
         return 0
     fi
-    if [[ ! -f "$MERGE_DISCIPLINE_SENTINEL" ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: No .merge-discipline-cleared sentinel.${NC}"
-        echo "  Run: tools/merge-discipline-preflight.sh <source-branch> $target_branch"
+    if [[ ! -f "$BRANCH_FLOW_SENTINEL" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: No .branch-flow-cleared sentinel.${NC}"
+        echo "  Run: tools/branch-flow-preflight.sh <source-branch> $target_branch"
         return 1
     fi
     local md_ver md_sha md_source md_target
-    md_ver=$(cut -d'|' -f1 < "$MERGE_DISCIPLINE_SENTINEL" 2>/dev/null)
-    md_sha=$(cut -d'|' -f2 < "$MERGE_DISCIPLINE_SENTINEL" 2>/dev/null)
-    md_source=$(cut -d'|' -f3 < "$MERGE_DISCIPLINE_SENTINEL" 2>/dev/null)
-    md_target=$(cut -d'|' -f4 < "$MERGE_DISCIPLINE_SENTINEL" 2>/dev/null)
+    md_ver=$(cut -d'|' -f1 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
+    md_sha=$(cut -d'|' -f2 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
+    md_source=$(cut -d'|' -f3 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
+    md_target=$(cut -d'|' -f4 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
     local field_count
-    field_count=$(awk -F'|' '{print NF}' "$MERGE_DISCIPLINE_SENTINEL" 2>/dev/null || echo "0")
+    field_count=$(awk -F'|' '{print NF}' "$BRANCH_FLOW_SENTINEL" 2>/dev/null || echo "0")
     if [[ "$md_ver" != "v1" ]] || [[ "$field_count" -ne 5 ]] || [[ -z "$md_sha" ]] || [[ -z "$md_source" ]] || [[ -z "$md_target" ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: merge-discipline sentinel format unrecognized (expected exactly 5 fields: v1|SHA|SOURCE|TARGET|TIMESTAMP, all non-empty).${NC}"
+        echo -e "  ${RED}❌ PUSH BLOCKED: branch-flow sentinel format unrecognized (expected exactly 5 fields: v1|SHA|SOURCE|TARGET|TIMESTAMP, all non-empty).${NC}"
         return 1
     fi
     if [[ "$md_target" != "$target_branch" ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: merge-discipline sentinel target ($md_target) != pushed branch ($target_branch).${NC}"
-        echo "  Re-run preflight: tools/merge-discipline-preflight.sh $md_source $target_branch"
+        echo -e "  ${RED}❌ PUSH BLOCKED: branch-flow sentinel target ($md_target) != pushed branch ($target_branch).${NC}"
+        echo "  Re-run preflight: tools/branch-flow-preflight.sh $md_source $target_branch"
         return 1
     fi
     if [[ "$md_sha" != "$pushed_sha" ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: merge-discipline sentinel SHA (${md_sha:0:8}) != pushed SHA (${pushed_sha:0:8}). Branch tip moved since preflight.${NC}"
-        echo "  Re-run: tools/merge-discipline-preflight.sh $md_source $target_branch"
+        echo -e "  ${RED}❌ PUSH BLOCKED: branch-flow sentinel SHA (${md_sha:0:8}) != pushed SHA (${pushed_sha:0:8}). Branch tip moved since preflight.${NC}"
+        echo "  Re-run: tools/branch-flow-preflight.sh $md_source $target_branch"
         return 1
     fi
-    echo -e "  ${GREEN}✓ merge-discipline cleared: $md_source -> $md_target (${md_sha:0:8})${NC}"
+    echo -e "  ${GREEN}✓ branch-flow cleared: $md_source -> $md_target (${md_sha:0:8})${NC}"
     # Consume the sentinel so a stale file doesn't accidentally clear the
     # NEXT push. The preflight is single-use per push (per the skill's
     # mandatory-behavior #1).
-    rm -f "$MERGE_DISCIPLINE_SENTINEL"
+    rm -f "$BRANCH_FLOW_SENTINEL"
     return 0
 }
 
@@ -445,14 +445,14 @@ while read -r _ local_sha remote_ref remote_sha; do
     fi
     echo ""
 
-    # Gate 3: merge-discipline sentinel (only for pushes to dev|staging|main).
+    # Gate 3: branch-flow sentinel (only for pushes to dev|staging|main).
     # Other branches (feature/*, fix/*, hotfix/*, forward/*, etc.) are exempt
     # because they don't represent a promotion landing. The preflight script
     # writes the sentinel and the PR-create call is the action it gates.
-    echo "  [Gate 3/3] merge-discipline sentinel (canonical-flow targets only)"
+    echo "  [Gate 3/3] branch-flow sentinel (canonical-flow targets only)"
     case "$pushed_branch" in
         dev|staging|main)
-            if ! check_merge_discipline_sentinel "$pushed_branch" "$local_sha"; then
+            if ! check_branch_flow_sentinel "$pushed_branch" "$local_sha"; then
                 ERRORS=$((ERRORS + 1))
             fi
             ;;
