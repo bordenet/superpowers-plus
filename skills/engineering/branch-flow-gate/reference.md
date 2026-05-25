@@ -1,4 +1,4 @@
-# merge-discipline -- Reference
+# branch-flow-gate -- Reference
 
 Lane details, sanitization rules, failure modes, recipes. Parent
 `skill.md` is the procedure; this file holds the playbook.
@@ -141,7 +141,7 @@ where the source is `dev` or `staging` (those branches stay).
 Same generic error on retry. And again.
 **Action:** TWO consecutive identical errors -> STOP. Identical = same
 HTTP status + same error-body substring after stripping IDs/timestamps.
-`tools/merge-discipline-preflight.sh --identical-check err1 err2`
+`tools/branch-flow-preflight.sh --identical-check err1 err2`
 formalizes this.
 
 ### F12. Bot-landing CVE vuln window
@@ -160,15 +160,15 @@ git fetch origin
 git checkout -B feature/<desc> origin/dev
 # ... work ...
 git push -u origin feature/<desc>
-tools/merge-discipline-preflight.sh feature/<desc> dev
+tools/branch-flow-preflight.sh feature/<desc> dev
 gh pr create --head feature/<desc> --base dev --title "feat: <desc>"
 gh pr merge --merge --auto --delete-branch=true
 # After dev QA clears:
-tools/merge-discipline-preflight.sh dev staging
+tools/branch-flow-preflight.sh dev staging
 gh pr create --head dev --base staging --title "promote: dev -> staging"
 gh pr merge --merge --auto              # NO --delete-branch=true
 # After staging QA clears:
-tools/merge-discipline-preflight.sh staging main
+tools/branch-flow-preflight.sh staging main
 gh pr create --head staging --base main --title "promote: staging -> main"
 gh pr merge --merge --auto              # NO --delete-branch=true
 ```
@@ -184,10 +184,10 @@ git push -u origin hotfix/<desc>
 git checkout -B forward/hotfix-<desc> origin/dev
 git cherry-pick <hotfix-sha>
 git push -u origin forward/hotfix-<desc>
-tools/merge-discipline-preflight.sh forward/hotfix-<desc> dev
+tools/branch-flow-preflight.sh forward/hotfix-<desc> dev
 gh pr create --head forward/hotfix-<desc> --base dev
 # 3. Now the hotfix PR (preflight now passes):
-tools/merge-discipline-preflight.sh hotfix/<desc> main
+tools/branch-flow-preflight.sh hotfix/<desc> main
 gh pr create --head hotfix/<desc> --base main
 # 4. Merge both same-shift. --delete-branch=true on both.
 ```
@@ -198,7 +198,7 @@ gh pr create --head hotfix/<desc> --base main
 git checkout -B forward/bot-<pkg>-<ver> origin/dev
 git cherry-pick <bot-merge-sha>
 git push -u origin forward/bot-<pkg>-<ver>
-tools/merge-discipline-preflight.sh forward/bot-<pkg>-<ver> dev
+tools/branch-flow-preflight.sh forward/bot-<pkg>-<ver> dev
 gh pr create --head forward/bot-<pkg>-<ver> --base dev \
     --title "forward-port: bot bump of <pkg>"
 gh pr merge --merge --auto --delete-branch=true
@@ -222,5 +222,5 @@ been 3 PRs. Causes (each preflight-rejected now):
 - Forgot `--delete-branch=true` on most merges.
 - Looped 5+ times on the same opaque server-hook error.
 
-`tools/merge-discipline-preflight.sh` rejects every one of these.
+`tools/branch-flow-preflight.sh` rejects every one of these.
 Run it before every branch creation and every PR.
