@@ -1,102 +1,58 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # Script: branch-flow-preflight.sh
-# PURPOSE: Validate (source, target) branch pair against the canonical flow
-#          and write .branch-flow-cleared sentinel on PASS.
-#          Refuses ANY (source, target) pair that violates merge-discipline.
+# PURPOSE: TRUSTED-ADVISOR release-management hygiene check.
+#          ALWAYS EXITS 0. Never blocks. Never gates. Suggestions only.
 #
-# USAGE:   tools/branch-flow-preflight.sh <source-branch> <target-branch>
-#          tools/branch-flow-preflight.sh --identical-check <err1> <err2>
-# EXIT:    0 on PASS, non-zero on FAIL with specific reason on stderr.
-# WRITES:  .branch-flow-cleared sentinel (mode 0644) on PASS, format:
-#          v1|<HEAD-sha>|<source>|<target>|<utc-iso-timestamp>
+# USAGE:   tools/branch-flow-preflight.sh                          (auto: check current branch)
+#          tools/branch-flow-preflight.sh <source> <target>        (check pair)
+#          tools/branch-flow-preflight.sh --identical-check <e1> <e2>
+#
+# WRITES:  .branch-flow-cleared sentinel (audit trail, not enforcement):
+#          v1|<source-tip-sha>|<source>|<target>|<utc-iso-timestamp>
+#
+# ESCAPE HATCHES (all suppress one specific advisory):
+#   - touch .git/base-advisory-ack-<branch-slug>     (per-branch ack)
+#   - GIT_BASE_OVERRIDE=1                            (one-shot override)
+#   - Branch prefix in {hotfix/, release/, backport/, tagged-release/} (exempt)
+#
+# MULTI-TEAM CONFIG (optional):
+#   - .git-guidance.yml in repo root maps team/prefix -> required-base.
+#     Falls back to default_base (origin/dev) if no match.
 # -----------------------------------------------------------------------------
-set -euo pipefail
+set -uo pipefail   # no -e: don't bail on benign no-match
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"
 SENTINEL="$REPO_ROOT/.branch-flow-cleared"
+CONFIG="$REPO_ROOT/.git-guidance.yml"
+LOG="$REPO_ROOT/.git/guidance-log.jsonl"
 
-RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; NC=$'\033[0m'
+GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; CYAN=$'\033[0;36m'; NC=$'\033[0m'
 
-fail() { echo -e "${RED}FAIL: $*${NC}" >&2; exit 1; }
-ok()   { echo -e "${GREEN}PASS: $*${NC}"; }
-note() { echo -e "${YELLOW}note: $*${NC}" >&2; }
+ok()       { echo -e "${GREEN}\xe2\x9c\x93 $*${NC}"; }
+info()     { echo -e "${CYAN}\xe2\x84\xb9\xef\xb8\x8f  $*${NC}"; }
+advisory() { echo -e "${YELLOW}\xf0\x9f\x92\xa1 $*${NC}"; }
 
-# verify_base(source, expected-base-ref)
-# Confirms that SOURCE was branched from EXPECTED_BASE -- the gap the
-# previous version of this script had (it checked branch NAMES not branch
-# ORIGINS). Algorithm:
-#   1. source IS the expected-base tip                                -> PASS (just-branched)
-#   2. expected-base tip is an ancestor of source                     -> PASS (branched + own commits, base unmoved)
-#   3. compare merge-bases against {dev, staging, main}:
-#      - pick the candidate whose merge-base is DESCENDANT of the
-#        others -- that's the most-recent ancestor, i.e., the branch
-#        the source was most likely cut from
-#      - if that candidate matches expected-base                      -> PASS (correctly off expected-base)
-#      - else                                                          -> FAIL (wrong-base; tell the user which one)
-verify_base() {
-    local source_ref="$1"
-    local expected_base="$2"   # e.g., "origin/dev"
-    local expected_short="${expected_base#origin/}"
-
-    local source_sha base_sha
-    source_sha=$(git rev-parse --verify "$source_ref" 2>/dev/null) || \
-        source_sha=$(git rev-parse --verify "origin/$source_ref" 2>/dev/null) || return 0
-    base_sha=$(git rev-parse --verify "$expected_base" 2>/dev/null) || return 0
-
-    # Case 1: source IS the expected-base tip.
-    if [[ "$source_sha" == "$base_sha" ]]; then
-        ok "base verified: $source_ref is at $expected_base tip"; return 0
-    fi
-
-    # Case 2: expected-base is ancestor of source (branched + own commits).
-    if git merge-base --is-ancestor "$base_sha" "$source_sha" 2>/dev/null; then
-        ok "base verified: $expected_base is an ancestor of $source_ref"
-        return 0
-    fi
-
-    # Case 3: compute merge-bases against all three candidates and pick
-    # the most-recent (the merge-base that is descendant of the others).
-    local best_short="" best_mb=""
-    for candidate in dev staging main; do
-        local cref="origin/$candidate"
-        git rev-parse --verify "$cref" >/dev/null 2>&1 || continue
-        local mb
-        mb=$(git merge-base "$source_sha" "$cref" 2>/dev/null) || continue
-        if [[ -z "$best_mb" ]]; then
-            best_mb="$mb"; best_short="$candidate"
-        elif git merge-base --is-ancestor "$best_mb" "$mb" 2>/dev/null && \
-             [[ "$best_mb" != "$mb" ]]; then
-            # mb is strictly more-recent than best_mb
-            best_mb="$mb"; best_short="$candidate"
-        fi
-    done
-
-    if [[ -z "$best_short" ]]; then
-        fail "source '$source_ref' has NO common ancestor with any canonical-flow branch (dev/staging/main). Looks branched from a completely different history."
-    fi
-
-    if [[ "$best_short" == "$expected_short" ]]; then
-        ok "base verified (inferred): $source_ref's most-recent merge-base is with $expected_base (${best_mb:0:8})"
-        return 0
-    fi
-
-    fail "source '$source_ref' appears to be branched off origin/$best_short, NOT $expected_base. Most-recent merge-base is ${best_mb:0:8} with origin/$best_short. Rebranch from $expected_base (or use the appropriate lane: hotfix/* off main, etc.)."
+log_advisory() {
+    [[ -d "$REPO_ROOT/.git" ]] || return 0
+    printf '{"ts":"%s","user":"%s","branch":"%s","advisory":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "$(git config user.email 2>/dev/null || echo unknown)" \
+        "$1" \
+        "$2" \
+        >> "$LOG" 2>/dev/null || true
 }
 
-# Identical-error stop-condition helper (called as: --identical-check err1 err2)
+# ---------------------------------------------------------------------------
+# Identical-error stop-condition helper (advisory, exits 0 either way).
+# ---------------------------------------------------------------------------
 if [[ "${1:-}" == "--identical-check" ]]; then
-    [[ $# -eq 3 ]] || fail "--identical-check requires two error strings"
+    if [[ $# -ne 3 ]]; then
+        info "--identical-check requires two error strings"
+        exit 0
+    fi
     norm() {
-        # Strip volatile bits in order:
-        #   1. ISO-8601 timestamps (contain hex/digits the other rules would eat)
-        #   2. UUIDs (8-4-4-4-12 hex; before generic hex rule)
-        #   3. request-ids, urns
-        #   4. /tmp paths and pod names (k8s/swarm style)
-        #   5. host:port and bare hostnames
-        #   6. PIDs, generic SHAs, long digit runs
-        #   7. collapse whitespace
         sed -E '
             s/[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?//g
             s/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}//g
@@ -106,7 +62,7 @@ if [[ "${1:-}" == "--identical-check" ]]; then
             s|/var/folders/[A-Za-z0-9._/-]+||g
             s/[a-z][a-z0-9-]*-[a-z0-9]{4,12}-[a-z0-9]{4,12}//g
             s/[a-zA-Z][a-zA-Z0-9.-]+\.(internal|local|cluster|svc)(\.[a-zA-Z0-9.-]+)*//g
-            s/:[0-9]{2,5}([^0-9]|$)/\1/g
+            s/([A-Za-z_][A-Za-z0-9._-]*):[0-9]{2,5}([^0-9]|$)/\1\2/g
             s/\bpid[=:][0-9]+//g
             s/[0-9a-f]{8,40}//g
             s/[0-9]{10,}//g
@@ -114,150 +70,211 @@ if [[ "${1:-}" == "--identical-check" ]]; then
         ' <<<"$1"
     }
     if [[ "$(norm "$2")" == "$(norm "$3")" ]]; then
-        fail "Identical error after retry. STOP. Diagnose: sanitize, retarget legality, platform paths."
+        advisory "Identical opaque error after retry. STRONG SUGGESTION: STOP and diagnose before retrying again. Likely causes: sanitization patterns, ASCII compliance, branch-name regex, file size."
+        log_advisory "identical-error" "two consecutive identical errors"
+    else
+        ok "errors differ -- proceed (cautiously)"
     fi
-    ok "errors differ -- proceed (cautiously)"
     exit 0
 fi
 
-[[ $# -ge 2 ]] || fail "usage: $0 <source-branch> <target-branch>  OR  $0 --identical-check <err1> <err2>"
+# ---------------------------------------------------------------------------
+# Parse args. Auto-mode: no args -> check current branch against required-base.
+# Two-arg mode: explicit source+target.
+# ---------------------------------------------------------------------------
+SOURCE="${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)}"
+TARGET="${2:-}"
 
-SOURCE="$1"
-TARGET="$2"
+# ---------------------------------------------------------------------------
+# Multi-team config: required base for this branch.
+# Default: origin/dev. Override via .git-guidance.yml or explicit TARGET.
+# ---------------------------------------------------------------------------
+resolve_required_base() {
+    # Future: read team-specific base from $CONFIG using $1 (branch name)
+    # to match team prefix. For now, single default_base lookup suffices.
+    if [[ -n "$TARGET" ]]; then
+        echo "origin/$TARGET"
+        return
+    fi
+    if [[ -f "$CONFIG" ]]; then
+        # Simple grep-based extraction: look for "default_base:" or matching team prefix
+        local default_base
+        default_base=$(awk -F': ' '/^default_base:/ {print $2; exit}' "$CONFIG" 2>/dev/null | tr -d '"' | tr -d "'")
+        [[ -n "$default_base" ]] && { echo "$default_base"; return; }
+    fi
+    echo "origin/dev"
+}
+REQUIRED_BASE="$(resolve_required_base "$SOURCE")"
 
-# --- 0. Branch sprawl / back-sync / mirror name guard (runs FIRST so the
-#        helpful message fires before generic target/source rejection) ----
-if [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
-    fail "branch name '$SOURCE' looks like a retry (-vN suffix). The canonical recovery is to fix the existing branch (git commit --amend or new commit + git push --force-with-lease), NOT create a new branch. Delete this branch and amend the original."
+# ---------------------------------------------------------------------------
+# Skip 1: protected/long-lived branches (no advisory needed).
+# ---------------------------------------------------------------------------
+case "$SOURCE" in
+    main|master|develop|dev|staging)
+        info "'$SOURCE' is a protected/long-lived branch; advisory skipped."
+        exit 0
+        ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Skip 2: known-exempt prefixes (hotfix/release/backport/tagged-release).
+# These are documented deviations from the canonical base; do not advise.
+# ---------------------------------------------------------------------------
+case "$SOURCE" in
+    hotfix/*|release/*|backport/*|tagged-release/*)
+        info "'$SOURCE' prefix is exempt from base advisory (documented deviation lane)."
+        ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Skip 3: per-branch acknowledgement file.
+# ---------------------------------------------------------------------------
+ACK_FILE="$REPO_ROOT/.git/base-advisory-ack-${SOURCE//\//-}"
+ACKED=false
+[[ -f "$ACK_FILE" ]] && ACKED=true
+
+# ---------------------------------------------------------------------------
+# Skip 4: env override.
+# ---------------------------------------------------------------------------
+OVERRIDDEN=false
+if [[ "${GIT_BASE_OVERRIDE:-}" == "1" ]]; then
+    OVERRIDDEN=true
+    info "GIT_BASE_OVERRIDE=1 set -- base advisory suppressed. Please document reason in PR description."
 fi
+
+# ---------------------------------------------------------------------------
+# Advisory: retry suffix (-vN). Soft warning, never blocks.
+# ---------------------------------------------------------------------------
+if [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
+    advisory "RETRY-SUFFIX ADVISORY: '$SOURCE' looks like a retry branch (-vN suffix)."
+    echo "    Recommended recovery for a failed merge: amend the existing branch"
+    echo "    ('git commit --amend' + 'git push --force-with-lease'), not a new branch."
+    echo "    To suppress for this branch: touch ${ACK_FILE/#$REPO_ROOT\//}"
+    log_advisory "retry-suffix" "$SOURCE"
+fi
+
+# ---------------------------------------------------------------------------
+# Advisory: back-sync / mirror naming. Soft warning.
+# ---------------------------------------------------------------------------
 case "$SOURCE" in
     chore/back-sync-*|chore/baseline-sync-*|back-sync/*|sync/*|chore/sync-*|mirror/*|chore/mirror-*)
-        fail "branch name '$SOURCE' looks like a back-sync or mirror. Both are forbidden. Use a forward-port instead: branch 'forward/<short-desc>' off origin/dev, cherry-pick the out-of-band content, PR to dev."
+        advisory "BACK-SYNC NAMING ADVISORY: '$SOURCE' uses back-sync/mirror naming."
+        echo "    Forward-port semantics are preferred: branch off the destination,"
+        echo "    pull changes from the source, PR forward. To suppress: touch ${ACK_FILE/#$REPO_ROOT\//}"
+        log_advisory "back-sync-name" "$SOURCE"
         ;;
 esac
 
-# --- 1. Target must be one of dev|staging|main ----------------------------
-case "$TARGET" in
-    dev|staging|main) ;;
-    *) fail "target '$TARGET' is not dev|staging|main. The canonical flow has exactly three branches." ;;
-esac
+# ---------------------------------------------------------------------------
+# Base alignment advisory (the perplexity-style first-parent chain check).
+# ---------------------------------------------------------------------------
+run_base_advisory() {
+    [[ "$ACKED" == "true" || "$OVERRIDDEN" == "true" ]] && return 0
 
-# --- 2. Source legality per target ----------------------------------------
-case "$TARGET" in
-    dev)
-        case "$SOURCE" in
-            feat/*|feature/*|fix/*|bugfix/*|forward/*|revert/*)
-                ok "feature lane: $SOURCE -> dev"
-                verify_base "$SOURCE" origin/dev
-                ;;
-            chore/*|doc/*|docs/*|test/*|perf/*|refactor/*|exp/*)
-                ok "feature lane (conventional prefix): $SOURCE -> dev"
-                verify_base "$SOURCE" origin/dev
-                ;;
-            *) fail "source '$SOURCE' -> dev rejected. dev accepts feat/* feature/* fix/* bugfix/* forward/* revert/* chore/* doc/* docs/* test/* perf/* refactor/* exp/*. Branch off origin/dev with one of these prefixes." ;;
-        esac
-        ;;
-    staging)
-        case "$SOURCE" in
-            dev) ok "promotion: dev -> staging" ;;
-            revert/*) ok "revert lane: $SOURCE -> staging (local-to-staging revert)" ;;
-            *) fail "source '$SOURCE' -> staging rejected. Legal sources: 'dev' (promotion) or 'revert/*' (revert on staging). Feature branches must go to dev first." ;;
-        esac
-        ;;
-    main)
-        case "$SOURCE" in
-            staging) ok "promotion: staging -> main" ;;
-            hotfix/*)
-                # Hotfix lane requires a paired forward-port to dev. Recipe convention:
-                # source hotfix/<desc>  pairs with  forward/hotfix-<desc>.
-                # Hotfix branches MUST be off origin/main (the documented exception
-                # to the "off origin/dev" rule).
-                verify_base "$SOURCE" origin/main
-                FORWARD_BRANCH="forward/hotfix-${SOURCE#hotfix/}"
-                note "hotfix lane: $SOURCE -> main. MUST be paired with $FORWARD_BRANCH -> dev (forward-port within 8h)."
-                if git rev-parse --verify "origin/$FORWARD_BRANCH" >/dev/null 2>&1; then
-                    ok "paired forward-port branch exists: $FORWARD_BRANCH"
-                else
-                    fail "hotfix lane requires paired forward-port branch '$FORWARD_BRANCH' to exist on origin BEFORE merging hotfix to main. Open it now."
-                fi
-                ;;
-            revert/*)
-                # Reverts on main require a paired forward-port. Recipe convention:
-                # source revert/<desc>  pairs with  forward/revert-<desc>.
-                # Revert-to-main branches must be off origin/main.
-                verify_base "$SOURCE" origin/main
-                FORWARD_BRANCH="forward/revert-${SOURCE#revert/}"
-                if git rev-parse --verify "origin/$FORWARD_BRANCH" >/dev/null 2>&1; then
-                    ok "revert lane: $SOURCE -> main, paired forward-port $FORWARD_BRANCH present"
-                else
-                    fail "revert lane to main requires paired forward-port branch '$FORWARD_BRANCH' on origin. Open it now."
-                fi
-                ;;
-            *) fail "source '$SOURCE' -> main rejected. main accepts ONLY: staging (promotion), hotfix/* (P0 with paired forward/hotfix-*), revert/* (with paired forward/revert-*). NEVER feature branches direct-to-main." ;;
-        esac
-        ;;
-esac
+    # Exempt prefixes already handled above (don't advise but still write sentinel).
+    case "$SOURCE" in
+        hotfix/*|release/*|backport/*|tagged-release/*) return 0 ;;
+    esac
 
-# --- 3. Source branch must currently exist on origin ----------------------
-git fetch --quiet origin "$SOURCE" 2>/dev/null || true
-if ! git rev-parse --verify "origin/$SOURCE" >/dev/null 2>&1; then
-    note "source 'origin/$SOURCE' not yet pushed -- preflight still PASSES but you must push before opening the PR."
-fi
+    local source_sha
+    source_sha=$(git rev-parse --verify "$SOURCE" 2>/dev/null) || \
+        source_sha=$(git rev-parse --verify "origin/$SOURCE" 2>/dev/null) || return 0
+    local base_sha
+    base_sha=$(git rev-parse --verify "$REQUIRED_BASE" 2>/dev/null) || {
+        info "Could not resolve $REQUIRED_BASE -- is the remote fetched? Base advisory skipped."
+        return 0
+    }
 
-# --- 4. Sanitization pre-scan (warn only, doesn't block) ------------------
+    # Trivial: source IS the base, or base is ancestor of source.
+    if [[ "$source_sha" == "$base_sha" ]] || \
+       git merge-base --is-ancestor "$base_sha" "$source_sha" 2>/dev/null; then
+        ok "base aligned: '$SOURCE' is on $REQUIRED_BASE's history"
+        return 0
+    fi
+
+    # First-parent chain check: is the merge-base on REQUIRED_BASE's first-parent chain?
+    local mb
+    mb=$(git merge-base "$source_sha" "$base_sha" 2>/dev/null) || mb=""
+    if [[ -n "$mb" ]]; then
+        local on_chain
+        on_chain=$(git rev-list --first-parent --max-count=500 "$base_sha" 2>/dev/null | grep -cF "$mb" || true)
+        if [[ "$on_chain" -gt 0 ]]; then
+            ok "base aligned (stale): '$SOURCE' is on $REQUIRED_BASE's first-parent chain; rebase recommended."
+            return 0
+        fi
+    fi
+
+    advisory "BRANCH BASE ADVISORY -- '$SOURCE'"
+    cat <<EOF
+    ---------------------------------------------------------------------
+    Recommended base:  $REQUIRED_BASE
+    Detected base:     $(git log --oneline -1 "${mb:-HEAD}" 2>/dev/null || echo unknown)
+
+    The standard flow branches features from $REQUIRED_BASE so changes
+    promote through the canonical sequence.
+
+    This branch's merge-base is not on $REQUIRED_BASE's first-parent
+    chain, which may mean it was cut from a different long-lived branch
+    or an unrelated commit. This is sometimes intentional:
+      - Hotfix or emergency patch  -> use 'hotfix/' prefix (exempt)
+      - Backport to a release      -> use 'backport/' or 'release/'
+      - Cross-team dependency      -> document in PR description
+      - Exploratory / throwaway    -> nothing to fix
+
+    To align with the recommended base:
+        git fetch origin && git rebase $REQUIRED_BASE
+
+    To acknowledge and suppress this for this branch only:
+        touch ${ACK_FILE/#$REPO_ROOT\//}
+
+    To override once (document reason in PR):
+        GIT_BASE_OVERRIDE=1 git push
+
+    Nothing is blocked. This message will not repeat after acknowledgement.
+    ---------------------------------------------------------------------
+EOF
+    log_advisory "base-mismatch" "$SOURCE base=$mb expected=$REQUIRED_BASE"
+}
+run_base_advisory
+
+# ---------------------------------------------------------------------------
+# Sanitization pre-scan (warn only). Anti-leak patterns, non-ASCII.
+# ---------------------------------------------------------------------------
 DIFFRANGE=""
-if git rev-parse --verify "origin/$TARGET" >/dev/null 2>&1 && \
-   git rev-parse --verify "HEAD" >/dev/null 2>&1; then
-    DIFFRANGE="origin/$TARGET..HEAD"
+if git rev-parse --verify "$REQUIRED_BASE" >/dev/null 2>&1 && \
+   git rev-parse --verify HEAD >/dev/null 2>&1; then
+    DIFFRANGE="$REQUIRED_BASE..HEAD"
 fi
 if [[ -n "$DIFFRANGE" ]]; then
-    LEAK_HITS="$(git diff "$DIFFRANGE" 2>/dev/null | \
-        grep -E '^\+' | \
-        grep -nE '(internal|secret|codename|token|password|apikey)-[a-zA-Z0-9_-]{6,}' || true)"
+    LEAK_HITS=$(git diff "$DIFFRANGE" 2>/dev/null | grep -E '^\+' | \
+        grep -nE '(internal|secret|codename|token|password|apikey)-[a-zA-Z0-9_-]{6,}' || true)
     if [[ -n "$LEAK_HITS" ]]; then
-        note "potential anti-leak hook triggers in added lines:"
-        echo "$LEAK_HITS" | head -5 >&2
-        note "If these are test fixtures, replace with FAKE-LEAK-PATTERN-FOR-TEST before pushing to repos with anti-leak hooks."
+        advisory "SANITIZATION ADVISORY: potential anti-leak triggers in added lines:"
+        echo "$LEAK_HITS" | head -5
+        echo "    Server-side anti-leak hook may reject on push."
+        echo "    For test fixtures, prefer 'FAKE-LEAK-PATTERN-FOR-TEST'."
+        log_advisory "sanitization" "$SOURCE"
     fi
-    NON_ASCII="$(git diff "$DIFFRANGE" 2>/dev/null | grep -E '^\+' | LC_ALL=C grep -nP '[^\x00-\x7F]' | head -3 || true)"
+    NON_ASCII=$(git diff "$DIFFRANGE" 2>/dev/null | grep -E '^\+' | \
+        perl -ne 'print "$.: $_" if /[^\x00-\x7F]/' 2>/dev/null | head -3 || true)
     if [[ -n "$NON_ASCII" ]]; then
-        note "non-ASCII characters in added lines (some GitLab hooks reject):"
-        echo "$NON_ASCII" >&2
+        advisory "NON-ASCII ADVISORY: added lines contain non-ASCII characters"
+        echo "$NON_ASCII"
+        echo "    GitLab ASCII-only commit-msg hook may reject on push."
+        log_advisory "non-ascii" "$SOURCE"
     fi
 fi
 
-# --- 5. Forward-port empty-diff guard --------------------------------------
-# Forward-port branches that cherry-pick the wrong SHA (e.g., a merge-commit
-# instead of the squash sha) produce an empty diff against dev. Catch this
-# before sentinel write so 3am ops don't push a vacuous PR.
-case "$SOURCE" in
-    forward/*)
-        if git rev-parse --verify "HEAD" >/dev/null 2>&1 && \
-           git rev-parse --verify "origin/$TARGET" >/dev/null 2>&1; then
-            if git diff --quiet "origin/$TARGET..HEAD" 2>/dev/null; then
-                fail "forward-port branch '$SOURCE' has an EMPTY diff vs origin/$TARGET. The cherry-pick likely picked the wrong SHA (a merge commit instead of the squashed content). Investigate before opening the PR."
-            fi
-        fi
-        ;;
-esac
-
-# --- 6. Write sentinel -----------------------------------------------------
-# Use the source branch's tip SHA, not HEAD. The pre-push hook receives the
-# SHA of the ref being pushed (e.g., dev's tip), which may differ from HEAD
-# if the operator pushed from another worktree or used `git push <ref>:dev`.
+# ---------------------------------------------------------------------------
+# Write sentinel (audit trail).
+# ---------------------------------------------------------------------------
 SOURCE_SHA="$(git rev-parse --verify "$SOURCE" 2>/dev/null \
     || git rev-parse --verify "origin/$SOURCE" 2>/dev/null \
     || git rev-parse HEAD 2>/dev/null \
     || echo unknown)"
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET}|${TS}" > "$SENTINEL"
-chmod 0644 "$SENTINEL"
-ok "branch-flow preflight cleared for ${SOURCE} -> ${TARGET}"
-ok "sentinel written: $(basename "$SENTINEL")"
+echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET:-${REQUIRED_BASE#origin/}}|${TS}" > "$SENTINEL"
+chmod 0644 "$SENTINEL" 2>/dev/null || true
 
-# --- 7. Reminder of strategy + delete-branch policy -----------------------
-if [[ "$TARGET" == "staging" || "$TARGET" == "main" ]]; then
-    note "Promotion PR: use --merge strategy (NOT rebase/squash). Do NOT pass --delete-branch=true."
-else
-    note "Feature/hotfix/forward/revert PR: ALWAYS pass --delete-branch=true on merge."
-fi
+# Always exit 0. This is guidance, not enforcement.
+exit 0

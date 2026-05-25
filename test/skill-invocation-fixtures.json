@@ -158,18 +158,18 @@
     },
     "branch-flow-gate": {
       "expected_substrings": [
-        "branch-flow-gate -- The Only Flow That Exists",
-        "Mandatory Preflight",
-        "branch-flow-preflight.sh"
+        "Trusted Advisor (auto-invoked)",
+        "strongly recommends",
+        "Every check exits 0"
       ],
       "triggers": [
-        "open a PR",
+        "create a branch",
         "ship this",
-        "promote dev to staging",
+        "deploy to prod",
         "back-sync"
       ],
-      "verified_by": "rename: merge-discipline -> branch-flow-gate per PHR",
-      "verified_at": "2026-05-24"
+      "verified_by": "advisory-mode rewrite per perplexity guidance",
+      "verified_at": "2026-05-25"
     }
   }
 }
