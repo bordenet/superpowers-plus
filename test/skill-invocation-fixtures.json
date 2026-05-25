@@ -159,15 +159,15 @@
     "merge-discipline": {
       "expected_substrings": [
         "The Only Flow That Exists",
-        "dev -> staging -> main",
-        "Feature/fix branches branch off"
+        "Mandatory Preflight",
+        "merge-discipline-preflight.sh"
       ],
       "triggers": [
         "promote dev to staging",
-        "merge to main",
+        "ship this",
         "back-sync"
       ],
-      "verified_by": "auto-seed (skill enforces single dev->staging->main flow)",
+      "verified_by": "v2 redesign after PHR rejection (mean 5.77 -> rebuild with enforcement)",
       "verified_at": "2026-05-24"
     }
   }

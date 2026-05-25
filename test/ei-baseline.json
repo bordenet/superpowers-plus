@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T02:50:51.717Z",
+  "generated_at": "2026-05-25T04:48:30.424Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -132,6 +132,15 @@
         "normalized_hash": "d8cfb672d7144697",
         "length": 363,
         "first_line": "| Mode | Symptom | Recovery |"
+      }
+    ],
+    "engineering/merge-discipline/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "8a90d56c6722560d",
+        "length": 74,
+        "first_line": "See `reference.md` for the catalogue and concrete sanitization regex list."
       }
     ],
     "engineering/micro-harsh-review/skill.md": [
