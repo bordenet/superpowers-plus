@@ -53,6 +53,12 @@ npm-debug.log*
 # Code review sentinel (written by code-review-battery, read by pre-push hook)
 # Never commit — it is HEAD-specific and machine-local
 .code-review-cleared
+# PHR sentinel (written by tools/run-phr.sh, read by pre-push Gate 4)
+# Never commit — HEAD-specific and machine-local
+.phr-cleared
+# Branch-flow sentinel (written by tools/branch-flow-preflight.sh, read by Gate 3)
+# Never commit — HEAD-specific and machine-local
+.branch-flow-cleared
 # wiki-instruction-guard local domain allowlist (org-specific, never committed)
 skills/security/wiki-instruction-guard/references/domain-allowlist-local.md
 # Local-only IP patterns for pre-commit/pre-push scanning

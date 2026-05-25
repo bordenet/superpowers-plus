@@ -39,6 +39,124 @@ NC='\033[0m'
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 BRANCH_FLOW_SENTINEL="$REPO_ROOT/.branch-flow-cleared"
+PHR_SENTINEL="$REPO_ROOT/.phr-cleared"
+
+# check_phr_sentinel(): Gate 4 -- require .phr-cleared when push range
+# touches PHR-eligible files (skill .md / docs / AGENTS.md). This closes
+# the gap where PHR was discipline-only and got skipped repeatedly.
+# Pattern mirrors check_code_review_sentinel + check_branch_flow_sentinel.
+check_phr_sentinel() {
+    local range="$1"
+    local pushed_sha="$2"
+    # $3 (optional): "no_base" -> use git log over the full history reachable
+    # from $pushed_sha (parity with Gate 1's NEW_BRANCH_NO_BASE handling). On
+    # an orphan branch with no merge-base, single-SHA diff-tree only inspects
+    # the tip and misses skill changes in earlier commits -- exactly the
+    # silent-bypass class this gate exists to close.
+    local no_base="${3:-}"
+
+    # Determine if the push touches PHR-eligible md files. Use the existing
+    # tools/md-files-changed.sh helper (single source of truth for the
+    # PHR-trigger regex; also consumed by run-battery.sh and the
+    # finishing-a-development-branch skill).
+    local md_helper="$REPO_ROOT/tools/md-files-changed.sh"
+    if [[ ! -x "$md_helper" ]]; then
+        # Helper missing -- treat as "gate not installed in this repo" and
+        # skip, but ANNOUNCE it. Silent fail-open silently regresses to the
+        # original pre-fix state where PHR was skipped.
+        echo "  [phr-gate] (skipped — tools/md-files-changed.sh not present)"
+        return 0
+    fi
+
+    # Compute changed files in the push range and filter via md-files-changed.sh.
+    # Three input shapes:
+    #   (a) "A..B" range  -> git diff
+    #   (b) single SHA (merge/root commit) -> git diff-tree --root -m
+    #   (c) NEW_BRANCH_NO_BASE -> git log --name-only -m over full tip history
+    local range_files md_files
+    if [[ "$no_base" == "no_base" ]]; then
+        range_files=$(git log --name-only -m --format="" "$pushed_sha" 2>/dev/null | grep -v '^$' | sort -u || true)
+    elif [[ "$range" == *".."* ]]; then
+        range_files=$(git diff --name-only "$range" 2>/dev/null || true)
+    else
+        range_files=$(git diff-tree --root -m --no-commit-id --name-only -r "$range" 2>/dev/null | sort -u || true)
+    fi
+    if [[ -z "$range_files" ]]; then
+        echo "  [phr-gate] (skipped — no files in push range)"
+        return 0
+    fi
+    md_files=$("$md_helper" --files "$range_files" 2>/dev/null || true)
+    if [[ -z "$md_files" ]]; then
+        echo "  [phr-gate] (skipped — no PHR-eligible md files in push)"
+        return 0
+    fi
+
+    echo "  [phr-gate] PHR-eligible md files in push:"
+    while IFS= read -r f; do
+        [[ -n "$f" ]] && echo "    - $f"
+    done <<< "$md_files"
+
+    if [[ ! -f "$PHR_SENTINEL" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: .phr-cleared sentinel missing.${NC}"
+        echo ""
+        echo "  Skill / design .md files require Progressive Harsh Review."
+        echo "  After PHR passes (>= the project's minimum score), write the sentinel:"
+        echo "    tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
+        echo ""
+        echo "  PHR is the multi-persona AI judgment gate (Junior + SeniorArch +"
+        echo "  ProdOps). It is SEPARATE from code-review-battery (automated"
+        echo "  lint/test). Both are required for skill/design changes."
+        echo ""
+        return 1
+    fi
+
+    # Parse the sentinel by reading FIRST LINE ONLY -- a multi-line file
+    # (corruption, manual edit, accidental append) must fail "format unrecognized",
+    # not produce ambiguous NF values from a multi-line awk.
+    local phr_line phr_ver phr_sha phr_verdict phr_ts phr_min field_count line_count
+    line_count=$(awk 'NF{c++} END{print c+0}' "$PHR_SENTINEL" 2>/dev/null || echo "0")
+    phr_line=$(head -n1 "$PHR_SENTINEL" 2>/dev/null || echo "")
+    field_count=$(awk -F'|' '{print NF; exit}' <<< "$phr_line")
+    IFS='|' read -r phr_ver phr_sha phr_verdict phr_ts phr_min <<< "$phr_line"
+
+    if [[ "$phr_ver" != "v1" ]] || [[ "$field_count" -ne 5 ]] || [[ "$line_count" -gt 1 ]] || \
+       [[ -z "$phr_sha" ]] || [[ -z "$phr_verdict" ]] || [[ -z "$phr_ts" ]] || [[ -z "$phr_min" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: PHR sentinel format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP|min-score=N).${NC}"
+        echo "    Delete .phr-cleared and re-run: tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
+        return 1
+    fi
+
+    # Only PASS clears the gate. PASS_WITH_FIXES means another round is required;
+    # REJECT means fix findings. Align with the verdict table in the PHR skill.
+    if [[ "$phr_verdict" != "PASS" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: PHR verdict was not passing (got '$phr_verdict').${NC}"
+        echo "    Only PASS clears the gate. Run another PHR round, then:"
+        # run-phr.sh truncates on write, so no manual delete needed.
+        # Suggest a concrete min-score (the project floor) so the example is paste-ready.
+        echo "      tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
+        return 1
+    fi
+
+    if [[ ! "$phr_min" =~ ^min-score=[0-9]+(\.[0-9]+)?$ ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: PHR sentinel min-score field malformed: '$phr_min'.${NC}"
+        echo "    Delete .phr-cleared and re-run: tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
+        return 1
+    fi
+
+    if [[ "$phr_sha" != "$pushed_sha" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: PHR sentinel is stale.${NC}"
+        echo "    PHR was for: ${phr_sha:0:8}"
+        echo "    Pushing:     ${pushed_sha:0:8}"
+        echo "    Commits were made after PHR. Re-run PHR then tools/run-phr.sh."
+        return 1
+    fi
+
+    # Sentinel intentionally NOT consumed here: PHR is SHA-bound, so a single
+    # PASS covers re-pushes of the same SHA (e.g., to a different remote, or
+    # retry after a transient network failure). Stale-on-amend is caught above.
+    echo -e "  ${GREEN}✓ PHR cleared: $phr_verdict ${phr_min} (${phr_sha:0:8})${NC}"
+    return 0
+}
 
 # Reads filenames from stdin, prints the first one that is classified as code,
 # or prints nothing if all files are docs/metadata. Used by both range_is_docs_only()
@@ -315,14 +433,15 @@ check_branch_flow_sentinel() {
         echo "  Run: tools/branch-flow-preflight.sh <source-branch> $target_branch"
         return 1
     fi
-    local md_ver md_sha md_source md_target
-    md_ver=$(cut -d'|' -f1 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
-    md_sha=$(cut -d'|' -f2 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
-    md_source=$(cut -d'|' -f3 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
-    md_target=$(cut -d'|' -f4 < "$BRANCH_FLOW_SENTINEL" 2>/dev/null)
-    local field_count
-    field_count=$(awk -F'|' '{print NF}' "$BRANCH_FLOW_SENTINEL" 2>/dev/null || echo "0")
-    if [[ "$md_ver" != "v1" ]] || [[ "$field_count" -ne 5 ]] || [[ -z "$md_sha" ]] || [[ -z "$md_source" ]] || [[ -z "$md_target" ]]; then
+    # Parse first line only; multi-line corruption must fail "format unrecognized"
+    # rather than produce ambiguous NF values from awk-over-whole-file.
+    local md_line md_ver md_sha md_source md_target md_ts field_count line_count
+    line_count=$(awk 'NF{c++} END{print c+0}' "$BRANCH_FLOW_SENTINEL" 2>/dev/null || echo "0")
+    md_line=$(head -n1 "$BRANCH_FLOW_SENTINEL" 2>/dev/null || echo "")
+    field_count=$(awk -F'|' '{print NF; exit}' <<< "$md_line")
+    IFS='|' read -r md_ver md_sha md_source md_target md_ts <<< "$md_line"
+    if [[ "$md_ver" != "v1" ]] || [[ "$field_count" -ne 5 ]] || [[ "$line_count" -gt 1 ]] || \
+       [[ -z "$md_sha" ]] || [[ -z "$md_source" ]] || [[ -z "$md_target" ]] || [[ -z "$md_ts" ]]; then
         echo -e "  ${RED}❌ PUSH BLOCKED: branch-flow sentinel format unrecognized (expected exactly 5 fields: v1|SHA|SOURCE|TARGET|TIMESTAMP, all non-empty).${NC}"
         return 1
     fi
@@ -383,7 +502,7 @@ while read -r _ local_sha remote_ref remote_sha; do
     echo ""
 
     # Gate 1: Code review sentinel
-    echo "  [Gate 1/2] Code review clearance"
+    echo "  [Gate 1/4] Code review clearance"
     if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
         # No merge-base found — enumerate ALL files reachable from the tip and
         # decide if the push is truly docs-only before failing closed.
@@ -435,7 +554,7 @@ while read -r _ local_sha remote_ref remote_sha; do
     echo ""
 
     # Gate 2: Proprietary IP scan (public remotes only)
-    echo "  [Gate 2/3] Proprietary IP scan"
+    echo "  [Gate 2/4] Proprietary IP scan"
     if [[ "$IS_PUBLIC_REMOTE" == "true" ]]; then
         if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
             ERRORS=$((ERRORS + 1))
@@ -449,7 +568,7 @@ while read -r _ local_sha remote_ref remote_sha; do
     # Other branches (feature/*, fix/*, hotfix/*, forward/*, etc.) are exempt
     # because they don't represent a promotion landing. The preflight script
     # writes the sentinel and the PR-create call is the action it gates.
-    echo "  [Gate 3/3] branch-flow sentinel (canonical-flow targets only)"
+    echo "  [Gate 3/4] branch-flow sentinel (canonical-flow targets only)"
     case "$pushed_branch" in
         dev|staging|main)
             if ! check_branch_flow_sentinel "$pushed_branch" "$local_sha"; then
@@ -460,6 +579,21 @@ while read -r _ local_sha remote_ref remote_sha; do
             echo "  (skipped — pushing to '$pushed_branch', not a canonical-flow branch)"
             ;;
     esac
+    echo ""
+
+    # Gate 4: PHR sentinel (only when push range touches skill/design .md files).
+    # PHR is the multi-persona AI judgment gate; SEPARATE from cr-battery
+    # (automated lint/test). Without this gate, PHR is discipline-only and
+    # gets skipped (this was a real failure mode -- see commit message).
+    echo "  [Gate 4/4] PHR sentinel (skill/design .md only)"
+    if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
+        # Parity with Gate 1: enumerate full history, not just tip commit.
+        if ! check_phr_sentinel "$RANGE" "$local_sha" "no_base"; then
+            ERRORS=$((ERRORS + 1))
+        fi
+    elif ! check_phr_sentinel "$RANGE" "$local_sha"; then
+        ERRORS=$((ERRORS + 1))
+    fi
 done
 
 echo ""
