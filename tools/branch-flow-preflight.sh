@@ -23,6 +23,68 @@ fail() { echo -e "${RED}FAIL: $*${NC}" >&2; exit 1; }
 ok()   { echo -e "${GREEN}PASS: $*${NC}"; }
 note() { echo -e "${YELLOW}note: $*${NC}" >&2; }
 
+# verify_base(source, expected-base-ref)
+# Confirms that SOURCE was branched from EXPECTED_BASE -- the gap the
+# previous version of this script had (it checked branch NAMES not branch
+# ORIGINS). Algorithm:
+#   1. source IS the expected-base tip                                -> PASS (just-branched)
+#   2. expected-base tip is an ancestor of source                     -> PASS (branched + own commits, base unmoved)
+#   3. compare merge-bases against {dev, staging, main}:
+#      - pick the candidate whose merge-base is DESCENDANT of the
+#        others -- that's the most-recent ancestor, i.e., the branch
+#        the source was most likely cut from
+#      - if that candidate matches expected-base                      -> PASS (correctly off expected-base)
+#      - else                                                          -> FAIL (wrong-base; tell the user which one)
+verify_base() {
+    local source_ref="$1"
+    local expected_base="$2"   # e.g., "origin/dev"
+    local expected_short="${expected_base#origin/}"
+
+    local source_sha base_sha
+    source_sha=$(git rev-parse --verify "$source_ref" 2>/dev/null) || \
+        source_sha=$(git rev-parse --verify "origin/$source_ref" 2>/dev/null) || return 0
+    base_sha=$(git rev-parse --verify "$expected_base" 2>/dev/null) || return 0
+
+    # Case 1: source IS the expected-base tip.
+    if [[ "$source_sha" == "$base_sha" ]]; then
+        ok "base verified: $source_ref is at $expected_base tip"; return 0
+    fi
+
+    # Case 2: expected-base is ancestor of source (branched + own commits).
+    if git merge-base --is-ancestor "$base_sha" "$source_sha" 2>/dev/null; then
+        ok "base verified: $expected_base is an ancestor of $source_ref"
+        return 0
+    fi
+
+    # Case 3: compute merge-bases against all three candidates and pick
+    # the most-recent (the merge-base that is descendant of the others).
+    local best_short="" best_mb=""
+    for candidate in dev staging main; do
+        local cref="origin/$candidate"
+        git rev-parse --verify "$cref" >/dev/null 2>&1 || continue
+        local mb
+        mb=$(git merge-base "$source_sha" "$cref" 2>/dev/null) || continue
+        if [[ -z "$best_mb" ]]; then
+            best_mb="$mb"; best_short="$candidate"
+        elif git merge-base --is-ancestor "$best_mb" "$mb" 2>/dev/null && \
+             [[ "$best_mb" != "$mb" ]]; then
+            # mb is strictly more-recent than best_mb
+            best_mb="$mb"; best_short="$candidate"
+        fi
+    done
+
+    if [[ -z "$best_short" ]]; then
+        fail "source '$source_ref' has NO common ancestor with any canonical-flow branch (dev/staging/main). Looks branched from a completely different history."
+    fi
+
+    if [[ "$best_short" == "$expected_short" ]]; then
+        ok "base verified (inferred): $source_ref's most-recent merge-base is with $expected_base (${best_mb:0:8})"
+        return 0
+    fi
+
+    fail "source '$source_ref' appears to be branched off origin/$best_short, NOT $expected_base. Most-recent merge-base is ${best_mb:0:8} with origin/$best_short. Rebranch from $expected_base (or use the appropriate lane: hotfix/* off main, etc.)."
+}
+
 # Identical-error stop-condition helper (called as: --identical-check err1 err2)
 if [[ "${1:-}" == "--identical-check" ]]; then
     [[ $# -eq 3 ]] || fail "--identical-check requires two error strings"
@@ -84,8 +146,14 @@ esac
 case "$TARGET" in
     dev)
         case "$SOURCE" in
-            feat/*|feature/*|fix/*|bugfix/*|forward/*|revert/*) ok "feature lane: $SOURCE -> dev" ;;
-            chore/*|doc/*|docs/*|test/*|perf/*|refactor/*|exp/*) ok "feature lane (conventional prefix): $SOURCE -> dev" ;;
+            feat/*|feature/*|fix/*|bugfix/*|forward/*|revert/*)
+                ok "feature lane: $SOURCE -> dev"
+                verify_base "$SOURCE" origin/dev
+                ;;
+            chore/*|doc/*|docs/*|test/*|perf/*|refactor/*|exp/*)
+                ok "feature lane (conventional prefix): $SOURCE -> dev"
+                verify_base "$SOURCE" origin/dev
+                ;;
             *) fail "source '$SOURCE' -> dev rejected. dev accepts feat/* feature/* fix/* bugfix/* forward/* revert/* chore/* doc/* docs/* test/* perf/* refactor/* exp/*. Branch off origin/dev with one of these prefixes." ;;
         esac
         ;;
@@ -102,6 +170,9 @@ case "$TARGET" in
             hotfix/*)
                 # Hotfix lane requires a paired forward-port to dev. Recipe convention:
                 # source hotfix/<desc>  pairs with  forward/hotfix-<desc>.
+                # Hotfix branches MUST be off origin/main (the documented exception
+                # to the "off origin/dev" rule).
+                verify_base "$SOURCE" origin/main
                 FORWARD_BRANCH="forward/hotfix-${SOURCE#hotfix/}"
                 note "hotfix lane: $SOURCE -> main. MUST be paired with $FORWARD_BRANCH -> dev (forward-port within 8h)."
                 if git rev-parse --verify "origin/$FORWARD_BRANCH" >/dev/null 2>&1; then
@@ -113,6 +184,8 @@ case "$TARGET" in
             revert/*)
                 # Reverts on main require a paired forward-port. Recipe convention:
                 # source revert/<desc>  pairs with  forward/revert-<desc>.
+                # Revert-to-main branches must be off origin/main.
+                verify_base "$SOURCE" origin/main
                 FORWARD_BRANCH="forward/revert-${SOURCE#revert/}"
                 if git rev-parse --verify "origin/$FORWARD_BRANCH" >/dev/null 2>&1; then
                     ok "revert lane: $SOURCE -> main, paired forward-port $FORWARD_BRANCH present"
