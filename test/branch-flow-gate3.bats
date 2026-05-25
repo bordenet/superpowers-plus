@@ -138,3 +138,16 @@ teardown() {
     [[ "$output" == *"format unrecognized"* ]]
     [ -f .branch-flow-cleared ]
 }
+
+@test "gate3: multi-line sentinel (corruption/append) -> FAIL with format error" {
+    # Parity with pre-push-gate4.bats: a multi-line sentinel must fail
+    # "format unrecognized" rather than parse line 1 ambiguously.
+    {
+        echo "v1|abc123|feature/foo|dev|2026-05-24T00:00:00Z"
+        echo "trailing-garbage-line"
+    } > .branch-flow-cleared
+    run ./harness.sh dev abc123
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"format unrecognized"* ]]
+    [ -f .branch-flow-cleared ]  # NOT consumed on failure
+}
