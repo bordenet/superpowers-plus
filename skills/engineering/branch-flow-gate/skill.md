@@ -33,23 +33,25 @@ triggers:
   - "promote to staging"
   - "merge to main"
   - "merge to staging"
-  - "merge to dev"
   - "cherry-pick"
   - "port to"
   - "back-sync"
   - "back sync"
   - "mirror to"
-  - "hotfix"
+  - "start a hotfix"
+  - "cut a hotfix"
   - "revert on main"
   - "forward-port"
   - "forward port"
-  - "rebase"
   - "rebase onto"
 anti_triggers:
   - "merge conflict resolution"
   - "git merge upstream"
-description: "TRUSTED-ADVISOR for branch and PR hygiene. Auto-invokes when the user mentions creating a branch, opening a PR, shipping/promoting/deploying, cherry-picking, rebasing, hotfixing, or back-syncing. Suggests and explains; NEVER blocks. Every check exits 0. Three escape hatches: per-branch ack file (touch .git/base-advisory-ack-<branch>), GIT_BASE_OVERRIDE=1 env var, or use an exempt prefix (hotfix/, release/, backport/, tagged-release/). Multi-team config via .git-guidance.yml maps team/prefix to required base; defaults to origin/dev. Uses git first-parent chain to verify branch base (not naive merge-base). Advises on retry-suffix branches (-vN), back-sync/mirror naming, server-regex compliance, anti-leak fixtures, and loop-on-identical-error retries. Surfaces the same outcome a senior engineer would by looking over your shoulder -- orient, explain, suggest -- not a compliance gate."
-summary: "Trusted-advisor gate: auto-invokes on branch/PR/promotion intent. Always exits 0. Suggests; never blocks. Run tools/branch-flow-preflight.sh before branch creation / PR / push."
+  - "git pull --rebase"
+  - "interactive rebase"
+  - "rebase this comment"
+description: "Trusted-advisor gate for branch and PR hygiene. Auto-invokes when the user mentions creating a branch, opening a PR, shipping/promoting/deploying, cherry-picking, rebasing, hotfixing, or back-syncing. Suggests and explains in-script (preflight always exits 0) and writes a .branch-flow-cleared sentinel that pre-push Gate 3 hard-consumes on pushes to dev/staging/main. Three escape hatches: per-branch ack file (touch .git/base-advisory-ack-<branch>), GIT_BASE_OVERRIDE=1 env var, or use an exempt prefix (hotfix/, release/, backport/, tagged-release/) which is exempt from the base-alignment advisory and typically does not target dev/staging/main. Multi-team config via .git-guidance.yml (currently only default_base is read). Uses git first-parent chain to verify branch base (not naive merge-base). Advises on retry-suffix branches (-vN), back-sync/mirror naming, server-regex compliance, anti-leak fixtures, and loop-on-identical-error retries."
+summary: "Branch/PR-hygiene advisor: auto-invokes on intent. Preflight script always exits 0; pre-push Gate 3 refuses pushes to dev/staging/main without a valid .branch-flow-cleared sentinel. Run tools/branch-flow-preflight.sh before branch creation / PR / push."
 coordination:
   group: engineering
   order: 1
@@ -69,11 +71,13 @@ composition:
 
 > **Wrong skill?** Branch-name regex check alone -> `git-branch-conventions`. Pull before resuming work -> `branch-sync-gate`. Per-team flow specifics -> team's own documentation.
 
-**Announce at start:** "I'm using **branch-flow-gate** to advise (not block) on branch hygiene. (Auto-invoked by intent. Exits 0 either way.)"
+**Announce at start:** "I'm using **branch-flow-gate** to advise on branch hygiene. (Auto-invoked by intent. The preflight script never blocks; the sentinel it writes is consumed by pre-push Gate 3 on pushes to dev/staging/main.)"
 
 ## Core Principle
 
-This skill **strongly recommends** branching patterns that keep teams aligned but **never mandates or precludes** deviation when a developer has a valid reason. Every check exits 0. Every advisory includes an explicit escape hatch. The goal is the same outcome a senior engineer would produce by looking over your shoulder -- orient, explain, suggest -- not a compliance gate.
+This skill **strongly recommends** branching patterns that keep teams aligned but **never mandates or precludes** deviation when a developer has a valid reason. Every advisory exits 0 from the skill / preflight script. Every advisory includes an explicit escape hatch.
+
+> **Honest disclosure -- this is advisory in-script, hard-blocking at push time.** The preflight writes a `.branch-flow-cleared` sentinel which is consumed by `pre-push` Gate 3 on pushes to `dev`/`staging`/`main`. Without a valid sentinel for the pushed SHA, Gate 3 **refuses the push**. Hotfix/release/backport branches don't push to those canonical targets so are de-facto exempt; if your flow pushes hotfixes directly to `main`, use a `hotfix/*` branch name (auto-exempt) or set `GIT_BASE_OVERRIDE=1`.
 
 ## Auto-Invocation
 
@@ -134,7 +138,7 @@ tools/branch-flow-preflight.sh <source-branch> <target-branch>
 tools/branch-flow-preflight.sh --identical-check "$ERR1" "$ERR2"
 ```
 
-Always exits 0. Writes `.branch-flow-cleared` sentinel as a check-receipt (audit trail, not enforcement).
+Always exits 0. Writes `.branch-flow-cleared` sentinel that pre-push Gate 3 consumes on pushes to `dev`/`staging`/`main`. The sentinel must match the pushed commit's SHA; missing or stale (SHA-mismatched) sentinels == refused push.
 
 ## Multi-Team Config
 
@@ -142,17 +146,9 @@ For repos with heterogeneous flows, commit `.git-guidance.yml` at the repo root:
 
 ```yaml
 default_base: origin/dev
-
-teams:
-  team-a:
-    base: origin/dev
-    exempt_prefixes: [hotfix/, release/]
-  legacy-waterfall:
-    base: origin/develop
-    exempt_prefixes: [hotfix/, tagged-release/]
 ```
 
-The script reads this file (when present) and picks the right `required_base` for the team / branch prefix. Falls back to `origin/dev` if no config or no match.
+**Currently only `default_base:` is read.** A richer per-team mapping (with `teams:` and per-team `exempt_prefixes:`) is planned but not yet implemented in `tools/branch-flow-preflight.sh`. Until then, legacy teams needing a different base must set it as the repo-wide `default_base` and use the hardcoded exempt prefixes (`hotfix/`, `release/`, `backport/`, `tagged-release/`).
 
 ## Hook Installation (advisory; not required)
 
@@ -180,7 +176,9 @@ pre-push:
 }
 ```
 
-post-checkout fires once when the branch is created (before any work is invested). pre-push fires once per push (last local chance to notice). Neither blocks.
+post-checkout fires once when the branch is created (before any work is invested). pre-push fires once per push (last local chance to notice). Neither of these advisory hooks blocks.
+
+> Note: This repo's `tools/pre-push` (installed via `tools/install-hooks.sh`) is the **authoritative** path. It runs Gate 3 which consumes `.branch-flow-cleared` and **does** block when the sentinel is missing/stale on pushes to dev/staging/main. The Lefthook/Husky integrations above are for contributors who want advisory output earlier in the workflow; they do not replace the in-tree hook. **If `tools/pre-push` is not installed in this clone, Gate 3 does not fire and pushes to dev/staging/main rely entirely on PR review** -- see reference.md F10. **Server-side enforcement (CI runners, merge-queue automation, bot merges) requires a server-side hook or branch-protection rule -- the local sentinel does not propagate.**
 
 ## Anti-Patterns to Avoid (in the skill, not the user)
 
