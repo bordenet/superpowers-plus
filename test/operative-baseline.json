@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-28T04:19:36.701Z",
+  "generated_at": "2026-05-25T02:50:51.823Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -43,11 +43,23 @@
       "hard_gate_table": 0,
       "code_fences": 1
     },
+    "engineering/dispatching-parallel-agents/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
+    },
     "engineering/evidence-adjudicator/skill.md": {
       "step_headings": 7,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 2
+    },
+    "engineering/executing-plans/skill.md": {
+      "step_headings": 3,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 0
     },
     "engineering/feature-development/skill.md": {
       "step_headings": 7,
@@ -65,7 +77,7 @@
       "step_headings": 5,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 4
+      "code_fences": 5
     },
     "engineering/git-branch-conventions/skill.md": {
       "step_headings": 0,
@@ -122,7 +134,7 @@
       "code_fences": 4
     },
     "engineering/progressive-harsh-review/skill.md": {
-      "step_headings": 6,
+      "step_headings": 7,
       "stop_markers": 0,
       "hard_gate_table": 3,
       "code_fences": 2
@@ -158,10 +170,10 @@
       "code_fences": 2
     },
     "engineering/sp-bughunt/skill.md": {
-      "step_headings": 4,
+      "step_headings": 6,
       "stop_markers": 0,
-      "hard_gate_table": 1,
-      "code_fences": 2
+      "hard_gate_table": 0,
+      "code_fences": 1
     },
     "engineering/state-consistency-investigator/skill.md": {
       "step_headings": 6,
@@ -198,6 +210,18 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 9
+    },
+    "engineering/using-git-worktrees/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 10
+    },
+    "engineering/using-superpowers/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
     },
     "engineering/verification-before-completion/skill.md": {
       "step_headings": 2,
@@ -355,6 +379,12 @@
       "hard_gate_table": 0,
       "code_fences": 1
     },
+    "productivity/screenshot/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 4
+    },
     "productivity/skill-authoring/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
@@ -370,7 +400,7 @@
     "productivity/think-twice/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
-      "hard_gate_table": 1,
+      "hard_gate_table": 3,
       "code_fences": 1
     },
     "productivity/thinking-orchestrator/skill.md": {
@@ -528,6 +558,12 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 4
+    },
+    "writing/writing-plans/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
     },
     "writing/writing-skills/skill.md": {
       "step_headings": 0,
