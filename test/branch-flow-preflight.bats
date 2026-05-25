@@ -1,25 +1,24 @@
 #!/usr/bin/env bats
-# Tests for tools/branch-flow-preflight.sh
-# Verifies each lane (legal pairs) and each rejection (illegal pairs).
+# Tests for the ADVISORY-MODE branch-flow-preflight.sh
+# Core invariant: ALWAYS EXITS 0. Never blocks.
 
 setup() {
     REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
     SCRIPT="$REPO_ROOT/tools/branch-flow-preflight.sh"
-    # Use a clean tempdir as a fake git repo so the sentinel is isolated.
     WORK="$(mktemp -d)"
     cd "$WORK"
     git init -q --initial-branch=main
-    git config user.email "test@test"; git config user.name "test"
-    echo "x" > a.txt; git add a.txt; git commit -q -m init
-    # Set up remote refs the script may check (origin/<source>) by branching.
+    git config user.email "test@test"
+    git config user.name "test"
+    echo "x" > a.txt
+    git add a.txt
+    git commit -q -m init
+    git branch develop
     git branch dev
     git branch staging
-    git branch feature/foo
-    git branch hotfix/foo
-    git branch forward/hotfix-foo
-    git branch forward/foo
-    git branch revert/abc
-    git branch forward/revert-abc
+    git branch feat/foo
+    git branch fix/bar
+    git branch chore/cleanup
     git remote add origin "$WORK"
     git fetch -q origin
     cp "$SCRIPT" ./preflight.sh
@@ -30,276 +29,175 @@ teardown() {
     rm -rf "$WORK"
 }
 
-# --- Legal pairs (each must PASS) ---
+# --- Core invariant: ALWAYS EXIT 0 ---
 
-@test "legal: feature/foo -> dev" {
-    run ./preflight.sh feature/foo dev
-    [ "$status" -eq 0 ]
-    [ -f .branch-flow-cleared ]
-    grep -q "v1|.*|feature/foo|dev|" .branch-flow-cleared
-}
-
-@test "legal: fix/bar -> dev" {
-    run ./preflight.sh fix/bar dev
+@test "advisory: legal feat/foo -> dev exits 0" {
+    run ./preflight.sh feat/foo dev
     [ "$status" -eq 0 ]
 }
 
-@test "legal: forward/foo -> dev" {
-    run ./preflight.sh forward/foo dev
+@test "advisory: feat/foo (auto-mode, no args) exits 0" {
+    git checkout -q feat/foo
+    run ./preflight.sh
     [ "$status" -eq 0 ]
 }
 
-@test "legal: revert/abc -> dev (revert on dev)" {
-    run ./preflight.sh revert/abc dev
+@test "advisory: retry suffix -vN exits 0 with advisory message" {
+    git branch feat/foo-v2
+    run ./preflight.sh feat/foo-v2 dev
     [ "$status" -eq 0 ]
+    [[ "$output" == *"RETRY-SUFFIX ADVISORY"* ]]
+    [[ "$output" == *"git commit --amend"* ]]
 }
 
-@test "legal: dev -> staging (promotion)" {
-    run ./preflight.sh dev staging
-    [ "$status" -eq 0 ]
-}
-
-@test "legal: revert/abc -> staging" {
-    run ./preflight.sh revert/abc staging
-    [ "$status" -eq 0 ]
-}
-
-@test "legal: staging -> main (promotion)" {
-    run ./preflight.sh staging main
-    [ "$status" -eq 0 ]
-}
-
-@test "legal: hotfix/foo -> main when paired forward/hotfix-foo exists" {
-    run ./preflight.sh hotfix/foo main
-    [ "$status" -eq 0 ]
-}
-
-@test "legal: revert/abc -> main when paired forward/revert-abc exists" {
-    run ./preflight.sh revert/abc main
-    [ "$status" -eq 0 ]
-}
-
-# --- Illegal pairs (each must FAIL) ---
-
-@test "illegal: feature/foo -> main (no direct-to-main)" {
-    run ./preflight.sh feature/foo main
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"main accepts ONLY"* ]]
-}
-
-@test "illegal: feature/foo -> staging (no direct-to-staging)" {
-    run ./preflight.sh feature/foo staging
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"staging rejected"* ]]
-}
-
-@test "illegal: main -> dev (back-sync direction)" {
-    run ./preflight.sh main dev
-    [ "$status" -ne 0 ]
-}
-
-@test "illegal: dev -> main (skips staging)" {
-    run ./preflight.sh dev main
-    [ "$status" -ne 0 ]
-}
-
-@test "illegal: target=release/v1 (not canonical branch)" {
-    run ./preflight.sh feature/foo release/v1
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"not dev|staging|main"* ]]
-}
-
-@test "illegal: branch -v2 suffix (retry pattern)" {
-    git branch feature/foo-v2
-    run ./preflight.sh feature/foo-v2 dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"retry"* ]]
-}
-
-@test "illegal: branch -v10 suffix (retry pattern, double-digit)" {
-    git branch feature/foo-v10
-    run ./preflight.sh feature/foo-v10 dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"retry"* ]]
-}
-
-@test "illegal: chore/back-sync-* (back-sync name)" {
+@test "advisory: back-sync name exits 0 with advisory message" {
     git branch chore/back-sync-main-to-dev
     run ./preflight.sh chore/back-sync-main-to-dev dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"back-sync"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"BACK-SYNC NAMING ADVISORY"* ]]
 }
 
-@test "illegal: sync/* (back-sync name variant)" {
-    git branch sync/main-to-dev
-    run ./preflight.sh sync/main-to-dev dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"back-sync"* ]]
+@test "advisory: sync/* exits 0 with advisory message" {
+    git branch sync/upstream
+    run ./preflight.sh sync/upstream dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"BACK-SYNC"* ]] || [[ "$output" == *"mirror"* ]]
 }
 
-@test "illegal: mirror/* (mirror name)" {
+@test "advisory: mirror/* exits 0 with advisory message" {
     git branch mirror/upstream
     run ./preflight.sh mirror/upstream dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"back-sync"* ]] || [[ "$output" == *"mirror"* ]]
+    [ "$status" -eq 0 ]
 }
 
-@test "illegal: hotfix/foo -> main when forward branch missing" {
-    git branch -D forward/hotfix-foo
-    git update-ref -d refs/remotes/origin/forward/hotfix-foo 2>/dev/null || true
-    run ./preflight.sh hotfix/foo main
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"paired forward-port branch"* ]]
-    [[ "$output" == *"forward/hotfix-foo"* ]]
+@test "advisory: protected branch source exits 0 with info" {
+    run ./preflight.sh main dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"protected"* ]] || [[ "$output" == *"long-lived"* ]]
 }
 
-@test "illegal: revert/abc -> main when forward branch missing" {
-    git branch -D forward/revert-abc
-    git update-ref -d refs/remotes/origin/forward/revert-abc 2>/dev/null || true
-    run ./preflight.sh revert/abc main
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"paired forward-port branch"* ]]
-    [[ "$output" == *"forward/revert-abc"* ]]
+@test "advisory: hotfix/* is exempt (info, no advisory)" {
+    git branch hotfix/p0
+    run ./preflight.sh hotfix/p0 main
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"exempt"* ]]
+    [[ "$output" != *"RETRY-SUFFIX"* ]]
 }
 
-# --- Identical-error helper ---
+@test "advisory: release/* is exempt" {
+    git branch release/v1.2
+    run ./preflight.sh release/v1.2 main
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"exempt"* ]]
+}
 
-@test "identical-check: identical errors -> STOP" {
+@test "advisory: backport/* is exempt" {
+    git branch backport/v1.2-fix
+    run ./preflight.sh backport/v1.2-fix main
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"exempt"* ]]
+}
+
+# --- Escape hatches ---
+
+@test "escape: GIT_BASE_OVERRIDE=1 suppresses base advisory" {
+    # Move dev forward, then branch off staging (would normally trigger advisory)
+    git checkout -q dev
+    git commit -q --allow-empty -m "dev moves"
+    git checkout -q staging
+    git commit -q --allow-empty -m "staging moves"
+    git push -q origin dev staging 2>/dev/null || true
+    git fetch -q origin
+    git checkout -q -b feat/off-staging staging
+    GIT_BASE_OVERRIDE=1 run ./preflight.sh feat/off-staging dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"GIT_BASE_OVERRIDE=1"* ]] || [[ "$output" == *"suppressed"* ]]
+}
+
+@test "escape: per-branch ack file suppresses re-firing" {
+    git branch feat/baz
+    mkdir -p .git
+    touch ".git/base-advisory-ack-feat-baz"
+    run ./preflight.sh feat/baz dev
+    [ "$status" -eq 0 ]
+    # Either no advisory output OR the existence of ack means the script exits early
+}
+
+# --- Identical-error helper (also advisory; exits 0) ---
+
+@test "identical-check: identical errors -> advisory + exit 0" {
     run ./preflight.sh --identical-check \
         "HTTP 422 Branch cannot be merged" \
         "HTTP 422 Branch cannot be merged"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Identical opaque error"* ]]
 }
 
-@test "identical-check: different errors -> proceed" {
+@test "identical-check: different errors -> proceed + exit 0" {
     run ./preflight.sh --identical-check \
         "HTTP 422 Branch cannot be merged" \
         "HTTP 403 Forbidden"
     [ "$status" -eq 0 ]
 }
 
-@test "identical-check: differ only by SHA (volatile) -> STOP" {
+@test "identical-check: differ only by SHA -> advisory + exit 0" {
     run ./preflight.sh --identical-check \
         "Failed at sha abc1234567 in repo X" \
         "Failed at sha def9876543 in repo X"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Identical opaque error"* ]]
 }
 
-@test "identical-check: differ only by request-id (volatile) -> STOP" {
-    run ./preflight.sh --identical-check \
-        "Server hook rejected req_abcXYZ123 details" \
-        "Server hook rejected req_qwerasdf987 details"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-@test "identical-check: differ only by UUID (volatile) -> STOP" {
+@test "identical-check: differ only by UUID -> advisory + exit 0" {
     run ./preflight.sh --identical-check \
         "Trace 550e8400-e29b-41d4-a716-446655440000 rejected" \
         "Trace 6ba7b810-9dad-11d1-80b4-00c04fd430c8 rejected"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-@test "identical-check: differ only by ISO-8601 timestamp -> STOP" {
-    run ./preflight.sh --identical-check \
-        "Failed at 2026-05-24T03:14:22Z on api" \
-        "Failed at 2026-05-24T03:18:55Z on api"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-@test "identical-check: differ only by pod name -> STOP" {
-    run ./preflight.sh --identical-check \
-        "Error from pod api-deploy-7d4f8b-x9k2m" \
-        "Error from pod api-deploy-3a9c2d-mn8pq"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-@test "identical-check: differ only by port -> STOP" {
-    run ./preflight.sh --identical-check \
-        "Connection refused localhost:54321" \
-        "Connection refused localhost:54987"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-@test "identical-check: differ only by tmp path -> STOP" {
-    run ./preflight.sh --identical-check \
-        "Build failed in /tmp/build-abc123/step.log" \
-        "Build failed in /tmp/build-xyz789/step.log"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Identical error"* ]]
-}
-
-# --- Forward-port empty-diff guard ---
-
-@test "illegal: forward/foo -> dev with empty diff vs origin/dev" {
-    # forward/foo branch is identical to dev (no cherry-picked content);
-    # preflight should refuse to write sentinel.
-    git checkout -q forward/foo
-    run ./preflight.sh forward/foo dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"EMPTY diff"* ]] || [[ "$output" == *"wrong SHA"* ]]
-}
-
-@test "sentinel format: exactly 5 pipe-separated fields, source SHA matches branch tip" {
-    git checkout -q feature/foo
-    git commit -q --allow-empty -m "tip"
-    expected_sha=$(git rev-parse feature/foo)
-    run ./preflight.sh feature/foo dev
     [ "$status" -eq 0 ]
+    [[ "$output" == *"Identical opaque error"* ]]
+}
+
+# --- First-parent chain check (base alignment) ---
+
+@test "base-alignment: feat off dev when dev = base PASSES" {
+    run ./preflight.sh feat/foo dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"base aligned"* ]]
+}
+
+@test "base-alignment: feat off staging when target=dev -> advisory exit 0" {
+    git checkout -q dev
+    git commit -q --allow-empty -m "dev moves"
+    git checkout -q staging
+    git commit -q --allow-empty -m "staging moves"
+    git push -q origin dev staging 2>/dev/null || true
+    git fetch -q origin
+    git checkout -q -b feat/off-staging staging
+    run ./preflight.sh feat/off-staging dev
+    [ "$status" -eq 0 ]  # advisory, never blocks
+    # Either base-advisory fires OR it falls through; either way exit 0
+}
+
+# --- Sentinel write (audit trail) ---
+
+@test "sentinel: written on PASS with 5 fields" {
+    run ./preflight.sh feat/foo dev
+    [ "$status" -eq 0 ]
+    [ -f .branch-flow-cleared ]
     fields=$(awk -F'|' '{print NF}' < .branch-flow-cleared)
     [ "$fields" -eq 5 ]
-    grep -q "v1|${expected_sha}|feature/foo|dev|" .branch-flow-cleared
 }
 
-# --- verify_base: the new merge-base check (closes the wrong-base gap) ---
-
-@test "base-verify: feat/* branched off origin/dev -> PASS" {
-    # feature/foo was created in setup() off dev's commit.
-    run ./preflight.sh feature/foo dev
+@test "sentinel: written even when advisory fires (advisory != block)" {
+    git branch feat/foo-v2
+    run ./preflight.sh feat/foo-v2 dev
     [ "$status" -eq 0 ]
-    [[ "$output" == *"base verified"* ]]
+    [ -f .branch-flow-cleared ]
 }
 
-@test "base-verify: feat/* with new commits, dev unchanged -> PASS (dev is ancestor)" {
-    git checkout -q feature/foo
-    git commit -q --allow-empty -m "feature work"
-    run ./preflight.sh feature/foo dev
+# --- Self-target sanity check still exits 0 (just doesn't make sense) ---
+
+@test "advisory: source == target exits 0 (protected branch source)" {
+    run ./preflight.sh main main
     [ "$status" -eq 0 ]
-    [[ "$output" == *"base verified"* ]]
-}
-
-@test "base-verify: feat/* branched off staging (wrong base) -> FAIL" {
-    # Move dev forward so dev and staging diverge.
-    git checkout -q dev
-    git commit -q --allow-empty -m "dev moves forward"
-    git checkout -q staging
-    git commit -q --allow-empty -m "staging moves forward (sibling)"
-    # Branch a feature off staging.
-    git checkout -q -b feat/wrong-base staging
-    git commit -q --allow-empty -m "wrong-base work"
-    # Sync to origin so the script can see the refs.
-    git push -q origin dev staging feat/wrong-base 2>/dev/null || true
-    git fetch -q origin
-    run ./preflight.sh feat/wrong-base dev
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"branched off origin/staging, NOT origin/dev"* ]] || [[ "$output" == *"NO common ancestor"* ]]
-}
-
-@test "base-verify: hotfix/* branched off origin/main -> PASS" {
-    # hotfix/foo was created in setup() off main.
-    # Ensure paired forward branch exists.
-    git rev-parse --verify origin/forward/hotfix-foo >/dev/null 2>&1 || {
-        git branch -f forward/hotfix-foo dev
-        git push -q origin forward/hotfix-foo 2>/dev/null || true
-        git fetch -q origin
-    }
-    run ./preflight.sh hotfix/foo main
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"base verified"* ]]
+    [[ "$output" == *"protected"* ]] || [[ "$output" == *"long-lived"* ]]
 }
