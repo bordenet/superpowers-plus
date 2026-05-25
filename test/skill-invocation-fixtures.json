@@ -156,18 +156,19 @@
       "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
       "verified_at": "2026-04-29"
     },
-    "merge-discipline": {
+    "branch-flow-gate": {
       "expected_substrings": [
-        "The Only Flow That Exists",
+        "branch-flow-gate -- The Only Flow That Exists",
         "Mandatory Preflight",
-        "merge-discipline-preflight.sh"
+        "branch-flow-preflight.sh"
       ],
       "triggers": [
-        "promote dev to staging",
+        "open a PR",
         "ship this",
+        "promote dev to staging",
         "back-sync"
       ],
-      "verified_by": "v2 redesign after PHR rejection (mean 5.77 -> rebuild with enforcement)",
+      "verified_by": "rename: merge-discipline -> branch-flow-gate per PHR",
       "verified_at": "2026-05-24"
     }
   }
