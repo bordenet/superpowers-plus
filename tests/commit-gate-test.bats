@@ -920,8 +920,10 @@ EOF
     # survive so bash tools/pre-push can be invoked from the fixture root).
     git -C "$fixture" checkout --orphan docs-orphan -q
     git -C "$fixture" rm -r --cached . -q
-    printf '# Docs only\n' > "$fixture/DOCS.md"
-    git -C "$fixture" add DOCS.md
+    # Use README.md (PHR-excluded per md-files-changed.sh) so this cr-battery
+    # docs-only exemption test isn't incidentally caught by Gate 4 (PHR).
+    printf '# Docs only\n' > "$fixture/README.md"
+    git -C "$fixture" add README.md
     git -C "$fixture" commit -q -m "docs: orphan branch with docs only"
     local local_sha zero_sha
     local_sha=$(git -C "$fixture" rev-parse HEAD)
