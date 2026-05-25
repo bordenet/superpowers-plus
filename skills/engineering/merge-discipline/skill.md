@@ -1,0 +1,212 @@
+---
+name: merge-discipline
+source: superpowers-plus
+augment_menu: true
+triggers:
+  - "promote dev"
+  - "promote staging"
+  - "promote to main"
+  - "merge to main"
+  - "merge to staging"
+  - "merge to dev"
+  - "dev to staging"
+  - "staging to main"
+  - "ship this"
+  - "ship it"
+  - "deploy this"
+  - "release this"
+  - "release to staging"
+  - "push this to prod"
+  - "land this"
+  - "get this out"
+  - "ready to merge"
+  - "open a PR"
+  - "open an MR"
+  - "merge request"
+  - "branch protection"
+  - "cherry-pick"
+  - "port to"
+  - "port PR"
+  - "back-sync"
+  - "back sync"
+  - "mirror to"
+  - "hotfix"
+  - "revert on main"
+  - "forward-port"
+  - "forward port"
+  - "rebase"
+  - "rebase onto"
+  - "rebase staging"
+  - "rebase main"
+anti_triggers:
+  - "merge conflict resolution"
+  - "git merge upstream"
+description: "MANDATORY gate before creating a branch, opening a PR, or pushing to a canonical-flow target. Enforces the flow: feature/fix off dev -> PR to dev -> QA -> dev to staging -> QA -> staging to main. Defines hotfix/bot/revert lanes with forward-port requirements. Runs tools/merge-discipline-preflight.sh to validate (source, target) and write .merge-discipline-cleared sentinel. IMPORTANT: Local pre-push Gate 3 fires only on direct `git push` to dev/staging/main from your machine. PR merges via gh/glab UI/API are SERVER-SIDE and bypass this gate; rely on server-side branch protection for them. Prevents branch sprawl, sibling-SHA, back-sync, retry-spiral patterns."
+summary: "Three branches: dev, staging, main. One forward direction. Four lanes (feature/hotfix/bot/revert), each with explicit forward-port. tools/merge-discipline-preflight.sh enforces (source, target) before any PR. No -v2 retries. No mirrors. Delete feature branches on merge, never promotion branches."
+coordination:
+  group: engineering
+  order: 1
+  requires: ["branch-sync-gate"]
+  enables: ["finishing-a-development-branch", "progressive-code-review-gate"]
+  internal: false
+composition:
+  consumes: [source-branch, target-branch, repo-policy]
+  produces: [preflight-sentinel, merge-plan, sanitization-report]
+  capabilities: [preflight-enforcement, lane-validation, sequence-planning, sanitization-scan]
+  priority: 100
+  optional: false
+  requires_all: false
+---
+
+# merge-discipline -- The Only Flow That Exists
+
+> **Wrong skill?** Single feature PR ceremony -> `finishing-a-development-branch`. Pre-commit code review -> `progressive-code-review-gate`. Pull before resuming -> `branch-sync-gate`.
+
+**Announce at start:** "I'm using **merge-discipline**. Running preflight before any branch action. (Local Gate 3 covers direct pushes; PR/UI merges rely on server-side branch protection.)"
+
+## The Canonical Flow
+
+```text
+feature/* or fix/*   --PR-->  dev  --QA-->  PR-->  staging  --QA-->  PR-->  main
+```
+
+Three branches. One direction. Four lanes (this section + reference.md):
+
+| Lane | When | Source pattern | Target | Forward-port |
+|---|---|---|---|---|
+| **feature** | Normal work | `feat/*`, `feature/*`, `fix/*`, `bugfix/*`, `chore/*`, `doc(s)/*`, `test/*`, `perf/*`, `refactor/*`, `exp/*` (off `dev`) | `dev` | n/a (already canonical) |
+| **hotfix** | P0 prod bug | `hotfix/*` (off `main`) | `main` | REQUIRED paired `forward/hotfix-*` to dev (enforced: preflight refuses hotfix PR until the forward branch exists on origin). Wall-clock SLA for the forward-port merge: 8h, advisory. |
+| **bot** | Dependabot/Renovate landing on main | bot branch on main | `main` (accepted) | REQUIRED `forward/bot-*` to dev. SLA 8h, advisory. |
+| **revert** | Bad merge to undo | `revert/*` (off the affected branch tip) | The branch where the bad merge landed | REQUIRED paired `forward/revert-*` to dev if reverting on main (enforced by preflight). SLA 8h, advisory. |
+
+A "forward-port" is a normal feature-lane PR -- `forward/*` off `dev`, target `dev`, picking the file diff that landed out-of-band. Forward-ports re-enter the canonical flow forward; they are NOT back-syncs.
+
+## Mandatory Preflight (BEFORE every branch creation or PR)
+
+```bash
+# 1. Run the preflight script with intended (source, target). Refuses bad pairs.
+tools/merge-discipline-preflight.sh <source-branch> <target-branch>
+# Exits 0 + writes .merge-discipline-cleared on PASS.
+# Exits non-zero on FAIL with a specific reason.
+
+# 2. Confirm branch protection on target (informational)
+gh api repos/<owner>/<repo>/branches/<target>/protection | jq .
+
+# 3. For cross-repo cherry-picks ONLY: sanitization scan
+FILES="$(git diff --name-only origin/<target>..HEAD)"
+git diff origin/<target>..HEAD | grep -E '^\+' | \
+    grep -nE '(internal|secret|codename|token)-[a-z0-9-]{6,}'
+git diff origin/<target>..HEAD | grep -E '^\+' | \
+    LC_ALL=C grep -nP '[^\x00-\x7F]'  # non-ASCII (GitLab hooks reject)
+# Fix any hits before pushing. See reference.md sanitization recipe.
+```
+
+The preflight script enforces:
+- `target in {dev, staging, main}`
+- `feature/*` and `fix/*` -> only `dev`
+- `dev` -> only `staging`
+- `staging` -> only `main`
+- `hotfix/*` -> `main` (and a paired `forward/hotfix-*` MR must exist)
+- `revert/*` -> matches its base (paired forward-port required if reverting on main)
+- `forward/*` -> only `dev`
+- ANY OTHER (source, target) PAIR IS REJECTED.
+
+## Mandatory Behaviors
+
+1. **Run the preflight script BEFORE every branch creation or PR.** Without `.merge-discipline-cleared` for the planned (source, target), do not proceed. **The sentinel is single-use per push** -- once you push and the gate passes, re-run the preflight for the NEXT promotion or PR. Pre-push hook reads the sentinel and refuses if SHA or target differs.
+
+2. **`--delete-branch=true` ONLY on feature/fix/forward/hotfix/revert branches.** NEVER on `dev`, `staging`, or `main`. Promotion PRs (`dev -> staging`, `staging -> main`) leave the source intact.
+
+3. **`--merge` strategy on promotion PRs.** Preserves ancestry. Never rebase (creates sibling SHAs). Never squash on promotions (loses provenance).
+
+4. **Fix the existing branch on a failed merge.** `git commit --amend` or new commit + `git push --force-with-lease`. NEVER create `-v2`, `-v3`.
+
+5. **Stop on the SECOND identical opaque error.** "Identical" = same HTTP status code AND same error-body substring after stripping IDs/timestamps. Diagnose: sanitize, retarget legality (NEVER cross lanes without user opt-in), platform paths.
+
+6. **Bot landings on main require forward-port; SLA 8h advisory.** Land at 02:00 -> open `forward/bot-<pkg>` -> `dev` ideally within 8h. The skill does NOT auto-enforce this SLA; the existence-of-forward-branch gate only fires on the hotfix/revert PR itself (preflight refuses the hotfix-to-main PR until paired forward branch exists). For bot landings (already merged to main), the SLA is a human-tracked obligation. If skipped, log a follow-up issue.
+
+7. **NEVER target staging or main from a feature/fix/hotfix-without-paired-forward branch.** The preflight will refuse; do not bypass.
+
+## Red Flags (you are about to break the flow)
+
+| Thought | Reality |
+|---------|---------|
+| "I'll branch off staging just this once" | Preflight will refuse. Off dev only. |
+| "I'll target main directly because it's just a dep bump" | That's the bot lane. Bot config retargets to dev OR you open a forward-port within shift. |
+| "I need to back-sync main to dev" | This is a forward-port (different concept). Open `forward/bot-*` or `forward/hotfix-*` to dev. |
+| "I'll create chore/promote-X-to-Y-v2" | Fix v1 in place. `git push --force-with-lease`. |
+| "Rebase-merge will be cleaner" | Sibling SHAs. Use --merge on promotions. |
+| "I'll force-push to dev to clean it up" | Branch protection blocks it. Preflight does NOT cover raw `git push --force` (only PRs). Server-side protection is the only backstop -- if it doesn't refuse, STOP and escalate. |
+| "I'll merge via the GitHub/GitLab UI to bypass the pre-push hook" | The local pre-push Gate 3 fires only on direct `git push` from your machine. Server-side PR merges (gh/glab) DO NOT traverse it. Server-side branch protection + required status checks are the only enforcement for UI/API merges; if they aren't configured, the gate is bypassable. |
+| "Same error twice, but this retry will work" | No. Stop. Diagnose: sanitization, retarget lane legality, platform paths. |
+| "Test fixture needs a realistic secret string" | No. `FAKE-LEAK-PATTERN-FOR-TEST`. The hook config writes the pattern at test time. |
+
+## Identical-Error Stop Condition (concrete)
+
+After a merge or push failure, before retrying:
+
+```bash
+# Capture the error once
+ERR1="$(... | head -c 1000)"
+# After change-one-variable + retry:
+ERR2="$(... | head -c 1000)"
+# Strip volatile bits
+NORM1="$(echo "$ERR1" | sed -E 's/[0-9a-f]{8,40}//g; s/[0-9]{10,}//g')"
+NORM2="$(echo "$ERR2" | sed -E 's/[0-9a-f]{8,40}//g; s/[0-9]{10,}//g')"
+[[ "$NORM1" == "$NORM2" ]] && { echo "Identical error. STOP. Escalate."; exit 1; }
+```
+
+`tools/merge-discipline-preflight.sh --identical-check` runs this for you.
+
+## Hotfix Recipe (P0 production)
+
+```bash
+# 1. Branch off main (the ONE legal direct-off-main case) and fix
+git checkout -B hotfix/<short-desc> origin/main
+# ... edits, commit ...
+git push -u origin hotfix/<short-desc>
+# 2. FORWARD-PORT BRANCH FIRST (preflight requires it to exist on origin):
+git checkout -B forward/hotfix-<short-desc> origin/dev
+git cherry-pick <hotfix-commit-sha>
+git push -u origin forward/hotfix-<short-desc>
+tools/merge-discipline-preflight.sh forward/hotfix-<short-desc> dev
+gh pr create --head forward/hotfix-<short-desc> --base dev \
+  --title "forward-port: hotfix <short-desc>"
+# 3. NOW open the hotfix PR (preflight verifies the forward branch exists):
+tools/merge-discipline-preflight.sh hotfix/<short-desc> main
+gh pr create --head hotfix/<short-desc> --base main \
+  --title "hotfix: <short-desc>"
+# 4. Merge both within 8h. --delete-branch=true on both.
+```
+
+The forward-port must merge within 8h. If skipped, log a follow-up issue with explicit SLA and notify the user. Do not silently leave dev divergent.
+
+## Bot Landing Recovery (Dependabot/Renovate on main)
+
+```bash
+# 1. After bot PR lands on main, immediately open forward-port:
+git checkout -B forward/bot-<pkg>-<ver> origin/dev
+git cherry-pick <bot-merge-sha>
+# 2. PR to dev within the shift:
+gh pr create --head forward/bot-<pkg>-<ver> --base dev \
+  --title "forward-port: bot bump of <pkg> from main"
+```
+
+Long-term: retarget the bot to `dev` (`.github/dependabot.yml: target-branch: dev`).
+
+## When the Flow Was Broken Before You Arrived
+
+If you inherit divergence (e.g., main has commits dev/staging lack):
+1. ASK the user how to reconcile. Do NOT autonomously open back-syncs.
+2. Acceptable options (user picks): revert the off-flow commit; one-time documented convergence forward-port via dev; accept the divergence and document.
+3. Resume canonical flow from the chosen base state.
+
+## Failure Modes
+
+See `reference.md` for the catalogue and concrete sanitization regex list.
+
+## Companion Skills
+
+- `branch-sync-gate` -- pull-gate (REQUIRED before merge-discipline)
+- `finishing-a-development-branch` -- single-branch feature ceremony (this skill gates its Step 3)
+- `progressive-code-review-gate` -- cr-battery + sentinel
