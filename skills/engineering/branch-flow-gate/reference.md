@@ -113,6 +113,16 @@ enters this repo's canonical flow (whatever YOUR team's flow is).
 Source branches accumulate. The network graph fills.
 **Fix:** Always pass `--remove-source-branch` on `glab mr merge`.
 
+### F9. Stale `.branch-flow-cleared` sentinel after additional commits
+
+Pre-push Gate 3 pins the sentinel to a specific SHA. Any commit (including `--amend`, `--fixup`, `rebase -i`) after running the preflight invalidates the sentinel; the next push to dev/staging/main fails with `branch-flow sentinel SHA != pushed SHA. Branch tip moved since preflight.`
+**Fix:** Re-run `tools/branch-flow-preflight.sh <source> <target>` after every commit immediately before pushing. In a fast-iteration debug loop, defer running the preflight until you are ready to push the final commit.
+
+### F10. Preflight script missing in this clone
+
+If `tools/branch-flow-preflight.sh` is not installed (fresh clone, partial sync, or a downstream consumer), the skill's "Mandatory Preflight" instructions point at a phantom command. Pre-push Gate 3 detects this and skips with `(skipped - tools/branch-flow-preflight.sh not present in this repo)`.
+**Fix:** Run `tools/install-hooks.sh` (or the equivalent install path for your platform) to materialize the script and the hook. Until then, pushes to dev/staging/main land without the gate firing -- relying entirely on PR review.
+
 ## Sanitization (for cross-repo cherry-picks)
 
 ```bash
