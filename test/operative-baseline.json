@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T02:50:51.823Z",
+  "generated_at": "2026-05-25T04:48:30.512Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -108,6 +108,12 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 1
+    },
+    "engineering/merge-discipline/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 5
     },
     "engineering/micro-harsh-review/skill.md": {
       "step_headings": 0,

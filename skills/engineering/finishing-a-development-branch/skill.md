@@ -140,7 +140,7 @@ Which option?
 
 **Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree.
 
-**Option 2 (Push and create PR):** Push branch → create PR → cleanup worktree. Note: `unified-commit-gate` (push mode) fires before push.
+**Option 2 (Push and create PR):** First, run `tools/merge-discipline-preflight.sh <current-branch> <base-branch>` to validate the (source, target) pair against the canonical flow and write `.merge-discipline-cleared`. The pre-push hook reads this sentinel and refuses pushes to dev/staging/main without it. Then push branch → create PR → cleanup worktree. Note: `unified-commit-gate` (push mode) fires before push.
 
 **Option 3 (Keep as-is):** Report status. Keep worktree.
 
