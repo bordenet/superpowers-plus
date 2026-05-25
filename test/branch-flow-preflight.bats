@@ -256,3 +256,50 @@ teardown() {
     [ "$fields" -eq 5 ]
     grep -q "v1|${expected_sha}|feature/foo|dev|" .branch-flow-cleared
 }
+
+# --- verify_base: the new merge-base check (closes the wrong-base gap) ---
+
+@test "base-verify: feat/* branched off origin/dev -> PASS" {
+    # feature/foo was created in setup() off dev's commit.
+    run ./preflight.sh feature/foo dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"base verified"* ]]
+}
+
+@test "base-verify: feat/* with new commits, dev unchanged -> PASS (dev is ancestor)" {
+    git checkout -q feature/foo
+    git commit -q --allow-empty -m "feature work"
+    run ./preflight.sh feature/foo dev
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"base verified"* ]]
+}
+
+@test "base-verify: feat/* branched off staging (wrong base) -> FAIL" {
+    # Move dev forward so dev and staging diverge.
+    git checkout -q dev
+    git commit -q --allow-empty -m "dev moves forward"
+    git checkout -q staging
+    git commit -q --allow-empty -m "staging moves forward (sibling)"
+    # Branch a feature off staging.
+    git checkout -q -b feat/wrong-base staging
+    git commit -q --allow-empty -m "wrong-base work"
+    # Sync to origin so the script can see the refs.
+    git push -q origin dev staging feat/wrong-base 2>/dev/null || true
+    git fetch -q origin
+    run ./preflight.sh feat/wrong-base dev
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"branched off origin/staging, NOT origin/dev"* ]] || [[ "$output" == *"NO common ancestor"* ]]
+}
+
+@test "base-verify: hotfix/* branched off origin/main -> PASS" {
+    # hotfix/foo was created in setup() off main.
+    # Ensure paired forward branch exists.
+    git rev-parse --verify origin/forward/hotfix-foo >/dev/null 2>&1 || {
+        git branch -f forward/hotfix-foo dev
+        git push -q origin forward/hotfix-foo 2>/dev/null || true
+        git fetch -q origin
+    }
+    run ./preflight.sh hotfix/foo main
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"base verified"* ]]
+}
