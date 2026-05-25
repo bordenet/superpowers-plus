@@ -1,16 +1,3 @@
-
-⚠️  BOOTSTRAP NOT RUN — Skills are degraded without session context.
-
-You MUST bootstrap before using skills. Run this FIRST:
-
-  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
-
-Then retry: node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spp:branch-flow-gate
-
-WHY: Bootstrap establishes session context, priority ordering,
-and red-flag detection. Without it, skills fire in isolation
-without the meta-framework that makes them effective.
-
 # Skill: spp:branch-flow-gate
 
 # branch-flow-gate -- The Only Flow That Exists
@@ -57,6 +44,8 @@ The preflight script enforces:
 - `revert/*` -> matches its base (paired forward-port required if reverting on main)
 - `forward/*` -> only `dev`
 - ANY OTHER (source, target) PAIR IS REJECTED.
+
+**Plus**: a `verify_base()` check confirms the source branch was actually **branched off the expected base** (feature/fix/forward branches off `origin/dev`; hotfix/revert-to-main off `origin/main`). The check uses `git merge-base` against all three canonical refs and picks the most-recent ancestor. A branch named `feat/foo` that was actually cut from `origin/staging` is REFUSED with a precise error naming the inferred base. This closes the gap where the previous version validated branch NAMES but not branch ORIGINS.
 ## Mandatory Behaviors
 1. **Run the preflight script BEFORE every branch creation or PR.** Without `.branch-flow-cleared` for the planned (source, target), do not proceed. **The sentinel is single-use per push** -- once you push and the gate passes, re-run the preflight for the NEXT promotion or PR. Pre-push hook reads the sentinel and refuses if SHA or target differs.
 2. **`--delete-branch=true` ONLY on feature/fix/forward/hotfix/revert branches.** NEVER on `dev`, `staging`, or `main`. Promotion PRs (`dev -> staging`, `staging -> main`) leave the source intact.

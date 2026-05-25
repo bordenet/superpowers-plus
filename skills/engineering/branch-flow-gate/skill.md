@@ -118,6 +118,8 @@ The preflight script enforces:
 - `forward/*` -> only `dev`
 - ANY OTHER (source, target) PAIR IS REJECTED.
 
+**Plus**: a `verify_base()` check confirms the source branch was actually **branched off the expected base** (feature/fix/forward branches off `origin/dev`; hotfix/revert-to-main off `origin/main`). The check uses `git merge-base` against all three canonical refs and picks the most-recent ancestor. A branch named `feat/foo` that was actually cut from `origin/staging` is REFUSED with a precise error naming the inferred base. This closes the gap where the previous version validated branch NAMES but not branch ORIGINS.
+
 ## Mandatory Behaviors
 
 1. **Run the preflight script BEFORE every branch creation or PR.** Without `.branch-flow-cleared` for the planned (source, target), do not proceed. **The sentinel is single-use per push** -- once you push and the gate passes, re-run the preflight for the NEXT promotion or PR. Pre-push hook reads the sentinel and refuses if SHA or target differs.
