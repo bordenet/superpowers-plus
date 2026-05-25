@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
-# Tests for tools/merge-discipline-preflight.sh
+# Tests for tools/branch-flow-preflight.sh
 # Verifies each lane (legal pairs) and each rejection (illegal pairs).
 
 setup() {
     REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-    SCRIPT="$REPO_ROOT/tools/merge-discipline-preflight.sh"
+    SCRIPT="$REPO_ROOT/tools/branch-flow-preflight.sh"
     # Use a clean tempdir as a fake git repo so the sentinel is isolated.
     WORK="$(mktemp -d)"
     cd "$WORK"
@@ -35,8 +35,8 @@ teardown() {
 @test "legal: feature/foo -> dev" {
     run ./preflight.sh feature/foo dev
     [ "$status" -eq 0 ]
-    [ -f .merge-discipline-cleared ]
-    grep -q "v1|.*|feature/foo|dev|" .merge-discipline-cleared
+    [ -f .branch-flow-cleared ]
+    grep -q "v1|.*|feature/foo|dev|" .branch-flow-cleared
 }
 
 @test "legal: fix/bar -> dev" {
@@ -252,7 +252,7 @@ teardown() {
     expected_sha=$(git rev-parse feature/foo)
     run ./preflight.sh feature/foo dev
     [ "$status" -eq 0 ]
-    fields=$(awk -F'|' '{print NF}' < .merge-discipline-cleared)
+    fields=$(awk -F'|' '{print NF}' < .branch-flow-cleared)
     [ "$fields" -eq 5 ]
-    grep -q "v1|${expected_sha}|feature/foo|dev|" .merge-discipline-cleared
+    grep -q "v1|${expected_sha}|feature/foo|dev|" .branch-flow-cleared
 }
