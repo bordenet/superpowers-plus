@@ -160,7 +160,7 @@
       "expected_substrings": [
         "Trusted Advisor (auto-invoked)",
         "strongly recommends",
-        "Every check exits 0"
+        "advisory in-script, hard-blocking at push time"
       ],
       "triggers": [
         "create a branch",
