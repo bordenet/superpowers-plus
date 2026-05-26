@@ -76,13 +76,13 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 |---------|---------|
 | AI ticket-modification actions | "I changed/revised/updated the description", "The description was updated to...", "Two findings were added to..." |
 | AI cognition / reasoning | "I analyzed/assessed/evaluated/concluded...", "Three hypotheses were weighed/evaluated against..." (passive form — also triggers) |
-| AI collaborative framing | "We updated/revised/added..." where "we" includes the AI |
+| AI collaborative framing | "We updated/revised/added..." (an AI author writing "we" on a ticket always includes itself) |
 | AI changelog commentary | "Update — ticket revised with N findings", "What changed: ...", "What stayed: ..." |
 | AI recommendation / directive | "I would suggest/recommend...", "A better approach would be...", "Consider refactoring..." |
 
 **Permitted first-person forms (including but not limited to) — do NOT trigger this gate:** `"I see/saw this in [artifact]: [paste]"`, `"I found/noticed X in [artifact]: [paste]"`, `"I reviewed/checked/looked at/investigated [specific artifact] and found: [paste]"`, `"I'm not sure, but it might be..."`. Not permitted even with a named artifact: *confirmed, validated, verified, determined, concluded* (epistemic action verbs, not observation verbs).
 
-**Key distinction:** observation verb + named cited artifact = PASS. Action verb on ticket/description/fields = FAIL.
+**Key distinction:** observation verb + named cited artifact = PASS. Any GATE FAIL trigger pattern = FAIL, regardless of verb type or artifact naming.
 
 **Exemption — correction comments only:** Permitted exclusively to retract a specific false factual claim:
 - PERMITTED: `"**Correction to [date] comment:** the [specific claim] is incorrect. Evidence: [citation]."`
@@ -198,7 +198,7 @@ Every claim has evidence · no fabricated timestamps/metrics · no "investigatio
 
 ## Recovery: If Bad Comment Posted
 
-1. **Add correction immediately:** `"**Correction to [date] comment:** The above contains unverified claims I generated. Please disregard — evidence is being gathered now."` After two corrections on the same factual claim → notify the user rather than posting again.
+1. **Add correction immediately:** `"**Correction to [date] comment:** the [specific claim] is incorrect. Evidence: [citation]."` After two corrections on the same factual claim → notify the user rather than posting again.
 2. **Do NOT silently edit** — timestamps don't update, future readers won't know.
 3. **Notify the user** — they should review and potentially delete.
 
