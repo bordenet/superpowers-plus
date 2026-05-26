@@ -123,6 +123,27 @@ Pre-push Gate 3 pins the sentinel to a specific SHA. Any commit (including `--am
 If `tools/branch-flow-preflight.sh` is not installed (fresh clone, partial sync, or a downstream consumer), the skill's "Mandatory Preflight" instructions point at a phantom command. Pre-push Gate 3 detects this and skips with `(skipped - tools/branch-flow-preflight.sh not present in this repo)`.
 **Fix:** Run `tools/install-hooks.sh` (or the equivalent install path for your platform) to materialize the script and the hook. Until then, pushes to dev/staging/main land without the gate firing -- relying entirely on PR review.
 
+### F11. Cascade-chasing forward-ports after a promotion
+
+After a successful dev -> staging -> main promotion cycle, the standard cleanup is to forward-port main back to staging and dev so the next feature branch starts from an aligned base. **Do exactly two forward-port PRs and STOP:**
+
+1. `main -> staging` (forward-port)
+2. `main -> dev` (forward-port)
+
+**Anti-pattern:** opening additional forward-ports after the first two -- e.g. a `forward/converge-main-with-staging` PR that merges staging's new forward-port merge-commit back into main -- creates an infinite cascade. Each forward-port adds a merge commit to the destination, which the source is then "behind" on; chasing that gap with another forward-port immediately creates the next gap. This is the "13-PR network-graph disgrace" pattern.
+
+**Verification heuristic:** if all three branch trees match, content is aligned. The HEAD SHAs will always differ slightly because each branch carries different merge-commit topology -- that's expected and benign.
+
+```bash
+git rev-parse origin/main^{tree}     # -> 85ffd6aa...
+git rev-parse origin/staging^{tree}  # -> 85ffd6aa...  (same hash = aligned)
+git rev-parse origin/dev^{tree}      # -> 85ffd6aa...
+```
+
+Note: this check is meant to be run *immediately after the two forward-port PRs*, not as a long-running invariant. If dev's tree later drifts because a new feature has landed there post-forward-port, that is **expected and not a cascade-chasing signal** -- the next legitimate promotion cycle realigns it.
+
+**Fix when caught mid-cascade:** stop. Do not open the next forward-port PR. Already-merged cascade PRs do not need reverting -- they are benign merge commits, and the next legitimate dev -> staging -> main cycle (when real content ships) naturally absorbs them.
+
 ## Sanitization (for cross-repo cherry-picks)
 
 ```bash
