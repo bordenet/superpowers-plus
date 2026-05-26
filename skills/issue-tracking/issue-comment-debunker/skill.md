@@ -9,11 +9,11 @@ coordination:
   group: issue-tracking
   order: 1
   requires: []
-  enables: []
+  enables: [issue-editing, issue-authoring]  # advisory: no runtime enforcement
   escalates_to: []
   internal: false
 composition:
-  consumes: [investigation-evidence]
+  consumes: []
   produces: [verified-comment]
   capabilities: [validates-assertions]
   priority: 25
@@ -58,17 +58,13 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 
 **Evaluate this gate BEFORE generating the Preflight Evidence Block.** GATE FAIL → do not generate the preflight block — offer alternatives instead.
 
-**This gate evaluates FRAMING and VOICE, not claim accuracy.** A fully evidenced comment still fails if it narrates AI process, decisions, or ticket-modification activity. Apply the trigger table mechanically — do not assess your own framing intent or confidence.
+**This gate evaluates FRAMING and VOICE, not claim accuracy.** Apply the checklist below mechanically — do not assess your own framing intent or confidence.
 
-**Evaluation protocol (two required passes — BOTH must pass):**
-1. **Structural test:** Is the grammatical subject of each sentence a system artifact, log entry, or engineering finding — rather than AI process or decisions?
-2. **Trigger table check:** Check each sentence against the GATE FAIL table below — **regardless of the structural test result.** The trigger table governs on any conflict.
+**Evaluation checklist — check every sentence, FAIL on first hit:**
 
-**Passive-voice ticket-modification predicates** ("the description was updated", "two findings were added to the ticket") trigger this gate regardless of grammatical subject.
-
-**Compound artifact noun rule:** A phrase naming a specific artifact passes ("The CloudWatch analysis of group /aws/lambda/X"). A bare noun fails ("The analysis", "The investigation"). "Specific artifact" = one with a unique system identifier (URL, log group path, recording ID, PR number, commit SHA). Category nouns ("team feedback", "the codebase") do not qualify.
-
-**Quoted human text exception:** Text quoted verbatim from a human (markdown `>` blockquote or attribution "X said: ...") is evaluated under the Iron Rule only — not this gate.
+1. **Passive-voice ticket-modification?** ("the description was updated", "findings were added to the ticket") → FAIL regardless of grammatical subject.
+2. **AI as subject?** Is the grammatical subject AI process or decisions rather than a system artifact, log entry, or finding? → FAIL.
+3. **Trigger table hit?** Does any sentence match a pattern below? Mandatory even after steps 1–2 pass. → FAIL.
 
 **GATE FAIL triggers — active AND passive voice, any person:**
 
@@ -80,18 +76,22 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 | AI changelog commentary | "Update — ticket revised with N findings", "What changed: ...", "What stayed: ..." |
 | AI recommendation / directive | "I would suggest/recommend...", "A better approach would be...", "Consider refactoring..." |
 
-**Permitted first-person forms (including but not limited to) — do NOT trigger this gate:** `"I see/saw this in [artifact]: [paste]"`, `"I found/noticed X in [artifact]: [paste]"`, `"I reviewed/checked/looked at/investigated [specific artifact] and found: [paste]"`, `"I'm not sure, but it might be..."`. Not permitted even with a named artifact: *confirmed, validated, verified, determined, concluded* (epistemic action verbs, not observation verbs).
+**Compound artifact noun rule:** Named specific artifact (URL, log group path, recording ID, PR number, commit SHA) = passes. Bare noun ("The analysis", "The investigation") = FAIL. Category nouns ("team feedback") do not qualify.
 
-**Key distinction:** observation verb + named cited artifact = PASS. Any GATE FAIL trigger pattern = FAIL, regardless of verb type or artifact naming.
+**Permitted observation verbs (do NOT trigger) — when paired with a named cited artifact:** see/saw, found/noticed, reviewed/checked/looked at/investigated. Not permitted even with a named artifact: *confirmed, validated, verified, determined, concluded* (epistemic action verbs, not observation verbs).
+
+**Key distinction:** observation verb + named cited artifact = PASS. Any trigger table match = FAIL, regardless of verb type or artifact naming.
+
+**Quoted human text exception:** Verbatim human quotes (`>` blockquote or "X said: ...") → Iron Rule only, skip this gate.
 
 **Exemption — correction comments only:** Permitted exclusively to retract a specific false factual claim:
-- PERMITTED: `"**Correction to [date] comment:** the [specific claim] is incorrect. Evidence: [citation]."`
+- PERMITTED: `"**Correction to [date/id] comment:** the [specific claim] is incorrect. Evidence: [citation]."`
 - NOT PERMITTED: new analysis, recommendations, or reasoning in the correction
 - NOT PERMITTED: after two corrections on the same **factual claim**, notify the user instead of posting again
 
 **If gate fails — do not post. Offer one of:**
-- "I can post only the engineering observation (stripped of AI framing) — e.g., 'Logs show X at timestamp Y.' Want me to draft that?"
-- "Should I update the description directly?" (appropriate if finding revises the problem statement; use a new comment for time-stamped follow-on observations)
+- "I can post only the observation (stripped of AI framing) — e.g., 'Logs show X at timestamp Y.' Want me to draft that?"
+- "Should I update the description directly?" (appropriate if finding revises the problem statement)
 - "The finding is already in the description — is a comment needed?"
 
 </EXTREMELY_IMPORTANT>
@@ -106,17 +106,20 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 
 **Emit immediately before calling your issue tracker's `create_comment` tool.** Do not summarize or skip fields. If `GATE != PASS`, do not post.
 
+> **Self-attestation caveat:** This block is filled in by the AI. On high-stakes tickets, a human should spot-check before the comment goes live.
+
 ```
 PREFLIGHT: ISSUE-COMMENT-DEBUNKER
 - target_issue: <identifier>
 - issue_verified: PASS | FAIL (via adapter)
 - iron_rule_check: PASS | FAIL -> stop here (every claim has a cited source; no forbidden patterns)
-- ai_meta_check: PASS | FAIL -> stop here (grammatical subjects are system artifacts/findings, not AI process; OR correction format exactly)
+- ai_meta_check: PASS | FAIL -> stop here (BOTH passes required: structural test AND trigger table PASS; OR correction format exactly)
 - entity_type: issue  # must be "issue", not pull_request or other
 - claims_extracted: [list each factual claim in draft]
 - evidence_per_claim: [claim -> source URL/SHA, or "UNVERIFIED" -> rewrite]
 - forbidden_patterns: NONE | [list violations -> rewrite]
-- existing_comments_checked: YES (count=N) -- same factual claim by me? YES (id) / NO
+- existing_comments_checked: YES (count=N) -- same factual claim re-asserted? YES (id) → GATE FAIL / NO
+- correction_count: N  # gate fails on 3rd correction for same factual claim → notify user instead
 - comment_action: NEW       # Always create_comment; never silently update
 - url_verification: PASS/FAIL OR "no URLs"
 - GATE: PASS | FAIL (reason)
@@ -130,7 +133,15 @@ If GATE is not PASS, do not proceed. Fix the failing condition first.
 
 ## Validate the Target Issue First
 
-Normalize the identifier. Call `get_issue` or `verify_link` via your adapter. If `exists: false` or the entity is not an issue (e.g., pull_request) → stop and route to the appropriate workflow.
+Normalize the identifier. Run `issue-verify` via your adapter (`get_issue` or `verify_link`). Routing table:
+
+| Result | Action |
+|--------|--------|
+| `exists: false` | STOP — identifier not found |
+| `entity_type: pull_request` | STOP — use PR review workflow, not this skill |
+| `entity_type: other / unknown` | STOP — ask user which workflow applies |
+| `exists: true, entity_type: issue` | Proceed |
+| tool error / timeout | STOP — surface error to user, do not proceed |
 
 ---
 
@@ -218,9 +229,10 @@ Every claim has evidence · no fabricated timestamps/metrics · no "investigatio
 
 ## Companion Skills
 
+- **issue-verify**: REQUIRED — validate issue exists and is the correct entity type before commenting
+- **issue-link-verification**: REQUIRED if comment contains URLs
 - **wiki-debunker**: Same principles for wiki content
 - **verification-before-completion**: General verification discipline
 - **think-twice**: Pause before consequential actions
 - **issue-editing**: Editing issues after debunking claims
 - **issue-authoring**: Creating issues with verified facts
-- **issue-link-verification**: Checking links referenced in comments
