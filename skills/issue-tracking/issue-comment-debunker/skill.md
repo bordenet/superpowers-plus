@@ -107,19 +107,20 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 **Emit immediately before calling your issue tracker's `create_comment` tool.** Do not summarize or skip fields. If `GATE != PASS`, do not post.
 
 > **Self-attestation caveat:** This block is filled in by the AI. On high-stakes tickets, a human should spot-check before the comment goes live.
+> **Prerequisites:** Run `issue-verify` first (see "Validate the Target Issue First" below). If it errors or times out, stop — do not fill this block.
 
 ```
 PREFLIGHT: ISSUE-COMMENT-DEBUNKER
 - target_issue: <identifier>
 - issue_verified: PASS | FAIL (via adapter)
 - iron_rule_check: PASS | FAIL -> stop here (every claim has a cited source; no forbidden patterns)
-- ai_meta_check: PASS | FAIL -> stop here (BOTH passes required: structural test AND trigger table PASS; OR correction format exactly)
-- entity_type: issue  # must be "issue", not pull_request or other
+- ai_meta_check: PASS | FAIL -> stop here (structural test AND trigger table both PASS; OR correction format exactly)
+- entity_type: issue  # GATE FAIL if not "issue" — pull_request / other → stop
 - claims_extracted: [list each factual claim in draft]
-- evidence_per_claim: [claim -> source URL/SHA, or "UNVERIFIED" -> rewrite]
-- forbidden_patterns: NONE | [list violations -> rewrite]
+- evidence_per_claim: [claim -> source URL/SHA]; GATE FAIL if any entry is UNVERIFIED → rewrite
+- forbidden_patterns: NONE (PASS) | [list violations] (GATE FAIL → rewrite)
 - existing_comments_checked: YES (count=N) -- same factual claim re-asserted? YES (id) → GATE FAIL / NO
-- correction_count: N  # per-ticket; gate fails on 3rd correction for same claim → notify user instead
+- correction_count: N  # per-ticket per-claim; GATE FAIL if >= 3 → notify user instead
 - comment_action: NEW       # Always create_comment; never silently update
 - url_verification: PASS/FAIL OR "no URLs"
 - GATE: PASS | FAIL (reason)
@@ -147,7 +148,7 @@ Normalize the identifier. Run `issue-verify` via your adapter (`get_issue` or `v
 
 ## Comment Hygiene
 
-Before posting, check existing comments for a prior comment on the same topic.
+Before posting, check existing comments for a prior comment on the same topic (same root cause, failure mode, or affected component).
 
 | Scenario | Action |
 |----------|--------|
@@ -224,13 +225,14 @@ Every claim has evidence · no fabricated timestamps/metrics · no "investigatio
 | Constructing a timeline by interpolating between commit dates | Report only what git log actually says |
 | Fabricating consensus: "The team agreed..." | Cite only meeting notes or documented comments |
 | AI meta-commentary — active ("I revised/analyzed..."), passive ("description was updated..."), collective ("we added..."), bare noun ("The analysis...") | Apply the AI Meta-Commentary HARD GATE. Strip AI framing; post only the observation with citation. |
+| Correction limit exceeded (3rd correction on same claim/ticket) | GATE FAIL — notify user; do not post |
 
 ---
 
 ## Companion Skills
 
 - **issue-verify**: REQUIRED — validate issue exists and is the correct entity type before commenting
-- **issue-link-verification**: REQUIRED if comment contains URLs
+- **issue-link-verification**: Run if comment contains URLs; set `url_verification: PASS/FAIL` in Preflight (or `"no URLs"` if none)
 - **wiki-debunker**: Same principles for wiki content
 - **verification-before-completion**: General verification discipline
 - **think-twice**: Pause before consequential actions
