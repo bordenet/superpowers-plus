@@ -31,7 +31,7 @@ composition:
 
 Invoke **BEFORE** any of these actions: adding a comment, status update, or investigation summary; documenting findings or conclusions; attributing statements to team members or claiming timestamps/metrics/outcomes.
 
-## The Iron Rule (HARD GATE)
+## ⛔ The Iron Rule (HARD GATE)
 
 <EXTREMELY_IMPORTANT>
 
