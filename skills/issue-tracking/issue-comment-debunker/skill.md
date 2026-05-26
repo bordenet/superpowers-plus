@@ -60,11 +60,11 @@ Invoke **BEFORE** any of these actions: adding a comment, status update, or inve
 
 **This gate evaluates FRAMING and VOICE, not claim accuracy.** Apply the checklist below mechanically — do not assess your own framing intent or confidence.
 
-**Evaluation checklist — check every sentence, FAIL on first hit:**
+**Evaluation checklist — run all three steps on every sentence; FAIL if any hit:**
 
 1. **Passive-voice ticket-modification?** ("the description was updated", "findings were added to the ticket") → FAIL regardless of grammatical subject.
 2. **AI as subject?** Is the grammatical subject AI process or decisions rather than a system artifact, log entry, or finding? → FAIL.
-3. **Trigger table hit?** Does any sentence match a pattern below? Mandatory even after steps 1–2 pass. → FAIL.
+3. **Trigger table hit?** Does any sentence match a pattern below? → FAIL.
 
 **GATE FAIL triggers — active AND passive voice, any person:**
 
@@ -119,7 +119,7 @@ PREFLIGHT: ISSUE-COMMENT-DEBUNKER
 - evidence_per_claim: [claim -> source URL/SHA, or "UNVERIFIED" -> rewrite]
 - forbidden_patterns: NONE | [list violations -> rewrite]
 - existing_comments_checked: YES (count=N) -- same factual claim re-asserted? YES (id) → GATE FAIL / NO
-- correction_count: N  # gate fails on 3rd correction for same factual claim → notify user instead
+- correction_count: N  # per-ticket; gate fails on 3rd correction for same claim → notify user instead
 - comment_action: NEW       # Always create_comment; never silently update
 - url_verification: PASS/FAIL OR "no URLs"
 - GATE: PASS | FAIL (reason)
