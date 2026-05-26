@@ -188,6 +188,7 @@ post-checkout fires once when the branch is created (before any work is invested
 - **Not suppressing `hotfix/*`** -- every advisory tool that fires on emergencies loses developer trust.
 - **Raw `merge-base` without first-parent filtering** -- false negatives when dev/main share recent history.
 - **Blocking CI status check** -- surface advisories as PR annotations or comments, never required checks.
+- **Cascade-chasing after a promotion** -- after dev->staging->main lands, do **exactly two** forward-port PRs (main->staging, main->dev) and STOP. Each forward-port adds a merge commit the source is now "behind" on; chasing that gap with another forward-port creates the next gap and so on infinitely. Equal trees = aligned, even with topology drift. See reference.md F11.
 
 ## When the Advisory Should Be Heeded vs. Ignored
 
