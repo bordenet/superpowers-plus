@@ -69,9 +69,10 @@ command -v curl >/dev/null 2>&1 || { log_err "curl required"; exit 2; }
 
 _api() {
     local verb="$1" payload="$2"
-    curl -sS --max-time 30 \
+    curl -sS --connect-timeout 10 --max-time 30 \
         -X POST "${WIKI_API_URL%/}/$verb" \
         -H "Authorization: Bearer ${WIKI_API_KEY}" \
+        -H "X-Proxy-Token: ${WIKI_API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload"
 }
