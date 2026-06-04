@@ -64,6 +64,13 @@ New logic paths MUST be debuggable in production. Check:
 - Are log messages specific enough to distinguish which branch was taken? (e.g., "skipped timer" is bad; "skipped timer: no user evidence (userVerified=false, eventCount=0)" is good)
 - Are metrics emitted for new decision points that affect user-visible behavior?
 
+**Observability completeness** (the absence of an emit is as much a defect as a wrong one — review the whole metric, not just new paths; treat any consuming dashboard/alarm as **live by default** unless the diff proves it unwired):
+
+- **Metric liveness**: every metric the diff defines or modifies must have at least one producer. A metric defined but never emitted reads a constant forever. Cross-check the catalog/registry against actual `.emit()` call sites.
+- **Emission symmetry**: success/failure pairs and dimensioned/aggregate pairs (`Failure` vs `FailureTotal`) must BOTH be emitted. If only one side fires, every ratio or rollup panel built on the pair is wrong. Pairs are keyed on **semantics, not suffix spelling** — `Success`/`Failure`, `Ok`/`Error`, `Succeeded`/`Failed`, `2xx`/`5xx`, `Hit`/`Miss`, `Ack`/`Nack` all count.
+- **Emit-once correctness**: a metric representing terminal success of a unit of work (a request/turn/job completing) must fire exactly once, on true completion — not on early returns, not on incomplete turns, and not on every branch of a recursion. (Does NOT apply to per-event or per-iteration counters, which are expected to fire repeatedly.) Trace every exit path the emit can reach.
+- **Failure-mode differentiation**: when a new failure cause is separately actionable (billing-quota vs transient rate-limit vs auth vs outage), it needs its own metric/dimension so it is distinguishable in telemetry — folding it into a generic counter hides it from its own alarm.
+
 ### 5. Data Integrity (Internal Consistency)
 
 - Are data structures internally consistent (e.g., bidirectional mappings complete)?
@@ -93,7 +100,7 @@ For each finding:
 - **Severity** (use these definitions consistently):
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
-  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a dead metric or blinded alarm feeding a live dashboard/alarm, OR a separately-actionable failure cause folded into a generic metric/alarm (see 4a Observability completeness), is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
 - **File:Line**: Exact location in the diff
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
