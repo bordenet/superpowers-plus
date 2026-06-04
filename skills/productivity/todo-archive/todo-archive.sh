@@ -56,7 +56,7 @@ ARCHIVE_DRY_RUN=false
 ARCHIVE_FORCE=false
 
 while [[ $# -gt 0 ]]; do
-  # shellcheck disable=SC2034  # ARCHIVE_FORCE and AGE_THRESHOLD consumed by sourced parse-history.sh
+  # shellcheck disable=SC2034  # ARCHIVE_FORCE consumed by sourced parse-history.sh
   case "$1" in
     --dry-run) ARCHIVE_DRY_RUN=true; shift ;;
     --force)   ARCHIVE_FORCE=true; shift ;;
