@@ -31,6 +31,20 @@ For every field, variable, or property that is **SET, RESET, or NULLED** in the 
 
 **Example**: Setting `lastUpdatedAt = null` may fix a cache-invalidation bug but also disable a staleness detection check that reads the same field.
 
+### Producer Trace (Dead Definition Detection)
+
+The Consumer Trace finds readers of fields the diff SETS. The inverse matters just as much: every symbol the diff DEFINES must have at least one producer. A definition with no producer is dead — and dead observability is worse than none, because dashboards and alarms silently read a constant.
+
+For every metric, event, counter, enum value, error code, or status the diff DEFINES (or touches the catalog/registry for):
+
+1. Grep the FULL source for a producer — `.emit(`, `.inc(`, `publish(`, an assignment, a `throw new`, or a `return` of that value. Not just in the diff.
+2. Zero producers = **dead definition**. The metric reads a constant forever / the enum branch is unreachable / the error code is never raised. Treat any dashboard or alarm that consumes the symbol as **live by default** — observability config lives in separate repos (CDK, Grafana JSON), so the diff's failure to show a consumer is not proof the symbol is unwired. Severity follows the per-symbol guidance in step 5.
+3. **Success/Failure symmetry**: if one side of a success/failure pair IS emitted but the other is defined-but-never-emitted, any ratio or rate panel built on the pair reads 0% or 100% permanently. Flag as Important even when the diff only touches one side — the asymmetry is the defect. Pairs are keyed on **semantics, not suffix spelling**: `Success`/`Failure`, `Ok`/`Error`, `Succeeded`/`Failed`, `2xx`/`5xx`, `Hit`/`Miss`, `Ack`/`Nack` all count. Establish a pair by shared base name and compatible dimensions — a failure-side metric may carry extra dimensions (e.g. `errorType`) the success side lacks; that is still a pair — not by suffix coincidence (`CacheHit` does not pair with `RequestError`).
+4. **Before flagging, rule out indirect producers**: metrics emitted via a computed/variable name (`emit(metricName)`), names built from a catalog, enum values populated by deserialization, or producers in generated code. If a producer could plausibly exist dynamically, downgrade to "Possible: ..." rather than asserting a dead definition. **Exception (asymmetry governs):** when the paired metric IS emitted via a literal call and only this side has merely a hypothetical/dynamic producer, do NOT downgrade — the literal-vs-absent asymmetry is itself the defect (the literal-vs-absent shape). Flag Important.
+5. **Per-symbol severity** (applies only to symbols that survived the step-4 indirect-producer check — i.e. no literal *and* no plausible dynamic producer). Reserve **Important** for a metric or alarm-feeding signal that has a literal catalog/registry entry and zero producer (the literal-vs-absent shape). For an **enum value or error code** with no producer, default to **"Possible: unreachable"** (Minor unless it feeds a live signal): such values are routinely added ahead of their producer in a stacked diff or populated by deserialization, so a missing producer in a single diff is weak evidence of a real defect.
+
+**Example**: `Metrics.RequestAPI.Success` is defined in `metrics-catalog.ts` but no `.emit()` exists anywhere in the source, while `Failure.emit()` is called in the catch block. The Grafana "API Success Rate" panel (`Success / (Success + Failure)`) reads 0% indefinitely. Fix: emit `Success` on every terminal success path.
+
 ### Boundary Value Trace
 
 For every **threshold comparison** (`>=`, `>`, `<`, `<=`, `===`) in the diff:
@@ -155,7 +169,7 @@ For each finding:
 - **Severity** (use these definitions consistently):
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
-  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a dead metric or blinded alarm feeding a live dashboard/alarm (see Producer Trace), OR a separately-actionable failure cause folded into a generic metric/alarm, is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (what breaks, what data is lost, what crashes)
