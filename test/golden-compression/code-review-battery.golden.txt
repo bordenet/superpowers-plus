@@ -35,7 +35,9 @@ Analyze the diff and select reviewers:
 | **Performance Analyst** | Performance, logging | DB, loops, caching, network I/O, or >500 LOC |
 | **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
-Decision rules: Docs-only → Standards Enforcer only. Config-only → Guardian only. Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
+Decision rules: Docs-only → Standards Enforcer only. Config-only → Guardian (+ Standards Enforcer / Defect Finder only if a metric/alarm or other dispatch signal below is present). Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
+
+**Signal-driven dispatch** (additive — activates reviewer(s), never deactivates; skip any reviewer with nothing in scope and say why in the triage line). Observability routes: a metric/event definition or `.emit(`/`.inc(`/`publish(` call, or an alarm/threshold definition or error branch that feeds an alarm → **Defect Finder + Standards Enforcer + Guardian** (Producer Trace, metric liveness, emission symmetry, alarm-feeding isolation, failure-mode differentiation); an external-dependency call or SDK error classifier (429/5xx/provider shapes) → **Guardian** (multi-provider predicate coverage, monitoring blast radius).
 
 **Mandatory activation (not subject to triage exclusion):**
 
@@ -57,6 +59,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 **2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation):
 
 - Fields SET/RESET/NULLED → grep all READERS
+- Symbols DEFINED (metrics, events, enums, error codes) → grep all PRODUCERS; zero producers = dead definition. Mandatory finding for metric/alarm-feeding signals; see Producer Trace steps 4-5 for indirect-producer downgrades and enum/error-code severity
 - Threshold comparisons → grep all PRODUCERS of crossing values
 - Stateful code → full state type + transitions
 - Changed signatures → all callers
@@ -84,21 +87,17 @@ After all reviewers return:
 5. **Severity normalization**: Re-evaluate each finding against the shared severity definitions (provided to all reviewers). Reclassify when a reviewer's label doesn't match:
    - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
    - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
-   - **Minor** = works but violates standards (style, naming, missing docs/tests, observability)
+   - **Minor** = works but violates standards (style, naming, missing docs/tests, observability gaps)
+   - **Elevate to Important** when the operator-visible signal is itself wrong or missing (not merely cosmetic): a dead metric or blinded alarm feeding a dashboard/alarm — treated as **live by default** unless the diff proves it is unwired — OR a separately-actionable failure cause folded into a generic metric/alarm
    - If a reviewer labeled a finding Critical but it's a process/standards gap (e.g., "no tests added"), downgrade to Important or Minor. Note the reclassification: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
    - True convergent findings (step 3) are promoted to at least Important. Echo convergent findings retain their original severity.
-6. **Triple-filter** each Important/Critical finding and classify:
-
-| Finding | CX Impact | Complexity | Testability | Action |
-|---------|-----------|------------|-------------|--------|
-| #1 ... | Fixes dead-air | +3 lines | Clearer tests | **Implement** |
-| #3 ... | None | Adds abstraction | Marginal | **Defer** |
+6. **Triple-filter** each Important/Critical finding on CX impact, complexity, and testability, then classify:
 
 - **Implement**: Passes all 3 filters. **Propose exact code change.**
 - **Defer**: Good finding but doesn't pass all 3. Document for future work.
 - **Reject**: Correct observation but fix adds more complexity than it removes.
 
-1. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
+7. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
 
 **Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
 
@@ -116,6 +115,7 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
 | Files renamed/moved/deleted without inbound scan | Guardian (inbound-reference focus) | Broken consumers outside the changed directory |
 | "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
+| Diff adds/changes a metric or alarm definition, or an error-handling branch that emits a metric or feeds an alarm | Standards Enforcer (observability-completeness focus) | Dead definitions, Success/Failure asymmetry, undifferentiated failure modes |
 
 Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 ### Phase 5: Convergence

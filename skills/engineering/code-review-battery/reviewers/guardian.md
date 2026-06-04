@@ -40,6 +40,14 @@ When the diff calls external services, I/O, or infrastructure APIs (database, ne
 
 **Example**: An auto-repeat function calls `playTTS()` and assumes it worked. If `playTTS()` fails silently, the repeat counter increments but the user hears nothing — the retry budget is wasted.
 
+**Alarm-feeding emission must be failure-isolated.** When a metric feeds a CloudWatch/Prometheus alarm, the emit that keeps the alarm alive must not be skippable by an exception earlier in the same block. If a dimensioned `.emit()` can throw, the aggregate alarm metric must be emitted in a `finally` (or before the throwable call) so the alarm never silently goes dark.
+
+**Distinct dependency failure folded into a generic alarm = monitoring blast-radius gap.** When the diff handles a new failure cause, ask whether it is *separately actionable* — i.e., on-call response differs from the generic case (different runbook, owner, or remediation). If so, it needs its own metric/alarm so a real incident is distinguishable from background noise. If the response is identical to the generic case, do NOT demand a new alarm — alarm sprawl is its own 3am failure mode (alert fatigue). Separately-actionable example: a billing-quota 429 (needs a billing owner) vs a transient rate-limit 429 (auto-retries).
+
+**Detection predicates must cover every producer in scope.** When the diff adds a pattern match or error classifier for an external dependency, verify it covers every provider and SDK error shape reachable from the diff's call sites, not just the one that triggered the change. A single-provider predicate for a multi-provider call path is an incomplete guard.
+
+**Example**: A quota-exceeded detector matches only the OpenAI 429 body shape, so the same billing failure from Gemini or Anthropic skips the dedicated alarm and hides in the generic P1 counter.
+
 ### 2b. Caller Contract Drift
 
 When a bug fix changes observable behavior (even if the old behavior was wrong), it's a **semantic contract change**. Callers may depend on the old behavior.
@@ -88,7 +96,7 @@ For each finding:
 - **Severity** (use these definitions consistently):
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
-  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a separately-actionable failure cause folded into a generic metric/alarm, OR a dead/blinded alarm feeding a live signal (see 2a), is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
