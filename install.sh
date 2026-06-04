@@ -608,6 +608,8 @@ main() {
         fi
         install_templates
         install_tools
+        # ships runtime lib/*.js that tools/ require via ../lib/
+        install_libs
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
@@ -640,6 +642,9 @@ main() {
 
     # NOT Augment-specific — runs in both modes (todo-preflight, todo-lock, etc.)
     install_tools
+
+    # NOT Augment-specific — ships runtime lib/*.js that tools/ require via ../lib/
+    install_libs
 
     # NOT Augment-specific — runs in both modes (sp-update symlink for shell PATH)
     install_cli_commands

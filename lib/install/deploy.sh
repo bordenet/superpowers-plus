@@ -417,6 +417,83 @@ install_tools() {
     log_success "Installed $count tools to $tools_dest"
 }
 
+# install_libs deploys the runtime lib/*.js modules that tools/ scripts load
+# via require('../lib/...'). install_tools only ships tools/, so without this
+# the installed copies (e.g. wiki-markdown-validate.js and other tools/ scripts
+# that require('../lib/...')) crash with "Cannot find module '../lib/...'".
+# Only top-level lib/*.js is shipped: the non-recursive "$libs_src"/*.js glob
+# matches files directly under lib/, so the install-only lib/install/ directory
+# is excluded structurally (it never matches a *.js glob entry).
+install_libs() {
+    log_info "Installing runtime libs from superpowers-plus..."
+
+    local libs_src="$SCRIPT_DIR/lib"
+    if [[ ! -d "$libs_src" ]]; then
+        log_verbose "No lib directory found, skipping"
+        return
+    fi
+
+    local libs_dest="${CODEX_DIR}/superpowers-plus/lib"
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    local manifest="${state_dir}/libs.manifest"
+    create_dir "$libs_dest"
+
+    local count=0
+    declare -A current_libs=()
+    local lib
+    for lib in "$libs_src"/*.js; do
+        [[ -f "$lib" ]] || continue
+        local basename
+        basename=$(basename "$lib")
+        current_libs["$basename"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        local stale_lib
+        while IFS= read -r stale_lib; do
+            [[ -z "$stale_lib" ]] && continue
+            # Defense-in-depth: the manifest is self-generated from basename
+            # output (always plain filenames), but reject any entry with a path
+            # separator or leading dot so a tampered manifest cannot rm outside
+            # libs_dest. Matches prune_stale_managed_skills.
+            if [[ "$stale_lib" == */* || "$stale_lib" == .* ]]; then
+                log_warn "Skipping unsafe manifest entry: '$stale_lib'"
+                continue
+            fi
+            if [[ -z "${current_libs[$stale_lib]:-}" ]] && [[ -f "$libs_dest/$stale_lib" ]]; then
+                rm -f "$libs_dest/$stale_lib" || log_warn "Failed to remove stale lib: $stale_lib"
+                log_verbose "Removed stale lib: $stale_lib"
+            fi
+        done < "$manifest"
+    fi
+
+    for lib in "$libs_src"/*.js; do
+        [[ -f "$lib" ]] || continue
+        local basename
+        basename=$(basename "$lib")
+        local dest="${libs_dest}/${basename}"
+        if [[ -f "$dest" ]] && cmp -s "$lib" "$dest"; then
+            log_verbose "Lib already up to date: $basename"
+        else
+            # Fatal on failure (matches install_rules): a missing lib re-introduces
+            # the "Cannot find module" crash this function exists to prevent, so a
+            # partial install must abort loudly rather than be recorded as success.
+            cp "$lib" "$dest" || error_exit "Failed to install lib: $basename"
+            log_verbose "Installed lib: $basename"
+        fi
+        count=$((count + 1))
+    done
+
+    if [[ ${#current_libs[@]} -gt 0 ]]; then
+        printf '%s\n' "${!current_libs[@]}" | sort > "$manifest"
+    else
+        : > "$manifest"
+    fi
+
+    log_success "Installed $count libs to $libs_dest"
+}
+
 # _cli_bin_dir_in_profiles <dir>
 # Returns 0 if dir is referenced as a PATH token in a known POSIX shell profile,
 # 1 if it is absent from all of them.
