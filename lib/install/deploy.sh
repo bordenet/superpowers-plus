@@ -220,10 +220,20 @@ sync_managed_checkout() {
             fi
         else
             # HEAD is not behind/equal to origin/main. Two sub-cases:
-            # - Local is ahead (origin/main IS ancestor of HEAD): skip without resetting
+            # - Local is ahead (origin/main IS ancestor of HEAD): skip or force-reset
             # - True divergence (neither is ancestor): history rewrite/force-push → auto-reset
             if git -C "$managed_dir" merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
-                log_warn "Managed checkout is ahead of origin/main — skipping sync (use --force to reset)"
+                if [[ "${FORCE:-false}" == "true" ]]; then
+                    log_warn "Managed checkout is ahead of origin/main — force-resetting (--force)"
+                    if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
+                       git -C "$managed_dir" clean -fd --quiet 2>/dev/null; then
+                        log_success "Managed checkout reset to origin/main"
+                    else
+                        log_warn "Force-reset failed — run: cd $managed_dir && git reset --hard origin/main"
+                    fi
+                else
+                    log_warn "Managed checkout is ahead of origin/main — skipping sync (use --force to reset)"
+                fi
             else
                 log_warn "Managed checkout history has diverged from origin/main — auto-resetting"
                 if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \

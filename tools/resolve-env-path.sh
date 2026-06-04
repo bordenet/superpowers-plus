@@ -57,6 +57,7 @@ resolve_path() {
   # Priority 3: Default
   if [[ -z "$value" ]]; then
     value="$default"
+    # shellcheck disable=SC2034  # RESOLVE_SOURCE is read by callers that source this file
     RESOLVE_SOURCE="default"
   fi
 

@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2153  # SKILL_* arrays declared in parent doctor-checks.sh; not misspellings
 # doctor-modules/reference-checks.sh — sourced by doctor-checks.sh
 # All global state (CRITICAL, ERRORS, WARNINGS, FIXED, SKILL_*, FIX_MODE, etc.)
 # is inherited from the parent script.
@@ -112,8 +113,8 @@ declare -A INSTALLED_MATCH_DIR
 # shellcheck disable=SC2034  # DEST_NAME_SOURCE/DEST_NAMES_SET populated by _build_dest_name_index; unused here
 declare -A SOURCE_DEST_NAME=() DEST_NAME_SOURCE=() DEST_NAMES_SET=()
 _REF_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
-# shellcheck source=../lib/install/skill-naming.sh
 if [[ -f "$_REF_NAMING_LIB" ]]; then
+    # shellcheck source=lib/install/skill-naming.sh
     source "$_REF_NAMING_LIB"
     _build_dest_name_index "${COMPARE_DIRS[@]}"
 fi
