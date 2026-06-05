@@ -334,6 +334,38 @@ console.log('\n--- Wiki skill router: trigger/anti_trigger overlap regression --
   assertRoutes('deduplicate wiki content', 'wiki-content-coherence', 'single-page-dedup');
 }
 
+// --- using-superpowers / superpowers-help de-collision regression (#955) ---
+// PR #955 narrowed using-superpowers triggers to ["session start", "using
+// superpowers"], moving the help-intent phrases ("list skills", "what skills
+// are available", "how do I use skills") to superpowers-help. Load BOTH real
+// skills from disk and assert the routing split holds, so a future trigger edit
+// that re-introduces the collision fails here instead of silently regressing.
+console.log('\n--- using-superpowers / superpowers-help de-collision (#955) ---');
+{
+  const { extractFrontmatter } = require('../lib/frontmatter');
+  const path = require('path');
+
+  const usp = extractFrontmatter(path.join(__dirname, '..', 'skills', 'engineering', 'using-superpowers', 'skill.md'));
+  const help = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'superpowers-help', 'skill.md'));
+  usp.anti_triggers = usp.anti_triggers || [];
+  help.anti_triggers = help.anti_triggers || [];
+  const pair = [usp, help];
+
+  function assertWinner(prompt, expectedSkill, label) {
+    const results = matchSkillsTfIdf(prompt, pair, pair.length);
+    const top = results[0];
+    eq(top && top.name, expectedSkill,
+      `${label}: "${prompt}" → ${expectedSkill} (got: ${top ? top.name : 'none'}, score: ${top ? top.score.toFixed(4) : 'n/a'})`);
+  }
+
+  // Help-intent phrases removed from using-superpowers now route to superpowers-help.
+  assertWinner('list skills', 'superpowers-help', 'decollide-list-skills');
+  assertWinner('what skills are available', 'superpowers-help', 'decollide-what-available');
+  assertWinner('how do I use skills', 'superpowers-help', 'decollide-how-to-use');
+  // Retained trigger still fires using-superpowers (its session-start core purpose).
+  assertWinner('session start', 'using-superpowers', 'retained-session-start');
+}
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);

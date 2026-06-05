@@ -13,11 +13,10 @@ set -euo pipefail
 # --- Colors (disabled if not a terminal) ---
 if [[ -t 1 ]]; then
     BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'; ULINE='\033[4m'
-    CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'
-    BLUE='\033[0;34m'; MAGENTA='\033[0;35m'; WHITE='\033[1;37m'
+    CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; WHITE='\033[1;37m'
 else
     BOLD=''; DIM=''; RESET=''; ULINE=''
-    CYAN=''; GREEN=''; YELLOW=''; BLUE=''; MAGENTA=''; WHITE=''
+    CYAN=''; GREEN=''; YELLOW=''; WHITE=''
 fi
 
 SKILLS_DIR="$HOME/.codex/skills"
