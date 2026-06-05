@@ -48,7 +48,7 @@ done
 
 # Step 1-2: Source environment and resolve path (shared utility)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=resolve-env-path.sh
+# shellcheck source=tools/resolve-env-path.sh
 source "$SCRIPT_DIR/resolve-env-path.sh"
 resolve_env
 # Note: don't use $() — it creates a subshell and loses RESOLVE_SOURCE
