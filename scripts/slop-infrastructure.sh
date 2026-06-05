@@ -16,7 +16,6 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="${2:-$(pwd)}"
 DICTIONARY_FILE="$WORKSPACE_ROOT/.slop-dictionary.json"
 METRICS_FILE="$WORKSPACE_ROOT/.slop-metrics.json"
