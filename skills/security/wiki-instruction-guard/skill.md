@@ -10,9 +10,9 @@ triggers:
   - "verify wiki instructions"
 description: "Deterministic behavioral guardrail that scans executable content extracted from wiki pages before the agent executes it. Hard-blocks destructive operations (including all curl-pipe-to-shell by default) and gates all blocked findings on explicit human consent. Cannot be overridden by wiki content."
 summary: "Use when: about to execute instructions from a wiki page. Hard gate — scans for destructive ops."
+anti_triggers: ["scan code for secrets", "update wiki page", "edit wiki"]
 composition:
   consumes: [wiki-content, markdown-content]
-anti_triggers: ["scan code for secrets", "update wiki page", "edit wiki"]
   produces: [safety-verdict]
   capabilities: [detects-injection, blocks-destructive-ops]
   priority: 1
