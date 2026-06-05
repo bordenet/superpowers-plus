@@ -32,7 +32,9 @@ fi
 # --- Configuration ---
 # shellcheck disable=SC2034  # consumed by sourced archive helpers / parse-history.sh
 AGE_THRESHOLD=7    # Days before auto-archive kicks in
+# shellcheck disable=SC2034  # consumed by sourced parse-history.sh
 STALE_THRESHOLD=30 # Days before staleness rule forces archive
+# shellcheck disable=SC2034  # consumed by sourced parse-history.sh
 LINE_THRESHOLD=400 # Soft limit triggering auto-archive
 
 # --- Resolve paths (BEFORE arg parsing to avoid .env clobbering flags) ---
@@ -54,6 +56,7 @@ ARCHIVE_DRY_RUN=false
 ARCHIVE_FORCE=false
 
 while [[ $# -gt 0 ]]; do
+  # shellcheck disable=SC2034  # ARCHIVE_FORCE consumed by sourced parse-history.sh
   case "$1" in
     --dry-run) ARCHIVE_DRY_RUN=true; shift ;;
     --force)   ARCHIVE_FORCE=true; shift ;;

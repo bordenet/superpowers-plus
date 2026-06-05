@@ -70,10 +70,16 @@ fetch_doc_parents() {
 
     local tmpfile http_code response
     tmpfile=$(mktemp)
+    # X-Proxy-Token is required when the outline-proxy fronts the API; the proxy
+    # validates requests using the same key as the Outline bearer token, so both
+    # headers intentionally carry ${WIKI_API_KEY}. The upstream Outline server
+    # ignores the unknown header, so sending it unconditionally is safe and
+    # matches wiki-read.sh / wiki-write.sh.
     http_code=$(curl -s --connect-timeout 10 --max-time 30 \
         -w '%{http_code}' -o "$tmpfile" \
         -X POST "${WIKI_API_URL}/documents.info" \
         -H "Authorization: Bearer ${WIKI_API_KEY}" \
+        -H "X-Proxy-Token: ${WIKI_API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload") || { rm -f "$tmpfile"; echo "ERROR:curl_failed"; return; }
 
