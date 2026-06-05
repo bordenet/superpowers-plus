@@ -83,6 +83,23 @@ Review the diff and ask:
 - "Are new dependencies safe, pinned, and justified?"
 - "Can this change be rolled back safely?"
 
+## Anti-Hallucination Gate: Reachability Claims
+
+Before filing **any finding that makes a claim about whether a symbol is called, used, reachable, or wired — or any claim about execution probability or code-path likelihood** — including "dead code", "never called", "unreachable", "not wired in", "no callers", "appears unused", "always false/null", "likely never executed", "unlikely to be reached", or equivalent phrasing:
+
+1. **Search** the diff and all file excerpts or grep results included in your review context. Scan ALL files provided — a call site in a different file from the symbol definition still counts. For generic names (`run`, `init`, `id`), require a fully-qualified match (e.g., `fetchWithRetry(` not just `fetch`).
+2. **State what you found**: If a call site or relevant assignment/condition exists anywhere in the provided context, quote the line and **suppress the finding**. If nothing is visible in what was provided, file the finding at **Possible** severity and mark it `[CONTEXT-LIMITED]` — a partial diff cannot prove absence across the whole codebase.
+3. **Include this mandatory field** in every reachability finding — findings without it are auto-downgraded to Possible:
+   ```
+   **Reachability evidence:** (pick one)
+     Found:     <quoted call site / assignment / condition line>
+     Not found: not found in: [list of files/excerpts scanned]
+   ```
+
+Tool-generated reachability claims (linters, coverage reports, tree-shaking analysis) are exempt — label them `[TOOL: <tool name>]` instead of running this gate. Note: tool evidence reflects static call graphs; verify against runtime config (feature flags, env vars) before assigning Critical severity.
+
+A well-evidenced reachability finding is valid and valuable. This gate ensures evidence, not suppression.
+
 ## Confidence Gate
 
 Only report findings where you are >80% confident there is a real risk.
