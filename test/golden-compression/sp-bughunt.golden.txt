@@ -132,7 +132,11 @@ Floor violation (rule 4) takes precedence over every demotion below it -- a floo
 2. **Mitigation surface check** -- enumerate each: try/catch chain, retry/circuit breaker, feature-flag wrapper, transaction rollback / idempotency keys, rate limiters / WAF / external mitigations. Record `checked: <surface>, present: yes|no, evidence: <file:line or null>` per surface.
 3. **"Fully neutralizes" criterion:** a mitigation fully neutralizes the failure only if it prevents the failure mode entirely **under all inputs in scope** and the orchestrator can quote the file:line proving it. If proven, subtract 3 from Severity, **re-check the Severity floor**, and re-route through the Phase 3 Routing Decision (starting at rule 4 for floor check). Increment `Phase4-mitigation-downgrade` whenever the subtraction moves the candidate out of Confirmed. Explicit list movement: if the candidate now lands in Low-Confidence Risks per rule 9 or rule 10, **physically move the entry from the Bugs section to the Low-Confidence Risks section**; if it lands in Rejections per rule 4 or rule 8, **move it to Rejections**. Record `original Severity X, post-mitigation Y` in the candidate's audit data.
 4. **Final classification:** `confirmed`, `partial` (real, narrower scope), or `false-positive` (move out with reason).
-5. Add findings the sub-agent missed that surfaced in Gates B or this phase. New findings must traverse Phase 3 Gates A-E (recording only) and the Phase 3 Routing Decision before joining any output list.
+5. **Missed findings** (surfaced in Gates B or this phase) -- add up to N, subject to four constraints:
+   - **Severity floor:** only HIGH or CRITICAL findings qualify; MEDIUM and LOW are excluded from the Confirmed list.
+   - **N-cap and displacement:** if adding a new finding would push the Confirmed list above N entries, displace the lowest-severity Confirmed entry first (tiebreaker among equal-severity entries: displace the most recently added).
+   - **Gate traversal:** each new finding must complete Phase 3 Gates A-E (recording only) and the Phase 3 Routing Decision before joining any output list.
+   - **Counter:** increment `Phase4-missed-finding` for each new finding that survives routing.
 ### Phase 5: Ranked Report
 The report header is the execution-evidence sentinel: a reviewer can verify the run by reading the header alone -- evaluations, pass-throughs, fail-opens, phase counters, outcomes, and (if triggered) the `low-yield-justification` block together prove the orchestrator executed each phase. **Full report templates:** `reference.md` §6.
 
@@ -145,7 +149,7 @@ The header **must** include:
 - **Routing-rule counters**: `r1=<n>` through `r11=<n>` (one per rule in the Phase 3 Routing Decision table)
 - **Gate D label fail-open counters** (recorded at Gate D, independent of which routing rule fires): `D-no-test-infra-compensated`, `D-no-test-infra-demoted`, `D-unsure`, `D-covered-skipped`
 - **Gate B demotion counter**: `B-no-sibling` (the no-sibling-status that, combined with low Correctness and weak reachability, triggers rule 10)
-- **Phase 4 event counters**: `Phase4-mitigation-downgrade`, `Phase4-I3-rerun` (covers Phase 4 step 1 and Phase 5 emission mismatches)
+- **Phase 4 event counters**: `Phase4-mitigation-downgrade`, `Phase4-I3-rerun` (covers Phase 4 step 1 and Phase 5 emission mismatches), `Phase4-missed-finding` (new findings added in Phase 4 step 5 that survived routing)
 - **Phase counters**: `Phase1-sanitization-rejections`, `Phase2-re-dispatches`, `re-dispatch-exhausted ∈ {true, false}`
 - **Per-outcome counts**: `confirmed`, `unreachable-risk`, `low-confidence-risk`, `rejected`, `sub-agent-candidates-returned`, `files-unreached`
 - A `low-yield-justification` block when triggered
@@ -168,6 +172,8 @@ If no candidate clears the threshold, that is a valid output **provided** the au
 - **Zero-bug results require a `low-yield-justification` block** when the sub-agent returns 0 candidates from a >=50%-reached file list. The audit-trail counts plus the justification block make a zero-bug result auditable.
 - **File+line is mandatory** on every Confirmed bug and every Risk entry.
 - **Confidence-mode is named.** Numeric input is snapped per the parser rule; the audit-trail header echoes the snapped mode and the source value.
+- **Age is not intent.** Code that is old, stable, or widely used is not evidence of intentional design. Only affirmative signals count: an explicit comment, a test that directly asserts the behavior as correct, or a commit note containing "by design" or "intentionally." A longstanding bug is still a bug; stability is a reason to coordinate the fix carefully with callers, not a reason to route to Rejections via rule 2.
+- **Gate D `covered-passing-intentional` requires affirmative test assertion.** A test that incidentally exercises the code path without asserting the flagged behavior does not qualify. The test must explicitly assert the specific behavior the sub-agent flagged -- not merely exercise the affected code path. If the test reaches the code and passes without asserting it, label `covered-passing-test-buggy` when a correct assertion in the test would catch the defect, or `uncovered` when it would not.
 ## Failure Modes (highest signal)
 Full catalogue in `reference.md` §7. The four highest-signal modes:
 
@@ -177,3 +183,5 @@ Full catalogue in `reference.md` §7. The four highest-signal modes:
 | Fabricated caller evidence | Sub-agent claimed an IndexedDB race reachable from `ensureState`; `ensureState` uses sequential `await`. | Gate C concurrency principle (`reference.md` §5); 3-hop cap; demote to Unreachable Risks if no concurrent caller exists. |
 | Missing sibling cross-check | Real bug (dedup after truncation) was visible only by diffing `validator-storage.js` vs `validator-project-storage.js`. | Gate B with language-aware patterns + I2 (re-read both siblings from disk). |
 | No-test-infrastructure inverts the gate | Brownfield repo with zero tests; every candidate labeled "uncovered" inflates bug claims. | Gate D distinguishes `no-test-infrastructure` from `uncovered`; the former requires a compensating signal (Gate B divergence OR Gate C passed with hops <= 1) to continue. |
+| Longstanding code treated as intentional | Real bug dismissed because the code has been stable for years or is widely depended on. | Age is not affirmative intent. Apply Gate D `covered-passing-intentional` only when a test explicitly asserts the flagged behavior as correct. Stability is a reason to be careful with the fix, not a reason to suppress the finding. |
+| Behavioral change misclassified as bug | Fix rewrites intentional behavior and breaks callers; or a confirmed bug is downgraded to Low-Confidence because callers depend on the broken behavior. | A confirmed failure path (Gate C pass, all floors met) routes to Confirmed regardless of caller dependency. Caller migration risk belongs in the Confirmed bug's fix sketch as a "Callers must adjust:" note -- it does not change the routing. Do not demote to Low-Confidence Risks solely because callers depend on the current (broken) behavior. |
