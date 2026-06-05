@@ -6,7 +6,6 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY_RUN=false
 REPO_PATH=""
 LANGUAGE="shell"
@@ -173,9 +172,7 @@ if [ -n "$EXISTING_FILE" ]; then
     # Generate new file
     TEMP_FILE=$(mktemp)
     generate_header > "$TEMP_FILE"
-    echo "## Project-Specific Guidelines" >> "$TEMP_FILE"
-    echo "" >> "$TEMP_FILE"
-    cat "$EXISTING_FILE" >> "$TEMP_FILE"
+    { echo "## Project-Specific Guidelines"; echo ""; cat "$EXISTING_FILE"; } >> "$TEMP_FILE"
     
     mv "$TEMP_FILE" "$EXISTING_FILE"
     echo "Migration complete: $EXISTING_FILE"
