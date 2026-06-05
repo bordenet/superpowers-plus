@@ -78,7 +78,12 @@ run_bats() {
         echo "⚠️  bats not installed; skipping"
         return 0
     fi
-    bats test/
+    # Force git's fsmonitor off for every git invocation the tests spawn. With
+    # core.fsmonitor=true in a developer's global ~/.gitconfig, each throwaway
+    # test repo starts a detached `git fsmonitor--daemon` that inherits bats'
+    # status FD 3 and never closes it -- bats then hangs forever at suite exit.
+    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+        bats test/
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite

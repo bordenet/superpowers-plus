@@ -75,6 +75,20 @@ _run_installer() {
     done < "$manifest"
 }
 
+@test "install_libs: runtime libs deployed and lib/install/ excluded" {
+    _run_installer
+    [ "$status" -eq 0 ]
+    local libs_dir="$HOME/.codex/superpowers-plus/lib"
+    [ -d "$libs_dir" ]
+    # A runtime lib that tools/ load via require('../lib/...') must be present;
+    # absence is the exact "Cannot find module" regression install_libs prevents.
+    [ -f "$libs_dir/wiki-publish.js" ]
+    # The non-recursive *.js glob must NOT ship the install-only lib/install/ dir.
+    [ ! -e "$libs_dir/install" ]
+    # Manifest records the shipped libs.
+    [ -f "$HOME/.codex/superpowers-plus/install-state/libs.manifest" ]
+}
+
 @test "install_skills: _shared/ deployed alongside skills" {
     _run_installer
     [ "$status" -eq 0 ]

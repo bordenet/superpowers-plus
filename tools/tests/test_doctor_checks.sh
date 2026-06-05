@@ -338,7 +338,9 @@ test_warnings_only_exit_code_0() {
   local result
   result=$(
     FAIL_ON_FINDINGS=true
-    CRITICAL=0; ERRORS=0; WARNINGS=3
+    CRITICAL=0; ERRORS=0
+    # shellcheck disable=SC2034  # WARNINGS documents test scenario; only CRITICAL/ERRORS drive exit logic
+    WARNINGS=3
     if [[ "$FAIL_ON_FINDINGS" == "true" ]]; then
       if (( CRITICAL > 0 )); then echo "exit2"; fi
       if (( ERRORS > 0 ));   then echo "exit1"; fi

@@ -107,7 +107,6 @@ CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
-# shellcheck disable=SC2034  # FORCE read by lib/install/deploy.sh consumers
 FORCE=false
 VERBOSE=false
 UPGRADE=false
@@ -608,6 +607,8 @@ main() {
         fi
         install_templates
         install_tools
+        # ships runtime lib/*.js that tools/ require via ../lib/
+        install_libs
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
@@ -640,6 +641,9 @@ main() {
 
     # NOT Augment-specific — runs in both modes (todo-preflight, todo-lock, etc.)
     install_tools
+
+    # NOT Augment-specific — ships runtime lib/*.js that tools/ require via ../lib/
+    install_libs
 
     # NOT Augment-specific — runs in both modes (sp-update symlink for shell PATH)
     install_cli_commands
