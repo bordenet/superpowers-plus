@@ -95,7 +95,7 @@ Sections appear in this fixed order: **Bugs** -> **Unreachable Risks** -> **Low-
 **Parameters resolved:** N=<N>, scope=<resolved file count>, focus=<focus>, confidence-mode=<mode> (T=<threshold>, source=<user input or 'default'>)
 **Audit trail -- gate evaluations:** A=<count> B=<count> D=<count> C=<count> E=<count>
 **Audit trail -- gate passes-to-next:** A=<count> B=<count> D=<count> C=<count> E=<count>
-**Audit trail -- gate fail-opens:** B-no-sibling=<n>, D-no-test-infra-compensated=<n>, D-no-test-infra-demoted=<n>, D-unsure=<n>, D-covered-skipped=<n>, Phase4-mitigation-downgrade=<n>, Phase4-I3-rerun=<n>
+**Audit trail -- gate fail-opens:** B-no-sibling=<n>, D-no-test-infra-compensated=<n>, D-no-test-infra-demoted=<n>, D-unsure=<n>, D-covered-skipped=<n>, Phase4-mitigation-downgrade=<n>, Phase4-I3-rerun=<n>, Phase4-missed-finding=<n>
 **Audit trail -- phases:** Phase1-sanitization-rejections=<n>, Phase2-re-dispatches=<n>, re-dispatch-exhausted=<true|false>
 **Audit trail -- outcomes:** confirmed=<n>, unreachable-risk=<n>, low-confidence-risk=<n>, rejected=<n>, sub-agent-candidates-returned=<n>, files-unreached=<n>
 **Languages detected:** <list>
