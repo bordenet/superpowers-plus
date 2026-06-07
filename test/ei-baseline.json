@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T17:49:29.556Z",
+  "generated_at": "2026-06-07T03:11:59.292Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -41,9 +41,9 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "06ad15d1dc93d682",
-        "length": 488,
-        "first_line": "| Failure | Fix |"
+        "normalized_hash": "f63bb4dc9bf3ba9e",
+        "length": 203,
+        "first_line": "See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-spe"
       }
     ],
     "engineering/cognitive-complexity-refactoring/skill.md": [
@@ -190,8 +190,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "3c42f923abd3473e",
-        "length": 695,
+        "normalized_hash": "0684f2b99eb1fcf3",
+        "length": 862,
         "first_line": "| Failure | Fix |"
       }
     ],
@@ -346,22 +346,29 @@
       {
         "kind": "EI",
         "name": "block-0",
-        "normalized_hash": "d4ada732db406397",
-        "length": 556,
-        "first_line": "**DO NOT POST CLAIMS YOU CANNOT VERIFY.**"
+        "normalized_hash": "079898f6d11afe99",
+        "length": 743,
+        "first_line": "**DO NOT POST CLAIMS YOU CANNOT VERIFY.** This gate covers claim accuracy only. For framing and voice, see AI Meta-Comme"
       },
       {
         "kind": "EI",
         "name": "block-1",
-        "normalized_hash": "8220850b5598b3af",
-        "length": 303,
-        "first_line": "**HARD HALT before proceeding:** If you cannot cite a specific tool call (view, read, grep, query) that retrieved the ev"
+        "normalized_hash": "26fdaa44498d063c",
+        "length": 3096,
+        "first_line": "**Evaluate this gate BEFORE generating the Preflight Evidence Block.** GATE FAIL → do not generate the preflight block —"
+      },
+      {
+        "kind": "EI",
+        "name": "block-2",
+        "normalized_hash": "df237f4265fcab6f",
+        "length": 1651,
+        "first_line": "**Before generating this block, apply the AI Meta-Commentary HARD GATE above. GATE FAIL → do not generate this block — o"
       },
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "bb5c5961e575e06e",
-        "length": 542,
+        "normalized_hash": "76559ba667203e36",
+        "length": 812,
         "first_line": "| Failure | Fix |"
       }
     ],
