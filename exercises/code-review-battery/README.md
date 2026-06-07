@@ -17,6 +17,10 @@ source_commit: <sha>  # Commit that introduced the bug (or fixed it)
 source_pr: <number>   # PR where the finding was documented
 tags: [error-handling, installer, ...]
 expected_reviewers: [defect-finder, guardian, ...]  # Who SHOULD catch this
+
+# Optional (FP-trap holdouts only):
+tests_pattern: producer-trace        # Named pattern this holdout exercises
+test_kind: fp-trap                   # Currently only fp-trap is in use
 ---
 ```
 
@@ -26,6 +30,9 @@ Body contains:
 2. **## Diff** — The actual code change (fenced code block)
 3. **## Expected Findings** — Ground-truth findings with severity, reviewer, file, issue
 4. **## Anti-Findings** — Things the battery should NOT flag (false positive traps)
+5. **## Pass criteria** (optional, FP-trap holdouts only) — Explicit success condition when the exercise is a negative test against a named pattern
+
+**Scoring shape note:** TP exercises (ex-001..013) produce precision/recall against Expected Findings. FP-trap holdouts (ex-014+, identified by `test_kind: fp-trap`) produce a binary pass/fail against the Pass criteria block: the holdout passes when the named pattern fires ZERO findings against the anti-finding file:line scenarios listed. Pass criteria reference scenarios by file:line tuples (not pattern names) to keep the pass/fail decidable by string match; findings on other files or other patterns do not affect the holdout verdict.
 
 ## Metrics
 
@@ -118,3 +125,5 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | [ex-011](./ex-011-n-plus-one-query.md) | 4 | performance-analyst + defect-finder | N+1 blocking I/O + unbounded payload | Synthetic |
 | [ex-012](./ex-012-undefined-import.md) | 3 | defect-finder | Undefined function reference (ReferenceError) | Synthetic |
 | [ex-013](./ex-013-return-contract-break.md) | 4 | defect-finder + guardian | Return contract change breaks callers | Synthetic |
+| [ex-014](./ex-014-producer-trace-holdout.md) | 4 | defect-finder + standards-enforcer | FP-trap holdout for Producer Trace (indirect emit, enum-only definition, re-export, paired-symmetry) | Synthetic |
+| [ex-015](./ex-015-failure-mode-differentiation-holdout.md) | 4 | guardian | FP-trap holdout for Failure-mode Differentiation (alert-fatigue, single-provider, non-alarm-feeding) | Synthetic |
