@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25T17:49:29.644Z",
+  "generated_at": "2026-06-07T03:11:59.459Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -28,7 +28,7 @@
     "engineering/code-review-battery/skill.md": {
       "step_headings": 7,
       "stop_markers": 0,
-      "hard_gate_table": 1,
+      "hard_gate_table": 0,
       "code_fences": 4
     },
     "engineering/cognitive-complexity-refactoring/skill.md": {
@@ -143,7 +143,7 @@
       "step_headings": 7,
       "stop_markers": 0,
       "hard_gate_table": 3,
-      "code_fences": 2
+      "code_fences": 3
     },
     "engineering/providing-code-review/skill.md": {
       "step_headings": 0,
@@ -178,7 +178,7 @@
     "engineering/sp-bughunt/skill.md": {
       "step_headings": 6,
       "stop_markers": 0,
-      "hard_gate_table": 0,
+      "hard_gate_table": 1,
       "code_fences": 1
     },
     "engineering/state-consistency-investigator/skill.md": {
@@ -250,7 +250,7 @@
     "issue-tracking/issue-comment-debunker/skill.md": {
       "step_headings": 0,
       "stop_markers": 1,
-      "hard_gate_table": 0,
+      "hard_gate_table": 1,
       "code_fences": 4
     },
     "issue-tracking/issue-editing/skill.md": {
