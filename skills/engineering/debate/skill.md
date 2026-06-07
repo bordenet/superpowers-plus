@@ -85,8 +85,8 @@ Stalling at preflight (loading skills without executing them, deliberating about
 | Step | Type | What Happens | Gate |
 |------|------|-------------|------|
 | 1. GENERATE | Diverge | Produce ≥3 genuinely distinct design options | ≥3 options, each implementable |
-| 2. COMPARE | Analyze | Structured comparison matrix across 5 criteria | Matrix complete, recommendation stated |
-| 3. HARSH REVIEW | Converge | Red-team via **separated reviewer** (sub-agent or explicit role switch) | All weaknesses documented by non-author |
+| 2. COMPARE | Analyze | Structured comparison matrix across 6 criteria | Matrix complete, recommendation stated |
+| 3. HARSH REVIEW | Converge | Red-team via **separated reviewer** (sub-agent or explicit role switch) | All weaknesses documented by non-author (Q7a may loop to Step 1 once) |
 | 4. EDGE CASES | Diverge | Final brainstorm targeting gaps found in Step 3 | Edge cases cataloged |
 | 5. ITERATE | Loop | Fix → verify fixes landed → re-review (min 2 rounds) | Converged or escalated |
 
@@ -111,6 +111,7 @@ Build a comparison matrix. **Constraint: max 5 words per cell.**
 | Maintainability | | | |
 | Risk | | | |
 | Fit with existing patterns | | | |
+| Reversibility (cost to undo) | | | |
 
 State your recommendation with explicit rationale (2-3 sentences). If only one option is viable, the matrix documents WHY the others don't work — that documentation has value.
 
@@ -125,6 +126,8 @@ State your recommendation with explicit rationale (2-3 sentences). If only one o
 
 Self-review in the same pass that wrote the design is **a violation** — it produces theater, not adversarial pressure.
 
+**Stakes-scaled reviewers:** For designs that are irreversible OR high-blast-radius (e.g., a shared-schema or external-interface change, a data migration, or anything with no quick rollback), dispatch ≥2 independent sub-agent reviewers (distinct contexts) and reconcile divergences — a single reviewer shares your blind spots. Do NOT invoke `progressive-harsh-review` or `quantitative-decision-gate` as the reviewer (both list `debate` in their `enables` and would route back here — recursion). Low-stakes, reversible designs keep the single separated reviewer.
+
 For the selected design, the reviewer answers ALL of these (**max 1 sentence per answer**):
 
 1. What's the weakest assumption?
@@ -133,6 +136,7 @@ For the selected design, the reviewer answers ALL of these (**max 1 sentence per
 4. What edge case would break this in production?
 5. What happens if the adjacent system changes?
 6. **Cross-reference check:** Do the design's concrete details (file paths, integration points, claimed behaviors) actually work within the project's real directory structure, existing conventions, and stated constraints?
+7. **Option-set integrity** (one sentence per sub-question): (a) *Anti-straw-man* — extending the Step 1 gate into this pass, is each rejected option one that a competent engineer would genuinely propose? If it is an artificial foil, return to Step 1 once and re-run Step 2 with the replacement included (this resets the round counter — the next Step 3 on the new set is Round 1); an option that loses on the merits is documented, not regenerated. (b) *Status-quo* — was "keep the status quo / don't build this" priced as a design comparison anchor (an option column in the Step-2 matrix, not a build/no-build re-litigation that belongs to requirements-validation; greenfield satisfies this with a "defer / time-boxed spike" anchor)?
 
 **REQUIRED:** Invoke `adversarial-search` principles — search for the WRONG thing, not confirmation of the RIGHT thing.
 
@@ -163,12 +167,16 @@ Each round has THREE phases:
 
 ## Output
 
-Design document with:
+A compact inline **ADR-lite** record — this is the `decision-record` artifact:
 
-1. Selected approach (with rationale)
-2. Rejected alternatives (with WHY they were rejected)
-3. Edge-case catalog from Step 4
-4. Harsh review findings and resolutions
+1. **Decision:** the selected approach (with rationale)
+2. **Options considered:** the ≥3 generated, one line each
+3. **Rejected + why:** each rejected alternative and the reason
+4. **Edge-case catalog:** from Step 4
+5. **Harsh-review findings + resolutions:** from Steps 3 and 5
+6. **Open risks:** anything unresolved at convergence
+
+Unlike `brainstorming`, debate defaults to inline output (the `decision-record` is handed to the next step, e.g. `plan-and-execute`); write a file under `docs/superpowers/specs/` only on explicit request.
 
 ## Example: Comparison Matrix Output
 
@@ -180,6 +188,7 @@ Design document with:
 | Maintainability | Good, decoupled | Good, simple | Poor, two systems |
 | Risk | Message loss | Stale data | Complexity debt |
 | Fit with patterns | Matches existing | New pattern | Mixed |
+| Reversibility | Hard, persisted | Easy, stateless | Hard, mixed |
 ```
 
 ## Rationalizations to Reject
@@ -189,7 +198,7 @@ Design document with:
 | "There's only one way to do this" | You haven't thought hard enough. Invoke `think-twice`. |
 | "The other options are obviously wrong" | Document WHY in the matrix. That's the point. |
 | "This is too simple for 3 options" | Simple designs have unexamined assumptions. |
-| "Harsh review found nothing" | You didn't look hard enough. Answer all 6 questions. |
+| "Harsh review found nothing" | You didn't look hard enough. Answer all 7 questions. |
 | "We don't have time for alternatives" | Rework from a bad design costs more than 15 minutes of comparison. |
 | "Converged after Step 3" | That's Round 1. You need Round 2 minimum. Fix, verify, re-review. |
 | "I produced a recommendation" | That's Step 2 of 5. Steps 3-5 are mandatory. Recommendations without harsh review are theater. |
