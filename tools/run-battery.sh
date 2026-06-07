@@ -213,6 +213,38 @@ else
     SENTINEL_LABEL="Commit:    ${SENTINEL_SHA:0:8}"
     NEXT_STEP="git push"
 fi
+
+# cr-battery preservation gate (graceful degradation):
+# If .cr-battery-runs/ exists at repo root, the skill's Phase 6 preservation
+# step has been adopted -- the orchestrator MUST have written a per-HEAD
+# JSON file before invoking this script. If the directory is absent (legacy /
+# opt-out), or if running in --staged mode (where HEAD is the prior commit,
+# not the work-in-progress), the check is skipped. See
+# docs/cr-battery/finding-lifecycle-design.md for the rationale.
+PRESERVE_DIR="$REPO_ROOT/.cr-battery-runs"
+if [[ "$STAGED_MODE" -ne 1 ]] && [[ -d "$PRESERVE_DIR" ]]; then
+    HEAD_FOR_PRESERVE=$(git rev-parse HEAD)
+    PRESERVE_FILE="$PRESERVE_DIR/${HEAD_FOR_PRESERVE}.json"
+    if [[ ! -s "$PRESERVE_FILE" ]]; then
+        echo "❌ cr-battery preservation file missing: $PRESERVE_FILE" >&2
+        echo "   Per skills/engineering/code-review-battery/skill.md Phase 6, the" >&2
+        echo "   orchestrator must write the aggregated Phase 3 report as JSON" >&2
+        echo "   to this path before invoking run-battery.sh. Sentinel NOT written." >&2
+        exit 1
+    fi
+    # If jq is available, additionally validate that the file is parseable
+    # JSON. A 1-byte garbage file passes the `-s` check; jq catches it.
+    # Skipped silently when jq isn't installed (graceful degradation).
+    if command -v jq >/dev/null 2>&1; then
+        if ! jq -e . "$PRESERVE_FILE" >/dev/null 2>&1; then
+            echo "❌ cr-battery preservation file is not valid JSON: $PRESERVE_FILE" >&2
+            echo "   The orchestrator wrote a malformed JSON envelope. Inspect the file" >&2
+            echo "   and re-run after fixing. Sentinel NOT written." >&2
+            exit 1
+        fi
+    fi
+fi
+
 echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
 
 echo "═══════════════════════════════════════════════════════════"

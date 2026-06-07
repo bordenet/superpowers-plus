@@ -87,3 +87,6 @@ hooks/run-hook.cmd
 # Gemini local generated files (machine-specific, not project source)
 .gemini/mcp-server/
 .gemini/skills
+
+# cr-battery per-engineer run preservation (durable Phase 6 reports)
+.cr-battery-runs/
