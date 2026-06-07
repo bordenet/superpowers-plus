@@ -19,8 +19,8 @@
   },
   "debate": {
     "consumes": ["challenge", "goal"],
-    "produces": ["decision-options", "decision-record"],
-    "capabilities": ["evaluates-options", "generates-options"],
+    "produces": ["design-options", "decision-record"],
+    "capabilities": ["evaluates-options", "generates-designs"],
     "priority": 5
   },
   "field-rename-verification": {
