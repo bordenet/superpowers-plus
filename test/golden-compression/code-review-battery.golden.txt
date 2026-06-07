@@ -131,28 +131,33 @@ Correlated-failure flags do NOT change verdicts directly — they trigger expand
 ### Phase 6: Finalize Verdict + Write Sentinel
 Prerequisite: Correlated-Failure Detection has completed and no re-examination was triggered.
 
+**Preserve the run (before sentinel write):**
+
+1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold; PASS_WITH_NITS if at or above threshold but nits flagged; REJECT or PASS_WITH_FIXES otherwise.
+2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json` (per-engineer durable record; the directory is gitignored).
+
+Schema (run envelope wrapping Phase 3 findings):
+
+- `run_timestamp` -- ISO 8601 UTC, minted by the orchestrator at write time
+- `head_sha` -- `git rev-parse HEAD`
+- `verdict`, `score`, `rounds` -- from the verdict determination above
+- `findings: [...]` -- each entry serializes the Phase 3 fields: `reviewer`, `severity`, `file`, `line`, `issue`, `regressions_risked`, `durable_check`, `classification`
+
+`tools/run-battery.sh` refuses to write the sentinel if `.cr-battery-runs/` exists but the per-HEAD JSON is missing or empty (graceful degradation: skipped if the directory is absent, or in `--staged` mode). If `jq` is available, the gate also validates that the file is parseable JSON. This is preservation only -- no verdict tagging, no shared corpus. See `docs/cr-battery/finding-lifecycle-design.md` for the deferred lifecycle work.
+
 If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
 ```bash
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
-# Pass --min-score with the threshold from the invocation (default 7.0).
-tools/run-battery.sh --verdict PASS                              # min-score 7.0 (default)
-tools/run-battery.sh --verdict PASS --min-score 9.1              # explicit threshold
-tools/run-battery.sh --verdict PASS_WITH_NITS --min-score 8.0    # nits verdict + threshold
+tools/run-battery.sh --verdict PASS --min-score <threshold>
 ```
 
-> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`
-> so that automated checks run before the sentinel is written.
+> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`.
 
-Timing: Battery may run before or after `git commit`. The sentinel records the SHA at time of writing (`HEAD`). If battery ran pre-commit, the sentinel will be stale after commit — run battery again before pushing. The pre-push hook is the authoritative validator: it checks that sentinel SHA matches the ref being pushed. **Do not skip this step** — without a valid sentinel, the push will be blocked.
+Timing: If battery runs pre-commit, the sentinel becomes stale after commit -- re-run before push. The pre-push hook validates sentinel SHA against the pushed ref; without a valid sentinel the push is blocked.
 
 If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
 ### Gap Analysis + Error Handling
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 ## Failure Modes
-| Failure | Fix |
-|---------|-----|
-| Sub-agent returns no findings on complex diff | Verify diff + source context was passed inline — sub-agents have no conversation context |
-| False positives from isolated diff review | Include source context (callers, field readers) per Phase 2 — isolation is the #1 cause |
-| Convergence never reached | Escalate to human after 3 passes |
-| Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
+See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist) with fixes. Moved to the companion file alongside the Anti-Patterns table.
