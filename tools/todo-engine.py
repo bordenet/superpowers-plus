@@ -463,18 +463,41 @@ def _check_annihilation(new_content: str, todo_path: str) -> None:
 
 
 def _update_shadow(content: str) -> None:
-    """Write the just-committed content to the shadow file for future comparisons."""
+    """Write the just-committed content to the shadow file for future comparisons.
+
+    Uses an atomic temp-file + os.replace() write so the shadow file's own
+    mode (even 0o444) never blocks the update — os.replace() only requires
+    the directory write bit, not the target file's write bit.
+
+    On failure, exits non-zero instead of silently degrading.  Annihilation
+    detection must stay active; the 2026-03-23 incident happened because a
+    warn-and-skip path left the system unguarded.
+    """
     shadow = _shadow_todo_path()
     os.makedirs(SHADOW_DIR, exist_ok=True)
+    tmp = None
     try:
-        with open(shadow, "w") as f:
+        fd, tmp = tempfile.mkstemp(dir=SHADOW_DIR, prefix="todo-shadow-", suffix=".tmp")
+        # os.fdopen() takes ownership of fd and closes it on exit — do not call
+        # os.close(fd) separately.
+        with os.fdopen(fd, "w") as f:
             f.write(content)
+        # fd is now closed; proceed with atomic promotion.
+        os.chmod(tmp, 0o644)   # shadow must stay writable (unlike canonical TODO.md)
+        os.replace(tmp, shadow)  # atomic; only needs dir write bit, not shadow's mode
+        tmp = None
     except OSError as exc:
+        if tmp is not None:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
         print(
-            f"WARNING: Could not update shadow TODO.md ({shadow}): {exc}. "
-            f"Next write will not have annihilation detection.",
+            f"ERROR: Cannot update shadow TODO.md ({shadow}): {exc}. "
+            f"Aborting to preserve annihilation-detection integrity.",
             file=sys.stderr,
         )
+        sys.exit(1)
 
 
 def _clear_immutable(path: str) -> None:
@@ -621,15 +644,28 @@ def find_section_end(content: str, section_re: re.Pattern) -> int:
 
     Returns the character index where new content should be inserted
     (just before the next section/heading).
+
+    Uses a tighter boundary pattern than the module-level RE_SECTION so that
+    stray ``## Heading`` lines inside task bodies do not masquerade as section
+    terminators and cause add/move to insert content in the wrong place.
+    Only actual structure markers are recognised:
+      - ``## P1`` / ``## P2`` / ``## P3``  (priority sub-sections)
+      - ``# ACTIVE`` / ``# HISTORY`` / ``# DEFERRED`` / ``# METRICS``
+      - ``---``  (section separator, alone on its line)
     """
+    _RE_REAL_BOUNDARY = re.compile(
+        r"^(?:## P[1-9]\b|# (?:ACTIVE|HISTORY|DEFERRED|METRICS)\b|---$)",
+        re.MULTILINE,
+    )
+
     m = section_re.search(content)
     if not m:
         return -1
 
     start = m.end()
-    # Find next section heading (## or #)
+    # Find next *real* section boundary (skips arbitrary ## headings in task bodies)
     rest = content[start:]
-    next_match = RE_SECTION.search(rest)
+    next_match = _RE_REAL_BOUNDARY.search(rest)
     if next_match:
         insert_at = start + next_match.start()
     else:
@@ -652,8 +688,17 @@ def next_task_id(content: str, today: str = None) -> str:
 
 
 def find_task(content: str, task_id: str):
-    """Find a task block by ID. Returns (start, end) char indices or None."""
-    # Match the task line
+    """Find a task block by ID. Returns (start, end) char indices or None.
+
+    A task block spans from the task header line to (but not including) the
+    next hard boundary: another task header (``- [``), a priority section
+    marker (``## P``), or a top-level section header (``# ``).  Bare ``---``
+    lines are NOT boundaries — they appear as markdown horizontal rules inside
+    task bodies and must not truncate the block.  This "content-until-next-task"
+    model is more robust than the old indentation-only approach, which silently
+    truncated blocks the moment any un-indented line appeared (headers, rules,
+    blank lines) — causing complete/move to strand body content in ACTIVE.
+    """
     pat = re.compile(
         r"^- \[[ x/]\] \[" + re.escape(task_id) + r"\].*$", re.MULTILINE
     )
@@ -661,28 +706,40 @@ def find_task(content: str, task_id: str):
     if not m:
         return None
     start = m.start()
-    end = m.end()
-    # Include continuation lines (indented with 2+ spaces)
-    while end < len(content):
-        next_nl = content.find("\n", end)
-        if next_nl == -1:
-            end = len(content)
-            break
-        next_line_start = next_nl + 1
-        if next_line_start >= len(content):
-            end = next_line_start
-            break
-        next_line = content[next_line_start:]
-        # Continuation: starts with spaces (indented sub-items)
-        if next_line.startswith("  "):
-            line_end = content.find("\n", next_line_start)
-            end = line_end if line_end != -1 else len(content)
-        else:
-            end = next_nl
-            break
-    # Include trailing newline
-    if end < len(content) and content[end] == "\n":
-        end += 1
+
+    # Patterns that unconditionally end a task block.
+    # Compiled here (not module-level) to keep their semantics self-contained.
+    #
+    # NOTE: "---" is intentionally excluded.  In the TODO.md format, "---"
+    # appears as a section separator *between* top-level sections (# HISTORY,
+    # # DEFERRED, etc.), which are already covered by the "# [A-Z]" branch.
+    # Inside a task body, "---" is a valid markdown horizontal rule and must
+    # NOT terminate the block; omitting it here is intentional.
+    _RE_NEXT_TASK = re.compile(r"^- \[[ x/]\]", re.MULTILINE)
+    _RE_SECTION_HDR = re.compile(r"^(?:## P[1-9]\b|# [A-Z])", re.MULTILINE)
+
+    rest_start = m.end()
+    rest = content[rest_start:]
+
+    t_m = _RE_NEXT_TASK.search(rest)
+    s_m = _RE_SECTION_HDR.search(rest)
+
+    boundary = None
+    if t_m is not None and (s_m is None or t_m.start() <= s_m.start()):
+        boundary = t_m
+    elif s_m is not None:
+        boundary = s_m
+
+    if boundary is not None:
+        raw_end = rest_start + boundary.start()
+    else:
+        raw_end = len(content)
+
+    # Strip trailing blank lines so the block ends cleanly before the gap.
+    block = content[start:raw_end].rstrip("\n")
+    end = start + len(block) + 1   # +1 to include exactly one trailing newline
+    if end > len(content):
+        end = len(content)
     return (start, end)
 
 
