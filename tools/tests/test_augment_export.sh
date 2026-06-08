@@ -35,11 +35,15 @@ fi
 # Dynamic discovery: build curated list from installed skills with augment_menu: true.
 # Recursive find to handle domain-grouped layout (skills/{domain}/{name}/skill.md).
 CURATED=()
-while IFS= read -r _skill_file; do
-    [[ -n "$_skill_file" ]] || continue
+while IFS= read -r _skill_dir; do
+    [[ -n "$_skill_dir" ]] || continue
+    _skill_file=""
+    [[ -f "$_skill_dir/skill.md" ]] && _skill_file="$_skill_dir/skill.md"
+    [[ -f "$_skill_dir/SKILL.md" ]] && _skill_file="$_skill_dir/SKILL.md"
+    [[ -z "$_skill_file" ]] && continue
     grep -q '^augment_menu: *true' "$_skill_file" 2>/dev/null || continue
-    CURATED+=("$(basename "$(dirname "$_skill_file")")")
-done < <(find "$SKILLS_DIR" -type f \( -name "skill.md" -o -name "SKILL.md" \))
+    CURATED+=("$(basename "$_skill_dir")")
+done < <(find "$SKILLS_DIR" -maxdepth 3 -type f \( -name "skill.md" -o -name "SKILL.md" \) -exec dirname {} \; | sort -u)
 
 EXPECTED="${#CURATED[@]}"
 if [[ $EXPECTED -eq 0 ]]; then
