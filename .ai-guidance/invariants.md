@@ -1,47 +1,36 @@
-# Invariants — superpowers-plus
+# Critical Invariants — Always Follow
 
-Hard rules. No exceptions without explicit human instruction.
+> **Load at START of every conversation.**
 
-## Source Repo
+## Self-Management Protocol
 
-- ALL edits happen in THIS repo (the directory containing this file)
-- NEVER edit installed copies: `~/.codex/superpowers-plus/`, `~/.codex/skills/`, `~/.agents/skills/`
-- If unsure of source path: `git rev-parse --show-toplevel`
+After editing ANY guidance file, run: `wc -l AGENTS.md .ai-guidance/*.md 2>/dev/null`
 
-## Git Workflow
+| File | Limit | Action if exceeded |
+|------|-------|-------------------|
+| `AGENTS.md` | 250 lines | Extract to `.ai-guidance/*.md` |
+| `.ai-guidance/*.md` | 250 lines | Split into sub-directory |
 
-- NEVER commit directly to `main`, `staging`, or `dev`
-- NEVER branch features from `main` or `staging` — always branch from `origin/dev`
-- NEVER promote `dev → staging` without explicit user instruction
-- NEVER promote `staging → main` without explicit user release instruction
-- NEVER self-merge any PR — human approval required at every tier
-- ALWAYS `git reset --hard origin/main` to sync local main — NEVER rebase or merge
-  (squash merges change SHAs; rebase will always conflict)
+**If threshold exceeded:** STOP → Refactor (zero data loss) → Verify → Resume
 
-## Quality Gates
+## Zero Data Loss Checklist
 
-- NEVER push without running `tools/run-battery.sh` first (sentinel required)
-- NEVER write `.code-review-cleared` directly — only `tools/run-battery.sh` may write it
-- NEVER emit "ready to push / commit / merge" without checking for required-skill triggers
+- [ ] Snapshot captured: `cat <file> > /tmp/original.md`
+- [ ] Every section accounted for in new structure
+- [ ] No rules deleted (only moved/split)
+- [ ] Diff shows reorganization, not deletion
 
-## 🔴 Remote Naming & Source of Truth
+## Refactoring Steps
 
-**Remote naming convention:**
-- `upstream` = GitHub (public source of truth)
-- `origin`   = private mirror (GitLab or equivalent)
+**AGENTS.md → .ai-guidance/:**
+1. Snapshot → `mkdir -p .ai-guidance` → Classify by topic
+2. Extract to sub-files (≤250 lines each) → Update loading table
+3. Verify: `wc -l AGENTS.md` ≤250
 
-**ALL CHANGES GO TO GITHUB (`upstream`) FIRST — ALWAYS.**
+**Sub-file → sub-directory** (e.g., `testing.md` exceeds 250 lines):
+1. `mkdir -p .ai-guidance/testing`
+2. Split into topic files (`unit.md`, `integration.md`, etc.)
+3. Replace original with index referencing sub-files
+4. Verify: each file ≤250 lines
 
-Correct promotion flow:
-1. Push feature branch to `upstream` (GitHub)
-2. Open PR on GitHub: feature → dev → staging → main
-3. After GitHub main is updated, sync the private mirror:
-   `git push origin upstream/main:main upstream/staging:staging upstream/dev:dev`
-
-❌ NEVER promote through the private mirror first and then try to backfill GitHub.
-❌ NEVER push locally-created commits to `origin` — only `upstream/<branch>:<branch>` refs.
-
-## Install Artifacts
-
-- After `sp-update` or `install.sh`, run `git restore .` in `~/.codex/superpowers-plus/`
-  to clear execute-bit drift on `tools/doctor-modules/*.sh` and `tools/tests/*.sh`
+**Recovery:** If verification fails, restore from `/tmp/original.md`

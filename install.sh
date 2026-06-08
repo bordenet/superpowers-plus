@@ -592,6 +592,12 @@ main() {
     # Register the source repo path for doctor/source-aware tooling.
     register_source_repo
 
+    # Guard: refuse to overwrite a foreign superpowers ecosystem deployment.
+    # check_foreign_ecosystem is defined in lib/install/deploy.sh (sourced above).
+    # It reads ~/.codex/.superpowers-ecosystem and exits 1 if a different
+    # ecosystem already owns this machine, unless --force was passed.
+    check_foreign_ecosystem
+
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
         # Reinstall personal skills, rules, templates after upgrade
@@ -615,6 +621,8 @@ main() {
         migrate_consumed_approvals
         install_claude_commands_mirror
         install_claude_guardrails
+        # Record this ecosystem as the owner of this ~/.codex install.
+        write_ecosystem_marker
         print_summary
         return
     fi
@@ -674,6 +682,9 @@ main() {
     if [[ -d "${_mgd}/.git" ]]; then
         git -C "$_mgd" restore . 2>/dev/null || true
     fi
+
+    # Record this ecosystem as the owner of this ~/.codex install.
+    write_ecosystem_marker
 
     # Print summary
     print_summary
