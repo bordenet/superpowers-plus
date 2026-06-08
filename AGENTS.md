@@ -6,7 +6,6 @@
 > **Type**: cli-tools
 
 Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/templates/`
-
 <!-- GOLDEN:self-manage:start -->
 ## ⚠️ Before ANY Task
 1. Load `.ai-guidance/invariants.md` — contains critical rules
@@ -14,8 +13,6 @@ Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/
    - `AGENTS.md` >150 lines → refactor into `.ai-guidance/`
    - Any `.ai-guidance/*.md` >250 lines → split into sub-directory
 <!-- GOLDEN:self-manage:end -->
-
-
 <!-- GOLDEN:framework:start -->
 
 ---
@@ -49,7 +46,6 @@ Before ANY commit:
 
 ### Language Modules (🔴 Required)
 - 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `$HOME/.golden-agents/templates/languages/shell.md`
-- 🔴 **BEFORE writing ANY `.js`, `.ts`, `.jsx`, `.tsx` file**: Read `$HOME/.golden-agents/templates/languages/javascript.md`
 
 ### Workflow Modules (🔴 Required)
 - 🔴 **BEFORE any commit, PR, push, or merge**: Read `$HOME/.golden-agents/templates/workflows/security.md`
@@ -63,10 +59,17 @@ Before ANY commit:
 
 ### Optional: Superpowers integration
 
-If [superpowers](https://github.com/obra/superpowers) is installed, run at session start:
+Two parallel, mutually exclusive skill ecosystems exist. At the **START of every conversation**, detect which THIS machine uses and bootstrap accordingly:
 
+- **superpowers-callbox**: No bootstrap required (skills are pre-deployed as symlinks).
+- **superpowers-plus**: Run the js bootstrap:
+  ```bash
+  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+  ```
+
+This loads available skills into the environment. To load a specific skill manually (plus only):
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>
 ```
 
 <!-- GOLDEN:framework:end -->
