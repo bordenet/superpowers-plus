@@ -19,25 +19,28 @@ if [[ ! -f "$DEPLOY_SH" ]]; then
     echo "SKIP: lib/install/deploy.sh not found"
     exit 0
 fi
-SKILLS_DIR="${HOME}/.codex/skills"
+# Use local repo skills for Section A (hermetic), fall back to installed for Section B.
+LOCAL_SKILLS="$REPO_ROOT/skills"
+SKILLS_DIR="${LOCAL_SKILLS}"
 if [[ ! -d "$SKILLS_DIR" ]]; then
-    echo "SKIP: $SKILLS_DIR not found — run ./install.sh first"
+    SKILLS_DIR="${HOME}/.codex/skills"
+fi
+
+if [[ ! -d "$SKILLS_DIR" ]]; then
+    echo "SKIP: skills directory not found (local or ~/.codex/skills)"
     exit 0
 fi
 
 # Extract curated skills from AUGMENT_MENU_SKILLS array
 # Dynamic discovery: build curated list from installed skills with augment_menu: true.
-# This mirrors the deploy.sh approach (no hardcoded array; skills opt in via frontmatter).
+# Recursive find to handle domain-grouped layout (skills/{domain}/{name}/skill.md).
 CURATED=()
-for _skill_dir in "$SKILLS_DIR"/*/; do
-    [[ -d "$_skill_dir" ]] || continue
-    _skill_file=""
-    [[ -f "$_skill_dir/skill.md" ]] && _skill_file="$_skill_dir/skill.md"
-    [[ -f "$_skill_dir/SKILL.md" ]] && _skill_file="$_skill_dir/SKILL.md"
-    [[ -z "$_skill_file" ]] && continue
+while IFS= read -r _skill_file; do
+    [[ -n "$_skill_file" ]] || continue
     grep -q '^augment_menu: *true' "$_skill_file" 2>/dev/null || continue
-    CURATED+=("$(basename "$_skill_dir")")
-done
+    CURATED+=("$(basename "$(dirname "$_skill_file")")")
+done < <(find "$SKILLS_DIR" -type f \( -name "skill.md" -o -name "SKILL.md" \))
+
 EXPECTED="${#CURATED[@]}"
 if [[ $EXPECTED -eq 0 ]]; then
     echo "FAIL: No skills with 'augment_menu: true' found in $SKILLS_DIR" >&2
@@ -82,7 +85,9 @@ fi
 # Augment IDE uses directory name as slash command, so we export to sp-* names.
 _test_dest_name() {
     local skill="$1"
-    local skill_file="$SKILLS_DIR/$skill/skill.md"
+    local skill_file
+    skill_file=$(find "$SKILLS_DIR" -type f -path "*/$skill/skill.md" -o -path "*/$skill/SKILL.md" | head -1)
+    if [[ -z "$skill_file" ]]; then echo "$skill"; return; fi
     local t=""
     t=$(grep "^triggers:" "$skill_file" 2>/dev/null | grep -o '"/sp-[^"]*"' | head -1 | tr -d '"')
     if [[ -z "$t" ]]; then
@@ -113,25 +118,45 @@ fi
 # ═══════════════════════════════════════════
 # Section B: Live smoke test
 # Confirms the last install.sh run left ~/.agents/skills/ correct.
-# ═══════════════════════════════════════════
+# Skip if the installed directory doesn't seem to contain THIS repo's skills
+# (e.g. during cross-repo development like CallBox -> superpowers-plus).
 echo "  [B] Live install smoke:"
 
 MENU_DIR="${HOME}/.agents/skills"
 if [[ ! -d "$MENU_DIR" ]]; then
     skip "live smoke: $MENU_DIR absent — install.sh not yet run on this machine"
 else
-    live_missing=0
-    for skill in "${CURATED[@]}"; do
-        dest=$(_test_dest_name "$skill")
-        if [[ -d "$MENU_DIR/$dest" ]] && [[ -f "$MENU_DIR/$dest/SKILL.md" ]]; then
-            pass "live: $skill → $dest — OK"
-        else
-            fail "live: $skill — missing or malformed (expected: $MENU_DIR/$dest)"
-            ((live_missing++)) || true
+    # Check for a few "anchor" skills that are unique to or common in this repo.
+    # We verify that they point to the current repo to distinguish from CallBox.
+    anchor_present=0
+    for anchor in detecting-ai-slop perplexity-research; do
+        dest=$(_test_dest_name "$anchor")
+        if [[ -d "$MENU_DIR/$dest" ]]; then
+            # Verify it's a symlink pointing to THIS repo
+            _tgt=$(readlink "$MENU_DIR/$dest/SKILL.md" 2>/dev/null || true)
+            if [[ "$_tgt" == *"$REPO_ROOT"* ]]; then
+                anchor_present=1
+                break
+            fi
         fi
     done
-    if [[ $live_missing -eq 0 ]]; then
-        pass "live: all $EXPECTED/$EXPECTED curated skills present"
+
+    if [[ $anchor_present -eq 0 ]]; then
+        skip "live smoke: $MENU_DIR present but does not contain this repo's skills (different repo installed?)"
+    else
+        live_missing=0
+        for skill in "${CURATED[@]}"; do
+            dest=$(_test_dest_name "$skill")
+            if [[ -d "$MENU_DIR/$dest" ]] && [[ -f "$MENU_DIR/$dest/SKILL.md" ]]; then
+                pass "live: $skill → $dest — OK"
+            else
+                fail "live: $skill — missing or malformed (expected: $MENU_DIR/$dest)"
+                ((live_missing++)) || true
+            fi
+        done
+        if [[ $live_missing -eq 0 ]]; then
+            pass "live: all $EXPECTED/$EXPECTED curated skills present"
+        fi
     fi
 fi
 

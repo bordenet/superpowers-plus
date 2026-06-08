@@ -848,8 +848,14 @@ export_augment_menu_skills() {
     local exported=0
     declare -A exported_names=()
 
-    local skill_dir skill_name skill_file sp_trigger dest_name dest
-    for skill_dir in "$SKILLS_DIR"/*/; do
+    # Discovery loop: handles both flat and domain-grouped sources.
+    # Recursion matches install_skills() logic: domain/skill/skill.md.
+    local skill_dirs=()
+    while IFS= read -r -d '' d; do
+        skill_dirs+=("$d")
+    done < <(find "$SKILLS_DIR" -maxdepth 3 -type f \( -name "skill.md" -o -name "SKILL.md" \) -print0 2>/dev/null | xargs -0 -I{} dirname {} | sort -u | tr '\n' '\0')
+
+    for skill_dir in "${skill_dirs[@]+"${skill_dirs[@]}"}"; do
         [[ -d "$skill_dir" ]] || continue
         skill_name=$(basename "$skill_dir")
 
