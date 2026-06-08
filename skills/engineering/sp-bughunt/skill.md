@@ -188,7 +188,7 @@ Floor violation (rule 4) takes precedence over every demotion below it -- a floo
 3. **"Fully neutralizes" criterion:** a mitigation fully neutralizes the failure only if it prevents the failure mode entirely **under all inputs in scope** and the orchestrator can quote the file:line proving it. If proven, subtract 3 from Severity, **re-check the Severity floor**, and re-route through the Phase 3 Routing Decision (starting at rule 4 for floor check). Increment `Phase4-mitigation-downgrade` whenever the subtraction moves the candidate out of Confirmed. Explicit list movement: if the candidate now lands in Low-Confidence Risks per rule 9 or rule 10, **physically move the entry from the Bugs section to the Low-Confidence Risks section**; if it lands in Rejections per rule 4 or rule 8, **move it to Rejections**. Record `original Severity X, post-mitigation Y` in the candidate's audit data.
 4. **Final classification:** `confirmed`, `partial` (real, narrower scope), or `false-positive` (move out with reason).
 5. **Missed findings** (surfaced in Gates B or this phase) -- add up to N, subject to four constraints:
-   - **Severity floor:** only HIGH or CRITICAL findings qualify; MEDIUM and LOW are excluded from the Confirmed list.
+   - **Severity floor:** only findings with Gate E Severity >= 7 qualify; Severity < 7 findings are excluded from the Confirmed list.
    - **N-cap and displacement:** if adding a new finding would push the Confirmed list above N entries, displace the lowest-severity Confirmed entry first (tiebreaker among equal-severity entries: displace the most recently added).
    - **Gate traversal:** each new finding must complete Phase 3 Gates A-E (recording only) and the Phase 3 Routing Decision before joining any output list.
    - **Counter:** increment `Phase4-missed-finding` for each new finding that survives routing.
@@ -236,7 +236,7 @@ If no candidate clears the threshold, that is a valid output **provided** the au
 
 ## Failure Modes (highest signal)
 
-Full catalogue in `reference.md` §7. The four highest-signal modes:
+Full catalogue in `reference.md` §7. The six highest-signal modes:
 
 | Mode | Symptom | Recovery |
 |---|---|---|
