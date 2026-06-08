@@ -946,13 +946,18 @@ class FileProtectionTests(unittest.TestCase):
         self.assertEqual(mode, 0o444)
 
     def test_write_reprotects_after_write_exception(self):
-        """If the actual file write raises, the file is re-protected."""
+        """If the actual file write raises, the file is re-protected.
+
+        write_file() uses os.fdopen() + os.replace() internally, so the
+        failure is simulated by patching os.replace rather than builtins.open.
+        The except-block must re-protect the file before re-raising.
+        """
         eng = self.engine
         path_str = str(self.todo_path)
         os.chmod(path_str, 0o444)  # Start protected
-        # Mock open to raise AFTER unprotect has run
-        with unittest.mock.patch("builtins.open", side_effect=IOError("disk full")):
-            with self.assertRaises(IOError):
+        # Patch os.replace to simulate "disk full" after the tmp file is written
+        with unittest.mock.patch("os.replace", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError):
                 eng.write_file(path_str, SAMPLE_TODO)
         # File must be re-protected despite the exception
         mode = os.stat(path_str).st_mode & 0o777
@@ -1202,24 +1207,28 @@ class ShadowBackupTests(unittest.TestCase):
         finally:
             os.chmod(shadow, 0o644)  # Restore for cleanup
 
-    def test_shadow_dir_as_file_warns_on_update(self):
-        """If shadow file is replaced with a directory, update_shadow warns."""
+    def test_shadow_dir_as_file_errors_on_update(self):
+        """If shadow file is replaced with a directory, update_shadow exits non-zero.
+
+        With the atomic temp+replace implementation, os.replace(tmp, shadow_dir)
+        raises EISDIR on POSIX.  The new policy is to exit(1) rather than warn
+        and silently degrade annihilation detection.
+        """
         eng = self.engine
         shadow = self._shadow_path()
-        # Create a file where the shadow dir should be (corrupt state)
         os.makedirs(os.path.dirname(shadow), exist_ok=True)
         # First normal write to establish shadow
         eng.write_file(str(self.todo_path), SAMPLE_TODO)
-        # Now corrupt: replace shadow file with a directory
+        # Corrupt: replace shadow file with a directory
         os.remove(shadow)
         os.mkdir(shadow)
         try:
             stderr_buf = io.StringIO()
             with contextlib.redirect_stderr(stderr_buf):
-                # Should warn but not crash
-                eng.write_file(str(self.todo_path), SAMPLE_TODO)
-            stderr_output = stderr_buf.getvalue()
-            self.assertIn("WARNING", stderr_output)
+                with self.assertRaises(SystemExit) as ctx:
+                    eng.write_file(str(self.todo_path), SAMPLE_TODO)
+            self.assertNotEqual(ctx.exception.code, 0)
+            self.assertIn("ERROR", stderr_buf.getvalue())
         finally:
             os.rmdir(shadow)  # Cleanup
 
@@ -1299,6 +1308,206 @@ class ShadowBackupTests(unittest.TestCase):
         # Write tiny content — this should still be blocked (size check always runs)
         with self.assertRaises(SystemExit):
             eng.write_file(str(self.todo_path), SAMPLE_TODO)
+
+
+class MultilineBodyTests(unittest.TestCase):
+    """Tests for find_task / find_section_end with un-indented body content.
+
+    Regression suite for the 2026-06-07 bugs:
+      - Bug A: find_task truncated at first un-indented body line, stranding
+               the rest in ACTIVE instead of excising it on complete/move.
+      - Bug B: find_section_end used a loose RE_SECTION that matched arbitrary
+               ## headings inside task bodies, causing add/move to insert at the
+               wrong position.
+    """
+
+    SAMPLE_WITH_UNINDENTED_BODY = """\
+# ACTIVE TASKS
+
+## P1 - Today
+
+- [ ] [20260323-01] Task with rich body #test
+  - Added: 2026-03-23
+  - Note: This task has a multi-part body below.
+
+## Design Section (un-indented header in body)
+
+Key points:
+- Point one
+- Point two
+
+---
+
+More prose after a horizontal rule.
+
+- [ ] [20260323-02] Simple task #test
+  - Added: 2026-03-23
+
+## P2 - This Week
+
+## P3 - Backlog
+
+---
+
+# HISTORY
+
+---
+
+# DEFERRED
+
+---
+
+# METRICS
+"""
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-ml-test-")
+        self.todo_path = Path(self.tmpdir) / "TODO.md"
+        self._orig_env = os.environ.get("TODO_FILE_PATH")
+        self._shadow_tmp = tempfile.mkdtemp(prefix="todo-shadow-ml-test-")
+        self._orig_shadow_dir = self.engine.SHADOW_DIR
+        self.engine.SHADOW_DIR = self._shadow_tmp
+
+    def tearDown(self):
+        import shutil
+        self.engine.SHADOW_DIR = self._orig_shadow_dir
+        if self._orig_env is None:
+            os.environ.pop("TODO_FILE_PATH", None)
+        else:
+            os.environ["TODO_FILE_PATH"] = self._orig_env
+        if self.todo_path.exists():
+            self.engine._clear_immutable(str(self.todo_path))
+        shutil.rmtree(self._shadow_tmp, ignore_errors=True)
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    # -- find_task hard-boundary tests --
+
+    def test_find_task_includes_unindented_header_in_body(self):
+        """find_task must capture un-indented ## headers that are part of a task body."""
+        eng = self.engine
+        content = self.SAMPLE_WITH_UNINDENTED_BODY
+        loc = eng.find_task(content, "20260323-01")
+        self.assertIsNotNone(loc)
+        start, end = loc
+        block = content[start:end]
+        self.assertIn("20260323-01", block)
+        self.assertIn("Design Section", block, "Un-indented ## header must be included")
+        self.assertIn("Point one", block)
+        self.assertIn("More prose after a horizontal rule", block)
+
+    def test_find_task_stops_at_next_task(self):
+        """find_task block must end at the next task header, not include it."""
+        eng = self.engine
+        content = self.SAMPLE_WITH_UNINDENTED_BODY
+        loc = eng.find_task(content, "20260323-01")
+        self.assertIsNotNone(loc)
+        start, end = loc
+        block = content[start:end]
+        self.assertNotIn("20260323-02", block, "Next task must NOT be included in block")
+
+    def test_find_task_second_task_is_simple(self):
+        """find_task for the second task (no rich body) returns just its header+meta."""
+        eng = self.engine
+        content = self.SAMPLE_WITH_UNINDENTED_BODY
+        loc = eng.find_task(content, "20260323-02")
+        self.assertIsNotNone(loc)
+        start, end = loc
+        block = content[start:end]
+        self.assertIn("20260323-02", block)
+        # Must not include P2 section header
+        self.assertNotIn("## P2", block)
+
+    def test_complete_with_unindented_body_excises_fully(self):
+        """Completing a task with un-indented body must remove ALL body content from ACTIVE."""
+        eng = self.engine
+        self.todo_path.write_text(self.SAMPLE_WITH_UNINDENTED_BODY)
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
+        args = type("A", (), {"id": "20260323-01", "note": ""})()
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_complete(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        active = content.split("# HISTORY")[0]
+        # All body content must be gone from ACTIVE
+        self.assertNotIn("Design Section", active)
+        self.assertNotIn("Point one", active)
+        self.assertNotIn("More prose after a horizontal rule", active)
+        # Task must appear in HISTORY
+        history = content.split("# HISTORY")[1]
+        self.assertIn("[x] [20260323-01]", history)
+
+    def test_move_with_unindented_body_excises_fully(self):
+        """Moving a task with un-indented body must relocate ALL body content."""
+        eng = self.engine
+        self.todo_path.write_text(self.SAMPLE_WITH_UNINDENTED_BODY)
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
+        args = type("A", (), {"id": "20260323-01", "to": "P2"})()
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_move(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        p2 = content.split("## P2")[1].split("## P3")[0]
+        self.assertNotIn("20260323-01", p1, "Task must not remain in P1")
+        self.assertIn("20260323-01", p2, "Task must appear in P2")
+        self.assertIn("Design Section", p2, "Body must travel with the task")
+
+    # -- find_section_end spurious-header tests --
+
+    def test_add_task_inserts_after_existing_body_not_inside_it(self):
+        """add must insert after the full task body, not inside it at a spurious ## match."""
+        eng = self.engine
+        self.todo_path.write_text(self.SAMPLE_WITH_UNINDENTED_BODY)
+        os.environ["TODO_FILE_PATH"] = str(self.todo_path)
+        args = type("A", (), {
+            "priority": "P1",
+            "description": "New task",
+            "tags": "#new",
+            "note": "",
+        })()
+        with contextlib.redirect_stdout(io.StringIO()):
+            eng.cmd_add(args, str(self.todo_path), json_mode=False)
+        content = self.todo_path.read_text()
+        p1 = content.split("## P1")[1].split("## P2")[0]
+        # New task must be in P1
+        self.assertIn("New task", p1)
+        # Original tasks must still be in P1 too (insertion did not split them)
+        self.assertIn("20260323-01", p1)
+
+    # -- shadow mode-444 atomic write test --
+
+    def test_shadow_write_succeeds_when_shadow_is_mode_444(self):
+        """_update_shadow must succeed even when the existing shadow is mode 0o444.
+
+        Regression for the 2026-06-07 incident: open(shadow, 'w') fails with
+        EACCES on a 0o444 file; the atomic temp+os.replace() approach only
+        needs the directory write bit and handles 444 targets correctly.
+        """
+        eng = self.engine
+        shadow_dir = self._shadow_tmp
+        shadow_path = os.path.join(shadow_dir, "TODO.md")
+        os.makedirs(shadow_dir, exist_ok=True)
+        # Pre-create the shadow as mode 444 (simulates the failure condition)
+        Path(shadow_path).write_text("old content\n")
+        os.chmod(shadow_path, 0o444)
+        self.assertFalse(os.access(shadow_path, os.W_OK),
+                         "Pre-condition: shadow must NOT be writable")
+        # _update_shadow must succeed without warning or exception
+        stderr_buf = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buf):
+            eng._update_shadow("new content\n")
+        self.assertEqual(stderr_buf.getvalue(), "",
+                         "No error/warning expected from _update_shadow on 444 shadow")
+        self.assertEqual(Path(shadow_path).read_text(), "new content\n")
+        # Post-condition: shadow should be writable after the update
+        self.assertTrue(os.access(shadow_path, os.W_OK),
+                        "Shadow must be writable (0o644) after successful update")
+
+    def test_count_active_tasks_unaffected_by_unindented_body(self):
+        """_count_active_tasks must count only task headers, not body prose."""
+        eng = self.engine
+        count = eng._count_active_tasks(self.SAMPLE_WITH_UNINDENTED_BODY)
+        # Only 2 real tasks in the fixture; no stray '- [ ]' in the un-indented body
+        self.assertEqual(count, 2)
 
 
 if __name__ == "__main__":
