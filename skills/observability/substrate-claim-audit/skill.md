@@ -139,7 +139,7 @@ This skill relies on **self-fire** (the agent noticing the action pattern). The 
 
 **Phase 1 (this skill) catch rate:** unknown -- `[NO BASELINE -- ESTIMATE]`. No telemetry yet measures how often the skill self-fires correctly vs. fails silently. The first round of production use IS the baseline-gathering exercise. Until then, do not trust this skill to be the only defense -- pair it with `/sp-substrate-audit` explicit invocation on high-stakes proposals.
 
-**Phase 2 work** is tracked in the `~/.codex/TODO.md` entry `20260609-03` (tag `#substrate-enforcement-phase-2`). The TODO exists; verify with `~/.codex/skills/todo-management/scripts/todo-crud.sh list --tag '#substrate-enforcement-phase-2'`.
+**Phase 2 work** is tracked in the `~/.codex/TODO.md` entry `20260609-03` (tag `#substrate-enforcement-phase-2`). The TODO exists; verify with `todo-crud.sh list --tag '#substrate-enforcement-phase-2'` (path resolved by your ecosystem's `core.always.md`).
 
 If you (the agent) notice yourself producing the action pattern WITHOUT this skill firing first, that is a Phase-1 reliability failure. Run the audit anyway. Log the miss as a `failure-autopsy` entry so the trigger keywords can be tuned.
 
