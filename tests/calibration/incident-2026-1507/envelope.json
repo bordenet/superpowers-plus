@@ -1,0 +1,47 @@
+{
+  "_comment": "Calibration corpus: synthetic cr-battery review envelope modelling the incident-2026-1507 failure pattern (2026-06-10). Four independent cr-battery passes each scored >=9.0 while the diff contained a Critical blocker (waitForResponseComplete short-circuits to 'complete' at ~700ms on the Azure-via-failover path, ceiling never fires). The pattern: all reviewers emitted clean-dimension verdicts with prose-only justification -- no evidence blocks. The verifier caps each prose-only dimension at 7.0; if the verifier had been mandatory the effective aggregate score would have collapsed below the 9.2 threshold.",
+  "_corpus_policy": "Each production incident where cr-battery issues a false-positive PASS adds one synthetic envelope. Entry criterion: a wiki incident report exists at github.com/your-org/your-repo/wiki",
+  "run_timestamp": "2026-06-10T18:30:00Z",
+  "head_sha": "82584dc1cafe000000000000000000000000abcd",
+  "verdict": "PASS",
+  "score": 9.30,
+  "rounds": 1,
+  "bugpath_verdict": {
+    "path_coverage": "FULL",
+    "dimensions": {
+      "root_cause": "VERIFIED",
+      "fix_coverage": "VERIFIED",
+      "sibling_scan": "VERIFIED (0 siblings)",
+      "regression_test": "VERIFIED"
+    },
+    "score_cap": null
+  },
+  "findings": [],
+  "clean_dimensions": [
+    {
+      "reviewer": "Defect Finder",
+      "dimension": "Correctness",
+      "claim": "waitForResponseComplete correctly handles all paths including Azure-via-failover"
+    },
+    {
+      "reviewer": "Defect Finder",
+      "dimension": "Edge Cases",
+      "claim": "No-mark path (pendingMarkPromises empty) is handled by the ceiling backstop"
+    },
+    {
+      "reviewer": "Guardian",
+      "dimension": "Security",
+      "claim": "No security-class signals in the diff"
+    },
+    {
+      "reviewer": "Guardian",
+      "dimension": "Blast Radius",
+      "claim": "Change is isolated to waitForResponseComplete and its two call sites"
+    },
+    {
+      "reviewer": "Standards Enforcer",
+      "dimension": "Tests",
+      "claim": "New regression test covers the greeting-complete path"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-08T02:23:35.769Z",
+  "generated_at": "2026-06-14T18:06:08.177Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -26,10 +26,10 @@
       "code_fences": 2
     },
     "engineering/code-review-battery/skill.md": {
-      "step_headings": 7,
+      "step_headings": 8,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 4
+      "code_fences": 10
     },
     "engineering/cognitive-complexity-refactoring/skill.md": {
       "step_headings": 0,
@@ -80,16 +80,22 @@
       "code_fences": 5
     },
     "engineering/finishing-a-development-branch/skill.md": {
-      "step_headings": 5,
+      "step_headings": 6,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 5
+      "code_fences": 6
     },
     "engineering/git-branch-conventions/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 4
+    },
+    "engineering/hotfix-charter/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
     },
     "engineering/implementation-tracker/skill.md": {
       "step_headings": 0,
@@ -175,6 +181,18 @@
       "hard_gate_table": 1,
       "code_fences": 2
     },
+    "engineering/scope-tripwire/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 2
+    },
+    "engineering/session-handoff/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 3
+    },
     "engineering/sp-bughunt/skill.md": {
       "step_headings": 6,
       "stop_markers": 0,
@@ -215,7 +233,7 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 9
+      "code_fences": 10
     },
     "engineering/using-git-worktrees/skill.md": {
       "step_headings": 0,
@@ -271,6 +289,12 @@
       "hard_gate_table": 0,
       "code_fences": 4
     },
+    "issue-tracking/linear-comment-gate/skill.md": {
+      "step_headings": 4,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 1
+    },
     "observability/completeness-check/skill.md": {
       "step_headings": 3,
       "stop_markers": 1,
@@ -312,6 +336,12 @@
       "stop_markers": 0,
       "hard_gate_table": 1,
       "code_fences": 1
+    },
+    "observability/substrate-claim-audit/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 5
     },
     "observability/superpowers-doctor/skill.md": {
       "step_headings": 0,
@@ -457,6 +487,12 @@
       "hard_gate_table": 0,
       "code_fences": 1
     },
+    "security/devsec-audit/skill.md": {
+      "step_headings": 6,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 0
+    },
     "security/public-repo-ip-audit/skill.md": {
       "step_headings": 5,
       "stop_markers": 0,
@@ -508,7 +544,7 @@
     "wiki/wiki-orchestrator/skill.md": {
       "step_headings": 2,
       "stop_markers": 0,
-      "hard_gate_table": 4,
+      "hard_gate_table": 5,
       "code_fences": 3
     },
     "wiki/wiki-refactor/skill.md": {
@@ -556,8 +592,8 @@
     "writing/professional-language-audit/skill.md": {
       "step_headings": 0,
       "stop_markers": 1,
-      "hard_gate_table": 6,
-      "code_fences": 6
+      "hard_gate_table": 8,
+      "code_fences": 5
     },
     "writing/readme-authoring/skill.md": {
       "step_headings": 0,
