@@ -61,7 +61,6 @@ Before ANY commit:
 
 Two parallel, mutually exclusive skill ecosystems exist. At the **START of every conversation**, detect which THIS machine uses and bootstrap accordingly:
 
-- **superpowers-callbox**: No bootstrap required (skills are pre-deployed as symlinks).
 - **superpowers-plus**: Run the js bootstrap:
   ```bash
   node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
@@ -106,21 +105,15 @@ skills/{domain}/{skill-name}/
 
 ### 🔴 Git Workflow — GitHub First, Always
 
-**Remotes in this clone:**
-- `origin`  = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
-- `gitlab`  = GitLab (private mirror) — synced FROM GitHub, never promoted through
+**Remote in this clone:**
+- `origin` = GitHub (bordenet/superpowers-plus) — **sole source of truth**
 
-**ALL changes go to GitHub (`origin`) first via PR. GitLab is downstream.**
+**ALL changes go to GitHub (`origin`) via PR.**
 
 3-Tier promotion (all on GitHub `origin`):
 1. Feature branch → push to `origin`, open PR into `origin/dev`
 2. `dev → staging`: explicit human instruction only
 3. `staging → main`: explicit human instruction + batch review approval
-
-After GitHub main is updated, sync GitLab mirror:
-```
-git push gitlab origin/main:main origin/staging:staging origin/dev:dev
-```
 
 After any release to `main`, open a sync PR (merge commit) to bring promotion history back to `dev`:
 `git checkout -b chore/sync-dev-with-main origin/main && git push origin chore/sync-dev-with-main`
@@ -128,8 +121,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
-- ❌ NEVER promote through GitLab and then backfill GitHub
-- Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
+- Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
 
 ## Claude Code guardrails
