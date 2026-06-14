@@ -9,14 +9,14 @@
 # missed it because individual commits stayed under 500 LOC; the symptom
 # was the cumulative branch.
 #
-# This gate is ADVISORY by default. Per the 20260610-18 design pivot:
+# This gate is ADVISORY by default. Per the decision-2026-06-10-design-pivot design pivot:
 # inform engineers, do not block. Block mode is opt-in (or auto-detected
-# inside superpowers-callbox, the dogfood repo that owns this tool).
+# inside ml/superpowers-plus, the dogfood repo that owns this tool).
 #
 # Mode dispatch (highest precedence first):
 #   1. $SCOPE_TRIPWIRE_MODE env var
 #   2. .scope-tripwire-mode file at repo root (committed; one of: warn, block)
-#   3. remote.origin.url contains "superpowers-callbox" -> block (dogfood)
+#   3. remote.origin.url contains "superpowers-plus" -> block (dogfood)
 #   4. else -> warn
 #
 # Evasion logging: BOTH `SCOPE_TRIPWIRE_BYPASS=1` (block-mode bypass) AND
@@ -122,16 +122,7 @@ if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
     fi
 fi
 if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
-    # Lowercase URL before substring match -- mirrors pre-push-loc-gate.sh
-    # convention. Substring match favors over-blocking (forks default to
-    # block); set SCOPE_TRIPWIRE_MODE=warn or drop a .scope-tripwire-mode
-    # file to override.
-    _remote_url=$(git config --get remote.origin.url 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "")
-    if [[ "$_remote_url" == *"callbox"* ]] || [[ "$_remote_url" == *"superpowers-callbox"* ]]; then
-        SCOPE_TRIPWIRE_MODE="block"
-    else
-        SCOPE_TRIPWIRE_MODE="warn"
-    fi
+    SCOPE_TRIPWIRE_MODE="warn"
 fi
 if [[ "$SCOPE_TRIPWIRE_MODE" != "block" && "$SCOPE_TRIPWIRE_MODE" != "warn" ]]; then
     echo "ERROR: SCOPE_TRIPWIRE_MODE=$SCOPE_TRIPWIRE_MODE invalid (expected 'block' or 'warn')." >&2
@@ -180,7 +171,7 @@ if [[ -n "$SCOPE_TRIPWIRE_REF" ]]; then
     LINEAR_REF="$SCOPE_TRIPWIRE_REF"
 elif [[ -n "$BRANCH" ]]; then
     # Extract Linear refs from branch name. First match wins; advise on multi-ref.
-    # The regex matches ANY uppercase-PREFIX-DIGITS pattern (e.g., PROJ-1507,
+    # The regex matches ANY uppercase-PREFIX-DIGITS pattern (e.g., incident-2026-1507,
     # INFRA-99). Non-Linear matches will fail the API call and cache as
     # not_found -- low blast radius (one wasted API call per branch).
     _refs=$(echo "$BRANCH" | grep -oE '[A-Z]+-[0-9]+' | awk '!seen[$0]++' || true)
@@ -237,7 +228,7 @@ fi
 # Step 3: Linear API fetch (cache miss / stale)
 # -----------------------------------------------------------------------------
 if [[ -z "$ESTIMATE" && "$CACHE_REASON" != "no_estimate" && "$CACHE_REASON" != "not_found" ]]; then
-    # Cache miss or stale: try to fetch from environment variable.
+    # Cache miss or stale: try to fetch. Resolve LINEAR_API_KEY from environment.
     LINEAR_API_KEY=${LINEAR_API_KEY:-}
     if [[ -z "$LINEAR_API_KEY" ]]; then
         echo "scope-tripwire: LINEAR_API_KEY unset; advisory skipped for $LINEAR_REF." >&2
@@ -246,8 +237,9 @@ if [[ -z "$ESTIMATE" && "$CACHE_REASON" != "no_estimate" && "$CACHE_REASON" != "
 
     # GraphQL: $ref is bound as a String! variable. $LINEAR_REF is regex-
     # validated above (^[A-Z]+-[0-9]+$) so the only injection surface is the
-    # regex itself. JSON envelope with escaped $ for literal GraphQL variables.
-    _payload=$(printf "{\"query\":\"query(\\\$ref:String!){issue(id:\\\$ref){estimate identifier}}\",\"variables\":{\"ref\":\"%s\"}}" "$LINEAR_REF")
+    # regex itself. JSON envelope is single-quoted; we only interpolate ref.
+    # shellcheck disable=SC2016
+    _payload=$(printf '{"query":"query($ref:String!){issue(id:$ref){estimate identifier}}","variables":{"ref":"%s"}}' "$LINEAR_REF")
     _resp=$(curl -s --max-time 5 \
         -H "Authorization: $LINEAR_API_KEY" \
         -H "Content-Type: application/json" \

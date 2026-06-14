@@ -8,7 +8,7 @@
 # engineer reads context BEFORE editing.
 #
 # Why this exists: branch-sync-gate fires on RESUME language ("continuing",
-# "resuming"). The 2026-06-10 incident-2026-1507 incident involved two machines doing
+# "resuming"). The 2026-06-10 incident-2026-1507 involved two machines doing
 # parallel work on the same hotfix branch without explicit handoff -- session
 # B opened, edited, pushed, and only later discovered session A had been
 # working concurrently. branch-sync-gate did not fire because the engineer
