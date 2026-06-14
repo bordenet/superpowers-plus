@@ -116,18 +116,56 @@ Patterns are loaded from `.profanity-patterns.txt` (in `scripts/` or repo root).
 - **BLOCK** = Cannot proceed until fixed
 - **FLAG** = Warning, context determines appropriateness (e.g., "dumb terminal" is technical)
 
+## Automated Scanner (`tools/language-scanner.js`)
+
+A Node.js scanner ships at `tools/language-scanner.js`. It is the authoritative enforcement mechanism for wiki write paths.
+
+### Contract (stable — callers depend on these exit codes)
+
+| Exit | Meaning | Required action |
+|------|---------|-----------------|
+| 0 | PASS — no profanity | Proceed |
+| 1 | BLOCK — profanity found (per-finding detail on stderr) | STOP. Replace each flagged term, or wrap in `[F-WORD]`/`[EXPLETIVE]`/`[REDACTED: reason]` marker. Re-run. Do NOT mark audit PASS without a fresh exit-0 run. |
+| 2 | USAGE/IO error (missing arg, unreadable file, multi-file invocation) | ABORT. Fix invocation. Do NOT infer PASS. |
+| 127+ | `node` not on PATH | ABORT. Install Node.js. Do NOT infer PASS. |
+| Any other non-zero | Scanner unreachable or broken | ABORT. Do NOT infer PASS. |
+
+### Usage
+
+```bash
+# Scan one file (only one at a time — loop in the caller for multiple files)
+node tools/language-scanner.js draft.md
+
+# Wiki write pre-flight (combined with secret scan in one shell invocation):
+WIKI_TMP=$(mktemp -t wiki-update.XXXXXX.md)
+trap 'rm -f "$WIKI_TMP"' EXIT
+printf '%s' "$WIKI_BODY" > "$WIKI_TMP"
+node tools/language-scanner.js "$WIKI_TMP" || exit $?
+```
+
+**Important:** Rules 5 (secrets) and 6 (language) MUST run in a single shell invocation when combined — splitting them across two separate Bash calls destroys the `$WIKI_TMP` variable (the EXIT trap fires when the first shell exits), causing the second scan to exit 2 with ENOENT.
+
+### Allowlist markers
+
+To intentionally reference profanity in a document (e.g., policy documentation), wrap it: `[F-WORD]`, `[EXPLETIVE]`, `[REDACTED: reason]`. The marker BODY is itself scanned — only the keyword portion is safe.
+
+### Evasion resistance
+
+The scanner normalizes Unicode (NFD/NFKC), folds Cyrillic homoglyphs, decodes HTML entities (&#102;&#117;&#99;&#107;), and strips zero-width characters before scanning — bypasses via Unicode tricks are blocked.
+
 ## Integration Points
 
 **Gate 4** in the commit-gates chain: `pre-commit-gate` → `enforce-style-guide` → `progressive-code-review-gate` → **this** → `public-repo-ip-audit` → commit.
 
-> **Preferred:** `use-skill unified-commit-gate` loads all 5 gates in one load. Use this skill directly only for deep-dive when the language gate fails.
+> **Preferred:** `use-skill unified-commit-gate` loads all gates in one load. Use this skill directly only for deep-dive when the language gate fails.
 
-**Pre-wiki**: Run profanity regex before publishing. BLOCK on match.
+**Pre-wiki**: Run `node tools/language-scanner.js "$WIKI_CONTENT_FILE"` before any wiki write. BLOCK on exit 1.
 **Pre-commit**: Scan staged `.md` files:
 
 ```bash
-git diff --cached --name-only | grep -E '\.(md)$'
-node scripts/slop-dictionary.js scan-profanity FILE.md
+git diff --cached --name-only | grep -E '\.(md)$' | while IFS= read -r f; do
+  node tools/language-scanner.js "$f" || exit 1
+done
 ```
 
 ## Replacement Suggestions

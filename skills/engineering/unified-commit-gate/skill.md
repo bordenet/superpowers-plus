@@ -78,6 +78,19 @@ npm test           # or: vitest --run
 **Show output for all commands**, including the shell scan. Claiming "it passes" without output is a violation.
 **Gate fails?** → Fix, then re-run lint → typecheck → test in sequence (not just the failing step). Your fixes are new code and need their own full pass. Deep-dive: `use-skill pre-commit-gate`.
 
+**Post-Conflict Trap — if you resolved conflicts this session:**
+
+After any rebase, merge, cherry-pick, or `git stash pop` that produced conflicts, **typecheck is mandatory even if all tests pass**. TypeScript test runners (Vitest, Jest) transpile on the fly using esbuild — they do not invoke `tsc`. A missing constant, a deleted export, or a renamed symbol will not surface in `npm test`; it will only surface in `tsc --noEmit`. The same principle applies to other compiled languages: run the build/type check step explicitly — don't rely on the test runner alone. Run in this order after conflict resolution:
+
+```bash
+git diff --check && git diff --cached --check  # no conflict markers remain
+npm run lint       # or: pnpm run lint
+npm run typecheck  # or: tsc --noEmit   -- MANDATORY -- cannot be skipped
+npm test           # or: vitest --run
+```
+
+Do not push after "tests pass" alone. Lint → typecheck → test are all mandatory after conflict resolution.
+
 ---
 
 ## Gate 2: Style Enforcement (shell scripts only)
@@ -182,3 +195,4 @@ Any match → **HARD BLOCK**. Fix and re-scan. Design docs and planning docs NEV
 | Skipping Gate 3 for "small changes" | Size doesn't determine risk — all code commits get reviewed |
 | Not re-running gates after fixing a failure | Fixes are new code — restart from Gate 1 |
 | Updating ticket to "Done" before CI passes | Wait for build result, then update |
+| Skipping typecheck after conflict resolution | Post-Conflict Trap — transpilers skip tsc; tests pass while type errors exist. Run lint → typecheck → test explicitly after every rebase, merge, cherry-pick, or stash-pop conflict |

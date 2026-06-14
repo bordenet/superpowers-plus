@@ -56,10 +56,18 @@ If `WIKI_PLATFORM` is unset and no adapter loads → **STOP. Do not write.**
 | 2.5 | Coherence | ADVISORY | `use-skill wiki-content-coherence` |
 | 3 | Links | **BLOCK** | `use-skill link-verification` |
 | 4 | Secrets | **BLOCK** | `use-skill wiki-secret-audit` |
+| 4.5 | Language | **BLOCK** | `node tools/language-scanner.js draft.md` (exit 0=PASS, 1=BLOCK, 2=ABORT, 127+=ABORT) |
 | 5 | Slop | ADVISORY | `use-skill eliminating-ai-slop` |
 | 5.5 | Structure | **BLOCK** | `node tools/wiki-markdown-validate.js draft.md` |
 | 6 | Facts | WARN | `use-skill wiki-debunker` |
 | 7 | Publish | — | `tools/wiki-write.sh {create\|update\|move} …` |
+
+**Stage 4.5 — Language gate contract:**
+- Exit 0: PASS — proceed
+- Exit 1: BLOCK — profanity found; replace flagged terms (or wrap in `[F-WORD]`/`[EXPLETIVE]`/`[REDACTED: reason]`), re-run until exit 0
+- Exit 2: ABORT — invocation error; fix and retry; do NOT infer PASS
+- Exit 127+: ABORT — `node` not on PATH; install Node.js; do NOT infer PASS
+- Stages 4 (Secrets) and 4.5 (Language) MUST run in a single shell invocation when using a temp file — splitting across two Bash calls destroys `$WIKI_TMP` via EXIT trap
 
 ## Stage 7 — write via `tools/wiki-write.sh`
 
