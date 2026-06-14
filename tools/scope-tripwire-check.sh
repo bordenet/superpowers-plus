@@ -46,7 +46,7 @@
 #   tools/scope-tripwire-check.sh                  # standard pre-push (reads stdin)
 #   tools/scope-tripwire-check.sh <remote> <url>   # git pre-push convention
 #   tools/scope-tripwire-check.sh --help           # usage
-#   SCOPE_TRIPWIRE_REF=PROJ-1234 tools/scope-tripwire-check.sh  # override ref
+#   SCOPE_TRIPWIRE_REF=PROJ-NNNN tools/scope-tripwire-check.sh  # override ref
 #
 # Exit codes (stable contract):
 #   0  Pass; OR couldn't resolve (no ref / no API key / API down / no estimate);
@@ -172,7 +172,7 @@ if [[ -n "$SCOPE_TRIPWIRE_REF" ]]; then
 elif [[ -n "$BRANCH" ]]; then
     # Extract Linear refs from branch name. First match wins; advise on multi-ref.
     # The regex matches ANY uppercase-PREFIX-DIGITS pattern (e.g., incident-2026-1507,
-    # INFRA-99). Non-Linear matches will fail the API call and cache as
+    # INFRA-NN). Non-Linear matches will fail the API call and cache as
     # not_found -- low blast radius (one wasted API call per branch).
     _refs=$(echo "$BRANCH" | grep -oE '[A-Z]+-[0-9]+' | awk '!seen[$0]++' || true)
     _ref_count=$(echo "$_refs" | grep -c . || true)

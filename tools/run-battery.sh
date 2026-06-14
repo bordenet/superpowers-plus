@@ -215,7 +215,7 @@ fi
 ERRORS=0
 
 # Linear / issue-tracker ID scanner.
-# Ticket IDs (e.g. PROJ-1234) must not appear in product source code — they
+# Ticket IDs (e.g. PROJ-NNNN) must not appear in product source code — they
 # belong in commit messages or documentation. Scanned extensions: .ts .tsx .js
 # .jsx .mjs .cjs .go .py .sh .bash. Markdown/JSON/YAML are exempt.
 # Configure allowed prefixes via .cr-battery-ticket-prefixes (one per line,
