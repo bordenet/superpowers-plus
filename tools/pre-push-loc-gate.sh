@@ -5,13 +5,13 @@
 # Per-commit large-diff gate for git pre-push. Detects any push that contains a
 # single commit with > MAX_LOC insertions+deletions (default 500).
 #
-# Mode is repo-aware (override via LOC_GATE_MODE env var):
+# Mode (override via LOC_GATE_MODE env var or .loc-gate-mode file):
 #
-#   superpowers-callbox -> 'block' (the dogfood / test environment for the
-#                                   gate itself; oversize commits are real
-#                                   regressions of the incident-2026-1507 backstop)
-#   everywhere else     -> 'warn'  (advisory: print the LOC findings to
-#                                   stderr, exit 0, let the push proceed)
+#   warn  -> advisory: print the LOC findings to stderr, exit 0 (DEFAULT)
+#   block -> refuses oversize pushes (exit 1)
+#
+# Set LOC_GATE_MODE=block in your environment or create a .loc-gate-mode file
+# at the repo root containing "block" to opt into hard enforcement.
 #
 # In block mode: ALLOW_LARGE_DIFF=1 bypasses with a stderr warning; LOC_GATE_MODE=warn
 # downgrades that one push to advisory.
@@ -90,27 +90,19 @@ ALLOW_LARGE_DIFF=${ALLOW_LARGE_DIFF:-0}
 ZERO_SHA="0000000000000000000000000000000000000000"
 
 # Mode dispatch: 'block' refuses oversize pushes (exit 1); 'warn' prints the
-# same findings table to stderr but exits 0. Default by repo:
-#   superpowers-callbox -> 'block' (this is the dogfood / test environment
-#     for the gate itself; oversize commits here are real regressions of the
-#     incident-2026-1507 backstop the gate exists to enforce)
-#   everywhere else     -> 'warn' (the gate informs developers about commit
-#     LOC counts without blocking; a senior-engineer-in-the-room advisory)
-# Override via LOC_GATE_MODE env var.
+# same findings table to stderr but exits 0.
+# Precedence: LOC_GATE_MODE env var > .loc-gate-mode file > default (warn).
 LOC_GATE_MODE=${LOC_GATE_MODE:-}
 if [[ -z "$LOC_GATE_MODE" ]]; then
-    # Lowercase the URL before substring match so mixed-case hosts / hand-crafted
-    # forks (SUPERPOWERS-CALLBOX.git) don't slip through. Canonical URL is
-    # already lowercase, so this is paranoia, not a behavior change.
-    _remote_url=$(git config --get remote.origin.url 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "")
-    if [[ "$_remote_url" == *"callbox"* ]] || [[ "$_remote_url" == *"superpowers-callbox"* ]]; then
-        # NOTE: substring match favors over-blocking. Any repo whose origin URL
-        # contains "superpowers-callbox" or internal references defaults to block mode.
-        # Safe direction -- a fork that legitimately needs advisory-mode can set LOC_GATE_MODE=warn.
-        LOC_GATE_MODE="block"
-    else
-        LOC_GATE_MODE="warn"
+    _loc_mode_file="$(git rev-parse --show-toplevel 2>/dev/null)/.loc-gate-mode"
+    if [[ -f "$_loc_mode_file" ]]; then
+        _file_mode=$(grep -v '^#' "$_loc_mode_file" | awk 'NF{gsub(/^[ \t]+|[ \t]+$/, ""); print; exit}')
+        [[ -n "$_file_mode" ]] && LOC_GATE_MODE="$_file_mode"
     fi
+    unset _loc_mode_file _file_mode
+fi
+if [[ -z "$LOC_GATE_MODE" ]]; then
+    LOC_GATE_MODE="warn"
 fi
 if [[ "$LOC_GATE_MODE" != "block" && "$LOC_GATE_MODE" != "warn" ]]; then
     echo "ERROR: LOC_GATE_MODE=$LOC_GATE_MODE invalid (expected 'block' or 'warn')" >&2

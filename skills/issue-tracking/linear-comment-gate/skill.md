@@ -28,7 +28,7 @@ internal_refs_ok: true
 > **Purpose:** Stop Linear comment-thread explosion. Classify every proposed comment as NEW, EDIT, or CONSOLIDATE before any `commentCreate` call.
 > **Incident:** incident-2026-1507 (2026-06-12) -- 10 individual engineering status comments on one ticket over 12 hours, all about MR !23. Required a manual consolidation session to make the ticket readable.
 > **Core rule:** One living comment per ongoing work thread. Progress updates amend the existing comment. New comments are for state transitions and new work items only.
-> **Scope note:** This gate lives in `skills/engineer/` and is required by both engineer and PM debunker skills. The one-living-comment rule applies equally to both. Migration to `skills/common/` is a follow-on task.
+> **Scope note:** This gate lives in `skills/issue-tracking/` and is required by both engineering and PM debunker skills. The one-living-comment rule applies equally to both.
 
 ## Exemptions (emit EXEMPT verdict, skip classification)
 

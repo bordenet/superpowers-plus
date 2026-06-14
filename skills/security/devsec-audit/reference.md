@@ -31,7 +31,7 @@ Required file: `docs/security/devsec-audit-YYYY-MM-DD-HHMM.md` (UTC time) in the
 2. **Overall risk verdict**: one of `Low` / `Moderate` / `Moderate-to-High` / `High` -- with a one-paragraph rationale.
 3. **Master severity table**: every finding, sorted Critical → Important → Minor. Required columns: `ID`, `Severity`, `Finding`, `Component`, `File:Line`, `Tags ([CWE-XXX] [OWASP A##] [MITRE T####])`, `Confidence tier`.
 4. **Per-component findings**: section per repo / sub-component; expand each finding from the master table with: full issue description, Why, Fix, Regressions Risked, Durable Check.
-5. **What's clean (positive findings)**: explicit affirmation of what the audit verified is sound. Examples: "all SQL paths in mssql-server are parameterized", "all egress destinations are organization-internal except `<list>`", "Zendesk attachment SSRF controls are exemplary". An all-negative report is incomplete -- if you cannot list at least 3 positives, your audit did not look at the safe code.
+5. **What's clean (positive findings)**: explicit affirmation of what the audit verified is sound. Examples: "all SQL paths in mssql-server are parameterized", "all egress destinations are organization-internal except `<list>`", "the vendor's attachment SSRF controls meet the audit bar". An all-negative report is incomplete -- if you cannot list at least 3 positives, your audit did not look at the safe code.
 6. **Prioritized remediation roadmap**: cluster findings by class (e.g., "Token-follows-URL class: T1+M1 -- fix together"). Each cluster lists fix order, suggested owner, rough effort (S/M/L).
 7. **Confidence & caveats**: list every Unverified finding (needs upstream check, third-party SDK URL handling) and every By-design item (documented in-tree as accepted risk).
 
@@ -61,7 +61,7 @@ Your dimension: <Credential-flow trace | AI-agent trust boundary | SQL identifie
 
 Your method: <slotted from skill.md Phase 4 table>
 
-Your taxonomy: read the "Security taxonomy" section of `code-review-battery/reference.md` (resolve relative to this skill repo's root -- it lives under `skills/engineer/code-review-battery/`). Tag every finding with [CWE-XXX] [OWASP A##] [MITRE T####] where applicable.
+Your taxonomy: read the "Security taxonomy" section of `code-review-battery/reference.md` (resolve relative to this skill repo's root -- it lives under `skills/engineering/code-review-battery/`). Tag every finding with [CWE-XXX] [OWASP A##] [MITRE T####] where applicable.
 
 Output: structured findings list with {severity, tags, component, file:line, issue, why, fix, regressions_risked, durable_check, confidence_tier}. The `component` field MUST match a name from the Phase 1 component list in your briefing (so the orchestrator can group findings per-component without re-deriving from file:line). Do NOT produce prose summaries -- the orchestrator aggregates.
 

@@ -141,9 +141,9 @@ _TICKET_CONFIG="$REPO_ROOT/.cr-battery-ticket-prefixes"
 if [[ -f "$_TICKET_CONFIG" ]] && [[ -s "$_TICKET_CONFIG" ]]; then
     _PREFIX_PATTERN=$(grep -E '^[A-Z]+$' "$_TICKET_CONFIG" \
         | head -50 | tr '\n' '|' | sed 's/|$//')
-    _PREFIX_PATTERN="${_PREFIX_PATTERN:-DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA}"
+    _PREFIX_PATTERN="${_PREFIX_PATTERN:-PROJ|FEAT|FIX|BUG|INFRA|SEC|QA}"
 else
-    _PREFIX_PATTERN="DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA"
+    _PREFIX_PATTERN="PROJ|FEAT|FIX|BUG|INFRA|SEC|QA"
 fi
 _CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 _BUG_FIX_MODE=0
@@ -226,9 +226,9 @@ _TICKET_CONFIG2="$REPO_ROOT/.cr-battery-ticket-prefixes"
 if [[ -f "$_TICKET_CONFIG2" ]] && [[ -s "$_TICKET_CONFIG2" ]]; then
     _SCAN_PATTERN=$(grep -E '^[A-Z]+$' "$_TICKET_CONFIG2" \
         | head -50 | tr '\n' '|' | sed 's/|$//')
-    _SCAN_PATTERN="${_SCAN_PATTERN:-DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA}"
+    _SCAN_PATTERN="${_SCAN_PATTERN:-PROJ|FEAT|FIX|BUG|INFRA|SEC|QA}"
 else
-    _SCAN_PATTERN="DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA"
+    _SCAN_PATTERN="PROJ|FEAT|FIX|BUG|INFRA|SEC|QA"
 fi
 _TICKET_BASE2=$(git rev-parse --verify "origin/main" 2>/dev/null \
     || git rev-parse --verify "origin/dev" 2>/dev/null \
@@ -253,7 +253,7 @@ if [[ -n "$_TICKET_BASE2" ]]; then
         )
         if [[ -n "$_TICKET_HITS2" ]]; then
             echo "❌ Issue tracker ID(s) found in product source code:"
-            echo "$_TICKET_HITS2" | sed 's/^/   /'
+            printf '%s\n' "$_TICKET_HITS2" | while IFS= read -r _line; do printf '   %s\n' "$_line"; done
             echo "   Move ticket references to commit messages and re-run."
             ERRORS=$((ERRORS + 1))
         else

@@ -141,4 +141,4 @@ The three gates are independent signals: charter forces upfront articulation, LO
 
 The 2026-06-10 incident-2026-1507 hotfix shipped a 1-point ticket as +8,750 / -4,195 LOC across 73 files. The per-commit LOC gate (shipped same day) didn't catch it because each individual commit stayed under 500. The scope-tripwire is the cumulative complement: it asks "is the BRANCH bigger than the TICKET said it would be?", which is the right question for scope-drift detection.
 
-The gate is advisory by default per the 20260610-18 design pivot. We want engineers to *see* the ratio at push time and use their judgment. The incident-2026-1507 retrospective is the source-of-truth: `docs/retrospectives/cari-1507-cr-battery-false-positives.md`.
+The gate is advisory by default per the 20260610-18 design pivot. We want engineers to *see* the ratio at push time and use their judgment. The incident-2026-1507 retrospective is the source-of-truth: `docs/retrospectives/incident-2026-1507-cr-battery-false-positives.md`.
