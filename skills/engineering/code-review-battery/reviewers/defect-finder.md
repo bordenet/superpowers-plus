@@ -40,10 +40,10 @@ For every metric, event, counter, enum value, error code, or status the diff DEF
 1. Grep the FULL source for a producer — `.emit(`, `.inc(`, `publish(`, an assignment, a `throw new`, or a `return` of that value. Not just in the diff.
 2. Zero producers = **dead definition**. The metric reads a constant forever / the enum branch is unreachable / the error code is never raised. Treat any dashboard or alarm that consumes the symbol as **live by default** — observability config lives in separate repos (CDK, Grafana JSON), so the diff's failure to show a consumer is not proof the symbol is unwired. Severity follows the per-symbol guidance in step 5.
 3. **Success/Failure symmetry**: if one side of a success/failure pair IS emitted but the other is defined-but-never-emitted, any ratio or rate panel built on the pair reads 0% or 100% permanently. Flag as Important even when the diff only touches one side — the asymmetry is the defect. Pairs are keyed on **semantics, not suffix spelling**: `Success`/`Failure`, `Ok`/`Error`, `Succeeded`/`Failed`, `2xx`/`5xx`, `Hit`/`Miss`, `Ack`/`Nack` all count. Establish a pair by shared base name and compatible dimensions — a failure-side metric may carry extra dimensions (e.g. `errorType`) the success side lacks; that is still a pair — not by suffix coincidence (`CacheHit` does not pair with `RequestError`).
-4. **Before flagging, rule out indirect producers**: metrics emitted via a computed/variable name (`emit(metricName)`), names built from a catalog, enum values populated by deserialization, or producers in generated code. If a producer could plausibly exist dynamically, downgrade to "Possible: ..." rather than asserting a dead definition. **Exception (asymmetry governs):** when the paired metric IS emitted via a literal call and only this side has merely a hypothetical/dynamic producer, do NOT downgrade — the literal-vs-absent asymmetry is itself the defect (the literal-vs-absent shape). Flag Important.
-5. **Per-symbol severity** (applies only to symbols that survived the step-4 indirect-producer check — i.e. no literal *and* no plausible dynamic producer). Reserve **Important** for a metric or alarm-feeding signal that has a literal catalog/registry entry and zero producer (the literal-vs-absent shape). For an **enum value or error code** with no producer, default to **"Possible: unreachable"** (Minor unless it feeds a live signal): such values are routinely added ahead of their producer in a stacked diff or populated by deserialization, so a missing producer in a single diff is weak evidence of a real defect.
+4. **Before flagging, rule out indirect producers**: metrics emitted via a computed/variable name (`emit(metricName)`), names built from a catalog, enum values populated by deserialization, or producers in generated code. If a producer could plausibly exist dynamically, downgrade to "Possible: ..." rather than asserting a dead definition. **Exception (asymmetry governs):** when the paired metric IS emitted via a literal call and only this side has merely a hypothetical/dynamic producer, do NOT downgrade — the literal-vs-absent asymmetry is itself the defect (the incident-2026-1564 shape). Flag Important.
+5. **Per-symbol severity** (applies only to symbols that survived the step-4 indirect-producer check — i.e. no literal *and* no plausible dynamic producer). Reserve **Important** for a metric or alarm-feeding signal that has a literal catalog/registry entry and zero producer (the incident-2026-1564 shape). For an **enum value or error code** with no producer, default to **"Possible: unreachable"** (Minor unless it feeds a live signal): such values are routinely added ahead of their producer in a stacked diff or populated by deserialization, so a missing producer in a single diff is weak evidence of a real defect.
 
-**Example**: `Metrics.RequestAPI.Success` is defined in `metrics-catalog.ts` but no `.emit()` exists anywhere in the source, while `Failure.emit()` is called in the catch block. The Grafana "API Success Rate" panel (`Success / (Success + Failure)`) reads 0% indefinitely. Fix: emit `Success` on every terminal success path.
+**Example**: `Metrics.AgentAPI.Success` is defined in `metrics-catalog.ts` but no `.emit()` exists anywhere in the source, while `Failure.emit()` is called in the catch block. The Grafana "API Success Rate" panel (`Success / (Success + Failure)`) reads 0% indefinitely. Fix: emit `Success` on every terminal success path. (Real miss: incident-2026-1564, broken Nov 2025 to May 2026.)
 
 ### Boundary Value Trace
 
@@ -187,3 +187,49 @@ For each finding:
 
 If you find NO defects, say:
 "✅ No defects found. Code handles error paths and edge cases appropriately."
+
+## Evidence Schema (MANDATORY)
+
+Every finding above AND every "no issues" verdict MUST carry a JSON `evidence` block per `skills/engineering/code-review-battery/skill.md` Phase 6. The cr-battery evidence-replay verifier (`tools/verify-cr-battery-evidence.js`) re-executes `evidence.command` and caps dimensions on falsified (5.0) or unverifiable (7.0) claims. This is the structural anti-confabulation gate added after the 2026-06-10 incident-2026-1507 incident, in which four cr-battery PASSes shipped material defects because reviewer prose was not falsifiable.
+
+Example for a finding:
+
+```json
+{
+  "claim": "no producer for Metrics.AgentAPI.Success",
+  "evidence": {
+    "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/ | wc -l",
+    "expectation": { "type": "count", "value": "==0" },
+    "verifiable": true,
+    "rationale": "if any producer line exists, the claim is false"
+  }
+}
+```
+
+Expectation types: `count` (e.g. `">0"`, `"==0"`, `"<=5"`), `exit_code` (integer), `match` (regex applied to stdout), `absent` (passes iff stdout has zero non-blank lines), `exact` (string equality after trim).
+
+Use `"verifiable": false` for judgment claims that cannot be falsified by a command (race conditions, design smells) -- include a `rationale`. Findings or clean-dimension verdicts with no `evidence` block at all are treated as `unverifiable` (cap 7.0).
+
+### Expectation Examples (one per type)
+
+```json
+{ "type": "count",     "value": ">0" }                                    // grep for symbol; must exist
+{ "type": "count",     "value": "==0" }                                   // no callers; absent producers
+{ "type": "exit_code", "value": 0 }                                       // tsc --noEmit succeeds
+{ "type": "match",     "value": "^- \\[ \\]" }                            // any unchecked TODO bullet
+{ "type": "absent" }                                                      // value field omitted; passes iff stdout has zero non-blank lines
+{ "type": "exact",     "value": "2.4.1" }                                 // cat VERSION
+```
+
+### Forbidden Command Patterns
+
+The verifier runs `evidence.command` as shell. Do NOT submit:
+
+- **Fabrication-only commands** -- `true`, `false`, `echo PASS`, `printf 0`. These prove nothing about the codebase. The verifier confirms exit codes mechanically; semantic mismatch (the claim text says "no SQL injection in 50k lines", the command says `true`) is invisible to the verifier and visible only to the human reviewer. Use a real grep/find/git/test command that references diff content or repo symbols.
+- **Over-broad greps** -- `grep "Success"` will match too many things and falsify real findings. Anchor: `grep -rE '\bMetrics\.AgentAPI\.Success\.(emit|inc)\(' src/`.
+- **Tools that may not be installed** -- `rg`, `jq`, `fd`, `ast-grep`, language-specific linters. Prefer POSIX `grep -rE`, `find`, `git`, `awk` for portability. If a non-portable tool is required, declare it in `evidence.rationale`.
+- **Long-running commands** -- the verifier kills commands after `VERIFIER_TIMEOUT_MS` (default 30s) and reports them as `unverifiable` (cap 7.0). Narrow scope (e.g. `git diff --name-only main..HEAD` instead of `git log --all`).
+
+### Clean-Dimension Verdicts
+
+The legacy "✅ No issues found" sentence at the bottom of the Output Format is NOT a substitute for an evidence block -- a sentence without verification reads to the gate as `unverifiable` and caps the dimension at 7.0. For every clean dimension you assert, EITHER (a) emit a clean-dimension JSON evidence block per the schema above, OR (b) omit the clean sentence entirely if no falsifiable command exists. The 9.0+ aggregate that ships material defects (incident-2026-1507, 2026-06-10) is exactly the failure mode "sentence-without-evidence" produces.

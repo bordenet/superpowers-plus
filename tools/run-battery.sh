@@ -18,7 +18,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Resolve repo root from the caller's CWD so the sentinel lands in the right
-# repo when run-battery.sh is invoked from an overlay (e.g. superpowers-swat).
+# repo when run-battery.sh is invoked from an overlay repo.
 # Fall back to the script's own repo only when not called from inside a git tree.
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$REPO_ROOT" ]]; then
@@ -31,24 +31,45 @@ cd "$REPO_ROOT"
 VERDICT="PASS"
 MIN_SCORE="7.0"
 STAGED_MODE=0
-USAGE_LINE="Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N] [--staged]"
+_MIN_SCORE_EXPLICIT=0    # set to 1 if --min-score was provided; prevents BugPath override
+_BUG_FIX_MODE_EXPLICIT=0 # set to 1 if --mode=bug-fix provided
+_FEATURE_MODE_EXPLICIT=0  # set to 1 if --mode=feature provided
+_NO_ENVELOPE=0            # set to 1 if --no-envelope provided
+USAGE_LINE="Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N] [--staged] [--mode=bug-fix|feature] [--no-envelope]"
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help|-h)
             cat << 'EOF'
 Usage: tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--min-score N] [--staged]
+                             [--mode bug-fix|feature] [--no-envelope]
 
 Run the automated quality suite and write .code-review-cleared.
 This is the ONLY permitted way to write the sentinel file.
 Run AFTER completing the AI judgment component of code-review-battery.
 
 Options:
-  --verdict     PASS or PASS_WITH_NITS (default: PASS)
-  --min-score   Quality threshold 1.0–10.0 (default: 7.0)
-  --staged      Verify the staged tree rather than HEAD. The sentinel
-                records `tree:<git-write-tree-sha>`; the post-commit hook
-                promotes it to the new HEAD SHA when the tree matches.
-  -h, --help    Show this help
+  --verdict        PASS or PASS_WITH_NITS (default: PASS)
+  --min-score      Quality threshold 1.0–10.0 (default: 7.0; 9.2 in Bug Fix Mode)
+  --staged         Verify the staged tree rather than HEAD. The sentinel
+                   records `tree:<git-write-tree-sha>`; the post-commit hook
+                   promotes it to the new HEAD SHA when the tree matches.
+  --mode=bug-fix   Force Bug Fix Review Mode (raises default threshold to 9.2,
+                   BugPath Verifier mandatory, evidence verifier required).
+                   Auto-detected from branch prefix hotfix/* or fix/<TICKET>-*.
+  --mode=feature   Force Standard Review Mode (7.0 threshold). Overrides branch
+                   auto-detection even on hotfix/* branches.
+  --no-envelope    Skip evidence-verifier gate (ESCAPE HATCH). Use only when the
+                   Phase 6 envelope workflow has not yet been adopted. In Bug Fix
+                   Mode this escape hatch still prints a loud warning.
+  -h, --help       Show this help
+
+Bug Fix Review Mode (9.2 threshold):
+  Activated when: branch prefix is hotfix/* or fix/<TICKET>-* (configure allowed
+  prefixes in .cr-battery-ticket-prefixes), or --mode=bug-fix is passed.
+  In this mode the evidence envelope (Phase 6 JSON) and evidence-replay verifier
+  are mandatory. Missing envelope = FAIL. Score cap 6.5 if coverage INSUFFICIENT.
+  Add your project's ticket prefix (e.g. PROJ) to .cr-battery-ticket-prefixes
+  (one prefix per line, uppercase letters only) to enable auto-detection.
 
 Exit codes:
   0  All checks pass, sentinel written
@@ -76,16 +97,23 @@ EOF
                 exit 1
             fi
             MIN_SCORE="$2"
+            _MIN_SCORE_EXPLICIT=1
             shift 2
             ;;
         --min-score=*)
             MIN_SCORE="${1#--min-score=}"
+            _MIN_SCORE_EXPLICIT=1
             shift
             ;;
         --staged)
             STAGED_MODE=1
             shift
             ;;
+        --mode=bug-fix|--mode=bugfix) _BUG_FIX_MODE_EXPLICIT=1; shift ;;
+        --mode=feature) _FEATURE_MODE_EXPLICIT=1; shift ;;
+        --mode=*) echo "Unknown --mode value '${1#--mode=}'. Use bug-fix or feature." >&2; exit 1 ;;
+        --mode) echo "--mode requires a value: bug-fix or feature." >&2; exit 1 ;;
+        --no-envelope) _NO_ENVELOPE=1; shift ;;
         *)
             echo "Unknown flag: $1" >&2
             echo "$USAGE_LINE" >&2
@@ -105,9 +133,49 @@ if ! [[ "$MIN_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || \
     exit 1
 fi
 
+# Bug Fix Review Mode: auto-detect hotfix/* and fix/<TICKET>-* branches.
+# Configure allowed ticket prefixes via .cr-battery-ticket-prefixes (one per line,
+# uppercase letters only). The built-in prefix list covers common patterns.
+# Add your project's prefix (e.g. PROJ) to .cr-battery-ticket-prefixes to enable.
+_TICKET_CONFIG="$REPO_ROOT/.cr-battery-ticket-prefixes"
+if [[ -f "$_TICKET_CONFIG" ]] && [[ -s "$_TICKET_CONFIG" ]]; then
+    _PREFIX_PATTERN=$(grep -E '^[A-Z]+$' "$_TICKET_CONFIG" \
+        | head -50 | tr '\n' '|' | sed 's/|$//')
+    _PREFIX_PATTERN="${_PREFIX_PATTERN:-DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA}"
+else
+    _PREFIX_PATTERN="DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA"
+fi
+_CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+_BUG_FIX_MODE=0
+if [[ "$_FEATURE_MODE_EXPLICIT" == "1" ]]; then
+    _BUG_FIX_MODE=0
+elif [[ "$_BUG_FIX_MODE_EXPLICIT" == "1" ]]; then
+    _BUG_FIX_MODE=1
+elif echo "$_CURRENT_BRANCH" | grep -qE "^(hotfix/|fix/(${_PREFIX_PATTERN})-)"; then
+    _BUG_FIX_MODE=1
+fi
+# Raise default threshold to 9.2 in Bug Fix Mode unless operator overrode explicitly.
+if [[ "$_BUG_FIX_MODE" == "1" ]] && [[ "$_MIN_SCORE_EXPLICIT" == "0" ]]; then
+    MIN_SCORE="9.2"
+fi
+unset _BUG_FIX_MODE_EXPLICIT _FEATURE_MODE_EXPLICIT _MIN_SCORE_EXPLICIT _TICKET_CONFIG _PREFIX_PATTERN
+
 echo "═══════════════════════════════════════════════════════════"
 echo "  run-battery.sh — automated quality suite"
+if [[ "$_BUG_FIX_MODE" == "1" ]]; then
+    echo "  MODE: Bug Fix Review  |  threshold: ${MIN_SCORE}"
+    echo "  Branch: ${_CURRENT_BRANCH:-<detached>}"
+    if [[ "$_NO_ENVELOPE" == "1" ]]; then
+        echo "  Evidence envelope: BYPASSED (--no-envelope) ⚠️"
+    else
+        echo "  BugPath Verifier: mandatory  |  Evidence envelope: required"
+    fi
+else
+    echo "  MODE: Standard Review  |  threshold: ${MIN_SCORE}"
+    echo "  Branch: ${_CURRENT_BRANCH:-<detached>}"
+fi
 echo "═══════════════════════════════════════════════════════════"
+unset _CURRENT_BRANCH
 echo ""
 echo "  ⚠  AI JUDGMENT PREREQUISITE"
 echo "  The code-review-battery AI judgment component MUST be"
@@ -145,6 +213,60 @@ if [[ "$STAGED_MODE" -eq 1 ]]; then
 fi
 
 ERRORS=0
+
+# Linear / issue-tracker ID scanner.
+# Ticket IDs (e.g. PROJ-1234) must not appear in product source code — they
+# belong in commit messages or documentation. Scanned extensions: .ts .tsx .js
+# .jsx .mjs .cjs .go .py .sh .bash. Markdown/JSON/YAML are exempt.
+# Configure allowed prefixes via .cr-battery-ticket-prefixes (one per line,
+# uppercase letters only). Default allowlist prevents false positives on common
+# standard names (UTF-8, RFC-7230, ISO-8601, HTTP-404).
+echo "─── Step 0/4: issue ID scanner ───"
+_TICKET_CONFIG2="$REPO_ROOT/.cr-battery-ticket-prefixes"
+if [[ -f "$_TICKET_CONFIG2" ]] && [[ -s "$_TICKET_CONFIG2" ]]; then
+    _SCAN_PATTERN=$(grep -E '^[A-Z]+$' "$_TICKET_CONFIG2" \
+        | head -50 | tr '\n' '|' | sed 's/|$//')
+    _SCAN_PATTERN="${_SCAN_PATTERN:-DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA}"
+else
+    _SCAN_PATTERN="DELTA|ENG|SWAT|PLAT|INFRA|SEC|QA"
+fi
+_TICKET_BASE2=$(git rev-parse --verify "origin/main" 2>/dev/null \
+    || git rev-parse --verify "origin/dev" 2>/dev/null \
+    || true)
+if [[ -n "$_TICKET_BASE2" ]]; then
+    if git diff "${_TICKET_BASE2}...HEAD" --name-only 2>/dev/null >/dev/null; then
+        _TICKET_HITS2=$(
+            git diff "${_TICKET_BASE2}...HEAD" -- \
+                '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' \
+                '*.go' '*.py' '*.sh' '*.bash' \
+                2>/dev/null \
+            | awk -v pat="(${_SCAN_PATTERN})-[0-9]+" '
+                BEGIN { cur = "(unknown)" }
+                /^\+\+\+ b\// { sub(/^\+\+\+ b\//, ""); cur = $0 }
+                /^\+[^+]/ { l = $0
+                    while (match(l, pat)) {
+                        print cur ": " substr(l, RSTART, RLENGTH)
+                        l = substr(l, RSTART + RLENGTH)
+                    }
+                }
+            ' | sort -u || true
+        )
+        if [[ -n "$_TICKET_HITS2" ]]; then
+            echo "❌ Issue tracker ID(s) found in product source code:"
+            echo "$_TICKET_HITS2" | sed 's/^/   /'
+            echo "   Move ticket references to commit messages and re-run."
+            ERRORS=$((ERRORS + 1))
+        else
+            echo "✓ No issue tracker IDs in source code"
+        fi
+    else
+        echo "⚠️  git diff failed — issue ID scan skipped" >&2
+    fi
+else
+    echo "⚠️  Cannot determine diff base (no origin/main or origin/dev) — scan skipped" >&2
+fi
+unset _TICKET_CONFIG2 _SCAN_PATTERN _TICKET_BASE2 _TICKET_HITS2
+echo ""
 
 # NOTE: install --upgrade is intentionally NOT run here.
 # Running it as a battery step has unacceptable side-effects: it mutates the
@@ -214,36 +336,106 @@ else
     NEXT_STEP="git push"
 fi
 
-# cr-battery preservation gate (graceful degradation):
-# If .cr-battery-runs/ exists at repo root, the skill's Phase 6 preservation
-# step has been adopted -- the orchestrator MUST have written a per-HEAD
-# JSON file before invoking this script. If the directory is absent (legacy /
-# opt-out), or if running in --staged mode (where HEAD is the prior commit,
-# not the work-in-progress), the check is skipped. See
-# docs/cr-battery/finding-lifecycle-design.md for the rationale.
+# cr-battery preservation + evidence-verifier gate.
+#
+# Bug Fix Mode: envelope is MANDATORY (exit 1 on missing). The evidence verifier
+# is also mandatory; --no-envelope bypasses with a loud warning.
+#
+# Standard Mode: graceful degradation — gate runs only when .cr-battery-runs/
+# directory exists (adoption opt-in). If the directory is absent, the check is
+# skipped entirely (preserves community-friendly behaviour for repos not yet
+# using Phase 6 envelopes).
+#
+# See skills/engineering/code-review-battery/skill.md Phase 6 for the schema.
 PRESERVE_DIR="$REPO_ROOT/.cr-battery-runs"
-if [[ "$STAGED_MODE" -ne 1 ]] && [[ -d "$PRESERVE_DIR" ]]; then
-    HEAD_FOR_PRESERVE=$(git rev-parse HEAD)
-    PRESERVE_FILE="$PRESERVE_DIR/${HEAD_FOR_PRESERVE}.json"
-    if [[ ! -s "$PRESERVE_FILE" ]]; then
-        echo "❌ cr-battery preservation file missing: $PRESERVE_FILE" >&2
-        echo "   Per skills/engineering/code-review-battery/skill.md Phase 6, the" >&2
-        echo "   orchestrator must write the aggregated Phase 3 report as JSON" >&2
-        echo "   to this path before invoking run-battery.sh. Sentinel NOT written." >&2
-        exit 1
-    fi
-    # If jq is available, additionally validate that the file is parseable
-    # JSON. A 1-byte garbage file passes the `-s` check; jq catches it.
-    # Skipped silently when jq isn't installed (graceful degradation).
-    if command -v jq >/dev/null 2>&1; then
-        if ! jq -e . "$PRESERVE_FILE" >/dev/null 2>&1; then
-            echo "❌ cr-battery preservation file is not valid JSON: $PRESERVE_FILE" >&2
-            echo "   The orchestrator wrote a malformed JSON envelope. Inspect the file" >&2
-            echo "   and re-run after fixing. Sentinel NOT written." >&2
-            exit 1
-        fi
+SHA_FOR_PRESERVE=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+# In Bug Fix Mode: auto-create the directory and require the envelope.
+if [[ "$_BUG_FIX_MODE" == "1" ]] && [[ "$STAGED_MODE" -ne 1 ]]; then
+    if [[ ! -d "$PRESERVE_DIR" ]]; then
+        mkdir -p "$PRESERVE_DIR" 2>/dev/null || true
+        echo "ℹ️  Created .cr-battery-runs/ — evidence envelopes go here (see skill.md Phase 6)." >&2
     fi
 fi
+
+if [[ "$STAGED_MODE" -ne 1 ]] && [[ -n "$SHA_FOR_PRESERVE" ]]; then
+    PRESERVE_FILE="$PRESERVE_DIR/${SHA_FOR_PRESERVE}.json"
+    _NEED_ENVELOPE=0
+
+    if [[ "$_BUG_FIX_MODE" == "1" ]]; then
+        # Bug Fix Mode: envelope is mandatory regardless of --no-envelope
+        _NEED_ENVELOPE=1
+    elif [[ -d "$PRESERVE_DIR" ]]; then
+        # Standard Mode: graceful — only check if directory exists
+        _NEED_ENVELOPE=1
+    fi
+
+    if [[ "$_NEED_ENVELOPE" == "1" ]]; then
+        if [[ "$_NO_ENVELOPE" == "1" ]]; then
+            echo "⚠️  WARNING: --no-envelope bypass active. Evidence replay SKIPPED." >&2
+            echo "   The sentinel will be written WITHOUT verifier confirmation." >&2
+            if [[ "$_BUG_FIX_MODE" == "1" ]]; then
+                echo "   Bug Fix Mode: this bypass is permitted but strongly discouraged." >&2
+            fi
+            echo "" >&2
+        elif [[ ! -s "$PRESERVE_FILE" ]]; then
+            echo "❌ Evidence envelope not found: .cr-battery-runs/${SHA_FOR_PRESERVE}.json" >&2
+            echo "" >&2
+            echo "   Before calling run-battery.sh, write the Phase 3 aggregated review" >&2
+            echo "   output as a JSON envelope to this path." >&2
+            echo "   See skills/engineering/code-review-battery/skill.md Phase 6 for the schema." >&2
+            echo "" >&2
+            echo "   Quick-start (empty envelope — no findings recorded):" >&2
+            echo "     mkdir -p .cr-battery-runs" >&2
+            echo "     echo '{\"findings\":[],\"clean_dimensions\":[]}' > .cr-battery-runs/${SHA_FOR_PRESERVE}.json" >&2
+            echo "   then re-run. Or pass --no-envelope to bypass (prints this warning and continues)." >&2
+            echo "" >&2
+            echo "   Sentinel NOT written." >&2
+            exit 1
+        else
+            # Validate JSON if jq available
+            if command -v jq >/dev/null 2>&1; then
+                if ! jq -e . "$PRESERVE_FILE" >/dev/null 2>&1; then
+                    echo "❌ cr-battery preservation file is not valid JSON: $PRESERVE_FILE" >&2
+                    echo "   The orchestrator wrote a malformed JSON envelope. Inspect and re-run." >&2
+                    echo "   Sentinel NOT written." >&2
+                    exit 1
+                fi
+            fi
+            # Evidence-replay verifier: mandatory in Bug Fix Mode, runs in Standard
+            # Mode when the verifier script exists. Warns and continues if node absent
+            # (Standard Mode only — Bug Fix Mode requires node).
+            VERIFIER="$SCRIPT_DIR/verify-cr-battery-evidence.js"
+            if [[ -f "$VERIFIER" ]] && [[ ! -L "$VERIFIER" ]]; then
+                if command -v node >/dev/null 2>&1; then
+                    echo "--- cr-battery evidence-replay verifier ---"
+                    set +e
+                    node "$VERIFIER" "$PRESERVE_FILE" --cwd "$REPO_ROOT"
+                    VERIFIER_EXIT=$?
+                    set -e
+                    if [[ $VERIFIER_EXIT -eq 1 ]]; then
+                        echo "❌ Verifier found FALSIFIED reviewer claims. Recompute score" >&2
+                        echo "   with dimension caps and re-dispatch affected reviewer." >&2
+                        echo "   Sentinel NOT written." >&2
+                        exit 1
+                    elif [[ $VERIFIER_EXIT -ne 0 ]]; then
+                        echo "❌ Verifier exited $VERIFIER_EXIT (usage/IO/parse error). Sentinel NOT written." >&2
+                        exit 1
+                    fi
+                    echo ""
+                elif [[ "$_BUG_FIX_MODE" == "1" ]]; then
+                    echo "❌ node not on PATH — required for evidence-replay verifier in Bug Fix Mode." >&2
+                    echo "   Install Node.js and re-run. Sentinel NOT written." >&2
+                    exit 1
+                else
+                    echo "⚠️  node not on PATH — evidence-replay verifier skipped (Standard Mode)." >&2
+                fi
+            fi
+        fi
+    fi
+    unset _NEED_ENVELOPE
+fi
+unset _NO_ENVELOPE _BUG_FIX_MODE SHA_FOR_PRESERVE
 
 echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
 
