@@ -83,6 +83,8 @@ git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "
 
 ### Phase 0.5: BugPath Mode Detection
 
+> **Load gate:** This phase requires `reference.md` to be loaded alongside this skill. If absent, treat BugPath Mode as INACTIVE and note in triage line.
+
 Run immediately after the sentinel check. Detect whether this is a targeted bug fix, then set the mode before triage.
 
 (Detection script: `reference.md` § BugPath Detection Script.)
