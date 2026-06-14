@@ -48,8 +48,9 @@
 # cannot defend against it). Document in the team review checklist.
 #
 # Branch prefixes that gate (override via CHARTER_BRANCH_PREFIXES env var,
-# space-separated):
-#   hotfix/  fix/<TICKET-ID>-
+# space-separated). Default: hotfix/ (to gate fix/TICKET-ID-* branches, override
+# CHARTER_BRANCH_PREFIXES="hotfix/ fix/" or similar):
+#   hotfix/
 
 set -euo pipefail
 export LC_ALL=C
@@ -60,7 +61,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     exit 0
 fi
 
-PREFIXES_DEFAULT="hotfix/ fix/"
+PREFIXES_DEFAULT="hotfix/"
 CHARTER_BRANCH_PREFIXES="${CHARTER_BRANCH_PREFIXES:-$PREFIXES_DEFAULT}"
 CHARTER_FILE="${CHARTER_FILE:-HOTFIX-CHARTER.md}"
 
