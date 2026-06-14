@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# wiki-api — READ-ONLY thin wrapper for the Outline wiki REST API
+#
+# This tool is restricted to READ endpoints only.
+# For write operations (create, update, move, delete), use wiki-write.sh.
+#
+# Usage:
+#   wiki-api <endpoint> [json-body|@file]
+#
+# Examples:
+#   wiki-api documents.info '{"id":"grfjk3OKh8"}'
+#   wiki-api documents.search '{"query":"my topic"}'
+#   echo '{"id":"uuid"}' | wiki-api documents.info
+#
+# Body: inline JSON, @filename (passed to curl --data), or omit for '{}'.
+# Stdin: if body arg is absent and stdin is a pipe, reads body from stdin.
+
+set -euo pipefail
+
+endpoint="${1:?Usage: wiki-api <endpoint> [json-body|@file]}"
+
+# Read-only allowlist — write endpoints are blocked; use wiki-write.sh instead.
+# Any endpoint NOT in this list is denied to prevent accidental mutations.
+_READ_ENDPOINTS=(
+  "auth.info"
+  "collections.list"
+  "collections.info"
+  "collections.documents"
+  "documents.info"
+  "documents.list"
+  "documents.search"
+  "documents.export"
+  "documents.revision"
+  "documents.revisions"
+  "documents.users"
+  "comments.list"
+  "shares.list"
+  "groups.list"
+  "users.list"
+  "users.info"
+)
+
+_allowed=0
+for _ep in "${_READ_ENDPOINTS[@]}"; do
+  if [[ "$endpoint" == "$_ep" ]]; then
+    _allowed=1
+    break
+  fi
+done
+
+if [[ "$_allowed" -eq 0 ]]; then
+  echo "ERROR: '$endpoint' is not in the wiki-api read allowlist." >&2
+  echo "  wiki-api is read-only. For write operations use: wiki-write.sh" >&2
+  echo "  Allowed endpoints: ${_READ_ENDPOINTS[*]}" >&2
+  exit 1
+fi
+
+# Resolve credentials from ~/.codex/.env
+if [ -f "$HOME/.codex/.env" ]; then
+  # shellcheck source=/dev/null
+  source "$HOME/.codex/.env"
+else
+  echo "ERROR: ~/.codex/.env missing — cannot resolve Outline credentials" >&2
+  exit 1
+fi
+
+if [[ -z "${OUTLINE_API_KEY:-}" ]]; then
+  echo "ERROR: OUTLINE_API_KEY is empty — check that it is set in ~/.codex/.env" >&2
+  exit 1
+fi
+
+# Validate API URL is configured
+if [ -z "${OUTLINE_API_URL:-}" ]; then
+  echo "ERROR: OUTLINE_API_URL is not set in ~/.codex/.env" >&2
+  exit 1
+fi
+export OUTLINE_API_URL
+
+# Build request body — resolve before building curl args so we can validate it.
+# No -f flag: HTTP errors return the response body; callers should check .ok in JSON.
+if [[ $# -ge 2 ]]; then
+  body="$2"
+elif [[ ! -t 0 ]]; then
+  # Stdin is a pipe — read it fully; guard against empty pipe
+  body=$(cat)
+  [[ -n "$body" ]] || body='{}'
+  # Guard: @-prefix from stdin would be interpreted as a file path by curl --data,
+  # potentially exfiltrating arbitrary files. Reject it; users should pipe file content.
+  if [[ "$body" == @* ]]; then
+    echo "ERROR: @file syntax is not supported via stdin — pipe the file content directly instead." >&2
+    exit 1
+  fi
+else
+  body='{}'
+fi
+
+# Build curl args — use --data-raw so $body content is sent verbatim without
+# curl interpreting @-prefixes as file paths (defense-in-depth alongside the guard above).
+curl_args=(-s -X POST "$OUTLINE_API_URL/$endpoint"
+  -H "Authorization: Bearer $OUTLINE_API_KEY"
+  -H "X-Proxy-Token: $OUTLINE_API_KEY"
+  -H "Content-Type: application/json"
+  --data-raw "$body"
+)
+
+curl "${curl_args[@]}"
