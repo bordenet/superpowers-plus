@@ -22,9 +22,28 @@ read but doesn't need to live in the main procedure body.
 | Convergence never reached | Escalate to human after 3 passes |
 | Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
 
-## Executive Summary Template
+## BugPath Detection Script
 
-Required first element of every battery review output:
+```bash
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if echo "$BRANCH" | grep -qE '^(hotfix/|fix/[A-Z]+-[0-9]+)'; then
+  echo "BugPath Mode: ACTIVE (branch: $BRANCH)"
+else
+  echo "BugPath Mode: INACTIVE"
+fi
+```
+
+## Design Critic BugPath Logic
+
+```bash
+# API-change signals that re-activate Design Critic in Bug Fix Mode:
+git diff HEAD~1 | grep -qE '^\+.*(export (default )?(class|interface|type|function|const)|public [a-zA-Z]+\()'
+```
+
+If any signal matches: activate and prefix triage line with `⚠️ Design Critic re-activated on bug fix (API-change signal detected).`
+If no signal: state `Design Critic: SKIPPED (Bug Fix Mode — no API-change signals)`.
+
+## Executive Summary Template
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -36,7 +55,6 @@ Required first element of every battery review output:
 ```
 
 Standard mode (no BugPath row):
-
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  MODE: Standard Review [7.0 threshold]  |  BRANCH: feat/new-api   │
@@ -45,11 +63,28 @@ Standard mode (no BugPath row):
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`.
+VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`. ACTION is a single plain-English sentence.
 
-## Phase 6: Run Envelope Schema
+## Severity Definitions
 
-Write to `.cr-battery-runs/<HEAD-sha>.json` before sentinel write:
+- **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
+- **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
+- **Minor** = works but violates standards (style, naming, missing docs/tests, observability gaps)
+- **Elevate to Important** when operator-visible signal is wrong/missing (dead metric, blinded alarm) OR separately-actionable failure cause folded into generic metric/alarm
+- Downgrade process gaps (e.g., "no tests added") from Critical to Minor: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
+- True convergent findings promoted to at least Important; echo convergent retain original severity.
+
+## Correlated-Failure Detection
+
+**Evidence overlap:** ≥3 reviewers cite same file+line range for their ONLY finding → `⚠️ CORRELATED EVIDENCE — expand to adjacent modules`.
+**Phrasing similarity:** 2+ reviewers use near-identical phrasing for different findings → `⚠️ ECHO REASONING — re-examine from different entry`.
+**Clean-sweep suspicion:** all reviewers zero findings → `⚠️ UNANIMOUS CLEAN — verify different evidence slices`.
+
+Flags trigger expanded scope, not verdict changes.
+
+## Run Envelope Schema
+
+Schema for `.cr-battery-runs/<HEAD-sha>.json`:
 
 ```json
 {
@@ -70,51 +105,42 @@ Write to `.cr-battery-runs/<HEAD-sha>.json` before sentinel write:
   },
   "findings": [
     {
-      "reviewer": "Defect Finder", "dimension": "Correctness", "severity": "important",
+      "reviewer": "Defect Finder",
+      "dimension": "Correctness",
+      "severity": "important",
       "file": "src/foo.ts", "line": 42,
       "issue": "...", "regressions_risked": "...", "durable_check": "...",
       "claim": "no producer for Metrics.Success",
       "evidence": {
         "command": "grep -rcE 'Metrics\\.Success' src/ | awk -F: '$2>0' | head -1",
-        "expectation": { "type": "absent" }, "verifiable": true
+        "expectation": { "type": "absent" },
+        "verifiable": true,
+        "rationale": "if any line is emitted, a producer exists"
       }
     }
   ],
   "clean_dimensions": [
     {
-      "reviewer": "Standards Enforcer", "dimension": "Tests",
+      "reviewer": "Standards Enforcer",
+      "dimension": "Tests",
       "claim": "no new test files outside tests/",
       "evidence": {
         "command": "git diff --name-only --diff-filter=A main..HEAD -- '*.test.ts' ':!tests/'",
-        "expectation": { "type": "absent" }, "verifiable": true
+        "expectation": { "type": "absent" },
+        "verifiable": true
       }
     }
   ]
 }
 ```
 
-Expectation types: `count` (`">0"`, `"==0"`), `exit_code` (integer), `match` (regex, max 256 chars), `absent` (zero non-blank lines), `exact` (trimmed string equality). `verifiable: false` → cap at 7.0 (judgment claims that can't be re-executed deterministically).
+Every finding AND every clean-dimension verdict must carry an `evidence` block. `verifiable: false` is reserved for genuine judgment calls (race conditions, design smells) not re-executable deterministically; capped at 7.0 by the verifier.
 
-## BugPath Detection Snippet
+## Verifier Details
 
-```bash
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-if echo "$BRANCH" | grep -qE '^(hotfix/|fix/[A-Z]+-[0-9]+)'; then
-  echo "BugPath Mode: ACTIVE (branch: $BRANCH)"
-else
-  echo "BugPath Mode: INACTIVE"
-fi
-```
+**Expectation types:** `count` (e.g. `">0"`, `"==0"`), `exit_code` (integer), `match` (regex on stdout, max 256 chars), `absent` (passes iff stdout has zero non-blank lines), `exact` (string equality after trim).
 
-## Design Critic Re-Activation (Bug Fix Mode)
-
-In Bug Fix Mode, Design Critic is suppressed by default. Re-activate only when:
-
-```bash
-git diff HEAD~1 | grep -qE '^\+.*(export (default )?(class|interface|type|function|const)|public [a-zA-Z]+\()'
-```
-
-If matched: activate + prefix triage with `⚠️ Design Critic re-activated on bug fix (API-change signal detected).`
+**Verifier replay:** `tools/run-battery.sh` invokes `tools/verify-cr-battery-evidence.js` on the freshly-written envelope. Bug Fix Mode: mandatory. Standard Mode: graceful degrade (skipped if `.cr-battery-runs/` absent). Verifier re-executes every `evidence.command`, compares to declared expectation. FALSIFIED claim (5.0 cap) aborts sentinel write; UNVERIFIABLE claim (7.0 cap). Exit codes: `0`=all verified or unverifiable; `1`=falsification; `2`=usage/IO/parse error.
 
 ## See Also
 

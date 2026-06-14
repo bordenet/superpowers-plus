@@ -100,5 +100,6 @@ On the FIRST turn after `git checkout -b hotfix/...` or `git checkout -b fix/<TI
 3. **Sketch the minimum diff** (don't redesign, don't refactor)
 4. **Run cr-battery** on the STAGED diff; write verdict to HOTFIX-CHARTER.md
 5. **Commit** — the hook verifies all sections and verdict is PASS/PASS_WITH_NITS
+   - If hook rejects: fix the failing section (missing heading or non-PASS verdict) and re-run cr-battery on the staged diff before retrying the commit.
 
-If diff grows past budget: update budget with reason or split into follow-up tickets.
+If diff grows past budget: update the `## Diff budget` section with the new ceiling and a one-line rationale, then re-run cr-battery on the updated staged diff before retrying.

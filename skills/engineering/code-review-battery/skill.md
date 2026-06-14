@@ -64,7 +64,14 @@ Dispatch up to 6 specialized reviewer agents in parallel, each focused on a dist
 
 ### Phase 0: Sentinel Check (canonical skip gate — run before dispatching anything)
 
-Callers should run this before dispatching; if they don't, apply manually.
+This is the canonical skip gate for the one-per-unit rule. Callers (`requesting-code-review`, `finishing-a-development-branch`, `progressive-code-review-gate`) should run this before dispatching. If a caller does not implement Phase 0 explicitly, the agent should apply this decision manually before invoking battery.
+
+```bash
+SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
+cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
+echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
+git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
+```
 
 | Sentinel state | Decision |
 |----------------|----------|
@@ -78,7 +85,7 @@ Callers should run this before dispatching; if they don't, apply manually.
 
 Run immediately after the sentinel check. Detect whether this is a targeted bug fix, then set the mode before triage.
 
-See `reference.md > BugPath Detection Snippet` for the detection script.
+(Detection script: `reference.md` § BugPath Detection Script.)
 
 | Signal | BugPath Mode trigger |
 |--------|---------------------|
@@ -87,13 +94,7 @@ See `reference.md > BugPath Detection Snippet` for the detection script.
 | Explicit flag `--mode=bug-fix` | Active |
 | Explicit flag `--mode=feature` | Inactive (overrides branch detection) |
 
-**When BugPath Mode is active:**
-- **BugPath Verifier** is added to the activated reviewer set (mandatory — not skippable via `--skip`)
-- Default threshold raises from 7.0 to **9.2** unless `--min-score` is explicitly provided
-- Path-coverage floor applies to the score (see Phase 3 scoring)
-- **SCOPE-SKIP**: surface as Important: `"BugPath Verifier SCOPE-SKIP — manual path-coverage review required"`. Score floor skipped; -1.5 aggregate.
-
-**Output executive summary first** (see `reference.md > Executive Summary Template`). State mode: `**BugPath Mode: ACTIVE** | Branch: fix/TICKET | Threshold: 9.2 | BugPath Verifier: mandatory`. Also support `--mode=bug-fix` / `--mode=feature`.
+**When BugPath Mode is active:** BugPath Verifier mandatory (not skippable), threshold 9.2, path-coverage floor applies (see Phase 3). SCOPE-SKIP on a confirmed bug-fix branch = Important finding, score -1.5. State mode in executive summary triage line (`reference.md` § Executive Summary Template). Also supports `--mode=bug-fix` and `--mode=feature`.
 
 ### Phase 1: Triage
 
@@ -128,9 +129,12 @@ Analyze the diff and select reviewers:
 
 When no signal and no default activates a reviewer, skip it and say why in the triage line.
 
-**Mandatory:** Guardian always on auth/retry/config/flags/state-machines. Design Critic always on interfaces/APIs/schemas/cross-module boundaries (Standard Mode).
+**Mandatory activation (not subject to triage exclusion):**
 
-**Design Critic in Bug Fix Mode (SUPPRESSED by default):** Re-activate only on API-change signals (see `reference.md > Design Critic Re-Activation (Bug Fix Mode)` for the detection snippet). If matched: activate + prefix triage with `⚠️ Design Critic re-activated on bug fix (API-change signal detected).` If not: state `Design Critic: SKIPPED (Bug Fix Mode — no API-change signals)`.
+- **Guardian** is ALWAYS activated when changes touch: retry logic, circuit breakers, rollback behavior, deployment config, feature flags, authentication/authorization, or state machine transitions.
+- **Design Critic** is ALWAYS activated in Standard Mode when changes touch: interfaces, public APIs, contracts, message schemas, shared state types, or cross-module boundaries.
+
+**Design Critic in Bug Fix Mode (SUPPRESSED by default):** Only re-activated if diff contains API-change signals (new exports, public method signatures). State in triage line; see `reference.md` § Design Critic BugPath Logic for the detection command.
 
 **Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation), `--security` (force AttackerPersona on), `--no-security` (force AttackerPersona off), `--mode=bug-fix` (force Bug Fix Mode), `--mode=feature` (force Standard Mode). `--skip=BugPath Verifier` is silently ignored in Bug Fix Mode (the reviewer is mandatory).
 
@@ -146,9 +150,16 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**2. Source context** (reviewing diff in isolation = #1 missed-finding cause): SET/RESET/NULLED → grep READERS; DEFINED symbols → grep PRODUCERS (zero producers = dead definition, mandatory finding); changed signatures → all callers; stateful code → full state + transitions.
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained).
 
-**3. Inbound reference scan** (mandatory on renames/moves/deletes): `git diff --diff-filter=RD --name-only main..HEAD` for old paths, then grep across the entire repo. **MUST scan outside the changed directory** — hits outside the diff are mandatory CRITICAL findings. Include results in every reviewer's context.
+**3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
+
+```bash
+git diff --diff-filter=RD --name-only main..HEAD   # old paths
+grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # scan ENTIRE repo
+```
+
+**MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
 
 **4. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context + inbound reference scan results.
 
@@ -156,40 +167,29 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 
 After all reviewers return:
 
-1. Sort Critical→Important→Minor by file path; prefix each with `[Reviewer Name]`
-2. 2+ reviewers at same location: keep both. **True convergence** (different reasoning paths) → promote to ≥ Important. **Echo convergence** (same evidence/phrasing) → retain original severity.
-3. Clean dimensions need an `evidence` block — "no issues" without verifiable evidence → unverifiable, capped at 7.0.
-4. **Severity**: Critical = broken RIGHT NOW (data loss, crash, security); Important = breaks UNDER CONDITIONS (incomplete fix, correctness risk); Minor = standards gap (style, tests). Elevate dead metrics/blinded alarms to Important. Downgrade process-gap findings (e.g. "no tests") from Critical. True-convergent findings promote to ≥ Important.
-5. **Triple-filter** each Important/Critical finding on CX impact, complexity, and testability, then classify:
+1. Sort findings: **Critical → Important → Minor**, then by file path
+2. Prefix each with `[Reviewer Name]`
+3. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to Important; Echo convergence (same evidence/phrasing) → retain original severity.
+4. Clean dimensions need same `evidence` block as findings; missing evidence caps dimension at 7.0.
+5. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
+6. **Triple-filter** each Imp/Critical on CX impact, complexity, testability → Implement (propose exact fix) / Defer / Reject.
+7. Preserve Regressions Risked + Durable Check per Implement finding.
+**Tightening**: >10 findings → suppress Minors from body (count in summary). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
 
-- **Implement**: Passes all 3 filters. **Propose exact code change.**
-- **Defer**: Good finding but doesn't pass all 3. Document for future work.
-- **Reject**: Correct observation but fix adds more complexity than it removes.
-
-6. For each **Implement** finding, preserve the reviewer's **Regressions Risked** and **Durable Check** fields in the report. If multiple reviewers truly converge on the same finding (different reasoning paths), merge their regression analyses and pick the most actionable durable check.
-
-**Tightening**: If total findings >10, suppress Minor findings from the report body. Still count them in the summary line. Never suppress Critical or Important. State "Tightening applied: [N] Minor findings suppressed" in the report.
-
-**Report format**: Executive Summary → Header (activated/skipped reviewers) → Critical → Important → Minor (full, or "[N] Minor findings suppressed") → Clean Dimensions → Action Classification table → Durable Checks summary → Live Metrics → Summary (`Findings: [N] Critical, [N] Important, [N] Minor ([N] suppressed) | Metrics: durable=[N]% or N/A, convergent-count=[N], unresolved-critical=[N]`).
-
-**Executive Summary** (MANDATORY first element): See `reference.md > Executive Summary Template` for the box format. Include BugPath Coverage row only in BugPath Mode. ACTION is a single plain-English sentence. VERDICT: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`.
-
-**Metrics**: Durable check rate (≥50%), convergent finding count, unresolved Critical count (target: 0). Offline: precision ≥75%, high-sev precision ≥80%, Round 2 yield ≤20%.
-**Score** (after all fix rounds): `10.0 − (Critical×2.5) − (Important×1.5) − (Minor×0.25) − (durable<50% ? 0.5 : 0)`, floor 0.0. Calibration: 0 findings → 10.0; 1 Important → 8.5; 1 Critical → 7.5; 2 Importants + low durable → 6.5. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0 or 9.2 in BugPath Mode). Score < threshold → abort Phase 6.
-
-**BugPath Mode path-coverage floor** (BugPath Mode only — applied after standard formula): Extract `path_coverage` from the BugPath Verifier's structured output. Apply the cap: `INSUFFICIENT` (<3/4 dimensions verified) → cap aggregate at **6.5**; `PARTIAL` (3/4 verified) → cap at **8.0**; `FULL` (all 4 verified) → no cap. `SCOPE-SKIP` or `N/A` → no floor applied.
+**Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
 
 ### Phase 4: Escalation (Round 2)
 
 If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 
-| Trigger | Re-run |
-|---------|--------|
-| >2 state/flag findings | Defect Finder (interaction-path focus) |
-| >3 test quality issues | Standards Enforcer (mock-focused) |
-| >50 lines removed, or renamed/moved/deleted files without inbound scan | Guardian (deletion/inbound-reference focus) |
-| "Pre-existing" issues flagged | Defect Finder (lifecycle focus) |
-| Diff adds/changes metric, alarm, or error-handling branch emitting metrics | Standards Enforcer (observability focus) |
+| Trigger | Re-run | Why |
+|---------|--------|-----|
+| >2 state/flag findings | Defect Finder (interaction-path focus) | Systemic timing/ordering |
+| >3 test quality issues | Standards Enforcer (mock-focused) | Shared mock infrastructure |
+| >50 lines removed or functions deleted | Guardian (deletion focus) | Callers may depend on removed behavior |
+| Files renamed/moved/deleted without inbound scan | Guardian (inbound-reference focus) | Broken consumers outside the changed directory |
+| "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
+| Diff adds/changes a metric or alarm definition, or an error-handling branch that emits a metric or feeds an alarm | Standards Enforcer (observability-completeness focus) | Dead definitions, Success/Failure asymmetry, undifferentiated failure modes |
 
 Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 
@@ -199,12 +199,7 @@ Re-dispatch with focused instruction (diff slice + refreshed context + trigger s
 
 ### Correlated-Failure Detection
 
-After synthesis, scan for **shared blind spots**:
-- ≥3 reviewers cite the same evidence → flag `⚠️ CORRELATED EVIDENCE`. Expand scope to adjacent modules.
-- 2+ use near-identical phrasing → flag `⚠️ ECHO REASONING`. Re-examine from different entry points.
-- All reviewers zero findings → flag `⚠️ UNANIMOUS CLEAN`. Verify different evidence slices.
-
-Flags trigger re-examination, not verdict changes.
+After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → flag and expand scope; (2) phrasing similarity: near-identical rationale across findings → flag and re-examine from different entry; (3) clean sweep: all-zero findings → verify reviewers examined different slices. Flags trigger scope expansion, not verdict changes. See `reference.md` § Correlated-Failure Detection.
 
 ### Phase 6: Finalize Verdict + Write Sentinel
 
@@ -215,17 +210,25 @@ Flags trigger re-examination, not verdict changes.
 1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold; PASS_WITH_NITS if at or above threshold but nits flagged; REJECT or PASS_WITH_FIXES otherwise.
 2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json` (per-engineer durable record; the directory is gitignored).
 
-Schema: See `reference.md > Phase 6: Run Envelope Schema` for the full JSON envelope format.
+Run envelope schema: `reference.md` § Run Envelope Schema.
 
-Every finding AND clean-dimension verdict MUST carry an `evidence` block. Expectation types: `count`, `exit_code`, `match`, `absent`, `exact`. `verifiable: false` → capped at 7.0 by verifier, not falsified.
+Every finding AND clean-dimension verdict must carry an `evidence` block. `verifiable: false` claims cap at 7.0. Expectation types and verifier replay details: `reference.md` § Verifier Details. `tools/run-battery.sh` refuses to write sentinel if per-HEAD JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
-**Verifier replay:** `tools/run-battery.sh` invokes `verify-cr-battery-evidence.js` on the envelope. FALSIFIED claims abort the sentinel write (exit 1); unverifiable claims are capped at 7.0 (exit 0). Bug Fix Mode: mandatory. Standard Mode: graceful degrade (skipped if `.cr-battery-runs/` absent).
+If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
-Run sentinel write: `tools/run-battery.sh --verdict PASS --min-score <threshold>`. ❌ Never write `.code-review-cleared` directly.
+```bash
+# tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
+tools/run-battery.sh --verdict PASS --min-score <threshold>
+```
 
-**Timing:** Sentinel becomes stale after commit — re-run before push. `REJECT`/`PASS_WITH_FIXES`: fix all Critical/Important, re-dispatch, then write sentinel.
+> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`.
 
-**Gap Analysis:** Monolith finds what specialists missed → `candidates/`. Reviewer fails → note. Diff >3000 lines → warn + suggest chunks. Empty diff → skip.
+**Timing:** If battery runs pre-commit, the sentinel becomes stale after commit -- re-run before push. The pre-push hook validates sentinel SHA against the pushed ref; without a valid sentinel the push is blocked.
+
+If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
+
+### Gap Analysis + Error Handling
+Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 
 ## Anti-Patterns
 
@@ -241,5 +244,3 @@ See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isola
 - **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
 - **inter-agent-review-protocol**: File-protocol review (alternative dispatch method)
 - **micro-harsh-review**: Per-batch review
-
-<!-- OP-WAIVER: engineering/code-review-battery/skill.md code_fences -9 — condensed from 385 to 243 lines; bash blocks moved to reference.md to meet the 250-line limit -->

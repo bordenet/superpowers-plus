@@ -69,10 +69,10 @@ For every push:
 
 1. `SCOPE_TRIPWIRE_MODE=warn|block` env var (highest)
 2. `.scope-tripwire-mode` file at repo root (one line: `warn` or `block`; committed -- survives fork/mirror)
-3. (removed in plus: no automatic mode detection based on remote URL)
+3. Remote URL auto-detect: if `origin` URL contains `superpowers-plus`, defaults to `block` (dogfood repo).
 4. Default -> `warn`
 
-**Default behavior:** superpowers-plus defaults to `warn` mode (advisory-only, not blocking). This reflects the design decision to inform engineers of scope drift rather than forcibly block pushes. Enable `block` mode per-repo by committing a `.scope-tripwire-mode` file or setting `SCOPE_TRIPWIRE_MODE=block` if your workflow requires hard enforcement.
+**Default behavior:** advisory only (warn mode) — the gate prints a structured stderr line and lets the push proceed. The engineer is the gate; the script just makes the ratio visible at push time. Enable `block` mode per-repo by committing a `.scope-tripwire-mode` file or setting `SCOPE_TRIPWIRE_MODE=block` if your workflow requires hard enforcement.
 
 ## Configuration
 
@@ -80,13 +80,13 @@ For every push:
 |---|---|---|
 | `LOC_PER_POINT` | 200 | Starter calibration. Tune per team after observing N merged PRs. |
 | `SCOPE_TRIPWIRE_RATIO` | 2.0 | Multiplier on (LOC_PER_POINT * estimate). |
-| `SCOPE_TRIPWIRE_MODE` | auto | `warn` (advisory) or `block` (exit 1 on overage). |
+| `SCOPE_TRIPWIRE_MODE` | warn | `warn` (advisory) or `block` (exit 1 on overage). |
 | `SCOPE_TRIPWIRE_BYPASS` | 0 | `=1`: acknowledged bypass in block mode. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_SKIP` | 0 | `=1`: skip the gate entirely. No API call, no diff scan. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_REF` | auto | Override branch-name parsing (e.g., `PROJ-1234`). |
 | `SCOPE_TRIPWIRE_BASE` | auto | Override base branch resolution. |
 | `SCOPE_TRIPWIRE_CACHE_TTL` | 3600 | Cache TTL in seconds. `0` forces re-fetch. |
-| `LINEAR_API_URL` | api.linear.app/graphql | Override API endpoint. |
+| `LINEAR_API_URL` | https://api.linear.app/graphql | Override API endpoint. |
 | `LINEAR_API_KEY` | from environment | Linear API token. Missing -> fail-open advisory. |
 
 ## Exit codes (stable contract)

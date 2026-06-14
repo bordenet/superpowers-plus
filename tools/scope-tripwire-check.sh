@@ -121,6 +121,16 @@ if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
         fi
     fi
 fi
+# URL-based dogfood auto-detect: superpowers-plus is the repo that owns this
+# tool, so it auto-enforces block mode. Matches any remote URL containing the
+# repo name (SSH, HTTPS, or local path conventions).
+if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
+    _origin_url=$(git remote get-url origin 2>/dev/null || echo "")
+    if echo "$_origin_url" | grep -q "superpowers-plus"; then
+        SCOPE_TRIPWIRE_MODE="block"
+    fi
+    unset _origin_url
+fi
 if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
     SCOPE_TRIPWIRE_MODE="warn"
 fi

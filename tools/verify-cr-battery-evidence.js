@@ -170,7 +170,7 @@ function replay(claim, cwd) {
     if (err.killed || /ETIMEDOUT/.test(err.code || '') || /timed? ?out/i.test(err.message || '')) {
       return { status: 'error', detail: `command exceeded ${VERIFIER_TIMEOUT_MS}ms timeout` };
     }
-    if (err.code === 'ENOBUFS') {
+    if (err.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' || err.code === 'ENOBUFS') {
       return { status: 'error', detail: `command stdout exceeded 4MB execSync buffer; narrow the evidence.command (e.g. add | head, | wc -l)` };
     }
     if (err.status !== null && err.status !== undefined) {

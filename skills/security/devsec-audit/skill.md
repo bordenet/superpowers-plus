@@ -76,7 +76,7 @@ Skip this gate only if the user included `--no-confirm` in the trigger invocatio
 
 Wait up to 120 seconds for user input. If no response is received: emit "Audit cancelled: no confirmation received within 120 seconds. Re-invoke with `--no-confirm` to bypass this gate." and halt all processing. If the user types `abort`: emit "Audit cancelled by user." and halt.
 
-If `CI=true` is in the environment (non-interactive context), proceed automatically and note the auto-proceed in the report header.
+If `CI=true` is in the environment, OR if running in a non-interactive context detected by the absence of a TTY (`[ ! -t 0 ]` in shell; `!process.stdin.isTTY` in Node), proceed automatically without waiting and note the auto-proceed in the report header.
 
 ### Phase 1: Discover
 
@@ -137,7 +137,9 @@ Note: `cargo-deny` advisory findings that duplicate Phase-2 `cargo-audit` findin
 
 Dispatch 6 sub-agents in parallel. Each is briefed with the full repo path, the component list from Phase 1, and the relevant taxonomy from `cr-battery/reference.md` (Security taxonomy).
 
-Include this self-limiting instruction in every sub-agent briefing: *"After each grep or search command, count your cumulative output lines. Stop and return your partial findings when you reach 3,000 lines, noting your stopping point so the orchestrator can decide whether to re-dispatch for remaining components."* If a sub-agent reports hitting the 3,000-line limit, the orchestrator splits the remaining component list and re-dispatches the sub-agent for each partition; merge all partial findings in Phase 5.
+Include this self-limiting instruction in every sub-agent briefing: *"After each grep or search command, count your cumulative output lines. Stop and return your partial findings when you reach 3,000 lines, noting your stopping point so the orchestrator can decide whether to re-dispatch for remaining components."* If a sub-agent reports hitting the 3,000-line limit, the orchestrator splits the remaining component list and re-dispatches the sub-agent for each partition; merge all partial findings in Phase 5 using the procedure below.
+
+**Phase 5 partial-findings merge procedure:** When a sub-agent returns partial findings (hit the 3,000-line limit), re-dispatch it once per remaining partition with the original briefing plus: *"Continue from `<stopping-point>`. Examine only: `<remaining-components>`."* Collect all per-partition result sets. In Phase 5, deduplicate by `file:line` (keep the entry with the higher severity if duplicated), append a coverage note to the per-component section ("Sub-agent split into N partitions; findings merged"), and mark the overall audit header with "Phase 4 used partitioned dispatch."
 
 | Sub-agent | Dimension | Method |
 |---|---|---|

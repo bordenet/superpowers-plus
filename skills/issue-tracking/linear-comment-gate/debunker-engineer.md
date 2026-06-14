@@ -235,6 +235,12 @@ Every claim has evidence · no fabricated timestamps/metrics · no "investigatio
 
 ---
 
+## Known Limitations
+
+**General-update signatures always produce `action=NEW`.** Unstructured progress updates (e.g., "Still investigating — no new findings") have no stable signature the gate can match against prior comments, so each one creates a separate comment. This is intentional — consolidating progress updates risks silently dropping engineering observations. Engineers should not expect these updates to be merged; use them for time-stamped observations, not running logs.
+
+---
+
 ## Companion Skills
 
 - `linear-issue-verify` — REQUIRED before any comment (validates target issue)
