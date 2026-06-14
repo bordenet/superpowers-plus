@@ -21,10 +21,10 @@
 //     arbitrary code with the verifier's full shell privileges -- credential
 //     theft, file destruction, network exfiltration are ALL possible.
 //
-// run-battery.sh refuses to invoke the verifier on git-tracked envelopes
-// (see the integrity check in tools/run-battery.sh) unless
-// CR_BATTERY_TRUST_ENVELOPE=1 is set, which forces the operator to explicitly
-// opt in to running attacker-controlled commands.
+// Envelope files are written to .cr-battery-runs/ which is .gitignore'd,
+// preventing injection via PR diffs. If you invoke this verifier manually
+// on a downloaded/external envelope, ensure you trust its origin — the
+// evidence commands inside are executed by the shell.
 //
 // Caps applied per the cr-battery scoring rule (see code-review-battery/skill.md):
 //   - any falsified claim caps the (reviewer, dimension) at 5.0
