@@ -136,7 +136,7 @@ When no signal and no default activates a reviewer, skip it and say why in the t
 - **Guardian** is ALWAYS activated when changes touch: retry logic, circuit breakers, rollback behavior, deployment config, feature flags, authentication/authorization, or state machine transitions.
 - **Design Critic** is ALWAYS activated in Standard Mode when changes touch: interfaces, public APIs, contracts, message schemas, shared state types, or cross-module boundaries.
 
-**Design Critic in Bug Fix Mode (SUPPRESSED by default):** Only re-activated if diff contains API-change signals (new exports, public method signatures). State in triage line; see `reference.md` § Design Critic BugPath Logic for the detection command.
+**Design Critic in Bug Fix Mode (SUPPRESSED by default):** Only re-activated if diff contains API-change signals (new exports, public method signatures). State in triage line; see `reference.md` § Design Critic BugPath Logic for the detection command (if `reference.md` absent: default to SKIPPED unless `--all` flag set).
 
 **Overrides:** `--all` (force all), `--only=<name>`, `--skip=<name>`, `--round1-only` (skip escalation), `--security` (force AttackerPersona on), `--no-security` (force AttackerPersona off), `--mode=bug-fix` (force Bug Fix Mode), `--mode=feature` (force Standard Mode). `--skip=BugPath Verifier` is silently ignored in Bug Fix Mode (the reviewer is mandatory).
 

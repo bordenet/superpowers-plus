@@ -126,7 +126,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 ## Claude Code guardrails
 
-Non-regression scaffolding for the Claude Code self-debug action plan. PR-0 ships
+Non-regression scaffolding for the Claude Code self-debug action plan; for self-debug guidance use the `systematic-debugging` skill (`/sp-systematic-debugging`). PR-0 ships
 **zero active behavior** — it is pure scaffolding and baseline capture.
 
 **Environment variables** (all default OFF; add to your local `~/.codex/.env`):

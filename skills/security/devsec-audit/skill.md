@@ -76,7 +76,7 @@ Skip this gate only if the user included `--no-confirm` in the trigger invocatio
 
 Wait up to 120 seconds for user input. If no response is received: emit "Audit cancelled: no confirmation received within 120 seconds. Re-invoke with `--no-confirm` to bypass this gate." and halt all processing. If the user types `abort`: emit "Audit cancelled by user." and halt.
 
-If `CI=true` is in the environment, OR if running in a non-interactive context detected by the absence of a TTY (`[ ! -t 0 ]` in shell; `!process.stdin.isTTY` in Node), proceed automatically without waiting and note the auto-proceed in the report header.
+If `CI=true` is in the environment, OR if running in a non-interactive context detected by the absence of a TTY (`[ ! -t 0 ]` in shell; `!process.stdin.isTTY` in Node), proceed automatically without waiting. Before starting Phase 1, emit: `"Auto-proceeding (non-interactive: CI=<value>, TTY=absent) — verify scope before treating report as authoritative."` Note the auto-proceed in the report header. SSH users running without PTY allocation (`ssh -T`) should pass `--no-confirm` to make non-interactive intent explicit.
 
 ### Phase 1: Discover
 
