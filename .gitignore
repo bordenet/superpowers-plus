@@ -90,3 +90,4 @@ hooks/run-hook.cmd
 
 # cr-battery per-engineer run preservation (durable Phase 6 reports)
 .cr-battery-runs/
+MODULAR-MIGRATION-PROMPT.md

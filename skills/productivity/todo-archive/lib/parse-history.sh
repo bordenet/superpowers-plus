@@ -43,11 +43,21 @@ KEPT_LINES=""
 
 current_task=""
 current_done_date=""
+# pending_header buffers the most recent ## date section header. It is emitted
+# to KEPT_LINES only when the first kept task under it is encountered. If every
+# task in a section is archived, the header is silently discarded (no orphaned
+# empty sections). If a new ## header arrives before any kept task, the old
+# pending header is overwritten — correct because the old section is empty.
+pending_header=""
 
 process_task() {
   if [[ -z "$current_task" ]]; then return; fi
 
-  # Skip date headers — only process actual task lines
+  # Only process real task lines. The state machine routes ## headers directly
+  # to pending_header and never writes them into current_task, so this guard is
+  # unreachable in normal operation. It is retained as a defensive circuit-breaker:
+  # if the state machine is extended and a non-task token accumulates in
+  # current_task, this prevents corrupt content from reaching KEPT_LINES silently.
   if ! echo "$current_task" | head -1 | grep -qE '^\- \[(x|-)\]'; then
     current_task=""
     current_done_date=""
@@ -82,6 +92,14 @@ process_task() {
     TASKS_TO_ARCHIVE+="$current_task"$'\n'
     TASK_COUNT=$((TASK_COUNT + 1))
   else
+    # Deferred header emission: only write the section header when we confirm
+    # at least one task under it is being kept. This prevents empty ## sections
+    # from appearing in the rebuilt HISTORY when all tasks in a section are
+    # archived.
+    if [[ -n "$pending_header" ]]; then
+      KEPT_LINES+="$pending_header"$'\n'
+      pending_header=""
+    fi
     KEPT_LINES+="$current_task"$'\n'
   fi
   current_task=""
@@ -91,8 +109,9 @@ process_task() {
 # --- State machine: parse task blocks ---
 while IFS= read -r line; do
   if [[ "$line" =~ ^##\  ]]; then
-    process_task
-    current_task="$line"$'\n'
+    process_task              # flush current task first
+    pending_header="$line"   # buffer header; emit only if a kept task follows
+    current_task=""
     continue
   fi
   if [[ "$line" =~ ^-\ \[(x|-)\] ]]; then
@@ -115,3 +134,12 @@ while IFS= read -r line; do
   fi
 done <<< "$HISTORY_BLOCK"
 process_task  # flush last task
+# Clear all script-scope variables that would otherwise leak into the caller's
+# environment after sourcing. This file sets KEPT_LINES, TASKS_TO_ARCHIVE, and
+# TASK_COUNT for the caller; all others are implementation details that must not
+# pollute the caller's namespace.
+pending_header=""
+current_task=""
+current_done_date=""
+# 'line' holds the last value read by the while loop; clear it explicitly.
+line=""

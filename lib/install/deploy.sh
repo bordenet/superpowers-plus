@@ -13,6 +13,69 @@
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Ecosystem guard
+#
+# A lock file at ~/.codex/.superpowers-ecosystem records which superpowers
+# ecosystem owns this ~/.codex installation. Any installer that discovers a
+# foreign value there aborts before touching the filesystem, preventing two
+# independent superpowers deployments from silently clobbering each other.
+#
+# This installer writes "superpowers-plus" into that file on success.
+# Other ecosystems write their own identifiers; this code never needs to
+# know their names — it only checks for the absence of its own name.
+# ---------------------------------------------------------------------------
+_SUPERPOWERS_ECOSYSTEM_LOCK="${HOME}/.codex/.superpowers-ecosystem"
+_THIS_SUPERPOWERS_ECOSYSTEM="superpowers-plus"
+
+# check_foreign_ecosystem
+# Reads the lock file and aborts if a different ecosystem is deployed here.
+# Pass --force to bypass (with a warning).  Globals read: FORCE (default false)
+check_foreign_ecosystem() {
+    [[ ! -f "$_SUPERPOWERS_ECOSYSTEM_LOCK" ]] && return 0
+
+    local installed
+    installed=$(head -n1 "$_SUPERPOWERS_ECOSYSTEM_LOCK" 2>/dev/null | tr -d '[:space:]')
+
+    # Empty file or same ecosystem — nothing to do.
+    [[ -z "$installed" || "$installed" == "$_THIS_SUPERPOWERS_ECOSYSTEM" ]] && return 0
+
+    if [[ "${FORCE:-false}" == "true" ]]; then
+        log_warn "Foreign superpowers ecosystem detected ('${installed}')."
+        log_warn "--force supplied: proceeding. The existing deployment will be overwritten."
+        return 0
+    fi
+
+    cat >&2 <<'FOREIGN_ECOSYSTEM_ERR'
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║  ERROR: A different superpowers ecosystem is already deployed here.      ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+FOREIGN_ECOSYSTEM_ERR
+    printf "║  Lock : %s\n" "$_SUPERPOWERS_ECOSYSTEM_LOCK" >&2
+    printf "║  Found: %s\n" "$installed" >&2
+    printf "║  Want : %s\n" "$_THIS_SUPERPOWERS_ECOSYSTEM" >&2
+    cat >&2 <<'FOREIGN_ECOSYSTEM_ERR2'
+╠═══════════════════════════════════════════════════════════════════════════╣
+║  Deploying here would overwrite the existing installation.               ║
+║  Remove that deployment first, then re-run this installer.               ║
+║                                                                          ║
+║  To override (destructive — the existing install will be clobbered):    ║
+║    ./install.sh --force                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+FOREIGN_ECOSYSTEM_ERR2
+    exit 1
+}
+
+# write_ecosystem_marker
+# Records this ecosystem's identifier in the lock file after a successful
+# install.  Creates ~/.codex/ if it does not yet exist.
+write_ecosystem_marker() {
+    mkdir -p "$(dirname "$_SUPERPOWERS_ECOSYSTEM_LOCK")"
+    printf '%s\n' "$_THIS_SUPERPOWERS_ECOSYSTEM" > "$_SUPERPOWERS_ECOSYSTEM_LOCK"
+}
+
 # Resolve the upstream source directory for a skill with `overrides:` metadata.
 # Input: the overrides value (e.g., "superpowers/test-driven-development")
 # Output: prints the upstream skill directory path, or empty if not found
@@ -848,8 +911,14 @@ export_augment_menu_skills() {
     local exported=0
     declare -A exported_names=()
 
-    local skill_dir skill_name skill_file sp_trigger dest_name dest
-    for skill_dir in "$SKILLS_DIR"/*/; do
+    # Discovery loop: handles both flat and domain-grouped sources.
+    # Recursion matches install_skills() logic: domain/skill/skill.md.
+    local skill_dirs=()
+    while IFS= read -r d; do
+        [[ -n "$d" ]] && skill_dirs+=("$d")
+    done < <(find "$SKILLS_DIR" -maxdepth 3 -type f \( -name "skill.md" -o -name "SKILL.md" \) -exec dirname {} \; | sort -u)
+
+    for skill_dir in "${skill_dirs[@]+"${skill_dirs[@]}"}"; do
         [[ -d "$skill_dir" ]] || continue
         skill_name=$(basename "$skill_dir")
 

@@ -110,7 +110,7 @@
     },
     "progressive-harsh-review": {
       "expected_substrings": [
-        "Focus: typos, formatting, naming, style, obvious bugs, missing error handling.",
+        "Focus: typos, formatting, naming, style, completeness, internal consistency.",
         "Tone: experienced, skeptical, pattern-aware.",
         "For each persona, answer ALL scoring dimensions:"
       ],

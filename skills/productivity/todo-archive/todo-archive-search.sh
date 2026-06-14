@@ -11,13 +11,8 @@
 set -euo pipefail
 
 # --- Resolve paths ---
-# shellcheck disable=SC2016  # single quotes intentional: vars expand in cb-env's subshell
-if command -v cb-env &>/dev/null; then
-  TODO_FILE_PATH=$(cb-env -- bash -c 'printf "%s" "$TODO_FILE_PATH"')
-else
-  # shellcheck source=/dev/null
-  source ~/.codex/.env 2>/dev/null || true
-fi
+# shellcheck source=/dev/null
+source ~/.codex/.env 2>/dev/null || true
 TODO_PATH="${TODO_FILE_PATH:-$HOME/.codex/TODO.md}"
 ARCHIVE_DIR="$(dirname "$TODO_PATH")/todo-archives"
 
@@ -122,7 +117,12 @@ case "$COMMAND" in
     TOTAL=0
     for f in "$ARCHIVE_DIR"/*.md; do
       [[ "$(basename "$f")" == "INDEX.md" ]] && continue
-      count=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || echo 0)
+      # grep -c exits 1 when zero lines match but still prints "0" to stdout.
+      # "|| echo 0" would fire too, producing "0\n0" -- an embedded newline that
+      # causes bash arithmetic syntax error in $((TOTAL + count)).
+      # Fix: "|| true" suppresses the non-zero exit; ${count:-0} handles empty stdout.
+      count=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || true)
+      count="${count:-0}"
       TOTAL=$((TOTAL + count))
       echo "  $(basename "$f"): $count tasks"
     done
