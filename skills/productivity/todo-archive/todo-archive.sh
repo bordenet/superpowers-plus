@@ -8,8 +8,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-TODO_ENGINE="$REPO_ROOT/tools/todo-engine.py"
+# Use SCRIPT_DIR-relative path so this works from both the source tree
+# (skills/productivity/todo-archive/) and an installed copy (~/.codex/skills/todo-archive/).
+# The REPO_ROOT arithmetic (../../..) resolves to the repo root from source but to
+# $HOME from the installed path -- making any REPO_ROOT-relative path unreliable.
+TODO_ENGINE="$SCRIPT_DIR/../todo-management/scripts/todo-engine.py"
 
 PYTHON=""
 for candidate in python3 python; do
