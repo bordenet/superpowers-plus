@@ -221,7 +221,7 @@ ERRORS=0
 # Configure allowed prefixes via .cr-battery-ticket-prefixes (one per line,
 # uppercase letters only). Default allowlist prevents false positives on common
 # standard names (UTF-8, RFC-7230, ISO-8601, HTTP-404).
-echo "─── Step 0/4: issue ID scanner ───"
+echo "─── Step 1/5: issue ID scanner ───"
 _TICKET_CONFIG2="$REPO_ROOT/.cr-battery-ticket-prefixes"
 if [[ -f "$_TICKET_CONFIG2" ]] && [[ -s "$_TICKET_CONFIG2" ]]; then
     _SCAN_PATTERN=$(grep -E '^[A-Z]+$' "$_TICKET_CONFIG2" \
@@ -274,7 +274,7 @@ echo ""
 # test mid-suite. If you need to sync the catalog before running the battery,
 # run `bash install.sh --upgrade` manually first.
 
-echo "─── Step 1/4: harsh-review ───"
+echo "─── Step 2/5: harsh-review ───"
 if "$SCRIPT_DIR/harsh-review.sh"; then
     echo "✓ harsh-review passed"
 else
@@ -283,7 +283,7 @@ else
 fi
 echo ""
 
-echo "─── Step 2/4: trigger routing tests ───"
+echo "─── Step 3/5: trigger routing tests ───"
 if bash "$SCRIPT_DIR/tests/test_trigger_routing.sh" 2>&1; then
     echo "✓ trigger routing tests passed"
 else
@@ -292,7 +292,7 @@ else
 fi
 echo ""
 
-echo "─── Step 3/4: Augment export integrity ───"
+echo "─── Step 4/5: Augment export integrity ───"
 if bash "$SCRIPT_DIR/tests/test_augment_export.sh" 2>&1; then
     echo "✓ Augment export tests passed"
 else
@@ -301,7 +301,7 @@ else
 fi
 echo ""
 
-echo "─── Step 4/4: skill router unit tests ───"
+echo "─── Step 5/5: skill router unit tests ───"
 if node "$SCRIPT_DIR/../test/skill-router.test.js" 2>&1; then
     echo "✓ skill router tests passed"
 else

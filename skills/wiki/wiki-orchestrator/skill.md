@@ -61,9 +61,11 @@ If `WIKI_PLATFORM` is unset and no adapter loads → **STOP. Do not write.**
 **Stage 4.5 — Language gate contract:**
 - Exit 0: PASS — proceed
 - Exit 1: BLOCK — profanity found; replace flagged terms (or wrap in `[F-WORD]`/`[EXPLETIVE]`/`[REDACTED: reason]`), re-run until exit 0
+- Exit 1 with `MODULE_NOT_FOUND` on stderr: ABORT — scanner file missing, not profanity found
 - Exit 2: ABORT — invocation error; fix and retry; do NOT infer PASS
 - Exit 127+: ABORT — `node` not on PATH; install Node.js; do NOT infer PASS
-- Stages 4 (Secrets) and 4.5 (Language) MUST run in a single shell invocation when using a temp file — splitting across two Bash calls destroys `$WIKI_TMP` via EXIT trap
+
+**Combined-invocation note (when implementing as bash):** If Stages 4 (secret scan) and 4.5 (language scan) both read from a shared temp file (`$WIKI_TMP`), run them in a single shell invocation — splitting across two Bash calls destroys `$WIKI_TMP` via EXIT trap. This applies to bash implementations; the AI skill dispatch (above) is unaffected.
 
 ## Stage 7 — write via `tools/wiki-write.sh`
 

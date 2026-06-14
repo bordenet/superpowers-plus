@@ -128,6 +128,7 @@ A Node.js scanner ships at `tools/language-scanner.js`. It is the authoritative 
 | 1 | BLOCK — profanity found (per-finding detail on stderr) | STOP. Replace each flagged term, or wrap in `[F-WORD]`/`[EXPLETIVE]`/`[REDACTED: reason]` marker. Re-run. Do NOT mark audit PASS without a fresh exit-0 run. |
 | 2 | USAGE/IO error (missing arg, unreadable file, multi-file invocation) | ABORT. Fix invocation. Do NOT infer PASS. |
 | 127+ | `node` not on PATH | ABORT. Install Node.js. Do NOT infer PASS. |
+| 1 with `MODULE_NOT_FOUND` on stderr | Scanner file missing (node found, script absent) | ABORT. Re-run `install.sh` or verify `tools/language-scanner.js` exists. Do NOT infer PASS or treat as profanity BLOCK. |
 | Any other non-zero | Scanner unreachable or broken | ABORT. Do NOT infer PASS. |
 
 ### Usage
@@ -182,22 +183,11 @@ done
 
 ## Audit Commands
 
-**Single file:**
+Use `tools/language-scanner.js` (see Automated Scanner section above). The older `scripts/slop-dictionary.js` approach is **deprecated** — do not use it for new integrations.
 
 ```bash
-node scripts/slop-dictionary.js scan-profanity FILE.md
-```
-
-**Seed profanity patterns to dictionary:**
-
-```bash
-node scripts/slop-dictionary.js seed-profanity
-```
-
-**List profanity patterns:**
-
-```bash
-node scripts/slop-dictionary.js list profanity
+# Scan a single file (canonical command)
+node tools/language-scanner.js FILE.md
 ```
 
 ## Companion Skills

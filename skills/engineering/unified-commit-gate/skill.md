@@ -78,7 +78,9 @@ npm test           # or: vitest --run
 **Show output for all commands**, including the shell scan. Claiming "it passes" without output is a violation.
 **Gate fails?** → Fix, then re-run lint → typecheck → test in sequence (not just the failing step). Your fixes are new code and need their own full pass. Deep-dive: `use-skill pre-commit-gate`.
 
-**Post-Conflict Trap — if you resolved conflicts this session:**
+### Post-Conflict Trap
+
+**If you resolved conflicts this session:**
 
 After any rebase, merge, cherry-pick, or `git stash pop` that produced conflicts, **typecheck is mandatory even if all tests pass**. TypeScript test runners (Vitest, Jest) transpile on the fly using esbuild — they do not invoke `tsc`. A missing constant, a deleted export, or a renamed symbol will not surface in `npm test`; it will only surface in `tsc --noEmit`. The same principle applies to other compiled languages: run the build/type check step explicitly — don't rely on the test runner alone. Run in this order after conflict resolution:
 
