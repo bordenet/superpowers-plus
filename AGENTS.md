@@ -107,20 +107,17 @@ skills/{domain}/{skill-name}/
 ### 🔴 Git Workflow — GitHub First, Always
 
 **Remotes in this clone:**
-- `origin`  = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
-- `gitlab`  = GitLab (private mirror) — synced FROM GitHub, never promoted through
+- `origin`  = GitHub (bordenet/superpowers-plus) — **SOLE SOURCE OF TRUTH**
+- `gitlab`  = GitLab (mbordenet/superpowers-plus) — **SEVERED. Independent repo. No sync relationship.**
 
-**ALL changes go to GitHub (`origin`) first via PR. GitLab is downstream.**
+> ⚠️ The `gitlab` remote points to an independent GitLab repo that has **deliberately diverged** from GitHub as of 2026-05-~24. The two repos are no longer mirrors. Do NOT sync them. Do NOT push GitHub→GitLab or pull GitLab→GitHub.
+
+**ALL changes go to GitHub (`origin`) only via PR.**
 
 3-Tier promotion (all on GitHub `origin`):
 1. Feature branch → push to `origin`, open PR into `origin/dev`
 2. `dev → staging`: explicit human instruction only
 3. `staging → main`: explicit human instruction + batch review approval
-
-After GitHub main is updated, sync GitLab mirror:
-```
-git push gitlab origin/main:main origin/staging:staging origin/dev:dev
-```
 
 After any release to `main`, open a sync PR (merge commit) to bring promotion history back to `dev`:
 `git checkout -b chore/sync-dev-with-main origin/main && git push origin chore/sync-dev-with-main`
@@ -128,7 +125,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
-- ❌ NEVER promote through GitLab and then backfill GitHub
+- ❌ NEVER push to or pull from the `gitlab` remote
 - Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
 
