@@ -61,7 +61,6 @@ Before ANY commit:
 
 Two parallel, mutually exclusive skill ecosystems exist. At the **START of every conversation**, detect which THIS machine uses and bootstrap accordingly:
 
-- **superpowers-callbox**: No bootstrap required (skills are pre-deployed as symlinks).
 - **superpowers-plus**: Run the js bootstrap:
   ```bash
   node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
@@ -106,13 +105,10 @@ skills/{domain}/{skill-name}/
 
 ### 🔴 Git Workflow — GitHub First, Always
 
-**Remotes in this clone:**
-- `origin`  = GitHub (bordenet/superpowers-plus) — **SOLE SOURCE OF TRUTH**
-- `gitlab`  = GitLab (mbordenet/superpowers-plus) — **SEVERED. Independent repo. No sync relationship.**
+**Remote in this clone:**
+- `origin` = GitHub (bordenet/superpowers-plus) — **sole source of truth**
 
-> ⚠️ The `gitlab` remote points to an independent GitLab repo that has **deliberately diverged** from GitHub as of 2026-05-~24. The two repos are no longer mirrors. Do NOT sync them. Do NOT push GitHub→GitLab or pull GitLab→GitHub.
-
-**ALL changes go to GitHub (`origin`) only via PR.**
+**ALL changes go to GitHub (`origin`) via PR.**
 
 3-Tier promotion (all on GitHub `origin`):
 1. Feature branch → push to `origin`, open PR into `origin/dev`
@@ -125,8 +121,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
-- ❌ NEVER push to or pull from the `gitlab` remote
-- Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
+- Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
 
 ## Claude Code guardrails
