@@ -9,7 +9,10 @@
 if ((BASH_VERSINFO[0] < 4)); then
   echo "ERROR: todo-archive requires bash 4+. You have bash ${BASH_VERSION}" >&2
   echo "  macOS fix: brew install bash" >&2
-  exit 1
+  # return instead of exit: this file is sourced by todo-archive.sh.
+  # exit would kill the parent shell; return propagates a non-zero status
+  # that the parent's set -e will treat as a fatal error.
+  return 1
 fi
 
 # --- Snapshot current TODO for rebuild math + persistent backup via engine ---
@@ -20,7 +23,13 @@ cleanup_tmp() {
   rm -f "$SNAPSHOT_PATH" "$REBUILD_TMP"
 }
 trap cleanup_tmp EXIT
-PERSISTENT_BACKUP=$("$PYTHON" - <<'PY' "$TODO_ENGINE" "$TODO_PATH" 2>&1
+# Note: write-archives.sh is sourced by todo-archive.sh which owns set -euo pipefail.
+# Sourced scripts inherit the caller's set -e, so a failed command substitution
+# (VAR=$(cmd) where cmd exits non-zero) aborts the shell before any guard can run.
+# The || handler disarms set -e for the left side and fires on non-zero exit.
+# Removing 2>&1 ensures Python's traceback reaches the terminal directly.
+# The EXIT trap (cleanup_tmp) handles $SNAPSHOT_PATH/$REBUILD_TMP removal on return 1.
+PERSISTENT_BACKUP=$("$PYTHON" - <<'PY' "$TODO_ENGINE" "$TODO_PATH"
 import importlib.util
 import sys
 
@@ -31,12 +40,14 @@ assert spec.loader is not None
 spec.loader.exec_module(module)
 print(module.backup(todo_path))
 PY
-)
-if [[ -z "$PERSISTENT_BACKUP" ]] || [[ ! -f "$PERSISTENT_BACKUP" ]]; then
-  echo "ERROR: Failed to create persistent backup via todo-engine" >&2
-  echo "  Engine output: $PERSISTENT_BACKUP" >&2
-  rm -f "$SNAPSHOT_PATH" "$REBUILD_TMP"
-  exit 1
+) || {
+  echo "ERROR: Failed to create persistent backup via todo-engine (Python exited non-zero)" >&2
+  return 1
+}
+# Guard: Python may exit 0 but return an invalid/empty path (e.g. backup() returns None)
+if [[ ! -f "$PERSISTENT_BACKUP" ]]; then
+  echo "ERROR: Backup path invalid or missing: ${PERSISTENT_BACKUP:-<empty>}" >&2
+  return 1
 fi
 echo "💾 Backup: $PERSISTENT_BACKUP"
 echo "💾 Snapshot captured for rebuild"
@@ -97,7 +108,10 @@ append_unique_task_block() {
   CURRENT_APPEND_BLOCK=""
 }
 
-for month in $(echo "${!MONTH_TASKS[@]}" | tr ' ' '\n' | sort -r); do
+# printf '%s\n' "${!arr[@]}" | sort -r is the safe iteration idiom:
+# it avoids word-splitting and glob-expansion risks of unquoted $(...) expansion.
+# Consistent with the while IFS= read -r pattern used elsewhere in this file.
+while IFS= read -r month; do
   ARCHIVE_FILE="$ARCHIVE_DIR/${month}.md"
   # Cross-platform month name: macOS uses date -j, Linux uses date -d
   MONTH_NAME=$(date -j -f "%Y-%m" "$month" "+%B %Y" 2>/dev/null \
@@ -128,7 +142,7 @@ for month in $(echo "${!MONTH_TASKS[@]}" | tr ' ' '\n' | sort -r); do
 
   TOTAL_WRITTEN=$((TOTAL_WRITTEN + COUNT_WRITTEN))
   echo "📁 $ARCHIVE_FILE: +$COUNT_WRITTEN tasks"
-done
+done < <(printf '%s\n' "${!MONTH_TASKS[@]}" | sort -r)
 
 # --- Update INDEX.md ---
 INDEX_FILE="$ARCHIVE_DIR/INDEX.md"
@@ -138,7 +152,13 @@ INDEX_MONTHS=0
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   fname=$(basename "$f" .md)
-  fcount=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || echo 0)
+  # grep -c exits 1 (not 0) when zero lines match but still prints "0" to stdout.
+  # "|| echo 0" would fire too, producing "0\n0" in $() -- an embedded newline
+  # that causes bash arithmetic syntax error in $((INDEX_TOTAL + fcount)).
+  # Fix: "|| true" suppresses the non-zero exit without producing extra output.
+  # ${fcount:-0} guards the empty-stdout case (e.g. file vanishes between find and grep).
+  fcount=$(grep -cE '^\- \[(x|-)\]' "$f" 2>/dev/null || true)
+  fcount="${fcount:-0}"
   INDEX_TOTAL=$((INDEX_TOTAL + fcount))
   INDEX_MONTHS=$((INDEX_MONTHS + 1))
   INDEX_ROWS+="| $fname | $fcount | [${fname}.md](${fname}.md) |"$'\n'
