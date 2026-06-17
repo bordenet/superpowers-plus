@@ -1,7 +1,7 @@
 # Detecting AI Slop - Pattern Reference
 
 > **Parent skill:** [skill.md](./skill.md)
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-06-16
 
 This file contains the complete pattern dictionary for slop detection. The core skill.md loads this on demand.
 
@@ -100,6 +100,50 @@ Replace with plain language or specific descriptions.
 | champion | buzzword |
 | pivot | buzzword |
 | actionable | buzzword |
+| elevate | buzzword |
+| harness | buzzword |
+| enhance | buzzword |
+| tailored | buzzword |
+| dynamic | buzzword |
+| future-proof | buzzword |
+| unprecedented | buzzword |
+| pivotal | buzzword |
+| crucial | buzzword |
+| essential | buzzword |
+| nuanced | buzzword |
+| aligned | buzzword |
+| proactive | buzzword |
+| versatile | buzzword |
+| agile | buzzword |
+| AI-powered | buzzword |
+| mission-critical | buzzword |
+| game-changer | buzzword |
+| realm | buzzword |
+| landscape | buzzword |
+| journey | buzzword |
+| uncover | buzzword |
+| unveil | buzzword |
+| showcase | buzzword |
+| underscore | buzzword |
+| bolster | buzzword |
+| transcend | buzzword |
+| resonate | buzzword |
+| reimagine | buzzword |
+| democratize | buzzword |
+| frictionless | buzzword |
+| hyper-personalized | buzzword |
+| plug-and-play | buzzword |
+| turnkey | buzzword |
+| future-ready | buzzword |
+| action-oriented | buzzword |
+| end-to-end | buzzword |
+| data-driven | buzzword |
+| customer-centric | buzzword |
+| strategically | buzzword |
+| architected | buzzword |
+| compelling | buzzword |
+| meaningful | buzzword |
+| impactful | buzzword |
 
 ### Category 3: Filler Phrases
 
@@ -139,6 +183,25 @@ Delete entirely - these add no meaning.
 | Due to the fact that | filler |
 | For the purpose of | filler |
 | In the event that | filler |
+| In today's ever-evolving world | filler |
+| In this article | filler |
+| In this guide | filler |
+| In conclusion | filler |
+| In summary | filler |
+| In essence | filler |
+| The bottom line | filler |
+| Here's the deal | filler |
+| Picture this | filler |
+| Welcome to the world of | filler |
+| Worth noting | filler |
+| Cannot be overstated | filler |
+| Real-world | filler |
+| In a world where | filler |
+| Shining a light on | filler |
+| Designed to enhance | filler |
+| Unlock the potential of | filler |
+
+**Exemption:** "In this article" and "In this guide" are exempt when the content-type is `README` or how-to documentation — orienting the reader at the start is expected. Flag only in AI-generated prose or marketing copy.
 
 ### Category 4: Hedge Patterns
 
@@ -234,6 +297,8 @@ Overused transitions that pad word count.
 | As noted above | transition-filler |
 | Moving forward | transition-filler |
 | Going forward | transition-filler |
+| However | transition-filler |
+| Indeed | transition-filler |
 
 ### Category 7: Typographic Tells
 
@@ -247,7 +312,44 @@ AI-generated text often uses specific punctuation patterns.
 
 **Em-dash detection is HIGH PRIORITY.** Each instance adds 3 points (higher weight than standard lexical patterns).
 
-### Category 8: Clichés and Stock Phrases
+### Category 8: Vague Abstraction Phrases
+
+Phrases that sound analytical while dodging specifics. A reliable tell when they appear without a concrete claim attached — each could slot into almost any LinkedIn post unchanged.
+
+| Phrase | Category | Notes |
+|--------|----------|-------|
+| the frame | abstraction-phrase | "reframing" without stating what changes |
+| the lens | abstraction-phrase | analytical-sounding without an actual angle |
+| the narrative | abstraction-phrase | when used instead of naming the actual claim |
+| the broader picture | abstraction-phrase | stalling — say what the picture shows |
+| the broader context | abstraction-phrase | stalling — state the context explicitly |
+| the framework | abstraction-phrase | vague when no framework is actually named |
+| the ecosystem | abstraction-phrase | used to imply scale without specifying it |
+| the journey | abstraction-phrase | metaphor in place of a process description — note: also aliases Cat. 2 `journey` buzzword; both patterns score independently if both apply |
+| the conversation | abstraction-phrase | "part of a larger conversation" — say which one |
+| the space | abstraction-phrase | "in this space" — name the domain |
+
+**Detection rule:** Flag when the phrase substitutes for a concrete noun (person, system, process, number). If swapping the phrase with a specific noun breaks nothing, it's slop.
+
+### Category 9: Structural Contrast Tells
+
+Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 points to the structural dimension (consistent with the scoring formula in skill.md).
+
+| Pattern | Example |
+|---------|---------|
+| It's not about X. It's about Y. | "It's not about features. It's about outcomes." |
+| Not because X, but because Y. | "Not because it's fast, but because it's right." |
+| No X. No Y. Just Z. | "No fluff. No filler. Just results." |
+| X is not just A; it's B. | "This is not just a tool; it's a philosophy." |
+| The question is not X, but Y. | "The question is not whether, but when." |
+| This isn't X. It's Y. | "This isn't a feature. It's a commitment." |
+| If you know, you know. | "It's a different kind of clarity. If you know, you know." |
+| The more you X, the more you Y. | "The more you use it, the more you trust it." |
+| What does this mean for…? | "What does this mean for your team? Everything." |
+| X. Y. Z. | "Fast. Reliable. Secure." |
+| And the X? Y. | "And the result? Fewer errors." |
+
+### Category 10: Clichés and Stock Phrases
 
 | Phrase | Category |
 |--------|----------|
@@ -324,6 +426,22 @@ AI-generated text often uses specific punctuation patterns.
 | Line breaks after every sentence | listicle-abuse | Medium |
 
 ---
+
+## Style-Level Tells
+
+Presentation patterns more revealing than individual words. These signal "polished autocomplete" even when the vocabulary passes the lexical filter. Points contribute to the **Structural dimension** (max 25 total); the formula applies variable weights for these entries rather than the uniform 5-point rate used for content-structure patterns.
+
+| Tell | Description | Points |
+|------|-------------|--------|
+| Random bolding | Mid-sentence bolding for rhythm, not emphasis | +3 |
+| One-sentence paragraphs | Single lines broken out for dramatic effect | +2 each (max +6) |
+| Listicle without answers | Bullet points that raise questions, never resolve them | +4 |
+| Abstract noun stacking | Three+ vague nouns in a row ("synergy, alignment, outcomes") | +3 |
+| Generic thought-leadership voice | Claims any author could make without any first-person knowledge | +4 |
+| Safe-qualifier saturation | "may," "could," "potentially," "in some cases" dominate the text | +3 |
+| Summary that restates | Conclusion paragraph repeats thesis without adding evidence | +4 |
+| Excessive em-dash rhythm | Em dash used as pacing crutch rather than parenthetical emphasis | +0 (see Cat. 7 — already counted in Lexical/Cat. 7; no additional Structural points) |
+| Title-case emphasis | Random Title Casing of Concepts That Are Not Proper Nouns | +2 |
 
 ## Profanity Detection (HARD BLOCK)
 
