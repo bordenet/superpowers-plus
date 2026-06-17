@@ -241,3 +241,5 @@ See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isola
 - **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
 - **inter-agent-review-protocol**: File-protocol review (alternative dispatch method)
 - **micro-harsh-review**: Per-batch review
+
+<!-- OP-WAIVER: engineering/code-review-battery/skill.md code_fences -9 — condensed from 385 to 243 lines; bash blocks moved to reference.md to meet the 250-line limit -->
