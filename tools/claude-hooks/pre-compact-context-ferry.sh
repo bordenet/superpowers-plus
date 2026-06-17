@@ -19,9 +19,9 @@ fi
 
 # Write scaffold file with git state (stat only, capped at 30 lines each).
 {
-    printf '## CONTEXT FERRY SCAFFOLD — %s\n\n' "$TIMESTAMP"
+    printf '## CONTEXT FERRY SCAFFOLD -- %s\n\n' "$TIMESTAMP"
     printf 'Scaffold file: %s\n\n' "$OUTFILE"
-    if git -C "$CWD" rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
+    if git -C "$CWD" rev-parse --is-inside-work-tree &>/dev/null; then
         printf '### Key Files & Diffs (git state at compact time)\n'
         printf '```\n'
         git -C "$CWD" status --short 2>/dev/null | head -30 || true
@@ -40,7 +40,7 @@ cat <<MSG
 
 ** EXECUTE THE CONTEXT-FERRY SKILL NOW. Do not wait for user input. **
 
-Git state scaffold written to: ${OUTFILE}
+Git state scaffold target: ${OUTFILE}
 Use that file's "Key Files & Diffs" section to populate the ferry prompt.
 MSG
 
