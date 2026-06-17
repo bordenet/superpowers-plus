@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pre-compact-context-ferry.sh — PreCompact hook for the context-ferry skill.
+# pre-compact-context-ferry.sh -- PreCompact hook for the context-ferry skill.
 # Fires before Claude Code context compaction. Captures lightweight git state,
 # writes a scaffold file, and instructs the model to run context-ferry NOW.
 # Exit: always 0 (advisory — never blocks compaction).
