@@ -24,6 +24,8 @@ read but doesn't need to live in the main procedure body.
 
 ## BugPath Detection Script
 
+> **Pattern sync note:** The regex `fix/[A-Z]+-[0-9]+` used here must match the inline copy in `skill.md` Phase 0.5 load gate. If you update this regex, update both locations.
+
 ```bash
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if echo "$BRANCH" | grep -qE '^(hotfix/|fix/[A-Z]+-[0-9]+)'; then
@@ -114,7 +116,7 @@ Schema for `.cr-battery-runs/<HEAD-sha>.json`:
       "issue": "...", "regressions_risked": "...", "durable_check": "...",
       "claim": "no producer for Metrics.Success",
       "evidence": {
-        "command": "grep -rcE 'Metrics\\.Success' src/ | awk -F: '$2>0' | head -1",
+        "command": "grep -rE 'Metrics\\.Success' src/",
         "expectation": { "type": "absent" },
         "verifiable": true,
         "rationale": "if any line is emitted, a producer exists"

@@ -153,7 +153,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained).
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS of the compared value. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained).
 
 **3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
 
@@ -172,14 +172,15 @@ After all reviewers return:
 
 1. Sort findings: **Critical → Important → Minor**, then by file path
 2. Prefix each with `[Reviewer Name]`
-3. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to **≥ Important** (never demote a Critical); Echo convergence (same evidence/phrasing) → retain original severity.
-4. Clean dimensions need same `evidence` block as findings; missing evidence caps dimension at 7.0.
-5. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
-6. **Triple-filter** each Important/Critical on CX impact, complexity, testability:
+3. **BugPath Verifier SCOPE-SKIP** (BugPath Mode only): if the BugPath Verifier reports SCOPE-SKIP, add an Important finding "BugPath Verifier SCOPE-SKIP on confirmed bug-fix branch — manual path-coverage review required" and deduct 1.5 from the score.
+4. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to **≥ Important** (never demote a Critical); Echo convergence (same evidence/phrasing) → retain original severity.
+5. Clean dimensions need same `evidence` block as findings; missing evidence on any clean dimension causes the verifier to cap the overall run score at 7.0.
+6. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
+7. **Triple-filter** each Important/Critical on CX impact, complexity, testability:
    - **Implement**: passes all 3 filters — propose exact code change.
    - **Defer**: good finding but doesn't pass all 3 filters — document for future work.
    - **Reject**: correct observation but fix adds more complexity than it removes.
-7. Preserve Regressions Risked + Durable Check per Implement finding.
+8. Preserve Regressions Risked + Durable Check per Implement finding.
 
 **Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Score < threshold → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
 
@@ -214,26 +215,18 @@ After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → fl
 
 **Preserve the run (before sentinel write):**
 
-1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold; PASS_WITH_NITS if at or above threshold but nits flagged; REJECT or PASS_WITH_FIXES otherwise.
-2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json` (per-engineer durable record; the directory is gitignored).
-
-Run envelope schema: `reference.md` § Run Envelope Schema.
-
-Every finding AND clean-dimension verdict must carry an `evidence` block. `verifiable: false` claims cap at 7.0. Expectation types and verifier replay details: `reference.md` § Verifier Details (if `reference.md` absent: treat all claims as `verifiable: false`, cap at 7.0). `tools/run-battery.sh` refuses to write sentinel if per-HEAD JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
-
-If final verdict is `PASS` or `PASS_WITH_NITS` (score >= threshold; nits may remain for PASS_WITH_NITS):
+1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold (no unresolved nits); PASS_WITH_NITS if at or above threshold but Minor nits remain; PASS_WITH_FIXES if below threshold but all Critical/Important findings are Implement-classified (fixable path exists); REJECT if any Critical is Reject-classified or there are unresolvable blockers.
+2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json`. Schema: `reference.md` § Run Envelope Schema. Every finding AND clean-dimension verdict must carry an `evidence` block; `verifiable: false` caps at 7.0. Expectation types: `reference.md` § Verifier Details. `tools/run-battery.sh` refuses sentinel write if JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
 ```bash
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
-# Use PASS_WITH_NITS if nits remain unresolved but score >= threshold.
-tools/run-battery.sh --verdict PASS --min-score <threshold>
+tools/run-battery.sh --verdict PASS --min-score <threshold>           # no unresolved nits
+tools/run-battery.sh --verdict PASS_WITH_NITS --min-score <threshold> # Minor nits remain unresolved
 ```
 
 > ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`.
 
-**Timing:** If battery runs pre-commit, the sentinel becomes stale after commit -- re-run before push. The pre-push hook validates sentinel SHA against the pushed ref; without a valid sentinel the push is blocked.
-
-If verdict is `REJECT` or `PASS_WITH_FIXES`: do NOT write the sentinel. Fix all Critical/Important findings, re-dispatch, then write sentinel when the re-run passes.
+**Timing:** Pre-commit battery → sentinel stales after commit; re-run before push. `REJECT` or `PASS_WITH_FIXES`: do NOT write sentinel — fix Critical/Important, re-dispatch, re-run.
 
 ### Gap Analysis + Error Handling
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.

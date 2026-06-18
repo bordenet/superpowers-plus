@@ -171,14 +171,13 @@ enumerate_commits() {
         # the TARGET remote. Scoping to the named remote prevents multi-remote
         # repos (e.g. origin + gitlab) from excluding commits that exist on a
         # different remote but are new to this push destination.
-        local not_arg
+        local -a not_arg
         if [[ -n "$remote_name" ]]; then
-            not_arg="--not --remotes=$remote_name"
+            not_arg=(--not "--remotes=$remote_name")
         else
-            not_arg="--not --remotes"
+            not_arg=(--not --remotes)
         fi
-        # shellcheck disable=SC2086  # word-splitting is intentional here
-        out=$(git rev-list "$local_sha" $not_arg 2>"$tmperr") || {
+        out=$(git rev-list "$local_sha" "${not_arg[@]}" 2>"$tmperr") || {
             err=$(cat "$tmperr"); rm -f "$tmperr"
             echo "ERROR: git rev-list failed for new branch ($local_sha): $err" >&2
             return 2

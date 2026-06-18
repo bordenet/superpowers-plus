@@ -125,6 +125,9 @@ fi
 # tool, so it auto-enforces block mode. Anchored to the repo-name segment to
 # avoid matching forks/paths that merely contain "superpowers-plus" as a prefix
 # (e.g. superpowers-plus-fork, /path/to/superpowers-plus-testing/).
+# Edge case: a local filesystem clone whose path ends with "superpowers-plus"
+# (e.g. /home/user/superpowers-plus) also matches. Set SCOPE_TRIPWIRE_MODE=warn
+# explicitly to override if this auto-detect fires unexpectedly.
 if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
     _origin_url=$(git remote get-url origin 2>/dev/null || echo "")
     if echo "$_origin_url" | grep -qE '(^|[/:])(superpowers-plus)(\.git)?/?$'; then

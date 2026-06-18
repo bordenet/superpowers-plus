@@ -69,7 +69,7 @@ New logic paths MUST be debuggable in production. Check:
 - **Metric liveness**: every metric the diff defines or modifies must have at least one producer. A metric defined but never emitted reads a constant forever. Cross-check the catalog/registry against actual `.emit()` call sites.
 - **Emission symmetry**: success/failure pairs and dimensioned/aggregate pairs (`Failure` vs `FailureTotal`) must BOTH be emitted. If only one side fires, every ratio or rollup panel built on the pair is wrong. Pairs are keyed on **semantics, not suffix spelling** — `Success`/`Failure`, `Ok`/`Error`, `Succeeded`/`Failed`, `2xx`/`5xx`, `Hit`/`Miss`, `Ack`/`Nack` all count.
 - **Emit-once correctness**: a metric representing terminal success of a unit of work (a request/turn/job completing) must fire exactly once, on true completion — not on early returns, not on incomplete turns, and not on every branch of a recursion. (Does NOT apply to per-event or per-iteration counters, which are expected to fire repeatedly.) Trace every exit path the emit can reach.
-- **Failure-mode differentiation**: when a new failure cause is separately actionable (billing-quota vs transient rate-limit vs auth vs outage), it needs its own metric/dimension so it is distinguishable in telemetry — folding it into a generic counter hides it from its own alarm. (Real misses: incident-2026-1564 metric liveness/symmetry, incident-2026-1562 failure-mode differentiation.)
+- **Failure-mode differentiation**: when a new failure cause is separately actionable (billing-quota vs transient rate-limit vs auth vs outage), it needs its own metric/dimension so it is distinguishable in telemetry — folding it into a generic counter hides it from its own alarm.
 
 ### 5. Data Integrity (Internal Consistency)
 

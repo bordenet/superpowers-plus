@@ -40,14 +40,15 @@ A pre-push gate that asks one question: **does this push's cumulative diff blow 
 
 ```bash
 # Option 1: sole pre-push hook
-ln -sf $REPO_ROOT/tools/scope-tripwire-check.sh .git/hooks/pre-push
+ln -sf "$(git rev-parse --show-toplevel)/tools/scope-tripwire-check.sh" .git/hooks/pre-push
 chmod +x .git/hooks/pre-push
 
 # Option 2: chained alongside the LOC gate (RECOMMENDED if you already run it)
 cat > .git/hooks/pre-push <<'EOF'
 #!/usr/bin/env bash
-$REPO_ROOT/tools/pre-push-loc-gate.sh "$@" || exit $?
-$REPO_ROOT/tools/scope-tripwire-check.sh "$@" || exit $?
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+"$REPO_ROOT/tools/pre-push-loc-gate.sh" "$@" || exit $?
+"$REPO_ROOT/tools/scope-tripwire-check.sh" "$@" || exit $?
 EOF
 chmod +x .git/hooks/pre-push
 ```
