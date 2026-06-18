@@ -41,11 +41,16 @@ Generates a fully self-contained resume prompt so a fresh session -- on a differ
 
 | Trigger | Why |
 |---------|-----|
-| PreCompact hook (Claude Code) | Auto-fires before context compaction -- never miss it |
-| `/context-ferry` | Manual -- invoke proactively at ~20% context remaining |
+| UserPromptSubmit hook (turn-count) | Early warning at ~20 assistant turns (~70% context) -- fires exactly once per session via hysteresis flag |
+| PreCompact hook (Claude Code) | Backstop at ~95% context -- enriches ferry file with git state, branch, commits, and CLAUDE.md excerpt so model only needs to append Key Decisions |
+| `/context-ferry` | Manual -- invoke any time; works on any platform |
 | Natural language: "context is running low" | Phrase-matched trigger |
 
-**On Augment Code:** No PreCompact hook. Use `/context-ferry` manually before context gets critical.
+**Turn-count trigger:** `user-prompt-submit-context-ferry.sh` counts `"role":"assistant"` occurrences in the session transcript JSONL. Default threshold: 20 turns (override via `CONTEXT_FERRY_TURN_THRESHOLD` env var). Writes a per-session flag file (`~/.claude/.context-ferry-warned-<session_id>`) so the warning fires exactly once. Turn count is immune to large tool-output spikes that would distort a file-size proxy.
+
+**PreCompact backstop:** When compaction fires at ~95%, `pre-compact-context-ferry.sh` generates a rich scaffold (`~/context-ferry-<timestamp>.md`) pre-populated with branch, recent commits, working tree status, unpushed commits, and CLAUDE.md excerpt. Model only appends Key Decisions, Pending Questions, and Next 3 Actions to the existing file -- minimizes token spend at critical context.
+
+**On Augment Code:** No hooks. Use `/context-ferry` manually before context gets critical.
 
 ## The 5-Step Sequence
 
