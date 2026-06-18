@@ -68,6 +68,7 @@ This is the canonical skip gate for the one-per-unit rule. Callers (`requesting-
 
 ```bash
 SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
+# cat succeeds on a stale sentinel (wrong SHA) — compare the printed SHA to HEAD explicitly.
 cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
 echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
@@ -171,7 +172,7 @@ After all reviewers return:
 
 1. Sort findings: **Critical → Important → Minor**, then by file path
 2. Prefix each with `[Reviewer Name]`
-3. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to Important; Echo convergence (same evidence/phrasing) → retain original severity.
+3. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to **≥ Important** (never demote a Critical); Echo convergence (same evidence/phrasing) → retain original severity.
 4. Clean dimensions need same `evidence` block as findings; missing evidence caps dimension at 7.0.
 5. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
 6. **Triple-filter** each Imp/Critical on CX impact, complexity, testability → Implement (propose exact fix) / Defer / Reject.
@@ -214,7 +215,7 @@ After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → fl
 
 Run envelope schema: `reference.md` § Run Envelope Schema.
 
-Every finding AND clean-dimension verdict must carry an `evidence` block. `verifiable: false` claims cap at 7.0. Expectation types and verifier replay details: `reference.md` § Verifier Details. `tools/run-battery.sh` refuses to write sentinel if per-HEAD JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
+Every finding AND clean-dimension verdict must carry an `evidence` block. `verifiable: false` claims cap at 7.0. Expectation types and verifier replay details: `reference.md` § Verifier Details (if `reference.md` absent: treat all claims as `verifiable: false`, cap at 7.0). `tools/run-battery.sh` refuses to write sentinel if per-HEAD JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
 If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 

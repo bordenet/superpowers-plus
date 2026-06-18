@@ -69,7 +69,7 @@ For every push:
 
 1. `SCOPE_TRIPWIRE_MODE=warn|block` env var (highest)
 2. `.scope-tripwire-mode` file at repo root (one line: `warn` or `block`; committed -- survives fork/mirror)
-3. Remote URL auto-detect: if `origin` URL contains `superpowers-plus`, defaults to `block` (dogfood repo).
+3. Remote URL auto-detect: if `origin` URL matches `superpowers-plus` as a path segment (not a prefix), defaults to `block` (dogfood repo). Emits `scope-tripwire: auto-detected superpowers-plus dogfood repo; mode=block.` to stderr when triggered.
 4. Default -> `warn`
 
 **Default behavior:** advisory only (warn mode) — the gate prints a structured stderr line and lets the push proceed. The engineer is the gate; the script just makes the ratio visible at push time. Enable `block` mode per-repo by committing a `.scope-tripwire-mode` file or setting `SCOPE_TRIPWIRE_MODE=block` if your workflow requires hard enforcement.

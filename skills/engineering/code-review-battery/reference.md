@@ -37,7 +37,9 @@ fi
 
 ```bash
 # API-change signals that re-activate Design Critic in Bug Fix Mode:
-git diff HEAD~1 | grep -qE '^\+.*(export (default )?(class|interface|type|function|const)|public [a-zA-Z]+\()'
+# Scan the full branch range, not just the last commit (HEAD~1 misses API changes in earlier commits).
+BASE=$(git merge-base HEAD origin/dev 2>/dev/null || git merge-base HEAD origin/main 2>/dev/null || echo "HEAD~1")
+git diff "$BASE"..HEAD | grep -qE '^\+.*(export (default )?(class|interface|type|function|const)|public [a-zA-Z]+\()'
 ```
 
 If any signal matches: activate and prefix triage line with `⚠️ Design Critic re-activated on bug fix (API-change signal detected).`
