@@ -84,7 +84,7 @@ git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "
 
 ### Phase 0.5: BugPath Mode Detection
 
-> **Load gate:** This phase requires `reference.md` to be loaded alongside this skill. If absent AND the branch matches a BugPath pattern (`hotfix/*` or `fix/<TICKET>-*`): **hard halt** — emit "Cannot enter BugPath Mode: reference.md is absent. Load it before proceeding." and stop. If absent AND the branch does NOT match a BugPath pattern: treat BugPath Mode as INACTIVE and note in triage line.
+> **Load gate:** This phase requires `reference.md` to be loaded alongside this skill. If absent AND the branch matches a BugPath pattern (`hotfix/*` or `fix/[A-Z]+-[0-9]+*`, per the detection script in `reference.md`): **hard halt** — emit "Cannot enter BugPath Mode: reference.md is absent. Load it before proceeding." Return control to the user immediately. Do NOT continue to Phase 1 or any subsequent phase. If absent AND the branch does NOT match a BugPath pattern: treat BugPath Mode as INACTIVE and note in triage line.
 
 Run immediately after the sentinel check. Detect whether this is a targeted bug fix, then set the mode before triage.
 
@@ -110,7 +110,7 @@ Analyze the diff and select reviewers:
 | **Guardian** | Security, blast radius, backwards compat | Any code change |
 | **Standards Enforcer** | Docs, test quality, observability | Always |
 | **Performance Analyst** | Performance, logging | DB, loops, caching, network I/O, or >500 LOC |
-| **AttackerPersona** | Credential-flow, AI-agent boundary, ident-vs-value, cookie/session, revival re-validation, CWE tagging | Any security signal (see `reference.md`) or `--security` flag |
+| **AttackerPersona** | Credential-flow, AI-agent boundary, ident-vs-value, cookie/session, revival re-validation, CWE tagging | Any security-class signal (see signal-driven dispatch table below) or `--security` flag |
 | **BugPath Verifier** | Root cause, fix coverage, sibling bugs, regression test | BugPath Mode active (see Phase 0.5) — mandatory, not skippable |
 | **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
@@ -175,14 +175,15 @@ After all reviewers return:
 3. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to **≥ Important** (never demote a Critical); Echo convergence (same evidence/phrasing) → retain original severity.
 4. Clean dimensions need same `evidence` block as findings; missing evidence caps dimension at 7.0.
 5. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
-6. **Triple-filter** each Imp/Critical on CX impact, complexity, testability:
+6. **Triple-filter** each Important/Critical on CX impact, complexity, testability:
    - **Implement**: passes all 3 filters — propose exact code change.
    - **Defer**: good finding but doesn't pass all 3 filters — document for future work.
    - **Reject**: correct observation but fix adds more complexity than it removes.
 7. Preserve Regressions Risked + Durable Check per Implement finding.
-**Tightening**: >10 findings → suppress Minors from body (count in summary). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Score < threshold → skip Phase 6 sentinel write. BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
 
-**Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
+**Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Score < threshold → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
+
+**Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M ([N] suppressed) | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
 
 ### Phase 4: Escalation (Round 2)
 
@@ -224,6 +225,7 @@ If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
 
 ```bash
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
+# Use PASS_WITH_NITS if nits remain unresolved but score >= threshold.
 tools/run-battery.sh --verdict PASS --min-score <threshold>
 ```
 

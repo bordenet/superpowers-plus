@@ -127,7 +127,7 @@ fi
 # (e.g. superpowers-plus-fork, /path/to/superpowers-plus-testing/).
 if [[ -z "$SCOPE_TRIPWIRE_MODE" ]]; then
     _origin_url=$(git remote get-url origin 2>/dev/null || echo "")
-    if echo "$_origin_url" | grep -qE '(^|[/:])(superpowers-plus)(\.git)?$'; then
+    if echo "$_origin_url" | grep -qE '(^|[/:])(superpowers-plus)(\.git)?/?$'; then
         SCOPE_TRIPWIRE_MODE="block"
         echo "scope-tripwire: auto-detected superpowers-plus dogfood repo; mode=block." >&2
     fi

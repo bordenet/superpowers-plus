@@ -89,7 +89,7 @@ For every push:
 | `LINEAR_API_URL` | https://api.linear.app/graphql | Override API endpoint. |
 | `LINEAR_API_KEY` | from environment | Linear API token. Missing -> fail-open advisory. |
 
-¹ Effective default is `block` when running in the superpowers-plus dogfood repo (auto-detected via remote URL; see Mode dispatch §3).
+¹ Effective default is `block` when running in the superpowers-plus dogfood repo (auto-detected via remote URL; see Mode dispatch (precedence) — item 3).
 
 ## Exit codes (stable contract)
 
