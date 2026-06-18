@@ -29,7 +29,7 @@ LOCK_DIR_NAME=".TODO.md.lock"
 
 # --- Resolve TODO path (shared utility) ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=resolve-env-path.sh
+# shellcheck source=tools/resolve-env-path.sh
 source "$SCRIPT_DIR/resolve-env-path.sh"
 resolve_env
 TODO_PATH=$(resolve_path "TODO_FILE_PATH" "$HOME/.codex/TODO.md")

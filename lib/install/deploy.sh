@@ -13,6 +13,69 @@
 # REQUIRES: lib/install/logging.sh
 # -----------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Ecosystem guard
+#
+# A lock file at ~/.codex/.superpowers-ecosystem records which superpowers
+# ecosystem owns this ~/.codex installation. Any installer that discovers a
+# foreign value there aborts before touching the filesystem, preventing two
+# independent superpowers deployments from silently clobbering each other.
+#
+# This installer writes "superpowers-plus" into that file on success.
+# Other ecosystems write their own identifiers; this code never needs to
+# know their names — it only checks for the absence of its own name.
+# ---------------------------------------------------------------------------
+_SUPERPOWERS_ECOSYSTEM_LOCK="${HOME}/.codex/.superpowers-ecosystem"
+_THIS_SUPERPOWERS_ECOSYSTEM="superpowers-plus"
+
+# check_foreign_ecosystem
+# Reads the lock file and aborts if a different ecosystem is deployed here.
+# Pass --force to bypass (with a warning).  Globals read: FORCE (default false)
+check_foreign_ecosystem() {
+    [[ ! -f "$_SUPERPOWERS_ECOSYSTEM_LOCK" ]] && return 0
+
+    local installed
+    installed=$(head -n1 "$_SUPERPOWERS_ECOSYSTEM_LOCK" 2>/dev/null | tr -d '[:space:]')
+
+    # Empty file or same ecosystem — nothing to do.
+    [[ -z "$installed" || "$installed" == "$_THIS_SUPERPOWERS_ECOSYSTEM" ]] && return 0
+
+    if [[ "${FORCE:-false}" == "true" ]]; then
+        log_warn "Foreign superpowers ecosystem detected ('${installed}')."
+        log_warn "--force supplied: proceeding. The existing deployment will be overwritten."
+        return 0
+    fi
+
+    cat >&2 <<'FOREIGN_ECOSYSTEM_ERR'
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║  ERROR: A different superpowers ecosystem is already deployed here.      ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+FOREIGN_ECOSYSTEM_ERR
+    printf "║  Lock : %s\n" "$_SUPERPOWERS_ECOSYSTEM_LOCK" >&2
+    printf "║  Found: %s\n" "$installed" >&2
+    printf "║  Want : %s\n" "$_THIS_SUPERPOWERS_ECOSYSTEM" >&2
+    cat >&2 <<'FOREIGN_ECOSYSTEM_ERR2'
+╠═══════════════════════════════════════════════════════════════════════════╣
+║  Deploying here would overwrite the existing installation.               ║
+║  Remove that deployment first, then re-run this installer.               ║
+║                                                                          ║
+║  To override (destructive — the existing install will be clobbered):    ║
+║    ./install.sh --force                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+FOREIGN_ECOSYSTEM_ERR2
+    exit 1
+}
+
+# write_ecosystem_marker
+# Records this ecosystem's identifier in the lock file after a successful
+# install.  Creates ~/.codex/ if it does not yet exist.
+write_ecosystem_marker() {
+    mkdir -p "$(dirname "$_SUPERPOWERS_ECOSYSTEM_LOCK")"
+    printf '%s\n' "$_THIS_SUPERPOWERS_ECOSYSTEM" > "$_SUPERPOWERS_ECOSYSTEM_LOCK"
+}
+
 # Resolve the upstream source directory for a skill with `overrides:` metadata.
 # Input: the overrides value (e.g., "superpowers/test-driven-development")
 # Output: prints the upstream skill directory path, or empty if not found
@@ -220,10 +283,20 @@ sync_managed_checkout() {
             fi
         else
             # HEAD is not behind/equal to origin/main. Two sub-cases:
-            # - Local is ahead (origin/main IS ancestor of HEAD): skip without resetting
+            # - Local is ahead (origin/main IS ancestor of HEAD): skip or force-reset
             # - True divergence (neither is ancestor): history rewrite/force-push → auto-reset
             if git -C "$managed_dir" merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
-                log_warn "Managed checkout is ahead of origin/main — skipping sync (use --force to reset)"
+                if [[ "${FORCE:-false}" == "true" ]]; then
+                    log_warn "Managed checkout is ahead of origin/main — force-resetting (--force)"
+                    if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
+                       git -C "$managed_dir" clean -fd --quiet 2>/dev/null; then
+                        log_success "Managed checkout reset to origin/main"
+                    else
+                        log_warn "Force-reset failed — run: cd $managed_dir && git reset --hard origin/main"
+                    fi
+                else
+                    log_warn "Managed checkout is ahead of origin/main — skipping sync (use --force to reset)"
+                fi
             else
                 log_warn "Managed checkout history has diverged from origin/main — auto-resetting"
                 if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
@@ -415,6 +488,83 @@ install_tools() {
     fi
 
     log_success "Installed $count tools to $tools_dest"
+}
+
+# install_libs deploys the runtime lib/*.js modules that tools/ scripts load
+# via require('../lib/...'). install_tools only ships tools/, so without this
+# the installed copies (e.g. wiki-markdown-validate.js and other tools/ scripts
+# that require('../lib/...')) crash with "Cannot find module '../lib/...'".
+# Only top-level lib/*.js is shipped: the non-recursive "$libs_src"/*.js glob
+# matches files directly under lib/, so the install-only lib/install/ directory
+# is excluded structurally (it never matches a *.js glob entry).
+install_libs() {
+    log_info "Installing runtime libs from superpowers-plus..."
+
+    local libs_src="$SCRIPT_DIR/lib"
+    if [[ ! -d "$libs_src" ]]; then
+        log_verbose "No lib directory found, skipping"
+        return
+    fi
+
+    local libs_dest="${CODEX_DIR}/superpowers-plus/lib"
+    local state_dir
+    state_dir=$(get_install_state_dir)
+    local manifest="${state_dir}/libs.manifest"
+    create_dir "$libs_dest"
+
+    local count=0
+    declare -A current_libs=()
+    local lib
+    for lib in "$libs_src"/*.js; do
+        [[ -f "$lib" ]] || continue
+        local basename
+        basename=$(basename "$lib")
+        current_libs["$basename"]=1
+    done
+
+    if [[ -f "$manifest" ]]; then
+        local stale_lib
+        while IFS= read -r stale_lib; do
+            [[ -z "$stale_lib" ]] && continue
+            # Defense-in-depth: the manifest is self-generated from basename
+            # output (always plain filenames), but reject any entry with a path
+            # separator or leading dot so a tampered manifest cannot rm outside
+            # libs_dest. Matches prune_stale_managed_skills.
+            if [[ "$stale_lib" == */* || "$stale_lib" == .* ]]; then
+                log_warn "Skipping unsafe manifest entry: '$stale_lib'"
+                continue
+            fi
+            if [[ -z "${current_libs[$stale_lib]:-}" ]] && [[ -f "$libs_dest/$stale_lib" ]]; then
+                rm -f "$libs_dest/$stale_lib" || log_warn "Failed to remove stale lib: $stale_lib"
+                log_verbose "Removed stale lib: $stale_lib"
+            fi
+        done < "$manifest"
+    fi
+
+    for lib in "$libs_src"/*.js; do
+        [[ -f "$lib" ]] || continue
+        local basename
+        basename=$(basename "$lib")
+        local dest="${libs_dest}/${basename}"
+        if [[ -f "$dest" ]] && cmp -s "$lib" "$dest"; then
+            log_verbose "Lib already up to date: $basename"
+        else
+            # Fatal on failure (matches install_rules): a missing lib re-introduces
+            # the "Cannot find module" crash this function exists to prevent, so a
+            # partial install must abort loudly rather than be recorded as success.
+            cp "$lib" "$dest" || error_exit "Failed to install lib: $basename"
+            log_verbose "Installed lib: $basename"
+        fi
+        count=$((count + 1))
+    done
+
+    if [[ ${#current_libs[@]} -gt 0 ]]; then
+        printf '%s\n' "${!current_libs[@]}" | sort > "$manifest"
+    else
+        : > "$manifest"
+    fi
+
+    log_success "Installed $count libs to $libs_dest"
 }
 
 # _cli_bin_dir_in_profiles <dir>
@@ -761,8 +911,14 @@ export_augment_menu_skills() {
     local exported=0
     declare -A exported_names=()
 
-    local skill_dir skill_name skill_file sp_trigger dest_name dest
-    for skill_dir in "$SKILLS_DIR"/*/; do
+    # Discovery loop: handles both flat and domain-grouped sources.
+    # Recursion matches install_skills() logic: domain/skill/skill.md.
+    local skill_dirs=()
+    while IFS= read -r d; do
+        [[ -n "$d" ]] && skill_dirs+=("$d")
+    done < <(find "$SKILLS_DIR" -maxdepth 3 -type f \( -name "skill.md" -o -name "SKILL.md" \) -exec dirname {} \; | sort -u)
+
+    for skill_dir in "${skill_dirs[@]+"${skill_dirs[@]}"}"; do
         [[ -d "$skill_dir" ]] || continue
         skill_name=$(basename "$skill_dir")
 

@@ -23,7 +23,7 @@ composition:
 # Detecting AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-06-16
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
 >
 > **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
@@ -89,7 +89,7 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | Dimension | Max Points | Calculation |
 |-----------|------------|-------------|
 | Lexical | 40 | `min(40, pattern_count * 2)` |
-| Structural | 25 | `5 * structural_patterns_found` |
+| Structural | 25 | `5 * content_structure_patterns + sum(style_tell_weights)` — content patterns (Cat. 9, formulaic intro, etc.) score 5 pts each; style-level tells (random bolding, one-sentence paragraphs, etc.) use variable weights from `reference.md` |
 | Semantic | 20 | `5 * semantic_patterns_found` |
 | Stylometric | 15 | `5 * stylometric_flags` |
 
@@ -129,6 +129,7 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Absent Constraints | Absolute claims without limitations | +5 |
 | Balanced to a Fault | Every pro has matching con of equal weight | +5 |
 | Circular Reasoning | Rephrases thesis without new evidence | +5 |
+| Structural Contrast | "It's not about X. It's about Y." slogan forms (see Cat. 9 in reference.md) | +5 |
 
 ## Lexical Pattern Categories
 
@@ -137,10 +138,14 @@ For the complete pattern dictionary, see [reference.md](./reference.md).
 | Category | Examples | Action |
 |----------|----------|--------|
 | Generic Boosters | incredibly, extremely, very | Delete or replace with metrics |
-| Buzzwords | robust, seamless, leverage | Replace with plain language |
-| Filler Phrases | "It's important to note that" | Delete entirely |
+| Buzzwords | robust, seamless, leverage, elevate, harness, pivotal, impactful | Replace with plain language |
+| Filler Phrases | "It's important to note that", "In today's ever-evolving world" | Delete entirely |
 | Hedge Patterns | of course, arguably, seems to | Commit or remove |
 | Sycophancy | "Great question!", "Happy to help!" | Delete |
+| Transitional Filler | Furthermore, Moreover, Additionally, However, Indeed | Use sparingly or cut |
+| Vague Abstraction | the frame, the lens, the narrative, the space | Replace with the specific noun |
+| Structural Contrasts | "It's not about X. It's about Y." | Rewrite as direct claim |
+| Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Restructure |
 | Typographic Tells | em-dash (—), smart quotes | Replace with standard punctuation |
 
 ## Dictionary Integration

@@ -12,10 +12,10 @@ description: "Deterministic behavioral guardrail that scans executable content e
 summary: "Use when: about to execute instructions from a wiki page. Hard gate — scans for destructive ops."
 composition:
   consumes: [wiki-content, markdown-content]
-anti_triggers: ["scan code for secrets", "update wiki page", "edit wiki"]
   produces: [safety-verdict]
   capabilities: [detects-injection, blocks-destructive-ops]
   priority: 1
+anti_triggers: ["scan code for secrets", "update wiki page", "edit wiki"]
 coordination:
   group: security
   order: 2

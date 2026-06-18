@@ -107,7 +107,6 @@ CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
 AUGMENT_MENU_DIR="${HOME}/.agents/skills"
 
 # Options (set before sourcing modules so they can read these)
-# shellcheck disable=SC2034  # FORCE read by lib/install/deploy.sh consumers
 FORCE=false
 VERBOSE=false
 UPGRADE=false
@@ -593,6 +592,12 @@ main() {
     # Register the source repo path for doctor/source-aware tooling.
     register_source_repo
 
+    # Guard: refuse to overwrite a foreign superpowers ecosystem deployment.
+    # check_foreign_ecosystem is defined in lib/install/deploy.sh (sourced above).
+    # It reads ~/.codex/.superpowers-ecosystem and exits 1 if a different
+    # ecosystem already owns this machine, unless --force was passed.
+    check_foreign_ecosystem
+
     # Handle --upgrade mode (explicit upgrade of existing installation)
     if [[ "$UPGRADE" == "true" ]]; then
         # Reinstall personal skills, rules, templates after upgrade
@@ -608,12 +613,16 @@ main() {
         fi
         install_templates
         install_tools
+        # ships runtime lib/*.js that tools/ require via ../lib/
+        install_libs
         sync_managed_checkout
         validate_installation
         run_post_validation_checks
         migrate_consumed_approvals
         install_claude_commands_mirror
         install_claude_guardrails
+        # Record this ecosystem as the owner of this ~/.codex install.
+        write_ecosystem_marker
         print_summary
         return
     fi
@@ -640,6 +649,9 @@ main() {
 
     # NOT Augment-specific — runs in both modes (todo-preflight, todo-lock, etc.)
     install_tools
+
+    # NOT Augment-specific — ships runtime lib/*.js that tools/ require via ../lib/
+    install_libs
 
     # NOT Augment-specific — runs in both modes (sp-update symlink for shell PATH)
     install_cli_commands
@@ -670,6 +682,9 @@ main() {
     if [[ -d "${_mgd}/.git" ]]; then
         git -C "$_mgd" restore . 2>/dev/null || true
     fi
+
+    # Record this ecosystem as the owner of this ~/.codex install.
+    write_ecosystem_marker
 
     # Print summary
     print_summary
