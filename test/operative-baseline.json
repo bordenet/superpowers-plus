@@ -29,7 +29,7 @@
       "step_headings": 8,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 10
+      "code_fences": 1
     },
     "engineering/cognitive-complexity-refactoring/skill.md": {
       "step_headings": 0,
