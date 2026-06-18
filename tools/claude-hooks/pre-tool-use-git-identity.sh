@@ -86,7 +86,7 @@ for row in rows:
         if email_col < len(row):
             print(row[email_col].strip())
             sys.exit(0)
-    elif not is_github and ("work" in ctx or "callbox" in ctx or "azure" in ctx or "gitlab" in ctx):
+    elif not is_github and ("work" in ctx or "azure" in ctx or "gitlab" in ctx):
         headers = [c.strip().lower() for c in lines[header_idx].strip().strip("|").split("|")]
         email_col = next((i for i, h in enumerate(headers) if "email" in h), 1)
         if email_col < len(row):

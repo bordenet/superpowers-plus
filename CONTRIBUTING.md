@@ -73,5 +73,5 @@ This documents the override relationship and helps `sp-doctor` detect drift.
 All PRs must pass the pre-push gates:
 
 1. **Code review clearance** — run `bash tools/code-review-battery.sh` or equivalent, which writes `.code-review-cleared`
-2. **IP audit** — no CallBox-proprietary content in public commits (enforced by `tools/public-repo-ip-check.sh`)
+2. **IP audit** — no proprietary content in public commits (enforced by `tools/public-repo-ip-check.sh`)
 3. **Shell tests** — `bats test/` must pass
