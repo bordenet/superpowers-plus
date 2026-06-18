@@ -23,7 +23,7 @@ coordination:
 # Eliminating AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-03-13
+> **Last Updated:** 2026-06-16
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
 >
 > **Wrong skill?** Analyzing/scoring text (read-only) → `detecting-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
@@ -70,8 +70,31 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 | "Incredibly powerful" | (specific metric or capability) |
 | "Seamless integration" | "Connects to X via Y" |
 | "It's important to understand" | (delete — just explain) |
+| "The frame" / "the lens" / "the narrative" | Name the specific concept |
+| "Pivotal" / "crucial" / "essential" | State why, or delete |
+| "Impactful" / "meaningful" / "compelling" | Quantify or drop |
+| "Harness" / "elevate" / "enhance" | Use the plain verb ("use", "improve") |
+| "It's not about X. It's about Y." | Make the direct claim instead |
+| "In today's ever-evolving world" | (delete — ground in the specific situation) |
+| "In conclusion" / "In summary" | (delete — if it's not adding, cut the whole paragraph) |
+| "Game-changer" / "revolutionary" / "unprecedented" | Describe the specific difference |
+| "Data-driven" / "customer-centric" | Show the data or customer evidence |
+| "End-to-end" / "holistic" / "seamless experience" | Name the actual scope or flow |
 
 See `reference.md` for the full pattern catalog.
+
+## Structural Contrast Rewrites
+
+These slogan-like forms signal AI generation even with clean vocabulary.
+
+| Slop Form | Rewrite Approach |
+|-----------|-----------------|
+| "It's not about X. It's about Y." | Drop the contrast — state Y directly |
+| "No X. No Y. Just Z." | State Z with evidence |
+| "X is not just A; it's B." | Lead with B and prove it |
+| "The more you X, the more you Y." | Replace with a specific example |
+| One-sentence paragraphs for emphasis | Fold into adjacent prose or support with evidence |
+| Random bolded mid-sentence phrases | Bold only genuine call-outs; remove decorative bolding |
 
 ## Self-Check
 
