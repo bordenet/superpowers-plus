@@ -1,6 +1,6 @@
 ---
 name: code-review-battery
-description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across focused lenses. Invoke as: /sp-cr-battery [min-score] [--security|--no-security] [--mode=bug-fix|feature] (optional 1.0–10.0 quality threshold, default 7.0; default 9.2 in Bug Fix Review Mode). Bug Fix Mode auto-activates on hotfix/* and fix/TICKET-* branches."
+description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across focused lenses. Invoke as: /sp-cr-battery [min-score] [--security|--no-security] [--mode=bug-fix|feature] (optional 1.0–10.0 quality threshold, default 7.0; default 9.2 in Bug Fix Review Mode). Bug Fix Mode auto-activates on hotfix/* and fix/[A-Z]+-[0-9]+ branches."
 summary: Dispatches up to 6 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst, AttackerPersona) in parallel with source context for ripple analysis. AttackerPersona is signal-driven (security-sensitive diffs) and toggleable via --security/--no-security. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
   - /sp-cr-battery
@@ -84,7 +84,7 @@ git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "
 
 ### Phase 0.5: BugPath Mode Detection
 
-> **Load gate:** This phase requires `reference.md` to be loaded alongside this skill. If absent AND the branch matches a BugPath pattern (`hotfix/*` or `fix/[A-Z]+-[0-9]+*`, per the detection script in `reference.md`): **hard halt** — emit "Cannot enter BugPath Mode: reference.md is absent. Load it before proceeding." Return control to the user immediately. Do NOT continue to Phase 1 or any subsequent phase. If absent AND the branch does NOT match a BugPath pattern: treat BugPath Mode as INACTIVE and note in triage line.
+> **Load gate:** This phase requires `reference.md` to be loaded alongside this skill. If absent AND the branch matches a BugPath pattern (`hotfix/*` or `fix/[A-Z]+-[0-9]+`, per the detection script in `reference.md`): **hard halt** — emit only: "Cannot enter BugPath Mode: reference.md is absent. Load it before proceeding." Output nothing further — no phase summaries, no partial results, no clarifying questions. Return control to the user. If absent AND the branch does NOT match a BugPath pattern: treat BugPath Mode as INACTIVE and note in triage line.
 
 Run immediately after the sentinel check. Detect whether this is a targeted bug fix, then set the mode before triage.
 
@@ -93,7 +93,7 @@ Run immediately after the sentinel check. Detect whether this is a targeted bug 
 | Signal | BugPath Mode trigger |
 |--------|---------------------|
 | Branch prefix `hotfix/*` | Active |
-| Branch prefix `fix/<TICKET>-*` | Active |
+| Branch matching `fix/[A-Z]+-[0-9]+` (e.g., `fix/PROJ-1234` or `fix/PROJ-1234-description`) | Active |
 | Explicit flag `--mode=bug-fix` | Active |
 | Explicit flag `--mode=feature` | Inactive (overrides branch detection) |
 
@@ -221,7 +221,7 @@ Run envelope schema: `reference.md` § Run Envelope Schema.
 
 Every finding AND clean-dimension verdict must carry an `evidence` block. `verifiable: false` claims cap at 7.0. Expectation types and verifier replay details: `reference.md` § Verifier Details (if `reference.md` absent: treat all claims as `verifiable: false`, cap at 7.0). `tools/run-battery.sh` refuses to write sentinel if per-HEAD JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
-If final verdict is `PASS` or `PASS_WITH_NITS` (all nits resolved):
+If final verdict is `PASS` or `PASS_WITH_NITS` (score >= threshold; nits may remain for PASS_WITH_NITS):
 
 ```bash
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
