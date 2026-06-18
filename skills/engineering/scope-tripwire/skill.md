@@ -40,14 +40,15 @@ A pre-push gate that asks one question: **does this push's cumulative diff blow 
 
 ```bash
 # Option 1: sole pre-push hook
-ln -sf $REPO_ROOT/tools/scope-tripwire-check.sh .git/hooks/pre-push
+ln -sf "$(git rev-parse --show-toplevel)/tools/scope-tripwire-check.sh" .git/hooks/pre-push
 chmod +x .git/hooks/pre-push
 
 # Option 2: chained alongside the LOC gate (RECOMMENDED if you already run it)
 cat > .git/hooks/pre-push <<'EOF'
 #!/usr/bin/env bash
-$REPO_ROOT/tools/pre-push-loc-gate.sh "$@" || exit $?
-$REPO_ROOT/tools/scope-tripwire-check.sh "$@" || exit $?
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+"$REPO_ROOT/tools/pre-push-loc-gate.sh" "$@" || exit $?
+"$REPO_ROOT/tools/scope-tripwire-check.sh" "$@" || exit $?
 EOF
 chmod +x .git/hooks/pre-push
 ```
@@ -69,10 +70,10 @@ For every push:
 
 1. `SCOPE_TRIPWIRE_MODE=warn|block` env var (highest)
 2. `.scope-tripwire-mode` file at repo root (one line: `warn` or `block`; committed -- survives fork/mirror)
-3. (removed in plus: no automatic mode detection based on remote URL)
+3. Remote URL auto-detect: if `origin` URL matches `superpowers-plus` as a path segment (not a prefix), defaults to `block` (dogfood repo). Emits `scope-tripwire: auto-detected superpowers-plus dogfood repo; mode=block.` to stderr when triggered.
 4. Default -> `warn`
 
-**Default behavior:** superpowers-plus defaults to `warn` mode (advisory-only, not blocking). This reflects the design decision to inform engineers of scope drift rather than forcibly block pushes. Enable `block` mode per-repo by committing a `.scope-tripwire-mode` file or setting `SCOPE_TRIPWIRE_MODE=block` if your workflow requires hard enforcement.
+**Default behavior:** advisory only (warn mode) — the gate prints a structured stderr line and lets the push proceed. The engineer is the gate; the script just makes the ratio visible at push time. Enable `block` mode per-repo by committing a `.scope-tripwire-mode` file or setting `SCOPE_TRIPWIRE_MODE=block` if your workflow requires hard enforcement.
 
 ## Configuration
 
@@ -80,14 +81,16 @@ For every push:
 |---|---|---|
 | `LOC_PER_POINT` | 200 | Starter calibration. Tune per team after observing N merged PRs. |
 | `SCOPE_TRIPWIRE_RATIO` | 2.0 | Multiplier on (LOC_PER_POINT * estimate). |
-| `SCOPE_TRIPWIRE_MODE` | auto | `warn` (advisory) or `block` (exit 1 on overage). |
+| `SCOPE_TRIPWIRE_MODE` | warn ¹ | `warn` (advisory) or `block` (exit 1 on overage). |
 | `SCOPE_TRIPWIRE_BYPASS` | 0 | `=1`: acknowledged bypass in block mode. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_SKIP` | 0 | `=1`: skip the gate entirely. No API call, no diff scan. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_REF` | auto | Override branch-name parsing (e.g., `PROJ-1234`). |
 | `SCOPE_TRIPWIRE_BASE` | auto | Override base branch resolution. |
 | `SCOPE_TRIPWIRE_CACHE_TTL` | 3600 | Cache TTL in seconds. `0` forces re-fetch. |
-| `LINEAR_API_URL` | api.linear.app/graphql | Override API endpoint. |
+| `LINEAR_API_URL` | https://api.linear.app/graphql | Override API endpoint. |
 | `LINEAR_API_KEY` | from environment | Linear API token. Missing -> fail-open advisory. |
+
+¹ Effective default is `block` when running in the superpowers-plus dogfood repo (auto-detected via remote URL; see Mode dispatch (precedence) — item 3).
 
 ## Exit codes (stable contract)
 

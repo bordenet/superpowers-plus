@@ -74,7 +74,7 @@ teardown() {
     run tools/run-battery.sh --verdict PASS --min-score 7.0
     [ "$status" -ne 0 ]
     [ ! -f .code-review-cleared ]
-    [[ "$output" == *"cr-battery preservation file missing"* ]]
+    [[ "$output" == *"Evidence envelope not found"* ]]
 }
 
 @test "sentinel writes when .cr-battery-runs/<sha>.json exists and is non-empty" {

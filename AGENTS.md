@@ -46,6 +46,7 @@ Before ANY commit:
 
 ### Language Modules (🔴 Required)
 - 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `$HOME/.golden-agents/templates/languages/shell.md`
+- 🔴 **BEFORE writing ANY `.js`, `.ts`, `.jsx`, `.tsx` file**: Read `$HOME/.golden-agents/templates/languages/javascript.md`
 
 ### Workflow Modules (🔴 Required)
 - 🔴 **BEFORE any commit, PR, push, or merge**: Read `$HOME/.golden-agents/templates/workflows/security.md`
@@ -126,10 +127,8 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 ## Claude Code guardrails
 
-Non-regression scaffolding for the Claude Code self-debug action plan. PR-0 ships
+Non-regression scaffolding for the Claude Code self-debug action plan; for self-debug guidance use the `systematic-debugging` skill (`/sp-systematic-debugging`). PR-0 ships
 **zero active behavior** — it is pure scaffolding and baseline capture.
-
-Source of truth: internal wiki — search "claude-code-self-debug-12-point-action-plan"
 
 **Environment variables** (all default OFF; add to your local `~/.codex/.env`):
 

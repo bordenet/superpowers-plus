@@ -248,7 +248,7 @@ coordination:
   order: 1
   requires: []
   enables:
-    - linear-comment-debunker
+    - systematic-debugging
   escalates_to: []
   internal: false
 ---
@@ -262,7 +262,7 @@ eq(coord.coordination.group, 'overlay', 'coordination: group parsed as string');
 eq(coord.coordination.order, 1, 'coordination: order parsed as integer');
 assert(Array.isArray(coord.coordination.requires), 'coordination: requires is array');
 eq(coord.coordination.requires.length, 0, 'coordination: empty inline array');
-arrEq(coord.coordination.enables, ['linear-comment-debunker'], 'coordination: multiline list parsed');
+arrEq(coord.coordination.enables, ['systematic-debugging'], 'coordination: multiline list parsed');
 eq(coord.coordination.internal, false, 'coordination: boolean false parsed');
 
 // --- Coordination + composition coexistence ---

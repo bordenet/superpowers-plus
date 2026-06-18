@@ -29,8 +29,8 @@
     "code-review-battery": {
       "expected_substrings": [
         "Analyze the diff and select reviewers:",
-        "Sort Critical→Important→Minor by file path; prefix each with",
-        "**Triple-filter** each Important/Critical finding on CX impact, complexity, and testability, then classify:"
+        "Sort findings: **Critical → Important → Minor**, then by file path",
+        "**Triple-filter** each Important/Critical on CX impact, complexity, testability:"
       ],
       "triggers": [
         "code review battery",

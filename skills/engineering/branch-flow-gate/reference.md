@@ -104,7 +104,7 @@ names, ports, request-ids, urns, PIDs, tmp paths).
 ### F7. Mirror assumption between independent repos
 
 This repo is SELF-CONTAINED. Do not bulk-port from
-`bordenet/superpowers-plus` or `mbordenet/superpowers-callbox`.
+`bordenet/superpowers-plus` or any configured overlay repo.
 Cherry-pick the SPECIFIC commits the user named. Each cherry-pick
 enters this repo's canonical flow (whatever YOUR team's flow is).
 

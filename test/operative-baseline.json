@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-14T18:06:08.177Z",
+  "generated_at": "2026-06-18T05:17:29.603Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -29,7 +29,7 @@
       "step_headings": 8,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 1
+      "code_fences": 4
     },
     "engineering/cognitive-complexity-refactoring/skill.md": {
       "step_headings": 0,
@@ -289,12 +289,6 @@
       "hard_gate_table": 0,
       "code_fences": 4
     },
-    "issue-tracking/linear-comment-gate/skill.md": {
-      "step_headings": 4,
-      "stop_markers": 0,
-      "hard_gate_table": 1,
-      "code_fences": 1
-    },
     "observability/completeness-check/skill.md": {
       "step_headings": 3,
       "stop_markers": 1,
@@ -366,6 +360,12 @@
       "stop_markers": 0,
       "hard_gate_table": 1,
       "code_fences": 1
+    },
+    "productivity/context-ferry/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 4
     },
     "productivity/domain-design/skill.md": {
       "step_headings": 0,
