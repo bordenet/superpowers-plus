@@ -22,6 +22,100 @@ read but doesn't need to live in the main procedure body.
 | Convergence never reached | Escalate to human after 3 passes |
 | Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
 
+## Executive Summary Template
+
+Required first element of every battery review output:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  MODE: Bug Fix Review [9.2 threshold]  |  BRANCH: fix/proj-1234  │
+│  VERDICT: REJECT [6.5/10]  |  2 Critical, 1 Important, 3 Minor   │
+│  ACTION: Fix 2 Critical findings. DO NOT merge.                   │
+│  BugPath Coverage: INSUFFICIENT (2/4 dimensions) → cap 6.5       │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+Standard mode (no BugPath row):
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  MODE: Standard Review [7.0 threshold]  |  BRANCH: feat/new-api   │
+│  VERDICT: PASS [8.5/10]  |  0 Critical, 1 Important, 2 Minor      │
+│  ACTION: Address Important finding before merge (non-blocking).    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`.
+
+## Phase 6: Run Envelope Schema
+
+Write to `.cr-battery-runs/<HEAD-sha>.json` before sentinel write:
+
+```json
+{
+  "run_timestamp": "<ISO 8601 UTC>",
+  "head_sha": "<git rev-parse HEAD>",
+  "verdict": "PASS | PASS_WITH_NITS | PASS_WITH_FIXES | REJECT",
+  "score": 9.30,
+  "rounds": 1,
+  "bugpath_verdict": {
+    "path_coverage": "FULL | PARTIAL | INSUFFICIENT | SCOPE-SKIP | N/A",
+    "dimensions": {
+      "root_cause": "VERIFIED | UNVERIFIABLE | MISSING",
+      "fix_coverage": "VERIFIED | PARTIAL | MISSING",
+      "sibling_scan": "VERIFIED | FOUND-N | MISSING",
+      "regression_test": "VERIFIED | MISSING"
+    },
+    "score_cap": null
+  },
+  "findings": [
+    {
+      "reviewer": "Defect Finder", "dimension": "Correctness", "severity": "important",
+      "file": "src/foo.ts", "line": 42,
+      "issue": "...", "regressions_risked": "...", "durable_check": "...",
+      "claim": "no producer for Metrics.Success",
+      "evidence": {
+        "command": "grep -rcE 'Metrics\\.Success' src/ | awk -F: '$2>0' | head -1",
+        "expectation": { "type": "absent" }, "verifiable": true
+      }
+    }
+  ],
+  "clean_dimensions": [
+    {
+      "reviewer": "Standards Enforcer", "dimension": "Tests",
+      "claim": "no new test files outside tests/",
+      "evidence": {
+        "command": "git diff --name-only --diff-filter=A main..HEAD -- '*.test.ts' ':!tests/'",
+        "expectation": { "type": "absent" }, "verifiable": true
+      }
+    }
+  ]
+}
+```
+
+Expectation types: `count` (`">0"`, `"==0"`), `exit_code` (integer), `match` (regex, max 256 chars), `absent` (zero non-blank lines), `exact` (trimmed string equality). `verifiable: false` → cap at 7.0 (judgment claims that can't be re-executed deterministically).
+
+## BugPath Detection Snippet
+
+```bash
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if echo "$BRANCH" | grep -qE '^(hotfix/|fix/[A-Z]+-[0-9]+)'; then
+  echo "BugPath Mode: ACTIVE (branch: $BRANCH)"
+else
+  echo "BugPath Mode: INACTIVE"
+fi
+```
+
+## Design Critic Re-Activation (Bug Fix Mode)
+
+In Bug Fix Mode, Design Critic is suppressed by default. Re-activate only when:
+
+```bash
+git diff HEAD~1 | grep -qE '^\+.*(export (default )?(class|interface|type|function|const)|public [a-zA-Z]+\()'
+```
+
+If matched: activate + prefix triage with `⚠️ Design Critic re-activated on bug fix (API-change signal detected).`
+
 ## See Also
 
 - `skill.md` -- main procedure (Phases 0-6)
