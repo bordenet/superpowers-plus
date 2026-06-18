@@ -106,9 +106,40 @@ If you skip this step and present work as "ready" to the human, you have violate
 npm test / cargo test / pytest / go test ./...
 ```
 
-**If tests fail:** Stop. Show failures. Do not proceed to Step 2.
+**If tests fail:** Stop. Show failures. Do not proceed to Step 1.5.
 
-**If tests pass:** Continue to Step 2.
+**If tests pass:** Continue to Step 1.5.
+
+### Step 1.5: Verify Branch Base — HARD STOP
+
+**Before presenting options, verify the branch is not behind `origin/main`.**
+
+> **Assumption:** This step assumes `origin/main` is the integration branch. If the branch targets a different base (feature branch, release branch), set `BASE_REF` to the correct remote ref (e.g., `origin/dev`, `origin/release-X`). Use the same `BASE_REF` in the recovery rebase below. If the repo uses a fork model with separate `origin`/`upstream` remotes, substitute accordingly.
+
+```bash
+BASE_REF="origin/main"      # ← substitute if branch targets a different remote
+FORCE_PUSH_REQUIRED=false   # default; overridden in recovery steps if a rebase occurs
+git fetch origin || { echo "FETCH FAILED — cannot verify branch base. Do not proceed."; false; }
+git log --oneline "HEAD..${BASE_REF}"
+```
+
+If `git log` errors rather than producing empty output, the remote ref does not exist — run `git ls-remote origin` to inspect the remote's branch list before proceeding.
+
+| Result | Action |
+|--------|--------|
+| Empty output | Branch is current. Proceed to Step 2. |
+| Any commits listed | **HARD STOP** — *(do not open or update any PR until recovery completes)* — see recovery steps below. |
+
+**Recovery when branch is behind `origin/main`** (track attempt number using `ATTEMPT_FILE="$(git rev-parse --git-common-dir)/rebase-attempt-count"`; read with `cat "$ATTEMPT_FILE" 2>/dev/null || echo 0`; if absent this is attempt 1; write `echo 1 > "$ATTEMPT_FILE"` or `echo 2 > "$ATTEMPT_FILE"`; using `--git-common-dir` works in worktrees):
+
+1. Check for rebase in progress: `git rebase --show-current-patch 2>/dev/null && echo REBASE_IN_PROGRESS || echo CLEAN`. If `REBASE_IN_PROGRESS`, ask human to confirm abort before running `git rebase --abort`.
+2. Capture stash state: `git status --short`. If uncommitted changes exist, run `git stash push -m "pre-rebase WIP" && STASHED=true || { echo "STASH FAILED — manual intervention required."; STASHED=false; return 1; }`. If clean, note `STASHED=false` — do not run `git stash pop` later.
+3. Detect force-push requirement: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null && echo FORCE_PUSH_REQUIRED=true || echo FORCE_PUSH_REQUIRED=false`. Then rebase: `git rebase "${BASE_REF:-origin/main}"`. If `FORCE_PUSH_REQUIRED=true`, push will need `--force-with-lease`; confirm with human at Step 4 Option 2.
+4. If rebase produced conflicts: resolve them, `git add <files>`, `git rebase --continue`, then follow `unified-commit-gate § Post-Conflict Trap` (typecheck → lint → test). If no conflicts: proceed to step 5.
+5. Restore stash (only if `STASHED=true` and rebase complete): `git stash pop`. If conflicts, resolve then re-run typecheck → lint → test.
+6. Re-run Step 0 (rebase rewrites HEAD, sentinel stale), re-run Step 1 (tests), then re-run Step 1.5. If clean, run `rm -f "$ATTEMPT_FILE"`. If this was attempt 2 and Step 1.5 still shows commits: **escalate to human** — do not run a third rebase.
+
+**Why this step exists:** A prior production incident occurred when a branch was cut before a revert landed on `main`. No branch-base check was run before pushing. Conflicts appeared only in the remote MR diff, requiring multi-session destructive rebasing and a lost typecheck that left a broken build in CI.
 
 ### Step 2: Determine Base Branch
 
@@ -172,5 +203,5 @@ For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — kee
 - **code-review-battery**: The review engine Step 0 dispatches
 - **progressive-code-review-gate**: Verdict mapping and dispatch procedure
 - **verification-before-completion**: Fires before this skill (completion-gate order 2)
-- **unified-commit-gate** (push mode): Fires when Option 2 triggers a push
+- **unified-commit-gate** (push mode): Fires when Option 2 triggers a push; § Post-Conflict Trap mandates typecheck after rebase/stash-pop conflicts
 - **subagent-driven-development**: Calls this skill after all tasks complete

@@ -1,7 +1,7 @@
 # Eliminating AI Slop - Reference
 
 > **Parent skill:** [skill.md](./skill.md)
-> **Last Updated:** 2026-03-12
+> **Last Updated:** 2026-06-16
 
 This file contains detailed pattern reference and domain-specific rewriting strategies.
 
@@ -16,11 +16,12 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Category | Examples | Action |
 |----------|----------|--------|
 | Generic boosters | incredibly, extremely, highly | Quantify or delete |
-| Buzzwords | leverage, synergy, robust | Use plain language |
-| Filler phrases | it's important to note | Delete |
+| Buzzwords | leverage, synergy, robust, elevate, harness, pivotal, impactful | Use plain language |
+| Filler phrases | it's important to note, in today's ever-evolving world, in conclusion | Delete |
 | Hedge patterns | might, could, potentially | Commit to position |
 | Sycophantic phrases | great question | Delete |
-| Transitional filler | let's dive into | Delete |
+| Transitional filler | let's dive into, however, indeed, furthermore | Delete or use plain connector |
+| Vague abstraction | the frame, the lens, the narrative, the space | Name the specific noun |
 
 ### Structural Patterns (vary or restructure)
 
@@ -31,6 +32,11 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Over-signposting | "First...Second...Third..." | Mix transitions |
 | Staccato paragraphs | All 2-sentence paragraphs | Vary length |
 | Symmetric coverage | Every point equal weight | Prioritize ruthlessly |
+| Contrast slogans | "It's not about X. It's about Y." | State the direct claim |
+| Staccato fragments | "Fast. Reliable. Secure." | Merge into a sentence with evidence |
+| Rhetorical bridge | "What does this mean for you?" | Answer it or cut the question |
+| Random bolding | Mid-sentence **bolding** for rhythm | Bold only genuine call-outs |
+| Decorative line breaks | Single sentences as standalone paragraphs | Fold into surrounding prose |
 
 ### Semantic Patterns (add substance or cut)
 
@@ -71,6 +77,13 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | "cutting-edge" | Date the technology: "uses 2024 transformer architecture" |
 | "world-class" | Provide evidence: "used by 3 Fortune 500 companies" |
 | "seamless integration" | List what integrates: "connects to Salesforce, HubSpot, and Zendesk via API" |
+| "game-changer" | Describe the specific change: "cuts deployment time from 2 hours to 8 minutes" |
+| "future-proof" / "future-ready" | Name what it supports: "ships with v4 API and backward-compat v3 adapter" |
+| "data-driven" | Show the data or the decision loop that uses it |
+| "customer-centric" | Name the customer behavior the design is based on |
+| "end-to-end" | List the actual start and end points |
+| "the frame" / "the lens" / "the narrative" | Replace with the specific noun: "our pricing model", "the error rate" |
+| "impactful" / "meaningful" / "compelling" | Quantify or replace with what actually happened |
 
 ### Academic/Formal Writing
 

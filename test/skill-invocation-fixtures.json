@@ -29,8 +29,8 @@
     "code-review-battery": {
       "expected_substrings": [
         "Analyze the diff and select reviewers:",
-        "1. Sort findings: **Critical → Important → Minor**, then by file path",
-        "6. **Triple-filter** each Important/Critical finding on CX impact, complexity, and testability, then classify:"
+        "Sort Critical→Important→Minor by file path; prefix each with",
+        "**Triple-filter** each Important/Critical finding on CX impact, complexity, and testability, then classify:"
       ],
       "triggers": [
         "code review battery",
@@ -110,7 +110,7 @@
     },
     "progressive-harsh-review": {
       "expected_substrings": [
-        "Focus: typos, formatting, naming, style, obvious bugs, missing error handling.",
+        "Focus: typos, formatting, naming, style, completeness, internal consistency.",
         "Tone: experienced, skeptical, pattern-aware.",
         "For each persona, answer ALL scoring dimensions:"
       ],

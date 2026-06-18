@@ -16,6 +16,7 @@ composition:
   produces: [safety-verdict]
   capabilities: [detects-injection, blocks-destructive-ops]
   priority: 1
+anti_triggers: ["scan code for secrets", "update wiki page", "edit wiki"]
 coordination:
   group: security
   order: 2

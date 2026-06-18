@@ -13,6 +13,10 @@ pass() { echo "  ok: $1"; ((PASS++)) || true; }
 skip() { echo "  skip: $1"; ((SKIP++)) || true; }
 
 # Check if match-skills is available
+# Point to local skills for hermetic testing
+export PERSONAL_SKILLS_DIR="$SCRIPT_DIR/../../skills"
+export SUPERPOWERS_SKILLS_DIR="$SCRIPT_DIR/../../skills"
+
 if ! node "$ADAPTER" match-skills "test" >/dev/null 2>&1; then
   echo "SKIP: match-skills not available (superpowers not installed?)"
   exit 0
