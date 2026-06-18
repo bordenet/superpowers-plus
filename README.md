@@ -29,6 +29,7 @@ Each skill exists because it caught a real problem.
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
+| [**context-ferry**](skills/productivity/context-ferry/skill.md) | Generates a self-contained resume prompt before context compaction fires. Updates in-progress plan docs, captures pending questions and queued tasks verbatim. Slash command: `/context-ferry`. Auto-fires via PreCompact hook in Claude Code. |
 | [**detecting-ai-slop**](skills/writing/detecting-ai-slop/skill.md) | Scores text 0-100 for machine-generated patterns across lexical, structural, semantic, and stylometric dimensions. |
 | [**wiki-orchestrator**](skills/wiki/wiki-orchestrator/skill.md) | Pipeline for bulk documentation: de-dup, content, coherence, links, secrets, slop detection, fact-check, publish. |
 | [**evolution-loop**](skills/observability/evolution-loop/skill.md) | Self-improvement cycle: scans failures for recurring patterns, generates skill updates, tracks metrics over time. |
@@ -61,7 +62,7 @@ Then tell your AI assistant what you're doing:
 
 ## What's Included
 
-**102 skills** across 9 domains:
+**103 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|

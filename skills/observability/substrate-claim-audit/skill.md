@@ -245,12 +245,6 @@ If the audit passes this fixture, the skill's trigger or audit logic is broken -
 
 ## Self-Test
 
-When invoked with `/sp-substrate-audit`, the skill should:
-
-1. Identify the most recent proposal-shaped output in the conversation (or take input as args)
-2. Enumerate every named symbol AND every numeric threshold
-3. For each: check whether the conversation transcript contains a corresponding `Grep` / `Read` / `Bash grep` tool call OR an explicit fictional-label
-4. Output a per-claim audit table with PASS / LABEL-REQUIRED / GREP-MISSING verdicts
-5. If any GREP-MISSING: block the original output; require revision before send
+When invoked with `/sp-substrate-audit`: identify the most recent proposal, enumerate all named symbols + numeric thresholds, check each for a corresponding `Grep`/`Read`/`Bash grep` tool call or explicit fictional-label, output a PASS/LABEL-REQUIRED/GREP-MISSING verdict table, and block on any GREP-MISSING.
 
 Run the regression fixture above as part of the self-test to confirm the audit catches obvious confabulation.
