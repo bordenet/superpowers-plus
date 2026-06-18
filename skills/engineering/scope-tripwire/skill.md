@@ -80,7 +80,7 @@ For every push:
 |---|---|---|
 | `LOC_PER_POINT` | 200 | Starter calibration. Tune per team after observing N merged PRs. |
 | `SCOPE_TRIPWIRE_RATIO` | 2.0 | Multiplier on (LOC_PER_POINT * estimate). |
-| `SCOPE_TRIPWIRE_MODE` | warn | `warn` (advisory) or `block` (exit 1 on overage). |
+| `SCOPE_TRIPWIRE_MODE` | warn ¹ | `warn` (advisory) or `block` (exit 1 on overage). |
 | `SCOPE_TRIPWIRE_BYPASS` | 0 | `=1`: acknowledged bypass in block mode. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_SKIP` | 0 | `=1`: skip the gate entirely. No API call, no diff scan. Logs to evasion.log. |
 | `SCOPE_TRIPWIRE_REF` | auto | Override branch-name parsing (e.g., `PROJ-1234`). |
@@ -88,6 +88,8 @@ For every push:
 | `SCOPE_TRIPWIRE_CACHE_TTL` | 3600 | Cache TTL in seconds. `0` forces re-fetch. |
 | `LINEAR_API_URL` | https://api.linear.app/graphql | Override API endpoint. |
 | `LINEAR_API_KEY` | from environment | Linear API token. Missing -> fail-open advisory. |
+
+¹ Effective default is `block` when running in the superpowers-plus dogfood repo (auto-detected via remote URL; see Mode dispatch §3).
 
 ## Exit codes (stable contract)
 
