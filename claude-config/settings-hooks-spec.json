@@ -39,6 +39,10 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/pre-compact-reinject.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/pre-compact-context-ferry.sh"
           }
         ]
       }
