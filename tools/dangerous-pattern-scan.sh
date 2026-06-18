@@ -66,16 +66,36 @@ check_unguarded_rm_rf() {
   local file="$1"
   local line_num=0
   local in_heredoc=""
+  local heredoc_indented=0  # 1 = <<- (tab-stripping); 0 = << (column-0 required)
+  local trimmed  # declared at function scope; used inside the heredoc-tracking block
   while IFS= read -r line; do
     line_num=$((line_num + 1))
 
-    # Track heredoc boundaries
+    # Track heredoc boundaries.
+    # Closing detection: POSIX 2.7.4 says <<- strips ONLY leading tabs from the
+    # closing delimiter; << requires the delimiter at column 0 (no stripping).
+    # Strip accordingly: tabs-only for <<-, nothing for <<.
     if [[ -n "$in_heredoc" ]]; then
-      [[ "$line" =~ ^${in_heredoc}[[:space:]]*$ ]] && in_heredoc=""
+      if [[ "$heredoc_indented" -eq 1 ]]; then
+        # <<-: strip leading tabs only.  ${line%%[^$'\t']*} yields the leading
+        # tab sequence; removing it leaves the delimiter candidate.
+        trimmed="${line#"${line%%[^$'\t']*}"}"
+      else
+        # <<: delimiter must start at column 0 -- no stripping.
+        trimmed="$line"
+      fi
+      # Use [[:blank:]]* (tab+space) rather than [[:space:]]* to avoid matching
+      # CR or other vertical whitespace that a shell would never accept as a
+      # terminator, preventing false-positive heredoc closes.
+      [[ "$trimmed" =~ ^${in_heredoc}[[:blank:]]*$ ]] && { in_heredoc=""; heredoc_indented=0; }
       continue
     fi
-    if echo "$line" | grep -qE '<<[-]?\s*'\''?([A-Z_]+)'\''?'; then
-      in_heredoc=$(echo "$line" | sed -E "s/.*<<-?\s*'?([A-Z_]+)'?.*/\1/")
+    # Opening detection: one regex captures <<- (group 1='-') and << (group 1='')
+    # plus optional quote wrapping and the delimiter word (group 4).
+    # Using [[ =~ ]] with BASH_REMATCH avoids forking echo|grep and echo|sed.
+    if [[ "$line" =~ "<<"(-?)([[:space:]]*)([\"']?)([A-Za-z_][A-Za-z0-9_]*)([\"']?) ]]; then
+      in_heredoc="${BASH_REMATCH[4]}"
+      [[ "${BASH_REMATCH[1]}" == "-" ]] && heredoc_indented=1 || heredoc_indented=0
       continue
     fi
 
@@ -109,16 +129,24 @@ check_dangerous_commands() {
   local file="$1"
   local line_num=0
   local in_heredoc=""
+  local heredoc_indented=0  # 1 = <<- (tab-stripping); 0 = << (column-0 required)
+  local trimmed  # declared at function scope; used inside the heredoc-tracking block
   while IFS= read -r line; do
     line_num=$((line_num + 1))
 
-    # Track heredoc boundaries
+    # Track heredoc boundaries (same logic as check_unguarded_rm_rf above).
     if [[ -n "$in_heredoc" ]]; then
-      [[ "$line" =~ ^${in_heredoc}[[:space:]]*$ ]] && in_heredoc=""
+      if [[ "$heredoc_indented" -eq 1 ]]; then
+        trimmed="${line#"${line%%[^$'\t']*}"}"
+      else
+        trimmed="$line"
+      fi
+      [[ "$trimmed" =~ ^${in_heredoc}[[:blank:]]*$ ]] && { in_heredoc=""; heredoc_indented=0; }
       continue
     fi
-    if echo "$line" | grep -qE '<<[-]?\s*'\''?([A-Z_]+)'\''?'; then
-      in_heredoc=$(echo "$line" | sed -E "s/.*<<-?\s*'?([A-Z_]+)'?.*/\1/")
+    if [[ "$line" =~ "<<"(-?)([[:space:]]*)([\"']?)([A-Za-z_][A-Za-z0-9_]*)([\"']?) ]]; then
+      in_heredoc="${BASH_REMATCH[4]}"
+      [[ "${BASH_REMATCH[1]}" == "-" ]] && heredoc_indented=1 || heredoc_indented=0
       continue
     fi
 

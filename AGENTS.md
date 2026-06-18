@@ -6,7 +6,6 @@
 > **Type**: cli-tools
 
 Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/templates/`
-
 <!-- GOLDEN:self-manage:start -->
 ## ⚠️ Before ANY Task
 1. Load `.ai-guidance/invariants.md` — contains critical rules
@@ -14,8 +13,6 @@ Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/
    - `AGENTS.md` >150 lines → refactor into `.ai-guidance/`
    - Any `.ai-guidance/*.md` >250 lines → split into sub-directory
 <!-- GOLDEN:self-manage:end -->
-
-
 <!-- GOLDEN:framework:start -->
 
 ---
@@ -49,7 +46,6 @@ Before ANY commit:
 
 ### Language Modules (🔴 Required)
 - 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `$HOME/.golden-agents/templates/languages/shell.md`
-- 🔴 **BEFORE writing ANY `.js`, `.ts`, `.jsx`, `.tsx` file**: Read `$HOME/.golden-agents/templates/languages/javascript.md`
 
 ### Workflow Modules (🔴 Required)
 - 🔴 **BEFORE any commit, PR, push, or merge**: Read `$HOME/.golden-agents/templates/workflows/security.md`
@@ -63,10 +59,16 @@ Before ANY commit:
 
 ### Optional: Superpowers integration
 
-If [superpowers](https://github.com/obra/superpowers) is installed, run at session start:
+Two parallel, mutually exclusive skill ecosystems exist. At the **START of every conversation**, detect which THIS machine uses and bootstrap accordingly:
 
+- **superpowers-plus**: Run the js bootstrap:
+  ```bash
+  node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+  ```
+
+This loads available skills into the environment. To load a specific skill manually (plus only):
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js bootstrap
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>
 ```
 
 <!-- GOLDEN:framework:end -->
@@ -103,21 +105,15 @@ skills/{domain}/{skill-name}/
 
 ### 🔴 Git Workflow — GitHub First, Always
 
-**Remotes in this clone:**
-- `origin`  = GitHub (bordenet/superpowers-plus) — **PUBLIC SOURCE OF TRUTH**
-- `gitlab`  = GitLab (private mirror) — synced FROM GitHub, never promoted through
+**Remote in this clone:**
+- `origin` = GitHub (bordenet/superpowers-plus) — **sole source of truth**
 
-**ALL changes go to GitHub (`origin`) first via PR. GitLab is downstream.**
+**ALL changes go to GitHub (`origin`) via PR.**
 
 3-Tier promotion (all on GitHub `origin`):
 1. Feature branch → push to `origin`, open PR into `origin/dev`
 2. `dev → staging`: explicit human instruction only
 3. `staging → main`: explicit human instruction + batch review approval
-
-After GitHub main is updated, sync GitLab mirror:
-```
-git push gitlab origin/main:main origin/staging:staging origin/dev:dev
-```
 
 After any release to `main`, open a sync PR (merge commit) to bring promotion history back to `dev`:
 `git checkout -b chore/sync-dev-with-main origin/main && git push origin chore/sync-dev-with-main`
@@ -125,8 +121,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 - ❌ NEVER commit directly to `dev`, `staging`, or `main`
 - ❌ NEVER branch features from `main` or `staging`
-- ❌ NEVER promote through GitLab and then backfill GitHub
-- Emergency hotfixes: branch from `main`, PR into `main` on GitHub, cherry-pick back to `dev`
+- Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
 
 ## Claude Code guardrails

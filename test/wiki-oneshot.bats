@@ -23,7 +23,10 @@ EOF
   export WIKI_API_URL="http://127.0.0.1:${MOCK_PORT}/api"
   export WIKI_SCOPE_FILE="${SCOPE_FILE}"
 
-  node "${BATS_TEST_DIRNAME}/fixtures/mock-wiki-api.js" "${MOCK_PORT}" &
+  # Close FD 3 (bats status pipe) and detach stdio: without 3>&- the server
+  # keeps bats' status descriptor open and bats hangs after the final test.
+  node "${BATS_TEST_DIRNAME}/fixtures/mock-wiki-api.js" "${MOCK_PORT}" \
+    >"${BATS_SUITE_TMPDIR}/mock-wiki-api.log" 2>&1 3>&- &
   MOCK_PID=$!
   export MOCK_PID
 
@@ -36,7 +39,10 @@ EOF
 }
 
 teardown_file() {
-  [[ -n "${MOCK_PID}" ]] && kill "${MOCK_PID}" 2>/dev/null || true
+  if [[ -n "${MOCK_PID}" ]]; then
+    kill "${MOCK_PID}" 2>/dev/null || true
+    wait "${MOCK_PID}" 2>/dev/null || true
+  fi
 }
 
 _run_write() { run bash "${WRITE_SH}" "$@"; }
