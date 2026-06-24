@@ -46,7 +46,7 @@ When the diff calls external services, I/O, or infrastructure APIs (database, ne
 
 **Detection predicates must cover every producer in scope.** When the diff adds a pattern match or error classifier for an external dependency, verify it covers every provider and SDK error shape reachable from the diff's call sites, not just the one that triggered the change. A single-provider predicate for a multi-provider call path is an incomplete guard.
 
-**Example**: A quota-exceeded detector matches only the OpenAI 429 body shape, so the same billing failure from Gemini or Anthropic skips the dedicated alarm and hides in the generic P1 counter. (Real miss: incident-2026-1562.)
+**Example**: A quota-exceeded detector matches only the OpenAI 429 body shape, so the same billing failure from Gemini or Anthropic skips the dedicated alarm and hides in the generic P1 counter.
 
 ### 2b. Caller Contract Drift
 

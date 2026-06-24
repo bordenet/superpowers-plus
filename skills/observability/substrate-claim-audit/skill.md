@@ -174,16 +174,6 @@ If the agent had run this audit before sending:
 
 The proposal would have been honest about its prerequisites instead of pretending to be a complete deliverable.
 
-## ASCII Commit-Message Warning
-
-Generic repos may enforce ASCII-only in commit messages (server-side pre-receive hook rejects em-dashes, arrows, smart quotes, emoji). If you copy text from this skill body into a commit message:
-
-- Replace `--` em-dash markers as-is (already ASCII)
-- Replace any `->` arrows in copied snippets (already ASCII)
-- Strip any smart quotes the editor inserted on paste
-
-This skill body is markdown (ASCII bytes by construction). The risk is the editor / paste path, not the source.
-
 ## Composition With Other Gates
 
 ```text
