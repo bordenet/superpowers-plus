@@ -87,7 +87,8 @@ TIP_SHA_OVERRIDE=""
 _args=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --sha) TIP_SHA_OVERRIDE="$2"; shift 2 ;;
+        --sha) [[ $# -ge 2 ]] || { printf 'error: --sha requires a SHA value\n' >&2; exit 1; }
+               TIP_SHA_OVERRIDE="$2"; shift 2 ;;
         *) _args+=("$1"); shift ;;
     esac
 done
