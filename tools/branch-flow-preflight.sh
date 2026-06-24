@@ -114,11 +114,10 @@ resolve_required_base() {
     fi
     echo "origin/dev"
 }
-REQUIRED_BASE="$(resolve_required_base "$SOURCE")"
-
 # ---------------------------------------------------------------------------
 # Skip 1: protected/long-lived branches (no advisory needed).
 # ---------------------------------------------------------------------------
+SKIP_ADVISORIES=false
 case "$SOURCE" in
     main|master|develop|dev|staging)
         if [[ -z "$TIP_SHA_OVERRIDE" ]]; then
@@ -126,39 +125,47 @@ case "$SOURCE" in
             exit 0
         fi
         info "'$SOURCE' is a protected/long-lived branch; advisory skipped (writing sentinel for cherry-pick)."
+        SKIP_ADVISORIES=true
         ;;
 esac
 
-# ---------------------------------------------------------------------------
-# Skip 2: known-exempt prefixes (hotfix/release/backport/tagged-release).
-# These are documented deviations from the canonical base; do not advise.
-# ---------------------------------------------------------------------------
-case "$SOURCE" in
-    hotfix/*|release/*|backport/*|tagged-release/*)
-        info "'$SOURCE' prefix is exempt from base advisory (documented deviation lane)."
-        ;;
-esac
-
-# ---------------------------------------------------------------------------
-# Skip 3: per-branch acknowledgement file.
-# ---------------------------------------------------------------------------
-ACK_FILE="$REPO_ROOT/.git/base-advisory-ack-${SOURCE//\//-}"
+# REQUIRED_BASE, ACK_FILE, and override state are only needed when advisories run.
+REQUIRED_BASE=""
+ACK_FILE=""
 ACKED=false
-[[ -f "$ACK_FILE" ]] && ACKED=true
-
-# ---------------------------------------------------------------------------
-# Skip 4: env override.
-# ---------------------------------------------------------------------------
 OVERRIDDEN=false
-if [[ "${GIT_BASE_OVERRIDE:-}" == "1" ]]; then
-    OVERRIDDEN=true
-    info "GIT_BASE_OVERRIDE=1 set -- base advisory suppressed. Please document reason in PR description."
+if [[ "$SKIP_ADVISORIES" != "true" ]]; then
+    REQUIRED_BASE="$(resolve_required_base "$SOURCE")"
+
+    # ---------------------------------------------------------------------------
+    # Skip 2: known-exempt prefixes (hotfix/release/backport/tagged-release).
+    # These are documented deviations from the canonical base; do not advise.
+    # ---------------------------------------------------------------------------
+    case "$SOURCE" in
+        hotfix/*|release/*|backport/*|tagged-release/*)
+            info "'$SOURCE' prefix is exempt from base advisory (documented deviation lane)."
+            ;;
+    esac
+
+    # ---------------------------------------------------------------------------
+    # Skip 3: per-branch acknowledgement file.
+    # ---------------------------------------------------------------------------
+    ACK_FILE="$REPO_ROOT/.git/base-advisory-ack-${SOURCE//\//-}"
+    [[ -f "$ACK_FILE" ]] && ACKED=true
+
+    # ---------------------------------------------------------------------------
+    # Skip 4: env override.
+    # ---------------------------------------------------------------------------
+    if [[ "${GIT_BASE_OVERRIDE:-}" == "1" ]]; then
+        OVERRIDDEN=true
+        info "GIT_BASE_OVERRIDE=1 set -- base advisory suppressed. Please document reason in PR description."
+    fi
 fi
 
 # ---------------------------------------------------------------------------
 # Advisory: retry suffix (-vN). Soft warning, never blocks.
 # ---------------------------------------------------------------------------
-if [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
+if [[ "$SKIP_ADVISORIES" != "true" ]] && [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
     advisory "RETRY-SUFFIX ADVISORY: '$SOURCE' looks like a retry branch (-vN suffix)."
     echo "    Recommended recovery for a failed merge: amend the existing branch"
     echo "    ('git commit --amend' + 'git push --force-with-lease'), not a new branch."
@@ -171,10 +178,12 @@ fi
 # ---------------------------------------------------------------------------
 case "$SOURCE" in
     chore/back-sync-*|chore/baseline-sync-*|back-sync/*|sync/*|chore/sync-*|mirror/*|chore/mirror-*)
-        advisory "BACK-SYNC NAMING ADVISORY: '$SOURCE' uses back-sync/mirror naming."
-        echo "    Forward-port semantics are preferred: branch off the destination,"
-        echo "    pull changes from the source, PR forward. To suppress: touch ${ACK_FILE/#$REPO_ROOT\//}"
-        log_advisory "back-sync-name" "$SOURCE"
+        if [[ "$SKIP_ADVISORIES" != "true" ]]; then
+            advisory "BACK-SYNC NAMING ADVISORY: '$SOURCE' uses back-sync/mirror naming."
+            echo "    Forward-port semantics are preferred: branch off the destination,"
+            echo "    pull changes from the source, PR forward. To suppress: touch ${ACK_FILE/#$REPO_ROOT\//}"
+            log_advisory "back-sync-name" "$SOURCE"
+        fi
         ;;
 esac
 
@@ -248,13 +257,16 @@ run_base_advisory() {
 EOF
     log_advisory "base-mismatch" "$SOURCE base=$mb expected=$REQUIRED_BASE"
 }
-run_base_advisory
+if [[ "$SKIP_ADVISORIES" != "true" ]]; then
+    run_base_advisory
+fi
 
 # ---------------------------------------------------------------------------
 # Sanitization pre-scan (warn only). Anti-leak patterns, non-ASCII.
 # ---------------------------------------------------------------------------
 DIFFRANGE=""
-if git rev-parse --verify "$REQUIRED_BASE" >/dev/null 2>&1 && \
+if [[ "$SKIP_ADVISORIES" != "true" ]] && \
+   git rev-parse --verify "$REQUIRED_BASE" >/dev/null 2>&1 && \
    git rev-parse --verify HEAD >/dev/null 2>&1; then
     DIFFRANGE="$REQUIRED_BASE..HEAD"
 fi
