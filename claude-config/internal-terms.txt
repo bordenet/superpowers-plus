@@ -4,8 +4,8 @@
 #        grep -iF matches case-insensitively against commit bodies and diffs.
 #
 # THIS FILE IS THE PUBLIC TEMPLATE — it ships in the superpowers-plus repo.
-# Work-specific terms live in the superpowers-callbox overlay and are copied
-# here by the superpowers-callbox installer (overwrite-protected if customised).
+# Work-specific terms live in a configured overlay and are copied
+# here by the overlay installer (overwrite-protected if customised).
 #
 # The hook (tools/claude-hooks/pre-tool-use-internal-terms.sh) will warn if
 # this file is empty. Add at least one term for the hook to be effective.
