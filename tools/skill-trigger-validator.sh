@@ -358,7 +358,10 @@ find_missing() {
         local triggers
         triggers=$(extract_triggers "$skill_file")
         local count
-        count=$(echo "$triggers" | grep -c . || echo 0)
+        # grep -c exits 1 on no matches but still writes "0" to stdout; || true preserves that output without failing the assignment.
+        local raw_count
+        raw_count=$(echo "$triggers" | grep -c . 2>/dev/null || true)
+        count="${raw_count:-0}"
 
         if [[ $count -lt 2 ]]; then
             log_warn "$domain/$skill_name: only $count trigger(s) — should be a superpower or marked explicit"
