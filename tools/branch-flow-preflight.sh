@@ -119,6 +119,7 @@ REQUIRED_BASE="$(resolve_required_base "$SOURCE")"
 # ---------------------------------------------------------------------------
 # Skip 1: protected/long-lived branches (no advisory needed).
 # ---------------------------------------------------------------------------
+SKIP_ADVISORIES=false
 case "$SOURCE" in
     main|master|develop|dev|staging)
         if [[ -z "$TIP_SHA_OVERRIDE" ]]; then
@@ -126,6 +127,7 @@ case "$SOURCE" in
             exit 0
         fi
         info "'$SOURCE' is a protected/long-lived branch; advisory skipped (writing sentinel for cherry-pick)."
+        SKIP_ADVISORIES=true
         ;;
 esac
 
@@ -158,7 +160,7 @@ fi
 # ---------------------------------------------------------------------------
 # Advisory: retry suffix (-vN). Soft warning, never blocks.
 # ---------------------------------------------------------------------------
-if [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
+if [[ "$SKIP_ADVISORIES" != "true" ]] && [[ "$SOURCE" =~ -v[0-9]+$ ]]; then
     advisory "RETRY-SUFFIX ADVISORY: '$SOURCE' looks like a retry branch (-vN suffix)."
     echo "    Recommended recovery for a failed merge: amend the existing branch"
     echo "    ('git commit --amend' + 'git push --force-with-lease'), not a new branch."
@@ -169,6 +171,7 @@ fi
 # ---------------------------------------------------------------------------
 # Advisory: back-sync / mirror naming. Soft warning.
 # ---------------------------------------------------------------------------
+if [[ "$SKIP_ADVISORIES" != "true" ]]; then
 case "$SOURCE" in
     chore/back-sync-*|chore/baseline-sync-*|back-sync/*|sync/*|chore/sync-*|mirror/*|chore/mirror-*)
         advisory "BACK-SYNC NAMING ADVISORY: '$SOURCE' uses back-sync/mirror naming."
@@ -177,6 +180,7 @@ case "$SOURCE" in
         log_advisory "back-sync-name" "$SOURCE"
         ;;
 esac
+fi
 
 # ---------------------------------------------------------------------------
 # Base alignment advisory (the perplexity-style first-parent chain check).
@@ -248,13 +252,16 @@ run_base_advisory() {
 EOF
     log_advisory "base-mismatch" "$SOURCE base=$mb expected=$REQUIRED_BASE"
 }
-run_base_advisory
+if [[ "$SKIP_ADVISORIES" != "true" ]]; then
+    run_base_advisory
+fi
 
 # ---------------------------------------------------------------------------
 # Sanitization pre-scan (warn only). Anti-leak patterns, non-ASCII.
 # ---------------------------------------------------------------------------
 DIFFRANGE=""
-if git rev-parse --verify "$REQUIRED_BASE" >/dev/null 2>&1 && \
+if [[ "$SKIP_ADVISORIES" != "true" ]] && \
+   git rev-parse --verify "$REQUIRED_BASE" >/dev/null 2>&1 && \
    git rev-parse --verify HEAD >/dev/null 2>&1; then
     DIFFRANGE="$REQUIRED_BASE..HEAD"
 fi

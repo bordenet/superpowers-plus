@@ -28,13 +28,17 @@ fi
 # Nothing to do without a session ID or transcript path.
 [[ -z "$SESSION_ID" || -z "$TRANSCRIPT_PATH" ]] && exit 0
 
-FLAG_FILE="$HOME/.claude/.context-ferry-warned-${SESSION_ID}"
+# Sanitize session_id before embedding in a file path (path-traversal guard).
+SESSION_ID_SAFE="$(printf '%s' "$SESSION_ID" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+[[ -z "$SESSION_ID_SAFE" ]] && exit 0
 
-# Prune flag files older than 30 days (one file per qualifying session accumulates otherwise).
-find "$HOME/.claude" -maxdepth 1 -name ".context-ferry-warned-*" -mtime +30 -delete 2>/dev/null || true
+FLAG_FILE="$HOME/.claude/.context-ferry-warned-${SESSION_ID_SAFE}"
 
 # Hysteresis: already warned this session -- stay silent.
 [[ -f "$FLAG_FILE" ]] && exit 0
+
+# Prune flag files older than 30 days only when threshold may be crossed (not on every prompt).
+find "$HOME/.claude" -maxdepth 1 -name ".context-ferry-warned-*" -mtime +30 -delete 2>/dev/null || true
 
 # Count assistant turns in the JSONL transcript as a context proxy.
 # Each assistant message has "role":"assistant"; one per turn.
