@@ -151,7 +151,7 @@ diff_loc_for_commit() {
 # all commits reachable from local_sha that are not on any other ref. For a
 # branch deletion (local_sha is zero), prints nothing.
 enumerate_commits() {
-    local local_sha="$1" remote_sha="$2"
+    local local_sha="$1" remote_sha="$2" remote_name="${3:-}"
     if [[ "$local_sha" == "$ZERO_SHA" ]]; then
         return 0   # deletion: nothing to push
     fi
@@ -167,9 +167,17 @@ enumerate_commits() {
     local tmperr
     tmperr=$(mktemp)
     if [[ "$remote_sha" == "$ZERO_SHA" ]]; then
-        # New branch: list commits reachable from local_sha but not from any
-        # OTHER remote ref (to avoid re-counting commits already on the server).
-        out=$(git rev-list "$local_sha" --not --remotes 2>"$tmperr") || {
+        # New branch: list commits reachable from local_sha but not already on
+        # the TARGET remote. Scoping to the named remote prevents multi-remote
+        # repos (e.g. origin + gitlab) from excluding commits that exist on a
+        # different remote but are new to this push destination.
+        local -a not_arg
+        if [[ -n "$remote_name" ]]; then
+            not_arg=(--not "--remotes=$remote_name")
+        else
+            not_arg=(--not --remotes)
+        fi
+        out=$(git rev-list "$local_sha" "${not_arg[@]}" 2>"$tmperr") || {
             err=$(cat "$tmperr"); rm -f "$tmperr"
             echo "ERROR: git rev-list failed for new branch ($local_sha): $err" >&2
             return 2
@@ -188,6 +196,7 @@ enumerate_commits() {
 # check_pushed_refs - main entry. Reads stdin (pre-push hook format) and
 # checks every new commit. Returns 0 / 1 / 2 per the exit-code contract.
 check_pushed_refs() {
+    local remote_name="${1:-}"
     local violations=()
     # _remote_ref is intentionally unused -- it's the 3rd field in the pre-push
     # hook's line format `<local_ref> <local_sha> <remote_ref> <remote_sha>`
@@ -204,7 +213,7 @@ check_pushed_refs() {
         # would otherwise kill the parent before line 213 ran, making the
         # explicit check below dead code). Net behavior is identical -- a
         # non-zero from enumerate_commits propagates as exit 2.
-        commits_out=$(enumerate_commits "$local_sha" "$remote_sha") || commits_rc=$?
+        commits_out=$(enumerate_commits "$local_sha" "$remote_sha" "$remote_name") || commits_rc=$?
         if (( commits_rc != 0 )); then
             return 2
         fi
@@ -268,9 +277,10 @@ check_pushed_refs() {
 # sibling installed the hook and a small doc push (MR !55) was blocked by
 # the 666-LOC merge commit at origin/HEAD.
 if [[ $# -ge 2 ]]; then
-    # Git pre-push convention (currently 2 args; future-proofed for additional
-    # args). Read stdin lines and ignore positional args entirely.
-    check_pushed_refs
+    # Git pre-push convention: $1=<remote_name> $2=<remote_url>. Pass the
+    # remote name so enumerate_commits scopes --not to only that remote,
+    # preventing multi-remote repos from under-counting new-branch LOC.
+    check_pushed_refs "$1"
     exit $?
 fi
 
