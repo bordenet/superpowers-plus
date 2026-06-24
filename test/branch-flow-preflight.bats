@@ -204,6 +204,16 @@ teardown() {
 
 # --- --sha override: cherry-pick sentinel write with no advisory output ---
 
+@test "--sha on feature branch: no protected-branch bypass; sentinel SHA correct" {
+    run ./preflight.sh --sha abc123def456 feat/foo dev
+    [ "$status" -eq 0 ]
+    # SKIP_ADVISORIES must NOT fire for feature branches; no cherry-pick info line
+    [[ "$output" != *"cherry-pick"* ]]
+    # Sentinel written with the --sha override (not the resolved branch SHA)
+    [ -f .branch-flow-cleared ]
+    grep -qF "abc123def456" .branch-flow-cleared
+}
+
 @test "--sha on protected branch: writes sentinel, emits info line, no advisory" {
     run ./preflight.sh --sha abc123def456 main dev
     [ "$status" -eq 0 ]
