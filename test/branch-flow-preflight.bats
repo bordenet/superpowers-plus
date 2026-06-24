@@ -201,3 +201,22 @@ teardown() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"protected"* ]] || [[ "$output" == *"long-lived"* ]]
 }
+
+# --- --sha override: cherry-pick sentinel write with no advisory output ---
+
+@test "--sha on protected branch: writes sentinel, emits info line, no advisory" {
+    run ./preflight.sh --sha abc123def456 main dev
+    [ "$status" -eq 0 ]
+    # Info line must appear (confirms --sha path was taken)
+    [[ "$output" == *"cherry-pick"* ]]
+    # No advisory text may appear (SKIP_ADVISORIES must gate all advisory blocks)
+    [[ "$output" != *"ADVISORY"* ]]
+    [[ "$output" != *"BRANCH BASE"* ]]
+    [[ "$output" != *"SANITIZATION"* ]]
+    [[ "$output" != *"NON-ASCII"* ]]
+    [[ "$output" != *"RETRY-SUFFIX"* ]]
+    [[ "$output" != *"BACK-SYNC"* ]]
+    # Sentinel must be written with the provided SHA
+    [ -f .branch-flow-cleared ]
+    grep -qF "abc123def456" .branch-flow-cleared
+}
