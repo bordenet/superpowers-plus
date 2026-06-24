@@ -105,6 +105,21 @@ jobs:
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
+      - name: CR-battery preservation tests (BATS)
+        run: bats tests/cr-battery-preservation-test.bats
+
+      - name: Install main tests (BATS)
+        run: bats tests/install-main-test.bats
+
+      - name: Session handoff check tests (BATS)
+        run: bats tests/session-handoff-check-test.bats
+
+      - name: Scope tripwire auto-detect tests (BATS)
+        run: bats tests/scope-tripwire-autodetect-test.bats
+
+      - name: Pre-push LOC gate remote-name tests (BATS)
+        run: bats tests/pre-push-loc-gate-remote-test.bats
+
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
         env:

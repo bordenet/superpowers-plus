@@ -123,7 +123,7 @@ fi
 # Section B: Live smoke test
 # Confirms the last install.sh run left ~/.agents/skills/ correct.
 # Skip if the installed directory doesn't seem to contain THIS repo's skills
-# (e.g. during cross-repo development like CallBox -> superpowers-plus).
+# (e.g. during cross-repo development between an overlay and superpowers-plus).
 echo "  [B] Live install smoke:"
 
 MENU_DIR="${HOME}/.agents/skills"
@@ -131,7 +131,7 @@ if [[ ! -d "$MENU_DIR" ]]; then
     skip "live smoke: $MENU_DIR absent — install.sh not yet run on this machine"
 else
     # Check for a few "anchor" skills that are unique to or common in this repo.
-    # We verify that they point to the current repo to distinguish from CallBox.
+    # We verify that they point to the current repo to distinguish from an overlay repo.
     anchor_present=0
     for anchor in detecting-ai-slop perplexity-research; do
         dest=$(_test_dest_name "$anchor")

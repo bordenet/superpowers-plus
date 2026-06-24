@@ -861,7 +861,7 @@ _skill_dest_name() {
 # ~/.agents/skills/ (removed in #106). Augment IDE reads both paths natively,
 # so stale entries here surface outdated trigger phrases and descriptions.
 # Prune: only removes entries whose source: matches $1 so other installers'
-#        skills (e.g. superpowers-callbox) are never touched by this installer.
+#        skills (e.g. from overlay repos) are never touched by this installer.
 # Skipped when --skip-augment is set or when the directory does not exist.
 prune_legacy_augment_skills() {
     local prune_source="${1:-}"
