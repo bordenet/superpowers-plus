@@ -15,6 +15,9 @@ set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
 
 THRESHOLD="${CONTEXT_FERRY_TURN_THRESHOLD:-20}"
+# Guard: non-numeric threshold would cause arithmetic comparison to fail under set -e;
+# fall back to the default rather than crashing and violating the always-exit-0 contract.
+[[ "$THRESHOLD" =~ ^[0-9]+$ ]] || THRESHOLD=20
 
 INPUT="$(cat)"
 SESSION_ID=""
