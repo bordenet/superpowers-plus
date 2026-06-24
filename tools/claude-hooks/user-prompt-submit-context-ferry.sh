@@ -40,7 +40,9 @@ find "$HOME/.claude" -maxdepth 1 -name ".context-ferry-warned-*" -mtime +30 -del
 # Each assistant message has "role":"assistant"; one per turn.
 TURN_COUNT=0
 if [[ -f "$TRANSCRIPT_PATH" ]]; then
-    TURN_COUNT="$(grep -c '"role":"assistant"' "$TRANSCRIPT_PATH" 2>/dev/null || echo 0)"
+    # grep -c exits 1 on no matches but still writes "0" to stdout; || true preserves that output without failing the assignment.
+    raw_count="$(grep -c '"role":"assistant"' "$TRANSCRIPT_PATH" 2>/dev/null || true)"
+    TURN_COUNT="${raw_count:-0}"
 fi
 
 [[ "$TURN_COUNT" -lt "$THRESHOLD" ]] && exit 0
