@@ -28,20 +28,28 @@ fi
 # Nothing to do without a session ID or transcript path.
 [[ -z "$SESSION_ID" || -z "$TRANSCRIPT_PATH" ]] && exit 0
 
-FLAG_FILE="$HOME/.claude/.context-ferry-warned-${SESSION_ID}"
+# Sanitize session_id before embedding in a file path (path-traversal guard).
+SESSION_ID_SAFE="$(printf '%s' "$SESSION_ID" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+[[ -z "$SESSION_ID_SAFE" ]] && exit 0
 
-# Prune flag files older than 30 days (one file per qualifying session accumulates otherwise).
-find "$HOME/.claude" -maxdepth 1 -name ".context-ferry-warned-*" -mtime +30 -delete 2>/dev/null || true
+FLAG_FILE="$HOME/.claude/.context-ferry-warned-${SESSION_ID_SAFE}"
 
 # Hysteresis: already warned this session -- stay silent.
 [[ -f "$FLAG_FILE" ]] && exit 0
 
+# Prune flag files older than 30 days only when threshold may be crossed (not on every prompt).
+find "$HOME/.claude" -maxdepth 1 -name ".context-ferry-warned-*" -mtime +30 -delete 2>/dev/null || true
+
+# Sanitize transcript path (path-traversal guard before use as a file argument).
+TRANSCRIPT_PATH_SAFE="$(printf '%s' "$TRANSCRIPT_PATH" | tr -cd 'a-zA-Z0-9/_.-')"
+[[ -z "$TRANSCRIPT_PATH_SAFE" || "$TRANSCRIPT_PATH_SAFE" != /* ]] && exit 0
+
 # Count assistant turns in the JSONL transcript as a context proxy.
 # Each assistant message has "role":"assistant"; one per turn.
 TURN_COUNT=0
-if [[ -f "$TRANSCRIPT_PATH" ]]; then
+if [[ -f "$TRANSCRIPT_PATH_SAFE" ]]; then
     # grep -c exits 1 on no matches but still writes "0" to stdout; || true preserves that output without failing the assignment.
-    raw_count="$(grep -c '"role":"assistant"' "$TRANSCRIPT_PATH" 2>/dev/null || true)"
+    raw_count="$(grep -c '"role":"assistant"' "$TRANSCRIPT_PATH_SAFE" 2>/dev/null || true)"
     TURN_COUNT="${raw_count:-0}"
 fi
 
