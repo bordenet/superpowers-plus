@@ -81,7 +81,17 @@ fi
 # ---------------------------------------------------------------------------
 # Parse args. Auto-mode: no args -> check current branch against required-base.
 # Two-arg mode: explicit source+target.
+# --sha <SHA>: override the tip SHA written to the sentinel (cherry-pick support).
 # ---------------------------------------------------------------------------
+TIP_SHA_OVERRIDE=""
+_args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --sha) TIP_SHA_OVERRIDE="$2"; shift 2 ;;
+        *) _args+=("$1"); shift ;;
+    esac
+done
+set -- "${_args[@]+"${_args[@]}"}"
 SOURCE="${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo HEAD)}"
 TARGET="${2:-}"
 
@@ -111,8 +121,11 @@ REQUIRED_BASE="$(resolve_required_base "$SOURCE")"
 # ---------------------------------------------------------------------------
 case "$SOURCE" in
     main|master|develop|dev|staging)
-        info "'$SOURCE' is a protected/long-lived branch; advisory skipped."
-        exit 0
+        if [[ -z "$TIP_SHA_OVERRIDE" ]]; then
+            info "'$SOURCE' is a protected/long-lived branch; advisory skipped."
+            exit 0
+        fi
+        info "'$SOURCE' is a protected/long-lived branch; advisory skipped (writing sentinel for cherry-pick)."
         ;;
 esac
 
@@ -268,10 +281,14 @@ fi
 # ---------------------------------------------------------------------------
 # Write sentinel (audit trail).
 # ---------------------------------------------------------------------------
-SOURCE_SHA="$(git rev-parse --verify "$SOURCE" 2>/dev/null \
-    || git rev-parse --verify "origin/$SOURCE" 2>/dev/null \
-    || git rev-parse HEAD 2>/dev/null \
-    || echo unknown)"
+if [[ -n "$TIP_SHA_OVERRIDE" ]]; then
+    SOURCE_SHA="$TIP_SHA_OVERRIDE"
+else
+    SOURCE_SHA="$(git rev-parse --verify "$SOURCE" 2>/dev/null \
+        || git rev-parse --verify "origin/$SOURCE" 2>/dev/null \
+        || git rev-parse HEAD 2>/dev/null \
+        || echo unknown)"
+fi
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET:-${REQUIRED_BASE#origin/}}|${TS}" > "$SENTINEL"
 chmod 0644 "$SENTINEL" 2>/dev/null || true
