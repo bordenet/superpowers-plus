@@ -95,8 +95,11 @@ teardown() {
 @test "superpowers-plus origin URL auto-detects block mode" {
     git remote set-url origin https://github.com/bordenet/superpowers-plus.git
     # No Linear ref in branch name -> exits 0 (advisory skipped) but mode should be 'block'
+    # bats merges stderr into $output by default; auto-detect message emits to stderr
     git checkout -q -b feat/no-ticket
     run bash "$SCRIPT"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"block"* ]] || [[ "$output" == *"no Linear ref"* ]]
+    # Require the specific auto-detect message; "no Linear ref" alone would pass even if
+    # auto-detect never fired (vacuous fallback)
+    [[ "$output" == *"mode=block"* ]]
 }

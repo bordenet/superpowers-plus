@@ -16,6 +16,13 @@ if [ -z "${BASH_VERSION:-}" ]; then
     echo "ERROR: This script requires bash. Run with: bash $0" >&2
     exit 1
 fi
+# track_heredoc uses local -n namerefs which require bash >=4.3.
+# macOS ships bash 3.2 at /usr/bin/bash; local -n silently fails there,
+# causing every heredoc body line to be pattern-matched as live code.
+if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+    echo "ERROR: bash >=4.3 required (current: ${BASH_VERSION}). On macOS: brew install bash" >&2
+    exit 1
+fi
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat << 'HELP'

@@ -12,7 +12,7 @@ Branch: `chore/docs-onto-main` (HEAD: 71167b85)
 
 | # | File | Fix | Severity |
 |---|------|-----|----------|
-| 1 | `AGENTS.md:132` | Removed internal wiki reference (`Source of truth: internal wiki — search "claude-code-self-debug-12-point-action-plan"`) | Critical |
+| 1 | `AGENTS.md:132` | Removed internal wiki reference (link to internal documentation) | Critical |
 | 2 | `tools/verify-cr-battery-evidence.js:173` | Changed `ENOBUFS` → `ERR_CHILD_PROCESS_STDIO_MAXBUFFER` (Node.js never throws ENOBUFS for maxBuffer overflow; buffer overflow fell through to partial-stdout path) | Important |
 | 3 | `tools/pre-push-loc-gate.sh:172` | Thread remote name through `check_pushed_refs` → `enumerate_commits`; use `--not --remotes=<remote_name>` instead of `--not --remotes` (multi-remote repos under-counted LOC for new branches) | Important |
 | 4 | `tools/scope-tripwire-check.sh` | Added URL-based dogfood auto-detect: if `origin` URL contains `superpowers-plus`, default to `block` mode (documented in header but not implemented) | Important |
