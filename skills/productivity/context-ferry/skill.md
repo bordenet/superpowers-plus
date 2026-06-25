@@ -35,7 +35,7 @@ composition:
 >
 > **Rescue your session before context compaction swallows it.**
 
-Generates a fully self-contained resume prompt so a fresh session -- on a different machine, a different tab, or a different AI platform -- can pick up exactly where this one left off. Fires automatically on PreCompact in Claude Code; invoke manually at any time with `/context-ferry`.
+Generates a mostly self-contained resume prompt so a fresh session -- on a different machine, a different tab, or a different AI platform -- can pick up exactly where this one left off. (If an execution doc is referenced, it must be accessible in the new session.) Fires automatically on PreCompact in Claude Code; invoke manually at any time with `/context-ferry`.
 
 ## When This Fires
 
@@ -60,7 +60,7 @@ Generates a fully self-contained resume prompt so a fresh session -- on a differ
 |---------|------|
 | UserPromptSubmit hook (early warning) | Full 5-Step Sequence below |
 | Manual `/context-ferry` | Full 5-Step Sequence below |
-| PreCompact hook (backstop) | **Abbreviated path only** — the hook has pre-filled `~/context-ferry-<timestamp>.md` with git state and CLAUDE.md excerpt. Your only job: open that file and append to the three TODO sections (Key Decisions, Pending Questions, Next 3 Actions). Do NOT run Steps 1-5 — context is critically low. |
+| PreCompact hook (backstop) | **Abbreviated path only** — the hook has pre-filled `~/context-ferry-<timestamp>.md` with git state and CLAUDE.md excerpt. Use the Read tool to open that file and append to the three TODO sections (Key Decisions, Pending Questions, Next 3 Actions). If the file does not exist (hook may have failed), fall back to the full 5-Step Sequence instead. Do NOT run the full 5-Step Sequence when the scaffold is present — context is critically low. |
 
 For the full path: execute Steps 1-5 in order. Each section is written as a discrete block so that even if auto-compact fires mid-generation, the highest-value sections (Original Goal, Pending Questions, Pending Tasks) already exist in the conversation and can be recovered.
 
@@ -162,7 +162,7 @@ Set the `Fidelity:` line based on estimated remaining context:
 | 10-20% | `moderate (generated under context pressure -- verify specifics)` |
 | < 10% | `degraded (generated at critical low context -- verify Key Files with git/file reads)` |
 
-The new session should trust Goal, Key Decisions, Pending Questions, and Pending Tasks at any fidelity level. It should verify Key Files at degraded fidelity by running `git status` and reading relevant files directly.
+The new session should trust Goal, Pending Questions, and Pending Tasks at any fidelity level. It should verify Key Decisions at degraded fidelity by cross-checking against `git log` and reading relevant files directly — recall accuracy degrades under context pressure. It should verify Key Files at degraded fidelity by running `git status`.
 
 ## Sensitive Content Warning
 
