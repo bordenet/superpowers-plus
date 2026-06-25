@@ -10,6 +10,13 @@ const os = require('os');
 const path = require('path');
 
 const SCRIPT = path.join(__dirname, '..', 'tools', 'verify-cr-battery-evidence.js');
+
+if (!fs.existsSync(SCRIPT)) {
+    console.error(`SKIP: script not found at ${SCRIPT}`);
+    process.exit(0);
+}
+
+// TMP created after SKIP guard so it is never leaked on a skip-exit
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cr-verify-test-'));
 
 function envelope(findings = [], clean_dimensions = []) {

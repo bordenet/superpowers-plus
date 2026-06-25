@@ -22,9 +22,11 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'lang-scan-test-'));
 function scan(content) {
     const f = path.join(TMP, `input_${process.hrtime.bigint()}.md`);
     fs.writeFileSync(f, content);
-    const r = spawnSync(process.execPath, [SCANNER, f], { encoding: 'utf8' });
-    fs.unlinkSync(f);
-    return r;
+    try {
+        return spawnSync(process.execPath, [SCANNER, f], { encoding: 'utf8' });
+    } finally {
+        try { fs.unlinkSync(f); } catch (_) {}
+    }
 }
 
 let pass = 0, fail = 0;
