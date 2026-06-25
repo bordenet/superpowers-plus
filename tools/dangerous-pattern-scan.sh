@@ -6,19 +6,29 @@
 # USAGE:   ./dangerous-pattern-scan.sh [--all]
 #          Default: scans only staged .sh files (git diff --cached)
 #          --all:   scans all .sh files in the repo
-# EXIT:    0 = clean, 1 = dangerous patterns found
+# EXIT:    0 = clean, 1 = dangerous patterns found or bash version error
 # VERSION: 1.0.0
 # -----------------------------------------------------------------------------
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Bash Guard ---
 if [ -z "${BASH_VERSION:-}" ]; then
     echo "ERROR: This script requires bash. Run with: bash $0" >&2
     exit 1
 fi
-# track_heredoc uses local -n namerefs which require bash >=4.3.
-# macOS ships bash 3.2 at /usr/bin/bash; local -n silently fails there,
-# causing every heredoc body line to be pattern-matched as live code.
+# Source compat.sh for require_bash4 (Homebrew auto-install on macOS bash 3.x).
+# Conditional: if compat.sh is absent (standalone install), fall through to the
+# full >=4.3 guard below — same correctness, no Homebrew auto-install.
+if [[ -f "${SCRIPT_DIR}/compat.sh" ]]; then
+    # shellcheck source=tools/compat.sh
+    # shellcheck disable=SC1091
+    source "${SCRIPT_DIR}/compat.sh"
+    require_bash4 "$@"
+fi
+# track_heredoc uses local -n namerefs which require bash >=4.3 (major 4 minor >=3).
+# Covers both the compat.sh path (minor-version check) and standalone (full check).
 if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
     echo "ERROR: bash >=4.3 required (current: ${BASH_VERSION}). On macOS: brew install bash" >&2
     exit 1
@@ -68,7 +78,7 @@ FOUND=0
 WARNINGS=0
 
 # --- Shared heredoc state machine ---
-# Requires bash 5.x (nameref via 'local -n'). Pass variable NAMES, not values:
+# Requires bash >=4.3 (nameref via 'local -n'). Pass variable NAMES, not values:
 #   track_heredoc in_heredoc heredoc_indented "$line"
 # Returns 0 if this line was consumed by heredoc tracking (caller: && continue).
 # Returns 1 if this is a normal code line (caller should process it).
