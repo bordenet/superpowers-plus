@@ -67,6 +67,12 @@ jobs:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
           SUPERPOWERS_SKILLS_DIR: /dev/null
 
+      - name: Language scanner tests
+        run: node test/language-scanner.test.js
+
+      - name: CR battery evidence verifier tests
+        run: node test/verify-cr-battery-evidence.test.js
+
   shell-tests:
     name: Shell Tests
     runs-on: ubuntu-latest
@@ -119,6 +125,12 @@ jobs:
 
       - name: Pre-push LOC gate remote-name tests (BATS)
         run: bats tests/pre-push-loc-gate-remote-test.bats
+
+      - name: Pre-push LOC gate tests (BATS)
+        run: bats test/pre-push-loc-gate.bats
+
+      - name: Scope tripwire check tests (BATS)
+        run: bats test/scope-tripwire-check.bats
 
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
