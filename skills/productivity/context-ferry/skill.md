@@ -41,15 +41,28 @@ Generates a fully self-contained resume prompt so a fresh session -- on a differ
 
 | Trigger | Why |
 |---------|-----|
-| PreCompact hook (Claude Code) | Auto-fires before context compaction -- never miss it |
-| `/context-ferry` | Manual -- invoke proactively at ~20% context remaining |
+| UserPromptSubmit hook (turn-count) | Early warning at ~20 assistant turns (fires while context pressure is still low) -- fires exactly once per session via hysteresis flag |
+| PreCompact hook (Claude Code) | Backstop at ~95% context -- enriches ferry file with git state, branch, commits, and CLAUDE.md excerpt so model only needs to append Key Decisions |
+| `/context-ferry` | Manual -- invoke any time; works on any platform |
 | Natural language: "context is running low" | Phrase-matched trigger |
 
-**On Augment Code:** No PreCompact hook. Use `/context-ferry` manually before context gets critical.
+**Turn-count trigger:** `user-prompt-submit-context-ferry.sh` counts `"role":"assistant"` occurrences in the session transcript JSONL. Default threshold: 20 turns (override via `CONTEXT_FERRY_TURN_THRESHOLD` env var). Writes a per-session flag file (`~/.claude/.context-ferry-warned-<session_id>`) so the warning fires exactly once per session — by design. To re-trigger for the same session, delete that flag file. Turn count is immune to large tool-output spikes that would distort a file-size proxy.
+
+**PreCompact backstop:** When compaction fires at ~95%, `pre-compact-context-ferry.sh` generates a rich scaffold (`~/context-ferry-<timestamp>.md`) pre-populated with branch, recent commits, working tree status, unpushed commits, and CLAUDE.md excerpt. Model only appends Key Decisions, Pending Questions, and Next 3 Actions to the existing file -- minimizes token spend at critical context.
+
+**On Augment Code:** No hooks. Use `/context-ferry` manually before context gets critical.
 
 ## The 5-Step Sequence
 
-Execute these steps in order. Each section is written as a discrete block so that even if auto-compact fires mid-generation, the highest-value sections (Original Goal, Pending Questions, Pending Tasks) already exist in the conversation and can be recovered.
+**Execution path depends on how this fired:**
+
+| Trigger | Path |
+|---------|------|
+| UserPromptSubmit hook (early warning) | Full 5-Step Sequence below |
+| Manual `/context-ferry` | Full 5-Step Sequence below |
+| PreCompact hook (backstop) | **Abbreviated path only** — the hook has pre-filled `~/context-ferry-<timestamp>.md` with git state and CLAUDE.md excerpt. Your only job: open that file and append to the three TODO sections (Key Decisions, Pending Questions, Next 3 Actions). Do NOT run Steps 1-5 — context is critically low. |
+
+For the full path: execute Steps 1-5 in order. Each section is written as a discrete block so that even if auto-compact fires mid-generation, the highest-value sections (Original Goal, Pending Questions, Pending Tasks) already exist in the conversation and can be recovered.
 
 ### Step 1 -- Update the execution doc (if one exists)
 
@@ -173,6 +186,8 @@ Do not block or skip generation. The file still gets written. The user decides w
 | Task file unreadable | Note "task file at `<path>` could not be read" and fall back to conversation-memory tasks |
 | No git repo in working directory | Hook writes "No git repository" note; skill proceeds normally |
 | Write tool unavailable | Print the ferry prompt only; tell user to save manually |
+| Early-warning hook fired but model continued without running /context-ferry | PreCompact backstop will still catch it and write the scaffold. High-context sessions should treat the hook warning as a genuine interruption, not a suggestion. |
+| Context exhausted mid-skill (full path started too late) | Stop wherever you are; write the ferry file with whatever sections completed. Partial ferry is better than no ferry. |
 
 ## Companion Skills
 
