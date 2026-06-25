@@ -15,7 +15,7 @@
   "file_hashes": {
     "tools/commit-gate.sh": "9313dc5a9b8818b5781751badc9a237856a55fa1306712bc84d25b8b5f7d5386",
     "tools/public-repo-ip-check.sh": "736faa0749733ed748d8ce26025f7dd1807f63761237258772d81e3916603967",
-    "tools/dangerous-pattern-scan.sh": "4bc0d555c7f71427fc211043a864843631119dc632ec3b9250b8c44966cfb775",
+    "tools/dangerous-pattern-scan.sh": "e5313e8ba49f1f46c9edbcdee33621ae35a8adbbc4cae346cd580877f9d3a34f",
     "tools/run-battery.sh": "23234c193e732556dc67f43c8dcd3447f2d66b03014eaa3fc19c339a34e9a638",
     "tools/sp-doctor.sh": "aac3ed8bfbe5f5367b76bc2e825de0b79259d7e817c28624cd58cb550641d2f5",
     "lib/install/deploy.sh": "d300b0c3b6f4813a9b1036972fd80d8473dd9c219a868650005c1726564ce6b7",

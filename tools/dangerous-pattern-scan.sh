@@ -21,7 +21,7 @@ fi
 # Source compat.sh for require_bash4 (Homebrew auto-install on macOS bash 3.x).
 # Conditional: if compat.sh is absent (standalone install), fall through to the
 # full >=4.3 guard below — same correctness, no Homebrew auto-install.
-if [[ -f "${SCRIPT_DIR}/compat.sh" ]]; then
+if [[ -f "${SCRIPT_DIR}/compat.sh" && -r "${SCRIPT_DIR}/compat.sh" ]]; then
     # shellcheck source=tools/compat.sh
     # shellcheck disable=SC1091
     source "${SCRIPT_DIR}/compat.sh"
