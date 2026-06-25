@@ -25,7 +25,7 @@ function scan(content) {
     try {
         return spawnSync(process.execPath, [SCANNER, f], { encoding: 'utf8' });
     } finally {
-        try { fs.unlinkSync(f); } catch (_) {}
+        try { fs.unlinkSync(f); } catch (e) { process.stderr.write(`warn: cleanup failed: ${e.message}\n`); }
     }
 }
 
