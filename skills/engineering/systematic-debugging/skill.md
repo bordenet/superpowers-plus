@@ -101,8 +101,6 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 3. **Check assumptions** — list every assumption you've made. Test the least-certain one first
 4. **Ask the human** — "I've tried X and Y, both failed because Z. My current hypothesis is W — does that match your understanding?"
 
-If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
-
 ## Common Rationalizations
 
 | Rationalization | Why it fails |
