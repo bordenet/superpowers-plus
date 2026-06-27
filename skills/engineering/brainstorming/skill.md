@@ -117,7 +117,7 @@ Offer to render diagrams just-in-time, not upfront. Do not offer at the start of
 **When to offer:**
 - After presenting 3+ options: "Want me to render a comparison diagram?"
 - When showing a decision tree or flow: "I can render this as a flowchart if that would help"
-- When the user seems to be processing complex relationships: offer once, don't repeat
+- When the user seems to be processing complex relationships — offer once; do not repeat if declined.
 
 **Per-question rule:**
 - If the user is in a browser context (Claude.ai, web app): offer SVG/visual rendering
@@ -127,6 +127,8 @@ Offer to render diagrams just-in-time, not upfront. Do not offer at the start of
 - Offer visual rendering before any ideas have been explored
 - Offer repeatedly if the user declines
 - Render a diagram without offering first (unless user explicitly asks)
+
+**Fallback:** If visual rendering is unavailable or declined, proceed without it — the brainstorm output is the deliverable, not the diagram.
 
 The skill has a visual-companion.md reference file — use it for the rendering implementation details.
 

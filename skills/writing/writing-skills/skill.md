@@ -88,7 +88,7 @@ Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki
 
 `description` = **triggering conditions ONLY**. Never summarize the skill's workflow.
 
-**Why this matters:** Testing showed descriptions that summarize workflow cause agents to follow the description *instead of reading the skill*. A description saying "code review between tasks" caused agents to do ONE review; "Use when executing implementation plans" caused them to correctly read and follow the two-stage flowchart.
+**Why this matters:** Testing showed descriptions that summarize workflow cause agents to follow the description *instead of reading the skill*. A description saying "code review between tasks" caused agents to do ONE review; "Use when executing implementation plans" caused them to correctly read and follow the two-stage flowchart. (Testing methodology: see `testing-skills-with-subagents.md` in this directory.)
 
 ```yaml
 # ❌ BAD: Summarizes workflow — agents shortcut by following description, skip skill body

@@ -5,7 +5,7 @@ reads the task's diff once and returns two verdicts: spec compliance and
 code quality.
 
 **Purpose:** Verify one task's implementation matches its requirements (nothing
-more, nothing less) and is well-built (clean, tested, maintainable)
+more, nothing less) and is well-built (clean, tested, maintainable).
 
 ```
 Subagent (general-purpose):
@@ -40,8 +40,11 @@ Subagent (general-purpose):
     change. The diff's context lines ARE the changed files: do not Read a
     changed file separately unless a hunk you must judge is cut off
     mid-function — and say so in your report. Do not re-run git commands.
-    If the diff file is missing, fetch the diff yourself:
+    If the diff file is missing AND [BASE_SHA] and [HEAD_SHA] have been replaced
+    with real commit SHAs (not literal bracket placeholders), fetch the diff:
     `git diff --stat [BASE_SHA]..[HEAD_SHA]` and `git diff [BASE_SHA]..[HEAD_SHA]`.
+    If you see literal `[BASE_SHA]` or `[HEAD_SHA]` text, the controller failed
+    to fill in placeholders — report this as a dispatch error and do not proceed.
     Do not crawl the broader codebase. Inspect code outside the diff only
     to evaluate a concrete risk you can name — one focused check per named
     risk, and name both the risk and what you checked in your report.
@@ -133,9 +136,6 @@ Subagent (general-purpose):
     block), that IS a finding — report it as Important, labeled
     plan-mandated. The plan's authorship does not grade its own work; the
     human decides.
-    Acknowledge what was done well before listing issues — accurate praise
-    helps the implementer trust the rest of the feedback.
-
     ## Output Format
 
     ### Spec Compliance
@@ -169,10 +169,11 @@ Subagent (general-purpose):
 - `[MODEL]` — REQUIRED: reviewer model per SKILL.md Model Selection
 - `[BRIEF_FILE]` — REQUIRED: the task brief file (`scripts/task-brief PLAN N`
   prints the path; same file the implementer worked from)
-- `[GLOBAL_CONSTRAINTS]` — the binding requirements copied verbatim from
-  the plan's Global Constraints section or the spec: exact values, formats,
-  and stated relationships between components (not process rules — those
-  are already in this template)
+- `[GLOBAL_CONSTRAINTS]` — project-wide constraints copied verbatim from
+  the plan's Global Constraints section (version floors, naming rules,
+  platform limits, dependency caps). This is NOT the per-task requirements
+  (those are in BRIEF_FILE). Paste only the literal constraint values —
+  not process rules, which are already in this template.
 - `[REPORT_FILE]` — REQUIRED: the file the implementer wrote its detailed
   report to
 - `[BASE_SHA]` — commit before this task

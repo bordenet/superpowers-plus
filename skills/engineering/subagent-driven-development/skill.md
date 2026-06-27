@@ -25,7 +25,7 @@ composition:
 
 Execute plan by dispatching a fresh implementer subagent per task, a task review (spec compliance + code quality) after each, and a broad whole-branch review at the end.
 
-**Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need. **Narration:** between tool calls, one short line max — the ledger and tool results carry the record. **Continuous execution:** Do not pause to check in between tasks. The only reasons to stop: BLOCKED you cannot resolve, genuine ambiguity, or all tasks complete.
+**Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need. **Narration:** between tool calls, one short line max — the ledger and tool results carry the record. **Continuous execution:** Do not pause to check in between tasks. The only reasons to stop: BLOCKED you cannot resolve, genuine ambiguity, cost signal from your human partner, or all tasks complete.
 
 ## When to Use
 
@@ -42,13 +42,13 @@ For tasks with sufficient isolation (different files, independent interfaces), t
 ## Process (per task)
 
 1. **Read plan** — note Global Constraints, create TodoWrite for all tasks
-2. **Run `scripts/task-brief PLAN N`** — extracts task text to file; record current HEAD as BASE_SHA
+2. **Run `scripts/task-brief PLAN_FILE N`** — extracts task text to file; record current HEAD as BASE_SHA (verify: `git log BASE_SHA..HEAD --oneline` should show zero commits — you haven't started yet)
 3. **Dispatch implementer** using `implementer-prompt.md` with brief path + report path + context
 4. **Handle status** — DONE → generate review package | DONE_WITH_CONCERNS → assess → review | NEEDS_CONTEXT → provide and re-dispatch | BLOCKED → see below
-5. **Run `scripts/review-package BASE_SHA HEAD`** — writes diff file; dispatch task reviewer using `task-reviewer-prompt.md` with diff path
+5. **Run `scripts/review-package BASE_SHA HEAD`** — writes diff file; verify `git log BASE_SHA..HEAD --oneline` shows only this task's commits; dispatch task reviewer using `task-reviewer-prompt.md` with diff path
 6. **Review issues?** → dispatch fix subagent for Critical/Important → re-review | ⚠️ items → resolve yourself (you hold cross-task context)
 7. **Mark complete** → append to progress ledger → next task
-8. **After all tasks** — dispatch final code reviewer using `requesting-code-review/code-reviewer.md`
+8. **After all tasks** — invoke `superpowers:requesting-code-review` for final whole-branch review
 9. **Finish** — invoke `superpowers:finishing-a-development-branch`
 
 ## Pre-Flight Plan Review
@@ -63,16 +63,16 @@ Present all findings as **one batched question** to your human partner before ex
 
 Everything pasted into a dispatch stays in your context for the rest of the session. Use files:
 
-- **Task brief:** `scripts/task-brief PLAN N` → path for implementer
+- **Task brief:** `scripts/task-brief PLAN_FILE N` → path for implementer
 - **Report file:** `task-N-report.md` alongside the brief → implementer writes full report here; you read it before review dispatch
-- **Review package:** `scripts/review-package BASE HEAD` → path for reviewer (never enters your context)
-- **Dispatch content:** (1) where this task fits, (2) brief path as "requirements, exact values verbatim", (3) interfaces from earlier tasks, (4) report path + contract. No pasted task history from prior tasks.
+- **Review package:** `scripts/review-package BASE_SHA HEAD` → path for reviewer (never enters your context)
+- **Dispatch content:** (1) where this task fits, (2) brief file path (implementer reads all task requirements from it — do not summarize inline), (3) interfaces from earlier tasks, (4) report path + contract. No pasted task history from prior tasks.
 
 ## Durable Progress
 
 Conversation memory does not survive compaction. Track progress in a ledger file:
 
-- **At start:** `cat "$(git rev-parse --show-toplevel)/.superpowers/sdd/progress.md"` — tasks listed as complete are DONE, do not re-dispatch
+- **At start:** `cat "$(git rev-parse --show-toplevel)/.superpowers/sdd/progress.md" 2>/dev/null || echo "(no ledger — all tasks pending)"` — tasks listed as complete are DONE, do not re-dispatch; if file missing, start from Task 1
 - **On each task completion:** append `Task N: complete (commits <base7>..<head7>, review clean)`
 - **After compaction:** trust ledger + `git log` over your own recollection
 
@@ -118,7 +118,7 @@ Never force retry without changes. If stuck, something must change.
 - **Never** skip task review (both spec compliance AND quality in one pass)
 - **Never** dispatch parallel implementers without isolation rubric score ≥ 6 (see `references/parallel-dispatch-mode.md`)
 - **Never** provide plan file path to implementer instead of brief file path
-- **Never** dispatch task reviewer without a diff file (`scripts/review-package BASE HEAD`)
+- **Never** dispatch task reviewer without both BRIEF_FILE and DIFF_FILE — partial dispatch produces partial verdicts
 - **Never** proceed with unfixed Critical/Important review issues
 - **Never** let self-review replace actual review (both needed)
 - **Never** re-dispatch a task the progress ledger marks complete
@@ -147,5 +147,6 @@ Never force retry without changes. If stuck, something must change.
 | Pasted task text inline instead of using task-brief | Dispatch with `scripts/task-brief` path |
 | Skipped review or dispatched without diff file | Generate `scripts/review-package`, re-dispatch reviewer |
 | Progress lost after compaction | Check ledger at `.superpowers/sdd/progress.md` and `git log` |
+| Ledger says task complete but `git log` shows no commits | Implementer may have reported DONE without committing — re-dispatch that task |
 | Artifacts written to `.git/sdd/` | Use `scripts/sdd-workspace` — it writes to `.superpowers/sdd/` |
 | Parallel implementers caused merge conflicts | Never dispatch parallel implementers — sequential only |

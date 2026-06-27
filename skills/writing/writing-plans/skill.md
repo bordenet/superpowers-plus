@@ -50,6 +50,8 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
 
 ## Bite-Sized Task Granularity
 
+Right-Sizing defines task *boundaries* (when to split vs. fold). Bite-Sized defines task *step granularity* (what each step looks like inside a task).
+
 **Each step is one action (2-5 minutes):**
 - "Write the failing test" - step
 - "Run it to make sure it fails" - step
