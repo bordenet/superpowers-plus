@@ -140,6 +140,15 @@ Never force retry without changes. If stuck, something must change.
 - [task-reviewer-prompt.md](task-reviewer-prompt.md) — dispatch task reviewer (spec + quality)
 - Final review: use `superpowers:requesting-code-review`'s `code-reviewer.md`
 
+**Minimal dispatch example** (full template in `implementer-prompt.md`):
+
+```
+Implement task 3: "Add retry logic to API client."
+Brief: .superpowers/sdd/task-3-brief.md — read it; it contains all requirements.
+Report: .superpowers/sdd/task-3-report.md — write your full report here.
+Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
+```
+
 ## Failure Modes
 
 | Failure | Fix |
