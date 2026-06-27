@@ -110,6 +110,26 @@ Do NOT write any code or take implementation action until you have presented a d
 ## Status: Approved → invoke writing-plans
 ```
 
+## Visual Companion
+
+Offer to render diagrams just-in-time, not upfront. Do not offer at the start of a brainstorm — wait until there is something worth visualizing.
+
+**When to offer:**
+- After presenting 3+ options: "Want me to render a comparison diagram?"
+- When showing a decision tree or flow: "I can render this as a flowchart if that would help"
+- When the user seems to be processing complex relationships: offer once, don't repeat
+
+**Per-question rule:**
+- If the user is in a browser context (Claude.ai, web app): offer SVG/visual rendering
+- If the user is in a terminal context (CLI, IDE): offer ASCII diagram or skip the offer
+
+**Never:**
+- Offer visual rendering before any ideas have been explored
+- Offer repeatedly if the user declines
+- Render a diagram without offering first (unless user explicitly asks)
+
+The skill has a visual-companion.md reference file — use it for the rendering implementation details.
+
 ## Failure Modes
 
 | Failure | Fix |

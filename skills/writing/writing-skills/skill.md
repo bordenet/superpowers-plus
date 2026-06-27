@@ -28,6 +28,13 @@ composition:
 
 A **skill** is a reusable reference guide for techniques, patterns, or tools. NOT a narrative about solving a problem once.
 
+**Writing skills IS TDD applied to process documentation.** Follow RED-GREEN-REFACTOR:
+- **RED:** Run pressure scenario WITHOUT skill. Document exact agent failures/rationalizations verbatim.
+- **GREEN:** Write minimal skill addressing those specific failures. Verify agent now complies.
+- **REFACTOR:** Find new rationalizations → plug → re-test until bulletproof.
+
+**The Iron Law:** No skill without a failing baseline first. Same rule, same exceptions (none).
+
 ## SKILL.md Structure
 
 ```yaml
@@ -64,12 +71,67 @@ Domains: `engineering`, `writing`, `productivity`, `security`, `research`, `wiki
 
 ## Creation Checklist
 
-1. **Test first** — run pressure scenario WITHOUT the skill (baseline)
-2. **Watch it fail** — document exact agent violations/rationalizations
-3. **Write minimal skill** — address those specific failures
-4. **Watch it pass** — verify agent now complies
-5. **Close loopholes** — find new rationalizations → plug → re-verify
-6. **Size check** — `wc -l skill.md` must be ≤250 lines
+**RED — baseline first:**
+1. Run pressure scenario WITHOUT skill — document exact violations/rationalizations verbatim
+2. Identify failure type (rule skipped under pressure? wrong output shape? omits element? condition-dependent?)
+
+**GREEN — write minimal skill:**
+3. Choose guidance form matching failure type (see Match the Form to the Failure below)
+4. Write skill addressing those specific failures only
+5. Verify agent complies with skill present
+
+**REFACTOR — close loopholes:**
+6. Find new rationalizations → add explicit counter → re-test until bulletproof
+7. `wc -l skill.md` must be ≤250 lines
+
+## Skill Discovery Optimization (SDO)
+
+`description` = **triggering conditions ONLY**. Never summarize the skill's workflow.
+
+**Why this matters:** Testing showed descriptions that summarize workflow cause agents to follow the description *instead of reading the skill*. A description saying "code review between tasks" caused agents to do ONE review; "Use when executing implementation plans" caused them to correctly read and follow the two-stage flowchart.
+
+```yaml
+# ❌ BAD: Summarizes workflow — agents shortcut by following description, skip skill body
+description: "Use when executing plans — dispatches subagent per task with code review between tasks"
+# ✅ GOOD: Triggering conditions only
+description: "Use when executing implementation plans with independent tasks in the current session"
+```
+
+## Match the Form to the Failure
+
+Classify the baseline failure before writing guidance — the wrong form measurably backfires:
+
+| Baseline failure | Right form | Wrong form |
+|---|---|---|
+| Skips/violates rule under pressure (knows better, does it anyway) | Prohibition + rationalization table + red flags | Soft guidance ("prefer...", "consider...") |
+| Complies, but output has wrong shape (bloated prompt, buried verdict) | Positive recipe: state what output IS — its parts, in order | Prohibition list ("don't restate", "never narrate") |
+| Omits required element from something already produced | Structural: REQUIRED field/slot in the template they fill in | Prose reminders near the template |
+| Behavior should depend on a condition | Conditional keyed to observable predicate | Unconditional rule + exemption clauses |
+
+**Key:** Prohibitions backfire on shaping problems. Under competing incentives agents negotiate with "don't X". A recipe leaves nothing to negotiate: the output matches the stated shape or it doesn't. No nuance clauses — "don't X unless it matters" reopens the negotiation.
+
+## Bulletproofing Against Rationalization
+
+For discipline skills (rules agents skip under pressure only — for shaping failures use the forms above):
+- **Close every loophole explicitly:** Don't just state the rule — forbid specific workarounds with "No exceptions: not for simple additions, not for documentation updates, delete means delete."
+- **Spirit vs letter counter** (add early): "Violating the letter of the rules is violating the spirit of the rules."
+- **Rationalization table** from baseline test verbatims (capture exact excuses)
+- **Red Flags list** for agent self-check
+
+See `persuasion-principles.md` in this directory for research foundation (authority, commitment, scarcity, unity principles).
+
+## Common Rationalizations for Skipping Testing
+
+| Excuse | Reality |
+|--------|---------|
+| "Skill is obviously clear" | Clear to you ≠ clear to agents. Test it. |
+| "It's just a reference" | References have gaps. Test retrieval. |
+| "Testing is overkill" | Untested skills always have issues. 15 min testing saves hours. |
+| "I'll test if problems emerge" | Problems = agents can't use skill. Test BEFORE deploying. |
+| "No time to test" | Deploying untested skill wastes more time fixing it later. |
+| "I'm confident it's good" | Overconfidence guarantees issues. Test anyway. |
+
+See `testing-skills-with-subagents.md` in this directory for full methodology (pressure types, micro-testing wording, plugging holes).
 
 ## Quality Gates
 
