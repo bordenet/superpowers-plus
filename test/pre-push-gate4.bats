@@ -37,6 +37,7 @@ set -euo pipefail
 source ./stub-colors.sh
 REPO_ROOT="$PWD"
 PHR_SENTINEL="$PWD/.phr-cleared"
+PHR_SKILLS_MIN="9.2"
 EOF
     cat extracted-fn.sh >> harness.sh
     cat >> harness.sh <<'EOF'
@@ -286,4 +287,39 @@ teardown() {
     [[ "$output" == *"skills/zzz/skill.md"* ]]
     rm -rf "$WORK2"
     cd "$WORK"
+}
+
+# --- PHR skills floor (9.2 minimum for skills/ changes) ---
+
+@test "gate4: skills/ change + min-score below 9.2 -> BLOCK with floor message" {
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=8.5" > .phr-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"below project minimum"* ]]
+    [[ "$output" == *"9.2"* ]]
+}
+
+@test "gate4: skills/ change + min-score exactly 9.2 -> PASS" {
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.2" > .phr-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PHR cleared"* ]]
+}
+
+@test "gate4: skills/ change + min-score above 9.2 -> PASS" {
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.8" > .phr-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 0 ]
+}
+
+@test "gate4: non-skills .md change + min-score 8.5 -> PASS (floor does not apply)" {
+    # Commit a non-skills .md file (AGENTS.md) — floor must not trigger.
+    echo "# agents" > AGENTS.md
+    git add AGENTS.md
+    git commit -q -m "agents only"
+    AGENTS_SHA=$(git rev-parse HEAD)
+    echo "v1|${AGENTS_SHA}|PASS|2026-05-25T00:00:00Z|min-score=8.5" > .phr-cleared
+    run ./harness.sh "${HEAD_SHA}..${AGENTS_SHA}" "$AGENTS_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PHR cleared"* ]]
 }
