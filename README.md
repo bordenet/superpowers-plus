@@ -287,6 +287,37 @@ Private skills can shadow or extend public ones: route `todo-management` tasks t
 
 See [Enterprise Adopters Guide](docs/ENTERPRISE_ADOPTERS_GUIDE.md).
 
+## Claude Desktop Skills
+
+Skills installed by `install.sh` work in Claude Code CLI and Augment but **not** in Claude Desktop (plain chat, claude.ai). Claude Desktop reads from a server-side account registry — upload is manual via [Customize → Skills](https://claude.ai/customize/skills).
+
+A curated subset of 11 MCP-free, standalone skills can be packaged as upload-ready ZIPs:
+
+```bash
+./tools/package-for-claude.sh
+# ZIPs land in ~/superpowers-claude-desktop/
+```
+
+**Upload steps (as of 2026-06-27):**
+1. Go to [https://claude.ai/customize/skills](https://claude.ai/customize/skills)
+2. Click **Add skill** and upload each `.zip` from `~/superpowers-claude-desktop/`
+3. Enable each skill after upload
+
+**Keeping skills up to date:** After `git pull` + `./install.sh --upgrade`, re-run the script and re-upload any changed ZIPs. Claude Desktop has no auto-sync.
+
+**Options:**
+```
+--output DIR     Write ZIPs to DIR instead of ~/superpowers-claude-desktop/
+--manifest FILE  Use alternate skill list (default: tools/claude-desktop-skills.json)
+--keep           Preserve existing ZIPs instead of wiping the output dir first
+```
+
+The desktop allowlist lives in `tools/claude-desktop-skills.json`. To customize which skills are included, edit that file — the script validates every listed skill exists before packaging anything.
+
+> **Note:** Skill frontmatter (YAML at the top of each `skill.md`) passes through to Claude Desktop. Claude handles it gracefully; it does not interfere with skill invocation.
+
+---
+
 ## Tools
 
 Utility scripts in `tools/`:
@@ -311,6 +342,7 @@ Utility scripts in `tools/`:
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
 | `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
+| `package-for-claude.sh` | Packages curated skills as ZIPs for Claude Desktop manual upload |
 
 ## Troubleshooting
 
