@@ -40,6 +40,19 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 
 If you haven't completed Phase 1, you cannot propose fixes.
 
+## Human Partner Signals You're Doing It Wrong
+
+If the human says any of these, **STOP immediately**:
+
+- "You already tried that"
+- "That's not the problem"
+- "We've been going in circles"
+- "Stop and think about this differently"
+- "You're making this too complicated"
+- "Let's step back"
+
+Do not defend the current approach. Do not continue it. Acknowledge what they said, ask what they're seeing that you're missing, and restart the investigation from scratch.
+
 ## The Four Phases
 
 ### Phase 1: Root Cause Investigation
@@ -88,7 +101,26 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 3. **Check assumptions** — list every assumption you've made. Test the least-certain one first
 4. **Ask the human** — "I've tried X and Y, both failed because Z. My current hypothesis is W — does that match your understanding?"
 
-If 3+ fixes in different locations: the architecture is wrong, not your fix. Stop patching and discuss with the human.
+## Common Rationalizations
+
+| Rationalization | Why it fails |
+|-----------------|--------------|
+| "I'm almost sure it's X" | Certainty without evidence is bias. Check assumptions first. |
+| "Let me try one more thing" | After 3+ failed fixes, trying harder is wrong. Question the premise. |
+| "This worked before, so it must still work" | Environments change. Verify don't assume. |
+| "The error message says X so it must be X" | Error messages describe symptoms not root causes. |
+| "I'll add more logging to find it" | If you're adding logging blindly, you don't have a hypothesis. Form one first. |
+| "It's probably the same bug as last time" | Pattern matching skips root cause analysis. Verify. |
+| "The tests pass so it must be fixed" | Tests prove the tested path works. Verify the actual failure path. |
+| "It's working now, I don't know why" | Non-deterministic fixes will fail again. Find the root cause. |
+
+## 3+ Fixes Failed: Question Architecture
+
+If 3 or more distinct approaches have failed, the underlying architecture or assumptions are wrong. Stop adding fixes.
+
+1. Write down what you assumed was true at the start
+2. Check each assumption against evidence
+3. The broken assumption is likely the root cause
 
 ## Failure Modes
 

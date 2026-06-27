@@ -1,9 +1,6 @@
 ---
 name: subagent-driven-development
 source: superpowers-plus
-# Override rationale: Condensed from 277→91 lines. Adds two-stage review pattern
-# (spec compliance + code quality), inline role descriptions instead of external
-# prompt template files, and platform-agnostic sub-agent dispatch.
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 anti_triggers: ["simple task", "one file change", "quick fix"]
 description: "Use when executing implementation plans with independent tasks in the current session"
@@ -26,40 +23,75 @@ composition:
 
 # Subagent-Driven Development
 
+Execute plan by dispatching a fresh implementer subagent per task, a task review (spec compliance + code quality) after each, and a broad whole-branch review at the end.
+
+**Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need. **Narration:** between tool calls, one short line max — the ledger and tool results carry the record. **Continuous execution:** Do not pause to check in between tasks. The only reasons to stop: BLOCKED you cannot resolve, genuine ambiguity, cost signal from your human partner, or all tasks complete.
+
 ## When to Use
 
 - Executing implementation plans with independent tasks in the current session
 - User says "execute plan with subagents" or "implement plan with subagents"
 - NOT for: writing the plan (`writing-plans`), parallel session execution (`executing-plans`)
 
-Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
-
-**Why:** Fresh subagent per task = isolated context, no pollution. You construct exactly what they need.
-
 ### Parallel Dispatch Mode
 
 For tasks with sufficient isolation (different files, independent interfaces), the Execution Conductor can dispatch implementers in parallel. See `references/parallel-dispatch-mode.md` for full protocol.
 
-**Activation:** Fan-out eligibility rubric score ≥ 6 per task pair (file overlap, interface coupling, test isolation, data model coupling). **Cost cap:** 2.5× serial. **Default:** Sequential (existing behavior).
+**Activation:** Fan-out eligibility rubric score ≥ 6 per task pair (file overlap, interface coupling, test isolation, data model coupling). **Cost cap:** 2.5× serial. **Default:** Sequential.
 
 ## Process (per task)
 
-1. **Read plan** — extract all tasks with full text upfront, create TodoWrite
-2. **Dispatch implementer** subagent with full task text + context (never make subagent read plan file)
-3. **Handle status** — DONE → review | DONE_WITH_CONCERNS → assess then review | NEEDS_CONTEXT → provide and re-dispatch | BLOCKED → see below
-4. **Spec compliance review** — dispatch spec reviewer subagent. Issues? → implementer fixes → re-review until ✅
-5. **Code quality review** — dispatch quality reviewer subagent. Issues? → implementer fixes → re-review until ✅
-6. **Mark task complete** → next task
-7. **After all tasks** — Dispatch final sub-agent-code-reviewer for entire implementation
-8. **Finish** — invoke `superpowers:finishing-a-development-branch`
+1. **Read plan** — note Global Constraints, create TodoWrite for all tasks
+2. **Run `scripts/task-brief PLAN_FILE N`** — extracts task text to file; record current HEAD as BASE_SHA (verify: `git log BASE_SHA..HEAD --oneline` should show zero commits — you haven't started yet)
+3. **Dispatch implementer** using `implementer-prompt.md` with brief path + report path + context
+4. **Handle status** — DONE → generate review package | DONE_WITH_CONCERNS → assess → review | NEEDS_CONTEXT → provide and re-dispatch | BLOCKED → see below
+5. **Run `scripts/review-package BASE_SHA HEAD`** — writes diff file; verify `git log BASE_SHA..HEAD --oneline` shows only this task's commits; dispatch task reviewer using `task-reviewer-prompt.md` with diff path
+6. **Review issues?** → dispatch fix subagent for Critical/Important → re-review | ⚠️ items → resolve yourself (you hold cross-task context)
+7. **Mark complete** → append to progress ledger → next task
+8. **After all tasks** — invoke `superpowers:requesting-code-review` for final whole-branch review
+9. **Finish** — invoke `superpowers:finishing-a-development-branch`
+
+## Pre-Flight Plan Review
+
+Before dispatching Task 1, scan the plan for conflicts:
+- Tasks that contradict each other or the plan's Global Constraints
+- Anything the plan mandates that the review rubric treats as a defect
+
+Present all findings as **one batched question** to your human partner before execution begins. If the scan is clean, proceed without comment.
+
+## File Handoffs
+
+Everything pasted into a dispatch stays in your context for the rest of the session. Use files:
+
+- **Task brief:** `scripts/task-brief PLAN_FILE N` → path for implementer
+- **Report file:** `task-N-report.md` alongside the brief → implementer writes full report here; you read it before review dispatch
+- **Review package:** `scripts/review-package BASE_SHA HEAD` → path for reviewer (never enters your context)
+- **Dispatch content:** (1) where this task fits, (2) brief file path (implementer reads all task requirements from it — do not summarize inline), (3) interfaces from earlier tasks, (4) report path + contract. No pasted task history from prior tasks.
+
+## Durable Progress
+
+Conversation memory does not survive compaction. Track progress in a ledger file:
+
+- **At start:** `cat "$(git rev-parse --show-toplevel)/.superpowers/sdd/progress.md" 2>/dev/null || echo "(no ledger — all tasks pending)"` — tasks listed as complete are DONE, do not re-dispatch; if file missing, start from Task 1
+- **On each task completion:** append `Task N: complete (commits <base7>..<head7>, review clean)`
+- **After compaction:** trust ledger + `git log` over your own recollection
+
+The workspace lives at `.superpowers/sdd/` (not `.git/sdd/` — Claude Code agents cannot write to `.git/`). `scripts/sdd-workspace` creates and returns the path.
 
 ## Model Selection
 
-| Task type | Model tier | Signal |
-|-----------|-----------|--------|
-| Mechanical (1-2 files, clear spec) | Cheap/fast | Complete spec, isolated scope |
-| Integration (multi-file) | Standard | Cross-file coordination |
-| Architecture/design/review | Most capable | Judgment, broad understanding |
+Always specify model explicitly — omitting it inherits the session's most expensive model.
+
+**Turn count beats token price.** Cheap models take 2-3× the turns on multi-step work, often costing more overall. Use mid-tier as the floor for reviewers and prose-description implementers.
+
+| Role | Model tier | Signal |
+|------|-----------|--------|
+| Mechanical implementer (1-2 files, complete spec = transcription) | Cheapest | Complete code in plan |
+| Integration implementer (multi-file, judgment needed) | Standard | Cross-file coordination |
+| Architecture/design | Most capable | Broad understanding required |
+| Reviewer (small diff) | Standard | Scale to diff size and risk |
+| Reviewer (subtle/concurrency change) | Most capable | Risk warrants it |
+| Final whole-branch review | Most capable | Always |
 
 ## Handling BLOCKED Status
 
@@ -71,38 +103,49 @@ For tasks with sufficient isolation (different files, independent interfaces), t
 
 Never force retry without changes. If stuck, something must change.
 
-## Subagent Roles
+## Constructing Reviewer Prompts
 
-- **Implementer** — receives full task text + context, implements the change
-- **Spec compliance reviewer** — verifies implementation matches the plan/spec
-- **Code quality reviewer** — checks code quality, patterns, edge cases
+- Do not add open-ended directives ("check all uses") without a concrete task-specific reason
+- Do not ask a reviewer to re-run tests the implementer already ran on the same code
+- Do not pre-judge findings — never write "do not flag", "at most Minor", or "the plan chose" in a dispatch prompt
+- The `[GLOBAL_CONSTRAINTS]` block is the reviewer's attention lens — copy binding requirements verbatim from the plan; do not include process rules (they're in the template)
+- Dispatch fix subagents for Critical and Important; record Minor in the ledger for the final review
+- If a finding is labeled plan-mandated, present it to the human — do not dismiss or fix without asking
 
 ## Rules
 
 - **Never** start on main/master without user consent
-- **Never** skip either review stage (spec compliance THEN quality — order matters)
-- **Never** dispatch parallel implementers without isolation rubric score ≥ 6 and integration checkpoint protocol active (see `references/parallel-dispatch-mode.md`)
-- **Never** provide plan file path instead of full text
-- **Never** proceed with unfixed review issues
+- **Never** skip task review (both spec compliance AND quality in one pass)
+- **Never** dispatch parallel implementers without isolation rubric score ≥ 6 (see `references/parallel-dispatch-mode.md`)
+- **Never** provide plan file path to implementer instead of brief file path
+- **Never** dispatch task reviewer without both BRIEF_FILE and DIFF_FILE — partial dispatch produces partial verdicts
+- **Never** proceed with unfixed Critical/Important review issues
 - **Never** let self-review replace actual review (both needed)
+- **Never** re-dispatch a task the progress ledger marks complete
 - Answer subagent questions completely before letting them proceed
-- If reviewer finds issues → implementer fixes → reviewer re-reviews → repeat until approved
 
 ## Integration
 
 | Skill | Role |
 |-------|------|
 | `superpowers:using-git-worktrees` | Set up isolated workspace (REQUIRED) |
-| `superpowers:plan-and-execute` | Creates the plan this executes |
+| `superpowers:writing-plans` | Creates the plan this executes |
+| `superpowers:requesting-code-review` | Final whole-branch code review |
 | `superpowers:finishing-a-development-branch` | After all tasks complete |
 | `superpowers:executing-plans` | Alternative: parallel session execution |
 
-## Example: Dispatch Prompt
+## Prompt Templates
+
+- [implementer-prompt.md](implementer-prompt.md) — dispatch implementer subagent
+- [task-reviewer-prompt.md](task-reviewer-prompt.md) — dispatch task reviewer (spec + quality)
+- Final review: use `superpowers:requesting-code-review`'s `code-reviewer.md`
+
+**Minimal dispatch example** (full template in `implementer-prompt.md`):
 
 ```
 Implement task 3: "Add retry logic to API client."
-Files: src/api/client.ts (main), test/api/client.test.ts (tests).
-Constraints: max 3 retries, exponential backoff, no new dependencies.
+Brief: .superpowers/sdd/task-3-brief.md — read it; it contains all requirements.
+Report: .superpowers/sdd/task-3-report.md — write your full report here.
 Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
 ```
 
@@ -110,6 +153,9 @@ Reply DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED.
 
 | Failure | Fix |
 |---------|-----|
-| Subagent given plan file path instead of full text | Re-dispatch with complete task text inline |
-| Skipped spec compliance review, went straight to quality | Go back — spec compliance THEN quality, order matters |
+| Pasted task text inline instead of using task-brief | Dispatch with `scripts/task-brief` path |
+| Skipped review or dispatched without diff file | Generate `scripts/review-package`, re-dispatch reviewer |
+| Progress lost after compaction | Check ledger at `.superpowers/sdd/progress.md` and `git log` |
+| Ledger says task complete but `git log` shows no commits | Implementer may have reported DONE without committing — re-dispatch that task |
+| Artifacts written to `.git/sdd/` | Use `scripts/sdd-workspace` — it writes to `.superpowers/sdd/` |
 | Parallel implementers caused merge conflicts | Never dispatch parallel implementers — sequential only |
