@@ -41,6 +41,10 @@ SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 BRANCH_FLOW_SENTINEL="$REPO_ROOT/.branch-flow-cleared"
 PHR_SENTINEL="$REPO_ROOT/.phr-cleared"
 
+# Minimum PHR score required for pushes touching skills/ files.
+# Non-skills .md changes (design docs, plans) need only the general ≥8.0 PASS floor.
+PHR_SKILLS_MIN="9.2"
+
 # check_phr_sentinel(): Gate 4 -- require .phr-cleared when push range
 # touches PHR-eligible files (skill .md / docs / AGENTS.md). This closes
 # the gap where PHR was discipline-only and got skipped repeatedly.
@@ -149,6 +153,21 @@ check_phr_sentinel() {
         echo "    Pushing:     ${pushed_sha:0:8}"
         echo "    Commits were made after PHR. Re-run PHR then tools/run-phr.sh."
         return 1
+    fi
+
+    # Skills floor: any push touching skills/ requires min-score >= PHR_SKILLS_MIN.
+    local phr_score skills_in_push
+    phr_score="${phr_min#min-score=}"
+    skills_in_push=$(echo "$md_files" | grep '^skills/' || true)
+    if [[ -n "$skills_in_push" ]]; then
+        if ! LC_ALL=C awk -v s="$phr_score" -v m="$PHR_SKILLS_MIN" 'BEGIN { exit !(s >= m) }'; then
+            echo -e "  ${RED}❌ PUSH BLOCKED: PHR score below project minimum for skills/ changes.${NC}"
+            echo "    Got:      min-score=${phr_score}"
+            echo "    Required: >= ${PHR_SKILLS_MIN} (PHR_SKILLS_MIN in tools/pre-push)"
+            echo "    Run additional PHR rounds until weighted mean >= ${PHR_SKILLS_MIN}, then:"
+            echo "      tools/run-phr.sh --verdict PASS --min-score ${PHR_SKILLS_MIN}"
+            return 1
+        fi
     fi
 
     # Sentinel intentionally NOT consumed here: PHR is SHA-bound, so a single
