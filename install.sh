@@ -19,7 +19,7 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
-VERSION="2.6.0"
+VERSION="5.2.0"
 
 # --- Shell & Bash Version Guard ---
 # Detect if accidentally run under /bin/sh, dash, zsh, etc.
