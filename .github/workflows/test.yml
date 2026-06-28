@@ -137,6 +137,21 @@ jobs:
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
+      - name: SKILLS.md count lint
+        run: |
+          ACTUAL=$(find skills/ -name "skill.md" -not -path "*/_adapters/*" | wc -l | tr -d ' ')
+          DECLARED=$(grep -o 'SKILL-COUNT: [0-9]*' docs/SKILLS.md | grep -o '[0-9]*')
+          if [ -z "$DECLARED" ]; then
+            echo "FAIL: <!-- SKILL-COUNT: N --> comment not found in docs/SKILLS.md"
+            exit 1
+          fi
+          if [ "$ACTUAL" != "$DECLARED" ]; then
+            echo "FAIL: docs/SKILLS.md declares $DECLARED skills but found $ACTUAL"
+            echo "Update the <!-- SKILL-COUNT: --> comment in docs/SKILLS.md to $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: $ACTUAL skills match declared count in docs/SKILLS.md"
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
