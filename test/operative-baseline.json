@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T00:27:57.575Z",
+  "generated_at": "2026-06-29T01:44:44.839Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -96,12 +96,6 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 4
-    },
-    "engineering/gitlab-cli/skill.md": {
-      "step_headings": 0,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 25
     },
     "engineering/hotfix-charter/skill.md": {
       "step_headings": 0,
@@ -251,7 +245,7 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 1,
-      "code_fences": 6
+      "code_fences": 5
     },
     "engineering/unified-commit-gate/skill.md": {
       "step_headings": 0,

@@ -35,11 +35,6 @@ composition:
 
 **Announce at start:** "I'm using the **requirements-validation-pm** skill to validate these product requirements."
 
-## Companion Skills
-
-- **debate**: Evaluating product-strategy options from validated requirements
-- **brainstorming**: Generating customer-facing solutions that meet the requirements
-
 ## When to Use
 
 - Before product design — validate that requirements have real customer evidence and clear stakeholder owners
@@ -169,8 +164,6 @@ When two requirements conflict — typically because two stakeholders want incom
 ## Output Format
 
 > **Storage:** Publish this report to the requirement set's canonical home (linked wiki page, issue description, PR description, or shared document). If no canonical home is accessible in this session, output the report to the user and add: `PUBLISH PENDING: paste or link this report to [your requirements system] before it is acted on.` A report that exists only in a chat session is not durable. Include a validation date — a report older than the last customer interview or a market event that changes the problem space should be re-validated before use. Trigger re-validation on: (a) new customer signals that contradict a passed requirement, (b) a product pivot, (c) >90 days elapsed since validation.
-
-
 
 ```markdown
 ## Product Requirements Validation Report
