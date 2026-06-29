@@ -120,7 +120,6 @@ If the CLI is CWD-sensitive (e.g., `claude mcp add` defaults to project scope ba
 | What version is actually installed? | `<cli> --version 2>&1` — record this before starting the audit; confirm it matches the version the script was written against |
 | Are there environment variables that silently override these flags? | `AWS_PROFILE`, `AWS_DEFAULT_REGION`, `KUBECONFIG`, `HELM_NAMESPACE`, `NPM_CONFIG_REGISTRY`, `DOCKER_HOST`, `GITLAB_HOST`, etc. can override explicit flags — verify none are set unexpectedly in the deployment environment |
 | Does the CLI prompt for confirmation in non-TTY/CI environments? | CLIs like `terraform apply`, `helm install`, `npm publish`, `gh release create` may hang on interactive prompts in CI. Pin the no-prompt flag (e.g., `--auto-approve`, `--yes`, `--no-interactive`). |
-| What version of the CLI is installed vs. what the script was tested against? | Defaults and flags can change between versions. A script tested on `claude@3.0` may behave differently on `claude@2.x`. Record the tested version and add a version-guard comment. |
 | Are there dotfiles that silently override? | `~/.npmrc`, `~/.aws/credentials`, `~/.kube/config`, `~/.claude.json`, `~/.config/gh/hosts.yml`, `~/.docker/config.json` — if the script's explicit flags conflict with these, the dotfile may win on the deploy host |
 
 If any default does NOT match deployment intent → **the script is wrong**, even if it runs cleanly.
@@ -222,15 +221,6 @@ claude mcp list                 # project scope — should NOT show server if in
 | "We'll catch it in CI" | CI typically runs in a clean environment that masks scope/identity defaults |
 | "The other 8 installers do it the same way" | Copy-paste propagates the default-flag bug across the whole repo |
 | "I confirmed one hypothesis with a test" | Confirming Mechanism A doesn't exclude Mechanism B producing the same symptom — re-audit defaults independently |
-
----
-
-## Hand-off Triggers
-
-- Found a default mismatch → fix in-place
-- Found a default mismatch propagated across N installers → escalate to `providing-code-review` for the full diff
-- CLI's own `--help` is inconclusive → consult the CLI's official docs; do NOT guess
-
 ---
 
 ## Self-Check Before Declaring "Audit Complete"
