@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 102 -->
+<!-- SKILL-COUNT: 107 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (42)
+## Engineering (46)
 
 | Skill | Description |
 |-------|-------------|
@@ -20,10 +20,12 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints. |
+| `external-cli-audit` | Audits wrapper scripts invoking external CLIs. Enumerates defaults via `--help` before declaring correct. Catches silent scope/identity defaults bash can't see. |
 | `feature-development` | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | `field-rename-verification` | Traces READ, STORE, PASS paths when renaming fields or changing API contracts. |
 | `finishing-a-development-branch` | Guides completion of development work when implementation is done: mandates code review, presents merge/PR/cleanup options. |
 | `git-branch-conventions` | Enforces semantic prefix naming on branch creation. |
+| `gitlab-cli` | Full reference card for GitLab operations via `glab`: MRs, CI/CD, variables, issues, raw API. Includes macOS/Windows install and auth walkthrough. |
 | `hotfix-charter` | Gates `hotfix/*` and `fix/<TICKET-ID>-*` branches on a HOTFIX-CHARTER.md. Prevents scope creep on emergency fixes. |
 | `implementation-tracker` | Maintains a living progress document across multi-session implementations. |
 | `infra-config-investigator` | Diagnoses infrastructure, configuration, and deployment failures. |
@@ -39,6 +41,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `reproduction-experiment-investigator` | Tests hypotheses through controlled reproduction attempts. |
 | `requesting-code-review` | Dispatches the code-review-battery before presenting code changes to a human. Skips if valid sentinel exists. |
 | `requirements-validation` | Tests requirements for falsifiability, measurability, and independence. |
+| `requirements-validation-pm` | Validates product / PM requirements: customer-grounded, stakeholder-owned, business-measurable. USE INSTEAD OF requirements-validation when author is a PM. |
 | `scope-tripwire` | Pre-push advisory gate comparing branch diff to ticket estimate. Warns when LOC exceeds 2x estimate (200 LOC/point default). Advisory only. |
 | `session-handoff` | Cold-start advisory: surfaces remote commits from the last 24h not on any local branch. Catches the stale-context pattern before you edit blind. Read-only. |
 | `sp-bughunt` | Proactive adversarial bug hunt. Candidates flow through 5 named gates. Outputs ranked Confirmed bugs plus risk lists. Not for debugging a known failure. |
@@ -47,12 +50,13 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `systematic-debugging` | Root-cause-first investigation: reproduce, hypothesize, isolate, fix. |
 | `test-driven-development` | Write tests before implementation code. |
 | `timeline-trace-investigator` | Reconstructs incident timelines from traces, logs, deployments, and metrics. |
+| `token-estimation` | Translates any effort question into token-range estimates with confidence bands. Bans day/week/sprint output. Calibration table + overlap tiebreakers included. |
 | `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. |
 | `using-git-worktrees` | Use when starting feature work that needs isolation from current workspace or before executing implementation plans. |
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (21)
+## Productivity (22)
 
 | Skill | Description |
 |-------|-------------|
@@ -66,6 +70,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `golden-agents` | Initializes or upgrades AI guidance (AGENTS.md) for git repos. |
 | `innovation` | Produces a single high-conviction innovation answer for the project. |
 | `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
+| `model-selector` | Recommends the most cost-effective AI model for a task. Enforces the codebase-retrieval filter before considering external models. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
 | `quantitative-decision-gate` | Forces decision matrix evaluation before escalating questions to the user. |
 | `screenshot` | Visual input bridge. Grabs N most recent screenshots and dispatches to fix, explain, compare, spec, do-this, or free-form intent. `/sp-ss [N] [intent]`. |

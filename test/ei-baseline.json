@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-08T02:23:35.866Z",
+  "generated_at": "2026-06-29T01:44:44.778Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -73,6 +73,15 @@
         "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
+    "engineering/external-cli-audit/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "404d0adb4baf1199",
+        "length": 868,
+        "first_line": "| Failure | Fix |"
+      }
+    ],
     "engineering/feature-development/skill.md": [
       {
         "kind": "SEC",
@@ -105,6 +114,15 @@
         "normalized_hash": "3ee32d9167028f1a",
         "length": 327,
         "first_line": "| Mode | Symptom | Recovery |"
+      }
+    ],
+    "engineering/gitlab-cli/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "9b31796aacd59d2b",
+        "length": 1170,
+        "first_line": "| Failure | Fix |"
       }
     ],
     "engineering/implementation-tracker/skill.md": [
@@ -231,6 +249,15 @@
         "first_line": "| Failure | Fix |"
       }
     ],
+    "engineering/requirements-validation-pm/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "e02ee9c262cf7d48",
+        "length": 2152,
+        "first_line": "| Failure | Fix |"
+      }
+    ],
     "engineering/state-consistency-investigator/skill.md": [
       {
         "kind": "SEC",
@@ -244,8 +271,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "d8f45eea91265452",
-        "length": 358,
+        "normalized_hash": "255b8239648c782a",
+        "length": 689,
         "first_line": "| Failure | Fix |"
       }
     ],
@@ -276,12 +303,21 @@
         "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
+    "engineering/token-estimation/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "64fa96cfbf4d171d",
+        "length": 2207,
+        "first_line": "| Failure | Fix |"
+      }
+    ],
     "engineering/unified-commit-gate/skill.md": [
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "7bc32f026de369d7",
-        "length": 499,
+        "normalized_hash": "da8bbd2016d9b38e",
+        "length": 730,
         "first_line": "| Failure | Recovery |"
       }
     ],
@@ -532,6 +568,15 @@
         "first_line": "| Failure | Fix |"
       }
     ],
+    "observability/substrate-claim-audit/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "0bb8cf68112e6a8d",
+        "length": 1487,
+        "first_line": "| Failure | Detection | Recovery |"
+      }
+    ],
     "observability/superpowers-doctor/skill.md": [
       {
         "kind": "SEC",
@@ -566,6 +611,15 @@
         "normalized_hash": "16dc5d1d9ea2b7ea",
         "length": 650,
         "first_line": "| Failure | Symptom | Recovery |"
+      }
+    ],
+    "productivity/context-ferry/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "bd267609be0a2739",
+        "length": 1146,
+        "first_line": "| Failure | Recovery |"
       }
     ],
     "productivity/domain-design/skill.md": [
@@ -626,6 +680,15 @@
         "name": "Failure Modes",
         "normalized_hash": "a574e620e0ef4eab",
         "length": 352,
+        "first_line": "| Failure | Fix |"
+      }
+    ],
+    "productivity/model-selector/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "d01aab8df84c04ab",
+        "length": 1191,
         "first_line": "| Failure | Fix |"
       }
     ],
