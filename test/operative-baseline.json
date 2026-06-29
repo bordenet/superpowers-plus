@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T05:17:29.603Z",
+  "generated_at": "2026-06-29T00:27:57.575Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -67,6 +67,12 @@
       "hard_gate_table": 0,
       "code_fences": 0
     },
+    "engineering/external-cli-audit/skill.md": {
+      "step_headings": 7,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 6
+    },
     "engineering/feature-development/skill.md": {
       "step_headings": 7,
       "stop_markers": 0,
@@ -90,6 +96,12 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 4
+    },
+    "engineering/gitlab-cli/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 25
     },
     "engineering/hotfix-charter/skill.md": {
       "step_headings": 0,
@@ -181,6 +193,12 @@
       "hard_gate_table": 1,
       "code_fences": 2
     },
+    "engineering/requirements-validation-pm/skill.md": {
+      "step_headings": 1,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 2
+    },
     "engineering/scope-tripwire/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
@@ -214,7 +232,7 @@
     "engineering/systematic-debugging/skill.md": {
       "step_headings": 4,
       "stop_markers": 0,
-      "hard_gate_table": 0,
+      "hard_gate_table": 3,
       "code_fences": 1
     },
     "engineering/test-driven-development/skill.md": {
@@ -228,6 +246,12 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 2
+    },
+    "engineering/token-estimation/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 1,
+      "code_fences": 6
     },
     "engineering/unified-commit-gate/skill.md": {
       "step_headings": 0,
@@ -400,6 +424,12 @@
     "productivity/inter-agent-review-protocol/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "productivity/model-selector/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 1,
       "hard_gate_table": 0,
       "code_fences": 1
     },
@@ -611,7 +641,7 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 2
+      "code_fences": 3
     }
   }
 }
