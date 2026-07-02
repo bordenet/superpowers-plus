@@ -129,6 +129,7 @@ Analyze the diff and select reviewers:
 | File rename/move/delete | Guardian (inbound-reference focus) | Broken external consumers |
 | Test-only change | Standards Enforcer (+ Defect Finder for revert-safety) | Mock fidelity, revert-safety |
 | Security-class signal (caller-supplied URL, dynamic SQL identifier, new MCP tool/IPC, secret read, cookie/session, `_disabled/` revival) | AttackerPersona | Credential-flow, AI-agent boundary, ident-vs-value; tags + threat-model severity multiplier |
+| **New user-visible feature** (new endpoint, new agent action, new UI-affecting path, new workflow branch) with **no metric or trace emit in the diff** | Standards Enforcer (OE Telemetry Gate — mandatory Critical) | Missing time-series metrics and/or distributed trace instrumentation for new behavior — ships blind; see §4a OE Telemetry Gate |
 
 When no signal and no default activates a reviewer, skip it and say why in the triage line.
 
@@ -198,6 +199,7 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | Files renamed/moved/deleted without inbound scan | Guardian (inbound-reference focus) | Broken consumers outside the changed directory |
 | "Pre-existing" issues flagged | Defect Finder (lifecycle focus) | Deeper structural gaps |
 | Diff adds/changes a metric or alarm definition, or an error-handling branch that emits a metric or feeds an alarm | Standards Enforcer (observability-completeness focus) | Dead definitions, Success/Failure asymmetry, undifferentiated failure modes |
+| Diff adds new user-visible functionality with zero metric/trace emits (OE Telemetry Gate) | Standards Enforcer (OE focus — mandatory Critical) | Feature ships with no time-series metrics or trace instrumentation; cannot be operated or alarmed on |
 
 Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 
