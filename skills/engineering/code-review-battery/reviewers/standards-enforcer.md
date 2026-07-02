@@ -64,6 +64,15 @@ New logic paths MUST be debuggable in production. Check:
 - Are log messages specific enough to distinguish which branch was taken? (e.g., "skipped timer" is bad; "skipped timer: no user evidence (userVerified=false, eventCount=0)" is good)
 - Are metrics emitted for new decision points that affect user-visible behavior?
 
+**OE Telemetry Gate — CRITICAL for feature work (hard REJECT trigger):** When the diff introduces new user-visible functionality (new API endpoint, new agent action, new UI-affecting code path, new workflow branch), the following MUST be present in the diff or an accompanying change, or this is a **Critical** finding:
+
+1. **Time-series metrics**: at least one counter/gauge/histogram covering success, failure, and volume for the new behavior. A new code path with zero metric emissions ships blind.
+2. **Distributed traces**: if the new code crosses a service boundary or calls an external dependency, span instrumentation (trace propagation, span start/end, key attributes) must be present or explicitly wired to an existing trace context.
+
+The absence of either is **Critical** (not Important, not Minor) because it ships a feature that cannot be operated, debugged, or alarmed on. "We'll add metrics later" is not an acceptable finding disposition — file Critical and block.
+
+**Do NOT apply the OE Telemetry Gate to:** bug fixes on existing behavior (use the Important band), pure refactors with no new user-visible path, test-only changes, config-only changes with no new code path, or internal helper functions with no direct user-visible effect.
+
 **Observability completeness** (the absence of an emit is as much a defect as a wrong one — review the whole metric, not just new paths; treat any consuming dashboard/alarm as **live by default** unless the diff proves it unwired):
 
 - **Metric liveness**: every metric the diff defines or modifies must have at least one producer. A metric defined but never emitted reads a constant forever. Cross-check the catalog/registry against actual `.emit()` call sites.
@@ -100,7 +109,7 @@ For each finding:
 - **Severity** (use these definitions consistently):
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
-  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a dead metric or blinded alarm feeding a live dashboard/alarm, OR a separately-actionable failure cause folded into a generic metric/alarm (see 4a Observability completeness), is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
+  - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a dead metric or blinded alarm feeding a live dashboard/alarm, OR a separately-actionable failure cause folded into a generic metric/alarm (see 4a Observability completeness), is **Important**. **Hard exception**: missing time-series metrics OR traces for new user-visible functionality (see 4a OE Telemetry Gate) is **Critical** — not Important, not Minor.
 - **File:Line**: Exact location in the diff
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
