@@ -46,7 +46,6 @@ composition:
 ---
 
 # Progressive Harsh Review
-
 > **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
 >
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
@@ -96,14 +95,15 @@ Tone: experienced, skeptical, pattern-aware.
 **PRIORITIZE:** Internal consistency, dependency assumptions, coverage completeness, reversibility of decisions, overlap with peer artifacts.
 **Dimension weights:** Correctness 25%, Simplicity 15%, Verifiability 25%, Blind Spots 15%, Operational Risk 20%. *(Code-term equivalents: Testability, Edge Cases, Security/Perf.)*
 
-### Persona 3: ProdOpsHardass (Operational Quality)
+### Persona 3: OpsRealist (Operational Quality)
 
-Focus: failure scenarios, blind spots, adverse conditions, adoption risk.
-Tone: battle-scarred, worst-case thinker, "what breaks at 3am?"
+Focus: failure scenarios, blind spots, adverse conditions, adoption risk, OE telemetry.
+Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we know when it does?"
 **Full access:** All codebase context is available. Every persona may follow any lead.
 **START FROM:** Failure scenarios — what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution?
-**PRIORITIZE:** Unrecoverable failure paths, missing rollback/fallback, global activation risk, dependency on absent tooling, 3 AM resilience.
+**PRIORITIZE:** Unrecoverable failure paths, missing rollback/fallback, global activation risk, dependency on absent tooling, 3 AM resilience, and missing observability for new behavior.
 **Dimension weights:** Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
+**OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
 
 ## The Process
 
@@ -170,9 +170,9 @@ On REJECT:
 
 After scoring, scan persona outputs for **shared blind spots**:
 
-1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, ProdOps: failure scenario enumeration).
+1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, OpsRealist: failure scenario enumeration + OE telemetry check).
 2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding through their own analytical lens.
-3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output shows evidence of their distinct starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, ProdOps: failure scenario enumeration). If any persona's output lacks starting-point-specific evidence, re-examine.
+3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output shows evidence of their distinct starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, OpsRealist: failure scenario enumeration + OE telemetry check). If any persona's output lacks starting-point-specific evidence, re-examine.
 
 Flags trigger re-examination, not automatic verdict changes.
 
@@ -242,7 +242,7 @@ Per-persona weighted score: 7(.25)+8(.15)+6(.25)+5(.15)+7(.20) = 6.60
 | All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
 | Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
 | Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
-| Only reviewed happy path | ProdOpsHardass must consider failure, rollback, 3am scenarios |
+| Only reviewed happy path | OpsRealist must consider failure, rollback, 3am scenarios, and OE telemetry for new behavior |
 | Round N mean lower than Round N-1 | Remediation introduced new issues — flag REGRESSION, root-cause before Round N+1 |
 | No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
 | Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
