@@ -46,7 +46,6 @@ composition:
 ---
 
 # Progressive Harsh Review
-
 > **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
 >
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
@@ -104,7 +103,6 @@ Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we kn
 **START FROM:** Failure scenarios — what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution?
 **PRIORITIZE:** Unrecoverable failure paths, missing rollback/fallback, global activation risk, dependency on absent tooling, 3 AM resilience, and missing observability for new behavior.
 **Dimension weights:** Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
-
 **OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
 
 ## The Process
