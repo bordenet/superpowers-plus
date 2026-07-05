@@ -203,10 +203,16 @@ curl -sS --connect-timeout 10 --max-time 30 \
 
 ## Publishing Verification Contract
 
-1. **Pre-write scan:** Run `tools/wiki-markdown-validate.js` on the outbound markdown.
+1. **Pre-create duplicate check (create only, skip for updates):** Before calling `create_document_outline`,
+   search for an existing document with the same or near-identical title via `list_documents_outline` (this
+   is exactly the full-text search use case this tool is for, distinct from the round-trip ID lookup in step
+   3, which it must never be used for). If a plausible match is found, surface it to the user and get explicit
+   confirmation before proceeding — don't silently create a duplicate, and don't silently refuse either, since
+   two legitimately distinct pages can share a similar title.
+2. **Pre-write scan:** Run `tools/wiki-markdown-validate.js` on the outbound markdown.
    Check for: `\\[`, `\\]`, literal `&nbsp;`, literal `&mdash;`, empty hrefs, malformed tables.
-2. **Write:** Call `create_document_outline` or `update_document_outline`.
-3. **Round-trip:** Re-fetch via curl `documents.info` (no direct MCP tool for ID-based fetch —
+3. **Write:** Call `create_document_outline` or `update_document_outline`.
+4. **Round-trip:** Re-fetch via curl `documents.info` (no direct MCP tool for ID-based fetch —
    do NOT use `list_documents_outline` for this; it performs full-text search, not ID lookup).
    Re-run the same artifact scan on the returned `.data.text`. Fail closed if new artifacts appear.
 
