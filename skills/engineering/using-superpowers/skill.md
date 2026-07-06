@@ -50,7 +50,7 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## Platform Adaptation
 
-Skills use Claude Code tool names by default. On platforms with different tool-naming conventions — including Augment Code, where native tools are called directly rather than through Claude Code's MCP-style prefixes — substitute the equivalent native tool for any Claude-Code-specific tool name a skill references. For Copilot CLI: see `references/copilot-tools.md`. For Codex: see `references/codex-tools.md`. Gemini CLI gets the tool mapping via GEMINI.md.
+Skills use Claude Code tool names by default, including MCP-server tool names in Claude Code's own naming convention. On platforms with different tool-naming conventions — including Augment Code, where native tools are called directly without that MCP-style prefix — substitute the equivalent native tool for any Claude-Code-specific tool name a skill references. For Copilot CLI: see `references/copilot-tools.md`. For Codex: see `references/codex-tools.md`. Gemini CLI gets the tool mapping via GEMINI.md.
 
 # Using Skills
 
