@@ -3,7 +3,8 @@
 > **Purpose:** Shared anti-fabrication technique for any skill that synthesizes a document from a
 > transcript, interview, recording, or other source text.
 > **Used by:** Any synthesis-style skill producing a summary, report, or debrief from raw source material —
-> reference this file rather than re-deriving the rule locally.
+> reference this file rather than re-deriving the rule locally. No skill in this repo currently does; this
+> is forward-positioned for a synthesis-style skill (e.g. meeting notes, interview debriefs) to adopt.
 > **Related:** `evidence-schema.md` (structured evidence for forked-debugging investigators — codebase/infra
 > artifacts, not transcript-sourced claims). This file addresses the narrower, complementary case of claims
 > drawn from spoken or written source text.
