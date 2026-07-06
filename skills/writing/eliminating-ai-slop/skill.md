@@ -23,7 +23,7 @@ coordination:
 # Eliminating AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-06-16
+> **Last Updated:** 2026-07-05
 > **See also:** [reference.md](./reference.md) (patterns), [examples.md](./examples.md) (usage)
 >
 > **Wrong skill?** Analyzing/scoring text (read-only) → `detecting-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
@@ -53,6 +53,8 @@ coordination:
 3. **Vary structure** — Break uniform patterns
 4. **Delete over replace** — If a phrase adds nothing, cut it
 5. **Commit to positions** — "It depends" → "Use X for <1000 users, Y for more"
+6. **Ground claims in the source of truth** — Before writing any claim about team, product, or project state, check the authoritative source (ticket tracker, project wiki, or version-controlled docs). Never infer current state from old drafts, prior summaries, or training priors. Never invent "open questions" or "next steps" for closed topics.
+7. **Never resurrect corrected claims** — If the author struck or corrected a phrasing earlier in the document or session, it stays out. Sweep for previously corrected claims before every edit pass; do not restore them from stale drafts or summaries.
 
 ## Dictionary
 
@@ -80,6 +82,11 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 | "Game-changer" / "revolutionary" / "unprecedented" | Describe the specific difference |
 | "Data-driven" / "customer-centric" | Show the data or customer evidence |
 | "End-to-end" / "holistic" / "seamless experience" | Name the actual scope or flow |
+| En-dash or em-dash as pacing punctuation | Comma, semicolon, colon, or parentheses (en-dash stays in numeric/date ranges) |
+| "Failure mode" / "failure class" / "failure pattern" | Name the actual problem: "defect", "bug family", or the specific behavior |
+| "A minor X in the scheme of things, but a real one" | State the miss plainly, once, without the symmetric qualifier |
+| "Framed through [Framework]: A, B, C" | Delete, or replace with the concrete claim the framework was standing in for |
+| Funnel/activity metrics in a results line | Lead with the outcome ("all four hires made, each bar-raising"); move activity counts to an appendix or cut them |
 
 See `reference.md` for the full pattern catalog.
 
@@ -98,7 +105,7 @@ These slogan-like forms signal AI generation even with clean vocabulary.
 
 ## Self-Check
 
-Before publishing: meaning preserved? specificity added? voice consistent? no new slop introduced? GVR thresholds met?
+Before publishing: meaning preserved? specificity added? voice consistent? no new slop introduced? GVR thresholds met? state claims checked against the source of truth? no previously corrected claims reintroduced?
 
 ## Companion Skills
 
@@ -122,6 +129,8 @@ Before publishing: meaning preserved? specificity added? voice consistent? no ne
 | Over-correction strips personality from writing | Preserve author voice — only target known slop patterns |
 | False positive on legitimate hedging language | Context matters — "it's worth noting" in a risk section is fine |
 | Slop patterns evolve faster than the deny list | Update pattern list quarterly from real examples |
+| Resurrecting a claim the author already corrected | Sweep for previously struck phrasings before each edit; never restore from stale drafts or summaries |
+| Fabricating state (open questions, owners, timelines) for closed topics | Check the source of truth (ticket tracker, project wiki) before asserting anything about current state |
 
 ```bash
 # Example: invoke slop detection

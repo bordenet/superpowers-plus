@@ -1,7 +1,7 @@
 # Detecting AI Slop - Pattern Reference
 
 > **Parent skill:** [skill.md](./skill.md)
-> **Last Updated:** 2026-06-16
+> **Last Updated:** 2026-07-05
 
 This file contains the complete pattern dictionary for slop detection. The core skill.md loads this on demand.
 
@@ -307,10 +307,11 @@ AI-generated text often uses specific punctuation patterns.
 | Pattern | Category | Notes |
 |---------|----------|-------|
 | — (em-dash) | typographic-tell | Replace with comma, semicolon, colon, or parentheses |
+| – (en-dash) | typographic-tell | Same treatment as em-dash; agents substitute it when told to avoid em-dashes. Exempt in numeric/date ranges ("pp. 3–7", "Mar–Apr") |
 | … (ellipsis character) | typographic-tell | Use three periods (...) or rewrite |
 | " " (smart quotes) | typographic-tell | Context-dependent; flag if inconsistent |
 
-**Em-dash detection is HIGH PRIORITY.** Each instance adds 3 points (higher weight than standard lexical patterns).
+**Em-dash and en-dash detection is HIGH PRIORITY.** Each instance adds 3 points (higher weight than standard lexical patterns).
 
 ### Category 8: Vague Abstraction Phrases
 
@@ -348,6 +349,10 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | What does this mean for…? | "What does this mean for your team? Everything." |
 | X. Y. Z. | "Fast. Reliable. Secure." |
 | And the X? Y. | "And the result? Fewer errors." |
+| A minor X in the scheme of things, but a real one. | "A minor miss in the scheme of things, but a real one." |
+| X, but a real/important one nonetheless. | "A small gap, but an important one nonetheless." |
+
+**Hedged-concession detection rule:** the "A minor X..." and "X, but a real/important one..." rows are seeds for a shape, not a template list. Flag any admission softened by a symmetric qualifier ("admittedly minor, though it matters", "small in the grand scheme, yet worth flagging"). The fix is stating the miss plainly, once.
 
 ### Category 10: Clichés and Stock Phrases
 
@@ -368,6 +373,33 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | core competency | cliche |
 | best of breed | cliche |
 | mission critical | cliche |
+
+### Category 11: AI Jargon in Human Prose
+
+Terms AI assistants favor that read as machine output in prose written for humans. Each instance adds 2 points. The named entries are seeds; flag close variants of the same shape ("error class", "defect pattern", "failure category") under the same category.
+
+| Phrase | Category | Notes |
+|--------|----------|-------|
+| failure mode | ai-jargon | In prose for humans, name the actual problem: "defect", "bug family", or the specific behavior |
+| failure class | ai-jargon | Same treatment as "failure mode" |
+| failure pattern | ai-jargon | Same treatment as "failure mode" |
+
+**Exemption:** engineering-documentation conventions where the term is the section contract rather than prose: FMEA tables, postmortems, and `## Failure Modes` sections in skill files (this repo mandates them). Flag only free-running prose.
+
+---
+
+## Semantic Fabrication Patterns
+
+Patterns where the text asserts things the author has no basis for. These score on the **Semantic dimension** (5 points each) and are the highest-priority findings to surface: they are factual defects, not style defects. List them in Top Offenders even when the Semantic dimension is already capped. Resurrected corrected claims scores only when session/draft history is in context; it has no row in the skill.md scoring table for that reason.
+
+| Pattern | Description | Detection |
+|---------|-------------|-----------|
+| Framework name-dropping | Invoking a framework or model without a concrete claim attached ("Framed through Growth Mindset: People, Process, Technology.") | Framework/model name appears with no specific assertion in the same sentence or the one following. If deleting the sentence loses nothing, flag it |
+| Fabricated open questions / CTAs | Inventing "open questions", "next steps", or ownership gaps for topics that are closed or decided (e.g., claiming a decommissioned product "needs an owner and a timeline") | Flag unresolved-item framing that cites no source (ticket, doc, user statement). Exempt explicitly exploratory content (brainstorms, draft plans) where raising questions is the point |
+| Process metrics presented as results | Activity counts standing in for outcomes ("30 candidates tracked, 29 phone screens, 4 debriefs" burying "4 bar-raising hires made") | In a results/outcomes context, ask: do the numbers describe what was achieved, or how busy the process was? Funnel stats belong in appendices, not results lines |
+| Resurrected corrected claims | Reintroducing a claim the author already corrected earlier in the same document or session | Requires session/draft history, not the text alone: detectable only when prior corrections are in context. The prevention rule lives in `eliminating-ai-slop` (sweep for struck phrasings before each edit pass) |
+
+**Detection heuristic for state claims:** flag claims about team, product, or project state that cite no source. The corresponding writing-time rule (check the source of truth — the project wiki or ticket tracker — before asserting state) lives in `eliminating-ai-slop`.
 
 ---
 

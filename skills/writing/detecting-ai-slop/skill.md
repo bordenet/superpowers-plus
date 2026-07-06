@@ -23,7 +23,7 @@ composition:
 # Detecting AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-06-16
+> **Last Updated:** 2026-07-05
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
 >
 > **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
@@ -89,8 +89,8 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | Dimension | Max Points | Calculation |
 |-----------|------------|-------------|
 | Lexical | 40 | `min(40, pattern_count * 2)` |
-| Structural | 25 | `5 * content_structure_patterns + sum(style_tell_weights)` — content patterns (Cat. 9, formulaic intro, etc.) score 5 pts each; style-level tells (random bolding, one-sentence paragraphs, etc.) use variable weights from `reference.md` |
-| Semantic | 20 | `5 * semantic_patterns_found` |
+| Structural | 25 | `5 * structural_patterns + sum(style_tell_weights)` — rows marked Structural in the Structural & Semantic Patterns table score 5 pts each; style-level tells (random bolding, one-sentence paragraphs, etc.) use variable weights from `reference.md` |
+| Semantic | 20 | `5 * semantic_patterns_found` — rows marked Semantic in the Structural & Semantic Patterns table; each pattern scores once, on its stated dimension only |
 | Stylometric | 15 | `5 * stylometric_flags` |
 
 **Total:** Sum of dimensions, capped at 100.
@@ -116,20 +116,27 @@ Based on StyloAI (Opara, 2024) and Desaire et al. (2023) research.
 | Type-Token Ratio | TTR < 0.50 or TTR > 0.70 | 0.50 ≤ TTR ≤ 0.70 |
 | Hapax legomena rate | Below user baseline | At or above baseline |
 
-## Structural & Semantic Patterns (45 points max)
+## Structural & Semantic Patterns (capped by the Structural 25 + Semantic 20 dimension maxima)
 
-| Pattern | Description | Points |
-|---------|-------------|--------|
-| Formulaic Introduction | Rephrasing topic → importance → overview | +5 |
-| Template Sections | Overview → Key Points → Best Practices → Conclusion | +5 |
-| Over-Signposting | "In this section...", "As mentioned earlier..." | +5 |
-| Staccato Paragraphs | >50% are 1-2 sentences | +5 |
-| Symmetric Coverage | Equal weight to all options without prioritization | +5 |
-| Hollow Specificity | "Many companies have seen improvements" (which?) | +5 |
-| Absent Constraints | Absolute claims without limitations | +5 |
-| Balanced to a Fault | Every pro has matching con of equal weight | +5 |
-| Circular Reasoning | Rephrases thesis without new evidence | +5 |
-| Structural Contrast | "It's not about X. It's about Y." slogan forms (see Cat. 9 in reference.md) | +5 |
+Each pattern below scores +5 on its stated dimension.
+
+| Pattern | Description | Dimension |
+|---------|-------------|-----------|
+| Formulaic Introduction | Rephrasing topic → importance → overview | Structural |
+| Template Sections | Overview → Key Points → Best Practices → Conclusion | Structural |
+| Over-Signposting | "In this section...", "As mentioned earlier..." | Structural |
+| Staccato Paragraphs | >50% are 1-2 sentences | Structural |
+| Symmetric Coverage | Equal weight to all options without prioritization | Structural |
+| Hollow Specificity | "Many companies have seen improvements" (which?) | Semantic |
+| Absent Constraints | Absolute claims without limitations | Semantic |
+| Balanced to a Fault | Every pro has matching con of equal weight | Semantic |
+| Circular Reasoning | Rephrases thesis without new evidence | Semantic |
+| Structural Contrast | "It's not about X. It's about Y." slogan forms, including hedged concessions ("a minor X, but a real one") (see Cat. 9 in reference.md) | Structural |
+| Framework Name-Dropping | Framework invoked with no concrete claim attached (see Semantic Fabrication in reference.md) | Semantic |
+| Fabricated Open Questions | "Open questions"/"next steps" invented for closed or decided topics | Semantic |
+| Process Metrics as Results | Activity/funnel counts standing in for the actual outcome | Semantic |
+
+**Cap behavior:** the Semantic dimension saturates at 20 points (4 patterns). Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
 
 ## Lexical Pattern Categories
 
@@ -146,7 +153,9 @@ For the complete pattern dictionary, see [reference.md](./reference.md).
 | Vague Abstraction | the frame, the lens, the narrative, the space | Replace with the specific noun |
 | Structural Contrasts | "It's not about X. It's about Y." | Rewrite as direct claim |
 | Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Restructure |
-| Typographic Tells | em-dash (—), smart quotes | Replace with standard punctuation |
+| Typographic Tells | em-dash (—), en-dash, smart quotes | Replace with standard punctuation |
+| AI Jargon | failure mode/class/pattern in human prose | Name the actual problem |
+| Semantic Fabrication | framework name-dropping, fabricated open questions, process metrics as results, resurrected corrected claims | Ground in a source or delete |
 
 ## Dictionary Integration
 
