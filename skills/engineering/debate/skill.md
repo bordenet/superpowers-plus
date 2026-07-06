@@ -74,7 +74,12 @@ composition:
 
 ⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1.
 
-**Step 0, before picking a route on a non-trivial decision:** check `docs/superpowers/specs/` for an existing spec on this topic — don't rely on memory of whether `brainstorming` ran. If a matching spec exists, point to it instead of re-deriving requirements (reasoning that only ever existed inline, never written down, is vulnerable to being lost to context compaction with nothing to recover it from). If no matching spec exists and this isn't route 3's low-stakes case below, run `brainstorming` first rather than inventing requirements on the spot — this is a one-time bootstrap call, not the mid-investigation pattern route 2 forbids, and it terminates cleanly: `brainstorming`'s own process ends by optionally invoking `debate` again, and on that second pass this same Step 0 check now finds the spec on disk and points to it instead of recursing. That nested pass runs this skill's full 5-step process and produces its own decision-record — once it returns, the outer invocation that triggered the bootstrap is satisfied by that decision-record; do not also run Steps 1-5 a second time on the same spec.
+**Step 0, before picking a route on a non-trivial decision** — don't rely on memory of whether `brainstorming` ran:
+
+- Check `docs/superpowers/specs/` for an existing spec on this topic. Found one → point to it instead of re-deriving requirements from memory (reasoning that only ever existed inline, never written down, is vulnerable to being lost to context compaction).
+- No spec, and this isn't route 3's low-stakes case below → run `brainstorming` first. One-time bootstrap call, not the mid-investigation pattern route 2 forbids.
+- `brainstorming` surfaces ≥3 approaches → it re-invokes `debate` itself; that nested pass runs Steps 1-5 and produces the decision-record. The outer call is satisfied by that record — don't run Steps 1-5 again on the same spec.
+- `brainstorming` surfaces 2 (its routine baseline, not an edge case) → it does not re-invoke `debate`. The written, human-reviewed spec is the accepted resolution; the outer call proceeds from here using that spec as if it were the "spec already exists" branch above, rather than waiting on a decision-record that will never arrive.
 
 Then pick ONE:
 
