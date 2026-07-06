@@ -1,7 +1,7 @@
 # Eliminating AI Slop - Reference
 
 > **Parent skill:** [skill.md](./skill.md)
-> **Last Updated:** 2026-06-16
+> **Last Updated:** 2026-07-05
 
 This file contains detailed pattern reference and domain-specific rewriting strategies.
 
@@ -22,6 +22,7 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Sycophantic phrases | great question | Delete |
 | Transitional filler | let's dive into, however, indeed, furthermore | Delete or use plain connector |
 | Vague abstraction | the frame, the lens, the narrative, the space | Name the specific noun |
+| AI jargon | failure mode, failure class, failure pattern | Name the actual problem (defect, bug family, the specific behavior) |
 
 ### Structural Patterns (vary or restructure)
 
@@ -33,6 +34,7 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Staccato paragraphs | All 2-sentence paragraphs | Vary length |
 | Symmetric coverage | Every point equal weight | Prioritize ruthlessly |
 | Contrast slogans | "It's not about X. It's about Y." | State the direct claim |
+| Hedged concessions | "A minor miss in the scheme of things, but a real one" | State the miss plainly, once |
 | Staccato fragments | "Fast. Reliable. Secure." | Merge into a sentence with evidence |
 | Rhetorical bridge | "What does this mean for you?" | Answer it or cut the question |
 | Random bolding | Mid-sentence **bolding** for rhythm | Bold only genuine call-outs |
@@ -46,15 +48,20 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Absent constraints | No tradeoffs mentioned | Add limitations |
 | Balanced to a fault | "Both have merits" | Make a recommendation |
 | Circular reasoning | Restates without adding | Add new information |
+| Framework name-dropping | "Framed through Growth Mindset: People, Process, Technology" says nothing | State the concrete claim, or delete the sentence |
+| Fabricated open questions | Inventing "needs an owner and a timeline" for a closed product | Check the source of truth; assert only sourced unresolved items |
+| Process metrics as results | "30 candidates, 29 screens, 4 debriefs" burying "4 bar-raising hires" | Lead with the outcome; move or cut activity counts |
+| Resurrected corrected claims | Restoring a phrase the author already struck | Sweep for prior corrections before each edit pass |
 
 ### Typographic Patterns (replace punctuation)
 
-**Em-dash (—) - HIGH PRIORITY:**
+**Em-dash (—) and en-dash (–) - HIGH PRIORITY:**
 
 - Parenthetical → parentheses: "the project (started in 2024) succeeded"
 - Contrast → semicolon: "it worked; the maintenance burden compounded"
 - List intro → colon: "three things: speed, quality, cost"
 - Simple pause → comma: "it worked, but barely"
+- En-dash gets the same treatment as em-dash; it is the substitution agents reach for when told to avoid em-dashes. Keep it in ranges ("pp. 3–7", "Mar–Apr") and compound connections between independent nouns ("New York–London flight", "client–server model").
 
 ---
 
