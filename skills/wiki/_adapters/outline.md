@@ -206,7 +206,7 @@ curl -sS --connect-timeout 10 --max-time 30 \
 1. **Pre-create duplicate check (create only, skip for updates):** Before calling `create_document_outline`,
    search for an existing document with the same or near-identical title via `list_documents_outline` (this
    is exactly the full-text search use case this tool is for, distinct from the round-trip ID lookup in step
-   3, which it must never be used for). If a plausible match is found, surface it to the user and get explicit
+   4, which it must never be used for). If a plausible match is found, surface it to the user and get explicit
    confirmation before proceeding — don't silently create a duplicate, and don't silently refuse either, since
    two legitimately distinct pages can share a similar title.
 2. **Pre-write scan:** Run `tools/wiki-markdown-validate.js` on the outbound markdown.
