@@ -67,7 +67,7 @@ Slop Score: 73/100
 Breakdown:
 ├── Lexical:      28/40  (14 patterns in 500 words)
 ├── Structural:   18/25  (formulaic intro, template sections)
-├── Semantic:     12/20  (3 hollow examples, 1 absolute claim)
+├── Semantic:     12/20  (hollow examples, absolute claims, and other Semantic findings — see Top Offenders)
 └── Stylometric:  15/15  (low sentence variance, flat TTR)
 
 Top Offenders (showing 10 of 23):
@@ -137,11 +137,11 @@ Each pattern below scores +5 on its stated dimension.
 | Fabricated Open Questions | "Open questions"/"next steps" invented for closed or decided topics | Semantic |
 | Process Metrics as Results | Activity/funnel counts standing in for the actual outcome | Semantic |
 
-**Cap behavior:** 7 rows above are tagged Semantic; the dimension saturates at 20 points once any 4 of them are found (4 × 5 = 20) — this is a scoring ceiling, not a count of how many Semantic patterns exist. Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
+**Cap behavior:** 6 rows above are tagged Structural; that dimension saturates at 25 points once any 5 of them are found (5 × 5 = 25), before style-tell weights are even added — same ceiling logic as below. 7 rows above are tagged Semantic; the dimension saturates at 20 points once any 4 of them are found (4 × 5 = 20) — this is a scoring ceiling, not a count of how many Semantic patterns exist. Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
 
 ## Pattern Category Quick Reference
 
-For the complete pattern dictionary, see [reference.md](./reference.md). **Dimension** shows which scoring bucket each category feeds (see Scoring Algorithm above) — this table spans all four dimensions, not Lexical alone.
+For the complete pattern dictionary, see [reference.md](./reference.md). **Dimension** shows which scoring bucket each category feeds (see Scoring Algorithm above) — this table spans Lexical, Structural, and Semantic, not Lexical alone (Stylometric patterns are measured directly, not via this category dictionary).
 
 | Category | Examples | Dimension | Action |
 |----------|----------|-----------|--------|
