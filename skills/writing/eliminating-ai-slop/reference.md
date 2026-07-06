@@ -61,7 +61,7 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 - Contrast → semicolon: "it worked; the maintenance burden compounded"
 - List intro → colon: "three things: speed, quality, cost"
 - Simple pause → comma: "it worked, but barely"
-- En-dash gets the same treatment as em-dash; it is the substitution agents reach for when told to avoid em-dashes. Keep it only in numeric/date ranges ("pp. 3–7", "Mar–Apr").
+- En-dash gets the same treatment as em-dash; it is the substitution agents reach for when told to avoid em-dashes. Keep it in ranges ("pp. 3–7", "Mar–Apr") and compound connections between independent nouns ("New York–London flight", "client–server model").
 
 ---
 

@@ -74,6 +74,7 @@ Top Offenders (showing 10 of 23):
  1. Line 12: "incredibly powerful" [Generic booster]
  2. Line 34: "leverage synergies" [Buzzword cluster]
  3. Line 56: "it's important to note" [Filler phrase]
+ 4. Line 78: "Framed through Growth Mindset: People, Process, Technology" [Framework name-dropping — Semantic, listed despite dimension cap]
  ...
 
 Stylometric Measurements:
@@ -89,8 +90,8 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | Dimension | Max Points | Calculation |
 |-----------|------------|-------------|
 | Lexical | 40 | `min(40, pattern_count * 2)` |
-| Structural | 25 | `5 * structural_patterns + sum(style_tell_weights)` — rows marked Structural in the Structural & Semantic Patterns table score 5 pts each; style-level tells (random bolding, one-sentence paragraphs, etc.) use variable weights from `reference.md` |
-| Semantic | 20 | `5 * semantic_patterns_found` — rows marked Semantic in the Structural & Semantic Patterns table; each pattern scores once, on its stated dimension only |
+| Structural | 25 | `min(25, 5 * structural_pattern_instances + sum(style_tell_weights))` — count each matched instance of a row marked Structural in the Structural & Semantic Patterns table (5 pts per instance, not per pattern type); style-level tells (random bolding, one-sentence paragraphs, etc.) use variable weights from `reference.md` |
+| Semantic | 20 | `min(20, 5 * semantic_pattern_instances)` — count each matched instance of a row marked Semantic in the Structural & Semantic Patterns table (5 pts per instance, not per pattern type); each instance scores once, on its stated dimension only |
 | Stylometric | 15 | `5 * stylometric_flags` |
 
 **Total:** Sum of dimensions, capped at 100.
@@ -136,26 +137,27 @@ Each pattern below scores +5 on its stated dimension.
 | Fabricated Open Questions | "Open questions"/"next steps" invented for closed or decided topics | Semantic |
 | Process Metrics as Results | Activity/funnel counts standing in for the actual outcome | Semantic |
 
-**Cap behavior:** the Semantic dimension saturates at 20 points (4 patterns). Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
+**Cap behavior:** 7 rows above are tagged Semantic; the dimension saturates at 20 points once any 4 of them are found (4 × 5 = 20) — this is a scoring ceiling, not a count of how many Semantic patterns exist. Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
 
-## Lexical Pattern Categories
+## Pattern Category Quick Reference
 
-For the complete pattern dictionary, see [reference.md](./reference.md).
+For the complete pattern dictionary, see [reference.md](./reference.md). **Dimension** shows which scoring bucket each category feeds (see Scoring Algorithm above) — this table spans all four dimensions, not Lexical alone.
 
-| Category | Examples | Action |
-|----------|----------|--------|
-| Generic Boosters | incredibly, extremely, very | Delete or replace with metrics |
-| Buzzwords | robust, seamless, leverage, elevate, harness, pivotal, impactful | Replace with plain language |
-| Filler Phrases | "It's important to note that", "In today's ever-evolving world" | Delete entirely |
-| Hedge Patterns | of course, arguably, seems to | Commit or remove |
-| Sycophancy | "Great question!", "Happy to help!" | Delete |
-| Transitional Filler | Furthermore, Moreover, Additionally, However, Indeed | Use sparingly or cut |
-| Vague Abstraction | the frame, the lens, the narrative, the space | Replace with the specific noun |
-| Structural Contrasts | "It's not about X. It's about Y." | Rewrite as direct claim |
-| Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Restructure |
-| Typographic Tells | em-dash (—), en-dash, smart quotes | Replace with standard punctuation |
-| AI Jargon | failure mode/class/pattern in human prose | Name the actual problem |
-| Semantic Fabrication | framework name-dropping, fabricated open questions, process metrics as results, resurrected corrected claims | Ground in a source or delete |
+| Category | Examples | Dimension | Action |
+|----------|----------|-----------|--------|
+| Generic Boosters | incredibly, extremely, very | Lexical | Delete or replace with metrics |
+| Buzzwords | robust, seamless, leverage, elevate, harness, pivotal, impactful | Lexical | Replace with plain language |
+| Filler Phrases | "It's important to note that", "In today's ever-evolving world" | Lexical | Delete entirely |
+| Hedge Patterns | of course, arguably, seems to | Lexical | Commit or remove |
+| Sycophancy | "Great question!", "Happy to help!" | Lexical | Delete |
+| Transitional Filler | Furthermore, Moreover, Additionally, However, Indeed | Lexical | Use sparingly or cut |
+| Vague Abstraction | the frame, the lens, the narrative, the space | Lexical | Replace with the specific noun |
+| Structural Contrasts | "It's not about X. It's about Y." | Structural | Rewrite as direct claim |
+| Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Structural | Restructure |
+| Typographic Tells | em-dash (—), en-dash, smart quotes | Lexical | Replace with standard punctuation |
+| AI Jargon | failure mode/class/pattern in human prose | Lexical | Name the actual problem |
+| Semantic Fabrication | framework name-dropping, fabricated open questions, process metrics as results | Semantic | Ground in a source or delete |
+| Resurrected Corrected Claims | reintroducing a phrasing the author already struck earlier in the document/session | Semantic (unscored — requires session context, no scoring-table row) | Sweep prior corrections before each edit pass |
 
 ## Dictionary Integration
 

@@ -82,10 +82,11 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 | "Game-changer" / "revolutionary" / "unprecedented" | Describe the specific difference |
 | "Data-driven" / "customer-centric" | Show the data or customer evidence |
 | "End-to-end" / "holistic" / "seamless experience" | Name the actual scope or flow |
-| En-dash or em-dash as pacing punctuation | Comma, semicolon, colon, or parentheses (en-dash stays in numeric/date ranges) |
+| En-dash or em-dash as pacing punctuation | Comma, semicolon, colon, or parentheses (en-dash stays in ranges and compound noun-pairs like "client–server") |
 | "Failure mode" / "failure class" / "failure pattern" | Name the actual problem: "defect", "bug family", or the specific behavior |
 | "A minor X in the scheme of things, but a real one" | State the miss plainly, once, without the symmetric qualifier |
 | "Framed through [Framework]: A, B, C" | Delete, or replace with the concrete claim the framework was standing in for |
+| "[Closed topic] needs an owner and a timeline" | Delete, or cite the actual open item and its source |
 | Funnel/activity metrics in a results line | Lead with the outcome ("all four hires made, each bar-raising"); move activity counts to an appendix or cut them |
 
 See `reference.md` for the full pattern catalog.

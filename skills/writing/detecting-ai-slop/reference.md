@@ -307,7 +307,7 @@ AI-generated text often uses specific punctuation patterns.
 | Pattern | Category | Notes |
 |---------|----------|-------|
 | — (em-dash) | typographic-tell | Replace with comma, semicolon, colon, or parentheses |
-| – (en-dash) | typographic-tell | Same treatment as em-dash; agents substitute it when told to avoid em-dashes. Exempt in numeric/date ranges ("pp. 3–7", "Mar–Apr") |
+| – (en-dash) | typographic-tell | Same treatment as em-dash; agents substitute it when told to avoid em-dashes. Exempt in ranges ("pp. 3–7", "Mar–Apr") and compound connections between independent nouns ("New York–London flight", "client–server model") |
 | … (ellipsis character) | typographic-tell | Use three periods (...) or rewrite |
 | " " (smart quotes) | typographic-tell | Context-dependent; flag if inconsistent |
 
@@ -384,7 +384,7 @@ Terms AI assistants favor that read as machine output in prose written for human
 | failure class | ai-jargon | Same treatment as "failure mode" |
 | failure pattern | ai-jargon | Same treatment as "failure mode" |
 
-**Exemption:** engineering-documentation conventions where the term is the section contract rather than prose: FMEA tables, postmortems, and `## Failure Modes` sections in skill files (this repo mandates them). Flag only free-running prose.
+**Exemption:** engineering-documentation conventions where the term is the section contract rather than prose: FMEA tables, postmortems, and `## Failure Modes` sections in skill files that mandate that heading. Flag only free-running prose.
 
 ---
 
@@ -394,7 +394,7 @@ Patterns where the text asserts things the author has no basis for. These score 
 
 | Pattern | Description | Detection |
 |---------|-------------|-----------|
-| Framework name-dropping | Invoking a framework or model without a concrete claim attached ("Framed through Growth Mindset: People, Process, Technology.") | Framework/model name appears with no specific assertion in the same sentence or the one following. If deleting the sentence loses nothing, flag it |
+| Framework name-dropping | Invoking a framework or model without a concrete claim attached ("Framed through Growth Mindset: People, Process, Technology.") | Framework/model name appears with no specific assertion anywhere in the same paragraph (not just the same or next sentence — a framework named once and legitimately elaborated over several sentences, e.g. STRIDE or RICE, is not name-dropping). If deleting the mention loses nothing by the end of the paragraph, flag it |
 | Fabricated open questions / CTAs | Inventing "open questions", "next steps", or ownership gaps for topics that are closed or decided (e.g., claiming a decommissioned product "needs an owner and a timeline") | Flag unresolved-item framing that cites no source (ticket, doc, user statement). Exempt explicitly exploratory content (brainstorms, draft plans) where raising questions is the point |
 | Process metrics presented as results | Activity counts standing in for outcomes ("30 candidates tracked, 29 phone screens, 4 debriefs" burying "4 bar-raising hires made") | In a results/outcomes context, ask: do the numbers describe what was achieved, or how busy the process was? Funnel stats belong in appendices, not results lines |
 | Resurrected corrected claims | Reintroducing a claim the author already corrected earlier in the same document or session | Requires session/draft history, not the text alone: detectable only when prior corrections are in context. The prevention rule lives in `eliminating-ai-slop` (sweep for struck phrasings before each edit pass) |
