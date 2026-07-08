@@ -224,7 +224,12 @@ if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
         [[ "$_ts" =~ ^[0-9]+$ ]] || continue
         _age=$((_NOW - _ts))
         if [[ $_age -le ${REVIEW_TOKEN_TTL:-300} ]]; then
-            _tr=$(cat "$_tf" 2>/dev/null || true)
+            # harsh-review.sh writes the repo path on line 1 and a staged
+            # tree hash on line 2 (see its token-minting comment) -- a plain
+            # `cat` comparison against $REPO_ROOT never matches a two-line
+            # file, so this check must read line 1 only, same as pre-commit's
+            # own token verification.
+            _tr=$(sed -n '1p' "$_tf" 2>/dev/null || true)
             if [[ "$_tr" == "$REPO_ROOT" ]]; then _FOUND_NEW_TOKEN=true; break; fi
         fi
     done

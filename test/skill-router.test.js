@@ -164,6 +164,34 @@ console.log('\n--- Query expansion ---');
   }
 }
 
+// --- Bug-hunt regression: prototype pollution via "constructor"-like terms ---
+console.log('\n--- Prototype pollution: constructor/toString/etc in query and description ---');
+{
+  const mockSkills = [
+    { name: 'oop-patterns', triggers: ['constructor pattern'], description: 'Explains the constructor pattern in OOP design', anti_triggers: [] },
+    { name: 'systematic-debugging', triggers: ['debug'], description: 'Systematic debugging process', anti_triggers: [] },
+  ];
+  // Previously: CONCEPT_EXPANSIONS['constructor'] resolved via the prototype
+  // chain to Object.prototype.constructor (truthy, not iterable), throwing
+  // "TypeError: expansions is not iterable" and crashing the whole call.
+  let threw = null;
+  let results = [];
+  try {
+    results = matchSkillsTfIdf('constructor toString hasOwnProperty valueOf', mockSkills, 5);
+  } catch (e) {
+    threw = e;
+  }
+  assert(threw === null, `matchSkillsTfIdf must not throw on prototype-keyword terms (threw: ${threw && threw.message})`);
+  assert(results.every(r => Number.isFinite(r.score)), 'all scores must be finite (no NaN poisoning)');
+
+  // Repeated-term amplification: the per-skill description-boost loop used to
+  // iterate raw (non-deduped) query terms; this is a cheap smoke check that a
+  // query with many repeated terms still returns a sane, finite score.
+  const repeated = Array.from({ length: 500 }, () => 'test').join(' ');
+  const repeatedResults = matchSkillsTfIdf(repeated, mockSkills, 5);
+  assert(repeatedResults.every(r => Number.isFinite(r.score)), 'repeated-term query must still produce finite scores');
+}
+
 // --- Composition pipeline: basic dependency resolution ---
 console.log('\n--- Composition pipeline ---');
 {
