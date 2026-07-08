@@ -4,6 +4,14 @@
 TOOLS_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../tools" && pwd)"
 REAL_REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
+# Single source of truth for the token FORMAT (see tools/lib/review-token.sh).
+# Assertions in this file must read tokens through review_token_repo(), not a
+# duplicated `sed`/`cat`, or a future format change breaks these tests again
+# without anyone noticing until CI.
+# shellcheck source=../tools/lib/review-token.sh
+# shellcheck disable=SC1091
+source "$TOOLS_DIR/lib/review-token.sh"
+
 setup() {
     export TEST_HOME="$(mktemp -d)"
     export HOME="$TEST_HOME"
@@ -96,9 +104,7 @@ _seed_token() {
     local latest_token
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
     local token_content token_real fixture_real
-    # Token line 1 is the repo path; line 2 (added for staged-tree binding)
-    # is a git write-tree hash, not part of the path.
-    token_content=$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")
+    token_content=$(review_token_repo "$REVIEW_TOKEN_DIR/$latest_token")
     # Resolve symlinks (macOS: /var → /private/var) for reliable comparison
     token_real=$(cd "$token_content" && pwd -P)
     fixture_real=$(cd "$fixture" && pwd -P)
@@ -121,7 +127,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real fixture_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(review_token_repo "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     fixture_real=$(cd "$fixture" && pwd -P)
     # Token must be scoped to the fixture repo (script's repo), NOT the overlay dir
     [ "$token_real" = "$fixture_real" ]
@@ -143,7 +149,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real overlay_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(review_token_repo "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     overlay_real=$(cd "$overlay_repo" && pwd -P)
     # Token must be scoped to the overlay repo
     [ "$token_real" = "$overlay_real" ]
@@ -169,7 +175,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real overlay_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(review_token_repo "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     overlay_real=$(cd "$overlay_repo" && pwd -P)
     # Token must be scoped to the wrapper's overlay repo, NOT the .env one
     [ "$token_real" = "$overlay_real" ]
@@ -1056,4 +1062,28 @@ EOF
     rm -rf "$fixture"
     [ "$status" -eq 0 ]
     [[ "$output" == *"allow-empty only"* ]]
+}
+
+# Regression: a tree-hash line was added to the review-token format without
+# updating commit-gate.sh's own whole-file `cat` comparison or this test
+# file's assertions, silently breaking both until CI caught it several
+# commits later. Both gaps came from duplicating the token format instead of
+# sharing one parser. These two tests encode that invariant going forward.
+
+@test "review-token.sh round-trip: write then read returns the same repo path and tree hash" {
+    local tmp_token
+    tmp_token=$(mktemp)
+    review_token_write "$tmp_token" "/some/repo/path" "abc123deadbeef"
+    [ "$(review_token_repo "$tmp_token")" = "/some/repo/path" ]
+    [ "$(review_token_tree "$tmp_token")" = "abc123deadbeef" ]
+    rm -f "$tmp_token"
+}
+
+@test "all review-token consumers source the shared lib (no duplicated ad-hoc parsing)" {
+    for f in "$TOOLS_DIR/harsh-review.sh" "$TOOLS_DIR/pre-commit" "$TOOLS_DIR/commit-gate.sh"; do
+        grep -q "review-token.sh" "$f" || {
+            echo "MISSING: $f does not source tools/lib/review-token.sh"
+            return 1
+        }
+    done
 }
