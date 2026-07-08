@@ -247,7 +247,18 @@ install_adapter() {
     fi
 
     if [[ -d "$lib_src" ]]; then
+        # rm -rf's exit code alone isn't a reliable signal on the fragile
+        # mounts this file's own comments already flag (WSL/NTFS). `cp -r src
+        # dest` behaves completely differently depending on whether dest
+        # still exists -- it copies INTO an existing dest instead of
+        # replacing it, silently nesting new content one level too deep
+        # alongside whatever old content the failed rm left behind. Check the
+        # actual filesystem state, not just rm's reported exit code. Use -e
+        # OR -L: -e alone follows symlinks and reports false for a dangling
+        # symlink left behind by a failed rm, letting a stale filesystem
+        # entry slip past this guard undetected.
         rm -rf "${lib_dest:?}" 2>/dev/null
+        { [[ -e "$lib_dest" ]] || [[ -L "$lib_dest" ]]; } && error_exit "Failed to remove existing $lib_dest before reinstalling lib/"
         cp -r "$lib_src" "$lib_dest" || error_exit "Failed to copy lib/ to $lib_dest"
         log_verbose "Installed lib/ directory"
     fi
@@ -298,12 +309,24 @@ sync_managed_checkout() {
                     log_warn "Managed checkout is ahead of origin/main — skipping sync (use --force to reset)"
                 fi
             else
-                log_warn "Managed checkout history has diverged from origin/main — auto-resetting"
-                if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
-                   git -C "$managed_dir" clean -fd --quiet 2>/dev/null; then
-                    log_success "Managed checkout recovered: reset to origin/main"
+                # This branch used to reset --hard/clean -fd
+                # unconditionally, unlike the "ahead" branch just above, which
+                # correctly requires --force for the identical destructive
+                # operation. True divergence isn't only caused by an upstream
+                # force-push (the case this was designed for) -- a stray local
+                # commit, an interrupted rebase, or a manual edit in this
+                # managed checkout also lands here, and all local work in any
+                # of those cases was being destroyed with no opt-out.
+                if [[ "${FORCE:-false}" == "true" ]]; then
+                    log_warn "Managed checkout history has diverged from origin/main — auto-resetting (--force)"
+                    if git -C "$managed_dir" reset --hard origin/main --quiet 2>/dev/null && \
+                       git -C "$managed_dir" clean -fd --quiet 2>/dev/null; then
+                        log_success "Managed checkout recovered: reset to origin/main"
+                    else
+                        log_warn "Auto-reset failed — run: cd $managed_dir && git reset --hard origin/main"
+                    fi
                 else
-                    log_warn "Auto-reset failed — run: cd $managed_dir && git reset --hard origin/main"
+                    log_warn "Managed checkout history has diverged from origin/main — skipping sync (use --force to reset; this discards any local commits/changes in $managed_dir)"
                 fi
             fi
         fi
@@ -320,20 +343,52 @@ register_source_repo() {
     create_dir "${HOME}/.codex"
     [[ -f "$env_file" ]] || touch "$env_file"
 
+    # Write through a symlink rather than replacing it.
+    # ~/.codex/.env is commonly a symlink to a cloud-synced canonical file
+    # (see tools/env-doctor.sh) -- `mv tmp "$env_file"` replaces whatever is
+    # AT that path, so if it's a symlink, the sync relationship to the
+    # canonical file would be silently and permanently severed, not updated.
+    local write_target="$env_file"
+    if [[ -L "$env_file" ]]; then
+        write_target="$(realpath "$env_file" 2>/dev/null || readlink -f "$env_file" 2>/dev/null || true)"
+        if [[ -z "$write_target" || ! -f "$write_target" ]]; then
+            # Falling back to write_target="$env_file" here would reproduce the
+            # exact bug this symlink-aware branch exists to prevent: the "update
+            # existing var" path below does `mv "${write_target}.tmp" "$write_target"`,
+            # which replaces whatever sits at that path -- if that's the symlink
+            # itself, `mv` severs the sync relationship instead of updating through
+            # it (confirmed empirically). Skip rather than silently write through it.
+            log_warn "Could not resolve symlink target for $env_file — skipping $var_name registration to avoid writing through the symlink"
+            return 1
+        fi
+    fi
+
     # Use single quotes to prevent shell expansion of special characters
     # ($, ", \, spaces) when the .env file is later sourced.
     local new_line="${var_name}='${source_path//\'/\'\\\'\'}'"
 
-    if grep -q "^${var_name}=" "$env_file" 2>/dev/null; then
-        # Remove old line and append new (avoids sed delimiter/escaping issues)
-        grep -v "^${var_name}=" "$env_file" > "${env_file}.tmp" || true
-        mv "${env_file}.tmp" "$env_file"
+    if grep -q "^${var_name}=" "$write_target" 2>/dev/null; then
+        # Remove old line and append new (avoids sed delimiter/escaping issues).
+        # grep -v exits 1 (not an error) when every line
+        # matches -- legitimately zero non-matching lines to keep -- but exits
+        # 2 on a genuine read failure. `|| true` used to mask both identically,
+        # and the `>` redirect had already created/truncated .tmp before grep
+        # even ran, so a genuine failure still produced a file the unconditional
+        # `mv` below would use to overwrite the real one.
+        local grep_status=0
+        grep -v "^${var_name}=" "$write_target" > "${write_target}.tmp" || grep_status=$?
+        if [[ "$grep_status" -eq 2 ]]; then
+            log_warn "Could not read $write_target to update $var_name — leaving existing file untouched"
+            rm -f "${write_target}.tmp"
+            return 1
+        fi
+        mv "${write_target}.tmp" "$write_target"
     fi
     # Ensure file ends with a newline before appending
-    if [[ -s "$env_file" ]] && [[ "$(tail -c 1 "$env_file" | wc -l)" -eq 0 ]]; then
-        echo "" >> "$env_file"
+    if [[ -s "$write_target" ]] && [[ "$(tail -c 1 "$write_target" | wc -l)" -eq 0 ]]; then
+        echo "" >> "$write_target"
     fi
-    echo "$new_line" >> "$env_file"
+    echo "$new_line" >> "$write_target"
 
     log_verbose "Registered source repo: $var_name=$source_path"
 }
@@ -361,6 +416,28 @@ managed_skill_source_matches() {
     grep -q '^source: superpowers-plus$' "$skill_file" 2>/dev/null
 }
 
+# remove_stale_managed_dir <path>
+# Safely remove a directory entry that may be a symlink, without ever
+# following the symlink into its target -- mirrors the pattern in
+# migrate.sh's _migrate_remove_obra_clone(). Accepts a path with or without a
+# trailing slash: glob expansions like "$dir"/*/ carry one, but `[[ -L ]]`
+# resolves THROUGH a trailing-slash symlink path instead of testing the link
+# itself, so the slash must be stripped first or the symlink case is never
+# detected. Three call sites below used to `rm -rf` a
+# glob-expanded, trailing-slash path directly -- if that path was a symlink to
+# an unrelated real directory (a live dev checkout symlinked in for testing,
+# a stale link from a prior tool version), `rm -rf "path/"` followed the link
+# and deleted the TARGET directory's entire contents, not just the link.
+remove_stale_managed_dir() {
+    local path="${1%/}"
+    if [[ -L "$path" ]]; then
+        rm -f "$path"
+        return $?
+    fi
+    [[ -d "$path" ]] || return 0
+    rm -rf "${path:?}"
+}
+
 prune_stale_managed_skills() {
     local target_dir="$1"
     local manifest="$2"
@@ -382,7 +459,7 @@ prune_stale_managed_skills() {
                 continue
             fi
             if [[ -z "${current_skill_map[$stale_skill]:-}" ]] && [[ -d "$target_dir/$stale_skill" ]]; then
-                rm -rf "${target_dir:?}/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
+                remove_stale_managed_dir "$target_dir/$stale_skill" || log_warn "Failed to remove stale skill: $stale_skill"
                 log_verbose "Removed stale skill: $stale_skill"
             fi
         done < "$manifest"
@@ -393,7 +470,7 @@ prune_stale_managed_skills() {
         [[ -d "$installed_dir" ]] || continue
         skill_name=$(basename "$installed_dir")
         if [[ -z "${current_skill_map[$skill_name]:-}" ]] && managed_skill_source_matches "$installed_dir"; then
-            rm -rf "${installed_dir:?}" || log_warn "Failed to remove stale managed skill: $skill_name"
+            remove_stale_managed_dir "$installed_dir" || log_warn "Failed to remove stale managed skill: $skill_name"
             log_verbose "Removed stale managed skill (source fallback): $skill_name"
         fi
     done
@@ -428,9 +505,18 @@ install_tools() {
     if [[ -f "$manifest" ]]; then
         while IFS= read -r stale_tool; do
             [[ -z "$stale_tool" ]] && continue
+            # prune_stale_managed_skills() and install_libs()
+            # both reject manifest entries containing '/' or a leading '.' as
+            # defense-in-depth against a corrupt/tampered manifest traversing
+            # outside tools_dest; this loop read the same kind of persistent,
+            # user-writable manifest file without that guard.
+            if [[ "$stale_tool" == */* || "$stale_tool" == .* ]]; then
+                log_warn "Skipping unsafe manifest entry: '$stale_tool'"
+                continue
+            fi
             if [[ -z "${current_tools[$stale_tool]:-}" ]] && [[ -e "$tools_dest/$stale_tool" ]]; then
                 if [[ -d "$tools_dest/$stale_tool" ]]; then
-                    rm -rf "${tools_dest:?}/${stale_tool:?}" || log_warn "Failed to remove stale tool dir: $stale_tool"
+                    remove_stale_managed_dir "$tools_dest/$stale_tool" || log_warn "Failed to remove stale tool dir: $stale_tool"
                 else
                     rm -f "$tools_dest/$stale_tool" || log_warn "Failed to remove stale tool: $stale_tool"
                 fi
@@ -880,7 +966,7 @@ prune_legacy_augment_skills() {
         [[ -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
         [[ -z "$skill_file" ]] && continue
         if grep -Eq "^source: ${prune_source}$" "$skill_file" 2>/dev/null; then
-            rm -rf "${skill_dir:?}" || { log_warn "Failed to prune legacy skill: $(basename "$skill_dir")"; continue; }
+            remove_stale_managed_dir "$skill_dir" || { log_warn "Failed to prune legacy skill: $(basename "$skill_dir")"; continue; }
             log_verbose "  Pruned legacy ~/.augment/skills/$(basename "$skill_dir") (source: $prune_source)"
             pruned=$((pruned + 1))
         fi
@@ -942,7 +1028,15 @@ export_augment_menu_skills() {
         exported_names["$dest_name"]=1
 
         dest="$AUGMENT_MENU_DIR/$dest_name"
+        # On a failed rm, `mkdir -p` on an already-existing dest is a silent
+        # no-op -- the per-file copy loop below only adds/overwrites files
+        # present in the new skill_dir, so any stale file from a PRIOR export
+        # that isn't in the current one would survive, merged in alongside
+        # the new content, with no indication anything is wrong. Use -e OR
+        # -L: -e alone follows symlinks and misses a dangling symlink left
+        # behind by a failed rm.
         rm -rf "${dest:?}" 2>/dev/null || true
+        { [[ -e "$dest" ]] || [[ -L "$dest" ]]; } && { log_warn "Failed to remove existing $dest before re-exporting $skill_name; skipping to avoid merging stale content"; continue; }
         mkdir -p "$dest"
 
         # Copy all files from the installed skill
@@ -997,7 +1091,7 @@ with open(path, 'w') as f: f.write(content)
             if [[ -z "${exported_names[$dir_name]:-}" ]]; then
                 if grep -q "^source: ${prune_source}$" "$installed_dir/SKILL.md" 2>/dev/null || \
                    grep -q "^source: ${prune_source}$" "$installed_dir/skill.md" 2>/dev/null; then
-                    rm -rf "${installed_dir:?}"
+                    remove_stale_managed_dir "$installed_dir"
                     log_verbose "  Pruned stale Augment menu skill: $dir_name"
                 fi
             fi
@@ -1089,8 +1183,18 @@ install_skills() {
                 continue
             fi
             local shared_dest="$target_dir/_shared"
+            # rm's exit code alone doesn't guarantee shared_dest is actually
+            # gone (see lib_dest above) -- and `cp -R src dest` copies INTO
+            # an existing dest instead of replacing it, producing a
+            # one-level-too-deep nested copy (dest/_shared/...) alongside
+            # whatever stale content survived. Use -e OR -L: -e alone follows
+            # symlinks and misses a dangling symlink left behind by a failed rm.
             rm -rf "${shared_dest:?}" 2>/dev/null || true
-            cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest"
+            if [[ -e "$shared_dest" || -L "$shared_dest" ]]; then
+                log_warn "Failed to remove existing $shared_dest before redeploying _shared/; skipping"
+                continue
+            fi
+            cp -R "$SCRIPT_DIR/skills/_shared" "$shared_dest" || log_warn "Failed to deploy _shared/ to $shared_dest"
         done
         log_verbose "Deployed _shared/ support directory"
     fi
