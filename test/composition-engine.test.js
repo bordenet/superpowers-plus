@@ -140,6 +140,37 @@ test('buildPipeline returns error for unknown capability', () => {
     assert(result.error === 'CAPABILITY_NOT_FOUND');
 });
 
+// Bug-hunt regression: a non-optional skill whose producer's own dependency
+// chain fails to resolve used to be silently added to the pipeline anyway
+// (missing else branch). Now it must be excluded, with an [ERROR] explanation.
+test('buildPipeline excludes a skill whose non-optional producer fails to resolve', () => {
+    const target = makeSkill('needs-ghost', {
+        produces: ['final'], consumes: ['ghost-artifact'], capabilities: ['final-cap'], priority: 10,
+    });
+    const brokenProducer = makeSkill('broken-producer', {
+        produces: ['ghost-artifact'], consumes: ['nothing-produces-this'], priority: 5,
+    });
+    const result = buildPipeline('final-cap', [target, brokenProducer]);
+    const names = result.pipeline.map(s => s.name);
+    assert(!names.includes('needs-ghost'), `target should be excluded, got: ${names}`);
+    assert(result.explanation.some(l => l.includes('[ERROR]') && l.includes('failed to resolve')));
+});
+
+// Bug-hunt regression: buildPipeline discarded resolve(targetSkill)'s return
+// value, so it reported error: null even when the target itself never made
+// it into the pipeline (see test above) -- callers like superpowers-augment.js
+// treat error === null as full success.
+test('buildPipeline reports TARGET_RESOLUTION_FAILED when the target itself fails to resolve', () => {
+    const target = makeSkill('needs-ghost-2', {
+        produces: ['final2'], consumes: ['ghost-artifact-2'], capabilities: ['final-cap-2'], priority: 10,
+    });
+    const brokenProducer = makeSkill('broken-producer-2', {
+        produces: ['ghost-artifact-2'], consumes: ['nothing-produces-this-2'], priority: 5,
+    });
+    const result = buildPipeline('final-cap-2', [target, brokenProducer]);
+    assert.strictEqual(result.error, 'TARGET_RESOLUTION_FAILED');
+});
+
 // ---- pipelineToMermaid ----
 test('pipelineToMermaid generates valid mermaid', () => {
     const result = buildPipeline('publishes-wiki', allSkills);
@@ -235,6 +266,18 @@ test('resolveCoordinationChain: missing enabled skill is warning not error', () 
     assert.strictEqual(result.error, null);
     assert.deepStrictEqual(result.chain, ['a']);
     assert(result.explanation.some(l => l.includes('WARN')));
+});
+
+// Bug-hunt regression: a transitively-missing require (not the start skill's
+// own immediate requires, which are already hard-blocked above) used to be
+// silently dropped by collectPredecessors() with no warning, unlike its
+// sibling collectSuccessors() which does warn on a missing 'enables' target.
+test('resolveCoordinationChain: transitively-missing require warns, does not block', () => {
+    const a = makeCoordSkill('a', { order: 1, enables: [], requires: ['b'] });
+    const b = makeCoordSkill('b', { order: 2, enables: [], requires: ['ghost'] });
+    const result = resolveCoordinationChain('a', [a, b]);
+    assert.strictEqual(result.error, null);
+    assert(result.explanation.some(l => l.includes('WARN') && l.includes('ghost')));
 });
 
 // PHR adversarial #5: shuffled input array → same chain order (determinism)

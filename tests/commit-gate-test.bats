@@ -96,7 +96,9 @@ _seed_token() {
     local latest_token
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
     local token_content token_real fixture_real
-    token_content=$(cat "$REVIEW_TOKEN_DIR/$latest_token")
+    # Token line 1 is the repo path; line 2 (added for staged-tree binding)
+    # is a git write-tree hash, not part of the path.
+    token_content=$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")
     # Resolve symlinks (macOS: /var → /private/var) for reliable comparison
     token_real=$(cd "$token_content" && pwd -P)
     fixture_real=$(cd "$fixture" && pwd -P)
@@ -119,7 +121,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real fixture_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     fixture_real=$(cd "$fixture" && pwd -P)
     # Token must be scoped to the fixture repo (script's repo), NOT the overlay dir
     [ "$token_real" = "$fixture_real" ]
@@ -141,7 +143,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real overlay_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     overlay_real=$(cd "$overlay_repo" && pwd -P)
     # Token must be scoped to the overlay repo
     [ "$token_real" = "$overlay_real" ]
@@ -167,7 +169,7 @@ _seed_token() {
     [ "$status" -eq 0 ]
     local latest_token token_real overlay_real
     latest_token=$(ls -t "$REVIEW_TOKEN_DIR" | head -1)
-    token_real=$(cd "$(cat "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
+    token_real=$(cd "$(sed -n '1p' "$REVIEW_TOKEN_DIR/$latest_token")" && pwd -P)
     overlay_real=$(cd "$overlay_repo" && pwd -P)
     # Token must be scoped to the wrapper's overlay repo, NOT the .env one
     [ "$token_real" = "$overlay_real" ]
