@@ -90,7 +90,7 @@ Do NOT write any code or take implementation action until you have presented a d
 1. Write spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 2. Run spec review loop (subagent reviewer, max 3 iterations)
 3. User reviews written spec
-4. **If ≥3 viable approaches emerged** — invoke `debate` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones)
+4. **If ≥3 viable approaches emerged** — invoke `debate` to formally compare and red-team the already-surfaced approaches (NOT to generate new ones). `debate` expects to be handed the spec written in step 1 rather than re-deriving requirements itself.
 5. Invoke `plan-and-execute` skill for implementation plan
 
 ## Key Principles

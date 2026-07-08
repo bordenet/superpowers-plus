@@ -72,10 +72,19 @@ composition:
 
 ## Preflight
 
-⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1. Pick ONE:
+⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1.
+
+**Step 0, before picking a route on a non-trivial decision** — don't rely on memory of whether `brainstorming` ran:
+
+- Check `docs/superpowers/specs/` for an existing spec on this topic. Found one → point to it instead of re-deriving requirements from memory (reasoning that only ever existed inline, never written down, is vulnerable to being lost to context compaction).
+- No spec, and this isn't route 3's low-stakes case below → run `brainstorming` first. One-time bootstrap call, not the mid-investigation pattern route 2 forbids.
+- `brainstorming` surfaces ≥3 approaches → it re-invokes `debate` itself; that nested pass runs Steps 1-5 and produces the decision-record. The outer call is satisfied by that record — don't run Steps 1-5 again on the same spec.
+- `brainstorming` surfaces 2 (its routine baseline, not an edge case) → it does not re-invoke `debate`. The written, human-reviewed spec is the accepted resolution; the outer call proceeds from here using that spec as if it were the "spec already exists" branch above, rather than waiting on a decision-record that will never arrive.
+
+Then pick ONE:
 
 1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
-2. **Requirements or architecture need investigation** — pause debate, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills from within this preflight — that creates recursive loops.
+2. **Requirements or architecture need investigation** — pause debate, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills mid-investigation on this route as an ad hoc research shortcut — that creates recursive loops. (Step 0's one-time `brainstorming` bootstrap call is a separate, bounded, self-terminating exception, not this pattern.)
 3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, proceeding without formal validation." Then proceed to Step 1.
 
 Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.

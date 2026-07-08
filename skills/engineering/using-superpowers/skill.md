@@ -38,6 +38,8 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## How to Access Skills
 
+**In Augment Code:** A compact skill index (name, description, triggers) is injected at session bootstrap — the same index-then-dispatch flow used on other non-native platforms (see the AI-Native Trigger Matching diagram in `docs/DESIGN.md`). When a trigger matches, load the full skill via this repo's bootstrap CLI's `use-skill` command rather than reading the file directly. Once loaded, native platform tools are available directly, without the MCP-style naming prefix some other platforms use.
+
 **In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
 
 **In Copilot CLI:** Use the `skill` tool. Skills are auto-discovered from installed plugins. The `skill` tool works the same as Claude Code's `Skill` tool.
@@ -48,7 +50,7 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## Platform Adaptation
 
-Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-tools.md` (Copilot CLI), `references/codex-tools.md` (Codex) for tool equivalents. Gemini CLI users get the tool mapping loaded automatically via GEMINI.md.
+Skills use Claude Code tool names by default, including MCP-server tool names in Claude Code's own naming convention. On platforms with different tool-naming conventions — including Augment Code, where native tools are called directly without that MCP-style prefix — substitute the equivalent native tool for any Claude-Code-specific tool name a skill references. For Copilot CLI: see `references/copilot-tools.md`. For Codex: see `references/codex-tools.md`. Gemini CLI gets the tool mapping via GEMINI.md.
 
 # Using Skills
 
