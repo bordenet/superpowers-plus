@@ -24,7 +24,6 @@ coordination:
   order: 3
   requires:
     - verification-before-completion
-    - issue-verify
   enables: []
   escalates_to: []
   internal: false
