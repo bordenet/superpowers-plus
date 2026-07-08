@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Skills for AI coding assistants that enforce the practices AI would otherwise skip. Built on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). Can be used for non-coding workloads, too!
+Skills for AI coding assistants that enforce the practices AI would otherwise skip. Can be used for non-coding workloads, too!
 
 Tell your AI assistant what you're doing:
 
@@ -26,9 +26,9 @@ Tell your AI assistant what you're doing:
 
 AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification. With `systematic-debugging` in place, the same assistant enforces root-cause-first investigation instead: reproduce, hypothesize, isolate, fix. No fix without completing that investigation first.
 
-Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent is a framework for teaching AI agents reusable procedures. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
+Skills are structured procedures that AI agents follow automatically, and superpowers-plus adds skills across 9 domains.
 
-Each skill exists because it caught a real problem.
+Each skill exists because it caught a recurring, nagging problem.
 
 A system prompt is a suggestion the assistant can forget under context pressure. These skills are backed by lifecycle hooks and commit gates that run outside its own context, enforced by git itself once installed, not by whether it remembers to ask for review.
 
@@ -124,7 +124,7 @@ curl -fsSL https://raw.githubusercontent.com/bordenet/superpowers-plus/main/inst
 
 > **Security note:** Review the script before piping: `curl -fsSL <url> | less` — then re-run with `| bash` once satisfied.
 
-Installs the superpowers core framework (bordenet/superpowers) + the Augment adapter. Does **not** install the full skill suite; use git clone above for that.
+Sets up the Augment adapter and a skills directory. Does **not** install the full skill suite; use git clone above for that.
 
 ### Claude Code
 
@@ -169,7 +169,7 @@ If you're using the install paths above without an MCP client, you can skip this
 
 **Requires:** Node.js 18+. Verify: `node --version` (npm is bundled with Node.js — no separate install needed)
 
-> **Security scope:** The MCP server binds to localhost only and exposes no authentication (see `mcp/superpowers-mcp.js` — search for `listen` to verify the bind address). Use it for local single-user development; do not expose the node process to network interfaces in shared or server environments.
+> **Security scope:** The MCP server communicates over stdio, not a network socket (see the `StdioServerTransport` import in `mcp/superpowers-mcp.js`); there is no port or bind address at all. It has no authentication of its own, so anything able to spawn the process gets the same file-read access it has.
 
 1. `cd mcp && npm install` — review `mcp/package-lock.json` for unexpected transitive dependencies before running in sensitive environments
 2. Add this to your MCP client configuration. Example for Claude (`~/.claude/settings.json`). Replace `/absolute/path/to/superpowers-plus` with the absolute path from `pwd` in your checkout (no trailing slash, no `~/` shorthand — use the full path):
@@ -185,7 +185,7 @@ If you're using the install paths above without an MCP client, you can skip this
    }
    ```
 
-3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~90 available skill names.
+3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~107 available skill names.
 
 If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
@@ -254,21 +254,20 @@ The commit-gate chain (`unified-commit-gate` → pre-commit → style → code r
 **Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`). If `SUPERPOWERS_SKILLS_DIR` points to a nonexistent or incomplete directory the runtime falls back to `~/.codex/skills/`; verify with `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` after setting the variable.
 
 > **Token budget:** A wiki-orchestrator pipeline (de-dup → content → coherence → links → secrets → slop → fact-check → publish) typically costs 30–50k tokens per edit. Run `bash tools/skill-cost-analyzer.sh` before scheduling bulk changes to estimate impact.
-
+>
 > **Compression:** Skills are compressed before injection via `lib/compress.js` (20–40% token reduction). Boilerplate sections (`When to Use`, `Examples`, etc.) are stripped. Operative content — `<EXTREMELY_IMPORTANT>` blocks, `Failure Modes`, `Incident Log`, `References`, `Hallucination Prevention` — is preserved unconditionally. Add `compress: false` to a skill's YAML frontmatter to opt out. See `docs/ARCHITECTURE.md § Skill Content Compression` for details.
 
 ## Extending
 
 ```text
-obra/superpowers (Jesse Vincent, MIT — upstream)
-    └── bordenet/superpowers (maintained fork — governance stability)
-            └── superpowers-plus (this repo)
-                    └── your-org-skills (private)
+obra/superpowers (Jesse Vincent, MIT: 14 skills folded in directly, v2.6.0+)
+    └── superpowers-plus (this repo)
+            └── your-org-skills (private)
 ```
 
 ## Upstream & Attribution
 
-superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT license). We track the upstream periodically; see [CONTRIBUTING.md](CONTRIBUTING.md) for the upstream pull process. Jesse's original copyright is preserved in the fork's LICENSE file.
+superpowers-plus folds in [obra/superpowers](https://github.com/obra/superpowers) directly: as of v2.6.0, all 14 of Jesse Vincent's obra/superpowers skills (MIT license) are bundled in this repo's own `skills/` tree, nine of them hardened here with additional enforcement gates. superpowers-plus tracks the upstream by adding `obra` as a git remote and periodically merging; see [CONTRIBUTING.md](CONTRIBUTING.md) for the exact process.
 
 **Solo developers:** Core skills — `systematic-debugging`, `code-review-battery`, `feature-development`, `think-twice`, `verification-before-completion` — work fully offline with just git and GitHub. No external integrations required.
 
@@ -284,6 +283,7 @@ superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/s
 Private skills can shadow or extend public ones: route `todo-management` tasks to Jira instead of a local file, add company-specific rules to `code-review-battery`, or wire `wiki-orchestrator` directly to your Confluence instance. Give agents MCP server access to these systems and they gain context from your entire stack automatically — issue history, meeting transcripts, internal docs, and your team's conventions all become first-class inputs.
 
 **Enterprise overlay security checklist:**
+
 - Store API keys in `~/.codex/.env` — never hardcode them in skills
 - Private skills that call external systems should log API activity for audit trails
 - Review private MCP servers before deployment (supply chain risk)

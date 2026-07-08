@@ -1,8 +1,10 @@
 # Contributing to superpowers-plus
 
+Adding a new skill? See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full skill-authoring guide (directory layout, frontmatter template, trigger validation, CI detectors, release process). This page covers upstream fork governance and the gates that apply to every PR.
+
 ## Upstream Fork Governance
 
-superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). Jesse's copyright is preserved in the fork's LICENSE file.
+superpowers-plus folds in Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT) directly, as described below; there is no separate intermediary fork repo in the current install or sync path.
 
 ### Pulling upstream improvements from obra/superpowers
 
@@ -58,13 +60,7 @@ summary: "Use when: ..."  # shown in sp-help --skills
 
 ### Override declaration
 
-If your skill overrides an upstream obra skill, add to frontmatter:
-
-```yaml
-overrides: upstream-skill-name
-```
-
-This documents the override relationship and helps `sp-doctor` detect drift.
+If your skill overrides an upstream obra skill (matches its name and replaces it at install time), note the relationship in the skill's own description or a comment near the top of its frontmatter. There is no dedicated `overrides:` frontmatter field currently read by any tooling in this repo (verified: no skill file uses one, and `sp-doctor` does not check for it); don't rely on adding one to get automatic drift detection.
 
 ---
 
@@ -72,6 +68,6 @@ This documents the override relationship and helps `sp-doctor` detect drift.
 
 All PRs must pass the pre-push gates:
 
-1. **Code review clearance** — run `bash tools/code-review-battery.sh` or equivalent, which writes `.code-review-cleared`
+1. **Code review clearance** — run `bash tools/run-battery.sh --verdict PASS`, which writes `.code-review-cleared`
 2. **IP audit** — no proprietary content in public commits (enforced by `tools/public-repo-ip-check.sh`)
 3. **Shell tests** — `bats test/` must pass
