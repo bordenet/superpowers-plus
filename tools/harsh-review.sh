@@ -17,6 +17,9 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/lib/review-token.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/review-token.sh"
 # REPO_ROOT resolution — two invocation modes:
 #
 #   1. Direct run:  `bash /path/to/repo/tools/harsh-review.sh`
@@ -768,6 +771,6 @@ else
     # SHA-bound .code-review-cleared --staged mode already relies on) so
     # pre-commit can verify the staged content hasn't changed since review.
     _staged_tree="$(cd "$REPO_ROOT" && git write-tree 2>/dev/null)" || _staged_tree=""
-    printf '%s\n%s\n' "$_canon_repo" "$_staged_tree" > "$token_file"
+    review_token_write "$token_file" "$_canon_repo" "$_staged_tree"
     exit 0
 fi

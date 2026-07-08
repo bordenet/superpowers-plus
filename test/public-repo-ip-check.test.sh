@@ -15,12 +15,16 @@ fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
 
 new_repo() {
     local dir="$1"
-    mkdir -p "$dir/tools"
+    mkdir -p "$dir/tools/lib"
     local tool
     for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh; do
         cp "$SCRIPT_DIR/tools/$tool" "$dir/tools/$tool"
         chmod +x "$dir/tools/$tool"
     done
+    # pre-commit sources tools/lib/review-token.sh -- copy the whole lib/
+    # dir rather than naming files individually, so a future addition here
+    # doesn't require remembering to update this fixture too.
+    cp -R "$SCRIPT_DIR/tools/lib/." "$dir/tools/lib/"
 
     git -C "$dir" init -q
     git -C "$dir" checkout -qb main
