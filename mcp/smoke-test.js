@@ -188,6 +188,48 @@ async function main() {
     assert(matchText.includes('Rank'), 'match_skills output has ranking table');
     assert(matchText.includes('Top match:'), 'match_skills identifies a top match');
 
+    // ── 5b. Bug-hunt regression: malformed/missing args must not crash ──
+    console.log('\n--- malformed args (bug-hunt regression) ---');
+
+    // use_skill with no arguments object at all (MCP SDK does not enforce
+    // inputSchema before the handler runs -- this used to throw a raw
+    // TypeError instead of returning a clean tool error).
+    const useNoArgs = await client.send('tools/call', { name: 'use_skill' });
+    assert(useNoArgs?.isError === true, 'use_skill with no arguments returns isError, not a throw');
+
+    // use_skill with an empty skill_name (used to false-match via ''.endsWith('')).
+    const useEmpty = await client.send('tools/call', {
+      name: 'use_skill', arguments: { skill_name: '' },
+    });
+    assert(useEmpty?.isError === true, 'use_skill with empty skill_name returns isError');
+
+    // use_skill with a single-character skill_name (used to false-match an
+    // arbitrary unrelated skill via the endsWith suffix fallback).
+    const useSingleChar = await client.send('tools/call', {
+      name: 'use_skill', arguments: { skill_name: 'e' },
+    });
+    const singleCharText = useSingleChar?.content?.[0]?.text || '';
+    assert(singleCharText.includes('not found'), 'use_skill with single-char name returns not-found, not an arbitrary skill');
+
+    // match_skills with no query.
+    const matchNoArgs = await client.send('tools/call', { name: 'match_skills' });
+    assert(matchNoArgs?.isError === true, 'match_skills with no arguments returns isError, not a throw');
+
+    // match_skills with a malformed top_n.
+    const matchBadTopN = await client.send('tools/call', {
+      name: 'match_skills', arguments: { query: 'my tests keep failing', top_n: 'not-a-number' },
+    });
+    assert(matchBadTopN?.isError !== true, 'match_skills tolerates a malformed top_n by falling back to the default');
+
+    // match_skills with an oversized query (DoS guard -- cost scales with
+    // query length x skill count, so this must be rejected up front rather
+    // than reaching the matching algorithm).
+    const oversizedQuery = 'x'.repeat(5000);
+    const matchOversized = await client.send('tools/call', {
+      name: 'match_skills', arguments: { query: oversizedQuery },
+    });
+    assert(matchOversized?.isError === true, 'match_skills rejects an oversized query');
+
     // ── 6. Parser regression: apostrophes and ] inside quoted triggers ──
     console.log('\n--- parser regression ---');
 

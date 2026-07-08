@@ -573,8 +573,16 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
             [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
             token_age=$((NOW - token_ts))
             if [[ $token_age -le $REVIEW_TTL ]]; then
-                token_repo=$(cat "$token_file" 2>/dev/null || true)
-                if [[ "$token_repo" == "$REPO_ROOT" ]]; then
+                # The token now carries the staged tree
+                # hash from mint time (line 2) alongside the repo path (line
+                # 1) — verify both. A repo-path-only match proved harsh-
+                # review.sh ran on this repo recently, not that it reviewed
+                # what's actually staged right now; any staged change made
+                # between minting and this commit was silently unreviewed.
+                token_repo=$(sed -n '1p' "$token_file" 2>/dev/null || true)
+                token_tree=$(sed -n '2p' "$token_file" 2>/dev/null || true)
+                current_tree=$(git write-tree 2>/dev/null || true)
+                if [[ "$token_repo" == "$REPO_ROOT" ]] && [[ -n "$token_tree" ]] && [[ "$token_tree" == "$current_tree" ]]; then
                     FOUND_VALID_TOKEN=true
                     # Consume the token (one-time use)
                     rm -f "$token_file"

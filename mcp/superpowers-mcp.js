@@ -58,13 +58,29 @@ const skillsDir = PERSONAL_SKILLS_DIR;
  * Resolve a skill name to its SKILL.md path (searches all sources).
  */
 function resolveSkillPath(skillName) {
+  if (typeof skillName !== 'string' || skillName.trim() === '') return null;
   const cleanName = skillName.replace(/^superpowers-plus:/, '').replace(/^superpowers:/, '');
+  // cleanName can still be empty here (e.g. skillName was just "superpowers:").
+  // ''.endsWith('') is true for any string, so without this guard the endsWith
+  // fallback below would "match" the first skill in allSkills -- returning an
+  // arbitrary, unrelated skill's content instead of a clean not-found result.
+  if (cleanName === '') return null;
   const allSkills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
   for (const skill of allSkills) {
     if (skill.name === cleanName || skill.dirName === cleanName) return { skillFile: skill.skillFile, compress: skill.compress };
   }
+  // Fallback: match a kebab-case SUFFIX SEGMENT of dirName (e.g. "update-docs"
+  // resolving a domain-prefixed "wiki-update-docs"), not an arbitrary
+  // substring-of-suffix. A
+  // plain endsWith() lets any short/mistyped name (e.g. "e", "g") silently
+  // match whatever skill happens to end in that character -- returning an
+  // arbitrary unrelated skill's content instead of a clean not-found result.
   for (const skill of allSkills) {
-    if (skill.dirName.endsWith(cleanName)) return { skillFile: skill.skillFile, compress: skill.compress };
+    if (!skill.dirName.endsWith(cleanName)) continue;
+    const boundaryIndex = skill.dirName.length - cleanName.length;
+    if (boundaryIndex === 0 || skill.dirName[boundaryIndex - 1] === '-') {
+      return { skillFile: skill.skillFile, compress: skill.compress };
+    }
   }
   return null;
 }
@@ -142,7 +158,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === 'use_skill') {
-    const { skill_name } = args;
+    const skill_name = args && args.skill_name;
+    if (typeof skill_name !== 'string' || skill_name.trim() === '') {
+      return { content: [{ type: 'text', text: 'use_skill requires a non-empty "skill_name" string argument.' }], isError: true };
+    }
     const resolved = resolveSkillPath(skill_name);
     if (!resolved) {
       return { content: [{ type: 'text', text: `Skill "${skill_name}" not found. Use find_skills to list available skills.` }] };
@@ -156,7 +175,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === 'match_skills') {
-    const { query, top_n = 5 } = args;
+    const query = args && args.query;
+    if (typeof query !== 'string' || query.trim() === '') {
+      return { content: [{ type: 'text', text: 'match_skills requires a non-empty "query" string argument.' }], isError: true };
+    }
+    // matchSkillsTfIdf's cost scales with query length x skill count (it scans
+    // every skill's description/triggers for each query term). The MCP SDK
+    // does not enforce inputSchema at the transport layer, so an oversized
+    // query (measured: 20,000 words / ~300KB took 2.6s against this repo's
+    // skill set; independently benchmarked up to tens of seconds on larger
+    // inputs) would block this single-threaded server for the duration of
+    // the call. Natural-language intents never need more than a couple
+    // hundred characters, so reject well above that rather than truncate
+    // silently into a different (and confusing) match result.
+    const MAX_QUERY_LENGTH = 2000;
+    if (query.length > MAX_QUERY_LENGTH) {
+      return { content: [{ type: 'text', text: `match_skills "query" is too long (${query.length} chars, max ${MAX_QUERY_LENGTH}). Use a short natural-language description of the intent.` }], isError: true };
+    }
+    const rawTopN = args && args.top_n;
+    const top_n = Number.isFinite(rawTopN) && rawTopN > 0 ? Math.floor(rawTopN) : 5;
     const skills = findAllSkills(PERSONAL_SKILLS_DIR, SUPERPOWERS_SKILLS_DIR);
     const results = matchSkillsTfIdf(query, skills, top_n);
     let output = `# Skill Match Results\n\nQuery: "${query}"\n\n`;

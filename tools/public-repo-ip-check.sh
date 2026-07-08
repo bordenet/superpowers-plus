@@ -35,6 +35,13 @@ fi
 
 cd "$REPO_ROOT"
 
+# Every content-matching grep against $PATTERNS below uses
+# -i. check_commit_metadata() (further down) already did; the file/diff scans
+# didn't, so the identical pattern string was matched case-sensitively in the
+# scans that matter most (diff hunks, tracked/untracked files) and case-
+# insensitively only for commit-author emails -- an operator or downstream
+# adopter adding a custom pattern got silently weaker coverage everywhere
+# except the one scan that happened to have -i.
 DEFAULT_PATTERNS="INTERNAL-[0-9]+|internal\.company\.com|@company\.com"
 PATTERNS=""
 CUSTOM_PATTERNS=false
@@ -160,14 +167,14 @@ count_added_line_matches() {
     grep -E '^\+' \
         | grep -vE '^\+\+\+ (a/|b/|/dev/null)' \
         | sed 's/^+//' \
-        | grep -cE "$PATTERNS" || true
+        | grep -ciE "$PATTERNS" || true
 }
 
 show_added_line_matches() {
     grep -E '^\+' \
         | grep -vE '^\+\+\+ (a/|b/|/dev/null)' \
         | sed 's/^+//' \
-        | grep -E "$PATTERNS" | indent_output || true
+        | grep -iE "$PATTERNS" | indent_output || true
 }
 
 check_untracked_files() {
@@ -179,7 +186,7 @@ check_untracked_files() {
         [[ -f "$file" ]] || continue
         is_excluded_file "$file" && continue
         is_binary_file "$file" && continue
-        if grep -qE "$PATTERNS" "$file" 2>/dev/null; then
+        if grep -qiE "$PATTERNS" "$file" 2>/dev/null; then
             hits+=("$file")
         fi
     done < <(git ls-files --others --exclude-standard)
@@ -190,7 +197,7 @@ check_untracked_files() {
         if [[ "$VERBOSE" == "true" ]]; then
             echo "  --- verbose output (may contain sensitive identifiers) ---"
             for file in "${hits[@]}"; do
-                grep -nE "$PATTERNS" "$file" 2>/dev/null | indent_output || true
+                grep -niE "$PATTERNS" "$file" 2>/dev/null | indent_output || true
             done
         fi
         return 1
@@ -209,7 +216,7 @@ check_all_tracked_files() {
         [[ -f "$file" ]] || continue
         is_excluded_file "$file" && continue
         is_binary_file "$file" && continue
-        if grep -qE "$PATTERNS" "$file" 2>/dev/null; then
+        if grep -qiE "$PATTERNS" "$file" 2>/dev/null; then
             hits+=("$file")
         fi
     done < <(git ls-files)
@@ -220,7 +227,7 @@ check_all_tracked_files() {
         if [[ "$VERBOSE" == "true" ]]; then
             echo "  --- verbose output (may contain sensitive identifiers) ---"
             for file in "${hits[@]}"; do
-                grep -nE "$PATTERNS" "$file" 2>/dev/null | indent_output || true
+                grep -niE "$PATTERNS" "$file" 2>/dev/null | indent_output || true
             done
         fi
         return 1
@@ -233,13 +240,28 @@ check_all_tracked_files() {
 check_diff_stream() {
     local label="$1"
     shift
+    # The old `matches="$("$@" | count_added_line_matches)"`
+    # discarded the upstream command's own exit status -- count_added_line_
+    # matches ends in `|| true` so its own return is always 0, and being the
+    # RIGHT side of a pipe, that's also what a bare `pipefail` would report.
+    # A failed git invocation (bad revision range, unreachable SHA in a
+    # shallow clone, a GC/rebase race) produced empty stdin, which counted as
+    # zero matches -- reported as "clean" even though nothing was ever
+    # scanned. Capture the command's own output and exit status separately,
+    # BEFORE any grep-based counting, so a real failure is never silently
+    # indistinguishable from a genuinely empty, successful diff.
+    local diff_output
+    if ! diff_output="$("$@")"; then
+        echo "  ❌ FAIL: could not compute diff for ${label} (command exited non-zero — see error above) — treating as unscanned, not clean"
+        return 1
+    fi
     local matches
-    matches="$("$@" | count_added_line_matches)"
+    matches="$(printf '%s\n' "$diff_output" | count_added_line_matches)"
     if [[ "$matches" -gt 0 ]]; then
         echo "  ❌ FAIL: IP found in ${label} ($matches match(es))"
         if [[ "$VERBOSE" == "true" ]]; then
             echo "  --- verbose output (may contain sensitive identifiers) ---"
-            "$@" | show_added_line_matches
+            printf '%s\n' "$diff_output" | show_added_line_matches
         fi
         return 1
     fi
@@ -318,7 +340,7 @@ fi
 if [[ "$CHECK_HISTORY" == true ]]; then
     echo "▶ Checking full git history (this may take a while)..."
     HISTORY_MATCHES=$(git log --all --oneline | while read -r sha _; do
-        if git show "$sha" 2>/dev/null | grep -qE "$PATTERNS"; then
+        if git show "$sha" 2>/dev/null | grep -qiE "$PATTERNS"; then
             echo "$sha"
         fi
     done)

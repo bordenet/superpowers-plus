@@ -124,6 +124,34 @@ Line breaks inside cells render inconsistently across tools. **Forbidden** unles
 
 Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose if needed.
 
+### 7. Row Cell-Count Must Match Header
+
+Every data row must have exactly as many cells as the header row. A row with MORE cells than the header silently drops the excess cell's content on render — GFM renders only as many columns as the header defines, and the dropped content produces no error. A row with FEWER cells renders empty cells for the missing columns.
+
+❌ Wrong (3-column header, but one row has an extra 4th cell — silently dropped):
+
+```markdown
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Config missing | Falls back to defaults | Check config path |
+| API timeout | Request hangs | Increase timeout | Retry the request |
+| Bad input | Validation fails | Reject with error |
+```
+
+The middle row has 4 cells against a 3-column header — "Retry the request" is silently dropped on render.
+
+✅ Correct:
+
+```markdown
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Config missing | Falls back to defaults | Check config path |
+| API timeout | Request hangs | Increase timeout; retry the request |
+| Bad input | Validation fails | Reject with error |
+```
+
+**Especially dangerous when the dropped cell carries safety-relevant content** (a recovery step, a warning) — the table renders without error, so the loss is silent.
+
 ## Visual Clarity Rules
 
 **Alignment**: Text left (`:---`) · numeric right (`---:`) · status/tags center (`:---:`).
@@ -148,6 +176,7 @@ Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose
 | Too many columns | 8+ columns, horizontal scroll | Split into multiple tables |
 | Tiny table | 2 rows, 2 columns | Convert to bullet list |
 | Inconsistent vocabulary | "Yes/Yep/Sure/Affirmative" | Standardize to "Yes/No" |
+| Row cell-count ≠ header | 3-column header, 4-cell data row | Match cell count; fold extra content into an existing cell |
 
 ## Accessibility (HTML Contexts)
 
@@ -182,3 +211,4 @@ See [`references/examples.md`](references/examples.md) for good/bad table format
 - **Table when list suffices:** Using a 2-row table for data that reads better as a bullet list
 - **Too many columns:** Tables wider than 5 columns become unreadable in most renderers
 - **Redundant header column:** First column repeats information already in the section heading
+- **Extra cell silently dropped:** a row with more cells than the header renders fine but drops the excess column's content with no error — always match row cell-count to header cell-count, especially when adding a column to an existing table
