@@ -4,6 +4,17 @@
 
 Skills for AI coding assistants that enforce the practices AI would otherwise skip. Built on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). Can be used for non-coding workloads, too!
 
+Tell your AI assistant what you're doing:
+
+| You say... | Skill triggered |
+|------------|-----------------|
+| "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
+| "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
+| "Review this code" or `/sp-cr-battery [min-score]` | `code-review-battery` dispatches 5 parallel reviewers (optional 1.0–10.0 quality threshold, default 7.0) |
+| "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
+| "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
+| "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
+
 ## Platform Support
 
 | Platform | Status |
@@ -13,11 +24,13 @@ Skills for AI coding assistants that enforce the practices AI would otherwise sk
 
 ## What This Is
 
-AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification.
+AI coding assistants skip the practices that catch bugs before production: they implement the first idea without evaluating alternatives and claim "done" without verification. With `systematic-debugging` in place, the same assistant enforces root-cause-first investigation instead: reproduce, hypothesize, isolate, fix. No fix without completing that investigation first.
 
-Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent is a framework for teaching AI agents reusable procedures; superpowers-plus builds on it via a maintained fork ([bordenet/superpowers](https://github.com/bordenet/superpowers)) for governance stability. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
+Skills are structured procedures that AI agents follow automatically. [obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent is a framework for teaching AI agents reusable procedures. superpowers-plus adds skills across 9 domains. Start debugging and `systematic-debugging` enforces root-cause investigation before fixes. Commit code and a gate chain blocks the commit until lint, type checks, and security scans pass.
 
 Each skill exists because it caught a real problem.
+
+A system prompt is a suggestion the assistant can forget under context pressure. These skills are backed by lifecycle hooks and commit gates that run outside its own context, enforced by git itself once installed, not by whether it remembers to ask for review.
 
 ## Standout Skills
 
@@ -47,16 +60,7 @@ Enable pre-commit gates: `bash tools/install-hooks.sh`
 
 These hooks are required if you want the full commit-gate chain to run locally before `git commit` and `git push`.
 
-Then tell your AI assistant what you're doing:
-
-| You say... | Skill triggered |
-|------------|-----------------|
-| "Debug this test failure" | `systematic-debugging` enforces root cause before fixes |
-| "Build a new feature for X" | `feature-development` orchestrates the full lifecycle |
-| "Review this code" or `/sp-cr-battery [min-score]` | `code-review-battery` dispatches 5 parallel reviewers (optional 1.0–10.0 quality threshold, default 7.0) |
-| "I keep getting the same error" | `think-twice` dispatches a fresh sub-agent with zero shared context |
-| "Check for security issues" | `repo-security-scan` scans secrets, deps, patterns, config |
-| "I'm about to commit" | `unified-commit-gate` runs all 5 quality gates before the commit |
+Then tell your AI assistant what you're doing. The trigger examples are near the top of this README.
 
 **CLI matching** (for debugging): `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills "my tests keep failing"`
 
