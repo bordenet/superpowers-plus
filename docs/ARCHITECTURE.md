@@ -26,20 +26,18 @@ superpowers-plus builds on [bordenet/superpowers](https://github.com/bordenet/su
 
 ```bash
 ~/.codex/
-├── superpowers/          # superpowers core (fork of obra/superpowers by Jesse Vincent)
-│   └── skills/           # Core framework skills (mostly superpowers)
-├── skills/               # Your personal skills (this repo)
+├── skills/               # Your personal skills, plus all bundled obra/superpowers and superpowers-plus skills (this repo)
 ├── superpowers-augment/  # Wrapper script for skill discovery
 │   └── lib/              # Shared modules
 └── superpowers-plus/
     └── tools/            # Utility scripts (todo-lock.sh, dangerous-pattern-scan.sh, etc.)
 ```
 
-Skills from both directories are discovered by `superpowers-augment.js`.
+As of v2.6.0 there is no separate `~/.codex/superpowers/` clone; obra/superpowers skills are bundled directly into `skills/` (see the v2.6.0 note below). Skills are discovered by `superpowers-augment.js`.
 
 ### Installer Architecture
 
-`install.sh` is an orchestrator (~600 lines) that sources 6 modules from `lib/install/`:
+`install.sh` is an orchestrator (~700 lines) that sources 6 modules from `lib/install/`:
 
 ```markdown
 lib/install/
@@ -47,7 +45,8 @@ lib/install/
 ├── platform.sh      # detect_platform, detect_linux_distro, WSL checks
 ├── deps.sh          # Package manager detection, dependency install, Node.js version check
 ├── deploy.sh        # Skill, adapter, rule deployment across ~/.codex/skills/, ~/.claude/skills/, ~/.agents/skills/, ~/.augment/rules/
-└── migrate.sh       # Post-install migrations (orphaned TODO.md detection, legacy clone removal)
+├── migrate.sh       # Post-install migrations (orphaned TODO.md detection, legacy clone removal)
+└── skill-naming.sh  # Computes install-destination names from a skill's first /sp* trigger
 ```
 
 Modules are sourced in dependency order: `logging` → `platform` → `deps` → `deploy` → `migrate`. Globals (`VERBOSE`, `SKILLS_DIR`, etc.) are shared via shell environment.
@@ -178,6 +177,7 @@ skills/_shared/
 ├── README.md                            # Index and usage guide
 ├── confidence-calibration.md            # Confidence scoring standards
 ├── duplicate-work-detection.md          # Cross-branch duplicate detection
+├── evidence-challenge-pass.md           # Adversarial re-check pass for gathered evidence
 ├── evidence-schema.md                   # Evidence structure for investigations
 ├── fork-readiness-rubric.md             # When to fork vs stay serial
 ├── incident-packet-schema.md            # Debugging orchestration packet contract
