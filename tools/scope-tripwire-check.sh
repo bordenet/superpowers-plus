@@ -272,6 +272,7 @@ if [[ -z "$ESTIMATE" && "$CACHE_REASON" != "no_estimate" && "$CACHE_REASON" != "
     # API JSON), else minimal regex.
     if command -v jq >/dev/null 2>&1; then
         _errors=$(echo "$_resp" | jq -r '.errors // empty' 2>/dev/null)
+        _error_message=$(echo "$_resp" | jq -r '.errors[0].message // empty' 2>/dev/null)
         _issue=$(echo "$_resp" | jq -r '.data.issue // empty' 2>/dev/null)
         _estimate=$(echo "$_resp" | jq -r '.data.issue.estimate // empty' 2>/dev/null)
     else
@@ -294,7 +295,11 @@ if [[ -z "$ESTIMATE" && "$CACHE_REASON" != "no_estimate" && "$CACHE_REASON" != "
 
     if [[ -n "$_errors" ]]; then
         printf '{"estimate":null,"reason":"api_down","fetched_at":%s}\n' "$_now" > "$CACHE_FILE"
-        echo "scope-tripwire: Linear API returned errors for $LINEAR_REF; advisory skipped." >&2
+        if [[ -n "${_error_message:-}" ]]; then
+            echo "scope-tripwire: Linear API returned errors for $LINEAR_REF: $_error_message; advisory skipped." >&2
+        else
+            echo "scope-tripwire: Linear API returned errors for $LINEAR_REF; advisory skipped." >&2
+        fi
         exit 0
     fi
     if [[ -z "$_issue" ]]; then
