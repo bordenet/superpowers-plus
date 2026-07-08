@@ -196,6 +196,7 @@ claude mcp list                 # project scope — should NOT show server if in
 |---|---|---|---|---|
 | `claude` | `mcp add` | project scope | user scope | `--scope user` |
 | `gh` | `pr create` | repo's default branch as base | release branch | `--base BRANCH` |
+| `gh` | `pr edit` | `--body` replaces the entire body | append/preserve existing content | Fetch current body first — `gh pr view --json body -q .body` — then re-supply the full text, or use `--body-file` with the merged content |
 | `gh` | `release create` | published (non-draft) release visible to all users | draft | `--draft` |
 | `kubectl` | `apply` | current context's default namespace | explicit ns | `-n NAMESPACE` |
 | `aws` | most commands | `default` profile; region from `~/.aws/config` or `AWS_DEFAULT_REGION` (errors if neither set — no built-in default) | env-specific | `--profile`, `--region` |
@@ -221,7 +222,6 @@ claude mcp list                 # project scope — should NOT show server if in
 | "We'll catch it in CI" | CI typically runs in a clean environment that masks scope/identity defaults |
 | "The other 8 installers do it the same way" | Copy-paste propagates the default-flag bug across the whole repo |
 | "I confirmed one hypothesis with a test" | Confirming Mechanism A doesn't exclude Mechanism B producing the same symptom — re-audit defaults independently |
----
 
 ## Self-Check Before Declaring "Audit Complete"
 
