@@ -171,7 +171,14 @@ Which option?
 
 **Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree.
 
-**Option 2 (Push and create PR):** First, run `tools/branch-flow-preflight.sh <current-branch> <base-branch>` to validate the (source, target) pair against the canonical flow and write `.branch-flow-cleared`. The pre-push hook reads this sentinel and refuses pushes to dev/staging/main without it. Then push branch → create PR → cleanup worktree. Note: `unified-commit-gate` (push mode) fires before push.
+**Option 2 (Push and create PR):**
+
+1. Run `tools/branch-flow-preflight.sh <current-branch> <base-branch>` to validate the (source, target) pair against the canonical flow and write `.branch-flow-cleared`. The pre-push hook reads this sentinel and refuses pushes to dev/staging/main without it.
+2. Push the branch. `unified-commit-gate` (push mode) fires before push.
+3. Create the PR: `gh pr create --fill` (`--fill` pre-fills title/body from commits; override with `--title`/`--body`). If the work has an issue identifier (per git-branch-conventions' "Before Naming the Branch"), the title should include it, matching branch/commit.
+4. GitHub auto-links AND auto-closes an issue if the PR body contains `Fixes #123` or `Closes #123` **and the PR merges into the repo's default branch** (not just any branch) — confirm that's actually intended before using that phrasing; a plain reference (`#123`) links without closing. If citing an issue, verify it resolves via `issue-verify` first — never construct the reference from memory.
+5. `gh pr edit` has a body-replacement footgun when adding a link after the fact — see `external-cli-audit`'s CLI Default Hazards table.
+6. Cleanup the worktree per **Step 5: Cleanup Worktree** below.
 
 **Option 3 (Keep as-is):** Report status. Keep worktree.
 
@@ -190,6 +197,7 @@ For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — kee
 | Open-ended "What should I do next?" | Present exactly 4 structured options |
 | Auto-cleanup worktree for Option 3 | Only cleanup for Options 1 and 4 |
 | Deleting work without confirmation | Require typed "discard" for Option 4 |
+| Citing an issue reference in a PR body without verifying it resolves | Verify via `issue-verify` before citing; never build the reference from memory |
 
 ## Red Flags
 
@@ -205,3 +213,5 @@ For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — kee
 - **verification-before-completion**: Fires before this skill (completion-gate order 2)
 - **unified-commit-gate** (push mode): Fires when Option 2 triggers a push; § Post-Conflict Trap mandates typecheck after rebase/stash-pop conflicts
 - **subagent-driven-development**: Calls this skill after all tasks complete
+- **issue-verify**: Verify an issue identifier before citing it in a branch, commit, or PR
+- **external-cli-audit**: CLI default hazards (e.g. `gh pr edit`'s body-replacement behavior) referenced from Option 2
