@@ -32,7 +32,7 @@ composition:
 
 Ask whether there's an associated issue in the project's tracker; if yes, get its identifier from the user.
 
-Headless/unattended fallback: use an identifier already present in the current task/session context if one exists; if none exists, stop and report that no identifier is available rather than fabricating one or proceeding silently.
+Headless/unattended fallback: use an identifier already present in the current task/session context if one exists; if none exists, stop and report that no identifier is available rather than fabricating one or proceeding silently — unless this project's own policy doesn't require an identifier at all, in which case proceed without one and say so.
 
 Verify the identifier resolves to a real, open issue via the `issue-verify` skill before using it in a branch name, commit, or PR — never construct an issue reference from memory.
 

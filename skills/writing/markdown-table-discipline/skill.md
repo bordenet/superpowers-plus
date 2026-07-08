@@ -128,20 +128,26 @@ Avoid multiple links, code blocks, AND lists in the same cell. Refactor to prose
 
 Every data row must have exactly as many cells as the header row. A row with MORE cells than the header silently drops the excess cell's content on render — GFM renders only as many columns as the header defines, and the dropped content produces no error. A row with FEWER cells renders empty cells for the missing columns.
 
-❌ Wrong (2-column header, 3-cell row — third cell is silently dropped):
+❌ Wrong (3-column header, but one row has an extra 4th cell — silently dropped):
 
 ```markdown
-| Mode | Recovery |
-|------|----------|
-| Example failure | First cell text | Second cell text that vanishes on render |
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Config missing | Falls back to defaults | Check config path |
+| API timeout | Request hangs | Increase timeout | Retry the request |
+| Bad input | Validation fails | Reject with error |
 ```
+
+The middle row has 4 cells against a 3-column header — "Retry the request" is silently dropped on render.
 
 ✅ Correct:
 
 ```markdown
-| Mode | Recovery |
-|------|----------|
-| Example failure | First cell text; second cell folded into one |
+| Mode | Symptom | Recovery |
+|------|---------|----------|
+| Config missing | Falls back to defaults | Check config path |
+| API timeout | Request hangs | Increase timeout; retry the request |
+| Bad input | Validation fails | Reject with error |
 ```
 
 **Especially dangerous when the dropped cell carries safety-relevant content** (a recovery step, a warning) — the table renders without error, so the loss is silent.
