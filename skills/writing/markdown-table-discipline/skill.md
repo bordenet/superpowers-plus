@@ -176,7 +176,7 @@ The middle row has 4 cells against a 3-column header — "Retry the request" is 
 | Too many columns | 8+ columns, horizontal scroll | Split into multiple tables |
 | Tiny table | 2 rows, 2 columns | Convert to bullet list |
 | Inconsistent vocabulary | "Yes/Yep/Sure/Affirmative" | Standardize to "Yes/No" |
-| Row cell-count ≠ header | 2-column header, 3-cell data row | Match cell count; fold extra content into an existing cell |
+| Row cell-count ≠ header | 3-column header, 4-cell data row | Match cell count; fold extra content into an existing cell |
 
 ## Accessibility (HTML Contexts)
 
