@@ -15,6 +15,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P 2>/dev/null)" || REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
+# shellcheck source=tools/lib/review-token.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/review-token.sh"
+
 # Colors
 if [[ -t 1 ]]; then
     RED='\033[0;31m'
@@ -224,12 +228,7 @@ if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
         [[ "$_ts" =~ ^[0-9]+$ ]] || continue
         _age=$((_NOW - _ts))
         if [[ $_age -le ${REVIEW_TOKEN_TTL:-300} ]]; then
-            # harsh-review.sh writes the repo path on line 1 and a staged
-            # tree hash on line 2 (see its token-minting comment) -- a plain
-            # `cat` comparison against $REPO_ROOT never matches a two-line
-            # file, so this check must read line 1 only, same as pre-commit's
-            # own token verification.
-            _tr=$(sed -n '1p' "$_tf" 2>/dev/null || true)
+            _tr=$(review_token_repo "$_tf")
             if [[ "$_tr" == "$REPO_ROOT" ]]; then _FOUND_NEW_TOKEN=true; break; fi
         fi
     done
