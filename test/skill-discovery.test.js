@@ -174,6 +174,46 @@ test('findSkillsInDir returns empty for nonexistent dir', () => {
     assert.deepStrictEqual(findSkillsInDir('/nonexistent/path', 'personal'), []);
 });
 
+// Bug-hunt regression: a domain dir symlinked into an ancestor, or two domain
+// dirs symlinked into each other, used to cause unbounded recursion (one
+// topology self-limits via OS path-length errors after a couple hundred
+// calls, another hangs indefinitely -- confirmed empirically, killed after
+// >20s). Both must now terminate quickly via the visited-realpath guard.
+test('findSkillsInDir terminates on an ancestor-pointing symlink cycle', () => {
+    const cycleDir = path.join(tmpDir, 'cycle-ancestor');
+    fs.mkdirSync(path.join(cycleDir, 'domain-a'), { recursive: true });
+    fs.symlinkSync(cycleDir, path.join(cycleDir, 'domain-a', 'loop'));
+    const start = Date.now();
+    const skills = findSkillsInDir(cycleDir, 'personal');
+    const elapsedMs = Date.now() - start;
+    assert(Array.isArray(skills), 'returns an array instead of hanging or throwing');
+    assert(elapsedMs < 5000, `must terminate quickly (took ${elapsedMs}ms)`);
+});
+
+test('findSkillsInDir terminates on a cross-domain symlink cycle', () => {
+    const cycleDir = path.join(tmpDir, 'cycle-cross');
+    fs.mkdirSync(path.join(cycleDir, 'domain-a'), { recursive: true });
+    fs.mkdirSync(path.join(cycleDir, 'domain-b'), { recursive: true });
+    fs.symlinkSync(path.join(cycleDir, 'domain-b'), path.join(cycleDir, 'domain-a', 'loop'));
+    fs.symlinkSync(path.join(cycleDir, 'domain-a'), path.join(cycleDir, 'domain-b', 'loop'));
+    const start = Date.now();
+    const skills = findSkillsInDir(cycleDir, 'personal');
+    const elapsedMs = Date.now() - start;
+    assert(Array.isArray(skills), 'returns an array instead of hanging or throwing');
+    assert(elapsedMs < 5000, `must terminate quickly (took ${elapsedMs}ms)`);
+});
+
+test('findSkillsInDir still discovers a legitimately symlinked (non-cyclic) skill dir', () => {
+    const outerDir = path.join(tmpDir, 'symlink-legit-outer');
+    const realSkillDir = path.join(tmpDir, 'symlink-legit-real', 'my-skill');
+    fs.mkdirSync(outerDir, { recursive: true });
+    fs.mkdirSync(realSkillDir, { recursive: true });
+    fs.writeFileSync(path.join(realSkillDir, 'skill.md'), '---\nname: my-skill\ndescription: Legit symlinked skill\n---\n');
+    fs.symlinkSync(realSkillDir, path.join(outerDir, 'my-skill-link'));
+    const skills = findSkillsInDir(outerDir, 'personal');
+    assert(skills.some(s => s.name === 'my-skill'), 'legitimately symlinked skill dir must still be discovered');
+});
+
 test('deduplicateSkills removes duplicates by name', () => {
     const skills = [
         { name: 'alpha', sourceType: 'personal' },

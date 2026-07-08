@@ -185,6 +185,8 @@ If you're using the install paths above without an MCP client, you can skip this
 
 If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
+**Error responses:** `use_skill` and `match_skills` return `{ isError: true }` alongside a plain-text explanation for invalid input (missing/empty `skill_name` or `query`, or a `query` over 2000 characters) rather than throwing — check `isError` before treating a tool result as skill content.
+
 ### Using as a Dependency
 
 See [docs/examples/adopter-install-example.sh](docs/examples/adopter-install-example.sh) for a robust install script template.
