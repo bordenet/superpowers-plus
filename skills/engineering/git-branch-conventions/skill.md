@@ -8,7 +8,7 @@ summary: "Use when: creating a new git work branch. Enforces semantic prefix nam
 coordination:
   group: engineering
   order: 1
-  requires: ["issue-verify"]
+  requires: []
   enables: []
   escalates_to: []
   internal: false
