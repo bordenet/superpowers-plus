@@ -28,6 +28,18 @@ composition:
 - Running `git checkout -b`, `git switch -c`, `git branch <name>`, or `git worktree add -b`
 - Choosing a name for a new work branch
 
+## Before Naming the Branch
+
+Ask whether there's an associated issue in the project's tracker; if yes, get its identifier from the user.
+
+Headless/unattended fallback: use an identifier already present in the current task/session context if one exists; if none exists, stop and report that no identifier is available rather than fabricating one or proceeding silently — unless this project's own policy doesn't require an identifier at all, in which case proceed without one and say so.
+
+Verify the identifier resolves to a real, open issue via the `issue-verify` skill before using it in a branch name, commit, or PR — never construct an issue reference from memory.
+
+Case consistency: the branch slug is lowercase per "Branch Name Format" below; the commit and PR title use the tracker's canonical case for the identifier, so all three point at the same issue.
+
+Whether an identifier is mandatory at all is a policy call for the project this skill is installed into (set by that project's own contribution docs) — this skill does not mandate one itself.
+
 ## Semantic Branch Prefixes (REQUIRED)
 
 New work branches MUST start with one of these prefixes:
@@ -66,12 +78,12 @@ Everything else (deps, CI, refactor, tests) → chore/
 - Lowercase only
 - Hyphens between words (not underscores)
 - Descriptive but concise
-- Include ticket ID when relevant: `fix/PROJ-1189-null-config`
+- Include ticket ID when relevant: `fix/proj-1189-null-config`
 
 ```bash
 # ✅ CORRECT
 git checkout -b feat/outbound-calling
-git checkout -b fix/PROJ-1189-null-config
+git checkout -b fix/proj-1189-null-config
 git checkout -b exp/grpc-spike
 git checkout -b chore/bump-node-22
 git checkout -b chore/refactor-auth-module
@@ -121,3 +133,4 @@ fi
 | Non-compliant branch name | PR rejected by CI | Follow type/description pattern |
 | Non-standard prefix used | Confusion in branch listing | Use the six canonical prefixes |
 | Skipping prefix on quick branches | Inconsistent repo | Every work branch gets a prefix |
+| No issue identifier given, or identifier doesn't resolve via `issue-verify` | Branch/commit/PR carries a wrong, fabricated, or missing issue reference | Ask the user for a real identifier; headless with one already in context, verify and use it; headless with neither, stop and report rather than fabricate — unless this project's own policy doesn't require one, in which case proceed and say so |
