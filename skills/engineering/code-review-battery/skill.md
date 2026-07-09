@@ -154,7 +154,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS of the compared value. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained).
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS of the compared value. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained). On-disk format changed (ad-hoc-parsed, no shared parser) → grep ALL consumers repo-wide incl. tests; prefer "extract a shared parser" over "update each consumer" (see reference.md Failure Modes).
 
 **3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
 
@@ -239,7 +239,7 @@ See `reference.md` for the 5 anti-patterns (all-agree, duplicates, fatigue, miss
 
 ## Failure Modes
 
-See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist) with fixes. Moved to the companion file alongside the Anti-Patterns table.
+See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) with fixes. Moved to the companion file alongside the Anti-Patterns table.
 
 ## Companion Skills
 
