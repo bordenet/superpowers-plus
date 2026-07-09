@@ -30,7 +30,7 @@ description: "One-line skill description" # string, REQUIRED — used in skill d
 triggers: ["phrase one", "phrase two"]    # string[], optional — makes this a superpower (auto-invoked)
 anti_triggers: ["phrase to suppress"]     # string[], optional — suppress activation on match
 aliases: ["alt-name"]                     # string[], optional — alternate lookup names
-overrides: superpowers/skill-name         # string, optional — declares upstream skill being replaced
+overrides: source-name/skill-name         # string, optional — replaces a same-named skill from another source; install.sh stages that source's companion files, sp-doctor suppresses drift/dup warnings for it. The `superpowers/...` source name is retired (v2.6.0+); deploy.sh warns and asks you to remove it
 summary: "Short summary for probe mode"  # string, optional — shown by use-skill --probe
 augment_menu: false                       # boolean, optional, default false — true exports skill to ~/.agents/skills/ slash menu
 compress: true                            # boolean, optional, default true — set false to skip compression
@@ -63,7 +63,7 @@ composition:                              # object, optional — capability/arti
 | `triggers` | No | string[] | `[]` | Auto-invocation phrases → makes skill a **superpower** |
 | `anti_triggers` | No | string[] | `[]` | Suppression phrases — prevent false activations |
 | `aliases` | No | string[] | `[]` | Alternate lookup names |
-| `overrides` | No | string | — | Declares upstream skill being replaced |
+| `overrides` | No | string | — | Declares a same-named skill from another source being replaced; install.sh stages that source's companion files, sp-doctor suppresses drift/dup warnings for it |
 | `summary` | No | string | — | Short description for `--probe` mode |
 | `augment_menu` | No | boolean | `false` | Set `true` to export this skill to `~/.agents/skills/` (Augment IDE slash menu). Command name is the first `/sp*` trigger; falls back to the skill directory name |
 | `compress` | No | boolean | `true` | Set `false` to skip compression |
@@ -300,13 +300,15 @@ Source: [`lib/compress.js`](../lib/compress.js). Applied to all skill bodies by 
 flowchart TD
     IN[Raw skill body<br/>frontmatter already stripped]
 
-    IN --> EX[Phase 1a: Extract EXTREMELY_IMPORTANT blocks<br/>before any stripping]
-    EX --> STRIP[Phase 1b: Strip boilerplate sections by heading<br/>STRIP_SECTIONS patterns]
+    IN --> DOT[Step 0a: Remove fenced dot code blocks<br/>before code-block protection, so they are deleted rather than preserved]
+    DOT --> PROTECT[Step 0b: Protect remaining code blocks<br/>from EXTREMELY_IMPORTANT extraction]
+    PROTECT --> EX[Step 1a: Extract EXTREMELY_IMPORTANT blocks<br/>before any section stripping]
+    EX --> STRIP[Step 1b: Strip boilerplate sections by heading<br/>STRIP_SECTIONS patterns]
 
-    STRIP --> RESTORE[Phase 1c: Restore extracted blocks<br/>Append under 'Critical Rules' if their parent was stripped]
+    STRIP --> RESTORE[Step 1c: Restore extracted blocks<br/>Append under 'Critical Rules' if their parent was stripped]
 
-    RESTORE --> DOT[Phase 1d: Remove DOT graph blocks<br/>digraph and graph blocks]
-    DOT --> HTML[Phase 1e: Remove HTML comments]
+    RESTORE --> UNPROTECT[Restore the code blocks protected in Step 0b]
+    UNPROTECT --> HTML[Strip frontmatter markers, horizontal rules, and HTML comments]
 
     HTML --> D2[Phase 2: Density reductions<br/>applied OUTSIDE code blocks only]
 
@@ -480,13 +482,15 @@ sequenceDiagram
 
 ### Skill Discovery Priority
 
-As of v2.6.0, all skills (including the 14 obra/superpowers originals) are installed directly into `~/.codex/skills/`. The separate `~/.codex/superpowers/skills/` tier no longer exists.
+As of v2.6.0, `superpowers-augment.js` installs all skills directly into `~/.codex/skills/`, and its own `SUPERPOWERS_SKILLS_DIR` default now points there too, so for the primary CLI the separate `~/.codex/superpowers/skills/` tier no longer exists.
 
 ```
-~/.codex/skills/<name>/skill.md    (personal — the only lookup tier)
+~/.codex/skills/<name>/skill.md    (personal: the only lookup tier for superpowers-augment.js)
 ```
 
 Overlay repos (org-specific extensions, etc.) install additional skills into `~/.codex/skills/` alongside the base set; name collisions are resolved by last-installed-wins during `install_skills()`.
+
+**Known drift:** `mcp/superpowers-mcp.js` was not updated for this change. Its `SUPERPOWERS_SKILLS_DIR` default still points at the old `~/.codex/superpowers/skills/` path, independently of `superpowers-augment.js`. If you run the MCP server against a v2.6.0+ install and that old directory does not exist, set `SUPERPOWERS_SKILLS_DIR=~/.codex/skills` explicitly in its environment.
 
 ---
 

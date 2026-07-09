@@ -138,7 +138,7 @@ When overriding a skill, include these fields:
 | `overrides` | `superpowers-plus/skill-name` | Declares the override relationship |
 | `triggers` | Same or extended array | Inherit or extend trigger phrases |
 
-This enables the trigger validator to audit overrides across repo boundaries.
+These fields document the override relationship for anyone reading the skill file; the trigger validator itself only checks trigger-phrase overlaps, not the `overrides:` field, so keeping the two in sync is a manual review step.
 
 ### Override Checklist
 
@@ -165,8 +165,7 @@ skills/
 │   │   ├── README.md              # Overview of all adapters
 │   │   ├── adapter-interface.md   # Generic interface definition
 │   │   ├── platform-template.md   # Provider-neutral adapter template
-│   │   ├── confluence.md          # Confluence-specific config
-│   │   └── notion.md              # Notion-specific config
+│   │   └── outline.md             # Outline Wiki-specific config (shipped today; add your own platform file here)
 │   └── wiki-orchestrator/
 │       └── skill.md               # Generic skill, references adapters
 ```
@@ -345,7 +344,6 @@ Some skills share triggers intentionally (e.g., `link-verification` fires alongs
 ```bash
 # In your-org-skills/tools/skill-trigger-validator.sh
 ALLOWED_OVERLAPS=(
-    "link-verification:wiki-orchestrator"      # Dependency chain
     "link-verification:wiki-orchestrator" # Dependency chain
     "old-skill:new-skill"                 # Deprecated alias
 )
@@ -401,9 +399,7 @@ your-org-skills/
 │   │
 │   ├── wiki/                 # Wiki skills (override generic)
 │   │   ├── wiki-orchestrator/
-│   │   │   └── skill.md      # Platform-specific implementation
-│   │   ├── wiki-orchestrator/
-│   │   │   └── skill.md      # Org formatting rules
+│   │   │   └── skill.md      # Platform-specific implementation (replaces the generic version)
 │   │   └── _adapters/        # Optional: org-specific adapters
 │   │       └── internal-wiki.md
 │   │
@@ -469,7 +465,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Check superpowers-plus is installed first
 check_prerequisites() {
-    if [[ ! -d "${HOME}/.codex/superpowers" ]]; then
+    if [[ ! -d "${HOME}/.codex/skills" ]]; then
         log_error "superpowers-plus not found. Install it first:"
         echo "  git clone https://github.com/yourfork/superpowers-plus"
         echo "  cd superpowers-plus && ./install.sh"

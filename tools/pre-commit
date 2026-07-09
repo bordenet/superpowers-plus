@@ -32,6 +32,13 @@ REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P 2>/dev/null)" || true
 
 cd "$REPO_ROOT"
 
+# pre-commit is COPIED (not symlinked) into .git/hooks/ by install-hooks.sh,
+# so $SCRIPT_DIR/lib/review-token.sh would not exist there -- source relative
+# to the resolved REPO_ROOT instead, which is correct in both locations.
+# shellcheck source=tools/lib/review-token.sh
+# shellcheck disable=SC1091
+source "$REPO_ROOT/tools/lib/review-token.sh"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -579,8 +586,8 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
                 # review.sh ran on this repo recently, not that it reviewed
                 # what's actually staged right now; any staged change made
                 # between minting and this commit was silently unreviewed.
-                token_repo=$(sed -n '1p' "$token_file" 2>/dev/null || true)
-                token_tree=$(sed -n '2p' "$token_file" 2>/dev/null || true)
+                token_repo=$(review_token_repo "$token_file")
+                token_tree=$(review_token_tree "$token_file")
                 current_tree=$(git write-tree 2>/dev/null || true)
                 if [[ "$token_repo" == "$REPO_ROOT" ]] && [[ -n "$token_tree" ]] && [[ "$token_tree" == "$current_tree" ]]; then
                     FOUND_VALID_TOKEN=true
@@ -611,7 +618,10 @@ if [[ "${SKIP_REVIEW_TOKEN:-}" != "true" ]]; then
             [[ "$token_ts" =~ ^[0-9]+$ ]] || continue
             token_age=$((NOW - token_ts))
             if [[ $token_age -gt $((REVIEW_TTL * 2)) ]]; then
-                token_repo=$(cat "$token_file" 2>/dev/null || true)
+                # Must read line 1 only (see tools/lib/review-token.sh) --
+                # a whole-file `cat` never matches $REPO_ROOT for a 2-line
+                # token, silently disabling GC for every current-format token.
+                token_repo=$(review_token_repo "$token_file")
                 # Only remove tokens belonging to this repo
                 if [[ "$token_repo" == "$REPO_ROOT" ]]; then
                     rm -f "$token_file"
