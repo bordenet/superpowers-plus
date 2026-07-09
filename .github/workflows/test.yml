@@ -137,6 +137,15 @@ jobs:
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
+      - name: TODO lock tests
+        run: bash tools/tests/test_todo_lock.sh
+
+      - name: TODO engine unit tests
+        run: python3 tools/tests/test_todo_engine.py -v
+
+      - name: TODO archive tests
+        run: bash skills/productivity/todo-archive/tests/test_todo_archive.sh
+
       - name: SKILLS.md count lint
         run: |
           ACTUAL=$(find skills/ -name "skill.md" -not -path "*/_adapters/*" | wc -l | tr -d ' ')

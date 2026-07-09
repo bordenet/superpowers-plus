@@ -174,7 +174,7 @@ show archived todos from 2026-02-01 to 2026-03-15
 
 ## Integrity & Safety
 
-- **Locking:** Does not currently use `todo-lock.sh` (future improvement)
+- **Locking:** Acquires the same advisory lock `todo-crud.sh` uses (via `todo-engine.py`'s `acquire_lock()`) before snapshotting TODO.md, and holds it until the rebuild is committed or aborted. Declares a longer TTL than the default (archive rebuilds can run longer than a typical write) — see the `todo-management` skill's Failure Modes section for lock-recovery guidance (including how long a caller should expect to wait) rather than duplicating it here.
 - **Backup:** TODO.md backed up before any modification (existing mechanism)
 - **Idempotency:** Task IDs checked before appending — duplicates skipped
 - **Dry-run:** Report what would be archived without modifying files
@@ -185,7 +185,7 @@ show archived todos from 2026-02-01 to 2026-03-15
 | Scenario | Resolution |
 |----------|-----------|
 | Task completed then re-opened | Archive entry stays (immutable). New ACTIVE entry with `Reopened from [ID]` |
-| Concurrent archive attempts | Not yet guarded — avoid running concurrently with `todo-crud.sh` |
+| Concurrent archive attempts | Guarded by the advisory lock — a concurrent `todo-crud.sh` write or second archive run aborts with "Could not acquire lock" rather than racing |
 | Archive file already has entries for that day | Append under existing date header (no duplicate header) |
 | HISTORY section is empty | No-op, report "No completed tasks to archive" |
 | No HISTORY section exists | No-op, report "No HISTORY section found" |
@@ -194,7 +194,7 @@ show archived todos from 2026-02-01 to 2026-03-15
 
 | Failure | Fix |
 |---------|-----|
-| Concurrent write with todo-crud.sh corrupts archive | Use locking — abort if TODO.md is locked |
+| Concurrent write with todo-crud.sh corrupts archive | Acquires the advisory lock — aborts if TODO.md is already locked |
 | Losing task metadata (tags, issue links) during archival | Verify archived block matches source block character-for-character |
-| Archive runs during active task operations — split-brain | Check for in-progress tasks before archiving; warn user |
+| Archive runs during active task operations — split-brain | Lock acquisition serializes against `todo-crud.sh`; a held lock aborts the archive run instead of racing it |
 | Count mismatch after archive but error suppressed | Hard abort + restore from backup on ANY integrity mismatch |

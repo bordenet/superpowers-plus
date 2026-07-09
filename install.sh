@@ -134,7 +134,15 @@ fi
 if [ -n "$(find "$SCRIPT_DIR" -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null | head -1)" ]; then
     # Cross-platform CRLF strip using explicit temp rewrites to avoid stray in-place temp files.
     find "$SCRIPT_DIR" -name "*.sh" -print0 | while IFS= read -r -d '' f; do
-        mode="$(stat -f '%Lp' "$f" 2>/dev/null || stat -c '%a' "$f" 2>/dev/null || true)"
+        # GNU -c first, not BSD -f: on GNU coreutils, -f means "filesystem
+        # info" not "format string" like BSD -- trying BSD-style `-f FORMAT`
+        # first on GNU (this loop's own target platform: WSL/Linux) doesn't
+        # error, it silently prints a multi-line filesystem-info dump instead
+        # of an octal mode, so `mode` would be garbage and the chmod below
+        # would fail, stripping the executable bit off every CRLF-healed
+        # script. BSD cleanly rejects unrecognized -c, so GNU-first is safe
+        # on both platforms.
+        mode="$(stat -c '%a' "$f" 2>/dev/null || stat -f '%Lp' "$f" 2>/dev/null || true)"
         tr -d '\r' < "$f" > "${f}.tmp"
         if [[ -n "$mode" ]]; then
             chmod "$mode" "${f}.tmp"
