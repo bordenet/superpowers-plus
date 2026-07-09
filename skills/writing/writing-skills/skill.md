@@ -147,11 +147,10 @@ See `testing-skills-with-subagents.md` in this directory for full methodology (p
 
 | Repo | Content | Access |
 |------|---------|--------|
-| `superpowers` (obra) | Upstream skills | Read-only |
-| `superpowers-plus` | Open-source enhancements | Public GitHub |
+| `superpowers-plus` | All skills, including the obra-origin ones folded in directly at v2.6.0 | Public GitHub |
 | private overlay | Internal/proprietary | Private repo |
 
-Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spo with same `name`.
+Override a superpowers-plus skill from a private overlay repo: set `overrides: source-repo-name/{skill-name}` in frontmatter, where `source-repo-name` matches a directory under `~/.codex/`. Place in the overlay repo with the same `name`. This stages that source's companion files at install time and suppresses drift/duplicate warnings in `sp-doctor`. The `superpowers` source name is retired since obra/superpowers folded in at v2.6.0; don't use it.
 
 ## After Creation
 
