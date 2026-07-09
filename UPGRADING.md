@@ -106,7 +106,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
 **Expected results:**
 
 - Bootstrap should complete without errors
-- Skills catalog prints without errors (superpowers-plus contributes 89 skills; installed overlays add more)
+- Skills catalog prints without errors (superpowers-plus contributes 107 skills; installed overlays add more)
 
 ---
 
