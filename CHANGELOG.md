@@ -8,6 +8,67 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Prototype-pollution in skill matching (`lib/skill-router.js`):** `tfidfSimilarity`'s
+  query-side accumulators, `buildTfIdfIndex`'s per-document `tfidf` map, and
+  `expandQueryTerms`'s `CONCEPT_EXPANSIONS` lookup all used plain `{}` objects — a query or
+  skill description containing a word like `constructor` resolved through the prototype
+  chain to `Object.prototype.constructor` instead of `undefined`, either poisoning the
+  match score with `NaN` or throwing `TypeError: expansions is not iterable`. Fixed with
+  `Object.create(null)` / `Object.hasOwn()` at all three sites.
+- **`buildPipeline()` silently including/omitting a skill whose dependency chain failed
+  (`lib/skill-router.js`):** a mandatory (non-optional) skill whose required producer
+  failed to resolve was previously added to the pipeline anyway (missing `else` branch);
+  fixing that in turn exposed a second gap — the top-level `resolve(targetSkill)` call
+  discarded its own return value, so `buildPipeline` still reported `error: null` even
+  when the target capability itself never resolved. Both fixed: failed producers now
+  correctly exclude the dependent skill, and target-resolution failure now returns
+  `error: 'TARGET_RESOLUTION_FAILED'`.
+- **Unbounded/hanging recursion via symlink cycles (`lib/skill-discovery.js`):**
+  `findSkillsInDir()` had no cycle guard — a domain directory symlinked into an ancestor,
+  or two domain directories symlinked into each other, caused recursion to regrow the
+  path string every level with no bound; one topology self-limited via OS path-length
+  errors, another hung indefinitely. Fixed by threading a visited-realpath `Set` through
+  the recursion.
+- **MCP server trust-boundary hardening (`mcp/superpowers-mcp.js`):** `use_skill` and
+  `match_skills` threw unhandled `TypeError`s on missing/malformed `arguments` (the MCP
+  SDK's base `Server` class does not validate call arguments against the declared
+  `inputSchema`); both now return a clean `{ isError: true }` response instead.
+  `resolveSkillPath`'s suffix-match fallback used a raw `endsWith()`, so any short or
+  mistyped `skill_name` (including the degenerate empty string) could silently return an
+  unrelated skill's content instead of a not-found result — tightened to require a
+  kebab-case segment boundary. `match_skills` also had no upper bound on `query` length;
+  a large query blocked the single-threaded server for tens of seconds to minutes (cost
+  scales with query length × skill count in `applyHeuristicBoosts`); added a length cap
+  at the handler and deduped query terms in the scoring loop as defense in depth.
+- **`resolveCoordinationChain()` silently dropping a transitively-missing dependency
+  (`lib/skill-router.js`):** `collectPredecessors()` dropped a `requires` target that
+  wasn't installed with no warning, unlike its sibling `collectSuccessors()`, which warns
+  on a missing `enables` target. Now emits the matching `[WARN]` line.
+- **`lib/install/deploy.sh` post-`rm -rf` existence checks blind to dangling symlinks:**
+  three sites checked `[[ -e "$path" ]]` after a `rm -rf` to detect a failed removal
+  before copying into `$path` — `-e` follows symlinks and reports false for a dangling
+  symlink left behind by a failed `rm`, so the guard could miss exactly the failure mode
+  it was written to catch. Changed to `-e || -L` at all three sites.
+
+### Tests Added
+
+- `test/skill-router.test.js`: prototype-pollution regression (query/description terms
+  like `constructor`/`toString`/`hasOwnProperty`/`valueOf` must not throw or produce
+  `NaN` scores) plus a repeated-term amplification smoke check.
+- `test/composition-engine.test.js`: `buildPipeline` excludes a skill whose non-optional
+  producer fails to resolve and reports `TARGET_RESOLUTION_FAILED` when the target itself
+  fails; `resolveCoordinationChain` warns (does not block) on a transitively-missing
+  `requires` target.
+- `test/skill-discovery.test.js`: `findSkillsInDir` terminates quickly on both an
+  ancestor-pointing and a cross-domain symlink cycle, and still discovers a legitimately
+  symlinked (non-cyclic) skill directory.
+- `mcp/smoke-test.js`: `use_skill`/`match_skills` return `isError: true` (not a throw) for
+  missing arguments and an empty `skill_name`/`query`; a single-character `skill_name`
+  returns not-found instead of an arbitrary unrelated skill; a malformed `top_n` falls
+  back to the default; an oversized `query` is rejected.
+
 ## v2.6.0 (2026-05-15)
 
 ### Breaking Changes
