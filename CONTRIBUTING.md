@@ -1,8 +1,10 @@
 # Contributing to superpowers-plus
 
-## Upstream Fork Governance
+Adding a new skill? See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full skill-authoring guide (directory layout, frontmatter template, trigger validation, CI detectors, release process). This page covers upstream sync governance and the gates that apply to every PR.
 
-superpowers-plus depends on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). Jesse's copyright is preserved in the fork's LICENSE file.
+## Upstream Sync Governance
+
+superpowers-plus folds in Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT) directly, as described below; there is no separate intermediary fork repo in the current install or sync path.
 
 ### Pulling upstream improvements from obra/superpowers
 
@@ -58,13 +60,7 @@ summary: "Use when: ..."  # shown in sp-help --skills
 
 ### Override declaration
 
-If your skill overrides an upstream obra skill, add to frontmatter:
-
-```yaml
-overrides: upstream-skill-name
-```
-
-This documents the override relationship and helps `sp-doctor` detect drift.
+A dedicated `overrides: source-name/skill-name` frontmatter field exists for this: `lib/install/deploy.sh` uses it to stage the named source's companion files (references, scripts) before overlaying your skill.md, and `tools/doctor-modules/metadata-checks.sh`/`yaml-checks.sh` use its presence to suppress drift and duplicate-name warnings for the intentional overlay. The `superpowers/...` source name specifically is retired as of v2.6.0 (obra/superpowers is folded in directly now; `deploy.sh` warns if it sees this form and asks you to remove it). No skill file in this repo currently sets `overrides:` for any other source, so this is documented behavior, not a proven-in-practice one.
 
 ---
 
@@ -72,6 +68,6 @@ This documents the override relationship and helps `sp-doctor` detect drift.
 
 All PRs must pass the pre-push gates:
 
-1. **Code review clearance** — run `bash tools/code-review-battery.sh` or equivalent, which writes `.code-review-cleared`
+1. **Code review clearance** — run `bash tools/run-battery.sh --verdict PASS`, which writes `.code-review-cleared`
 2. **IP audit** — no proprietary content in public commits (enforced by `tools/public-repo-ip-check.sh`)
 3. **Shell tests** — `bats test/` must pass
