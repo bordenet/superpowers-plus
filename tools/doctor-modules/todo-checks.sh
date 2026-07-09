@@ -217,7 +217,13 @@ _doctor_todo_honeypot() {
 
   # 23c. Permissions
   local perms
-  perms=$(stat -f "%Lp" "$honeypot" 2>/dev/null || stat -c "%a" "$honeypot" 2>/dev/null || echo "")
+  # GNU -c first, not BSD -f: on GNU coreutils, -f means "filesystem info"
+  # not "format string" like BSD -- trying BSD-style `-f FORMAT` first on
+  # GNU doesn't error, it silently prints a multi-line filesystem-info dump
+  # instead of an octal mode, so this check would false-positive an ERROR
+  # on a correctly-protected honeypot. BSD cleanly rejects unrecognized -c,
+  # so GNU-first is safe on both.
+  perms=$(stat -c "%a" "$honeypot" 2>/dev/null || stat -f "%Lp" "$honeypot" 2>/dev/null || echo "")
   if [[ "$perms" != "444" ]]; then
     echo "🟠 ERROR: TODO honeypot permissions are $perms (expected 444)"
     ERRORS=$((ERRORS + 1))
