@@ -150,7 +150,12 @@ See `testing-skills-with-subagents.md` in this directory for full methodology (p
 | `superpowers-plus` | All skills, including the obra-origin ones folded in directly at v2.6.0 | Public GitHub |
 | private overlay | Internal/proprietary | Private repo |
 
-Override a superpowers-plus skill from a private overlay repo: set `overrides: source-repo-name/{skill-name}` in frontmatter, where `source-repo-name` matches a directory under `~/.codex/`. Place in the overlay repo with the same `name`. This stages that source's companion files at install time and suppresses drift/duplicate warnings in `sp-doctor`; no skill file in this repo currently uses it, so treat it as documented behavior, not something proven in practice. A mistyped or missing `source-repo-name` fails silently (no warning unless installing with `--verbose`), unlike the retired `superpowers` name, which always warns. The `superpowers` source name is retired since obra/superpowers folded in at v2.6.0; don't use it.
+To override a superpowers-plus skill from a private overlay repo:
+
+- Set `overrides: source-repo-name/{skill-name}` in frontmatter, where `source-repo-name` matches a directory under `~/.codex/`. Place the skill in the overlay repo with the same `name`.
+- This stages that source's companion files at install time and suppresses drift/duplicate warnings in `sp-doctor`. No skill file in this repo currently uses it, so treat it as documented behavior, not something proven in practice.
+- A mistyped or missing `source-repo-name` fails silently (no warning unless installing with `--verbose`). Verify a new `overrides:` entry resolves by installing with `--verbose` and checking for the companion-staging log line.
+- The `superpowers` source name alone is retired (v2.6.0+); don't use it. Unlike a typo, this one always warns.
 
 ## After Creation
 
