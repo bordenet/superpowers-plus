@@ -101,7 +101,7 @@ For 3+ step plans, use **TODO.md** (PRIMARY, survives crashes/compaction) + **MC
 | Tool | When to use |
 |------|-------------|
 | `todo-preflight.sh` | Create initial TODO.md, or debug path resolution |
-| `todo-lock.sh` | Debug lock issues (`status`, `steal` commands) |
+| `todo-lock.sh` | Debug lock issues (`status`, `steal` commands). Same directory as `todo-crud.sh` above; present on every install, not an optional add-on. |
 
 ### 🔴 DESTRUCTIVE WRITE BAN (NON-NEGOTIABLE — DATA LOSS PREVENTION)
 
@@ -194,38 +194,33 @@ P1 >5 → warn/demote. P3 >14 days → Friday sweep. Multi-day → ask progress.
 
 | Failure | Detection | Recovery |
 |---------|-----------|----------|
-| Direct file write attempted | OS immutability blocks it | No action needed |
-| Honeypot tampered/missing flag | `sp-doctor` Check 23 detects | Run `sp-doctor --fix` |
-| TODO path missing | Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
-| `.todo-registry` missing/empty | `self-test` warns; falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
-| Annihilation detected (>60% drop) | Engine blocks write | Delete `~/.codex/todo-shadow/TODO.md` and retry |
-| Lock stuck (agent died mid-write) | TTL expires after 120s | Wait 2 min, or `rm -rf` the `.TODO.md.lock` dir |
-| Agent writes directly despite rules | Shadow comparison catches post-write | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
-
-> **Honeypot is optional.** Only for external TODO paths. Default-path users: no honeypot, Check 23 auto-skips.
-
-**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
-
-## Companion Skills
-
-## Failure Modes
-
-| Failure | Detection | Recovery |
-|---------|-----------|----------|
 | Agent uses `save-file`/`str-replace-editor` on TODO.md | OS immutability (`uchg`/`chattr +i`) blocks the write with "Operation not permitted" | No action needed — write was prevented |
 | Agent bypasses to `~/.codex/TODO.md` (honeypot) | Honeypot is also `uchg`+`444`; `sp-doctor` Check 23 detects content tampering | Run `sp-doctor --fix` to restore honeypot |
 | Honeypot immutable flag removed | `todo-crud.sh self-test` and `sp-doctor` Check 23 detect missing flag | Run `sp-doctor --fix` (macOS: `chflags uchg`, Linux: `sudo chattr +i`) |
 | `.todo-registry` missing or empty | `todo-crud.sh self-test` warns; engine falls back to `.env` → default path | Create `.todo-registry` with real TODO path |
 | TODO path points to nonexistent file | `sp-doctor` Check 24 reports ERROR | Run `todo-preflight.sh --create-if-missing` |
 | Annihilation detection blocks write | Engine detects >60% size drop or >5 task loss | Delete `~/.codex/todo-shadow/TODO.md` and retry |
-| Lock stuck (agent died mid-write) | Lock TTL expires after 120s; next operation auto-reaps | Wait 2 min, or manually `rm -rf` the `.TODO.md.lock` dir |
+| Lock held (stuck, or another operation still running) | `todo-lock.sh status` reports `LOCK_AGE`, `LOCK_TTL`, `LOCK_STALE` — see Notes below | See Notes below |
 | Agent writes directly despite rules | Shadow comparison catches post-write; `sp-doctor` catches honeypot damage | Restore from `~/.codex/todo-shadow/TODO.*.bak` |
+
+> **Lock wait ceiling.** An `acquire` attempt only retries for ~8s before aborting
+> with "Could not acquire lock" — but the holder may legitimately keep the lock far
+> longer than that, up to whatever TTL it declared (e.g. archive runs declare 600s /
+> 10 min, vs. a typical write's 120s default). `LOCK_TTL` in `todo-lock.sh status`'s
+> output is the actual value THAT lock declared, not a hardcoded number, and
+> `LOCK_STALE` is computed from it. If `LOCK_STALE=false`, the lock hasn't exceeded
+> its own declared TTL yet — wait and retry rather than stealing it, since stealing a
+> still-legitimately-held lock can corrupt an in-progress write. Only once
+> `LOCK_STALE=true` does the next `acquire` attempt auto-steal it, or you can force it
+> yourself with `todo-lock.sh steal` (or manually `rm -rf` the `.TODO.md.lock` dir).
 
 > **Honeypot is optional.** The honeypot at `~/.codex/TODO.md` is only deployed when
 > the real TODO lives elsewhere (e.g., OneDrive, Dropbox, a shared repo). If your
 > `TODO_FILE_PATH` points to `~/.codex/TODO.md` (the default), no honeypot exists and
 > Check 23 is automatically skipped. The honeypot rows above only apply to users who
 > configured an external TODO path.
+
+**Backup:** `todo-crud.sh` creates a timestamped backup before every write. The archive subsystem (invoked by `todo-maintenance.sh`) also creates its own backup before modifying the file.
 
 ### Diagnostic Commands
 

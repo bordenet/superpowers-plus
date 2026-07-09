@@ -126,7 +126,12 @@ if [[ "$DIAGNOSE" == "true" ]]; then
   echo "Source: $(if [[ -n "${TODO_FILE_PATH:-}" ]]; then echo "env (TODO_FILE_PATH)"; else echo "default (~/.codex/TODO.md)"; fi)"
   echo "File exists: $FILE_EXISTS"
   if [[ "$FILE_EXISTS" == "true" ]]; then
-    PERMS=$(stat -f '%Lp' "$TODO_PATH" 2>/dev/null || stat -c '%a' "$TODO_PATH" 2>/dev/null)
+    # GNU -c first, not BSD -f: on GNU coreutils, -f means "filesystem info"
+    # not "format string" like BSD -- trying BSD-style `-f FORMAT` first on
+    # GNU doesn't error, it silently prints a multi-line filesystem-info
+    # dump instead of an octal mode, corrupting this diagnostic report. BSD
+    # cleanly rejects unrecognized -c, so GNU-first is safe on both.
+    PERMS=$(stat -c '%a' "$TODO_PATH" 2>/dev/null || stat -f '%Lp' "$TODO_PATH" 2>/dev/null || echo "")
     echo "Permissions: $PERMS"
     if [[ "$PERMS" == "444" ]]; then
       echo "Protection: ✅ PROTECTED (read-only, as expected)"
