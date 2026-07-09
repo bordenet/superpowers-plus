@@ -159,4 +159,4 @@ Timing: Pre-commit battery → sentinel stales after commit; re-run before push.
 ### Gap Analysis + Error Handling
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks. Empty diff → skip.
 ## Failure Modes
-See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist) with fixes. Moved to the companion file alongside the Anti-Patterns table.
+See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) with fixes. Moved to the companion file alongside the Anti-Patterns table.
