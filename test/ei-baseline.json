@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T01:44:44.778Z",
+  "generated_at": "2026-07-09T20:09:50.924Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -789,15 +789,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "54f2eb1ec02af976",
-        "length": 1122,
-        "first_line": "| Failure | Detection | Recovery |"
-      },
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "887daee587b99620",
-        "length": 1764,
+        "normalized_hash": "7a42662a106fa9a2",
+        "length": 2794,
         "first_line": "| Failure | Detection | Recovery |"
       }
     ],
