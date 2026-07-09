@@ -1,8 +1,8 @@
 # Contributing to superpowers-plus
 
-Adding a new skill? See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full skill-authoring guide (directory layout, frontmatter template, trigger validation, CI detectors, release process). This page covers upstream fork governance and the gates that apply to every PR.
+Adding a new skill? See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the full skill-authoring guide (directory layout, frontmatter template, trigger validation, CI detectors, release process). This page covers upstream sync governance and the gates that apply to every PR.
 
-## Upstream Fork Governance
+## Upstream Sync Governance
 
 superpowers-plus folds in Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT) directly, as described below; there is no separate intermediary fork repo in the current install or sync path.
 
