@@ -239,7 +239,7 @@ See `reference.md` for the 5 anti-patterns (all-agree, duplicates, fatigue, miss
 
 ## Failure Modes
 
-See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist) with fixes. Moved to the companion file alongside the Anti-Patterns table.
+See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) with fixes. Moved to the companion file alongside the Anti-Patterns table.
 
 ## Companion Skills
 
