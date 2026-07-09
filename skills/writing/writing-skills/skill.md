@@ -40,7 +40,7 @@ A **skill** is a reusable reference guide for techniques, patterns, or tools. NO
 ```yaml
 ---
 name: skill-name
-source: superpowers-plus  # or superpowers, or private overlay
+source: superpowers-plus  # or a private overlay repo's name; `superpowers` is retired, don't use it
 triggers: ["phrase1", "phrase2"]
 anti_triggers: ["not-this"]
 description: "One-line summary starting with 'Use when:'"
@@ -147,11 +147,15 @@ See `testing-skills-with-subagents.md` in this directory for full methodology (p
 
 | Repo | Content | Access |
 |------|---------|--------|
-| `superpowers` (obra) | Upstream skills | Read-only |
-| `superpowers-plus` | Open-source enhancements | Public GitHub |
+| `superpowers-plus` | All skills, including the obra-origin ones folded in directly at v2.6.0 | Public GitHub |
 | private overlay | Internal/proprietary | Private repo |
 
-Override an obra skill: set `overrides: superpowers/{skill-name}` in frontmatter. Place in spp or spo with same `name`.
+To override a superpowers-plus skill from a private overlay repo:
+
+- Set `overrides: source-repo-name/{skill-name}` in frontmatter, where `source-repo-name` matches a directory under `~/.codex/`. Place the skill in the overlay repo with the same `name`.
+- This stages that source's companion files at install time and suppresses drift/duplicate warnings in `sp-doctor`. No skill file in this repo currently uses it, so treat it as documented behavior, not something proven in practice.
+- A mistyped or missing `source-repo-name` fails silently (no warning unless installing with `--verbose`). Verify a new `overrides:` entry resolves by installing with `--verbose` and checking for the companion-staging log line.
+- The `superpowers` source name alone is retired (v2.6.0+); don't use it. Unlike a typo, this one always warns.
 
 ## After Creation
 
