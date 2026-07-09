@@ -252,7 +252,13 @@ self_test() {
     # 6. Check honeypot permissions are 444
     if [[ -f "$HONEYPOT_PATH" ]]; then
       local perms
-      perms=$(stat -f "%Lp" "$HONEYPOT_PATH" 2>/dev/null || stat -c "%a" "$HONEYPOT_PATH" 2>/dev/null || echo "")
+      # GNU -c first, not BSD -f: on GNU coreutils, -f means "filesystem
+      # info" not "format string" like BSD -- trying BSD-style `-f FORMAT`
+      # first on GNU doesn't error, it silently prints a multi-line
+      # filesystem-info dump instead of an octal mode, so this check would
+      # false-negative "tampered" on a correctly-protected honeypot. BSD
+      # cleanly rejects unrecognized -c, so GNU-first is safe on both.
+      perms=$(stat -c "%a" "$HONEYPOT_PATH" 2>/dev/null || stat -f "%Lp" "$HONEYPOT_PATH" 2>/dev/null || echo "")
       if [[ "$perms" == "444" ]]; then
         echo "✅ Honeypot permissions are 444 (read-only)"
         passed=$((passed + 1))

@@ -215,8 +215,13 @@ ESTIMATE=""
 CACHE_REASON=""
 
 # Portable mtime (BSD stat -f vs GNU stat -c). Both produce epoch seconds.
+# GNU -c first, not BSD -f: on GNU coreutils, -f means "filesystem info" not
+# "format string" like BSD -- trying BSD-style `-f FORMAT` first on GNU
+# doesn't error, it silently prints a multi-line filesystem-info dump instead
+# of a bare epoch, corrupting the `_now - _mtime` arithmetic below. BSD
+# cleanly rejects unrecognized -c, so GNU-first is safe on both platforms.
 file_mtime() {
-    stat -f%m "$1" 2>/dev/null || stat -c%Y "$1" 2>/dev/null
+    stat -c%Y "$1" 2>/dev/null || stat -f%m "$1" 2>/dev/null
 }
 
 if [[ -f "$CACHE_FILE" ]]; then
