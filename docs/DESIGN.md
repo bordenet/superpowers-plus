@@ -30,7 +30,7 @@ description: "One-line skill description" # string, REQUIRED — used in skill d
 triggers: ["phrase one", "phrase two"]    # string[], optional — makes this a superpower (auto-invoked)
 anti_triggers: ["phrase to suppress"]     # string[], optional — suppress activation on match
 aliases: ["alt-name"]                     # string[], optional — alternate lookup names
-overrides: source-name/skill-name         # string, optional — overlay drift/dup suppression only (see tools/doctor-modules/); the `superpowers/...` source name is retired as of v2.6.0, deploy.sh warns and asks you to remove it
+overrides: source-name/skill-name         # string, optional — replaces a same-named skill from another source; install.sh stages that source's companion files, sp-doctor suppresses drift/dup warnings for it. The `superpowers/...` source name is retired (v2.6.0+); deploy.sh warns and asks you to remove it
 summary: "Short summary for probe mode"  # string, optional — shown by use-skill --probe
 augment_menu: false                       # boolean, optional, default false — true exports skill to ~/.agents/skills/ slash menu
 compress: true                            # boolean, optional, default true — set false to skip compression
@@ -63,7 +63,7 @@ composition:                              # object, optional — capability/arti
 | `triggers` | No | string[] | `[]` | Auto-invocation phrases → makes skill a **superpower** |
 | `anti_triggers` | No | string[] | `[]` | Suppression phrases — prevent false activations |
 | `aliases` | No | string[] | `[]` | Alternate lookup names |
-| `overrides` | No | string | — | Declares upstream skill being replaced |
+| `overrides` | No | string | — | Declares a same-named skill from another source being replaced; install.sh stages that source's companion files, sp-doctor suppresses drift/dup warnings for it |
 | `summary` | No | string | — | Short description for `--probe` mode |
 | `augment_menu` | No | boolean | `false` | Set `true` to export this skill to `~/.agents/skills/` (Augment IDE slash menu). Command name is the first `/sp*` trigger; falls back to the skill directory name |
 | `compress` | No | boolean | `true` | Set `false` to skip compression |

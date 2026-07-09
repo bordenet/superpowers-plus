@@ -60,7 +60,7 @@ summary: "Use when: ..."  # shown in sp-help --skills
 
 ### Override declaration
 
-If your skill overrides an upstream obra skill (matches its name and replaces it at install time), note the relationship in the skill's own description or a comment near the top of its frontmatter. A dedicated `overrides:` field does exist and is read by `tools/doctor-modules/metadata-checks.sh` and `yaml-checks.sh`, but only to suppress drift and duplicate-name warnings for multi-source overlay installs, not to document an obra-origin relationship. No skill file in this repo currently sets it. Adding one won't give you automatic obra-override drift detection; it only changes overlay-duplicate behavior in `sp-doctor`.
+A dedicated `overrides: source-name/skill-name` frontmatter field exists for this: `lib/install/deploy.sh` uses it to stage the named source's companion files (references, scripts) before overlaying your skill.md, and `tools/doctor-modules/metadata-checks.sh`/`yaml-checks.sh` use its presence to suppress drift and duplicate-name warnings for the intentional overlay. The `superpowers/...` source name specifically is retired as of v2.6.0 (obra/superpowers is folded in directly now; `deploy.sh` warns if it sees this form and asks you to remove it). No skill file in this repo currently sets `overrides:` for any other source, so this is documented behavior, not a proven-in-practice one.
 
 ---
 
