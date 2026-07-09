@@ -23,7 +23,6 @@ Before ANY commit:
 1. **Lint**: `shellcheck *.sh`
 2. **Build**: `bash -n *.sh`
 3. **Test**: `bats test/`
-4. **Coverage**: Minimum N/A%
 
 **Order matters.** Lint → Build → Test. Never skip steps.
 

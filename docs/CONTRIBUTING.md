@@ -1,6 +1,6 @@
 # Contributing
 
-How to add new skills to superpowers-plus.
+How to add new skills to superpowers-plus. For upstream fork governance and the PR-wide gates (commit gate, using-superpowers change gate), see [CONTRIBUTING.md](../CONTRIBUTING.md) at the repo root.
 
 ## Adding a Skill
 
@@ -263,8 +263,6 @@ The following tools are used by the optimization program and are not part of the
 | `node tools/classify-skill-blocks.js` | Classifies EI / operative / declarative blocks per skill | Before optimization triage decisions |
 
 Output files committed under `tools/optimization-baseline/` are point-in-time snapshots. Regenerate them only when the baseline measurement needs to change; include the regenerated file in the PR.
-
-
 
 ### Auto-Fix Available
 
