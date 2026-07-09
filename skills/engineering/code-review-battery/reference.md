@@ -21,6 +21,7 @@ read but doesn't need to live in the main procedure body.
 | False positives from isolated diff review | Include source context (callers, field readers) per Phase 2 -- isolation is the #1 cause |
 | Convergence never reached | Escalate to human after 3 passes |
 | Monolith finds issues specialists missed | Log as gap-analysis candidate for specialist prompt improvement |
+| Duplicated on-disk format parsing (config/token/cache file minted by one script, read via ad-hoc `cat`/`sed`/`awk`/`grep` by others) | Grep every consumer of the file path/pattern repo-wide, tests included; prefer extracting a shared parser over updating each consumer in place |
 
 ## BugPath Detection Script
 

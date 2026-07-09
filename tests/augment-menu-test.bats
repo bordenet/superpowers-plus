@@ -22,9 +22,12 @@ setup() {
     log_success() { :; }
     log_error()   { echo "ERROR: $*" >&2; }
 
-    # Source only the deploy helpers (not the full install machinery)
+    # Source only the deploy helpers (not the full install machinery).
+    # export_augment_menu_skills() calls the shared remove_stale_managed_dir()
+    # helper -- it must be extracted too or sourcing succeeds but the function
+    # call fails at runtime with "command not found".
     # shellcheck source=../lib/install/deploy.sh
-    source <(sed -n '/^_extract_sp_trigger/,/^}$/p;/^export_augment_menu_skills/,/^}$/p;/^AUGMENT_MENU_SKILLS/,/^)/p' "$DEPLOY_SH")
+    source <(sed -n '/^_extract_sp_trigger/,/^}$/p;/^remove_stale_managed_dir/,/^}$/p;/^export_augment_menu_skills/,/^}$/p;/^AUGMENT_MENU_SKILLS/,/^)/p' "$DEPLOY_SH")
 }
 
 teardown() {

@@ -17,6 +17,9 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/lib/review-token.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/review-token.sh"
 # REPO_ROOT resolution — two invocation modes:
 #
 #   1. Direct run:  `bash /path/to/repo/tools/harsh-review.sh`
@@ -255,40 +258,48 @@ log_check "Shell scripts (shellcheck + bash -n)"
 # SC2016 - Expressions don't expand in single quotes (intentional literal matching)
 SHELLCHECK_EXCLUDES="SC1091,SC2034,SC2129,SC2155,SC2162,SC2097,SC2098,SC2015,SC2317,SC2064,SC2016"
 
-if command -v shellcheck &> /dev/null; then
-    # Check *.sh files
-    while IFS= read -r file; do
-        [[ -z "$file" ]] && continue
-        [[ ! -f "$file" ]] && continue
-        if ! bash -n "$file" 2>/dev/null; then
-            log_fail "$file: bash syntax error"
-        fi
-        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
-            log_fail "$file: shellcheck violations"
-        fi
-    done < <(get_files '\.sh$')
+# bash -n (pure syntax check, no external dependency) used
+# to be nested inside the `command -v shellcheck` gate below, alongside the
+# actual shellcheck call. On any machine/CI runner without shellcheck
+# installed -- an easy-to-miss transitive dependency this repo doesn't
+# enforce -- a genuine bash syntax error skipped BOTH checks silently, behind
+# a single easy-to-miss log_warn line, rather than just losing shellcheck's
+# additional linting. Run bash -n unconditionally; only shellcheck itself is
+# gated on availability.
+_SHELLCHECK_AVAILABLE=false
+command -v shellcheck &> /dev/null && _SHELLCHECK_AVAILABLE=true
+[[ "$_SHELLCHECK_AVAILABLE" == "false" ]] && log_warn "shellcheck not installed - skipping shellcheck lint (bash -n syntax check still runs)"
 
-    # Also check extensionless hook scripts (pre-commit, pre-push, etc.) that
-    # carry a bash shebang — these are the largest scripts in the repo and were
-    # previously excluded from shell linting because they lack a .sh suffix.
-    while IFS= read -r file; do
-        [[ -z "$file" ]] && continue
-        [[ ! -f "$file" ]] && continue
-        # Skip files that already matched *.sh above
-        [[ "$file" == *.sh ]] && continue
-        # Only process files with a bash shebang
-        head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
-        if ! bash -n "$file" 2>/dev/null; then
-            log_fail "$file: bash syntax error"
-        fi
-        if ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
-            log_fail "$file: shellcheck violations"
-        fi
-    # Pattern matches both find output (./tools/) and git diff output (tools/)
-    done < <(get_files '^(\.\/)?tools/')
-else
-    log_warn "shellcheck not installed - skipping shell lint"
-fi
+# Check *.sh files
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    [[ ! -f "$file" ]] && continue
+    if ! bash -n "$file" 2>/dev/null; then
+        log_fail "$file: bash syntax error"
+    fi
+    if [[ "$_SHELLCHECK_AVAILABLE" == "true" ]] && ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
+        log_fail "$file: shellcheck violations"
+    fi
+done < <(get_files '\.sh$')
+
+# Also check extensionless hook scripts (pre-commit, pre-push, etc.) that
+# carry a bash shebang — these are the largest scripts in the repo and were
+# previously excluded from shell linting because they lack a .sh suffix.
+while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    [[ ! -f "$file" ]] && continue
+    # Skip files that already matched *.sh above
+    [[ "$file" == *.sh ]] && continue
+    # Only process files with a bash shebang
+    head -1 "$file" 2>/dev/null | grep -qE '^#!.*(bash)' || continue
+    if ! bash -n "$file" 2>/dev/null; then
+        log_fail "$file: bash syntax error"
+    fi
+    if [[ "$_SHELLCHECK_AVAILABLE" == "true" ]] && ! shellcheck -e "$SHELLCHECK_EXCLUDES" "$file" 2>/dev/null; then
+        log_fail "$file: shellcheck violations"
+    fi
+# Pattern matches both find output (./tools/) and git diff output (tools/)
+done < <(get_files '^(\.\/)?tools/')
 
 # =============================================================================
 # CHECK 3: JSON Syntax
@@ -751,6 +762,15 @@ else
     # restrict deletion to the current repo without reading file contents).
     _repo_cksum=$(printf '%s' "$_canon_repo" | cksum | awk '{print $1}')
     token_file="${REVIEW_TOKEN_DIR}/${_repo_cksum}.$(date +%s).$$"
-    echo "$_canon_repo" > "$token_file"
+    # The token used to contain only the repo path, so it
+    # proved "harsh-review.sh ran on this repo within the TTL window" and
+    # nothing about WHAT it reviewed — any staged change made after minting,
+    # before the one-time-use token is consumed at commit, was silently
+    # covered by a review that never saw it. Bind the token to the current
+    # staged tree hash (git write-tree — same content-addressing pre-push's
+    # SHA-bound .code-review-cleared --staged mode already relies on) so
+    # pre-commit can verify the staged content hasn't changed since review.
+    _staged_tree="$(cd "$REPO_ROOT" && git write-tree 2>/dev/null)" || _staged_tree=""
+    review_token_write "$token_file" "$_canon_repo" "$_staged_tree"
     exit 0
 fi

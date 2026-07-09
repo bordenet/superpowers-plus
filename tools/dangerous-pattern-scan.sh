@@ -163,15 +163,20 @@ check_dangerous_commands() {
     [[ "$line" =~ ^[[:space:]]*echo ]] && continue
     [[ "$line" =~ ^[[:space:]]*printf ]] && continue
 
-    # chmod 777
-    if echo "$line" | grep -qE 'chmod\s+777'; then
+    # chmod 777 (with or without flags like -R in between — the bare
+    # `chmod\s+777` pattern never matched the more common, more dangerous
+    # recursive form `chmod -R 777 <path>`)
+    if echo "$line" | grep -qE 'chmod(\s+-[a-zA-Z]+)*\s+777'; then
       echo "  ❌ $file:$line_num: chmod 777 (world-writable)"
       echo "      $line"
       FOUND=$((FOUND + 1))
     fi
 
-    # curl/wget piped to shell
-    if echo "$line" | grep -qE '(curl|wget)\s.*\|\s*(bash|sh|zsh)'; then
+    # curl/wget piped to shell (also catch `sudo bash` and an absolute/
+    # relative interpreter path like `/bin/bash`, both of which are extremely
+    # common install-script idioms the old pattern missed entirely since it
+    # required the shell name immediately after the pipe)
+    if echo "$line" | grep -qE '(curl|wget)\s.*\|\s*(sudo\s+)?([a-zA-Z0-9_./-]*/)?(bash|sh|zsh)\b'; then
       echo "  ❌ $file:$line_num: Piping download to shell (curl|bash)"
       echo "      $line"
       FOUND=$((FOUND + 1))
@@ -191,8 +196,11 @@ check_dangerous_commands() {
       FOUND=$((FOUND + 1))
     fi
 
-    # force push without --force-with-lease
-    if echo "$line" | grep -qE 'git\s+push\s+.*--force[^-]' && ! echo "$line" | grep -qE 'force-with-lease|force-if-includes'; then
+    # force push without --force-with-lease (`--force[^-]` required a
+    # trailing non-dash character, so a line ending exactly in `--force` —
+    # the ordinary way to type it — had nothing for `[^-]` to consume and
+    # never matched at all)
+    if echo "$line" | grep -qE 'git\s+push\s+.*--force(\s|$)' && ! echo "$line" | grep -qE 'force-with-lease|force-if-includes'; then
       echo "  ⚠️  $file:$line_num: git push --force (use --force-with-lease instead)"
       echo "      $line"
       WARNINGS=$((WARNINGS + 1))
