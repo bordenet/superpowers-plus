@@ -60,7 +60,7 @@ summary: "Use when: ..."  # shown in sp-help --skills
 
 ### Override declaration
 
-If your skill overrides an upstream obra skill (matches its name and replaces it at install time), note the relationship in the skill's own description or a comment near the top of its frontmatter. There is no dedicated `overrides:` frontmatter field currently read by any tooling in this repo (verified: no skill file uses one, and `sp-doctor` does not check for it); don't rely on adding one to get automatic drift detection.
+If your skill overrides an upstream obra skill (matches its name and replaces it at install time), note the relationship in the skill's own description or a comment near the top of its frontmatter. A dedicated `overrides:` field does exist and is read by `tools/doctor-modules/metadata-checks.sh` and `yaml-checks.sh`, but only to suppress drift and duplicate-name warnings for multi-source overlay installs, not to document an obra-origin relationship. No skill file in this repo currently sets it. Adding one won't give you automatic obra-override drift detection; it only changes overlay-duplicate behavior in `sp-doctor`.
 
 ---
 

@@ -22,7 +22,7 @@ This distinction matters for user queries:
 
 ## Framework Integration
 
-superpowers-plus builds on [bordenet/superpowers](https://github.com/bordenet/superpowers), a maintained fork of Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT). The fork gives superpowers-plus governance stability — upstream obra improvements are reviewed and merged periodically per [CONTRIBUTING.md](../CONTRIBUTING.md). The core framework provides brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
+superpowers-plus folds in Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers) (MIT) directly; there is no separate intermediary fork repo in the current install or sync path. Upstream improvements are reviewed and merged periodically via a direct `obra` git remote, per [CONTRIBUTING.md](../CONTRIBUTING.md). The obra-origin skills provide brainstorming, systematic-debugging, TDD, and other foundational skills. superpowers-plus adds domain-specific skills for wiki editing, issue tracking, security, and AI text quality.
 
 ```bash
 ~/.codex/

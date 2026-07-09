@@ -162,7 +162,7 @@ flowchart LR
     PUB -.->|post-publish drift check| WV
 ```
 
-Skill mapping for the gate stages that invoke a skill rather than a raw script: 2.5 → `wiki-content-coherence`, 3 → `link-verification`, 4 → `wiki-secret-audit`, 5 → `eliminating-ai-slop`, 5.5 → `wiki-markdown-structure-gate`, 6 → `wiki-debunker`. Stages 1, 2, and 4.5 run scripts (`tools/wiki-read.sh`, formatting rules, `tools/language-scanner.js`) rather than dispatching a skill.
+Skill mapping for the gate stages that invoke a skill rather than a raw script, per `wiki-orchestrator`'s own command column: 2.5 → `wiki-content-coherence`, 3 → `link-verification`, 4 → `wiki-secret-audit`, 5 → `eliminating-ai-slop`, 6 → `wiki-debunker`. Stages 1, 2, 4.5, and 5.5 run scripts directly (`tools/wiki-read.sh`, formatting rules, `tools/language-scanner.js`, `tools/wiki-markdown-validate.js`) rather than dispatching a skill, even though 5.5 corresponds to the `wiki-markdown-structure-gate` skill's concern.
 
 ---
 
