@@ -30,7 +30,7 @@ description: "One-line skill description" # string, REQUIRED — used in skill d
 triggers: ["phrase one", "phrase two"]    # string[], optional — makes this a superpower (auto-invoked)
 anti_triggers: ["phrase to suppress"]     # string[], optional — suppress activation on match
 aliases: ["alt-name"]                     # string[], optional — alternate lookup names
-overrides: superpowers/skill-name         # string, optional — declares upstream skill being replaced
+overrides: source-name/skill-name         # string, optional — overlay drift/dup suppression only (see tools/doctor-modules/); the `superpowers/...` source name is retired as of v2.6.0, deploy.sh warns and asks you to remove it
 summary: "Short summary for probe mode"  # string, optional — shown by use-skill --probe
 augment_menu: false                       # boolean, optional, default false — true exports skill to ~/.agents/skills/ slash menu
 compress: true                            # boolean, optional, default true — set false to skip compression
