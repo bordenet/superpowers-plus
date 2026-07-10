@@ -76,6 +76,7 @@ VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`. ACTION i
 - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
 - **Minor** = works but violates standards (style, naming, missing docs/tests, observability gaps)
 - **Elevate to Important** when operator-visible signal is wrong/missing (dead metric, blinded alarm) OR separately-actionable failure cause folded into generic metric/alarm
+- **Elevate to Critical** when the metric catalog description directly contradicts the emit conditions in code (catalog-vs-code lie): a metric whose `defineMetric` description states "NOT emitted on path X" while the code emits on path X (or vice versa) corrupts every dashboard/alarm built on that metric. Operator pages on the wrong signal. See Standards Enforcer "Catalog-vs-code consistency" check.
 - Downgrade process gaps (e.g., "no tests added") from Critical to Minor: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
 - True convergent findings promoted to at least Important; echo convergent retain original severity.
 
