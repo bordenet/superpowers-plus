@@ -103,8 +103,65 @@ For every function called in the diff that crosses a module boundary (different 
 1. Read the implementation — don't trust the function name or signature to describe behavior
 2. Ask: "Does this function actually do what the caller assumes?" Look for silent failures, partial operations, and ignored return values
 3. Pay special attention to cleanup/teardown functions (clear*, reset*, stop*) — they often have preconditions or no-op cases the caller doesn't check
+4. For every callee that can THROW: identify whether the caller's try/catch around it propagates, swallows, or recovers — then apply the **Catch-Swallow Fall-Through** check below
 
 **Example**: `cancelPendingJobs()` silently no-ops when a job is in "queued" state rather than "running" — the caller assumes all jobs are cancelled, but a queued-but-not-yet-started job survives and executes later.
+
+### Dead Catch Verification (MANDATORY before proposing any new catch block)
+
+Before flagging "missing error handling" or recommending a new `try/catch` around an existing call site, verify that the wrapped code can actually throw to that caller:
+
+1. Read the implementation of every function in the proposed try block
+2. Ask: "Does this function already swallow its own errors internally (catches and never re-throws)?"
+3. If yes: any catch block around it is **unreachable dead code from birth** -- the exception can never escape to the outer catch
+4. Flag as **Important** if the diff already added such a dead catch (unreachable code that falsely implies safety)
+5. Flag as **Critical** if a dead catch then influences a metric, alarm, or sentinel (the system now claims "protected" while the guard is a no-op)
+
+**Reachability test**: grep the full source for `throw` inside the called function's body (and any function it calls transitively). If every throw is already caught internally, the outer catch is dead.
+
+**Example (incident-2026-1507)**: reviewer added `try { await this.processTurn('') } catch (e) { ... }` to `startInbound`. `processTurn` already catches all errors internally and never re-throws. The outer catch was unreachable dead code. It was then defended across 3 review passes because the battery graded its own addition.
+
+**Finding rule**: if a dead catch is discovered in the diff, flag it as **Important** (or **Critical** if it influences a metric, alarm, or sentinel -- see step 5 above) and recommend removal to the engineer. Do NOT modify the production codebase -- surfacing findings is the reviewer's only job. Recovery logic inside a dead catch gives false safety confidence and obscures the real code path.
+
+### Catch-Swallow Fall-Through (MANDATORY for any try/catch in the diff)
+
+For every `try { ... } catch (e) { ... }` block in the diff, trace what happens AFTER the catch block returns to the function body:
+
+1. Identify every state mutation, flag set, or terminal action the try block was supposed to perform (e.g., `this.hasEnded = true`, lock acquired, file opened, sentinel written)
+2. List the code that runs AFTER the catch block in the same function
+3. Ask: "If the try block threw and the catch only logged, does ANY of that subsequent code depend on a state the try block was supposed to set?"
+4. If yes, the catch path silently allows the post-catch code to run against the wrong state. **This is a Critical finding** (race / wrong action / data corruption) unless the post-catch code explicitly re-checks the missing state.
+
+**Example (incident-2026-1507)**:
+
+```typescript
+if (bufferedInput === '0') {
+    try {
+        await this.triggerHandoff()          // sets this.hasEnded = true on success
+    } catch (error) {
+        logger.error(...)                    // swallow; hasEnded NOT set
+    }
+    // fall-through
+}
+if (buffered && !this.hasEnded) {            // hasEnded may still be false here
+    await this.processTurn(buffered)          // fires AGAINST the caller's cancel signal
+}
+```
+
+Fix shape: either re-raise the exception, set the assumed state inside the catch (`this.hasEnded = true`), or guard the post-catch code with an explicit "did the try block actually succeed" flag captured before the try.
+
+**Durable Check**: recommend a test that mocks the inner call (`triggerHandoff`) to throw and asserts the post-catch code does NOT run (no second `processTurn` invocation, no double-emit, no concurrent action).
+
+### Finally-Block State Precondition (MANDATORY for any try/catch/finally in the diff)
+
+For every `finally` block in the diff, list each statement and ask: "Does this statement depend on a state variable that should have been nulled / cleared in the catch path but isn't?"
+
+1. Identify state variables read by the finally block (timestamps, flags, IDs)
+2. For each, ask: "On the catch path (exception thrown), is this variable cleared before the finally runs?"
+3. If the variable was set in the try block and the catch swallows without clearing it, the finally runs against partially-completed state — often emitting metrics, releasing locks, or writing sentinels that the catalog/spec says should NOT fire on the failure path
+4. Cross-reference any metric catalog description the diff touches: if the description says "NOT emitted on fail-open" or "excludes exception path" and the finally still emits it, that's a Critical (catalog-vs-code lie) — flag it; if Standards Enforcer independently reaches the same location, synthesis will deduplicate and attribute both
+
+**Example (incident-2026-1507)**: the catch block forgot to null `windowStartedAt` before falling through to the finally. The finally then emitted `ProtectionWindowMs` on every fail-open call — directly contradicting the catalog's documented "NOT EMITTED ON: Fail-open exception path." 1-line fix: null the timestamp in the catch.
 
 ### Adversarial Input Generation
 
