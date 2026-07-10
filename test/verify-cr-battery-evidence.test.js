@@ -45,7 +45,7 @@ function run(env, args = []) {
         encoding: 'utf8', cwd: TMP,
     });
     const readBack = () => JSON.parse(fs.readFileSync(f, 'utf8'));
-    return { ...r, readBack };
+    return { ...r, readBack, filePath: f };
 }
 
 let pass = 0, fail = 0;
@@ -150,6 +150,16 @@ check('exact "hello": exits 0', r.status === 0);
 r = run(envelope([finding({ command: 'pwd', expectation: { type: 'count', value: '>0' } })]),
     ['--cwd', TMP]);
 check('--cwd accepted: exits 0', r.status === 0);
+
+// --- rewritten envelope ends with a trailing newline (harsh-review's file-ending
+// check flags any tracked file without one; the verifier used to strip it on every
+// annotation pass, so the FIRST re-run after a real battery write always failed a
+// check that had nothing to do with the envelope's actual content) ---
+r = run(envelope([finding({ command: 'true', expectation: { type: 'exit_code', value: 0 } })]));
+check('rewritten envelope file ends with exactly one trailing newline', (() => {
+    const raw = fs.readFileSync(r.filePath, 'utf8');
+    return raw.endsWith('\n') && !raw.endsWith('\n\n');
+})());
 
 // Cleanup
 try { fs.rmSync(TMP, { recursive: true }); } catch (_) {}

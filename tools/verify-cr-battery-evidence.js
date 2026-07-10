@@ -266,7 +266,7 @@ function verifyEnvelope(envelopePath, cwd) {
       Object.entries(dims).map(([dimension, info]) =>
         ({ reviewer, dimension, cap: info.cap, reason: info.reason })));
   envelope.verifier_result = summary;
-  fs.writeFileSync(envelopePath, JSON.stringify(envelope, null, 2));
+  fs.writeFileSync(envelopePath, JSON.stringify(envelope, null, 2) + '\n');
   return summary;
 }
 
