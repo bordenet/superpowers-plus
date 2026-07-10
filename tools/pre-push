@@ -45,7 +45,7 @@ PHR_SENTINEL="$REPO_ROOT/.phr-cleared"
 # Non-skills .md changes (design docs, plans) need only the general ≥8.0 PASS floor.
 PHR_SKILLS_MIN="9.2"
 
-# check_phr_sentinel(): Gate 4 -- require .phr-cleared when push range
+# check_phr_sentinel(): Gate 5 -- require .phr-cleared when push range
 # touches PHR-eligible files (skill .md / docs / AGENTS.md). This closes
 # the gap where PHR was discipline-only and got skipped repeatedly.
 # Pattern mirrors check_code_review_sentinel + check_branch_flow_sentinel.
@@ -53,7 +53,7 @@ check_phr_sentinel() {
     local range="$1"
     local pushed_sha="$2"
     # $3 (optional): "no_base" -> use git log over the full history reachable
-    # from $pushed_sha (parity with Gate 1's NEW_BRANCH_NO_BASE handling). On
+    # from $pushed_sha (parity with Gate 2's NEW_BRANCH_NO_BASE handling). On
     # an orphan branch with no merge-base, single-SHA diff-tree only inspects
     # the tip and misses skill changes in earlier commits -- exactly the
     # silent-bypass class this gate exists to close.
@@ -427,7 +427,7 @@ fi
 
 ERRORS=0
 
-# branch-flow sentinel check (Gate 3): when pushing to dev|staging|main,
+# branch-flow sentinel check (Gate 4): when pushing to dev|staging|main,
 # verify that .branch-flow-cleared exists, is v1 format, and its target
 # field matches the ref being pushed. The sentinel is written by
 # tools/branch-flow-preflight.sh; if missing or mismatched, the push is
@@ -440,7 +440,7 @@ check_branch_flow_sentinel() {
         dev|staging|main) ;;
         *) return 0 ;;  # Only enforced for canonical-flow branches
     esac
-    # Self-detect: skip Gate 3 entirely if the repo doesn't have the
+    # Self-detect: skip Gate 4 entirely if the repo doesn't have the
     # merge-discipline preflight tooling installed. This keeps the hook
     # portable across test fixtures and repos that don't use this skill.
     if [[ ! -f "$REPO_ROOT/tools/branch-flow-preflight.sh" ]]; then
@@ -482,6 +482,76 @@ check_branch_flow_sentinel() {
     return 0
 }
 
+# Gate 1: local fast test suite (node + bats; no shellcheck/harsh-review --
+# those already run as separate steps elsewhere in CI). Runs once per push
+# invocation, not per pushed ref. Without this, catching stale test fixtures
+# (golden-compression snapshots, EI-move baselines) was purely a CI
+# round-trip: push, wait for CI to fail, fix locally, push again.
+# tools/test-all.sh --fast already covers exactly these checks; the gap was
+# that nothing forced it to run before the first push (see AGENTS.md, which
+# documented this entry point and was still skipped).
+echo "  [Gate 1/5] Local fast test suite (tools/test-all.sh --fast)"
+if [[ ! -f "$REPO_ROOT/tools/test-all.sh" ]] || [[ ! -d "$REPO_ROOT/test" ]]; then
+    # This hook file is also copied standalone into minimal/derived repo
+    # layouts. Two distinct fixtures hit this: test/public-repo-ip-check.test.sh's
+    # new_repo() copies only a handful of tools/ scripts (no test-all.sh at
+    # all); tests/commit-gate-test.bats's _create_fixture_repo() copies the
+    # WHOLE tools/ dir (test-all.sh included) but no test/ directory --
+    # `bats test/` then fails outright (no such path), which test-all.sh
+    # correctly reports as a failed suite even though nothing is actually
+    # broken. Check for both prerequisites, not just the script itself. Skip
+    # + announce, same pattern as the PHR gate's missing-helper case below
+    # and Gate 4's branch-flow self-detect -- a missing prerequisite means
+    # "not applicable here", not "block the push".
+    echo "  (skipped — tools/test-all.sh and/or test/ not present)"
+else
+    # This gate tests the checked-out working tree, not the specific commits
+    # in $local_sha (computing that would mean checking out each pushed ref
+    # into an isolated worktree, real added complexity for a local hook).
+    # Make that scope gap visible rather than silently testing the wrong
+    # thing: warn when the tree is dirty, since that's the case where "what
+    # this gate tested" and "what's about to be pushed" can concretely
+    # diverge (uncommitted local fix makes tests pass while the pushed
+    # commits remain broken, or unrelated dirty WIP falsely blocks an
+    # otherwise-clean push).
+    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+        echo "  ⚠️  Working tree has uncommitted changes -- this gate tests what's on disk, not necessarily the exact commits being pushed."
+    fi
+    # TEST_TIMEOUT_BIN: prefer GNU coreutils `timeout`/`gtimeout` if present;
+    # without one, a hung test (this file's own bats suite has hit a real
+    # fsmonitor-hang failure mode before) would stall `git push` indefinitely
+    # with no built-in escape besides Ctrl-C.
+    TEST_TIMEOUT_BIN=""
+    for _cand in timeout gtimeout; do
+        if command -v "$_cand" >/dev/null 2>&1; then
+            TEST_TIMEOUT_BIN="$_cand"
+            break
+        fi
+    done
+    # < /dev/null: git pipes the push-ref data (consumed by the `while read`
+    # loop further below) down THIS process's stdin exactly once. Without
+    # this redirect, if test-all.sh (or anything it invokes -- bats, node,
+    # a transitive dependency defaulting to stdin when unpiped) ever reads a
+    # line from stdin, it silently steals the push-ref data before the while
+    # loop gets it, and every other gate (2-5) reports nothing to check and
+    # exits 0 -- a silent fail-open on the ENTIRE rest of this hook, not just
+    # a hang. Reproduced directly: a stand-in test-all.sh doing one `read`
+    # consumed the ref line and "All gates passed" printed with gates 2-5
+    # never having run at all.
+    if [[ -n "$TEST_TIMEOUT_BIN" ]]; then
+        test_cmd=("$TEST_TIMEOUT_BIN" "300" bash "$REPO_ROOT/tools/test-all.sh" --fast)
+    else
+        test_cmd=(bash "$REPO_ROOT/tools/test-all.sh" --fast)
+    fi
+    if ! "${test_cmd[@]}" < /dev/null; then
+        echo -e "  ${RED}❌ Local test suite failed. Fix the findings above before pushing.${NC}"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo -e "  ${GREEN}✓ Local fast test suite passed${NC}"
+    fi
+fi
+echo ""
+
 # Read push info from stdin (pre-push hook protocol)
 while read -r _ local_sha remote_ref remote_sha; do
     if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
@@ -520,8 +590,8 @@ while read -r _ local_sha remote_ref remote_sha; do
     echo "Checking commits: $RANGE"
     echo ""
 
-    # Gate 1: Code review sentinel
-    echo "  [Gate 1/4] Code review clearance"
+    # Gate 2: Code review sentinel
+    echo "  [Gate 2/5] Code review clearance"
     if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
         # No merge-base found — enumerate ALL files reachable from the tip and
         # decide if the push is truly docs-only before failing closed.
@@ -572,8 +642,8 @@ while read -r _ local_sha remote_ref remote_sha; do
     fi
     echo ""
 
-    # Gate 2: Proprietary IP scan (public remotes only)
-    echo "  [Gate 2/4] Proprietary IP scan"
+    # Gate 3: Proprietary IP scan (public remotes only)
+    echo "  [Gate 3/5] Proprietary IP scan"
     if [[ "$IS_PUBLIC_REMOTE" == "true" ]]; then
         if ! bash "$IP_AUDIT_SCRIPT" --range "$RANGE"; then
             ERRORS=$((ERRORS + 1))
@@ -583,11 +653,11 @@ while read -r _ local_sha remote_ref remote_sha; do
     fi
     echo ""
 
-    # Gate 3: branch-flow sentinel (only for pushes to dev|staging|main).
+    # Gate 4: branch-flow sentinel (only for pushes to dev|staging|main).
     # Other branches (feature/*, fix/*, hotfix/*, forward/*, etc.) are exempt
     # because they don't represent a promotion landing. The preflight script
     # writes the sentinel and the PR-create call is the action it gates.
-    echo "  [Gate 3/4] branch-flow sentinel (canonical-flow targets only)"
+    echo "  [Gate 4/5] branch-flow sentinel (canonical-flow targets only)"
     case "$pushed_branch" in
         dev|staging|main)
             if ! check_branch_flow_sentinel "$pushed_branch" "$local_sha"; then
@@ -600,13 +670,13 @@ while read -r _ local_sha remote_ref remote_sha; do
     esac
     echo ""
 
-    # Gate 4: PHR sentinel (only when push range touches skill/design .md files).
+    # Gate 5: PHR sentinel (only when push range touches skill/design .md files).
     # PHR is the multi-persona AI judgment gate; SEPARATE from cr-battery
     # (automated lint/test). Without this gate, PHR is discipline-only and
     # gets skipped (this was a real failure mode -- see commit message).
-    echo "  [Gate 4/4] PHR sentinel (skill/design .md only)"
+    echo "  [Gate 5/5] PHR sentinel (skill/design .md only)"
     if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
-        # Parity with Gate 1: enumerate full history, not just tip commit.
+        # Parity with Gate 2: enumerate full history, not just tip commit.
         if ! check_phr_sentinel "$RANGE" "$local_sha" "no_base"; then
             ERRORS=$((ERRORS + 1))
         fi

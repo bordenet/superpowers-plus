@@ -9,6 +9,7 @@ Run: python3 tools/tests/test_todo_engine.py -v
 import contextlib
 import importlib.util
 import io
+import json
 import os
 import tempfile
 import time
@@ -1508,6 +1509,300 @@ More prose after a horizontal rule.
         count = eng._count_active_tasks(self.SAMPLE_WITH_UNINDENTED_BODY)
         # Only 2 real tasks in the fixture; no stray '- [ ]' in the un-indented body
         self.assertEqual(count, 2)
+
+
+class LockAgeTOCTOUTests(unittest.TestCase):
+    """Regression tests: a lock directory that exists but has no metadata yet
+    (the brief mkdir-then-write-metadata window of a concurrent acquirer)
+    must NOT be treated as instantly orphaned/stale -- that let a waiter
+    steal a lock nobody had abandoned, so both processes believed they held
+    it.
+    """
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-lock-age-test-")
+        self.todo_path = os.path.join(self.tmpdir, "TODO.md")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_lock_dir_without_metadata_is_not_instantly_stale(self):
+        """A freshly-created lock dir with no metadata file yet must report
+        a small age (mid-acquisition), not the maximally-stale sentinel."""
+        os.mkdir(self.engine._lock_dir(self.todo_path))
+        age = self.engine._lock_age(self.todo_path)
+        self.assertLess(age, 5, "freshly-created lock dir must not look orphaned")
+
+    def test_lock_dir_without_metadata_ages_out_like_any_stale_lock(self):
+        """Sanity check (not a fix-specific regression test -- passes
+        identically before and after that fix): a lock dir that legitimately
+        never gets metadata (acquirer died) must still eventually be
+        reclaimable, via the same mtime-based aging as a TOCTOU-window dir."""
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        old_time = time.time() - (self.engine.LOCK_TTL + 10)
+        os.utime(lock_dir, (old_time, old_time))
+        age = self.engine._lock_age(self.todo_path)
+        self.assertGreater(age, self.engine.LOCK_TTL,
+                            "backdated orphaned lock dir must age out past the TTL")
+
+    def test_non_numeric_epoch_degrades_to_stale_instead_of_crashing(self):
+        """A malformed lock.json with a non-numeric "epoch" field (e.g. from
+        a partially-written or hand-edited file) must degrade to the
+        maximally-stale sentinel like any other unparseable metadata --
+        not raise an uncaught TypeError from `int - None` that would abort
+        whatever caller (a todo-crud.sh write, or write-archives.sh's lock
+        acquisition) invoked _lock_age() via acquire_lock()."""
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta_path = os.path.join(lock_dir, "lock.json")
+        with open(meta_path, "w") as f:
+            json.dump({"hostname": "x", "pid": 1, "epoch": None, "ttl": 60}, f)
+        age = self.engine._lock_age(self.todo_path)
+        self.assertEqual(age, 999999,
+                          "non-numeric epoch must degrade to the stale sentinel, not crash")
+
+
+class LockReleaseOwnershipTests(unittest.TestCase):
+    """Regression tests: release_lock() removed whatever lock existed with
+    no check that the caller was the actual holder -- identical in effect
+    to a forced steal.
+    """
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-lock-release-test-")
+        self.todo_path = os.path.join(self.tmpdir, "TODO.md")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_release_does_not_remove_a_lock_held_by_a_different_process(self):
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta = self.engine._lock_meta(self.todo_path)
+        with open(meta, "w") as f:
+            json.dump({"hostname": "other-host", "pid": 999999,
+                       "epoch": int(time.time()), "agent": "todo-engine"},
+                      f, separators=(",", ":"))
+        self.engine.release_lock(self.todo_path)
+        self.assertTrue(os.path.isdir(lock_dir),
+                         "release_lock must not remove a lock held by a different process")
+
+    def test_release_removes_a_lock_held_by_this_process(self):
+        self.assertTrue(self.engine.acquire_lock(self.todo_path))
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        self.assertTrue(os.path.isdir(lock_dir), "acquire_lock should have created the lock dir")
+        self.engine.release_lock(self.todo_path)
+        self.assertFalse(os.path.isdir(lock_dir),
+                          "release_lock must remove a lock this process actually holds")
+
+    def test_release_refuses_when_metadata_is_corrupt(self):
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta = self.engine._lock_meta(self.todo_path)
+        with open(meta, "w") as f:
+            f.write("{not valid json")
+        released = self.engine.release_lock(self.todo_path)
+        self.assertFalse(released, "release_lock must refuse when it cannot verify ownership")
+        self.assertTrue(os.path.isdir(lock_dir),
+                         "a lock with corrupt metadata must survive a refused release")
+
+    def test_release_refuses_a_lock_with_no_metadata_yet_that_is_too_young(self):
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        released = self.engine.release_lock(self.todo_path)
+        self.assertFalse(released, "release_lock must refuse a metadata-less dir too young to be orphaned")
+        self.assertTrue(os.path.isdir(lock_dir),
+                         "a fresh metadata-less lock dir must survive a refused release")
+
+
+class LockMetadataCrossToolCompatibilityTests(unittest.TestCase):
+    """Regression tests: acquire_lock() wrote lock metadata via
+    json.dump(meta, f), which inserts a space after each colon. The
+    todo-lock.sh shell tool parses this same file with a strict no-space
+    grep, so it could never recognize a real production-created lock: status
+    always showed a blank holder and age=999999 (immediately stale), meaning
+    the shell tool would steal a live lock on its very first check, not only
+    during a narrow race window.
+    """
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-lock-format-test-")
+        self.todo_path = os.path.join(self.tmpdir, "TODO.md")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_acquired_lock_metadata_has_no_space_after_colon(self):
+        """todo-lock.sh's _lock_hostname()/_lock_pid()/_lock_age() require
+        this exact compact format -- a space after the colon makes every
+        field silently unparseable via grep."""
+        self.assertTrue(self.engine.acquire_lock(self.todo_path))
+        meta_path = self.engine._lock_meta(self.todo_path)
+        with open(meta_path) as f:
+            raw = f.read()
+        self.assertNotIn(
+            '": ', raw,
+            f"lock metadata must use compact JSON separators (no space after ':'), got: {raw}",
+        )
+
+
+class LockDeclaredTtlTests(unittest.TestCase):
+    """Regression tests: acquire_lock()'s staleness check used the global
+    LOCK_TTL constant for every existing lock it examined, regardless of
+    what ttl that lock's own holder declared. A long-running holder (e.g.
+    write-archives.sh calling acquire_lock(path, ttl=600)) could have its
+    still-valid lock stolen by any other caller using the 120s default,
+    the moment the lock crossed 120s old.
+    """
+
+    def setUp(self):
+        self.engine = load_engine()
+        self.tmpdir = tempfile.mkdtemp(prefix="todo-lock-ttl-test-")
+        self.todo_path = os.path.join(self.tmpdir, "TODO.md")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_acquire_persists_the_declared_ttl_into_metadata(self):
+        self.assertTrue(self.engine.acquire_lock(self.todo_path, ttl=600))
+        meta_path = self.engine._lock_meta(self.todo_path)
+        with open(meta_path) as f:
+            data = json.load(f)
+        self.assertEqual(data.get("ttl"), 600)
+
+    def test_a_lock_declared_600s_is_not_stolen_by_a_caller_using_the_120s_default(self):
+        self.assertTrue(self.engine.acquire_lock(self.todo_path, ttl=600))
+        meta_path = self.engine._lock_meta(self.todo_path)
+        with open(meta_path) as f:
+            data = json.load(f)
+        # Age it past the 120s default but still inside its own 600s ttl.
+        data["epoch"] = int(time.time()) - 200
+        with open(meta_path, "w") as f:
+            json.dump(data, f, separators=(",", ":"))
+
+        with unittest.mock.patch.object(self.engine, "LOCK_TIMEOUT", 0):
+            stolen = self.engine.acquire_lock(self.todo_path)
+
+        self.assertFalse(
+            stolen, "a caller using the 120s default must not steal a lock "
+            "still valid under its own 600s declared ttl"
+        )
+        self.assertTrue(
+            os.path.isdir(self.engine._lock_dir(self.todo_path)),
+            "the original lock must survive -- it was not actually stale",
+        )
+
+    def test_malformed_declared_ttl_does_not_defeat_staleness_check(self):
+        for bad_ttl in (-5, 9223372036854775808):
+            with self.subTest(ttl=bad_ttl):
+                lock_dir = self.engine._lock_dir(self.todo_path)
+                os.mkdir(lock_dir)
+                meta_path = self.engine._lock_meta(self.todo_path)
+                with open(meta_path, "w") as f:
+                    json.dump({"hostname": "other-host", "pid": 999999,
+                               "epoch": int(time.time()) - 3, "ttl": bad_ttl,
+                               "agent": "x"}, f)
+
+                with unittest.mock.patch.object(self.engine, "LOCK_TIMEOUT", 0):
+                    stolen = self.engine.acquire_lock(self.todo_path, ttl=30)
+
+                self.assertFalse(
+                    stolen, f"a malformed ttl ({bad_ttl}) must not let a "
+                    "3s-old lock be stolen"
+                )
+                self.assertTrue(
+                    os.path.isdir(lock_dir),
+                    f"original lock must survive a malformed-ttl acquire "
+                    f"attempt (ttl={bad_ttl})",
+                )
+                import shutil
+                shutil.rmtree(lock_dir, ignore_errors=True)
+
+    def test_a_lock_held_by_a_dead_pid_on_this_host_is_reclaimed_immediately(self):
+        # todo-lock.sh's `kill -0` check reclaims a dead-PID lock instantly
+        # regardless of ttl; acquire_lock() must not make every leaked lock
+        # (a crash, a killed process) wait out the full declared ttl (up to
+        # 600s) when the dead PID is trivially, instantly detectable locally.
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta_path = self.engine._lock_meta(self.todo_path)
+        hostname = os.uname().nodename.split(".")[0]
+        with open(meta_path, "w") as f:
+            json.dump({"hostname": hostname, "pid": 999999,
+                       "epoch": int(time.time()), "ttl": 600, "agent": "x"}, f)
+
+        start = time.time()
+        acquired = self.engine.acquire_lock(self.todo_path)
+        elapsed = time.time() - start
+
+        self.assertTrue(acquired, "a lock held by a dead PID on this host must be reclaimable")
+        self.assertLess(elapsed, 2, f"reclaiming a dead-PID lock should be near-instant, took {elapsed:.2f}s")
+
+    def test_steal_message_distinguishes_dead_pid_from_ttl_expired(self):
+        """"stealing stale lock (age=0s)" with no reason reads like a bug in
+        the staleness arithmetic to anyone who doesn't already know about the
+        separate dead-PID short-circuit -- the diagnostic must say why."""
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta_path = self.engine._lock_meta(self.todo_path)
+        hostname = os.uname().nodename.split(".")[0]
+        with open(meta_path, "w") as f:
+            json.dump({"hostname": hostname, "pid": 999999,
+                       "epoch": int(time.time()), "ttl": 600, "agent": "x"}, f)
+
+        err_buf = io.StringIO()
+        with contextlib.redirect_stderr(err_buf):
+            self.engine.acquire_lock(self.todo_path)
+
+        self.assertIn("reason=dead-holder-pid", err_buf.getvalue())
+
+    def test_acquire_timeout_prints_holder_identity_and_age(self):
+        """acquire_lock()'s timeout path returned False with zero stderr
+        output -- a caller had to separately shell out to `todo-lock.sh
+        status` to find out who was holding the lock and for how long, even
+        though this same fix threads that exact info through the adjacent
+        steal-branch print a few lines away."""
+        self.assertTrue(self.engine.acquire_lock(self.todo_path, ttl=600))
+
+        err_buf = io.StringIO()
+        with unittest.mock.patch.object(self.engine, "LOCK_TIMEOUT", 0):
+            with contextlib.redirect_stderr(err_buf):
+                acquired = self.engine.acquire_lock(self.todo_path)
+
+        self.assertFalse(acquired)
+        output = err_buf.getvalue()
+        self.assertIn("timed out waiting for lock", output)
+        self.assertIn("age=", output)
+
+    def test_old_format_lock_is_judged_against_the_waiters_own_fallback_ttl(self):
+        """An old-format lock (no 'ttl' field) has no declared ttl of its
+        own, so staleness must fall back to the CHECKING caller's own
+        configured ttl -- the exact bug that made todo-lock.sh's bash
+        _is_stale() ignore a waiter's --ttl for old-format locks, just on
+        the Python side of the same design.
+        """
+        lock_dir = self.engine._lock_dir(self.todo_path)
+        os.mkdir(lock_dir)
+        meta_path = self.engine._lock_meta(self.todo_path)
+        with open(meta_path, "w") as f:
+            json.dump({"hostname": "other-host", "pid": 999999,
+                       "epoch": int(time.time()) - 80, "agent": "x"}, f)
+
+        with unittest.mock.patch.object(self.engine, "LOCK_TIMEOUT", 0):
+            acquired = self.engine.acquire_lock(self.todo_path, ttl=30)
+
+        self.assertTrue(
+            acquired, "an 80s-old old-format lock must be stolen when the "
+            "waiter's own ttl (30) is shorter than its age"
+        )
 
 
 if __name__ == "__main__":
