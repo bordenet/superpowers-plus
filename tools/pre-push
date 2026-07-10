@@ -491,14 +491,19 @@ check_branch_flow_sentinel() {
 # that nothing forced it to run before the first push (see AGENTS.md, which
 # documented this entry point and was still skipped).
 echo "  [Gate 1/5] Local fast test suite (tools/test-all.sh --fast)"
-if [[ ! -f "$REPO_ROOT/tools/test-all.sh" ]]; then
+if [[ ! -f "$REPO_ROOT/tools/test-all.sh" ]] || [[ ! -d "$REPO_ROOT/test" ]]; then
     # This hook file is also copied standalone into minimal/derived repo
-    # layouts (see test/public-repo-ip-check.test.sh's new_repo() fixture,
-    # which installs only a handful of tools/ scripts). Skip + announce,
-    # same pattern as the PHR gate's missing-helper case below and Gate 4's
-    # branch-flow self-detect -- a missing prerequisite means "not
-    # applicable here", not "block the push".
-    echo "  (skipped — tools/test-all.sh not present)"
+    # layouts. Two distinct fixtures hit this: test/public-repo-ip-check.test.sh's
+    # new_repo() copies only a handful of tools/ scripts (no test-all.sh at
+    # all); tests/commit-gate-test.bats's _create_fixture_repo() copies the
+    # WHOLE tools/ dir (test-all.sh included) but no test/ directory --
+    # `bats test/` then fails outright (no such path), which test-all.sh
+    # correctly reports as a failed suite even though nothing is actually
+    # broken. Check for both prerequisites, not just the script itself. Skip
+    # + announce, same pattern as the PHR gate's missing-helper case below
+    # and Gate 4's branch-flow self-detect -- a missing prerequisite means
+    # "not applicable here", not "block the push".
+    echo "  (skipped — tools/test-all.sh and/or test/ not present)"
 else
     # This gate tests the checked-out working tree, not the specific commits
     # in $local_sha (computing that would mean checking out each pushed ref
