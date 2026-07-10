@@ -221,9 +221,193 @@ test_archive_succeeds_on_protected_todo() {
   fi
 }
 
+test_abort_leaves_no_archive_files_or_index_behind() {
+  # A safety-gate abort inside write-archives.sh used to fire AFTER
+  # the monthly archive file and INDEX.md were already written, permanently
+  # duplicating archived tasks in both stores. Force an abort via a caller
+  # contract violation (write-archives.sh's own header documents the
+  # variables it expects from its caller) and verify NOTHING under
+  # $ARCHIVE_DIR was written -- not the monthly file, not INDEX.md.
+  local root
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+
+  # A multi-statement setup-then-source sequence must run as a real external
+  # script, not an inline `$(...)` subshell: when that substitution is used
+  # as the operand of `&&`/`||` (needed below so this deliberately-failing
+  # case doesn't trip test_todo_archive.sh's own top-level set -e), bash
+  # disables errexit for the ENTIRE substitution's execution tree, and a
+  # `set -e` re-asserted inside the subshell does not restore it -- so a
+  # `return 1` from the sourced script would be silently ignored and
+  # execution would fall through to the next line as if it had succeeded.
+  local write_archives="$SCRIPT_DIR/../lib/write-archives.sh"
+  local runner
+  runner=$(mktemp)
+  cat > "$runner" <<RUNNER_EOF
+set -euo pipefail
+HOME="$root/home"
+PYTHON=python3
+TODO_ENGINE="$SCRIPT_DIR/../../../../tools/todo-engine.py"
+TODO_PATH="$root/data/default.md"
+ARCHIVE_DIR="$root/data/todo-archives"
+TODO_LINES=\$(wc -l < "\$TODO_PATH" | tr -d ' ')
+TASKS_TO_ARCHIVE="- [x] [20260301-01] Done one #misc
+  - Added: 2026-03-01
+  - Done: 2026-03-01T10:00:00"
+TASK_COUNT=1
+KEPT_LINES=""
+# Deliberately wrong: real HISTORY_START/END for this fixture put the
+# rebuild's ACTIVE section intact, but a caller bug could pass a boundary
+# that slices into ACTIVE -- exactly what the "ACTIVE task count changed"
+# gate exists to catch. HISTORY_START=2 lands inside "# ACTIVE TASKS",
+# before the P1 task line, so the rebuilt ACTIVE section loses that task.
+HISTORY_START=2
+HISTORY_END=\$(grep -n '^---\$' "\$TODO_PATH" | sed -n '2p' | cut -d: -f1)
+HISTORY_BLOCK="- [x] [20260301-01] Done one #misc"
+source "$write_archives"
+echo "UNEXPECTED_SUCCESS"
+RUNNER_EOF
+
+  local output status
+  output=$(bash "$runner" 2>&1) && status=0 || status=$?
+  rm -f "$runner"
+
+  [[ "$status" -ne 0 ]] || fail "corrupted HISTORY_START should have triggered an abort, got: $output"
+  echo "$output" | grep -q 'ABORT' || fail "expected an ABORT message, got: $output"
+  [[ ! -e "$root/data/todo-archives/INDEX.md" ]] || fail 'INDEX.md must not exist after an abort (nothing should be written before validation passes)'
+  local archive_files
+  archive_files=$(find "$root/data/todo-archives" -mindepth 1 2>/dev/null | wc -l | tr -d ' ')
+  [[ "$archive_files" == "0" ]] || fail "todo-archives/ must be empty after an abort, found $archive_files entries"
+
+  rm -rf "$root"
+}
+
+test_annihilation_guard_rejection_leaves_nothing_written() {
+  # An earlier fix only reordered write-archives.sh's OWN gates ahead of
+  # the archive-file/INDEX.md writes.
+  # The FINAL commit still calls todo_engine.write_file(), which runs its own
+  # independent checks (validate_structure(), _check_annihilation()) that
+  # weren't replicated -- so a rejection there (e.g. the shadow-based
+  # size-drop guard) could still fire AFTER archive files were already
+  # written, reproducing the exact defect the reordering was supposed to
+  # eliminate. Force that exact scenario: an artificially large shadow file
+  # makes the post-archive rebuild look like a >60% wipeout.
+  local root
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+
+  python3 - "$root/data/default.md" "$root/home/.codex/todo-shadow/TODO.md" <<'PYEOF'
+import sys
+todo_path, shadow_path = sys.argv[1:3]
+import os
+os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
+content = open(todo_path).read()
+padding = "- [ ] [20260709-99] padding task #pad\n  - Added: 2026-07-09\n\n" * 200
+big = content.replace("## P1 - Today", "## P1 - Today\n\n" + padding, 1)
+open(shadow_path, "w").write(big)
+PYEOF
+
+  local output status
+  output=$(HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) \
+    && status=0 || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "annihilation-guard scenario should have aborted, got: $output"
+  echo "$output" | grep -qi 'annihilation\|failed todo-engine' \
+    || fail "expected an annihilation/validation ABORT message, got: $output"
+  local archive_files
+  archive_files=$(find "$root/data/todo-archives" -mindepth 1 2>/dev/null | wc -l | tr -d ' ')
+  [[ "$archive_files" == "0" ]] || fail "todo-archives/ must be empty when write_file()'s own gates reject the content, found $archive_files entries"
+
+  if command -v chflags >/dev/null 2>&1; then
+    chflags -R nouchg "$root" 2>/dev/null || true
+  fi
+  rm -rf "$root"
+}
+
+test_archive_refuses_to_run_while_lock_is_held() {
+  # The lock-acquire fix in write-archives.sh had no automated coverage
+  # proving it actually acquires the shared lock: only that the happy path
+  # still works. Pre-hold
+  # the lock (simulating a concurrent todo-crud.sh write) and confirm the
+  # archive run aborts cleanly instead of racing ahead of it.
+  local root
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+  local todo_engine="$SCRIPT_DIR/../../../../tools/todo-engine.py"
+
+  HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" python3 - "$todo_engine" "$root/data/default.md" <<'PYEOF'
+import importlib.util, sys
+engine_path, todo_path = sys.argv[1:3]
+spec = importlib.util.spec_from_file_location("todo_engine", engine_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+assert module.acquire_lock(todo_path), "setup: could not acquire lock"
+PYEOF
+
+  local output status
+  output=$(HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) \
+    && status=0 || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "archive should abort while the lock is held, got: $output"
+  echo "$output" | grep -qi 'could not acquire lock' \
+    || fail "expected a lock-acquisition ABORT message, got: $output"
+  grep -q '\[x\]' "$root/data/default.md" \
+    || fail 'TODO.md must be unchanged (still contains the un-archived history task) while the lock is held'
+  [[ ! -e "$root/data/todo-archives/INDEX.md" ]] \
+    || fail 'no archive files should be written while the lock is held'
+
+  rm -rf "$root"
+}
+
+test_lock_is_released_even_when_temp_file_cleanup_fails() {
+  # cleanup_tmp() runs as an EXIT trap under the caller's inherited set -e.
+  # A trap function aborts at its first failing statement just like normal
+  # script execution -- if `rm -f` (removing $SNAPSHOT_PATH/$REBUILD_TMP)
+  # ever failed with release_todo_lock listed after it, the lock would never
+  # be released and would sit leaked for its full declared ttl (up to 600s).
+  # Force that failure via a PATH-shadowing fake `rm` and confirm the archive
+  # still completes AND the lock is released regardless.
+  local root
+  root=$(make_fixture)
+  write_small_valid_todo "$root/data/default.md"
+
+  local fake_bin
+  fake_bin=$(mktemp -d)
+  cat > "$fake_bin/rm" <<'FAKERM_EOF'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  case "$arg" in
+    *.rebuild.tmp) echo "fake-rm: SIMULATED FAILURE removing $arg" >&2; exit 1 ;;
+  esac
+done
+exec /bin/rm "$@"
+FAKERM_EOF
+  chmod +x "$fake_bin/rm"
+
+  local output status
+  output=$(PATH="$fake_bin:$PATH" HOME="$root/home" TODO_FILE_PATH="$root/data/default.md" "$ARCHIVE_SCRIPT" --force 2>&1) \
+    && status=0 || status=$?
+  rm -rf "$fake_bin"
+
+  [[ "$status" -eq 0 ]] || fail "archive should still succeed despite the temp-file rm failure, got: $output"
+  [[ -e "$root/data/todo-archives/INDEX.md" ]] \
+    || fail "archive should have completed and written INDEX.md, got: $output"
+  [[ ! -d "$root/data/.TODO.md.lock" ]] \
+    || fail "lock must be released even when temp-file cleanup fails, but .TODO.md.lock still exists"
+
+  if command -v chflags >/dev/null 2>&1; then
+    chflags -R nouchg "$root" 2>/dev/null || true
+  fi
+  rm -rf "$root"
+}
+
 test_duplicate_archive_entries_are_not_readded
 test_explicit_todo_file_path_overrides_env_default
 test_index_total_counts_all_archive_files
 test_small_valid_todo_archives_successfully
 test_archive_succeeds_on_protected_todo
+test_abort_leaves_no_archive_files_or_index_behind
+test_annihilation_guard_rejection_leaves_nothing_written
+test_archive_refuses_to_run_while_lock_is_held
+test_lock_is_released_even_when_temp_file_cleanup_fails
 echo 'PASS: todo-archive regression tests'

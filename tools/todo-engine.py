@@ -36,6 +36,7 @@ from pathlib import Path
 LOCK_DIR_NAME = ".TODO.md.lock"
 LOCK_TTL = 120  # seconds
 LOCK_TIMEOUT = 8  # seconds
+MAX_LOCK_TTL = 9999999  # ~115 days; bounds a declared ttl read from lock.json
 SHADOW_DIR = os.path.expanduser("~/.codex/todo-shadow")
 
 # Section markers (regex patterns)
@@ -137,18 +138,114 @@ def _lock_age(todo_path: str) -> int:
             with open(meta) as f:
                 data = json.load(f)
             return int(time.time()) - data.get("epoch", 0)
-        except (json.JSONDecodeError, KeyError, ValueError):
+        except (json.JSONDecodeError, OSError, TypeError, ValueError):
             return 999999
-    if os.path.isdir(_lock_dir(todo_path)):
-        return 999999  # orphaned lock
+    lock_dir = _lock_dir(todo_path)
+    if os.path.isdir(lock_dir):
+        # Lock directory exists but metadata hasn't been written yet -- this
+        # is the normal state during a concurrent acquirer's brief
+        # mkdir-then-write-metadata window, not necessarily a dead process.
+        # Treating it as instantly orphaned let a concurrent waiter steal a
+        # lock that was never abandoned, so both processes believed they held
+        # it. Use the directory's own mtime as the age instead: a
+        # genuinely-orphaned dir ages out via the same TTL as any stale lock.
+        try:
+            return int(time.time()) - int(os.stat(lock_dir).st_mtime)
+        except OSError:
+            return 999999
     return 0
 
 
-def acquire_lock(todo_path: str) -> bool:
-    """Acquire advisory lock. Returns True on success."""
+def _lock_declared_ttl(todo_path: str, fallback: int) -> int:
+    """Read the ttl an existing lock's own holder declared, if any.
+
+    Staleness of an existing lock must be judged against what its HOLDER
+    declared, not against whatever ttl the current caller happens to be
+    configured with -- a caller with a short default ttl must not treat a
+    long-running holder's lock (e.g. write-archives.sh's ttl=600) as stale
+    just because its own patience is shorter. fallback applies only when
+    there is no metadata yet to read a declared ttl from.
+    """
+    meta = _lock_meta(todo_path)
+    if os.path.isfile(meta):
+        try:
+            with open(meta) as f:
+                data = json.load(f)
+            ttl = int(data.get("ttl", fallback))
+        except (json.JSONDecodeError, OSError, TypeError, ValueError):
+            return fallback
+        # A negative or zero ttl makes age > ttl true almost immediately,
+        # letting a live lock be force-removed the moment another process
+        # checks it -- defeating the staleness check's fail-safe direction
+        # instead of just failing to parse. An absurdly large ttl is bounded
+        # too, matching todo-lock.sh's MAX_LOCK_TTL validation.
+        if 0 < ttl <= MAX_LOCK_TTL:
+            return ttl
+        return fallback
+    return fallback
+
+
+def _lock_holder_pid_is_dead(todo_path: str) -> bool:
+    """Mirrors todo-lock.sh's `kill -0` check: a lock declared by a dead
+    process on THIS host is immediately reclaimable regardless of ttl --
+    without this, every leaked lock (a crash, a killed process) takes the
+    full declared ttl (up to 600s for write-archives.sh) to recover from,
+    even though the dead PID is trivially, instantly detectable locally.
+    """
+    meta = _lock_meta(todo_path)
+    if not os.path.isfile(meta):
+        return False
+    try:
+        with open(meta) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return False
+    hostname = os.uname().nodename.split(".")[0]
+    if data.get("hostname") != hostname:
+        return False
+    pid = data.get("pid")
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return False  # process exists
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        return False  # exists, just not signalable by us
+
+
+def _lock_holder_identity(todo_path: str) -> str:
+    """Best-effort "host:pid" string for diagnostics. Never raises -- a
+    malformed or missing lock.json must not prevent printing a timeout/steal
+    message, it should just degrade to "unknown:unknown"."""
+    meta = _lock_meta(todo_path)
+    try:
+        with open(meta) as f:
+            data = json.load(f)
+        return f"{data.get('hostname', 'unknown')}:{data.get('pid', 'unknown')}"
+    except (json.JSONDecodeError, OSError, TypeError, ValueError):
+        return "unknown:unknown"
+
+
+def acquire_lock(todo_path: str, ttl: int = LOCK_TTL) -> bool:
+    """Acquire advisory lock. Returns True on success.
+
+    ttl is persisted into this lock's own metadata (if acquired) so other
+    processes judge staleness against THIS holder's declared ttl -- see
+    _lock_declared_ttl().
+    """
     lock = _lock_dir(todo_path)
     deadline = time.time() + LOCK_TIMEOUT
     hostname = os.uname().nodename.split(".")[0]
+    # getppid(), not getpid(): this is typically invoked as a short-lived
+    # subprocess on behalf of a longer-lived parent shell/agent. Recording
+    # this process's own PID would make every lock look abandoned the
+    # instant this subprocess exits. Ownership checks (release_lock(),
+    # _lock_holder_pid_is_dead()) rely on this same identity, so a caller
+    # acquiring and releasing across two separate subprocess invocations
+    # (as write-archives.sh does) only works because both calls share the
+    # same living parent process.
     pid = os.getppid()
 
     while True:
@@ -156,26 +253,100 @@ def acquire_lock(todo_path: str) -> bool:
             os.mkdir(lock)
             # Write metadata
             meta = {"hostname": hostname, "pid": pid,
-                    "epoch": int(time.time()), "agent": "todo-engine"}
+                    "epoch": int(time.time()), "agent": "todo-engine",
+                    "ttl": ttl}
             tmp = _lock_meta(todo_path) + f".tmp.{os.getpid()}"
             with open(tmp, "w") as f:
-                json.dump(meta, f)
+                # Compact separators (no space after ':'): todo-lock.sh's
+                # _lock_hostname()/_lock_pid() parse this file with a strict
+                # `"hostname":"..."` grep pattern (matching how it writes its
+                # own metadata via printf) with no whitespace tolerance.
+                # json.dump()'s default separators insert a space after each
+                # colon, so every lock this function creates was silently
+                # unparseable by the shell tool -- status showed a blank
+                # holder, and a same-caller `todo-lock.sh release` could
+                # never recognize itself as the owner.
+                json.dump(meta, f, separators=(",", ":"))
             os.replace(tmp, _lock_meta(todo_path))
             return True
         except FileExistsError:
             age = _lock_age(todo_path)
-            if age > LOCK_TTL:
+            dead_pid = _lock_holder_pid_is_dead(todo_path)
+            ttl_expired = age > _lock_declared_ttl(todo_path, ttl)
+            if dead_pid or ttl_expired:
+                # Distinguish the reason: a dead-PID steal can fire at
+                # near-zero age (the crash could have happened seconds ago),
+                # and "stealing stale lock (age=0s)" with no reason reads
+                # like a bug in the staleness arithmetic to anyone who
+                # doesn't already know about this separate short-circuit.
+                reason = "dead-holder-pid" if dead_pid else "ttl-expired"
+                print(f"todo-engine: stealing stale lock at {lock} "
+                      f"(age={age}s, reason={reason}, "
+                      f"holder={_lock_holder_identity(todo_path)})",
+                      file=sys.stderr)
                 shutil.rmtree(lock, ignore_errors=True)
                 continue
             if time.time() >= deadline:
+                print(f"todo-engine: timed out waiting for lock at {lock} "
+                      f"(held by {_lock_holder_identity(todo_path)}, age={age}s)",
+                      file=sys.stderr)
                 return False
             time.sleep(1)
 
 
-def release_lock(todo_path: str) -> None:
+def release_lock(todo_path: str) -> bool:
+    """Release advisory lock. Returns True if released (or nothing was held),
+    False if refused. A refusal prints why to stderr -- callers that depend
+    on this lock for a multi-minute hold (write-archives.sh) need a visible
+    trail, not a lock that just silently never lets go.
+    """
     lock = _lock_dir(todo_path)
-    if os.path.isdir(lock):
-        shutil.rmtree(lock, ignore_errors=True)
+    if not os.path.isdir(lock):
+        return True
+    # Ownership check: without this, release is functionally identical to a
+    # forced steal -- any caller could drop a different, currently-live
+    # holder's lock with no check at all.
+    #
+    # Missing metadata is ambiguous the same way it is in _lock_age(): it
+    # means either "genuinely orphaned" (acquirer died before writing
+    # metadata) or "a different process is mid-acquisition right now" (the
+    # brief mkdir-then-write-metadata window). Falling through to unconditional
+    # removal treated both cases as safe to delete, which can drop a lock a
+    # different process just legitimately created. Use the same young/old
+    # distinction _lock_age() uses: only remove a metadata-less dir once it's
+    # old enough to be genuinely orphaned, not merely young (still being
+    # acquired).
+    #
+    # A metadata file that exists but fails to parse must be treated as
+    # "cannot verify ownership" -> refuse, not "safe to delete". Falling
+    # through on parse failure reopened the exact hole this check exists to
+    # close, just via corrupt data instead of no data.
+    meta = _lock_meta(todo_path)
+    if os.path.isfile(meta):
+        try:
+            with open(meta) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            print(f"todo-engine: refusing to release lock at {lock} -- "
+                  "metadata is corrupt/unreadable, cannot verify ownership",
+                  file=sys.stderr)
+            return False
+        hostname = os.uname().nodename.split(".")[0]
+        pid = os.getppid()
+        if data.get("hostname") != hostname or data.get("pid") != pid:
+            print(f"todo-engine: refusing to release lock at {lock} -- "
+                  f"held by {data.get('hostname')}:{data.get('pid')}, not "
+                  f"this process ({hostname}:{pid})", file=sys.stderr)
+            return False
+    else:
+        age = _lock_age(todo_path)
+        if age < LOCK_TTL:
+            print(f"todo-engine: refusing to release lock at {lock} -- no "
+                  f"metadata yet and too young ({age}s) to be sure this "
+                  "isn't a live mid-acquisition", file=sys.stderr)
+            return False
+    shutil.rmtree(lock, ignore_errors=True)
+    return True
 
 
 BAK_MAX_KEEP = 10  # Maximum .bak files to keep
