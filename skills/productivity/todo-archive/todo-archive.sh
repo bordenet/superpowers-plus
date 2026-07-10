@@ -99,6 +99,12 @@ fi
 # --- Phase 2: Write archives, rebuild TODO.md, verify ---
 mkdir -p "$ARCHIVE_DIR"
 
+# LOAD-BEARING: this source call must stay unguarded (not the operand of
+# `if`, `||`, or `&&`, and not inside a subshell) at this top level, under
+# this script's own `set -euo pipefail`. write-archives.sh's abort paths
+# rely on a plain `return 1` propagating into a real EXIT-trap-firing shell
+# exit -- wrapping this call in error-handling (a natural-looking addition)
+# would silently make those aborts no-ops instead of stopping the script.
 # shellcheck disable=SC1091
 # shellcheck source=lib/write-archives.sh
 source "$SCRIPT_DIR/lib/write-archives.sh"
