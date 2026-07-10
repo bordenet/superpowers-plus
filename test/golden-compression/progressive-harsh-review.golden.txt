@@ -27,6 +27,26 @@ START FROM: Failure scenarios — what happens if an assumption is wrong, a step
 PRIORITIZE: Unrecoverable failure paths, missing rollback/fallback, global activation risk, dependency on absent tooling, 3 AM resilience, and missing observability for new behavior.
 **Dimension weights:** Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
 **OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
+## Artifact-Aware Persona Mapping
+PHR is for **non-code deliverables** — plans, skill files, design docs, specifications. Each persona's code-oriented start points and scoring dimensions translate to non-code equivalents as follows. Personas score against the non-code dimension equivalents when reviewing plans/skills/docs — do not score a plan on null handling or retry logic — and must adapt their starting-point-specific evidence to the artifact type. A Nitpicker that only checks whitespace on a plan is not doing its job.
+
+| Persona | Code start point | Non-code equivalent |
+|---------|-----------------|---------------------|
+| JuniorDevNitpicker | Line-by-line diff | Line-by-line prose reading: undefined terms, broken formatting, inconsistent naming, missing steps |
+| SeniorArchCritic | Interface contracts & callers | Internal consistency: promises made vs. evidence provided; dependency assumptions; completeness of coverage |
+| OpsRealist | Failure modes & state transitions | Failure scenarios in the plan: what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution; OE telemetry named for new behavior |
+
+Dimension mapping for non-code artifacts:
+
+| Dimension (code) | Dimension (non-code) | Question |
+|-----------------|---------------------|----------|
+| Correctness | Correctness | Does the artifact do what it claims? Are there logical errors or false assertions? |
+| Simplicity | Simplicity | Is it the simplest way to express this? Unnecessary complexity, redundancy, over-qualification? |
+| Testability | Verifiability | Can each claim or step be independently verified or audited? |
+| Edge Cases | Blind Spots | What scenarios, contexts, or failure paths are not addressed? |
+| Security/Perf | Operational Risk | What breaks under adverse conditions? Misuse vectors, adoption failure, dependency on absent tooling? |
+
+**Skill-file specifics** — Nitpicker: triggers are unique, YAML is valid, no broken references, all headers present. ArchCritic: skill scope is bounded, coordination fields are correct, no overlap with peer skills. OpsRealist: skill fires only when it should, anti-triggers prevent false positives, failure modes table is populated.
 ## The Process
 ### Step 0: Fresh-Reader Pre-Check (author-noise audit)
 Before dispatching personas, grep the artifact for author-noise leakage — content only the author would recognize that will confuse a fresh reader:
@@ -89,30 +109,19 @@ Flags trigger re-examination, not automatic verdict changes.
 - **Exit when:** Final round weighted mean ≥8 (or project min if higher) AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 ## Sentinel Write After PASS (MANDATORY)
-When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict
-table above, AND ≥ the project minimum if one is set, AND no active critical
-vetoes, AND no correlated-failure flags), **immediately** run:
+When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict table above, AND ≥ the project minimum if one is set, AND no active critical vetoes, AND no correlated-failure flags), **immediately** run:
 
 ```bash
 tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`.
-The pre-push hook's Gate 4 reads this sentinel; without it, any push
-that touches skill/design .md files is refused at the local pre-push hook
-(developer-machine self-discipline, not a server-side security boundary).
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 4 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
 
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
-Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any
-subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
+Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
 
-> **Why this is mandatory:** PHR was discipline-only for too long --
-> skill changes shipped without running it repeatedly. The sentinel +
-> Gate 4 closes the loop. Note Gate 4 is a productivity guardrail
-> (catches forgetting), not a tamper-proof security control. Code
-> review must still verify PHR actually ran, not just that the sentinel
-> is present.
+> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 4 closes the loop. Note Gate 4 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 ## Scoring Output Format
 Header abbreviations: C=Correctness, S=Simplicity, V=Verifiability, B=Blind Spots, OR=Operational Risk.
 
