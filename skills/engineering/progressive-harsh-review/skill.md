@@ -78,7 +78,6 @@ composition:
 ## The Three Personas
 
 ### Persona 1: JuniorDevNitpicker (Surface Quality)
-
 Focus: typos, formatting, naming, style, completeness, internal consistency.
 Tone: eager, thorough, detail-oriented.
 **Full access:** All codebase context is available. Every persona may follow any lead.
@@ -87,7 +86,6 @@ Tone: eager, thorough, detail-oriented.
 **Dimension weights:** Correctness 35%, Simplicity 25%, Blind Spots 20%, Verifiability 15%, Operational Risk 5%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
 
 ### Persona 2: SeniorArchCritic (Structural Quality)
-
 Focus: structure, internal consistency, scope boundaries, coverage completeness.
 Tone: experienced, skeptical, pattern-aware.
 **Full access:** All codebase context is available. Every persona may follow any lead.
@@ -96,7 +94,6 @@ Tone: experienced, skeptical, pattern-aware.
 **Dimension weights:** Correctness 25%, Simplicity 15%, Verifiability 25%, Blind Spots 15%, Operational Risk 20%. *(Code-term equivalents: Testability, Edge Cases, Security/Perf.)*
 
 ### Persona 3: OpsRealist (Operational Quality)
-
 Focus: failure scenarios, blind spots, adverse conditions, adoption risk, OE telemetry.
 Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we know when it does?"
 **Full access:** All codebase context is available. Every persona may follow any lead.
@@ -105,10 +102,30 @@ Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we kn
 **Dimension weights:** Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
 **OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
 
+## Artifact-Aware Persona Mapping
+PHR is for **non-code deliverables** — plans, skill files, design docs, specifications. Each persona's code-oriented start points and scoring dimensions translate to non-code equivalents as follows. Personas score against the non-code dimension equivalents when reviewing plans/skills/docs — do not score a plan on null handling or retry logic — and must adapt their starting-point-specific evidence to the artifact type. A Nitpicker that only checks whitespace on a plan is not doing its job.
+
+| Persona | Code start point | Non-code equivalent |
+|---------|-----------------|---------------------|
+| JuniorDevNitpicker | Line-by-line diff | Line-by-line prose reading: undefined terms, broken formatting, inconsistent naming, missing steps |
+| SeniorArchCritic | Interface contracts & callers | Internal consistency: promises made vs. evidence provided; dependency assumptions; completeness of coverage |
+| OpsRealist | Failure modes & state transitions | Failure scenarios in the plan: what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution; OE telemetry named for new behavior |
+
+Dimension mapping for non-code artifacts:
+
+| Dimension (code) | Dimension (non-code) | Question |
+|-----------------|---------------------|----------|
+| Correctness | Correctness | Does the artifact do what it claims? Are there logical errors or false assertions? |
+| Simplicity | Simplicity | Is it the simplest way to express this? Unnecessary complexity, redundancy, over-qualification? |
+| Testability | Verifiability | Can each claim or step be independently verified or audited? |
+| Edge Cases | Blind Spots | What scenarios, contexts, or failure paths are not addressed? |
+| Security/Perf | Operational Risk | What breaks under adverse conditions? Misuse vectors, adoption failure, dependency on absent tooling? |
+
+**Skill-file specifics** — Nitpicker: triggers are unique, YAML is valid, no broken references, all headers present. ArchCritic: skill scope is bounded, coordination fields are correct, no overlap with peer skills. OpsRealist: skill fires only when it should, anti-triggers prevent false positives, failure modes table is populated.
+
 ## The Process
 
 ### Step 0: Fresh-Reader Pre-Check (author-noise audit)
-
 Before dispatching personas, grep the artifact for author-noise leakage — content only the author would recognize that will confuse a fresh reader:
 
 - Machine-local paths (e.g., `/Users/matt/`, `/home/runner/`, `/tmp/build-123/`)
@@ -119,7 +136,6 @@ Before dispatching personas, grep the artifact for author-noise leakage — cont
 If any are found, flag them as **Minor author-noise findings** in the report. Do NOT score down for these — they are editorial, not correctness failures. Remove them before shipping if found.
 
 ### Step 1: Dispatch Review
-
 **HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
 
 For each persona, answer ALL scoring dimensions:
@@ -135,7 +151,6 @@ For each persona, answer ALL scoring dimensions:
 **Weight precedence:** The per-persona weights defined in **The Three Personas** section govern each persona's scoring. The table above is the fallback applied only when a persona has no explicit weight definition. Never average per-persona weights together into a single global pass — each persona uses its own weights independently.
 
 ### Step 2: Score and Aggregate
-
 Each persona scores 1-10 on each dimension, using per-persona weights. **Aggregation rule:** compute each persona's weighted dimension score, then take an equal-weight average across the three personas. This replaces the previous MINIMUM rule, which was overly pessimistic when one persona was mismatched to the task.
 
 **Critical veto:** If ANY persona scores Correctness or Operational Risk ≤4 AND cites a specific defect (not a general concern), that finding acts as a **hard veto** — automatic REJECT regardless of the weighted mean. This preserves safety without making the whole system hostage to the weakest persona on non-critical dimensions.
@@ -143,7 +158,6 @@ Each persona scores 1-10 on each dimension, using per-persona weights. **Aggrega
 > **Blind Spots / unrecoverable failure findings:** An unrecoverable-failure finding (e.g., "no rollback on global activation") MUST be scored on Operational Risk — not Blind Spots alone — so it is eligible for the critical veto. Scoring it only on Blind Spots bypasses the veto gate.
 
 ### Step 3: Verdict
-
 | Weighted Mean | Verdict | Action |
 |---------------|---------|--------|
 | ≥8 | **PASS** | Ship it |
@@ -156,7 +170,6 @@ Each persona scores 1-10 on each dimension, using per-persona weights. **Aggrega
 > Example: mean 8.3 under a 9.2 project floor → generic band says PASS, override says PASS_WITH_FIXES. Mean 6.8 under any project floor → REJECT (override does not apply to the REJECT band). Mean 9.5 under a 9.2 floor → PASS (floor is met).
 
 ### Step 4: Remediation (if needed)
-
 On REJECT:
 
 1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
@@ -167,7 +180,6 @@ On REJECT:
 3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.
 
 ### Step 5: Correlated-Failure Detection
-
 After scoring, scan persona outputs for **shared blind spots**:
 
 1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, OpsRealist: failure scenario enumeration + OE telemetry check).
@@ -177,36 +189,24 @@ After scoring, scan persona outputs for **shared blind spots**:
 Flags trigger re-examination, not automatic verdict changes.
 
 ### Step 6: Convergence
-
 - **Exit when:** Final round weighted mean ≥8 (or project min if higher) AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
 - **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
 
 ## Sentinel Write After PASS (MANDATORY)
 
-When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict
-table above, AND ≥ the project minimum if one is set, AND no active critical
-vetoes, AND no correlated-failure flags), **immediately** run:
+When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict table above, AND ≥ the project minimum if one is set, AND no active critical vetoes, AND no correlated-failure flags), **immediately** run:
 
 ```bash
 tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`.
-The pre-push hook's Gate 4 reads this sentinel; without it, any push
-that touches skill/design .md files is refused at the local pre-push hook
-(developer-machine self-discipline, not a server-side security boundary).
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 4 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
 
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
-Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any
-subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
+Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
 
-> **Why this is mandatory:** PHR was discipline-only for too long --
-> skill changes shipped without running it repeatedly. The sentinel +
-> Gate 4 closes the loop. Note Gate 4 is a productivity guardrail
-> (catches forgetting), not a tamper-proof security control. Code
-> review must still verify PHR actually ran, not just that the sentinel
-> is present.
+> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 4 closes the loop. Note Gate 4 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 
 ## Scoring Output Format
 
