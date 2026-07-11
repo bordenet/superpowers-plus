@@ -86,7 +86,7 @@ A FULL verdict does NOT mean the fix is correct — it means the evidence for co
 
 For each finding:
 
-- **Severity** (Critical / Important / Minor — same definitions as all other reviewers)
+- **Severity** (Critical / Important / Minor / Possible — same definitions as all other reviewers)
 - **Dimension**: which of the 4 BugPath dimensions this finding comes from
 - **File:Line**: exact location
 - **Issue**: what is missing or wrong (1–2 sentences)

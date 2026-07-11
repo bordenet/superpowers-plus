@@ -47,6 +47,8 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 
 Every finding must state whether the smell was introduced or measurably worsened by this diff (e.g., "this diff adds the function's 4th responsibility," "this diff adds the 3rd level of nesting") -- not merely present in a function the diff happens to touch. A pre-existing smell the diff didn't introduce or worsen is out of scope (see `reference.md`'s "Over-scoping" anti-pattern): note it in passing if useful context, but do not file it as a finding. This keeps Design Critic's broad default-activation trigger (`skill.md` Phase 1: "Adds/modifies classes, functions, public APIs") from drifting into grading code the engineer didn't write or make worse.
 
+**This attribution claim is a judgment call (`verifiable: false`), not a mechanically-checkable one -- the discipline against overclaiming is naming a concrete before/after, not producing a passing grep.** State the specific pre-diff count/state you're comparing against (e.g., "3 responsibilities before this diff, per the pre-diff version in the base ref") rather than an unquantified "this diff made it worse" -- a claim with no named pre-diff baseline is exactly as unfalsifiable as the "note in passing, don't file" carve-out it's meant to gate, and could otherwise be used to silently drop a genuinely new smell by mislabeling it pre-existing.
+
 ## What to Review
 
 Review the diff and ask:

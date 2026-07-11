@@ -127,6 +127,8 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 | Graduated | 3 |
 | Rejected | 0 |
 
+**Candidate-ID gap note:** this branch's candidates go 001,003,004 -- `candidate-002` is not missing, it's reserved by "Sibling Path Trace" on the separate, not-yet-merged `feat/cr-battery-sibling-dead-code-checks` branch. Verify with `git ls-tree -r --name-only feat/cr-battery-sibling-dead-code-checks -- skills/engineering/code-review-battery/candidates/` if that branch is still available.
+
 **Known debt — `skill.md` line budget:** `skill-health-check`'s hard-ERROR cap is 250 lines. This file is 251 lines as of the Caller Removal Trace candidate above, against a baseline of exactly 250 lines on `origin/dev` (at the cap, not over). This batch is the sole cause of the 1-line violation here -- no low-risk extraction target was found in `reference.md` (the added line is part of the Phase 1 reviewer-activation table, kept whole in `skill.md` rather than split across files). No fix attempted in this pass.
 
 **candidate-001** (graduated 2026-03-28): Resource Handle Leak on Early Return. Defect Finder missed fd leak on error paths in ex-007. Pattern graduated into `defect-finder.md` line 104. Validation: source exercise PASS (ex-007), holdouts PASS (ex-001, ex-004, 0 false positives).
