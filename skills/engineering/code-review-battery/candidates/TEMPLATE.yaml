@@ -8,6 +8,7 @@ kind: pattern  # pattern = new check; anti-pattern = suppress false positive
 created: YYYY-MM-DD
 source_gap: "Description of what the battery missed"
 source_exercise: null  # ex-NNN if from exercise, null if from live review
+graduation_path: standard  # standard = exercise-validated; live-incident = exercise-deferred; scoping-only = no detectable pattern, charter/scoping clarification (see gap-analysis.md)
 reviewer: defect-finder  # Which reviewer this augments
 pattern: |
   When reviewing code that <trigger condition>,

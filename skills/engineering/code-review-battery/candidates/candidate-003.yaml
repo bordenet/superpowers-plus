@@ -1,0 +1,47 @@
+# Candidate: Caller Removal Trace (dead code introduced by a diff)
+id: candidate-003
+status: graduated
+kind: pattern
+created: 2026-07-10
+source_gap: "The battery had no general check for a diff orphaning a function/export by removing or rerouting its only call site. The only existing dead-code mechanisms are Dead Catch Verification (narrow: unreachable catch blocks the diff or a reviewer just added) and the general discipline against a reviewer introducing its own dead code as a suggested fix -- neither covers dead code the diff's own author leaves behind during a refactor. NOTE: an earlier draft of this candidate broadened its scope to also cover fields, citing real corroborating evidence; that broadening was reverted after review found the function-scoped algorithm ('grep for remaining references, zero = dead') doesn't correctly handle fields, which have separate read/write reference kinds. The field-level shape (working name: Field Reference Trace) is being tracked as its own separate, not-yet-graduated candidate pending a more robust evidence mechanism -- its grep-based write-detection idiom found new false-positive/false-negative classes across four independent adversarial review rounds and was held back rather than shipped half-verified."
+source_exercise: ex-017
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  For every function, method, or exported symbol whose call site the diff
+  DELETES or REWRITES to call something else: grep the full source (not
+  just the diff) for remaining references, including dynamic/computed
+  dispatch. Zero remaining references (other than the declaration) = dead
+  code introduced by this diff. Before flagging, rule out plausible
+  dynamic callers (computed method name, DI registry, string-keyed
+  dispatch table) -- downgrade to "Possible" if plausible. Severity:
+  Minor if private/module-local (highest-confidence case -- nothing
+  outside the file/module could call it). Important if exported/public
+  AND the repo is not a published library/package (in a single
+  application repo, "exported" usually just means "used elsewhere in
+  this repo"). Downgrade to "Possible" instead of Important if the repo
+  IS a published library or the symbol is a documented public API -- an
+  external, off-repo consumer may still call it, so absence-of-caller
+  evidence from a repo-scoped grep is weaker there, not stronger. Every
+  finding from this pattern is a reachability claim and must use
+  Guardian's Anti-Hallucination Gate evidence format (a `Reachability
+  evidence:` field stating Found: <call site> or Not found: <files
+  scanned>) when reporting.
+examples:
+  - file: "src/retry-helpers.ts + src/worker.ts + src/sync-job.ts + src/webhook-sender.ts (ex-017, synthetic)"
+    issue: "retryWithBackoff() had exactly 3 call sites; the diff reroutes all 3 to retryWithJitter() and never deletes retryWithBackoff(), leaving it with zero callers anywhere in the source."
+    fix: "Delete retryWithBackoff() from retry-helpers.ts, or if intentionally kept for a documented external consumer, note why in a comment."
+confidence: 0.75
+ttl_days: 90
+validation:
+  exercises_tested: [ex-017, ex-007, ex-004, ex-018]
+  true_positives: 2
+  false_positives: 0
+  precision: 1.0
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-10
+  reviewer_line: "defect-finder.md 'Caller Removal Trace'; skill.md Phase 1 signal table + Phase 2 ripple analysis"
+  regression_check: "Validated by dispatching fresh sub-agents (no shared context) running the augmented Defect Finder charter. Source ex-017 (true positive 1): correctly flagged retryWithBackoff() as dead-code-introduced-by-this-diff at Important with reachability evidence, correctly left the dynamically-dispatched retryWithBackoffLegacy() unflagged. ex-018 (true positive 2, severity-calibration case, not an FP-trap holdout): correctly flagged formatDateLegacy() as dead-code-introduced but at Possible, citing package.json's exports/publishConfig fields by name. FP-trap holdouts ex-007 (fd-leak, no removed call sites) and ex-004 (brand-new file, no removed call sites): both reported 'fired: NO', zero false positives. Confidence set below candidate-001's 1.0 given this was validated synthetically, not against a real production diff."
