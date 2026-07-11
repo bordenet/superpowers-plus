@@ -43,6 +43,10 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 - Leaking implementation details through public interfaces
 - Breaking the Principle of Least Surprise
 
+## Diff Attribution (MANDATORY)
+
+Every finding must state whether the smell was introduced or measurably worsened by this diff (e.g., "this diff adds the function's 4th responsibility," "this diff adds the 3rd level of nesting") -- not merely present in a function the diff happens to touch. A pre-existing smell the diff didn't introduce or worsen is out of scope (see `reference.md`'s "Over-scoping" anti-pattern): note it in passing if useful context, but do not file it as a finding. This keeps Design Critic's broad default-activation trigger (`skill.md` Phase 1: "Adds/modifies classes, functions, public APIs") from drifting into grading code the engineer didn't write or make worse.
+
 ## What to Review
 
 Review the diff and ask:

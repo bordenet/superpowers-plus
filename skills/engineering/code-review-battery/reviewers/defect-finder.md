@@ -45,6 +45,22 @@ For every metric, event, counter, enum value, error code, or status the diff DEF
 
 **Example**: `Metrics.Orders.Fulfilled` is defined in `metrics-registry.ts` but no `.emit()` exists anywhere in the source, while `Failure.emit()` is called in the catch block. The Grafana "Fulfillment Rate" panel (`Fulfilled / (Fulfilled + Failure)`) reads 0% indefinitely. Fix: emit `Fulfilled` on every terminal success path.
 
+### Caller Removal Trace (Dead Code Introduced by This Diff)
+
+Producer Trace above finds definitions with no producer. The inverse matters just as much on the consumption side: when the diff removes or reroutes the only call site of a function, method, or exported symbol, the symbol itself may now be orphaned -- reachable by nothing, a defect the diff itself introduces rather than merely reveals. This is distinct from Dead Catch Verification below (which covers unreachable *catch blocks* the diff or a reviewer adds) -- this pattern covers any function/export the diff's own refactor leaves behind with zero remaining callers.
+
+For every function, method, or exported symbol whose call site the diff DELETES or REWRITES to call something else:
+
+1. Grep the FULL source (not just the diff) for remaining references to that symbol -- direct calls, re-exports, dynamic/computed dispatch (`obj[methodName]`, a strategy/registry table keyed by string), and test-only references.
+2. Zero remaining references (other than the symbol's own declaration) = dead code introduced by this diff.
+3. Before flagging, rule out plausible dynamic callers the same way Producer Trace step 4 does: a computed method name, a dependency-injection registry, or a dispatch table populated by string keys can reach the symbol without a literal call site. If a dynamic path is plausible, downgrade to "Possible: ..." rather than asserting dead code.
+4. **Severity**: Minor if private/module-local with no plausible dynamic path -- this is the highest-confidence case: nothing outside this file/module could call it, so a repo-scoped grep is a complete view of every possible caller. Important if the symbol is exported/public AND this repo is not a published package/library consumed elsewhere (no `package.json` `main`/`exports` entry pointing at it, not published to a registry, not a documented external API) -- in a single application repo, "exported" usually just means "used elsewhere in this same repo," so the repo-scoped grep is still complete. **Caveat (do not invert this):** if the repo IS a published library/package, or the symbol is part of a documented public API, downgrade an exported symbol's zero-caller finding to "Possible: ..." instead of Important -- an external consumer outside this repo's grep scope may still call it, and the diff's failure to show a caller is not proof of non-use. This mirrors Producer Trace's caution that a symbol consumed in a separate repo (dashboards, other services) is live by default absent proof otherwise -- the same caution here means treating an exported symbol's absence-of-caller claim with MORE caution, not less, the opposite of what a naive "exported = more confidently dead" reading would suggest.
+5. Every finding from this pattern is a reachability claim -- it MUST comply with Guardian's "Anti-Hallucination Gate: Reachability Claims" evidence format (`guardian.md`) when reporting: a `Reachability evidence:` field stating either `Found:` (quote the call site/reference that resolves it) or `Not found:` (list every file/excerpt scanned). A "no remaining callers" claim without that field is unverifiable, not confirmed.
+
+**Example**: A diff reroutes every caller of `lookupByPriorityOrder()` to a new `lookupByExplicitKey()`, but never deletes the old function. After the diff, `lookupByPriorityOrder()` has zero callers anywhere in the source -- dead code left behind by the refactor, not caught by tests (which were also rerouted), and it will confuse the next engineer who assumes it's still load-bearing.
+
+**Boundary with Consumer Trace**: Consumer Trace (above) finds readers of a field the diff explicitly SETS/RESETS/NULLS -- the diff writes a new value, and the risk is that value breaking a reader. Caller Removal Trace is the opposite direction and does NOT apply to that case: it is about a diff removing a call site entirely, scoped to functions/exported symbols only.
+
 ### Boundary Value Trace
 
 For every **threshold comparison** (`>=`, `>`, `<`, `<=`, `===`) in the diff:
@@ -286,6 +302,7 @@ The verifier runs `evidence.command` as shell. Do NOT submit:
 - **Over-broad greps** -- `grep "Success"` will match too many things and falsify real findings. Anchor: `grep -rE '\bMetrics\.AgentAPI\.Success\.(emit|inc)\(' src/`.
 - **Tools that may not be installed** -- `rg`, `jq`, `fd`, `ast-grep`, language-specific linters. Prefer POSIX `grep -rE`, `find`, `git`, `awk` for portability. If a non-portable tool is required, declare it in `evidence.rationale`.
 - **Long-running commands** -- the verifier kills commands after `VERIFIER_TIMEOUT_MS` (default 30s) and reports them as `unverifiable` (cap 7.0). Narrow scope (e.g. `git diff --name-only main..HEAD` instead of `git log --all`).
+- **Undoubled backslashes in a regex command** -- `evidence.command` is a JSON string, so every backslash in a regex metacharacter (`\b`, `\s`, `\d`, `\w`, `\.`, etc.) MUST be written doubled (`\\b`, `\\s`, `\\.`) in the actual JSON, not single. A single `\s` is not a legal JSON escape and fails to parse the ENTIRE envelope (not just this claim), aborting verification for every other reviewer's findings in the same run. Worse, a single `\b` IS a legal JSON escape -- but it means backspace (0x08), not a regex word boundary, and silently corrupts the pattern with no error at all (verified: the JSON string `"\bOrder\b"` parses to a 7-character value containing two backspace control-character bytes, not the intended anchored text). This bullet above (`\bMetrics\.AgentAPI\.Success\.(emit|inc)\(`) is written for markdown display, not as literal JSON -- if copying an example like it into an actual `evidence.command` string, double every backslash first.
 
 ### Clean-Dimension Verdicts
 
