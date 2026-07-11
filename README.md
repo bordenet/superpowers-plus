@@ -301,6 +301,7 @@ Utility scripts in `tools/`:
 |------|---------|
 | `run-battery.sh` | Runs the automated quality suite (harsh-review, trigger tests, export integrity, skill router tests); writes the `.code-review-cleared` sentinel. Accepts `--verdict PASS\|PASS_WITH_NITS` and optional `--min-score N` (1.0–10.0, default 7.0). |
 | `commit-gate.sh` | Runs lint/test/harsh-review and mints a short-lived review token consumed by the pre-commit hook. |
+| `try-sentinel-fast-forward.sh` | Re-stamps an already-passed `.code-review-cleared`/`.phr-cleared` sentinel onto a new HEAD without a full re-review, but only for changes where every touched file is a registered mechanical fixture proven byte-for-byte reproducible from its generator. |
 | `doctor-checks.sh` | 30-check diagnostic across all installed skills |
 | `harsh-review.sh` | Enforces file endings, shebangs, syntax, ShellCheck |
 | `harsh-review-loop.sh` | Iterative harsh review until clean |
