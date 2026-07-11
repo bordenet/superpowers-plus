@@ -132,6 +132,9 @@ jobs:
       - name: Scope tripwire check tests (BATS)
         run: bats test/scope-tripwire-check.bats
 
+      - name: Sentinel fast-forward tests (BATS)
+        run: bats tests/try-sentinel-fast-forward-test.bats
+
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
         env:
