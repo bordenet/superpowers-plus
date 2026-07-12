@@ -29,7 +29,7 @@
     "code-review-battery": {
       "expected_substrings": [
         "Analyze the diff and select reviewers:",
-        "Sort findings: **Critical → Important → Minor**, then by file path",
+        "Sort findings: **Critical → Important → Minor → Possible**, then by file path",
         "**Triple-filter** each Important/Critical on CX impact, complexity, testability:"
       ],
       "triggers": [
