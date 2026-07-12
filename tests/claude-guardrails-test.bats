@@ -544,6 +544,39 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
+@test "item 10: R3: queued mid-turn command with approval phrase is recognized" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  # Messages sent while Claude is mid-turn are queued and surfaced in the
+  # transcript as a distinct "attachment" shape, not the standard user-message
+  # shape -- this reproduces that exact shape from a real session transcript.
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"continue; approve push","commandMode":"prompt","origin":{"kind":"human"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R3: queued attachment without human origin does NOT satisfy approval" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  # Same prompt text and queued_command type, but origin.kind is NOT "human" --
+  # must not be treated as a real approval.
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"approve push","commandMode":"prompt","origin":{"kind":"system"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-nonhuman-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
