@@ -593,6 +593,74 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
+@test "item 10: R4: approval phrase 5 messages back is still recognized (multi-message lookback)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"user","content":"approve push"}\n' > "$TPATH"
+  for i in 1 2 3 4 5; do
+    printf '{"role":"assistant","content":"working on step %s"}\n' "$i" >> "$TPATH"
+    printf '{"role":"user","content":"ok continue"}\n' >> "$TPATH"
+  done
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"lookback-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R4: approval phrase 11 messages back falls outside the 10-message window" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"user","content":"approve push"}\n' > "$TPATH"
+  for i in $(seq 1 11); do
+    printf '{"role":"user","content":"message number %s"}\n' "$i" >> "$TPATH"
+  done
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"lookback-boundary-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R4: revoke phrase in a more recent message overrides an earlier approval" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"user","content":"approve push"}\n' > "$TPATH"
+  printf '{"role":"user","content":"actually, do not push yet"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"revoke-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R4: new phrases 'ship it' and 'promote to main' are recognized" {
+  local fake_home
+
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "ship it"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"ship-it-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "promote to main"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"promote-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------

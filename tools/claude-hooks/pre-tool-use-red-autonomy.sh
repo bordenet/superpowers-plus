@@ -5,13 +5,20 @@
 # Item 10 of the Claude Code 12-point guardrails plan.
 # RED actions: git push, force push, branch deletion, TODO.md writes, etc.
 # Approval phrases (case-insensitive, word-bounded): "approve push",
-# "approve release", "release approved", "you may push", "proceed with push".
-# File-based tokens are single-use; transcript-based tokens are reusable (phrase
-# persists in transcript). Consumed hashes stored in ~/.claude/consumed/.
-# Transcript scan recognizes 3 message shapes: legacy {"role":"user",...},
-# current {"type":"user","message":{"role":"user",...}}, and mid-turn queued
-# commands {"type":"attachment","attachment":{"type":"queued_command",...}} --
-# the last covers approval phrases typed while Claude is still working.
+# "approve release", "release approved", "you may push", "proceed with push",
+# "promote to main", "ship it". Revoke phrases ("revoke push", "cancel push",
+# "do not push", "stop pushing") in a more recent message win over an earlier
+# approval. File-based tokens are single-use; transcript-based tokens are
+# reusable (phrase persists in transcript). Consumed hashes stored in
+# ~/.claude/consumed/.
+# Transcript scan checks the last 10 non-empty user messages (most recent
+# first, not just the single last one -- a real approval can otherwise scroll
+# out of view behind a burst of tool-result/notification messages), across 3
+# message shapes: legacy {"role":"user",...}, current {"type":"user",
+# "message":{"role":"user",...}}, and mid-turn queued commands
+# {"type":"attachment","attachment":{"type":"queued_command",...}} -- the last
+# covers approval phrases typed while Claude is still working, which the other
+# two shapes never see.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -93,7 +100,10 @@ extract_approval_token() {
     case "$token_text" in push|release) echo "$token_text"; return 0 ;; esac
   fi
 
-  # Method 2: scan transcript for approval phrase in last user message.
+  # Method 2: scan the last 10 non-empty user messages (most recent first) for
+  # an approval or revoke phrase. A single-last-message check is too narrow --
+  # a real approval phrase can scroll out if a burst of tool-result/notification
+  # messages lands right after it; scanning 10 gives it room to survive that.
   [[ -f "$TRANSCRIPT" ]] || return 0
   python3 - "$TRANSCRIPT" <<'EOF'
 import sys, json, re
@@ -104,10 +114,25 @@ APPROVAL_PHRASES = [
     r'\brelease\s+approved\b',
     r'\byou\s+may\s+push\b',
     r'\bproceed\s+with\s+push\b',
+    r'\bpromote\s+to\s+main\b',
+    r'\bship\s+it\b',
+]
+
+REVOKE_PHRASES = [
+    r'\brevoke\s+push\b',
+    r'\bcancel\s+push\b',
+    r'\bdo\s+not\s+push\b',
+    r'\bstop\s+pushing\b',
 ]
 
 transcript_path = sys.argv[1]
-last_user_text = ""
+recent_user_messages = []
+
+def extract_text(content):
+    if isinstance(content, list):
+        return " ".join(p.get("text","") for p in content if isinstance(p,dict))
+    return content if isinstance(content, str) else ""
+
 with open(transcript_path, encoding='utf-8', errors='replace') as f:
     for line in f:
         line = line.strip()
@@ -117,54 +142,51 @@ with open(transcript_path, encoding='utf-8', errors='replace') as f:
             obj = json.loads(line)
         except json.JSONDecodeError:
             continue
-        # Support both transcript formats:
+        t = ""
+        # Support three transcript shapes:
         # Legacy: {"role":"user","content":...}
         # Current: {"type":"user","message":{"role":"user","content":...}}
-        def extract_text(content):
-            if isinstance(content, list):
-                return " ".join(p.get("text","") for p in content if isinstance(p,dict))
-            return content if isinstance(content, str) else ""
+        # Mid-turn queued command: {"type":"attachment","attachment":
+        #   {"type":"queued_command","prompt":"...","origin":{"kind":"human"}}}
+        # -- messages sent while Claude is still working on a turn are queued
+        # and surfaced in this third shape, invisible to the first two checks.
+        # Confirmed via a real session transcript where "approve push" sent
+        # mid-turn never satisfied this scan, but the identical phrase sent
+        # moments later as a fresh standalone message did. Gated on
+        # origin.kind == "human" so only user-authored queued commands count.
         if obj.get("role") == "user":
             t = extract_text(obj.get("content", ""))
-            if t.strip():
-                last_user_text = t
         elif obj.get("type") == "user":
             msg = obj.get("message", {})
             if isinstance(msg, dict) and msg.get("role") == "user":
                 t = extract_text(msg.get("content", ""))
-                if t.strip():
-                    last_user_text = t
         elif obj.get("type") == "attachment":
-            # Messages the user sends while Claude is mid-turn are queued and
-            # surfaced as {"type":"attachment","attachment":{"type":"queued_command",
-            # "prompt":"...","origin":{"kind":"human"}}} -- a THIRD transcript shape
-            # neither branch above recognizes. Without this, an approval phrase typed
-            # mid-turn is silently invisible to this scan (confirmed via a real
-            # session transcript where "approve push" sent mid-turn never satisfied
-            # this check, but the identical phrase sent as a fresh standalone message
-            # did). Require origin.kind == "human" so only user-authored queued
-            # commands count, not any other attachment type this shape might gain.
             att = obj.get("attachment", {})
             if isinstance(att, dict) and att.get("type") == "queued_command":
                 origin = att.get("origin", {})
                 if isinstance(origin, dict) and origin.get("kind") == "human":
-                    t = att.get("prompt", "")
-                    if isinstance(t, str) and t.strip():
-                        last_user_text = t
+                    p = att.get("prompt", "")
+                    if isinstance(p, str):
+                        t = p
+        if t.strip():
+            recent_user_messages.append(t)
 
-if not last_user_text:
+if not recent_user_messages:
     sys.exit(0)
 
-text_lower = last_user_text.lower()
-for phrase in APPROVAL_PHRASES:
-    m = re.search(phrase, text_lower)
-    if m:
-        # Determine category (push vs release); suffix ":tr" marks transcript origin.
-        if "push" in phrase:
-            print("push:tr")
-        else:
-            print("release:tr")
-        sys.exit(0)
+for msg in reversed(recent_user_messages[-10:]):
+    msg_lower = msg.lower()
+    for phrase in REVOKE_PHRASES:
+        if re.search(phrase, msg_lower):
+            sys.exit(0)
+    for phrase in APPROVAL_PHRASES:
+        if re.search(phrase, msg_lower):
+            # Determine category (push vs release); suffix ":tr" marks transcript origin.
+            if "push" in phrase or "ship" in phrase or "promote" in phrase:
+                print("push:tr")
+            else:
+                print("release:tr")
+            sys.exit(0)
 
 sys.exit(0)
 EOF
