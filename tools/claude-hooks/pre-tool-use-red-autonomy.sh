@@ -8,6 +8,10 @@
 # "approve release", "release approved", "you may push", "proceed with push".
 # File-based tokens are single-use; transcript-based tokens are reusable (phrase
 # persists in transcript). Consumed hashes stored in ~/.claude/consumed/.
+# Transcript scan recognizes 3 message shapes: legacy {"role":"user",...},
+# current {"type":"user","message":{"role":"user",...}}, and mid-turn queued
+# commands {"type":"attachment","attachment":{"type":"queued_command",...}} --
+# the last covers approval phrases typed while Claude is still working.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -130,6 +134,23 @@ with open(transcript_path, encoding='utf-8', errors='replace') as f:
                 t = extract_text(msg.get("content", ""))
                 if t.strip():
                     last_user_text = t
+        elif obj.get("type") == "attachment":
+            # Messages the user sends while Claude is mid-turn are queued and
+            # surfaced as {"type":"attachment","attachment":{"type":"queued_command",
+            # "prompt":"...","origin":{"kind":"human"}}} -- a THIRD transcript shape
+            # neither branch above recognizes. Without this, an approval phrase typed
+            # mid-turn is silently invisible to this scan (confirmed via a real
+            # session transcript where "approve push" sent mid-turn never satisfied
+            # this check, but the identical phrase sent as a fresh standalone message
+            # did). Require origin.kind == "human" so only user-authored queued
+            # commands count, not any other attachment type this shape might gain.
+            att = obj.get("attachment", {})
+            if isinstance(att, dict) and att.get("type") == "queued_command":
+                origin = att.get("origin", {})
+                if isinstance(origin, dict) and origin.get("kind") == "human":
+                    t = att.get("prompt", "")
+                    if isinstance(t, str) and t.strip():
+                        last_user_text = t
 
 if not last_user_text:
     sys.exit(0)
