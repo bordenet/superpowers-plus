@@ -6,7 +6,9 @@
 # RED actions: git push, force push, branch deletion, TODO.md writes, etc.
 # Approval phrases (case-insensitive, word-bounded): "approve push",
 # "approve release", "release approved", "you may push", "proceed with push",
-# "promote to main", "ship it". Revoke phrases ("revoke push", "cancel push",
+# "promote to main". ("ship it" was considered and rejected -- too generic a
+# casual affirmation, could trigger from an unrelated remark within the
+# 10-message window.) Revoke phrases ("revoke push", "cancel push",
 # "do not push", "stop pushing") in a more recent message win over an earlier
 # approval. File-based tokens are single-use; transcript-based tokens are
 # reusable (phrase persists in transcript). Consumed hashes stored in
@@ -19,6 +21,13 @@
 # {"type":"attachment","attachment":{"type":"queued_command",...}} -- the last
 # covers approval phrases typed while Claude is still working, which the other
 # two shapes never see.
+# KNOWN, ACCEPTED LIMITATION: the approval token is not scoped to the specific
+# RED command it was granted for -- any approval phrase found in the lookback
+# window satisfies ANY RED action, including one never discussed. This
+# predates the multi-message lookback; it widens the window this can be
+# misapplied across, but does not introduce the gap. See the "R5" test in
+# tests/claude-guardrails-test.bats for the documented, tested contract.
+# Real per-action/branch scoping is tracked as future work, not fixed here.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -115,7 +124,6 @@ APPROVAL_PHRASES = [
     r'\byou\s+may\s+push\b',
     r'\bproceed\s+with\s+push\b',
     r'\bpromote\s+to\s+main\b',
-    r'\bship\s+it\b',
 ]
 
 REVOKE_PHRASES = [

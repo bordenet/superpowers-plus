@@ -640,23 +640,57 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
-@test "item 10: R4: new phrases 'ship it' and 'promote to main' are recognized" {
+@test "item 10: R4: new phrase 'promote to main' is recognized" {
   local fake_home
-
   fake_home="$(_fresh_home)"
-  _fixture_transcript "ship it"
+  _fixture_transcript "promote to main"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
-    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"ship-it-test","cwd":"/tmp"}' "$TPATH")"
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"promote-test","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 0 ]
+}
 
+@test "item 10: R5: 'ship it' embedded in an unrelated remark does NOT authorize a RED action" {
+  # code-review-battery (adversarial pass) flagged 'ship it' as a dangerously
+  # generic casual affirmation for a push-authorization phrase -- it was
+  # removed from APPROVAL_PHRASES. This is a permanent regression guard, not
+  # just a removal check: proves an offhand mention of the exact words
+  # embedded in an unrelated sentence, sitting in the 10-message window,
+  # cannot be misread as authorizing anything.
+  local fake_home
   fake_home="$(_fresh_home)"
-  _fixture_transcript "promote to main"
+  _fixture_transcript "nice demo, ship it next sprint"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
-    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"promote-test","cwd":"/tmp"}' "$TPATH")"
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"ship-it-rejected-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R5: approval for an unrelated earlier action is reusable for a later RED action (documented, accepted tradeoff, not a silent gap)" {
+  # code-review-battery flagged: no category/branch/action binding exists on
+  # the approval token -- an "approve push" said in the context of one branch
+  # satisfies ANY later RED action in the same session, including one the
+  # user never actually discussed. This predates the multi-message lookback
+  # (it was already true at 1 message) but the lookback widens the window
+  # this can be misapplied across. This is a KNOWN, ACCEPTED limitation of
+  # the current design (see tools/claude-hooks/pre-tool-use-red-autonomy.sh
+  # header comment) -- not something this test is meant to fix. Its purpose
+  # is to make the tradeoff an explicit, tested contract instead of an
+  # implicit, undiscovered gap: if this test ever starts failing, the
+  # approval-scope semantics have changed and the header comment/TODO
+  # tracking real per-action scoping need to be revisited.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin totally-unrelated-branch"},"transcript_path":"%s","session_id":"cross-action-reuse-test","cwd":"/tmp"}' "$TPATH")"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 0 ]
 }
