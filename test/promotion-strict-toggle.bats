@@ -245,6 +245,23 @@ sentinel_file() { echo "$WORK/.strict-toggle-state"; }
     [[ "$output" == *"CORRUPT: sentinel entry for 'staging'"* ]]
 }
 
+@test "status: an empty/invalid branch field is CORRUPT, not misreported as STALE" {
+    old=$(( $(date -u +%s) - 3600 ))
+    echo "v1||bordenet/superpowers-plus|${old}" > "$(sentinel_file)"
+    run bash "$SCRIPT" status
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CORRUPT: sentinel entry has an invalid branch field"* ]]
+    [[ "$output" != *"STALE:"* ]]
+}
+
+@test "status: --porcelain reports an invalid branch field as CORRUPT" {
+    old=$(( $(date -u +%s) - 3600 ))
+    echo "v1|notabranch|bordenet/superpowers-plus|${old}" > "$(sentinel_file)"
+    run bash "$SCRIPT" status --porcelain
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"notabranch|CORRUPT|-"* ]]
+}
+
 @test "status: --porcelain emits machine-parsable branch|state|age lines" {
     bash "$SCRIPT" disable staging
     run bash "$SCRIPT" status --porcelain

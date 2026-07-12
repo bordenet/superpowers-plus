@@ -197,6 +197,20 @@ cmd_status() {
   while IFS='|' read -r version branch _repo ts; do
     [[ "$version" == "v1" ]] || continue
 
+    # A real disable call only ever writes dev/staging/main (validate_branch
+    # gates it). A branch field outside that set can only mean the sentinel
+    # was corrupted/hand-edited -- report it as CORRUPT, not as a (possibly
+    # blank-named) STALE branch.
+    if [[ ! "$branch" =~ ^(dev|staging|main)$ ]]; then
+      if (( porcelain )); then
+        echo "${branch:-<empty>}|CORRUPT|-"
+      else
+        echo "CORRUPT: sentinel entry has an invalid branch field ('${branch:-<empty>}') -- inspect $SENTINEL manually and remove the bad line"
+      fi
+      bad_found=1
+      continue
+    fi
+
     if [[ ! "$ts" =~ ^[0-9]+$ ]]; then
       if (( porcelain )); then
         echo "${branch}|CORRUPT|-"
