@@ -577,6 +577,22 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
+@test "item 10: R3: queued human-origin command with NO approval phrase still blocks" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  # Human origin, correct queued_command type, but the prompt text itself has
+  # no approval phrase -- the new branch must not blanket-trust the shape.
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"what is the status?","commandMode":"prompt","origin":{"kind":"human"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-nophrase-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
