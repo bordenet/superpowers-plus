@@ -49,10 +49,17 @@ if [[ -n "$TOGGLE_SCRIPT" && -x "$TOGGLE_SCRIPT" ]]; then
   TOGGLE_EXIT=0
   # cd into TOPLEVEL first: the script resolves its own repo root via its
   # process cwd (`git rev-parse --show-toplevel`), which is NOT necessarily
-  # the same as this hook's own process cwd.
-  TOGGLE_OUTPUT="$(cd "$TOPLEVEL" && bash "$TOGGLE_SCRIPT" status 2>&1)" || TOGGLE_EXIT=$?
+  # the same as this hook's own process cwd. --porcelain gives a
+  # machine-parsable "branch|state|age" line per entry instead of prose, so
+  # we can tell a genuine STALE/CORRUPT report apart from the script itself
+  # crashing (e.g. a bug introduced later) -- the two must not look identical.
+  TOGGLE_OUTPUT="$(cd "$TOPLEVEL" && bash "$TOGGLE_SCRIPT" status --porcelain 2>&1)" || TOGGLE_EXIT=$?
   if [[ "$TOGGLE_EXIT" != "0" ]]; then
-    PROBLEMS+=("STALE strict-toggle (branch protection left weakened): $TOGGLE_OUTPUT")
+    if [[ "$TOGGLE_OUTPUT" =~ \|(STALE|CORRUPT)\| ]]; then
+      PROBLEMS+=("strict-toggle: branch protection left weakened or sentinel corrupt -- $TOGGLE_OUTPUT")
+    else
+      PROBLEMS+=("strict-toggle status check itself failed unexpectedly (possible bug in the script, not necessarily a stale toggle -- investigate tools/promotion-strict-toggle.sh): $TOGGLE_OUTPUT")
+    fi
   fi
 fi
 

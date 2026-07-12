@@ -194,3 +194,96 @@ sentinel_file() { echo "$WORK/.strict-toggle-state"; }
     count="$(grep -c "^v1|staging|" "$(sentinel_file)")"
     [ "$count" -eq 1 ]
 }
+
+@test "disable: rejects an unsupported branch name before touching gh at all" {
+    run bash "$SCRIPT" disable amin
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unsupported branch 'amin'"* ]]
+    [ ! -f "$(sentinel_file)" ]
+    # gh's fake state dir should have no entry -- proves gh was never invoked
+    [ ! -f "$FAKE_GH_STATE_DIR/strict-amin" ]
+}
+
+@test "restore: rejects an unsupported branch name before touching gh at all" {
+    run bash "$SCRIPT" restore develop
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unsupported branch 'develop'"* ]]
+    [ ! -f "$FAKE_GH_STATE_DIR/strict-develop" ]
+}
+
+@test "disable/restore accept exactly dev, staging, and main" {
+    for b in dev staging main; do
+        run bash "$SCRIPT" disable "$b"
+        [ "$status" -eq 0 ]
+        run bash "$SCRIPT" restore "$b"
+        [ "$status" -eq 0 ]
+    done
+}
+
+@test "status: a corrupt line (unparsable timestamp) is reported as CORRUPT, not a crash" {
+    echo "v1|staging|bordenet/superpowers-plus|not-a-number" > "$(sentinel_file)"
+    run bash "$SCRIPT" status
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CORRUPT: sentinel entry for 'staging'"* ]]
+}
+
+@test "status: a line with extra pipe-delimited fields (read absorbs them into timestamp) is CORRUPT, not a crash" {
+    # This is the exact shape produced by a lost-update race: read -r with
+    # IFS='|' stuffs any trailing fields into the last variable ($ts), which
+    # previously caused an 'unbound variable' crash in the age arithmetic.
+    echo "v1|staging|bordenet/superpowers-plus|123|extra-field" > "$(sentinel_file)"
+    run bash "$SCRIPT" status
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CORRUPT: sentinel entry for 'staging'"* ]]
+    [[ "$output" != *"unbound variable"* ]]
+}
+
+@test "status: an empty timestamp field is CORRUPT, not silently treated as 'just disabled'" {
+    echo "v1|staging|bordenet/superpowers-plus|" > "$(sentinel_file)"
+    run bash "$SCRIPT" status
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CORRUPT: sentinel entry for 'staging'"* ]]
+}
+
+@test "status: --porcelain emits machine-parsable branch|state|age lines" {
+    bash "$SCRIPT" disable staging
+    run bash "$SCRIPT" status --porcelain
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ ^staging\|active\|[0-9]+$ ]]
+}
+
+@test "status: --porcelain reports STALE and CORRUPT distinctly" {
+    old=$(( $(date -u +%s) - 3600 ))
+    {
+      echo "v1|staging|bordenet/superpowers-plus|${old}"
+      echo "v1|dev|bordenet/superpowers-plus|garbage"
+    } > "$(sentinel_file)"
+    run bash "$SCRIPT" status --porcelain
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"staging|STALE|"* ]]
+    [[ "$output" == *"dev|CORRUPT|-"* ]]
+}
+
+@test "concurrent disable on two different branches: neither entry is lost (lock prevents lost update)" {
+    bash "$SCRIPT" disable main   # seed an existing entry, matches the real-world race scenario
+
+    bash "$SCRIPT" disable staging &
+    pid1=$!
+    bash "$SCRIPT" disable dev &
+    pid2=$!
+    wait "$pid1"
+    wait "$pid2"
+
+    grep -q "^v1|main|" "$(sentinel_file)"
+    grep -q "^v1|staging|" "$(sentinel_file)"
+    grep -q "^v1|dev|" "$(sentinel_file)"
+    [ "$(grep -c '^v1|' "$(sentinel_file)")" -eq 3 ]
+}
+
+@test "a stale lock directory does not deadlock forever (times out with an actionable message)" {
+    mkdir -p "$WORK/.strict-toggle-state.lock"
+    run timeout 15 bash "$SCRIPT" disable staging
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Could not acquire sentinel lock"* ]]
+    rmdir "$WORK/.strict-toggle-state.lock"
+}

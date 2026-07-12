@@ -733,7 +733,34 @@ _fixture_toggle_repo() {
 
   rm -rf "$repo" "$fake_home"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"STALE strict-toggle"* ]]
+  [[ "$output" == *"strict-toggle: branch protection left weakened or sentinel corrupt"* ]]
+  [[ "$output" == *"main|STALE|"* ]]
+}
+
+@test "item 3i: SessionStart distinguishes a broken toggle script from a genuine STALE report" {
+  local repo fake_home hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  # Simulate a broken script: exits nonzero but produces no valid porcelain
+  # output at all (e.g. a syntax error, crash before reaching cmd_status).
+  cat > "$repo/tools/promotion-strict-toggle.sh" <<'BROKEN'
+#!/usr/bin/env bash
+echo "some unexpected crash message" >&2
+exit 1
+BROKEN
+  chmod +x "$repo/tools/promotion-strict-toggle.sh"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"possible bug in the script, not necessarily a stale toggle"* ]]
+  [[ "$output" != *"branch protection left weakened or sentinel corrupt"* ]]
 }
 
 @test "item 3g: SessionStart passes when strict-toggle sentinel is fresh (within TTL)" {
