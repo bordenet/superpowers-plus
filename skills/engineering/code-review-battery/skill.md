@@ -96,7 +96,7 @@ Run immediately after the sentinel check. Detect whether this is a targeted bug 
 | Explicit flag `--mode=bug-fix` | Active |
 | Explicit flag `--mode=feature` | Inactive (overrides branch detection) |
 
-**When BugPath Mode is active:** BugPath Verifier mandatory (not skippable), threshold 9.2, path-coverage floor applies (see Phase 3). SCOPE-SKIP on a confirmed bug-fix branch = Important finding, score -1.5. State mode in executive summary triage line (`reference.md` § Executive Summary Template). Also supports `--mode=bug-fix` and `--mode=feature`.
+**When BugPath Mode is active:** BugPath Verifier mandatory (not skippable), threshold 9.2, path-coverage floor applies (see Phase 3). SCOPE-SKIP on a confirmed bug-fix branch = Important finding, score -1.5. State mode in executive summary triage line (`reference.md` § Executive Summary Template). Also supports `--mode=bug-fix` and `--mode=feature`. If the diff also matches the Sibling Path Trace signal (Phase 1), BugPath Verifier's dispatch payload (Phase 2 step 4) MUST additionally include the "Sibling Path Trace" excerpt from `reviewers/defect-finder.md`, since BugPath Verifier's Sibling Bug Scan dimension runs that method rather than re-deriving it.
 
 ### Phase 1: Triage
 
@@ -131,6 +131,7 @@ Analyze the diff and select reviewers:
 | **New user-visible feature** (new endpoint, new agent action, new UI-affecting path, new workflow branch) with **no metric or trace emit in the diff** | Standards Enforcer (OE Telemetry Gate — mandatory Critical) | Missing time-series metrics and/or distributed trace instrumentation for new behavior — ships blind; see §4a OE Telemetry Gate |
 | `try { ... } catch` block in the diff (regardless of size or context) | Defect Finder -- this signal does NOT activate a new reviewer (Defect Finder already activates for any code change); it mandates specific coverage: `Catch-Swallow Fall-Through` (always) + `Finally-Block State Precondition` (only if the diff also contains a `finally` block) + `Dead Catch Verification` (before proposing any new catch) | Catch-fall-through races, finally blocks emitting against partially-completed state, unreachable defensive catches |
 | Diff deletes or reroutes what was the only call site of a function/method/export, checked repo-wide (an ordinary unused-import left behind by the same refactor, with no other reference removed, is a separate minor lint concern -- NOT this pattern) | Defect Finder | Caller Removal Trace: dead code introduced by this diff (orphaned function/export) -- findings MUST use Guardian's Anti-Hallucination Gate evidence format (`reviewers/guardian.md`) |
+| New property added to a type/interface/shared-state object already consumed by 2+ non-test files, OR diff touches only one file in a known parallel-path family (siblings sharing a create/update/post vs. reschedule/cancel/delete naming pattern, or sync/async twins, for the same resource) where the change supplements/supersedes a field those siblings already read | Defect Finder + Guardian | Sibling Path Trace: does every other handler for the same conceptual entity get equivalent treatment on the shared field? |
 
 When no signal and no default activates a reviewer, skip it and say why in the triage line.
 
@@ -156,7 +157,7 @@ Sub-agents have NO conversation context. Pass diff + source context inline.
 
 **1. Capture diff:** `git diff --cached`, `git diff HEAD~1`, or `git diff main..HEAD`
 
-**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS of the compared value. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained). On-disk format changed (ad-hoc-parsed, no shared parser) → grep ALL consumers repo-wide incl. tests; prefer "extract a shared parser" over "update each consumer" (see reference.md Failure Modes). Symbol whose only call site the diff removes or reroutes → grep the FULL repo for remaining references; zero = dead code introduced by this diff; also pass `package.json` (`exports`/`publishConfig`/`main`) into context, since the severity ladder downgrades an exported symbol from Important to Possible when the repo is a published library (see Caller Removal Trace).
+**2. Source context for ripple analysis** (#1 missed-finding cause = reviewing diff in isolation): Fields SET/RESET/NULLED → grep READERS. Symbols DEFINED (metrics, events, enums, error codes) → grep PRODUCERS; zero producers = dead definition (mandatory finding for metric/alarm signals). Threshold comparisons → grep PRODUCERS of the compared value. Stateful code → full state type + transitions. Changed signatures → all callers. Cross-module calls → full callee body (or signature + state-mutating/throwing/early-return branches if budget-constrained). On-disk format changed (ad-hoc-parsed, no shared parser) → grep ALL consumers repo-wide incl. tests; prefer "extract a shared parser" over "update each consumer" (see reference.md Failure Modes). Symbol whose only call site the diff removes or reroutes → grep the FULL repo for remaining references; zero = dead code introduced by this diff; also pass `package.json` (`exports`/`publishConfig`/`main`) into context, since the severity ladder downgrades an exported symbol from Important to Possible when the repo is a published library (see Caller Removal Trace). New/changed field that supplements or partially supersedes an existing field on shared state → grep ALL existing readers of the field it supplements (not just the new field's own readers, which may not exist yet) → verify every such reader was updated, or confirm why it doesn't need to be (see Sibling Path Trace).
 
 **3. Inbound reference scan** (mandatory when diff renames, moves, or deletes files):
 
@@ -233,7 +234,7 @@ tools/run-battery.sh --verdict PASS_WITH_NITS --min-score <threshold> # Minor ni
 **Timing:** Pre-commit battery → sentinel stales after commit; re-run before push. `REJECT` or `PASS_WITH_FIXES`: do NOT write sentinel — fix Critical/Important, re-dispatch, re-run.
 
 ### Gap Analysis + Error Handling
-Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks, keeping structurally-related files (Caller Removal Trace candidates) in the same chunk or cross-passing their excerpts so neither chunk's reviewer works blind to the other file -- this bounds what one dispatch reads, not what Phase 2's full-repo grep obligation searches; a chunked sub-battery still greps the whole repo for out-of-diff references. Empty diff → skip.
+Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks, keeping structurally-related files (Caller Removal Trace or Sibling Path Trace candidates) in the same chunk or cross-passing their excerpts so neither chunk's reviewer works blind to the other file -- this bounds what one dispatch reads, not what Phase 2's full-repo grep obligation searches; a chunked sub-battery still greps the whole repo for out-of-diff references. Empty diff → skip.
 
 ## Anti-Patterns
 
@@ -245,6 +246,5 @@ See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isola
 
 ## Companion Skills
 
-- **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
-- **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
+- **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit) · **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
 - **inter-agent-review-protocol**: File-protocol review (alternative dispatch method) · **micro-harsh-review**: Per-batch review
