@@ -168,7 +168,7 @@ grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # 
 
 **MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
 
-**4. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context + inbound reference scan results.
+**4. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context + inbound reference scan results. In BugPath Mode with the Sibling Path Trace signal also matched (Phase 1), this is the step where BugPath Verifier's payload must actually get the "Sibling Path Trace" excerpt promised in Phase 0.5 -- not just noted as a requirement earlier.
 
 ### Phase 3: Aggregate
 

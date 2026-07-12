@@ -108,7 +108,7 @@ export class BatchDispatcher {
 - **File:** src/dispatch/dispatch-async.ts
 - **Issue:** `AsyncDispatcher.enqueue()` is a structurally-parallel sibling of `SyncDispatcher.dispatch()` -- both read `job.routingKey` today to resolve a worker pool for the same `Job` resource. The diff adds `job.priorityOverride`, a field that partially supersedes `routingKey`, and wires it into the sync dispatcher only. The async dispatcher still only consults `routingKey`, so a job queued for async dispatch silently ignores its priority override -- the same class of routing defect the diff was written to fix, just on the untouched path.
 - **Category:** incomplete-fix, cross-file-sibling-gap
-- **Reachability evidence:** Checked: `dispatch-async.ts` (reads `job.routingKey` only, no `priorityOverride` reference -- gap); `dispatch-batch.ts` (reads `job.routingKey` only, but comment confirms per-job overrides are explicitly out of scope for batch dispatch by design -- not a gap).
+- **Reachability evidence:** `Found:` `dispatch-async.ts` reads `job.routingKey` only, no `priorityOverride` reference anywhere in the file -- this is the untouched-sibling gap. `Not found:` no unaddressed sibling gap in `dispatch-batch.ts` (reads `job.routingKey` only, but comment confirms per-job overrides are explicitly out of scope for batch dispatch by design).
 - **Durable Check:** Add a test that enqueues a job with `priorityOverride` set via `AsyncDispatcher` and asserts it resolves to the priority pool, not the routing-key pool.
 
 ## Anti-Findings
