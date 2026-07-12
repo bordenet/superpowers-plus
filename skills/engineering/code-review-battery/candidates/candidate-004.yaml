@@ -1,0 +1,35 @@
+# Candidate: Diff Attribution scoping for Design Critic (code-smell over-scoping guard)
+id: candidate-004
+status: graduated
+kind: pattern
+created: 2026-07-10
+source_gap: "Design Critic's Factoring/Complexity dimensions already cover general code smells (duplication, god functions, over-abstraction), and its default-activation trigger ('modifies... functions') is broad enough that most function-body edits already dispatch it. The gap is narrower than 'no code-smell coverage': there is no explicit scoping rule requiring a finding to state whether the smell was introduced or worsened by THIS diff, vs. pre-existing in a function the diff merely touches. The general 'Over-scoping' anti-pattern implies pre-existing-and-untouched smells are out of scope, but nothing in design-critic.md's own charter makes that explicit for smells in a function the diff DOES touch but doesn't worsen."
+source_exercise: null
+graduation_path: scoping-only
+reviewer: design-critic
+pattern: |
+  Every Design Critic finding must state whether the smell was introduced
+  or measurably worsened by this diff (e.g., "this diff adds the
+  function's 4th responsibility," "this diff adds the 3rd level of
+  nesting") vs. merely present in a function the diff happens to touch
+  incidentally. A pre-existing smell the diff didn't introduce or worsen
+  is out of scope -- note it in passing if useful, do not file it as a
+  finding.
+examples:
+  - file: "(scoping rule, not a single reproducible diff -- see reference.md Over-scoping anti-pattern for the general precedent)"
+    issue: "A Design Critic finding cites a god-function's overall complexity when the diff only added 2 lines to an already-500-line function; the finding doesn't distinguish diff-introduced complexity from the pre-existing 498 lines."
+    fix: "Require the finding to name what the diff itself added/worsened, and skip commentary on the pre-existing bulk unless the diff is the direct cause."
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-10
+  reviewer_line: "design-critic.md 'Diff Attribution' (new section, before 'What to Review')"
+  regression_check: "No exercise/precision harness applies -- this is a scoping-discipline clarification to Design Critic's own charter (which finding to file, not a new detectable pattern), not a new signal with a true/false-positive rate. Design Critic's own detection mechanism (Factoring/Complexity dimensions) is unchanged and was already validated as part of the base battery; this candidate only narrows what it's allowed to file, so it cannot introduce new false positives. Confidence stays at the proposal floor since there is no measurement that could raise it."
