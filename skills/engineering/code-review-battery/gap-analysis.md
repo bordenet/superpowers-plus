@@ -121,8 +121,8 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 
 | Metric | Value |
 |--------|-------|
-| Total candidates | 3 |
-| Proposed | 0 |
+| Total candidates | 4 |
+| Proposed | 1 |
 | Validated | 0 |
 | Graduated | 3 |
 | Rejected | 0 |
@@ -136,3 +136,5 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 **candidate-003** (graduated 2026-07-10): Caller Removal Trace. The structural inverse of Producer Trace -- catches a diff that reroutes or deletes the only call site of a function/export, leaving it orphaned. Graduated into `defect-finder.md` ("Caller Removal Trace"); findings route through Guardian's Anti-Hallucination Gate evidence format. Validation: source ex-017 + holdouts ex-007, ex-004 (0 false positives) + ex-018 (dedicated severity-calibration exercise for published-library repos).
 
 **candidate-004** (graduated 2026-07-10, scoping-only -- no exercise applies): Design Critic Diff Attribution. Requires every code-smell finding to state whether the diff introduced/worsened it vs. pre-existing. Graduated into `design-critic.md` ("Diff Attribution"). No precision harness applies -- this narrows an existing, already-validated detection mechanism rather than adding a new trigger.
+
+**candidate-008** (proposed 2026-07-12): Producer Trace's Mechanized Evidence Shares Caller Removal Trace's Grep-Replay Exposure. Caller Removal Trace's mechanized JSON evidence-verification accumulated 9 confirmed bugs across three review rounds (word-boundary collisions, exit_code-vs-count semantics, comment-only mentions, multi-declaration/re-export, symlinked-directory traversal, case-insensitive-filesystem checkout collisions) and was ultimately dropped in favor of prose-only evidence. Producer Trace's evidence commands use the structurally identical grep-replay-for-absence primitive and are flagged as likely exposed to the same bypass classes -- NOT independently confirmed, only reasoned about by analogy. Needs its own dedicated adversarial review before any fix is proposed.
