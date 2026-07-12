@@ -29,6 +29,8 @@ Resolve `<branch>` to the PR's **base** branch (not head) for the scenario you'r
 | back-sync `main → staging` PR | `staging` |
 | back-sync `main → dev` PR | `dev` |
 
+Use `tools/promotion-strict-toggle.sh` — do not hand-type raw `gh api PATCH` calls. The script verifies each change via read-back before trusting it, and writes a timestamped sentinel while `strict` is disabled so a forgotten restore is machine-detectable rather than silent (see "Enforcement" below).
+
 1. **Check for competing open PRs against the same base** — this fix has a race window (see below), so confirm you're not stepping on other in-flight work:
    ```bash
    gh pr list --repo bordenet/superpowers-plus --state open --base <branch>
@@ -37,12 +39,9 @@ Resolve `<branch>` to the PR's **base** branch (not head) for the scenario you'r
 
 2. **Disable strict:**
    ```bash
-   gh api -X PATCH repos/bordenet/superpowers-plus/branches/<branch>/protection/required_status_checks \
-     -F strict=false \
-     -f 'contexts[]=Node.js Tests' -f 'contexts[]=Quality Checks' \
-     -f 'contexts[]=Security Scan' -f 'contexts[]=Shell Tests'
+   tools/promotion-strict-toggle.sh disable <branch>
    ```
-   Verify it took: `gh api repos/bordenet/superpowers-plus/branches/<branch>/protection/required_status_checks --jq .strict` → should print `false`.
+   Refuses to write its sentinel (exits 1) if a read-back after the PATCH doesn't confirm `strict=false` — you'll see the failure immediately rather than assuming it worked.
 
 3. **Merge:**
    ```bash
@@ -51,22 +50,21 @@ Resolve `<branch>` to the PR's **base** branch (not head) for the scenario you'r
 
 4. **Restore strict — run this even if step 3 failed.** If the merge in step 3 errors out for any reason (network blip, a competing PR raced in, etc.), do not leave `strict` disabled — restore it immediately, diagnose the merge failure separately, and re-run from step 1 once resolved:
    ```bash
-   gh api -X PATCH repos/bordenet/superpowers-plus/branches/<branch>/protection/required_status_checks \
-     -F strict=true \
-     -f 'contexts[]=Node.js Tests' -f 'contexts[]=Quality Checks' \
-     -f 'contexts[]=Security Scan' -f 'contexts[]=Shell Tests'
+   tools/promotion-strict-toggle.sh restore <branch>
    ```
-   **Verify it took** — this is the step most likely to be silently skipped under pressure:
-   ```bash
-   gh api repos/bordenet/superpowers-plus/branches/<branch>/protection/required_status_checks --jq .strict
-   ```
-   This must print `true` before you consider the fix complete. If it doesn't, re-run step 4 — do not walk away with `strict` left disabled.
+   Refuses to clear its sentinel (exits 1) if a read-back doesn't confirm `strict=true` — re-run this step if it fails, do not walk away.
+
+At any point, `tools/promotion-strict-toggle.sh status` lists which branches currently have `strict` disabled and how long ago, flagging anything past 30 minutes as `STALE`.
 
 ## What this does and doesn't change
 
 This only removes the "head must already be ahead of base" ordering requirement. The 4 required checks themselves are untouched and must show SUCCESS for the merge to succeed at all — this fix has never been observed to let an actually-failing check through.
 
+## Enforcement
+
+`tools/claude-hooks/session-start-rules-integrity.sh` calls `tools/promotion-strict-toggle.sh status` on every session start and blocks (exit 2) if any branch has been left with `strict=false` past the 30-minute TTL. This closes the original gap: a skipped or failed restore no longer sits silently — the next session start surfaces it as an integrity failure. Tests: `test/promotion-strict-toggle.bats` (the script itself) and `tests/claude-guardrails-test.bats` items 3f-3h (the hook wiring).
+
 ## Known gaps (not yet solved)
 
-- There is no automated alarm or expiry if step 4 is skipped or fails silently — `strict` could stay `false` indefinitely with no repo-side signal. Until this is scripted with a forcing function (e.g., a wrapper script that fails loudly if it can't restore `strict`, or a scheduled check), treat step 4's manual verification as mandatory, not optional.
 - This whole workaround is a symptom-level fix, not a root-cause fix. The actual root cause (GitHub's `strict` recompute apparently scaling poorly with diff size on this specific repo/plan) is unconfirmed against GitHub's own documentation or support.
+- The 30-minute TTL is a judgment call, not a measured threshold — there's no historical baseline for how long `strict` recompute normally takes at various diff sizes in this repo.

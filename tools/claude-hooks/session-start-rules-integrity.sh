@@ -40,6 +40,22 @@ if [[ -z "$INV" ]]; then
   PROBLEMS+=("invariants.md unreadable from $CWD (checked: ${INV_PRIMARY:-<no git toplevel>} and $INV_FALLBACK)")
 fi
 
+# (c) promotion strict-toggle staleness — catches a forgotten
+# tools/promotion-strict-toggle.sh disable left un-restored (see
+# .ai-guidance/promotion-strict-behind-runbook.md). Skips silently if this
+# repo doesn't have the script (not every repo uses this workflow).
+TOGGLE_SCRIPT="${TOPLEVEL:+$TOPLEVEL/tools/promotion-strict-toggle.sh}"
+if [[ -n "$TOGGLE_SCRIPT" && -x "$TOGGLE_SCRIPT" ]]; then
+  TOGGLE_EXIT=0
+  # cd into TOPLEVEL first: the script resolves its own repo root via its
+  # process cwd (`git rev-parse --show-toplevel`), which is NOT necessarily
+  # the same as this hook's own process cwd.
+  TOGGLE_OUTPUT="$(cd "$TOPLEVEL" && bash "$TOGGLE_SCRIPT" status 2>&1)" || TOGGLE_EXIT=$?
+  if [[ "$TOGGLE_EXIT" != "0" ]]; then
+    PROBLEMS+=("STALE strict-toggle (branch protection left weakened): $TOGGLE_OUTPUT")
+  fi
+fi
+
 if (( ${#PROBLEMS[@]} > 0 )); then
   echo "[claude-hooks/SessionStart] integrity FAILURES — halt and alert user:"
   printf '  - %s\n' "${PROBLEMS[@]}"
