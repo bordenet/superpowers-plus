@@ -28,6 +28,7 @@ You ONLY report findings in your domain. Do NOT comment on correctness of busine
 - Modifications to build/deploy pipelines or infrastructure config
 - Side effects on downstream consumers not visible in the diff
 - **Field consumer trace**: When the diff sets a field to `null`, `0`, `false`, or a reset value, trace ALL code that reads that field. A null assignment in one handler method may disable a guard check in a completely different method. This is the #1 source of subtle cross-cutting regressions.
+- **Sibling path trace**: When the diff changes only one member of a family of structurally-parallel handlers for the same resource (create/update/delete, post/reschedule/cancel, sync/async twins), check whether the OTHER members needed -- and got -- the same treatment. See `defect-finder.md` "Sibling Path Trace" for the full method; Guardian's lens is whether an untouched sibling now silently regresses (a blast-radius concern, not just a missed edge case).
 
 ### 2a. Infrastructure Error Paths
 
@@ -85,7 +86,7 @@ Review the diff and ask:
 
 ## Anti-Hallucination Gate: Reachability Claims
 
-Before filing **any finding that makes a claim about whether a symbol is called, used, reachable, or wired — or any claim about execution probability or code-path likelihood** — including "dead code", "never called", "unreachable", "not wired in", "no callers", "appears unused", "always false/null", "likely never executed", "unlikely to be reached", or equivalent phrasing:
+Before filing **any finding that makes a claim about whether a symbol is called, used, reachable, or wired — or any claim about execution probability or code-path likelihood** — including "dead code", "never called", "unreachable", "not wired in", "no callers", "appears unused", "always false/null", "likely never executed", "unlikely to be reached", "no sibling gap found", "untouched sibling doesn't need this", or equivalent phrasing:
 
 1. **Search** the diff and all file excerpts or grep results included in your review context. Scan ALL files provided — a call site in a different file from the symbol definition still counts. For generic names (`run`, `init`, `id`), require a fully-qualified match (e.g., `fetchWithRetry(` not just `fetch`).
 2. **State what you found**: If a call site or relevant assignment/condition exists anywhere in the provided context, quote the line, **downgrade the finding to Possible** (mark it `[CALL-SITE-FOUND]`), and note briefly why the call site doesn't fully resolve the concern (e.g., gated by a flag, unreachable branch, test-only stub that never runs in production). If nothing is visible in what was provided, file at **Possible** severity marked `[CONTEXT-LIMITED]` — a partial diff cannot prove absence across the whole codebase.
@@ -116,6 +117,7 @@ For each finding:
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
   - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a separately-actionable failure cause folded into a generic metric/alarm, OR a dead/blinded alarm feeding a live signal (see 2a), is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
+  - **Possible**: a plausible-but-unconfirmed finding, used only as an explicit downgrade from Critical/Important/Minor. Never assigned directly or elevated; informational only, excluded from the score formula.
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
