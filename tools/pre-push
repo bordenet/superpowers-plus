@@ -6,6 +6,32 @@
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
+# Git sets GIT_DIR (and GIT_PREFIX; confirmed via direct repro under a linked
+# worktree -- GIT_WORK_TREE/GIT_INDEX_FILE were not observed auto-set in that
+# repro) in the hook subprocess environment, needed so hooks under a linked
+# worktree resolve the right worktree. All 4 are unset below regardless: a
+# future git version or a hook invoked another way could set any of them, and
+# confirmed separately that GIT_WORK_TREE alone -- independent of GIT_DIR --
+# is equally sufficient to redirect `git rev-parse --show-toplevel` onto a
+# decoy repo, so this isn't over-cautious defense against a vector that
+# doesn't exist; it's covering a second, equally real one. Gate 1 below shells
+# out to
+# `tools/test-all.sh --fast` -> bats, whose fixtures do their own `git -C
+# <tmpdir> init/commit` assuming normal cwd-based repo discovery. Left set,
+# GIT_DIR overrides `-C`/cwd discovery for ANY nested git invocation, silently
+# redirecting supposedly isolated fixture operations onto THIS repo instead --
+# confirmed via direct repro in a sibling repo with the identical pattern: a
+# bats fixture's `git -C "$FIXTURE_REPO" init` printed "warning: re-init:
+# ignored --initial-branch=main" and subsequent commits reported "nothing to
+# commit" while actually mutating the real repo's branch ref and shared
+# .git/config (observed there: core.bare flipped true, user.email/user.name
+# overwritten to fixture values, a fixture branch's tracking config added) --
+# on a real push that ran the full test suite. Unsetting here is safe: cwd is
+# already correct for this worktree (git invoked the hook with the pushing
+# worktree as cwd), so plain discovery still resolves this repo correctly for
+# the gates that need it.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
