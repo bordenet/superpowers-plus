@@ -163,18 +163,80 @@ is_binary_file() {
     file "$file" 2>/dev/null | grep -q "binary"
 }
 
+# Shared by both the pattern-grep scan and the hash-based scan below, so the
+# two matching engines can never silently drift apart on what counts as "an
+# added line" (e.g. diff-header edge cases). Ends in `|| true` and is always
+# the tail of any pipeline it's used in, so a diff with zero added lines
+# (grep finds no match) can never itself trigger errexit under pipefail.
+extract_added_lines() {
+    grep -E '^\+' | grep -vE '^\+\+\+ ' | sed 's/^+//' || true
+}
+
 count_added_line_matches() {
-    grep -E '^\+' \
-        | grep -vE '^\+\+\+ (a/|b/|/dev/null)' \
-        | sed 's/^+//' \
-        | grep -ciE "$PATTERNS" || true
+    extract_added_lines | grep -ciE "$PATTERNS" || true
 }
 
 show_added_line_matches() {
-    grep -E '^\+' \
-        | grep -vE '^\+\+\+ (a/|b/|/dev/null)' \
-        | sed 's/^+//' \
-        | grep -iE "$PATTERNS" | indent_output || true
+    extract_added_lines | grep -iE "$PATTERNS" | indent_output || true
+}
+
+# Hash-based banned-term scan (permanent internal-codename denylist). See
+# tools/check-banned-term-hashes.py -- terms are salted hashes, never
+# plaintext, so the guard cannot itself leak what it's guarding against.
+#
+# Resolved via REPO_ROOT (not a SCRIPT_DIR relative to this file) even
+# though install-hooks.sh never copies this script elsewhere today --
+# tools/commit-msg IS copied into .git/hooks/ and shipped with exactly this
+# bug (a BASH_SOURCE-relative path silently stopped finding this file once
+# installed). Matching commit-msg's resolution strategy here means this
+# script keeps working correctly if it's ever copied the same way.
+BANNED_HASH_SCRIPT="$REPO_ROOT/tools/check-banned-term-hashes.py"
+
+# NOTE on set -e/pipefail safety: every risky pipeline below is either the
+# direct condition of an `if` or immediately followed by an explicit
+# `return` inside that if/else -- never a bare statement whose exit status
+# is read via a later `$?`. Under `pipefail` (active for this whole script),
+# a bare failing pipeline statement would trigger errexit and abort the
+# script before the exit code could be inspected; pipelines used directly as
+# an if-condition are exempt from that regardless of pipefail.
+added_lines_have_banned_hash() {
+    command -v python3 >/dev/null 2>&1 || return 1
+    [[ -f "$BANNED_HASH_SCRIPT" ]] || return 1
+    if extract_added_lines | python3 "$BANNED_HASH_SCRIPT" >/dev/null 2>&1; then
+        return 1  # python exit 0 = clean
+    fi
+    return 0  # python exit 1 = banned term found
+}
+
+file_has_banned_hash() {
+    local target="$1"
+    command -v python3 >/dev/null 2>&1 || return 1
+    [[ -f "$BANNED_HASH_SCRIPT" ]] || return 1
+    if python3 "$BANNED_HASH_SCRIPT" < "$target" >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
+check_commit_messages_for_banned_hashes() {
+    local range="$1"
+    command -v python3 >/dev/null 2>&1 || { echo "  ⚠ python3 not found; skipping commit-message hash scan"; return 0; }
+    [[ -f "$BANNED_HASH_SCRIPT" ]] || return 0
+    # Capture git log's own output/exit status separately (same rationale as
+    # check_diff_stream above) so a failed git invocation -- bad revision
+    # range, unreachable SHA -- is never silently indistinguishable from a
+    # genuinely clean, empty range.
+    local msgs
+    if ! msgs="$(git log "$range" --format='%B' 2>&1)"; then
+        echo "  ❌ FAIL: could not read commit messages for banned-term scan (range: $range) — treating as unscanned, not clean"
+        return 1
+    fi
+    if printf '%s' "$msgs" | python3 "$BANNED_HASH_SCRIPT" >/dev/null 2>&1; then
+        echo "  ✓ Commit messages clean (banned-term scan)"
+        return 0
+    fi
+    echo "  ❌ FAIL: banned internal term detected in commit message(s)"
+    return 1
 }
 
 check_untracked_files() {
@@ -186,7 +248,7 @@ check_untracked_files() {
         [[ -f "$file" ]] || continue
         is_excluded_file "$file" && continue
         is_binary_file "$file" && continue
-        if grep -qiE "$PATTERNS" "$file" 2>/dev/null; then
+        if grep -qiE "$PATTERNS" "$file" 2>/dev/null || file_has_banned_hash "$file"; then
             hits+=("$file")
         fi
     done < <(git ls-files --others --exclude-standard)
@@ -216,7 +278,7 @@ check_all_tracked_files() {
         [[ -f "$file" ]] || continue
         is_excluded_file "$file" && continue
         is_binary_file "$file" && continue
-        if grep -qiE "$PATTERNS" "$file" 2>/dev/null; then
+        if grep -qiE "$PATTERNS" "$file" 2>/dev/null || file_has_banned_hash "$file"; then
             hits+=("$file")
         fi
     done < <(git ls-files)
@@ -258,11 +320,15 @@ check_diff_stream() {
     local matches
     matches="$(printf '%s\n' "$diff_output" | count_added_line_matches)"
     if [[ "$matches" -gt 0 ]]; then
-        echo "  ❌ FAIL: IP found in ${label} ($matches match(es))"
+        echo "  ❌ FAIL: IP found in ${label} ($matches pattern match(es))"
         if [[ "$VERBOSE" == "true" ]]; then
             echo "  --- verbose output (may contain sensitive identifiers) ---"
             printf '%s\n' "$diff_output" | show_added_line_matches
         fi
+        return 1
+    fi
+    if printf '%s\n' "$diff_output" | added_lines_have_banned_hash; then
+        echo "  ❌ FAIL: banned internal term detected in ${label}"
         return 1
     fi
 
@@ -311,6 +377,7 @@ if [[ -n "$COMMIT_RANGE" ]]; then
     echo "  Range: $COMMIT_RANGE"
     check_diff_stream "commit range" git log -p --no-ext-diff --unified=0 "$COMMIT_RANGE" -- . ':(exclude).ip-patterns' ':(exclude).ip-check-patterns' || FAILED=true
     check_commit_metadata "$COMMIT_RANGE" || FAILED=true
+    check_commit_messages_for_banned_hashes "$COMMIT_RANGE" || FAILED=true
 elif [[ "$STAGED_ONLY" == "true" ]]; then
     echo "▶ Checking staged changes..."
     check_diff_stream "staged changes" git diff --staged --no-ext-diff --unified=0 --no-color -- . ':(exclude).ip-patterns' ':(exclude).ip-check-patterns' || FAILED=true
@@ -331,6 +398,7 @@ else
         echo "  Range: $AUDIT_RANGE"
         check_diff_stream "unpushed commits" git log -p --no-ext-diff --unified=0 "$AUDIT_RANGE" -- . ':(exclude).ip-patterns' ':(exclude).ip-check-patterns' || FAILED=true
         check_commit_metadata "$AUDIT_RANGE" || FAILED=true
+        check_commit_messages_for_banned_hashes "$AUDIT_RANGE" || FAILED=true
     else
         echo "  ⚠ No upstream/base branch configured, skipping"
     fi

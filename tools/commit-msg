@@ -96,8 +96,29 @@ if offending_lines:
 PYEOF
 
 case "$_python_exit" in
-    0) exit 0 ;;
+    0) : ;;
     1) exit 1 ;;  # non-ASCII rejected; Python printed the diagnostic
     2) exit 1 ;;  # non-UTF-8 / I/O error; Python printed the diagnostic
     *) echo "  ERROR: Unicode substitution step failed (exit ${_python_exit})" >&2; exit 1 ;;
 esac
+
+# Hash-based banned-term scan (permanent internal-codename denylist -- see
+# tools/check-banned-term-hashes.py). Runs on the commit message itself so a
+# banned term is rejected before the commit object even exists, not just at
+# push time.
+#
+# NOTE: this hook is installed by copying this file to .git/hooks/commit-msg
+# (see install-hooks.sh), so a path resolved relative to this script's own
+# location (BASH_SOURCE) would point at .git/hooks, not tools/, once
+# installed -- check-banned-term-hashes.py lives in the tracked tools/
+# directory, so it must be found via the repo root instead. git invokes
+# commit-msg with CWD at the top of the working tree.
+_REPO_ROOT_FOR_HASH_SCAN="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -n "$_REPO_ROOT_FOR_HASH_SCAN" ]] && command -v python3 >/dev/null 2>&1 \
+    && [[ -f "$_REPO_ROOT_FOR_HASH_SCAN/tools/check-banned-term-hashes.py" ]]; then
+    if ! python3 "$_REPO_ROOT_FOR_HASH_SCAN/tools/check-banned-term-hashes.py" < "$COMMIT_MSG_FILE"; then
+        exit 1
+    fi
+fi
+
+exit 0
