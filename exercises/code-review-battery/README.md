@@ -23,6 +23,9 @@ expected_reviewers: [defect-finder, guardian, ...]  # Who SHOULD catch this
 # Optional (FP-trap holdouts only):
 tests_pattern: producer-trace        # Named pattern this holdout exercises
 test_kind: fp-trap                   # Currently only fp-trap is in use
+
+# Optional (source/calibration exercises for a graduated candidate):
+graduated_pattern: candidate-003      # candidates/ ID this exercise validates
 ---
 ```
 
@@ -131,3 +134,11 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | [ex-015](./ex-015-failure-mode-differentiation-holdout.md) | 4 | guardian | FP-trap holdout for Failure-mode Differentiation (alert-fatigue, single-provider, non-alarm-feeding) | Synthetic |
 | [ex-017](./ex-017-caller-removal-dead-code.md) | 4 | defect-finder | Dead code introduced by a diff's own refactor (candidate-003) | Synthetic |
 | [ex-018](./ex-018-caller-removal-published-library.md) | 4 | defect-finder | Caller Removal Trace severity calibration for published-library repos (candidate-003) | Synthetic |
+
+**Exercise-numbering gap note:** this table jumps ex-015 -> ex-017 -- `ex-016`
+is not missing, it's reserved for "Sibling Path Trace" on the separate,
+not-yet-merged `feat/cr-battery-sibling-dead-code-checks` branch. Same
+situation as `gap-analysis.md`'s candidate-ID gap note, for the same reason
+(parallel unmerged work claiming adjacent numbers). Verify with
+`git ls-tree -r --name-only feat/cr-battery-sibling-dead-code-checks -- exercises/code-review-battery/`
+if that branch is still available.

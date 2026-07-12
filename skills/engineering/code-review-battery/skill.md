@@ -247,5 +247,4 @@ See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isola
 
 - **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit)
 - **providing-code-review**: Engineering rigor checklist (informs reviewer focus)
-- **inter-agent-review-protocol**: File-protocol review (alternative dispatch method)
-- **micro-harsh-review**: Per-batch review
+- **inter-agent-review-protocol**: File-protocol review (alternative dispatch method) · **micro-harsh-review**: Per-batch review

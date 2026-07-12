@@ -116,6 +116,7 @@ For each finding:
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
   - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a separately-actionable failure cause folded into a generic metric/alarm, OR a dead/blinded alarm feeding a live signal (see 2a), is **Important** (wrong or missing operator-visible signal), not a cosmetic gap.
+  - **Possible**: a plausible-but-unconfirmed finding, used only as an explicit downgrade from Critical/Important/Minor. Never assigned directly or elevated; informational only, excluded from the score formula.
 - **File:Line**: Exact location in the diff
 - **Issue**: What is wrong (1-2 sentences)
 - **Why**: Why this matters (who/what breaks, what can be exploited)
