@@ -1,0 +1,44 @@
+# Candidate: Sibling Path Trace -- Guard-Condition Trigger (no field involved)
+id: candidate-006
+status: proposed
+kind: pattern
+created: 2026-07-10
+source_gap: "An earlier draft of candidate-002 (Sibling Path Trace) extended its trigger conditions to also cover a diff that changes a control-flow guard (an `if`/early-return/condition) in one member of a parallel-path family, with no field involved -- distinct from candidate-002's validated field-supersession shape. This shape was never independently validated: no exercise exists that exercises a guard-condition-only sibling gap, and across two independent PHR review rounds the shape's supporting prose proved inconsistent with the rest of the field-scoped pattern -- first the pattern's closing 'Do NOT over-fire' guard contradicted it, and after that was patched, the numbered 'When triggered' procedure (written in field-only language) was found to still contradict it, and the pattern's own evidence-field-name convention (`Reachability evidence:`) was never mandated for it either. Descoped out of candidate-002 back to its originally-validated field-supersession-only scope; this candidate tracks the guard-condition shape as its own future work, to be built out with the same rigor used for other patterns' second branches (a dedicated validation exercise) rather than bolted onto an already-graduated pattern's prose without validation."
+source_exercise: null
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  When reviewing a diff that changes a control-flow guard (a new or
+  tightened `if`/early-return/condition) in ONE member of a known
+  parallel-path family of handlers for the same resource (create/update/
+  post vs. reschedule/cancel/delete, sync/async twins), with NO field
+  involved (the sibling-supersession shape is candidate-002's, not this
+  one):
+  Open every other family member and check whether the same guard
+  condition structurally applies to its equivalent code path too.
+  Flag any untouched sibling reproducing the same guarded-against defect
+  as Important (Critical if it reproduces a confirmed production defect
+  the diff was meant to close). Do NOT flag when the control-flow change
+  is deliberately scoped to this resource's specific semantics
+  (documented, or evident from the surrounding code) -- two files sharing
+  a directory/naming convention is not itself evidence of a gap.
+examples:
+  - file: "src/handlers/cancel-request.ts + src/handlers/reschedule-request.ts (synthetic, not yet exercised)"
+    issue: "A diff adds a guard blocking cancellation while a payment is processing (double-charge fix). reschedule-request.ts has the identical unguarded processing-payment race on its own cancellation-adjacent code path and was never touched."
+    fix: "Add the equivalent guard to reschedule-request.ts, or document why rescheduling doesn't share the race."
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+  deferred_validation_due: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: null
+  regression_check: null
+  tracking_handle: null
