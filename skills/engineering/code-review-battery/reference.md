@@ -51,21 +51,21 @@ If no signal: state `Design Critic: SKIPPED (Bug Fix Mode — no API-change sign
 ## Executive Summary Template
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│  MODE: Bug Fix Review [9.2 threshold]  |  BRANCH: fix/proj-1234  │
-│  VERDICT: REJECT [6.5/10]  |  2 Critical, 1 Important, 3 Minor   │
-│  ACTION: Fix 2 Critical findings. DO NOT merge.                   │
-│  BugPath Coverage: INSUFFICIENT (2/4 dimensions) → cap 6.5       │
-└────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  MODE: Bug Fix Review [9.2 threshold]  |  BRANCH: fix/proj-1234             │
+│  VERDICT: REJECT [6.5/10]  |  2 Critical, 1 Important, 3 Minor, 0 Possible  │
+│  ACTION: Fix 2 Critical findings. DO NOT merge.                             │
+│  BugPath Coverage: INSUFFICIENT (2/4 dimensions) → cap 6.5                  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 Standard mode (no BugPath row):
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  MODE: Standard Review [7.0 threshold]  |  BRANCH: feat/new-api   │
-│  VERDICT: PASS [8.5/10]  |  0 Critical, 1 Important, 2 Minor      │
-│  ACTION: Address Important finding before merge (non-blocking).    │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│  MODE: Standard Review [7.0 threshold]  |  BRANCH: feat/new-api           │
+│  VERDICT: PASS [8.5/10]  |  0 Critical, 1 Important, 2 Minor, 0 Possible  │
+│  ACTION: Address Important finding before merge (non-blocking).           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`. ACTION is a single plain-English sentence.
@@ -75,6 +75,7 @@ VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`. ACTION i
 - **Critical** = broken RIGHT NOW if shipped (wrong output, data loss, crash, security hole)
 - **Important** = breaks UNDER CONDITIONS (missing guard, incomplete fix, correctness risk)
 - **Minor** = works but violates standards (style, naming, missing docs/tests, observability gaps)
+- **Possible** = a plausible-but-unconfirmed finding, used only as an explicit downgrade from Critical/Important/Minor (e.g., a plausible dynamic caller/reader, a possible external consumer). Never assigned directly or elevated to a higher tier; informational only, excluded from the score formula.
 - **Elevate to Important** when operator-visible signal is wrong/missing (dead metric, blinded alarm) OR separately-actionable failure cause folded into generic metric/alarm
 - **Elevate to Critical** when the metric catalog description directly contradicts the emit conditions in code (catalog-vs-code lie): a metric whose `defineMetric` description states "NOT emitted on path X" while the code emits on path X (or vice versa) corrupts every dashboard/alarm built on that metric. Operator pages on the wrong signal. See Standards Enforcer "Catalog-vs-code consistency" check.
 - Downgrade process gaps (e.g., "no tests added") from Critical to Minor: `[Reclassified: Critical → Minor — missing tests are a standards gap, not a production defect]`
