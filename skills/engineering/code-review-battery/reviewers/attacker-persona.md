@@ -155,6 +155,7 @@ For each finding:
   - **Critical (agent-amplified)**: Not broken for a non-LLM attacker without special access, but triggerable by a prompt-injected LLM from any input the agent processes. Treated as Critical in all downstream triage. Use label: `Critical (agent-amplified from Important; LLM can trigger via [path])`.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
   - **Minor**: Works but violates standards (style, naming, missing docs/tests, observability gaps).
+  - **Possible**: a plausible-but-unconfirmed finding, used only as an explicit downgrade from Critical/Important/Minor. Never assigned directly or elevated; informational only, excluded from the score formula.
 - **Escalation**: Critical findings MUST appear in a `## Critical Findings -- Requires Security Review Before Merge` section at the top of the report, above all other findings. The battery orchestrator reads this section to enforce the merge gate.
 - **Tags**: `[CWE-XXX] [OWASP A##] [MITRE T####]` (where applicable)
 - **File:Line**: Exact location in the diff

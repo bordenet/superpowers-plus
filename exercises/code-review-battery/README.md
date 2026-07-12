@@ -4,6 +4,8 @@
 
 Structured exercises to measure battery precision and recall. Each exercise contains a real diff (input) and ground-truth findings (expected output). Running the battery against exercises produces quantitative metrics.
 
+**Diff blocks are illustrative, not machine-appliable.** The fenced diff code blocks in these exercises are read by an LLM reviewer, not by `git apply` -- context lines are routinely elided for readability, so hunk headers frequently don't arithmetically match their bodies and `git apply --check` fails on most of them (confirmed across this whole corpus, not specific to any one exercise). This is a deliberate readability tradeoff, not a defect to flag when reviewing a new exercise submission.
+
 ## Format
 
 Each exercise is a standalone markdown file with YAML frontmatter:
@@ -21,6 +23,9 @@ expected_reviewers: [defect-finder, guardian, ...]  # Who SHOULD catch this
 # Optional (FP-trap holdouts only):
 tests_pattern: producer-trace        # Named pattern this holdout exercises
 test_kind: fp-trap                   # Currently only fp-trap is in use
+
+# Optional (source/calibration exercises for a graduated candidate):
+graduated_pattern: candidate-003      # candidates/ ID this exercise validates
 ---
 ```
 
@@ -127,3 +132,6 @@ A **false negative** is an Expected Finding not matched by any battery output.
 | [ex-013](./ex-013-return-contract-break.md) | 4 | defect-finder + guardian | Return contract change breaks callers | Synthetic |
 | [ex-014](./ex-014-producer-trace-holdout.md) | 4 | defect-finder + standards-enforcer | FP-trap holdout for Producer Trace (indirect emit, enum-only definition, re-export, paired-symmetry) | Synthetic |
 | [ex-015](./ex-015-failure-mode-differentiation-holdout.md) | 4 | guardian | FP-trap holdout for Failure-mode Differentiation (alert-fatigue, single-provider, non-alarm-feeding) | Synthetic |
+| [ex-016](./ex-016-sibling-path-priority-gap.md) | 5 | defect-finder + guardian | Cross-file sibling-handler incomplete fix (candidate-002) | Synthetic |
+| [ex-017](./ex-017-caller-removal-dead-code.md) | 4 | defect-finder | Dead code introduced by a diff's own refactor (candidate-003) | Synthetic |
+| [ex-018](./ex-018-caller-removal-published-library.md) | 4 | defect-finder | Caller Removal Trace severity calibration for published-library repos (candidate-003) | Synthetic |
