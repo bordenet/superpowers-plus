@@ -1,0 +1,40 @@
+# Candidate: Producer Trace's Mechanized Evidence Shares Caller Removal Trace's Grep-Replay Exposure
+id: candidate-008
+status: proposed
+kind: anti-pattern
+created: 2026-07-12
+source_gap: "While resolving Caller Removal Trace's mechanized JSON evidence-verification bugs (9 confirmed across three review rounds: word-boundary collisions, exit_code-vs-count semantics, comment-only mentions, multi-declaration/re-export exclusion, symlinked-directory traversal, case-insensitive-filesystem git-checkout collisions), a harsh review flagged that Producer Trace's own mechanized evidence commands (grep-based producer-search, e.g. checking for `.emit(`/`.inc(`/`publish(` calls) use the structurally identical primitive -- a repo-scoped grep replayed by tools/verify-cr-battery-evidence.js to prove absence of a producer -- and are exposed to the same bypass classes (symlinked vendor/shared directories hiding a real producer call, case-insensitive-filesystem checkout collisions dropping a real file from the working tree). This was NOT independently confirmed against Producer Trace's actual evidence commands (only reasoned about by analogy during the Caller Removal Trace review) and Caller Removal Trace's own detection LOGIC and multi-declaration/dynamic-dispatch reasoning are pattern-specific, not directly transferable -- Producer Trace needs its own independent adversarial verification before any fix is proposed, not an ad-hoc port of Caller Removal Trace's decision (drop mechanization) under time pressure."
+source_exercise: null
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  Any evidence.command in this file that relies on `grep -r` (or similar recursive
+  search) to prove GLOBAL ABSENCE of something across a repo (a producer, a caller,
+  a reference) should be checked for the same three bypass classes found in Caller
+  Removal Trace's history: (1) symlinked directories that grep does not traverse
+  into by default, (2) case-insensitive-filesystem git-checkout collisions that can
+  silently drop a real file from the working tree, (3) multi-declaration/re-export
+  sites that make "the declaration" ambiguous to exclude correctly. Producer Trace
+  is the most likely candidate given its structurally identical grep-replay
+  evidence mechanism, but any other pattern using a similar absence-proving idiom
+  should also be audited.
+examples:
+  - file: "skills/engineering/code-review-battery/reviewers/defect-finder.md (Producer Trace evidence idiom)"
+    issue: "Not yet independently reproduced -- flagged by analogy during Caller Removal Trace's review, not verified against Producer Trace's actual committed evidence commands."
+    fix: "Not yet designed -- candidate is proposed, not validated. Requires its own dedicated adversarial review round(s) against Producer Trace's specific evidence commands and exercises (ex-014, the Producer Trace holdout) before deciding whether the same prose-only fallback applies, a narrower fix suffices, or Producer Trace's specific grep patterns are already immune for reasons not yet identified."
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+  deferred_validation_due: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: null
+  regression_check: null
+  tracking_handle: null
