@@ -243,9 +243,9 @@ _fixture_transcript() {
 # ---------------------------------------------------------------------------
 
 @test "item 1: internal-terms scan blocks push to github.com" {
-  _fixture_repo_with_commit "contains callbox-internal-secret-codename in commit message"
+  _fixture_repo_with_commit "contains acme-internal-secret-codename in commit message"
   PAT_FILE="$(mktemp)"
-  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  echo "acme-internal-secret-codename" > "$PAT_FILE"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
@@ -270,9 +270,9 @@ _fixture_transcript() {
 @test "item 1: internal-terms scan blocks first-push (no upstream tracking ref)" {
   # Regression for sp-bughunt #1: previously @{u}..HEAD failed silently when
   # the branch had no upstream, producing an empty SCAN and a fail-open push.
-  _fixture_repo_with_commit_no_upstream "leak callbox-internal-secret-codename on new branch"
+  _fixture_repo_with_commit_no_upstream "leak acme-internal-secret-codename on new branch"
   PAT_FILE="$(mktemp)"
-  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  echo "acme-internal-secret-codename" > "$PAT_FILE"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
@@ -306,12 +306,12 @@ _fixture_transcript() {
   git -C "$REPO" init -q
   git -C "$REPO" config user.email "t@t.com"
   git -C "$REPO" config user.name "T"
-  printf 'token: callbox-internal-secret-codename-in-file\n' > "$REPO/.env"
+  printf 'token: acme-internal-secret-codename-in-file\n' > "$REPO/.env"
   git -C "$REPO" add .env
   git -C "$REPO" commit -q -m "Innocuous-looking commit message"
   git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
   PAT_FILE="$(mktemp)"
-  echo "callbox-internal-secret-codename-in-file" > "$PAT_FILE"
+  echo "acme-internal-secret-codename-in-file" > "$PAT_FILE"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
@@ -326,11 +326,11 @@ _fixture_transcript() {
   # no-upstream fallback when `git remote add` ran but no fetch ever
   # populated refs/remotes/. The --not --remotes="$REMOTE" clause matches
   # nothing -> scan walks all of HEAD's history (conservative fail-closed).
-  _fixture_repo_with_commit_no_upstream "leak callbox-internal-secret-codename"
+  _fixture_repo_with_commit_no_upstream "leak acme-internal-secret-codename"
   # Belt-and-suspenders: verify refs/remotes/ really is empty.
   [[ -z "$(git -C "$REPO" for-each-ref refs/remotes 2>/dev/null)" ]]
   PAT_FILE="$(mktemp)"
-  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  echo "acme-internal-secret-codename" > "$PAT_FILE"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
@@ -349,13 +349,13 @@ _fixture_transcript() {
   git -C "$REPO" init -q
   git -C "$REPO" config user.email "t@t.com"
   git -C "$REPO" config user.name "T"
-  git -C "$REPO" commit -q --allow-empty -m "leak callbox-internal-secret-codename via multi-remote"
+  git -C "$REPO" commit -q --allow-empty -m "leak acme-internal-secret-codename via multi-remote"
   # Simulate: an internal mirror remote already has this commit.
   git -C "$REPO" update-ref refs/remotes/gitlab/main HEAD
   # Now add a github remote (the actual push target) -- never fetched.
   git -C "$REPO" remote add origin "https://github.com/testuser/testrepo.git"
   PAT_FILE="$(mktemp)"
-  echo "callbox-internal-secret-codename" > "$PAT_FILE"
+  echo "acme-internal-secret-codename" > "$PAT_FILE"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-internal-terms.sh"
   CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$PAT_FILE" \
     run bash "$hook" \
