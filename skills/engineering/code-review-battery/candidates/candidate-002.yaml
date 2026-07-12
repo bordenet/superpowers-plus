@@ -1,0 +1,40 @@
+# Candidate: Sibling Path Trace (parallel-handler consistency, cross-file)
+id: candidate-002
+status: graduated
+kind: pattern
+created: 2026-07-10
+source_gap: "The battery had no mechanism for catching a diff that updates one structurally-parallel handler for a resource (e.g. the create-side handler) but leaves a sibling handler for the same resource (e.g. the reschedule-side handler, in a different file) untouched, when the diff supplements or partially supersedes a field both handlers already read. The existing 'field reset' signal only fires on reset/null/0/false, never on a brand-new field, and 'grep all readers' for a new field only finds the one reader the diff itself just created -- there is no text to grep for a reader that should exist but doesn't."
+source_exercise: ex-016
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  When a diff adds a new property to a type/interface/shared-state object
+  already consumed by 2+ non-test files, or touches only one file among a
+  family of structurally-parallel handlers for the same resource
+  (create/update/post vs. reschedule/cancel/delete, or sync/async twins),
+  check whether the new field supplements or partially supersedes an
+  EXISTING field. If so, find every current reader of that existing field
+  across the repo -- not just readers of the new field, which may not
+  exist yet -- and verify each untouched sibling reader got the same
+  treatment. Flag any that didn't as Important (Critical if it reproduces
+  a confirmed production defect). Do not fire on two files merely sharing
+  a directory/naming convention with no existing dual-consumed field to
+  compare against.
+examples:
+  - file: "src/dispatch/dispatch-sync.ts + src/dispatch/dispatch-async.ts (ex-016, synthetic)"
+    issue: "A new job.priorityOverride field partially supersedes job.routingKey. The sync dispatcher (touched by the diff) reads it; the async dispatcher -- an untouched sibling in the same directory, reading the same routingKey field today -- does not."
+    fix: "Wire priorityOverride into AsyncDispatcher.enqueue() with the same fallback order used in SyncDispatcher.dispatch()."
+confidence: 0.75
+ttl_days: 90
+validation:
+  exercises_tested: [ex-016, ex-012, ex-005]
+  true_positives: 1
+  false_positives: 0
+  precision: 1.0
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-10
+  reviewer_line: "defect-finder.md 'Sibling Path Trace'; guardian.md Blast Radius 'Sibling path trace' cross-reference; skill.md Phase 1 signal table + Phase 2 ripple analysis"
+  regression_check: "Validated by dispatching fresh sub-agents (no shared context) running the augmented Defect Finder charter. Source ex-016: correctly flagged the untouched async-dispatcher sibling as Important, correctly excluded a by-design non-sibling file (explicit over-fire guard reasoning cited). Holdouts ex-012 (undefined-import) and ex-005 (single-file prose edit, no sibling family): both explicitly reported 'fired: NO', zero false positives across both. Confidence set below candidate-001's eventual 1.0: the cross-file semantic-supersession judgment here is inherently harder to apply correctly than candidate-001's mechanical resource-leak check, and this was validated against a synthetic recreation of a real incident, not the real production diff itself."

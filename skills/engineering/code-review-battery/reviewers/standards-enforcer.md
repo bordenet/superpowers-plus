@@ -111,6 +111,7 @@ For each finding:
   - **Critical**: Production defect — wrong output, data loss, security hole, crash. Code that is broken RIGHT NOW if shipped.
   - **Important**: Correctness risk, missing guard, incomplete fix, spec violation. Code that will break UNDER CONDITIONS if shipped.
   - **Minor**: Style, naming, missing docs/tests, observability gaps. Code that works but is harder to maintain or violates standards. **Exception**: a dead metric or blinded alarm feeding a live dashboard/alarm, OR a separately-actionable failure cause folded into a generic metric/alarm (see 4a Observability completeness), is **Important**. **Hard exception**: missing time-series metrics OR traces for new user-visible functionality (see 4a OE Telemetry Gate) is **Critical** — not Important, not Minor.
+  - **Possible**: a plausible-but-unconfirmed finding, used only as an explicit downgrade from Critical/Important/Minor. Never assigned directly or elevated; informational only, excluded from the score formula.
 - **File:Line**: Exact location in the diff
 - **Issue**: What doesn't conform (1-2 sentences)
 - **Why**: What standard, spec, or convention is violated
