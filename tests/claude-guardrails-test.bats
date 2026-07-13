@@ -670,19 +670,20 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
-@test "item 10: R5: approval for an unrelated earlier action is reusable for a later RED action (documented, accepted tradeoff, not a silent gap)" {
-  # code-review-battery flagged: no category/branch/action binding exists on
-  # the approval token -- an "approve push" said in the context of one branch
-  # satisfies ANY later RED action in the same session, including one the
-  # user never actually discussed. This predates the multi-message lookback
-  # (it was already true at 1 message) but the lookback widens the window
-  # this can be misapplied across. This is a KNOWN, ACCEPTED limitation of
-  # the current design (see tools/claude-hooks/pre-tool-use-red-autonomy.sh
-  # header comment) -- not something this test is meant to fix. Its purpose
-  # is to make the tradeoff an explicit, tested contract instead of an
-  # implicit, undiscovered gap: if this test ever starts failing, the
-  # approval-scope semantics have changed and the header comment/TODO
-  # tracking real per-action scoping need to be revisited.
+@test "item 10: R5: approval for the FIRST-EVER RED action this session is unscoped by target (documented, accepted, narrowed residual)" {
+  # R6 (target-binding) closed the general case this test used to document:
+  # an "approve push" reused across a LATER, DIFFERENT RED action once a
+  # prior git push/branch-delete tool_use exists in the transcript is now
+  # DENIED -- see the "R6" tests below for that fix. What survives is
+  # narrower: when this is the very FIRST git push/branch-delete attempted
+  # in the session, there is no prior tool_use to bind against, so it is
+  # still authorized by any approval phrase in the lookback window regardless
+  # of target. This is a KNOWN, ACCEPTED, NARROWED limitation of the current
+  # design (see tools/claude-hooks/pre-tool-use-red-autonomy.sh header
+  # comment) -- not something this test is meant to fix. Its purpose is to
+  # keep the residual an explicit, tested contract instead of an implicit,
+  # undiscovered gap: if this test ever starts failing, the approval-scope
+  # semantics have changed and the header comment needs to be revisited.
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
@@ -691,6 +692,370 @@ _fixture_transcript() {
   input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin totally-unrelated-branch"},"transcript_path":"%s","session_id":"cross-action-reuse-test","cwd":"/tmp"}' "$TPATH")"
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Item 10 — R6: target-binding (structured tool_use lineage, not prose)
+# ---------------------------------------------------------------------------
+# Fresh-perspective design (think-twice consultation, scored 87.8/100):
+# binds a transcript-sourced approval to the assistant's own prior git
+# push/branch-delete tool_use in this session (structured data), never to
+# parsed human prose -- sidesteps both prior debate-round failures (missed
+# proximity window; false positives from branch names that are also common
+# English words like "main"/"dev").
+
+# Fixture: transcript with ONE prior assistant tool_use (a Bash git command),
+# a matching tool_result marking it as SETTLED-AND-ALLOWED (no BLOCKED text --
+# see PROVENANCE in the hook's header comment), followed by a user
+# approval-phrase message. Pass prior_denied=1 to instead mark the prior as
+# DENIED (a tool_result containing this hook's own BLOCKED text) -- it must
+# then NOT count as precedent.
+_fixture_transcript_prior_push() {
+  local prior_cmd="$1" approve_msg="${2:-approve push}" prior_id="${3:-t1}" prior_denied="${4:-0}"
+  TPATH="$(mktemp).jsonl"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"%s","name":"Bash","input":{"command":"%s"}}]}}\n' "$prior_id" "$prior_cmd" > "$TPATH"
+  if [[ "$prior_denied" == "1" ]]; then
+    printf '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"%s","content":"BLOCKED: RED action approval does not match this commands target/severity."}]}}\n' "$prior_id" >> "$TPATH"
+  else
+    printf '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"%s","content":"exit 0"}]}}\n' "$prior_id" >> "$TPATH"
+  fi
+  printf '{"role":"user","content":"%s"}\n' "$approve_msg" >> "$TPATH"
+}
+
+@test "item 10: R6: prior push to branch-a does NOT authorize push to branch-b (the fix)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"target-mismatch-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"does not match"* ]] || [[ "${lines[*]}" == *"does not match"* ]]
+}
+
+@test "item 10: R6: repeat push to the SAME branch already attempted is allowed" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a"},"transcript_path":"%s","session_id":"target-match-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R6: a DENIED prior tool_use does NOT count as precedent (self-authorization fix)" {
+  # code-review-battery (Guardian/AttackerPersona, 2026-07-12) found that a
+  # DENIED attempt was itself trusted as precedent, letting an agent plant a
+  # fake "prior" via a denied attempt and have an unrelated later approval
+  # phrase bind against it. Fixture marks the prior tool_use's own
+  # tool_result as containing this hook's BLOCKED text -- it must be
+  # excluded, so this (otherwise session-first) push falls through to...
+  # actually with NO legitimate settled prior at all, it hits the
+  # documented "first action" allow path. The point of this test is the
+  # NEXT one, which proves a denied entry doesn't count even when a
+  # legitimate DIFFERENT prior also exists.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push" "t1" "1"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a"},"transcript_path":"%s","session_id":"denied-prior-first-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R6: a DENIED prior for branch-a does not authorize branch-a via a legitimate branch-b precedent existing" {
+  # Stronger version: a genuine ALLOWED prior exists for branch-b, and a
+  # DENIED prior exists for branch-a. Gating branch-a must compare against
+  # the real (branch-b) precedent, not skip past the denied branch-a entry
+  # and wrongly treat it as if branch-a had already been legitimately
+  # approved.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git push origin branch-b"}}]}}\n' > "$TPATH"
+  printf '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"exit 0"}]}}\n' >> "$TPATH"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"git push origin branch-a"}}]}}\n' >> "$TPATH"
+  printf '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"BLOCKED: RED action approval does not match this commands target/severity."}]}}\n' >> "$TPATH"
+  printf '{"role":"user","content":"approve push"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a"},"transcript_path":"%s","session_id":"denied-prior-real-precedent-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R6: an unresolved (no tool_result yet) prior tool_use is excluded, not self-matched" {
+  # Simulates the real-world shape Claude Code produces: a legitimate,
+  # ALLOWED prior push to branch-a, then a SECOND tool_use (branch-b) already
+  # logged with no tool_result yet (this invocation's own in-flight call, or
+  # an unexecuted sibling in a batched turn). Gating branch-b must compare
+  # against the real prior (branch-a) -- which differs -- not treat the
+  # unresolved branch-b entry as if it were already-settled precedent for
+  # itself.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git push origin branch-a"}}]}}\n' > "$TPATH"
+  printf '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"exit 0"}]}}\n' >> "$TPATH"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"git push origin branch-b"}}]}}\n' >> "$TPATH"
+  printf '{"role":"user","content":"approve push"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"unresolved-prior-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R7: compound command (&&) smuggling a second, different target is denied" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a && git push origin branch-c"},"transcript_path":"%s","session_id":"compound-command-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R7: git -C <dir> push is recognized as RED and target-bound (not a full bypass)" {
+  # code-review-battery found "git -C <dir> push" didn't even match
+  # is_red_action's original pattern (push must directly follow git), so it
+  # bypassed the ENTIRE approval gate, not just target-binding. Both the
+  # patterns file and classify() were widened to tolerate this form.
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git -C /tmp/some-repo push origin main"},"transcript_path":"%s","session_id":"git-c-bypass-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R8: git -c/--git-dir/--work-tree push forms are recognized as RED (round 2 bypass fix)" {
+  # code-review-battery round 2 found that the round-1 fix only widened for
+  # -C -- -c, --git-dir, and --work-tree (both =-attached and space-separated
+  # forms) were still confirmed live full-gate bypasses (zero approval
+  # required at all). This pins all of them.
+  for cmd in \
+    'git -c foo.bar=baz push origin main' \
+    'git --git-dir=/tmp/x push origin main' \
+    'git --git-dir /tmp/x push origin main' \
+    'git --work-tree=/tmp/x push origin main' \
+    'git --work-tree /tmp/x push origin main'; do
+    _fixture_transcript "no approval here"
+    local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+    CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+      run bash "$hook" \
+      <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"%s"},"transcript_path":"%s","session_id":"global-opt-bypass-test","cwd":"/tmp"}' "$cmd" "$TPATH")"
+    rm -f "$TPATH"
+    [ "$status" -eq 2 ] || {
+      echo "FAILED to block: $cmd (status=$status)"
+      return 1
+    }
+  done
+}
+
+@test "item 10: R8: git branch -f -D (flag before delete flag) is recognized as RED (round 2 bypass fix)" {
+  # code-review-battery round 2: confirmed live that "git branch -f -D
+  # branch-a" bypassed both is_red_action and classify() entirely (real git
+  # accepts and executes this, deleting the branch) since the original
+  # regex anchored the delete flag immediately after "branch".
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git branch -f -D branch-a"},"transcript_path":"%s","session_id":"branch-flag-order-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R8: plain 'git branch -a' (no delete flag) is not RED" {
+  # Regression guard for the widened branch-delete scan: a non-delete
+  # git branch invocation must not be swept in as RED.
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git branch -a"},"transcript_path":"%s","session_id":"branch-list-not-red-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R7: same branch name pushed to a DIFFERENT remote is treated as a different target" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin main" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push upstream main"},"transcript_path":"%s","session_id":"remote-distinction-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R7: bare 'git push origin HEAD' repeated is always ambiguous, never trusted as a repeat" {
+  # The literal ref HEAD means "whatever is currently checked out" -- it can
+  # differ across two invocations even with byte-identical command text, so
+  # it must never be treated as matching itself.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin HEAD" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin HEAD"},"transcript_path":"%s","session_id":"head-ambiguous-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R9: backslash-continued multi-line git push is still recognized as RED (round 2 bypass fix)" {
+  # code-review-battery round 2 (AttackerPersona): "git \" + newline +
+  # "  push origin x" is an ordinary bash line-continuation idiom, executed
+  # identically to the single-line form, but grep matches per physical line
+  # by default -- this was a full RED-gate bypass for every category.
+  local cmd hook_input
+  cmd=$'git \\\npush origin evil-branch'
+  _fixture_transcript "no approval here"
+  hook_input="$(jq -n --arg cmd "$cmd" --arg tp "$TPATH" \
+    '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":$cmd},"transcript_path":$tp,"session_id":"newline-bypass-test","cwd":"/tmp"}')"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$hook_input"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R7: git branch -D with two branch names is ambiguous and denied against a single-branch prior" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git branch -D branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git branch -D branch-a branch-c"},"transcript_path":"%s","session_id":"multi-branch-delete-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R7: a malformed tool_use entry (input: null) does not crash the hook open -- fails closed" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":null}]}}\n' > "$TPATH"
+  printf '{"role":"user","content":"approve push"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a"},"transcript_path":"%s","session_id":"null-input-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ] || [ "$status" -eq 2 ]
+  [ "$status" -ne 1 ]
+}
+
+@test "item 10: R7: python3 unavailable fails the hook closed (exit 2), not open or crashed" {
+  local fake_home stub_dir
+  fake_home="$(_fresh_home)"
+  stub_dir="$(mktemp -d)"
+  printf '#!/bin/sh\nexit 1\n' > "$stub_dir/python3"
+  chmod +x "$stub_dir/python3"
+  _fixture_transcript "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    PATH="$stub_dir:$PATH" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"python3-crash-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home" "$stub_dir"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R9: malformed JSON hook input fails closed (exit 2), not an uncontrolled jq crash" {
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  run bash -c "echo 'not valid json {{{' | bash '$hook'"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"malformed"* ]] || [[ "${lines[*]}" == *"malformed"* ]]
+}
+
+@test "item 10: R9: named-target escape valve authorizes a genuinely new target named in the same message as the approval phrase" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  # Append a SECOND user message naming branch-b explicitly alongside a
+  # fresh approval phrase -- this must rescue the otherwise-denied mismatch.
+  printf '{"role":"user","content":"approve push to branch-b now"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"escape-valve-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R9: named-target escape valve does NOT fire when the target is only named in a DIFFERENT message than the phrase" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  # branch-b is named in one message, the approval phrase is bare in another
+  # -- must NOT satisfy the escape valve (same-message requirement).
+  printf '{"role":"user","content":"we still need to handle branch-b eventually"}\n' >> "$TPATH"
+  printf '{"role":"user","content":"approve push"}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"escape-valve-negative-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R6: force-push to a previously plain-pushed branch requires fresh approval (severity escalation)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push --force origin branch-a"},"transcript_path":"%s","session_id":"severity-escalation-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R6: plain push to a previously force-pushed branch is allowed (de-escalation, not escalation)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push --force origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-a"},"transcript_path":"%s","session_id":"severity-deescalation-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R6: target-binding does not apply to file-based (Method 1) tokens" {
+  # File-based tokens are single-use and category-scoped by construction --
+  # target-binding is scoped to the reusable transcript-phrase path only.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "no approval phrase here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "push" > "$fake_home/.claude/session-env/file-token-binding-test.push-approval"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"file-token-binding-test","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 0 ]
 }
