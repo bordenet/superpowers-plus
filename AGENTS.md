@@ -126,6 +126,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 - ❌ NEVER branch features from `main` or `staging`
 - Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
+- Known issue — promotion PR stuck on `BEHIND` despite all checks green: see `.ai-guidance/promotion-strict-behind-runbook.md` for root cause, confirmed non-fixes, and the working fix
 
 ## Claude Code guardrails
 
