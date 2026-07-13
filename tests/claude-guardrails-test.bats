@@ -1170,6 +1170,100 @@ _fixture_dangling_rule() {
   [ "$status" -eq 0 ]
 }
 
+# Helper: a throwaway git repo with its own copy of the strict-toggle script,
+# plus the rules-dir/invariants fixtures item 3a-3e already require, so these
+# tests can control TOGGLE_SCRIPT's sentinel independently of the real repo.
+_fixture_toggle_repo() {
+  local tmp
+  tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  mkdir -p "$tmp/tools" "$tmp/.ai-guidance"
+  cp "$REPO_ROOT/tools/promotion-strict-toggle.sh" "$tmp/tools/promotion-strict-toggle.sh"
+  chmod +x "$tmp/tools/promotion-strict-toggle.sh"
+  echo "# invariants" > "$tmp/.ai-guidance/invariants.md"
+  echo "$tmp"
+}
+
+@test "item 3f: SessionStart blocks (exit 2) when a strict-toggle sentinel is STALE" {
+  local repo fake_home old hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  old=$(( $(date -u +%s) - 3600 ))
+  echo "v1|main|bordenet/superpowers-plus|${old}" > "$repo/.strict-toggle-state"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"strict-toggle: branch protection left weakened or sentinel corrupt"* ]]
+  [[ "$output" == *"main|STALE|"* ]]
+}
+
+@test "item 3i: SessionStart distinguishes a broken toggle script from a genuine STALE report" {
+  local repo fake_home hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  # Simulate a broken script: exits nonzero but produces no valid porcelain
+  # output at all (e.g. a syntax error, crash before reaching cmd_status).
+  cat > "$repo/tools/promotion-strict-toggle.sh" <<'BROKEN'
+#!/usr/bin/env bash
+echo "some unexpected crash message" >&2
+exit 1
+BROKEN
+  chmod +x "$repo/tools/promotion-strict-toggle.sh"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"possible bug in the script, not necessarily a stale toggle"* ]]
+  [[ "$output" != *"branch protection left weakened or sentinel corrupt"* ]]
+}
+
+@test "item 3g: SessionStart passes when strict-toggle sentinel is fresh (within TTL)" {
+  local repo fake_home fresh hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  fresh="$(date -u +%s)"
+  echo "v1|main|bordenet/superpowers-plus|${fresh}" > "$repo/.strict-toggle-state"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"integrity OK"* ]]
+}
+
+@test "item 3h: SessionStart passes when no strict-toggle sentinel exists" {
+  local repo fake_home hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 9 — PreCompact CLAUDE.md re-inject
 # ---------------------------------------------------------------------------
