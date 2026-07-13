@@ -544,6 +544,55 @@ _fixture_transcript() {
   [ "$status" -eq 2 ]
 }
 
+@test "item 10: R3: queued mid-turn command with approval phrase is recognized" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  # Messages sent while Claude is mid-turn are queued and surfaced in the
+  # transcript as a distinct "attachment" shape, not the standard user-message
+  # shape -- this reproduces that exact shape from a real session transcript.
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"continue; approve push","commandMode":"prompt","origin":{"kind":"human"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R3: queued attachment without human origin does NOT satisfy approval" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  # Same prompt text and queued_command type, but origin.kind is NOT "human" --
+  # must not be treated as a real approval.
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"approve push","commandMode":"prompt","origin":{"kind":"system"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-nonhuman-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R3: queued human-origin command with NO approval phrase still blocks" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","content":"working..."}\n' > "$TPATH"
+  # Human origin, correct queued_command type, but the prompt text itself has
+  # no approval phrase -- the new branch must not blanket-trust the shape.
+  printf '{"type":"attachment","attachment":{"type":"queued_command","prompt":"what is the status?","commandMode":"prompt","origin":{"kind":"human"}}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"queued-cmd-nophrase-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
@@ -651,6 +700,100 @@ _fixture_dangling_rule() {
 @test "item 3d: SessionStart bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {
   CLAUDE_HOOKS_BYPASS=1 run bash "$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh" \
     <<<"$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"/tmp","matcher":"startup"}')"
+  [ "$status" -eq 0 ]
+}
+
+# Helper: a throwaway git repo with its own copy of the strict-toggle script,
+# plus the rules-dir/invariants fixtures item 3a-3e already require, so these
+# tests can control TOGGLE_SCRIPT's sentinel independently of the real repo.
+_fixture_toggle_repo() {
+  local tmp
+  tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  mkdir -p "$tmp/tools" "$tmp/.ai-guidance"
+  cp "$REPO_ROOT/tools/promotion-strict-toggle.sh" "$tmp/tools/promotion-strict-toggle.sh"
+  chmod +x "$tmp/tools/promotion-strict-toggle.sh"
+  echo "# invariants" > "$tmp/.ai-guidance/invariants.md"
+  echo "$tmp"
+}
+
+@test "item 3f: SessionStart blocks (exit 2) when a strict-toggle sentinel is STALE" {
+  local repo fake_home old hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  old=$(( $(date -u +%s) - 3600 ))
+  echo "v1|main|bordenet/superpowers-plus|${old}" > "$repo/.strict-toggle-state"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"strict-toggle: branch protection left weakened or sentinel corrupt"* ]]
+  [[ "$output" == *"main|STALE|"* ]]
+}
+
+@test "item 3i: SessionStart distinguishes a broken toggle script from a genuine STALE report" {
+  local repo fake_home hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  # Simulate a broken script: exits nonzero but produces no valid porcelain
+  # output at all (e.g. a syntax error, crash before reaching cmd_status).
+  cat > "$repo/tools/promotion-strict-toggle.sh" <<'BROKEN'
+#!/usr/bin/env bash
+echo "some unexpected crash message" >&2
+exit 1
+BROKEN
+  chmod +x "$repo/tools/promotion-strict-toggle.sh"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"possible bug in the script, not necessarily a stale toggle"* ]]
+  [[ "$output" != *"branch protection left weakened or sentinel corrupt"* ]]
+}
+
+@test "item 3g: SessionStart passes when strict-toggle sentinel is fresh (within TTL)" {
+  local repo fake_home fresh hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  fresh="$(date -u +%s)"
+  echo "v1|main|bordenet/superpowers-plus|${fresh}" > "$repo/.strict-toggle-state"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"integrity OK"* ]]
+}
+
+@test "item 3h: SessionStart passes when no strict-toggle sentinel exists" {
+  local repo fake_home hook_input
+  repo="$(_fixture_toggle_repo)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment/rules"
+  echo "# test rule" > "$fake_home/.augment/rules/test-rule.md"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$repo")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$repo" "$fake_home"
   [ "$status" -eq 0 ]
 }
 
