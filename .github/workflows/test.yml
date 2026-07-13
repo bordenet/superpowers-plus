@@ -135,6 +135,14 @@ jobs:
       - name: Sentinel fast-forward tests (BATS)
         run: bats tests/try-sentinel-fast-forward-test.bats
 
+      - name: Pre-push GIT_DIR leak tests (BATS)
+        run: bats test/pre-push-git-dir-leak.bats
+
+      - name: Suite-wide GIT_DIR isolation tests (BATS)
+        run: |
+          bats test/suite-git-dir-isolation.bats
+          bats tests/suite-git-dir-isolation-test.bats
+
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
         env:
