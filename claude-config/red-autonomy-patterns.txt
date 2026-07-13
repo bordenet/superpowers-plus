@@ -9,14 +9,26 @@
 #
 # See item 10 in the wiki for the approval-token protocol.
 
-# Push to any remote
-(^|[^A-Za-z0-9_])git[[:space:]]+push([[:space:]]|$)
+# Push to any remote. Tolerates git global options between "git" and the
+# subcommand (git -C <dir> push ..., git -c k=v push ..., git --git-dir=...
+# push ..., git --work-tree=... push ...) -- without this, any global option
+# between "git" and the subcommand made the pattern not match at all,
+# silently exempting that invocation form from the approval gate entirely
+# (found via code-review-battery, 2026-07-12: confirmed a full RED-gate
+# bypass, not just a target-binding bypass. Round 2, 2026-07-12: -c/
+# --git-dir/--work-tree were still missing after the first -C-only fix --
+# confirmed live-exploitable; this is the complete fix).
+(^|[^A-Za-z0-9_])git[[:space:]]+(-C[[:space:]]+[^[:space:]]+[[:space:]]+|-c[[:space:]]+[^[:space:]]+[[:space:]]+|--git-dir=[^[:space:]]+[[:space:]]+|--git-dir[[:space:]]+[^[:space:]]+[[:space:]]+|--work-tree=[^[:space:]]+[[:space:]]+|--work-tree[[:space:]]+[^[:space:]]+[[:space:]]+)*push([[:space:]]|$)
 
 # Force push
-(^|[^A-Za-z0-9_])git[[:space:]]+push[[:space:]]+.*(--force|-f([[:space:]]|$))
+(^|[^A-Za-z0-9_])git[[:space:]]+(-C[[:space:]]+[^[:space:]]+[[:space:]]+|-c[[:space:]]+[^[:space:]]+[[:space:]]+|--git-dir=[^[:space:]]+[[:space:]]+|--git-dir[[:space:]]+[^[:space:]]+[[:space:]]+|--work-tree=[^[:space:]]+[[:space:]]+|--work-tree[[:space:]]+[^[:space:]]+[[:space:]]+)*push[[:space:]]+.*(--force|-f([[:space:]]|$))
 
-# Branch deletion
-(^|[^A-Za-z0-9_])git[[:space:]]+branch[[:space:]]+-D
+# Branch deletion. Tolerates the same global-option prefix as above, AND any
+# other flag (e.g. -f) appearing before the delete flag -- "git branch -f -D
+# branch-a" bypassed the original anchored-immediately-after-branch pattern
+# entirely, confirmed to actually delete the branch with zero approval check
+# (code-review-battery round 2, 2026-07-12).
+(^|[^A-Za-z0-9_])git[[:space:]]+(-C[[:space:]]+[^[:space:]]+[[:space:]]+|-c[[:space:]]+[^[:space:]]+[[:space:]]+|--git-dir=[^[:space:]]+[[:space:]]+|--git-dir[[:space:]]+[^[:space:]]+[[:space:]]+|--work-tree=[^[:space:]]+[[:space:]]+|--work-tree[[:space:]]+[^[:space:]]+[[:space:]]+)*branch.*(^|[^A-Za-z0-9_])(-D|-d|--delete)([[:space:]]|$)
 
 # Reads of the private TODO.md path (via cat/view/less etc.)
 (^|[^A-Za-z0-9_])(cat|view|less|more|head|tail)[[:space:]]+.*~/\.codex/TODO\.md
