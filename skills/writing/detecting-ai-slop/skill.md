@@ -132,7 +132,7 @@ Each pattern below scores +5 on its stated dimension.
 | Absent Constraints | Absolute claims without limitations | Semantic |
 | Balanced to a Fault | Every pro has matching con of equal weight | Semantic |
 | Circular Reasoning | Rephrases thesis without new evidence | Semantic |
-| Structural Contrast | "It's not about X. It's about Y." slogan forms, including hedged concessions ("a minor X, but a real one") (see Cat. 9 in reference.md) | Structural |
+| Structural Contrast | "It's not X; it's Y" and subject-varying forms ("The goal isn't X; it's Y"), elevation forms ("not just X — it's Y", "not merely X — it's Y"), plus hedged concessions ("a minor X, but a real one") (see Cat. 9 in reference.md) | Structural |
 | Framework Name-Dropping | Framework invoked with no concrete claim attached (see Semantic Fabrication in reference.md) | Semantic |
 | Fabricated Open Questions | "Open questions"/"next steps" invented for closed or decided topics | Semantic |
 | Process Metrics as Results | Activity/funnel counts standing in for the actual outcome | Semantic |
@@ -152,7 +152,7 @@ For the complete pattern dictionary, see [reference.md](./reference.md). **Dimen
 | Sycophancy | "Great question!", "Happy to help!" | Lexical | Delete |
 | Transitional Filler | Furthermore, Moreover, Additionally, However, Indeed | Lexical | Use sparingly or cut |
 | Vague Abstraction | the frame, the lens, the narrative, the space | Lexical | Replace with the specific noun |
-| Structural Contrasts | "It's not about X. It's about Y." | Structural | Rewrite as direct claim |
+| Structural Contrasts | "It's not X; it's Y", "[Subject] isn't X; it's Y", "not just X — it's Y", "not merely X — it's Y" | Structural | State Y directly; drop the negation frame |
 | Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Structural | Restructure |
 | Typographic Tells | em-dash (—), en-dash, smart quotes | Lexical | Replace with standard punctuation |
 | AI Jargon | failure mode/class/pattern in human prose | Lexical | Name the actual problem |
