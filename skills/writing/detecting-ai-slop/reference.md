@@ -351,6 +351,15 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | And the X? Y. | "And the result? Fewer errors." |
 | A minor X in the scheme of things, but a real one. | "A minor miss in the scheme of things, but a real one." |
 | X, but a real/important one nonetheless. | "A small gap, but an important one nonetheless." |
+| It's not X; it's Y. | "It's not a bug fix; it's a paradigm shift." |
+| [Subject] isn't X; it's Y. | "The goal isn't speed; it's correctness." |
+| Not just X — it's Y. | "Not just a win for the team — it's a win for the company." |
+| Not merely X — it's Y. | "Not merely a feature — it's a commitment." |
+| This isn't about X, it's about Y. | "This isn't about speed, it's about trust." |
+
+**Not-X-its-Y (reframing) detection rule:** flag when a subject is negated (“isn’t X”, “not X”, “not just X”, “not merely X”) and the second clause reframes rhetorically. The rows above are seeds; flag close variants of the same shape. Practical test: drop the X-clause entirely and keep Y with any prepositions attached. If Y alone conveys the full meaning, the negation frame is decorative and it’s the tic. (“The goal isn’t speed; it’s correctness.” → keep “It’s correctness.” / “It’s not about features; it’s about outcomes.” → keep “It’s about outcomes.” — preserve “about”.) Fix: drop the negation frame, state Y directly, preserving any preposition in Y. Exemption: do NOT apply to “not only X but Y” additive conjunctions (see additive-elevation rule). When in doubt, flag it — the writer can restate Y plainly and the corrective meaning survives.
+
+**Additive-elevation exception:** “not only X but Y” and “not just X but also Y” are standard English additive conjunctions — flag them ONLY when both terms are empty without a metric or named artifact (e.g. “Not only faster, but smarter” — both are unquantified comparatives). When both X and Y are substantive — referencing a measurable outcome, a named artifact, or a domain-specific technical term — leave them alone.
 
 **Hedged-concession detection rule:** the "A minor X..." and "X, but a real/important one..." rows are seeds for a shape, not a template list. Flag any admission softened by a symmetric qualifier ("admittedly minor, though it matters", "small in the grand scheme, yet worth flagging"). The fix is stating the miss plainly, once.
 
