@@ -250,6 +250,31 @@ trap - EXIT
 chmod +x ~/.codex/superpowers-augment/superpowers-augment.js
 success "Adapter installed"
 
+# The adapter requires ./lib/{skill-router,workflow-state,frontmatter,skill-discovery,compress}.js
+# at runtime (see require() calls at the top of superpowers-augment.js). Ship them alongside it —
+# mirrors install_adapter() in lib/install/deploy.sh, which the full install.sh uses.
+verbose "Installing adapter lib/ dependencies"
+_adapter_lib_dest=~/.codex/superpowers-augment/lib
+_adapter_lib_source_path=""
+if [[ -n "$_adapter_source_path" && -d "$_adapter_script_dir/lib" ]]; then
+    _adapter_lib_source_path="$_adapter_script_dir/lib"
+fi
+if [[ -n "$_adapter_lib_source_path" ]]; then
+    rm -rf "${_adapter_lib_dest:?}"
+    cp -r "$_adapter_lib_source_path" "$_adapter_lib_dest" || error "Failed to copy lib/ to $_adapter_lib_dest"
+    success "Adapter lib/ dependencies installed"
+else
+    warn "No local lib/ checkout found next to this installer — fetching lib/ files individually"
+    mkdir -p "$_adapter_lib_dest"
+    for _lib_file in skill-router.js workflow-state.js frontmatter.js skill-discovery.js compress.js; do
+        if ! curl -fsSL "${SUPERPOWERS_PLUS_RAW}/lib/${_lib_file}" -o "${_adapter_lib_dest}/${_lib_file}"; then
+            error "Failed to download ${SUPERPOWERS_PLUS_RAW}/lib/${_lib_file}"
+        fi
+    done
+    success "Adapter lib/ dependencies installed"
+fi
+unset _adapter_lib_source_path
+
 # Create the Augment auto-load rule
 info "Installing Augment auto-load rule..."
 cat > ~/.augment/rules/superpowers.always.md << 'RULE_EOF'
