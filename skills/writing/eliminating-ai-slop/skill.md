@@ -76,7 +76,7 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 | "Pivotal" / "crucial" / "essential" | State why, or delete |
 | "Impactful" / "meaningful" / "compelling" | Quantify or drop |
 | "Harness" / "elevate" / "enhance" | Use the plain verb ("use", "improve") |
-| "It's not about X. It's about Y." | Make the direct claim instead |
+| "It's not X; it's Y" / "[Subject] isn't X; it's Y" / "not just X — it's Y" / "not merely X — it's Y" | State Y directly; drop the negation frame entirely |
 | "In today's ever-evolving world" | (delete — ground in the specific situation) |
 | "In conclusion" / "In summary" | (delete — if it's not adding, cut the whole paragraph) |
 | "Game-changer" / "revolutionary" / "unprecedented" | Describe the specific difference |
@@ -97,7 +97,9 @@ These slogan-like forms signal AI generation even with clean vocabulary.
 
 | Slop Form | Rewrite Approach |
 |-----------|-----------------|
-| "It's not about X. It's about Y." | Drop the contrast — state Y directly |
+| "It's not X; it's Y." / "[Subject] isn't X; it's Y." / "It's not about X. It's about Y." | Drop the negation frame — state Y directly (preserve any preposition: "It's not about X; it's about Y." → "It's about Y.") |
+| "Not just X — it's Y." / "Not merely X — it's Y." | Delete the "Not just/merely X —" opener; lead with Y |
+| "This isn't about X, it's about Y." | Drop the contrast — state Y directly |
 | "No X. No Y. Just Z." | State Z with evidence |
 | "X is not just A; it's B." | Lead with B and prove it |
 | "The more you X, the more you Y." | Replace with a specific example |
