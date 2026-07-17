@@ -187,9 +187,15 @@ INPUT="$(cat)"
 # command-substitution assignment), aborting the whole script with jq's own
 # exit code (5 for invalid JSON) instead of the documented 0/2 contract, and
 # before is_red_action or any approval logic ever runs (code-review-battery
-# round 2, 2026-07-12).
-if ! jq -e '.' <<<"$INPUT" >/dev/null 2>&1; then
-  echo "BLOCKED: malformed PreToolUse hook input (invalid JSON) -- failing closed." >&2
+# round 2, 2026-07-12). Checking `type == "object"` alone is not sufficient:
+# valid-but-wrong-shaped JSON (e.g. `.tool_input` as a scalar string instead
+# of an object) passes a bare `jq -e '.'` check, but the very next line's
+# `jq -r '.tool_input.command'` then errors with "Cannot index string with
+# string" (jq exit 5) -- reproduced live, the exact same undocumented-exit-
+# code failure this block exists to prevent (code-review-battery, 2026-07-17,
+# Defect Finder). Also validates the specific sub-path this script indexes.
+if ! jq -e 'type == "object" and ((.tool_input // {}) | type == "object")' <<<"$INPUT" >/dev/null 2>&1; then
+  echo "BLOCKED: malformed PreToolUse hook input (invalid JSON shape) -- failing closed." >&2
   log 2 malformed-input
   exit 2
 fi
@@ -215,13 +221,12 @@ fi
 
 PATTERNS_FILE="${CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE:-$HOME/.config/claude-hooks/red-autonomy-patterns.txt}"
 
-# Portable command normalizer, shared by is_red_action() and
-# is_strict_disable_action() so newline/backslash-continuation handling
-# never drifts between the two gates (see is_red_action's own rationale
-# comment below for why both matter). Prints the normalized command on
-# success; on any python3 failure prints nothing and returns non-zero --
-# callers must fall back to the raw command themselves, never trust empty
-# output as "nothing to normalize".
+# Portable command normalizer, called exactly once (see NORMALIZED_CMD
+# below) and shared by is_red_action() and is_strict_disable_action() so
+# newline/backslash-continuation handling never drifts between the two
+# gates. Prints the normalized command on success; on any python3 failure
+# prints nothing and returns non-zero -- the caller falls back to the raw
+# command, never trusts empty output as "nothing to normalize".
 normalize_cmd() {
   python3 - "$1" <<'PYEOF' 2>/dev/null
 import sys, re
@@ -232,9 +237,11 @@ sys.stdout.write(s)
 PYEOF
 }
 
-# Check if command matches any RED pattern.
+# Check if command matches any RED pattern. Takes the ALREADY-NORMALIZED
+# command (see NORMALIZED_CMD below) -- normalization happens exactly once,
+# shared with is_strict_disable_action, not per-function.
 is_red_action() {
-  local cmd="$1"
+  local normalized="$1"
   [[ -s "$PATTERNS_FILE" ]] || return 1
   local TMP_PAT rc=0
   TMP_PAT="$(mktemp)"
@@ -243,21 +250,6 @@ is_red_action() {
     rm -f "$TMP_PAT"
     return 1
   fi
-  # Normalize before matching -- grep matches per physical line by default,
-  # so a multi-line command was invisible to every pattern here even though
-  # the BLOCKED message below already flattens newlines for display
-  # (code-review-battery round 2, 2026-07-12: confirmed a full RED-gate
-  # bypass for every category, not just push -- this predates target-binding
-  # entirely and was never specific to it). A plain `tr '\n' ' '` is not
-  # sufficient: bash line-continuation (`git \` + newline + `  push origin
-  # x`, an ordinary idiom bash executes identically to the single-line form)
-  # leaves a literal backslash character that then sits between "git" and
-  # "push", still breaking the match -- the backslash-newline PAIR must be
-  # removed as bash itself removes it, not just the newline. Falls back to
-  # the raw (unnormalized) command if python3 is unavailable -- no worse
-  # than the pre-fix behavior, not a new gap.
-  local normalized
-  normalized="$(normalize_cmd "$cmd")" || normalized="$cmd"
   printf '%s' "$normalized" | grep -qE -f "$TMP_PAT" 2>/dev/null || rc=$?
   rm -f "$TMP_PAT"
   # rc=2 means grep encountered an error (e.g., malformed pattern in file).
@@ -268,22 +260,60 @@ is_red_action() {
 }
 
 # Matches (a) the promotion-strict-toggle.sh wrapper's `disable` subcommand,
-# under any invocation prefix (bash/relative/absolute path), and (b) a direct
-# `gh api` bypass of the wrapper hitting the same endpoint+field, in either
-# flag order. See the STRICT-DISABLE GATE header comment above for why this
-# is kept out of the shared patterns file / is_red_action entirely.
-readonly STRICT_DISABLE_PATTERN='(^|[^A-Za-z0-9_])(bash[[:space:]]+)?([./A-Za-z0-9_-]*/)?promotion-strict-toggle\.sh[[:space:]]+disable([[:space:]]|$)|(^|[^A-Za-z0-9_])gh[[:space:]]+api[[:space:]]+.*(required_status_checks.*strict[[:space:]]*=[[:space:]]*false([[:space:]]|$)|strict[[:space:]]*=[[:space:]]*false([[:space:]]|$).*required_status_checks)'
+# under any invocation prefix (bash/relative/absolute path), and (b) ANY `gh
+# api` invocation that references the required_status_checks REST endpoint
+# or the requiresStrictStatusChecks GraphQL field, regardless of how the
+# boolean payload is encoded. Deliberately does NOT try to also match
+# `strict=false`/`strict:false` as a co-requirement -- an earlier version
+# did, and code-review-battery (2026-07-17) confirmed live that trivial,
+# non-adversarial syntax variance evades a value-anchored match: a quoted
+# value (`-F strict='false'`), `--input`/stdin JSON-body indirection (the
+# boolean never appears as literal text next to `required_status_checks` at
+# all), and the GraphQL field name `requiresStrictStatusChecks` (no `=`, no
+# `required_status_checks` substring) each independently bypassed it with
+# ZERO gate of any kind (logged as plain `not-red`). Matching on `gh api` +
+# endpoint/field-name alone trades a rare false positive (an ad-hoc,
+# hand-typed READ of this endpoint via raw `gh api` -- already discouraged
+# by the runbook in favor of the wrapper's `status` subcommand) for zero
+# false negatives on the actual weakening action. See the STRICT-DISABLE
+# GATE header comment above for why this is kept out of the shared patterns
+# file / is_red_action entirely.
+readonly STRICT_DISABLE_PATTERN='(^|[^A-Za-z0-9_])(bash[[:space:]]+)?([./A-Za-z0-9_-]*/)?promotion-strict-toggle\.sh[[:space:]]+disable([[:space:]]|$)|(^|[^A-Za-z0-9_])gh[[:space:]]+api[[:space:]]+.*(required_status_checks|requiresStrictStatusChecks)'
 
 is_strict_disable_action() {
-  local cmd="$1" normalized
-  normalized="$(normalize_cmd "$cmd")" || normalized="$cmd"
+  local normalized="$1"
   printf '%s' "$normalized" | grep -qE "$STRICT_DISABLE_PATTERN"
 }
 
+# Normalize once, shared by both checks below -- performance-analyst review
+# (2026-07-17) found this hook forking a python3 process TWICE per Bash tool
+# call (once inside each check, on byte-identical input) even for ordinary,
+# non-RED commands like `ls`, roughly doubling this hot-path hook's latency
+# for zero benefit. Grep matches per physical line by default, so a
+# multi-line command is invisible to every pattern below even though the
+# BLOCKED message elsewhere already flattens newlines for display
+# (code-review-battery round 2, 2026-07-12: confirmed a full RED-gate bypass
+# for every category, not just push). A plain `tr '\n' ' '` is not
+# sufficient: bash line-continuation (`git \` + newline + `  push origin x`,
+# an ordinary idiom bash executes identically to the single-line form)
+# leaves a literal backslash character between "git" and "push", still
+# breaking the match -- the backslash-newline PAIR must be removed as bash
+# itself removes it, not just the newline.
+NORMALIZED_CMD="$(normalize_cmd "$CMD")" || {
+  NORMALIZED_CMD="$CMD"
+  # Falls back to the raw (unnormalized) command -- no worse than the
+  # pre-fix behavior for is_red_action, not a new gap there, but now made
+  # VISIBLE (guardian review, 2026-07-17: this hook silently degraded
+  # multi-line RED-action detection with zero warning, inconsistent with the
+  # same-diff fix that added an explicit warning for the identical
+  # missing-python3 condition in public-repo-ip-check.sh/commit-msg).
+  echo "WARNING: python3 unavailable -- RED/strict-disable detection degraded to single-physical-line matching only (a multi-line or backslash-continued command may not be recognized)." >&2
+}
+
 IS_RED=0
-if is_red_action "$CMD"; then IS_RED=1; fi
+if is_red_action "$NORMALIZED_CMD"; then IS_RED=1; fi
 IS_STRICT_DISABLE=0
-if is_strict_disable_action "$CMD"; then IS_STRICT_DISABLE=1; fi
+if is_strict_disable_action "$NORMALIZED_CMD"; then IS_STRICT_DISABLE=1; fi
 
 if [[ "$IS_RED" == "0" && "$IS_STRICT_DISABLE" == "0" ]]; then
   log 0 not-red
@@ -310,10 +340,28 @@ mkdir -p "$SESSION_ENV_DIR" "$CONSUMED_DIR"
 CONSUMED_FILE="$CONSUMED_DIR/${SESSION_ID}.consumed-approvals.txt"
 
 # Handle the strict-disable category fully here, independent of the generic
-# push/release flow below, and always exit before reaching it -- see the
-# STRICT-DISABLE GATE header comment for why these must never share an
-# approval phrase/category (falling through would let a stale "approve
-# push"/"promote to main" silently re-authorize this too).
+# push/release flow below, but only exit early when this command has NO
+# other RED content -- see the STRICT-DISABLE GATE header comment for why
+# these must never share an approval phrase/category (falling through on
+# DENY would let a stale "approve push"/"promote to main" silently
+# re-authorize this too). On the ALLOW path, though, unconditionally exiting
+# here was itself a Critical bypass: is_strict_disable_action/is_red_action
+# each match anywhere in the (possibly compound) command string
+# independently, so a bundled command like `git push origin
+# unapproved-target && tools/promotion-strict-toggle.sh disable main`
+# matched BOTH categories, and exiting 0 here the moment strict-disable
+# approval was satisfied let the bundled, unapproved, non-target-bound push
+# ride along for free -- confirmed live-exploitable by three independent
+# code-review-battery reviewers (2026-07-17: Defect Finder, Guardian,
+# AttackerPersona), each reproducing it with only a strict-disable token/
+# phrase present and zero push/release approval anywhere. Fix: when this
+# command is ALSO classified as generic RED (IS_RED==1), strict-disable
+# approval only clears ITS OWN portion -- fall through to the existing,
+# already-hardened push/branch-delete gate (extract_approval_token +
+# check_target_binding) below, which independently requires its own
+# approval and correctly reasons about the compound command via its own
+# SEPARATOR_RE splitting. This never weakens anything: it only ADDS a
+# required gate to commands that used to skip it entirely.
 if [[ "$IS_STRICT_DISABLE" == "1" ]]; then
   STRICT_DISABLE_APPROVAL_FILE="$SESSION_ENV_DIR/${SESSION_ID}.strict-disable-approval"
 
@@ -427,7 +475,14 @@ EOF
   fi
 
   log 0 "approved-strict-disable"
-  exit 0
+  # Only safe to exit here if this command has no OTHER RED content -- see
+  # the block comment above. If IS_RED is also 1 (a compound command bundling
+  # a git push/branch-delete alongside the strict-disable trigger), fall
+  # through to the generic RED flow below, which independently requires its
+  # own approval for that portion.
+  if [[ "$IS_RED" == "0" ]]; then
+    exit 0
+  fi
 fi
 
 extract_approval_token() {
@@ -528,7 +583,10 @@ for msg in reversed(recent_user_messages[-10:]):
     for phrase in APPROVAL_PHRASES:
         if re.search(phrase, msg_lower):
             # Determine category (push vs release); suffix ":tr" marks transcript origin.
-            if "push" in phrase or "ship" in phrase or "promote" in phrase:
+            # ("ship" was never added to APPROVAL_PHRASES -- see header
+            # comment on why "ship it" was rejected -- so checking for it
+            # here was dead code; removed, code-review-battery 2026-07-17.)
+            if "push" in phrase or "promote" in phrase:
                 print("push:tr")
             else:
                 print("release:tr")
