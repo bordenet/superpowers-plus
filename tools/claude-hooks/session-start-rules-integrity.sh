@@ -15,11 +15,21 @@ CWD="$(jq -r '.cwd // empty' <<<"$INPUT")"
 [[ -z "$CWD" ]] && CWD="$PWD"
 
 PROBLEMS=()
+ADVISORIES=()
 
-# (a) augment rules dir — check for dangling symlinks, empty dir, or missing dir
+# (a) augment rules dir — check for dangling symlinks, empty dir, or missing dir.
+# A MISSING directory means Augment isn't installed/configured on THIS
+# machine at all -- a normal, valid state for a Claude-Code-only contributor,
+# fork, or CI runner, not a corruption signal, so it's advisory (non-
+# blocking) rather than a PROBLEM. DANGLING symlinks or an existing dir
+# EMPTIED of *.md files both imply an Augment setup existed here and broke,
+# which stays blocking regardless of which agent is running Claude Code
+# (llm-skill-review, 2026-07-17, S1: this hook previously hard-blocked every
+# Claude-Code-only session start on a directory that belongs to a different
+# agent entirely).
 RULES_DIR="$HOME/.augment/rules"
 if [[ ! -d "$RULES_DIR" ]]; then
-  PROBLEMS+=("MISSING: $RULES_DIR does not exist — all rules absent")
+  ADVISORIES+=("$RULES_DIR does not exist -- skipping Augment rules-parity check (not blocking; this machine may not use Augment)")
 elif compgen -G "$RULES_DIR/*.md" >/dev/null 2>&1; then
   for f in "$RULES_DIR"/*.md; do
     [[ -f "$f" ]] || PROBLEMS+=("DANGLING: $f")
@@ -66,8 +76,13 @@ fi
 if (( ${#PROBLEMS[@]} > 0 )); then
   echo "[claude-hooks/SessionStart] integrity FAILURES — halt and alert user:"
   printf '  - %s\n' "${PROBLEMS[@]}"
+  echo "  (bypass: set CLAUDE_HOOKS_BYPASS=1 to skip this check if you've confirmed it's safe to proceed)"
   log 2 "${#PROBLEMS[@]}-failures"
   exit 2
+fi
+
+if (( ${#ADVISORIES[@]} > 0 )); then
+  printf '[claude-hooks/SessionStart] advisory (non-blocking): %s\n' "${ADVISORIES[@]}"
 fi
 
 echo "[claude-hooks/SessionStart] rules-file integrity OK; invariants at $INV"

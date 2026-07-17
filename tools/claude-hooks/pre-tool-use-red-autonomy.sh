@@ -148,6 +148,25 @@
 # against an autonomous-but-not-actively-adversarial agent (accidental
 # scope creep, confused retries, stale approvals), not as a hard boundary
 # against a deliberately self-subverting one.
+#
+# *** STRICT-DISABLE GATE -- separate category from push/release ***
+# (llm-skill-review adversarial review, 2026-07-17, S0 finding)
+# tools/promotion-strict-toggle.sh disable <branch> weakens dev/staging/
+# main's required_status_checks.strict flag -- a production branch-
+# protection control -- and previously had NO approval gate at all, unlike
+# the git push/branch-delete actions above. AGENTS.md documents this as
+# needing "its own fresh authorization, never bundled with the promotion
+# approval itself". This is why STRICT_DISABLE_PATTERN and
+# extract_strict_disable_approval_token() below are a fully separate check
+# and approval-extraction path, never merged into is_red_action /
+# extract_approval_token / the push/release categories: an agent that
+# already has "promote to main" or "approve push" sitting in the 10-message
+# lookback window -- which is extremely likely immediately before running
+# the promotion-strict-behind-runbook, since that IS the promotion flow --
+# would otherwise auto-satisfy a shared gate for free, defeating the entire
+# point of gating it. `restore` (the safe, protection-RESTORING direction)
+# and `status` are deliberately NOT matched -- only the weakening direction
+# requires its own approval.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
@@ -196,6 +215,23 @@ fi
 
 PATTERNS_FILE="${CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE:-$HOME/.config/claude-hooks/red-autonomy-patterns.txt}"
 
+# Portable command normalizer, shared by is_red_action() and
+# is_strict_disable_action() so newline/backslash-continuation handling
+# never drifts between the two gates (see is_red_action's own rationale
+# comment below for why both matter). Prints the normalized command on
+# success; on any python3 failure prints nothing and returns non-zero --
+# callers must fall back to the raw command themselves, never trust empty
+# output as "nothing to normalize".
+normalize_cmd() {
+  python3 - "$1" <<'PYEOF' 2>/dev/null
+import sys, re
+s = sys.argv[1]
+s = re.sub(r"\\\n", " ", s)
+s = s.replace("\n", " ")
+sys.stdout.write(s)
+PYEOF
+}
+
 # Check if command matches any RED pattern.
 is_red_action() {
   local cmd="$1"
@@ -221,14 +257,7 @@ is_red_action() {
   # the raw (unnormalized) command if python3 is unavailable -- no worse
   # than the pre-fix behavior, not a new gap.
   local normalized
-  normalized="$(python3 - "$cmd" <<'PYEOF' 2>/dev/null
-import sys, re
-s = sys.argv[1]
-s = re.sub(r"\\\n", " ", s)
-s = s.replace("\n", " ")
-sys.stdout.write(s)
-PYEOF
-)" || normalized="$cmd"
+  normalized="$(normalize_cmd "$cmd")" || normalized="$cmd"
   printf '%s' "$normalized" | grep -qE -f "$TMP_PAT" 2>/dev/null || rc=$?
   rm -f "$TMP_PAT"
   # rc=2 means grep encountered an error (e.g., malformed pattern in file).
@@ -238,7 +267,28 @@ PYEOF
   return $rc
 }
 
-is_red_action "$CMD" || { log 0 not-red; exit 0; }
+# Matches (a) the promotion-strict-toggle.sh wrapper's `disable` subcommand,
+# under any invocation prefix (bash/relative/absolute path), and (b) a direct
+# `gh api` bypass of the wrapper hitting the same endpoint+field, in either
+# flag order. See the STRICT-DISABLE GATE header comment above for why this
+# is kept out of the shared patterns file / is_red_action entirely.
+readonly STRICT_DISABLE_PATTERN='(^|[^A-Za-z0-9_])(bash[[:space:]]+)?([./A-Za-z0-9_-]*/)?promotion-strict-toggle\.sh[[:space:]]+disable([[:space:]]|$)|(^|[^A-Za-z0-9_])gh[[:space:]]+api[[:space:]]+.*(required_status_checks.*strict[[:space:]]*=[[:space:]]*false([[:space:]]|$)|strict[[:space:]]*=[[:space:]]*false([[:space:]]|$).*required_status_checks)'
+
+is_strict_disable_action() {
+  local cmd="$1" normalized
+  normalized="$(normalize_cmd "$cmd")" || normalized="$cmd"
+  printf '%s' "$normalized" | grep -qE "$STRICT_DISABLE_PATTERN"
+}
+
+IS_RED=0
+if is_red_action "$CMD"; then IS_RED=1; fi
+IS_STRICT_DISABLE=0
+if is_strict_disable_action "$CMD"; then IS_STRICT_DISABLE=1; fi
+
+if [[ "$IS_RED" == "0" && "$IS_STRICT_DISABLE" == "0" ]]; then
+  log 0 not-red
+  exit 0
+fi
 
 # Fail open when session_id is absent — a shared fallback file would permanently
 # block all session-less pushes after the first consumed token. An adversarial
@@ -258,6 +308,127 @@ SESSION_ENV_DIR="$HOME/.claude/session-env"
 CONSUMED_DIR="$HOME/.claude/consumed"
 mkdir -p "$SESSION_ENV_DIR" "$CONSUMED_DIR"
 CONSUMED_FILE="$CONSUMED_DIR/${SESSION_ID}.consumed-approvals.txt"
+
+# Handle the strict-disable category fully here, independent of the generic
+# push/release flow below, and always exit before reaching it -- see the
+# STRICT-DISABLE GATE header comment for why these must never share an
+# approval phrase/category (falling through would let a stale "approve
+# push"/"promote to main" silently re-authorize this too).
+if [[ "$IS_STRICT_DISABLE" == "1" ]]; then
+  STRICT_DISABLE_APPROVAL_FILE="$SESSION_ENV_DIR/${SESSION_ID}.strict-disable-approval"
+
+  extract_strict_disable_approval_token() {
+    # Method 1: explicit approval file written by Claude via Write tool.
+    if [[ -f "$STRICT_DISABLE_APPROVAL_FILE" ]]; then
+      local token_text
+      token_text="$(tr -cd '[:lower:]-' < "$STRICT_DISABLE_APPROVAL_FILE" | head -c 20)"
+      if [[ "$token_text" == "strict-disable" ]]; then
+        echo "strict-disable"
+        return 0
+      fi
+    fi
+
+    # Method 2: scan the last 10 non-empty user messages (most recent first)
+    # for a dedicated strict-disable approval/revoke phrase. Deliberately
+    # does NOT reuse extract_approval_token's push/release phrase list.
+    [[ -f "$TRANSCRIPT" ]] || return 0
+    python3 - "$TRANSCRIPT" <<'EOF' || true
+import sys, json, re
+
+APPROVAL_PHRASES = [
+    r'\bapprove\s+strict[\s-]?disable\b',
+    r'\bstrict[\s-]?disable\s+approved\b',
+    r'\byou\s+may\s+disable\s+strict\b',
+]
+REVOKE_PHRASES = [
+    r'\brevoke\s+strict[\s-]?disable\b',
+    r'\bcancel\s+strict[\s-]?disable\b',
+    r'\bdo\s+not\s+disable\s+strict\b',
+]
+
+transcript_path = sys.argv[1]
+recent_user_messages = []
+
+def extract_text(content):
+    if isinstance(content, list):
+        return " ".join(p.get("text","") for p in content if isinstance(p,dict))
+    return content if isinstance(content, str) else ""
+
+with open(transcript_path, encoding='utf-8', errors='replace') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        t = ""
+        if obj.get("role") == "user":
+            t = extract_text(obj.get("content", ""))
+        elif obj.get("type") == "user":
+            msg = obj.get("message", {})
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                t = extract_text(msg.get("content", ""))
+        elif obj.get("type") == "attachment":
+            att = obj.get("attachment", {})
+            if isinstance(att, dict) and att.get("type") == "queued_command":
+                origin = att.get("origin", {})
+                if isinstance(origin, dict) and origin.get("kind") == "human":
+                    p = att.get("prompt", "")
+                    if isinstance(p, str):
+                        t = p
+        if t.strip():
+            recent_user_messages.append(t)
+
+if not recent_user_messages:
+    sys.exit(0)
+
+for msg in reversed(recent_user_messages[-10:]):
+    msg_lower = msg.lower()
+    for phrase in REVOKE_PHRASES:
+        if re.search(phrase, msg_lower):
+            sys.exit(0)
+    for phrase in APPROVAL_PHRASES:
+        if re.search(phrase, msg_lower):
+            print("strict-disable")
+            sys.exit(0)
+
+sys.exit(0)
+EOF
+  }
+
+  STRICT_DISABLE_TOKEN="$(extract_strict_disable_approval_token)"
+  if [[ "$STRICT_DISABLE_TOKEN" != "strict-disable" ]]; then
+    {
+      echo "BLOCKED: RED action (strict-disable) without explicit approval in current session."
+      echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
+      echo "  This weakens branch protection on dev/staging/main and requires its OWN approval -- a prior 'approve push' or 'promote to main' does NOT satisfy this gate by design (AGENTS.md: never bundled with the promotion approval itself)."
+      echo "  Say 'approve strict-disable' to authorize this action."
+    } >&2
+    log 2 no-approval-strict-disable
+    exit 2
+  fi
+
+  # Single-use, mirroring file-based Method 1 tokens for push/release.
+  if [[ -f "$STRICT_DISABLE_APPROVAL_FILE" ]]; then
+    STRICT_DISABLE_TOKEN_HASH="$(printf '%s:strict-disable' "$SESSION_ID" | _sha256)"
+    if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$STRICT_DISABLE_TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
+      {
+        echo "BLOCKED: RED action (strict-disable) approval token already consumed in this session."
+        echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
+        echo "  Request a new approval."
+      } >&2
+      log 2 token-consumed-strict-disable
+      exit 2
+    fi
+    echo "$STRICT_DISABLE_TOKEN_HASH" >> "$CONSUMED_FILE"
+    rm -f "$STRICT_DISABLE_APPROVAL_FILE" 2>/dev/null || true
+  fi
+
+  log 0 "approved-strict-disable"
+  exit 0
+fi
 
 extract_approval_token() {
   # Method 1: explicit approval file written by Claude via Write tool.

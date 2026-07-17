@@ -1061,6 +1061,135 @@ _fixture_transcript_prior_push() {
 }
 
 # ---------------------------------------------------------------------------
+# Item 10 — STRICT-DISABLE gate (llm-skill-review S0 fix, 2026-07-17)
+# tools/promotion-strict-toggle.sh disable weakens branch protection on
+# dev/staging/main and previously had NO approval gate at all. These tests
+# cover: the gate blocks by default, is satisfied by its OWN dedicated
+# phrase/file token, is NOT satisfied by the generic push/release phrases
+# (category isolation -- the whole point of the fix), recognizes the raw
+# `gh api` bypass form, and never gates the safe `restore`/`status`
+# subcommands.
+# ---------------------------------------------------------------------------
+
+@test "item 10: strict-disable: blocks tools/promotion-strict-toggle.sh disable without approval" {
+  _fixture_transcript "please help me with the promotion"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-noap","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action (strict-disable) without explicit approval"* ]]
+}
+
+@test "item 10: strict-disable: a prior 'promote to main'/'approve push' phrase does NOT satisfy this gate (category isolation)" {
+  # This is the exact scenario the fix targets: the promotion runbook's own
+  # step 3 ("promote to main"/merge approval) is very likely to already sit
+  # in the lookback window right before step 2 (disable) runs. If this
+  # leaked through, the fix would be a no-op in the one scenario that matters.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "promote to main"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-isolation","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action (strict-disable) without explicit approval"* ]]
+}
+
+@test "item 10: strict-disable: dedicated 'approve strict-disable' transcript phrase authorizes" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "approve strict-disable"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable staging"},"transcript_path":"%s","session_id":"strict-disable-phrase-ok","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: strict-disable: a more recent 'cancel strict-disable' revoke phrase overrides an earlier approval" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  {
+    printf '{"role":"user","content":"approve strict-disable"}\n'
+    printf '{"role":"assistant","content":"ok, standing by"}\n'
+    printf '{"role":"user","content":"cancel strict-disable"}\n'
+  } > "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-revoke","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: strict-disable: file-based approval token is single-use (consumed-hash anti-replay)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-filetoken","cwd":"/tmp"}' "$TPATH")"
+
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "strict-disable" > "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval"
+
+  HOME="$fake_home" run bash "$hook" <<<"$input"
+  [ "$status" -eq 0 ]
+  [ -f "$fake_home/.claude/consumed/strict-disable-filetoken.consumed-approvals.txt" ]
+  [ ! -f "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval" ]
+
+  # Replay attempt with a freshly-written file token: consumed-hash still blocks.
+  echo "strict-disable" > "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval"
+  HOME="$fake_home" run bash "$hook" <<<"$input"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"already consumed"* ]]
+}
+
+@test "item 10: strict-disable: a plain push file-approval token does NOT satisfy this gate (category isolation)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "push" > "$fake_home/.claude/session-env/strict-disable-wrong-token.push-approval"
+  HOME="$fake_home" run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-wrong-token","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: strict-disable: raw 'gh api ... required_status_checks ... strict=false' bypass is also recognized as RED" {
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"gh api -X PATCH repos/bordenet/superpowers-plus/branches/main/protection/required_status_checks -F strict=false"},"transcript_path":"%s","session_id":"strict-disable-rawapi","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action (strict-disable)"* ]]
+}
+
+@test "item 10: strict-disable: restore is never gated (safe, protection-restoring direction)" {
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh restore main"},"transcript_path":"%s","session_id":"strict-disable-restore","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: strict-disable: status subcommand is never gated" {
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh status"},"transcript_path":"%s","session_id":"strict-disable-status","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
 # Item 11a — fresh install produces all PR-2 hook artifacts
 # ---------------------------------------------------------------------------
 
@@ -1134,7 +1263,13 @@ _fixture_dangling_rule() {
   [[ "$output" == *"integrity OK"* ]] || [[ "${lines[*]}" == *"integrity OK"* ]]
 }
 
-@test "item 3c: SessionStart blocks (exit 2) and reports MISSING when rules dir absent" {
+@test "item 3c: SessionStart does NOT block when rules dir absent (advisory only, not a corruption signal)" {
+  # Changed 2026-07-17 (llm-skill-review, S1): a MISSING ~/.augment/rules dir
+  # just means this machine doesn't use Augment -- a normal state for a
+  # Claude-Code-only contributor/fork/CI runner, not a corruption signal, so
+  # it must not hard-block every session start. DANGLING (item 3a) and an
+  # EXISTING-but-empty rules dir (item 3e) still block -- those imply an
+  # Augment setup existed here and broke.
   local fake_home
   fake_home="$(_fresh_home)"
   # .augment/rules/ does not exist
@@ -1144,8 +1279,9 @@ _fixture_dangling_rule() {
   HOME="$fake_home" run bash "$hook" <<<"$hook_input"
 
   rm -rf "$fake_home"
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"MISSING:"* ]] || [[ "${lines[*]}" == *"MISSING:"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"does not exist -- skipping Augment rules-parity check"* ]]
+  [[ "$output" == *"integrity OK"* ]]
 }
 
 @test "item 3e: SessionStart blocks (exit 2) and reports WARNING when rules dir has no .md files" {
@@ -1162,6 +1298,26 @@ _fixture_dangling_rule() {
   rm -rf "$fake_home"
   [ "$status" -eq 2 ]
   [[ "$output" == *"WARNING:"* ]] || [[ "${lines[*]}" == *"WARNING:"* ]]
+}
+
+@test "item 3j: SessionStart blocking output documents the CLAUDE_HOOKS_BYPASS=1 escape hatch" {
+  # llm-skill-review, 2026-07-17, S1: the bypass env var existed but was
+  # never mentioned in the failure text itself, so an operator hitting a
+  # genuine block (e.g. item 3a's DANGLING case) had no in-band way to learn
+  # the escape hatch existed.
+  local rules_dir fake_home
+  rules_dir="$(_fixture_dangling_rule)"
+  fake_home="$(_fresh_home)"
+  mkdir -p "$fake_home/.augment"
+  ln -s "$rules_dir" "$fake_home/.augment/rules"
+
+  local hook="$REPO_ROOT/tools/claude-hooks/session-start-rules-integrity.sh"
+  hook_input="$(printf '{"hook_event_name":"SessionStart","session_id":"test","cwd":"%s","matcher":"startup"}' "$REPO_ROOT")"
+  HOME="$fake_home" run bash "$hook" <<<"$hook_input"
+
+  rm -rf "$rules_dir" "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"CLAUDE_HOOKS_BYPASS=1"* ]]
 }
 
 @test "item 3d: SessionStart bypass clause (CLAUDE_HOOKS_BYPASS=1) exits 0" {

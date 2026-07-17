@@ -127,7 +127,7 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 - ❌ NEVER branch features from `main` or `staging`
 - Emergency hotfixes: branch from `main`, PR into `main`, cherry-pick back to `dev`
 - Authorization expires after context compaction or sub-agent handoff — human must restate
-- Known issue — promotion PR stuck on `BEHIND` despite all checks green: see `.ai-guidance/promotion-strict-behind-runbook.md` for confirmed non-fixes and the mitigation (the underlying GitHub-side root cause is itself unconfirmed — the runbook's own "Known gaps" section says so). The mitigation temporarily disables the target branch's required-status-checks `strict` flag (the 4 required checks themselves stay enforced) — that is its own sensitive action and needs its own fresh authorization, never bundled with the promotion approval itself.
+- Known issue — promotion PR stuck on `BEHIND` despite all checks green: see `.ai-guidance/promotion-strict-behind-runbook.md` for confirmed non-fixes and the mitigation (the underlying GitHub-side root cause is itself unconfirmed — the runbook's own "Known gaps" section says so). The mitigation temporarily disables the target branch's required-status-checks `strict` flag (the 4 required checks themselves stay enforced) — that is its own sensitive action and needs its own fresh authorization, never bundled with the promotion approval itself. Enforced by `tools/claude-hooks/pre-tool-use-red-autonomy.sh`, which blocks `tools/promotion-strict-toggle.sh disable` until the current session contains the phrase "approve strict-disable" (a prior push/promotion approval does not count).
 
 ## Claude Code guardrails
 
