@@ -343,7 +343,6 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | No X. No Y. Just Z. | "No fluff. No filler. Just results." |
 | X is not just A; it's B. | "This is not just a tool; it's a philosophy." |
 | The question is not X, but Y. | "The question is not whether, but when." |
-| This isn't X. It's Y. | "This isn't a feature. It's a commitment." |
 | If you know, you know. | "It's a different kind of clarity. If you know, you know." |
 | The more you X, the more you Y. | "The more you use it, the more you trust it." |
 | What does this mean for…? | "What does this mean for your team? Everything." |
@@ -357,9 +356,9 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | Not merely X — it's Y. | "Not merely a feature — it's a commitment." |
 | This isn't about X, it's about Y. | "This isn't about speed, it's about trust." |
 
-**Not-X-its-Y (reframing) detection rule:** flag when a subject is negated (“isn’t X”, “not X”, “not just X”, “not merely X”) and the second clause reframes rhetorically. The rows above are seeds; flag close variants of the same shape. Practical test: drop the X-clause entirely and keep Y with any prepositions attached. If Y alone conveys the full meaning, the negation frame is decorative and it’s the tic. (“The goal isn’t speed; it’s correctness.” → keep “It’s correctness.” / “It’s not about features; it’s about outcomes.” → keep “It’s about outcomes.” — preserve “about”.) Fix: drop the negation frame, state Y directly, preserving any preposition in Y. Exemption: do NOT apply to “not only X but Y” additive conjunctions (see additive-elevation rule). When in doubt, flag it — the writer can restate Y plainly and the corrective meaning survives.
+**Not-X-its-Y (reframing) detection rule:** flag when a subject is negated ("isn't X", "not X", "not just X", "not merely X") and the second clause reframes rhetorically. The rows above are seeds; flag close variants of the same shape. Practical test: drop the X-clause entirely and keep Y with any prepositions attached. If Y alone conveys the full meaning, the negation frame is decorative and it's the tic. ("The goal isn't speed; it's correctness." → keep "It's correctness." / "It's not about features; it's about outcomes." → keep "It's about outcomes." — preserve "about".) Fix: drop the negation frame, state Y directly, preserving any preposition in Y. Exemption: do NOT apply to "not only X but Y" additive conjunctions (see additive-elevation rule). When in doubt, flag it — the writer can restate Y plainly and the corrective meaning survives.
 
-**Additive-elevation exception:** “not only X but Y” and “not just X but also Y” are standard English additive conjunctions — flag them ONLY when both terms are empty without a metric or named artifact (e.g. “Not only faster, but smarter” — both are unquantified comparatives). When both X and Y are substantive — referencing a measurable outcome, a named artifact, or a domain-specific technical term — leave them alone.
+**Additive-elevation exception:** "not only X but Y" and "not just X but also Y" are standard English additive conjunctions — flag them ONLY when both terms are empty without a metric or named artifact (e.g. "Not only faster, but smarter" — both are unquantified comparatives). When both X and Y are substantive — referencing a measurable outcome, a named artifact, or a domain-specific technical term — leave them alone.
 
 **Hedged-concession detection rule:** the "A minor X..." and "X, but a real/important one..." rows are seeds for a shape, not a template list. Flag any admission softened by a symmetric qualifier ("admittedly minor, though it matters", "small in the grand scheme, yet worth flagging"). The fix is stating the miss plainly, once.
 
