@@ -15,15 +15,46 @@ CWD="$(jq -r '.cwd // empty' <<<"$INPUT")"
 [[ -z "$CWD" ]] && CWD="$PWD"
 
 PROBLEMS=()
+ADVISORIES=()
 
-# (a) augment rules dir — check for dangling symlinks, empty dir, or missing dir
+# (a) augment rules dir — check for dangling symlinks, empty dir, or missing dir.
+# A MISSING directory means Augment isn't installed/configured on THIS
+# machine at all -- a normal, valid state for a Claude-Code-only contributor,
+# fork, or CI runner, not a corruption signal, so it's advisory (non-
+# blocking) rather than a PROBLEM. DANGLING symlinks or an existing dir
+# EMPTIED of *.md files both imply an Augment setup existed here and broke,
+# which stays blocking regardless of which agent is running Claude Code
+# (llm-skill-review, 2026-07-17, S1: this hook previously hard-blocked every
+# Claude-Code-only session start on a directory that belongs to a different
+# agent entirely).
+#
+# SEEN_MARKER: "missing" and "existed here, then got wiped entirely" are
+# bitwise-identical filesystem states, but very different signals -- the
+# latter is the easiest, most complete way to strip this guardrail, and
+# doing so via `rm -rf` requires zero approval from red-autonomy (confirmed
+# by code-review-battery, 2026-07-17: Guardian + AttackerPersona, both
+# converging on this independently). The marker is written only once the
+# dir is observed healthy (present with >=1 *.md file); its later absence
+# with the marker present is treated as tampering (PROBLEMS), not
+# "never configured" (ADVISORIES). A machine that genuinely uninstalls
+# Augment gets one hard block, then quiets down once the marker is removed
+# too -- an accepted, bounded one-time friction cost for the detection value.
 RULES_DIR="$HOME/.augment/rules"
+SEEN_MARKER="$HOME/.claude/hooks/.augment-rules-seen"
 if [[ ! -d "$RULES_DIR" ]]; then
-  PROBLEMS+=("MISSING: $RULES_DIR does not exist — all rules absent")
+  if [[ -f "$SEEN_MARKER" ]]; then
+    PROBLEMS+=("MISSING: $RULES_DIR existed on this machine before (marker: $SEEN_MARKER) and is now gone entirely -- this looks like deletion/tampering, not 'never installed'. If Augment was deliberately uninstalled, remove $SEEN_MARKER to acknowledge and silence this.")
+  else
+    ADVISORIES+=("$RULES_DIR does not exist -- skipping Augment rules-parity check (not blocking; this machine may not use Augment)")
+  fi
 elif compgen -G "$RULES_DIR/*.md" >/dev/null 2>&1; then
   for f in "$RULES_DIR"/*.md; do
     [[ -f "$f" ]] || PROBLEMS+=("DANGLING: $f")
   done
+  if (( ${#PROBLEMS[@]} == 0 )); then
+    mkdir -p "$(dirname "$SEEN_MARKER")"
+    touch "$SEEN_MARKER"
+  fi
 else
   PROBLEMS+=("WARNING: $RULES_DIR exists but contains no *.md files — all rules may be absent")
 fi
@@ -66,8 +97,14 @@ fi
 if (( ${#PROBLEMS[@]} > 0 )); then
   echo "[claude-hooks/SessionStart] integrity FAILURES — halt and alert user:"
   printf '  - %s\n' "${PROBLEMS[@]}"
+  echo "  (bypass: set CLAUDE_HOOKS_BYPASS=1 to skip this check if you've confirmed it's safe to proceed)"
   log 2 "${#PROBLEMS[@]}-failures"
   exit 2
+fi
+
+if (( ${#ADVISORIES[@]} > 0 )); then
+  echo "[claude-hooks/SessionStart] advisories (non-blocking):"
+  printf '  - %s\n' "${ADVISORIES[@]}"
 fi
 
 echo "[claude-hooks/SessionStart] rules-file integrity OK; invariants at $INV"

@@ -192,6 +192,20 @@ show_added_line_matches() {
 # script keeps working correctly if it's ever copied the same way.
 BANNED_HASH_SCRIPT="$REPO_ROOT/tools/check-banned-term-hashes.py"
 
+# Cached once at script load, not re-checked per call -- file_has_banned_hash
+# runs once per tracked/untracked file, so a per-call `command -v python3`
+# would otherwise print the same warning below hundreds of times in a large
+# repo. Previously these two functions silently returned 1 ("no banned hash
+# found") when python3 was absent, with zero warning -- the hash-obfuscated
+# codename denylist went dark with no visible signal, unlike
+# check_commit_messages_for_banned_hashes below, which always warned
+# (llm-skill-review, 2026-07-17, S1). The plaintext $PATTERNS scan still runs
+# regardless, so this is a warn-and-skip, not a fail-closed, degradation --
+# consistent with check_commit_messages_for_banned_hashes' existing choice
+# for the identical missing-python3 condition, not a new, stricter policy.
+PYTHON3_AVAILABLE=false
+command -v python3 >/dev/null 2>&1 && PYTHON3_AVAILABLE=true
+
 # NOTE on set -e/pipefail safety: every risky pipeline below is either the
 # direct condition of an `if` or immediately followed by an explicit
 # `return` inside that if/else -- never a bare statement whose exit status
@@ -200,7 +214,7 @@ BANNED_HASH_SCRIPT="$REPO_ROOT/tools/check-banned-term-hashes.py"
 # script before the exit code could be inspected; pipelines used directly as
 # an if-condition are exempt from that regardless of pipefail.
 added_lines_have_banned_hash() {
-    command -v python3 >/dev/null 2>&1 || return 1
+    [[ "$PYTHON3_AVAILABLE" == "true" ]] || return 1
     [[ -f "$BANNED_HASH_SCRIPT" ]] || return 1
     if extract_added_lines | python3 "$BANNED_HASH_SCRIPT" >/dev/null 2>&1; then
         return 1  # python exit 0 = clean
@@ -210,7 +224,7 @@ added_lines_have_banned_hash() {
 
 file_has_banned_hash() {
     local target="$1"
-    command -v python3 >/dev/null 2>&1 || return 1
+    [[ "$PYTHON3_AVAILABLE" == "true" ]] || return 1
     [[ -f "$BANNED_HASH_SCRIPT" ]] || return 1
     if python3 "$BANNED_HASH_SCRIPT" < "$target" >/dev/null 2>&1; then
         return 1
@@ -362,6 +376,9 @@ elif [[ ${#LOADED_PATTERN_FILES[@]} -gt 0 ]]; then
     echo "Patterns: defaults + ${LOADED_PATTERN_FILES[*]}"
 else
     echo "Patterns: defaults only"
+fi
+if [[ "$PYTHON3_AVAILABLE" == "false" ]]; then
+    echo "⚠ python3 not found — the hash-based banned-term scan (codename denylist) is DISABLED for this run. The plaintext pattern scan above still runs, but obfuscated/hash-only banned terms will NOT be caught. Install python3 to restore full coverage." >&2
 fi
 echo ""
 
