@@ -37,8 +37,9 @@ A system prompt is a suggestion the assistant can forget under context pressure.
 | Skill | What it does |
 |-------|-------------|
 | [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches up to 6 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst; AttackerPersona on security-sensitive diffs). BugPath Verifier activates in bug-fix mode. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| [**llm-skill-review**](skills/engineering/llm-skill-review/skill.md) | Default reviewer for any skill.md or skill-adjacent tooling — covers LLM-execution safety (determinism, shell portability, tool contracts, cross-agent compatibility) and prose/design quality (absorbed from progressive-harsh-review) in one pass. Advisory-only; not yet wired into a push gate. |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
-| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
+| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. Skill.md reviews now go through `llm-skill-review` instead. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
