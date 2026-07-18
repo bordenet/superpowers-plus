@@ -114,9 +114,16 @@ esac
 # directory, so it must be found via the repo root instead. git invokes
 # commit-msg with CWD at the top of the working tree.
 _REPO_ROOT_FOR_HASH_SCAN="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-if [[ -n "$_REPO_ROOT_FOR_HASH_SCAN" ]] && command -v python3 >/dev/null 2>&1 \
-    && [[ -f "$_REPO_ROOT_FOR_HASH_SCAN/tools/check-banned-term-hashes.py" ]]; then
-    if ! python3 "$_REPO_ROOT_FOR_HASH_SCAN/tools/check-banned-term-hashes.py" < "$COMMIT_MSG_FILE"; then
+_HASH_SCAN_SCRIPT="${_REPO_ROOT_FOR_HASH_SCAN:+$_REPO_ROOT_FOR_HASH_SCAN/tools/check-banned-term-hashes.py}"
+# No separate python3 check needed here -- the top-of-script guard above
+# already exits 1 (with its own clear diagnostic) before this point is ever
+# reached if python3 is absent, so a second check here would be dead,
+# untestable code (code-review-battery, 2026-07-17: Standards Enforcer
+# flagged an earlier version of this branch as having zero test coverage;
+# confirmed the branch was unreachable rather than under-tested, and removed
+# it instead of writing a test for code that can never execute).
+if [[ -n "$_HASH_SCAN_SCRIPT" && -f "$_HASH_SCAN_SCRIPT" ]]; then
+    if ! python3 "$_HASH_SCAN_SCRIPT" < "$COMMIT_MSG_FILE"; then
         exit 1
     fi
 fi

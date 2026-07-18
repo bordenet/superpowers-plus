@@ -35,7 +35,7 @@ composition:
 ---
 
 # Code Review Battery
-> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. Full-repo security audit → `repo-security-scan` or `/sp-devsec-audit`. **Slash commands:** `/sp-cr-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
+> **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. Full-repo security audit → `repo-security-scan` or `/sp-devsec-audit`. Skill.md files or skill-adjacent tooling infrastructure → `llm-skill-review`. **Slash commands:** `/sp-cr-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
 
 Dispatch up to 6 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
@@ -186,7 +186,7 @@ After all reviewers return:
    - **Reject**: correct observation but fix adds more complexity than it removes.
 8. Preserve Regressions Risked + Durable Check per Implement finding.
 
-**Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Score < threshold → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
+**Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Verdict is anything other than PASS or PASS_WITH_NITS (below-threshold score, OR a Reject-classified Critical at or above threshold) → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
 
 **Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Possible → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M ([N] suppressed)/[N]P | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
 
@@ -220,7 +220,7 @@ After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → fl
 
 **Preserve the run (before sentinel write):**
 
-1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold (no unresolved nits); PASS_WITH_NITS if at or above threshold but Minor nits remain; PASS_WITH_FIXES if below threshold but all Critical/Important findings are Implement-classified (fixable path exists); REJECT if any Critical is Reject-classified or there are unresolvable blockers.
+1. Determine the verdict from this MR's score vs threshold: PASS if score >= threshold (no unresolved nits); PASS_WITH_NITS if at or above threshold but Minor nits remain; PASS_WITH_FIXES if below threshold, every Critical finding is Implement-classified (fixable path exists — vacuously true if there are no Critical findings), and every Important finding is Implement- or Defer-classified with a documented rationale in the report (llm-skill-review dogfood review, 2026-07-17: a Critical is NEVER Defer-classified, with or without rationale — that always forces REJECT; a follow-up pass the same day found the first fix still left exactly this Critical+Defer combination unmapped); REJECT if any Critical is Reject- or Defer-classified, any Important Defer has no documented rationale, or there are unresolvable blockers.
 2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json`. Schema: `reference.md` § Run Envelope Schema. Every finding AND clean-dimension verdict must carry an `evidence` block; `verifiable: false` caps at 7.0. Expectation types: `reference.md` § Verifier Details. `tools/run-battery.sh` refuses sentinel write if JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
 ```bash

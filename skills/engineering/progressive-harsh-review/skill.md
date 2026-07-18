@@ -16,12 +16,7 @@ triggers:
   - ready to present plan
   - ready to present design
   - ready to present spec
-  - before pushing skill changes
   - before pushing design docs
-  - run PHR on skill
-  - gate skill push with PHR
-  - review skill file
-  - review this skill
 aliases: [PHR, harsh-review]
 anti_triggers:
   - code review
@@ -29,8 +24,8 @@ anti_triggers:
   - review someone's PR
   - design review inside debate
   - quick feedback
-description: "Multi-persona adversarial review for non-code deliverables (plans, skills, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, blind spots, verifiability, and operational risk. Verdict bands: PASS >=8, PASS_WITH_FIXES 7 to <8, REJECT <7. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead."
-summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery."
+description: "Multi-persona adversarial review for non-code deliverables (plans, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, blind spots, verifiability, and operational risk. Verdict bands: PASS >=8, PASS_WITH_FIXES 7 to <8, REJECT <7. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead. For skill.md files, use llm-skill-review instead."
+summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery. For skill.md files use llm-skill-review."
 coordination:
   group: quality
   order: 2
@@ -46,7 +41,7 @@ composition:
 ---
 
 # Progressive Harsh Review
-> **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`.
+> **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`. Skill.md files or skill-adjacent tooling → `llm-skill-review`.
 >
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
 > **Pattern:** Three escalating critic personas, each scoring independently.
@@ -56,6 +51,7 @@ composition:
 ## Companion Skills
 
 - **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
+- **llm-skill-review**: Skill.md and skill-adjacent tooling review (this skill's former skill-review responsibility moved here)
 - **brainstorming**: Generating options before review
 - **micro-harsh-review**: Per-batch code review
 - **providing-code-review**: Code-specific review
@@ -63,7 +59,7 @@ composition:
 ## When to Use
 
 **Intent-based (self-fire — do not wait to be asked):**
-- **About to present any non-code deliverable to the human** — plans, specs, skill files, designs, documents
+- **About to present any non-code deliverable to the human** — plans, specs, designs, documents
 - The trigger is the INTENT to present, not whether the human explicitly requested review
 - If there is even a 1% chance the human expects a solid artifact, run PHR first
 
@@ -72,6 +68,7 @@ composition:
 
 **NOT for:**
 - Code PRs → use `code-review-battery` instead
+- Skill.md files or skill-adjacent tooling → use `llm-skill-review` instead
 - Design comparison (choosing between options) → `debate` handles that
 - Initial brainstorming (too early — nothing to review yet)
 
@@ -103,7 +100,7 @@ Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we kn
 **OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
 
 ## Artifact-Aware Persona Mapping
-PHR is for **non-code deliverables** — plans, skill files, design docs, specifications. Each persona's code-oriented start points and scoring dimensions translate to non-code equivalents as follows. Personas score against the non-code dimension equivalents when reviewing plans/skills/docs — do not score a plan on null handling or retry logic — and must adapt their starting-point-specific evidence to the artifact type. A Nitpicker that only checks whitespace on a plan is not doing its job.
+PHR is for **non-code deliverables** — plans, design docs, specifications. Each persona's code-oriented start points and scoring dimensions translate to non-code equivalents as follows. Personas score against the non-code dimension equivalents when reviewing plans/docs — do not score a plan on null handling or retry logic — and must adapt their starting-point-specific evidence to the artifact type. A Nitpicker that only checks whitespace on a plan is not doing its job.
 
 | Persona | Code start point | Non-code equivalent |
 |---------|-----------------|---------------------|
@@ -120,8 +117,6 @@ Dimension mapping for non-code artifacts:
 | Testability | Verifiability | Can each claim or step be independently verified or audited? |
 | Edge Cases | Blind Spots | What scenarios, contexts, or failure paths are not addressed? |
 | Security/Perf | Operational Risk | What breaks under adverse conditions? Misuse vectors, adoption failure, dependency on absent tooling? |
-
-**Skill-file specifics** — Nitpicker: triggers are unique, YAML is valid, no broken references, all headers present. ArchCritic: skill scope is bounded, coordination fields are correct, no overlap with peer skills. OpsRealist: skill fires only when it should, anti-triggers prevent false positives, failure modes table is populated.
 
 ## The Process
 
@@ -200,13 +195,13 @@ When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict 
 tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 4 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
 
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
-Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
+Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 5 will report stale).
 
-> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 4 closes the loop. Note Gate 4 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
+> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 5 closes the loop. Note Gate 5 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 
 ## Scoring Output Format
 
@@ -247,4 +242,4 @@ Per-persona weighted score: 7(.25)+8(.15)+6(.25)+5(.15)+7(.20) = 6.60
 | No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
 | Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
 | Unrecoverable finding scored only on Blind Spots | Must ALSO score Operational Risk to be veto-eligible — Blind Spots alone bypasses the veto gate |
-| Skipped sentinel write after PASS | Pre-push Gate 4 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
+| Skipped sentinel write after PASS | Pre-push Gate 5 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
