@@ -175,6 +175,11 @@ jobs:
           fi
           echo "PASS: $ACTUAL skills match declared count in docs/SKILLS.md"
 
+      - name: Full-corpus fence-scan (all skills/**/*.md)
+        run: |
+          mapfile -t MD_FILES < <(find skills -name "*.md")
+          bash tools/fence-scan.sh "${MD_FILES[@]}"
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
