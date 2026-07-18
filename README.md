@@ -37,8 +37,9 @@ A system prompt is a suggestion the assistant can forget under context pressure.
 | Skill | What it does |
 |-------|-------------|
 | [**code-review-battery**](skills/engineering/code-review-battery/skill.md) | Dispatches up to 6 specialist reviewers in parallel (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst; AttackerPersona on security-sensitive diffs). BugPath Verifier activates in bug-fix mode. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| [**llm-skill-review**](skills/engineering/llm-skill-review/skill.md) | Default reviewer for any skill.md or skill-adjacent tooling — covers LLM-execution safety (determinism, shell portability, tool contracts, cross-agent compatibility) and prose/design quality (absorbed from progressive-harsh-review) in one pass. Advisory-only; not yet wired into a push gate. |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
-| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. |
+| [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. Skill.md reviews now go through `llm-skill-review` instead. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
@@ -66,7 +67,7 @@ Then tell your AI assistant what you're doing. The trigger examples are near the
 
 ## What's Included
 
-**107 skills** across 9 domains:
+**108 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
@@ -185,7 +186,7 @@ If you're using the install paths above without an MCP client, you can skip this
    }
    ```
 
-3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~107 available skill names.
+3. Restart your client. Verify: run `find_skills` in the MCP client — expected output lists ~108 available skill names.
 
 If `find_skills` returns an error or is missing: check `node --version` (must be 18+), rerun `cd mcp && npm install`, and confirm the args path is absolute (not `~/` or relative).
 
@@ -207,7 +208,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-# Expected: skill catalog printed without errors (superpowers-plus contributes 107 skills)
+# Expected: skill catalog printed without errors (superpowers-plus contributes 108 skills)
 ```
 
 Run the full 30-check diagnostic:
@@ -243,7 +244,7 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
 | Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
 | Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
-| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 107 skills with typed edges (enables / escalates-to) |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 108 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 

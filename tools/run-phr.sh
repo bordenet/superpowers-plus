@@ -16,7 +16,7 @@
 # WHY THIS EXISTS:
 #   Without a machine-checkable sentinel, PHR is discipline-only -- the agent
 #   can ship skill changes without ever running it (this happened repeatedly).
-#   The .phr-cleared sentinel + pre-push Gate 4 closes that gap so PHR
+#   The .phr-cleared sentinel + pre-push Gate 5 closes that gap so PHR
 #   becomes script-enforced, not prose-instruction-enforced.
 #
 # NOTE: --staged mode was REMOVED. The post-commit hook only promotes
@@ -105,7 +105,7 @@ fi
 
 # --- Project-minimum floor for skills/ changes ---
 # If the current diff (upstream..HEAD) touches skills/, require >= 9.2.
-# This mirrors the Gate 4 check in tools/pre-push (PHR_SKILLS_MIN=9.2).
+# This mirrors the Gate 5 check in tools/pre-push (PHR_SKILLS_MIN=9.2).
 PHR_SKILLS_MIN="9.2"
 _upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
 if [[ -n "$_upstream" ]]; then
