@@ -35,3 +35,15 @@
 
 # Writes to the private TODO.md path
 (^|[^A-Za-z0-9_])(echo[[:space:]]+.+>[[:space:]]+|tee[[:space:]]+).*~/\.codex/TODO\.md
+
+# NOTE: tools/promotion-strict-toggle.sh disable is intentionally NOT listed
+# here. Every pattern in this file shares the generic push/release approval
+# categories in pre-tool-use-red-autonomy.sh's extract_approval_token() --
+# adding it here would let a stale "approve push"/"promote to main" phrase
+# silently authorize it too, defeating AGENTS.md's requirement that it "needs
+# its own fresh authorization, never bundled with the promotion approval
+# itself". It is matched by its own STRICT_DISABLE_PATTERN constant and gated
+# by its own extract_strict_disable_approval_token(), both defined directly
+# in pre-tool-use-red-autonomy.sh. Do not move it into this file without also
+# redesigning the category isolation (see that script's STRICT-DISABLE GATE
+# header comment).

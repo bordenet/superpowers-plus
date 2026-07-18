@@ -350,5 +350,49 @@ else
     fail "adjacent-pair matching should not cross a line boundary (cross-line/cross-file false positive)"
 fi
 
+# ---------------------------------------------------------------------------
+# Missing-python3 visibility (llm-skill-review, 2026-07-17, S1 fix).
+# added_lines_have_banned_hash/file_has_banned_hash previously returned
+# "clean" with ZERO warning when python3 was absent -- the hash-obfuscated
+# codename denylist went dark silently. Build a hermetic PATH containing only
+# the specific external commands this script needs, deliberately excluding
+# python3, so this genuinely exercises "not found on PATH" -- a stub `python3`
+# that merely fails when invoked would still be FOUND by `command -v python3`
+# and would not exercise this code path at all.
+# ---------------------------------------------------------------------------
+NO_PYTHON3_BIN="$TMP_ROOT/no-python3-bin"
+mkdir -p "$NO_PYTHON3_BIN"
+for cmd in bash git grep sed paste file cat mktemp date tr head wc sort basename dirname cut; do
+    real="$(command -v "$cmd" 2>/dev/null)" || continue
+    ln -sf "$real" "$NO_PYTHON3_BIN/$cmd"
+done
+
+repo="$TMP_ROOT/no-python3-plaintext-still-works"
+new_repo "$repo"
+printf 'contains AcmeSecret here\n' > "$repo/leaky.txt"
+if out=$(cd "$repo" && PATH="$NO_PYTHON3_BIN" bash tools/public-repo-ip-check.sh --all-files 2>&1); then
+    fail "audit should still fail on a plaintext-pattern hit even with python3 absent"
+else
+    pass "plaintext pattern scan still catches violations when python3 is absent"
+fi
+if [[ "$out" == *"python3 not found"* ]]; then
+    pass "missing python3 produces a visible warning (was previously silent)"
+else
+    fail "missing python3 should print a visible warning, got: $out"
+fi
+
+repo="$TMP_ROOT/no-python3-clean-repo-passes"
+new_repo "$repo"
+if out=$(cd "$repo" && PATH="$NO_PYTHON3_BIN" bash tools/public-repo-ip-check.sh --all-files 2>&1); then
+    pass "a genuinely clean repo still passes with python3 absent (warn, not fail-closed)"
+else
+    fail "a clean repo should not fail solely because python3 is absent, got: $out"
+fi
+if [[ "$out" == *"python3 not found"* ]]; then
+    pass "warning still appears on a clean run, not just a failing one"
+else
+    fail "warning should appear regardless of pass/fail outcome, got: $out"
+fi
+
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [[ "$FAIL" -eq 0 ]]
