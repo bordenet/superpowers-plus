@@ -12,7 +12,7 @@
 
 The battery follows a 5-phase pipeline defined in `skill.md`:
 
-```bash
+```text
 ┌─────────────────────────────────────────────────┐
 │                  Entry Points                    │
 │  progressive-code-review-gate  |  manual invoke  │
@@ -78,7 +78,7 @@ skills/engineering/code-review-battery/
 
 Uses `sub-agent-code-reviewer` with unique names. All activated reviewers fire in parallel:
 
-```bash
+```text
 # Dispatched by the coordinator (the orchestrating agent):
 sub-agent-code-reviewer(name="battery-defect-finder", instruction=<defect-finder.md prompt + diff + source context>)
 sub-agent-code-reviewer(name="battery-design-critic", instruction=<design-critic.md prompt + diff>)
@@ -138,7 +138,7 @@ which reviewers to activate.
 
 ### Input
 
-```bash
+```text
 # The coordinator receives:
 1. git diff --stat (file list + change counts)
 2. git diff (full diff content, or truncated for very large diffs)

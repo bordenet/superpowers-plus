@@ -100,8 +100,8 @@ Do not push after "tests pass" alone. Lint → typecheck → test are all mandat
 **Run only when `.sh` files are staged.** Skip this gate if no shell scripts changed.
 
 ```bash
-shellcheck -S warning <script.sh>   # zero warnings
-bash -n <script.sh>                 # zero syntax errors
+shellcheck -S warning "<script.sh>"   # zero warnings
+bash -n "<script.sh>"                 # zero syntax errors
 ```
 
 Each shell script MUST have: `#!/usr/bin/env bash`, `set -euo pipefail`, `-h|--help`, `-v|--verbose`, `--what-if` (for destructive scripts), ≤400 lines.
@@ -141,7 +141,7 @@ If sentinel is valid for HEAD and worktree is clean → skip dispatch. Otherwise
 ```bash
 git diff --cached --name-only | grep -E '\.(md)$'
 # For each matched file:
-node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-profanity <FILE.md>
+node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-profanity "<FILE.md>"
 ```
 
 **HARD GATE** — any profanity match blocks the commit. Fix and re-scan. Context-dependent terms (e.g., "kill process", "abort") are not flagged.

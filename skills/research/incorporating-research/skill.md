@@ -69,7 +69,7 @@ Separate signal from noise:
 
 **Output triage summary:**
 
-```bash
+```text
 Triage Results:
 ├── New content: [Brief description]
 ├── Irrelevant: [What's being stripped]

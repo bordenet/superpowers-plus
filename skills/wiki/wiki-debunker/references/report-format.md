@@ -7,7 +7,7 @@
 
 When called by orchestrator, produce this summary:
 
-```bash
+```text
 ## Fact-Check Report
 
 **Claims Analyzed:** 14

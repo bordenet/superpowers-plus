@@ -84,7 +84,7 @@ Default SaaS host is **gitlab.com**. Self-managed: user provides hostname only (
 ### 1. Set default host (self-managed only)
 
 ```bash
-glab config set host <hostname> --global
+glab config set host "<hostname>" --global
 glab config get host
 ```
 
@@ -93,7 +93,7 @@ glab config get host
 **OAuth device flow (no PAT required):** For interactive setup, `glab auth login` can authenticate via browser-based OAuth if your GitLab instance has configured OAuth application support:
 
 ```bash
-glab auth login --hostname <hostname>   # follow the device-code prompt in the browser
+glab auth login --hostname "<hostname>"   # follow the device-code prompt in the browser
 glab auth status
 ```
 
@@ -166,7 +166,7 @@ Do not commit tokens. Use the platform's secret store in CI.
 ### Re-auth / logout
 
 ```bash
-glab auth logout --hostname <hostname>
+glab auth logout --hostname "<hostname>"
 glab auth login
 ```
 
@@ -222,19 +222,19 @@ glab api "projects?membership=true&per_page=50"
 
 ```bash
 glab mr list [--state opened|closed|merged|all]
-glab mr view {<id> | <branch>}
+glab mr view "{<id> | <branch>}"
 glab mr create [--fill]
 glab mr create --title "T" --description "D" --label bugfix
 glab mr create --draft
-glab mr create --reviewer <username>
-glab mr create --target-branch <branch>
-glab mr approve {<id> | <branch>}
-glab mr merge {<id> | <branch>} [--squash] [--rebase] [--remove-source-branch]
-glab mr checkout {<id> | <branch>}
-glab mr diff {<id> | <branch>}
-glab mr update {<id> | <branch>} --title "new title"
-glab mr close {<id> | <branch>}
-glab mr note <id> -m "comment text"
+glab mr create --reviewer "<username>"
+glab mr create --target-branch "<branch>"
+glab mr approve "{<id> | <branch>}"
+glab mr merge "{<id> | <branch>}" [--squash] [--rebase] [--remove-source-branch]
+glab mr checkout "{<id> | <branch>}"
+glab mr diff "{<id> | <branch>}"
+glab mr update "{<id> | <branch>}" --title "new title"
+glab mr close "{<id> | <branch>}"
+glab mr note "<id>" -m "comment text"
 ```
 
 ---
@@ -247,12 +247,12 @@ glab ci status
 glab ci view [branch]
 glab ci run
 glab ci lint
-glab ci trace [<job-id>|<job-name>]
-glab ci retry <job-id>
-glab ci cancel <job-id>
-glab ci artifact <refName> <jobName>
+glab ci trace "[<job-id>|<job-name>]"
+glab ci retry "<job-id>"
+glab ci cancel "<job-id>"
+glab ci artifact "<refName>" "<jobName>"
 # Trigger a manual job via raw API (glab ci trigger is not a valid subcommand):
-glab api projects/:id/jobs/<job-id>/play -X POST
+glab api "projects/:id/jobs/<job-id>/play" -X POST
 ```
 
 ---
@@ -263,13 +263,13 @@ glab api projects/:id/jobs/<job-id>/play -X POST
 
 ```bash
 glab variable list
-glab variable get <key>
-glab variable set <key> <value>
-glab variable set <key> <value> --masked --protected
-glab variable delete <key>          # ⚠️ PERMANENT
+glab variable get "<key>"
+glab variable set "<key>" "<value>"
+glab variable set "<key>" "<value>" --masked --protected
+glab variable delete "<key>"          # ⚠️ PERMANENT
 # Group-level:
-glab variable list --group <group-path>
-glab variable set <key> <value> --group <group-path>
+glab variable list --group "<group-path>"
+glab variable set "<key>" "<value>" --group "<group-path>"
 ```
 
 > ⚠️ `--masked` does NOT protect secrets at the API layer — masked only suppresses output in CI job logs.
@@ -291,11 +291,11 @@ glab repo create [path]
 
 ```bash
 glab release list
-glab release create <tag> --name "Release name" --notes "description"
-glab release create <tag> --ref <branch-or-commit>
-glab release view <tag>
-glab release upload <tag> <file>
-glab release delete <tag>   # ⚠️ PERMANENT — does NOT delete the git tag
+glab release create "<tag>" --name "Release name" --notes "description"
+glab release create "<tag>" --ref "<branch-or-commit>"
+glab release view "<tag>"
+glab release upload "<tag>" "<file>"
+glab release delete "<tag>"   # ⚠️ PERMANENT — does NOT delete the git tag
 ```
 
 ---
@@ -304,11 +304,11 @@ glab release delete <tag>   # ⚠️ PERMANENT — does NOT delete the git tag
 
 ```bash
 glab issue list [--state opened|closed|all]
-glab issue view <id>
+glab issue view "<id>"
 glab issue create --title "T" --description "D"
-glab issue close <id>
-glab issue note <id> -m "comment"
-glab issue update <id> --label bug
+glab issue close "<id>"
+glab issue note "<id>" -m "comment"
+glab issue update "<id>" --label bug
 ```
 
 ---
@@ -316,7 +316,7 @@ glab issue update <id> --label bug
 ## API (raw)
 
 ```bash
-glab api <endpoint>
+glab api "<endpoint>"
 glab api "projects?membership=true&per_page=50" --paginate
 ```
 
@@ -326,7 +326,7 @@ glab api "projects?membership=true&per_page=50" --paginate
 
 ```bash
 printf '%s' '{"key":"val"}' | glab api <endpoint> -X POST --input -
-# Or write JSON to a temp file: glab api <endpoint> -X POST --input /path/to/body.json
+# Or write JSON to a temp file: glab api "<endpoint>" -X POST --input /path/to/body.json
 ```
 
 ---

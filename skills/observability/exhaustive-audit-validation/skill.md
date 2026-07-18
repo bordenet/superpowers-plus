@@ -121,7 +121,7 @@ grep -l "^---" skills/*/skill.md skills/*/*/skill.md 2>/dev/null | wc -l
 
 Before marking complete, state:
 
-```bash
+```text
 ## Pre-Completion Validation Report
 
 **Scope:** Audited X of Y items (100%)
