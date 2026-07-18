@@ -195,13 +195,13 @@ When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict 
 tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 4 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
 
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
-Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 4 will report stale).
+Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 5 will report stale).
 
-> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 4 closes the loop. Note Gate 4 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
+> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 5 closes the loop. Note Gate 5 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 
 ## Scoring Output Format
 
@@ -242,4 +242,4 @@ Per-persona weighted score: 7(.25)+8(.15)+6(.25)+5(.15)+7(.20) = 6.60
 | No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
 | Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
 | Unrecoverable finding scored only on Blind Spots | Must ALSO score Operational Risk to be veto-eligible — Blind Spots alone bypasses the veto gate |
-| Skipped sentinel write after PASS | Pre-push Gate 4 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
+| Skipped sentinel write after PASS | Pre-push Gate 5 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
