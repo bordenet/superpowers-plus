@@ -205,14 +205,21 @@ if [ -f foo ]; then
   echo "broken, missing fi"
 ```
 EOF
-    # Build a PATH with no shellcheck on it (still needs the real bash/coreutils).
-    STRIPPED_PATH=""
-    IFS=':' read -ra _dirs <<< "$PATH"
-    for _d in "${_dirs[@]}"; do
-        [[ -x "$_d/shellcheck" ]] && continue
-        STRIPPED_PATH="${STRIPPED_PATH:+$STRIPPED_PATH:}$_d"
+    # Build a minimal, fully-controlled PATH containing symlinks to only the
+    # exact binaries fence-scan.sh needs (resolved from their real locations
+    # via `command -v`), deliberately excluding shellcheck. Directory-level
+    # PATH stripping (removing any dir containing shellcheck) is NOT
+    # portable: on some CI images shellcheck lives in the same directory as
+    # bash/coreutils (e.g. /usr/bin), so excluding that directory breaks the
+    # test harness itself with a bare "command not found" (exit 127) instead
+    # of exercising the intended no-shellcheck code path.
+    ISOLATED_BIN="$(mktemp -d)"
+    for tool in bash cat mktemp rm sed; do
+        tool_path="$(command -v "$tool")"
+        ln -s "$tool_path" "$ISOLATED_BIN/$tool"
     done
-    PATH="$STRIPPED_PATH" run bash "$HELPER" a.md
+    PATH="$ISOLATED_BIN" run bash "$HELPER" a.md
+    rm -rf "$ISOLATED_BIN"
     [ "$status" -eq 1 ]
     [[ "$output" == *"bash -n FAILED"* ]]
     [[ "$output" != *"shellcheck advisory"* ]]
