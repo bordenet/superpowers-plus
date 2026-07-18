@@ -100,6 +100,8 @@ Run as PHR's actual three-persona ensemble, not a single pass -- a round-2 self-
 
 **6c) OpsRealist (Operational Quality)** -- weights: Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. Start from: failure scenarios -- what happens if a trigger never fires, a step is skipped, or the skill collides with a sibling?
 
+**Drift risk (design-critic dogfood finding, 2026-07-17):** the three weight sets above are hand-copied from `progressive-harsh-review`'s "The Three Personas" section, not read from it live -- if that section is ever renamed, restructured, or reweighted, these copies silently go stale. `coordination.requires` in `skill.md` names the dependency for the skill-router's dependency graph, but nothing mechanically re-verifies the numbers match. Before trusting a review that leans on this ensemble, diff these three lines against PHR's current "The Three Personas" section by hand; a durable fix would be a CI check comparing them automatically.
+
 Skill-file-specific questions (all three sub-personas ask these, moved here from `progressive-harsh-review` -- that skill no longer reviews skill files): are triggers unique across the installed skill set, is the YAML frontmatter valid, are there broken cross-references, are coordination fields correct with no overlap with peer skills, do anti-triggers actually prevent false positives, is the Failure Modes table populated?
 
 ## Mandatory Checks (full flag lists)

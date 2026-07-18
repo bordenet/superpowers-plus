@@ -27,7 +27,7 @@ summary: "Use for skills, prompts, shell scripts, tool wrappers, install/setup c
 coordination:
   group: code-quality
   order: 1
-  requires: []
+  requires: ["progressive-harsh-review"]
   enables: ["think-twice"]
   escalates_to: ["code-review-battery", "progressive-harsh-review"]
   internal: false
@@ -123,10 +123,11 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 **Critical veto (verbatim from progressive-harsh-review):** if ANY sub-persona scores Correctness or Operational Risk <=4 AND cites a specific defect (not a general concern), that is an automatic REJECT regardless of the weighted mean. An unrecoverable-failure-style finding MUST be scored on Operational Risk -- not Blind Spots alone -- to be veto-eligible; scoring it only on Blind Spots bypasses the veto gate.
 
 **Combining both scorecards into one top-level Verdict** (the gap a round-2 self-review found: two scorecards with no rule for merging them into one Verdict): use the WORSE of what either implies, never an average.
-- Either scorecard's critical veto fires -> **REJECT**.
+- **LLM-Execution critical veto:** any unresolved S0 finding forces **REJECT** regardless of both scorecards' means -- an execution-safety finding this severe is never merely "at least MAJOR REVISIONS REQUIRED" (design-critic dogfood finding, 2026-07-17: an earlier draft referenced "either scorecard's critical veto" before this one existed, then contradicted it by capping S0 in the fallback bullet below).
+- Prose/Design's own critical veto (above) fires -> **REJECT**.
 - Prose/Design weighted mean <7 (PHR's REJECT band) -> at least **MAJOR REVISIONS REQUIRED**, regardless of S0-S3 findings.
 - Prose/Design weighted mean 7 to <8 (PHR's PASS_WITH_FIXES band) -> at least **PASS WITH RISKS**.
-- Otherwise, follow the worse of: highest unresolved severity (S0/S1 present -> at least MAJOR REVISIONS REQUIRED; S2 only -> at least PASS WITH RISKS; S3-only/none -> PASS eligible) and the Prose/Design band above.
+- Otherwise, follow the worse of: highest unresolved severity (S1 present -> at least MAJOR REVISIONS REQUIRED; S2 only -> at least PASS WITH RISKS; S3-only/none -> PASS eligible) and the Prose/Design band above.
 
 ## Specialist Personas
 
@@ -233,7 +234,7 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-This skill is advisory-only as of its initial install -- unlike `progressive-harsh-review` (`tools/run-phr.sh` + pre-push Gate 4) and `code-review-battery` (`tools/run-battery.sh` + pre-push Gate 2), it has no sentinel file or push-gate wiring of its own yet. Until that follow-up lands, `tools/pre-push`'s existing gates still require `.phr-cleared`/`.code-review-cleared` for skill.md pushes regardless of whether this skill was consulted first. `tools/run-phr.sh` and `tools/run-battery.sh` are pure sentinel-writers -- they take a `--verdict`/`--min-score` you supply, they do not score anything themselves -- so the combined score from this skill's own Prose/Design + LLM-Execution scorecards (see "Combining both scorecards" above) is what you feed as `--min-score` to whichever sentinel-writer the push still requires. Wiring a dedicated sentinel and pre-push gate for this skill is a deliberate, separate next step, not an oversight.
+This skill is advisory-only as of its initial install -- unlike `progressive-harsh-review` (`tools/run-phr.sh` + pre-push Gate 5) and `code-review-battery` (`tools/run-battery.sh` + pre-push Gate 2), it has no sentinel file or push-gate wiring of its own yet. Until that follow-up lands, `tools/pre-push`'s existing gates still require `.phr-cleared`/`.code-review-cleared` for skill.md pushes regardless of whether this skill was consulted first. `tools/run-phr.sh` and `tools/run-battery.sh` are pure sentinel-writers -- they take a `--verdict`/`--min-score` you supply, they do not score anything themselves -- so the combined score from this skill's own Prose/Design + LLM-Execution scorecards (see "Combining both scorecards" above) is what you feed as `--min-score` to whichever sentinel-writer the push still requires. Wiring a dedicated sentinel and pre-push gate for this skill is a deliberate, separate next step, not an oversight.
 
 ## Final Reminder
 
