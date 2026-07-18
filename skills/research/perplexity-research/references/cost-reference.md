@@ -39,7 +39,7 @@
 
 ### Decision Framework (Cost-Conscious)
 
-```bash
+```text
 Step 1: Try web-search first (FREE)
 ├── Found what I need? → STOP (no Perplexity)
 └── Insufficient? → Continue

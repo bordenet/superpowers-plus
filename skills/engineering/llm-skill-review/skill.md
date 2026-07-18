@@ -50,8 +50,7 @@ composition:
 
 - **progressive-harsh-review**: Reviews non-skill deliverables (plans, specs, designs, documents) with the same adversarial rigor; this skill absorbed its skill-review responsibility (see Prose/Design Quality Axes below)
 - **code-review-battery**: Conventional code PR review; escalate here for ordinary application-code changes bundled alongside skill/tooling changes
-- **think-twice**: Fresh-perspective sub-agent for stuck/circular review loops
-- **skill-health-check**: Structural lint (frontmatter validity, line budget) -- run before this skill, not instead of it
+- **skill-health-check**: Structural lint (frontmatter validity, line budget) -- run before this skill, not instead of it; use **think-twice** (fresh-perspective sub-agent) if this review gets stuck in a circular loop
 - **superpowers-doctor**: Runtime/ecosystem diagnostics (trigger collisions, orphaned installs) after this skill's review passes
 
 ## When to Use
@@ -147,7 +146,7 @@ Run these in parallel if tooling allows (e.g. `Task()`-based parallel sub-agent 
 You MUST inspect these six areas and report concrete findings -- full flag lists for each are in `reference.md`. If a category has no applicable content in the artifact under review (e.g., no shell/tool-wrapper code in a pure-prompt skill), state that explicitly -- "N/A -- no shell/tool-wrapper content in this artifact" -- rather than fabricating a finding or silently omitting the section.
 
 - **A. Instruction Determinism** -- vague verbs, ambiguous trigger/routing precedence, missing pass/fail thresholds
-- **B. Shell and Runtime Portability** -- bashisms, GNU/BSD incompatibilities, unsafe quoting, fragile paths, weak cleanup
+- **B. Shell and Runtime Portability** -- bashisms, GNU/BSD incompatibilities, unsafe quoting, fragile paths, weak cleanup. Embedded fenced examples in the skill.md/reference.md itself are in scope too -- run `tools/fence-scan.sh <changed .md file>` (see `reference.md` for why this matters and its known limitation).
 - **C. Tool Contract Safety** -- implicit tool selection, under-specified parameters, unparseable output, unvalidated side effects
 - **D. Failure-Mode Resilience** -- missing stop-and-report rules, looping retries, asserted-not-verified success
 - **E. Cross-Agent Interoperability** -- Claude-only behavior assumed universal, unequal Cursor/Augment support
@@ -196,6 +195,11 @@ For each finding include:
 4. Concrete evidence
 5. Likely failure mode
 6. Exact recommendation
+7. An `evidence` block per the Evidence Requirement below
+
+### Evidence Requirement (MANDATORY)
+
+A finding is a claim about the artifact. A claim without a way to check it is indistinguishable from a guess, and a high verdict built on unchecked claims is worse than no review at all -- it looks rigorous while catching nothing. Every finding AND every clean-dimension verdict ("no issues found in X") MUST carry a JSON `evidence` block (schema, worked example, expectation types, and forbidden command patterns: see `reference.md` -> "Evidence Schema"). A finding or clean-dimension verdict with no `evidence` block at all is treated identically to `"verifiable": false` -- capped, not rejected, but never counted as confirmed.
 
 ### LLM-Execution Scorecard
 
@@ -231,6 +235,8 @@ List the next test scenarios that should run before merge.
 | Self-reviewed in the same thinking pass as authoring | Use a sub-agent (preferred), matching `progressive-harsh-review`'s "Author != Reviewer" hard gate |
 | Both Prose/Design and LLM-execution scorecards skipped in the same pass | Both are mandatory for any skill.md -- this skill replaces two separate passes, not one |
 | Verdict asserted without both scorecards shown | Required Output Format lists both scorecards in order; a verdict with neither is not a valid report |
+| A clean-dimension verdict ("no issues found") ships with no evidence block | Treated identically to `verifiable: false` -- capped, not confirmed. A sentence asserting cleanliness is not evidence of it; see Evidence Requirement |
+| Embedded `bash`/`sh` example in the skill.md itself never actually run through `bash -n` | Prose review alone cannot catch this -- run `tools/fence-scan.sh <file>` before asserting the doc's own examples are clean |
 
 ## Enforcement Status
 

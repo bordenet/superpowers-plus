@@ -107,7 +107,7 @@ ALL advisories print a soft message and exit 0. The script never blocks.
 
 1. **Per-branch acknowledgement** (most common):
    ```bash
-   touch .git/base-advisory-ack-<branch-slug>
+   touch ".git/base-advisory-ack-<branch-slug>"
    ```
    The advisory will not repeat for this branch.
 
@@ -132,7 +132,7 @@ ALL advisories print a soft message and exit 0. The script never blocks.
 tools/branch-flow-preflight.sh
 
 # Explicit pair-mode:
-tools/branch-flow-preflight.sh <source-branch> <target-branch>
+tools/branch-flow-preflight.sh "<source-branch>" "<target-branch>"
 
 # Identical-error stop helper:
 tools/branch-flow-preflight.sh --identical-check "$ERR1" "$ERR2"

@@ -192,7 +192,7 @@ Flags trigger re-examination, not automatic verdict changes.
 When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict table above, AND ≥ the project minimum if one is set, AND no active critical vetoes, AND no correlated-failure flags), **immediately** run:
 
 ```bash
-tools/run-phr.sh --verdict PASS --min-score <weighted-mean>
+tools/run-phr.sh --verdict PASS --min-score "<weighted-mean>"
 ```
 
 This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
