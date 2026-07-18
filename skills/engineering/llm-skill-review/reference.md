@@ -193,12 +193,14 @@ A finding is a claim about the artifact under review. A claim with no way to che
 ### Expectation types (one per type)
 
 ```json
-{ "type": "count",     "value": ">0" }    // grep for symbol; must exist
-{ "type": "count",     "value": "==0" }   // no callers; absent producers
-{ "type": "exit_code", "value": 0 }       // bash -n / shellcheck succeeds
-{ "type": "match",     "value": "^- \\[ \\]" }  // any unchecked TODO bullet
-{ "type": "absent" }                      // value omitted; passes iff stdout has zero non-blank lines
-{ "type": "exact",     "value": "2.4.1" }        // cat VERSION
+[
+  { "type": "count",     "value": ">0",          "note": "grep for symbol; must exist" },
+  { "type": "count",     "value": "==0",         "note": "no callers; absent producers" },
+  { "type": "exit_code", "value": 0,             "note": "bash -n / shellcheck succeeds" },
+  { "type": "match",     "value": "^- \\[ \\]",  "note": "any unchecked TODO bullet" },
+  { "type": "absent",                            "note": "value omitted; passes iff stdout has zero non-blank lines" },
+  { "type": "exact",     "value": "2.4.1",        "note": "cat VERSION" }
+]
 ```
 
 Use `"verifiable": false` for genuine judgment claims that cannot be re-executed deterministically -- race conditions, "a frontier model would misread this phrasing," design smells -- and include a `rationale`. These are real, valuable findings; mark them honestly rather than inventing a grep that doesn't actually test the claim. A finding or clean-dimension verdict with no `evidence` block at all is treated identically to `verifiable: false` -- capped, not rejected, but never counted as confirmed.
