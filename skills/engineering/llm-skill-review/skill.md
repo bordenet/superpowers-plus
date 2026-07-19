@@ -240,7 +240,7 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-This skill is advisory-only as of its initial install -- unlike `progressive-harsh-review` (`tools/run-phr.sh` + pre-push Gate 5) and `code-review-battery` (`tools/run-battery.sh` + pre-push Gate 2), it has no sentinel file or push-gate wiring of its own yet. Until that follow-up lands, `tools/pre-push`'s existing gates still require `.phr-cleared`/`.code-review-cleared` for skill.md pushes regardless of whether this skill was consulted first. `tools/run-phr.sh` and `tools/run-battery.sh` are pure sentinel-writers -- they take a `--verdict`/`--min-score` you supply, they do not score anything themselves -- so the combined score from this skill's own Prose/Design + LLM-Execution scorecards (see "Combining both scorecards" above) is what you feed as `--min-score` to whichever sentinel-writer the push still requires. Wiring a dedicated sentinel and pre-push gate for this skill is a deliberate, separate next step, not an oversight.
+`tools/pre-push`'s existing gates still require `.phr-cleared`/`.code-review-cleared` for skill.md pushes regardless of whether this skill was consulted first. `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers -- the combined score from this skill's own scorecards (see "Combining both scorecards" above) is what you feed as `--min-score`. This skill's own Evidence Requirement now has mechanical teeth via `tools/run-llm-skill-review.sh` -- see reference.md's "Enforcement Detail" for the envelope format and what is/isn't wired into pre-push yet.
 
 ## Final Reminder
 

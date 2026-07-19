@@ -40,7 +40,7 @@
 //   {
 //     "claim": "no alarms wired for GreetingUnlockOutcome",
 //     "evidence": {
-//       "command": "grep -rcE 'GreetingUnlockOutcome' infra/constructs/monitoring/",
+//       "command": "grep -rE 'GreetingUnlockOutcome' infra/constructs/monitoring/",
 //       "expectation": { "type": "count", "value": "==0" },
 //       "verifiable": true,
 //       "rationale": "(optional human-readable reason for the expectation)"
@@ -56,6 +56,23 @@
 //   match     value is a regex string applied to stdout (case-sensitive)
 //   absent    `value` field is IGNORED; passes iff stdout has zero non-blank lines
 //   exact     value is a string; passes iff trimmed stdout equals value exactly
+//
+// TWO AUTHORING TRAPS with `count`/`match` (both produce a confidently-wrong
+// replay, not an obvious error):
+//   - `count` measures stdout LINE COUNT, not a parsed number. `wc -l` and
+//     single-file `grep -c` always print exactly ONE line (the digit itself),
+//     so pairing either with `count` is ALWAYS falsified even when the
+//     underlying claim is true. Recursive `grep -rc` is a related but
+//     distinct trap: it prints one `file:count` line per file SCANNED, so
+//     its line count tracks file count, not match count -- also never a
+//     reliable "no matches" signal. The example above uses plain `grep -rE`
+//     (one line per real match, zero lines on a true no-match case), never
+//     `-c` in any form.
+//   - `match` applies its regex to raw, untrimmed stdout. Most commands leave
+//     a trailing newline, and a `$`-anchored pattern ("^yes$") does NOT match
+//     before that trailing \n -- it is falsified against "yes\n" even though
+//     the command printed exactly "yes". Drop the trailing anchor or account
+//     for the newline explicitly ("^yes\\n?$").
 
 'use strict';
 

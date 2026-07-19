@@ -182,7 +182,7 @@ A finding is a claim about the artifact under review. A claim with no way to che
 {
   "claim": "no producer for the Metrics.AgentAPI.Success counter this diff references",
   "evidence": {
-    "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/ | wc -l",
+    "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/",
     "expectation": { "type": "count", "value": "==0" },
     "verifiable": true,
     "rationale": "if any producer line exists, the claim is false"
@@ -215,7 +215,15 @@ Do not submit these as `evidence.command`:
 - **A command that doesn't test the actual claim** -- a command that merely exits 0 is not the same as one that tests the assertion in the claim text. Writing some grep that happens to succeed is not evidence.
 - **Long-running commands** -- narrow scope to the specific file(s) under review rather than an unbounded repo-wide scan; a command that never returns is unverifiable, not confirmed.
 - **Undoubled backslashes in a regex command** -- `evidence.command` is a JSON string, so every backslash in a regex metacharacter (`\b`, `\s`, `\d`, `\.`, etc.) MUST be written doubled (`\\b`, `\\s`, `\\.`) in the actual JSON, not single. A single `\s` is not a legal JSON escape.
+- **Piping a `count`-type command through anything that reports a count instead of emitting one line per match** (`| wc -l`, `grep -c`, `grep -rc`) -- the verifier's `count` type counts stdout *lines*, not a parsed number. `wc -l` and single-file `grep -c` always print exactly one line (the digit itself), so `count`/`==0` against either is **always falsified** even when the claim is true (stdout is always the one line `"0\n"`). Recursive `grep -rc` is a related but distinct trap: it prints one `file:count` line per file scanned, so its line count tracks the number of files, not the number of matches -- also never a reliable stand-in for "no matches anywhere." Use a command whose own line count IS the thing being measured (plain `grep -rE 'pattern' dir/` with no `-c`, one line per real match) with `count`, or switch to `{"type": "absent"}` for a pure existence check.
+- **A `match`-type regex anchored with a trailing `$`** -- most commands (`echo`, most `grep`/`printf` invocations) leave a trailing newline in stdout, and JavaScript's `$` (without the `m` flag) matches end-of-string, not before that trailing newline. `"value": "^yes$"` against stdout `"yes\n"` is **falsified**, not verified. Either drop the trailing anchor (`"^yes"`) or account for it explicitly (`"^yes\\n?$"`).
 
 ### Why this exists
 
 A review that ships a high verdict alongside material defects is worse than a review that ships a low verdict and gets re-run -- the first looks done and isn't. Prose assertions ("no issues found," "this is safe") are cheap to produce and easy to rubber-stamp under time pressure; a falsifiable claim forces the reviewer to actually run the check it describes, and forces anyone re-reading the review later to see exactly what was and wasn't verified, rather than trusting adjectives.
+
+## Enforcement Detail
+
+`tools/run-llm-skill-review.sh --verdict <verdict> --min-score <combined-score>` gives this skill's Evidence Requirement mechanical teeth, parallel to how `tools/run-battery.sh` already does evidence replay for `code-review-battery`. It requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}`, identical to the Evidence Schema above -- and replays every `evidence.command` in it via `tools/verify-cr-battery-evidence.js` (the same verifier code-review-battery uses, unmodified) before writing `.llm-skill-review-cleared`. A falsified claim aborts the write with no sentinel. `--no-envelope` bypasses the check with a loud warning; use it only when there is genuinely nothing to verify, not as a routine shortcut.
+
+This is a **separate sentinel from `.phr-cleared`**, deliberately -- `tools/run-phr.sh` is also the sentinel-writer for plain progressive-harsh-review rounds on plans/designs that never produce an Evidence Schema envelope at all, so making it require one unconditionally would break that unrelated use case. `tools/pre-push` does **not** yet require `.llm-skill-review-cleared` for anything -- writing it today is additive discipline on top of the existing `.phr-cleared` requirement, not a replacement. Whether to make it a required pre-push gate (and whether that should supersede or supplement the PHR requirement specifically for skill.md/reference.md changes) is a deliberate, separate decision, not something this script assumes on its own.
