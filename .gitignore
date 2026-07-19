@@ -56,6 +56,9 @@ npm-debug.log*
 # PHR sentinel (written by tools/run-phr.sh, read by pre-push Gate 4)
 # Never commit — HEAD-specific and machine-local
 .phr-cleared
+# llm-skill-review evidence-replay sentinel (written by tools/run-llm-skill-review.sh)
+# Never commit — HEAD-specific and machine-local
+.llm-skill-review-cleared
 # Branch-flow sentinel (written by tools/branch-flow-preflight.sh, read by Gate 3)
 # Never commit — HEAD-specific and machine-local
 .branch-flow-cleared
@@ -95,3 +98,6 @@ hooks/run-hook.cmd
 # cr-battery per-engineer run preservation (durable Phase 6 reports)
 .cr-battery-runs/
 MODULAR-MIGRATION-PROMPT.md
+
+# Isolated per-task worktrees (each is its own git checkout under its own branch)
+.worktrees/
