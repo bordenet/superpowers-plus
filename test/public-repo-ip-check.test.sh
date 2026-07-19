@@ -351,6 +351,51 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# --stdin mode: scan arbitrary text (e.g. a PR title/body) with no git repo
+# and no file on disk involved. This is the mechanism the PR-content IP scan
+# CI job relies on to catch banned terms that only ever exist in PR title/
+# body text -- content a local commit-msg hook or diff-based scan never
+# sees, since GitHub's server-side squash-merge builds the merge commit
+# message from the PR's title+body, not from any local commit.
+# ---------------------------------------------------------------------------
+repo="$TMP_ROOT/stdin-clean-text"
+new_repo "$repo"
+if (cd "$repo" && printf 'feat: add a helpful feature\n\nNo sensitive terms here.\n' \
+    | bash tools/public-repo-ip-check.sh --stdin --stdin-label "PR title/body" >/dev/null 2>&1); then
+    pass "--stdin mode passes on clean text"
+else
+    fail "--stdin mode should pass on clean text"
+fi
+
+repo="$TMP_ROOT/stdin-plaintext-pattern-hit"
+new_repo "$repo"
+if (cd "$repo" && printf 'fix: resolve AcmeSecret regression\n' \
+    | bash tools/public-repo-ip-check.sh --stdin --stdin-label "PR title/body" >/dev/null 2>&1); then
+    fail "--stdin mode should fail on a plaintext-pattern match"
+else
+    pass "--stdin mode catches a plaintext-pattern match"
+fi
+
+repo="$TMP_ROOT/stdin-hash-banned-term-hit"
+new_repo "$repo"
+if (cd "$repo" && printf 'chore: port AcmeTestCodename improvements upstream\n' \
+    | BANNED_HASH_TEST_OVERRIDE="$FAKE_HASH" bash tools/public-repo-ip-check.sh --stdin --stdin-label "PR title/body" >/dev/null 2>&1); then
+    fail "--stdin mode should fail on a hash-banned term"
+else
+    pass "--stdin mode catches a hash-banned term via the same denylist commit messages use"
+fi
+
+repo="$TMP_ROOT/stdin-label-appears-in-output"
+new_repo "$repo"
+out="$(cd "$repo" && printf 'fix: resolve AcmeSecret regression\n' \
+    | bash tools/public-repo-ip-check.sh --stdin --stdin-label "PR title/body scan" 2>&1 || true)"
+if [[ "$out" == *"PR title/body scan"* ]]; then
+    pass "--stdin-label appears in output so a CI failure names what was scanned"
+else
+    fail "--stdin-label should appear in output, got: $out"
+fi
+
+# ---------------------------------------------------------------------------
 # Missing-python3 visibility (llm-skill-review, 2026-07-17, S1 fix).
 # added_lines_have_banned_hash/file_has_banned_hash previously returned
 # "clean" with ZERO warning when python3 was absent -- the hash-obfuscated

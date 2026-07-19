@@ -6,6 +6,7 @@
 #
 # Usage: ./public-repo-ip-check.sh [--patterns "REGEX"] [--history] [--verbose]
 #                                   [--staged-only] [--range RANGE] [--all-files]
+#                                   [--stdin [--stdin-label LABEL]]
 #
 # Options:
 #   --patterns "REGEX"  Custom pattern regex (default: repo/local pattern files)
@@ -14,6 +15,9 @@
 #   --staged-only       Check only staged additions (used by pre-commit)
 #   --range RANGE       Check only a commit range (used by pre-push)
 #   --all-files         Diagnostic mode: scan all tracked files, not just new changes
+#   --stdin             Scan arbitrary text piped on stdin (e.g. a PR title/body)
+#                        instead of any git-derived source. Requires no git repo.
+#   --stdin-label LABEL Label used in output for --stdin mode (default: "stdin text")
 #
 # Exit codes:
 #   0 - PASS: No IP found
@@ -50,6 +54,8 @@ VERBOSE=false
 STAGED_ONLY=false
 ALL_FILES=false
 COMMIT_RANGE=""
+STDIN_MODE=false
+STDIN_LABEL="stdin text"
 LOADED_PATTERN_FILES=()
 
 # Parse arguments
@@ -82,8 +88,17 @@ while [[ $# -gt 0 ]]; do
             ALL_FILES=true
             shift
             ;;
+        --stdin)
+            STDIN_MODE=true
+            shift
+            ;;
+        --stdin-label)
+            [[ $# -ge 2 ]] || { echo "Missing value for --stdin-label"; exit 2; }
+            STDIN_LABEL="$2"
+            shift 2
+            ;;
         -h|--help)
-            echo "Usage: $0 [--patterns \"REGEX\"] [--history] [--verbose] [--staged-only] [--range RANGE] [--all-files]"
+            echo "Usage: $0 [--patterns \"REGEX\"] [--history] [--verbose] [--staged-only] [--range RANGE] [--all-files] [--stdin [--stdin-label LABEL]]"
             echo ""
             echo "Options:"
             echo "  --patterns \"REGEX\"  Custom pattern regex"
@@ -92,6 +107,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --staged-only       Check only staged additions"
             echo "  --range RANGE       Check only a commit range"
             echo "  --all-files         Scan all tracked files (diagnostic)"
+            echo "  --stdin             Scan text piped on stdin (e.g. a PR title/body)"
+            echo "  --stdin-label LABEL Label for --stdin mode output"
             exit 0
             ;;
         *)
@@ -350,6 +367,33 @@ check_diff_stream() {
     return 0
 }
 
+check_stdin_text() {
+    local label="$1"
+    local text
+    text="$(cat)"
+
+    local matches
+    matches="$(printf '%s\n' "$text" | grep -ciE "$PATTERNS" || true)"
+    if [[ "$matches" -gt 0 ]]; then
+        echo "  ❌ FAIL: IP found in ${label} ($matches pattern match(es))"
+        if [[ "$VERBOSE" == "true" ]]; then
+            echo "  --- verbose output (may contain sensitive identifiers) ---"
+            printf '%s\n' "$text" | grep -niE "$PATTERNS" | indent_output || true
+        fi
+        return 1
+    fi
+
+    if [[ "$PYTHON3_AVAILABLE" == "true" && -f "$BANNED_HASH_SCRIPT" ]]; then
+        if ! printf '%s' "$text" | python3 "$BANNED_HASH_SCRIPT" >/dev/null 2>&1; then
+            echo "  ❌ FAIL: banned internal term detected in ${label}"
+            return 1
+        fi
+    fi
+
+    echo "  ✓ ${label} clean"
+    return 0
+}
+
 check_commit_metadata() {
     local range="$1"
     local bad_emails
@@ -389,7 +433,10 @@ if [[ "$ALL_FILES" == "true" ]]; then
     check_all_tracked_files || FAILED=true
 fi
 
-if [[ -n "$COMMIT_RANGE" ]]; then
+if [[ "$STDIN_MODE" == "true" ]]; then
+    echo "▶ Checking ${STDIN_LABEL}..."
+    check_stdin_text "$STDIN_LABEL" || FAILED=true
+elif [[ -n "$COMMIT_RANGE" ]]; then
     echo "▶ Checking commit range..."
     echo "  Range: $COMMIT_RANGE"
     check_diff_stream "commit range" git log -p --no-ext-diff --unified=0 "$COMMIT_RANGE" -- . ':(exclude).ip-patterns' ':(exclude).ip-check-patterns' || FAILED=true
