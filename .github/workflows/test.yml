@@ -151,6 +151,9 @@ jobs:
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
+      - name: MCP checks tests (BATS)
+        run: bats tests/mcp-checks-test.bats
+
       - name: TODO lock tests
         run: bash tools/tests/test_todo_lock.sh
 
