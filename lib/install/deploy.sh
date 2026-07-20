@@ -1131,6 +1131,22 @@ install_skills() {
 
         [[ "$dir_name" == _* ]] && continue  # Skip _shared, _archive, _adapters, etc.
 
+        # --categories filtering: CATEGORIES is a comma-separated allowlist of
+        # top-level skills/ directory names (install.sh resolves and exports
+        # it; empty means "install everything", the default/only behavior
+        # before this option existed). _shared/ is deployed separately below
+        # regardless of this filter -- it's shared infra referenced by
+        # skills, not a persona-selectable category itself.
+        if [[ -n "${CATEGORIES:-}" ]]; then
+            local _category_match=false
+            local _cat
+            IFS=',' read -ra _selected_categories <<< "$CATEGORIES"
+            for _cat in "${_selected_categories[@]}"; do
+                [[ "$dir_name" == "$_cat" ]] && { _category_match=true; break; }
+            done
+            [[ "$_category_match" == false ]] && continue
+        fi
+
         if [[ -f "$domain_or_skill/skill.md" ]] || [[ -f "$domain_or_skill/SKILL.md" ]]; then
             local _dn
             _dn=$(_skill_dest_name "$domain_or_skill")

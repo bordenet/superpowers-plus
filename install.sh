@@ -98,6 +98,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_DIR="${HOME}/.codex"
 SKILLS_DIR="${CODEX_DIR}/skills"
 
+# --uninstall is a discoverability alias for the dedicated uninstall.sh --
+# checked before the full argument-parsing loop below (and before any of
+# install.sh's own setup runs) so it can hijack execution immediately,
+# forwarding every other arg unchanged. uninstall.sh is more thorough
+# (dry-run, manifest-driven removal, shared-artifact detection) and remains
+# the primary documented uninstall path; this is purely a convenience entry
+# point for anyone who reaches for `install.sh --uninstall` out of habit.
+for _arg in "$@"; do
+    if [[ "$_arg" == "--uninstall" ]]; then
+        _uninstall_args=()
+        for _a in "$@"; do
+            [[ "$_a" == "--uninstall" ]] && continue
+            _uninstall_args+=("$_a")
+        done
+        exec bash "${SCRIPT_DIR}/uninstall.sh" "${_uninstall_args[@]}"
+    fi
+done
+unset _arg _a _uninstall_args
+
 # Platform-specific skill deployment paths
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
 CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
@@ -112,6 +131,11 @@ VERBOSE=false
 UPGRADE=false
 CHECK=false
 YES=false
+# Comma-separated skills/ top-level category names (e.g. "engineering,writing"),
+# or empty (default) for all categories. "all" explicitly resets to everything
+# and clears any persisted selection from a prior --categories run.
+CATEGORIES=""
+CATEGORIES_STATE_FILE="${HOME}/.codex/superpowers-install-categories"
 # Skip all Augment-specific deployment steps. Off by default.
 # Honors SKIP_AUGMENT env var so chain installers propagate without arg parsing.
 # Track inheritance so we can warn if it came from the ambient env (CI leakage).
@@ -247,6 +271,24 @@ OPTIONS
         them manually if you want a fully clean state. Honors the SKIP_AUGMENT
         environment variable, which chain installers use to propagate the flag.
 
+    --categories <list>
+        Install only the given comma-separated skills/ top-level categories
+        (e.g. "engineering,writing") instead of everything. Run with no
+        value given to see the available category names (any skills/*/
+        directory name not starting with "_"). The selection is remembered
+        in ~/.codex/superpowers-install-categories and reused automatically
+        on a bare re-run (no --categories flag at all) — pass
+        --categories=all to explicitly install everything and clear any
+        remembered selection. Default (flag never used): install everything,
+        exactly as before this option existed.
+
+    --uninstall [args...]
+        Alias for ./uninstall.sh [args...] — forwards every other argument
+        unchanged and exits with its exit code. uninstall.sh itself remains
+        the primary, more thorough uninstall path (dry-run support,
+        manifest-driven removal); this exists purely so `install.sh
+        --uninstall` also works for anyone who reaches for it out of habit.
+
     --version
         Display version information and exit
 
@@ -311,6 +353,10 @@ while [[ $# -gt 0 ]]; do
         --force) FORCE=true; shift ;;
         --upgrade|--update) UPGRADE=true; shift ;;
         --skip-augment) SKIP_AUGMENT=true; _SKIP_AUGMENT_FROM_ENV=false; shift ;;
+        --categories)
+            [[ $# -ge 2 ]] || { printf '%b\n' "${RED}Error: --categories requires a value${NC}" >&2; exit 1; }
+            CATEGORIES="$2"; shift 2 ;;
+        --categories=*) CATEGORIES="${1#--categories=}"; shift ;;
         --version) echo "install.sh version $VERSION"; exit 0 ;;
         *)
             printf '%b\n' "${RED}Error: Unknown option $1${NC}" >&2
@@ -334,6 +380,79 @@ if [[ "${SKIP_AUGMENT:-false}" == "true" ]] && [[ "$_SKIP_AUGMENT_FROM_ENV" == "
     log_warn "  Augment-specific install steps will be skipped. Unset SKIP_AUGMENT to opt back in."
 fi
 unset _SKIP_AUGMENT_FROM_ENV
+
+# --- Resolve --categories (explicit flag > remembered selection > everything) ---
+# List valid category names once: any skills/*/ directory not starting with
+# "_" (matches install_skills()'s own filtering convention in deploy.sh).
+_available_categories() {
+    local d name
+    for d in "${SCRIPT_DIR}/skills/"*/; do
+        [[ -d "$d" ]] || continue
+        name=$(basename "$d")
+        [[ "$name" == _* ]] && continue
+        echo "$name"
+    done
+}
+
+# Validates a comma-separated category list against _available_categories().
+# Prints the specific problem to stderr and returns 1 on any failure (a
+# newline embedded in the value, or any unknown category name); the CALLER
+# decides how to react (explicit --categories: hard error/exit; a remembered
+# selection loaded from the state file: warn and fall back to installing
+# everything, rather than silently truncating at the first line or silently
+# installing nothing for an unrecognized name -- both real bugs found in
+# review before this validation existed).
+_validate_categories() {
+    local candidate="$1"
+    if [[ "$candidate" == *$'\n'* ]]; then
+        printf '%b\n' "${RED}Error: category list contains a newline (expected a single comma-separated line)${NC}" >&2
+        return 1
+    fi
+    local _valid_categories
+    _valid_categories=$(_available_categories)
+    local -a _requested
+    IFS=',' read -ra _requested <<< "$candidate"
+    local _cat _bad=false
+    for _cat in "${_requested[@]}"; do
+        if ! grep -qxF "$_cat" <<< "$_valid_categories"; then
+            printf '%b\n' "${RED}Error: unknown category '${_cat}'${NC}" >&2
+            _bad=true
+        fi
+    done
+    if [[ "$_bad" == true ]]; then
+        echo "Available categories:" >&2
+        while IFS= read -r _valid_cat; do
+            echo "  - ${_valid_cat}" >&2
+        done <<< "$_valid_categories"
+        return 1
+    fi
+    return 0
+}
+
+if [[ "$CATEGORIES" == "all" ]]; then
+    CATEGORIES=""
+    rm -f "$CATEGORIES_STATE_FILE" 2>/dev/null || true
+    log_verbose "--categories=all: installing everything; cleared remembered selection"
+elif [[ -n "$CATEGORIES" ]]; then
+    _validate_categories "$CATEGORIES" || exit 1
+    create_dir "$CODEX_DIR"
+    printf '%s\n' "$CATEGORIES" > "$CATEGORIES_STATE_FILE"
+    log_info "Installing categories: ${CATEGORIES} (remembered for future bare re-runs)"
+elif [[ -f "$CATEGORIES_STATE_FILE" ]]; then
+    _remembered="$(cat "$CATEGORIES_STATE_FILE" 2>/dev/null || true)"
+    if [[ -n "$_remembered" ]]; then
+        if _validate_categories "$_remembered" 2>/dev/null; then
+            CATEGORIES="$_remembered"
+            log_info "Reusing remembered category selection: ${CATEGORIES} (pass --categories=all to install everything)"
+        else
+            log_warn "Remembered category selection in ${CATEGORIES_STATE_FILE} is invalid (stale or corrupted) — installing everything instead"
+            log_warn "  Run with --categories=<list> to set a new selection, or --categories=all to clear this warning"
+            rm -f "$CATEGORIES_STATE_FILE" 2>/dev/null || true
+        fi
+    fi
+    unset _remembered
+fi
+export CATEGORIES
 
 # --- Validate and Summarize (kept in orchestrator for visibility) ---
 
