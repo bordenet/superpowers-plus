@@ -146,28 +146,28 @@ If mismatch → ABORT, restore from backup, report error.
 
 ### By keyword
 
-```bash
+```text
 search archived todos for "alarm tuning"
 → grep -rn "alarm tuning" "$ARCHIVE_DIR"/*.md
 ```
 
 ### By issue ID
 
-```bash
+```text
 search archived todos for PROJ-$1
 → grep -rn "PROJ-$1" "$ARCHIVE_DIR"/*.md
 ```
 
 ### By month
 
-```bash
+```text
 show archived todos from March 2026
 → cat "$ARCHIVE_DIR/2026-03.md"
 ```
 
 ### By date range
 
-```bash
+```text
 show archived todos from 2026-02-01 to 2026-03-15
 → cat 2026-02.md 2026-03.md (then filter by date headers)
 ```

@@ -81,7 +81,7 @@ node ~/.codex/superpowers-augment/superpowers-augment.js find-skills explicit   
 ### Step 4: Load a Specific Skill
 
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <skill-name>
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill "<skill-name>"
 ```
 
 ---

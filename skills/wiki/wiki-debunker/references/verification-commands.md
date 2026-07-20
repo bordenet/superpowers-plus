@@ -34,7 +34,7 @@ repo_get_pull_request_threads(repository: "your-service", pullRequestId: 47)
 
 ## Issue Tracker Verification
 
-```bash
+```text
 # Find ticket by topic
 issue tracker query: "Search issues mentioning 'Telnyx' in Your Team"
 
@@ -53,7 +53,7 @@ issue tracker query: "Get comments on TICKET-89 containing 'decided'"
 
 ## Work Item / Build Verification
 
-```bash
+```text
 # Use your issue tracker adapter
 issue_get(id: 1234)
 issue_get_comments(id: 1234)

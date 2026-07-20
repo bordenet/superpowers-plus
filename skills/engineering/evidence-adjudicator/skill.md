@@ -50,7 +50,7 @@ For each hypothesis (branch):
 3. Calculate net evidence strength: `Σ(supporting × confidence) - Σ(disconfirming × confidence)`
 4. Arrange into a tree structure:
 
-```bash
+```text
 Root: "What caused the incident?"
 ├── H1: "Event ordering bug" (net: +2.4)
 │   ├── [+] Deployment correlation (0.85)

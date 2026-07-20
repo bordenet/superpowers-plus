@@ -64,7 +64,7 @@ fi
 
 ```bash
 WIKI_API_KEY="$WIKI_API_KEY" WIKI_API_URL="$WIKI_API_URL" \
-  ~/.codex/superpowers-plus/tools/wiki-read.sh get <id-or-slug-or-url>
+  ~/.codex/superpowers-plus/tools/wiki-read.sh get "<id-or-slug-or-url>"
 WIKI_API_KEY="$OUTLINE_API_KEY" WIKI_API_URL="$WIKI_API_URL" \
   ~/.codex/superpowers-plus/tools/wiki-read.sh search "query"
 ```

@@ -84,7 +84,7 @@ the description is fiction.
 
 ## The Gate Function
 
-```bash
+```text
 BEFORE making ANY claim about generated output:
 
 1. IDENTIFY: What output am I about to describe?

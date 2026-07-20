@@ -14,11 +14,11 @@
   },
   "file_hashes": {
     "tools/commit-gate.sh": "9e812bbe7a11351117b25306a9cce6c6f471d3455b14f1a847dbb77f380ec4e8",
-    "tools/public-repo-ip-check.sh": "d2042c817d827aefde4b924e4c527ff10837e0265daf70344fdacd2789bf7827",
+    "tools/public-repo-ip-check.sh": "8bd185f3c95c100ed8c0ec0a88af8b36e40b213df6dc61d15e902b3711ffa116",
     "tools/dangerous-pattern-scan.sh": "b29e053f8559a9c4175cb105e699e4c3832a0bd02bca498503334bd79231f80b",
     "tools/run-battery.sh": "23234c193e732556dc67f43c8dcd3447f2d66b03014eaa3fc19c339a34e9a638",
     "tools/sp-doctor.sh": "aac3ed8bfbe5f5367b76bc2e825de0b79259d7e817c28624cd58cb550641d2f5",
-    "lib/install/deploy.sh": "3de8d214437f149614d8a45ac6772ddc324ce09d82dbd62a759184033e971b4e",
+    "lib/install/deploy.sh": "07b681ee4cbc266f18973e702caf89814218bf8530cf53e5b4568639699c15e7",
     "lib/install/deps.sh": "1422b09a5e55d4c5e191d793c77494e2032d7a0ec34916e91a18f20f7fd7f85a",
     "lib/install/logging.sh": "4553cec5e2dd35d5ed22d0c1c9879e4a8913f5ed35b56f1738438c7a6af131d2",
     "lib/install/migrate.sh": "4a83d8879528e187ddaac6a09b6c3ec1a8e226ceb9eb2312edff65210e1badd3",

@@ -127,8 +127,6 @@ Patterns:
   exfiltration: (send|upload|post|share|transmit|forward|email)\s+.*(all|every|entire|contents\s+of)\s+.*(secret|key|token|credential|password|\.env|\.ssh)
   git:         (force[\s-]push|rewrite\s+history|reset\s+.*hard|delete\s+.*branch)
 
-```bash
-
 
 ## Domain Allowlist (Curl-Pipe)
 

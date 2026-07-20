@@ -63,7 +63,7 @@ This skill enables superpowers-plus to extend itself. Three modes:
 
 **Response:**
 
-```bash
+```text
 I'll help create a TypeScript strict mode skill.
 
 **Proposed skill:**

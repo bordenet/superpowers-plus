@@ -148,9 +148,9 @@ Note: this check is meant to be run *immediately after the two forward-port PRs*
 
 ```bash
 # Anti-leak triggers (server-side prevent_secrets=true will reject):
-grep -nE '(internal|secret|codename|token|password|apikey)-[a-z0-9-]{4,}' -- <files>
-grep -nE 'AKIA[0-9A-Z]{16}|sk_live_|ghp_|glpat-' -- <files>
-LC_ALL=C grep -nP '[^\x00-\x7F]' -- <files>   # non-ASCII
+grep -nE '(internal|secret|codename|token|password|apikey)-[a-z0-9-]{4,}' -- "<files>"
+grep -nE 'AKIA[0-9A-Z]{16}|sk_live_|ghp_|glpat-' -- "<files>"
+LC_ALL=C grep -nP '[^\x00-\x7F]' -- "<files>"   # non-ASCII
 ```
 
 Server-side hooks also enforce:
@@ -165,23 +165,23 @@ Server-side hooks also enforce:
 ```bash
 # DO NOT create feat/foo-v2.
 git commit --amend                          # or: git commit -m "fix: address review"
-git push --force-with-lease origin <branch>
+git push --force-with-lease origin "<branch>"
 # Re-trigger CI, re-request review.
 ```
 
 ### Recipe B: Cross-repo cherry-pick with sanitization
 
 ```bash
-git checkout -B feat/port-from-upstream origin/<your-target>
-git cherry-pick <sha>
+git checkout -B feat/port-from-upstream "origin/<your-target>"
+git cherry-pick "<sha>"
 # Sanitize anti-leak triggers
 sed -i 's/<company>-internal-secret-codename/FAKE-LEAK-PATTERN-FOR-TEST/g' tests/*
 # Drop platform-specific paths if porting GitHub -> GitLab
-git checkout origin/<your-target> -- .github/ 2>/dev/null || true
+git checkout "origin/<your-target>" -- .github/ 2>/dev/null || true
 git commit --amend --no-edit
 git push -u origin feat/port-from-upstream
-tools/branch-flow-preflight.sh feat/port-from-upstream <your-target>
-glab mr create --source-branch feat/port-from-upstream --target-branch <your-target> --yes
+tools/branch-flow-preflight.sh feat/port-from-upstream "<your-target>"
+glab mr create --source-branch feat/port-from-upstream --target-branch "<your-target>" --yes
 glab mr merge --remove-source-branch --yes
 ```
 

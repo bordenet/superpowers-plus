@@ -69,7 +69,7 @@ Run commands manually in your terminal if you need to proceed.
 Only shown when the domain matches `domain-allowlist-local.md`. Without a local
 allowlist, all curl-pipe commands produce the standard BLOCK output above.
 
-```bash
+```text
 WIKI INSTRUCTION GUARD — Confirmation Required
 
 Page: "[page title]"

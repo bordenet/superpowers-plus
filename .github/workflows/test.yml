@@ -132,6 +132,9 @@ jobs:
       - name: Scope tripwire check tests (BATS)
         run: bats test/scope-tripwire-check.bats
 
+      - name: Fence-scan tests (BATS)
+        run: bats test/fence-scan.bats
+
       - name: Sentinel fast-forward tests (BATS)
         run: bats tests/try-sentinel-fast-forward-test.bats
 
@@ -147,6 +150,9 @@ jobs:
         run: bash tools/tests/test_doctor_checks.sh
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
+
+      - name: MCP checks tests (BATS)
+        run: bats tests/mcp-checks-test.bats
 
       - name: TODO lock tests
         run: bash tools/tests/test_todo_lock.sh
@@ -171,6 +177,11 @@ jobs:
             exit 1
           fi
           echo "PASS: $ACTUAL skills match declared count in docs/SKILLS.md"
+
+      - name: Full-corpus fence-scan (all skills/**/*.md)
+        run: |
+          mapfile -t MD_FILES < <(find skills -name "*.md")
+          bash tools/fence-scan.sh "${MD_FILES[@]}"
 
   security-scan:
     name: Security Scan

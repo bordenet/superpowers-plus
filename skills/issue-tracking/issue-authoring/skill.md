@@ -152,7 +152,7 @@ Configure workflow states for your platform. Common patterns:
 
 ## Pre-Flight Checklist
 
-```bash
+```text
 Before creating issue:
 1. SEARCH — Check for duplicates
 2. VALIDATE — Labels and assignee exist

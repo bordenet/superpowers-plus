@@ -80,7 +80,7 @@ If completely_separate_trees(A.modifies, B.modifies): score = 2
 
 ### Interface Coupling Scoring
 
-```bash
+```text
 shared_signatures = functions/methods that A exports AND B calls (or vice versa)
 If |shared_signatures| > 0: score = 0
 shared_types = types/structs used by both A and B
