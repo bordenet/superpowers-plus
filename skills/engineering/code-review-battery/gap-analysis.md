@@ -66,7 +66,7 @@ When a gap is discovered:
 
 ## Candidate Validation Workflow
 
-```bash
+```text
 proposed → validating → validated → graduated
                 ↓              ↓
              rejected       rejected (regression)

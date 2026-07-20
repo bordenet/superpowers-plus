@@ -81,7 +81,7 @@ Build a list. For each row, note the binary, subcommand, and any explicit flags.
 
 ```bash
 # Do NOT truncate — scope/namespace flags often appear past line 80
-<cli> <subcommand> --help 2>&1
+"<cli>" "<subcommand>" --help 2>&1
 ```
 
 If the output is long: `<cli> <subcommand> --help 2>&1 | less` or redirect to a temp file. Confirm you can see all flag descriptions before proceeding.
@@ -97,7 +97,7 @@ For each CLI, determine whether it uses the working directory to resolve scope, 
 
 ```bash
 # Search the help output for CWD indicators (heuristic only — see caveat below):
-<cli> <subcommand> --help 2>&1 | grep -iE "(current directory|project root|local|working dir|\.git)"
+"<cli>" "<subcommand>" --help 2>&1 | grep -iE "(current directory|project root|local|working dir|\.git)"
 ```
 
 > ⚠️ **CWD grep caveat:** A negative result does NOT confirm the CLI is CWD-agnostic — a CLI can be CWD-sensitive without using any of these keywords in its `--help` output. (Example: `claude mcp add` is CWD-sensitive but `--help` does not mention the working directory.) Always cross-check the official documentation for each CLI's scope resolution behavior.

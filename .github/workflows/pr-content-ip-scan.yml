@@ -1,0 +1,42 @@
+name: PR Content IP Scan
+
+# Scans a pull request's TITLE and BODY text for banned internal terms
+# before merge is allowed. This closes a gap the diff/commit-message-based
+# scans in test.yml's Security Scan job cannot: GitHub's server-side
+# squash-merge builds the final merge commit message from the PR's title
+# and body (typed via the web UI or API), not from any local commit --
+# so a banned term that only ever appears in PR title/body text sails
+# through every local commit-msg hook and pre-push gate untouched, and
+# only becomes visible in git history after the merge has already happened.
+#
+# Uses pull_request_target (not pull_request) deliberately: this workflow
+# file must run using the BASE branch's version of itself, not the PR
+# branch's -- otherwise a PR could edit this very file to neuter its own
+# gate. This is the standard-safe pull_request_target pattern: the PR's
+# head ref is never checked out and no PR-controlled code ever executes;
+# only two plain text fields (title, body) are read, via `env:` (never
+# interpolated directly into a shell script) to avoid script injection.
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main, staging, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-content-ip-scan:
+    name: PR Content IP Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Scan PR title + body for banned terms
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" \
+            | bash tools/public-repo-ip-check.sh --stdin --stdin-label "PR title/body (#${{ github.event.pull_request.number }})"

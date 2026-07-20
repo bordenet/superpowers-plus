@@ -225,8 +225,8 @@ After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → fl
 
 ```bash
 # tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
-tools/run-battery.sh --verdict PASS --min-score <threshold>           # no unresolved nits
-tools/run-battery.sh --verdict PASS_WITH_NITS --min-score <threshold> # Minor nits remain unresolved
+tools/run-battery.sh --verdict PASS --min-score "<threshold>"         # no unresolved nits
+tools/run-battery.sh --verdict PASS_WITH_NITS --min-score "<threshold>" # Minor nits remain unresolved
 ```
 
 > ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`.

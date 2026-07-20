@@ -87,7 +87,7 @@ enforce-style-guide (2) → progressive-code-review-gate (3) → professional-la
 
 ## The Gate Function
 
-```bash
+```text
 BEFORE EVERY COMMIT:
 
 0. Did I run `dangerous-pattern-scan.sh`? (if .sh files staged — zero blocked patterns)

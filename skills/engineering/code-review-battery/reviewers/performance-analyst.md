@@ -74,7 +74,7 @@ Example for a finding:
 {
   "claim": "no producer for Metrics.AgentAPI.Success",
   "evidence": {
-    "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/ | wc -l",
+    "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/",
     "expectation": { "type": "count", "value": "==0" },
     "verifiable": true,
     "rationale": "if any producer line exists, the claim is false"

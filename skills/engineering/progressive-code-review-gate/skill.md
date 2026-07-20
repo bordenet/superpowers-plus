@@ -98,7 +98,7 @@ The monolithic reviewer MUST receive:
 3. Instruction to read full source files
 4. The monolithic checklist covering all review dimensions:
 
-```bash
+```text
 Review the code changes in {repo_path}.
 Run `cd {repo_path} && {exact_diff_command}` to see the diff.
 Read the full source files for all changed code.
