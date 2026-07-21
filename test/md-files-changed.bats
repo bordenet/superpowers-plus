@@ -187,3 +187,85 @@ setup() {
     run bash "$SCRIPT" --bogus
     [ "$status" -eq 3 ]
 }
+
+# ---------------------------------------------------------------------------
+# --llm-owned / --exclude-llm-owned: the PHR-vs-llm-skill-review ownership
+# split. skills/*.md, .ai-guidance/*.md, and any AGENTS.md-family basename
+# (at any path depth) are llm-skill-review-exclusive; everything else in the
+# AI-guidance-relevant set remains PHR's.
+# ---------------------------------------------------------------------------
+
+@test "md-files-changed: --llm-owned narrows to skills/*.md" {
+    run bash "$SCRIPT" --files "skills/foo/skill.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "skills/foo/skill.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes root AGENTS.md" {
+    run bash "$SCRIPT" --files "AGENTS.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "AGENTS.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md" {
+    local input
+    input=$'CLAUDE.md\nGEMINI.md\nCODEX.md\nCOPILOT.md\nAGENT.md'
+    run bash "$SCRIPT" --files "$input" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"CLAUDE.md"* ]]
+    [[ "$output" == *"GEMINI.md"* ]]
+    [[ "$output" == *"CODEX.md"* ]]
+    [[ "$output" == *"COPILOT.md"* ]]
+    [[ "$output" == *"AGENT.md"* ]]
+}
+
+@test "md-files-changed: --llm-owned includes a nested AGENTS.md (not just repo root)" {
+    run bash "$SCRIPT" --files "guidance/AGENTS.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "guidance/AGENTS.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes .ai-guidance/*.md" {
+    run bash "$SCRIPT" --files ".ai-guidance/invariants.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == ".ai-guidance/invariants.md" ]]
+}
+
+@test "md-files-changed: --llm-owned excludes docs/*.md and other root uppercase .md" {
+    local input
+    input=$'docs/architecture.md\nDESIGN.md'
+    run bash "$SCRIPT" --files "$input" --llm-owned
+    [ "$status" -eq 1 ]
+    [[ -z "$output" ]]
+}
+
+@test "md-files-changed: --exclude-llm-owned drops AGENTS.md but keeps docs/*.md and DESIGN.md" {
+    local input
+    input=$'AGENTS.md\ndocs/architecture.md\nDESIGN.md\nskills/foo/skill.md\n.ai-guidance/x.md'
+    run bash "$SCRIPT" --files "$input" --exclude-llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"docs/architecture.md"* ]]
+    [[ "$output" == *"DESIGN.md"* ]]
+    [[ "$output" != *"AGENTS.md"* ]]
+    [[ "$output" != *"skills/foo/skill.md"* ]]
+    [[ "$output" != *".ai-guidance/x.md"* ]]
+}
+
+@test "md-files-changed: --exclude-llm-owned on an all-llm-owned list exits 1 (empty)" {
+    local input
+    input=$'AGENTS.md\nskills/foo/skill.md\n.ai-guidance/x.md'
+    run bash "$SCRIPT" --files "$input" --exclude-llm-owned
+    [ "$status" -eq 1 ]
+    [[ -z "$output" ]]
+}
+
+@test "md-files-changed: --llm-owned and --exclude-llm-owned together is a usage error" {
+    run bash "$SCRIPT" --llm-owned --exclude-llm-owned
+    [ "$status" -eq 3 ]
+}
+
+@test "md-files-changed: default (undecorated) output still includes .ai-guidance/*.md" {
+    run bash "$SCRIPT" --files ".ai-guidance/invariants.md"
+    [ "$status" -eq 0 ]
+    [[ "$output" == ".ai-guidance/invariants.md" ]]
+}

@@ -8,7 +8,12 @@
 # .code-review-cleared (format: v1|SHA|VERDICT|TIMESTAMP[|min-score=N]) when
 # it passes PASS or PASS_WITH_NITS; this gate verifies the clearance exists,
 # matches the pushed ref SHA, and has a passing verdict. Docs-only pushes
-# (prose/metadata that cannot alter runtime behavior) are exempt.
+# (prose/metadata that cannot alter runtime behavior) are exempt -- as is any
+# file owned exclusively by the llm-skill-review gate (skills/*.md,
+# .ai-guidance/*.md, and any AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/
+# COPILOT.md/AGENT.md file at any path depth -- see
+# tools/pre-push-llm-skill-review-gate.sh's header for why that gate
+# supersedes, not supplements, this one for that file class).
 #
 # Bypass:  Local git hooks can be bypassed with --no-verify. This is a
 #          workflow gate, not a security boundary. For hard enforcement, add
@@ -40,16 +45,18 @@ SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 REMOTE_NAME="${1:-origin}"
 
 # Reads filenames from stdin, prints the first one that is classified as code,
-# or prints nothing if all files are docs/metadata. AGENTS.md / CLAUDE.md are
-# policy files treated as code; skills/**/*.md is exempted -- owned exclusively
-# by the llm-skill-review gate, not this one (see
-# tools/pre-push-llm-skill-review-gate.sh's header) -- but any OTHER file
-# under skills/ (scripts, configs, etc.) is still code; .md/.txt/.rst
-# elsewhere and well-known root metadata files are exempted.
+# or prints nothing if all files are docs/metadata. skills/**/*.md is
+# exempted -- owned exclusively by the llm-skill-review gate, not this one
+# (see tools/pre-push-llm-skill-review-gate.sh's header) -- but any OTHER
+# file under skills/ (scripts, configs, etc.) is still code. AGENTS.md /
+# CLAUDE.md (and GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any path depth)
+# are likewise owned exclusively by llm-skill-review, not treated as code
+# here -- they fall through to the generic .md/.txt/.rst exemption below,
+# same as any other prose file. .md/.txt/.rst elsewhere and well-known root
+# metadata files are exempted too.
 _first_code_file() {
     awk '
         /^\s*$/                             { next }
-        /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
         /^skills\/.*\.md$/                  { next }
         /^skills\//                         { print; next }
         /\.(md|txt|rst)$/                   { next }
