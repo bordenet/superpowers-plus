@@ -227,7 +227,7 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, and **supersedes** -- not supplements -- the PHR and code-review gates for that file class (both explicitly exclude `skills/*.md`; see each gate's own header). One review, not two or three redundant ones. `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose*.
+`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, and **supersedes** -- not supplements -- the PHR and code-review gates for that file class (both explicitly exclude `skills/*.md`; see each gate's own header). A `skills/*.md`-only push therefore needs exactly one review, not two or three redundant ones (a push touching other file classes too still needs their own gates). `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose*.
 
 ## Final Reminder
 
