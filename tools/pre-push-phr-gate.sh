@@ -4,17 +4,23 @@
 # pre-push-phr-gate.sh
 #
 # Gate 5 of the pre-push composer: requires .phr-cleared when the push range
-# touches PHR-eligible files EXCLUDING skills/*.md (docs/*.md, repo-root
-# UPPERCASE.md, AGENTS.md). PHR is the multi-persona AI judgment gate
-# (Junior + SeniorArch + ProdOps); it is SEPARATE from code-review-battery
-# (automated lint/test). Without this gate, PHR is discipline-only and gets
-# skipped.
+# touches PHR-eligible files (docs/*.md, repo-root UPPERCASE.md like
+# DESIGN.md or ARCHITECTURE.md) EXCLUDING everything owned by
+# llm-skill-review. PHR is the multi-persona AI judgment gate (Junior +
+# SeniorArch + ProdOps); it is SEPARATE from code-review-battery (automated
+# lint/test). Without this gate, PHR is discipline-only and gets skipped.
 #
-# skills/*.md is deliberately OUT OF SCOPE here: it's owned exclusively by
-# tools/pre-push-llm-skill-review-gate.sh, which supersedes (not supplements)
-# both this gate and the code-review gate for that specific file class --
-# see that gate's own header for why a skill.md push should require exactly
-# one review, not two or three redundant ones.
+# Out of scope here -- owned exclusively by tools/pre-push-llm-skill-review-
+# gate.sh, which supersedes (not supplements) both this gate and the
+# code-review gate for these file classes -- see that gate's own header for
+# why a push touching only these should require exactly one review, not two
+# or three redundant ones:
+#   - skills/*.md
+#   - .ai-guidance/*.md (AGENTS.md overflow -- same audience, just split out
+#     on a line-count limit)
+#   - AGENTS.md, CLAUDE.md, GEMINI.md, CODEX.md, COPILOT.md, AGENT.md, at
+#     any path depth -- content expressly written FOR an LLM, not a
+#     human-facing design doc
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -102,11 +108,12 @@ check_phr_sentinel() {
             echo "  [phr-gate] (skipped — no files in push range)"
             return 0
         fi
-        # Exclude skills/*.md: owned exclusively by the llm-skill-review
-        # gate (see this file's header). Without this filter, a skills-only
-        # push would require BOTH .phr-cleared and .llm-skill-review-cleared
-        # for the same content -- exactly the redundancy this split removes.
-        md_files=$("$md_helper" --files "$range_files" 2>/dev/null | grep -v '^skills/' || true)
+        # Exclude everything owned exclusively by the llm-skill-review gate
+        # (see this file's header). Without this filter, a push touching
+        # only those files would require BOTH .phr-cleared and
+        # .llm-skill-review-cleared for the same content -- exactly the
+        # redundancy this split removes.
+        md_files=$("$md_helper" --files "$range_files" --exclude-llm-owned 2>/dev/null || true)
         if [[ -z "$md_files" ]]; then
             echo "  [phr-gate] (skipped — no PHR-eligible md files in push)"
             return 0
@@ -121,15 +128,16 @@ check_phr_sentinel() {
     if [[ ! -f "$PHR_SENTINEL" ]]; then
         echo -e "  ${RED}❌ PUSH BLOCKED: .phr-cleared sentinel missing.${NC}"
         echo ""
-        echo "  Design docs (docs/*.md, AGENTS.md, etc.) require Progressive"
+        echo "  Design docs (docs/*.md, DESIGN.md, etc.) require Progressive"
         echo "  Harsh Review. After PHR passes (>= the project's minimum score),"
         echo "  write the sentinel:"
         echo "    tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
         echo ""
         echo "  PHR is the multi-persona AI judgment gate (Junior + SeniorArch +"
         echo "  ProdOps). It is SEPARATE from code-review-battery (automated"
-        echo "  lint/test) and from llm-skill-review (which owns skills/*.md"
-        echo "  exclusively -- see tools/pre-push-llm-skill-review-gate.sh)."
+        echo "  lint/test) and from llm-skill-review (which owns skills/*.md,"
+        echo "  .ai-guidance/*.md, and AGENTS.md-family files exclusively --"
+        echo "  see tools/pre-push-llm-skill-review-gate.sh)."
         echo ""
         return 1
     fi

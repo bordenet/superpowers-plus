@@ -182,15 +182,16 @@ echo "  The code-review-battery AI judgment component MUST be"
 echo "  completed before calling this script. This script only"
 echo "  covers automated verification."
 echo ""
-echo "  ⚠  PHR PREREQUISITE (design doc changes, excludes skills/*.md)"
-echo "  If the diff touches design docs (docs/*.md, AGENTS.md, etc.), run"
+echo "  ⚠  PHR PREREQUISITE (design doc changes, excludes llm-skill-review-owned files)"
+echo "  If the diff touches design docs (docs/*.md, DESIGN.md, etc.), run"
 echo "  /sp-phr BEFORE this script. harsh-review.sh (Step 1) is a linter,"
 echo "  NOT progressive-harsh-review. PHR is a separate AI gate."
 echo ""
-echo "  ⚠  LLM-SKILL-REVIEW PREREQUISITE (skills/*.md changes)"
-echo "  If the diff touches skills/*.md, run llm-skill-review instead of"
+echo "  ⚠  LLM-SKILL-REVIEW PREREQUISITE (skills/*.md, .ai-guidance/*.md, or"
+echo "     AGENTS.md-family changes)"
+echo "  If the diff touches any of those, run llm-skill-review instead of"
 echo "  PHR -- it supersedes (not supplements) both PHR and this battery"
-echo "  for that file class. See tools/run-llm-skill-review.sh."
+echo "  for those file classes. See tools/run-llm-skill-review.sh."
 echo ""
 
 # Guard: block when there are UNSTAGED modifications (truly dirty worktree).
@@ -438,14 +439,13 @@ echo "  Next step: ${NEXT_STEP}"
 echo ""
 # Only emit reminders when the diff actually touches skill/design .md files.
 # Delegated to tools/md-files-changed.sh — single source of truth for the
-# regex + exclusion (also consumed by the finishing-a-development-branch skill).
-# Split the hits into skills/*.md (owned exclusively by llm-skill-review,
-# NOT PHR) vs. everything else (owned by PHR) -- mirrors the same split
-# tools/pre-push-phr-gate.sh and tools/pre-push-llm-skill-review-gate.sh
-# already enforce at push time.
+# regex + the llm-skill-review/PHR ownership split (also consumed by
+# tools/pre-push-phr-gate.sh, tools/pre-push-llm-skill-review-gate.sh, and
+# the finishing-a-development-branch skill, so the boundary is never
+# re-derived locally).
 if MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" 2>/dev/null); then
-    SKILLS_MD_HITS=$(printf '%s\n' "$MD_HITS" | grep '^skills/' || true)
-    PHR_MD_HITS=$(printf '%s\n' "$MD_HITS" | grep -v '^skills/' || true)
+    SKILLS_MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" --files "$MD_HITS" --llm-owned 2>/dev/null || true)
+    PHR_MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" --files "$MD_HITS" --exclude-llm-owned 2>/dev/null || true)
     if [[ -n "$PHR_MD_HITS" ]]; then
         echo "  ⚠  PHR REQUIRED: This diff touches design .md files:"
         while IFS= read -r f; do
@@ -461,7 +461,8 @@ if MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" 2>/dev/null); then
         echo ""
     fi
     if [[ -n "$SKILLS_MD_HITS" ]]; then
-        echo "  ⚠  LLM-SKILL-REVIEW REQUIRED: This diff touches skills/*.md files:"
+        echo "  ⚠  LLM-SKILL-REVIEW REQUIRED: This diff touches skills/*.md,"
+        echo "     .ai-guidance/*.md, or AGENTS.md-family files:"
         while IFS= read -r f; do
             [[ -n "$f" ]] && echo "       - $f"
         done <<< "$SKILLS_MD_HITS"
@@ -476,7 +477,8 @@ else
     if [[ "$PHR_EXIT" -eq 2 ]]; then
         echo "  ⚠  PHR REMINDER: Could not determine merge base (no main/master ancestor)."
         echo "     Review the full branch diff manually and confirm /sp-phr (or llm-skill-review"
-        echo "     for skills/*.md) was completed if any .md files changed."
+        echo "     for skills/*.md, .ai-guidance/*.md, or AGENTS.md-family files) was"
+        echo "     completed if any .md files changed."
         echo ""
     fi
     # exit 1 means "no PHR-relevant files changed" — no reminder needed.

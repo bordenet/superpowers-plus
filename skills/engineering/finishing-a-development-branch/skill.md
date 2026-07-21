@@ -65,37 +65,37 @@ echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
 git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
 ```
 
-Then, **regardless of sentinel state**, enumerate which `.md` files were changed via the canonical helper, then split the result into PHR-eligible (everything) vs. skills/*.md (owned exclusively by `llm-skill-review`, not PHR):
+Then, **regardless of sentinel state**, enumerate which `.md` files were changed via the canonical helper, then split the result into PHR-eligible vs. llm-skill-review-owned (`skills/*.md`, `.ai-guidance/*.md`, and any AGENTS.md-family file — `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`CODEX.md`/`COPILOT.md`/`AGENT.md`, at any path depth; see `tools/md-files-changed.sh`'s `LLM_OWNED_REGEX` for the single source of truth on this boundary — owned exclusively by `llm-skill-review`, not PHR):
 
 ```bash
 # Exit 0 → files listed on stdout; exit 1 → no PHR-relevant files; exit 2 → NO_BASE_FOUND.
 MD_HITS="$(tools/md-files-changed.sh)"; MD_STATUS=$?
 case $MD_STATUS in
     0)
-        SKILLS_MD=$(printf '%s\n' "$MD_HITS" | grep '^skills/' || true)
-        DESIGN_MD=$(printf '%s\n' "$MD_HITS" | grep -v '^skills/' || true)
+        LLM_OWNED_MD=$(tools/md-files-changed.sh --files "$MD_HITS" --llm-owned 2>/dev/null || true)
+        DESIGN_MD=$(tools/md-files-changed.sh --files "$MD_HITS" --exclude-llm-owned 2>/dev/null || true)
         [[ -n "$DESIGN_MD" ]] && echo ">>> PHR REQUIRED for: $DESIGN_MD"
-        [[ -n "$SKILLS_MD" ]] && echo ">>> LLM-SKILL-REVIEW REQUIRED for: $SKILLS_MD"
+        [[ -n "$LLM_OWNED_MD" ]] && echo ">>> LLM-SKILL-REVIEW REQUIRED for: $LLM_OWNED_MD"
         ;;
     1) echo "NO_MD_FILES_CHANGED" ;;
     2) echo "NO_BASE_FOUND — cannot determine diff scope; review the full branch manually" ;;
 esac
 ```
 
-The helper is the single source of truth for the PHR-trigger regex and exclusions (`README.md`, `CHANGELOG.md`); `tools/run-battery.sh` consumes the same script. If exit code is 2 (`NO_BASE_FOUND`), treat both gates as required by default and review the full branch manually.
+The helper is the single source of truth for the PHR-trigger regex, the exclusions (`README.md`, `CHANGELOG.md`), and the PHR-vs-llm-skill-review ownership split (`--llm-owned` / `--exclude-llm-owned`); `tools/run-battery.sh` consumes the same script. If exit code is 2 (`NO_BASE_FOUND`), treat both gates as required by default and review the full branch manually.
 
 | Result | Action |
 |--------|--------|
 | Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check → `NO_MD_FILES_CHANGED` | Battery evidence confirmed. Proceed directly to Step 1. |
-| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists design (non-skills) files | Battery passed. **Also invoke PHR** (`/sp-phr`) on the listed files before Step 1 — see below. |
-| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists `skills/*.md` files | Battery passed (non-skills portion only, if any). **Invoke `llm-skill-review`** on the listed skills files instead of PHR — it supersedes, not supplements, PHR for that file class. |
-| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then re-run the md-file check above and apply the rows above (PHR for design files, llm-skill-review for skills/*.md). |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists design (PHR-owned) files | Battery passed. **Also invoke PHR** (`/sp-phr`) on the listed files before Step 1 — see below. |
+| Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists llm-skill-review-owned files | Battery passed (PHR-owned portion only, if any). **Invoke `llm-skill-review`** on the listed files instead of PHR — it supersedes, not supplements, PHR for that file class. |
+| Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then re-run the md-file check above and apply the rows above (PHR for design files, llm-skill-review for llm-owned files). |
 
-**PHR is mandatory when the md-file check lists any non-`skills/*.md` `.md` files. `skills/*.md` files require `llm-skill-review` instead — never both *for the same file*. A push touching both file classes (e.g. an `AGENTS.md` change alongside a `skills/x/skill.md` change) still needs both sentinels, one per file class.**
+**PHR is mandatory when the md-file check lists any non-llm-owned `.md` files. llm-skill-review-owned files (`skills/*.md`, `.ai-guidance/*.md`, AGENTS.md-family) require `llm-skill-review` instead — never both *for the same file*. A push touching both file classes (e.g. a `docs/architecture.md` change alongside a `skills/x/skill.md` change) still needs both sentinels, one per file class.**
 
-Scope: any `.md` file under `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `AGENTS.md`, `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md` (excluded by the post-grep `grep -vE` filter, not by the main regex — the main regex matches them), and `skills/*.md` (routed to `llm-skill-review` instead, per the split above).
+Scope (PHR-owned, i.e. the `--exclude-llm-owned` subset): any `.md` file under `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `DESIGN.md`, `ARCHITECTURE.md`) that are NOT one of the AGENTS.md-family basenames. Excludes: `CHANGELOG.md`, `README.md` (excluded by the post-grep `grep -vE` filter, not by the main regex — the main regex matches them), and everything llm-skill-review owns (`skills/*.md`, `.ai-guidance/*.md`, AGENTS.md-family — routed to `llm-skill-review` instead, per the split above).
 
-The battery runs automated linting and tests — it does NOT run PHR or llm-skill-review. Invoke `progressive-harsh-review` (`/sp-phr`) for design `.md` files, or `llm-skill-review` for `skills/*.md` files, before proceeding to Step 1. A passing battery sentinel is NOT a substitute for either.
+The battery runs automated linting and tests — it does NOT run PHR or llm-skill-review. Invoke `progressive-harsh-review` (`/sp-phr`) for design `.md` files, or `llm-skill-review` for `skills/*.md`, `.ai-guidance/*.md`, or AGENTS.md-family files, before proceeding to Step 1. A passing battery sentinel is NOT a substitute for either.
 
 > **Why separate?** `run-battery.sh` calls `harsh-review.sh` (a shell linter), not the multi-persona PHR/llm-skill-review skills. Those are AI judgment gates; the battery is an automated script gate. Both an AI judgment gate (PHR or llm-skill-review, whichever applies) and the battery are required for design/skill changes — but never both AI gates for the same file.
 

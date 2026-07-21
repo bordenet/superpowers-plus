@@ -31,10 +31,12 @@
 #   zero changes needed to that verifier.
 #
 # WIRED INTO tools/pre-push as Gate 6 (tools/pre-push-llm-skill-review-gate.sh):
-# any push touching skills/*.md requires this sentinel, PASS verdict, and a
-# combined score >= 9.2. This supersedes -- not supplements -- Gate 2
-# (code-review) and Gate 5 (PHR) for that file class; neither of those gates
-# require their own sentinel for skills/*.md.
+# any push touching skills/*.md, .ai-guidance/*.md, or an AGENTS.md-family
+# file (AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any
+# path depth) requires this sentinel, PASS verdict, and a combined score
+# >= 9.2. This supersedes -- not supplements -- Gate 2 (code-review) and
+# Gate 5 (PHR) for those file classes; neither of those gates require their
+# own sentinel for them.
 #
 # EXIT:    0  sentinel written
 #          1  invalid args / refuse / envelope missing / verifier falsified a claim
@@ -229,8 +231,8 @@ echo "  Commit:    ${SENTINEL_SHA:0:8}"
 echo "  Timestamp: ${TIMESTAMP}"
 echo ""
 echo "  This sentinel is required by tools/pre-push Gate 6 for any push"
-echo "  touching skills/*.md -- it supersedes PHR and code-review-battery"
-echo "  for that file class."
+echo "  touching skills/*.md, .ai-guidance/*.md, or an AGENTS.md-family file --"
+echo "  it supersedes PHR and code-review-battery for those file classes."
 echo ""
 echo "  IMPORTANT: do NOT commit .llm-skill-review-cleared. The sentinel"
 echo "  expires if HEAD moves. Re-run this script if you make additional"

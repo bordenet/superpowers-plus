@@ -2,7 +2,8 @@
 # Tests for the pre-push Gate 2 (.code-review-cleared consumer side)'s file
 # classification -- _first_code_file() and range_is_docs_only(). Extracts
 # both functions from tools/pre-push-code-review-gate.sh and exercises the
-# skills/*.md exemption specifically: skills/*.md is owned exclusively by
+# llm-skill-review exemptions specifically: skills/*.md, .ai-guidance/*.md,
+# and any AGENTS.md-family file (at any path depth) are owned exclusively by
 # the llm-skill-review gate (see test/pre-push-llm-skill-review-gate.bats),
 # but any OTHER file under skills/ (scripts, configs) must still count as
 # code requiring the cr-battery sentinel.
@@ -111,12 +112,44 @@ teardown() {
     [[ "$output" == "HAS_CODE" ]]
 }
 
-@test "code-review-gate: AGENTS.md still classifies as HAS_CODE (unchanged pre-existing behavior -- policy file)" {
+@test "code-review-gate: AGENTS.md now classifies as DOCS_ONLY -- owned exclusively by llm-skill-review" {
     echo "# agents" > AGENTS.md
     git add AGENTS.md
     git commit -q -m "add agents"
     HEAD_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
     [ "$status" -eq 0 ]
-    [[ "$output" == "HAS_CODE" ]]
+    [[ "$output" == "DOCS_ONLY" ]]
+}
+
+@test "code-review-gate: CLAUDE.md classifies as DOCS_ONLY -- owned exclusively by llm-skill-review" {
+    echo "# claude" > CLAUDE.md
+    git add CLAUDE.md
+    git commit -q -m "add claude"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "DOCS_ONLY" ]]
+}
+
+@test "code-review-gate: nested guidance/AGENTS.md classifies as DOCS_ONLY" {
+    mkdir -p guidance
+    echo "# agents" > guidance/AGENTS.md
+    git add guidance/AGENTS.md
+    git commit -q -m "add nested agents"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "DOCS_ONLY" ]]
+}
+
+@test "code-review-gate: .ai-guidance/*.md classifies as DOCS_ONLY" {
+    mkdir -p .ai-guidance
+    echo "# invariants" > .ai-guidance/invariants.md
+    git add .ai-guidance/invariants.md
+    git commit -q -m "add ai-guidance doc"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "DOCS_ONLY" ]]
 }

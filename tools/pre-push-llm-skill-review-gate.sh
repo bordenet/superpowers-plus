@@ -3,16 +3,24 @@
 # -----------------------------------------------------------------------------
 # pre-push-llm-skill-review-gate.sh
 #
-# Requires .llm-skill-review-cleared when the push range touches skills/*.md
-# files (any file under skills/ whose name ends in .md). This is the ONLY
-# gate that applies to skill prose: it supersedes -- not supplements -- the
-# PHR gate and the code-review gate for this specific file class. Both of
-# those gates explicitly exclude skills/*.md from their own scope (see their
-# own headers) so a skill.md-only push requires exactly one review, not two
-# or three redundant ones.
+# Requires .llm-skill-review-cleared when the push range touches any file
+# owned exclusively by llm-skill-review -- content expressly written FOR an
+# LLM to execute, not human-facing docs/design (see tools/md-files-changed.sh's
+# LLM_OWNED_REGEX, the single source of truth for this set):
+#   - skills/**/*.md
+#   - .ai-guidance/**/*.md (AGENTS.md overflow -- same audience, just split
+#     out on a line-count limit, per AGENTS.md's own self-management protocol)
+#   - AGENTS.md, CLAUDE.md, GEMINI.md, CODEX.md, COPILOT.md, AGENT.md, at
+#     any path depth
 #
-# llm-skill-review is the primary, default reviewer for skill.md content --
-# it covers both LLM-execution safety (determinism, shell portability, tool
+# This is the ONLY gate that applies to that content: it supersedes -- not
+# supplements -- the PHR gate and the code-review gate for these file
+# classes. Both of those gates explicitly exclude them from their own scope
+# (see their own headers) so a push touching only these files requires
+# exactly one review, not two or three redundant ones.
+#
+# llm-skill-review is the primary, default reviewer for this content -- it
+# covers both LLM-execution safety (determinism, shell portability, tool
 # contracts) and prose/design quality in one pass, folding in what
 # progressive-harsh-review would otherwise separately check for this file
 # class. tools/run-llm-skill-review.sh is the sentinel-writer (parallel to
@@ -60,7 +68,7 @@ check_llm_skill_review_sentinel() {
     # to the PHR gate's own enumeration (see that file for the rationale on
     # each branch and on capturing git's exit status separately from any
     # downstream filter pipeline).
-    local range_files md_files skills_md_files _enum_ok=true
+    local range_files llm_owned_files _enum_ok=true
     if [[ "$no_base" == "no_base" ]]; then
         local _log_raw
         if ! _log_raw=$(git log --name-only -m --format="" "$pushed_sha" 2>/dev/null); then
@@ -80,36 +88,35 @@ check_llm_skill_review_sentinel() {
 
     if [[ "$_enum_ok" == "false" ]]; then
         echo "  [llm-skill-review-gate] Could not enumerate push range files — failing closed (require sentinel)."
-        skills_md_files="(enumeration failed)"
+        llm_owned_files="(enumeration failed)"
     else
         if [[ -z "$range_files" ]]; then
             echo "  [llm-skill-review-gate] (skipped — no files in push range)"
             return 0
         fi
-        md_files=$("$md_helper" --files "$range_files" 2>/dev/null || true)
-        skills_md_files=$(printf '%s\n' "$md_files" | grep '^skills/' || true)
-        if [[ -z "$skills_md_files" ]]; then
-            echo "  [llm-skill-review-gate] (skipped — no skills/*.md files in push)"
+        llm_owned_files=$("$md_helper" --files "$range_files" --llm-owned 2>/dev/null || true)
+        if [[ -z "$llm_owned_files" ]]; then
+            echo "  [llm-skill-review-gate] (skipped — no llm-skill-review-owned files in push)"
             return 0
         fi
 
-        echo "  [llm-skill-review-gate] skills/*.md files in push:"
+        echo "  [llm-skill-review-gate] llm-skill-review-owned files in push:"
         while IFS= read -r f; do
             [[ -n "$f" ]] && echo "    - $f"
-        done <<< "$skills_md_files"
+        done <<< "$llm_owned_files"
     fi
 
     if [[ ! -f "$LLM_SKILL_REVIEW_SENTINEL" ]]; then
         echo -e "  ${RED}❌ PUSH BLOCKED: .llm-skill-review-cleared sentinel missing.${NC}"
         echo ""
-        echo "  skills/*.md changes require llm-skill-review (the primary reviewer"
-        echo "  for skill content -- covers both LLM-execution safety and"
-        echo "  prose/design quality in one pass). After it passes"
-        echo "  (>= ${LLM_SKILL_REVIEW_MIN}/10), write the sentinel:"
+        echo "  skills/*.md, .ai-guidance/*.md, and AGENTS.md-family changes require"
+        echo "  llm-skill-review (the primary reviewer for this content -- covers"
+        echo "  both LLM-execution safety and prose/design quality in one pass)."
+        echo "  After it passes (>= ${LLM_SKILL_REVIEW_MIN}/10), write the sentinel:"
         echo "    tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
         echo ""
         echo "  This supersedes PHR and code-review-battery for this file class --"
-        echo "  neither of those gates require their own sentinel for skills/*.md."
+        echo "  neither of those gates require their own sentinel for these files."
         echo ""
         return 1
     fi

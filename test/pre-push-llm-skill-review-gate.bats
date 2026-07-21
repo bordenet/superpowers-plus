@@ -5,10 +5,13 @@
 # stale/format-violation/non-passing-verdict/md-eligible-skip/clean-pass/
 # skills-floor) plus the helper-missing failsafe.
 #
-# This gate owns skills/*.md EXCLUSIVELY -- it supersedes, not supplements,
-# both the PHR gate (test/pre-push-gate4.bats) and the code-review gate for
-# this specific file class. Fixtures here use skills/*.md as the reviewed
-# file class; a non-skills .md change must never trigger this gate at all.
+# This gate owns skills/*.md, .ai-guidance/*.md, and AGENTS.md-family files
+# (AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any path
+# depth) EXCLUSIVELY -- it supersedes, not supplements, both the PHR gate
+# (test/pre-push-gate4.bats) and the code-review gate for these file
+# classes. Fixtures here use skills/*.md as the primary reviewed file class,
+# with dedicated cases below for the other owned classes; a non-owned .md
+# change (e.g. docs/*.md) must never trigger this gate at all.
 
 setup() {
     REPO_ROOT_REAL="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -94,7 +97,7 @@ teardown() {
     TIP_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${HEAD_SHA}..${TIP_SHA}" "$TIP_SHA"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"no skills/*.md files"* ]]
+    [[ "$output" == *"no llm-skill-review-owned files"* ]]
 }
 
 @test "gate6: non-skills .md-only push is skipped -- not this gate's concern" {
@@ -107,7 +110,67 @@ teardown() {
     DOC_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${HEAD_SHA}..${DOC_SHA}" "$DOC_SHA"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"no skills/*.md files"* ]]
+    [[ "$output" == *"no llm-skill-review-owned files"* ]]
+}
+
+@test "gate6: AGENTS.md-only push requires sentinel -- owned exclusively by this gate" {
+    echo "# agents" > AGENTS.md
+    git add AGENTS.md
+    git commit -q -m "add agents"
+    AGENTS_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${AGENTS_SHA}" "$AGENTS_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *"AGENTS.md"* ]]
+}
+
+@test "gate6: CLAUDE.md-only push requires sentinel" {
+    echo "# claude" > CLAUDE.md
+    git add CLAUDE.md
+    git commit -q -m "add claude"
+    CLAUDE_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${CLAUDE_SHA}" "$CLAUDE_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *"CLAUDE.md"* ]]
+}
+
+@test "gate6: nested guidance/AGENTS.md push requires sentinel" {
+    mkdir -p guidance
+    echo "# agents" > guidance/AGENTS.md
+    git add guidance/AGENTS.md
+    git commit -q -m "add nested agents"
+    NESTED_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${NESTED_SHA}" "$NESTED_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *"guidance/AGENTS.md"* ]]
+}
+
+@test "gate6: .ai-guidance/*.md push requires sentinel" {
+    mkdir -p .ai-guidance
+    echo "# invariants" > .ai-guidance/invariants.md
+    git add .ai-guidance/invariants.md
+    git commit -q -m "add ai-guidance doc"
+    AIG_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${AIG_SHA}" "$AIG_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *".ai-guidance/invariants.md"* ]]
+}
+
+@test "gate6: mixed push (AGENTS.md + docs/*.md) requires sentinel only for AGENTS.md" {
+    mkdir -p docs
+    echo "# a doc" > docs/baz.md
+    echo "# agents" > AGENTS.md
+    git add docs/baz.md AGENTS.md
+    git commit -q -m "mixed doc + agents"
+    MIXED_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${MIXED_SHA}" "$MIXED_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *"AGENTS.md"* ]]
+    [[ "$output" != *"docs/baz.md"* ]]
 }
 
 @test "gate6: mixed push (skills/*.md + docs/*.md) requires sentinel only for the skill file" {

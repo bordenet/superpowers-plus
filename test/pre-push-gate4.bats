@@ -4,10 +4,11 @@
 # and exercises it across (missing/stale/format-violation/non-passing-verdict/
 # md-eligible-skip/clean-pass) plus the helper-missing failsafe.
 #
-# skills/*.md is deliberately OUT OF SCOPE for this gate (owned exclusively
-# by tools/pre-push-llm-skill-review-gate.sh -- see test/pre-push-llm-skill-
+# skills/*.md, .ai-guidance/*.md, and AGENTS.md-family files are deliberately
+# OUT OF SCOPE for this gate (owned exclusively by
+# tools/pre-push-llm-skill-review-gate.sh -- see test/pre-push-llm-skill-
 # review-gate.bats for the equivalent coverage over there). Fixtures here use
-# docs/*.md and AGENTS.md as the PHR-eligible file class instead.
+# docs/*.md and DESIGN.md as the PHR-eligible file class instead.
 
 setup() {
     REPO_ROOT_REAL="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -232,15 +233,58 @@ teardown() {
 
 # --- PHR-eligible file listing ---
 
-@test "gate5: AGENTS.md change triggers gate" {
+@test "gate5: AGENTS.md change does NOT trigger gate -- owned exclusively by llm-skill-review" {
     echo "# agents" > AGENTS.md
     git add AGENTS.md
     git commit -q -m "agents"
     NEW_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${HEAD_SHA}..${NEW_SHA}" "$NEW_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no PHR-eligible md files"* ]]
+    [[ "$output" != *"AGENTS.md"* ]]
+}
+
+@test "gate5: CLAUDE.md change does NOT trigger gate" {
+    echo "# claude" > CLAUDE.md
+    git add CLAUDE.md
+    git commit -q -m "claude"
+    NEW_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${NEW_SHA}" "$NEW_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no PHR-eligible md files"* ]]
+}
+
+@test "gate5: .ai-guidance/*.md change does NOT trigger gate" {
+    mkdir -p .ai-guidance
+    echo "# invariants" > .ai-guidance/invariants.md
+    git add .ai-guidance/invariants.md
+    git commit -q -m "add ai-guidance doc"
+    NEW_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${NEW_SHA}" "$NEW_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no PHR-eligible md files"* ]]
+}
+
+@test "gate5: nested guidance/AGENTS.md change does NOT trigger gate" {
+    mkdir -p guidance
+    echo "# agents" > guidance/AGENTS.md
+    git add guidance/AGENTS.md
+    git commit -q -m "add nested agents"
+    NEW_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${NEW_SHA}" "$NEW_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no PHR-eligible md files"* ]]
+}
+
+@test "gate5: DESIGN.md change still triggers gate -- genuine PHR-owned file" {
+    echo "# design" > DESIGN.md
+    git add DESIGN.md
+    git commit -q -m "design"
+    NEW_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${NEW_SHA}" "$NEW_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PHR-eligible md files"* ]]
-    [[ "$output" == *"AGENTS.md"* ]]
+    [[ "$output" == *"DESIGN.md"* ]]
 }
 
 @test "gate5: prints the offending md file list before blocking" {
