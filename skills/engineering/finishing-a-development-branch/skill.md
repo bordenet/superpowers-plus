@@ -91,7 +91,7 @@ The helper is the single source of truth for the PHR-trigger regex and exclusion
 | Valid sentinel for HEAD AND `WORKTREE_CLEAN` AND md-file check lists `skills/*.md` files | Battery passed (non-skills portion only, if any). **Invoke `llm-skill-review`** on the listed skills files instead of PHR — it supersedes, not supplements, PHR for that file class. |
 | Any other result | Dispatch `code-review-battery` (via `sub-agent-code-reviewer`). Fix all Critical and Important findings. Re-dispatch if fixes were made. **Only proceed when the battery verdict is PASS or PASS_WITH_NITS.** Then re-run the md-file check above and apply the rows above (PHR for design files, llm-skill-review for skills/*.md). |
 
-**PHR is mandatory when the md-file check lists any non-`skills/*.md` `.md` files. `skills/*.md` files require `llm-skill-review` instead — never both.**
+**PHR is mandatory when the md-file check lists any non-`skills/*.md` `.md` files. `skills/*.md` files require `llm-skill-review` instead — never both *for the same file*. A push touching both file classes (e.g. an `AGENTS.md` change alongside a `skills/x/skill.md` change) still needs both sentinels, one per file class.**
 
 Scope: any `.md` file under `docs/`, plus repo-root `.md` files whose names start with an uppercase letter (e.g., `AGENTS.md`, `DESIGN.md`, `ARCHITECTURE.md`). Excludes: `CHANGELOG.md`, `README.md` (excluded by the post-grep `grep -vE` filter, not by the main regex — the main regex matches them), and `skills/*.md` (routed to `llm-skill-review` instead, per the split above).
 
@@ -153,9 +153,12 @@ Prefer the branch's own tracking upstream, then this repo's actual workflow
 base (`dev`), then `staging`/`main`/`master` as later fallbacks -- falling
 back straight to `main` first (as an earlier version of this step did) picks
 a base that can be many commits behind `dev` on repos where `dev` is the
-real integration branch, producing a wrong "what changed" diff. Mirrors
-`tools/lib/pre-push-diff-range.sh`'s `resolve_push_base_ref()`, which this
-repo's own pre-push hook already relies on for the identical problem.
+real integration branch, producing a wrong "what changed" diff. The exact
+candidate order below is a verbatim match of `tools/md-files-changed.sh`'s
+`resolve_base()`, which this repo's own PHR-eligibility check already
+relies on for the identical problem (see also
+`tools/lib/pre-push-diff-range.sh`'s `resolve_push_base_ref()`, a related
+but remote-qualified superset used by the pre-push hook itself).
 
 ```bash
 tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"

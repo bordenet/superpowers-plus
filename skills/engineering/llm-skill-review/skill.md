@@ -58,27 +58,14 @@ composition:
 **This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion.
 
 **Invoke automatically when changes touch any of these areas:**
-- `skills/**`
-- `tools/**`
-- `scripts/**`
-- `setup/**`
-- `mcp/**`
+- `skills/**`, `tools/**`, `scripts/**`, `setup/**`, `mcp/**`
 - `install.sh`, `install-*.sh`, `uninstall.sh`
 - `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`
 - plugin manifests, routing files, hook specs, or agent-specific configuration
 
-**Also invoke when the user asks for:**
-- harsh review of skills, prompts, shell tooling, installers, or agent infrastructure
-- review for Claude Code, Augment Code, and Cursor compatibility
-- review for prompt/runtime determinism
-- review of MCP or tool-calling behavior
-- review before pushing skill changes
+**Also invoke when the user asks for:** harsh review of skills, prompts, shell tooling, installers, or agent infrastructure; review for Claude Code/Augment Code/Cursor compatibility; review for prompt/runtime determinism; review of MCP or tool-calling behavior; review before pushing skill changes.
 
-**Do NOT use as the primary skill for:**
-- pure product UX review
-- ordinary application code with no skill/tooling/runtime implications
-- early brainstorming before artifacts exist
-- non-skill plans/specs/designs/documents (use `progressive-harsh-review`)
+**Do NOT use as the primary skill for:** pure product UX review; ordinary application code with no skill/tooling/runtime implications; early brainstorming before artifacts exist; non-skill plans/specs/designs/documents (use `progressive-harsh-review`).
 
 ## Review Doctrine and Heuristics
 
@@ -240,9 +227,7 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, and **supersedes** -- not supplements -- the PHR gate and the code-review gate for that specific file class: neither of those gates require their own sentinel for `skills/*.md` (they explicitly exclude it from their scope; see each gate's own header). A `skills/*.md`-only push therefore requires exactly one review, not two or three redundant ones. `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers -- the combined score from this skill's own scorecards (see "Combining both scorecards" above) is what you feed as `--min-score` to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format.
-
-Note: any *non*-`.md` file under `skills/` (a helper script, config, etc.) is still classified as code by the code-review gate and still requires `.code-review-cleared` -- this gate owns skill *prose*, not everything under `skills/`.
+`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, and **supersedes** -- not supplements -- the PHR and code-review gates for that file class (both explicitly exclude `skills/*.md`; see each gate's own header). One review, not two or three redundant ones. `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose*.
 
 ## Final Reminder
 
