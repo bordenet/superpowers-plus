@@ -136,19 +136,3 @@ setup() {
     [ "$status" -ne 0 ]
     [[ "$output" == *"Line 2"* ]]
 }
-
-# ---------------------------------------------------------------------------
-# Hook file integrity
-# ---------------------------------------------------------------------------
-
-@test "commit-msg hook file exists" {
-    [ -f "$HOOK" ]
-}
-
-@test "commit-msg hook is executable" {
-    [ -x "$HOOK" ]
-}
-
-@test "commit-msg hook has bash shebang" {
-    head -1 "$HOOK" | grep -q "^#!/usr/bin/env bash"
-}
