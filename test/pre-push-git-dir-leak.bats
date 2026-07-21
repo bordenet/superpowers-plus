@@ -29,7 +29,8 @@ setup() {
     # just the two this file is specifically testing.
     for gate in pre-push-test-gate.sh pre-push-code-review-gate.sh \
                 pre-push-ip-scan-gate.sh pre-push-branch-flow-gate.sh \
-                pre-push-phr-gate.sh pre-push-llm-skill-review-gate.sh; do
+                pre-push-phr-gate.sh pre-push-llm-skill-review-gate.sh \
+                pre-push-loc-gate.sh; do
         cp "$REPO_ROOT_REAL/tools/$gate" "tools/$gate"
         chmod +x "tools/$gate"
     done
@@ -226,6 +227,61 @@ EOF
     rm -f "$push_input"
     [ "$status" -ne 0 ]
     [[ "$output" == *"tools/pre-push-llm-skill-review-gate.sh is missing"* ]]
+}
+
+@test "pre-push composer: Gate 7 (LOC advisory) soft-skips, not hard-fails, when pre-push-loc-gate.sh is missing" {
+    # Unlike Gates 2/3/6 (hard-required -- no "optional tooling" exemption),
+    # Gate 7 is a newer, optional advisory capability matching Gates 1/4/5's
+    # category: its absence must be a soft skip, not a blocked push.
+    rm -f tools/pre-push-loc-gate.sh
+    cat > tools/test-all.sh <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+    chmod +x tools/test-all.sh
+    mkdir -p test
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=7.0" > .code-review-cleared
+
+    local push_input
+    push_input="$(mktemp)"
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$HEAD_SHA" > "$push_input"
+
+    run bash -c "bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"tools/pre-push-loc-gate.sh not present"* ]]
+    [[ "$output" == *"All gates passed"* ]]
+}
+
+@test "pre-push composer: Gate 7 invokes pre-push-loc-gate.sh with 2 args (its own dispatch requires >= 2 to enter stdin mode, not 1)" {
+    # Regression guard: pre-push-loc-gate.sh's entry point treats exactly 1
+    # positional arg as ad-hoc single-SHA mode (misreading a remote name like
+    # 'origin' as a commit to check) -- it only enters real stdin/pre-push
+    # mode with >= 2 args. A composer invocation passing only "$REMOTE_NAME"
+    # (as most sibling gates do) would misfire on every push.
+    cat > tools/pre-push-loc-gate.sh <<'EOF'
+#!/usr/bin/env bash
+echo "LOC_GATE_ARGC=$#"
+exit 0
+EOF
+    chmod +x tools/pre-push-loc-gate.sh
+    cat > tools/test-all.sh <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+    chmod +x tools/test-all.sh
+    mkdir -p test
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=7.0" > .code-review-cleared
+
+    local push_input
+    push_input="$(mktemp)"
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$HEAD_SHA" > "$push_input"
+
+    run bash -c "bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    [[ "$output" == *"LOC_GATE_ARGC=2"* ]]
 }
 
 @test "pre-push-ip-scan-gate.sh: fails closed when public-repo-ip-check.sh is missing, even for a private-to-private remote push" {
