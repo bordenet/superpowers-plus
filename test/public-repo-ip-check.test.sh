@@ -17,7 +17,8 @@ new_repo() {
     local dir="$1"
     mkdir -p "$dir/tools/lib"
     local tool
-    for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh check-banned-term-hashes.py; do
+    for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh check-banned-term-hashes.py \
+                pre-push-test-gate.sh pre-push-code-review-gate.sh pre-push-ip-scan-gate.sh pre-push-branch-flow-gate.sh pre-push-phr-gate.sh; do
         cp "$SCRIPT_DIR/tools/$tool" "$dir/tools/$tool"
         chmod +x "$dir/tools/$tool"
     done
