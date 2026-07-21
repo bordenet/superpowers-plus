@@ -133,6 +133,56 @@ setup() {
     [[ "$output" == "docs/x.md" ]]
 }
 
+@test "md-files-changed: dev is preferred over a stale main, not just a same-named fallback" {
+    # This repo's actual workflow base for feature branches is dev, not
+    # main -- main is a downstream promotion target, often many commits
+    # behind. Falling back to main here would diff against a stale ancestor
+    # and report every skills/*.md file that landed in dev but was never
+    # touched by this branch -- a false-positive PHR trigger. Simulate that
+    # divergence: dev gets its own skill.md commit (already promoted through
+    # the normal workflow, not part of this branch's own history), then a
+    # feature branch off dev adds an unrelated docs/*.md file. Only the
+    # feature branch's own file must be reported.
+    git checkout -qb dev
+    mkdir -p skills/unrelated
+    echo "# unrelated, already landed in dev" > skills/unrelated/skill.md
+    git add skills/unrelated/skill.md
+    git commit -qm "unrelated skill already in dev"
+
+    git checkout -qb feature
+    mkdir -p docs
+    echo "# this branch's own change" > docs/feature.md
+    git add docs/feature.md
+    git commit -qm "add feature doc"
+
+    run bash "$SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "docs/feature.md" ]]
+    [[ "$output" != *"skills/unrelated/skill.md"* ]]
+}
+
+@test "md-files-changed: branch's own tracking upstream wins over a same-repo dev guess" {
+    # An explicit @{upstream} is a more accurate signal than the generic
+    # dev/staging/main candidate list -- e.g. a branch tracking a shared
+    # review branch other than dev. Verify the upstream is tried first.
+    git checkout -qb shared-review
+    mkdir -p skills/onreview
+    echo "# already on the shared review branch" > skills/onreview/skill.md
+    git add skills/onreview/skill.md
+    git commit -qm "already on shared-review"
+
+    git checkout -qb feature --track shared-review
+    mkdir -p docs
+    echo "# this branch's own change" > docs/feature2.md
+    git add docs/feature2.md
+    git commit -qm "add feature2 doc"
+
+    run bash "$SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "docs/feature2.md" ]]
+    [[ "$output" != *"skills/onreview/skill.md"* ]]
+}
+
 @test "md-files-changed: rejects unknown flag" {
     run bash "$SCRIPT" --bogus
     [ "$status" -eq 3 ]

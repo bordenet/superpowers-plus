@@ -55,7 +55,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Resolve the merge base.
-# Fallback chain: explicit override > main > origin/main > master > origin/master > HEAD^.
+# Fallback chain: explicit override > this branch's own tracking upstream >
+# dev > staging > main > master (each tried as both origin/<name> and a bare
+# local branch name) > HEAD^.
+#
+# This repo's actual workflow base for feature/fix branches is `dev` --
+# `main` is a downstream promotion target reached via dev -> staging -> main,
+# often many commits ahead of dev. Falling back straight to main (the
+# previous chain here) diffed against a stale ancestor and picked up every
+# file that had landed in dev but not yet promoted to main, producing
+# false-positive PHR-eligible-file hits on branches that never touched those
+# files themselves. Mirrors the equivalent, already-correct fallback chain in
+# tools/lib/pre-push-diff-range.sh's resolve_push_base_ref(), which this
+# repo's own pre-push hook relies on for the identical problem.
+#
 # This helper is the single source of truth — `tools/run-battery.sh` and the
 # finishing-a-development-branch skill both invoke this script rather than
 # duplicating the chain.
@@ -69,12 +82,24 @@ resolve_base() {
         git rev-parse --verify "$BASE_OVERRIDE" 2>/dev/null
         return
     fi
-    git merge-base HEAD main 2>/dev/null \
-        || git merge-base HEAD origin/main 2>/dev/null \
-        || git merge-base HEAD master 2>/dev/null \
-        || git merge-base HEAD origin/master 2>/dev/null \
-        || git rev-parse --verify HEAD^ 2>/dev/null \
-        || true
+
+    local tracking candidate merge_base
+    tracking="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)"
+
+    for candidate in \
+        "$tracking" \
+        origin/dev dev origin/staging staging origin/main main origin/master master
+    do
+        [[ -n "$candidate" ]] || continue
+        if git rev-parse --verify "$candidate" >/dev/null 2>&1; then
+            if merge_base=$(git merge-base HEAD "$candidate" 2>/dev/null); then
+                echo "$merge_base"
+                return
+            fi
+        fi
+    done
+
+    git rev-parse --verify HEAD^ 2>/dev/null || true
 }
 
 # Apply the PHR-relevance filter to a newline-separated file list on stdin.
