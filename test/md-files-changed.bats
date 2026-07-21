@@ -133,7 +133,139 @@ setup() {
     [[ "$output" == "docs/x.md" ]]
 }
 
+@test "md-files-changed: dev is preferred over a stale main, not just a same-named fallback" {
+    # This repo's actual workflow base for feature branches is dev, not
+    # main -- main is a downstream promotion target, often many commits
+    # behind. Falling back to main here would diff against a stale ancestor
+    # and report every skills/*.md file that landed in dev but was never
+    # touched by this branch -- a false-positive PHR trigger. Simulate that
+    # divergence: dev gets its own skill.md commit (already promoted through
+    # the normal workflow, not part of this branch's own history), then a
+    # feature branch off dev adds an unrelated docs/*.md file. Only the
+    # feature branch's own file must be reported.
+    git checkout -qb dev
+    mkdir -p skills/unrelated
+    echo "# unrelated, already landed in dev" > skills/unrelated/skill.md
+    git add skills/unrelated/skill.md
+    git commit -qm "unrelated skill already in dev"
+
+    git checkout -qb feature
+    mkdir -p docs
+    echo "# this branch's own change" > docs/feature.md
+    git add docs/feature.md
+    git commit -qm "add feature doc"
+
+    run bash "$SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "docs/feature.md" ]]
+    [[ "$output" != *"skills/unrelated/skill.md"* ]]
+}
+
+@test "md-files-changed: branch's own tracking upstream wins over a same-repo dev guess" {
+    # An explicit @{upstream} is a more accurate signal than the generic
+    # dev/staging/main candidate list -- e.g. a branch tracking a shared
+    # review branch other than dev. Verify the upstream is tried first.
+    git checkout -qb shared-review
+    mkdir -p skills/onreview
+    echo "# already on the shared review branch" > skills/onreview/skill.md
+    git add skills/onreview/skill.md
+    git commit -qm "already on shared-review"
+
+    git checkout -qb feature --track shared-review
+    mkdir -p docs
+    echo "# this branch's own change" > docs/feature2.md
+    git add docs/feature2.md
+    git commit -qm "add feature2 doc"
+
+    run bash "$SCRIPT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "docs/feature2.md" ]]
+    [[ "$output" != *"skills/onreview/skill.md"* ]]
+}
+
 @test "md-files-changed: rejects unknown flag" {
     run bash "$SCRIPT" --bogus
     [ "$status" -eq 3 ]
+}
+
+# ---------------------------------------------------------------------------
+# --llm-owned / --exclude-llm-owned: the PHR-vs-llm-skill-review ownership
+# split. skills/*.md, .ai-guidance/*.md, and any AGENTS.md-family basename
+# (at any path depth) are llm-skill-review-exclusive; everything else in the
+# AI-guidance-relevant set remains PHR's.
+# ---------------------------------------------------------------------------
+
+@test "md-files-changed: --llm-owned narrows to skills/*.md" {
+    run bash "$SCRIPT" --files "skills/foo/skill.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "skills/foo/skill.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes root AGENTS.md" {
+    run bash "$SCRIPT" --files "AGENTS.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "AGENTS.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md" {
+    local input
+    input=$'CLAUDE.md\nGEMINI.md\nCODEX.md\nCOPILOT.md\nAGENT.md'
+    run bash "$SCRIPT" --files "$input" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"CLAUDE.md"* ]]
+    [[ "$output" == *"GEMINI.md"* ]]
+    [[ "$output" == *"CODEX.md"* ]]
+    [[ "$output" == *"COPILOT.md"* ]]
+    [[ "$output" == *"AGENT.md"* ]]
+}
+
+@test "md-files-changed: --llm-owned includes a nested AGENTS.md (not just repo root)" {
+    run bash "$SCRIPT" --files "guidance/AGENTS.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == "guidance/AGENTS.md" ]]
+}
+
+@test "md-files-changed: --llm-owned includes .ai-guidance/*.md" {
+    run bash "$SCRIPT" --files ".ai-guidance/invariants.md" --llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == ".ai-guidance/invariants.md" ]]
+}
+
+@test "md-files-changed: --llm-owned excludes docs/*.md and other root uppercase .md" {
+    local input
+    input=$'docs/architecture.md\nDESIGN.md'
+    run bash "$SCRIPT" --files "$input" --llm-owned
+    [ "$status" -eq 1 ]
+    [[ -z "$output" ]]
+}
+
+@test "md-files-changed: --exclude-llm-owned drops AGENTS.md but keeps docs/*.md and DESIGN.md" {
+    local input
+    input=$'AGENTS.md\ndocs/architecture.md\nDESIGN.md\nskills/foo/skill.md\n.ai-guidance/x.md'
+    run bash "$SCRIPT" --files "$input" --exclude-llm-owned
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"docs/architecture.md"* ]]
+    [[ "$output" == *"DESIGN.md"* ]]
+    [[ "$output" != *"AGENTS.md"* ]]
+    [[ "$output" != *"skills/foo/skill.md"* ]]
+    [[ "$output" != *".ai-guidance/x.md"* ]]
+}
+
+@test "md-files-changed: --exclude-llm-owned on an all-llm-owned list exits 1 (empty)" {
+    local input
+    input=$'AGENTS.md\nskills/foo/skill.md\n.ai-guidance/x.md'
+    run bash "$SCRIPT" --files "$input" --exclude-llm-owned
+    [ "$status" -eq 1 ]
+    [[ -z "$output" ]]
+}
+
+@test "md-files-changed: --llm-owned and --exclude-llm-owned together is a usage error" {
+    run bash "$SCRIPT" --llm-owned --exclude-llm-owned
+    [ "$status" -eq 3 ]
+}
+
+@test "md-files-changed: default (undecorated) output still includes .ai-guidance/*.md" {
+    run bash "$SCRIPT" --files ".ai-guidance/invariants.md"
+    [ "$status" -eq 0 ]
+    [[ "$output" == ".ai-guidance/invariants.md" ]]
 }
