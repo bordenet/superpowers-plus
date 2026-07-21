@@ -31,7 +31,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `infra-config-investigator` | Diagnoses infrastructure, configuration, and deployment failures. |
 | `investigation-state` | Persists debugging context (hypotheses, evidence) across sessions. |
 | `llm-behavior-investigator` | Diagnoses LLM/prompt behavior issues: tool selection, prompt regressions, parsing failures. |
-| `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Advisory-only; not yet wired into a push gate. |
+| `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |

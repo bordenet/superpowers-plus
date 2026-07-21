@@ -103,23 +103,6 @@ if ! [[ "$MIN_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || \
     exit 1
 fi
 
-# --- Project-minimum floor for skills/ changes ---
-# If the current diff (upstream..HEAD) touches skills/, require >= 9.2.
-# This mirrors the Gate 5 check in tools/pre-push (PHR_SKILLS_MIN=9.2).
-PHR_SKILLS_MIN="9.2"
-_upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
-if [[ -n "$_upstream" ]]; then
-    _skills_changed="$(git diff --name-only "$_upstream" HEAD 2>/dev/null | grep '^skills/' || true)"
-    if [[ -n "$_skills_changed" ]]; then
-        if ! LC_ALL=C awk -v s="$MIN_SCORE" -v m="$PHR_SKILLS_MIN" 'BEGIN { exit !(s >= m) }'; then
-            echo "ERROR: skills/ changes detected but --min-score ${MIN_SCORE} is below the project minimum (${PHR_SKILLS_MIN})." >&2
-            echo "  superpowers-plus requires PHR >= ${PHR_SKILLS_MIN} for all skills/ changes." >&2
-            echo "  Run additional PHR rounds until the weighted mean reaches ${PHR_SKILLS_MIN}." >&2
-            exit 1
-        fi
-    fi
-fi
-
 # --- Refuse if worktree has unstaged modifications (parity with run-battery.sh). ---
 # The sentinel binds to HEAD SHA, but the reviewer saw HEAD + unstaged diff.
 # Allow the sentinel file itself (about to be written).
