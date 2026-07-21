@@ -30,6 +30,7 @@ setup() {
     echo "x" > a.txt
     git add a.txt tools/pre-push tools/public-repo-ip-check.sh
     git commit -q -m "base"
+    HEAD_SHA="$(git rev-parse HEAD)"
 
     DECOY="$(mktemp -d)"
     DECOY="$(cd "$DECOY" && pwd -P)"
@@ -53,7 +54,65 @@ EOF
     chmod +x tools/test-all.sh
     mkdir -p test
 
-    run bash -c "GIT_DIR='$DECOY/.git' GIT_WORK_TREE='$DECOY' GIT_INDEX_FILE='$DECOY/.git/index' bash tools/pre-push < /dev/null"
+    # Gate 1 only runs for a content-bearing push (real git invocations always
+    # provide at least one push-ref line); feed one real, non-deletion ref
+    # rather than empty stdin so Gate 1 actually executes.
+    local push_input
+    push_input="$(mktemp)"
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$HEAD_SHA" > "$push_input"
+
+    run bash -c "GIT_DIR='$DECOY/.git' GIT_WORK_TREE='$DECOY' GIT_INDEX_FILE='$DECOY/.git/index' bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
     [[ "$output" == *"GATE1_RESOLVED_TOPLEVEL=$WORK"* ]]
     [[ "$output" != *"GATE1_RESOLVED_TOPLEVEL=$DECOY"* ]]
+}
+
+@test "pre-push Gate 1: skipped entirely for a push containing only branch deletions" {
+    # A pure branch-deletion push (local SHA all-zero) has no content to test.
+    # Gate 1 must not shell out to test-all.sh at all -- previously it ran
+    # unconditionally before even reading which refs were being pushed, so
+    # deleting a remote branch paid for the full local suite for nothing.
+    cat > tools/test-all.sh <<'EOF'
+#!/usr/bin/env bash
+echo "GATE1_RAN"
+exit 0
+EOF
+    chmod +x tools/test-all.sh
+    mkdir -p test
+
+    local push_input
+    push_input="$(mktemp)"
+    printf 'refs/heads/gone 0000000000000000000000000000000000000000 refs/heads/gone %s\n' \
+        "$HEAD_SHA" > "$push_input"
+
+    run bash -c "bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"skipped — push contains only branch deletions"* ]]
+    [[ "$output" != *"GATE1_RAN"* ]]
+}
+
+@test "pre-push Gate 1: still runs when a mixed push includes a real ref alongside a deletion" {
+    # One deletion ref plus one content ref in the same push must NOT skip
+    # Gate 1 -- HAS_CONTENT_PUSH only needs a single non-zero local SHA.
+    cat > tools/test-all.sh <<'EOF'
+#!/usr/bin/env bash
+echo "GATE1_RAN"
+exit 0
+EOF
+    chmod +x tools/test-all.sh
+    mkdir -p test
+
+    local push_input
+    push_input="$(mktemp)"
+    {
+        printf 'refs/heads/gone 0000000000000000000000000000000000000000 refs/heads/gone %s\n' "$HEAD_SHA"
+        printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' "$HEAD_SHA"
+    } > "$push_input"
+
+    run bash -c "bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    [[ "$output" == *"GATE1_RAN"* ]]
+    [[ "$output" != *"skipped — push contains only branch deletions"* ]]
 }
