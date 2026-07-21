@@ -508,6 +508,24 @@ check_branch_flow_sentinel() {
     return 0
 }
 
+# Read push info from stdin (pre-push hook protocol) BEFORE Gate 1, so Gate 1
+# can tell a content-bearing push from a pure branch-deletion push. git only
+# ever writes this data once, so it must be drained here rather than by the
+# gates-2-5 loop further below -- store it in an array and iterate that
+# instead of re-reading stdin.
+PUSH_LINES=()
+while IFS= read -r _push_line; do
+    PUSH_LINES+=("$_push_line")
+done
+HAS_CONTENT_PUSH=false
+for _push_line in "${PUSH_LINES[@]}"; do
+    read -r _ _push_local_sha _ _ <<< "$_push_line"
+    if [[ "$_push_local_sha" != "0000000000000000000000000000000000000000" ]]; then
+        HAS_CONTENT_PUSH=true
+        break
+    fi
+done
+
 # Gate 1: local fast test suite (node + bats; no shellcheck/harsh-review --
 # those already run as separate steps elsewhere in CI). Runs once per push
 # invocation, not per pushed ref. Without this, catching stale test fixtures
@@ -516,8 +534,15 @@ check_branch_flow_sentinel() {
 # tools/test-all.sh --fast already covers exactly these checks; the gap was
 # that nothing forced it to run before the first push (see AGENTS.md, which
 # documented this entry point and was still skipped).
+#
+# Skipped entirely for a push that ONLY deletes branches (every ref has an
+# all-zero local SHA): a deletion carries no content to test, and running the
+# full suite anyway wasted minutes of local time and (via a chained code-review
+# battery) genuine review-agent cost for a no-op ref removal.
 echo "  [Gate 1/5] Local fast test suite (tools/test-all.sh --fast)"
-if [[ ! -f "$REPO_ROOT/tools/test-all.sh" ]] || [[ ! -d "$REPO_ROOT/test" ]]; then
+if [[ "$HAS_CONTENT_PUSH" == "false" ]]; then
+    echo "  (skipped — push contains only branch deletions, nothing to test)"
+elif [[ ! -f "$REPO_ROOT/tools/test-all.sh" ]] || [[ ! -d "$REPO_ROOT/test" ]]; then
     # This hook file is also copied standalone into minimal/derived repo
     # layouts. Two distinct fixtures hit this: test/public-repo-ip-check.test.sh's
     # new_repo() copies only a handful of tools/ scripts (no test-all.sh at
@@ -578,8 +603,10 @@ else
 fi
 echo ""
 
-# Read push info from stdin (pre-push hook protocol)
-while read -r _ local_sha remote_ref remote_sha; do
+# Gates 2-5: iterate the push-ref lines captured before Gate 1 (stdin was
+# already fully drained above; git provides this data exactly once).
+for _push_line in "${PUSH_LINES[@]}"; do
+    read -r _ local_sha remote_ref remote_sha <<< "$_push_line"
     if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then
         continue  # Branch deletion, skip
     fi
