@@ -195,13 +195,13 @@ When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict 
 tools/run-phr.sh --verdict PASS --min-score "<weighted-mean>"
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches skill/design .md files is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
+This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches design .md files (docs/*.md, AGENTS.md, etc. -- NOT skills/*.md, which is owned exclusively by Gate 6 / llm-skill-review, see that skill's own Enforcement Status) is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
 
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
 Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 5 will report stale).
 
-> **Why this is mandatory:** PHR was discipline-only for too long -- skill changes shipped without running it repeatedly. The sentinel + Gate 5 closes the loop. Note Gate 5 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
+> **Why this is mandatory:** PHR was discipline-only for too long -- design-doc changes shipped without running it repeatedly. The sentinel + Gate 5 closes the loop for that file class. Note Gate 5 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 
 ## Scoring Output Format
 

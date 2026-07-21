@@ -182,10 +182,15 @@ echo "  The code-review-battery AI judgment component MUST be"
 echo "  completed before calling this script. This script only"
 echo "  covers automated verification."
 echo ""
-echo "  ⚠  PHR PREREQUISITE (skill/design changes)"
-echo "  If the diff touches skills/ or design docs, run /sp-phr"
-echo "  BEFORE this script. harsh-review.sh (Step 1) is a linter,"
+echo "  ⚠  PHR PREREQUISITE (design doc changes, excludes skills/*.md)"
+echo "  If the diff touches design docs (docs/*.md, AGENTS.md, etc.), run"
+echo "  /sp-phr BEFORE this script. harsh-review.sh (Step 1) is a linter,"
 echo "  NOT progressive-harsh-review. PHR is a separate AI gate."
+echo ""
+echo "  ⚠  LLM-SKILL-REVIEW PREREQUISITE (skills/*.md changes)"
+echo "  If the diff touches skills/*.md, run llm-skill-review instead of"
+echo "  PHR -- it supersedes (not supplements) both PHR and this battery"
+echo "  for that file class. See tools/run-llm-skill-review.sh."
 echo ""
 
 # Guard: block when there are UNSTAGED modifications (truly dirty worktree).
@@ -431,27 +436,47 @@ echo "  Timestamp: ${TIMESTAMP}"
 echo ""
 echo "  Next step: ${NEXT_STEP}"
 echo ""
-# Only emit the PHR reminder when the diff actually touches skill/design .md files.
+# Only emit reminders when the diff actually touches skill/design .md files.
 # Delegated to tools/md-files-changed.sh — single source of truth for the
 # regex + exclusion (also consumed by the finishing-a-development-branch skill).
+# Split the hits into skills/*.md (owned exclusively by llm-skill-review,
+# NOT PHR) vs. everything else (owned by PHR) -- mirrors the same split
+# tools/pre-push-phr-gate.sh and tools/pre-push-llm-skill-review-gate.sh
+# already enforce at push time.
 if MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" 2>/dev/null); then
-    echo "  ⚠  PHR REQUIRED: This diff touches skills/ or docs/ .md files:"
-    while IFS= read -r f; do
-        [[ -n "$f" ]] && echo "       - $f"
-    done <<< "$MD_HITS"
-    echo ""
-    echo "     Dispatch progressive-harsh-review BEFORE pushing:"
-    echo "       /sp-phr"
-    echo "     or, programmatically:"
-    echo "       node ~/.codex/superpowers-augment/superpowers-augment.js use-skill progressive-harsh-review"
-    echo ""
-    echo "     Battery linting != progressive harsh review."
-    echo ""
+    SKILLS_MD_HITS=$(printf '%s\n' "$MD_HITS" | grep '^skills/' || true)
+    PHR_MD_HITS=$(printf '%s\n' "$MD_HITS" | grep -v '^skills/' || true)
+    if [[ -n "$PHR_MD_HITS" ]]; then
+        echo "  ⚠  PHR REQUIRED: This diff touches design .md files:"
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && echo "       - $f"
+        done <<< "$PHR_MD_HITS"
+        echo ""
+        echo "     Dispatch progressive-harsh-review BEFORE pushing:"
+        echo "       /sp-phr"
+        echo "     or, programmatically:"
+        echo "       node ~/.codex/superpowers-augment/superpowers-augment.js use-skill progressive-harsh-review"
+        echo ""
+        echo "     Battery linting != progressive harsh review."
+        echo ""
+    fi
+    if [[ -n "$SKILLS_MD_HITS" ]]; then
+        echo "  ⚠  LLM-SKILL-REVIEW REQUIRED: This diff touches skills/*.md files:"
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && echo "       - $f"
+        done <<< "$SKILLS_MD_HITS"
+        echo ""
+        echo "     This supersedes (not supplements) PHR and this battery for"
+        echo "     that file class. Dispatch llm-skill-review BEFORE pushing,"
+        echo "     then: tools/run-llm-skill-review.sh --verdict PASS --min-score 9.2"
+        echo ""
+    fi
 else
     PHR_EXIT=$?
     if [[ "$PHR_EXIT" -eq 2 ]]; then
         echo "  ⚠  PHR REMINDER: Could not determine merge base (no main/master ancestor)."
-        echo "     Review the full branch diff manually and confirm /sp-phr was completed if any .md files changed."
+        echo "     Review the full branch diff manually and confirm /sp-phr (or llm-skill-review"
+        echo "     for skills/*.md) was completed if any .md files changed."
         echo ""
     fi
     # exit 1 means "no PHR-relevant files changed" — no reminder needed.

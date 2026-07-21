@@ -13,11 +13,13 @@
 # Gates run, in order (a non-zero exit from any gate is aggregated into the
 # final failure count -- ALL gates run so a single push attempt reports
 # everything wrong at once, not just the first failure):
-#   1. tools/pre-push-test-gate.sh          -- local fast test suite (tools/test-all.sh --fast)
-#   2. tools/pre-push-code-review-gate.sh   -- code-review-battery sentinel
-#   3. tools/pre-push-ip-scan-gate.sh       -- proprietary IP scan (public remotes only)
-#   4. tools/pre-push-branch-flow-gate.sh   -- branch-flow sentinel (dev|staging|main only)
-#   5. tools/pre-push-phr-gate.sh           -- PHR sentinel (skill/design .md only)
+#   1. tools/pre-push-test-gate.sh              -- local fast test suite (tools/test-all.sh --fast)
+#   2. tools/pre-push-code-review-gate.sh       -- code-review-battery sentinel (excludes skills/*.md)
+#   3. tools/pre-push-ip-scan-gate.sh           -- proprietary IP scan (public remotes only)
+#   4. tools/pre-push-branch-flow-gate.sh       -- branch-flow sentinel (dev|staging|main only)
+#   5. tools/pre-push-phr-gate.sh               -- PHR sentinel (design .md only, excludes skills/*.md)
+#   6. tools/pre-push-llm-skill-review-gate.sh  -- llm-skill-review sentinel (skills/*.md ONLY --
+#                                                   supersedes gates 2 and 5 for this file class)
 #
 # INSTALL: ./tools/install-hooks.sh
 # Bypass:  `git push --no-verify` skips the hook entirely (git design limit).
@@ -67,6 +69,7 @@ CODE_REVIEW_GATE="$TOOLS_DIR/pre-push-code-review-gate.sh"
 IP_SCAN_GATE="$TOOLS_DIR/pre-push-ip-scan-gate.sh"
 BRANCH_FLOW_GATE="$TOOLS_DIR/pre-push-branch-flow-gate.sh"
 PHR_GATE="$TOOLS_DIR/pre-push-phr-gate.sh"
+LLM_SKILL_REVIEW_GATE="$TOOLS_DIR/pre-push-llm-skill-review-gate.sh"
 
 # Remote name is passed as $1 by git
 REMOTE_NAME="${1:-origin}"
@@ -160,7 +163,7 @@ cat > "$STDIN_CAPTURE"
 # so a single push attempt reports every failing gate at once.
 ERRORS=0
 
-echo "  [Gate 1/5] Local fast test suite (tools/test-all.sh --fast)"
+echo "  [Gate 1/6] Local fast test suite (tools/test-all.sh --fast)"
 if [[ -f "$TEST_GATE" ]]; then
     bash "$TEST_GATE" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
 else
@@ -168,7 +171,7 @@ else
 fi
 echo ""
 
-echo "  [Gate 2/5] Code review clearance"
+echo "  [Gate 2/6] Code review clearance"
 if [[ -f "$CODE_REVIEW_GATE" ]]; then
     bash "$CODE_REVIEW_GATE" "$REMOTE_NAME" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
 else
@@ -183,7 +186,7 @@ else
 fi
 echo ""
 
-echo "  [Gate 3/5] Proprietary IP scan"
+echo "  [Gate 3/6] Proprietary IP scan"
 if [[ -f "$IP_SCAN_GATE" ]]; then
     bash "$IP_SCAN_GATE" "$REMOTE_NAME" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
 else
@@ -193,7 +196,7 @@ else
 fi
 echo ""
 
-echo "  [Gate 4/5] branch-flow sentinel (canonical-flow targets only)"
+echo "  [Gate 4/6] branch-flow sentinel (canonical-flow targets only)"
 if [[ -f "$BRANCH_FLOW_GATE" ]]; then
     bash "$BRANCH_FLOW_GATE" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
 else
@@ -201,11 +204,25 @@ else
 fi
 echo ""
 
-echo "  [Gate 5/5] PHR sentinel (skill/design .md only)"
+echo "  [Gate 5/6] PHR sentinel (design .md only, excludes skills/*.md)"
 if [[ -f "$PHR_GATE" ]]; then
     bash "$PHR_GATE" "$REMOTE_NAME" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
 else
     echo "  (skipped — tools/pre-push-phr-gate.sh not present)"
+fi
+echo ""
+
+echo "  [Gate 6/6] llm-skill-review sentinel (skills/*.md only)"
+if [[ -f "$LLM_SKILL_REVIEW_GATE" ]]; then
+    bash "$LLM_SKILL_REVIEW_GATE" "$REMOTE_NAME" < "$STDIN_CAPTURE" || ERRORS=$((ERRORS + 1))
+else
+    # Same reasoning as Gates 2/3: this gate is now the SOLE reviewer for
+    # skills/*.md (Gates 2 and 5 both statically exempt that file class
+    # regardless of whether this script exists), so a missing script here
+    # must fail closed too -- otherwise a skills/*.md-only push would sail
+    # through with zero review of any kind.
+    echo -e "  ${RED}❌ PUSH BLOCKED: tools/pre-push-llm-skill-review-gate.sh is missing.${NC}"
+    ERRORS=$((ERRORS + 1))
 fi
 echo ""
 

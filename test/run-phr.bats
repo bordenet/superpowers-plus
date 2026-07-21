@@ -166,51 +166,24 @@ teardown() {
     [[ "$output" == *"Usage:"* ]]
 }
 
-# --- Project-minimum floor (9.2 for skills/ changes) ---
+# --- skills/ changes are NOT run-phr.sh's concern (owned by Gate 6 / ---
+# --- tools/run-llm-skill-review.sh -- see tools/pre-push-llm-skill-review-gate.sh) ---
 
-_setup_skills_change() {
-    # Create a bare remote so the branch has a real upstream for the diff range check.
+@test "no skills/ floor: a skills/ change at a low min-score still writes .phr-cleared" {
+    # This gate no longer owns skills/*.md review at all (superseded by
+    # llm-skill-review's own 9.2 floor); a skills/ file being present in the
+    # diff must not affect run-phr.sh's own verdict/min-score handling.
     REMOTE_DIR="$(mktemp -d)"
     git init -q --bare "$REMOTE_DIR"
     git remote add origin "$REMOTE_DIR"
     git push -q origin main
     git branch --set-upstream-to=origin/main main
-    # Now add a skills/ file commit ahead of the upstream.
     mkdir -p skills/engineering/test-skill
     echo "# test skill" > skills/engineering/test-skill/skill.md
     git add skills/
     git commit -q -m "add skills file"
-}
 
-@test "floor: skills/ change with min-score below 9.2 -> exit 1" {
-    _setup_skills_change
     run ./run-phr.sh --verdict PASS --min-score 8.5
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"project minimum"* ]]
-}
-
-@test "floor: skills/ change with min-score exactly 9.2 -> exit 0" {
-    _setup_skills_change
-    run ./run-phr.sh --verdict PASS --min-score 9.2
     [ "$status" -eq 0 ]
     [ -f .phr-cleared ]
-}
-
-@test "floor: skills/ change with min-score above 9.2 -> exit 0" {
-    _setup_skills_change
-    run ./run-phr.sh --verdict PASS --min-score 9.8
-    [ "$status" -eq 0 ]
-}
-
-@test "floor: no skills/ change with min-score 8.5 -> exit 0 (floor only applies to skills/)" {
-    # No skills/ file — floor should not fire.
-    run ./run-phr.sh --verdict PASS --min-score 8.5
-    [ "$status" -eq 0 ]
-}
-
-@test "floor: no upstream configured -> floor check skipped, sentinel written" {
-    # Without upstream, run-phr.sh cannot determine skills diff; must not block.
-    git remote remove origin 2>/dev/null || true
-    run ./run-phr.sh --verdict PASS --min-score 8.5
-    [ "$status" -eq 0 ]
 }

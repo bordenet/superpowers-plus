@@ -3,6 +3,11 @@
 # Extracts the check_phr_sentinel function from tools/pre-push-phr-gate.sh
 # and exercises it across (missing/stale/format-violation/non-passing-verdict/
 # md-eligible-skip/clean-pass) plus the helper-missing failsafe.
+#
+# skills/*.md is deliberately OUT OF SCOPE for this gate (owned exclusively
+# by tools/pre-push-llm-skill-review-gate.sh -- see test/pre-push-llm-skill-
+# review-gate.bats for the equivalent coverage over there). Fixtures here use
+# docs/*.md and AGENTS.md as the PHR-eligible file class instead.
 
 setup() {
     REPO_ROOT_REAL="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -37,7 +42,6 @@ set -euo pipefail
 source ./stub-colors.sh
 REPO_ROOT="$PWD"
 PHR_SENTINEL="$PWD/.phr-cleared"
-PHR_SKILLS_MIN="9.2"
 EOF
     cat extracted-fn.sh >> harness.sh
     cat >> harness.sh <<'EOF'
@@ -53,10 +57,10 @@ EOF
     git commit -q -m "base"
     BASE_SHA=$(git rev-parse HEAD)
 
-    mkdir -p skills/foo
-    echo "# skill" > skills/foo/skill.md
-    git add skills/foo/skill.md
-    git commit -q -m "add skill"
+    mkdir -p docs
+    echo "# a design doc" > docs/foo.md
+    git add docs/foo.md
+    git commit -q -m "add doc"
     HEAD_SHA=$(git rev-parse HEAD)
 
     export BASE_SHA HEAD_SHA
@@ -95,6 +99,36 @@ teardown() {
     run ./harness.sh "${HEAD_SHA}..${TIP_SHA}" "$TIP_SHA"
     [ "$status" -eq 0 ]
     [[ "$output" == *"no PHR-eligible md files"* ]]
+}
+
+@test "gate5: skills/*.md-only push is skipped -- owned exclusively by llm-skill-review-gate" {
+    # The whole point of the gate split: a push touching ONLY skills/*.md
+    # must NOT require .phr-cleared at all, even though md-files-changed.sh
+    # itself still reports skills/*.md as PHR-eligible in the general sense
+    # -- this gate filters that subset out.
+    mkdir -p skills/foo
+    echo "# a skill" > skills/foo/skill.md
+    git add skills/foo/skill.md
+    git commit -q -m "add skill"
+    SKILL_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${SKILL_SHA}" "$SKILL_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no PHR-eligible md files"* ]]
+    [[ "$output" != *"skills/foo/skill.md"* ]]
+}
+
+@test "gate5: mixed push (skills/*.md + docs/*.md) requires sentinel only for the docs file" {
+    mkdir -p skills/foo
+    echo "# a skill" > skills/foo/skill.md
+    echo "# another doc" > docs/bar.md
+    git add skills/foo/skill.md docs/bar.md
+    git commit -q -m "mixed skill + doc"
+    MIXED_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${HEAD_SHA}..${MIXED_SHA}" "$MIXED_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"PUSH BLOCKED"* ]]
+    [[ "$output" == *"docs/bar.md"* ]]
+    [[ "$output" != *"skills/foo/skill.md"* ]]
 }
 
 # --- Missing sentinel ---
@@ -212,19 +246,19 @@ teardown() {
 @test "gate5: prints the offending md file list before blocking" {
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"skills/foo/skill.md"* ]]
+    [[ "$output" == *"docs/foo.md"* ]]
 }
 
 # --- Single-SHA range (new branch / merge commit / root commit) ---
 
 @test "gate5: single-SHA range on merge commit enumerates files (-m flag)" {
-    # Build: base -> branch_a (skill change) -> merge into main
-    # Then push the merge as a single-SHA range and assert Gate 5 sees the skill.
+    # Build: base -> branch_a (doc change) -> merge into main
+    # Then push the merge as a single-SHA range and assert Gate 5 sees the doc.
     git checkout -q -b branch_a "$BASE_SHA"
-    mkdir -p skills/bar
-    echo "# skill bar" > skills/bar/skill.md
-    git add skills/bar/skill.md
-    git commit -q -m "add skill bar"
+    mkdir -p docs
+    echo "# doc bar" > docs/bar.md
+    git add docs/bar.md
+    git commit -q -m "add doc bar"
     git checkout -q -B test_main "$BASE_SHA"
     # Force a real merge commit (not fast-forward) so it has 2 parents
     git merge -q --no-ff -m "merge branch_a" branch_a
@@ -233,20 +267,20 @@ teardown() {
     run ./harness.sh "$MERGE_SHA" "$MERGE_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"PHR-eligible md files"* ]]
-    [[ "$output" == *"skills/bar/skill.md"* ]]
+    [[ "$output" == *"docs/bar.md"* ]]
 }
 
-@test "gate5: NEW_BRANCH_NO_BASE enumerates full history, catches skill in non-tip commit" {
-    # Reproduce the Defect Finder finding: orphan branch with skill .md in
+@test "gate5: NEW_BRANCH_NO_BASE enumerates full history, catches doc in non-tip commit" {
+    # Reproduce the Defect Finder finding: orphan branch with a doc .md in
     # an EARLIER commit and an unrelated change in the tip. Without the
-    # no_base flag, Gate 5 would only inspect the tip and miss the skill.
-    git checkout -q --orphan orphan_with_skill
+    # no_base flag, Gate 5 would only inspect the tip and miss the doc.
+    git checkout -q --orphan orphan_with_doc
     git rm -qrf . 2>/dev/null || true
     rm -f a.txt
-    mkdir -p skills/baz
-    echo "# orphan skill" > skills/baz/skill.md
-    git add skills/baz/skill.md
-    git commit -q -m "orphan: add skill in non-tip commit"
+    mkdir -p docs
+    echo "# orphan doc" > docs/baz.md
+    git add docs/baz.md
+    git commit -q -m "orphan: add doc in non-tip commit"
     # Tip commit changes ONLY unrelated.txt -- not PHR-eligible
     echo "x" > unrelated.txt
     git add unrelated.txt
@@ -258,21 +292,21 @@ teardown() {
     # WITH no_base: gate must enumerate full history and BLOCK on missing sentinel
     run ./harness.sh "$TIP" "$TIP" "no_base"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"skills/baz/skill.md"* ]]
+    [[ "$output" == *"docs/baz.md"* ]]
     [[ "$output" == *"PUSH BLOCKED"* ]]
 }
 
 @test "gate5: single-SHA range on root commit enumerates files (--root flag)" {
-    # Build a fresh repo with a single root commit that touches a skill.
+    # Build a fresh repo with a single root commit that touches a doc.
     WORK2="$(mktemp -d)"
     cd "$WORK2"
     git init -q --initial-branch=main
     git config user.email "test@test"
     git config user.name "test"
-    mkdir -p skills/zzz
-    echo "# root skill" > skills/zzz/skill.md
-    git add skills/zzz/skill.md
-    git commit -q -m "root commit with skill"
+    mkdir -p docs
+    echo "# root doc" > docs/zzz.md
+    git add docs/zzz.md
+    git commit -q -m "root commit with doc"
     ROOT_SHA=$(git rev-parse HEAD)
     # Bring over the harness + helper
     cp "$WORK/stub-colors.sh" .
@@ -284,42 +318,7 @@ teardown() {
     chmod +x harness.sh
     run ./harness.sh "$ROOT_SHA" "$ROOT_SHA"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"skills/zzz/skill.md"* ]]
+    [[ "$output" == *"docs/zzz.md"* ]]
     rm -rf "$WORK2"
     cd "$WORK"
-}
-
-# --- PHR skills floor (9.2 minimum for skills/ changes) ---
-
-@test "gate5: skills/ change + min-score below 9.2 -> BLOCK with floor message" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=8.5" > .phr-cleared
-    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"below project minimum"* ]]
-    [[ "$output" == *"9.2"* ]]
-}
-
-@test "gate5: skills/ change + min-score exactly 9.2 -> PASS" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.2" > .phr-cleared
-    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"PHR cleared"* ]]
-}
-
-@test "gate5: skills/ change + min-score above 9.2 -> PASS" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.8" > .phr-cleared
-    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
-    [ "$status" -eq 0 ]
-}
-
-@test "gate5: non-skills .md change + min-score 8.5 -> PASS (floor does not apply)" {
-    # Commit a non-skills .md file (AGENTS.md) — floor must not trigger.
-    echo "# agents" > AGENTS.md
-    git add AGENTS.md
-    git commit -q -m "agents only"
-    AGENTS_SHA=$(git rev-parse HEAD)
-    echo "v1|${AGENTS_SHA}|PASS|2026-05-25T00:00:00Z|min-score=8.5" > .phr-cleared
-    run ./harness.sh "${HEAD_SHA}..${AGENTS_SHA}" "$AGENTS_SHA"
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"PHR cleared"* ]]
 }

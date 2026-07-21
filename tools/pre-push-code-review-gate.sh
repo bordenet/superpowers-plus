@@ -41,12 +41,16 @@ REMOTE_NAME="${1:-origin}"
 
 # Reads filenames from stdin, prints the first one that is classified as code,
 # or prints nothing if all files are docs/metadata. AGENTS.md / CLAUDE.md are
-# policy files treated as code; skills/ is always code; .md/.txt/.rst and
-# well-known root metadata files are exempted.
+# policy files treated as code; skills/**/*.md is exempted -- owned exclusively
+# by the llm-skill-review gate, not this one (see
+# tools/pre-push-llm-skill-review-gate.sh's header) -- but any OTHER file
+# under skills/ (scripts, configs, etc.) is still code; .md/.txt/.rst
+# elsewhere and well-known root metadata files are exempted.
 _first_code_file() {
     awk '
         /^\s*$/                             { next }
         /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+        /^skills\/.*\.md$/                  { next }
         /^skills\//                         { print; next }
         /\.(md|txt|rst)$/                   { next }
         /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
