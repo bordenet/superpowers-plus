@@ -100,3 +100,30 @@ make_commit() {
     LOC_GATE_MODE=block MAX_LOC=200 run bash "$SCRIPT" HEAD
     [ "$status" -eq 0 ]
 }
+
+@test "block mode: pure deletion commit is never blocked (deletions are free)" {
+    # Add 600 lines, then delete them all -- net diff is 600 deletions, 0 insertions.
+    # The gate must pass regardless of how many lines were deleted.
+    make_commit 600
+    local fname
+    fname=$(git show --name-only --format="" HEAD | head -1)
+    git rm -q "$fname"
+    git commit -q -m "delete 600 lines"
+    LOC_GATE_MODE=block MAX_LOC=10 run bash "$SCRIPT" HEAD
+    [ "$status" -eq 0 ]
+}
+
+@test "block mode: mixed add+delete -- insertions above threshold still blocks" {
+    # Single commit: delete a big file and add a small one that exceeds MAX_LOC.
+    # Gate must fire on the 20 insertions even though 600 lines were also deleted.
+    make_commit 600
+    local big_fname new_fname
+    big_fname=$(git show --name-only --format="" HEAD | head -1)
+    new_fname="small_${RANDOM}.txt"
+    python3 -c "import sys; [sys.stdout.write('line %d\n' % i) for i in range(20)]" > "$new_fname"
+    git rm -q "$big_fname"
+    git add "$new_fname"
+    git commit -q -m "mixed: 20 insertions + 600 deletions"
+    LOC_GATE_MODE=block MAX_LOC=10 run bash "$SCRIPT" HEAD
+    [ "$status" -eq 1 ]
+}

@@ -3,7 +3,8 @@
 # pre-push-loc-gate.sh
 #
 # Per-commit large-diff gate for git pre-push. Detects any push that contains a
-# single commit with > MAX_LOC insertions+deletions (default 500).
+# single commit with > MAX_LOC insertions (default 500). Deletions are free --
+# removing code is always welcome and never penalized by this gate.
 #
 # Mode (override via LOC_GATE_MODE env var or .loc-gate-mode file):
 #
@@ -116,8 +117,10 @@ if ! [[ "$MAX_LOC" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 # diff_loc_for_commit <commit-sha>
-# Prints the total of insertions + deletions for the commit, against its first
-# parent (so merge commits show only the merge-side delta, not the full graph).
+# Prints the number of INSERTIONS for the commit against its first parent (so
+# merge commits show only the merge-side delta, not the full graph). Deletions
+# are intentionally excluded -- removing code is always welcome and must never
+# be penalized.
 # Returns 0 for root commits (no parent).
 diff_loc_for_commit() {
     local sha="$1"
@@ -139,10 +142,9 @@ diff_loc_for_commit() {
         echo "ERROR: git diff --shortstat $parent $sha failed; refusing to fail-open to 0 LOC" >&2
         return 2
     fi
-    local ins del
+    local ins
     ins=$(echo "$stat" | grep -oE '[0-9]+ insertion' | grep -oE '^[0-9]+' || echo 0)
-    del=$(echo "$stat" | grep -oE '[0-9]+ deletion'  | grep -oE '^[0-9]+' || echo 0)
-    echo $(( ins + del ))
+    echo "$ins"
 }
 
 # enumerate_commits <local_sha> <remote_sha>
