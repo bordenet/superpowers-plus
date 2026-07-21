@@ -107,6 +107,7 @@ make_commit() {
     make_commit 600
     local fname
     fname=$(git show --name-only --format="" HEAD | head -1)
+    [ -n "$fname" ]
     git rm -q "$fname"
     git commit -q -m "delete 600 lines"
     LOC_GATE_MODE=block MAX_LOC=10 run bash "$SCRIPT" HEAD
@@ -119,6 +120,7 @@ make_commit() {
     make_commit 600
     local big_fname new_fname
     big_fname=$(git show --name-only --format="" HEAD | head -1)
+    [ -n "$big_fname" ]
     new_fname="small_${RANDOM}.txt"
     python3 -c "import sys; [sys.stdout.write('line %d\n' % i) for i in range(20)]" > "$new_fname"
     git rm -q "$big_fname"
@@ -126,4 +128,23 @@ make_commit() {
     git commit -q -m "mixed: 20 insertions + 600 deletions"
     LOC_GATE_MODE=block MAX_LOC=10 run bash "$SCRIPT" HEAD
     [ "$status" -eq 1 ]
+}
+
+@test "block mode: mixed add+delete -- deletions don't count toward threshold" {
+    # Single commit: 20 insertions + 600 deletions, MAX_LOC=100 sits strictly between
+    # the two candidate totals (20 <= 100 < 620). This is the discriminating case: the
+    # old insertions+deletions formula would block (620 > 100) while insertions-only
+    # must pass (20 <= 100) -- proving deletions are genuinely excluded, not just that
+    # insertions alone can still trip the gate (see the test above for that case).
+    make_commit 600
+    local big_fname new_fname
+    big_fname=$(git show --name-only --format="" HEAD | head -1)
+    [ -n "$big_fname" ]
+    new_fname="small_${RANDOM}.txt"
+    python3 -c "import sys; [sys.stdout.write('line %d\n' % i) for i in range(20)]" > "$new_fname"
+    git rm -q "$big_fname"
+    git add "$new_fname"
+    git commit -q -m "mixed: 20 insertions + 600 deletions, MAX_LOC between the two"
+    LOC_GATE_MODE=block MAX_LOC=100 run bash "$SCRIPT" HEAD
+    [ "$status" -eq 0 ]
 }
