@@ -4,10 +4,17 @@
 # pre-push-phr-gate.sh
 #
 # Gate 5 of the pre-push composer: requires .phr-cleared when the push range
-# touches PHR-eligible files (skill .md / docs / AGENTS.md). PHR is the
-# multi-persona AI judgment gate (Junior + SeniorArch + ProdOps); it is
-# SEPARATE from code-review-battery (automated lint/test). Without this
-# gate, PHR is discipline-only and gets skipped.
+# touches PHR-eligible files EXCLUDING skills/*.md (docs/*.md, repo-root
+# UPPERCASE.md, AGENTS.md). PHR is the multi-persona AI judgment gate
+# (Junior + SeniorArch + ProdOps); it is SEPARATE from code-review-battery
+# (automated lint/test). Without this gate, PHR is discipline-only and gets
+# skipped.
+#
+# skills/*.md is deliberately OUT OF SCOPE here: it's owned exclusively by
+# tools/pre-push-llm-skill-review-gate.sh, which supersedes (not supplements)
+# both this gate and the code-review gate for that specific file class --
+# see that gate's own header for why a skill.md push should require exactly
+# one review, not two or three redundant ones.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -26,10 +33,6 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 PHR_SENTINEL="$REPO_ROOT/.phr-cleared"
-
-# Minimum PHR score required for pushes touching skills/ files.
-# Non-skills .md changes (design docs, plans) need only the general PASS floor.
-PHR_SKILLS_MIN="9.2"
 
 REMOTE_NAME="${1:-origin}"
 
@@ -99,7 +102,11 @@ check_phr_sentinel() {
             echo "  [phr-gate] (skipped — no files in push range)"
             return 0
         fi
-        md_files=$("$md_helper" --files "$range_files" 2>/dev/null || true)
+        # Exclude skills/*.md: owned exclusively by the llm-skill-review
+        # gate (see this file's header). Without this filter, a skills-only
+        # push would require BOTH .phr-cleared and .llm-skill-review-cleared
+        # for the same content -- exactly the redundancy this split removes.
+        md_files=$("$md_helper" --files "$range_files" 2>/dev/null | grep -v '^skills/' || true)
         if [[ -z "$md_files" ]]; then
             echo "  [phr-gate] (skipped — no PHR-eligible md files in push)"
             return 0
@@ -114,13 +121,15 @@ check_phr_sentinel() {
     if [[ ! -f "$PHR_SENTINEL" ]]; then
         echo -e "  ${RED}❌ PUSH BLOCKED: .phr-cleared sentinel missing.${NC}"
         echo ""
-        echo "  Skill / design .md files require Progressive Harsh Review."
-        echo "  After PHR passes (>= the project's minimum score), write the sentinel:"
+        echo "  Design docs (docs/*.md, AGENTS.md, etc.) require Progressive"
+        echo "  Harsh Review. After PHR passes (>= the project's minimum score),"
+        echo "  write the sentinel:"
         echo "    tools/run-phr.sh --verdict PASS --min-score 9.5   # or your project min"
         echo ""
         echo "  PHR is the multi-persona AI judgment gate (Junior + SeniorArch +"
         echo "  ProdOps). It is SEPARATE from code-review-battery (automated"
-        echo "  lint/test). Both are required for skill/design changes."
+        echo "  lint/test) and from llm-skill-review (which owns skills/*.md"
+        echo "  exclusively -- see tools/pre-push-llm-skill-review-gate.sh)."
         echo ""
         return 1
     fi
@@ -162,21 +171,6 @@ check_phr_sentinel() {
         echo "    Pushing:     ${pushed_sha:0:8}"
         echo "    Commits were made after PHR. Re-run PHR then tools/run-phr.sh."
         return 1
-    fi
-
-    # Skills floor: any push touching skills/ requires min-score >= PHR_SKILLS_MIN.
-    local phr_score skills_in_push
-    phr_score="${phr_min#min-score=}"
-    skills_in_push=$(echo "$md_files" | grep '^skills/' || true)
-    if [[ -n "$skills_in_push" ]]; then
-        if ! LC_ALL=C awk -v s="$phr_score" -v m="$PHR_SKILLS_MIN" 'BEGIN { exit !(s >= m) }'; then
-            echo -e "  ${RED}❌ PUSH BLOCKED: PHR score below project minimum for skills/ changes.${NC}"
-            echo "    Got:      min-score=${phr_score}"
-            echo "    Required: >= ${PHR_SKILLS_MIN} (PHR_SKILLS_MIN in tools/pre-push-phr-gate.sh)"
-            echo "    Run additional PHR rounds until weighted mean >= ${PHR_SKILLS_MIN}, then:"
-            echo "      tools/run-phr.sh --verdict PASS --min-score ${PHR_SKILLS_MIN}"
-            return 1
-        fi
     fi
 
     # Sentinel intentionally NOT consumed here: PHR is SHA-bound, so a single

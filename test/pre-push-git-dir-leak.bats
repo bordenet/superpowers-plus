@@ -29,7 +29,7 @@ setup() {
     # just the two this file is specifically testing.
     for gate in pre-push-test-gate.sh pre-push-code-review-gate.sh \
                 pre-push-ip-scan-gate.sh pre-push-branch-flow-gate.sh \
-                pre-push-phr-gate.sh; do
+                pre-push-phr-gate.sh pre-push-llm-skill-review-gate.sh; do
         cp "$REPO_ROOT_REAL/tools/$gate" "tools/$gate"
         chmod +x "tools/$gate"
     done
@@ -200,6 +200,32 @@ EOF
     rm -f "$push_input"
     [ "$status" -ne 0 ]
     [[ "$output" == *"tools/pre-push-ip-scan-gate.sh is missing"* ]]
+}
+
+@test "pre-push composer: fails closed (does not silently pass) when pre-push-llm-skill-review-gate.sh is missing" {
+    # Gate 6 is now the SOLE reviewer for skills/*.md (Gates 2 and 5 both
+    # statically exempt that file class regardless of whether this script
+    # exists), so its absence must block the push, matching Gates 2/3's
+    # existing hard-fail-on-missing behavior -- not the soft-skip pattern
+    # used for the optional test/branch-flow gates.
+    rm -f tools/pre-push-llm-skill-review-gate.sh
+    cat > tools/test-all.sh <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+    chmod +x tools/test-all.sh
+    mkdir -p test
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=7.0" > .code-review-cleared
+
+    local push_input
+    push_input="$(mktemp)"
+    printf 'refs/heads/main %s refs/heads/main 0000000000000000000000000000000000000000\n' \
+        "$HEAD_SHA" > "$push_input"
+
+    run bash -c "bash tools/pre-push < '$push_input'"
+    rm -f "$push_input"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"tools/pre-push-llm-skill-review-gate.sh is missing"* ]]
 }
 
 @test "pre-push-ip-scan-gate.sh: fails closed when public-repo-ip-check.sh is missing, even for a private-to-private remote push" {
