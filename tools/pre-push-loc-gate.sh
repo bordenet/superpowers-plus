@@ -245,7 +245,7 @@ check_pushed_refs() {
         local sha="${v%%:*}" rest="${v#*:}" loc ref subject
         loc="${rest%%:*}"; ref="${rest#*:}"
         subject=$(git show -s --format='%s' "$sha" 2>/dev/null || echo "")
-        echo "  - $sha (loc=$loc on $ref): $subject" >&2
+        echo "  - $sha ($loc insertions on $ref): $subject" >&2
     done
     echo "" >&2
     if [[ "$LOC_GATE_MODE" == "warn" ]]; then
@@ -305,7 +305,7 @@ if [[ $# -gt 0 ]]; then
     fi
     loc=$(diff_loc_for_commit "$sha") || exit 2
     if (( loc > MAX_LOC )); then
-        echo "Commit $sha exceeds MAX_LOC=$MAX_LOC (loc=$loc):" >&2
+        echo "Commit $sha exceeds MAX_LOC=$MAX_LOC ($loc insertions):" >&2
         git show -s --format='  %s' "$sha" >&2
         if [[ "$LOC_GATE_MODE" == "warn" ]]; then
             echo "Mode: WARN. Push would proceed in a real pre-push invocation." >&2
