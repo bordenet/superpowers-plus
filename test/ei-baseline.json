@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-09T20:09:50.924Z",
+  "generated_at": "2026-07-22T03:30:13.632Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -35,15 +35,6 @@
         "normalized_hash": "14f52352f947b64f",
         "length": 438,
         "first_line": "| Symptom | Fix |"
-      }
-    ],
-    "engineering/code-review-battery/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "f63bb4dc9bf3ba9e",
-        "length": 203,
-        "first_line": "See `reference.md` for the 4 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-spe"
       }
     ],
     "engineering/cognitive-complexity-refactoring/skill.md": [
@@ -111,8 +102,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "3ee32d9167028f1a",
-        "length": 327,
+        "normalized_hash": "665f797e8e06f48f",
+        "length": 727,
         "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
@@ -159,6 +150,15 @@
         "normalized_hash": "d8cfb672d7144697",
         "length": 363,
         "first_line": "| Mode | Symptom | Recovery |"
+      }
+    ],
+    "engineering/llm-skill-review/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "b7512035e3641d5a",
+        "length": 1354,
+        "first_line": "| Failure | Fix |"
       }
     ],
     "engineering/micro-harsh-review/skill.md": [
@@ -208,8 +208,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "29196200dbed3bf2",
-        "length": 1502,
+        "normalized_hash": "e63ac5af0f6987c7",
+        "length": 1533,
         "first_line": "| Failure | Fix |"
       }
     ],
@@ -520,7 +520,7 @@
       {
         "kind": "EI",
         "name": "block-0",
-        "normalized_hash": "852093184cf906eb",
+        "normalized_hash": "53649a52597da593",
         "length": 2104,
         "first_line": "Before claiming ANY audit, bulk-edit, or refactoring task is complete, execute ALL of these steps:"
       },
@@ -764,8 +764,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "25651805106863a0",
-        "length": 498,
+        "normalized_hash": "35b4650612d63e68",
+        "length": 574,
         "first_line": "| Failure | Fix |"
       }
     ],
@@ -875,8 +875,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "a4959549b33e7df8",
-        "length": 372,
+        "normalized_hash": "b3f2bd57c6cf7292",
+        "length": 710,
         "first_line": "| Failure | Fix |"
       }
     ],
@@ -884,8 +884,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "f65ce06357179cf4",
-        "length": 278,
+        "normalized_hash": "299bc1c90ddaf2af",
+        "length": 521,
         "first_line": "- **Table when list suffices:** Using a 2-row table for data that reads better as a bullet list"
       }
     ],
