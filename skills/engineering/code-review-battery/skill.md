@@ -185,15 +185,9 @@ After all reviewers return:
 4. **Convergence**: same location from 2+ reviewers — keep both; True convergence (different reasoning paths) → promote to **≥ Important** (never demote a Critical); Echo convergence (same evidence/phrasing) → retain original severity.
 5. Clean dimensions need same `evidence` block as findings; missing evidence on any clean dimension causes the verifier to cap the overall run score at 7.0.
 6. **Severity**: Critical=broken now; Important=breaks under conditions; Minor=standards gap. Elevate to Important when operator-visible signal is wrong/missing. Reclassify process gaps downward. See `reference.md` § Severity Definitions.
-7. **Triple-filter** each Important/Critical on CX impact, complexity, testability:
-   - **Implement**: passes all 3 filters — propose exact code change.
-   - **Defer**: good finding but doesn't pass all 3 filters — document for future work.
-   - **Reject**: correct observation but fix adds more complexity than it removes.
-8. Preserve Regressions Risked + Durable Check per Implement finding.
+7. **Triple-filter** each Important/Critical on CX impact, complexity, testability: **Implement** (all 3 pass) — propose exact code change + enumerate `collateral_test_changes` (required, may be empty-list: grep `it(`/`test(`/`describe(` in diff's test files for tests whose description references the behavior being removed; only include if assertion CLEARLY validates that specific behavior). **Defer** — document for future work. **Reject** — fix adds more complexity than it removes. Preserve Regressions Risked + Durable Check per Implement finding.
 
 **Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Verdict is anything other than PASS or PASS_WITH_NITS (below-threshold score, OR a Reject-classified Critical at or above threshold) → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
-
-**`collateral_test_changes`** (required on Implement-classified findings, may be empty-list): search `it(` / `test(` / `describe(` strings in the test files changed by the diff for tests whose description references the timing value, flag name, or behavior being removed or inverted. Only list a test if its assertion CLEARLY validates the specific behavior being removed — do not list tests that merely mention related identifiers. A fix prescription without this field is incomplete.
 
 **Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Possible → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M ([N] suppressed)/[N]P | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
 
