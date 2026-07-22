@@ -135,6 +135,12 @@ jobs:
       - name: Fence-scan tests (BATS)
         run: bats test/fence-scan.bats
 
+      - name: Review-router tests (BATS)
+        run: bats test/review.bats
+
+      - name: Which-gate tests (BATS)
+        run: bats test/which-gate.bats
+
       - name: Sentinel fast-forward tests (BATS)
         run: bats tests/try-sentinel-fast-forward-test.bats
 

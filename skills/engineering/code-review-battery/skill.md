@@ -35,6 +35,9 @@ composition:
 ---
 
 # Code Review Battery
+
+> **Mechanical routing:** don't decide from memory or from the "Wrong skill?" prose below -- run `tools/review.sh route <path> [<path> ...]` first (paths of the files you're about to review). It wraps `tools/which-gate.sh` and prints the correct skill + sentinel + runner for each artifact. If the router says a different skill, follow the router, not this banner. If the router errors or is unavailable, stop and report -- do not fall back to the prose. The banner is an inner backstop, not a substitute for the mechanical check.
+>
 > **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. Full-repo security audit → `repo-security-scan` or `/sp-devsec-audit`. Skill.md files or skill-adjacent tooling infrastructure → `llm-skill-review`. **Slash commands:** `/sp-cr-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
 
 Dispatch up to 6 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.

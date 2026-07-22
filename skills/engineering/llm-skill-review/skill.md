@@ -40,6 +40,8 @@ composition:
 
 # LLM Skill Review
 
+> **Mechanical routing:** don't decide from memory or from the "Wrong skill?" prose below -- run `tools/review.sh route <path> [<path> ...]` first (paths of the files you're about to review). It wraps `tools/which-gate.sh` and prints the correct skill + sentinel + runner for each artifact. If the router says a different skill, follow the router, not this banner. If the router errors or is unavailable, stop and report -- do not fall back to the prose. The banner is an inner backstop, not a substitute for the mechanical check.
+>
 > **Purpose:** The primary, default reviewer for ANY skill.md file or skill-adjacent tooling -- covers both LLM-execution safety and prose/design quality in one pass, so a skill review no longer needs a separate `progressive-harsh-review` pass to also judge whether it is a well-written, sensible artifact for a human.
 >
 > **Wrong skill?** Use `progressive-harsh-review` instead only for non-skill artifacts -- plans, specs, designs, general documents. Conventional code PR review -> `code-review-battery` (skill/tooling-infrastructure changes should still redirect here first). Quick code comments -> `providing-code-review`.
