@@ -146,6 +146,15 @@ node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-profanity "<FILE.
 
 **HARD GATE** — any profanity match blocks the commit. Fix and re-scan. Context-dependent terms (e.g., "kill process", "abort") are not flagged.
 
+**PR title/body scan (before creating or updating a PR):** a PR's title and description are API metadata, not git-tracked files — the staged-file scan above never sees them. Write the intended title + body to a temp file and scan before `gh pr create`, and again before merging if the description was edited afterward:
+
+```bash
+printf '%s\n%s\n' "<PR TITLE>" "<PR BODY>" > /tmp/pr-desc.txt
+node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-ai-process-refs /tmp/pr-desc.txt
+```
+
+For `gh pr create --fill` (sources title/body from commit messages, so nothing was explicitly typed to scan beforehand), scan afterward instead: `gh pr view --json title,body --jq '.title + "\n" + .body' | node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-ai-process-refs -`. This category is skipped automatically (exit 0, with a visible notice) when run inside `superpowers-plus` itself — see `scripts/.ai-process-refs-patterns.txt`'s header. **HARD GATE for every other repo** — a match blocks the PR the same way a profanity match blocks a commit.
+
 **Gate fails?** Deep-dive: `use-skill professional-language-audit`.
 
 ---

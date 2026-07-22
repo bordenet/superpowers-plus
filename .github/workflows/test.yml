@@ -144,6 +144,9 @@ jobs:
       - name: Shell-runtime-auditor persona tests (BATS)
         run: bats test/shell-runtime-auditor-count.bats
 
+      - name: AI-process self-reference scan tests (BATS)
+        run: bats test/scan-ai-process-refs.bats
+
       - name: Sentinel fast-forward tests (BATS)
         run: bats tests/try-sentinel-fast-forward-test.bats
 
