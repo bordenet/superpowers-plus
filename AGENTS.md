@@ -68,7 +68,7 @@ Two parallel, mutually exclusive skill ecosystems exist. At the **START of every
 
 This loads available skills into the environment. To load a specific skill manually (plus only):
 ```bash
-node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>
+node ~/.codex/superpowers-augment/superpowers-augment.js use-skill SKILL_NAME
 ```
 
 <!-- GOLDEN:framework:end -->

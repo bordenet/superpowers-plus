@@ -1,7 +1,7 @@
 ---
 name: code-review-battery
 description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across focused lenses. Invoke as: /sp-cr-battery [min-score] [--security|--no-security] [--mode=bug-fix|feature] (optional 1.0–10.0 quality threshold, default 7.0; default 9.2 in Bug Fix Review Mode). Bug Fix Mode auto-activates on hotfix/* and fix/[A-Z]+-[0-9]+ branches."
-summary: Dispatches up to 7 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst, AttackerPersona, ShellRuntimeAuditor) in parallel with source context for ripple analysis. AttackerPersona is signal-driven (security-sensitive diffs) and toggleable via --security/--no-security. ShellRuntimeAuditor is signal-driven (shell content: a shebang, a .sh/.bash file, or tool-wrapper code) with no manual toggle. Aggregates findings with triple-filter prioritization and Round 2 escalation.
+summary: Dispatches up to 7 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst, AttackerPersona, ShellRuntimeAuditor) in parallel with source context for ripple analysis. AttackerPersona is signal-driven (security-sensitive diffs) and toggleable via --security/--no-security. ShellRuntimeAuditor is signal-driven (shell content -- a shebang, a .sh/.bash file, or tool-wrapper code) with no manual toggle. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
   - /sp-cr-battery
   - /sp-deepreview
