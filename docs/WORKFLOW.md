@@ -12,7 +12,7 @@ Skills in the engineering group form a commit/push gate chain, a presentation ga
 | `progressive-code-review-gate` | Gate 3 — self code review | Deep-dive only | ✅ Yes |
 | `professional-language-audit` | Gate 4 — prose tone/language | Deep-dive only | No |
 | `public-repo-ip-audit` | Gate 5 — IP scan before public push | Deep-dive only | No |
-| `code-review-battery` | 5 parallel specialist reviewers | Called by Gate 3 & presenting | N/A |
+| `code-review-battery` | up to 7 parallel specialist reviewers | Called by Gate 3 & presenting | N/A |
 | `requesting-code-review` | Before presenting work to human | ✅ Secondary | ✅ If no sentinel |
 | `verification-before-completion` | Before ANY "done" response to human | ✅ Presentation gate | No (checks sentinel) |
 | `finishing-a-development-branch` | Branch completion decision tree | ✅ Orchestrator | ✅ Step 0 |
@@ -31,7 +31,7 @@ unified-commit-gate (UCG)
         ├─→ Gate 2: enforce-style-guide
         │   └─→ shell style (shebang, help, -e, ShellCheck)
         ├─→ Gate 3: progressive-code-review-gate
-        │   └─→ code-review-battery (5 parallel reviewers)
+        │   └─→ code-review-battery (up to 7 parallel reviewers)
         │       └─→ writes .code-review-cleared [sha:<HEAD>]
         ├─→ Gate 4: professional-language-audit
         │   └─→ prose tone, filler, self-deprecation

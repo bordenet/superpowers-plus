@@ -144,6 +144,9 @@ jobs:
       - name: Shell-runtime-auditor persona tests (BATS)
         run: bats test/shell-runtime-auditor-count.bats
 
+      - name: Reviewer-count consistency tests (BATS)
+        run: bats test/reviewer-count-consistency.bats
+
       - name: AI-process self-reference scan tests (BATS)
         run: bats test/scan-ai-process-refs.bats
 
