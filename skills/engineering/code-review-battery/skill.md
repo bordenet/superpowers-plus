@@ -1,7 +1,7 @@
 ---
 name: code-review-battery
 description: "Use when reviewing code changes to dispatch parallel specialized reviewers instead of a single monolithic review — provides deeper, more precise findings across focused lenses. Invoke as: /sp-cr-battery [min-score] [--security|--no-security] [--mode=bug-fix|feature] (optional 1.0–10.0 quality threshold, default 7.0; default 9.2 in Bug Fix Review Mode). Bug Fix Mode auto-activates on hotfix/* and fix/[A-Z]+-[0-9]+ branches."
-summary: Dispatches up to 6 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst, AttackerPersona) in parallel with source context for ripple analysis. AttackerPersona is signal-driven (security-sensitive diffs) and toggleable via --security/--no-security. Aggregates findings with triple-filter prioritization and Round 2 escalation.
+summary: Dispatches up to 7 specialist reviewers (Defect Finder, Design Critic, Guardian, Standards Enforcer, Performance Analyst, AttackerPersona, ShellRuntimeAuditor) in parallel with source context for ripple analysis. AttackerPersona is signal-driven (security-sensitive diffs) and toggleable via --security/--no-security. ShellRuntimeAuditor is signal-driven (shell content: a shebang, a .sh/.bash file, or tool-wrapper code) with no manual toggle. Aggregates findings with triple-filter prioritization and Round 2 escalation.
 triggers:
   - /sp-cr-battery
   - /sp-deepreview
@@ -40,7 +40,7 @@ composition:
 >
 > **Wrong skill?** File-protocol review handoff → `code-review`. PR inline → `providing-code-review`. Pre-commit gate → `progressive-code-review-gate`. Full-repo security audit → `repo-security-scan` or `/sp-devsec-audit`. Skill.md files or skill-adjacent tooling infrastructure → `llm-skill-review`. **Slash commands:** `/sp-cr-battery [min-score]` (primary; optional 1.0–10.0 quality threshold, default 7.0), `/sp-deepreview` (legacy).
 
-Dispatch up to 6 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
+Dispatch up to 7 specialized reviewer agents in parallel, each focused on a distinct set of review dimensions. A triage coordinator selects which reviewers to activate based on the diff, then aggregates findings into a unified report.
 
 **Why this exists**: A single reviewer tries to evaluate everything simultaneously, leading to shallow coverage, inconsistent focus, and ~40% false positive rates. Specialized reviewers with focused prompts produce deeper analysis with near-zero false positives.
 
@@ -113,6 +113,7 @@ Analyze the diff and select reviewers:
 | **Standards Enforcer** | Docs, test quality, observability | Always |
 | **Performance Analyst** | Performance, logging | DB, loops, caching, network I/O, or >500 LOC |
 | **AttackerPersona** | Credential-flow, AI-agent boundary, ident-vs-value, cookie/session, revival re-validation, CWE tagging | Any security-class signal (see signal-driven dispatch table below) or `--security` flag |
+| **ShellRuntimeAuditor** | Shell/runtime portability, tool contract safety, failure-mode resilience | A shell-content signal (see signal-driven dispatch table below) — content-gated, not a path glob |
 | **BugPath Verifier** | Root cause, fix coverage, sibling bugs, regression test | BugPath Mode active (see Phase 0.5) — mandatory, not skippable |
 | **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
@@ -131,6 +132,7 @@ Analyze the diff and select reviewers:
 | File rename/move/delete | Guardian (inbound-reference focus) | Broken external consumers |
 | Test-only change | Standards Enforcer (+ Defect Finder for revert-safety) | Mock fidelity, revert-safety |
 | Security-class signal (caller-supplied URL, dynamic SQL identifier, new MCP tool/IPC, secret read, cookie/session, `_disabled/` revival) | AttackerPersona | Credential-flow, AI-agent boundary, ident-vs-value; tags + threat-model severity multiplier |
+| Shell-content signal (a shebang added/changed, a `.sh`/`.bash` file, or tool-wrapper code invoking an external CLI and interpreting its exit code/output — in any file, not just `.sh`) | ShellRuntimeAuditor | Shell/runtime portability (GNU-only flags, bash-version-gated features), tool contract safety (exit-code/flag-parsing completeness), failure-mode resilience (missing `set -euo pipefail`, silent subprocess-failure swallowing, unguarded external-binary dependencies) |
 | **New user-visible feature** (new endpoint, new agent action, new UI-affecting path, new workflow branch) with **no metric or trace emit in the diff** | Standards Enforcer (OE Telemetry Gate — mandatory Critical) | Missing time-series metrics and/or distributed trace instrumentation for new behavior — ships blind; see §4a OE Telemetry Gate |
 | `try { ... } catch` block in the diff (regardless of size or context) | Defect Finder -- this signal does NOT activate a new reviewer (Defect Finder already activates for any code change); it mandates specific coverage: `Catch-Swallow Fall-Through` (always) + `Finally-Block State Precondition` (only if the diff also contains a `finally` block) + `Dead Catch Verification` (before proposing any new catch) | Catch-fall-through races, finally blocks emitting against partially-completed state, unreachable defensive catches |
 | Diff deletes or reroutes what was the only call site of a function/method/export, checked repo-wide (an ordinary unused-import left behind by the same refactor, with no other reference removed, is a separate minor lint concern -- NOT this pattern) | Defect Finder | Caller Removal Trace: dead code introduced by this diff (orphaned function/export) -- findings MUST use Guardian's Anti-Hallucination Gate evidence format (`reviewers/guardian.md`) |

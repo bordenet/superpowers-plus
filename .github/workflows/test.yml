@@ -141,6 +141,9 @@ jobs:
       - name: Which-gate tests (BATS)
         run: bats test/which-gate.bats
 
+      - name: Shell-runtime-auditor persona tests (BATS)
+        run: bats test/shell-runtime-auditor-count.bats
+
       - name: Sentinel fast-forward tests (BATS)
         run: bats tests/try-sentinel-fast-forward-test.bats
 

@@ -40,7 +40,7 @@ Nine upstream skills are replaced by superpowers-plus, each a complete replaceme
 | **brainstorming** | HARD GATE blocking any code or scaffolding before design approval; `anti_triggers` field preventing false activations; mandatory design-doc commit before transitioning to planning |
 | **finishing-a-development-branch** | Mandatory `code-review-battery` as Step 0 before any integration option is presented |
 | **receiving-code-review** | Systemic Verification gate: every fix acknowledgment must confirm the fix actually landed in the artifact, not just acknowledge the feedback |
-| **requesting-code-review** | Routes all review requests through `code-review-battery` (5 parallel specialist reviewers); Cardinal Rule enforcement |
+| **requesting-code-review** | Routes all review requests through `code-review-battery` (up to 7 parallel specialist reviewers); Cardinal Rule enforcement |
 | **subagent-driven-development** | Two-stage review (self-review then battery); condensed to 91 lines for faster context load; platform-agnostic framing |
 | **systematic-debugging** | Hard "NO FIXES WITHOUT INVESTIGATION" gate: Phase 1 (reproduce + hypothesize) must complete before any fix attempt |
 | **test-driven-development** | Strict Red→Green→Refactor sequence with hard gates; production code cannot be written before a failing test exists |
