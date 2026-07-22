@@ -229,25 +229,19 @@ After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → fl
 2. Write a JSON envelope to `.cr-battery-runs/<HEAD-sha>.json`. Schema: `reference.md` § Run Envelope Schema. Every finding AND clean-dimension verdict must carry an `evidence` block; `verifiable: false` caps at 7.0. Expectation types: `reference.md` § Verifier Details. `tools/run-battery.sh` refuses sentinel write if JSON missing in Bug Fix Mode; graceful degrade in Standard Mode.
 
 ```bash
-# tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared.
+# tools/run-battery.sh is the ONLY permitted way to write .code-review-cleared -- never echo it directly.
 tools/run-battery.sh --verdict PASS --min-score "<threshold>"         # no unresolved nits
 tools/run-battery.sh --verdict PASS_WITH_NITS --min-score "<threshold>" # Minor nits remain unresolved
 ```
-
-> ❌ **Never write `.code-review-cleared` directly with `echo`.** Use `tools/run-battery.sh`.
 
 **Timing:** Pre-commit battery → sentinel stales after commit; re-run before push. `REJECT` or `PASS_WITH_FIXES`: do NOT write sentinel — fix Critical/Important, re-dispatch, re-run.
 
 ### Gap Analysis + Error Handling
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks, keeping structurally-related files (Caller Removal Trace or Sibling Path Trace candidates) in the same chunk or cross-passing their excerpts so neither chunk's reviewer works blind to the other file -- this bounds what one dispatch reads, not what Phase 2's full-repo grep obligation searches; a chunked sub-battery still greps the whole repo for out-of-diff references. Empty diff → skip.
 
-## Anti-Patterns
+## Failure Modes & Anti-Patterns
 
-See `reference.md` for the 5 anti-patterns (all-agree, duplicates, fatigue, missing-context, over-scoping) with detection + correction columns. Moved to the companion file to keep this skill under the per-skill line budget.
-
-## Failure Modes
-
-See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) with fixes. Moved to the companion file alongside the Anti-Patterns table.
+See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) and the 5 anti-patterns (all-agree, duplicates, fatigue, missing-context, over-scoping), with a companion table each (detection/correction for anti-patterns, a fix column for failure modes). Moved to the companion file to keep this skill under the per-skill line budget.
 
 ## Companion Skills
 
