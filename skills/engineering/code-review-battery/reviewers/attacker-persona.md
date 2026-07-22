@@ -124,7 +124,7 @@ For dimensions 1-5, you MUST trace into unchanged code. The diff is a perturbati
 - **AI-agent trust boundary**: read the full body of every MCP tool / IPC handler the diff touches OR introduces. Check call graph for downstream destructive operations.
 - **Identifier-vs-value**: for every interpolated identifier, grep all callers to determine the universe of values it can take.
 - **Cookie / session impersonation**: follow each cookie / token read from the read site to every network or IPC boundary it can reach; include unchanged call graph.
-- **Revival re-validation**: read the git history of the revived path (`git log --all -- <path>`) to recover the original disable rationale; apply dimensions 1-4 to the current call graph, not the historical one. If git history is unavailable, report: "revival rationale UNKNOWN -- git history inaccessible; treating as unreviewed new code for all threat dimensions."
+- **Revival re-validation**: read the git history of the revived path (`git log --all -- "<path>"`) to recover the original disable rationale; apply dimensions 1-4 to the current call graph, not the historical one. If git history is unavailable, report: "revival rationale UNKNOWN -- git history inaccessible; treating as unreviewed new code for all threat dimensions."
 
 **Required tools for full ripple analysis:**
 - `search_files` or equivalent full-repo grep -- for Dimensions 1, 3, 4.

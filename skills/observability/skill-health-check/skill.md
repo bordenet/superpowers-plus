@@ -48,6 +48,7 @@ composition:
 |-------|----------|-------------------|
 | YAML frontmatter | ERROR | `name`, `source`, `triggers`, `description` fields present |
 | Line count | ERROR | No `skill.md` exceeds 250 lines |
+| Reviewer prompt length | ERROR | No `reviewers/*.md` exceeds 400 lines (dispatched verbatim to sub-agents, so denser than a skill.md — hence a higher ceiling than 250; enforced by `tools/harsh-review.sh`) |
 | Coordination metadata | ERROR | `coordination:` block present with required keys: `group`, `order`, `internal` |
 | Failure modes section | WARN | `## Failure Modes` heading present (presence only) |
 
@@ -83,6 +84,10 @@ ruby -ryaml -e '
     warnings << "#{path}: Missing Failure Modes" unless content.include?("## Failure Modes")
     lines = content.count("\n")
     errors << "#{path}: #{lines} lines (max 250)" if lines > 250
+  end
+  Dir.glob("skills/**/reviewers/*.md").each do |path|
+    lines = File.read(path).count("\n")
+    errors << "#{path}: #{lines} lines (max 400)" if lines > 400
   end
   errors.each { |e| puts "ERROR: #{e}" }
   warnings.each { |w| puts "WARN:  #{w}" }

@@ -73,8 +73,8 @@ If you find NO issues, say:
 
 You have full workspace access. Use it aggressively:
 
-- `cat <file>` to read complete source files
-- `grep -rn <pattern> <dir>` to find callers, related code, or similar patterns
+- `cat "<file>"` to read complete source files
+- `grep -rn "<pattern>" "<dir>"` to find callers, related code, or similar patterns
 - `node -e '...'` or equivalent to verify behavior of suspicious code
 - `ls`, `find` to verify file paths and directory structure
 - Run tests if they exist for the changed files

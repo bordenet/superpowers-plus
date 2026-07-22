@@ -613,6 +613,24 @@ while IFS= read -r skill_file; do
 done < <(find skills -name "skill.md" -o -name "SKILL.md" 2>/dev/null)
 
 # =============================================================================
+# CHECK 8b-2: Reviewer Prompt File Length Limit
+# =============================================================================
+# Reviewer prompt files (skills/**/reviewers/*.md) are dispatched verbatim to
+# context-free sub-agents, so unbounded growth is a real per-review token cost.
+# They are legitimately denser than a skill.md, so the ceiling is higher (400 vs
+# 250) -- but a ceiling with teeth is what keeps that growth metered. 400 is
+# ~1.6x the skill.md budget and headroom above the largest pre-existing reviewer.
+log_check "Reviewer prompt file length (max 400 lines)"
+
+MAX_REVIEWER_LINES=400
+while IFS= read -r reviewer_file; do
+    line_count=$(wc -l < "$reviewer_file" | tr -d ' ')
+    if [[ "$line_count" -gt "$MAX_REVIEWER_LINES" ]]; then
+        log_fail "${reviewer_file#skills/}: ${line_count} lines (max ${MAX_REVIEWER_LINES})"
+    fi
+done < <(find skills -path '*/reviewers/*.md' 2>/dev/null)
+
+# =============================================================================
 # CHECK 8c: Skill Frontmatter Validation
 # =============================================================================
 log_check "Skill frontmatter (required fields)"
