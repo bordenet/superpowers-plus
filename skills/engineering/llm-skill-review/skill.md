@@ -51,13 +51,13 @@ composition:
 ## Companion Skills
 
 - **progressive-harsh-review**: Reviews non-skill deliverables (plans, specs, designs, documents) with the same adversarial rigor; this skill absorbed its skill-review responsibility (see Prose/Design Quality Axes below)
-- **code-review-battery**: Conventional code PR review; escalate here for ordinary application-code changes bundled alongside skill/tooling changes
+- **code-review-battery**: Conventional code PR review; escalate here for ordinary application-code changes bundled alongside skill/tooling changes. Also runs alongside this skill (not instead of) for skill-adjacent shell scripts specifically -- see the When to Use exception below
 - **skill-health-check**: Structural lint (frontmatter validity, line budget) -- run before this skill, not instead of it; use **think-twice** (fresh-perspective sub-agent) if this review gets stuck in a circular loop
 - **superpowers-doctor**: Runtime/ecosystem diagnostics (trigger collisions, orphaned installs) after this skill's review passes
 
 ## When to Use
 
-**This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion.
+**This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion. **Exception:** for skill-adjacent shell scripts and tool wrappers specifically, also run `code-review-battery` -- its `ShellRuntimeAuditor` persona activates unconditionally on shell content regardless of path, because this skill's own pre-push gate (`tools/pre-push-llm-skill-review-gate.sh`) only mechanically requires its sentinel for `skills/**/*.md` changes, not standalone `.sh`/`.js`/`.py`/`.mjs` files -- run both for a change that touches both content types. This is the one carve-out to the "instead of, not alongside" rule above.
 
 **Invoke automatically when changes touch any of these areas:**
 - `skills/**`, `tools/**`, `scripts/**`, `setup/**`, `mcp/**`
@@ -231,7 +231,13 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), and **supersedes** -- not supplements -- the PHR and code-review gates for those file classes (both explicitly exclude them; see each gate's own header, and `tools/md-files-changed.sh`'s `LLM_OWNED_REGEX` for the single-source-of-truth boundary). A push touching only these files therefore needs exactly one review, not two or three redundant ones (a push touching other file classes too still needs their own gates). `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose* and the other LLM-instruction file classes above.
+`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), and **supersedes** -- not supplements -- the PHR and code-review gates for those file classes (both explicitly exclude them; see each gate's own header, and `tools/md-files-changed.sh`'s `LLM_OWNED_REGEX` for the single-source-of-truth boundary). A push touching only these files therefore needs exactly one review, not two or three redundant ones (a push touching other file classes too still needs their own gates). `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose* and the other LLM-instruction file classes above (this is the "Exception" carve-out in When to Use above, not a separate gap).
+
+**Sentinel write, after PASS:**
+```bash
+tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
+```
+Use the Prose/Design cross-persona mean (Persona 6's PHR ensemble aggregate) as `--min-score` -- LLM-Execution per-axis scores produce no separate aggregate to average. Root config files (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`) additionally need `tools/run-phr.sh`; unsure which sentinel(s) a push needs? Run `tools/which-gate.sh <path>` for a code-derived answer rather than trusting this prose.
 
 ## Final Reminder
 
