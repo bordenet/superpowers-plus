@@ -21,9 +21,9 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 |-------|---------|
 | **superpowers-plus overrides** | 9 skills that replace an upstream obra/superpowers skill of the same name with additional enforcement gates |
 | **superpowers-plus base (unchanged)** | 5 skills (`dispatching-parallel-agents`, `executing-plans`, `using-git-worktrees`, `using-superpowers`, `writing-plans`) added from obra/superpowers at the v2.6.0 fold-in, unchanged |
-| **superpowers-plus additions** | 93 net-new skills covering engineering, wiki, security, research, and more |
+| **superpowers-plus additions** | 94 net-new skills covering engineering, wiki, security, research, and more |
 
-107 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
+108 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
 
 ---
 
@@ -248,5 +248,5 @@ All 108 skills grouped by filesystem domain, verified against `skills/*/*/skill.
 
 ---
 
-*107 skills across 9 domains (9 overrides, 5 base, 93 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
+*108 skills across 9 domains (9 overrides, 5 base, 94 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
 *Full skill descriptions: [SKILLS.md](SKILLS.md)*

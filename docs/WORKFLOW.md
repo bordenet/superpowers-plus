@@ -32,7 +32,7 @@ unified-commit-gate (UCG)
         │   └─→ shell style (shebang, help, -e, ShellCheck)
         ├─→ Gate 3: progressive-code-review-gate
         │   └─→ code-review-battery (up to 7 parallel reviewers)
-        │       └─→ writes .code-review-cleared [sha:<HEAD>]
+        │       └─→ writes .code-review-cleared [v1|<HEAD>|VERDICT|timestamp|min-score=N]
         ├─→ Gate 4: professional-language-audit
         │   └─→ prose tone, filler, self-deprecation
         └─→ Gate 5: public-repo-ip-audit (push only)
@@ -48,7 +48,7 @@ Any gate fails → ABORT and fix
 
 **What:** `.code-review-cleared` — file at repo root written by `code-review-battery` when all reviewers approve.
 
-**Format:** single line `sha:<40-char-sha>`
+**Format:** single line `v1|<40-char-sha>|<VERDICT>|<timestamp>|min-score=<N>`
 
 **When written:** End of `code-review-battery` run, all reviewers approve. Written by `tools/run-battery.sh` — the only permitted writer.
 

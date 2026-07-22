@@ -27,7 +27,7 @@ Review each upstream commit before merging. Changes to core skills (`brainstormi
 
 ## `using-superpowers` Change Gate
 
-Any PR that modifies `skills/productivity/using-superpowers/skill.md` **must** include a smoke test demonstrating the 6 core trigger phrases still route correctly.
+Any PR that modifies `skills/engineering/using-superpowers/skill.md` **must** include a smoke test demonstrating the 6 core trigger phrases still route correctly.
 
 | Prompt | Expected skill trigger |
 |--------|----------------------|
