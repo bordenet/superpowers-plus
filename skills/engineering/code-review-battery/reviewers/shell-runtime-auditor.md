@@ -237,9 +237,12 @@ failure is expected/acceptable. No comment = flag.
 **Unguarded external-binary dependency.** When this diff introduces the
 script's FIRST invocation of a new external binary (e.g. a new call to
 `shellcheck`, `jq`, `bats`), is there a preceding `command -v <binary>`
-(or equivalent) check with a fail-loud message -- matching this repo's
-own documented convention (`tools/run-battery.sh`'s bats check: fails
-loud with `❌ bats not found` rather than a raw shell error)?
+(or equivalent) check with an explicit, actionable message -- matching
+this repo's own dominant convention for a missing dependency
+(`tools/test-all.sh`'s `run_shellcheck`/`run_bats`: `command -v <tool>
+>/dev/null 2>&1 || { echo "⚠️  <tool> not installed; skipping"; return
+0; }`) -- rather than a raw, uninformative shell error (`command not
+found`)?
 
 **How to spot**: for each new external command token the diff
 introduces, `grep -n 'command -v <tool>' <file>`. Absence means the
