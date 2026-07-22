@@ -237,7 +237,7 @@ List the next test scenarios that should run before merge.
 ```bash
 tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
 ```
-Use the Prose/Design cross-persona mean (Persona 6's PHR ensemble aggregate) as `--min-score` -- LLM-Execution per-axis scores produce no separate aggregate to average. Root config files (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`) additionally need `tools/run-phr.sh`; unsure which sentinel(s) a push needs? Run `tools/which-gate.sh <path>` for a code-derived answer rather than trusting this prose.
+Use the Prose/Design cross-persona mean (Persona 6's PHR ensemble aggregate) as `--min-score` -- LLM-Execution per-axis scores produce no separate aggregate to average. Root config files (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`) are covered by this gate alone -- per the "supersedes -- not supplements" rule above, they do NOT additionally need `tools/run-phr.sh`. Unsure which sentinel(s) a push needs? Run `tools/which-gate.sh <path>` for a code-derived answer rather than trusting this prose.
 
 ## Final Reminder
 
