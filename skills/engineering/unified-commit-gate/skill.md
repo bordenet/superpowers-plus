@@ -153,7 +153,7 @@ printf '%s\n%s\n' "<PR TITLE>" "<PR BODY>" > /tmp/pr-desc.txt
 node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-ai-process-refs /tmp/pr-desc.txt
 ```
 
-For `gh pr create --fill` (sources title/body from commit messages, so nothing was explicitly typed to scan beforehand), scan afterward instead: `gh pr view --json title,body --jq '.title + "\n" + .body' | node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-ai-process-refs -`. This category is skipped automatically (exit 0, with a visible notice) when run inside `superpowers-plus` itself — see `scripts/.ai-process-refs-patterns.txt`'s header. **HARD GATE for every other repo** — a match blocks the PR the same way a profanity match blocks a commit.
+For `gh pr create --fill` (sources title/body from commit messages, so nothing was explicitly typed to scan beforehand), scan afterward instead: `gh pr view --json title,body --jq '.title + "\n" + .body' | node ~/.codex/superpowers-plus/scripts/slop-dictionary.js scan-ai-process-refs -`. This category is skipped automatically (exit 0, with a visible notice) when run inside `superpowers-plus` itself — see `scripts/.ai-process-refs-patterns.txt`'s header. **HARD GATE for every other repo** — a match blocks the PR the same way a profanity match blocks a commit. New category, watch it for a few real pushes: if a legitimate phrase false-positives (e.g. a product feature genuinely named "harsh review"), add it via `node ~/.codex/superpowers-plus/scripts/slop-dictionary.js except "<phrase>"` rather than disabling the category outright.
 
 **Gate fails?** Deep-dive: `use-skill professional-language-audit`.
 
