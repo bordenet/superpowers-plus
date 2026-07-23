@@ -1,0 +1,66 @@
+# Candidate: Fix-Collateral Test Analysis (Phase 3 Aggregation Rule)
+id: candidate-009
+status: proposed
+kind: pattern
+created: 2026-06-11
+source_gap: |
+  Live review on a production TypeScript service (2026-06-11, SHA 1b21095dd2):
+  battery missed an Important finding entirely. When the finding was identified
+  separately and fixed (removing a 7s isGreetingPhase timer from a code path whose
+  purpose was to wait for customer input), the battery did not flag that the test
+  'drops STT during the 7 s greeting protection window' validated the removed behavior
+  and would fail after implementing the fix. The test had to be identified and updated
+  manually.
+  Root cause: Phase 3 Implement classification had no mechanism to enumerate tests
+  that validate the bug behavior being removed. Reviewers run in parallel and cannot
+  cross-reference each other's findings, so this check belongs in Phase 3 aggregation,
+  not in any reviewer prompt.
+source_exercise: null
+reviewer: phase-3-aggregation  # Not a reviewer prompt change -- a Phase 3 orchestrator rule
+pattern: |
+  Fix-Collateral Test Analysis: when Phase 3 classifies a finding as Implement,
+  the fix prescription MUST include a 'collateral_test_changes' field (required,
+  may be empty-list).
+
+  For each Implement finding:
+  1. Identify the KEY BEHAVIOR being removed or changed (e.g., "7s timer holds
+     isGreetingPhase on no-lead path", "silence detection not re-armed at unlock point").
+  2. Grep test file names and test description strings (it/test/describe) in the diff
+     for tests that reference:
+     - The timing value being changed (e.g., "7 s", "7000", "7_000")
+     - The flag or state being modified (e.g., "greeting protection window", "isGreetingPhase")
+     - The behavior being inverted (e.g., "drops STT" when the fix makes speech accepted)
+  3. For each matching test: ask "Would this test FAIL after implementing this fix?"
+     If yes: include in collateral_test_changes with action (delete / rewrite) and rationale.
+     If no matching tests: set collateral_test_changes: [] explicitly.
+
+  A fix prescription without a complete collateral list is incomplete.
+  Note: this check only applies to behavior REMOVAL or INVERSION.
+  For behavior ADDITION, there are no pre-existing tests to invalidate.
+examples:
+  - context: "Phase 3 finds Important: 7s timer on isAcquisitionInboundNoLead is wrong"
+    missing_collateral: |
+      Test 'drops STT during the 7 s greeting protection window on acquisition no-lead calls'
+      asserts handleInterruption NOT called -- validates the 7s timer being removed.
+      After fix: isGreetingPhase=false immediately, handleInterruption IS called, test fails.
+    correct_prescription: |
+      Fix: remove timer, unlock immediately.
+      collateral_test_changes:
+        - test: "drops STT during the 7 s greeting protection window on acquisition no-lead calls"
+          action: delete-or-replace
+          reason: "Validates the 7s hold being removed. Replace with test asserting speech
+                   is accepted immediately after initialize()."
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: "skill.md Phase 3 step 6 Implement classification -- collateral_test_changes field"
+  regression_check: null

@@ -1,0 +1,30 @@
+# AI-process self-reference patterns for PR descriptions and commit
+# messages in a downstream adopter's own product repo.
+#
+# These refer to this toolkit's own internal workflow -- an engineer
+# reviewing a PR in an unrelated product repo has no context for them
+# and they read as process narrative, not engineering content.
+#
+# One pattern per line, case-insensitive word-boundary matching. A literal
+# space in a multi-word pattern matches any run of whitespace, including a
+# line break.
+# Lines starting with # are comments.
+#
+# Not scanned against superpowers-plus's own skill/doc files, where
+# naming these skills is the normal subject matter, not a violation --
+# see isToolkitSelfRepo() in slop-dictionary.js.
+
+superpowers-plus
+harsh-review
+harsh review
+progressive harsh review
+cr-battery
+sp-cr-battery
+code-review-battery
+phr score
+phr-vetted
+phr-cleared
+phr round
+llm-skill-review
+which-gate.sh
+review.sh route
