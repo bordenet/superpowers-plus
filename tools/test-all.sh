@@ -73,6 +73,31 @@ run_shellcheck() {
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
+#
+# --jobs support (requires GNU parallel, `brew install parallel`): every file
+# under test/ was checked for shared mutable state before enabling this --
+# 25 of 28 write only to a per-test/per-suite isolated temp path (`mktemp`,
+# `BATS_TEST_TMPDIR`, or `BATS_SUITE_TMPDIR`); the remaining 3
+# (reviewer-count-consistency, shell-runtime-auditor-count, which-gate)
+# only read the real repo tree read-only, with no writes to a shared
+# non-temp path. Bats forks a separate process per file under GNU parallel,
+# so a `cd "$REPO_ROOT"` in one file's process cannot affect another file's
+# CWD, and no cross-file shared-state hazard was found. `--no-parallelize-
+# within-files` is passed below because within-file parallelism (bats runs
+# a file's own tests concurrently too, by default, once --jobs > 1) was NOT
+# audited per-file -- e.g. wiki-oneshot.bats's setup_file() starts one
+# shared, stateful mock HTTP server used by all tests in that file, and nothing
+# guarantees a future test added to a file like that stays order-independent.
+# Revisit only after auditing within-file state for every file individually.
+_bats_jobs() {
+    local n
+    n=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
+    # Cap at 8 to avoid thrashing on machines with many cores
+    [[ "$n" -gt 8 ]] && n=8
+    echo "$n"
+}
+
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_bats() {
     if ! command -v bats >/dev/null 2>&1; then
         echo "⚠️  bats not installed; skipping"
@@ -82,8 +107,17 @@ run_bats() {
     # core.fsmonitor=true in a developer's global ~/.gitconfig, each throwaway
     # test repo starts a detached `git fsmonitor--daemon` that inherits bats'
     # status FD 3 and never closes it -- bats then hangs forever at suite exit.
-    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-        bats test/
+    if command -v parallel >/dev/null 2>&1; then
+        local jobs
+        jobs=$(_bats_jobs)
+        echo "  [bats] running with --jobs $jobs (GNU parallel found)"
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+            bats --jobs "$jobs" --no-parallelize-within-files test/
+    else
+        echo "  [bats] GNU parallel not found -- running serially (brew install parallel for a speedup)"
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+            bats test/
+    fi
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
