@@ -229,3 +229,15 @@ A review that ships a high verdict alongside material defects is worse than a re
 This is a **separate sentinel from `.phr-cleared`**, deliberately -- `tools/run-phr.sh` is also the sentinel-writer for plain progressive-harsh-review rounds on plans/designs that never produce an Evidence Schema envelope at all, so making it require one unconditionally would break that unrelated use case.
 
 `tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), at a 9.2 minimum score. For `skills/*.md` this is the same floor this repo already enforced before this gate existed (`PHR_SKILLS_MIN`, moved here unchanged, not a new threshold for that class). For `.ai-guidance/*.md` and AGENTS.md-family files it IS a new, higher floor -- those classes previously only needed PHR's generic PASS band (weighted mean >=7.0-8.0 depending on the project's minimum), since the old `PHR_SKILLS_MIN` check gated exclusively on `skills/`-prefixed paths. This **supersedes** the PHR gate and the code-review gate for those file classes specifically -- both of those gates explicitly exclude them from their own scope now, so a push touching only these files requires exactly this one sentinel, not `.phr-cleared` and `.code-review-cleared` as well.
+
+**Evidence envelope creation, before writing the sentinel:** the envelope file is `.cr-battery-runs/<HEAD-SHA>-llm-skill-review.json`, shape `{"findings":[],"clean_dimensions":[]}` at minimum (see Evidence Schema above for the full shape when there are real findings). `tools/run-llm-skill-review.sh` errors out with `Evidence envelope not found` if this file is missing before the sentinel write. `--no-envelope` is a declared escape hatch but prints a loud warning; prefer creating the empty envelope instead, and reserve `--no-envelope` for when there is genuinely nothing to verify.
+
+**Recording the score in a PR description (recommended convention, not currently CI-enforced in this repo):** paste the score under a specific, consistent markdown heading rather than burying it in prose, for example:
+
+```
+## llm-skill-review evidence
+
+Score: <Prose/Design-mean>/10, <N> rounds, verdict PASS
+```
+
+A dedicated heading stays easy to find for a human reviewer and stays parseable if this repo ever adds automation that reads this section (e.g. a required-status-check that fails a PR missing it); a score present in the body under the wrong heading, or under no heading at all, reads as absent to anything doing exact matching.
