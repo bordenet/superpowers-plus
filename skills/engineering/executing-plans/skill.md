@@ -36,11 +36,13 @@ Load plan, review critically, execute all tasks, report when complete.
 
 For each task:
 1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
+2. **Before any `git commit` in this step:** invoke `superpowers:unified-commit-gate` (all applicable gates). Do NOT skip because you are mid-plan. Then continue with the plan's steps exactly as written (plan has bite-sized steps).
 3. Run verifications as specified
 4. Mark as completed
 
 ### Step 3: Complete Development
+
+> **Before pushing the branch** (once per push, not per task): invoke `superpowers:unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first.
 
 After all tasks complete and verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
