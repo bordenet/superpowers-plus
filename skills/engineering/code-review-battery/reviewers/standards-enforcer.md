@@ -44,6 +44,23 @@ When the PR description, wiki, or ticket references specific counts, lists, or c
 - **Verify file lists** (e.g., "Files Changed: types.ts, handler.ts" — confirm against `--stat`)
 - **Verify behavior claims** (e.g., "confidence gate at 0.5" — confirm the threshold in code)
 
+### 3b. Ticket IDs in Comments
+
+Scan the diff's added `//`, `/* */`, or JSDoc `/** */` comment lines for an embedded ticket-tracker reference (e.g. `JIRA-99`, `GH-123`, `ADO-1234`, or any project-specific tracker key followed by a number), judged in context as a real ticket reference rather than a coincidental identifier-looking substring. This check depends on seeing the full branch diff, not just the tip commit (Phase 2 step 1 governs which diff-capture command was used to build the context you were given).
+
+Flag as Minor if the reference sits inside prose in an explanatory inline comment, JSDoc block, or block comment. The surrounding prose must be meaningful without the ticket reference; ticket IDs rot once the ticket closes and belong in commit messages and PR descriptions, never in source.
+
+Do NOT flag:
+- A TODO-style annotation at the start of the comment (`TODO(TICKET-ID): ...`, the tracked-debt convention)
+- The ticket ID as the argument of a `@see`, `@link`, or `@deprecated` JSDoc tag
+- A line carrying a suppress pragma (`@ts-ignore`, `eslint-disable-next-line`, `eslint-disable-line`)
+- Ticket IDs in commit messages or PR description text (correct location)
+- Changelog or CHANGELOG.md files
+- A ticket-ID-shaped string that is actually a string literal value, not a comment (e.g. a test fixture asserting on a real API response)
+- A test name or description string that intentionally cites the ticket a regression test was written for (e.g. `it("regression test for BUG-456", ...)`) — the ticket reference IS the point of a regression test's name and stays meaningful after the ticket closes
+
+Example: `// token TTL is ~30min per config; see JIRA-4821 for investigation notes` — flag and suggest: `// token TTL is 30min (config.ts); confirmed via 30-day log baseline`.
+
 ### 4. Test Quality
 
 - Are tests meaningful (testing behavior, not implementation details)?
