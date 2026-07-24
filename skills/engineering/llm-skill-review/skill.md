@@ -233,8 +233,12 @@ List the next test scenarios that should run before merge.
 
 `tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), and **supersedes** -- not supplements -- the PHR and code-review gates for those file classes (both explicitly exclude them; see each gate's own header, and `tools/md-files-changed.sh`'s `LLM_OWNED_REGEX` for the single-source-of-truth boundary). A push touching only these files therefore needs exactly one review, not two or three redundant ones (a push touching other file classes too still needs their own gates). `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the combined score from this skill's own scorecards (see "Combining both scorecards" above) is the `--min-score` fed to `tools/run-llm-skill-review.sh`. See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose* and the other LLM-instruction file classes above (this is the "Exception" carve-out in When to Use above, not a separate gap).
 
-**Sentinel write, after PASS:**
+**Sentinel write, after PASS:** create the evidence envelope, then write the sentinel (envelope shape and rationale, and the recommended PR-description heading convention for recording the score: see reference.md's "Enforcement Detail").
+
 ```bash
+HEAD_SHA=$(git rev-parse HEAD)
+mkdir -p .cr-battery-runs
+echo '{"findings":[],"clean_dimensions":[]}' > ".cr-battery-runs/${HEAD_SHA}-llm-skill-review.json"
 tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
 ```
 Use the Prose/Design cross-persona mean (Persona 6's PHR ensemble aggregate) as `--min-score` -- LLM-Execution per-axis scores produce no separate aggregate to average. Root config files (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`) are covered by this gate alone -- per the "supersedes -- not supplements" rule above, they do NOT additionally need `tools/run-phr.sh`. Unsure which sentinel(s) a push needs? Run `tools/which-gate.sh <path>` for a code-derived answer rather than trusting this prose.

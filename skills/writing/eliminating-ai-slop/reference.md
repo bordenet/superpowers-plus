@@ -22,7 +22,24 @@ For detection categories and pattern lists, see `detecting-ai-slop` skill.
 | Sycophantic phrases | great question | Delete |
 | Transitional filler | let's dive into, however, indeed, furthermore | Delete or use plain connector |
 | Vague abstraction | the frame, the lens, the narrative, the space | Name the specific noun |
-| AI jargon | failure mode, failure class, failure pattern | Name the actual problem (defect, bug family, the specific behavior) |
+| AI jargon | failure mode, failure class, failure pattern, failure category, error class, defect pattern (singular and plural) | See "AI Jargon Replacement Guide" below. Default: name the actual problem. |
+
+#### AI Jargon Replacement Guide: failure mode / failure class / failure pattern / failure category / error class / defect pattern
+
+**Do not replace:**
+- Structural section contracts: headings, FMEA column headers, SRE section titles, bold labels in non-prose contexts, list-item labels where the jargon term is immediately followed by a colon or dash (`- failure mode: X`, `- failure mode - X`). A list item that starts with the term and continues as a prose sentence (`- failure mode is the most common...`) is free-running prose; do not exempt it.
+- Direct quotations from external sources.
+- Term in a sentence describing a code construct by name ("catch the correct error class", "Python's BaseException class hierarchy"). This exemption applies to all six terms; "error class" is simply the most frequent case. The other five are rare in code contexts but treated identically.
+
+**If none of the above exemptions apply, free-running prose only:**
+
+Apply in order, stop at first match:
+
+1. **Categorical veto (check this first):** Is the author formally enumerating a named category of failures that recurs across separate instances, where "bug" or "defect" would collapse a meaningful structural distinction? Detection signals: numbered modes listed by name ("Mode 1: X; Mode 2: Y"), FMEA-style tables with a Failure Mode column, or a section heading that names the category. Absent one of these signals, treat as non-categorical and proceed to step 2. If categorical signals are present, leave it unchanged. Legitimate example: a postmortem with a named section listing "Mode 1: sensor saturation (occurs under sustained load); Mode 2: clock drift (occurs after failover)"; "defect" would erase the structural distinction between modes.
+
+2. **Single-event test:** Does "what went wrong", "the problem", or "what to watch out for" substitute cleanly? If yes, replace. Slop examples: "the failure mode here was skipping code review" becomes "the problem was skipping code review"; "the failure mode for most teams is X" becomes "what most teams get wrong is X" (rhetorical generalization, not a formal category); "this approach has a defect pattern where X" becomes "this approach tends to X."
+
+3. **Default when uncertain:** Replace with the named problem ("the bug was X", "what typically goes wrong is Y", "the risk is Z").
 
 ### Structural Patterns (vary or restructure)
 

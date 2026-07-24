@@ -83,7 +83,7 @@ Commands: "Add [phrase] to slop dictionary" | "Never flag [phrase]" | "Show my t
 | "Data-driven" / "customer-centric" | Show the data or customer evidence |
 | "End-to-end" / "holistic" / "seamless experience" | Name the actual scope or flow |
 | En-dash or em-dash as pacing punctuation | Comma, semicolon, colon, or parentheses (en-dash stays in ranges and compound noun-pairs like "client–server") |
-| "Failure mode" / "failure class" / "failure pattern" | Name the actual problem: "defect", "bug family", or the specific behavior |
+| "Failure mode" / "failure class" / "failure pattern" / "failure category" / "error class" / "defect pattern" (singular and plural) | Do not replace structural uses, external quotations, or code/API documentation describing a class/type construct. Free-running prose: apply the decision tree from reference.md "AI Jargon Replacement Guide" section. Default when uncertain: replace with the named problem ("the bug was X", "what typically goes wrong is Y"). |
 | "A minor X in the scheme of things, but a real one" | State the miss plainly, once, without the symmetric qualifier |
 | "Framed through [Framework]: A, B, C" | Delete, or replace with the concrete claim the framework was standing in for |
 | "[Closed topic] needs an owner and a timeline" | Delete, or cite the actual open item and its source |
