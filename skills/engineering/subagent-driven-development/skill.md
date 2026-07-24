@@ -48,8 +48,9 @@ For tasks with sufficient isolation (different files, independent interfaces), t
 5. **Run `scripts/review-package BASE_SHA HEAD`** — writes diff file; verify `git log BASE_SHA..HEAD --oneline` shows only this task's commits; dispatch task reviewer using `task-reviewer-prompt.md` with diff path
 6. **Review issues?** → dispatch fix subagent for Critical/Important → re-review | ⚠️ items → resolve yourself (you hold cross-task context)
 7. **Mark complete** → append to progress ledger → next task
-8. **After all tasks** — invoke `superpowers:requesting-code-review` for final whole-branch review
-9. **Finish** — invoke `superpowers:finishing-a-development-branch`
+8. **After all tasks** — invoke `superpowers:unified-commit-gate` via `/sp-push`; when gate clears, `git push`. Sentinel required; docs-only exclusion: see unified-commit-gate Push Mode.
+9. **After push** — invoke `superpowers:requesting-code-review` for final whole-branch review
+10. **Finish** — invoke `superpowers:finishing-a-development-branch`
 
 ## Pre-Flight Plan Review
 

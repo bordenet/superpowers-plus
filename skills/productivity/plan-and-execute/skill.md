@@ -171,9 +171,10 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 
 1. Re-read the TODO (it may have been improved by a prior retro)
 2. Execute the work described in the TODO
-3. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
-4. Verify success criteria are met
-5. Mark TODO complete via `todo-crud.sh` with completion notes
+3. **Before any `git commit` during this phase:** invoke `superpowers:unified-commit-gate` (all applicable gates). Do not skip because the plan is mid-flight.
+4. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
+5. Verify success criteria are met
+6. Mark TODO complete via `todo-crud.sh` with completion notes
 
 **If the phase fails** (deliverables don't meet criteria, blockers surface, harsh review finds critical issues): document what went wrong in the TODO note, run a retrospective immediately, and decide whether to retry the phase or trigger mid-execution replanning.
 
@@ -181,7 +182,8 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 
 1. Confirm deliverables exist and meet success criteria
 2. Confirm handoff state is documented for the next phase
-3. **Exit gate:** TODO marked complete, deliverables verified, handoff state captured
+3. **Before pushing the branch** (once per push, not per phase): invoke `superpowers:unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first.
+4. **Exit gate:** TODO marked complete, deliverables verified, handoff state captured
 
 ---
 
@@ -211,8 +213,6 @@ If a retrospective or harsh review reveals the remaining plan is fundamentally w
 
 This is NOT failure — it's the system working as designed. Continuing with a broken plan is the failure.
 
----
-
 ## Resuming a Project
 
 If a project was started in a previous session:
@@ -222,8 +222,6 @@ If a project was started in a previous session:
 4. Improve remaining TODOs
 5. Resume execution from the next incomplete phase
 
----
-
 ## Integration Map
 
 | Phase | Skills Invoked | Purpose |
@@ -232,7 +230,7 @@ If a project was started in a previous session:
 | Plan | `plan-quality-gates` | Dependency ordering, exit criteria |
 | Stress-Test | `brainstorming`, `think-twice`, harsh review (red-team questions) | Pressure-test the plan |
 | Enrollment | `todo-management` | Persistent, autonomous TODOs |
-| Execute | harsh review on deliverables; `progressive-code-review-gate` (if code) | Quality at every step |
+| Execute | harsh review on deliverables; `unified-commit-gate` MANDATORY before any commit/push (sentinel required for code changes); final review delegated to execution skill (`requesting-code-review` or `finishing-a-development-branch`) | Quality at every step |
 | Replan | (back to Plan + Stress-Test if fundamentally broken) | Course correction |
 
 ---
