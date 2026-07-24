@@ -1,0 +1,46 @@
+id: candidate-014
+status: graduated
+kind: pattern
+created: 2026-07-24
+source_gap: "Bats tests in agent-factory that invoked glab-cr-sentinel-write.sh without
+  BATS_TMPDIR/setup() isolation could write .code-review-cleared-* files into the real
+  checkout. ShellRuntimeAuditor did not check bats-specific isolation patterns. Also
+  identified stray 'run cd <real-repo>' patterns that are safe (run executes in subshell,
+  CWD does not propagate), clarifying a prior misconception."
+source_exercise: null
+graduation_path: live-incident
+reviewer: shell-runtime-auditor
+pattern: |
+  When reviewing bats test files that perform write operations (sentinel writes, git
+  mutations, file creation that gate scripts or CI read),
+  check that each test's state is created inside BATS_TMPDIR (or $BATS_TEST_TMPDIR in
+  bats 1.7+) within a setup() function.
+  Look at: the presence of setup(), BATS_TMPDIR usage, and bare cd invocations outside run.
+  Flag as Important if: setup() is absent and the test contains write operations; or a
+  bare cd (NOT inside run) navigates into the real checkout before a write.
+  Do NOT fire on: read-only tests (no sentinel writes, no git mutations, no file creation
+  that gate scripts read). Note: 'run cd /real/repo' executes in a subshell and does NOT
+  propagate CWD to the outer test -- only bare cd (outside run) is a risk.
+examples:
+  - file: "agent-scripts/lib/test_glab_cr_sentinel_write.bats"
+    issue: "Tests invoked glab-cr-sentinel-write.sh from the real checkout CWD without
+      setup()/BATS_TMPDIR isolation. The script wrote .code-review-cleared-* into the
+      live repo root, not a temp dir."
+    fix: "Add setup() { TEST_ROOT=$(mktemp -d -t bats-test-XXXXXX); cd \"$TEST_ROOT\";
+      git init -q; } and run each test from $TEST_ROOT. All sentinel writes land in the
+      temp dir, not the real repo."
+confidence: 0.8
+ttl_days: null
+validation:
+  exercises_tested: []
+  true_positives: 1
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-24
+  reviewer_line: "shell-runtime-auditor.md -- Test isolation for bats suites check in Dimension 3"
+  regression_check: "live-incident -- no exercise holdout; single live incident
+    confirms the failure mode. Confidence held at 0.8."
