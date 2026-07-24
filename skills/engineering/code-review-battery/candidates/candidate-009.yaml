@@ -62,5 +62,5 @@ rejection:
   date: null
 graduation:
   promoted_date: null
-  reviewer_line: "skill.md Phase 3 step 6 Implement classification -- collateral_test_changes field"
+  reviewer_line: "skill.md Phase 3 step 7 (Triple-filter) Implement classification -- collateral_test_changes field"
   regression_check: null
