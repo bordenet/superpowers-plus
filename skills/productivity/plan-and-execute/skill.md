@@ -213,8 +213,6 @@ If a retrospective or harsh review reveals the remaining plan is fundamentally w
 
 This is NOT failure — it's the system working as designed. Continuing with a broken plan is the failure.
 
----
-
 ## Resuming a Project
 
 If a project was started in a previous session:
@@ -223,8 +221,6 @@ If a project was started in a previous session:
 3. Run a retrospective on the completed phase
 4. Improve remaining TODOs
 5. Resume execution from the next incomplete phase
-
----
 
 ## Integration Map
 

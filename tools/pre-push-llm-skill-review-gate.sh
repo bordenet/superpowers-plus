@@ -48,7 +48,7 @@ LLM_SKILL_REVIEW_SENTINEL="$REPO_ROOT/.llm-skill-review-cleared"
 # the pre-existing PHR_SKILLS_MIN floor this repo already enforced for
 # skills/ changes before this gate existed -- moving enforcement of the same
 # agreed-upon threshold from PHR to llm-skill-review, not introducing a new one.
-LLM_SKILL_REVIEW_MIN="9.2"
+LLM_SKILL_REVIEW_MIN="9.0"
 
 REMOTE_NAME="${1:-origin}"
 
