@@ -42,12 +42,11 @@ For each task:
 
 ### Step 3: Complete Development
 
-> **Before pushing the branch** (once per push, not per task): invoke `superpowers:unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first.
-
 After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+1. **Before pushing:** invoke `superpowers:unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first. Run once per branch push, not per task.
+2. Announce: "I'm using the finishing-a-development-branch skill to complete this work."
+3. **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
+4. Follow that skill to verify tests, present options, execute choice
 
 ## When to Stop and Ask for Help
 
