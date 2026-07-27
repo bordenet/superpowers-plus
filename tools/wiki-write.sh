@@ -16,7 +16,7 @@
 #
 # EXIT:    0 success (verified)   1 scope violation
 #          2 env/arg error        3 API error
-#          4 verification failed
+#          4 verification failed  5 content-check violation (slop/structure)
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -57,6 +57,7 @@ Output (stdout, JSON on success):
 Exit codes:
     0 success + verified   1 scope violation      2 env/arg error
     3 API error            4 post-write verify failed
+    5 content-check violation (slop/structure -- fix and retry)
 EOF
 }
 
@@ -156,6 +157,19 @@ _build_payload_move() {
         '{id:$id, parentDocumentId:$parent}'
 }
 
+
+# AI slop and content quality gate — blocks em-dashes, buzzwords, filler
+# phrases, and structural violations before content reaches the API.
+CONTENT_CHECK="${SCRIPT_DIR}/wiki-content-check.sh"
+if [[ "$ACTION" != "move" && -x "$CONTENT_CHECK" ]]; then
+    log_info "content-check gate: wiki-content-check.sh"
+    if ! "$CONTENT_CHECK" --content "$CONTENT_FILE" >&2; then
+        log_err "content check failed -- fix slop/structure violations and retry"
+        exit 5
+    fi
+elif [[ "$ACTION" != "move" ]]; then
+    log_warn "wiki-content-check.sh not found at $CONTENT_CHECK -- slop gate skipped"
+fi
 
 # Structural markdown gate — blocks H1 titles, malformed tables, and other
 # Outline violations before content reaches the API.
