@@ -47,15 +47,15 @@ When adding a new banned pattern, add it to `reference.md` and `tools/slop-check
 
 **`tools/slop-check.sh`** is the executable implementation of the pattern catalog in `reference.md`. It is the shared gate used by all prose publication paths — wiki writes, PHR gates, Linear comment gates, and recruiting docs — so patterns are enforced consistently and only need to be maintained in one place.
 
-```bash
+```sh
 # Blocking gate (exits 1 on violations)
-slop-check.sh --content <file>
+slop-check.sh --content FILE
 
 # Silent gate (no output, just exit code)
-slop-check.sh --content <file> --mode silent
+slop-check.sh --content FILE --mode silent
 
 # Summary mode
-slop-check.sh --content <file> --mode summary
+slop-check.sh --content FILE --mode summary
 ```
 
 Exit codes: `0` clean, `1` blocking violations, `2` usage error.
