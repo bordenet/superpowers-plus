@@ -163,6 +163,7 @@ declare -a BUZZWORDS=(
     'future-proof' 'unprecedented' 'pivotal'
     'nuanced' 'proactive' 'mission-critical' 'reimagine'
     'bolster' 'transcend' 'resonate' 'showcase' 'underscore'
+    'crucial'
 )
 # Advisory-only buzzwords: common in legitimate technical prose; flag but do not block.
 declare -a BUZZWORDS_ADVISORY=(
