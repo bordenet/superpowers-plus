@@ -319,6 +319,7 @@ Utility scripts in `tools/`:
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
 | `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
+| `slop-check.sh` | Centralized AI slop gate -- blocking check for em/en-dash, boosters, buzzwords, and filler openers; advisory warnings for weak intensifiers. Shared by wiki, PHR, Linear, and recruiting paths. See `skills/writing/detecting-ai-slop/reference.md` for the pattern catalog. |
 
 ## Troubleshooting
 
