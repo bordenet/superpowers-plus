@@ -28,6 +28,41 @@ composition:
 >
 > **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
 
+## Runtime Enforcement Tool
+
+**`tools/slop-check.sh`** is the executable implementation of the pattern catalog in `reference.md`. It runs as a hard gate across all prose publication paths:
+
+| Caller | Invocation |
+|--------|------------|
+| `wiki-content-check.sh` (write gate) | `slop-check.sh --content <file> --mode full` |
+| PHR pre-sentinel gate | `slop-check.sh --content <file> --mode summary` |
+| Linear comment gate (silent) | `slop-check.sh --content <file> --mode silent` |
+
+Exit codes: `0` = clean (warnings only), `1` = blocking violations, `2` = usage error.
+Weak intensifiers (`very`, `extremely`, etc.) are always advisory -- they appear in output but never set exit code 1.
+
+When adding a new banned pattern, add it to `reference.md` and `tools/slop-check.sh` in the same PR.
+
+## Runtime Enforcement Tool
+
+**`tools/slop-check.sh`** is the executable implementation of the pattern catalog in `reference.md`. It is the shared gate used by all prose publication paths — wiki writes, PHR gates, Linear comment gates, and recruiting docs — so patterns are enforced consistently and only need to be maintained in one place.
+
+```bash
+# Blocking gate (exits 1 on violations)
+slop-check.sh --content <file>
+
+# Silent gate (no output, just exit code)
+slop-check.sh --content <file> --mode silent
+
+# Summary mode
+slop-check.sh --content <file> --mode summary
+```
+
+Exit codes: `0` clean, `1` blocking violations, `2` usage error.
+Weak intensifiers (`very`, `extremely`) are always advisory — flagged but never block.
+
+When a new pattern is added to `reference.md`, it must also be added to `slop-check.sh` in the same commit.
+
 ## Detection Approach
 
 This skill analyzes text and produces a **slop score** (0-100) with detailed breakdown by detection dimension. Use it to quantify AI slop before deciding whether to rewrite.
