@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 108 -->
+<!-- SKILL-COUNT: 109 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (47)
