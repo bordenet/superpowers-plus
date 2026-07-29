@@ -14,6 +14,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `branch-flow-gate` | Trusted-advisor gate for branch and PR hygiene. Advises on base alignment, retry-suffix branches, back-sync naming, and PR hygiene. Always exits 0 — advisory only. |
 | `branch-sync-gate` | Pull gate — MANDATORY before any work on an existing shared branch. git fetch + status check before touching code, running tests, or making changes. |
 | `code-review-battery` | Dispatches up to 7 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| `codeowners-drift-audit` | Audits CODEOWNERS for unowned files, dead rules, and invalid owner references. Works with GitHub and GitLab; degrades to advisory-only when neither CLI is authenticated. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
