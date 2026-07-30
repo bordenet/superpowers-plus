@@ -28,6 +28,8 @@ arrEq(parseInlineArray('["a\\"b", "c"]'), ['a"b', 'c'], 'escaped quotes in array
 arrEq(parseInlineArray('[]'), [], 'empty array');
 arrEq(parseInlineArray('[unquoted, values]'), ['unquoted', 'values'], 'unquoted values');
 arrEq(parseInlineArray('["a\\\\b"]'), ['a\\b'], 'escaped backslash in array');
+arrEq(parseInlineArray('[a, b]  # trailing comment'), ['a', 'b'], 'unquoted array with trailing inline comment');
+arrEq(parseInlineArray('["a]b", "c"]  # comment'), ['a]b', 'c'], 'bracket char inside quoted item, plus trailing comment');
 
 // --- unquoteYaml ---
 console.log('\n--- unquoteYaml ---');
