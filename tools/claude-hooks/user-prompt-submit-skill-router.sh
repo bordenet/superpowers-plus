@@ -57,8 +57,13 @@ MAX_HINTS=3
 
 # 'set -e' is intentionally NOT used: this hook fires on every prompt in
 # every session and must never let a failing/crashing python3 propagate a
-# non-zero exit. Every python3 invocation below is guarded with '|| true'.
-# 'set -u' IS used; $HOME is defaulted above so it cannot trip it.
+# non-zero exit. The rebuild and prompt-extraction invocations are guarded
+# with '|| true'; the scoring invocation deliberately is NOT (its exit
+# code is captured as SCORE_EXIT below, to distinguish a scoring error
+# from a genuine no-match in the metrics record) -- it is still safe
+# without '|| true' because 'set -e' is off, so a non-zero exit there
+# does not abort the script either. 'set -u' IS used; $HOME is defaulted
+# above so it cannot trip it.
 
 INPUT="$(head -c 65536)"
 PROMPT="$(printf '%s' "$INPUT" | python3 -c "
@@ -240,21 +245,61 @@ for skill_name in skill_names:
         desc, maxsplit=1,
     )[0]
 
+    # Function words / interrogatives: exact match only, applied to BOTH
+    # name and description. Never stem-matched -- stemming this set was
+    # tried and found to produce real false positives on unrelated words
+    # that happen to end the same way ("notes" stemming back to "not",
+    # "whys" -- the "5 Whys" root-cause technique -- stemming back to
+    # "why"), confirmed empirically against the real corpus.
     STOP = {'the','and','for','with','any','this','that','are','you','its',
             'use','when','will','not','but','can','how','from','all','has',
             'have','your','our','their','been','was','were','into','only',
             'also','one','two','via','per','over','each','must','than','as',
             'on','in','of','to','a','an','at','be','is','it','or','if','by',
-            # Interrogatives/function words: rare in declarative skill
-            # descriptions but common in (often question-shaped) prompts, so
-            # IDF alone inflates their weight for the wrong reason -- rarity
-            # from genre mismatch, not topical specificity (confirmed
-            # empirically during review).
             'where','what','why','who','whom','whose','which','does','did',
             'do','doing','then','these','those','there'}
+
+    # Generic imperative verbs (backported from a sibling internal
+    # project's own curated "too generic to be a useful trigger" word
+    # list, a static trigger-quality lint's own stopword tier, per this
+    # repo's reciprocal-value convention): common in both prompts and
+    # skill DESCRIPTIONS ("review", "check", "run", "make", ...), so they
+    # were still producing exact-match false positives even after fuzzy
+    # matching was removed. Applied ONLY to description tokens, NEVER to
+    # name tokens -- applying this to skill names was tried and found to
+    # be a real, measured regression: it strips the defining word from a
+    # skill's own name (update-superpowers loses "update", superpowers-help
+    # loses "help", test-driven-development loses "test"), breaking exact
+    # matches on prompts that literally name the skill. A skill's own name
+    # containing a generic verb (e.g. code-review-respond) may still
+    # surface on a prompt containing that verb -- an accepted, narrower
+    # residual than the regression this avoids.
+    GENERIC_VERBS = {'fix','help','review','check','update','run','add','edit',
+                      'write','make','get','show','find','list','create','build',
+                      'test','start','stop','read','view','open','close'}
+
+    def is_generic_verb(word):
+        # Stem-aware: an inflection of a generic verb ("reviewer",
+        # "reviewed") must also be excluded, or the suppression above is
+        # trivially defeated by morphology (confirmed empirically:
+        # "review" was stopped but "reviewer" was not, and "reviewer"
+        # still fuzzy-matched "review" at scoring time). Restricted to
+        # this set specifically (not STOP) since these are all real verbs
+        # where the inflections are unambiguous -- unlike short function
+        # words, where the same suffixes collide with unrelated words.
+        if word in GENERIC_VERBS:
+            return True
+        for suf in ('ing', 'ers', 'ions', 'ors', 'ies', 'es', 'ed', 'er', 'or', 'ly', 's'):
+            if word.endswith(suf) and word[:-len(suf)] in GENERIC_VERBS:
+                return True
+        return False
+
     tokens = set()
-    for word in re.findall(r"[a-z]{3,}", (name + ' ' + desc_for_tokens).lower()):
+    for word in re.findall(r"[a-z]{3,}", name.lower()):
         if word not in STOP:
+            tokens.add(word)
+    for word in re.findall(r"[a-z]{3,}", desc_for_tokens.lower()):
+        if word not in STOP and not is_generic_verb(word):
             tokens.add(word)
 
     entries.append({
@@ -296,13 +341,17 @@ try:
         doc_freq = cache['doc_freq']
         n_docs = max(1, cache['n_docs'])
     except Exception:
-        sys.exit(0)
+        # Distinct exit code (not 0): a metrics-logging record can then tell
+        # "cache unreadable even right after a rebuild attempt" apart from
+        # "scored cleanly, genuinely no match" -- both used to look
+        # identical (empty output, exit 0), which is exactly the failure
+        # class this hook's own history includes (a stale-format cache that
+        # "silently produced zero hints forever").
+        sys.exit(3)
 
-    # Whole-word prompt tokens (3+ chars, matches the cache's own token floor)
-    # and a 4+ char subset for fuzzy prefix/stem matching.
+    # Whole-word prompt tokens (3+ chars, matches the cache's own token floor).
     prompt_words_all = re.findall(r"[a-z]{3,}", prompt_lower)
     prompt_word_set = set(prompt_words_all)
-    prompt_words4 = {w for w in prompt_word_set if len(w) >= 4}
 
     def veto(entry):
         for phrase in entry.get('anti_triggers', []):
@@ -326,29 +375,77 @@ try:
         df = doc_freq.get(tok, 1)
         return math.log((n_docs + 1) / (df + 1)) + 1
 
+    # Suffix-restricted stemming: two words are related only if the longer
+    # equals the shorter plus one recognized inflectional suffix -- not any
+    # arbitrary shared prefix. Blanket prefix matching (tok.startswith(pw))
+    # was the recurring, empirically-confirmed root cause of false positives
+    # across two remediation passes ("call" prefix-matching "callout", an
+    # unrelated word -- "blast-radius callout" has nothing to do with phone
+    # calls). But removing fuzzy matching entirely cost a real true positive
+    # ("brainstorm" no longer matching "brainstorming"). This is the
+    # narrower middle ground: genuine inflections still match, unrelated
+    # words that happen to share a prefix do not.
+    SUFFIXES = ('ing', 'ers', 'ions', 'ors', 'ies', 'es', 'ed', 'er', 'or', 'ly', 's')
+
+    def stems_match(a, b):
+        if a == b:
+            return True
+        short, long_ = (a, b) if len(a) < len(b) else (b, a)
+        if long_.startswith(short):
+            if long_[len(short):] in SUFFIXES:
+                return True
+        # Consonant-doubling before -ing/-ed (e.g. "debug"+"ging"=
+        # "debugging", "run"+"ning"="running") -- without this, common
+        # verb forms that double their final consonant never matched
+        # their base at all (confirmed empirically: "debug" scored zero
+        # for prompts containing only "debugging", losing the
+        # systematic-debugging skill entirely).
+        if short and long_.startswith(short + short[-1]):
+            rest = long_[len(short) + 1:]
+            if rest in ('ing', 'ed'):
+                return True
+        return False
+
     scored = []
     for entry in entries:
         if veto(entry):
             continue
 
-        # Only an exact whole-name-phrase match earns the strong name bonus.
-        # A prefix-of-first-hyphen-segment bonus (e.g. "scope" prefixing
-        # "scope-tripwire") was removed: name components already feed the
-        # token score below, and the prefix heuristic alone false-matched
-        # on any prompt containing a skill's first hyphen-segment as a
-        # generic word (confirmed empirically).
+        # Name bonus: an exact whole-name-phrase match earns the strong
+        # bonus (3x idf). A prompt word that only STEMS to the name (e.g.
+        # "brainstorm" for the "brainstorming" skill) earns a reduced but
+        # still substantial bonus (2x idf) -- this is a much stronger
+        # signal than an incidental description-token match, since the
+        # prompt is naming the skill itself, not just sharing vocabulary
+        # with its description. Without this, a skill whose description
+        # happens to literally contain the prompt's exact word (e.g.
+        # another skill's description literally says "brainstorm" as one
+        # step in a longer process) can outscore the skill the prompt is
+        # actually naming, since a literal description match and a
+        # name-stem match otherwise looked identical in weight (confirmed
+        # empirically: "help me brainstorm a new feature" ranked the
+        # brainstorming skill below others whose description merely
+        # mentioned "brainstorm" in passing, until this name-stem bonus
+        # was added). A prefix-of-first-hyphen-segment bonus (e.g. "scope"
+        # prefixing "scope-tripwire") was tried and removed: it
+        # false-matched on any prompt containing a skill's first
+        # hyphen-segment as a generic word.
         name_lc = entry['name'].lower()
-        name_score = 3 * idf(name_lc) if re.search(r'\b' + re.escape(name_lc) + r'\b', prompt_lower) else 0
-
+        if re.search(r'\b' + re.escape(name_lc) + r'\b', prompt_lower):
+            name_score = 3 * idf(name_lc)
+        else:
+            name_score = 0
+            name_flat = name_lc.replace('-', '')
+            for pw in prompt_word_set:
+                if len(pw) >= 4 and stems_match(name_flat, pw.replace('-', '')):
+                    name_score = 2 * idf(name_lc)
+                    break
         # Each DISTINCT prompt word contributes to the token score at most
-        # once. Without this, morphological variants of the same skill
-        # token (e.g. "call"/"caller"/"callid"/"callguid" all fuzzy-matching
-        # the single prompt word "call") each add their own contribution
-        # independently, letting one real word in the prompt masquerade as
-        # several pieces of evidence -- confirmed empirically as the
-        # dominant remaining cause of false positives after IDF weighting
-        # alone (a skill can still win on a single incidental word match
-        # stacked across its own morphological family).
+        # once (exact match preferred; a stem match only counts a prompt
+        # word not already covered by an exact match on some other token).
+        # Without this cap, morphological variants of the same skill token
+        # (e.g. multiple tokens all stem-matching the single prompt word
+        # "call") could each add their own contribution independently.
         tokens = entry.get('tokens', [])
         covered = set()
         token_score = 0.0
@@ -356,18 +453,18 @@ try:
             if tok in prompt_word_set:
                 token_score += idf(tok)
                 covered.add(tok)
-        fuzzy_best = {}
+        stem_best = {}
         for tok in tokens:
             if tok in covered or len(tok) < 4:
                 continue
-            for pw in prompt_words4:
-                if pw in covered:
+            for pw in prompt_word_set:
+                if pw in covered or len(pw) < 4:
                     continue
-                if tok.startswith(pw) or pw.startswith(tok):
+                if stems_match(tok, pw):
                     val = idf(tok)
-                    if pw not in fuzzy_best or val > fuzzy_best[pw][0]:
-                        fuzzy_best[pw] = (val, tok)
-        for _pw, (val, _tok) in fuzzy_best.items():
+                    if pw not in stem_best or val > stem_best[pw][0]:
+                        stem_best[pw] = (val, tok)
+        for _pw, (val, _tok) in stem_best.items():
             token_score += 0.5 * val
 
         # Still normalize by vocabulary size (sqrt) on top of IDF weighting --
@@ -394,26 +491,37 @@ try:
         desc_str = f" — {desc}" if desc else ""
         print(f"[skill-router] Likely match: {name}{desc_str}")
 except Exception:
-    pass
+    # Distinct exit code: an unexpected scoring-logic error is now
+    # observable in the metrics record instead of looking identical to a
+    # clean "no match" result.
+    sys.exit(4)
 SCORE_PY
-)" || true
+)"
+SCORE_EXIT=$?
 
 if [[ -n "$SCORE_OUTPUT" ]]; then
     printf '%s\n' "$SCORE_OUTPUT"
 fi
 
 # Production observability: one JSONL record per invocation, local-only,
-# never synced or committed. This is the signal that was missing entirely
-# before this change -- without it, a recall regression in production is
-# invisible until someone notices by hand (as happened here).
+# never synced or committed (test suites must override
+# CLAUDE_SKILL_ROUTER_METRICS to a scratch path -- a prior version of this
+# hook lacked that override entirely and the CI-registered test suite
+# silently appended fixture records into this real production file).
+# 'status' distinguishes a genuine no-match (ok, empty hints) from a
+# cache-load failure (3) or a scoring-logic error (4) -- both used to be
+# indistinguishable empty-output/exit-0 records, which is exactly the
+# failure class this telemetry exists to catch.
 {
     python3 -c "
 import json, sys, time
 rebuilt_flag = sys.argv[1]
-lines = sys.argv[2].split(chr(10)) if len(sys.argv) > 2 else []
+score_exit = sys.argv[2]
+lines = sys.argv[3].split(chr(10)) if len(sys.argv) > 3 else []
 hints = [l.split('Likely match: ',1)[1].split(' — ')[0] for l in lines if 'Likely match:' in l]
-print(json.dumps({'ts': time.time(), 'rebuilt': rebuilt_flag == '1', 'hints': hints}))
-" "$rebuild_needed" "$SCORE_OUTPUT" >> "$METRICS_FILE"
+status = {'0': 'ok', '3': 'cache_unreadable', '4': 'scoring_error'}.get(score_exit, 'unknown_exit_' + score_exit)
+print(json.dumps({'ts': time.time(), 'rebuilt': rebuilt_flag == '1', 'status': status, 'hints': hints}))
+" "$rebuild_needed" "$SCORE_EXIT" "$SCORE_OUTPUT" >> "$METRICS_FILE"
 } 2>/dev/null || true
 
 exit 0
