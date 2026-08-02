@@ -1798,6 +1798,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="$skills_dir" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"Help me brainstorm a new feature","cwd":"/tmp"}')"
@@ -1815,6 +1816,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="$skills_dir" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"","cwd":"/tmp"}')"
@@ -1832,6 +1834,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="/nonexistent-skills-dir-$$" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"hello","cwd":"/tmp"}')"
@@ -1860,7 +1863,7 @@ BROKEN
     > "$skills_dir/myskill/skill.md"
 
   # First run — builds cache
-  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
   [ "$status" -eq 0 ]
@@ -1872,7 +1875,7 @@ BROKEN
   # Touch skill.md to be newer than cache, then run again
   sleep 1
   touch "$skills_dir/myskill/skill.md"
-  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
   [ "$status" -eq 0 ]
@@ -1882,6 +1885,301 @@ BROKEN
 
   # Cache must have been regenerated (newer mtime)
   [ "$mtime2" -gt "$mtime1" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router old bare-list cache is detected and rebuilt (schema migration)" {
+  local skills_dir cache_dir cache_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  # Simulate a pre-migration cache: a bare JSON list (the old format), with
+  # an mtime newer than the skill.md so the ordinary staleness check alone
+  # would never trigger a rebuild.
+  printf '[{"name": "widget-maker", "description": "old", "tokens": ["widget"]}]' > "$cache_file"
+  sleep 1
+  touch "$cache_file"
+
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  # Must have rebuilt into the new dict shape and actually matched, not
+  # silently gone dead against the stale-shaped cache.
+  [[ "$output" == *"Likely match: widget-maker"* ]]
+  python3 -c "
+import json
+d = json.load(open('$cache_file'))
+assert isinstance(d, dict) and 'entries' in d and 'doc_freq' in d, 'cache did not migrate to new shape'
+"
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router anti_triggers vetoes a matching skill" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets"\nanti_triggers:\n  - "do not make a widget"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please do not make a widget today","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-maker"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router anti_triggers veto matches a phrase starting with punctuation" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets"\nanti_triggers:\n  - "/sp-widget-check"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please run /sp-widget-check now","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-maker"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not stack morphological variants of one prompt word" {
+  # Regression for the documented false-positive class: a skill whose
+  # vocabulary contains several morphological variants of the SAME prompt
+  # word ("call"/"caller"/"callback") must not out-score a skill that is a
+  # clean, single, exact match -- each distinct prompt word should
+  # contribute to a skill's score at most once.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/variant-heavy" "$skills_dir/exact-match"
+  printf -- '---\nname: variant-heavy\ndescription: "Handles call caller callback records for widget accounts"\n---\nBody.\n' \
+    > "$skills_dir/variant-heavy/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" -v \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please call me about the widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: exact-match"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router rejects a shared-prefix word pair that is not a real inflection" {
+  # Distinguishes the suffix-restricted stemmer from the unrestricted
+  # prefix matching it replaces: "call" is a prefix of "callout", but
+  # "callout" is not an inflection of "call" (a callout is a highlighted
+  # note, unrelated to phone calls) -- confirmed empirically as the
+  # recurring false-positive mechanism across two prior remediation
+  # passes. This test FAILS against the unrestricted-prefix code this
+  # fix replaces (git HEAD at the time this test was added) and PASSES
+  # against the suffix-restricted stemmer.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/callout-formatter" "$skills_dir/exact-match"
+  printf -- '---\nname: callout-formatter\ndescription: "Formats callout boxes and highlighted notes in documents"\n---\nBody.\n' \
+    > "$skills_dir/callout-formatter/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please call me about the widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"callout-formatter"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not strip a generic verb from a skill's own NAME" {
+  # Regression: the generic-verb stopword tier must apply only to
+  # description tokens, never to name tokens -- applying it to names was
+  # tried and found to break exact-name matches for skills whose entire
+  # identity IS a generic verb (e.g. an "update" or "help" skill), a real
+  # measured regression on the installed corpus. This fixture reproduces
+  # that class with a synthetic name.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-update"
+  printf -- '---\nname: widget-update\ndescription: "Applies the latest widget update to your local install"\n---\nBody.\n' \
+    > "$skills_dir/widget-update/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please update the widget now","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-update"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router stems match consonant-doubled -ing forms" {
+  # Regression: "debug" must still match "debugging" (doubled consonant
+  # before -ing) -- the plain suffix-strip rule alone misses this class
+  # entirely, which silently dropped a debugging-related skill for any
+  # prompt using only the -ing form of a doubled-consonant verb.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-debug" "$skills_dir/exact-match"
+  printf -- '---\nname: widget-debug\ndescription: "Use when encountering any widget bug or unexpected behavior"\n---\nBody.\n' \
+    > "$skills_dir/widget-debug/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I am debugging a weird widget failure","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-debug"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not treat unrelated words as stopword inflections" {
+  # Regression: stem-aware filtering must not strip words that only
+  # coincidentally end like a stopword plus a suffix ("notes" is not an
+  # inflection of "not"; "whys" -- the "5 Whys" technique -- is not an
+  # inflection of the interrogative "why"). This is why stem-awareness is
+  # restricted to the generic-verb tier and never applied to the
+  # function-word/interrogative tier.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/meeting-notes"
+  printf -- '---\nname: meeting-notes\ndescription: "Captures meeting notes and 5-Whys root-cause chains"\n---\nBody.\n' \
+    > "$skills_dir/meeting-notes/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"where are the meeting notes from our 5-whys session","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: meeting-notes"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router excludes coordination.internal skills from hints" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-internal-helper"
+  printf -- '---\nname: widget-internal-helper\ndescription: "Widget maker internal dispatch helper"\ncoordination:\n  group: internal\n  internal: true\n---\nBody.\n' \
+    > "$skills_dir/widget-internal-helper/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-internal-helper"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router parses and runs under macOS system bash (3.2)" {
+  # Regression, corrected after an initial mischaracterization: this is a
+  # RUNTIME word-splitting error, not a parse-time one -- `bash -n` on the
+  # pre-fix script exits 0 under both bash 3.2 and bash 5. The cache-rebuild
+  # heredoc (a separate, unwrapped heredoc earlier in the script) still
+  # completes and writes a valid cache; only the later
+  # SCORE_OUTPUT="$(python3 - ... <<'SCORE_PY' ... SCORE_PY)" statement dies
+  # at runtime with "bad substitution: no closing ')'" under bash 3.2 (the
+  # interpreter macOS ships as /bin/bash for any engineer without Homebrew
+  # bash ahead on PATH). A minimal heredoc-into-command-substitution repro
+  # runs fine under bash 3.2, so that shape alone is not the trigger --
+  # something specific to this heredoc's embedded content is. The real
+  # severity: the next line then dies on "SCORE_OUTPUT: unbound variable"
+  # (set -u), so the hook exits 1 -- violating its own documented "NEVER
+  # blocks (always exits 0)" contract on every single prompt under system
+  # bash. CI here only runs ubuntu-latest and cannot catch this class of
+  # bug at all.
+  if [[ ! -x /bin/bash ]]; then
+    skip "/bin/bash not present on this runner"
+  fi
+  local bash32_version bash32_major
+  bash32_version="$(/bin/bash --version | head -1)"
+  bash32_major="$(/bin/bash -c 'echo ${BASH_VERSINFO[0]}')"
+  if [ "$bash32_major" -ge 4 ]; then
+    skip "/bin/bash here is $bash32_version (major $bash32_major) -- this test only reproduces and guards the bash-3.2 bug on a true bash-3.2 host (e.g. an unmodified macOS /bin/bash); it provides no revert-protection on this runner"
+  fi
+
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run /bin/bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" -v \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  echo "tested under: $bash32_version" >&2
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-maker"* ]]
+  [ -f "$cache_dir/skill-router-cache.json" ]
 
   rm -rf "$skills_dir" "$cache_dir"
 }
