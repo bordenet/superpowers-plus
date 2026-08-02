@@ -326,7 +326,22 @@ REBUILD_PY
 fi
 
 # Score skills against the prompt and emit advisory hints.
-SCORE_OUTPUT="$(python3 - "$CACHE_FILE" "$MAX_HINTS" "$PROMPT" <<'SCORE_PY' 2>/dev/null
+# Write the scorer to a temp file rather than piping a heredoc directly
+# into a command substitution: bash 3.2 (macOS's default /bin/bash, still
+# the interpreter for engineers without Homebrew bash ahead on PATH) hits
+# a RUNTIME word-splitting error on
+# `SCORE_OUTPUT="$(python3 - ... <<'SCORE_PY' ... SCORE_PY)"` -- `bash -n`
+# exits 0 on this form, so it is not a parse-time failure -- dying with a
+# "bad substitution: no closing ')'" error that aborts this scoring step
+# specifically (confirmed empirically: the cache-rebuild heredoc above is
+# a separate, unwrapped heredoc and still completes fine under
+# /bin/bash; only the scorer's output capture dies). This form (heredoc
+# into a plain file, unrelated command substitution around a file
+# argument) has no such ambiguity on any bash version.
+SCORE_PY_FILE="$(mktemp -t skill-router-score.XXXXXX.py 2>/dev/null)"
+trap 'rm -f "$SCORE_PY_FILE"' EXIT
+if [ -n "$SCORE_PY_FILE" ]; then
+  cat > "$SCORE_PY_FILE" <<'SCORE_PY'
 import sys, json, re, math
 
 try:
@@ -496,8 +511,16 @@ except Exception:
     # clean "no match" result.
     sys.exit(4)
 SCORE_PY
-)"
-SCORE_EXIT=$?
+  SCORE_OUTPUT="$(python3 "$SCORE_PY_FILE" "$CACHE_FILE" "$MAX_HINTS" "$PROMPT" 2>/dev/null)"
+  SCORE_EXIT=$?
+  rm -f "$SCORE_PY_FILE"
+else
+  # mktemp itself failed (e.g. unwritable/full TMPDIR) -- no hints this
+  # invocation, but still record it distinctly rather than looking like a
+  # clean no-match result.
+  SCORE_OUTPUT=""
+  SCORE_EXIT=4
+fi
 
 if [[ -n "$SCORE_OUTPUT" ]]; then
     printf '%s\n' "$SCORE_OUTPUT"

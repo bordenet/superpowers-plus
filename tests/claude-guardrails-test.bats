@@ -2134,6 +2134,56 @@ assert isinstance(d, dict) and 'entries' in d and 'doc_freq' in d, 'cache did no
   rm -rf "$skills_dir" "$cache_dir"
 }
 
+@test "item 6: skill-router parses and runs under macOS system bash (3.2)" {
+  # Regression, corrected after an initial mischaracterization: this is a
+  # RUNTIME word-splitting error, not a parse-time one -- `bash -n` on the
+  # pre-fix script exits 0 under both bash 3.2 and bash 5. The cache-rebuild
+  # heredoc (a separate, unwrapped heredoc earlier in the script) still
+  # completes and writes a valid cache; only the later
+  # SCORE_OUTPUT="$(python3 - ... <<'SCORE_PY' ... SCORE_PY)" statement dies
+  # at runtime with "bad substitution: no closing ')'" under bash 3.2 (the
+  # interpreter macOS ships as /bin/bash for any engineer without Homebrew
+  # bash ahead on PATH). A minimal heredoc-into-command-substitution repro
+  # runs fine under bash 3.2, so that shape alone is not the trigger --
+  # something specific to this heredoc's embedded content is. The real
+  # severity: the next line then dies on "SCORE_OUTPUT: unbound variable"
+  # (set -u), so the hook exits 1 -- violating its own documented "NEVER
+  # blocks (always exits 0)" contract on every single prompt under system
+  # bash. CI here only runs ubuntu-latest and cannot catch this class of
+  # bug at all.
+  if [[ ! -x /bin/bash ]]; then
+    skip "/bin/bash not present on this runner"
+  fi
+  local bash32_version bash32_major
+  bash32_version="$(/bin/bash --version | head -1)"
+  bash32_major="$(/bin/bash -c 'echo ${BASH_VERSINFO[0]}')"
+  if [ "$bash32_major" -ge 4 ]; then
+    skip "/bin/bash here is $bash32_version (major $bash32_major) -- this test only reproduces and guards the bash-3.2 bug on a true bash-3.2 host (e.g. an unmodified macOS /bin/bash); it provides no revert-protection on this runner"
+  fi
+
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run /bin/bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" -v \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  echo "tested under: $bash32_version" >&2
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-maker"* ]]
+  [ -f "$cache_dir/skill-router-cache.json" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
 @test "item 6: skill-router wired into settings-hooks-spec.json (UserPromptSubmit)" {
   python3 -c "
 import json, sys
