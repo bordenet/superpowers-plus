@@ -155,7 +155,7 @@ for path in "$@"; do
     covered=0
 
     if llm_owned_covers "$path"; then
-        echo "  llm-skill-review gate: REQUIRED -- .llm-skill-review-cleared (>= 9.2)"
+        echo "  llm-skill-review gate: REQUIRED -- .llm-skill-review-cleared (>= 9.0)"
         echo "    tools/run-llm-skill-review.sh --verdict PASS --min-score <N>"
         covered=1
     fi

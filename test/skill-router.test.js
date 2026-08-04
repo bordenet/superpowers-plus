@@ -68,6 +68,23 @@ console.log('\n--- Intent pattern matching: known queries → expected boosts --
 
   const b5 = buildIntentBoosts('reviewer agent');
   assert((b5['code-review-respond'] || 0) === BOOST_CRITICAL, 'reviewer agent → BOOST_CRITICAL (6)');
+
+  // Regression: rawWords() previously dropped single-character words (e.g.
+  // "i") from the query, silently closing the gap between adjacent content
+  // words. "should extract this thing" contains no "i" anywhere and must
+  // NOT trigger the "should i extract/refactor/split/use" pattern.
+  const b6 = buildIntentBoosts('should extract this thing');
+  assert(Object.keys(b6).length === 0,
+    'single-char-word drop: "should extract this thing" (no "i") must not match "should i extract"');
+
+  // Same bug also silently duplicated a longer pattern into a shorter one
+  // already in the same intent bucket ("i was wrong" -> ["was","wrong"],
+  // byte-identical to the separately-listed "was wrong"). This must match
+  // the pre-existing baseline value (verified directly against origin/dev
+  // before this fix touched anything), not an inflated one.
+  const b7 = buildIntentBoosts('that was wrong');
+  assert(b7['failure-autopsy'] === 16,
+    `single-char-word drop: "that was wrong" must match baseline (16, got ${b7['failure-autopsy']})`);
 }
 
 // --- Boost accumulation: no doubled boosts from removed duplicates ---
@@ -129,8 +146,13 @@ console.log('\n--- cosineSimilarity ---');
   eq(noSim, 0, 'orthogonal vectors → similarity = 0');
 }
 
-// --- Anti-trigger penalty ---
-console.log('\n--- Anti-trigger penalty ---');
+// --- Anti-trigger veto ---
+// Changed from a soft -2.0 score penalty to a hard veto (full exclusion from
+// results), mirroring the fix already applied to the bash/Python
+// UserPromptSubmit hook: a soft penalty can still let an explicitly-rejected
+// skill surface when few other candidates exist or the rest of its score is
+// high enough to survive -2.0.
+console.log('\n--- Anti-trigger veto ---');
 {
   const mockSkills = [
     { name: 'pre-commit-gate', triggers: ['before commit', 'pre-commit'], description: 'Pre-commit quality gate',
@@ -139,14 +161,40 @@ console.log('\n--- Anti-trigger penalty ---');
       anti_triggers: [] },
   ];
   const results = matchSkillsTfIdf('debug this error', mockSkills, 2);
-  // pre-commit-gate has anti_trigger 'debug this' — should be penalized
-  assert(results.length === 2, `anti-trigger: expected 2 results (got ${results.length})`);
+  // pre-commit-gate has anti_trigger 'debug this' — must be hard-excluded
+  assert(results.length === 1, `anti-trigger veto: expected 1 result (got ${results.length})`);
   const preCommitResult = results.find(r => r.name === 'pre-commit-gate');
   const debugResult = results.find(r => r.name === 'systematic-debugging');
-  assert(preCommitResult, 'anti-trigger: pre-commit-gate must appear in results');
-  assert(debugResult, 'anti-trigger: systematic-debugging must appear in results');
-  assert(debugResult.score > preCommitResult.score,
-    'anti-trigger "debug this" penalizes pre-commit-gate below systematic-debugging');
+  assert(!preCommitResult, 'anti-trigger veto: pre-commit-gate must be excluded entirely');
+  assert(debugResult, 'anti-trigger veto: systematic-debugging must still appear in results');
+}
+
+// --- Word-boundary matching: shared prefix is not a real match ---
+// Regression for the same false-positive class the bash/Python hook fixed:
+// raw .includes() matched a skill-name/trigger word as a substring of an
+// unrelated longer word (e.g. "call" inside "recall"). A real inflection
+// ("call" -> "called") should still match; an unrelated word that merely
+// starts with the same letters should not.
+console.log('\n--- Word-boundary matching (shared-prefix false positive) ---');
+{
+  const mockSkills = [
+    { name: 'call-lookup', triggers: ['call lookup', 'lookup call'], description: 'Looks up call records',
+      anti_triggers: [] },
+    { name: 'memory-recall', triggers: ['recall memory'], description: 'Recalls prior context',
+      anti_triggers: [] },
+  ];
+  const results = matchSkillsTfIdf('please recall what we discussed', mockSkills, 2);
+  const callLookup = results.find(r => r.name === 'call-lookup');
+  const memoryRecall = results.find(r => r.name === 'memory-recall');
+  assert(memoryRecall, 'word-boundary: memory-recall must appear (real match on "recall")');
+  // Tightened after review: the original disjunction's third clause
+  // (memoryRecall.score > callLookup.score) alone was satisfiable by the
+  // pre-fix code too (0.878 > 0.3), making the assertion pass whether or not
+  // the fix was present. Asserting callLookup got literally zero heuristic
+  // boost is the actual, revert-safe claim -- verified to fail pre-fix,
+  // pass post-fix.
+  assert(!callLookup || callLookup.score === 0,
+    'word-boundary: "call" inside "recall" must not boost call-lookup at all');
 }
 
 // --- Query expansion: concept synonyms ---

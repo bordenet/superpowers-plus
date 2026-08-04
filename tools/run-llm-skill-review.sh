@@ -34,7 +34,7 @@
 # any push touching skills/*.md, .ai-guidance/*.md, or an AGENTS.md-family
 # file (AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any
 # path depth) requires this sentinel, PASS verdict, and a combined score
-# >= 9.2. This supersedes -- not supplements -- Gate 2 (code-review) and
+# >= 9.0. This supersedes -- not supplements -- Gate 2 (code-review) and
 # Gate 5 (PHR) for those file classes; neither of those gates require their
 # own sentinel for them.
 #

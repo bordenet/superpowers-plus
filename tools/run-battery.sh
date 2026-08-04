@@ -469,7 +469,7 @@ if MD_HITS=$("$SCRIPT_DIR/md-files-changed.sh" 2>/dev/null); then
         echo ""
         echo "     This supersedes (not supplements) PHR and this battery for"
         echo "     that file class. Dispatch llm-skill-review BEFORE pushing,"
-        echo "     then: tools/run-llm-skill-review.sh --verdict PASS --min-score 9.2"
+        echo "     then: tools/run-llm-skill-review.sh --verdict PASS --min-score 9.0"
         echo ""
     fi
 else

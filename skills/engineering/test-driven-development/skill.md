@@ -148,9 +148,9 @@ All of these mean: Delete code. Start over with TDD.
 | Test passed immediately (no RED phase) | Test is wrong — it's testing existing behavior, not new behavior |
 | Must mock everything to test | Code is too coupled — refactor to use dependency injection |
 
-## Anti-Patterns
+## Writing Good Tests
 
-When adding mocks or test utilities, read @testing-anti-patterns.md to avoid: testing mock behavior instead of real behavior, adding test-only methods to production classes.
+When adding mocks or test utilities, read @writing-good-tests.md: name the break each test catches, derive expected values independently of the code under test, and exercise real behavior instead of mock existence.
 
 ## Companion Skills
 
