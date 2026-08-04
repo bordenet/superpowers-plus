@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 109 -->
+<!-- SKILL-COUNT: 110 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (47)
@@ -111,7 +111,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `wiki-secret-audit` | Scans wiki pages for exposed secrets, API keys, and tokens. |
 | `wiki-verify` | Verifies codebase claims in wiki pages and updates stale content. |
 
-## Observability (9)
+## Observability (10)
 
 | Skill | Description |
 |-------|-------------|
@@ -122,6 +122,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `holistic-repo-verification` | Verifies ALL repository health aspects: CI, Pages, custom workflows. |
 | `measurement-integrity` | Forces cross-validation and confidence qualification before reporting metrics. |
 | `skill-health-check` | Structural lint for skill files: validates YAML, line counts, coordination metadata. |
+| `skill-trigger-audit` | Dynamic, behavioral audit of whether a skill wins, loses, or wrongly wins the skill-router hook's routing decision -- runs real prompts through the real scorer, not a static lint. |
 | `substrate-claim-audit` | Hard gate before naming artifacts or quoting thresholds in output. Requires grep-verified evidence for every named symbol. Prevents confabulated-substrate AI slop. |
 | `superpowers-doctor` | 29-check diagnostic across all installed skills. Modeled after `brew doctor`. |
 
