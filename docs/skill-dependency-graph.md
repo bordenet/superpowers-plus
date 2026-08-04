@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-07-29
+> **Last updated:** 2026-08-04
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -117,6 +117,7 @@ graph TD
   subgraph observability["Observability"]
     holistic_repo_verification["holistic-repo-verification"]
     skill_health_check["skill-health-check"]
+    skill_trigger_audit["skill-trigger-audit"]
     superpowers_doctor["superpowers-doctor"]
     completeness_check["completeness-check"]
   end
@@ -381,7 +382,7 @@ graph TD
 | Meta | `using-superpowers`, `superpowers-help` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
 | Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
-| Observability | `holistic-repo-verification`, `skill-health-check`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
+| Observability | `holistic-repo-verification`, `skill-health-check`, `skill-trigger-audit`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
 | Meta Improvement | `evolution-loop` | Coordinated skill group |
 | Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
 | Orchestration | `autonomous-chain-controller` | Coordinated skill group |
