@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
-# Tests for the pre-push Gate 3 (.branch-flow-cleared consumer side).
-# Extracts the check_branch_flow_sentinel function from tools/pre-push
-# and exercises it directly across (match/mismatch-target/mismatch-sha/missing/
-# bad-format) and verifies sentinel-consume (delete on PASS).
+# Tests for the pre-push Gate 4 (.branch-flow-cleared consumer side).
+# Extracts the check_branch_flow_sentinel function from
+# tools/pre-push-branch-flow-gate.sh and exercises it directly across
+# (match/mismatch-target/mismatch-sha/missing/bad-format) and verifies
+# sentinel-consume (delete on PASS).
 
 setup() {
     REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
@@ -15,11 +16,11 @@ GREEN=$'\033[0;32m'
 YELLOW=$'\033[0;33m'
 NC=$'\033[0m'
 EOF
-    # Extract just the check_branch_flow_sentinel function from pre-push.
-    awk '/^check_branch_flow_sentinel\(\)/,/^}$/' "$REPO_ROOT/tools/pre-push" \
+    # Extract just the check_branch_flow_sentinel function from its gate script.
+    awk '/^check_branch_flow_sentinel\(\)/,/^}$/' "$REPO_ROOT/tools/pre-push-branch-flow-gate.sh" \
         > extracted-fn.sh
     # Build a runnable harness.
-    # Stub preflight script presence so Gate 3's self-detect short-circuit
+    # Stub preflight script presence so Gate 4's self-detect short-circuit
     # doesn't fire (the actual function is what we're testing, not its presence).
     mkdir -p tools
     : > tools/branch-flow-preflight.sh
@@ -46,7 +47,7 @@ teardown() {
 
 # --- PASS scenarios ---
 
-@test "gate3: valid sentinel for dev with matching SHA -> PASS, sentinel consumed" {
+@test "gate4: valid sentinel for dev with matching SHA -> PASS, sentinel consumed" {
     echo "v1|abc123|feature/foo|dev|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -eq 0 ]
@@ -54,21 +55,21 @@ teardown() {
     [ ! -f .branch-flow-cleared ]  # consumed after PASS
 }
 
-@test "gate3: valid sentinel for staging -> PASS" {
+@test "gate4: valid sentinel for staging -> PASS" {
     echo "v1|def456|dev|staging|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh staging def456
     [ "$status" -eq 0 ]
     [ ! -f .branch-flow-cleared ]
 }
 
-@test "gate3: valid sentinel for main -> PASS" {
+@test "gate4: valid sentinel for main -> PASS" {
     echo "v1|789aaa|staging|main|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh main 789aaa
     [ "$status" -eq 0 ]
     [ ! -f .branch-flow-cleared ]
 }
 
-@test "gate3: non-canonical target -> skip (returns 0 without checking sentinel)" {
+@test "gate4: non-canonical target -> skip (returns 0 without checking sentinel)" {
     # No sentinel file at all -- skip-target shouldn't care.
     run ./harness.sh feature/foo deadbeef
     [ "$status" -eq 0 ]
@@ -76,14 +77,14 @@ teardown() {
 
 # --- FAIL scenarios ---
 
-@test "gate3: missing sentinel for dev push -> FAIL" {
+@test "gate4: missing sentinel for dev push -> FAIL" {
     rm -f .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
     [[ "$output" == *"No .branch-flow-cleared sentinel"* ]]
 }
 
-@test "gate3: sentinel with wrong target -> FAIL" {
+@test "gate4: sentinel with wrong target -> FAIL" {
     echo "v1|abc123|dev|staging|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123  # sentinel says staging, pushing to dev
     [ "$status" -ne 0 ]
@@ -91,7 +92,7 @@ teardown() {
     [ -f .branch-flow-cleared ]  # NOT consumed on failure
 }
 
-@test "gate3: sentinel with wrong SHA -> FAIL" {
+@test "gate4: sentinel with wrong SHA -> FAIL" {
     echo "v1|abc123|feature/foo|dev|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev xyz789
     [ "$status" -ne 0 ]
@@ -99,7 +100,7 @@ teardown() {
     [ -f .branch-flow-cleared ]  # NOT consumed on failure
 }
 
-@test "gate3: sentinel with bad version -> FAIL" {
+@test "gate4: sentinel with bad version -> FAIL" {
     echo "v0|abc123|feature/foo|dev|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
@@ -107,7 +108,7 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
-@test "gate3: sentinel with only 4 fields -> FAIL" {
+@test "gate4: sentinel with only 4 fields -> FAIL" {
     echo "v1|abc123|feature/foo|dev" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
@@ -115,7 +116,7 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
-@test "gate3: sentinel with empty SHA field -> FAIL" {
+@test "gate4: sentinel with empty SHA field -> FAIL" {
     echo "v1||feature/foo|dev|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
@@ -123,7 +124,7 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
-@test "gate3: sentinel with empty source field -> FAIL" {
+@test "gate4: sentinel with empty source field -> FAIL" {
     echo "v1|abc123||dev|2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
@@ -131,7 +132,7 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
-@test "gate3: sentinel with empty target field -> FAIL" {
+@test "gate4: sentinel with empty target field -> FAIL" {
     echo "v1|abc123|feature/foo||2026-05-24T00:00:00Z" > .branch-flow-cleared
     run ./harness.sh dev abc123
     [ "$status" -ne 0 ]
@@ -139,7 +140,7 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
-@test "gate3: multi-line sentinel (corruption/append) -> FAIL with format error" {
+@test "gate4: multi-line sentinel (corruption/append) -> FAIL with format error" {
     # Parity with pre-push-gate4.bats: a multi-line sentinel must fail
     # "format unrecognized" rather than parse line 1 ambiguously.
     {

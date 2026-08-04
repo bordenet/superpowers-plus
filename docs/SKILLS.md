@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 108 -->
+<!-- SKILL-COUNT: 109 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (47)
@@ -13,7 +13,8 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `brainstorming` | Explores user intent, requirements, and design before implementation. Fires before creative work. |
 | `branch-flow-gate` | Trusted-advisor gate for branch and PR hygiene. Advises on base alignment, retry-suffix branches, back-sync naming, and PR hygiene. Always exits 0 — advisory only. |
 | `branch-sync-gate` | Pull gate — MANDATORY before any work on an existing shared branch. git fetch + status check before touching code, running tests, or making changes. |
-| `code-review-battery` | Dispatches 5 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| `code-review-battery` | Dispatches up to 7 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| `codeowners-drift-audit` | Audits CODEOWNERS for unowned files, dead rules, and invalid owner references. Works with GitHub and GitLab; degrades to advisory-only when neither CLI is authenticated. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
@@ -31,7 +32,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `infra-config-investigator` | Diagnoses infrastructure, configuration, and deployment failures. |
 | `investigation-state` | Persists debugging context (hypotheses, evidence) across sessions. |
 | `llm-behavior-investigator` | Diagnoses LLM/prompt behavior issues: tool selection, prompt regressions, parsing failures. |
-| `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Advisory-only; not yet wired into a push gate. |
+| `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |

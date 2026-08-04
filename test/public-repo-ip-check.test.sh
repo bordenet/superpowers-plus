@@ -17,7 +17,8 @@ new_repo() {
     local dir="$1"
     mkdir -p "$dir/tools/lib"
     local tool
-    for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh check-banned-term-hashes.py; do
+    for tool in install-hooks.sh pre-commit pre-push commit-msg post-commit public-repo-ip-check.sh check-banned-term-hashes.py \
+                pre-push-test-gate.sh pre-push-code-review-gate.sh pre-push-ip-scan-gate.sh pre-push-branch-flow-gate.sh pre-push-phr-gate.sh pre-push-llm-skill-review-gate.sh pre-push-loc-gate.sh; do
         cp "$SCRIPT_DIR/tools/$tool" "$dir/tools/$tool"
         chmod +x "$dir/tools/$tool"
     done
@@ -27,7 +28,14 @@ new_repo() {
     cp -R "$SCRIPT_DIR/tools/lib/." "$dir/tools/lib/"
 
     git -C "$dir" init -q
-    git -C "$dir" checkout -qb main
+    # -b main can collide with "fatal: a branch named 'main' already exists"
+    # when the ambient environment has init.defaultBranch=main (e.g. injected
+    # via GIT_CONFIG_* env vars in some hook-invocation contexts) -- `git init`
+    # then already creates that branch, and -b tries to create it again. Only
+    # create/switch if we're not already on it.
+    if [[ "$(git -C "$dir" symbolic-ref --short HEAD 2>/dev/null)" != "main" ]]; then
+        git -C "$dir" checkout -qb main
+    fi
     git -C "$dir" config user.name "IP Gate Test"
     git -C "$dir" config user.email "developer@example.com"
 
@@ -209,7 +217,9 @@ mkdir -p "$repo/tools"
 cp "$SCRIPT_DIR/tools/public-repo-ip-check.sh" "$repo/tools/public-repo-ip-check.sh"
 chmod +x "$repo/tools/public-repo-ip-check.sh"
 git -C "$repo" init -q
-git -C "$repo" checkout -qb main
+if [[ "$(git -C "$repo" symbolic-ref --short HEAD 2>/dev/null)" != "main" ]]; then
+    git -C "$repo" checkout -qb main
+fi
 git -C "$repo" config user.name "IP Gate Test"
 git -C "$repo" config user.email "developer@example.com"
 printf 'LocalOnlySecret\n' > "$repo/.ip-check-patterns"

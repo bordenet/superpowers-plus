@@ -1,0 +1,57 @@
+# Candidate: Ticket IDs embedded in source code comments
+id: candidate-010
+status: graduated
+kind: pattern
+created: 2026-07-24
+source_gap: "Ported from a sibling project's real incident: a ticket-tracker reference embedded in a source comment slipped through review there and was caught only by a human reviewer later. That project's own first attempt at this rule paired it with a literal shell 'detection command'; inspecting that draft directly (not this repo's own review history) found it appeared to scan only the diff's tip commit rather than the full branch diff the rule itself requires, appeared not to implement its own stated exceptions, and used two visibly different regexes for the same pattern within the same file -- read as face-value defects in that draft, not independently exercise-validated. This version drops the mechanized command entirely and states the rule as reviewer judgment instead, matching how every other pattern-kind candidate in this file is expressed (none of candidate-001/002/003/004 embed a literal shell command)."
+source_exercise: null
+graduation_path: live-incident
+reviewer: standards-enforcer
+pattern: |
+  When reviewing a diff that adds or modifies comment lines (// ... or
+  /* ... */ or JSDoc /** ... */), look for an embedded ticket-tracker
+  reference: a tracker key followed by a number (e.g. JIRA-99, GH-123,
+  ADO-1234, or any project-specific tracker key), judged in context as a
+  real ticket reference rather than a coincidental identifier-looking
+  substring. This check depends on seeing the full branch diff, not just
+  the tip commit (Phase 2 step 1 governs which diff-capture command
+  builds the context a reviewer sees).
+
+  Flag as Minor if the reference sits inside prose in an explanatory
+  inline comment, JSDoc block, or block comment. The surrounding prose
+  must be meaningful without the ticket reference; ticket IDs rot once
+  the ticket closes and belong in commit messages and PR descriptions,
+  never in source.
+
+  Do NOT flag:
+  - A TODO-style annotation at the start of the comment (TODO(TICKET-ID):
+    ..., the tracked-debt convention)
+  - The ticket ID as the argument of a @see, @link, or @deprecated JSDoc tag
+  - A line carrying a suppress pragma (@ts-ignore, eslint-disable-next-line,
+    eslint-disable-line)
+  - Ticket IDs in commit messages or PR description text (correct location)
+  - Changelog or CHANGELOG.md files
+  - A ticket-ID-shaped string that is actually a string literal value, not
+    a comment (e.g. a test fixture asserting on a real API response)
+  - A test name or description string that intentionally cites the ticket
+    a regression test was written for (e.g. it("regression test for
+    BUG-456", ...)) -- the ticket reference IS the point of a regression
+    test's name and stays meaningful after the ticket closes
+examples:
+  - file: "src/lib/token-refresh.ts (synthetic)"
+    issue: "// token TTL is ~30min per config; see JIRA-4821 for investigation notes -- comment references a ticket rather than being self-contained"
+    fix: "Remove the ticket reference; replace with the actual finding: // token TTL is 30min (config.ts); confirmed via 30-day log baseline"
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-24
+  reviewer_line: "reviewers/standards-enforcer.md §3b (Ticket IDs in Comments); short signal row in skill.md's dispatch table"
+  regression_check: "Not yet exercise-validated in this repo. Confidence held at the schema's 0.5 floor pending a real validation run against this repo's own exercise corpus; do not raise it on the strength of the sibling project's incident alone, since that incident validates the underlying failure mode, not this repo's specific detection accuracy."

@@ -9,7 +9,7 @@ This file contains the complete pattern dictionary for slop detection. The core 
 
 ## Lexical Patterns (40 points max)
 
-Each pattern found adds 2 points to lexical score.
+Each pattern found adds 2 points to lexical score (exception: em-dash and en-dash score +3 pts each; see Category 7).
 
 ### Category 1: Generic Boosters
 
@@ -384,15 +384,28 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 
 ### Category 11: AI Jargon in Human Prose
 
-Terms AI assistants favor that read as machine output in prose written for humans. Each instance adds 2 points. The named entries are seeds; flag close variants of the same shape ("error class", "defect pattern", "failure category") under the same category.
+Terms AI assistants favor that read as machine output in prose written for humans. Each flagged instance scores 2 Lexical points under the standard Lexical formula (see Scoring Algorithm in skill.md). Flag singular and plural forms. Flag only the listed phrases; do not generalize to unlisted compounds.
 
-| Phrase | Category | Notes |
-|--------|----------|-------|
-| failure mode | ai-jargon | In prose for humans, name the actual problem: "defect", "bug family", or the specific behavior |
-| failure class | ai-jargon | Same treatment as "failure mode" |
-| failure pattern | ai-jargon | Same treatment as "failure mode" |
+**Do not flag:**
+- Term as section contract (heading or label, not prose): any `## Failure Modes` (or `### Failure Modes`, etc.) heading in any technical document, FMEA table column headers, SRE runbook section titles, bold labels in non-prose contexts (`**Failure Mode:**` in table cells or definition lists). List-item label: term followed by colon or dash (`- failure mode: X`, `- failure mode - X`). A list item that starts with the term and continues as a prose sentence (`- failure mode is the most common...`) is free-running prose; flag it.
+- Direct quotations from an external source (vendor alert, RFC, log message, error text). Skip the occurrence entirely.
+- Term in a code block, inline code span, or in a sentence describing a code construct by name ("catch the correct error class", "Python's BaseException class hierarchy"). This exemption applies to all six terms listed below; "error class" is the most frequent code-context case, the other five are treated identically. Flag only when the term appears in ordinary prose not describing a specific code construct.
+- Categorical veto: the author is formally enumerating a named category of failures that recurs across separate instances, where "bug" or "defect" would collapse a meaningful structural distinction. Detection signals: numbered modes listed by name ("Mode 1: X; Mode 2: Y"), FMEA-style tables with a Failure Mode column, or a section heading that names the category. Absent one of these signals, treat as non-categorical and flag normally. Legitimate example: a postmortem with a named section listing "Mode 1: sensor saturation (occurs under sustained load); Mode 2: clock drift (occurs after failover)"; "defect" would erase the structural distinction between modes. (Kept in sync with `eliminating-ai-slop`'s parallel "Categorical veto" rewriting step; both skills must agree on the same document.)
 
-**Exemption:** engineering-documentation conventions where the term is the section contract rather than prose: FMEA tables, postmortems, and `## Failure Modes` sections in skill files that mandate that heading. Flag only free-running prose.
+**Flag in all other free-running prose at 2 pts per instance:**
+
+Note: the code/API context exemption (third bullet above) applies to all six phrases. An agent flagging from this table must check all four exemption bullets before scoring.
+
+| Phrase | Category |
+|--------|----------|
+| failure mode, failure modes | ai-jargon (code/API context exempt, see third bullet above) |
+| failure class, failure classes | ai-jargon (code/API context exempt, see third bullet above) |
+| failure pattern, failure patterns | ai-jargon (code/API context exempt, see third bullet above) |
+| error class, error classes | ai-jargon (code/API context exempt, see third bullet above) |
+| defect pattern, defect patterns | ai-jargon (code/API context exempt, see third bullet above) |
+| failure category, failure categories | ai-jargon (code/API context exempt, see third bullet above) |
+
+Default replacement when no eliminating-ai-slop pass follows: name the actual problem ("the bug was X", "what typically goes wrong is Y"). Full replacement guidance is in `eliminating-ai-slop`.
 
 ---
 

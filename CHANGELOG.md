@@ -8,8 +8,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`writing-good-tests.md` (TDD skill):** new reference replacing `testing-anti-patterns.md`. Ported from obra/superpowers v6.2 with full string-presence-trap and change-detector-trap falsifiability guidance, plus 3 concrete counter-examples (string presence, change-detector, too-coupled).
+- **`finishing-a-development-branch/references/worktree-cleanup.md`:** extracted worktree capture/cleanup logic into a dedicated reference so `skill.md` stays under the 250-line hard limit (was 260 lines, now 241).
+- **`subagent-driven-development/re-review-prompt.md`:** re-review prompt template for the 5-round review-loop circuit breaker.
+- **`test/find-polluter.bats`, `test/review-package.bats`, `test/sdd-workspace.bats`, `test/task-brief.bats`:** 18 new bats tests covering find-polluter bug fix, review-package script, sdd-workspace PLAN_FILE-first arg, and task-brief script.
+
+### Changed
+
+- **SDD skill (`subagent-driven-development/skill.md`):** ported from obra/superpowers v6.2 -- plan-scoped workspace support (PLAN_FILE-first arg), resume-based fix loop with ledger-identity-check step, and 5-round review-loop circuit breaker to prevent infinite reviewer disagreements.
+- **SDD scripts (`scripts/review-package`, `scripts/sdd-workspace`, `scripts/task-brief`):** updated for PLAN_FILE-first arg and plan-scoped workspace.
+- **SDD `task-reviewer-prompt.md`:** updated review-package signature reference.
+- **TDD skill (`test-driven-development/skill.md`):** now points to `writing-good-tests.md` instead of the removed `testing-anti-patterns.md`.
+- **finishing-a-development-branch skill:** extracted worktree capture/cleanup logic into `references/worktree-cleanup.md` to stay under the 250-line limit.
+
+### Removed
+
+- **`testing-anti-patterns.md`:** replaced by `writing-good-tests.md`.
+
 ### Fixed
 
+- **`find-polluter.sh`:** fixed `./`-prefix and `**/`-collapse bug where the script prepended `./` to paths that already had `./`, causing double-prefix mismatches and silently empty results on some test layouts.
 - **Prototype-pollution in skill matching (`lib/skill-router.js`):** `tfidfSimilarity`'s
   query-side accumulators, `buildTfIdfIndex`'s per-document `tfidf` map, and
   `expandQueryTerms`'s `CONCEPT_EXPANSIONS` lookup all used plain `{}` objects — a query or

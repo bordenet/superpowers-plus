@@ -369,20 +369,24 @@ async function main() {
         });
         client3._proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
 
-        // Match with anti_trigger query — anti-trigger-test should be demoted
+        // Match with anti_trigger query — anti-trigger-test should be hard-
+        // excluded entirely, not merely demoted. Changed from a soft -2.0
+        // score penalty to a hard veto (lib/skill-router.js) to mirror the
+        // fix already applied to the bash/Python UserPromptSubmit hook: a
+        // soft penalty can still let an explicitly-rejected skill surface
+        // when few other candidates exist or the rest of its score is high
+        // enough to survive -2.0.
         const antiResult = await client3.send('tools/call', {
           name: 'match_skills',
           arguments: { query: 'review my PR code analysis', top_n: 5 },
         });
         const antiText = antiResult?.content?.[0]?.text || '';
-        // The parser-regression-test (no anti_triggers) should rank above
-        // anti-trigger-test (has anti_triggers matching the query)
         const antiIdx = antiText.indexOf('anti-trigger-test');
         const parserIdx = antiText.indexOf('parser-regression-test');
-        assert(antiIdx > -1 && parserIdx > -1,
-          'regression: both skills appear in anti_trigger match results');
-        assert(parserIdx < antiIdx,
-          'regression: anti_trigger demotes skill below competitor');
+        assert(antiIdx === -1,
+          'regression: anti_trigger must hard-exclude anti-trigger-test entirely');
+        assert(parserIdx > -1,
+          'regression: parser-regression-test (no anti_triggers) still appears');
 
         // Malformed-bracket guard: description placed AFTER unclosed bracket.
         // Old parser would swallow description into accumulator → empty description.

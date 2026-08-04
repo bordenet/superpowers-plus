@@ -21,9 +21,9 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 |-------|---------|
 | **superpowers-plus overrides** | 9 skills that replace an upstream obra/superpowers skill of the same name with additional enforcement gates |
 | **superpowers-plus base (unchanged)** | 5 skills (`dispatching-parallel-agents`, `executing-plans`, `using-git-worktrees`, `using-superpowers`, `writing-plans`) added from obra/superpowers at the v2.6.0 fold-in, unchanged |
-| **superpowers-plus additions** | 93 net-new skills covering engineering, wiki, security, research, and more |
+| **superpowers-plus additions** | 95 net-new skills covering engineering, wiki, security, research, and more |
 
-107 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
+109 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
 
 ---
 
@@ -40,7 +40,7 @@ Nine upstream skills are replaced by superpowers-plus, each a complete replaceme
 | **brainstorming** | HARD GATE blocking any code or scaffolding before design approval; `anti_triggers` field preventing false activations; mandatory design-doc commit before transitioning to planning |
 | **finishing-a-development-branch** | Mandatory `code-review-battery` as Step 0 before any integration option is presented |
 | **receiving-code-review** | Systemic Verification gate: every fix acknowledgment must confirm the fix actually landed in the artifact, not just acknowledge the feedback |
-| **requesting-code-review** | Routes all review requests through `code-review-battery` (5 parallel specialist reviewers); Cardinal Rule enforcement |
+| **requesting-code-review** | Routes all review requests through `code-review-battery` (up to 7 parallel specialist reviewers); Cardinal Rule enforcement |
 | **subagent-driven-development** | Two-stage review (self-review then battery); condensed to 91 lines for faster context load; platform-agnostic framing |
 | **systematic-debugging** | Hard "NO FIXES WITHOUT INVESTIGATION" gate: Phase 1 (reproduce + hypothesize) must complete before any fix attempt |
 | **test-driven-development** | Strict Red→Green→Refactor sequence with hard gates; production code cannot be written before a failing test exists |
@@ -232,11 +232,11 @@ flowchart LR
 
 ## Domain Reference
 
-All 108 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
+All 109 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
 
 | Domain | Count | Skills |
 |--------|-------|--------|
-| **engineering** | 47 | blast-radius-check, brainstorming **[OVERRIDE]**, branch-flow-gate, branch-sync-gate, code-review-battery, cognitive-complexity-refactoring, debate, debug-conductor, dispatching-parallel-agents **[BASE]**, evidence-adjudicator†, executing-plans **[BASE]**, external-cli-audit, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, gitlab-cli, hotfix-charter, implementation-tracker, infra-config-investigator†, investigation-state, llm-behavior-investigator†, llm-skill-review, micro-harsh-review, output-verification, pre-commit-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, requirements-validation-pm, scope-tripwire, session-handoff, sp-bughunt, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, token-estimation, unified-commit-gate, using-git-worktrees **[BASE]**, using-superpowers **[BASE]**, verification-before-completion **[OVERRIDE]** |
+| **engineering** | 48 | blast-radius-check, brainstorming **[OVERRIDE]**, branch-flow-gate, branch-sync-gate, code-review-battery, codeowners-drift-audit, cognitive-complexity-refactoring, debate, debug-conductor, dispatching-parallel-agents **[BASE]**, evidence-adjudicator†, executing-plans **[BASE]**, external-cli-audit, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, gitlab-cli, hotfix-charter, implementation-tracker, infra-config-investigator†, investigation-state, llm-behavior-investigator†, llm-skill-review, micro-harsh-review, output-verification, pre-commit-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, requirements-validation-pm, scope-tripwire, session-handoff, sp-bughunt, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, token-estimation, unified-commit-gate, using-git-worktrees **[BASE]**, using-superpowers **[BASE]**, verification-before-completion **[OVERRIDE]** |
 | **experimental** | 1 | experimental-self-prompting |
 | **issue-tracking** | 5 | issue-authoring, issue-comment-debunker, issue-editing, issue-link-verification, issue-verify |
 | **observability** | 9 | completeness-check, evolution-loop, exhaustive-audit-validation, failure-autopsy, holistic-repo-verification, measurement-integrity, skill-health-check, substrate-claim-audit, superpowers-doctor |
@@ -248,5 +248,5 @@ All 108 skills grouped by filesystem domain, verified against `skills/*/*/skill.
 
 ---
 
-*107 skills across 9 domains (9 overrides, 5 base, 93 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
+*109 skills across 9 domains (9 overrides, 5 base, 95 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
 *Full skill descriptions: [SKILLS.md](SKILLS.md)*

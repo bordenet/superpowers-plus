@@ -38,29 +38,9 @@ _write_envelope() {
     printf '%s' "$1" > ".cr-battery-runs/${SHA}-llm-skill-review.json"
 }
 
-# --- Argument validation ---
-
-@test "args: missing --verdict and --min-score -> exit 1" {
-    run ./tools/run-llm-skill-review.sh
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"both required"* ]]
-}
-
-@test "args: missing --min-score -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS
-    [ "$status" -eq 1 ]
-}
-
-@test "args: missing --verdict -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --min-score 9.4
-    [ "$status" -eq 1 ]
-}
-
-@test "args: invalid verdict (REJECT) -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --verdict REJECT --min-score 9.4
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"invalid verdict"* ]]
-}
+# --- Argument validation (only llm-skill-review-specific verdict vocabulary;
+# generic arg/sentinel/boundary tests are covered by run-phr.bats which shares
+# the same CLI contract and sentinel schema) ---
 
 @test "args: invalid verdict (PASS WITH RISKS) -> exit 1 (only PASS clears)" {
     run ./tools/run-llm-skill-review.sh --verdict "PASS WITH RISKS" --min-score 8.0
@@ -73,33 +53,6 @@ _write_envelope() {
     [ "$status" -eq 1 ]
 }
 
-@test "args: invalid min-score (>10) -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 11 --no-envelope
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"invalid"* ]]
-}
-
-@test "args: invalid min-score (<1) -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 0.5 --no-envelope
-    [ "$status" -eq 1 ]
-}
-
-@test "args: non-numeric min-score -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score foo --no-envelope
-    [ "$status" -eq 1 ]
-}
-
-@test "args: unknown flag -> exit 1" {
-    run ./tools/run-llm-skill-review.sh --bogus value
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"unknown flag"* ]]
-}
-
-@test "args: --help exits 0" {
-    run ./tools/run-llm-skill-review.sh --help
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Usage:"* ]]
-}
 
 # --- Envelope requirement (the actual parity fix) ---
 
@@ -158,68 +111,4 @@ _write_envelope() {
     run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4
     [ "$status" -eq 0 ]
     [ -f .llm-skill-review-cleared ]
-}
-
-# --- Unstaged modifications ---
-
-@test "write: rejects when worktree has unstaged modifications" {
-    echo "modified" >> a.txt
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4 --no-envelope
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"unstaged modifications"* ]]
-    [ ! -f .llm-skill-review-cleared ]
-}
-
-# --- Sentinel format ---
-
-@test "write: sentinel format is exactly 5 pipe-separated fields" {
-    ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4 --no-envelope >/dev/null
-    fields=$(awk -F'|' '{print NF}' < .llm-skill-review-cleared)
-    [ "$fields" -eq 5 ]
-}
-
-@test "write: sentinel v1 prefix" {
-    ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4 --no-envelope >/dev/null
-    grep -q "^v1|" .llm-skill-review-cleared
-}
-
-@test "write: sentinel records current HEAD SHA" {
-    expected_sha=$(git rev-parse HEAD)
-    ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4 --no-envelope >/dev/null
-    grep -q "v1|${expected_sha}|" .llm-skill-review-cleared
-}
-
-@test "write: sentinel records min-score field" {
-    ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.42 --no-envelope >/dev/null
-    grep -q "min-score=9.42$" .llm-skill-review-cleared
-}
-
-@test "write: sentinel is 0644 mode" {
-    ./tools/run-llm-skill-review.sh --verdict PASS --min-score 9.4 --no-envelope >/dev/null
-    perms=$(stat -f "%Lp" .llm-skill-review-cleared 2>/dev/null || stat -c "%a" .llm-skill-review-cleared 2>/dev/null)
-    [ "$perms" = "644" ]
-}
-
-# --- Equals-form flags ---
-
-@test "args: --verdict=PASS works" {
-    run ./tools/run-llm-skill-review.sh --verdict=PASS --min-score 9.4 --no-envelope
-    [ "$status" -eq 0 ]
-}
-
-@test "args: --min-score=9.4 works" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score=9.4 --no-envelope
-    [ "$status" -eq 0 ]
-}
-
-# --- Boundary scores ---
-
-@test "args: min-score 1.0 (lower bound) -> accepted" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 1.0 --no-envelope
-    [ "$status" -eq 0 ]
-}
-
-@test "args: min-score 10.0 (upper bound) -> accepted" {
-    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 10.0 --no-envelope
-    [ "$status" -eq 0 ]
 }

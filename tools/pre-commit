@@ -247,8 +247,11 @@ ERRORS=$_GATES_PARSE_ERRORS
 # commit → re-run battery → push). A staleness warning fires when the sentinel
 # is for a different HEAD, so the agent knows pre-push will require re-review.
 #
-# Policy files AGENTS.md and CLAUDE.md are treated as code (not docs) because
-# changes to them alter agent gate behavior. See staged_has_code() below.
+# skills/*.md, .ai-guidance/*.md, and AGENTS.md-family files (AGENTS.md/
+# CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any path depth) are
+# owned exclusively by the llm-skill-review gate, not this sentinel -- see
+# tools/pre-push-code-review-gate.sh's header, whose _first_code_file()
+# classifier staged_has_code() below mirrors. Keep the two in sync.
 # -----------------------------------------------------------------------------
 SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
 
@@ -259,14 +262,16 @@ staged_has_code() {
     # intentionally omits D because downstream content checks require the file
     # to exist on disk; this helper is existence-independent.
     #
-    # AGENTS.md and CLAUDE.md are policy files — treated as code. Changes to
-    # them alter agent gate behavior and require battery clearance. They are
-    # explicitly preserved by the awk filter before the generic .md exemption.
+    # skills/*.md is exempted (owned by llm-skill-review, not this gate) but
+    # any OTHER file under skills/ (scripts, config) still counts as code.
+    # AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md (any path
+    # depth) and .ai-guidance/*.md fall through to the generic .md exemption
+    # below, same as any other doc -- also owned by llm-skill-review.
     local staged_code
     staged_code=$(git diff --cached --name-only --diff-filter=ACDMRT 2>/dev/null \
         | awk '
             /^\s*$/                             { next }
-            /^(AGENTS|CLAUDE)(\.md)?$/          { print; next }
+            /^skills\/.*\.md$/                  { next }
             /^skills\//                         { print; next }
             /\.(md|txt|rst)$/                   { next }
             /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }

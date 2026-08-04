@@ -121,13 +121,13 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 
 | Metric | Value |
 |--------|-------|
-| Total candidates | 6 |
-| Proposed | 2 |
+| Total candidates | 8 |
+| Proposed | 3 |
 | Validated | 0 |
-| Graduated | 4 |
+| Graduated | 5 |
 | Rejected | 0 |
 
-**Candidate-ID gap note:** this branch's candidates go 001-004,006,008 -- gaps 005, 007 are not missing, they're reserved on the separate, not-yet-merged `feat/cr-battery-field-reference-trace-holdback` branch: `candidate-005` (Field Reference Trace) and `candidate-007` (2>/dev/null Masks Genuine Absence in Evidence Commands). Verify with `git ls-tree -r --name-only feat/cr-battery-field-reference-trace-holdback -- skills/engineering/code-review-battery/candidates/` if that branch is still available.
+**Candidate-ID gap note:** this branch's candidates go 001-004,006,008,009,010 -- gaps 005, 007 are not missing, they're reserved on the separate, not-yet-merged `feat/cr-battery-field-reference-trace-holdback` branch: `candidate-005` (Field Reference Trace) and `candidate-007` (2>/dev/null Masks Genuine Absence in Evidence Commands). Verify with `git ls-tree -r --name-only feat/cr-battery-field-reference-trace-holdback -- skills/engineering/code-review-battery/candidates/` if that branch is still available.
 
 **Resolved — `skill.md` line budget:** this batch's new Phase 1 reviewer-activation table row initially pushed `skill.md` from 250 to 251 lines, over `skill-health-check`'s hard-ERROR cap. Fixed by consolidating two adjacent one-line Companion Skills bullets into one (no content removed, just reformatted) -- `skill.md` is back at exactly 250 lines.
 
@@ -144,3 +144,7 @@ The battery does NOT auto-modify reviewer prompts. Candidates go through the val
 **candidate-006** (proposed 2026-07-10): Sibling Path Trace -- Guard-Condition Trigger. Descoped out of candidate-002 (see its NOTE above) after two PHR review rounds found the guard-condition-only trigger shape (a control-flow guard changed on one sibling family member, no field involved) was never validated by any exercise and kept surfacing prose inconsistencies with the rest of candidate-002's field-scoped machinery. Tracked here as its own future candidate, requiring a dedicated validation exercise before it can graduate.
 
 **candidate-008** (proposed 2026-07-11): Producer Trace's Mechanized Evidence Shares Caller Removal Trace's Grep-Replay Exposure. Caller Removal Trace's mechanized JSON evidence-verification accumulated a new confirmed bug in each of three review rounds (word-boundary collisions, exit_code-vs-count semantics, comment-only mentions, multi-declaration/re-export, symlinked-directory traversal, case-insensitive-filesystem checkout collisions) and was ultimately dropped in favor of prose-only evidence. Producer Trace's evidence commands use the structurally identical grep-replay-for-absence primitive and are flagged as likely exposed to the same bypass classes -- NOT independently confirmed, only reasoned about by analogy. Needs its own dedicated adversarial review before any fix is proposed.
+
+**candidate-009** (proposed 2026-06-11): Fix-Collateral Test Analysis. Live review on a production TypeScript service missed an Important finding: a fix removing a 7s timer left in place a test that validated the removed behavior and would fail once the fix landed. Root cause: Phase 3's Implement classification has no mechanism to enumerate tests that validate the bug behavior being removed, and reviewers run in parallel so cannot cross-reference each other's findings -- this is a Phase 3 orchestrator rule, not a reviewer-prompt change. Proposed target: `skill.md` Phase 3 step 7 (Triple-filter), requiring a `collateral_test_changes` field (required, may be empty) on every Implement finding. Not yet graduated.
+
+**candidate-010** (graduated 2026-07-24, live-incident): Ticket IDs Embedded in Source Code Comments. Ported from a sibling project's real incident (a ticket-tracker reference left in a source comment, caught only by a human reviewer). Graduated into `reviewers/standards-enforcer.md` §3b (Ticket IDs in Comments) with a short signal-only row in `skill.md`'s dispatch table, matching the Sibling Path Trace / Caller Removal Trace convention -- the sibling project's own first version instead paired the rule with a shell "detection command"; inspecting that draft directly (not this repo's own review history) found it appeared to scan only the diff's tip commit despite the rule's own full-branch-diff requirement, appeared not to implement its own stated exceptions, and used two visibly different regexes for the same pattern in the same file -- read as face-value defects in that draft, not independently exercise-validated. Confidence held at 0.5 pending this repo's own exercise validation -- the sibling incident validates the failure mode, not this repo's detection accuracy.
