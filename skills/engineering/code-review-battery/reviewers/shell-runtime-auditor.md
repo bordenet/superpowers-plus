@@ -287,6 +287,56 @@ check). Silent trust is **Important** if the resulting behavior is a
 mutating action taken on missing/stale assumptions; **Minor** if it only
 degrades an advisory message.
 
+**API pagination completeness.** A script that calls a paginated CLI (e.g.
+`glab api`, `gh api`, `curl` against a list endpoint) without `--paginate`
+or `--all-pages` silently reads only the first page -- typically 20-100
+items -- and may miss every recently-added entry. The user-visible failure
+mode is silent data loss (results beyond page 1 are never seen), which is a
+resilience failure even though the root cause is a tool-contract gap.
+
+**Do NOT flag when**: (a) the script explicitly sets `per_page` to a value
+that covers the bounded result set (e.g. `per_page=100` when the caller
+expects at most 10 results), (b) the diff comment or variable name states
+intent ("get latest", "check most recent N"), or (c) the API endpoint's
+docs state it does not paginate. Only flag on endpoints that paginate by
+default (list/search endpoints) AND where the result set can grow
+unboundedly.
+
+**How to spot**: when the diff introduces or modifies a call to a CLI
+whose docs describe pagination (`glab api`, `gh api --paginate`, `curl`
+with a `Link:` header consumer), check whether `--paginate`/`--all-pages`
+is passed (or the response `Link`/`next` header is followed by a loop).
+Absence with no comment explaining why single-page is sufficient is
+**Important** if the result set grows unboundedly (e.g. search results,
+issue lists, MR candidates).
+
+**How to confirm**: `grep -nE -- '--paginate|--all-pages|Link.*next|per_page' <file>`.
+If the call is to a list/search endpoint and none of these appear, flag.
+
+**Test isolation for bats suites.** When the diff adds or modifies bats
+test files, verify that each test's state (git repos, sentinel files,
+temp dirs) is created inside `BATS_TMPDIR` (or `$BATS_TEST_TMPDIR` in
+bats 1.7+) within a `setup()` function -- NOT by a bare `cd` into the
+real repository or a `git init` at the project root. A test that `cd`s
+into the real checkout before creating a sentinel can write a
+`.code-review-cleared-*` file (or any other artifact) into the live
+repo, corrupting the state that the gate scripts and CI read.
+
+**How to spot**: `grep -nE 'BATS_TMPDIR|BATS_TEST_TMPDIR|setup\(\)' <file>`.
+If `setup()` is absent but the tests create files or `cd` somewhere,
+every test is running against the real checkout. Also check for bare
+`cd` invocations (NOT inside `run`) -- `run cd /real/repo` executes the
+cd in a subshell and does NOT propagate CWD to the outer test function,
+so `run cd` is safe; a BARE `cd /real/repo` (outside `run`) followed
+by a `git commit` will commit into the real repo. **Important** if the
+script writes sentinels, git objects, or config; **Minor** otherwise.
+
+**Do NOT flag**: a bats test that is purely read-only (no sentinel
+writes, no `git commit`/`git init`, no file creation that gate scripts
+or CI read) carries no real risk from isolation failure. Apply this
+check only when the test body contains write operations (`echo >`,
+`mkdir`, git mutations, sentinel writes).
+
 Note: `bash -n` (Dimension 1's baseline) only catches syntax errors. This
 dimension covers **runtime** failure paths a syntactically valid script
 can still hit -- a subprocess that fails silently, a missing dependency
