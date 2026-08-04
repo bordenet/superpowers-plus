@@ -83,6 +83,119 @@ When triggered:
 
 **Do NOT over-fire**: two files touching the same directory or resource is not by itself evidence of a gap -- only flag when an existing, currently-dual-consumed field is being supplemented/superseded and one of its existing readers didn't get the update. A brand-new field with no existing sibling concept to compare against is not a Sibling Path Trace finding (it may still be a Producer Trace or Consumer Trace finding on its own terms). **Out of scope for this pattern**: a diff that changes shared control-flow (a guard condition, branch, or early-return) across a sibling family with no field involved is a real, related risk, but is NOT currently covered here -- an earlier draft extended this pattern to that shape but it was never independently validated by an exercise (no test ever exercised it) and its "do not over-fire" boundary repeatedly proved inconsistent with the rest of this pattern's field-scoped machinery across two review rounds. See `candidates/candidate-006.yaml` (proposed, not yet validated) for that shape as its own future candidate. Two files in the same directory implementing genuinely different concerns for the same resource (e.g. one handles authorization, the other handles formatting) are not "siblings" for this pattern even if they share a naming convention.
 
+### API Response Type Filtering
+
+When the diff reads from an API (REST, GraphQL, CLI JSON output) and processes
+a list of results, check that the code filters on the discriminant field
+**before** deduplicating, aggregating, or acting on those results. API search
+endpoints (GitLab, GitHub, Jira, etc.) return heterogeneous result types
+(MergeRequests, Issues, Snippets, Commits) that share numeric ID fields --
+a note on an Issue and a note on an MR in the same project can have the
+same `iid`, so deduplicating without filtering type first silently conflates
+them.
+
+**Trigger**: diff reads a list response from an API search or list endpoint
+with a `scope=` or cross-type parameter, then performs deduplication,
+grouping, or aggregation on `id`/`iid`/`number` fields.
+
+**Do NOT over-fire**: only flag when the API endpoint's documented schema
+can return 2+ resource types sharing the same numeric ID namespace. An
+endpoint documented to return a single resource type (e.g.
+`GET /projects/:id/merge_requests`, GitHub `GET /repos/:r/pulls`) has no
+type-collision risk even if dedup is applied. An endpoint with a `scope=`
+or `type=all` parameter that spans multiple types (GitLab
+`search?scope=notes`, GitHub `search/issues?is=issue+is=pr`) is the
+canonical trigger. If the API schema is not available in the diff context,
+inspect the diff for a `scope=`, `type=`, or similar multi-type query
+parameter; if none is present, downgrade to "Possible:...".
+
+**How to check**:
+1. Identify the discriminant field (`noteable_type`, `object_type`, `type`,
+   `__typename`, or similar) in the API schema or from the diff's own field
+   access (`.get("noteable_type")`, `r["type"]`, etc.).
+2. Verify a filter on that field appears **before** the first dedup/group/
+   aggregation step.
+3. Verify the filter is correct (e.g. `== "MergeRequest"` rather than
+   `!= "Issue"` -- the latter silently admits Snippets and Commits).
+4. If no filter exists: **Important** (wrong IID collisions corrupt downstream
+   action); if filter is present but positioned after dedup: **Important**
+   (dedup already ran against mixed types).
+
+**Evidence posture**: code-order inspection; use `"verifiable": false,
+"rationale": "type-filter position relative to dedup step requires reading
+control flow, not greppable"`. Supporting grep (corroborating, not
+conclusive): `grep -nE 'noteable_type|object_type|__typename' <file>` with
+`"expectation": {"type": "absent"}` (if claiming no filter exists) or
+`"count": ">0"` (confirming a filter is present). Route through
+`UNVERIFIABLE_CAP = 7.0`.
+
+**Example (agent-factory, 2026-07)**: `glab api search?scope=notes` returns
+MR notes, issue notes, and snippet notes -- all sharing `noteable_iid`. Code
+that deduped on `(project_id, noteable_iid)` without first filtering to
+`noteable_type == "MergeRequest"` folded issue and snippet note timestamps
+into MR candidate dedup, producing wrong MR candidates.
+
+### Gate TOCTOU (Local State Used to Gate a Remote Action)
+
+When the diff implements a gate or guard (e.g., "only proceed if sentinel
+exists", "only mark ready if review passed"), check whether the gate reads
+**local** state (a local file, a local git HEAD, a local env var) to authorize
+an **authoritative remote action** (API call, push, mark-ready, deploy).
+
+Local state can diverge from authoritative state: a local sentinel file can
+exist for a SHA that the remote has already superseded; a local `git rev-parse
+HEAD` can lag behind a force-push or CI bot commit. A gate that reads local
+state to authorize a remote action is a TOCTOU -- the check and the action
+refer to different moments in time.
+
+**Trigger**: diff adds/modifies code that: (a) reads a local file path,
+local git state, or local env var **encoding a claim about authoritative
+remote state** as a gate condition, AND (b) performs an irreversible action
+via a remote API (glab, gh, curl, git push, mark-ready, deploy) that must
+be authorized only under that condition.
+
+**Do NOT over-fire**: only flag when the local value encodes a claim about
+remote state at a specific prior moment -- a SHA, a review status, a lock
+owner, or a "step N completed" sentinel. Configuration values (API URLs,
+auth tokens, timeouts, boolean feature flags) do not encode authoritative
+remote state; reading `GITLAB_TOKEN` or `API_TIMEOUT` before a remote call
+is not a TOCTOU. A `.code-review-cleared-<SHA>` file encoding "SHA X was
+reviewed" diverges from remote state when the remote advances to SHA Y; a
+`DRY_RUN=true` variable does not diverge.
+
+See also ShellRuntimeAuditor Dimension 3 "Dependence on prior session
+state" -- that pattern covers the ABSENT case (local state was never
+written); Gate TOCTOU covers the STALE case (local state was written for a
+now-superseded moment). Both can apply to the same gate with different
+failure modes; do not deduplicate them.
+
+**How to check**:
+1. For each gate, identify what authoritative source it SHOULD check (the
+   remote API's current HEAD SHA, the API's current MR state, etc.).
+2. Identify what it ACTUALLY checks (local sentinel file, `git rev-parse HEAD`
+   without a prior `git fetch`, a cached env var encoding remote state).
+3. If these differ: **Important**. Name the race: "local sentinel exists for
+   SHA A; a CI bot has since pushed SHA B; gate passes, action runs against
+   B without a valid review."
+4. Fix pattern: fetch the authoritative remote state immediately before the
+   gate check (e.g., `glab api projects/.../merge_requests/N` to get the
+   current HEAD SHA, compare against the sentinel SHA, reject if they differ).
+
+**Evidence posture**: structural judgment; use `"verifiable": false,
+"rationale": "gate-vs-action time gap is a control-flow judgment, not
+greppable"`. Supporting greps (corroborating -- run both independently;
+each confirms one element exists in the file, not co-appearance):
+`grep -nE '(sentinel|cleared|[Ss][Hh][Aa])' <file>` (gate element) and
+`grep -nE '(glab|gh api|git push|curl)' <file>` (remote call). Route
+through `UNVERIFIABLE_CAP = 7.0`.
+
+**Example (agent-factory, 2026-07)**: `glab-mr-ready.sh` checked whether a
+local `.code-review-cleared-<SHA>` sentinel existed, then called
+`glab mr update --ready`. A CI bot commit between sentinel-write and
+`mr-ready` call advanced the remote HEAD, so the script marked an unreviewed
+SHA as ready. Fix: fetch `sha` from the GitLab API immediately before the
+gate check and compare against the sentinel SHA.
+
 ### Boundary Value Trace
 
 For every **threshold comparison** (`>=`, `>`, `<`, `<=`, `===`) in the diff:
