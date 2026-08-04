@@ -1,0 +1,48 @@
+id: candidate-013
+status: graduated
+kind: pattern
+created: 2026-07-24
+source_gap: "glab api without --paginate returns only the first page of results (default
+  20 items). The watchdog search silently missed all recently-triggered MR notes beyond
+  page 1. ShellRuntimeAuditor's Tool Contract Safety dimension covered flag-parsing
+  completeness and exit codes but did not enumerate the pagination flag as a tool contract
+  to verify."
+source_exercise: null
+graduation_path: live-incident
+reviewer: shell-runtime-auditor
+pattern: |
+  When reviewing a shell script that calls a paginated CLI (glab api, gh api, curl
+  against a list/search endpoint) to retrieve a potentially unbounded result set,
+  check whether --paginate/--all-pages is passed or the Link/next header is followed
+  by a manual loop.
+  Look at: the CLI invocation flags, the result handling code, and whether the endpoint
+  paginates by default.
+  Flag as Important if: the call is to a list/search endpoint that paginates by default,
+  the result set can grow unboundedly, and no pagination flag or Link-header loop is present.
+  Do NOT fire on: endpoints with a bounded result set explicitly covered by per_page,
+  single-item lookups, or endpoints that the docs state do not paginate.
+  Note: placed in Dimension 3 (Failure-Mode Resilience) rather than Dimension 2
+  (Tool Contract Safety) because the user-visible failure mode is silent data loss;
+  the tool-contract gap is the root cause, not the severity category.
+examples:
+  - file: "agent-scripts/lib/glab_search.py"
+    issue: "_glab_api() called glab api without --paginate on search?scope=notes.
+      Only the first 20 results were returned; all notes added after the first page
+      were silently missed, including the most recent trigger."
+    fix: "Pass --paginate to glab api and merge the concatenated JSON arrays emitted
+      by --paginate using json.JSONDecoder().raw_decode() in a loop."
+confidence: 0.8
+ttl_days: null
+validation:
+  exercises_tested: []
+  true_positives: 1
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-24
+  reviewer_line: "shell-runtime-auditor.md -- API pagination completeness check in Dimension 3"
+  regression_check: "live-incident -- no exercise holdout; single live incident
+    confirms the failure mode. Confidence held at 0.8."

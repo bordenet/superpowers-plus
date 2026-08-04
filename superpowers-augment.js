@@ -780,8 +780,15 @@ switch (command) {
                     : (m.score * 100).toFixed(1) + '%';
                 console.log(`| ${i + 1} | ${m.name} | ${scoreDisplay} | ${type} |`);
             }
-            console.log(`\nTop match: **${matches[0]?.name}**`);
-            console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0]?.name}\``);
+            // The anti_trigger hard veto (lib/skill-router.js) can now empty
+            // `matches` in a way that was structurally unreachable before it
+            // existed -- guard rather than print "Top match: **undefined**".
+            if (matches.length > 0) {
+                console.log(`\nTop match: **${matches[0].name}**`);
+                console.log(`\nTo use: \`node ~/.codex/superpowers-augment/superpowers-augment.js use-skill ${matches[0].name}\``);
+            } else {
+                console.log('\nNo matching skills found (all candidates were excluded by an anti_trigger veto).');
+            }
 
             // Show coordination info below the table (appended, not column change)
             const coordMatches = matches.filter(m => getCoordination(m));
