@@ -47,7 +47,7 @@ coordination:
   group: meta
   order: 0
   requires: []
-  enables: [failure-autopsy, skill-authoring, evolution-loop, verification-before-completion]
+  enables: [failure-autopsy, skill-authoring, evolution-loop, verification-before-completion, substrate-claim-audit, output-verification]
   escalates_to: [think-twice]
   internal: false
 composition:
@@ -178,4 +178,6 @@ the failure structurally. No promise needed."
 - **evolution-loop**: Feed the pattern back for systematic improvement at session end
 - **skill-authoring**: Create new skills when no existing one fits the gap
 - **verification-before-completion**: Most common fix target
+- **substrate-claim-audit**: Fix target when the failure was stating an unverified fact as true
+- **output-verification**: Fix target when the failure was skipping a tool call that should have run
 - **think-twice**: Escalation when the promise reflex is itself a stuck loop
