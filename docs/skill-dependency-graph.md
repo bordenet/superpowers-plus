@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-08-04
+> **Last updated:** 2026-08-07
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -99,6 +99,7 @@ graph TD
 
   subgraph meta["Meta"]
     using_superpowers["using-superpowers"]
+    no_empty_promises["no-empty-promises"]
     superpowers_help["superpowers-help"]
   end
 
@@ -145,6 +146,7 @@ graph TD
     update_superpowers["update-superpowers"]
     domain_design["domain-design"]
     fallback_planning["fallback-planning"]
+    session_status["session-status"]
     golden_agents["golden-agents"]
     skill_authoring["skill-authoring"]
     screenshot["screenshot"]
@@ -321,6 +323,9 @@ graph TD
   innovation -->|enables| think_twice
   inter_agent_review_protocol -->|enables| progressive_code_review_gate
   inter_agent_review_protocol ==>|escalates to| code_review_battery
+  no_empty_promises -->|enables| failure_autopsy
+  no_empty_promises -->|enables| skill_authoring
+  no_empty_promises -->|enables| evolution_loop
   plan_and_execute -->|enables| brainstorming
   plan_and_execute -->|enables| think_twice
   plan_and_execute -->|enables| todo_management
@@ -379,7 +384,7 @@ graph TD
 | Quality | `progressive-harsh-review` | Coordinated skill group |
 | Push Gates | `scope-tripwire` | Coordinated skill group |
 | Session Start | `session-handoff` | Coordinated skill group |
-| Meta | `using-superpowers`, `superpowers-help` | Coordinated skill group |
+| Meta | `using-superpowers`, `no-empty-promises`, `superpowers-help` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
 | Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
 | Observability | `holistic-repo-verification`, `skill-health-check`, `skill-trigger-audit`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
@@ -387,7 +392,7 @@ graph TD
 | Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
 | Orchestration | `autonomous-chain-controller` | Coordinated skill group |
 | Pre Compact | `context-ferry` | Coordinated skill group |
-| Productivity | `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive`, `todo-management` | Coordinated skill group |
+| Productivity | `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `session-status`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive`, `todo-management` | Coordinated skill group |
 | Decision Making | `quantitative-decision-gate` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Todo Enforcement | `todo-guardian` | Coordinated skill group |

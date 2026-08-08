@@ -163,7 +163,19 @@ _build_payload_move() {
 CONTENT_CHECK="${SCRIPT_DIR}/wiki-content-check.sh"
 if [[ "$ACTION" != "move" && -x "$CONTENT_CHECK" ]]; then
     log_info "content-check gate: wiki-content-check.sh"
-    if ! "$CONTENT_CHECK" --content "$CONTENT_FILE" >&2; then
+    # The command itself, not a negated `!` form, must be the if-condition:
+    # under `set -e` a bare failing command aborts immediately, and bash's
+    # `!` negates $? for control-flow purposes, so `$?` inside an `if !
+    # cmd; then` block is never the command's real exit code -- it would
+    # always read 0 here, silently defeating the exit-2-vs-other check below.
+    if "$CONTENT_CHECK" --content "$CONTENT_FILE" >&2; then
+        :
+    else
+        content_rc=$?
+        if [[ "$content_rc" -eq 2 ]]; then
+            log_err "content-check environment error (exit 2) -- fix the tool's environment (e.g. missing python3), not the wiki content"
+            exit 2
+        fi
         log_err "content check failed -- fix slop/structure violations and retry"
         exit 5
     fi
