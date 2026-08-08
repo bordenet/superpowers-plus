@@ -191,7 +191,9 @@ Which option?
 
 ### Step 4: Execute Choice
 
-**Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree.
+Capture the worktree state before any option below `cd`'s away — see `references/worktree-cleanup.md` for the exact commands and why order matters.
+
+**Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree (using `$WORKTREE_PATH`).
 
 **Option 2 (Push and create PR):**
 
@@ -204,11 +206,11 @@ Which option?
 
 **Option 3 (Keep as-is):** Report status. Keep worktree.
 
-**Option 4 (Discard):** Confirm first (require typed "discard"). Then delete branch and cleanup worktree.
+**Option 4 (Discard):** Confirm first (require typed "discard"). Then delete branch and cleanup worktree (using `$WORKTREE_PATH`).
 
 ### Step 5: Cleanup Worktree
 
-For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — keep worktree.
+For Options 1, 2, 4 — using the values captured in Step 4, per `references/worktree-cleanup.md`. For Option 3 — keep worktree, skip this step.
 
 ## Anti-Patterns
 
@@ -217,7 +219,7 @@ For Options 1, 2, 4 — check if in worktree and remove it. For Option 3 — kee
 | Presenting options without completing Step 0 | Review first, options second |
 | Skipping test verification because review passed | Review ≠ tests. Both required. |
 | Open-ended "What should I do next?" | Present exactly 4 structured options |
-| Auto-cleanup worktree for Option 3 | Only cleanup for Options 1 and 4 |
+| Auto-cleanup worktree for Option 3 | Only cleanup for Options 1, 2, and 4 |
 | Deleting work without confirmation | Require typed "discard" for Option 4 |
 | Citing an issue reference in a PR body without verifying it resolves | Verify via `issue-verify` before citing; never build the reference from memory |
 

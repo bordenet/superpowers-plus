@@ -41,6 +41,9 @@ composition:
 ---
 
 # Progressive Harsh Review
+
+> **Mechanical routing:** don't decide from memory or from the "Wrong skill?" prose below -- run `tools/review.sh route <path> [<path> ...]` first (paths of the files you're about to review). It wraps `tools/which-gate.sh` and prints the correct skill + sentinel + runner for each artifact. If the router says a different skill, follow the router, not this banner. If the router errors or is unavailable, stop and report -- do not fall back to the prose. The banner is an inner backstop, not a substitute for the mechanical check.
+>
 > **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`. Skill.md files or skill-adjacent tooling → `llm-skill-review`.
 >
 > **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
