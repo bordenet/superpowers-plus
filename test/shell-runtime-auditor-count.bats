@@ -14,9 +14,17 @@ PERSONA_FILE="$REVIEWERS_DIR/shell-runtime-auditor.md"
     # actual file total by design -- count table rows instead, scoped to the
     # Reviewer/Focus/Activate-When table specifically (not the separate
     # signal-driven dispatch table further down, which has its own bolded rows).
+    # Excludes zzz-test-fixture-*.md: test/harsh-review-reviewer-length.bats
+    # writes (and tears down) a fixture file with this exact prefix directly
+    # inside this same real, non-isolated reviewers/ directory to test the
+    # 400-line-cap check. Under bats' parallel (--jobs N) execution, that
+    # test file can run concurrently with this one, and this count would
+    # transiently see the fixture and fail with actual_count off by one --
+    # a real cross-file race, not a genuine roster/directory drift. Found
+    # via code-review-battery.
     local table_count actual_count
     table_count=$(sed -n '/^| Reviewer | Focus | Activate When |$/,/^$/p' "$SKILL_MD" | grep -cE '^\| \*\*')
-    actual_count=$(find "$REVIEWERS_DIR" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
+    actual_count=$(find "$REVIEWERS_DIR" -maxdepth 1 -name '*.md' -type f ! -name 'zzz-test-fixture-*' | wc -l | tr -d ' ')
     [ "$table_count" -gt 0 ]
     [ "$table_count" -eq "$actual_count" ]
 }
