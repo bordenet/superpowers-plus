@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 110 -->
+<!-- SKILL-COUNT: 112 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (47)
@@ -58,7 +58,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (22)
+## Productivity (24)
 
 | Skill | Description |
 |-------|-------------|
@@ -73,9 +73,11 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `innovation` | Produces a single high-conviction innovation answer for the project. |
 | `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
 | `model-selector` | Recommends the most cost-effective AI model for a task. Enforces the codebase-retrieval filter before considering external models. |
+| `no-empty-promises` | PRIME DIRECTIVE: intercepts empty behavioral promises ("I'll be more careful") and forces a structural skill edit instead. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
 | `quantitative-decision-gate` | Forces decision matrix evaluation before escalating questions to the user. |
 | `screenshot` | Visual input bridge. Grabs N most recent screenshots and dispatches to fix, explain, compare, spec, do-this, or free-form intent. `/sp-ss [N] [intent]`. |
+| `session-status` | Reports where the current session stands: work in flight, remaining items, unanswered questions, blockers, suggested title. |
 | `skill-authoring` | Creates new skills from descriptions, patterns, or codebase analysis. |
 | `superpowers-help` | Dynamically enumerates all installed skills at runtime. |
 | `think-twice` | Detects stuck loops, dispatches fresh sub-agent with zero shared context. |
