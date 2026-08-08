@@ -10,11 +10,14 @@
 #                     body produces a visible duplicate. (Incident: 2026-07-11)
 #   2. AI slop     -- fabricated generalizations and filler openers degrade
 #                     trust in the wiki. (Incident: 2026-07-11)
-#   3. TOC delim   -- Outline toggles use +++ (3 plus signs) as delimiter;
-#                     content-author runs of 4-6 are broken. Outline itself
-#                     serializes toggle blocks as 7+ plus signs internally --
-#                     those are explicitly allowed to prevent false positives
-#                     when round-tripping fetched content. (Incident: 2026-07-11)
+#   3. TOC delim   -- Outline toggle-block "+" fence structure: duplicate
+#                     TOC toggles, and fence open/close/nesting errors,
+#                     delegated to toc-delimiter-check.sh (see that script's
+#                     header for the full, source-verified rule -- there is
+#                     no fixed "correct" character count). (Incident:
+#                     2026-07-11; rule corrected 2026-07-29 after the
+#                     original "4-6 is broken" heuristic was found to
+#                     contradict Outline's actual parser and serializer)
 #   4. Ref strip   -- a section that drops an external URL present in the
 #                     existing doc is flagged; prevents silently removing
 #                     Core Board or SharePoint links during updates.
@@ -43,6 +46,10 @@
 #   0  all checks passed
 #   1  one or more content violations found (details on stderr)
 #   2  usage / environment error
+#
+# REQUIRES: bash 4+; python3 on PATH (transitive, via toc-delimiter-check.sh
+#           and slop-check.sh delegation -- both print their own explicit
+#           "requires python3" error to stderr, forwarded here, if missing)
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -86,7 +93,22 @@ done
 # Outline renders the document title from the title field automatically.
 # Any line beginning with "# " (one hash, one space) in the body produces
 # a visible duplicate heading for the reader.
-h1_lines=$(grep -n '^# ' "$CONTENT_FILE" || true)
+# `grep ... || true` used to map "no match" (benign, exit 1) and a genuine
+# grep failure (exit >=2: bad regex, I/O error) to the identical empty
+# result -- a real scan failure would silently pass as "no H1 found." The
+# command itself, not a negated `!` form, must be the if-condition: `$?`
+# after `if ! cmd; then` is the logical NOT of the real exit code, not the
+# real code (see tools/slop-check.sh's scan_pattern for the same fix, found
+# via code-review-battery).
+if h1_lines=$(grep -n '^# ' "$CONTENT_FILE"); then
+    h1_rc=0
+else
+    h1_rc=$?
+fi
+if [[ "$h1_rc" -ge 2 ]]; then
+    printf '[wiki-content-check] FAIL  H1_TITLE: grep failed (rc=%d) -- ABORT, do not infer PASS\n' "$h1_rc" >&2
+    exit 2
+fi
 if [[ -n "$h1_lines" ]]; then
     log_fail "H1_TITLE: body must not contain '# Heading' lines (Outline renders title automatically)"
     while IFS= read -r line; do printf '  %s\n' "$line" >&2; done <<< "$h1_lines"
@@ -95,96 +117,81 @@ else
 fi
 
 # -- Check 2: AI slop ----------------------------------------------------------
-# Known fabricated-generalization openers and filler phrases that indicate
-# unedited AI output. Derived from detecting-ai-slop/reference.md categories:
-#   Cat. 1 generic boosters, Cat. 2 buzzwords, Cat. 7 typographic tells,
-#   Cat. 9 filler openers. Add patterns here as new ones are discovered.
-# NOTE: em-dash (—) and en-dash (–) are the highest-signal AI tells (+3 pts
-# each in the scoring model). grep -P is used for the Unicode literal match;
-# the remaining patterns use plain grep -i (POSIX ERE is sufficient).
+# Delegated to slop-check.sh — the centralized pattern gate that covers
+# em/en-dash, boosters, buzzwords, and filler openers. The pattern list lives
+# there; do not add patterns here.
 if [[ "$SKIP_SLOP" -eq 0 ]]; then
-    declare -a SLOP_PATTERNS=(
-        # Cat. 9: fabricated-generalization filler openers
-        'every sustainable system'
-        'at its core,'
-        'in the modern'
-        'it is worth noting'
-        'it is important to note'
-        'plays a crucial role'
-        'plays a vital role'
-        'when it comes to'
-        'game-changing'
-        'transformative solution'
-        # Cat. 2: buzzwords
-        'seamlessly integrat'
-        'leverage.*capabilit'
-        '\butilize\b'
-        '\bsynergy\b'
-        '\bparadigm.shift'
-        '\bbolster\b'
-        '\btranscend\b'
-        '\bresonate\b'
-        '\breimagine\b'
-        '\bstreamline'
-        '\brobust\b'
-        '\bholistic\b'
-        '\bseamless\b'
-        # Cat. 1: generic boosters
-        '\bdelve\b'
-        '\bmyriad\b'
-        '\bplethora\b'
-        '\btremendous'
-        '\bprofoundly\b'
-        '\bgroundbreaking\b'
-        '\binvaluable\b'
-    )
-    slop_hits=""
-    for pat in "${SLOP_PATTERNS[@]}"; do
-        hits=$(grep -inE "$pat" "$CONTENT_FILE" || true)
-        [[ -n "$hits" ]] && slop_hits+="${hits}"$'\n'
-    done
-    # Cat. 7: em-dash (U+2014) and en-dash (U+2013) -- highest-signal AI tells.
-    # macOS grep has no -P flag; python3 is used for the Unicode literal match.
-    # Exempt: numeric ranges ("pp. 3-7") already use ASCII hyphens in markdown;
-    # the Unicode em/en-dash characters have no legitimate use in wiki prose.
-    if command -v python3 >/dev/null 2>&1; then
-        emdash_hits=$(python3 - "$CONTENT_FILE" << 'PYEOF'
-import sys, re
-path = sys.argv[1]
-with open(path, encoding="utf-8", errors="replace") as fh:
-    for i, line in enumerate(fh, 1):
-        if re.search(r'[\u2014\u2013]', line):
-            print(f"{i}:{line.rstrip()}")
-PYEOF
-        )
-        [[ -n "$emdash_hits" ]] && slop_hits+="${emdash_hits}"$'\n'
-    else
-        log_info "AI_SLOP: python3 not found; skipping em/en-dash check"
+    SLOP_CHECK="$(dirname "${BASH_SOURCE[0]}")/slop-check.sh"
+    if [[ ! -x "$SLOP_CHECK" ]]; then
+        # Fallback: search PATH for a system-installed copy
+        SLOP_CHECK="$(command -v slop-check.sh 2>/dev/null || true)"
     fi
-    if [[ -n "$slop_hits" ]]; then
-        log_fail "AI_SLOP: slop patterns detected -- replace em/en-dashes with ASCII punctuation and remove filler phrases before publishing"
-        printf '%s' "$slop_hits" | grep -v '^$' | while IFS= read -r line; do
-            printf '  %s\n' "$line" >&2
-        done
+    if [[ -x "$SLOP_CHECK" ]]; then
+        # The assignment must be the condition of the if-statement itself (not a
+        # separate `var=$(...); rc=$?` pair) -- under `set -e`, a non-zero exit
+        # from a bare assignment statement aborts the whole script immediately,
+        # before any `$?` capture on the next line ever runs. Commands used as
+        # an if/while/until condition are exempt from that abort behavior.
+        if slop_output=$("$SLOP_CHECK" --content "$CONTENT_FILE" --mode full 2>&1); then
+            log_pass "AI_SLOP: slop-check.sh found no blocking violations"
+        else
+            slop_rc=$?
+            if [[ "$slop_rc" -eq 1 ]]; then
+                log_fail "AI_SLOP: slop-check.sh found blocking violations -- rewrite before publishing"
+                printf '%s\n' "$slop_output" >&2
+            else
+                # Environment/usage error (exit 2, e.g. missing python3 -- now
+                # reachable in ordinary operation, not just a caller-usage
+                # bug), not a content violation -- exit 2 immediately
+                # rather than folding into the generic VIOLATIONS-count exit-1 at
+                # the end of this script. Mirrors Check 3's toc-check disambiguation
+                # below; without it, an environment failure here would surface
+                # identically to "your wiki content is broken."
+                printf '[wiki-content-check] FAIL  AI_SLOP: slop-check.sh errored (exit %s) -- ABORT, do not infer PASS\n' "$slop_rc" >&2
+                printf '%s\n' "$slop_output" >&2
+                exit 2
+            fi
+        fi
     else
-        log_pass "AI_SLOP: no known slop patterns"
+        printf '[wiki-content-check] WARN  AI_SLOP: slop-check.sh not found -- slop check skipped (install may be outdated)\n' >&2
     fi
 else
     printf '[wiki-content-check] WARN  AI_SLOP: slop check skipped (--skip-slop) -- ensure content is human-reviewed\n' >&2
 fi
 
-# -- Check 3: TOC delimiter length ---------------------------------------------
-# Outline toggle blocks open/close with exactly +++ (3 plus signs) in
-# author-written content. Runs of 4–6 are broken author content and are
-# rejected. Runs of 7+ are Outline's own internal serialization format for
-# toggle blocks (the API round-trips fetched content back as +++++++); those
-# are allowed so agents can fetch → edit → re-submit without false positives.
-bad_toc=$(grep -nE '^\+{4,6}$' "$CONTENT_FILE" || true)
-if [[ -n "$bad_toc" ]]; then
-    log_fail "TOC_DELIM: toggle delimiter must be exactly '+++' (author) or '+++++++' (Outline internal); 4–6 plus signs are broken"
-    while IFS= read -r line; do printf '  %s\n' "$line" >&2; done <<< "$bad_toc"
+# -- Check 3: TOC delimiter / toggle fence structure ---------------------------
+# Delegated to toc-delimiter-check.sh -- see that script's header for the
+# full rule (there is no fixed "correct" delimiter length; validates
+# structure, not character count) and its own test coverage.
+TOC_CHECK="$(dirname "${BASH_SOURCE[0]}")/toc-delimiter-check.sh"
+if [[ -x "$TOC_CHECK" ]]; then
+    # The assignment must be the condition of the if-statement itself (not a
+    # separate `var=$(...); rc=$?` pair) -- under `set -e`, a non-zero exit
+    # from a bare assignment statement aborts the whole script immediately,
+    # before any `$?` capture on the next line ever runs. Commands used as
+    # an if/while/until condition are exempt from that abort behavior.
+    if toc_output=$(bash "$TOC_CHECK" --content "$CONTENT_FILE" 2>&1); then
+        log_pass "TOC_DELIM: no toggle fence defects"
+    else
+        toc_rc=$?
+        if [[ "$toc_rc" -eq 1 ]]; then
+            log_fail "TOC_DELIM: toggle fence defect(s) found"
+            printf '%s\n' "$toc_output" >&2
+        else
+            # Environment/usage error (exit 2), not a content violation --
+            # exit 2 immediately rather than folding into the generic
+            # VIOLATIONS-count exit-1 at the end of this script. Otherwise
+            # this distinction (which the code above goes to the trouble of
+            # detecting) never reaches the caller: an environment failure
+            # would surface identically to "your wiki content is broken"
+            # (found by code-review-battery 2026-07-29).
+            printf '[wiki-content-check] FAIL  TOC_DELIM: toc-delimiter-check.sh errored (exit %s) -- ABORT, do not infer PASS\n' "$toc_rc" >&2
+            printf '%s\n' "$toc_output" >&2
+            exit 2
+        fi
+    fi
 else
-    log_pass "TOC_DELIM: no malformed toggle delimiters"
+    printf '[wiki-content-check] WARN  TOC_DELIM: toc-delimiter-check.sh not found -- TOC delimiter check skipped (install may be outdated)\n' >&2
 fi
 
 # -- Check 4: Ref completeness -------------------------------------------------
@@ -194,7 +201,47 @@ fi
 # most commonly a Core Board or SharePoint reference.
 # Relative /doc/ links are excluded; they are checked by the skill preflight.
 if [[ -n "$EXISTING_FILE" && -r "$EXISTING_FILE" ]]; then
-    existing_urls=$(grep -oE 'https?://[^)> "]+' "$EXISTING_FILE" | sort -u || true)
+    # Extract URLs, then strip trailing backticks and sentence-ending
+    # punctuation captured by the greedy regex when a URL appears inside a
+    # markdown code span.  Example: `https://x.com/path`. is extracted as
+    # 'https://x.com/path`.' -- the backtick and period are not part of the
+    # URL.  Stripping normalises the left-side key so a clean URL present in
+    # the new content is not wrongly reported as DROPPED.  grep -qF (right
+    # side) is a substring match, so the normalised form still locates the
+    # full URL in the new document.  grep already excludes > via its character
+    # class, so > in the strip set is redundant but harmless; ) never reaches
+    # the strip set at all, for the same reason.  ] is excluded
+    # from the strip set to preserve bracket-notation API URLs (e.g. /items[0]).
+    # Uses python3 (already required by toc-delimiter-check.sh) to avoid
+    # sed backtick quoting issues on macOS/BSD.  If python3 is missing, log a
+    # WARN and fall back to the raw extracted form so the gate degrades loudly
+    # rather than silently bypassing REF_COMPLETENESS.
+    # `|| true` used to map "no URLs found" (benign: grep exit 1, the only
+    # non-zero exit under pipefail when python3/sort succeed on empty input)
+    # and a genuine pipeline failure (grep/python3/sort exit >=2) to the
+    # identical empty result -- a real extraction failure would silently
+    # report "no existing URLs to check," skipping REF_COMPLETENESS entirely
+    # rather than failing loud. See H1_TITLE above for the same fix pattern.
+    if command -v python3 &>/dev/null; then
+        if existing_urls=$(grep -oE 'https?://[^)> "]+' "$EXISTING_FILE" \
+            | python3 -c 'import sys; [print(u.rstrip("\x60.,;:\x27>(")) for u in sys.stdin.read().splitlines() if u]' \
+            | sort -u); then
+            existing_urls_rc=0
+        else
+            existing_urls_rc=$?
+        fi
+    else
+        printf '[wiki-content-check] WARN  REF_COMPLETENESS: python3 not found -- URL trailing-char normalisation skipped; check may flag false positives\n' >&2
+        if existing_urls=$(grep -oE 'https?://[^)> "]+' "$EXISTING_FILE" | sort -u); then
+            existing_urls_rc=0
+        else
+            existing_urls_rc=$?
+        fi
+    fi
+    if [[ "$existing_urls_rc" -ge 2 ]]; then
+        printf '[wiki-content-check] FAIL  REF_COMPLETENESS: URL extraction failed (rc=%d) -- ABORT, do not infer PASS\n' "$existing_urls_rc" >&2
+        exit 2
+    fi
     missing_urls=""
     while IFS= read -r url; do
         [[ -z "$url" ]] && continue
