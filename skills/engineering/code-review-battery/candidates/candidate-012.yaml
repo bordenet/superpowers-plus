@@ -1,0 +1,45 @@
+id: candidate-012
+status: graduated
+kind: pattern
+created: 2026-07-24
+source_gap: "glab api search?scope=notes returns heterogeneous noteable_type values
+  (MergeRequest, Issue, Snippet). Code deduped on (project_id, noteable_iid) without
+  first filtering to MergeRequest, folding issue and snippet note timestamps into MR
+  candidate dedup. Defect Finder's Edge Cases dimension covered API failures but not
+  heterogeneous-type API results."
+source_exercise: null
+graduation_path: live-incident
+reviewer: defect-finder
+pattern: |
+  When reviewing code that reads from an API list/search endpoint with a scope= or
+  cross-type parameter, then performs deduplication, grouping, or aggregation on
+  id/iid/number fields,
+  check that the code filters on the discriminant type field (noteable_type, object_type,
+  type, __typename) before the first dedup/group/aggregation step.
+  Look at: the dedup/group key, the filter condition, and the API endpoint's scope.
+  Flag as Important if: no type filter exists before dedup (IID collisions corrupt
+  results), or if the filter is positioned after dedup (dedup already ran on mixed types).
+  Do NOT fire on: endpoints documented to return a single resource type (no scope= parameter
+  spanning multiple types).
+examples:
+  - file: "agent-scripts/lib/glab_search.py"
+    issue: "glab api search?scope=notes returns MR notes, issue notes, and snippet notes
+      all sharing noteable_iid. Dedup on (project_id, noteable_iid) without prior filter
+      to noteable_type == MergeRequest folded issue timestamps into MR candidate dedup."
+    fix: "Add: if r.get('noteable_type') != 'MergeRequest': continue -- before the dedup
+      key assignment. Verify the filter appears before the dict update."
+confidence: 0.8
+ttl_days: null
+validation:
+  exercises_tested: []
+  true_positives: 1
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-24
+  reviewer_line: "defect-finder.md -- API Response Type Filtering section"
+  regression_check: "live-incident -- no exercise holdout; single live incident
+    confirms the failure mode. Confidence held at 0.8."
