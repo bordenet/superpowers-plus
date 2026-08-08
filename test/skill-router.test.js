@@ -442,6 +442,38 @@ console.log('\n--- using-superpowers / superpowers-help de-collision (#955) ---'
   assertWinner('session start', 'using-superpowers', 'retained-session-start');
 }
 
+// --- no-empty-promises / todo-guardian collision regression ---
+// lib/intent-patterns.js maps the substring "remember to" to todo-guardian.
+// no-empty-promises' own trigger list and Acceptance Criteria examples must
+// never reintroduce that exact substring, or the phrase silently routes to
+// the wrong skill instead of firing the PRIME DIRECTIVE. Found via
+// code-review-battery after a "remember to" trigger and a worked example
+// containing the same phrase both lost this contest empirically.
+console.log('\n--- no-empty-promises / todo-guardian "remember to" collision ---');
+{
+  const { extractFrontmatter } = require('../lib/frontmatter');
+  const path = require('path');
+
+  const nep = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'no-empty-promises', 'skill.md'));
+  const guardian = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'todo-guardian', 'skill.md'));
+  nep.anti_triggers = nep.anti_triggers || [];
+  guardian.anti_triggers = guardian.anti_triggers || [];
+  const pair = [nep, guardian];
+
+  function assertWinner(prompt, expectedSkill, label) {
+    const results = matchSkillsTfIdf(prompt, pair, pair.length);
+    const top = results[0];
+    eq(top && top.name, expectedSkill,
+      `${label}: "${prompt}" → ${expectedSkill} (got: ${top ? top.name : 'none'}, score: ${top ? top.score.toFixed(4) : 'n/a'})`);
+  }
+
+  // The exact phrase that collides -- must keep losing to todo-guardian.
+  assertWinner('next time I will remember to fetch', 'todo-guardian', 'collision-remember-to');
+  // no-empty-promises' own kept trigger/example phrasing must still win.
+  assertWinner("I'll keep that in mind for next time", 'no-empty-promises', 'kept-example-phrase');
+  assertWinner("I'll be more careful next time", 'no-empty-promises', 'core-trigger-phrase');
+}
+
 // --- Summary ---
 console.log(`\n=== Results: ${pass} passed, ${fail} failed ===`);
 process.exit(fail > 0 ? 1 : 0);

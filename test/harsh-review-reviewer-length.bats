@@ -46,5 +46,13 @@ teardown() {
     cd "$REPO_ROOT"
     run bash "$HARSH_REVIEW"
 
-    [[ "$output" != *"zzz-test-fixture-oversized.md"* ]]
+    # A bare filename match is too broad: 400 repeated "# fixture line N"
+    # headers are real markdown content, so the fixture also legitimately
+    # trips the separate, unrelated markdownlint check earlier in the
+    # script's output ("[WARN] .../zzz-test-fixture-oversized.md:
+    # markdownlint issues") -- found via code-review-battery, reproduced by
+    # running harsh-review.sh directly against this exact fixture. Assert
+    # against CHECK 8b-2's own specific log_fail format instead of the bare
+    # filename, so this test only cares about the check it's named for.
+    [[ "$output" != *"zzz-test-fixture-oversized.md: ${fixture_lines} lines (max 400)"* ]]
 }
