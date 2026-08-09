@@ -1080,6 +1080,61 @@ _fixture_transcript_prior_push() {
   [ "$status" -eq 0 ]
 }
 
+# Cursor Agent transcripts nest content under "message" while keeping "role" at
+# the top level: {"role":"user","message":{"content":[{"type":"text",...}]}}.
+# That shape matches neither the legacy ({"role":"user","content":...}) nor the
+# current Claude ({"type":"user","message":{"role":"user",...}}) branch, so an
+# approval typed in Cursor was silently invisible and every RED action blocked.
+_fixture_transcript_cursor() {
+  local msg="${1:-hello world}"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","message":{"content":[{"type":"text","text":"I will help."}]}}\n' > "$TPATH"
+  printf '{"role":"user","message":{"content":[{"type":"text","text":"%s"}]}}\n' "$msg" >> "$TPATH"
+}
+
+@test "item 10: R10: Cursor Agent transcript shape -- approval phrase is recognized" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_cursor "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-approve","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R10: Cursor Agent transcript shape -- absent approval still blocks (fail-safe)" {
+  # The widened parse must only ever RECOGNIZE a genuine approval; it must not
+  # weaken blocking. Without a phrase, the Cursor shape must still deny.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_cursor "please help me with the code"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-noapprove","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R10: Cursor shape does not let an ASSISTANT message supply approval" {
+  # role is checked before the nested-content read, so an assistant turn
+  # carrying the phrase must never authorize a RED action.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","message":{"content":[{"type":"text","text":"approve push"}]}}\n' > "$TPATH"
+  printf '{"role":"user","message":{"content":[{"type":"text","text":"what do you think?"}]}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-assistant","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
 # ---------------------------------------------------------------------------
 # Item 10 — STRICT-DISABLE gate (llm-skill-review S0 fix, 2026-07-17)
 # tools/promotion-strict-toggle.sh disable weakens branch protection on
