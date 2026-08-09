@@ -126,19 +126,70 @@ _install_hook_scripts() {
 }
 
 # ---------------------------------------------------------------------------
-# Copy pattern files (preserve user edits if file differs from template)
+# Copy pattern files (union-merge: never drop a template pattern, never lose
+# a user-added one)
 # ---------------------------------------------------------------------------
+# These files are "block if ANY line matches" lists, so the two failure modes
+# are NOT symmetric: an extra pattern only over-blocks (visible, recoverable),
+# while a MISSING pattern silently unguards an action class. Keeping a stale
+# file wholesale because it "differs from template" is therefore a fail-open on
+# a security control -- it preserves the user's edits and their exposure.
+#
+# Incident: an installed red-autonomy-patterns.txt predating the global-option
+# hardening left `git -C <dir> push`, `git -c k=v push`, `git --git-dir=... push`,
+# `git --work-tree=... push`, `git branch -f -D`, `git branch --delete`, and
+# `git branch -d` entirely unclassified. Every upgrade printed "differs from
+# template — keeping existing" and moved on, so the gap persisted for weeks
+# across repeated installs.
+#
+# Union-merge is safe precisely because more patterns can only widen coverage:
+# append template patterns the destination lacks, keep every line already
+# there. Comment-only drift is not a gap, so a file whose ACTIVE patterns are
+# already a superset is left byte-identical (no churn, no backup).
 _install_patterns() {
-  local src dest
+  local src dest base
   mkdir -p "$CLAUDE_CONFIG_DIR"
   for src in "$REPO_ROOT/claude-config"/*.txt; do
     [[ -f "$src" ]] || continue
-    dest="$CLAUDE_CONFIG_DIR/$(basename "$src")"
-    if [[ -f "$dest" ]] && ! diff -q "$src" "$dest" >/dev/null 2>&1; then
-      log_warn "$(basename "$dest") differs from template — keeping existing; template at $src"
-    else
+    base="$(basename "$src")"
+    dest="$CLAUDE_CONFIG_DIR/$base"
+
+    if [[ ! -f "$dest" ]]; then
       install -m 0644 "$src" "$dest"
+      continue
     fi
+    if diff -q "$src" "$dest" >/dev/null 2>&1; then
+      continue                      # identical: nothing to do
+    fi
+
+    # Template patterns absent from dest, compared as whole lines. Comments and
+    # blanks are ignored on both sides -- reworded prose is not a coverage gap.
+    local missing
+    missing="$(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$src" 2>/dev/null \
+      | while IFS= read -r line; do
+          [[ -z "$line" ]] && continue
+          grep -qxF -- "$line" "$dest" || printf '%s\n' "$line"
+        done)"
+
+    if [[ -z "$missing" ]]; then
+      log_info "$base: local edits kept (all template patterns already present)"
+      continue
+    fi
+
+    local backup
+    backup="$dest.bak-$(date -u +%Y%m%d-%H%M%S)"
+    cp "$dest" "$backup"
+    {
+      printf '\n# --- added by install-claude-guardrails.sh on %s ---\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf '# Template patterns missing from this file. Existing lines above are\n'
+      printf '# untouched. Previous copy: %s\n' "$(basename "$backup")"
+      printf '%s\n' "$missing"
+    } >> "$dest"
+
+    log_warn "$base: added $(printf '%s\n' "$missing" | grep -c .) missing template pattern(s) — previously unguarded. Backup: $(basename "$backup")"
+    printf '%s\n' "$missing" | while IFS= read -r line; do
+      [[ -n "$line" ]] && log_warn "  + $line"
+    done
   done
 }
 
