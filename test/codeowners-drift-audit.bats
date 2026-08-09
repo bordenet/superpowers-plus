@@ -274,3 +274,163 @@ EOF
   [[ "$output" != *"VALID: @some-user"* ]]
   [[ "$output" == *"ADVISORY: owner verification skipped"* ]]
 }
+
+@test "leading-slash-only anchor (/build/) matches only the root build/, not a nested one" {
+  mkdir -p build sub/build
+  printf '/build/ @user1\n' > CODEOWNERS
+  echo x > build/a.txt
+  echo y > sub/build/b.txt
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"UNOWNED: sub/build/b.txt"* ]]
+  [[ "$output" != *"UNOWNED: build/a.txt"* ]]
+}
+
+@test "leading-slash-only anchor (/legacy/) with no root-level dir is flagged DEAD RULE" {
+  mkdir -p sub/legacy
+  printf '/legacy/ @user1\n' > CODEOWNERS
+  echo x > sub/legacy/old.js
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"DEAD RULE: /legacy/ @user1"* ]]
+}
+
+@test "leading-globstar pattern (**/special.txt) matches a root-level file" {
+  printf '**/special.txt @user1\n' > CODEOWNERS
+  echo x > special.txt
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"UNOWNED: special.txt"* ]]
+  [[ "$output" != *"DEAD RULE: **/special.txt @user1"* ]]
+}
+
+@test "leading-globstar pattern (**/special.txt) also matches a nested file" {
+  mkdir -p a/b
+  printf '**/special.txt @user1\n' > CODEOWNERS
+  echo x > a/b/special.txt
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"UNOWNED: a/b/special.txt"* ]]
+}
+
+@test "mid-string globstar (src/**/test.js) matches zero intervening directories" {
+  mkdir -p src
+  printf 'src/**/test.js @user1\n' > CODEOWNERS
+  echo x > src/test.js
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"UNOWNED: src/test.js"* ]]
+  [[ "$output" != *"DEAD RULE: src/**/test.js @user1"* ]]
+}
+
+@test "mid-string globstar (src/**/test.js) also matches one intervening directory" {
+  mkdir -p src/foo
+  printf 'src/**/test.js @user1\n' > CODEOWNERS
+  echo x > src/foo/test.js
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"UNOWNED: src/foo/test.js"* ]]
+}
+
+@test "mid-string globstar (src/**/test.js) does not match outside its anchored prefix" {
+  mkdir -p src other
+  printf 'src/**/test.js @user1\n' > CODEOWNERS
+  echo x > src/test.js
+  echo y > other/test.js
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"UNOWNED: other/test.js"* ]]
+}
+
+@test ".github/CODEOWNERS takes precedence over a root CODEOWNERS when both exist" {
+  mkdir -p .github
+  printf '*.txt @root-user\n' > CODEOWNERS
+  printf '*.txt @github-user\n' > .github/CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"CODEOWNERS: .github/CODEOWNERS"* ]]
+}
+
+@test "trailing inline comment on a rule line is not parsed as extra owner tokens" {
+  stub_gh
+  git remote add origin https://github.com/example/repo.git
+  printf '*.js @js-owner #This is an inline comment.\n' > CODEOWNERS
+  echo x > a.js
+  git add -A && git commit -q -m init
+  PATH="$STUBBIN:$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"NOT_FOUND: #This"* ]]
+  [[ "$output" != *"NOT_FOUND: an"* ]]
+  [[ "$output" != *"NOT_FOUND: inline"* ]]
+}
+
+@test "owner token with no @ prefix and no email shape is flagged UNVERIFIABLE, not silently looked up" {
+  stub_gh
+  git remote add origin https://github.com/example/repo.git
+  printf '*.txt plainuser\n' > CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  PATH="$STUBBIN:$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"UNVERIFIABLE: plainuser (missing @ prefix)"* ]]
+}
+
+@test "GitHub remote under a non-origin name (upstream) is still detected" {
+  stub_gh
+  git remote add upstream https://github.com/example/repo.git
+  printf '*.txt @valid-user\n' > CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  PATH="$STUBBIN:$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"VALID: @valid-user"* ]]
+}
+
+@test "CRLF-terminated CODEOWNERS line does not corrupt the owner field" {
+  stub_gh
+  git remote add origin https://github.com/example/repo.git
+  printf '*.txt @valid-user\r\n' > CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  PATH="$STUBBIN:$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"VALID: @valid-user"* ]]
+  [[ "$output" != *'\r'* ]]
+}
+
+@test "running under zsh fails loudly instead of silently corrupting results" {
+  command -v zsh >/dev/null 2>&1 || skip "zsh not installed on this machine"
+  mkdir -p src/apps
+  printf 'apps/ @user1\n' > CODEOWNERS
+  echo x > src/apps/foo.js
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run zsh "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"requires bash"* ]]
+}
+
+@test "multi-globstar with asymmetric segment counts is a known, disclosed limitation (not fixed)" {
+  # See reference.md's Failure Modes table: a pattern with 2+ separate
+  # "/**/ " occurrences and differing per-gap segment counts is not matched
+  # (true whether anchored or unanchored via a leading "**/" prefix). This
+  # pins BOTH halves of that documented behavior -- if it ever starts
+  # matching, matches_pattern() was generalized; update reference.md instead
+  # of deleting this test.
+  mkdir -p a/x/b
+  printf 'a/**/b/**/c @user1\n' > CODEOWNERS
+  echo x > a/x/b/c
+  git add -A && git commit -q -m init
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"UNOWNED: a/x/b/c"* ]]
+  [[ "$output" == *"DEAD RULE: a/**/b/**/c @user1"* ]]
+}
