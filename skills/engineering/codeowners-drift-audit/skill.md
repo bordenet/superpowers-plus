@@ -36,33 +36,34 @@ composition:
 
 ## How to Run
 
-Run the single script below via `bash` (not `sh` or `zsh`). It locates CODEOWNERS,
-finds unowned files, finds dead rules, checks owner validity, and prints a report.
+Run the single script below via `bash` (enforced at runtime, see Failure
+Modes). Locates CODEOWNERS (`.github/`, then root, then `docs/` -- GitHub's
+own order), finds unowned files, dead rules, and invalid owners. Stateless.
 
-All state is local to the script invocation -- no temp files, no session state, no races.
-
-> **Large-repo advisory:** For repos with thousands of files, cap `FILES_ARR` to the
-> first N entries after it's built (e.g. `FILES_ARR=("${FILES_ARR[@]:0:100}")`) for
-> a quick sample. Bare patterns (no `/`) already match at any depth,
-> matching gitignore semantics; only explicit extended glob syntax (`**`, `?`, `[...]`)
-> is not interpreted specially -- `case` treats those as ordinary wildcards.
+> **Exit code:** exit 0 with all three `===` headers printed means complete.
+> Anything else is an incomplete audit -- never read that as "no issues found."
 >
-> **Exit code:** the script exits 0 and prints all three `===` section headers
-> ("Unowned Files", "Dead Rules", "Owner Validity") on a completed run. A non-zero
-> exit or a run that stops before "=== Done." means the audit is incomplete --
-> treat it as a tool failure, never as "no issues found."
+> **Large-repo advisory:** cap `FILES_ARR` post-build for a quick sample (e.g.
+> `FILES_ARR=("${FILES_ARR[@]:0:100}")`) -- but this also caps Step 2 (Dead
+> Rules); see the Failure Modes row before deleting a rule it flags.
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
 # -- Step 0: Preconditions --
+# Under zsh, matches_pattern()'s case-glob silently mismatches everything.
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "ERROR: this script requires bash -- re-run as 'bash <this-script>'" >&2; exit 1
+fi
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "ERROR: not inside a git working tree" >&2; exit 1
 fi
+# CODEOWNERS candidates and git ls-files are both cwd-relative -- root first.
+cd "$(git rev-parse --show-toplevel)" || { echo "ERROR: cannot cd to repo root" >&2; exit 1; }
 
 CODEOWNERS_PATH=""
-for candidate in CODEOWNERS .github/CODEOWNERS docs/CODEOWNERS; do
+for candidate in .github/CODEOWNERS CODEOWNERS docs/CODEOWNERS; do
   [ -f "$candidate" ] && { CODEOWNERS_PATH="$candidate"; break; }
 done
 if [ -z "$CODEOWNERS_PATH" ]; then
@@ -73,39 +74,44 @@ if [ ! -r "$CODEOWNERS_PATH" ]; then
 fi
 echo "CODEOWNERS: $CODEOWNERS_PATH"
 
-# Match a CODEOWNERS pattern against a file path with gitignore-style semantics:
-# a pattern containing "/" is anchored to the repo root; a bare pattern (no "/")
-# matches at any depth.
+# Match gitignore-style; anchoring MUST be decided before "/" is stripped
+# (see Failure Modes for the anchoring/globstar regressions this fixes).
 matches_pattern() {
   local f="$1" pattern="$2"
-  pattern="${pattern#/}"
-  pattern="${pattern%/}"
+  local anchored=0
   case "$pattern" in
-    */*)
-      # shellcheck disable=SC2254
-      case "$f" in
-        $pattern|$pattern/*) return 0 ;;
-      esac
-      ;;
+    '**/'*) pattern="${pattern#\*\*/}" ;;
     *)
-      # shellcheck disable=SC2254
-      case "$f" in
-        $pattern|$pattern/*|*/$pattern|*/$pattern/*) return 0 ;;
+      case "${pattern%/}" in
+        */*) anchored=1 ;;
       esac
       ;;
   esac
+  pattern="${pattern#/}"
+  pattern="${pattern%/}"
+  # gitignore's "/**/ " also matches zero intervening dirs.
+  local pattern2="${pattern//\/\*\*\//\/}"
+  if [ "$anchored" -eq 1 ]; then
+    # shellcheck disable=SC2254
+    case "$f" in
+      $pattern|$pattern/*|$pattern2|$pattern2/*) return 0 ;;
+    esac
+  else
+    # shellcheck disable=SC2254
+    case "$f" in
+      $pattern|$pattern/*|*/$pattern|*/$pattern/*|$pattern2|$pattern2/*|*/$pattern2|*/$pattern2/*) return 0 ;;
+    esac
+  fi
   return 1
 }
 
-# Rules and files (GitLab [Section] headers excluded)
-RULES=$(grep -Ev '^\s*(#|$|\[)' "$CODEOWNERS_PATH" 2>/dev/null || true)
+# Rules (GitLab [Section] headers excluded, trailing "# comment" text and any
+# CRLF stripped so neither pollutes Step 3's owner-token field split below).
+RULES=$(grep -Ev '^\s*(#|$|\[)' "$CODEOWNERS_PATH" 2>/dev/null | tr -d '\r' | sed -E 's/[[:space:]]*#.*$//' || true)
 echo "Rules: $(echo "$RULES" | grep -c . || true)"
 
-# NUL-delimited enumeration into an array: git ls-files -z is never C-quoted,
-# regardless of core.quotepath -- unlike newline-delimited output, this handles
-# non-ASCII, backslash, and embedded-quote filenames correctly. A plain string
-# variable can't hold NUL-separated data safely (bash strings are NUL-terminated
-# internally), so this is collected once into an array and reused below.
+# NUL-delimited into an array: git ls-files -z is never C-quoted, unlike
+# newline-delimited output (handles non-ASCII/backslash filenames correctly).
 FILES_ARR=()
 while IFS= read -r -d '' f; do
   FILES_ARR+=("$f")
@@ -143,15 +149,15 @@ done
 # -- Step 3: Owner validity (best-effort) --
 echo ""
 echo "=== Owner Validity ==="
-REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "unknown")
+# Check every remote, parsing the actual hostname (see Failure Modes).
 IS_GITHUB=0
-if echo "$REMOTE_URL" | grep -q "github.com"; then IS_GITHUB=1; fi
+for remote_name in $(git remote 2>/dev/null); do
+  remote_url=$(git remote get-url "$remote_name" 2>/dev/null) || continue
+  remote_host=$(printf '%s\n' "$remote_url" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^[^@/]*@##; s#[:/].*##')
+  if [ "$remote_host" = "github.com" ]; then IS_GITHUB=1; break; fi
+done
 
-# gh only runs against a confirmed github.com remote; glab only runs against a
-# confirmed non-github.com remote (self-hosted GitLab can be any hostname, so
-# it gets the rest by exclusion rather than a positive hostname match). This
-# prevents a GitHub-remote repo with an unauthenticated/absent gh but a merely-
-# present glab from silently validating owners against the wrong API.
+# gh only for github.com, glab only otherwise (prevents cross-API misvalidation).
 HAS_GH=0
 if [ "$IS_GITHUB" -eq 1 ] && command -v gh >/dev/null 2>&1; then
   if gh auth status >/dev/null 2>&1; then
@@ -182,6 +188,11 @@ else
         # Email-format: non-@ char before @ + dot after @ = email, not username
         case "$owner" in
           [!@]*@*.*) echo "  UNVERIFIABLE: $owner (email-format)"; continue ;;
+        esac
+        # No "@" and not email-shaped: not a valid CODEOWNERS owner reference
+        case "$owner" in
+          @*) : ;;
+          *) echo "  UNVERIFIABLE: $owner (missing @ prefix)"; continue ;;
         esac
         slug="${owner#@}"
         if [ "$HAS_GH" -eq 1 ]; then
@@ -226,22 +237,14 @@ echo "=== Done. Review UNOWNED/DEAD RULE/NOT_FOUND lines above. ==="
 
 ## Failure Modes
 
+Top rows only -- **see `reference.md`** for the full table.
+
 | Failure | Prevention |
 |---|---|
-| Extended glob syntax (`**`, `?`, `[...]`) not interpreted specially | Disclosed limitation; `case` treats these as literal/simple wildcards, not gitignore's extended semantics -- flag complex patterns for manual review |
-| Large repo: unowned or dead-rule scan is slow | Add `\| head -100` inside each loop for a quick sample |
-| GitLab `[Section]` headers parsed as patterns | `grep -Ev` includes `\[` to exclude section headers |
-| Trailing-slash / leading-slash patterns (`/build/`) cause match failures | `matches_pattern()` strips both before matching |
-| A pattern with no `/` should match at any depth (gitignore semantics), not just the root | `matches_pattern()` branches on whether the pattern contains `/`: bare patterns match at any depth, patterns containing `/` are anchored to the repo root |
-| `$pattern` glob requires bash | Script uses `#!/usr/bin/env bash` and must be run via `bash` |
-| Non-ASCII, backslash, or embedded-quote filenames come back C-quoted from `git ls-files` by default, causing simultaneous false UNOWNED + false DEAD RULE | File enumeration uses `git ls-files -z` (never quoted, regardless of `core.quotepath`) into an array, not newline-delimited output |
-| Tab-separated or leading-whitespace CODEOWNERS lines split incorrectly | Pattern extraction uses `read -r pattern _ <<< "$rule"` (any-whitespace split), not a literal-space cut |
-| Running outside a git working tree crashes mid-report via the same `set -e`/pipefail mechanism the original bug used | Step 0 checks `git rev-parse --is-inside-work-tree` before proceeding |
-| CODEOWNERS present but unreadable (permissions) silently reads as "0 rules" | Step 0 explicitly checks the file is readable and errors out if not |
-| GitHub team vs user API path ambiguity | Step 3 checks for `/` in slug to route to team or user endpoint |
-| GitLab `users?username=` exits 0 for empty array | Step 3 inspects response body for `"username"` key |
-| GitLab usernames with dots (`@alice.smith`) misclassified as email | Email guard uses `[!@]*@*.*` (non-@ char before `@`) |
-| `gh` on PATH but not authenticated -- false NOT_FOUND | Auth pre-check disables `gh` path and emits ADVISORY if unauthenticated |
-| GitHub remote with `gh` absent/unauthenticated but `glab` merely present would otherwise silently validate owners against the wrong (GitLab) API | `glab` only runs when the remote is confirmed NOT github.com; `gh` only runs when it IS |
-| GitHub private teams return HTTP 403 (not 404) -- valid team reported NOT_FOUND | Advisory only; verify flagged team refs manually before removing from CODEOWNERS |
-| Neither `gh` nor `glab` on PATH (or neither matches the remote type) | Steps 1-2 (unowned files, dead rules) still run fully; only Step 3 (owner validity) degrades to ADVISORY |
+| zsh silently mismatches every pattern; sh/dash fail differently but still non-zero | Step 0 checks `$BASH_VERSION`, refuses to run without it |
+| Leading-slash pattern (`/build/`) loses root-anchoring if `/` is stripped before the anchor decision | `anchored` is decided from `${pattern%/}` before the leading `/` is stripped |
+| Leading `**/`, or mid-string `/**/`, doesn't match zero intervening dirs (`case` has no recursive-glob) | Leading `**/` special-cased to any-depth; mid-string gets a collapsed-to-`/` candidate |
+| `.github/CODEOWNERS` vs root, or a subdirectory invocation, silently scopes the search/file-list wrong | Search order `.github/`→root→`docs/`; Step 0 `cd`s to repo root first |
+| Non-GitHub/non-GitLab remote + authenticated `glab` gets a confident but meaningless result | Disclosed, unfixed (reference.md) -- don't trust Owner Validity here |
+| Large repo: capping `FILES_ARR` also corrupts Step 2 | See "Large-repo advisory" -- never delete a flagged `DEAD RULE` from a capped run |
+| Non-zero exit, or stopping before "=== Done." | Never read as "no issues found" -- rerun |
