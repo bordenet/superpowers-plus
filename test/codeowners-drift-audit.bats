@@ -418,6 +418,43 @@ EOF
   [[ "$output" == *"requires bash"* ]]
 }
 
+@test "glab stub: VALID namespaced group ref (@org/team) routes to the %2F-encoded groups endpoint" {
+  STUBBIN="$(mktemp -d -t codeowners-stub-bin.XXXXXX)"
+  cat > "$STUBBIN/glab" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = "auth" ] && [ "$2" = "status" ]; then exit 0; fi
+if [ "$1" = "api" ]; then
+  if [ "$2" = "groups/myorg%2Fmyteam" ]; then
+    echo '{"full_path":"myorg/myteam"}'; exit 0
+  fi
+  echo '[]'; exit 0
+fi
+exit 1
+EOF
+  chmod +x "$STUBBIN/glab"
+  git remote add origin https://gitlab.example.com/example/repo.git
+  printf '*.txt @myorg/myteam\n' > CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  PATH="$STUBBIN:$BARE_PATH" run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"VALID: @myorg/myteam"* ]]
+}
+
+@test "invoking from a subdirectory still finds the repo-root CODEOWNERS and full file list" {
+  mkdir -p sub/deep
+  printf '*.txt @user1\n' > CODEOWNERS
+  echo x > a.txt
+  git add -A && git commit -q -m init
+  ORIG_PWD="$PWD"
+  cd sub/deep
+  PATH="$BARE_PATH" run bash "$SCRIPT"
+  cd "$ORIG_PWD"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"CODEOWNERS: CODEOWNERS"* ]]
+  [[ "$output" == *"Tracked files: 2"* ]]
+}
+
 @test "multi-globstar with asymmetric segment counts is a known, disclosed limitation (not fixed)" {
   # See reference.md's Failure Modes table: a pattern with 2+ separate
   # "/**/ " occurrences and differing per-gap segment counts is not matched
