@@ -386,14 +386,14 @@ For each finding:
 
 ## When you find nothing
 
-See `../shell-runtime-auditor-reference.md` for the required minimum
-null-result block format.
+Use your Read tool to fetch `../shell-runtime-auditor-reference.md` (one
+directory up) for the required minimum null-result block format.
 
 ## Evidence Schema (MANDATORY)
 
 Every finding above AND every "no issues" verdict MUST carry a JSON
 `evidence` block per `skills/engineering/code-review-battery/skill.md`
-Phase 6 -- **see `../shell-runtime-auditor-reference.md` for the full schema,
-examples, and forbidden command patterns** (companion file, keeps this
-one under its 400-line limit). Do not file anything without reading it
+Phase 6 -- **use your Read tool to fetch `../shell-runtime-auditor-reference.md`**
+(one directory up from this file) for the full schema, examples, and
+forbidden command patterns. Do not file anything without reading it
 first.

@@ -1,8 +1,20 @@
 # ShellRuntimeAuditor — Reference
 
 Companion to `shell-runtime-auditor.md` (kept under `tools/harsh-review.sh`'s
-400-line reviewer-prompt limit). Load this file before filing any finding
-or clean-dimension verdict, and before running Ripple Analysis.
+400-line reviewer-prompt limit). Use your Read tool to fetch this file
+(relative to `shell-runtime-auditor.md`'s own directory: `../shell-runtime-auditor-reference.md`)
+before filing any finding or clean-dimension verdict, and before running
+Ripple Analysis.
+
+## Retired sibling persona: AgentInstructionCritic
+
+This persona's design also considered and retired a former sibling,
+`AgentInstructionCritic` (instruction determinism / context economy /
+cross-agent compatibility): its entire activation surface could only ever
+exist inside a skill.md file, which `llm-skill-review`'s `.md`-only gate
+already covers completely -- unlike ShellRuntimeAuditor's own scope,
+removing it carried no gate-coverage risk. It had zero defensible niche
+and zero confirmed real-world firings across a sampled set of merged PRs.
 
 ## Ripple Analysis (MANDATORY)
 

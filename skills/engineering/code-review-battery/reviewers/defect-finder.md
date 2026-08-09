@@ -396,4 +396,4 @@ If you find NO defects, say: "✅ No defects found. Code handles error paths and
 
 ## Evidence Schema (MANDATORY)
 
-Every finding AND every "no issues" verdict MUST carry a JSON `evidence` block per `skills/engineering/code-review-battery/skill.md` Phase 6 -- **see `../defect-finder-reference.md` for the full schema** (companion file, keeps this one under its 400-line limit). Do not file anything without reading it first.
+Every finding AND every "no issues" verdict MUST carry a JSON `evidence` block per `skills/engineering/code-review-battery/skill.md` Phase 6 -- **use your Read tool to fetch `../defect-finder-reference.md`** (one directory up from this file, companion file kept separate to stay under this file's 400-line limit) for the full schema. Do not file anything without reading it first.
