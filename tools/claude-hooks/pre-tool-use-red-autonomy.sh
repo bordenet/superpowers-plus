@@ -16,11 +16,13 @@
 # Transcript scan checks the last 10 non-empty user messages (most recent
 # first, not just the single last one -- a real approval can otherwise scroll
 # out of view behind a burst of tool-result/notification messages), across 3
-# message shapes: legacy {"role":"user",...}, current {"type":"user",
-# "message":{"role":"user",...}}, and mid-turn queued commands
+# message shapes: legacy {"role":"user",...}, current Claude {"type":"user",
+# "message":{"role":"user",...}}, Cursor Agent {"role":"user","message":{"content":...}},
+# and mid-turn queued commands
 # {"type":"attachment","attachment":{"type":"queued_command",...}} -- the last
 # covers approval phrases typed while Claude is still working, which the other
-# two shapes never see.
+# shapes never see. Cursor Agent transcripts live under ~/.cursor/projects/
+# (also searched when transcript_path is absent).
 # TARGET-BINDING (R6): for git push / git branch -D commands, a transcript-
 # sourced approval additionally requires that this session's most recent,
 # SETTLED-AND-ALLOWED prior git push/branch-delete tool_use (if any) targeted
@@ -205,7 +207,8 @@ TRANSCRIPT="$(jq -r '.transcript_path // empty' <<<"$INPUT")"
 # Characters outside [a-zA-Z0-9_-] are stripped; result capped at 128 chars.
 SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
 # Fallback: transcript_path removed from Claude Code hook payload in newer versions.
-# If absent, locate the transcript by session_id under ~/.claude/projects/.
+# If absent, locate the transcript by session_id under ~/.claude/projects/ (Claude Code)
+# or ~/.cursor/projects/ (Cursor Agent — often .../agent-transcripts/<id>/<id>.jsonl).
 if [[ -z "$TRANSCRIPT" && -n "$SESSION_ID" ]]; then
   # SESSION_ID is sanitized to [a-zA-Z0-9_-] so path traversal via -name is impossible.
   # UUID session IDs make same-name collisions near-zero; head -1 handles the rare edge case.
@@ -217,6 +220,9 @@ if [[ -z "$TRANSCRIPT" && -n "$SESSION_ID" ]]; then
   # TRANSCRIPT empty, which the rest of the script already handles safely via
   # `[[ -f "$TRANSCRIPT" ]]` checks (code-review-battery, 2026-07-12).
   TRANSCRIPT="$(find "$HOME/.claude/projects/" -maxdepth 3 -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)" || true
+  if [[ -z "$TRANSCRIPT" ]]; then
+    TRANSCRIPT="$(find "$HOME/.cursor/projects/" -maxdepth 5 -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)" || true
+  fi
 fi
 
 PATTERNS_FILE="${CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE:-$HOME/.config/claude-hooks/red-autonomy-patterns.txt}"
@@ -413,7 +419,12 @@ with open(transcript_path, encoding='utf-8', errors='replace') as f:
             continue
         t = ""
         if obj.get("role") == "user":
-            t = extract_text(obj.get("content", ""))
+            # Cursor: content nested under message; Claude legacy: top-level content
+            msg = obj.get("message")
+            if isinstance(msg, dict) and msg.get("content") is not None:
+                t = extract_text(msg.get("content", ""))
+            else:
+                t = extract_text(obj.get("content", ""))
         elif obj.get("type") == "user":
             msg = obj.get("message", {})
             if isinstance(msg, dict) and msg.get("role") == "user":
@@ -544,19 +555,25 @@ with open(transcript_path, encoding='utf-8', errors='replace') as f:
         except json.JSONDecodeError:
             continue
         t = ""
-        # Support three transcript shapes:
+        # Support four transcript shapes:
         # Legacy: {"role":"user","content":...}
-        # Current: {"type":"user","message":{"role":"user","content":...}}
+        # Current Claude: {"type":"user","message":{"role":"user","content":...}}
+        # Cursor Agent: {"role":"user","message":{"content":[{"type":"text","text":...}]}}
+        #   -- role at top level but content nested under message (no type:user).
         # Mid-turn queued command: {"type":"attachment","attachment":
         #   {"type":"queued_command","prompt":"...","origin":{"kind":"human"}}}
         # -- messages sent while Claude is still working on a turn are queued
-        # and surfaced in this third shape, invisible to the first two checks.
+        # and surfaced in this shape, invisible to the first two checks.
         # Confirmed via a real session transcript where "approve push" sent
         # mid-turn never satisfied this scan, but the identical phrase sent
         # moments later as a fresh standalone message did. Gated on
         # origin.kind == "human" so only user-authored queued commands count.
         if obj.get("role") == "user":
-            t = extract_text(obj.get("content", ""))
+            msg = obj.get("message")
+            if isinstance(msg, dict) and msg.get("content") is not None:
+                t = extract_text(msg.get("content", ""))
+            else:
+                t = extract_text(obj.get("content", ""))
         elif obj.get("type") == "user":
             msg = obj.get("message", {})
             if isinstance(msg, dict) and msg.get("role") == "user":
@@ -734,7 +751,11 @@ def _assistant_content(obj):
     return None
 
 def _user_content(obj):
+    # Cursor: {"role":"user","message":{"content":...}}; Claude legacy top-level content
     if obj.get("role") == "user":
+        msg = obj.get("message")
+        if isinstance(msg, dict) and msg.get("content") is not None:
+            return msg.get("content")
         return obj.get("content")
     if obj.get("type") == "user":
         msg = obj.get("message", {})
