@@ -17,7 +17,7 @@ Four independent `llm-skill-review` rounds: final **PASS WITH RISKS**, Prose/Des
 - [x] [20260815-02] Open working PR with honest score/verdict disclosure (no fabricated sentinel)
 - [x] [20260815-19] Fix broken "summarization skill" Wrong-skill redirect (no such skill exists)
 - [ ] [20260815-03] Human decision: merge as PASS WITH RISKS after Gate 6 policy call (see WS6), or hold
-- [~] [20260815-20] Re-run llm-skill-review + PHR + cr-battery on this PR; clear sentinels only via official runners
+- [x] [20260815-20] Re-run llm-skill-review + PHR + cr-battery; sentinels written via official runners (CRB PASS/8.0, PHR PASS/8.4, llm-skill-review PASS/8.6). Gate 6 still requires sentinel min-score >= 9.0 — ADR-003 is the policy path.
 
 ## WS2 — `--min-score` self-contradiction (thread 2)
 
@@ -69,12 +69,7 @@ Four independent `llm-skill-review` rounds: final **PASS WITH RISKS**, Prose/Des
 - [x] [20260815-16] ADR-004 guidance-regression fixtures (Proposed; renamed from overclaimed "behavioral")
 - [x] [20260815-18] Fixed leftover "combined score" in run-llm-skill-review.sh + pre-push gate message
 - [x] [20260815-19] Fixed eli5 broken summarization-skill redirect
-
----
-
-## DEFERRED (human checkpoints)
-
+- [x] [20260815-20] Multi-gate re-review: fixed S0 truncation/parity, S2 path, S3 dup section, ADR PHR gaps; wrote CRB/PHR/llm-skill-review sentinels (llm mean 8.6 < Gate 6 floor 9.0)
 - [20260815-03] Merge/hold eli5 under current Gate 6 vs after ADR-003 acceptance
 - [20260815-15] Gate 6 enforcement change — needs ADR-003 Accepted
 - [20260815-17] Guidance-regression fixture runner — needs ADR-004 Accepted
-- [20260815-20] Sentinel clearance after multi-gate re-review (in progress)
