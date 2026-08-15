@@ -44,10 +44,13 @@ NC='\033[0m'
 
 LLM_SKILL_REVIEW_SENTINEL="$REPO_ROOT/.llm-skill-review-cleared"
 
-# Minimum combined (Prose/Design + LLM-Execution) score required. Matches
-# the pre-existing PHR_SKILLS_MIN floor this repo already enforced for
-# skills/ changes before this gate existed -- moving enforcement of the same
-# agreed-upon threshold from PHR to llm-skill-review, not introducing a new one.
+# Minimum Prose/Design cross-persona mean the pre-push gate requires in the
+# sentinel's min-score field (writer accepts 1.0-10.0; this gate enforces
+# >= 9.0). Matches the pre-existing PHR_SKILLS_MIN floor this repo already
+# enforced for skills/ changes before this gate existed -- moving enforcement
+# of the same agreed-upon threshold from PHR to llm-skill-review, not
+# introducing a new one. (Not a "combined" Prose/Design + LLM-Execution
+# number; see llm-skill-review skill.md after #1188.)
 LLM_SKILL_REVIEW_MIN="9.0"
 
 REMOTE_NAME="${1:-origin}"
@@ -164,7 +167,7 @@ check_llm_skill_review_sentinel() {
         echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review score below project minimum for skills/ changes.${NC}"
         echo "    Got:      min-score=${sentinel_score}"
         echo "    Required: >= ${LLM_SKILL_REVIEW_MIN}"
-        echo "    Run additional rounds until the combined score >= ${LLM_SKILL_REVIEW_MIN}, then:"
+        echo "    Run additional rounds until the Prose/Design mean >= ${LLM_SKILL_REVIEW_MIN}, then:"
         echo "      tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
         return 1
     fi

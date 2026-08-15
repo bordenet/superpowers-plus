@@ -21,9 +21,9 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 |-------|---------|
 | **superpowers-plus overrides** | 9 skills that replace an upstream obra/superpowers skill of the same name with additional enforcement gates |
 | **superpowers-plus base (unchanged)** | 5 skills (`dispatching-parallel-agents`, `executing-plans`, `using-git-worktrees`, `using-superpowers`, `writing-plans`) added from obra/superpowers at the v2.6.0 fold-in, unchanged |
-| **superpowers-plus additions** | 98 net-new skills covering engineering, wiki, security, research, and more |
+| **superpowers-plus additions** | 99 net-new skills covering engineering, wiki, security, research, and more |
 
-112 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
+113 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
 
 ---
 
@@ -232,7 +232,7 @@ flowchart LR
 
 ## Domain Reference
 
-All 112 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
+All 113 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions.
 
 | Domain | Count | Skills |
 |--------|-------|--------|
@@ -244,9 +244,9 @@ All 112 skills grouped by filesystem domain, verified against `skills/*/*/skill.
 | **research** | 3 | expert-interviewer, incorporating-research, perplexity-research |
 | **security** | 5 | devsec-audit, public-repo-ip-audit, repo-security-scan, security-upgrade, wiki-instruction-guard |
 | **wiki** | 8 | link-verification, wiki-content-coherence, wiki-debunker, wiki-markdown-structure-gate, wiki-orchestrator, wiki-refactor, wiki-secret-audit, wiki-verify |
-| **writing** | 8 | detecting-ai-slop, eliminating-ai-slop, markdown-table-discipline, plan-quality-gates, professional-language-audit, readme-authoring, writing-plans **[BASE]**, writing-skills **[OVERRIDE]** |
+| **writing** | 9 | detecting-ai-slop, eliminating-ai-slop, explain-like-im-five, markdown-table-discipline, plan-quality-gates, professional-language-audit, readme-authoring, writing-plans **[BASE]**, writing-skills **[OVERRIDE]** |
 
 ---
 
-*112 skills across 9 domains (9 overrides, 5 base, 98 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
+*113 skills across 9 domains (9 overrides, 5 base, 99 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot. Re-run `find skills -name skill.md | wc -l` and recount this table's domain rows before trusting either number again.*
 *Full skill descriptions: [SKILLS.md](SKILLS.md)*

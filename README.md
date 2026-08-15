@@ -67,13 +67,13 @@ Then tell your AI assistant what you're doing. The trigger examples are near the
 
 ## What's Included
 
-**112 skills** across 9 domains:
+**113 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
 | **engineering** | Code review battery, debate, TDD, progressive review, systematic debugging, feature lifecycle |
 | **productivity** | TODO tracking (see [task tagging taxonomy](skills/productivity/todo-management/references/taxonomy.md)), plan-and-execute, think-twice, adversarial search, domain design, screenshot visual input |
-| **writing** | AI slop detection/elimination, professional-language-audit, table discipline, writing-skills authoring |
+| **writing** | AI slop detection/elimination, professional-language-audit, table discipline, writing-skills authoring, plain-language explanation (`/eli5`) |
 | **wiki** | Orchestrator pipeline, link verification, credential scanning, fact-checking |
 | **observability** | Completeness checks, evolution loop, audit validation, diagnostics |
 | **issue-tracking** | Authoring, editing, verification, link checks, comment debunking |
@@ -208,7 +208,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-# Expected: skill catalog printed without errors (superpowers-plus contributes 112 skills)
+# Expected: skill catalog printed without errors (superpowers-plus contributes 113 skills)
 ```
 
 Run the full 30-check diagnostic:
@@ -244,7 +244,7 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
 | Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
 | Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
-| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 112 skills with typed edges (enables / escalates-to) |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 113 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 
