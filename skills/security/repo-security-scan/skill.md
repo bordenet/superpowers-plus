@@ -23,7 +23,7 @@ composition:
 # repo-security-scan
 
 > **Purpose:** Systematic security scan of any git repository across four categories.
-> **Last Updated:** 2026-03-18
+> **Last Updated:** 2026-08-15
 >
 > **Wrong skill?** Public repo IP leakage → `public-repo-ip-audit`. Wiki secrets → `wiki-secret-audit`. Dependency upgrades → `security-upgrade`.
 
@@ -64,17 +64,18 @@ done
 
 ### Phase 1: Secrets & Credentials
 
-Use patterns from `_shared/secret-detection.md`. Scan tracked files only (not untracked):
+Use a **documented subset** of patterns from `skills/_shared/secret-detection.md` (high-confidence tokens + hardcoded assignment forms below — not the full shared checklist). Scan tracked files only (not untracked):
 
 ```bash
 # High-confidence token patterns in tracked files
-git ls-files -z | xargs -0 grep -lnE \
-  '(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)' \
+TOKEN_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
+ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)\s*[:=]\s*["'"'"'][^"'"'"']{8,}'
+
+git ls-files -z | xargs -0 grep -lnE "$TOKEN_RE" \
   2>/dev/null | grep -v 'node_modules\|\.git\|venv'
 
 # Hardcoded secret assignments (filter out test files and examples)
-git ls-files -z | xargs -0 grep -lnE \
-  '(api[_-]?key|secret[_-]?key|password|private[_-]?key)\s*[:=]\s*["'"'"'][^"'"'"']{8,}' \
+git ls-files -z | xargs -0 grep -lnE "$ASSIGN_RE" \
   2>/dev/null | grep -v 'node_modules\|\.git\|venv\|test\|spec\|\.example\|\.sample\|\.md$'
 
 # Committed .env files
@@ -86,11 +87,33 @@ git ls-files | grep -iE '\.(pem|key|p12|pfx|jks)$'
 
 **False positive filtering:** Matches in test files, `.example` files, and documentation are expected. Review each match to determine if it's a real secret or a placeholder.
 
+**Required — git history (commit-then-delete leaks):** HEAD-only greps miss secrets that were committed and later removed. Always run a history scan before claiming the secrets phase is clean. The history `-G` set MUST cover the same token + assignment classes as HEAD (not tokens alone).
+
+```bash
+# Prefer gitleaks when installed (full history; do not truncate output)
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --source . --log-opts="--all" --no-banner
+else
+  # Portable fallback: same TOKEN_RE + ASSIGN_RE as HEAD (set above).
+  # Do NOT pipe through head/truncation — a capped stream is an incomplete
+  # scan. If the repo is too large for interactive review, install gitleaks
+  # or stop and report INCOMPLETE rather than claiming clean.
+  set -o pipefail
+  HISTORY_RE="(${TOKEN_RE}|${ASSIGN_RE})"
+  if ! git log -p --all -G "$HISTORY_RE" --pretty=format:'=== %H %s ==='; then
+    echo "INCOMPLETE: history scan failed; do not claim secrets phase clean" >&2
+    exit 1
+  fi
+fi
+```
+
+Treat history hits as real findings: rotate the credential, document the commit(s), and do not claim a clean secrets scan until history is clean or each hit has an explicit accepted-risk note. History rewrite (filter-branch / BFGs) is advisory and separate from detection. **Never treat a truncated or failed history scan as clean.**
+
 ### Phase 2: Dependency Vulnerabilities
 
-**REQUIRED SUB-SKILL:** Use `superpowers:security-upgrade` for this phase. It covers discovery, scanning, upgrading, validation, and commit workflow for all supported package managers.
+**When upgrading dependencies:** use `superpowers:security-upgrade` for discovery → scan → upgrade → validate → commit/push. It is the upgrade path after CVE findings — not a hard prerequisite for a scan-only run.
 
-Quick scan commands (from security-upgrade):
+Quick scan commands (from security-upgrade; safe for scan-only):
 
 ```bash
 # npm (built-in, no install needed)
@@ -106,7 +129,7 @@ govulncheck ./... 2>&1
 cargo audit 2>&1
 ```
 
-**If scanning only (not upgrading):** Run the quick scan commands above. If CVEs are found and you need to upgrade, switch to the full `security-upgrade` skill workflow.
+**If scanning only (not upgrading):** Run the quick scan commands above. If CVEs are found and you need to upgrade, switch to the full `security-upgrade` skill workflow. Do not load `security-upgrade` solely to list CVEs.
 
 ### Phase 3: Insecure Code Patterns
 
@@ -169,29 +192,30 @@ fix(security): replace eval() with JSON.parse() in parser.js
 
 ## Verification
 
-After all fixes, **re-run the full scan** to confirm zero remaining issues. Use `superpowers:verification-before-completion` — evidence before assertions.
+After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 history step**, to confirm zero remaining issues on **both HEAD and git history** (or every remaining history hit has a dated accepted-risk note). A HEAD-only re-grep is not a full scan. Use `superpowers:verification-before-completion` — evidence before assertions.
 
 ## Rules
 
 - **Never write custom scanning scripts.** The inline commands above ARE the automation.
 - **Run all four phases.** Don't skip because "this repo probably doesn't have X."
+- **Always include Phase 1 history.** Commit-then-delete secrets are still leaks.
 - **Triage each match.** Don't dismiss all as false positives without reviewing context.
-- **Re-run full scan after fixes** to confirm zero remaining issues.
+- **Re-run full scan after fixes** to confirm zero remaining issues on HEAD and history.
 - **Multi-repo:** Process each repo sequentially through all four phases.
 
 ## Companion Skills
 
-`security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
-
-- **security-upgrade**: Dependency upgrade after scan findings
-- **wiki-secret-audit**: Wiki-side secret scanning
-- **public-repo-ip-audit**: IP/license review (different from secrets)
+- `security-upgrade` — load when Phase 2 finds CVEs that need upgrading (not a scan-only prerequisite)
+- `public-repo-ip-audit` — IP/license leakage (different from secrets)
+- `wiki-secret-audit` — wiki-side secret scanning
+- `verification-before-completion` — evidence before "clean" assertions
 
 ## Failure Modes and Recovery
 
 | Failure | Fix |
 |---------|-----|
-| Scanner tool not installed (gitleaks, npm audit) | Check prerequisites first — install or fallback to manual grep |
+| Scanner tool not installed (gitleaks, npm audit) | Install or use the Phase 1 uncapped `git log -p` / audit-tool fallbacks; never truncate |
 | False positive on test fixtures with dummy secrets | Maintain allowlist of known test fixtures per repo |
-| Scan misses secrets in git history | Run gitleaks with `--log-opts --all` to scan full history |
+| History scan too large for interactive review | Install gitleaks and re-run; if still blocked, stop and report INCOMPLETE — do not claim clean |
+| History scan command fails / incomplete | Treat as failed secrets phase; do not assert zero remaining issues |
 | Dependency vuln has no fix available | Document as accepted risk with justification and review date |

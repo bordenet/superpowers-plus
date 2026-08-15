@@ -35,7 +35,15 @@ echo "Found $TOTAL test files"
 echo ""
 
 COUNT=0
-for TEST_FILE in $TEST_FILES; do
+# Read line-by-line rather than `for TEST_FILE in $TEST_FILES`: unquoted
+# expansion word-splits on IFS (so 'src/my test.test.ts' became two bogus
+# iterations pointing at files that don't exist) and also glob-expands, so a
+# filename containing '*' or '?' was rewritten before it was ever tested. A
+# here-string (not a pipe) keeps the loop in the current shell so the `exit 1`
+# below still terminates the script when a polluter is found. The empty-input
+# case needs no guard: `<<< ""` yields one empty line, which the -n test skips.
+while IFS= read -r TEST_FILE; do
+  [ -n "$TEST_FILE" ] || continue
   COUNT=$((COUNT + 1))
 
   # Skip if pollution already exists
@@ -65,7 +73,7 @@ for TEST_FILE in $TEST_FILES; do
     echo "  cat $TEST_FILE         # Review test code"
     exit 1
   fi
-done
+done <<< "$TEST_FILES"
 
 echo ""
 echo "✅ No polluter found - all tests clean!"
