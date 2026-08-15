@@ -199,6 +199,7 @@ graph TD
     writing_skills["writing-skills"]
     plan_quality_gates["plan-quality-gates"]
     readme_authoring["readme-authoring"]
+    explain_like_im_five["explain-like-im-five"]
     markdown_table_discipline["markdown-table-discipline"]
   end
 
@@ -400,7 +401,7 @@ graph TD
 | Security | `repo-security-scan`, `security-upgrade`, `devsec-audit`, `wiki-instruction-guard` | Coordinated skill group |
 | Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Coordinated skill group |
 | Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence`, `wiki-markdown-structure-gate`, `wiki-refactor` | Wiki authoring quality pipeline |
-| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `markdown-table-discipline` | Coordinated skill group |
+| Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `explain-like-im-five`, `markdown-table-discipline` | Coordinated skill group |
 
 ## Legend
 
