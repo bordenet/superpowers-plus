@@ -182,6 +182,7 @@ A finding is a claim about the artifact under review. A claim with no way to che
 {
   "reviewer": "Runtime Determinist",
   "dimension": "Correctness",
+  "severity": "S1",
   "claim": "no producer for the Metrics.AgentAPI.Success counter this diff references",
   "evidence": {
     "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/",
@@ -193,6 +194,8 @@ A finding is a claim about the artifact under review. A claim with no way to che
 ```
 
 Every finding and every clean-dimension object MUST include top-level `reviewer` and `dimension`. Without both, `tools/verify-cr-battery-evidence.js`'s `capDimension()` treats the claim as an orphan and cannot apply per-axis score caps — the remediation path this skill advertises has nothing to act on.
+
+Every **finding** MUST also include `"severity": "S0"|"S1"|"S2"|"S3"`. Missing or invalid severity refuses the sentinel write (ADR-003). Optional `"waiver": {"by":"human","ref":"<PR-comment-URL>","rationale":"..."}` may clear an S1 (or an S0 only with `--allow-s0-waiver` plus `ref`).
 
 ### Expectation types (one per type)
 
@@ -228,11 +231,11 @@ A review that ships a high verdict alongside material defects is worse than a re
 
 ## Enforcement Detail
 
-`tools/run-llm-skill-review.sh --verdict PASS --min-score <Prose/Design-mean>` gives this skill's Evidence Requirement mechanical teeth, parallel to how `tools/run-battery.sh` already does evidence replay for `code-review-battery`. `--min-score` is the Prose/Design cross-persona mean alone (no combined number exists). It requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}`, identical to the Evidence Schema above -- and replays every `evidence.command` in it via `tools/verify-cr-battery-evidence.js` (the same verifier code-review-battery uses, unmodified) before writing `.llm-skill-review-cleared`. A falsified claim aborts the write with no sentinel. `--no-envelope` bypasses the check with a loud warning; use it only when there is genuinely nothing to verify, not as a routine shortcut.
+`tools/run-llm-skill-review.sh --verdict PASS|PASS_WITH_RISKS --min-score <Prose/Design-mean>` gives this skill's Evidence Requirement mechanical teeth (ADR-003). `--min-score` is the Prose/Design cross-persona mean alone (no combined number exists); Gate 6 records it as sentinel **metadata** and does **not** floor-compare it. The writer requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}` -- with `clean_dimensions.length >= 1`, each finding carrying `severity`, and evidence replay via `tools/verify-cr-battery-evidence.js` before writing `.llm-skill-review-cleared`. A falsified claim or unresolved S0/S1 aborts the write. `--no-envelope` is allowed only with `--verdict PASS` (loud warning); never with `PASS_WITH_RISKS`.
 
 This is a **separate sentinel from `.phr-cleared`**, deliberately -- `tools/run-phr.sh` is also the sentinel-writer for plain progressive-harsh-review rounds on plans/designs that never produce an Evidence Schema envelope at all, so making it require one unconditionally would break that unrelated use case.
 
-`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), at a 9.0 minimum score. For `skills/*.md` this is the same floor this repo already enforced before this gate existed (`PHR_SKILLS_MIN`, moved here unchanged, not a new threshold for that class). For `.ai-guidance/*.md` and AGENTS.md-family files it IS a new, higher floor -- those classes previously only needed PHR's generic PASS band (weighted mean >=7.0-8.0 depending on the project's minimum), since the old `PHR_SKILLS_MIN` check gated exclusively on `skills/`-prefixed paths. This **supersedes** the PHR gate and the code-review gate for those file classes specifically -- both of those gates explicitly exclude them from their own scope now, so a push touching only these files requires exactly this one sentinel, not `.phr-cleared` and `.code-review-cleared` as well.
+`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` **v2** for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth). Pass condition (ADR-003): verdict `PASS` or `PASS_WITH_RISKS`, `unresolved_s0_s1=0`, and `evidence_replay=ok` (or `bypassed` only with `PASS`). This **supersedes** the PHR gate and the code-review gate for those file classes specifically.
 
 **Evidence envelope creation, before writing the sentinel:** the envelope file is `.cr-battery-runs/<HEAD-SHA>-llm-skill-review.json`, shape `{"findings":[],"clean_dimensions":[]}` at minimum (see Evidence Schema above for the full shape when there are real findings). `tools/run-llm-skill-review.sh` errors out with `Evidence envelope not found` if this file is missing before the sentinel write. `--no-envelope` is a declared escape hatch but prints a loud warning; prefer creating the empty envelope instead, and reserve `--no-envelope` for when there is genuinely nothing to verify.
 

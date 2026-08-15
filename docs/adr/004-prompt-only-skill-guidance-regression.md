@@ -1,8 +1,9 @@
 # ADR-004: Guidance-Regression Fixtures for Prompt-Only Skills
 
-**Status:** Proposed (human checkpoint required before implementation)  
+**Status:** Accepted  
 **Date:** 2026-08-15  
-**Decision Makers:** pending  
+**Accepted:** 2026-08-15 (human: "Accept and proceed")  
+**Decision Makers:** @bordenet  
 **Related:** [#1187](https://github.com/bordenet/superpowers-plus/issues/1187), workstream WS7 in `TODO.md`
 
 ## Context
@@ -17,55 +18,45 @@ Define a minimal fixture format and runner contract so selected **prompt-only** 
 
 This is **guidance-regression**, not live agent behavioral simulation.
 
-## Non-goals (this ADR)
+## Decision
 
-- Implementing the runner in the same change set as Status=Proposed.
-- Replacing `llm-skill-review` Gate 6.
-- Full agent simulation / multi-turn trajectory scoring in CI v0.
+Ship v0 as:
 
-## Proposed fixture shape
+1. Fixture tree under `test/fixtures/skill-guidance/<skill-name>/case-*/`.
+2. Runner `tools/skill-guidance-regress.sh` (invoked from bats / `test-all.sh --fast`).
+3. Pilot set: `repo-security-scan`, `systematic-debugging`, `llm-skill-review`.
+4. Text-only assertions in v0 (no live model output). Optional `plan.md` transcripts deferred.
 
-Per skill under `test/fixtures/skill-guidance/<skill-name>/`:
+## Fixture shape
 
 ```text
-case-001/
-  input.md          # scenario the agent is given (documentation for humans)
-  expected.json     # machine-checkable obligations against skill.md text
-  notes.md          # why this case exists
+test/fixtures/skill-guidance/<skill-name>/
+  case-001/
+    input.md          # scenario (documentation for humans)
+    expected.json     # machine-checkable obligations against skill.md text
+    notes.md          # why this case exists
 ```
 
-`expected.json` (v0 sketch):
+`expected.json` (v0):
 
 ```json
 {
   "skill_path": "skills/security/repo-security-scan/skill.md",
   "must_match": ["gitleaks|git log -p", "INCOMPLETE"],
   "must_not_match": ["head -n 500"],
-  "required_phrases": ["Phase 1 history", "do not claim"]
+  "required_phrases": ["do not claim"]
 }
 ```
 
-v0 checks are **static against the skill text** (and optionally against a checked-in `plan.md` transcript). They are not assertions against live model output in CI.
+## Runner contract
 
-## Runner contract (future; after Status = Accepted)
+1. Load the skill file at `skill_path`.
+2. For each case, assert skill text matches / omits patterns from `expected.json`.
+3. Exit non-zero on mismatch.
+4. Integrate via `test/skill-guidance-regress.bats` (picked up by `tools/test-all.sh`).
 
-1. Load `skill.md` (+ local `.md` files the skill says to load).
-2. For each case, assert skill text contains / omits patterns from `expected.json`.
-3. Optionally, if a `plan.md` transcript is checked in, assert the plan cites required phases.
-4. Exit non-zero on mismatch; integrate behind `./tools/test-all.sh` flag before making it default.
+## Open questions (resolved for v0)
 
-## Pilot candidates
-
-1. `repo-security-scan` — history required; no silent truncation; Verification wording.
-2. `systematic-debugging` — single 2+ failed-fix threshold; no duplicate companions.
-3. `llm-skill-review` — Evidence Schema example includes `reviewer`/`dimension`.
-
-## Open questions (human)
-
-- Own job vs fold into `harsh-review.sh`?
-- Are transcript fixtures allowed, or text-only assertions forever?
-- Who owns updating fixtures when intentional skill behavior changes?
-
-## Checkpoint
-
-No runner implementation until a human sets Status to **Accepted** (or rejects this ADR) and picks the pilot set.
+- Own job vs fold into `harsh-review.sh`? **Own bats suite** for v0.
+- Transcript fixtures? **Deferred** past v0.
+- Fixture ownership? **Same PR that changes the skill text** must update matching cases.
