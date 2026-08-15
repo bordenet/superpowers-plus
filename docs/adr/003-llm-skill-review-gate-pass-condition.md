@@ -32,13 +32,15 @@ Change the **pass condition** for writing `.llm-skill-review-cleared` to all of 
    - **S0 is non-waivable via envelope alone** — requires human PR comment URL **and** explicit `--allow-s0-waiver` on the writer. S1 may use envelope waiver with rationale.
 3. **Evidence replay succeeds** via `tools/verify-cr-battery-evidence.js` for every `evidence.command` (Decision §3 only). Decision §2 is enforced in `tools/run-llm-skill-review.sh` (new severity/waiver check), **not** by verify-cr alone.
 4. **Non-vacuous review proof** — refuse empty envelopes for `skills/**/*.md` changes:
-   - require `clean_dimensions.length >= 1` with replayable evidence covering at least one scored axis, **or**
-   - require attested metadata `{rounds, personas, artifact_paths, prose_design_mean}` in the envelope.
+   - **Required:** `clean_dimensions.length >= 1` with replayable evidence covering at least one scored axis.
+   - Attested metadata `{rounds, personas, artifact_paths, prose_design_mean}` is **additive** (recorded alongside), never a substitute for clean_dimensions.
    - `--no-envelope` is disallowed when writing `PASS_WITH_RISKS` (PASS-only escape hatch, still loud).
 
-Record the Prose/Design mean in the sentinel as **metadata** (`mean=<n>`), not as the value compared to `LLM_SKILL_REVIEW_MIN`. Gate 6 stops floor-comparing the mean; it verifies sentinel schema + evidence-replay stamp + unresolved-S0/S1 count.
+Record the Prose/Design mean in the sentinel as **metadata** (`mean=<n>`), not as the value compared to `LLM_SKILL_REVIEW_MIN`. Gate 6 stops floor-comparing the mean; it verifies sentinel schema + `evidence_replay=ok` stamp + unresolved-S0/S1 count.
 
-**Sentinel v2 sketch:** `v2|<HEAD_SHA>|<PASS|PASS_WITH_RISKS>|<UTC>|mean=<n>|unresolved_s0_s1=0`
+**Sentinel v2 sketch:** `v2|<HEAD_SHA>|<PASS|PASS_WITH_RISKS>|<UTC>|mean=<n>|unresolved_s0_s1=0|evidence_replay=ok`
+
+Missing or invalid `severity` on any finding **refuses the sentinel write** (do not silently exclude from the S0/S1 count).
 
 Optional follow-on: warn-only advisory in CI if mean < 9.0 (soft quality target for humans, not a hard gate).
 
@@ -54,7 +56,7 @@ Optional follow-on: warn-only advisory in CI if mean < 9.0 (soft quality target 
 
 - Agents may aim for `PASS_WITH_RISKS` if S1 waivers are too easy — mitigate with required rationale + PR ref.
 - Existing docs and help text that say ">= 9.0" must be updated in the same change set as the scripts.
-- Does not by itself add behavioral tests of prompt-only skill guidance (see ADR-004).
+- Does not by itself add guidance-regression fixtures for prompt-only skills (see ADR-004).
 
 ## Non-goals
 

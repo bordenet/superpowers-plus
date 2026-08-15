@@ -64,7 +64,7 @@ done
 
 ### Phase 1: Secrets & Credentials
 
-Use a **documented subset** of patterns from `_shared/secret-detection.md` (high-confidence tokens + hardcoded assignment forms below — not the full shared checklist). Scan tracked files only (not untracked):
+Use a **documented subset** of patterns from `skills/_shared/secret-detection.md` (high-confidence tokens + hardcoded assignment forms below — not the full shared checklist). Scan tracked files only (not untracked):
 
 ```bash
 # High-confidence token patterns in tracked files

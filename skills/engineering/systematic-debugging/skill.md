@@ -95,11 +95,11 @@ BEFORE attempting ANY fix:
 
 ## Recovery: After 2+ Failed Fix Attempts
 
-When fixes keep failing, the problem is usually misdiagnosed. Don't try a third fix — escalate:
+When fixes keep failing, the problem is usually misdiagnosed. Don't try a third fix — escalate. If 2 or more distinct approaches have failed, the underlying architecture or assumptions are wrong. Stop adding fixes.
 
 1. **Invoke `think-twice`** — verbalize what you've tried and why each failed
 2. **Question the layer** — are you fixing the right component? Check one layer up and one layer down
-3. **Check assumptions** — list every assumption you've made. Test the least-certain one first
+3. **Check assumptions** — list every assumption you've made. Test the least-certain one first. Write down what you assumed was true at the start and check each against evidence; the broken assumption is likely the root cause.
 4. **Ask the human** — "I've tried X and Y, both failed because Z. My current hypothesis is W — does that match your understanding?"
 
 ## Common Rationalizations
@@ -114,14 +114,6 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 | "It's probably the same bug as last time" | Pattern matching skips root cause analysis. Verify. |
 | "The tests pass so it must be fixed" | Tests prove the tested path works. Verify the actual failure path. |
 | "It's working now, I don't know why" | Non-deterministic fixes will fail again. Find the root cause. |
-
-## 2+ Fixes Failed: Question Architecture
-
-If 2 or more distinct approaches have failed, the underlying architecture or assumptions are wrong. Stop adding fixes.
-
-1. Write down what you assumed was true at the start
-2. Check each assumption against evidence
-3. The broken assumption is likely the root cause
 
 ## Failure Modes
 

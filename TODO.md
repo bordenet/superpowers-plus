@@ -50,7 +50,7 @@ Four independent `llm-skill-review` rounds: final **PASS WITH RISKS**, Prose/Des
 
 ## WS7 — Guidance-regression fixtures for prompt-only skills
 
-- [x] [20260815-16] Write scoped design note as ADR-004 Proposed (`docs/adr/004-prompt-only-skill-behavioral-fixtures.md`)
+- [x] [20260815-16] Write scoped design note as ADR-004 Proposed (`docs/adr/004-prompt-only-skill-guidance-regression.md`)
 - [ ] [20260815-17] Human checkpoint before building fixture infrastructure
 
 ---
