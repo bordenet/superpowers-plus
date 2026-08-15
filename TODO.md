@@ -1,7 +1,7 @@
 # Workstreams — explain-like-im-five + llm-skill-review calibration handoff
 
 Tracker for every finding from Claude's 2026-08-15 handoff (`claude/eli5-writing-skill-d08zzf`).
-Working PR branch: `cursor/handoff-todo-workstreams-1111` (base `origin/dev`).
+Working PR: https://github.com/bordenet/superpowers-plus/pull/1190 (`cursor/handoff-todo-workstreams-1111` → `origin/dev`).
 Source issue: https://github.com/bordenet/superpowers-plus/issues/1187
 
 Status legend: `[ ]` open · `[~]` in progress · `[x]` done · `[-]` cancelled / superseded
@@ -57,6 +57,7 @@ Calibration: three already-merged core skills scored below eli5 and hit REJECT u
 
 ### 2026-08-15
 - [x] [20260815-01] Cherry-picked eli5 skill commits onto `cursor/handoff-todo-workstreams-1111` from `origin/dev`
+- [x] [20260815-02] Opened working PR #1190 with honest eli5 score disclosure
 - [x] [20260815-04] Confirmed #1188 merged
 - [x] [20260815-05]–[20260815-07] repo-security-scan history + requires + DAG
 - [x] [20260815-08] Confirmed #1189 merged (find-polluter)
