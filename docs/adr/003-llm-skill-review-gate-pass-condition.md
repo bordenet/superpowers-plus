@@ -22,42 +22,54 @@ Concrete, independently verified defects were found (history-scan gap, contradic
 
 ## Decision (proposed)
 
-Change the **pass condition** for writing `.llm-skill-review-cleared` to:
+Change the **pass condition** for writing `.llm-skill-review-cleared` to all of the following:
 
-1. **Verdict** is `PASS` or `PASS WITH RISKS` (reject still blocks).
-2. **Zero unresolved S0/S1** findings remain in the evidence envelope (every S0/S1 either fixed or explicitly waived with rationale in the envelope).
-3. **Evidence replay succeeds** via `tools/verify-cr-battery-evidence.js` (existing path; keep `--no-envelope` as loud escape hatch only).
+1. **Verdict** is `PASS` or `PASS_WITH_RISKS` (CLI token uses underscore; reject still blocks).
+2. **Zero unresolved S0/S1** in the evidence envelope, where each finding MUST carry:
+   - `"severity": "S0"|"S1"|"S2"|"S3"`
+   - optional `"waiver": {"by":"human","ref":"<PR-comment-URL>","rationale":"..."}`
+   - Pass iff `count(findings where severity in {S0,S1} and waiver absent) == 0`.
+   - **S0 is non-waivable via envelope alone** — requires human PR comment URL **and** explicit `--allow-s0-waiver` on the writer. S1 may use envelope waiver with rationale.
+3. **Evidence replay succeeds** via `tools/verify-cr-battery-evidence.js` for every `evidence.command` (Decision §3 only). Decision §2 is enforced in `tools/run-llm-skill-review.sh` (new severity/waiver check), **not** by verify-cr alone.
+4. **Non-vacuous review proof** — refuse empty envelopes for `skills/**/*.md` changes:
+   - require `clean_dimensions.length >= 1` with replayable evidence covering at least one scored axis, **or**
+   - require attested metadata `{rounds, personas, artifact_paths, prose_design_mean}` in the envelope.
+   - `--no-envelope` is disallowed when writing `PASS_WITH_RISKS` (PASS-only escape hatch, still loud).
 
-Record the Prose/Design mean in the sentinel / envelope / PR body as **metadata**, not as the value compared to `LLM_SKILL_REVIEW_MIN`.
+Record the Prose/Design mean in the sentinel as **metadata** (`mean=<n>`), not as the value compared to `LLM_SKILL_REVIEW_MIN`. Gate 6 stops floor-comparing the mean; it verifies sentinel schema + evidence-replay stamp + unresolved-S0/S1 count.
 
-Optional follow-on (not required for the first enforcement change): keep publishing the mean under the PR heading convention already documented in `reference.md`, and add a warn-only advisory if mean < 9.0.
+**Sentinel v2 sketch:** `v2|<HEAD_SHA>|<PASS|PASS_WITH_RISKS>|<UTC>|mean=<n>|unresolved_s0_s1=0`
+
+Optional follow-on: warn-only advisory in CI if mean < 9.0 (soft quality target for humans, not a hard gate).
 
 ## Consequences
 
 ### Positive
 
 - Gate failure tracks real unresolved severity, not an uncalibrated self-score.
-- New skills can land with honest `PASS WITH RISKS` when S0/S1 are clear.
+- New skills can land with honest `PASS_WITH_RISKS` when S0/S1 are clear and review proof is non-vacuous.
 - Calibration defects become enforceable blockers.
 
 ### Negative / risks
 
-- Agents may aim for `PASS WITH RISKS` instead of `PASS` if waivers are too easy — mitigate by requiring waiver rationale in the envelope and keeping S0 non-waivable without human text in the PR.
+- Agents may aim for `PASS_WITH_RISKS` if S1 waivers are too easy — mitigate with required rationale + PR ref.
 - Existing docs and help text that say ">= 9.0" must be updated in the same change set as the scripts.
-- Does not by itself add behavioral tests of prompt-only skill guidance (see ADR follow-up / WS7).
+- Does not by itself add behavioral tests of prompt-only skill guidance (see ADR-004).
 
 ## Non-goals
 
 - Lowering or raising `9.0` as a soft quality target for humans.
 - Replacing `progressive-harsh-review` persona ensemble.
 - Auto-merging without human review of skill PRs.
+- Treating an empty `{"findings":[],"clean_dimensions":[]}` envelope as proof of review.
 
 ## Implementation sketch (do not apply until Status = Accepted)
 
-1. `tools/run-llm-skill-review.sh` — accept `--verdict PASS|PASS WITH RISKS`; require envelope with `unresolved_s0_s1: 0` (or equivalent derived count); write sentinel with recorded mean as metadata field.
-2. `tools/pre-push-llm-skill-review-gate.sh` — stop comparing mean to `LLM_SKILL_REVIEW_MIN`; verify sentinel schema + evidence replay stamp.
-3. Update `skills/engineering/llm-skill-review/{skill,reference}.md` Enforcement sections to match.
-4. Add bats covering: PASS WITH RISKS + clean S0/S1 writes sentinel; PASS WITH RISKS + open S0 refuses; REJECT refuses regardless of score.
+1. Extend Evidence Schema in `skills/engineering/llm-skill-review/reference.md` with `severity` + optional `waiver`.
+2. `tools/run-llm-skill-review.sh` — accept `--verdict PASS|PASS_WITH_RISKS`; enforce §2–§4; write v2 sentinel with `mean=` metadata; add `--allow-s0-waiver`.
+3. `tools/pre-push-llm-skill-review-gate.sh` — stop comparing mean to `LLM_SKILL_REVIEW_MIN`; verify v2 schema + unresolved_s0_s1=0.
+4. Update Enforcement sections in `skill.md` / `reference.md` to match.
+5. Add bats: PASS_WITH_RISKS + clean S0/S1 + non-empty clean_dimensions writes sentinel; empty envelope refuses; open S0 refuses; REJECT refuses; `--no-envelope` with PASS_WITH_RISKS refuses.
 
 ## Checkpoint
 

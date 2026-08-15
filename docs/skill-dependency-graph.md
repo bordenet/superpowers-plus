@@ -360,7 +360,6 @@ graph TD
   todo_guardian ==>|escalates to| quantitative_decision_gate
   todo_management -->|enables| fallback_planning
   professional_language_audit -->|then| public_repo_ip_audit
-  security_upgrade -->|then| repo_security_scan
   link_verification ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|then| wiki_content_coherence
   wiki_content_coherence -->|enables| link_verification

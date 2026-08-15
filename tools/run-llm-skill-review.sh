@@ -33,10 +33,11 @@
 # WIRED INTO tools/pre-push as Gate 6 (tools/pre-push-llm-skill-review-gate.sh):
 # any push touching skills/*.md, .ai-guidance/*.md, or an AGENTS.md-family
 # file (AGENTS.md/CLAUDE.md/GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any
-# path depth) requires this sentinel, PASS verdict, and a combined score
-# >= 9.0. This supersedes -- not supplements -- Gate 2 (code-review) and
-# Gate 5 (PHR) for those file classes; neither of those gates require their
-# own sentinel for them.
+# path depth) requires this sentinel, PASS verdict, and a Prose/Design
+# cross-persona mean >= 9.0 (not a combined Prose/Design + LLM-Execution
+# number; see llm-skill-review skill.md). This supersedes -- not
+# supplements -- Gate 2 (code-review) and Gate 5 (PHR) for those file
+# classes; neither of those gates require their own sentinel for them.
 #
 # EXIT:    0  sentinel written
 #          1  invalid args / refuse / envelope missing / verifier falsified a claim
@@ -74,8 +75,9 @@ Options:
                  has REJECT / MAJOR REVISIONS REQUIRED / PASS WITH RISKS --
                  only PASS clears this gate (see skill.md "Combining both
                  scorecards into one top-level Verdict").
-  --min-score    Combined Prose/Design + LLM-Execution score, 1.0-10.0
-                 (required)
+  --min-score    Prose/Design cross-persona mean, 1.0-10.0 (required).
+                 Not a combined Prose/Design + LLM-Execution number;
+                 see llm-skill-review skill.md.
   --no-envelope  Skip evidence-verifier gate (ESCAPE HATCH, loud warning).
                  Use only when llm-skill-review produced zero findings and
                  zero clean-dimension verdicts worth an envelope at all --
