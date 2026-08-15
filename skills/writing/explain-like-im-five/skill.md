@@ -22,7 +22,7 @@ composition:
 
 # Explain Like I'm Five
 
-> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `progressive-harsh-review`. Code review → `providing-code-review`. Debugging → `systematic-debugging`. Security review → `repo-security-scan` (scans first; only commits a fix if you ask it to remediate, and never pushes — `security-upgrade` both commits and pushes by default, so don't redirect a plain review request there).
+> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `progressive-harsh-review`. Code review → `providing-code-review`. Debugging → `systematic-debugging`. Security review → `repo-security-scan` (commits fixes it finds as part of its own workflow, but never pushes — `security-upgrade` both commits and pushes by default, so don't redirect a plain review request there).
 >
 > The name is a mnemonic, not an instruction to talk down to anyone. The goal is a fast, accurate, plain-language explanation for a technically capable reader — not baby talk.
 
