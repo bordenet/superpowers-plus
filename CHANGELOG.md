@@ -30,6 +30,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **`find-polluter.sh`:** fixed `./`-prefix and `**/`-collapse bug where the script prepended `./` to paths that already had `./`, causing double-prefix mismatches and silently empty results on some test layouts.
+- **`find-polluter.sh` unquoted-expansion bug:** the file loop used `for TEST_FILE in $TEST_FILES`, so the shell word-split *and* glob-expanded the list before iterating. A path containing a space became two bogus iterations pointing at files that don't exist, and a literal filename like `a*.test.ts` was re-globbed and matched its siblings instead of itself. Because the loop body runs `npm test "$TEST_FILE" ... || true`, the resulting failures were swallowed: the offending test was never actually executed and the script reported `No polluter found - all tests clean!` — a silent false negative in a debugging tool. `shellcheck` exits 0 on the original line, so lint could not catch it. Now reads the list line-by-line via a here-string (not a pipe, so the polluter-found `exit 1` still terminates the script). Covered by 2 new regression tests.
 - **Prototype-pollution in skill matching (`lib/skill-router.js`):** `tfidfSimilarity`'s
   query-side accumulators, `buildTfIdfIndex`'s per-document `tfidf` map, and
   `expandQueryTerms`'s `CONCEPT_EXPANSIONS` lookup all used plain `{}` objects — a query or
