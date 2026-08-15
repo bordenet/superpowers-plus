@@ -22,7 +22,7 @@ composition:
 
 # Explain Like I'm Five
 
-> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `chief-architect`-style deep review. Code review, debugging, or security review → `code-review-battery` / `systematic-debugging` / `security-upgrade`.
+> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `progressive-harsh-review`. Code review, debugging, or security review → `code-review-battery` / `systematic-debugging` / `security-upgrade`.
 >
 > The name is a mnemonic, not an instruction to talk down to anyone. The goal is a fast, accurate, plain-language explanation for a technically capable reader — not baby talk.
 
@@ -45,7 +45,7 @@ composition:
 | `/eli5 event sourcing` | "event sourcing" |
 | `/eli5` | derive from context (see below) |
 
-Natural-language triggers ("explain this simply", "explain like I'm five", "break this down", "help me understand", "what does this mean", etc.) carry the same contract as bare `/eli5`: if the request itself names a subject, explain that subject; if it doesn't, derive it from context.
+Natural-language triggers ("explain this simply", "explain like I'm five", "break this down", "help me understand", "what does this mean", etc.) carry the same contract as bare `/eli5`: if the request itself names a subject, explain that subject; if it doesn't, derive it from context. A request names a subject when a concrete noun phrase follows the trigger phrase (e.g. "explain this simply: event sourcing"). A bare deictic reference with no adjacent noun phrase ("explain this", "what does this mean") does not by itself name a subject — treat it as having no explicit subject and fall through to Context-Derived Subject.
 
 ## Context-Derived Subject
 
@@ -66,7 +66,13 @@ If two or three candidates are plausible, name at most two of them in the questi
 
 ## Output Structure
 
-Use progressive disclosure. Scale length and section count to the topic's actual complexity — a one-line jargon term deserves two sentences, not six headings. When the full structure is warranted:
+Use progressive disclosure. Scale length and section count to the topic's actual complexity:
+
+- A term or fact with one meaning and no real tradeoff (a one-line jargon term, a simple definition) deserves sections 1 only, or 1-2 — two or three sentences, not six headings.
+- A mechanism with a caveat, boundary, or common misconception worth stating deserves sections 1-2-5, or 1-2-4-5.
+- Reserve the full six-section structure below for topics that genuinely have all of: a non-trivial mechanism, a real tradeoff or practical implication, and either a technically accurate analogy or a material nuance worth preserving.
+
+When the full structure is warranted:
 
 1. **In short** — one or two sentences, the core idea.
 2. **How it works** — the mechanism, in direct everyday language.
