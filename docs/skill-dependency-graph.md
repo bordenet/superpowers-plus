@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-08-07
+> **Last updated:** 2026-08-15
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -327,6 +327,10 @@ graph TD
   no_empty_promises -->|enables| failure_autopsy
   no_empty_promises -->|enables| skill_authoring
   no_empty_promises -->|enables| evolution_loop
+  no_empty_promises -->|enables| verification_before_completion
+  no_empty_promises -->|enables| substrate_claim_audit
+  no_empty_promises -->|enables| output_verification
+  no_empty_promises ==>|escalates to| think_twice
   plan_and_execute -->|enables| brainstorming
   plan_and_execute -->|enables| think_twice
   plan_and_execute -->|enables| todo_management
@@ -356,6 +360,7 @@ graph TD
   todo_guardian ==>|escalates to| quantitative_decision_gate
   todo_management -->|enables| fallback_planning
   professional_language_audit -->|then| public_repo_ip_audit
+  security_upgrade -->|then| repo_security_scan
   link_verification ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|then| wiki_content_coherence
   wiki_content_coherence -->|enables| link_verification

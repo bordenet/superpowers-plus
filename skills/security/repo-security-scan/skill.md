@@ -9,7 +9,7 @@ summary: "Use when: auditing repo for security vulnerabilities, secrets, or misc
 coordination:
   group: security
   order: 1
-  requires: []
+  requires: ["security-upgrade"]
   enables: []
   escalates_to: []
   internal: false
@@ -85,6 +85,21 @@ git ls-files | grep -iE '\.(pem|key|p12|pfx|jks)$'
 ```
 
 **False positive filtering:** Matches in test files, `.example` files, and documentation are expected. Review each match to determine if it's a real secret or a placeholder.
+
+**Required — git history (commit-then-delete leaks):** HEAD-only greps miss secrets that were committed and later removed. Always run a history scan before claiming the secrets phase is clean:
+
+```bash
+# Prefer gitleaks when installed (full history)
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --source . --log-opts="--all" --no-banner
+else
+  # Portable fallback: same high-confidence patterns over full-patch history
+  SECRET_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
+  git log -p --all -G "$SECRET_RE" --pretty=format:'=== %H %s ===' | head -n 500
+fi
+```
+
+Treat history hits as real findings: rotate the credential, document the commit(s), and do not claim a clean secrets scan until history is clean or each hit has an explicit accepted-risk note. History rewrite (filter-branch / BFGs) is advisory and separate from detection.
 
 ### Phase 2: Dependency Vulnerabilities
 
@@ -169,29 +184,29 @@ fix(security): replace eval() with JSON.parse() in parser.js
 
 ## Verification
 
-After all fixes, **re-run the full scan** to confirm zero remaining issues. Use `superpowers:verification-before-completion` — evidence before assertions.
+After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 history step**, to confirm zero remaining issues on **both HEAD and git history** (or every remaining history hit has a dated accepted-risk note). A HEAD-only re-grep is not a full scan. Use `superpowers:verification-before-completion` — evidence before assertions.
 
 ## Rules
 
 - **Never write custom scanning scripts.** The inline commands above ARE the automation.
 - **Run all four phases.** Don't skip because "this repo probably doesn't have X."
+- **Always include Phase 1 history.** Commit-then-delete secrets are still leaks.
 - **Triage each match.** Don't dismiss all as false positives without reviewing context.
-- **Re-run full scan after fixes** to confirm zero remaining issues.
+- **Re-run full scan after fixes** to confirm zero remaining issues on HEAD and history.
 - **Multi-repo:** Process each repo sequentially through all four phases.
 
 ## Companion Skills
 
-`security-upgrade` (Phase 2 sub-skill) | `public-repo-ip-audit` (IP leakage) | `wiki-secret-audit` (wiki content) | `verification-before-completion` (post-fix)
-
-- **security-upgrade**: Dependency upgrade after scan findings
-- **wiki-secret-audit**: Wiki-side secret scanning
-- **public-repo-ip-audit**: IP/license review (different from secrets)
+- `security-upgrade` — required Phase 2 dependency upgrade path after CVE findings
+- `public-repo-ip-audit` — IP/license leakage (different from secrets)
+- `wiki-secret-audit` — wiki-side secret scanning
+- `verification-before-completion` — evidence before "clean" assertions
 
 ## Failure Modes and Recovery
 
 | Failure | Fix |
 |---------|-----|
-| Scanner tool not installed (gitleaks, npm audit) | Check prerequisites first — install or fallback to manual grep |
+| Scanner tool not installed (gitleaks, npm audit) | Check prerequisites first — install or use the Phase 1 `git log -p` / audit-tool fallbacks |
 | False positive on test fixtures with dummy secrets | Maintain allowlist of known test fixtures per repo |
-| Scan misses secrets in git history | Run gitleaks with `--log-opts --all` to scan full history |
+| History scan too noisy / too slow | Narrow with `-G` patterns first; escalate to gitleaks `--log-opts=--all` when available |
 | Dependency vuln has no fix available | Document as accepted risk with justification and review date |

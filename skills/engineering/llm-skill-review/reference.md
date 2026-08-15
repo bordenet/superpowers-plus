@@ -180,6 +180,8 @@ A finding is a claim about the artifact under review. A claim with no way to che
 
 ```json
 {
+  "reviewer": "Runtime Determinist",
+  "dimension": "Correctness",
   "claim": "no producer for the Metrics.AgentAPI.Success counter this diff references",
   "evidence": {
     "command": "grep -rE 'AgentAPI\\.Success\\.(emit|inc)' src/",
@@ -189,6 +191,8 @@ A finding is a claim about the artifact under review. A claim with no way to che
   }
 }
 ```
+
+Every finding and every clean-dimension object MUST include top-level `reviewer` and `dimension`. Without both, `tools/verify-cr-battery-evidence.js`'s `capDimension()` treats the claim as an orphan and cannot apply per-axis score caps — the remediation path this skill advertises has nothing to act on.
 
 ### Expectation types (one per type)
 
@@ -224,7 +228,7 @@ A review that ships a high verdict alongside material defects is worse than a re
 
 ## Enforcement Detail
 
-`tools/run-llm-skill-review.sh --verdict <verdict> --min-score <combined-score>` gives this skill's Evidence Requirement mechanical teeth, parallel to how `tools/run-battery.sh` already does evidence replay for `code-review-battery`. It requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}`, identical to the Evidence Schema above -- and replays every `evidence.command` in it via `tools/verify-cr-battery-evidence.js` (the same verifier code-review-battery uses, unmodified) before writing `.llm-skill-review-cleared`. A falsified claim aborts the write with no sentinel. `--no-envelope` bypasses the check with a loud warning; use it only when there is genuinely nothing to verify, not as a routine shortcut.
+`tools/run-llm-skill-review.sh --verdict PASS --min-score <Prose/Design-mean>` gives this skill's Evidence Requirement mechanical teeth, parallel to how `tools/run-battery.sh` already does evidence replay for `code-review-battery`. `--min-score` is the Prose/Design cross-persona mean alone (no combined number exists). It requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}`, identical to the Evidence Schema above -- and replays every `evidence.command` in it via `tools/verify-cr-battery-evidence.js` (the same verifier code-review-battery uses, unmodified) before writing `.llm-skill-review-cleared`. A falsified claim aborts the write with no sentinel. `--no-envelope` bypasses the check with a loud warning; use it only when there is genuinely nothing to verify, not as a routine shortcut.
 
 This is a **separate sentinel from `.phr-cleared`**, deliberately -- `tools/run-phr.sh` is also the sentinel-writer for plain progressive-harsh-review rounds on plans/designs that never produce an Evidence Schema envelope at all, so making it require one unconditionally would break that unrelated use case.
 

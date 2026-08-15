@@ -2,9 +2,10 @@
 name: systematic-debugging
 source: superpowers-plus
 augment_menu: true
-# Override rationale: Condensed from 296→88 lines. Focuses on root-cause-first
+# Override rationale: Condensed from upstream ~296 lines. Focuses on root-cause-first
 # discipline with explicit "NO FIXES WITHOUT INVESTIGATION" gate. Removes
 # verbose examples; adds structured hypothesis/evidence tracking format.
+# (Do not hard-code a line count here; it drifts.)
 triggers: ["/sp-debug", "debug this", "test failure", "unexpected behavior", "build failure", "not working", "investigate error", "root cause"]
 anti_triggers: ["write tests first", "TDD", "implement feature", "create new"]
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
@@ -83,7 +84,7 @@ BEFORE attempting ANY fix:
 1. **Create failing test case** — use `superpowers:test-driven-development` skill
 2. **Implement single fix** — ONE change, no "while I'm here" improvements
 3. **Verify** — test passes, no other tests broken
-4. **If 3+ fixes failed** — STOP. Question the architecture. Each fix revealing new problems in different places = wrong architecture, not wrong fix. Discuss with human before continuing.
+4. **If 2+ fixes failed** — STOP. Question the architecture. Each fix revealing new problems in different places = wrong architecture, not wrong fix. Discuss with human before continuing.
 
 ## Red Flags — STOP, Return to Phase 1
 
@@ -106,7 +107,7 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 | Rationalization | Why it fails |
 |-----------------|--------------|
 | "I'm almost sure it's X" | Certainty without evidence is bias. Check assumptions first. |
-| "Let me try one more thing" | After 3+ failed fixes, trying harder is wrong. Question the premise. |
+| "Let me try one more thing" | After 2+ failed fixes, trying harder is wrong. Question the premise. |
 | "This worked before, so it must still work" | Environments change. Verify don't assume. |
 | "The error message says X so it must be X" | Error messages describe symptoms not root causes. |
 | "I'll add more logging to find it" | If you're adding logging blindly, you don't have a hypothesis. Form one first. |
@@ -114,9 +115,9 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 | "The tests pass so it must be fixed" | Tests prove the tested path works. Verify the actual failure path. |
 | "It's working now, I don't know why" | Non-deterministic fixes will fail again. Find the root cause. |
 
-## 3+ Fixes Failed: Question Architecture
+## 2+ Fixes Failed: Question Architecture
 
-If 3 or more distinct approaches have failed, the underlying architecture or assumptions are wrong. Stop adding fixes.
+If 2 or more distinct approaches have failed, the underlying architecture or assumptions are wrong. Stop adding fixes.
 
 1. Write down what you assumed was true at the start
 2. Check each assumption against evidence
@@ -141,8 +142,5 @@ If 3 or more distinct approaches have failed, the underlying architecture or ass
 - `investigation-state` — persist debugging context across sessions for multi-day bugs
 - `think-twice` — dispatch fresh sub-agent when stuck in a hypothesis loop
 - `adversarial-search` — search for the WRONG value when symptoms contradict expectations
-- **investigation-state**: Complex multi-session debugging
-- **adversarial-search**: When debugging hits confirmation bias
-- **think-twice**: Escalation when debugging is stuck
-- **receiving-code-review**: Responding to review feedback
-- **failure-autopsy**: Post-mortem on failed approaches
+- `receiving-code-review` — responding to review feedback
+- `failure-autopsy` — post-mortem on failed approaches
