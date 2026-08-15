@@ -22,7 +22,7 @@ composition:
 
 # Explain Like I'm Five
 
-> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `progressive-harsh-review`. Code review, debugging, or security review → `code-review-battery` / `systematic-debugging` / `security-upgrade`.
+> **Wrong skill?** Summarizing supplied text → use a summarization skill. Rewriting prose for a different audience → `eliminating-ai-slop`. Exhaustive architecture/design analysis → `progressive-harsh-review`. Code review → `providing-code-review` (or `code-review-battery` for a full multi-reviewer pass). Debugging → `systematic-debugging`. Security review → `repo-security-scan` (read-only audit; `security-upgrade` actually installs and pushes dependency upgrades — do not redirect a review request there).
 >
 > The name is a mnemonic, not an instruction to talk down to anyone. The goal is a fast, accurate, plain-language explanation for a technically capable reader — not baby talk.
 
@@ -45,7 +45,7 @@ composition:
 | `/eli5 event sourcing` | "event sourcing" |
 | `/eli5` | derive from context (see below) |
 
-Natural-language triggers ("explain this simply", "explain like I'm five", "break this down", "help me understand", "what does this mean", etc.) carry the same contract as bare `/eli5`: if the request itself names a subject, explain that subject; if it doesn't, derive it from context. A request names a subject when a concrete noun phrase follows the trigger phrase (e.g. "explain this simply: event sourcing"). A bare deictic reference with no adjacent noun phrase ("explain this", "what does this mean") does not by itself name a subject — treat it as having no explicit subject and fall through to Context-Derived Subject.
+Natural-language triggers ("explain this simply", "explain like I'm five", "break this down", "help me understand", "what does this mean", etc.) carry the same contract as bare `/eli5`: if the request itself names a subject, explain that subject; if it doesn't, derive it from context. A request names a subject when a concrete noun phrase follows the trigger phrase, with or without a colon (e.g. "explain this simply: event sourcing" or "help me understand event sourcing" — both name "event sourcing" as the subject). A bare deictic reference with no adjacent noun phrase ("explain this", "what does this mean") does not by itself name a subject — treat it as having no explicit subject and fall through to Context-Derived Subject.
 
 ## Context-Derived Subject
 
@@ -117,3 +117,4 @@ Do not:
 | Drops a real caveat to shorten the answer | Explanation reads as confidently simple but is technically incomplete or wrong | Restore the nuance in an "Important nuance" line even if it lengthens the answer |
 | Over-templates a trivial request | A one-sentence answer gets six forced headings | Scale structure down; short answers don't need every section |
 | Forces an analogy that doesn't actually map | Analogy breaks down under scrutiny or misleads | Drop the analogy and explain directly instead |
+| Trigger phrase "help me understand" is a substring of `superpowers-help`'s longer trigger "help me understand superpowers" | A request for the skill catalog gets an explanation instead, or vice versa | Routing is semantic (full request + description), not substring matching — a request naming "superpowers" as the subject routes to `superpowers-help`; known overlap, not a defect requiring a trigger change |
