@@ -69,13 +69,11 @@ Use a **documented subset** of patterns from `skills/_shared/secret-detection.md
 ```bash
 # High-confidence token patterns in tracked files
 TOKEN_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
-# NOTE: use [[:space:]], not \s — this is a PORTABILITY fix, not a universal
-# bug. `git log -G` compiles with the platform regcomp: glibc enables GNU
-# operators so \s works on Linux, but BSD/macOS regcomp treats \s as a literal
-# 's', so the history scan there silently matches ZERO assignment-class secrets
-# while the HEAD scan (grep -E, which accepts \s) matches them fine — measured
-# on macOS: 0 matching commits with \s, 2 with [[:space:]]. [[:space:]] is
-# correct on both platforms and in both engines. Do not "simplify" it back.
+# NOTE: [[:space:]], not \s — a PORTABILITY fix, not a universal bug.
+# `git log -G` uses the platform regcomp: glibc accepts \s, BSD/macOS treats it
+# as literal 's', so on macOS the history scan matched ZERO assignment-class
+# secrets while the HEAD scan (grep -E) matched fine (0 vs 2 commits).
+# [[:space:]] is correct in both engines on both platforms. Don't "simplify".
 ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}'
 
 git ls-files -z | xargs -0 grep -lnE "$TOKEN_RE" \
@@ -122,8 +120,13 @@ else
   # scan. If the repo is too large for interactive review, install gitleaks
   # or stop and report INCOMPLETE rather than claiming clean.
   #
-  # `-m` shows per-parent diffs. Without it, a secret introduced in a MERGE
-  # resolution and later deleted is invisible here (measured: 0 without, 2 with).
+  # `-m` shows per-parent diffs. Without it a merge-introduced, later-deleted
+  # secret is missed as an ADDED line (0 vs 2); the deletion still shows on a
+  # `-` line, so this path degrades rather than going blind like gitleaks
+  # above. Introduced AND removed within merges = missed entirely.
+  # COST: ~2.14x diff surface (31.6->67.6MB on a 39%-merge repo) and one
+  # finding per parent, so expect duplicates. Too big? Install gitleaks --
+  # never cap the output; a truncated scan is not a clean scan.
   set -o pipefail
   HISTORY_RE="(${TOKEN_RE}|${ASSIGN_RE})"
   if ! git log -p -m --all -G "$HISTORY_RE" --pretty=format:'=== %H %s ==='; then

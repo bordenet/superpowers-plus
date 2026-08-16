@@ -7,8 +7,15 @@
 # pass `bash -n`, `shellcheck`, and prose review, and are only visible by
 # executing the shipped command against a repo that actually contains a
 # planted secret. Two such defects reached `dev`:
-#   - merge coverage: `git log -p --all -G <re>` without `-m` never sees a
-#     secret introduced in a merge resolution and later deleted.
+#   - merge coverage. Precisely: on the PREFERRED gitleaks path a secret
+#     introduced in a merge resolution and later deleted is genuinely
+#     invisible without -m (measured: 0 findings vs 2). On the `git log -G`
+#     fallback it is not invisible -- the deletion diff still surfaces it on a
+#     `-` line (0 ADDED / 1 deleted without -m; 2 added / 1 deleted with) --
+#     but it is missed as an ADDED line, and a secret both introduced AND
+#     removed within merge commits is missed entirely. Do not restate this as
+#     a flat "never sees": that overclaims the fallback and underclaims
+#     gitleaks, and an earlier revision of this header did exactly that.
 #   - shallow clones: with no precondition guard, both scan paths find only
 #     working-tree secrets and report clean. CI checks out fetch-depth 1.
 #
@@ -185,12 +192,15 @@ setup() {
     run bash -c "{ awk '/^TOKEN_RE=/,/^ASSIGN_RE=/' '$SKILL'; awk '/^  set -o pipefail/,/^  fi\$/' '$SKILL'; } | bash 2>/dev/null | grep -cE '^\\+.*$tok'"
     [ "$output" -ge 1 ]
 
-    # Prove -m is load-bearing by mutating THE SKILL and re-running its own
-    # extracted pipeline. An earlier version ran a hardcoded `git log` here,
-    # which tested git rather than the skill and passed unconditionally.
-    local nom="$BATS_TEST_TMPDIR/no-m.md"
-    sed 's/git log -p -m --all -G/git log -p --all -G/' "$SKILL" > "$nom"
-    run bash -c "{ awk '/^TOKEN_RE=/,/^ASSIGN_RE=/' '$nom'; awk '/^  set -o pipefail/,/^  fi\$/' '$nom'; } | bash 2>/dev/null | grep -cE '^\\+.*$tok'"
+    # Control: the same fixture WITHOUT -m must yield zero added lines, which
+    # is what makes the assertion above meaningful rather than incidental.
+    #
+    # This runs the -m-stripped command directly rather than sed-ing $SKILL.
+    # An earlier version did `sed 's/git log -p -m --all -G/git log -p --all
+    # -G/' "$SKILL"` -- a no-op when -m is already absent, so under a real -m
+    # regression it compared the file to itself and could never fail. It read
+    # as a control while being one.
+    run bash -c "{ awk '/^TOKEN_RE=/,/^ASSIGN_RE=/' '$SKILL'; echo 'git log -p --all -G \"(\${TOKEN_RE}|\${ASSIGN_RE})\" --pretty=format:%H'; } | bash 2>/dev/null | grep -cE '^\\+.*$tok'"
     [[ "$output" == "0" ]]
 }
 
