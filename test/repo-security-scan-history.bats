@@ -177,13 +177,20 @@ setup() {
     git add -A && git commit --amend -q --no-edit
     git rm -q g.txt && git commit -qm "delete merge secret"
 
-    run run_history_scan
-    [[ "$output" == *"$tok"* ]]
+    # Assert the token appears on a line STARTING with '+'. Without -m it
+    # still appears on the deletion commit's '-' line, so a bare substring
+    # match -- and even a `*"+"*"$tok"*` glob, which matches a '+' anywhere
+    # earlier in the stream -- passes with the fix removed. Both made earlier
+    # versions of this test vacuous. Only a line-anchored grep discriminates.
+    run bash -c "{ awk '/^TOKEN_RE=/,/^ASSIGN_RE=/' '$SKILL'; awk '/^  set -o pipefail/,/^  fi\$/' '$SKILL'; } | bash 2>/dev/null | grep -cE '^\\+.*$tok'"
+    [ "$output" -ge 1 ]
 
-    # Prove -m is load-bearing: without it this secret never appears as an
-    # ADDED line. (Count added lines only -- the deletion commit's diff shows
-    # the token on a '-' line even without -m, which is not detection.)
-    run bash -c "git log -p --all -G '(ghp_[a-zA-Z0-9]{36})' --pretty=format:'=== %H ===' 2>/dev/null | grep -cE '^\\+.*$tok'"
+    # Prove -m is load-bearing by mutating THE SKILL and re-running its own
+    # extracted pipeline. An earlier version ran a hardcoded `git log` here,
+    # which tested git rather than the skill and passed unconditionally.
+    local nom="$BATS_TEST_TMPDIR/no-m.md"
+    sed 's/git log -p -m --all -G/git log -p --all -G/' "$SKILL" > "$nom"
+    run bash -c "{ awk '/^TOKEN_RE=/,/^ASSIGN_RE=/' '$nom'; awk '/^  set -o pipefail/,/^  fi\$/' '$nom'; } | bash 2>/dev/null | grep -cE '^\\+.*$tok'"
     [[ "$output" == "0" ]]
 }
 
