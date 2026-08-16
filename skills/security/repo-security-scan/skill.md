@@ -69,10 +69,13 @@ Use a **documented subset** of patterns from `skills/_shared/secret-detection.md
 ```bash
 # High-confidence token patterns in tracked files
 TOKEN_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
-# NOTE: use [[:space:]], not \s. `grep -E` accepts \s, but `git log -G` (the
-# history scan below) uses POSIX ERE where \s is NOT a shorthand class — with
-# \s the history scan silently matches ZERO assignment-class secrets while the
-# HEAD scan matches them fine (measured: 0 vs 2). [[:space:]] works in both.
+# NOTE: use [[:space:]], not \s — this is a PORTABILITY fix, not a universal
+# bug. `git log -G` compiles with the platform regcomp: glibc enables GNU
+# operators so \s works on Linux, but BSD/macOS regcomp treats \s as a literal
+# 's', so the history scan there silently matches ZERO assignment-class secrets
+# while the HEAD scan (grep -E, which accepts \s) matches them fine — measured
+# on macOS: 0 matching commits with \s, 2 with [[:space:]]. [[:space:]] is
+# correct on both platforms and in both engines. Do not "simplify" it back.
 ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}'
 
 git ls-files -z | xargs -0 grep -lnE "$TOKEN_RE" \
@@ -97,7 +100,7 @@ git ls-files | grep -iE '\.(pem|key|p12|pfx|jks)$'
 # PRECONDITIONS. Both paths below read history. If history isn't present, both
 # report clean having scanned nothing — so fail loudly instead. A shallow
 # checkout is the CI default (actions/checkout uses fetch-depth: 1).
-git rev-parse --git-dir >/dev/null || { echo "INCOMPLETE: not a git repository" >&2; exit 1; }
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "INCOMPLETE: not a git repository" >&2; exit 1; }
 if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
   echo "INCOMPLETE: shallow clone — history scan cannot run. Run: git fetch --unshallow" >&2
   exit 1
@@ -108,7 +111,11 @@ fi
 # executes but is deprecated and absent from --help's command list. `-v` is
 # required — without it gitleaks prints only a leak COUNT, nothing to triage.
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks git . --log-opts="--all" --no-banner -v
+  # `-m` inside --log-opts for the same reason the fallback needs it: without
+  # it gitleaks skips merge diffs, so a secret introduced in a merge
+  # resolution and later deleted is invisible on the PREFERRED path too
+  # (measured: 0 findings with "--all", 2 with "--all -m").
+  gitleaks git . --log-opts="--all -m" --no-banner -v
 else
   # Portable fallback: same TOKEN_RE + ASSIGN_RE as HEAD (set above).
   # Do NOT pipe through head/truncation — a capped stream is an incomplete

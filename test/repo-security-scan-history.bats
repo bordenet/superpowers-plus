@@ -57,7 +57,7 @@ run_preconditions() {
 setup() {
     WORK="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$WORK"
-    cd "$WORK"
+    cd "$WORK" || return 1
     git init -q -b main .
     git config user.email test@example.com
     git config user.name test
@@ -96,11 +96,32 @@ setup() {
     grep -q 'fetch --unshallow' "$SKILL"
 }
 
-@test "meta: the skill uses the non-deprecated gitleaks subcommand" {
+@test "meta: the skill uses the non-deprecated gitleaks subcommand, with -m and -v" {
     # `detect` still executes on 8.30.1 but is deprecated and unlisted in
     # --help; `git` is the current subcommand.
     grep -q 'gitleaks git \.' "$SKILL"
     run grep -n 'gitleaks detect' "$SKILL"
+    [ "$status" -ne 0 ]
+
+    # `-v` is what makes gitleaks output triageable (without it: a bare count).
+    # Behavioral coverage of the gitleaks path needs the binary, which CI does
+    # not install, so pin these at string level instead of leaving them
+    # unguarded.
+    grep -q 'no-banner -v' "$SKILL"
+
+    # The PREFERRED path needs -m for merge coverage exactly as the fallback
+    # does; hardening only the fallback leaves the recommended path blind.
+    grep -q 'log-opts="--all -m"' "$SKILL"
+}
+
+@test "meta: ASSIGN_RE uses [[:space:]] and never reverts to \\s" {
+    # THIS PIN IS LOAD-BEARING ON LINUX. The behavioral assignment-class test
+    # cannot catch a \s regression on glibc: glibc's regcomp enables GNU
+    # operators, so `git log -G '\s'` works there and the suite stays green.
+    # The breakage is BSD/macOS-only. Since CI is ubuntu-latest, a string-level
+    # pin is the only guard that discriminates on the platform CI runs.
+    grep -q 'ASSIGN_RE=.*\[\[:space:\]\]\*\[:=\]\[\[:space:\]\]\*' "$SKILL"
+    run grep -nE "ASSIGN_RE=.*\\\\s" "$SKILL"
     [ "$status" -ne 0 ]
 }
 
@@ -190,7 +211,7 @@ setup() {
 
     local shallow="$BATS_TEST_TMPDIR/shallow"
     git clone -q --depth 1 "file://$WORK" "$shallow"
-    cd "$shallow"
+    cd "$shallow" || return 1
 
     # The shallow clone genuinely cannot see the secret...
     run run_history_scan
@@ -208,7 +229,11 @@ setup() {
     mkdir -p "$nongit"; cd "$nongit"
     run run_preconditions
     [ "$status" -eq 1 ]
-    [[ "$output" == *"not a git repository"* ]]
+    # Assert on the INCOMPLETE: prefix, NOT on "not a git repository" alone.
+    # git's own fatal message contains that substring, so asserting it would
+    # pass even if the skill's echo were deleted -- the test would be
+    # observing git, not the skill.
+    [[ "$output" == *"INCOMPLETE: not a git repository"* ]]
 }
 
 @test "clean repo produces no secret findings" {
