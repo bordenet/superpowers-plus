@@ -55,6 +55,66 @@ Four independent `llm-skill-review` rounds: final **PASS WITH RISKS**, Prose/Des
 
 ---
 
+## WS8 — `repo-security-scan` history-scan hardening (Claude, 2026-08-15 evening)
+
+Delta on top of WS3. Branch `fix/history-scan-hardening`, 5 commits, based on `origin/dev` `c6a63899`.
+**STILL UNPUSHED as of 2026-08-17 — exists only on the machine that wrote it, and cannot be recovered from anywhere else.** No longer blocked by the Gate 6 floor (ADR-003 removed it); it needs an honest `PASS_WITH_RISKS` sentinel, not a bypass. Does NOT conflict with the merged PR #1193 (verified: zero shared files, clean `git merge-tree`).
+
+Four defects found in WS3's merged version, each verified by executing the shipped command:
+
+- [x] [20260815-22] `ASSIGN_RE` used `\s`, which `git log -G` does not accept on BSD/macOS regcomp — history scan matched ZERO assignment-class secrets there while HEAD scan matched fine. Changed to `[[:space:]]` (works both engines, both platforms). **Platform-specific, not universal: glibc/Linux accepts `\s`.**
+- [x] [20260815-23] `gitleaks detect --source .` — `detect` deprecated and unlisted on 8.30.1; changed to `gitleaks git .`
+- [x] [20260815-24] No `-m` on either path → secrets introduced in a merge resolution missed. Added to fallback AND to the preferred gitleaks path via `--log-opts="--all -m"` (the first pass hardened only the fallback)
+- [x] [20260815-25] No `-v` on gitleaks → prints a bare count, nothing to triage
+- [x] [20260815-26] Added preconditions: non-git and shallow-clone both hard-fail with remedy (CI default is `fetch-depth: 1`, which made both paths report clean while scanning nothing)
+- [x] [20260815-27] New `test/repo-security-scan-history.bats` (14 cases). EXTRACTS and runs the skill's own fenced blocks rather than transcribing them; registered in `.github/workflows/test.yml`
+- [x] [20260815-28] Fixed vacuous regression test: test 9 passed with `-m` removed (bare substring matched the deletion line; a `*"+"*` glob was also vacuous). Now line-anchored `grep -cE '^\+.*<tok>'` against the skill's own pipeline. Verified: fails when `-m` stripped.
+
+**Corrections to earlier claims in this session (recorded so they don't propagate):**
+- The `\s` defect is BSD/macOS-only, NOT universal. CI is ubuntu-latest, where the behavioral test cannot discriminate — hence the string-level pin.
+- Merge-introduced-then-deleted secrets are NOT "invisible to every phase": the deletion diff surfaces the token on a `-` line (0 added/1 deleted without `-m`; 2 added/1 deleted with). Residual gap is narrower — introduced AND removed within merge commits.
+- "Gate 6 blocks all skill pushes" — it is a LOCAL `.git/hooks/pre-push` hook. No CI workflow invokes it.
+
+## WS10 — Gate 6 floor had zero test coverage (Claude, 2026-08-15)
+
+Branch `fix/gate6-floor-test-coverage`, pushed 2026-08-16. **SUPERSEDED — do not merge.** ADR-003 deleted `LLM_SKILL_REVIEW_MIN` from Gate 6 entirely, so these tests target a constant that no longer exists and conflict with the merged version of the same bats file. Recorded because the underlying lesson outlives the code.
+
+- [x] [20260815-34] `test/pre-push-llm-skill-review-gate.bats` redefined `LLM_SKILL_REVIEW_MIN="9.2"` in its own generated harness preamble, **shadowing** the production constant. Proof: setting production to `0.0` left all 29 tests green. Fixtures (8.5/9.2/9.8) also never straddled the real 9.0. Harness now sources the literal from production and derives fixtures from it; added a guard test asserting harness value == production value. Verified 30/30 at 9.0; production at 0.0 now FAILS.
+
+## WS8 addenda — round-2 review corrections (2026-08-15)
+
+- [x] [20260815-35] Retraction over-corrected. On the **preferred gitleaks path** a merge-introduced-then-deleted secret IS genuinely invisible without `-m` (0 findings vs 2). Only the `git log -G` fallback degrades rather than going blind (0 added/1 deleted). Both the bats header and the skill comment restated a flat "never sees"/"invisible here" — corrected in both artifacts, not just the commit message.
+- [x] [20260815-36] Priced `-m`: ~2.14x diff surface (31.6→67.6MB on a 39%-merge repo) and one finding per parent diff, so duplicates on triage. Documented in the skill.
+- [x] [20260815-37] Test 9 control assertion was a no-op — it sed-ed `-m` out of a file that already lacked it under regression, comparing the file to itself. Now runs the `-m`-less command directly.
+
+## HANDOFF — resume state (READ FIRST)
+
+**Updated 2026-08-17.** The 2026-08-16 version of this section said "nothing below is on `origin` yet." That is no longer true for most of it, and the parts that changed are corrected in place below rather than left to mislead the next machine.
+
+**Why the original push didn't land:** not a gate rejection. Pre-push Gate 1 (`tools/test-all.sh --fast`) takes **115s measured** and passes; adding the other six gates exceeds a 2-minute shell timeout. Allow **5 minutes** per push. This still holds.
+
+| Branch | State as of 2026-08-17 |
+|---|---|
+| `fix/gate6-floor-test-coverage` | Pushed. **Superseded — do not merge as-is.** See below. |
+| `cursor/accept-adr-003-004-1111` (PR #1193) | **Merged to `dev`** at `ac17f42b`, including the E4 fix. |
+| `fix/history-scan-hardening` | **Still unpushed. Still exists only on the machine that wrote it.** 5 commits. This is the one real loss risk left. |
+
+**`fix/gate6-floor-test-coverage` is superseded.** ADR-003 removed the numeric floor from Gate 6 entirely — `LLM_SKILL_REVIEW_MIN` no longer exists in `tools/pre-push-llm-skill-review-gate.sh`. The branch's whole subject is a floor that is gone, so its `test/pre-push-llm-skill-review-gate.bats` changes have no target and conflict with the merged version. Only this tracker was salvaged from it. The durable lesson survives even though the code did not: **a bats harness that redefines a production constant in its own generated preamble silently voids the coverage it appears to provide.** Worth checking for elsewhere.
+
+**`fix/history-scan-hardening` is no longer blocked by the floor.** WS9 items 20260815-30 and 20260815-31 assumed Gate 6 compares a mean against 9.0 and that landing a sub-floor security fix needed a bypass or a lowered constant. ADR-003 replaced that with: verdict `PASS` or `PASS_WITH_RISKS`, zero unresolved S0/S1, and a non-vacuous evidence envelope. An honest `PASS_WITH_RISKS` now lands it without `--no-verify` and without touching any constant. That was the point of the ADR.
+
+Push it from the machine that has it — it cannot be recovered from anywhere else.
+
+## WS9 — Blocked / needs human action
+
+- [ ] [20260815-29] **Push `fix/history-scan-hardening`** — blocked by `pre-tool-use-red-autonomy.sh`; needs a file-based approval token for this ref (phrase approval was consumed by an earlier ref and does not carry over)
+- [ ] [20260815-30] **Honest score for HEAD `cd18d676`** — last review scored `8e2c50d8` at 6.12 (MAJOR REVISIONS); both S1s + three S2s + the vacuous test fixed since, but the current HEAD is UNSCORED. Still open, but no longer floor-gated: under ADR-003 the mean is sentinel metadata, so an honest `PASS_WITH_RISKS` with zero unresolved S0/S1 clears Gate 6.
+- [x] [20260815-31] **Sub-floor exception mechanism — RESOLVED by ADR-003 (merged, `ac17f42b`).** Gate 6 no longer floor-compares a mean; `LLM_SKILL_REVIEW_MIN` is gone. No bypass, no `--no-verify`, no constant edit needed.
+- [x] [20260815-32] **E4 — envelope not bound to the diff — CONFIRMED AND FIXED on PR #1193 (`c1456557`).** Verified exploitable end to end: an unreviewed edit to `skills/engineering/llm-skill-review/skill.md` cleared Gate 6 via a copied envelope, because the resulting sentinel names the *new* commit and satisfies the staleness check. Envelopes now carry `head_sha` checked against the commit being cleared, and at least one `clean_dimensions` entry must carry replayable evidence. The same defect class was found and fixed in the sibling internal toolkit's two sentinel writers, where an empty envelope was the documented quick-start.
+- [ ] [20260815-33] **Dependabot #1186 closed, CVE still open** — `@hono/node-server` path traversal in `serve-static`, severity medium. PR was closed (Dependabot "won't notify again"), alert remains open. Not addressed by any workstream.
+
+---
+
 ## HISTORY
 
 ### 2026-08-15
