@@ -1,7 +1,7 @@
 # Workstreams — explain-like-im-five + llm-skill-review calibration handoff
 
 Tracker for every finding from Claude's 2026-08-15 handoff (`claude/eli5-writing-skill-d08zzf`).
-Working PR #1190 merged 2026-08-15. Follow-on: `cursor/handoff-cleanup-cve-1111` (CVE pin + tracker catch-up) → `origin/dev`.
+Working PR #1190 merged 2026-08-15. Follow-on: https://github.com/bordenet/superpowers-plus/pull/1200 (`cursor/handoff-cleanup-cve-1111` → `origin/dev`).
 Source issue: https://github.com/bordenet/superpowers-plus/issues/1187 (still open; `gh` cannot close issues from this agent — human close after confirming ADR-003 closed the gate-floor complaint).
 
 Status legend: `[ ]` open · `[~]` in progress · `[x]` done · `[-]` cancelled / superseded
@@ -88,7 +88,7 @@ Branch `fix/gate6-floor-test-coverage`, pushed 2026-08-16. **SUPERSEDED — do n
 
 ## HANDOFF — resume state (READ FIRST)
 
-**Updated 2026-08-17 (cleanup pass).** WS1–WS8 and ADR-003/004 are on GitHub. Open PRs: none as of the start of this pass. Tips: `origin/dev` `88552b6` (merge #1197); `origin/staging` and `origin/main` `10f251d` (merge #1199). Trees of the three protected tips were identical (`git diff-tree --quiet` exit 0) before the CVE pin; SHAs differ only by promotion merges.
+**Updated 2026-08-17 (cleanup pass).** WS1–WS8 and ADR-003/004 are on GitHub. Open follow-on: PR #1200. Tips at start of this pass: `origin/dev` `88552b6` (merge #1197); `origin/staging` and `origin/main` `10f251d` (merge #1199). Trees of the three protected tips were identical (`git diff-tree --quiet` exit 0) before the CVE pin; SHAs differ only by promotion merges.
 
 **Why some earlier pushes did not land:** not a gate rejection. Pre-push Gate 1 (`tools/test-all.sh --fast`) takes **115s measured** and passes; adding the other six gates exceeds a 2-minute shell timeout. Allow **5 minutes** per push. This still holds.
 
@@ -136,3 +136,4 @@ Branch `fix/gate6-floor-test-coverage`, pushed 2026-08-16. **SUPERSEDED — do n
 - [x] [20260817-01] History-scan hardening recovered as PR #1197 and promoted (#1198/#1199)
 - [x] [20260817-02] ADR-003 Gate 6 v2 + ADR-004 guidance-regression accepted and implemented (PR #1193)
 - [x] [20260817-03] Pin MCP transitive `@hono/node-server` 1.19.14 → 2.1.0 (`overrides`); tracker catch-up for WS8/WS9 stale claims
+- [x] [20260817-08] Hermeticize `test/use-skill-cli.test.js` known-skill case; add it to CI node-tests (was local-`test-all.sh`-only and required `~/.codex/skills`)
