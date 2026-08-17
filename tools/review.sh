@@ -128,7 +128,7 @@ maybe_sep() {
 if [[ "${#LLM_PATHS[@]}" -gt 0 ]]; then
     maybe_sep
     emit_block "llm-skill-review" \
-               "tools/run-llm-skill-review.sh --verdict PASS --min-score 9.0" \
+               "tools/run-llm-skill-review.sh --verdict PASS|PASS_WITH_RISKS --min-score <Prose/Design-mean>" \
                ".llm-skill-review-cleared" \
                "${LLM_PATHS[@]}"
 fi

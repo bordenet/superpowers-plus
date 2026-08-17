@@ -1,0 +1,16 @@
+{
+  "skill_path": "skills/security/repo-security-scan/skill.md",
+  "must_match": [
+    "gitleaks|git log -p",
+    "INCOMPLETE",
+    "HISTORY_RE=.*TOKEN_RE.*ASSIGN_RE"
+  ],
+  "must_not_match": [
+    "head -n 500",
+    "head -500"
+  ],
+  "required_phrases": [
+    "do not claim",
+    "skills/_shared/secret-detection.md"
+  ]
+}

@@ -231,19 +231,19 @@ List the next test scenarios that should run before merge.
 
 ## Enforcement Status
 
-`tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth), and **supersedes** -- not supplements -- the PHR and code-review gates for those file classes (both explicitly exclude them; see each gate's own header, and `tools/md-files-changed.sh`'s `LLM_OWNED_REGEX` for the single-source-of-truth boundary). A push touching only these files therefore needs exactly one review, not two or three redundant ones (a push touching other file classes too still needs their own gates). `tools/run-phr.sh`/`tools/run-battery.sh` are pure sentinel-writers; the `--min-score` fed to `tools/run-llm-skill-review.sh` is the Prose/Design cross-persona mean -- see "Sentinel write" below for the exact rule, not a score combined from both scorecards (no such combined number exists; "Combining both scorecards" above defines verdict rules only, never a numeric formula). See reference.md's "Enforcement Detail" for the envelope format. Non-`.md` files under `skills/` (scripts, config) are still code-review's job, not this gate's -- it owns skill *prose* and the other LLM-instruction file classes above (this is the "Exception" carve-out in When to Use above, not a separate gap).
+Gate 6 requires `.llm-skill-review-cleared` **v2** for `skills/*.md`, `.ai-guidance/*.md`, and AGENTS.md-family files, and **supersedes** PHR/code-review for those classes (`tools/md-files-changed.sh` `LLM_OWNED_REGEX`). Pass (**ADR-003**): verdict `PASS`|`PASS_WITH_RISKS`, `unresolved_s0_s1=0`, non-vacuous `clean_dimensions`, `evidence_replay=ok` (or `bypassed` with `PASS` only). `--min-score` is Prose/Design mean as sentinel **metadata** (`mean=`) — Gate 6 does not floor-compare it. Envelope details: reference.md "Enforcement Detail". Non-`.md` under `skills/` stays code-review's job.
 
-**Sentinel write, after PASS:** create the evidence envelope, then write the sentinel (envelope shape and rationale, and the recommended PR-description heading convention for recording the score: see reference.md's "Enforcement Detail").
+**Sentinel write:** findings need `severity`; the envelope needs `"head_sha"` equal to the commit being cleared; at least one `clean_dimensions` entry needs replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) — a bare string or an all-`verifiable:false` set is refused as vacuous. Then:
 
 ```bash
-HEAD_SHA=$(git rev-parse HEAD)
-mkdir -p .cr-battery-runs
-echo '{"findings":[],"clean_dimensions":[]}' > ".cr-battery-runs/${HEAD_SHA}-llm-skill-review.json"
+HEAD_SHA=$(git rev-parse HEAD); mkdir -p .cr-battery-runs
+# write envelope to .cr-battery-runs/${HEAD_SHA}-llm-skill-review.json,
+# including "head_sha": "${HEAD_SHA}" in the body -- the filename binds nothing
 tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
 ```
-Use the Prose/Design cross-persona mean (Persona 6's PHR ensemble aggregate) as `--min-score` -- LLM-Execution per-axis scores produce no separate aggregate to average. Root config files (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `COPILOT.md`, `GEMINI.md`) are covered by this gate alone -- per the "supersedes -- not supplements" rule above, they do NOT additionally need `tools/run-phr.sh`. Unsure which sentinel(s) a push needs? Run `tools/which-gate.sh <path>` for a code-derived answer rather than trusting this prose.
+
+`--min-score` = Persona 6 Prose/Design mean. AGENTS-family files need this gate alone (not also PHR). Unsure? `tools/which-gate.sh <path>`.
 
 ## Final Reminder
 
-These artifacts are not consumed primarily by humans. They are consumed by LLMs acting under uncertainty.
-Review accordingly.
+These artifacts are consumed by LLMs under uncertainty. Review accordingly.
