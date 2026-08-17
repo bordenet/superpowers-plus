@@ -57,7 +57,7 @@ if (!path) fail('envelope path required');
 if (!headSha.trim()) {
   fail(
     '--head-sha <sha> is required. Without it the envelope is bound to nothing ' +
-      'but its filename, and a filename can be copied (ADR-003 §2).'
+      'but its filename, and a filename can be copied (ADR-003 §5).'
   );
 }
 
@@ -73,7 +73,7 @@ if (!env || typeof env !== 'object') fail('envelope must be a JSON object');
 if (typeof env.head_sha !== 'string' || !env.head_sha.trim()) {
   fail(
     'envelope.head_sha missing: the envelope must name the commit it reviewed. ' +
-      'Add "head_sha": "<sha>" (ADR-003 §2)'
+      'Add "head_sha": "<sha>" (ADR-003 §5)'
   );
 }
 if (env.head_sha.trim() !== headSha.trim()) {
@@ -86,7 +86,7 @@ if (env.head_sha.trim() !== headSha.trim()) {
         ? 'It looks abbreviated -- use the full 40-character `git rev-parse HEAD`.'
         : 'This envelope reviewed different code; re-review at HEAD rather than ' +
           'reusing it') +
-      ' (ADR-003 §2)'
+      ' (ADR-003 §5)'
   );
 }
 

@@ -26,7 +26,7 @@ teardown() {
 }
 
 # Writes the envelope verbatim -- no head_sha injected. Use for the negative
-# cases that exercise the ADR-003 §2 binding itself.
+# cases that exercise the ADR-003 §5 binding itself.
 _write_envelope_raw() {
     SHA="$(git rev-parse HEAD)"
     mkdir -p .cr-battery-runs
@@ -137,7 +137,7 @@ _clean_dim() {
     [[ "$output" == *"bypass active"* ]]
 }
 
-# --- ADR-003 §2: the envelope must name the commit it reviewed -------------
+# --- ADR-003 §5: the envelope must name the commit it reviewed -------------
 # The filename carries a SHA, but a filename is not a claim -- copying one
 # envelope over another name is a single `cp`, and the sentinel that results
 # names the new commit, so Gate 6's own sha check cannot tell the difference.

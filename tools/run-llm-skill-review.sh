@@ -66,7 +66,7 @@ Envelope path (when not bypassed):
   .cr-battery-runs/<HEAD_SHA>-llm-skill-review.json
   Findings MUST include severity S0|S1|S2|S3.
   Envelope MUST carry "head_sha": "<HEAD_SHA>" matching the commit being
-  cleared -- the filename alone is copyable and binds nothing (ADR-003 §2).
+  cleared -- the filename alone is copyable and binds nothing (ADR-003 §5).
   At least one clean_dimensions entry MUST carry replayable evidence
   ({"evidence":{"command":"...","verifiable":true}}) (ADR-003 §4).
 
@@ -148,7 +148,9 @@ else
         echo "  Before calling this script, write llm-skill-review's aggregated" >&2
         echo "  findings + clean-dimension verdicts as a JSON envelope to this path." >&2
         echo "  See skills/engineering/llm-skill-review/reference.md, 'Evidence Schema'." >&2
-        echo "  Findings MUST include severity; clean_dimensions.length must be >= 1." >&2
+        echo "  Findings MUST include severity. The envelope MUST carry" >&2
+        echo "  \"head_sha\": \"${SENTINEL_SHA}\", and at least one clean_dimensions" >&2
+        echo "  entry MUST carry {\"evidence\":{\"command\":...,\"verifiable\":true}}." >&2
         echo "" >&2
         echo "  Sentinel NOT written." >&2
         exit 1
