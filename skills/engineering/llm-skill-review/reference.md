@@ -231,13 +231,41 @@ A review that ships a high verdict alongside material defects is worse than a re
 
 ## Enforcement Detail
 
-`tools/run-llm-skill-review.sh --verdict PASS|PASS_WITH_RISKS --min-score <Prose/Design-mean>` gives this skill's Evidence Requirement mechanical teeth (ADR-003). `--min-score` is the Prose/Design cross-persona mean alone (no combined number exists); Gate 6 records it as sentinel **metadata** and does **not** floor-compare it. The writer requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"findings": [...], "clean_dimensions": [...]}` -- with `clean_dimensions.length >= 1`, each finding carrying `severity`, and evidence replay via `tools/verify-cr-battery-evidence.js` before writing `.llm-skill-review-cleared`. A falsified claim or unresolved S0/S1 aborts the write. `--no-envelope` is allowed only with `--verdict PASS` (loud warning); never with `PASS_WITH_RISKS`.
+`tools/run-llm-skill-review.sh --verdict PASS|PASS_WITH_RISKS --min-score <Prose/Design-mean>` gives this skill's Evidence Requirement mechanical teeth (ADR-003). `--min-score` is the Prose/Design cross-persona mean alone (no combined number exists); Gate 6 records it as sentinel **metadata** and does **not** floor-compare it. The writer requires a `.cr-battery-runs/<HEAD-sha>-llm-skill-review.json` envelope -- shape `{"head_sha": "<HEAD-sha>", "findings": [...], "clean_dimensions": [...]}` -- with `head_sha` matching the commit being cleared, **at least one `clean_dimensions` entry carrying replayable evidence** (`{"evidence":{"command":"...","verifiable":true}}`), each finding carrying `severity`, and evidence replay via `tools/verify-cr-battery-evidence.js` before writing `.llm-skill-review-cleared`. A falsified claim or unresolved S0/S1 aborts the write. `--no-envelope` is allowed only with `--verdict PASS` (loud warning); never with `PASS_WITH_RISKS`.
 
 This is a **separate sentinel from `.phr-cleared`**, deliberately -- `tools/run-phr.sh` is also the sentinel-writer for plain progressive-harsh-review rounds on plans/designs that never produce an Evidence Schema envelope at all, so making it require one unconditionally would break that unrelated use case.
 
 `tools/pre-push`'s Gate 6 (`tools/pre-push-llm-skill-review-gate.sh`) requires `.llm-skill-review-cleared` **v2** for any push touching `skills/*.md`, `.ai-guidance/*.md`, or an AGENTS.md-family file (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `CODEX.md`, `COPILOT.md`, `AGENT.md`, at any path depth). Pass condition (ADR-003): verdict `PASS` or `PASS_WITH_RISKS`, `unresolved_s0_s1=0`, and `evidence_replay=ok` (or `bypassed` only with `PASS`). This **supersedes** the PHR gate and the code-review gate for those file classes specifically.
 
-**Evidence envelope creation, before writing the sentinel:** the envelope file is `.cr-battery-runs/<HEAD-SHA>-llm-skill-review.json`, shape `{"findings":[],"clean_dimensions":[]}` at minimum (see Evidence Schema above for the full shape when there are real findings). `tools/run-llm-skill-review.sh` errors out with `Evidence envelope not found` if this file is missing before the sentinel write. `--no-envelope` is a declared escape hatch but prints a loud warning; prefer creating the empty envelope instead, and reserve `--no-envelope` for when there is genuinely nothing to verify.
+**Evidence envelope creation, before writing the sentinel:** the envelope file is `.cr-battery-runs/<HEAD-SHA>-llm-skill-review.json` (see Evidence Schema above for the full shape when there are real findings). Minimum shape:
+
+```json
+{
+  "head_sha": "<HEAD-SHA>",
+  "findings": [],
+  "clean_dimensions": [
+    {
+      "reviewer": "Runtime Determinist",
+      "dimension": "Correctness",
+      "claim": "no unguarded `set -e` interaction in the changed block",
+      "evidence": {
+        "command": "grep -c 'set +e' tools/run-llm-skill-review.sh",
+        "expectation": { "type": "count", "value": ">0" },
+        "verifiable": true
+      }
+    }
+  ]
+}
+```
+
+`tools/run-llm-skill-review.sh` errors out with `Evidence envelope not found` if this file is missing before the sentinel write.
+
+Two properties are enforced, not conventional:
+
+- **`head_sha` must match the commit being cleared.** The filename carries a SHA too, but a filename binds nothing -- `cp <reviewed>.json <unreviewed>.json` replays a clean review onto code nobody read, and the sentinel that results names the new commit, so Gate 6's own staleness check cannot tell the difference. Putting the SHA in the body means forging it requires writing a false statement.
+- **At least one `clean_dimensions` entry must carry replayable evidence.** A non-empty array is not proof of review. A bare string (`["Correctness"]`) or a set where every entry is `verifiable: false` asserts cleanliness without having checked anything -- exactly the posture ADR-003 exists to reject. Judgment-only clean dimensions are still welcome alongside at least one replayable one.
+
+`--no-envelope` is a declared escape hatch but prints a loud warning and is `PASS`-only; prefer writing a real envelope, and reserve it for when there is genuinely nothing to verify.
 
 **Recording the score in a PR description (recommended convention, not currently CI-enforced in this repo):** paste the score under a specific, consistent markdown heading rather than burying it in prose, for example:
 

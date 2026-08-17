@@ -25,10 +25,18 @@ teardown() {
     rm -rf "$WORK"
 }
 
-_write_envelope() {
+# Writes the envelope verbatim -- no head_sha injected. Use for the negative
+# cases that exercise the ADR-003 §2 binding itself.
+_write_envelope_raw() {
     SHA="$(git rev-parse HEAD)"
     mkdir -p .cr-battery-runs
     printf '%s' "$1" > ".cr-battery-runs/${SHA}-llm-skill-review.json"
+}
+
+# Binds the envelope to the current HEAD, which every honest envelope must do.
+# Takes an object literal and splices head_sha in as the first key.
+_write_envelope() {
+    _write_envelope_raw "$(printf '{"head_sha":"%s",%s' "$(git rev-parse HEAD)" "${1#\{}")"
 }
 
 _clean_dim() {
@@ -127,4 +135,75 @@ _clean_dim() {
     [ -f .llm-skill-review-cleared ]
     [[ "$(cat .llm-skill-review-cleared)" == *evidence_replay=bypassed* ]]
     [[ "$output" == *"bypass active"* ]]
+}
+
+# --- ADR-003 §2: the envelope must name the commit it reviewed -------------
+# The filename carries a SHA, but a filename is not a claim -- copying one
+# envelope over another name is a single `cp`, and the sentinel that results
+# names the new commit, so Gate 6's own sha check cannot tell the difference.
+# These pin the binding to the envelope body, where forging it means writing a
+# false statement rather than copying a file.
+
+@test "envelope: missing head_sha -> refuse" {
+    _write_envelope_raw "{\"findings\":[],\"clean_dimensions\":[$(_clean_dim)]}"
+    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 8.6
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"head_sha"* ]]
+    [ ! -f .llm-skill-review-cleared ]
+}
+
+@test "envelope: head_sha from a different commit -> refuse (replay attack)" {
+    # An honest review at commit A, then A's envelope copied onto B's name.
+    OLD_SHA="$(git rev-parse HEAD)"
+    _write_envelope_raw "{\"head_sha\":\"$OLD_SHA\",\"findings\":[],\"clean_dimensions\":[$(_clean_dim)]}"
+    echo "unreviewed change" >> a.txt
+    git commit -q -am "second commit"
+    NEW_SHA="$(git rev-parse HEAD)"
+    cp ".cr-battery-runs/${OLD_SHA}-llm-skill-review.json" \
+       ".cr-battery-runs/${NEW_SHA}-llm-skill-review.json"
+
+    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 8.6
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"head_sha"* ]]
+    [ ! -f .llm-skill-review-cleared ]
+}
+
+# --- ADR-003 §4: "non-vacuous" means evidence, not a non-empty array -------
+
+@test "envelope: clean_dimension as a bare string -> refuse (vacuous)" {
+    _write_envelope '{"findings":[],"clean_dimensions":["Correctness"]}'
+    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 8.6
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"non-vacuous"* ]]
+    [ ! -f .llm-skill-review-cleared ]
+}
+
+@test "envelope: every clean_dimension unverifiable -> refuse (vacuous)" {
+    _write_envelope '{"findings":[],"clean_dimensions":[{"claim":"looks fine","evidence":{"verifiable":false,"rationale":"judgment"}}]}'
+    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 8.6
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"non-vacuous"* ]]
+    [ ! -f .llm-skill-review-cleared ]
+}
+
+@test "envelope: one replayable clean_dimension among unverifiable ones -> written" {
+    _write_envelope "{\"findings\":[],\"clean_dimensions\":[{\"claim\":\"looks fine\",\"evidence\":{\"verifiable\":false,\"rationale\":\"judgment\"}},$(_clean_dim)]}"
+    run ./tools/run-llm-skill-review.sh --verdict PASS --min-score 8.6
+    [ "$status" -eq 0 ]
+    [ -f .llm-skill-review-cleared ]
+}
+
+@test "gate: abbreviated head_sha is named as such, not reported as a replay" {
+    SHA="$(git rev-parse HEAD)"
+    printf '{"head_sha":"%s","findings":[],"clean_dimensions":[]}' "${SHA:0:8}" > "$WORK/eg.json"
+    run node ./tools/lib/llm-skill-review-envelope-gate.js "$WORK/eg.json" --head-sha "$SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"abbreviated"* ]]
+}
+
+@test "gate: --head-sha is required (fail closed, not skip)" {
+    printf '{"head_sha":"deadbeef","findings":[],"clean_dimensions":[]}' > "$WORK/eg.json"
+    run node ./tools/lib/llm-skill-review-envelope-gate.js "$WORK/eg.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"--head-sha"* ]]
 }

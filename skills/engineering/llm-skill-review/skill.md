@@ -233,11 +233,12 @@ List the next test scenarios that should run before merge.
 
 Gate 6 requires `.llm-skill-review-cleared` **v2** for `skills/*.md`, `.ai-guidance/*.md`, and AGENTS.md-family files, and **supersedes** PHR/code-review for those classes (`tools/md-files-changed.sh` `LLM_OWNED_REGEX`). Pass (**ADR-003**): verdict `PASS`|`PASS_WITH_RISKS`, `unresolved_s0_s1=0`, non-vacuous `clean_dimensions`, `evidence_replay=ok` (or `bypassed` with `PASS` only). `--min-score` is Prose/Design mean as sentinel **metadata** (`mean=`) — Gate 6 does not floor-compare it. Envelope details: reference.md "Enforcement Detail". Non-`.md` under `skills/` stays code-review's job.
 
-**Sentinel write:** findings need `severity`; `clean_dimensions.length >= 1`; then:
+**Sentinel write:** findings need `severity`; the envelope needs `"head_sha"` equal to the commit being cleared; at least one `clean_dimensions` entry needs replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) — a bare string or an all-`verifiable:false` set is refused as vacuous. Then:
 
 ```bash
 HEAD_SHA=$(git rev-parse HEAD); mkdir -p .cr-battery-runs
-# write non-empty envelope to .cr-battery-runs/${HEAD_SHA}-llm-skill-review.json
+# write envelope to .cr-battery-runs/${HEAD_SHA}-llm-skill-review.json,
+# including "head_sha": "${HEAD_SHA}" in the body -- the filename binds nothing
 tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
 ```
 

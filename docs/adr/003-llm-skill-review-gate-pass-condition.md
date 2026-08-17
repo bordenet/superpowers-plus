@@ -26,14 +26,16 @@ Concrete, independently verified defects were found (history-scan gap, contradic
 Change the **pass condition** for writing `.llm-skill-review-cleared` to all of the following:
 
 1. **Verdict** is `PASS` or `PASS_WITH_RISKS` (CLI token uses underscore; reject still blocks).
-2. **Zero unresolved S0/S1** in the evidence envelope, where each finding MUST carry:
+2. **Envelope bound to the reviewed commit, and zero unresolved S0/S1.** The envelope MUST carry `"head_sha": "<sha>"` equal to the commit being cleared. The envelope filename also contains a SHA, but a filename is not an assertion: copying `<reviewed-sha>.json` onto `<unreviewed-sha>.json` replays a clean review onto code nobody read, and the sentinel that results names the *new* commit, so Gate 6's staleness check (`sentinel_sha != pushed_sha`) cannot detect it. Binding in the body makes forgery a false statement rather than a file copy.
+
+   Each finding MUST carry:
    - `"severity": "S0"|"S1"|"S2"|"S3"`
    - optional `"waiver": {"by":"human","ref":"<PR-comment-URL>","rationale":"..."}`
    - Pass iff `count(findings where severity in {S0,S1} and waiver absent) == 0`.
    - **S0 is non-waivable via envelope alone** — requires human PR comment URL **and** explicit `--allow-s0-waiver` on the writer. S1 may use envelope waiver with rationale.
 3. **Evidence replay succeeds** via `tools/verify-cr-battery-evidence.js` for every `evidence.command` (Decision §3 only). Decision §2 is enforced in `tools/run-llm-skill-review.sh` (severity/waiver check), **not** by verify-cr alone.
 4. **Non-vacuous review proof** — refuse empty envelopes for `skills/**/*.md` changes:
-   - **Required:** `clean_dimensions.length >= 1` with replayable evidence covering at least one scored axis.
+   - **Required:** at least one `clean_dimensions` entry carrying replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) covering a scored axis. Array length alone is not the test — a bare string or an all-`verifiable:false` set is refused.
    - Attested metadata `{rounds, personas, artifact_paths, prose_design_mean}` is **additive** (recorded alongside), never a substitute for clean_dimensions.
    - `--no-envelope` is disallowed when writing `PASS_WITH_RISKS` (PASS-only escape hatch, still loud).
 
@@ -56,6 +58,8 @@ Optional follow-on: warn-only advisory in CI if mean < 9.0 (soft quality target 
 ### Negative / risks
 
 - Agents may aim for `PASS_WITH_RISKS` if S1 waivers are too easy — mitigate with required rationale + PR ref.
+- `head_sha` binding stops envelope *reuse*, not dishonesty. An agent that writes the correct `head_sha` for a review it performed carelessly still clears the gate. The bar this sets is that clearing the gate on unreviewed code now requires stating something false, rather than copying a file. Binding to a diff hash instead of a commit SHA would narrow it further and is deliberately deferred — at the point the envelope is written, HEAD is the artifact under review.
+- Requiring one replayable `clean_dimensions` entry raises the floor on cheap "looks fine" envelopes but does not force *breadth*: one replayable dimension plus nine judgment calls still passes. Per-axis coverage enforcement is left to the reviewer's scoring caps in `verify-cr-battery-evidence.js`.
 - Existing docs and help text that said ">= 9.0" must be updated in the same change set as the scripts.
 - Does not by itself add guidance-regression fixtures for prompt-only skills (see ADR-004).
 

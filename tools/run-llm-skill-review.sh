@@ -64,7 +64,11 @@ Sentinel format (v2):
 
 Envelope path (when not bypassed):
   .cr-battery-runs/<HEAD_SHA>-llm-skill-review.json
-  Findings MUST include severity S0|S1|S2|S3. clean_dimensions.length >= 1.
+  Findings MUST include severity S0|S1|S2|S3.
+  Envelope MUST carry "head_sha": "<HEAD_SHA>" matching the commit being
+  cleared -- the filename alone is copyable and binds nothing (ADR-003 §2).
+  At least one clean_dimensions entry MUST carry replayable evidence
+  ({"evidence":{"command":"...","verifiable":true}}) (ADR-003 §4).
 
 Exit codes:
   0  Sentinel written
@@ -192,7 +196,7 @@ else
     echo ""
 
     echo "--- llm-skill-review ADR-003 envelope gate ---"
-    GATE_ARGS=("$ENVELOPE_GATE" "$PRESERVE_FILE")
+    GATE_ARGS=("$ENVELOPE_GATE" "$PRESERVE_FILE" --head-sha "$SENTINEL_SHA")
     if [[ "$ALLOW_S0_WAIVER" == "1" ]]; then
         GATE_ARGS+=(--allow-s0-waiver)
     fi
