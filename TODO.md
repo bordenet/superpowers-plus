@@ -1,8 +1,8 @@
 # Workstreams — explain-like-im-five + llm-skill-review calibration handoff
 
 Tracker for every finding from Claude's 2026-08-15 handoff (`claude/eli5-writing-skill-d08zzf`).
-Working PR: https://github.com/bordenet/superpowers-plus/pull/1190 (`cursor/handoff-todo-workstreams-1111` → `origin/dev`).
-Source issue: https://github.com/bordenet/superpowers-plus/issues/1187
+Working PR #1190 merged 2026-08-15. Follow-on: `cursor/handoff-cleanup-cve-1111` (CVE pin + tracker catch-up) → `origin/dev`.
+Source issue: https://github.com/bordenet/superpowers-plus/issues/1187 (still open; `gh` cannot close issues from this agent — human close after confirming ADR-003 closed the gate-floor complaint).
 
 Status legend: `[ ]` open · `[~]` in progress · `[x]` done · `[-]` cancelled / superseded
 
@@ -57,8 +57,7 @@ Four independent `llm-skill-review` rounds: final **PASS WITH RISKS**, Prose/Des
 
 ## WS8 — `repo-security-scan` history-scan hardening (Claude, 2026-08-15 evening)
 
-Delta on top of WS3. Branch `fix/history-scan-hardening`, 5 commits, based on `origin/dev` `c6a63899`.
-**STILL UNPUSHED as of 2026-08-17 — exists only on the machine that wrote it, and cannot be recovered from anywhere else.** No longer blocked by the Gate 6 floor (ADR-003 removed it); it needs an honest `PASS_WITH_RISKS` sentinel, not a bypass. Does NOT conflict with the merged PR #1193 (verified: zero shared files, clean `git merge-tree`).
+Delta on top of WS3. Original branch `fix/history-scan-hardening` was machine-local. Recovered and landed as `fix/history-scan-hardening-v2` → **PR #1197** (merged to `origin/dev` 2026-08-17, `88552b6`), promoted **#1198** `dev→staging` / **#1199** `staging→main`. Leftover remote `origin/fix/history-scan-hardening` is older WIP (skill diff vs `origin/dev` empty); prune when convenient. `origin/fix/history-scan-hardening-v2` is an ancestor of `origin/dev`.
 
 Four defects found in WS3's merged version, each verified by executing the shipped command:
 
@@ -89,29 +88,31 @@ Branch `fix/gate6-floor-test-coverage`, pushed 2026-08-16. **SUPERSEDED — do n
 
 ## HANDOFF — resume state (READ FIRST)
 
-**Updated 2026-08-17.** The 2026-08-16 version of this section said "nothing below is on `origin` yet." That is no longer true for most of it, and the parts that changed are corrected in place below rather than left to mislead the next machine.
+**Updated 2026-08-17 (cleanup pass).** WS1–WS8 and ADR-003/004 are on GitHub. Open PRs: none as of the start of this pass. Tips: `origin/dev` `88552b6` (merge #1197); `origin/staging` and `origin/main` `10f251d` (merge #1199). Trees of the three protected tips were identical (`git diff-tree --quiet` exit 0) before the CVE pin; SHAs differ only by promotion merges.
 
-**Why the original push didn't land:** not a gate rejection. Pre-push Gate 1 (`tools/test-all.sh --fast`) takes **115s measured** and passes; adding the other six gates exceeds a 2-minute shell timeout. Allow **5 minutes** per push. This still holds.
+**Why some earlier pushes did not land:** not a gate rejection. Pre-push Gate 1 (`tools/test-all.sh --fast`) takes **115s measured** and passes; adding the other six gates exceeds a 2-minute shell timeout. Allow **5 minutes** per push. This still holds.
 
-| Branch | State as of 2026-08-17 |
+| Branch | State as of 2026-08-17 cleanup |
 |---|---|
-| `fix/gate6-floor-test-coverage` | Pushed. **Superseded — do not merge as-is.** See below. |
+| `fix/gate6-floor-test-coverage` | Pushed. **Superseded — do not merge as-is.** |
 | `cursor/accept-adr-003-004-1111` (PR #1193) | **Merged to `dev`** at `ac17f42b`, including the E4 fix. |
-| `fix/history-scan-hardening` | **Still unpushed. Still exists only on the machine that wrote it.** 5 commits. This is the one real loss risk left. |
+| `fix/history-scan-hardening-v2` (PR #1197) | **Merged to `dev`.** Promoted via #1198/#1199. |
+| `origin/fix/history-scan-hardening` | Leftover older WIP remote. Skill diff vs `origin/dev` empty. Prune when convenient. |
+| `cursor/handoff-cleanup-cve-1111` | This pass: pin `@hono/node-server` 2.1.0 + tracker catch-up. |
 
 **`fix/gate6-floor-test-coverage` is superseded.** ADR-003 removed the numeric floor from Gate 6 entirely — `LLM_SKILL_REVIEW_MIN` no longer exists in `tools/pre-push-llm-skill-review-gate.sh`. The branch's whole subject is a floor that is gone, so its `test/pre-push-llm-skill-review-gate.bats` changes have no target and conflict with the merged version. Only this tracker was salvaged from it. The durable lesson survives even though the code did not: **a bats harness that redefines a production constant in its own generated preamble silently voids the coverage it appears to provide.** Worth checking for elsewhere.
 
-**`fix/history-scan-hardening` is no longer blocked by the floor.** WS9 items 20260815-30 and 20260815-31 assumed Gate 6 compares a mean against 9.0 and that landing a sub-floor security fix needed a bypass or a lowered constant. ADR-003 replaced that with: verdict `PASS` or `PASS_WITH_RISKS`, zero unresolved S0/S1, and a non-vacuous evidence envelope. An honest `PASS_WITH_RISKS` now lands it without `--no-verify` and without touching any constant. That was the point of the ADR.
+## WS9 — Residual human / ops
 
-Push it from the machine that has it — it cannot be recovered from anywhere else.
-
-## WS9 — Blocked / needs human action
-
-- [ ] [20260815-29] **Push `fix/history-scan-hardening`** — blocked by `pre-tool-use-red-autonomy.sh`; needs a file-based approval token for this ref (phrase approval was consumed by an earlier ref and does not carry over)
-- [ ] [20260815-30] **Honest score for HEAD `cd18d676`** — last review scored `8e2c50d8` at 6.12 (MAJOR REVISIONS); both S1s + three S2s + the vacuous test fixed since, but the current HEAD is UNSCORED. Still open, but no longer floor-gated: under ADR-003 the mean is sentinel metadata, so an honest `PASS_WITH_RISKS` with zero unresolved S0/S1 clears Gate 6.
+- [-] [20260815-29] **Push `fix/history-scan-hardening`** — superseded. Original machine-local branch was recovered as `fix/history-scan-hardening-v2` and merged via PR #1197.
+- [-] [20260815-30] **Honest score for HEAD `cd18d676`** — superseded. That SHA is not `origin/dev`; the history-scan skill on `origin/dev` is the #1197 tree. Gate 6 no longer floor-compares a mean (ADR-003).
 - [x] [20260815-31] **Sub-floor exception mechanism — RESOLVED by ADR-003 (merged, `ac17f42b`).** Gate 6 no longer floor-compares a mean; `LLM_SKILL_REVIEW_MIN` is gone. No bypass, no `--no-verify`, no constant edit needed.
 - [x] [20260815-32] **E4 — envelope not bound to the diff — CONFIRMED AND FIXED on PR #1193 (`c1456557`).** Verified exploitable end to end: an unreviewed edit to `skills/engineering/llm-skill-review/skill.md` cleared Gate 6 via a copied envelope, because the resulting sentinel names the *new* commit and satisfies the staleness check. Envelopes now carry `head_sha` checked against the commit being cleared, and at least one `clean_dimensions` entry must carry replayable evidence. The same defect class was found and fixed in the sibling internal toolkit's two sentinel writers, where an empty envelope was the documented quick-start.
-- [ ] [20260815-33] **Dependabot #1186 closed, CVE still open** — `@hono/node-server` path traversal in `serve-static`, severity medium. PR was closed (Dependabot "won't notify again"), alert remains open. Not addressed by any workstream.
+- [x] [20260815-33] **Dependabot #1186 / `@hono/node-server` path traversal** — pin `2.1.0` via `mcp/package.json` `overrides` (GHSA-frvp-7c67-39w9; 1.19.14 was in range and vulnerable). Lockfile + `npm audit` 0 vulnerabilities. GitHub Dependabot alert close still needs a human (this agent cannot dismiss alerts).
+- [ ] [20260817-04] **Human: close issue #1187** if ADR-003 + the merged calibration PRs answer it; this agent cannot close issues (`gh` is read-only for issues).
+- [ ] [20260817-05] **Human: dismiss the open Dependabot/GitHub alert** for `@hono/node-server` after this pin is on `origin/dev` (API 403 from this agent).
+- [ ] [20260817-06] **Prune leftover remote `origin/fix/history-scan-hardening`** (older WIP; skill diff vs `origin/dev` empty). Branch-delete is a RED action; needs an explicit prune approval, not bundled with a feature-branch push.
+- [ ] [20260817-07] **Promote this CVE pin `dev → staging → main`** after it merges to `origin/dev`. Promotion needs a fresh "approve push" in the session that does it (authorization does not survive compaction/handoff).
 
 ---
 
@@ -130,3 +131,8 @@ Push it from the machine that has it — it cannot be recovered from anywhere el
 - [x] [20260815-18] Fixed leftover "combined score" in run-llm-skill-review.sh + pre-push gate message
 - [x] [20260815-19] Fixed eli5 broken summarization-skill redirect
 - [x] [20260815-20] Multi-gate re-review: fixed S0 truncation/parity, S2 path, S3 dup section, ADR PHR gaps; wrote CRB/PHR/llm-skill-review sentinels (llm mean 8.6 < Gate 6 floor 9.0)
+
+### 2026-08-17
+- [x] [20260817-01] History-scan hardening recovered as PR #1197 and promoted (#1198/#1199)
+- [x] [20260817-02] ADR-003 Gate 6 v2 + ADR-004 guidance-regression accepted and implemented (PR #1193)
+- [x] [20260817-03] Pin MCP transitive `@hono/node-server` 1.19.14 → 2.1.0 (`overrides`); tracker catch-up for WS8/WS9 stale claims
