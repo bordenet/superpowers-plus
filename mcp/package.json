@@ -19,5 +19,8 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "overrides": {
+    "@hono/node-server": "2.1.0"
   }
 }

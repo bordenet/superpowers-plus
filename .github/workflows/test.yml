@@ -70,6 +70,9 @@ jobs:
       - name: Language scanner tests
         run: node test/language-scanner.test.js
 
+      - name: use-skill CLI tests
+        run: node test/use-skill-cli.test.js
+
       - name: CR battery evidence verifier tests
         run: node test/verify-cr-battery-evidence.test.js
 
