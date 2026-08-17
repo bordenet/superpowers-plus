@@ -8,23 +8,13 @@
 # LLM to execute, not human-facing docs/design (see tools/md-files-changed.sh's
 # LLM_OWNED_REGEX, the single source of truth for this set):
 #   - skills/**/*.md
-#   - .ai-guidance/**/*.md (AGENTS.md overflow -- same audience, just split
-#     out on a line-count limit, per AGENTS.md's own self-management protocol)
+#   - .ai-guidance/**/*.md
 #   - AGENTS.md, CLAUDE.md, GEMINI.md, CODEX.md, COPILOT.md, AGENT.md, at
 #     any path depth
 #
-# This is the ONLY gate that applies to that content: it supersedes -- not
-# supplements -- the PHR gate and the code-review gate for these file
-# classes. Both of those gates explicitly exclude them from their own scope
-# (see their own headers) so a push touching only these files requires
-# exactly one review, not two or three redundant ones.
-#
-# llm-skill-review is the primary, default reviewer for this content -- it
-# covers both LLM-execution safety (determinism, shell portability, tool
-# contracts) and prose/design quality in one pass, folding in what
-# progressive-harsh-review would otherwise separately check for this file
-# class. tools/run-llm-skill-review.sh is the sentinel-writer (parallel to
-# tools/run-phr.sh and tools/run-battery.sh).
+# ADR-003: Gate 6 verifies sentinel v2 schema + unresolved_s0_s1=0 +
+# evidence_replay=(ok|bypassed with PASS). Prose/Design mean is metadata only
+# -- this gate does NOT compare mean to a numeric floor.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -43,16 +33,6 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 LLM_SKILL_REVIEW_SENTINEL="$REPO_ROOT/.llm-skill-review-cleared"
-
-# Minimum Prose/Design cross-persona mean the pre-push gate requires in the
-# sentinel's min-score field (writer accepts 1.0-10.0; this gate enforces
-# >= 9.0). Matches the pre-existing PHR_SKILLS_MIN floor this repo already
-# enforced for skills/ changes before this gate existed -- moving enforcement
-# of the same agreed-upon threshold from PHR to llm-skill-review, not
-# introducing a new one. (Not a "combined" Prose/Design + LLM-Execution
-# number; see llm-skill-review skill.md after #1188.)
-LLM_SKILL_REVIEW_MIN="9.0"
-
 REMOTE_NAME="${1:-origin}"
 
 # check_llm_skill_review_sentinel <range> <pushed_sha> [no_base]
@@ -67,10 +47,6 @@ check_llm_skill_review_sentinel() {
         return 0
     fi
 
-    # Compute changed files in the push range. Three input shapes, identical
-    # to the PHR gate's own enumeration (see that file for the rationale on
-    # each branch and on capturing git's exit status separately from any
-    # downstream filter pipeline).
     local range_files llm_owned_files _enum_ok=true
     if [[ "$no_base" == "no_base" ]]; then
         local _log_raw
@@ -113,43 +89,54 @@ check_llm_skill_review_sentinel() {
         echo -e "  ${RED}❌ PUSH BLOCKED: .llm-skill-review-cleared sentinel missing.${NC}"
         echo ""
         echo "  skills/*.md, .ai-guidance/*.md, and AGENTS.md-family changes require"
-        echo "  llm-skill-review (the primary reviewer for this content -- covers"
-        echo "  both LLM-execution safety and prose/design quality in one pass)."
-        echo "  After it passes (>= ${LLM_SKILL_REVIEW_MIN}/10), write the sentinel:"
-        echo "    tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
-        echo ""
-        echo "  This supersedes PHR and code-review-battery for this file class --"
-        echo "  neither of those gates require their own sentinel for these files."
+        echo "  llm-skill-review (ADR-003: verdict PASS|PASS_WITH_RISKS, unresolved"
+        echo "  S0/S1 = 0, non-vacuous clean_dimensions, evidence replay)."
+        echo "    tools/run-llm-skill-review.sh --verdict PASS --min-score <Prose/Design-mean>"
         echo ""
         return 1
     fi
 
-    # Parse the sentinel by reading FIRST LINE ONLY -- a multi-line file
-    # (corruption, manual edit, accidental append) must fail "format
-    # unrecognized", not produce ambiguous NF values from a multi-line awk.
-    local sentinel_line sentinel_ver sentinel_sha sentinel_verdict sentinel_ts sentinel_min field_count line_count
+    local sentinel_line sentinel_ver sentinel_sha sentinel_verdict sentinel_ts
+    local sentinel_mean sentinel_unresolved sentinel_replay
+    local field_count line_count
     line_count=$(awk 'NF{c++} END{print c+0}' "$LLM_SKILL_REVIEW_SENTINEL" 2>/dev/null || echo "0")
     sentinel_line=$(head -n1 "$LLM_SKILL_REVIEW_SENTINEL" 2>/dev/null || echo "")
     field_count=$(awk -F'|' '{print NF; exit}' <<< "$sentinel_line")
-    IFS='|' read -r sentinel_ver sentinel_sha sentinel_verdict sentinel_ts sentinel_min <<< "$sentinel_line"
+    IFS='|' read -r sentinel_ver sentinel_sha sentinel_verdict sentinel_ts \
+        sentinel_mean sentinel_unresolved sentinel_replay <<< "$sentinel_line"
 
-    if [[ "$sentinel_ver" != "v1" ]] || [[ "$field_count" -ne 5 ]] || [[ "$line_count" -gt 1 ]] || \
-       [[ -z "$sentinel_sha" ]] || [[ -z "$sentinel_verdict" ]] || [[ -z "$sentinel_ts" ]] || [[ -z "$sentinel_min" ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP|min-score=N).${NC}"
-        echo "    Delete .llm-skill-review-cleared and re-run: tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
+    if [[ "$sentinel_ver" != "v2" ]] || [[ "$field_count" -ne 7 ]] || [[ "$line_count" -gt 1 ]] || \
+       [[ -z "$sentinel_sha" ]] || [[ -z "$sentinel_verdict" ]] || [[ -z "$sentinel_ts" ]] || \
+       [[ -z "$sentinel_mean" ]] || [[ -z "$sentinel_unresolved" ]] || [[ -z "$sentinel_replay" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel format unrecognized (expected v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok).${NC}"
+        echo "    Delete .llm-skill-review-cleared and re-run: tools/run-llm-skill-review.sh --verdict PASS --min-score <mean>"
         return 1
     fi
 
-    if [[ "$sentinel_verdict" != "PASS" ]]; then
+    if [[ "$sentinel_verdict" != "PASS" && "$sentinel_verdict" != "PASS_WITH_RISKS" ]]; then
         echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review verdict was not passing (got '$sentinel_verdict').${NC}"
-        echo "    Only PASS clears the gate. Run another round, then:"
-        echo "      tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
+        echo "    Only PASS or PASS_WITH_RISKS clear the gate (ADR-003)."
         return 1
     fi
 
-    if [[ ! "$sentinel_min" =~ ^min-score=[0-9]+(\.[0-9]+)?$ ]]; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel min-score field malformed: '$sentinel_min'.${NC}"
-        echo "    Delete .llm-skill-review-cleared and re-run: tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
+    if [[ ! "$sentinel_mean" =~ ^mean=[0-9]+(\.[0-9]+)?$ ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel mean field malformed: '$sentinel_mean'.${NC}"
+        echo "    Expected mean=<Prose/Design-mean> (metadata only; not floor-compared)."
+        return 1
+    fi
+
+    if [[ "$sentinel_unresolved" != "unresolved_s0_s1=0" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel unresolved_s0_s1 is not 0 (got '$sentinel_unresolved').${NC}"
+        return 1
+    fi
+
+    if [[ "$sentinel_replay" != "evidence_replay=ok" && "$sentinel_replay" != "evidence_replay=bypassed" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel evidence_replay field malformed: '$sentinel_replay'.${NC}"
+        return 1
+    fi
+
+    if [[ "$sentinel_replay" == "evidence_replay=bypassed" && "$sentinel_verdict" != "PASS" ]]; then
+        echo -e "  ${RED}❌ PUSH BLOCKED: evidence_replay=bypassed is only allowed with verdict PASS (got '$sentinel_verdict').${NC}"
         return 1
     fi
 
@@ -161,21 +148,7 @@ check_llm_skill_review_sentinel() {
         return 1
     fi
 
-    local sentinel_score
-    sentinel_score="${sentinel_min#min-score=}"
-    if ! LC_ALL=C awk -v s="$sentinel_score" -v m="$LLM_SKILL_REVIEW_MIN" 'BEGIN { exit !(s >= m) }'; then
-        echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review score below project minimum for skills/ changes.${NC}"
-        echo "    Got:      min-score=${sentinel_score}"
-        echo "    Required: >= ${LLM_SKILL_REVIEW_MIN}"
-        echo "    Run additional rounds until the Prose/Design mean >= ${LLM_SKILL_REVIEW_MIN}, then:"
-        echo "      tools/run-llm-skill-review.sh --verdict PASS --min-score ${LLM_SKILL_REVIEW_MIN}"
-        return 1
-    fi
-
-    # Sentinel intentionally NOT consumed here: parity with the PHR and
-    # code-review sentinels, both SHA-bound so a single PASS covers re-pushes
-    # of the same SHA (different remote, retry after a transient failure).
-    echo -e "  ${GREEN}✓ llm-skill-review cleared: $sentinel_verdict ${sentinel_min} (${sentinel_sha:0:8})${NC}"
+    echo -e "  ${GREEN}✓ llm-skill-review cleared: $sentinel_verdict ${sentinel_mean} ${sentinel_unresolved} ${sentinel_replay} (${sentinel_sha:0:8})${NC}"
     return 0
 }
 

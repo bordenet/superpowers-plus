@@ -45,7 +45,6 @@ set -euo pipefail
 source ./stub-colors.sh
 REPO_ROOT="$PWD"
 LLM_SKILL_REVIEW_SENTINEL="$PWD/.llm-skill-review-cleared"
-LLM_SKILL_REVIEW_MIN="9.2"
 EOF
     cat extracted-fn.sh >> harness.sh
     cat >> harness.sh <<'EOF'
@@ -201,22 +200,22 @@ teardown() {
 # --- Valid sentinel passes ---
 
 @test "gate6: skills/*.md in push + valid PASS sentinel matching HEAD -> PASS" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 0 ]
     [[ "$output" == *"llm-skill-review cleared"* ]]
 }
 
-@test "gate6: PASS_WITH_NITS-style verdicts not accepted (only PASS clears)" {
-    echo "v1|${HEAD_SHA}|PASS_WITH_RISKS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
+@test "gate6: PASS_WITH_RISKS clears when unresolved_s0_s1=0 and evidence_replay=ok" {
+    echo "v2|${HEAD_SHA}|PASS_WITH_RISKS|2026-05-25T00:00:00Z|mean=7.5|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"not passing"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"llm-skill-review cleared"* ]]
 }
 
 @test "gate6: multi-line sentinel (corruption/append) -> BLOCK with format error" {
     {
-        echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.5"
+        echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=0|evidence_replay=ok"
         echo "GARBAGE_TRAILING_LINE"
     } > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
@@ -227,7 +226,7 @@ teardown() {
 # --- Stale sentinel (SHA mismatch) ---
 
 @test "gate6: sentinel SHA != pushed SHA -> BLOCK with 'stale'" {
-    echo "v1|deadbeef0000000000000000000000000000beef|PASS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
+    echo "v2|deadbeef0000000000000000000000000000beef|PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"stale"* ]]
@@ -237,14 +236,14 @@ teardown() {
 # --- Non-passing verdict ---
 
 @test "gate6: REJECT verdict -> BLOCK" {
-    echo "v1|${HEAD_SHA}|REJECT|2026-05-25T00:00:00Z|min-score=5.0" > .llm-skill-review-cleared
+    echo "v2|${HEAD_SHA}|REJECT|2026-05-25T00:00:00Z|mean=5.0|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"not passing"* ]]
 }
 
-@test "gate6: MAJOR REVISIONS REQUIRED verdict -> BLOCK" {
-    echo "v1|${HEAD_SHA}|MAJOR_REVISIONS_REQUIRED|2026-05-25T00:00:00Z|min-score=5.0" > .llm-skill-review-cleared
+@test "gate6: MAJOR_REVISIONS_REQUIRED verdict -> BLOCK" {
+    echo "v2|${HEAD_SHA}|MAJOR_REVISIONS_REQUIRED|2026-05-25T00:00:00Z|mean=5.0|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"not passing"* ]]
@@ -252,32 +251,59 @@ teardown() {
 
 # --- Format violations ---
 
-@test "gate6: wrong version prefix (v2) -> BLOCK" {
-    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
+@test "gate6: wrong version prefix (v1) -> BLOCK" {
+    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"format unrecognized"* ]]
 }
 
 @test "gate6: too few fields -> BLOCK" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z" > .llm-skill-review-cleared
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.6" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"format unrecognized"* ]]
 }
 
-@test "gate6: missing min-score field prefix -> BLOCK" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|9.5" > .llm-skill-review-cleared
+@test "gate6: missing mean= prefix -> BLOCK" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|8.6|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"min-score field malformed"* ]]
+    [[ "$output" == *"mean field malformed"* ]]
 }
 
 @test "gate6: empty SHA field -> BLOCK" {
-    echo "v1||PASS|2026-05-25T00:00:00Z|min-score=9.5" > .llm-skill-review-cleared
+    echo "v2||PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"format unrecognized"* ]]
+}
+
+@test "gate6: unresolved_s0_s1 not zero -> BLOCK" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=2|evidence_replay=ok" > .llm-skill-review-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unresolved_s0_s1"* ]]
+}
+
+@test "gate6: evidence_replay=bypassed with PASS_WITH_RISKS -> BLOCK" {
+    echo "v2|${HEAD_SHA}|PASS_WITH_RISKS|2026-05-25T00:00:00Z|mean=7.5|unresolved_s0_s1=0|evidence_replay=bypassed" > .llm-skill-review-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"bypassed is only allowed with verdict PASS"* ]]
+}
+
+@test "gate6: evidence_replay=bypassed with PASS -> PASS" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.6|unresolved_s0_s1=0|evidence_replay=bypassed" > .llm-skill-review-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 0 ]
+}
+
+@test "gate6: mean below former 9.0 floor still PASSES (ADR-003 metadata-only)" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=8.5|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"llm-skill-review cleared"* ]]
 }
 
 # --- skills/*.md file listing ---
@@ -367,25 +393,17 @@ teardown() {
     cd "$WORK"
 }
 
-# --- llm-skill-review skills floor (9.2 minimum) ---
+# --- ADR-003: mean is metadata, not a floor ---
 
-@test "gate6: min-score below 9.2 -> BLOCK with floor message" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=8.5" > .llm-skill-review-cleared
-    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"below project minimum"* ]]
-    [[ "$output" == *"9.2"* ]]
-}
-
-@test "gate6: min-score exactly 9.2 -> PASS" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.2" > .llm-skill-review-cleared
+@test "gate6: mean exactly 9.2 still PASSES under v2" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=9.2|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 0 ]
     [[ "$output" == *"llm-skill-review cleared"* ]]
 }
 
-@test "gate6: min-score above 9.2 -> PASS" {
-    echo "v1|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|min-score=9.8" > .llm-skill-review-cleared
+@test "gate6: mean above 9.2 still PASSES under v2" {
+    echo "v2|${HEAD_SHA}|PASS|2026-05-25T00:00:00Z|mean=9.8|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 0 ]
 }
