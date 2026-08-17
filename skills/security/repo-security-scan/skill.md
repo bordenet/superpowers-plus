@@ -69,7 +69,12 @@ Use a **documented subset** of patterns from `skills/_shared/secret-detection.md
 ```bash
 # High-confidence token patterns in tracked files
 TOKEN_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
-ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)\s*[:=]\s*["'"'"'][^"'"'"']{8,}'
+# NOTE: [[:space:]], not \s — a PORTABILITY fix, not a universal bug.
+# `git log -G` uses the platform regcomp: glibc accepts \s, BSD/macOS treats it
+# as literal 's', so on macOS the history scan matched ZERO assignment-class
+# secrets while the HEAD scan (grep -E) matched fine (0 vs 2 commits).
+# [[:space:]] is correct in both engines on both platforms. Don't "simplify".
+ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}'
 
 git ls-files -z | xargs -0 grep -lnE "$TOKEN_RE" \
   2>/dev/null | grep -v 'node_modules\|\.git\|venv'
@@ -90,17 +95,41 @@ git ls-files | grep -iE '\.(pem|key|p12|pfx|jks)$'
 **Required — git history (commit-then-delete leaks):** HEAD-only greps miss secrets that were committed and later removed. Always run a history scan before claiming the secrets phase is clean. The history `-G` set MUST cover the same token + assignment classes as HEAD (not tokens alone).
 
 ```bash
-# Prefer gitleaks when installed (full history; do not truncate output)
+# PRECONDITIONS. Both paths below read history. If history isn't present, both
+# report clean having scanned nothing — so fail loudly instead. A shallow
+# checkout is the CI default (actions/checkout uses fetch-depth: 1).
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "INCOMPLETE: not a git repository" >&2; exit 1; }
+if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+  echo "INCOMPLETE: shallow clone — history scan cannot run. Run: git fetch --unshallow" >&2
+  exit 1
+fi
+
+# Prefer gitleaks when installed (full history; do not truncate output).
+# Subcommand is `git`, verified by running gitleaks 8.30.1: `detect` still
+# executes but is deprecated and absent from --help's command list. `-v` is
+# required — without it gitleaks prints only a leak COUNT, nothing to triage.
 if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks detect --source . --log-opts="--all" --no-banner
+  # `-m` inside --log-opts for the same reason the fallback needs it: without
+  # it gitleaks skips merge diffs, so a secret introduced in a merge
+  # resolution and later deleted is invisible on the PREFERRED path too
+  # (measured: 0 findings with "--all", 2 with "--all -m").
+  gitleaks git . --log-opts="--all -m" --no-banner -v
 else
   # Portable fallback: same TOKEN_RE + ASSIGN_RE as HEAD (set above).
   # Do NOT pipe through head/truncation — a capped stream is an incomplete
   # scan. If the repo is too large for interactive review, install gitleaks
   # or stop and report INCOMPLETE rather than claiming clean.
+  #
+  # `-m` shows per-parent diffs. Without it a merge-introduced, later-deleted
+  # secret is missed as an ADDED line (0 vs 2); the deletion still shows on a
+  # `-` line, so this path degrades rather than going blind like gitleaks
+  # above. Introduced AND removed within merges = missed entirely.
+  # COST: ~2.14x diff surface (31.6->67.6MB on a 39%-merge repo) and one
+  # finding per parent, so expect duplicates. Too big? Install gitleaks --
+  # never cap the output; a truncated scan is not a clean scan.
   set -o pipefail
   HISTORY_RE="(${TOKEN_RE}|${ASSIGN_RE})"
-  if ! git log -p --all -G "$HISTORY_RE" --pretty=format:'=== %H %s ==='; then
+  if ! git log -p -m --all -G "$HISTORY_RE" --pretty=format:'=== %H %s ==='; then
     echo "INCOMPLETE: history scan failed; do not claim secrets phase clean" >&2
     exit 1
   fi
