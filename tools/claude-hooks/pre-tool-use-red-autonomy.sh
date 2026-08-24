@@ -171,10 +171,22 @@
 # requires its own approval.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
-if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
 
 LOG="$HOME/.claude/hooks/hook-audit.log"; mkdir -p "$(dirname "$LOG")"
 log() { echo "$(date -u +%FT%TZ) red-autonomy exit=$1 reason=$2" >> "$LOG"; }
+
+# Bypass now logged before returning so a disabled gate is never silent -- a
+# CLAUDE_HOOKS_BYPASS=1 escape valve without an audit trail was itself the
+# regression that this comment block calls out (AI-595 in upstream: hook
+# returned before LOG/log() were even defined).
+if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then log 0 "bypass-active"; exit 0; fi
+
+# Fail CLOSED, not open: under `set -e`, a missing jq or python3 crashes the
+# script mid-flight (Claude Code treats any non-2 exit as non-blocking) --
+# silently disabling the push-approval gate. Check upfront so an absent
+# dependency is a documented block, not a hidden bypass. (AI-595)
+command -v jq >/dev/null 2>&1 || { log 2 "jq-missing"; echo "BLOCKED: jq is required but not found on PATH -- install it (brew install jq) before pushing." >&2; exit 2; }
+command -v python3 >/dev/null 2>&1 || { log 2 "python3-missing"; echo "BLOCKED: python3 is required but not found on PATH." >&2; exit 2; }
 
 # Portable SHA256 shim — capability resolved once at script load, not per call.
 if command -v sha256sum &>/dev/null; then
@@ -206,6 +218,15 @@ TRANSCRIPT="$(jq -r '.transcript_path // empty' <<<"$INPUT")"
 # Sanitize SESSION_ID immediately at intake — it is used in a file path below.
 # Characters outside [a-zA-Z0-9_-] are stripped; result capped at 128 chars.
 SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+# Augment Code cross-agent fallback: Augment CLI does not emit `session_id`
+# in PreToolUse; it emits `conversation_id` at the same JSON location. If
+# both are absent this stays empty and the fail-CLOSED branch below blocks
+# the push -- which is the correct outcome. (Portable fallback: sanitizer
+# identical to the Claude Code path so file names stay safe.)
+if [[ -z "$SESSION_ID" ]]; then
+  SESSION_ID="$(jq -r '.conversation_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+  [[ -n "$SESSION_ID" ]] && log 0 "session-id-from-augment-conversation-id"
+fi
 # Fallback: transcript_path removed from Claude Code hook payload in newer versions.
 # If absent, locate the transcript by session_id under ~/.claude/projects/ (Claude Code)
 # or ~/.cursor/projects/ (Cursor Agent — often .../agent-transcripts/<id>/<id>.jsonl).
@@ -326,15 +347,24 @@ if [[ "$IS_RED" == "0" && "$IS_STRICT_DISABLE" == "0" ]]; then
   exit 0
 fi
 
-# Fail open when session_id is absent — a shared fallback file would permanently
-# block all session-less pushes after the first consumed token. An adversarial
-# session_id consisting entirely of special characters also sanitizes to empty
-# and hits this path; that is acceptable given this hook's threat model (Claude
-# autonomy, not external actors controlling hook input).
+# Fail CLOSED when session_id (and Augment conversation_id fallback) are both
+# absent. The previous fail-open silently disabled the approval gate whenever
+# an agent stripped the session_id -- exactly the bypass this hook is supposed
+# to prevent. If no scoping key can be established, block the RED action and
+# make the operator produce one (or set CLAUDE_HOOKS_BYPASS=1 explicitly with
+# an audit-log entry). Adversarial-input case (session_id sanitizes to empty)
+# also hits this path -- correct outcome, not a regression.
 if [[ -z "$SESSION_ID" ]]; then
-  echo "WARNING: no session_id in hook input — RED action allowed without approval check." >&2
-  log 0 "no-session-id-fail-open"
-  exit 0
+  log 2 "no-session-id-fail-closed"
+  cat >&2 <<'MSG'
+BLOCKED: no session_id (Claude Code) or conversation_id (Augment Code) in
+hook input, so this RED action has no scoping key to bind approval to.
+This is a defensive fail-CLOSED path: an unscoped approval would either
+apply globally (dangerous) or be consumed forever (breaks all future
+pushes). Either invoke the tool through a session-emitting agent, or set
+CLAUDE_HOOKS_BYPASS=1 for this one command with a documented reason.
+MSG
+  exit 2
 fi
 
 # It's a RED action — check for approval token in transcript.
