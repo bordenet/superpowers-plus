@@ -176,6 +176,33 @@ EOF
   [ "$output" = "failed" ]
 }
 
+@test "_aggregate_check_state: gh's real 'cancel' bucket -> failed (not success)" {
+  # REGRESSION: gh pr checks TSV column 2 emits the BUCKET, and gh's cancelled
+  # bucket is "cancel", NOT "cancelled". The first version of this function
+  # matched only "cancelled", so a genuinely cancelled check fell through the
+  # denylist to "success" and ship.sh merged without passing CI -- the exact
+  # failure this function exists to prevent.
+  _source_ship
+  run _aggregate_check_state "$(printf 'A\tcancel\t0\turl')"
+  [ "$output" = "failed" ]
+}
+
+@test "_aggregate_check_state: cancel outranks a passing check" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'A\tpass\t1s\turl\nB\tcancel\t0\turl')"
+  [ "$output" = "failed" ]
+}
+
+@test "_aggregate_check_state: unknown/future bucket fails CLOSED to running" {
+  # The aggregator is an allowlist: anything unrecognized must keep the poll
+  # loop waiting (and eventually hit _POLL_TIMEOUT), never resolve to success.
+  _source_ship
+  run _aggregate_check_state "$(printf 'A\tfuturebucket\t0\turl')"
+  [ "$output" = "running" ]
+  run _aggregate_check_state "$(printf 'A\tpass\t1s\turl\nB\tstale\t0\turl')"
+  [ "$output" = "running" ]
+}
+
 @test "_aggregate_check_state: cancelled/action_required/timed_out -> failed" {
   _source_ship
   run _aggregate_check_state "$(printf 'A\tcancelled\t0\turl')"

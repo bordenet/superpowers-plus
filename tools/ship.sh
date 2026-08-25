@@ -141,8 +141,12 @@ _generate_body() {
 # Usage: _aggregate_check_state "<gh pr checks output>"
 # Prints exactly one of: pending | running | failed | success
 #
-# Column 2 of each tab-separated line is the per-check state, one of:
-#   pass | fail | pending | skipping | queued | in_progress | (empty)
+# Column 2 of each tab-separated line is gh's BUCKET, not the raw state:
+#   pass | fail | pending | skipping | cancel
+# (`gh pr checks --help`; a check whose state is SUCCESS prints as "pass").
+# Raw-state names like "cancelled"/"timed_out" are NOT emitted here by
+# current gh -- they are kept in the failed set only so an older gh that
+# does emit raw states still fails closed.
 #
 # Pure awk, deliberately NOT `grep -E`. The previous implementation used
 #   grep -qE '^(pending|in_progress|queued|)$'
@@ -162,8 +166,15 @@ _aggregate_check_state() {
       if ($0 ~ /^[[:space:]]*$/) next
       n++
       s = $2
-      if (s == "fail" || s == "cancelled" || s == "action_required" || s == "timed_out") failed = 1
-      else if (s == "pending" || s == "in_progress" || s == "queued" || s == "") running = 1
+      # ALLOWLIST, deliberately inverted. Only pass/skipping count as
+      # complete; ANY unrecognized value -- a future gh bucket, an empty
+      # column -- falls through to "running" so the loop keeps waiting and
+      # eventually aborts on _POLL_TIMEOUT, rather than merging unverified
+      # code. A denylist here is how the original bug shipped.
+      if (s == "fail" || s == "cancel" || s == "cancelled" || s == "failure" || \
+          s == "action_required" || s == "timed_out" || s == "startup_failure") failed = 1
+      else if (s == "pass" || s == "success" || s == "skipping" || s == "skipped" || s == "neutral") ;
+      else running = 1
     }
     END {
       if (n == 0)       print "pending"
