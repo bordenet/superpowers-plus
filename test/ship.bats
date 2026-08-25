@@ -121,3 +121,79 @@ EOF
   [[ "$output" == *"8.7/10"* ]]
   [[ "$output" == *"8.0/10"* ]]
 }
+
+# --- _aggregate_check_state -------------------------------------------------
+# Regression guard for the CI-bypass bug. ship.sh previously reduced check
+# states with:
+#     grep -qE '^(pending|in_progress|queued|)$'
+# The empty final alternative is rejected by ugrep (a common Homebrew `grep`
+# replacement on macOS) as "empty (sub)expression", exiting 2. The non-zero
+# exit made that `elif` false, so a PR with checks still RUNNING fell through
+# to "success" and ship.sh merged it without waiting for CI. Observed live on
+# PR #1210 (2026-08-25). These tests pin every branch of the state machine.
+
+@test "_aggregate_check_state: all pass -> success" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tpass\t2s\turl')"
+  [ "$status" -eq 0 ]
+  [ "$output" = "success" ]
+}
+
+@test "_aggregate_check_state: a pending check -> running (never success)" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tpending\t0\turl')"
+  [ "$status" -eq 0 ]
+  [ "$output" = "running" ]
+}
+
+@test "_aggregate_check_state: in_progress -> running" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tin_progress\t0\turl')"
+  [ "$output" = "running" ]
+}
+
+@test "_aggregate_check_state: queued -> running" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tqueued\t0\turl')"
+  [ "$output" = "running" ]
+}
+
+@test "_aggregate_check_state: empty state column -> running" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\t\t0\turl')"
+  [ "$output" = "running" ]
+}
+
+@test "_aggregate_check_state: a failing check -> failed" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tfail\t3s\turl')"
+  [ "$output" = "failed" ]
+}
+
+@test "_aggregate_check_state: failure outranks a still-pending check" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpending\t0\turl\nLint\tfail\t3s\turl')"
+  [ "$output" = "failed" ]
+}
+
+@test "_aggregate_check_state: cancelled/action_required/timed_out -> failed" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'A\tcancelled\t0\turl')"
+  [ "$output" = "failed" ]
+  run _aggregate_check_state "$(printf 'A\taction_required\t0\turl')"
+  [ "$output" = "failed" ]
+  run _aggregate_check_state "$(printf 'A\ttimed_out\t0\turl')"
+  [ "$output" = "failed" ]
+}
+
+@test "_aggregate_check_state: skipping counts as complete -> success" {
+  _source_ship
+  run _aggregate_check_state "$(printf 'Tests\tpass\t1s\turl\nLint\tskipping\t0\turl')"
+  [ "$output" = "success" ]
+}
+
+@test "_aggregate_check_state: empty input -> pending" {
+  _source_ship
+  run _aggregate_check_state ""
+  [ "$output" = "pending" ]
+}

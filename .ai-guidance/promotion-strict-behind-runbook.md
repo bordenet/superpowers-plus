@@ -8,6 +8,34 @@ On a promotion PR (`dev→staging`, `staging→main`, or a back-sync PR `main→
 
 `dev`/`staging`/`main` never fast-forward from each other — every promotion is a merge commit. The `strict` required-status-checks setting demands the head branch already contain the base's tip before merging. On a small diff (~4 commits) this was observed to self-resolve within about a minute of checks completing. On a larger diff (~28 commits) it stayed stuck for 20+ minutes with no sign of resolving. This diagnosis is based on direct observation during the 2026-07-12 promotion cycle, not GitHub documentation — treat the specific timing numbers as anecdotal, not a guarantee.
 
+## First: confirm every check has actually FINISHED
+
+Before treating `BEHIND` as the stuck state this runbook describes, verify no
+check is still running. `BEHIND` (and `BLOCKED`) while checks are in flight is
+normal and clears on its own -- reaching for the `strict` toggle at that point
+weakens branch protection for no reason.
+
+```bash
+gh pr checks <N>    # any row in state pending/queued/in_progress means WAIT
+gh pr view <N> --json mergeStateStatus --jq .mergeStateStatus
+```
+
+Observed during the 2026-08-25 promotion cycle (a larger diff than the
+2026-07-12 cycle below):
+
+| PR | Promotion | Commits | While checks pending | After last check finished |
+|---|---|---|---|---|
+| #1208 | `dev` -> `staging` | 31 | `BEHIND` for ~225s | `CLEAN` at the next 45s poll |
+| #1209 | `staging` -> `main` | 32 | `BLOCKED` for ~225s | `CLEAN` at the next 45s poll |
+| #1210 | sync -> `dev` | 4 | `BLOCKED` for ~225s | `CLEAN` at the next 45s poll |
+
+All three resolved themselves within one poll interval of the slowest check
+completing, and none needed the `strict` workaround. This does not disprove the
+2026-07-12 observation below -- it is a separate cycle under possibly different
+GitHub-side conditions -- but it does mean **diff size alone is not a reason to
+skip the wait**. Only escalate to the toggle once `gh pr checks` shows every row
+terminal (`pass`/`fail`/`skipping`) and `mergeStateStatus` is still `BEHIND`.
+
 ## Confirmed NOT to help
 
 - `gh pr merge <N> --merge --admin` — GitHub's GraphQL API rejects this outright with `4 of 4 required status checks are expected`; admin override does not bypass this specific gate.

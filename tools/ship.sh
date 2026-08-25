@@ -136,6 +136,44 @@ _generate_body() {
 }
 
 ###############################################################################
+# Aggregate `gh pr checks` output into one state.
+#
+# Usage: _aggregate_check_state "<gh pr checks output>"
+# Prints exactly one of: pending | running | failed | success
+#
+# Column 2 of each tab-separated line is the per-check state, one of:
+#   pass | fail | pending | skipping | queued | in_progress | (empty)
+#
+# Pure awk, deliberately NOT `grep -E`. The previous implementation used
+#   grep -qE '^(pending|in_progress|queued|)$'
+# which carries an EMPTY final alternative. GNU/BSD grep tolerate it, but
+# ugrep -- a common Homebrew `grep` replacement on macOS -- rejects it as
+# "empty (sub)expression" and exits 2. That non-zero exit made the `elif`
+# false, so a PR whose checks were still RUNNING fell through to "success"
+# and ship.sh merged it WITHOUT waiting for CI. Observed live on PR #1210
+# (2026-08-25); only branch protection prevented an unverified merge.
+###############################################################################
+_aggregate_check_state() {
+  local checks_out="$1"
+  [[ -n "$checks_out" ]] || { echo "pending"; return 0; }
+  printf '%s\n' "$checks_out" | awk -F'\t' '
+    BEGIN { n = 0; failed = 0; running = 0 }
+    {
+      if ($0 ~ /^[[:space:]]*$/) next
+      n++
+      s = $2
+      if (s == "fail" || s == "cancelled" || s == "action_required" || s == "timed_out") failed = 1
+      else if (s == "pending" || s == "in_progress" || s == "queued" || s == "") running = 1
+    }
+    END {
+      if (n == 0)       print "pending"
+      else if (failed)  print "failed"
+      else if (running) print "running"
+      else              print "success"
+    }'
+}
+
+###############################################################################
 # Push (skip when sourced for testing: SHIP_TESTMODE=1)
 ###############################################################################
 [[ "${SHIP_TESTMODE:-0}" == "1" ]] && return 0
@@ -145,10 +183,17 @@ if [[ "$BRANCH" == "$TARGET_BRANCH" ]]; then
   echo "ERROR: current branch equals target '$TARGET_BRANCH' -- create a feature branch first." >&2
   exit 1
 fi
-# Guard: never auto-delete canonical long-lived branches.
+# ship.sh is a FEATURE-branch tool: it pushes the current branch and finishes
+# with `gh pr merge --merge --delete-branch`. Run from dev/staging/main that
+# --delete-branch targets a canonical long-lived branch. Branch protection is
+# the only thing that refuses the deletion today -- do not rely on it.
 case "$BRANCH" in
   dev|staging|main)
-    echo "ERROR: refusing to operate on canonical branch '$BRANCH' -- create a feature branch first." >&2
+    echo "ERROR: refusing to ship FROM canonical branch '$BRANCH'." >&2
+    echo "  ship.sh merges with --delete-branch, which would target '$BRANCH'." >&2
+    echo "  For dev->staging / staging->main promotions use:" >&2
+    echo "    gh pr create --base <target> --head $BRANCH ... && gh pr merge <N> --merge" >&2
+    echo "  (no --delete-branch). See AGENTS.md '3-Tier promotion'." >&2
     exit 1
     ;;
 esac
@@ -213,32 +258,7 @@ while true; do
   # gh pr checks exits non-zero if any check is failing; we swallow that so
   # the state machine below sees the aggregate and decides whether to abort.
   _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" 2>/dev/null || true)
-  if [[ -z "$_CHECKS_OUT" ]]; then
-    _AGG_STATE="pending"
-  else
-    # Pure-awk aggregate: avoids grep empty-alternative (ugrep on macOS exits 2
-    # for '^(pending|in_progress|queued|)$', causing a false "success" fallthrough).
-    # Priority: any terminal failure > any in-flight > all pass.
-    _AGG_STATE=$(printf '%s\n' "$_CHECKS_OUT" | awk -F'\t' '
-      BEGIN { has_fail=0; has_running=0; has_pass=0 }
-      {
-        s = $2
-        if (s == "fail" || s == "cancelled" || s == "action_required" || s == "timed_out")
-          has_fail = 1
-        else if (s == "pending" || s == "in_progress" || s == "queued" || s == "")
-          has_running = 1
-        else if (s == "pass" || s == "skipping" || s == "success")
-          has_pass = 1
-        else
-          has_running = 1   # unknown state: treat conservatively as in-flight
-      }
-      END {
-        if (has_fail)    print "failed"
-        else if (has_running) print "running"
-        else             print "success"
-      }
-    ')
-  fi
+  _AGG_STATE=$(_aggregate_check_state "$_CHECKS_OUT")
 
   case "$_AGG_STATE" in
     success)
@@ -268,7 +288,7 @@ while true; do
   esac
 done
 
-# --merge = create a real merge commit (matches GitLab's --squash=false). Use
-# --squash if you want a single squashed commit on the target branch instead.
+# --merge = create a real merge commit (non-squash mode). Use --squash if you
+# want a single squashed commit on the target branch instead.
 gh pr merge "$PR_NUMBER" --merge --delete-branch
 echo "[ship] done. PR #$PR_NUMBER merged."
