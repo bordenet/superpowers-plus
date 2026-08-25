@@ -219,6 +219,28 @@ EOF
   [ "$output" = "success" ]
 }
 
+@test "_aggregate_check_state: ALL checks skipping -> success (intentional)" {
+  # Pinned decision, not an accident. gh buckets a skipped OR neutral check as
+  # "skipping", and path-filtered workflows legitimately skip every check on a
+  # docs-only PR. ship.sh mirrors branch protection rather than inventing a
+  # stricter rule, so an all-skipped required set counts as satisfied. If that
+  # is ever wrong for this repo, the fix is branch protection config, not a
+  # divergent rule here. See the --required rationale in tools/ship.sh.
+  _source_ship
+  run _aggregate_check_state "$(printf 'A\tskipping\t0\turl\nB\tskipping\t0\turl')"
+  [ "$output" = "success" ]
+}
+
+@test "_aggregate_check_state: no required checks found -> pending, never success" {
+  # An empty required set means protection is missing/unreadable. That must
+  # stall the poll loop into a timeout (exit 1), never resolve to a merge.
+  _source_ship
+  run _aggregate_check_state ""
+  [ "$output" = "pending" ]
+  run _aggregate_check_state "$(printf '\n\n')"
+  [ "$output" = "pending" ]
+}
+
 @test "_aggregate_check_state: empty input -> pending" {
   _source_ship
   run _aggregate_check_state ""

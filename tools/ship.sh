@@ -283,7 +283,18 @@ while true; do
   # On failure this yields empty output, which _aggregate_check_state maps to
   # "pending", so the loop keeps waiting and aborts on _POLL_TIMEOUT rather
   # than merging unverified code.
-  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" --json name,bucket \
+  # --required scopes this to the checks branch protection actually gates on,
+  # making GitHub the single source of truth. This repo currently runs 5
+  # checks but requires only 4 ("PR Content IP Scan" is advisory), so without
+  # --required a hung advisory workflow wedges every ship for the full
+  # _POLL_TIMEOUT on a PR GitHub would happily merge. If a check ought to
+  # block a merge, mark it required in branch protection -- do not encode a
+  # second, drifting policy here.
+  #
+  # An empty result (no protection, unreadable base, older gh without
+  # --required) maps to "pending", so the loop times out and exits non-zero.
+  # It must NEVER be read as "nothing to verify, safe to merge".
+  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" --required --json name,bucket \
     --jq '.[] | [.name, .bucket] | @tsv' 2>/dev/null || true)
   _AGG_STATE=$(_aggregate_check_state "$_CHECKS_OUT")
 
@@ -300,6 +311,10 @@ while true; do
     running|pending)
       if [[ $_POLL_ELAPSED -ge $_POLL_TIMEOUT ]]; then
         echo "[ship] timed out waiting for checks after ${_POLL_TIMEOUT}s." >&2
+        echo "[ship] NOT merging -- timing out is a refusal, not a pass." >&2
+        echo "[ship] If no required checks were found at all, branch protection" >&2
+        echo "[ship]   may be missing on the base branch; that is a repo config" >&2
+        echo "[ship]   problem, not something ship.sh should merge through." >&2
         echo "[ship] PR #$PR_NUMBER is open. Merge manually once checks pass." >&2
         exit 1
       fi
