@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Sourcing is tolerated to fail-open only if the lib is missing (older repos);
 # real installs pin it via install.sh.
 if [[ -f "$SCRIPT_DIR/lib/sha-lock.sh" ]]; then
-    # shellcheck source=lib/sha-lock.sh
+    # shellcheck source=/dev/null  # optional library; all uses guarded by declare -F
     source "$SCRIPT_DIR/lib/sha-lock.sh"
 fi
 
