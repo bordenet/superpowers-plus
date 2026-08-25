@@ -171,10 +171,22 @@
 # requires its own approval.
 # Exit codes: 0 = allow, 2 = block (stderr shown to model as reason).
 set -euo pipefail
-if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
 
 LOG="$HOME/.claude/hooks/hook-audit.log"; mkdir -p "$(dirname "$LOG")"
 log() { echo "$(date -u +%FT%TZ) red-autonomy exit=$1 reason=$2" >> "$LOG"; }
+
+# Bypass now logged before returning so a disabled gate is never silent -- a
+# CLAUDE_HOOKS_BYPASS=1 escape valve without an audit trail was itself the
+# regression that this comment block calls out (AI-595 in upstream: hook
+# returned before LOG/log() were even defined).
+if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then log 0 "bypass-active"; exit 0; fi
+
+# Fail CLOSED, not open: under `set -e`, a missing jq or python3 crashes the
+# script mid-flight (Claude Code treats any non-2 exit as non-blocking) --
+# silently disabling the push-approval gate. Check upfront so an absent
+# dependency is a documented block, not a hidden bypass. (AI-595)
+command -v jq >/dev/null 2>&1 || { log 2 "jq-missing"; echo "BLOCKED: jq is required but not found on PATH -- install it (brew install jq) before pushing." >&2; exit 2; }
+command -v python3 >/dev/null 2>&1 || { log 2 "python3-missing"; echo "BLOCKED: python3 is required but not found on PATH." >&2; exit 2; }
 
 # Portable SHA256 shim — capability resolved once at script load, not per call.
 if command -v sha256sum &>/dev/null; then
@@ -205,7 +217,20 @@ CMD="$(jq -r '.tool_input.command // empty' <<<"$INPUT")"
 TRANSCRIPT="$(jq -r '.transcript_path // empty' <<<"$INPUT")"
 # Sanitize SESSION_ID immediately at intake — it is used in a file path below.
 # Characters outside [a-zA-Z0-9_-] are stripped; result capped at 128 chars.
+AUGMENT_SESSION=0  # set to 1 when session_id came from conversation_id (Augment Agent path)
 SESSION_ID="$(jq -r '.session_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+# Augment Code cross-agent fallback: Augment CLI does not emit `session_id`
+# in PreToolUse; it emits `conversation_id` at the same JSON location. If
+# both are absent this stays empty and the fail-CLOSED branch below blocks
+# the push -- which is the correct outcome. (Portable fallback: sanitizer
+# identical to the Claude Code path so file names stay safe.)
+if [[ -z "$SESSION_ID" ]]; then
+  SESSION_ID="$(jq -r '.conversation_id // empty' <<<"$INPUT" | tr -cd 'a-zA-Z0-9_-' | cut -c1-128)"
+  if [[ -n "$SESSION_ID" ]]; then
+    AUGMENT_SESSION=1
+    log 0 "session-id-from-augment-conversation-id"
+  fi
+fi
 # Fallback: transcript_path removed from Claude Code hook payload in newer versions.
 # If absent, locate the transcript by session_id under ~/.claude/projects/ (Claude Code)
 # or ~/.cursor/projects/ (Cursor Agent — often .../agent-transcripts/<id>/<id>.jsonl).
@@ -222,6 +247,10 @@ if [[ -z "$TRANSCRIPT" && -n "$SESSION_ID" ]]; then
   TRANSCRIPT="$(find "$HOME/.claude/projects/" -maxdepth 3 -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)" || true
   if [[ -z "$TRANSCRIPT" ]]; then
     TRANSCRIPT="$(find "$HOME/.cursor/projects/" -maxdepth 5 -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)" || true
+  fi
+  # Augment Agent stores transcripts as ~/.augment/sessions/<session_id>.json (JSON, not JSONL).
+  if [[ -z "$TRANSCRIPT" ]]; then
+    TRANSCRIPT="$(find "$HOME/.augment/sessions/" -maxdepth 1 -name "${SESSION_ID}.json" 2>/dev/null | head -1)" || true
   fi
 fi
 
@@ -326,15 +355,24 @@ if [[ "$IS_RED" == "0" && "$IS_STRICT_DISABLE" == "0" ]]; then
   exit 0
 fi
 
-# Fail open when session_id is absent — a shared fallback file would permanently
-# block all session-less pushes after the first consumed token. An adversarial
-# session_id consisting entirely of special characters also sanitizes to empty
-# and hits this path; that is acceptable given this hook's threat model (Claude
-# autonomy, not external actors controlling hook input).
+# Fail CLOSED when session_id (and Augment conversation_id fallback) are both
+# absent. The previous fail-open silently disabled the approval gate whenever
+# an agent stripped the session_id -- exactly the bypass this hook is supposed
+# to prevent. If no scoping key can be established, block the RED action and
+# make the operator produce one (or set CLAUDE_HOOKS_BYPASS=1 explicitly with
+# an audit-log entry). Adversarial-input case (session_id sanitizes to empty)
+# also hits this path -- correct outcome, not a regression.
 if [[ -z "$SESSION_ID" ]]; then
-  echo "WARNING: no session_id in hook input — RED action allowed without approval check." >&2
-  log 0 "no-session-id-fail-open"
-  exit 0
+  log 2 "no-session-id-fail-closed"
+  cat >&2 <<'MSG'
+BLOCKED: no session_id (Claude Code) or conversation_id (Augment Code) in
+hook input, so this RED action has no scoping key to bind approval to.
+This is a defensive fail-CLOSED path: an unscoped approval would either
+apply globally (dangerous) or be consumed forever (breaks all future
+pushes). Either invoke the tool through a session-emitting agent, or set
+CLAUDE_HOOKS_BYPASS=1 for this one command with a documented reason.
+MSG
+  exit 2
 fi
 
 # It's a RED action — check for approval token in transcript.
@@ -545,49 +583,86 @@ def extract_text(content):
         return " ".join(p.get("text","") for p in content if isinstance(p,dict))
     return content if isinstance(content, str) else ""
 
-with open(transcript_path, encoding='utf-8', errors='replace') as f:
-    for line in f:
-        line = line.strip()
-        if not line:
+# Augment Agent sessions are a single JSON document, not JSONL. Detect
+# by peeking at the first non-whitespace byte -- '{' means single-object (Augment
+# or malformed Claude); '[' would be a JSON array; anything else (including the
+# correct '\n' JSONL first byte) falls through to the normal JSONL loop.
+_skip_jsonl = False
+def _try_augment_shape(path):
+    """Return list of user-message strings if file matches Augment chatHistory shape; else []."""
+    try:
+        with open(path, encoding='utf-8', errors='replace') as _f:
+            first_byte = _f.read(1)
+            if first_byte != '{':
+                return []
+            _f.seek(0)
+            doc = json.load(_f)
+    except Exception:
+        return []
+    msgs = []
+    for turn in doc.get("chatHistory", []):
+        if not isinstance(turn, dict):
             continue
-        try:
-            obj = json.loads(line)
-        except json.JSONDecodeError:
+        if turn.get("type") != "human":
             continue
-        t = ""
-        # Support four transcript shapes:
-        # Legacy: {"role":"user","content":...}
-        # Current Claude: {"type":"user","message":{"role":"user","content":...}}
-        # Cursor Agent: {"role":"user","message":{"content":[{"type":"text","text":...}]}}
-        #   -- role at top level but content nested under message (no type:user).
-        # Mid-turn queued command: {"type":"attachment","attachment":
-        #   {"type":"queued_command","prompt":"...","origin":{"kind":"human"}}}
-        # -- messages sent while Claude is still working on a turn are queued
-        # and surfaced in this shape, invisible to the first two checks.
-        # Confirmed via a real session transcript where "approve push" sent
-        # mid-turn never satisfied this scan, but the identical phrase sent
-        # moments later as a fresh standalone message did. Gated on
-        # origin.kind == "human" so only user-authored queued commands count.
-        if obj.get("role") == "user":
-            msg = obj.get("message")
-            if isinstance(msg, dict) and msg.get("content") is not None:
-                t = extract_text(msg.get("content", ""))
-            else:
-                t = extract_text(obj.get("content", ""))
-        elif obj.get("type") == "user":
-            msg = obj.get("message", {})
-            if isinstance(msg, dict) and msg.get("role") == "user":
-                t = extract_text(msg.get("content", ""))
-        elif obj.get("type") == "attachment":
-            att = obj.get("attachment", {})
-            if isinstance(att, dict) and att.get("type") == "queued_command":
-                origin = att.get("origin", {})
-                if isinstance(origin, dict) and origin.get("kind") == "human":
-                    p = att.get("prompt", "")
-                    if isinstance(p, str):
-                        t = p
-        if t.strip():
-            recent_user_messages.append(t)
+        content = turn.get("content", "")
+        if isinstance(content, str) and content.strip():
+            msgs.append(content)
+        elif isinstance(content, list):
+            t = extract_text(content)
+            if t.strip():
+                msgs.append(t)
+    return msgs
+
+_augment_msgs = _try_augment_shape(transcript_path)
+if _augment_msgs:
+    recent_user_messages = _augment_msgs
+    _skip_jsonl = True
+
+if not _skip_jsonl:
+    with open(transcript_path, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            t = ""
+            # Support four transcript shapes:
+            # Legacy: {"role":"user","content":...}
+            # Current Claude: {"type":"user","message":{"role":"user","content":...}}
+            # Cursor Agent: {"role":"user","message":{"content":[{"type":"text","text":...}]}}
+            #   -- role at top level but content nested under message (no type:user).
+            # Mid-turn queued command: {"type":"attachment","attachment":
+            #   {"type":"queued_command","prompt":"...","origin":{"kind":"human"}}}
+            # -- messages sent while Claude is still working on a turn are queued
+            # and surfaced in this shape, invisible to the first two checks.
+            # Confirmed via a real session transcript where "approve push" sent
+            # mid-turn never satisfied this scan, but the identical phrase sent
+            # moments later as a fresh standalone message did. Gated on
+            # origin.kind == "human" so only user-authored queued commands count.
+            if obj.get("role") == "user":
+                msg = obj.get("message")
+                if isinstance(msg, dict) and msg.get("content") is not None:
+                    t = extract_text(msg.get("content", ""))
+                else:
+                    t = extract_text(obj.get("content", ""))
+            elif obj.get("type") == "user":
+                msg = obj.get("message", {})
+                if isinstance(msg, dict) and msg.get("role") == "user":
+                    t = extract_text(msg.get("content", ""))
+            elif obj.get("type") == "attachment":
+                att = obj.get("attachment", {})
+                if isinstance(att, dict) and att.get("type") == "queued_command":
+                    origin = att.get("origin", {})
+                    if isinstance(origin, dict) and origin.get("kind") == "human":
+                        p = att.get("prompt", "")
+                        if isinstance(p, str):
+                            t = p
+            if t.strip():
+                recent_user_messages.append(t)
 
 if not recent_user_messages:
     sys.exit(0)
@@ -909,6 +984,19 @@ EOF2
 }
 
 TOKEN_CATEGORY_RAW="$(extract_approval_token)"
+
+# Augment Agent fallback: when session_id came from conversation_id (not a real
+# transcript path) the transcript scan exits 0 with no token. If AUGMENT_SESSION=1
+# and we still have no token, fall back to a day-scoped approval file that a human
+# can create manually: touch ~/.red-autonomy-augment-approved-YYYYMMDD
+if [[ -z "$TOKEN_CATEGORY_RAW" && "${AUGMENT_SESSION:-0}" == "1" ]]; then
+  _AUGMENT_APPROVAL_FILE="$HOME/.red-autonomy-augment-approved-$(date +%Y%m%d)"
+  if [[ -f "$_AUGMENT_APPROVAL_FILE" ]]; then
+    TOKEN_CATEGORY_RAW="push"
+    log 0 "augment-day-file-approval"
+  fi
+fi
+
 # Constrain to known literals only. ":tr" suffix marks transcript-sourced tokens;
 # bare "push"/"release" are from the file-based approval mechanism.
 TOKEN_SOURCE="file"
