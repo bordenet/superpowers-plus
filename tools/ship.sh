@@ -151,7 +151,7 @@ git push --set-upstream origin "$BRANCH"
 ###############################################################################
 # Build PR body
 ###############################################################################
-BODY_TMPFILE=$(mktemp /tmp/ship-pr-body.XXXXXX)
+BODY_TMPFILE=$(mktemp -t ship-pr-body.XXXXXX)
 # shellcheck disable=SC2064
 trap "rm -f '$BODY_TMPFILE'" EXIT
 
