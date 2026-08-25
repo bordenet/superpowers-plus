@@ -31,9 +31,11 @@ fi
 # Resolve repo root from the caller's CWD so the sentinel lands in the right
 # repo when run-battery.sh is invoked from an overlay repo.
 # Fall back to the script's own repo only when not called from inside a git tree.
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+# Use || true on each git call so set -e does not abort when git returns non-zero
+# (e.g. caller is outside any repo).  The guard at line 38 produces the user-facing error.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || true
 if [[ -z "$REPO_ROOT" ]]; then
-  REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
+  REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)" || true
 fi
 [[ -n "$REPO_ROOT" ]] || { echo "❌ Cannot locate a git repo from CWD or script dir" >&2; exit 1; }
 cd "$REPO_ROOT"
