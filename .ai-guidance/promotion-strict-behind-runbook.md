@@ -16,8 +16,9 @@ normal and clears on its own -- reaching for the `strict` toggle at that point
 weakens branch protection for no reason.
 
 ```bash
-gh pr checks <N>    # any row in state pending/queued/in_progress means WAIT
-gh pr view <N> --json mergeStateStatus --jq .mergeStateStatus
+PR=1234                                  # the promotion PR number
+gh pr checks "$PR"                       # any pending/queued/in_progress row means WAIT
+gh pr view "$PR" --json mergeStateStatus --jq .mergeStateStatus
 ```
 
 Observed during the 2026-08-25 promotion cycle (a larger diff than the
