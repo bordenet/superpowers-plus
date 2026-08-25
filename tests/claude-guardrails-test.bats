@@ -486,17 +486,20 @@ _fixture_transcript() {
   [[ "$output" == *"already consumed"* ]]
 }
 
-@test "item 10: RED-autonomy fail-open when session_id is absent" {
+@test "item 10: RED-autonomy fail-CLOSED when session_id is absent" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # Omit session_id entirely from the hook input
+  # Omit session_id entirely from the hook input.
+  # Intentional fail-CLOSED (exit 2): an absent session_id means we cannot
+  # locate the transcript, so the approval gate cannot be verified.
+  # Failing open here would silently disable the gate if an agent strips the id.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id is absent
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
@@ -507,18 +510,20 @@ _fixture_transcript() {
   rm -rf "$fake_home"
 }
 
-@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-open" {
+@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-CLOSED" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # session_id of all-special chars ("../..") sanitizes to "" (empty) → must fail-open.
-  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path — wrong test.
+  # session_id of all-special chars ("../..") sanitizes to "" (empty).
+  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path.
+  # An empty-sanitized session_id must fail-CLOSED (exit 2) — same reasoning as
+  # the absent-session_id case: we cannot verify approval, so we must block.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"../../","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id sanitizes to empty
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
