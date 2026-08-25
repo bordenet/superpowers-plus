@@ -486,17 +486,20 @@ _fixture_transcript() {
   [[ "$output" == *"already consumed"* ]]
 }
 
-@test "item 10: RED-autonomy fail-open when session_id is absent" {
+@test "item 10: RED-autonomy fail-CLOSED when session_id is absent" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # Omit session_id entirely from the hook input
+  # Omit session_id entirely from the hook input.
+  # Intentional fail-CLOSED (exit 2): an absent session_id means we cannot
+  # locate the transcript, so the approval gate cannot be verified.
+  # Failing open here would silently disable the gate if an agent strips the id.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id is absent
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
@@ -507,18 +510,20 @@ _fixture_transcript() {
   rm -rf "$fake_home"
 }
 
-@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-open" {
+@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-CLOSED" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # session_id of all-special chars ("../..") sanitizes to "" (empty) → must fail-open.
-  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path — wrong test.
+  # session_id of all-special chars ("../..") sanitizes to "" (empty).
+  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path.
+  # An empty-sanitized session_id must fail-CLOSED (exit 2) — same reasoning as
+  # the absent-session_id case: we cannot verify approval, so we must block.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"../../","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id sanitizes to empty
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
@@ -1078,6 +1083,158 @@ _fixture_transcript_prior_push() {
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"file-token-binding-test","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 0 ]
+}
+
+# Cursor Agent transcripts nest content under "message" while keeping "role" at
+# the top level: {"role":"user","message":{"content":[{"type":"text",...}]}}.
+# That shape matches neither the legacy ({"role":"user","content":...}) nor the
+# current Claude ({"type":"user","message":{"role":"user",...}}) branch, so an
+# approval typed in Cursor was silently invisible and every RED action blocked.
+_fixture_transcript_cursor() {
+  local msg="${1:-hello world}"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","message":{"content":[{"type":"text","text":"I will help."}]}}\n' > "$TPATH"
+  printf '{"role":"user","message":{"content":[{"type":"text","text":"%s"}]}}\n' "$msg" >> "$TPATH"
+}
+
+@test "item 10: R10: Cursor Agent transcript shape -- approval phrase is recognized" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_cursor "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-approve","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R10: Cursor Agent transcript shape -- absent approval still blocks (fail-safe)" {
+  # The widened parse must only ever RECOGNIZE a genuine approval; it must not
+  # weaken blocking. Without a phrase, the Cursor shape must still deny.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_cursor "please help me with the code"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-noapprove","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]] || [[ "${lines[*]}" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R10: Cursor shape does not let an ASSISTANT message supply approval" {
+  # role is checked before the nested-content read, so an assistant turn
+  # carrying the phrase must never authorize a RED action.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '{"role":"assistant","message":{"content":[{"type":"text","text":"approve push"}]}}\n' > "$TPATH"
+  printf '{"role":"user","message":{"content":[{"type":"text","text":"what do you think?"}]}}\n' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-assistant","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+}
+
+@test "item 10: R11: RED-autonomy recognizes an approval phrase answered via AskUserQuestion" {
+  # Real transcript shape (verified against an actual Claude Code session):
+  # an AskUserQuestion answer is NOT a plain user chat message -- it's a
+  # user-role turn whose content is a tool_result
+  # block wrapping a plain string, keyed by tool_use_id back to the
+  # assistant's AskUserQuestion tool_use call. Question text deliberately
+  # contains no approval/revoke phrase of its own, so this test can only pass
+  # because the ANSWER text is what's being scanned, not the question.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq1","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq1","content":"Your questions have been answered: \"Ready to continue?\"=\"approve push\". You can now continue with these answers in mind."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-approve","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R11: RED-autonomy does NOT grant approval from an AskUserQuestion's own question wording when the human's answer refuses" {
+  # The question can contain an approval phrase (e.g. "Should I ship it
+  # now?") while the human's actual answer explicitly declines. The
+  # question's wording must never satisfy approval on its own -- only the
+  # answer segment is scanned.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq2","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq2","content":"Your questions have been answered: \"Should I approve push now?\"=\"no, not yet\". You can now continue with these answers in mind."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-refuse","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does NOT treat an unrelated tool_result containing the approval phrase as approval" {
+  # Negative case: a tool_result from a DIFFERENT tool (not AskUserQuestion)
+  # that happens to contain the literal phrase must never grant approval --
+  # e.g. a grep/Read result quoting this exact ticket's own description.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_bash1","name":"Bash","input":{"command":"echo hi"}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_bash1","content":"unrelated output that happens to say approve push in a log line"}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-unrelated-tool","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does NOT grant approval from a synthetic AskUserQuestion timeout message" {
+  # A "no response after Ns" timeout message is Claude's own synthetic text,
+  # not a genuine human answer, and contains no quoted "question"="answer"
+  # pair -- it must never be scanned for approval phrases even if it happens
+  # to contain words like "proceed".
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq3","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq3","content":"No response after 60s -- the user may be away from keyboard. Proceed with push using your best judgment based on the context so far."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-timeout","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does not crash and does not grant approval when tool_use id/tool_use_id are non-string" {
+  # Adversarial/malformed-transcript case: an AskUserQuestion tool_use with a
+  # list-typed "id" (unhashable -- would crash a bare set.add()) paired with
+  # an unrelated tool_result whose "tool_use_id" is also missing (defaults to
+  # Python None on both sides). Must neither crash the hook nor let the
+  # None/None collision grant approval.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":["not","a","string"],"name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"approve push"}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-nonstring-id","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
 }
 
 # ---------------------------------------------------------------------------
@@ -1798,6 +1955,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="$skills_dir" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"Help me brainstorm a new feature","cwd":"/tmp"}')"
@@ -1815,6 +1973,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="$skills_dir" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"","cwd":"/tmp"}')"
@@ -1832,6 +1991,7 @@ BROKEN
 
   CODEX_SKILLS_DIR="/nonexistent-skills-dir-$$" \
   CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
   CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"hello","cwd":"/tmp"}')"
@@ -1860,7 +2020,7 @@ BROKEN
     > "$skills_dir/myskill/skill.md"
 
   # First run — builds cache
-  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
   [ "$status" -eq 0 ]
@@ -1872,7 +2032,7 @@ BROKEN
   # Touch skill.md to be newer than cache, then run again
   sleep 1
   touch "$skills_dir/myskill/skill.md"
-  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_HOOKS_BYPASS=0 \
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
     run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
     <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"use myskill now","cwd":"/tmp"}')"
   [ "$status" -eq 0 ]
@@ -1882,6 +2042,301 @@ BROKEN
 
   # Cache must have been regenerated (newer mtime)
   [ "$mtime2" -gt "$mtime1" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router old bare-list cache is detected and rebuilt (schema migration)" {
+  local skills_dir cache_dir cache_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  # Simulate a pre-migration cache: a bare JSON list (the old format), with
+  # an mtime newer than the skill.md so the ordinary staleness check alone
+  # would never trigger a rebuild.
+  printf '[{"name": "widget-maker", "description": "old", "tokens": ["widget"]}]' > "$cache_file"
+  sleep 1
+  touch "$cache_file"
+
+  CODEX_SKILLS_DIR="$skills_dir" CLAUDE_SKILL_ROUTER_CACHE="$cache_file" CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  # Must have rebuilt into the new dict shape and actually matched, not
+  # silently gone dead against the stale-shaped cache.
+  [[ "$output" == *"Likely match: widget-maker"* ]]
+  python3 -c "
+import json
+d = json.load(open('$cache_file'))
+assert isinstance(d, dict) and 'entries' in d and 'doc_freq' in d, 'cache did not migrate to new shape'
+"
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router anti_triggers vetoes a matching skill" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets"\nanti_triggers:\n  - "do not make a widget"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please do not make a widget today","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-maker"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router anti_triggers veto matches a phrase starting with punctuation" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets"\nanti_triggers:\n  - "/sp-widget-check"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please run /sp-widget-check now","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-maker"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not stack morphological variants of one prompt word" {
+  # Regression for the documented false-positive class: a skill whose
+  # vocabulary contains several morphological variants of the SAME prompt
+  # word ("call"/"caller"/"callback") must not out-score a skill that is a
+  # clean, single, exact match -- each distinct prompt word should
+  # contribute to a skill's score at most once.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/variant-heavy" "$skills_dir/exact-match"
+  printf -- '---\nname: variant-heavy\ndescription: "Handles call caller callback records for widget accounts"\n---\nBody.\n' \
+    > "$skills_dir/variant-heavy/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" -v \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please call me about the widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: exact-match"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router rejects a shared-prefix word pair that is not a real inflection" {
+  # Distinguishes the suffix-restricted stemmer from the unrestricted
+  # prefix matching it replaces: "call" is a prefix of "callout", but
+  # "callout" is not an inflection of "call" (a callout is a highlighted
+  # note, unrelated to phone calls) -- confirmed empirically as the
+  # recurring false-positive mechanism across two prior remediation
+  # passes. This test FAILS against the unrestricted-prefix code this
+  # fix replaces (git HEAD at the time this test was added) and PASSES
+  # against the suffix-restricted stemmer.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/callout-formatter" "$skills_dir/exact-match"
+  printf -- '---\nname: callout-formatter\ndescription: "Formats callout boxes and highlighted notes in documents"\n---\nBody.\n' \
+    > "$skills_dir/callout-formatter/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please call me about the widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"callout-formatter"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not strip a generic verb from a skill's own NAME" {
+  # Regression: the generic-verb stopword tier must apply only to
+  # description tokens, never to name tokens -- applying it to names was
+  # tried and found to break exact-name matches for skills whose entire
+  # identity IS a generic verb (e.g. an "update" or "help" skill), a real
+  # measured regression on the installed corpus. This fixture reproduces
+  # that class with a synthetic name.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-update"
+  printf -- '---\nname: widget-update\ndescription: "Applies the latest widget update to your local install"\n---\nBody.\n' \
+    > "$skills_dir/widget-update/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"please update the widget now","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-update"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router stems match consonant-doubled -ing forms" {
+  # Regression: "debug" must still match "debugging" (doubled consonant
+  # before -ing) -- the plain suffix-strip rule alone misses this class
+  # entirely, which silently dropped a debugging-related skill for any
+  # prompt using only the -ing form of a doubled-consonant verb.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-debug" "$skills_dir/exact-match"
+  printf -- '---\nname: widget-debug\ndescription: "Use when encountering any widget bug or unexpected behavior"\n---\nBody.\n' \
+    > "$skills_dir/widget-debug/skill.md"
+  printf -- '---\nname: exact-match\ndescription: "Widget maker for raw parts"\n---\nBody.\n' \
+    > "$skills_dir/exact-match/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I am debugging a weird widget failure","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-debug"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router does not treat unrelated words as stopword inflections" {
+  # Regression: stem-aware filtering must not strip words that only
+  # coincidentally end like a stopword plus a suffix ("notes" is not an
+  # inflection of "not"; "whys" -- the "5 Whys" technique -- is not an
+  # inflection of the interrogative "why"). This is why stem-awareness is
+  # restricted to the generic-verb tier and never applied to the
+  # function-word/interrogative tier.
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/meeting-notes"
+  printf -- '---\nname: meeting-notes\ndescription: "Captures meeting notes and 5-Whys root-cause chains"\n---\nBody.\n' \
+    > "$skills_dir/meeting-notes/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"where are the meeting notes from our 5-whys session","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: meeting-notes"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router excludes coordination.internal skills from hints" {
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-internal-helper"
+  printf -- '---\nname: widget-internal-helper\ndescription: "Widget maker internal dispatch helper"\ncoordination:\n  group: internal\n  internal: true\n---\nBody.\n' \
+    > "$skills_dir/widget-internal-helper/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"widget-internal-helper"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router parses and runs under macOS system bash (3.2)" {
+  # Regression, corrected after an initial mischaracterization: this is a
+  # RUNTIME word-splitting error, not a parse-time one -- `bash -n` on the
+  # pre-fix script exits 0 under both bash 3.2 and bash 5. The cache-rebuild
+  # heredoc (a separate, unwrapped heredoc earlier in the script) still
+  # completes and writes a valid cache; only the later
+  # SCORE_OUTPUT="$(python3 - ... <<'SCORE_PY' ... SCORE_PY)" statement dies
+  # at runtime with "bad substitution: no closing ')'" under bash 3.2 (the
+  # interpreter macOS ships as /bin/bash for any engineer without Homebrew
+  # bash ahead on PATH). A minimal heredoc-into-command-substitution repro
+  # runs fine under bash 3.2, so that shape alone is not the trigger --
+  # something specific to this heredoc's embedded content is. The real
+  # severity: the next line then dies on "SCORE_OUTPUT: unbound variable"
+  # (set -u), so the hook exits 1 -- violating its own documented "NEVER
+  # blocks (always exits 0)" contract on every single prompt under system
+  # bash. CI here only runs ubuntu-latest and cannot catch this class of
+  # bug at all.
+  if [[ ! -x /bin/bash ]]; then
+    skip "/bin/bash not present on this runner"
+  fi
+  local bash32_version bash32_major
+  bash32_version="$(/bin/bash --version | head -1)"
+  bash32_major="$(/bin/bash -c 'echo ${BASH_VERSINFO[0]}')"
+  if [ "$bash32_major" -ge 4 ]; then
+    skip "/bin/bash here is $bash32_version (major $bash32_major) -- this test only reproduces and guards the bash-3.2 bug on a true bash-3.2 host (e.g. an unmodified macOS /bin/bash); it provides no revert-protection on this runner"
+  fi
+
+  local skills_dir cache_dir
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run /bin/bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" -v \
+    <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"I need a widget maker","cwd":"/tmp"}')"
+
+  echo "tested under: $bash32_version" >&2
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: widget-maker"* ]]
+  [ -f "$cache_dir/skill-router-cache.json" ]
 
   rm -rf "$skills_dir" "$cache_dir"
 }

@@ -1,0 +1,15 @@
+{
+  "skill_path": "skills/engineering/systematic-debugging/skill.md",
+  "must_match": [
+    "If 2\\+ fixes failed",
+    "Recovery: After 2\\+ Failed Fix Attempts"
+  ],
+  "must_not_match": [
+    "3\\+ fixes failed",
+    "3 or more distinct",
+    "^## 2\\+ Fixes Failed"
+  ],
+  "required_phrases": [
+    "Don't try a third fix"
+  ]
+}

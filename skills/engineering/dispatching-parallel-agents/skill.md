@@ -191,3 +191,7 @@ From debugging session (2025-10-03):
 - All investigations completed concurrently
 - All fixes integrated successfully
 - Zero conflicts between agent changes
+
+## See Also
+
+**Tiered model dispatch (Opus analysis, then Sonnet execution):** When a skill combines judgment-intensive analysis at scale with purely mechanical gated execution, dispatching a high-tier model for the analysis phase and a low-tier model for execution can reduce total cost. This is a SEQUENTIAL pattern (not a form of parallel dispatch) and an opt-in exception with narrow qualifying conditions; misapplied, it increases cost 4 to 5x. Load the reference before considering it: `references/tiered-model-dispatch.md`

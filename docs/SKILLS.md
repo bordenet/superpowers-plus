@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 108 -->
+<!-- SKILL-COUNT: 113 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (47)
@@ -14,6 +14,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `branch-flow-gate` | Trusted-advisor gate for branch and PR hygiene. Advises on base alignment, retry-suffix branches, back-sync naming, and PR hygiene. Always exits 0 — advisory only. |
 | `branch-sync-gate` | Pull gate — MANDATORY before any work on an existing shared branch. git fetch + status check before touching code, running tests, or making changes. |
 | `code-review-battery` | Dispatches up to 7 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| `codeowners-drift-audit` | Audits CODEOWNERS for unowned files, dead rules, and invalid owner references. Works with GitHub and GitLab; degrades to advisory-only when neither CLI is authenticated. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
@@ -57,7 +58,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (22)
+## Productivity (24)
 
 | Skill | Description |
 |-------|-------------|
@@ -72,9 +73,11 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `innovation` | Produces a single high-conviction innovation answer for the project. |
 | `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
 | `model-selector` | Recommends the most cost-effective AI model for a task. Enforces the codebase-retrieval filter before considering external models. |
+| `no-empty-promises` | PRIME DIRECTIVE: intercepts empty behavioral promises ("I'll be more careful") and forces a structural skill edit instead. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
 | `quantitative-decision-gate` | Forces decision matrix evaluation before escalating questions to the user. |
 | `screenshot` | Visual input bridge. Grabs N most recent screenshots and dispatches to fix, explain, compare, spec, do-this, or free-form intent. `/sp-ss [N] [intent]`. |
+| `session-status` | Reports where the current session stands: work in flight, remaining items, unanswered questions, blockers, suggested title. |
 | `skill-authoring` | Creates new skills from descriptions, patterns, or codebase analysis. |
 | `superpowers-help` | Dynamically enumerates all installed skills at runtime. |
 | `think-twice` | Detects stuck loops, dispatches fresh sub-agent with zero shared context. |
@@ -84,12 +87,13 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `todo-management` | Task capture, tracking, triage, history queries, multi-step plan execution. |
 | `update-superpowers` | Updates superpowers-plus to latest, reruns install cascade, verifies with doctor. |
 
-## Writing (8)
+## Writing (9)
 
 | Skill | Description |
 |-------|-------------|
 | `detecting-ai-slop` | Scores text 0-100 for machine-generated patterns across 4 dimensions. |
 | `eliminating-ai-slop` | Rewrites prose to remove AI patterns. Interactive or automatic mode. |
+| `explain-like-im-five` | Explains a concept, error, or artifact in plain language while preserving nuance. `/eli5 [subject]` — explicit or context-derived. |
 | `markdown-table-discipline` | Best practices for table construction. Prevents noise, redundancy, accessibility issues. |
 | `plan-quality-gates` | Prevents fabricated timelines, ensures dependency ordering, requires exit criteria. |
 | `professional-language-audit` | Hard gate scanning for profanity before publishing documentation. |
@@ -110,7 +114,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `wiki-secret-audit` | Scans wiki pages for exposed secrets, API keys, and tokens. |
 | `wiki-verify` | Verifies codebase claims in wiki pages and updates stale content. |
 
-## Observability (9)
+## Observability (10)
 
 | Skill | Description |
 |-------|-------------|
@@ -121,6 +125,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `holistic-repo-verification` | Verifies ALL repository health aspects: CI, Pages, custom workflows. |
 | `measurement-integrity` | Forces cross-validation and confidence qualification before reporting metrics. |
 | `skill-health-check` | Structural lint for skill files: validates YAML, line counts, coordination metadata. |
+| `skill-trigger-audit` | Dynamic, behavioral audit of whether a skill wins, loses, or wrongly wins the skill-router hook's routing decision -- runs real prompts through the real scorer, not a static lint. |
 | `substrate-claim-audit` | Hard gate before naming artifacts or quoting thresholds in output. Requires grep-verified evidence for every named symbol. Prevents confabulated-substrate AI slop. |
 | `superpowers-doctor` | 29-check diagnostic across all installed skills. Modeled after `brew doctor`. |
 

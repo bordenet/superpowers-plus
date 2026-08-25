@@ -1,0 +1,47 @@
+id: candidate-011
+status: graduated
+kind: pattern
+created: 2026-07-24
+source_gap: "glab-mr-ready.sh checked a local .code-review-cleared-<SHA> sentinel, then
+  called glab mr update --ready. A CI bot commit between sentinel-write and the mr-ready
+  call advanced the remote HEAD, so the script marked an unreviewed SHA ready. Defect
+  Finder's Concurrency dimension lists TOCTOU but did not enumerate the gate-then-remote-action
+  shape as a concrete trigger."
+source_exercise: null
+graduation_path: live-incident
+reviewer: defect-finder
+pattern: |
+  When reviewing code that reads local state (sentinel file, git rev-parse HEAD without
+  a prior fetch, or an env var encoding a remote SHA/status) as a gate condition before
+  performing an irreversible remote action (API call, git push, mark-ready, deploy),
+  check whether the local state can diverge from the authoritative remote state between
+  the check and the action.
+  Look at: the sentinel file path/name, git rev-parse calls without a preceding fetch,
+  and env vars encoding SHA or review status.
+  Flag as Important if: the gate reads local state that encodes a claim about remote
+  authoritative state at a prior moment, and no re-fetch of the authoritative value
+  occurs immediately before the gate check.
+  Do NOT fire on: config values (API URLs, auth tokens, timeouts, boolean flags) that
+  do not encode remote authoritative state.
+examples:
+  - file: "agent-scripts/glab-mr-ready.sh"
+    issue: "Local sentinel .code-review-cleared-<SHA> checked, then glab mr update
+      --ready called, with no API re-fetch of the current MR HEAD SHA between them.
+      A CI bot commit can advance the remote HEAD between sentinel-write and mr-ready."
+    fix: "Fetch sha from GitLab API (glab api projects/.../merge_requests/N) immediately
+      before the gate check; compare against sentinel SHA; reject if they differ."
+confidence: 0.8
+ttl_days: null
+validation:
+  exercises_tested: []
+  true_positives: 1
+  false_positives: 0
+  precision: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-24
+  reviewer_line: "defect-finder.md -- Gate TOCTOU section"
+  regression_check: "live-incident -- no exercise holdout; single live incident
+    confirms the failure mode. Confidence held at 0.8."

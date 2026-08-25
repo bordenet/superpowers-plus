@@ -16,7 +16,7 @@
 #
 # EXIT:    0 success (verified)   1 scope violation
 #          2 env/arg error        3 API error
-#          4 verification failed
+#          4 verification failed  5 content-check violation (slop/structure)
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -57,6 +57,7 @@ Output (stdout, JSON on success):
 Exit codes:
     0 success + verified   1 scope violation      2 env/arg error
     3 API error            4 post-write verify failed
+    5 content-check violation (slop/structure -- fix and retry)
 EOF
 }
 
@@ -156,6 +157,31 @@ _build_payload_move() {
         '{id:$id, parentDocumentId:$parent}'
 }
 
+
+# AI slop and content quality gate — blocks em-dashes, buzzwords, filler
+# phrases, and structural violations before content reaches the API.
+CONTENT_CHECK="${SCRIPT_DIR}/wiki-content-check.sh"
+if [[ "$ACTION" != "move" && -x "$CONTENT_CHECK" ]]; then
+    log_info "content-check gate: wiki-content-check.sh"
+    # The command itself, not a negated `!` form, must be the if-condition:
+    # under `set -e` a bare failing command aborts immediately, and bash's
+    # `!` negates $? for control-flow purposes, so `$?` inside an `if !
+    # cmd; then` block is never the command's real exit code -- it would
+    # always read 0 here, silently defeating the exit-2-vs-other check below.
+    if "$CONTENT_CHECK" --content "$CONTENT_FILE" >&2; then
+        :
+    else
+        content_rc=$?
+        if [[ "$content_rc" -eq 2 ]]; then
+            log_err "content-check environment error (exit 2) -- fix the tool's environment (e.g. missing python3), not the wiki content"
+            exit 2
+        fi
+        log_err "content check failed -- fix slop/structure violations and retry"
+        exit 5
+    fi
+elif [[ "$ACTION" != "move" ]]; then
+    log_warn "wiki-content-check.sh not found at $CONTENT_CHECK -- slop gate skipped"
+fi
 
 # Structural markdown gate — blocks H1 titles, malformed tables, and other
 # Outline violations before content reaches the API.
