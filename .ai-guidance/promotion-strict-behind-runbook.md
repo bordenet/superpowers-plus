@@ -34,7 +34,8 @@ completing, and none needed the `strict` workaround. This does not disprove the
 2026-07-12 observation below -- it is a separate cycle under possibly different
 GitHub-side conditions -- but it does mean **diff size alone is not a reason to
 skip the wait**. Only escalate to the toggle once `gh pr checks` shows every row
-terminal (`pass`/`fail`/`skipping`) and `mergeStateStatus` is still `BEHIND`.
+terminal (`pass`/`fail`/`skipping`/`cancel` -- gh's bucket vocabulary,
+not raw check states; see `gh pr checks --help`) and `mergeStateStatus` is still `BEHIND`.
 
 ## Confirmed NOT to help
 
