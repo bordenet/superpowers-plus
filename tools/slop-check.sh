@@ -159,9 +159,9 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 is required (URL redaction + em-dash check)" >&2
     exit 2
 fi
-SCAN_FILE="$(mktemp /tmp/slop-check-scan.XXXXXX)"
+SCAN_FILE="$(mktemp -t slop-check-scan.XXXXXX)"
 trap 'rm -f "$SCAN_FILE"' EXIT
-_PY_TMP="$(mktemp /tmp/slop-check-py.XXXXXX)"
+_PY_TMP="$(mktemp -t slop-check-py.XXXXXX)"
 trap 'rm -f "$_PY_TMP" "$SCAN_FILE"' EXIT
 
 # The python3 invocation must be the condition of the if-statement itself
@@ -239,7 +239,7 @@ fi
 # composed sequence (flag, shield, skin tone) matches on at least one codepoint
 # without needing full grapheme-cluster handling.
 # ---------------------------------------------------------------------------
-_EMOJI_TMP="$(mktemp /tmp/slop-check-emoji.XXXXXX)"
+_EMOJI_TMP="$(mktemp -t slop-check-emoji.XXXXXX)"
 # `trap CMD EXIT` REPLACES the previous EXIT handler, it does not append --
 # this trap must re-list every temp file registered by earlier traps
 # ($SCAN_FILE from the URL-redaction step above) or they leak on every run.

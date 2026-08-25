@@ -1,0 +1,43 @@
+# Candidate: Field Reference Trace (stale-read / write-only field introduced by a diff)
+id: candidate-005
+status: graduated
+kind: pattern
+created: 2026-07-10
+source_gap: "Caller Removal Trace (candidate-003) covers functions/exported symbols whose call sites are removed, using a 'grep for remaining references, zero = dead' algorithm. That algorithm does not transfer to fields: a field typically has readers and writers as separate reference kinds, so removing one while the other survives produces a live-but-broken field (a surviving reference, NOT zero references), not an orphaned symbol. Real corroborating evidence: a sibling repo's production incident review caught two field-level instances of exactly this class in the same review pass -- a field losing its only writer, and a field losing its only reader -- both fixed pre-merge, same day, never shipped."
+source_exercise: ex-019
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  For every field/property whose only WRITE path or only READ path the
+  diff DELETES (not resets to null/0 -- deletes the assignment or
+  consuming expression entirely): grep the full source for remaining
+  references, classify each as a READ or a WRITE. If the last WRITE is
+  deleted and a READ survives, the field is stale -- every surviving
+  reader silently consumes dead data. Flag Important. If the last READ
+  is deleted and a WRITE survives, the field is write-only -- computed
+  and stored for nothing. Flag Minor/Important per the same
+  exported/published-library severity ladder as Caller Removal Trace.
+  If both are gone, this is not this pattern's finding. Rule out
+  dynamic access before flagging; scope the grep to the same
+  type/interface, not the bare field name, since common field names
+  collide across unrelated types. Every finding needs Reachability
+  evidence naming every surviving reference and its read/write
+  classification.
+examples:
+  - file: "src/checkout.ts + src/receipt-email.ts + src/webhook-handler.ts (ex-019, synthetic)"
+    issue: "order.discountCode loses its only writer while receipt-email.ts still reads it (stale-read); order.rawPayload loses its only reader while webhook-handler.ts still writes it (write-only) -- in the same diff."
+    fix: "Restore the missing writer or reader, or make a deliberate decision to deprecate the field and remove both sides together."
+confidence: 0.75
+ttl_days: 90
+validation:
+  exercises_tested: [ex-019, ex-005, ex-012]
+  true_positives: 2
+  false_positives: 0
+  precision: 1.0
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: 2026-07-10
+  reviewer_line: "defect-finder.md 'Field Reference Trace'; skill.md Phase 1 signal table + Phase 2 ripple analysis"
+  regression_check: "Validated by dispatching fresh sub-agents (no shared context) running the augmented Defect Finder charter. Source ex-019: correctly flagged order.discountCode as a stale-read risk (Important, naming the surviving receipt-email.ts reader) AND order.rawPayload as write-only dead code (Important -- exported field, app repo, per the severity ladder), both in the same diff, both reasoned through the read/write distinction rather than a zero-reference check. Correctly did not flag paymentMethodLast4 (both read and written, fully live) or misattribute either finding to Caller Removal Trace or Consumer Trace. Holdouts ex-005 (documentation-only prose diff, no fields) and ex-012 (purely additive diff, no field deleted): both explicitly reported 'fired: NO', zero false positives. Confidence set below candidate-001's 1.0 given this was validated synthetically, not against a real production diff."

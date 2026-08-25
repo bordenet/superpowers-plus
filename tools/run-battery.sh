@@ -17,12 +17,25 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Advisory per-SHA lock: two orchestrators on the same HEAD sha can otherwise
+# race on the shared envelope at .cr-battery-runs/<sha>.json (A writes,
+# A verifies, B overwrites, A sentinels B's untrusted claims). mkdir-based
+# lock in tools/lib/sha-lock.sh serialises the verifier -> sentinel window.
+# Sourcing is tolerated to fail-open only if the lib is missing (older repos);
+# real installs pin it via install.sh.
+if [[ -f "$SCRIPT_DIR/lib/sha-lock.sh" ]]; then
+    # shellcheck source=/dev/null  # optional library; all uses guarded by declare -F
+    source "$SCRIPT_DIR/lib/sha-lock.sh"
+fi
+
 # Resolve repo root from the caller's CWD so the sentinel lands in the right
 # repo when run-battery.sh is invoked from an overlay repo.
 # Fall back to the script's own repo only when not called from inside a git tree.
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+# Use || true on each git call so set -e does not abort when git returns non-zero
+# (e.g. caller is outside any repo).  The guard at line 38 produces the user-facing error.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || true
 if [[ -z "$REPO_ROOT" ]]; then
-  REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
+  REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)" || true
 fi
 [[ -n "$REPO_ROOT" ]] || { echo "❌ Cannot locate a git repo from CWD or script dir" >&2; exit 1; }
 cd "$REPO_ROOT"
@@ -350,6 +363,17 @@ if [[ "$STAGED_MODE" -ne 1 ]] && [[ -n "$SHA_FOR_PRESERVE" ]]; then
     PRESERVE_FILE="$PRESERVE_DIR/${SHA_FOR_PRESERVE}.json"
     _NEED_ENVELOPE=0
 
+    # Acquire per-SHA advisory lock: serialises the verifier -> sentinel window
+    # against concurrent runs on the same HEAD (e.g. two worktrees, two agents).
+    # Timeout via CR_BATTERY_LOCK_TIMEOUT (default 60s) surfaces stuck holders
+    # instead of hanging forever. Only acquired when the lib was found.
+    if declare -F sha_lock_acquire >/dev/null 2>&1; then
+        SHA_LOCK_DIR="$PRESERVE_DIR/.locks/${SHA_FOR_PRESERVE}"
+        mkdir -p "$(dirname "$SHA_LOCK_DIR")" 2>/dev/null || true
+        trap sha_lock_release EXIT INT TERM
+        sha_lock_acquire "$SHA_LOCK_DIR" "${CR_BATTERY_LOCK_TIMEOUT:-60}"
+    fi
+
     if [[ "$_BUG_FIX_MODE" == "1" ]]; then
         # Bug Fix Mode: envelope is mandatory regardless of --no-envelope
         _NEED_ENVELOPE=1
@@ -390,6 +414,17 @@ if [[ "$STAGED_MODE" -ne 1 ]] && [[ -n "$SHA_FOR_PRESERVE" ]]; then
                     exit 1
                 fi
             fi
+            # Envelope-mutation guard: snapshot the file hash right after we
+            # commit to trusting this envelope, and compare against a fresh hash
+            # just before the sentinel write. If a concurrent orchestrator
+            # rewrote the envelope during verification, the sentinel would bind
+            # to claims we never verified -- refuse to write it and exit 1.
+            # Empty snapshot (no sha256sum/shasum on host) is treated as a
+            # silent bypass so existing hash-tool-free hosts keep working.
+            PRE_VERIFIER_HASH=""
+            if declare -F sha_lock_hash_file >/dev/null 2>&1; then
+                PRE_VERIFIER_HASH="$(sha_lock_hash_file "$PRESERVE_FILE")"
+            fi
             # Evidence-replay verifier: mandatory in Bug Fix Mode, runs in Standard
             # Mode when the verifier script exists. Warns and continues if node absent
             # (Standard Mode only — Bug Fix Mode requires node).
@@ -424,6 +459,21 @@ if [[ "$STAGED_MODE" -ne 1 ]] && [[ -n "$SHA_FOR_PRESERVE" ]]; then
     unset _NEED_ENVELOPE
 fi
 unset _NO_ENVELOPE _BUG_FIX_MODE SHA_FOR_PRESERVE
+
+# Envelope-mutation guard, part 2: if the pre-verifier snapshot exists, re-hash
+# the file and refuse to write the sentinel if it changed since verification.
+# This closes the concurrent-orchestrator window that the sha-lock only narrows.
+if declare -F sha_lock_hash_file >/dev/null 2>&1 && [[ -n "${PRE_VERIFIER_HASH:-}" ]] && [[ -n "${PRESERVE_FILE:-}" ]]; then
+    POST_VERIFIER_HASH="$(sha_lock_hash_file "$PRESERVE_FILE")"
+    if [[ -n "$POST_VERIFIER_HASH" ]] && [[ "$PRE_VERIFIER_HASH" != "$POST_VERIFIER_HASH" ]]; then
+        echo "❌ Envelope MUTATED during verification: another orchestrator rewrote" >&2
+        echo "   $PRESERVE_FILE between the verifier pass and sentinel write." >&2
+        echo "   Binding a sentinel to unverified claims is a silent-corruption path." >&2
+        echo "   Re-run run-battery.sh; the sha-lock will serialise this attempt." >&2
+        echo "   Sentinel NOT written." >&2
+        exit 1
+    fi
+fi
 
 echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
 
