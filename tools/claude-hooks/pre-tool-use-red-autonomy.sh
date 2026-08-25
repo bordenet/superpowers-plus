@@ -578,9 +578,51 @@ REVOKE_PHRASES = [
 transcript_path = sys.argv[1]
 recent_user_messages = []
 
+# tool_use_id -> True for every AskUserQuestion call seen so far. An
+# AskUserQuestion answer arrives as a user-role turn whose content is a
+# tool_result block (not any of the four plain-chat shapes below) --
+# extract_text() alone never saw it, since a tool_result's payload lives
+# under "content", not "text". Scoped to AskUserQuestion specifically (by
+# tool_use_id), NOT to every tool_result: a Bash/Read/Grep result can
+# contain arbitrary text (a file, a log, a ticket description) that
+# happens to match an approval phrase with no genuine human intent behind
+# it -- only an answer to a question Claude itself asked constitutes
+# approval. Only string ids are ever added/matched: a non-string id (a
+# list, from a malformed or adversarial transcript) is skipped rather
+# than crashing set.add() on an unhashable type, and never collides with
+# another block's missing id (both would otherwise resolve to Python
+# None).
+ask_user_question_ids = set()
+
+# Real rendered format (verified against a live Claude Code transcript):
+# the tool_result content is a single string, e.g.
+#   Your questions have been answered: "<question>"="<answer>". You can
+#   now continue with these answers in mind.
+# Scanning that whole string for approval phrases lets Claude's own
+# QUESTION wording grant approval regardless of the human's actual
+# answer -- isolate only the quoted answer-side value(s) of each
+# "question"="answer" pair. A string with no such pair (e.g. a synthetic
+# timeout message, which is not a genuine human answer at all) yields no
+# extracted text and so can never grant approval on its own.
+def extract_answer_only(text):
+    if not isinstance(text, str):
+        return ""
+    return " ".join(re.findall(r'"[^"]*"\s*=\s*"([^"]*)"', text))
+
 def extract_text(content):
     if isinstance(content, list):
-        return " ".join(p.get("text","") for p in content if isinstance(p,dict))
+        parts = []
+        for p in content:
+            if not isinstance(p, dict):
+                continue
+            if p.get("text"):
+                parts.append(p["text"])
+            elif p.get("type") == "tool_result" and isinstance(p.get("tool_use_id"), str) and p.get("tool_use_id") in ask_user_question_ids:
+                raw = p.get("content", "")
+                if isinstance(raw, list):
+                    raw = extract_text(raw)
+                parts.append(extract_answer_only(raw))
+        return " ".join(parts)
     return content if isinstance(content, str) else ""
 
 # Augment Agent sessions are a single JSON document, not JSONL. Detect
@@ -629,6 +671,22 @@ if not _skip_jsonl:
                 obj = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            # Two assistant shapes, mirroring the user-message shapes below:
+            # legacy {"role":"assistant","content":...} and current
+            # {"type":"assistant","message":{"role":"assistant","content":...}}.
+            assistant_content = None
+            if obj.get("role") == "assistant":
+                assistant_content = obj.get("content")
+            elif obj.get("type") == "assistant":
+                amsg = obj.get("message", {})
+                if isinstance(amsg, dict) and amsg.get("role") == "assistant":
+                    assistant_content = amsg.get("content")
+            if isinstance(assistant_content, list):
+                for p in assistant_content:
+                    if isinstance(p, dict) and p.get("type") == "tool_use" and p.get("name") == "AskUserQuestion":
+                        tid = p.get("id")
+                        if isinstance(tid, str):
+                            ask_user_question_ids.add(tid)
             t = ""
             # Support four transcript shapes:
             # Legacy: {"role":"user","content":...}
