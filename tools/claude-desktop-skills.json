@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "updated": "2026-06-27",
+  "description": "Curated superpowers-plus skills for Claude Desktop (manual upload required). Only skills with no MCP dependencies and no inter-skill tool calls are included.",
+  "docs": "https://support.claude.com/en/articles/12512198-how-to-create-custom-skills",
+  "skills": [
+    "brainstorming",
+    "debate",
+    "progressive-harsh-review",
+    "detecting-ai-slop",
+    "eliminating-ai-slop",
+    "expert-interviewer",
+    "readme-authoring",
+    "writing-plans",
+    "think-twice",
+    "innovation",
+    "skill-authoring"
+  ]
+}

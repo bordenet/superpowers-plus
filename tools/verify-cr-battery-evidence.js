@@ -78,7 +78,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 function envIntOrDie(name, dflt) {
   const raw = process.env[name];
@@ -170,8 +170,32 @@ function replay(claim, cwd) {
   if (ev.verifiable === false) {
     return { status: 'unverifiable', detail: ev.rationale || 'judgment-claim flagged verifiable:false' };
   }
+  // argv array: use spawnSync so no shell escaping is ever needed.
+  // Prefer this over evidence.command when the pattern contains $VAR, ", or \.
+  if (Array.isArray(ev.argv)) {
+    if (ev.argv.length === 0) {
+      return { status: 'error', detail: 'evidence.argv is an empty array' };
+    }
+    const argv0 = String(ev.argv[0]);
+    const rest  = ev.argv.slice(1).map(String);
+    const r = spawnSync(argv0, rest, {
+      cwd,
+      encoding: 'utf8',
+      timeout: VERIFIER_TIMEOUT_MS,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    if (r.error) {
+      if (r.error.code === 'ETIMEDOUT') {
+        return { status: 'error', detail: `argv command exceeded ${VERIFIER_TIMEOUT_MS}ms timeout` };
+      }
+      return { status: 'error', detail: `argv spawn failed: ${r.error.message}` };
+    }
+    const exitCode = r.status !== null ? r.status : 0;
+    const stdout   = r.stdout || '';
+    return parseExpectation(stdout, exitCode, ev.expectation);
+  }
   if (!ev.command || typeof ev.command !== 'string') {
-    return { status: 'error', detail: 'evidence.command missing or non-string' };
+    return { status: 'error', detail: 'evidence must include either argv (array) or command (string)' };
   }
   let stdout = '', exitCode = 0;
   try {

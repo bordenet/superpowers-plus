@@ -49,6 +49,7 @@ resolve_push_base_ref() {
 #                           the range as code, or enumerate the full history)
 #                           rather than trust a single-commit diff-tree, which
 #                           would miss earlier commits in the same push.
+# shellcheck disable=SC2034  # RANGE and NEW_BRANCH_NO_BASE are output vars consumed by callers after sourcing
 resolve_diff_range() {
     local local_sha="$1" remote_sha="$2" remote_name="$3"
     NEW_BRANCH_NO_BASE=false
