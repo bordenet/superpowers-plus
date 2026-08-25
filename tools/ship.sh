@@ -141,7 +141,8 @@ _generate_body() {
 # Usage: _aggregate_check_state "<gh pr checks output>"
 # Prints exactly one of: pending | running | failed | success
 #
-# Column 2 of each tab-separated line is gh's BUCKET, not the raw state:
+# Input is <name>\t<bucket> lines (see the --json/@tsv call site below).
+# Column 2 is gh's BUCKET, not the raw state:
 #   pass | fail | pending | skipping | cancel
 # (`gh pr checks --help`; a check whose state is SUCCESS prints as "pass").
 # Raw-state names like "cancelled"/"timed_out" are NOT emitted here by
@@ -268,7 +269,22 @@ _POLL_ELAPSED=0
 while true; do
   # gh pr checks exits non-zero if any check is failing; we swallow that so
   # the state machine below sees the aggregate and decides whether to abort.
-  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" 2>/dev/null || true)
+  #
+  # Source the per-check state from gh's DOCUMENTED `bucket` JSON field, not
+  # from positional column 2 of the human-readable TSV. The TSV layout is not
+  # an API -- gh may restyle or reorder it -- whereas `bucket` is documented
+  # with a documented vocabulary (`gh pr checks --help`). Rendered back to
+  # <name>\t<bucket> via @tsv so _aggregate_check_state's input contract, and
+  # its test suite, are unchanged. --jq is gh's embedded jq: no external jq
+  # dependency (verified with jq off PATH).
+  #
+  # Deliberately NO fallback to the plain-TSV path on failure: a silent
+  # degrade to the weaker parser is exactly how the original defect survived.
+  # On failure this yields empty output, which _aggregate_check_state maps to
+  # "pending", so the loop keeps waiting and aborts on _POLL_TIMEOUT rather
+  # than merging unverified code.
+  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" --json name,bucket \
+    --jq '.[] | [.name, .bucket] | @tsv' 2>/dev/null || true)
   _AGG_STATE=$(_aggregate_check_state "$_CHECKS_OUT")
 
   case "$_AGG_STATE" in
