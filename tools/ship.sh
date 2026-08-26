@@ -145,6 +145,13 @@ if [[ "$BRANCH" == "$TARGET_BRANCH" ]]; then
   echo "ERROR: current branch equals target '$TARGET_BRANCH' -- create a feature branch first." >&2
   exit 1
 fi
+# Guard: never auto-delete canonical long-lived branches.
+case "$BRANCH" in
+  dev|staging|main)
+    echo "ERROR: refusing to operate on canonical branch '$BRANCH' -- create a feature branch first." >&2
+    exit 1
+    ;;
+esac
 echo "[ship] pushing $BRANCH -> origin"
 git push --set-upstream origin "$BRANCH"
 
@@ -208,12 +215,29 @@ while true; do
   _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" 2>/dev/null || true)
   if [[ -z "$_CHECKS_OUT" ]]; then
     _AGG_STATE="pending"
-  elif echo "$_CHECKS_OUT" | awk -F'\t' '{print $2}' | grep -qE '^(fail|cancelled|action_required|timed_out)$'; then
-    _AGG_STATE="failed"
-  elif echo "$_CHECKS_OUT" | awk -F'\t' '{print $2}' | grep -qE '^(pending|in_progress|queued|)$'; then
-    _AGG_STATE="running"
   else
-    _AGG_STATE="success"
+    # Pure-awk aggregate: avoids grep empty-alternative (ugrep on macOS exits 2
+    # for '^(pending|in_progress|queued|)$', causing a false "success" fallthrough).
+    # Priority: any terminal failure > any in-flight > all pass.
+    _AGG_STATE=$(printf '%s\n' "$_CHECKS_OUT" | awk -F'\t' '
+      BEGIN { has_fail=0; has_running=0; has_pass=0 }
+      {
+        s = $2
+        if (s == "fail" || s == "cancelled" || s == "action_required" || s == "timed_out")
+          has_fail = 1
+        else if (s == "pending" || s == "in_progress" || s == "queued" || s == "")
+          has_running = 1
+        else if (s == "pass" || s == "skipping" || s == "success")
+          has_pass = 1
+        else
+          has_running = 1   # unknown state: treat conservatively as in-flight
+      }
+      END {
+        if (has_fail)    print "failed"
+        else if (has_running) print "running"
+        else             print "success"
+      }
+    ')
   fi
 
   case "$_AGG_STATE" in
