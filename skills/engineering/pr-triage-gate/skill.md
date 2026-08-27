@@ -40,19 +40,34 @@ coordination:
 
 ## MANDATORY -- Run before any CI debug work
 
+### Step 0: Check out the PR branch so `HEAD` is the PR tip (10 seconds)
+
+Every subsequent step compares `HEAD` against the target. If `HEAD` is on an unrelated branch, Step 2 silently produces a false verdict. Pin `HEAD` first:
+
+```bash
+# GitHub:
+gh pr checkout <number>
+# GitLab:
+glab mr checkout <iid>
+```
+
 ### Step 1: Read the PR description (30 seconds)
+
+Both branches emit the same JSON schema so downstream steps do not fork on remote type.
 
 GitHub via `gh`:
 
 ```bash
 gh pr view <number> --json title,baseRefName,body \
-  --template '{{.title}}{{"\n"}}Target: {{.baseRefName}}{{"\n"}}---{{"\n"}}{{.body}}'
+  --jq '{title,target:.baseRefName,description:.body}'
 ```
 
-If your remote is GitLab, use `glab` instead:
+If your remote is GitLab, use `glab` instead. The project path must be URL-encoded even when it contains nested groups (`group/subgroup/repo`):
 
 ```bash
-PROJECT="$(git remote get-url origin | sed -E 's#.*[:/]([^/]+/[^/.]+)(\.git)?$#\1#' | sed 's#/#%2F#g')"
+PROJECT="$(git remote get-url origin \
+  | sed -E 's#^(git@[^:]+:|https?://[^/]+/)##; s#\.git$##' \
+  | sed 's#/#%2F#g')"
 glab api "projects/${PROJECT}/merge_requests/<iid>" \
   --jq '{title,target:.target_branch,description}'
 ```
@@ -63,18 +78,15 @@ Extract the **stated goals**: what functions, flags, or behaviors does this PR c
 
 ### Step 2: Check if the target branch already has each stated goal (60 seconds)
 
-For each stated goal, run the single most relevant check:
+Fetch the target once, then run the single most relevant check per stated goal:
 
 ```text
-# Does the function already exist on the target branch?
 git fetch origin <target-branch>
-git show origin/<target-branch>:<file> | grep -n "<function-name>"
 
-# Is the flag or default already set on the target branch?
-git show origin/<target-branch>:<file> | grep -n "<flag-or-default>"
-
-# How much does the file actually differ between the PR branch and the target?
-git diff origin/<target-branch>..HEAD -- <file> | wc -l
+# For each stated goal:
+git show origin/<target-branch>:<file> | grep -n "<function-name>"        # does the function exist on target?
+git show origin/<target-branch>:<file> | grep -n "<flag-or-default>"      # is the flag or default present?
+git diff origin/<target-branch>..HEAD -- <file> | wc -l                   # how much does the file actually differ?
 ```
 
 **If `git show` fails (file does not exist on the target), that stated goal is genuinely new -- note it and continue.**

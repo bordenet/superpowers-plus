@@ -35,7 +35,7 @@ Load `reference.md` selectively. Do not load it for a routine operation.
 
 | Need | Read this reference section |
 |---|---|
-| Full keyword scoring rubric and examples | `Scoring rubric` |
+| Full keyword scoring rubric and Failure Modes safety carve-out | `Scoring rubric` |
 | Handling ambiguous sections | `Ambiguous section decisions` |
 | Edge cases and safety-critical content rules | `Edge cases` |
 | How to apply this skill to a new skill | `How to apply spc-kernel-split to your skill` |
@@ -80,9 +80,9 @@ Verify the routing table rows match the reference headings. Fill in the `Need` c
 
 ### Step 3 -- Wire the section-loader call
 
-The kernel's routing table uses `reference.md` sections. The kernel must also embed a section-loader call (between marker comments) so agents can load individual reference sections on demand:
+The kernel's routing table uses `reference.md` sections. The kernel must also embed a section-loader call (between marker comments) so agents can load individual reference sections on demand. Use a four-backtick outer fence so the inner ```bash block renders correctly:
 
-```text
+````text
 <!-- spc-kernel-split-reference-loader:start -->
 ```bash
 _project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -94,14 +94,13 @@ do
   if [ -r "$_candidate" ]; then _spc_ref="$_candidate"; break; fi
 done
 _spc_loader="$_project_root/tools/section-loader.sh"
-[ -r "$_spc_ref" ]    || { printf 'reference missing\n' >&2; exit 1; }
-[ -x "$_spc_loader" ] || { printf 'section-loader not found\n' >&2; exit 1; }
+[ -r "$_spc_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
 _section='<section heading>'
 bash "$_spc_loader" "$_spc_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
 ```
 <!-- spc-kernel-split-reference-loader:end -->
-```
+````
 
 ### Step 4 -- Add a context-budget regression test
 
@@ -109,6 +108,7 @@ Add an entry to `tests/engineering/spc-kernel-split-context.bats`:
 
 ```text
 @test "SKILLNAME kernel stays within byte budget" {
+  REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd -P)"
   SKILL="$REPO_ROOT/skills/DOMAIN/SKILLNAME/skill.md"
   BEFORE_BYTES=99999  # replace with actual pre-split byte count
   BUDGET_RATIO_PERCENT=60

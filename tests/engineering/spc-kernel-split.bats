@@ -133,7 +133,43 @@ teardown() {
   tmpdir="$(printf '%s\n' "$output" | grep 'Proposed split written to:' | sed 's/.*: //')"
   # Auth details has "auth", "verify", "hard gate", "must" -> kernel
   grep -q "^## Auth details" "$tmpdir/proposed-kernel.md"
-  # Failure Modes -> reference (special rule)
+  # Failure Modes (no hard-gate keywords in body) -> reference (special rule)
   grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+  rm -rf "$tmpdir"
+}
+
+# ---------------------------------------------------------------------------
+# Safety carve-out: Failure Modes sections that carry a hard-gate keyword
+# ("never", "must", "hard gate", "mandatory") in the body must stay resident
+# in the kernel. The -999 special rule is conditional on the ABSENCE of those
+# keywords; a hard-gate Failure Modes section falls through to normal scoring
+# so kernel-hint keywords in its body pull it into the kernel.
+# ---------------------------------------------------------------------------
+@test "skill-partitioner keeps hard-gate Failure Modes in the kernel" {
+  HARD_GATE_FIXTURE="$TMPDIR_/hard-gate-fixture.md"
+  cat > "$HARD_GATE_FIXTURE" <<'MD'
+---
+name: hard-gate-fixture
+description: fixture with a hard-gate Failure Modes section
+---
+
+## Command catalog
+
+Reference material for lookup only.
+
+## Failure Modes
+
+NEVER proceed if the audit fails. You MUST abort and escalate. This is a hard gate.
+MD
+
+  run bash "$PARTITIONER" propose "$HARD_GATE_FIXTURE"
+  [ "$status" -eq 0 ]
+  tmpdir="$(printf '%s\n' "$output" | grep 'Proposed split written to:' | sed 's/.*: //')"
+
+  # Hard-gate Failure Modes MUST land in kernel (safety invariant).
+  grep -q "^## Failure Modes" "$tmpdir/proposed-kernel.md"
+  # And MUST NOT be in reference.
+  ! grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+
   rm -rf "$tmpdir"
 }

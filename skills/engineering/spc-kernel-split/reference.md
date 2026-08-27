@@ -52,8 +52,10 @@ Threshold: sections scoring **<= -1** go to `proposed-reference.md`.
 | Condition | Score | Outcome |
 |---|---|---|
 | YAML frontmatter (lines 1 through closing `---`) | +999 | Always kernel |
-| Section heading contains "failure mode" or "failure modes" | -999 | Always reference |
+| Section heading contains "failure mode" or "failure modes" AND body has no `never` / `must` / `hard gate` / `mandatory` keyword in first 200 chars | -999 | Always reference |
 | `EXTREMELY_IMPORTANT` tag in first 200 chars | +4 | Strong kernel signal |
+
+The Failure Modes rule is gated on the absence of hard-gate keywords in the section body so a Failure Modes table that carries a "NEVER proceed" or "MUST abort" instruction stays resident in the kernel. Pure lookup-table Failure Modes (no hard-gate keywords) still demote to reference.
 
 ### Scoring ambiguity
 

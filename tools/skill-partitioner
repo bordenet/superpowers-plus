@@ -37,7 +37,11 @@
 #     example, walkthrough, troubleshoot, catalog, "edge case", optional
 #   Special rules:
 #     YAML frontmatter (between first two --- lines): always kernel (+999)
-#     Heading contains "failure mode": always reference (-999)
+#     Heading contains "failure mode" AND body has no hard-gate keyword
+#       ("never", "must", "hard gate", "mandatory") in first 200 chars: -999
+#     Heading contains "failure mode" AND body HAS a hard-gate keyword:
+#       falls through to normal scoring so the section stays kernel-resident
+#       (protects the "hard gates never silently leave the kernel" invariant)
 #
 # Exit codes:
 #   0  Success
@@ -92,10 +96,24 @@ BEGIN {
   cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
 }
 
-function score(heading, preview,    text, sc, kw) {
+function score(heading, preview,    text, body, sc, kw, has_hard_gate) {
   text = tolower(heading " " preview)
+  body = tolower(preview)
   sc = 0
-  if (index(tolower(heading), "failure mode") > 0) return -999
+  if (index(tolower(heading), "failure mode") > 0) {
+    # Failure Modes normally demotes to reference (-999), BUT if the section
+    # body carries a hard-gate keyword ("never", "must", "hard gate",
+    # "mandatory") the section stays resident. This preserves the safety
+    # invariant that hard gates and NEVER rules never silently leave the kernel.
+    has_hard_gate = 0
+    if (index(body, "never") > 0)     has_hard_gate = 1
+    if (index(body, "must") > 0)      has_hard_gate = 1
+    if (index(body, "hard gate") > 0) has_hard_gate = 1
+    if (index(body, "mandatory") > 0) has_hard_gate = 1
+    if (has_hard_gate == 0) return -999
+    # Fall through to normal scoring so hard-gate Failure Modes get their
+    # kernel-hint bumps.
+  }
   for (kw in kwords_kernel) { if (index(text, kw) > 0) sc += 2 }
   for (kw in kwords_ref)    { if (index(text, kw) > 0) sc -= 1 }
   return sc
