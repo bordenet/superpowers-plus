@@ -45,10 +45,10 @@ coordination:
 Every subsequent step compares `HEAD` against the target. If `HEAD` is on an unrelated branch, Step 2 silently produces a false verdict. Pin `HEAD` first:
 
 ```bash
-# GitHub:
-gh pr checkout <number>
-# GitLab:
-glab mr checkout <iid>
+# GitHub (substitute the PR number):
+gh pr checkout "$PR_NUMBER"
+# GitLab (substitute the MR internal ID):
+glab mr checkout "$MR_IID"
 ```
 
 ### Step 1: Read the PR description (30 seconds)
@@ -58,7 +58,7 @@ Both branches emit the same JSON schema so downstream steps do not fork on remot
 GitHub via `gh`:
 
 ```bash
-gh pr view <number> --json title,baseRefName,body \
+gh pr view "$PR_NUMBER" --json title,baseRefName,body \
   --jq '{title,target:.baseRefName,description:.body}'
 ```
 
@@ -68,7 +68,7 @@ If your remote is GitLab, use `glab` instead. The project path must be URL-encod
 PROJECT="$(git remote get-url origin \
   | sed -E 's#^(git@[^:]+:|https?://[^/]+/)##; s#\.git$##' \
   | sed 's#/#%2F#g')"
-glab api "projects/${PROJECT}/merge_requests/<iid>" \
+glab api "projects/${PROJECT}/merge_requests/${MR_IID}" \
   --jq '{title,target:.target_branch,description}'
 ```
 
