@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-27T00:00:00Z",
+  "tolerance_default": 0.05,
+  "notes": "Byte-size budget manifest for always-on artifacts loaded into every agent session. Ships empty; add rows for the artifacts you want to guard (bootstrap payload, per-host rule files) and populate baselines via `tools/measure-artifact-sizes.sh --rebaseline`. See docs/harness/artifact-budgets.md for the add-a-row workflow.",
+  "artifacts": [],
+  "deferred": [
+    {
+      "id": "superpowers-doctor-payload",
+      "reason": "doctor-checks.sh is a long-running skill; no stable snapshot command exists. Prerequisite: extract a --report-clean and --report-drift-detected fast-path from doctor-checks.sh."
+    },
+    {
+      "id": "mcp-tool-inventory",
+      "reason": "MCP servers do not expose --list-tools --json. Prerequisite: add that flag to each server's stdio entry point."
+    }
+  ],
+  "rebaseline_history": [
+    {
+      "at": "2026-08-27T00:00:00Z",
+      "reason": "initial manifest, empty template"
+    }
+  ]
+}

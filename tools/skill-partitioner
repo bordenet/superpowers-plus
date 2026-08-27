@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# Script: skill-partitioner
+# PURPOSE: Propose or apply a kernel/reference split for a superpowers skill.
+#          Implements the spc-kernel-split pattern: partitions any
+#          target skill.md into a resident safety kernel (always loaded) and an
+#          on-demand reference (loaded only when the specific section is needed).
+#
+# Usage:
+#   skill-partitioner propose <skill.md>
+#   skill-partitioner apply   <skill.md> <proposed-kernel.md> <proposed-reference.md>
+#
+# Subcommand: propose
+#   Scores each section of skill.md using the kernel/reference rubric and writes
+#   three files into a temp directory, printing ONLY the temp dir path to stdout.
+#   Scoring diagnostics go to stderr. Designed for agent consumption:
+#     tmpdir=$(skill-partitioner propose skill.md)
+#   Only ## (H2) headings are treated as section boundaries; H1, H3+ headings
+#   are transparent (they become part of the surrounding H2 section).
+#   Output files:
+#     proposed-kernel.md    Sections with net score >= 2
+#     proposed-reference.md Sections with net score <= -1
+#     ambiguous-items.md    Sections with net score -1 to 1 (requires human decision)
+#   Non-destructive. Exit 0 always.
+#
+# Subcommand: apply
+#   Writes the kernel to <skill_dir>/skill.md and the reference to
+#   <skill_dir>/reference.md. Prepends a routing table skeleton (one row per
+#   top-level heading in proposed-reference.md) to the kernel. Exits non-zero
+#   on error.
+#
+# Keyword scoring rubric:
+#   Kernel-hint keywords (+2 each, matched in heading or first 200 chars):
+#     auth, verify, gate, delegate, merge, prod, secret, credential,
+#     irreversible, destructive, "hard gate", must, never, mandatory
+#   Reference-hint keywords (-1 each, matched in heading or first 200 chars):
+#     example, walkthrough, troubleshoot, catalog, "edge case", optional
+#   Special rules:
+#     YAML frontmatter (between first two --- lines): always kernel (+999)
+#     Heading contains "failure mode" AND body has no hard-gate keyword
+#       ("never", "must", "hard gate", "mandatory") in first 200 chars: -999
+#     Heading contains "failure mode" AND body HAS a hard-gate keyword:
+#       falls through to normal scoring so the section stays kernel-resident
+#       (protects the "hard gates never silently leave the kernel" invariant)
+#
+# Exit codes:
+#   0  Success
+#   1  Usage error or missing file
+#   2  Apply error (write failed or input files unreadable)
+# -----------------------------------------------------------------------------
+
+set -euo pipefail
+
+die() { printf 'skill-partitioner: %s\n' "$*" >&2; exit 1; }
+
+# ---------------------------------------------------------------------------
+# propose_split <skill_file>
+# ---------------------------------------------------------------------------
+propose_split() {
+  local skill_file="$1"
+  [ -r "$skill_file" ] || die "file not readable: $skill_file"
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+
+  local kernel_file="$tmpdir/proposed-kernel.md"
+  local ref_file="$tmpdir/proposed-reference.md"
+  local ambig_file="$tmpdir/ambiguous-items.md"
+
+  awk -v kernel_file="$kernel_file" \
+      -v ref_file="$ref_file" \
+      -v ambig_file="$ambig_file" '
+BEGIN {
+  kwords_kernel["auth"]         = 1
+  kwords_kernel["verify"]       = 1
+  kwords_kernel["gate"]         = 1
+  kwords_kernel["delegate"]     = 1
+  kwords_kernel["merge"]        = 1
+  kwords_kernel["prod"]         = 1
+  kwords_kernel["secret"]       = 1
+  kwords_kernel["credential"]   = 1
+  kwords_kernel["irreversible"] = 1
+  kwords_kernel["destructive"]  = 1
+  kwords_kernel["hard gate"]    = 1
+  kwords_kernel["must"]         = 1
+  kwords_kernel["never"]        = 1
+  kwords_kernel["mandatory"]    = 1
+  kwords_ref["example"]      = 1
+  kwords_ref["walkthrough"]  = 1
+  kwords_ref["troubleshoot"] = 1
+  kwords_ref["catalog"]      = 1
+  kwords_ref["edge case"]    = 1
+  kwords_ref["optional"]     = 1
+
+  in_frontmatter = 0; frontmatter_done = 0; fm_dashes = 0
+  cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
+}
+
+function score(heading, preview,    text, body, sc, kw, has_hard_gate) {
+  text = tolower(heading " " preview)
+  body = tolower(preview)
+  sc = 0
+  if (index(tolower(heading), "failure mode") > 0) {
+    # Failure Modes normally demotes to reference (-999), BUT if the section
+    # body carries a hard-gate keyword ("never", "must", "hard gate",
+    # "mandatory") the section stays resident. This preserves the safety
+    # invariant that hard gates and NEVER rules never silently leave the kernel.
+    has_hard_gate = 0
+    if (index(body, "never") > 0)     has_hard_gate = 1
+    if (index(body, "must") > 0)      has_hard_gate = 1
+    if (index(body, "hard gate") > 0) has_hard_gate = 1
+    if (index(body, "mandatory") > 0) has_hard_gate = 1
+    if (has_hard_gate == 0) return -999
+    # Fall through to normal scoring so hard-gate Failure Modes get their
+    # kernel-hint bumps.
+  }
+  for (kw in kwords_kernel) { if (index(text, kw) > 0) sc += 2 }
+  for (kw in kwords_ref)    { if (index(text, kw) > 0) sc -= 1 }
+  return sc
+}
+
+function flush_section(    sc, dest) {
+  if (cur_heading == "" && cur_lines == "") return
+  if (cur_heading == "FRONTMATTER") {
+    printf "%s", cur_lines > kernel_file
+    printf "  FRONTMATTER -> kernel (+999)\n" > "/dev/stderr"
+    cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
+    return
+  }
+  sc = score(cur_heading, cur_preview)
+  if (sc >= 2)       { dest = kernel_file }
+  else if (sc <= -1) { dest = ref_file }
+  else               { dest = ambig_file }
+  printf "%s", cur_lines > dest
+  printf "  score=%+d  %-50s -> %s\n", sc, cur_heading, (sc >= 2 ? "kernel" : sc <= -1 ? "reference" : "ambiguous") > "/dev/stderr"
+  cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
+}
+
+NR == 1 && /^---$/ { in_frontmatter = 1; fm_dashes = 1; cur_heading = "FRONTMATTER"; cur_lines = $0 "\n"; next }
+
+in_frontmatter && /^---$/ && fm_dashes == 1 {
+  fm_dashes = 2; in_frontmatter = 0; frontmatter_done = 1
+  cur_lines = cur_lines $0 "\n"
+  flush_section()
+  next
+}
+
+in_frontmatter { cur_lines = cur_lines $0 "\n"; next }
+
+/^## / {
+  flush_section()
+  cur_heading = substr($0, 4)
+  cur_lines = $0 "\n"; cur_preview = ""; cur_preview_len = 0
+  next
+}
+
+{
+  cur_lines = cur_lines $0 "\n"
+  if (cur_preview_len < 200) {
+    cur_preview = cur_preview " " $0
+    cur_preview_len += length($0) + 1
+  }
+}
+
+END { flush_section() }
+' "$skill_file"
+
+  # Diagnostics to stderr; only the tmpdir path goes to stdout (agent-safe).
+  printf '\nProposed split written to: %s\n' "$tmpdir" >&2
+  printf '  kernel:    %s\n' "$kernel_file" >&2
+  printf '  reference: %s\n' "$ref_file" >&2
+  printf '  ambiguous: %s\n' "$ambig_file" >&2
+  printf '\nSizes:\n' >&2
+  wc -c "$kernel_file" "$ref_file" "$ambig_file" 2>/dev/null >&2 || true
+  printf '%s\n' "$tmpdir"
+}
+
+# ---------------------------------------------------------------------------
+# apply_split <skill_file> <kernel_file> <ref_file>
+# ---------------------------------------------------------------------------
+apply_split() {
+  local skill_file="$1"
+  local kernel_file="$2"
+  local ref_file="$3"
+
+  [ -r "$skill_file"  ] || { printf 'skill-partitioner: skill file not readable: %s\n' "$skill_file" >&2; exit 2; }
+  [ -r "$kernel_file" ] || { printf 'skill-partitioner: kernel file not readable: %s\n' "$kernel_file" >&2; exit 2; }
+  [ -r "$ref_file"    ] || { printf 'skill-partitioner: reference file not readable: %s\n' "$ref_file" >&2; exit 2; }
+  [ -s "$kernel_file" ] || { printf 'skill-partitioner: kernel file is empty — all sections scored as reference; review the proposal before applying\n' >&2; exit 2; }
+
+  local skill_dir
+  skill_dir="$(dirname "$skill_file")"
+
+  # Build routing table from reference top-level (##) headings
+  local routing_table
+  routing_table="## Reference index
+
+Load \`reference.md\` selectively. Do not load it for a routine operation.
+
+| Need | Read this reference section |
+|---|---|"
+
+  while IFS= read -r line; do
+    case "$line" in
+      "## "*) routing_table="${routing_table}
+| TBD | $(printf '%s' "$line" | sed 's/^## //') |" ;;
+    esac
+  done < "$ref_file"
+  routing_table="${routing_table}
+"
+
+  # Find end of YAML frontmatter in kernel_file and insert routing table after it
+  local fm_end_line
+  fm_end_line="$(awk '/^---$/ { count++; if (count == 2) { print NR; exit } }' "$kernel_file")"
+
+  if [ -z "$fm_end_line" ]; then
+    printf '%s\n%s' "$routing_table" "$(cat "$kernel_file")" > "${skill_dir}/skill.md"
+  else
+    {
+      head -n "$fm_end_line" "$kernel_file"
+      printf '\n%s\n' "$routing_table"
+      tail -n +"$((fm_end_line + 1))" "$kernel_file"
+    } > "${skill_dir}/skill.md"
+  fi
+
+  cp "$ref_file" "${skill_dir}/reference.md"
+
+  local kernel_bytes ref_bytes orig_bytes
+  kernel_bytes="$(wc -c < "${skill_dir}/skill.md" | tr -d ' ')"
+  ref_bytes="$(wc -c < "${skill_dir}/reference.md" | tr -d ' ')"
+  orig_bytes="$(wc -c < "$skill_file" 2>/dev/null || echo 0)"
+
+  printf 'Applied kernel/reference split to %s\n' "$skill_dir"
+  printf '  Original:  %s bytes\n' "$orig_bytes"
+  printf '  Kernel:    %s bytes  (%s%%)\n' "$kernel_bytes" "$((kernel_bytes * 100 / (orig_bytes + 1)))"
+  printf '  Reference: %s bytes\n' "$ref_bytes"
+
+  if [ "$orig_bytes" -gt 0 ] && [ "$kernel_bytes" -gt 0 ]; then
+    local reduction
+    reduction=$(( (orig_bytes - kernel_bytes) * 100 / orig_bytes ))
+    printf '  Reduction: %s%%\n' "$reduction"
+    if [ "$reduction" -lt 40 ]; then
+      printf 'WARNING: reduction is %s%% -- target is >= 40%%\n' "$reduction" >&2
+    fi
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+if [ "$#" -lt 2 ]; then
+  printf 'usage:\n  skill-partitioner propose <skill.md>\n  skill-partitioner apply <skill.md> <kernel.md> <reference.md>\n' >&2
+  exit 1
+fi
+
+subcommand="$1"
+shift
+
+case "$subcommand" in
+  propose)
+    [ "$#" -eq 1 ] || { printf 'usage: skill-partitioner propose <skill.md>\n' >&2; exit 1; }
+    propose_split "$1"
+    ;;
+  apply)
+    [ "$#" -eq 3 ] || { printf 'usage: skill-partitioner apply <skill.md> <kernel.md> <reference.md>\n' >&2; exit 1; }
+    apply_split "$1" "$2" "$3"
+    ;;
+  *)
+    printf 'skill-partitioner: unknown subcommand: %s\n' "$subcommand" >&2
+    printf 'valid subcommands: propose, apply\n' >&2
+    exit 1
+    ;;
+esac
