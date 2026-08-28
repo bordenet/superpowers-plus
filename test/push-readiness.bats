@@ -224,3 +224,47 @@ setup() {
     run "$SCRIPT" --target base-ref
     [ "$status" -eq 1 ]
 }
+
+# ---------------------------------------------------------------------------
+# DX regression (2026-08-28): a STALE LOCAL target branch silently widens the
+# diff and manufactures phantom blockers.
+#
+# Observed live: `--target dev` resolved to a local `dev` a month behind
+# `origin/dev`. The merge-base was therefore ancient, the range covered 24 files
+# instead of 6, and the extra files -- already merged upstream -- routed to the
+# PHR and llm-skill-review gates. The tool reported three blockers where the
+# real push needed one. It answered the question asked; the question was wrong,
+# and nothing said so.
+# ---------------------------------------------------------------------------
+
+@test "stale local target branch is called out, naming the remote counterpart" {
+    git checkout -q -b feature
+    printf 'echo hi\n' > tools/thing.sh
+    git add tools/thing.sh; git commit -qm "add a shell tool"
+
+    # origin/base-ref advances; the LOCAL base-ref stays behind.
+    git update-ref refs/remotes/origin/base-ref "$(git rev-parse HEAD)"
+
+    run "$SCRIPT" --target base-ref
+    [[ "$output" == *"behind"* ]]
+    [[ "$output" == *"origin/base-ref"* ]]
+}
+
+@test "target that is level with its remote counterpart produces no staleness warning" {
+    git checkout -q -b feature
+    printf 'echo hi\n' > tools/thing.sh
+    git add tools/thing.sh; git commit -qm "add a shell tool"
+    git update-ref refs/remotes/origin/base-ref "$(git rev-parse base-ref)"
+
+    run "$SCRIPT" --target base-ref
+    [[ "$output" != *"behind"* ]]
+}
+
+@test "target with no remote counterpart at all is not flagged as stale" {
+    git checkout -q -b feature
+    printf 'echo hi\n' > tools/thing.sh
+    git add tools/thing.sh; git commit -qm "add a shell tool"
+
+    run "$SCRIPT" --target base-ref
+    [[ "$output" != *"behind"* ]]
+}

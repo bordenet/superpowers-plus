@@ -75,6 +75,27 @@ fi
 git rev-parse --verify --quiet "$TARGET" >/dev/null 2>&1 || die "ref '$TARGET' does not exist"
 
 RANGE_BASE="$(git merge-base "$TARGET" HEAD 2>/dev/null || true)"
+
+# STALE-TARGET GUARD: if TARGET is a local branch whose remote counterpart has
+# moved ahead, the merge-base is older than reality, the diff is wider than the
+# push, and files already merged upstream get routed to gates they do not need.
+# Observed: `--target dev` against a local dev a month behind origin/dev
+# reported 24 changed files instead of 6 and three blockers instead of one.
+# The tool cannot know which base the caller meant, so it must not guess --
+# it says so and names the remedy.
+STALE_TARGET_NOTE=""
+if [[ "$TARGET" != */* ]] && git rev-parse --verify --quiet "$TARGET" >/dev/null 2>&1; then
+  _remote_ref="refs/remotes/origin/$TARGET"
+  if git rev-parse --verify --quiet "$_remote_ref" >/dev/null 2>&1; then
+    _behind="$(git rev-list --count "$TARGET..$_remote_ref" 2>/dev/null || echo 0)"
+    if [[ "$_behind" -gt 0 ]]; then
+      STALE_TARGET_NOTE="WARNING: local '$TARGET' is $_behind commit(s) behind origin/$TARGET.
+  The range below is measured from the STALE local branch, so it may list files
+  already merged upstream and blockers this push does not actually need.
+  Re-run with: $(basename "$0") --target origin/$TARGET"
+    fi
+  fi
+fi
 [[ -n "$RANGE_BASE" ]] || die "no merge base between HEAD and $TARGET"
 
 mapfile -t CHANGED < <(git diff --name-only "$RANGE_BASE..HEAD" 2>/dev/null || true)
@@ -182,6 +203,10 @@ fi
 
 echo "push-readiness: $BRANCH @ ${HEAD_SHA:0:8}  ->  $TARGET"
 echo "changed files vs $TARGET: ${#CHANGED[@]}"
+if [[ -n "$STALE_TARGET_NOTE" ]]; then
+  echo ""
+  echo "  $STALE_TARGET_NOTE"
+fi
 if [[ "$DIRTY_COUNT" -gt 0 ]]; then
   echo ""
   echo "  WARNING: ${DIRTY_COUNT} uncommitted change(s). This report describes"
