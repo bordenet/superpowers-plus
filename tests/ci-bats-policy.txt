@@ -7,8 +7,12 @@
 #   env     <path> KEY=VALUE  <reason...>     suite runs with KEY set
 #
 # $REPO_ROOT in an env VALUE expands to the repo root. Nothing is eval'd.
-# `ci-bats-discovery.sh --lint` fails if a line names a path that no longer
-# exists, or has no reason -- so this list cannot rot silently.
+# `ci-bats-discovery.sh --lint` enforces these rules:
+#   - <path> must exactly match a suite printed by --list (no ./ or .. aliases)
+#   - only exclude and env directives are accepted; env takes one allowlisted
+#     UPPER_SNAKE=VALUE assignment (a second such token is rejected)
+#   - every entry needs a reason; ordinary prose such as issue=https://... is OK
+#   - each suite path may appear only once across all directives
 
 env tests/augment-non-regression-test.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  suite resolves the skills tree from this env var, not from cwd
 env tests/harness/artifact-budgets.bats BUDGET_MODE=advisory  budgets stay advisory until artifact-baselines.json has rows (docs/harness/artifact-budgets.md)

@@ -3,7 +3,7 @@
 # Behavioral tests for tools/ci-bats-discovery.sh.
 #
 # WHY THIS TOOL EXISTS (2026-08-26): .github/workflows/test.yml enumerated every
-# bats suite by hand. The list drifted -- an audit found 39 of 70 suites were
+# bats suite by hand. The list drifted -- an audit found 39 of 67 suites were
 # never run by CI, including test/ship.bats (the canonical agent workflow),
 # test/pre-push-code-review-gate.bats and test/pre-push-gate4.bats. All 39
 # passed when run manually, so they were dark by omission, not by exclusion.
@@ -87,6 +87,16 @@ EOF
     [ "$output" = "$sorted" ]
 }
 
+@test "--root handles sed metacharacters without corrupting relative paths" {
+    special_root="$BATS_TEST_TMPDIR/root|with&chars"
+    mkdir -p "$special_root/test"
+    printf '#!/usr/bin/env bats\n@test "passes" { true; }\n' > "$special_root/test/special.bats"
+
+    run bash "$SCRIPT" --root "$special_root" --list
+    [ "$status" -eq 0 ]
+    [ "$output" = "test/special.bats" ]
+}
+
 @test "absent policy file is fine -- everything runs" {
     [ ! -f "$POLICY" ]
     run_tool --list
@@ -103,7 +113,7 @@ EOF
 }
 
 @test "an env-directive suite still RUNS (env is not exclusion)" {
-    printf 'env tests/beta.bats FOO=bar  beta needs FOO\n' > "$POLICY"
+    printf 'env tests/beta.bats BUDGET_MODE=advisory  beta needs it\n' > "$POLICY"
     run_tool --list
     [ "$status" -eq 0 ]
     [[ "$output" == *"tests/beta.bats"* ]]
@@ -151,7 +161,7 @@ EOF
 }
 
 @test "--lint fails on a duplicate path across directives" {
-    printf 'exclude test/alpha.bats  first\nenv test/alpha.bats K=V  second\n' > "$POLICY"
+    printf 'exclude test/alpha.bats  first\nenv test/alpha.bats BUDGET_MODE=V  second\n' > "$POLICY"
     run_tool --lint
     [ "$status" -eq 1 ]
     [[ "$output" == *"duplicate"* ]]
@@ -210,9 +220,9 @@ EOF
 @test "--run applies the env assignment from the policy" {
     cat > "$ROOT/test/needs-env.bats" <<'EOF'
 #!/usr/bin/env bats
-@test "sees FOO" { [ "$FOO" = "bar" ]; }
+@test "sees BUDGET_MODE" { [ "$BUDGET_MODE" = "advisory" ]; }
 EOF
-    printf 'env test/needs-env.bats FOO=bar  suite needs FOO set\n' > "$POLICY"
+    printf 'env test/needs-env.bats BUDGET_MODE=advisory  suite needs it set\n' > "$POLICY"
     run_tool --run
     [ "$status" -eq 0 ]
 }
@@ -220,9 +230,9 @@ EOF
 @test "--run expands \$REPO_ROOT inside a policy env value" {
     cat > "$ROOT/test/needs-root.bats" <<'EOF'
 #!/usr/bin/env bats
-@test "sees an absolute skills path" { case "$SKILLS_DIR" in /*/skills) true ;; *) false ;; esac; }
+@test "sees an absolute skills path" { case "$PERSONAL_SKILLS_DIR" in /*/skills) true ;; *) false ;; esac; }
 EOF
-    printf 'env test/needs-root.bats SKILLS_DIR=$REPO_ROOT/skills  needs an absolute path\n' > "$POLICY"
+    printf 'env test/needs-root.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  needs an absolute path\n' > "$POLICY"
     run_tool --run
     [ "$status" -eq 0 ]
 }
@@ -242,20 +252,26 @@ EOF
 # failed silently. That is exactly the rot this tool exists to prevent.
 # ---------------------------------------------------------------------------
 @test "--lint FAILS on an env line carrying a second KEY=VALUE it would silently drop" {
-    printf 'env test/alpha.bats A=1 B=2  needs both\n' > "$POLICY"
+    printf 'env test/alpha.bats BUDGET_MODE=1 PERSONAL_SKILLS_DIR=2  needs both\n' > "$POLICY"
     run_tool --lint
     [ "$status" -eq 1 ]
     [[ "$output" == *"B=2"* ]] || [[ "$output" == *"second"* ]] || [[ "$output" == *"one assignment"* ]]
 }
 
 @test "--lint still accepts a single assignment whose reason mentions no assignment" {
-    printf 'env test/alpha.bats A=1  alpha needs A set\n' > "$POLICY"
+    printf 'env test/alpha.bats BUDGET_MODE=advisory  alpha needs it set\n' > "$POLICY"
     run_tool --lint
     [ "$status" -eq 0 ]
 }
 
 @test "--lint accepts an assignment VALUE that itself contains an equals sign" {
-    printf 'env test/alpha.bats A=k=v  value has an equals\n' > "$POLICY"
+    printf 'env test/alpha.bats BUDGET_MODE=k=v  value has an equals\n' > "$POLICY"
+    run_tool --lint
+    [ "$status" -eq 0 ]
+}
+
+@test "--lint accepts equals signs in ordinary reason prose" {
+    printf 'env test/alpha.bats BUDGET_MODE=advisory  issue=https://example.test/123\n' > "$POLICY"
     run_tool --lint
     [ "$status" -eq 0 ]
 }
@@ -284,32 +300,32 @@ EOF
 # both. The policy file is repo-committed and agent-editable, so this is a CI
 # code-execution path, not a config typo.
 # ---------------------------------------------------------------------------
-@test "--lint REJECTS a policy env key that hijacks the executable search path" {
-    printf 'env test/alpha.bats PATH=/tmp/evil  make it pass\n' > "$POLICY"
-    run_tool --lint
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"PATH"* ]]
-}
-
-@test "--lint REJECTS a policy env key that executes code at shell startup" {
-    printf 'env test/alpha.bats BASH_ENV=/tmp/pwn.sh  make it pass\n' > "$POLICY"
-    run_tool --lint
-    [ "$status" -eq 1 ]
-}
-
-@test "--lint REJECTS dynamic-loader injection keys" {
-    for k in LD_PRELOAD LD_LIBRARY_PATH DYLD_INSERT_LIBRARIES; do
-        printf 'env test/alpha.bats %s=/tmp/evil  reason\n' "$k" > "$POLICY"
+@test "--lint REFUSES every key outside the allowlist (class, not enumeration)" {
+    # Deliberately NOT the keys the old denylist named. Guardian and Defect
+    # Finder independently probed 41 and 46 keys respectively; every one of
+    # these was ACCEPTED by the denylist and yields code execution in the CI
+    # job. A denylist cannot close a set that grows with every tool installed
+    # on the runner, so the test asserts the CLASS, not the members.
+    for k in GIT_EXTERNAL_DIFF GIT_SSH_COMMAND GIT_ASKPASS GIT_PAGER GIT_EDITOR \
+             GIT_DIR GIT_INDEX_FILE HOME CDPATH GLOBIGNORE PS4 SHELLOPTS BASHOPTS \
+             PERL5OPT PYTHONSTARTUP RUBYOPT RUBYLIB NODE_PATH NODE_EXTRA_CA_CERTS \
+             SSL_CERT_FILE CURL_CA_BUNDLE HTTPS_PROXY TMPDIR XDG_CONFIG_HOME \
+             PATH BASH_ENV ENV IFS SHELL LD_PRELOAD DYLD_INSERT_LIBRARIES \
+             GIT_CONFIG PYTHONPATH PERL5LIB NODE_OPTIONS BATS_LIB_PATH; do
+        printf 'env test/alpha.bats %s=/tmp/x  a plausible reason\n' "$k" > "$POLICY"
         run_tool --lint
-        [ "$status" -eq 1 ]
+        [ "$status" -eq 1 ] || { echo "ACCEPTED dangerous key: $k"; return 1; }
     done
 }
 
-@test "--lint REJECTS IFS, SHELL and GIT_CONFIG overrides" {
-    for k in IFS SHELL GIT_CONFIG GIT_CONFIG_GLOBAL; do
-        printf 'env test/alpha.bats %s=x  reason\n' "$k" > "$POLICY"
-        run_tool --lint
-        [ "$status" -eq 1 ]
+@test "--run ALSO refuses a non-allowlisted key (enforcement must not be lint-only)" {
+    # Guardian G2: every security assertion targeted --lint. --run is a
+    # documented standalone mode, so a refactor moving the key check into a
+    # lint-only path would silently restore full RCE with the suite green.
+    for k in GIT_EXTERNAL_DIFF HOME PATH BASH_ENV; do
+        printf 'env test/alpha.bats %s=/tmp/x  reason\n' "$k" > "$POLICY"
+        run_tool --run
+        [ "$status" -eq 1 ] || { echo "--run ACCEPTED dangerous key: $k"; return 1; }
     done
 }
 
@@ -326,4 +342,72 @@ EOF
     printf 'env test/alpha.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  needs the skills tree\n' > "$POLICY"
     run_tool --lint
     [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# ShellRuntimeAuditor I1: --run reported a PASS when zero (or fewer) suites were
+# discovered, and process substitution discarded discover()'s exit status. A
+# failing suite made unreadable by a traversal error vanished and CI went green.
+# This script is now the ONLY thing running bats in CI, so a silent coverage
+# collapse is the exact failure the tool exists to prevent, via a new mechanism.
+# ---------------------------------------------------------------------------
+@test "--run REFUSES to report a pass when zero suites are discovered" {
+    empty="$BATS_TEST_TMPDIR/empty"; mkdir -p "$empty"
+    run bash "$SCRIPT" --root "$empty" --run
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"0 suite"* ]] || [[ "$output" == *"refusing"* ]]
+}
+
+@test "--lint REFUSES a zero-suite tree too (the anti-rot gate must gate)" {
+    empty="$BATS_TEST_TMPDIR/empty2"; mkdir -p "$empty"
+    run bash "$SCRIPT" --root "$empty" --lint
+    [ "$status" -ne 0 ]
+}
+
+@test "CI_BATS_MIN_SUITES enforces a coverage floor" {
+    CI_BATS_MIN_SUITES=99 run_tool --run
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"99"* ]]
+}
+
+@test "CI_BATS_MIN_SUITES must be a positive integer" {
+    for floor in 0 -1 nope 1.5; do
+        run env CI_BATS_MIN_SUITES="$floor" bash "$SCRIPT" --root "$ROOT" --list
+        [ "$status" -ne 0 ] || { echo "accepted invalid floor: $floor"; return 1; }
+        [[ "$output" == *"positive integer"* ]]
+    done
+    run env CI_BATS_MIN_SUITES=1 bash "$SCRIPT" --root "$ROOT" --list
+    [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Defect Finder I5: lint checked that an exclude path EXISTS, not that it
+# matches a discovered suite. './test/a.bats', 'test/../test/a.bats' and even a
+# non-.bats file all linted clean and excluded nothing -- a suite quarantined
+# for being flaky kept running while lint reported "policy OK".
+# ---------------------------------------------------------------------------
+@test "--lint FAILS on a non-canonical exclude path that would silently no-op" {
+    printf 'exclude ./test/alpha.bats  flaky on CI\n' > "$POLICY"
+    run_tool --lint
+    [ "$status" -eq 1 ]
+}
+
+@test "--lint FAILS on an exclude path that exists but is not a discovered suite" {
+    printf 'notes\n' > "$ROOT/notes.md"
+    printf 'exclude notes.md  not a suite at all\n' > "$POLICY"
+    run_tool --lint
+    [ "$status" -eq 1 ]
+}
+
+# ---------------------------------------------------------------------------
+# ShellRuntimeAuditor M1: no `command -v bats` guard, unlike tools/test-all.sh.
+# A fresh checkout produced 69 identical "command not found" lines and a
+# FAILED list naming every suite in the repo.
+# ---------------------------------------------------------------------------
+@test "--run reports ONE actionable error when bats is not installed" {
+    stub="$BATS_TEST_TMPDIR/nobin"; mkdir -p "$stub"
+    run env PATH="$stub:/usr/bin:/bin" bash "$SCRIPT" --root "$ROOT" --run
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"bats"* ]]
+    [ "$(printf '%s' "$output" | grep -c 'command not found')" -eq 0 ]
 }
