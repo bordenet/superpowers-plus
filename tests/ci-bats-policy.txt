@@ -1,0 +1,14 @@
+# CI bats policy -- consumed by tools/ci-bats-discovery.sh
+#
+# Every .bats file under test/, tests/ and skills/ runs in CI automatically.
+# This file is ONLY for suites that need special handling. Format:
+#
+#   exclude <path>            <reason...>     suite is not run at all
+#   env     <path> KEY=VALUE  <reason...>     suite runs with KEY set
+#
+# $REPO_ROOT in an env VALUE expands to the repo root. Nothing is eval'd.
+# `ci-bats-discovery.sh --lint` fails if a line names a path that no longer
+# exists, or has no reason -- so this list cannot rot silently.
+
+env tests/augment-non-regression-test.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  suite resolves the skills tree from this env var, not from cwd
+env tests/harness/artifact-budgets.bats BUDGET_MODE=advisory  budgets stay advisory until artifact-baselines.json has rows (docs/harness/artifact-budgets.md)
