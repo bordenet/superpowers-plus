@@ -43,11 +43,34 @@ SCRIPT="$REPO_ROOT/tools/which-gate.sh"
     [[ "$output" != *"PHR gate: REQUIRED"* ]]
 }
 
+@test "executable CI bats policy requires cr-battery despite its .txt suffix" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" tests/ci-bats-policy.txt
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"cr-battery gate: REQUIRED"* ]]
+}
+
 @test "root README.md has no gate coverage" {
     cd "$REPO_ROOT"
     run bash "$SCRIPT" README.md
     [ "$status" -eq 0 ]
     [[ "$output" == *"no gate currently covers this file"* ]]
+}
+
+@test "--any=explicit-exempt identifies every Gate-2 docs-only path" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" --any=explicit-exempt README.md
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPT" --any=explicit-exempt notes.txt
+    [ "$status" -eq 0 ]
+}
+
+@test "--help prints its complete fail-closed contract without a line-number range" {
+    run bash "$SCRIPT" --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"never silently reports"* ]]
+    run grep -nE "sed -n '[0-9]+,[0-9]+p'" "$REPO_ROOT/tools/which-gate.sh"
+    [ "$status" -ne 0 ]
 }
 
 @test "--any=llm-skill-review matches a skills/**/skill.md path" {
@@ -73,4 +96,25 @@ SCRIPT="$REPO_ROOT/tools/which-gate.sh"
     cd "$REPO_ROOT"
     run bash "$SCRIPT" --any=phr
     [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# Regression: --any=explicit-exempt's docstring says "root metadata path",
+# and every existing test above uses a bare root-level filename. The
+# implementation's /\.(md|txt|rst)$/ match has no path anchor, so it silently
+# exempts ANY .md/.txt/.rst file at ANY depth from every review gate --
+# cr-battery, PHR, and llm-skill-review. Before this session, an unmatched
+# nested prose/generated file caused review.sh to exit 3 (fail-closed,
+# "agent must resolve"); this widens that into a silent pass repo-wide,
+# which is a real narrowing of the router's stated safety property, not the
+# root-metadata carve-out the function claims to implement.
+# ---------------------------------------------------------------------------
+@test "--any=explicit-exempt does NOT match a nested prose/generated file" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" --any=explicit-exempt some/nested/path/notes.txt
+    [ "$status" -eq 1 ]
+    run bash "$SCRIPT" --any=explicit-exempt test/golden-compression/x.golden.txt
+    [ "$status" -eq 1 ]
+    run bash "$SCRIPT" --any=explicit-exempt skills/engineering/some-skill/reference.md
+    [ "$status" -eq 1 ]
 }

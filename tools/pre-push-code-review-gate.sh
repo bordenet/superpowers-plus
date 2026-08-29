@@ -32,6 +32,8 @@ fi
 
 # shellcheck source=tools/lib/pre-push-diff-range.sh
 source "$REPO_ROOT/tools/lib/pre-push-diff-range.sh"
+# shellcheck source=tools/lib/code-review-sentinel.sh
+source "$REPO_ROOT/tools/lib/code-review-sentinel.sh"
 
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -52,16 +54,45 @@ REMOTE_NAME="${1:-origin}"
 # CLAUDE.md (and GEMINI.md/CODEX.md/COPILOT.md/AGENT.md, at any path depth)
 # are likewise owned exclusively by llm-skill-review, not treated as code
 # here -- they fall through to the generic .md/.txt/.rst exemption below,
-# same as any other prose file. .md/.txt/.rst elsewhere and well-known root
-# metadata files are exempted too.
+# same as any other prose file. tests/ci-bats-policy.txt is the deliberate
+# exception: it controls which suites CI executes, so it is executable policy,
+# not prose. test/golden-compression/*.golden.txt is a second, narrower
+# exception: a long-standing tracked fixture with no home in any gate (not
+# skills/*.md, not PHR-scoped prose) that predates this session -- anchoring
+# --any=explicit-exempt to root-only (this diff) stopped it being silently
+# swept up by the unanchored .md/.txt/.rst fallthrough; it needs an explicit
+# route, not a silent pass. Other .md/.txt/.rst files and well-known root
+# metadata are exempt.
 _first_code_file() {
     awk '
         /^\s*$/                             { next }
         /^skills\/.*\.md$/                  { next }
         /^skills\//                         { print; next }
+        /^tests\/ci-bats-policy\.txt$/       { print; next }
+        /^test\/golden-compression\/.*\.golden\.txt$/ { print; next }
         /\.(md|txt|rst)$/                   { next }
         /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
         { print }
+    ' | head -1
+}
+
+# Reads filenames from stdin and prints the first root metadata path that is
+# intentionally exempt from every sentinel-scored review gate. The review
+# router extracts this function verbatim, so an explicit exemption is distinct
+# from an arbitrary prose path that merely falls through the current gates.
+# shellcheck disable=SC2329  # invoked after mechanical extraction by which-gate.sh
+_first_explicit_review_exempt_file() {
+    # ROOT-LEVEL ONLY: no "/" in the path. The unanchored form of this regex
+    # matched ANY .md/.txt/.rst at any depth -- silently exempting nested
+    # prose/generated files (a golden fixture, a skill's reference.md) from
+    # every review gate. Before this function existed, such a file caused
+    # review.sh to exit 3 (fail-closed, "agent must resolve"); an unanchored
+    # match widened that into a silent pass repo-wide, which is a materially
+    # different and weaker guarantee than "root metadata is exempt".
+    awk '
+        /^tests\/ci-bats-policy\.txt$/ { next }
+        /^[^\/]+\.(md|txt|rst)$/ { print; next }
+        /^(\.gitignore|\.gitattributes|\.editorconfig|README(\.md)?|CHANGELOG(\.md)?|LICENSE(\.(md|txt|rst))?|\.env\.example)$/ { print }
     ' | head -1
 }
 
@@ -121,38 +152,18 @@ check_code_review_sentinel() {
         return 1
     fi
 
-    local sentinel_ver sentinel_sha sentinel_verdict sentinel_ts
-    sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-    sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-    sentinel_verdict=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-    sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-
-    # Validate v1 format: 4 or 5 pipe-delimited fields. Field 1 = "v1",
-    # field 2 (sha) and field 4 (timestamp) non-empty. Optional field 5 = min-score=N.
-    local field_count
-    field_count=$(awk -F'|' '{print NF}' "$SENTINEL_FILE" 2>/dev/null || echo "0")
-
-    if [[ "$sentinel_ver" != "v1" ]] || [[ "$field_count" -lt 4 ]] || [[ "$field_count" -gt 5 ]] || [[ -z "$sentinel_sha" ]] || [[ -z "$sentinel_ts" ]]; then
+    local sentinel_sha sentinel_verdict sentinel_ts
+    if ! parse_code_review_sentinel "$SENTINEL_FILE"; then
         echo ""
-        echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel file format unrecognized (expected v1|SHA|VERDICT|TIMESTAMP[|min-score=N], all fields non-empty).${NC}"
+        echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel file ${CODE_REVIEW_SENTINEL_ERROR}.${NC}"
         echo ""
         echo "  Delete .code-review-cleared and re-run code-review-battery."
         echo ""
         return 1
     fi
-
-    if [[ "$field_count" -eq 5 ]]; then
-        local sentinel_min_score
-        sentinel_min_score=$(cut -d'|' -f5 "$SENTINEL_FILE" 2>/dev/null || echo "")
-        if ! [[ "$sentinel_min_score" =~ ^min-score=[0-9]+(\.[0-9]+)?$ ]]; then
-            echo ""
-            echo -e "  ${RED}❌ PUSH BLOCKED: Sentinel field 5 malformed: '${sentinel_min_score}' (expected min-score=N.N).${NC}"
-            echo ""
-            echo "  Delete .code-review-cleared and re-run code-review-battery."
-            echo ""
-            return 1
-        fi
-    fi
+    sentinel_sha="$CODE_REVIEW_SENTINEL_SHA"
+    sentinel_verdict="$CODE_REVIEW_SENTINEL_VERDICT"
+    sentinel_ts="$CODE_REVIEW_SENTINEL_TIMESTAMP"
 
     # Compare against the ref actually being pushed, not necessarily HEAD.
     # Pre-push hooks can push non-HEAD refs (e.g., worktrees, detached heads).

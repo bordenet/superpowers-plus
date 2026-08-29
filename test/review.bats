@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Tests for tools/review.sh
 # Exit-code contract: 0=routed, 1=usage error, 2=which-gate.sh extraction
-# failure, 3=at least one path matched no gate
+# failure, 3=at least one path matched no gate and was not explicitly exempt
 
 REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
 SCRIPT="$REPO_ROOT/tools/review.sh"
@@ -10,6 +10,21 @@ SCRIPT="$REPO_ROOT/tools/review.sh"
     run bash "$SCRIPT" --help
     [ "$status" -eq 0 ]
     [[ "$output" == *"tools/review.sh route"* ]]
+}
+
+# ShellRuntimeAuditor (2026-08-28): this session migrated 3 sibling scripts
+# (ci-bats-discovery.sh, push-readiness.sh, which-gate.sh) off a hardcoded
+# `sed -n 'N,Mp'` --help range onto a self-terminating awk pattern, precisely
+# because a hand-maintained line range silently truncates or corrupts --help
+# output the next time a comment line is added/removed with no syntax error
+# and no test catching it. review.sh was edited in this same diff (its EXIT
+# CODES section) but not migrated.
+@test "--help prints its complete fail-closed contract without a line-number range" {
+    run bash "$SCRIPT" --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"EXIT CODES:"* ]]
+    run grep -nE "sed -n '[0-9]+,[0-9]+p'" "$SCRIPT"
+    [ "$status" -ne 0 ]
 }
 
 @test "no args exits 1" {
@@ -52,6 +67,14 @@ SCRIPT="$REPO_ROOT/tools/review.sh"
     [[ "$output" == *"SENTINEL: .code-review-cleared"* ]]
 }
 
+@test "routes executable CI bats policy to code-review-battery" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" route tests/ci-bats-policy.txt
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SKILL: code-review-battery"* ]]
+    [[ "$output" == *"SENTINEL: .code-review-cleared"* ]]
+}
+
 @test "mixed paths produce one block per gate class in stable order" {
     cd "$REPO_ROOT"
     run bash "$SCRIPT" route skills/engineering/progressive-harsh-review/skill.md tools/pre-push-loc-gate.sh docs/ARCHITECTURE.md
@@ -63,12 +86,29 @@ SCRIPT="$REPO_ROOT/tools/review.sh"
     [ "$phr_line" -lt "$cr_line" ]
 }
 
-@test "a path matching no gate exits 3 and lists the unmatched path on stderr" {
+@test "root README is explicitly exempt instead of reported as an unknown gap" {
     cd "$REPO_ROOT"
     run bash "$SCRIPT" route README.md
-    [ "$status" -eq 3 ]
-    [[ "$output" == *"no gate covers these paths"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"EXEMPT:"* ]]
     [[ "$output" == *"README.md"* ]]
+}
+
+@test "mixed routed code and explicit README exemption succeeds without hiding either class" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" route tools/pre-push-loc-gate.sh README.md
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"SENTINEL: .code-review-cleared"* ]]
+    [[ "$output" == *"EXEMPT:"* ]]
+    [[ "$output" == *"README.md"* ]]
+}
+
+@test "generic prose classified docs-only by Gate 2 is explicitly exempt" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" route notes.txt
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"EXEMPT:"* ]]
+    [[ "$output" == *"notes.txt"* ]]
 }
 
 @test "unreadable which-gate.sh dependency fails closed with exit 2" {

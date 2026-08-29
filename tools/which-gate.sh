@@ -13,7 +13,7 @@
 #          misremembering) AGENTS.md/CONTRIBUTING.md prose.
 #
 # USAGE:   tools/which-gate.sh <path> [<path> ...]
-#          tools/which-gate.sh --any=<llm-skill-review|phr|cr-battery> <path> [<path> ...]
+#          tools/which-gate.sh --any=<llm-skill-review|phr|cr-battery|explicit-exempt> <path> [<path> ...]
 #          tools/which-gate.sh --help
 #
 # Default mode: for each path, reports whether each of the three
@@ -28,7 +28,8 @@
 # --any=<gate> mode: for scripting/CI use. Exits 0 if ANY given path is
 # covered by the named gate, 1 if NONE are, 2 on usage/extraction error.
 # Prints nothing on stdout (silent battery-style check); use $? to branch.
-# <gate> must be exactly one of: llm-skill-review, phr, cr-battery.
+# <gate> must be exactly one of: llm-skill-review, phr, cr-battery, or
+# explicit-exempt (root metadata intentionally outside all review gates).
 #
 # HOW: llm-skill-review and PHR classification both delegate to
 # tools/md-files-changed.sh -- this repo's own single source of truth for
@@ -54,7 +55,7 @@
 set -euo pipefail
 
 if [[ $# -eq 0 || "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    sed -n '2,52p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "${BASH_SOURCE[0]}"
     [[ $# -eq 0 ]] && exit 1
     exit 0
 fi
@@ -72,9 +73,9 @@ if [[ "${1:-}" == --any=* ]]; then
     ANY_GATE="${1#--any=}"
     shift
     case "$ANY_GATE" in
-        llm-skill-review|phr|cr-battery) ;;
+        llm-skill-review|phr|cr-battery|explicit-exempt) ;;
         *)
-            echo "ERROR: --any=$ANY_GATE invalid -- must be llm-skill-review, phr, or cr-battery" >&2
+            echo "ERROR: --any=$ANY_GATE invalid -- must be llm-skill-review, phr, cr-battery, or explicit-exempt" >&2
             exit 2
             ;;
     esac
@@ -93,6 +94,7 @@ done
 
 # --- Extract cr-battery's detection logic verbatim (never hand-copied) ---
 CR_FUNC_SRC="$(sed -n '/^_first_code_file() {/,/^}/p' "$CR_GATE")"
+EXEMPT_FUNC_SRC="$(sed -n '/^_first_explicit_review_exempt_file() {/,/^}/p' "$CR_GATE")"
 
 fail_extract() {
     echo "ERROR: could not extract '$1' from $2 -- its shape changed." >&2
@@ -102,16 +104,24 @@ fail_extract() {
 }
 [[ -n "$CR_FUNC_SRC" ]] && [[ "$(printf '%s' "$CR_FUNC_SRC" | tail -1)" == "}" ]] \
     || fail_extract "_first_code_file()" "$CR_GATE"
+[[ -n "$EXEMPT_FUNC_SRC" ]] && [[ "$(printf '%s' "$EXEMPT_FUNC_SRC" | tail -1)" == "}" ]] \
+    || fail_extract "_first_explicit_review_exempt_file()" "$CR_GATE"
 
 TMP_LIB="$(mktemp "${TMPDIR:-/tmp}/which-gate-lib.XXXXXX")"
 trap 'rm -f "$TMP_LIB"' EXIT
 printf '%s\n' "$CR_FUNC_SRC" > "$TMP_LIB"
+printf '%s\n' "$EXEMPT_FUNC_SRC" >> "$TMP_LIB"
 # shellcheck source=/dev/null
 source "$TMP_LIB"
 
 cr_battery_covers() {
     local path="$1"
     [[ -n "$(printf '%s\n' "$path" | _first_code_file)" ]]
+}
+
+explicit_exempt_covers() {
+    local path="$1"
+    [[ -n "$(printf '%s\n' "$path" | _first_explicit_review_exempt_file)" ]]
 }
 
 # llm_owned_covers / phr_covers PATH: delegate to md-files-changed.sh rather
@@ -145,6 +155,7 @@ if [[ -n "$ANY_GATE" ]]; then
             llm-skill-review) llm_owned_covers "$path" && exit 0 ;;
             phr) phr_covers "$path" && exit 0 ;;
             cr-battery) cr_battery_covers "$path" && exit 0 ;;
+            explicit-exempt) explicit_exempt_covers "$path" && exit 0 ;;
         esac
     done
     exit 1

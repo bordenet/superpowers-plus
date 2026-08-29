@@ -112,6 +112,17 @@ teardown() {
     [[ "$output" == "HAS_CODE" ]]
 }
 
+@test "code-review-gate: executable CI bats policy is HAS_CODE despite its .txt suffix" {
+    mkdir -p tests
+    echo "exclude test/flaky.bats  quarantined" > tests/ci-bats-policy.txt
+    git add tests/ci-bats-policy.txt
+    git commit -q -m "change CI policy"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "HAS_CODE" ]]
+}
+
 @test "code-review-gate: AGENTS.md now classifies as DOCS_ONLY -- owned exclusively by llm-skill-review" {
     echo "# agents" > AGENTS.md
     git add AGENTS.md
@@ -152,4 +163,26 @@ teardown() {
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
     [ "$status" -eq 0 ]
     [[ "$output" == "DOCS_ONLY" ]]
+}
+
+# ---------------------------------------------------------------------------
+# Regression: test/golden-compression/*.golden.txt is a long-standing tracked
+# fixture that predates this session (present since v2.6.0-era commits). It
+# is neither skills/*.md (llm-skill-review), nor PHR-scoped prose, nor caught
+# by the pre-existing .md/.txt/.rst "not code" fallthrough -- so on its own it
+# has always caused review.sh route to fail closed with exit 3 ("agent must
+# resolve"). Anchoring the explicit-exempt regex to root-only (this diff)
+# closes the accidental silent-pass path but does not by itself give this
+# file a home; route it as cr-battery code, the same precedent already set
+# for tests/ci-bats-policy.txt just above in this function.
+# ---------------------------------------------------------------------------
+@test "code-review-gate: a golden-compression fixture is HAS_CODE, not silently exempt" {
+    mkdir -p test/golden-compression
+    echo "some golden content" > test/golden-compression/some-skill.golden.txt
+    git add test/golden-compression/some-skill.golden.txt
+    git commit -q -m "regenerate golden"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "HAS_CODE" ]]
 }
