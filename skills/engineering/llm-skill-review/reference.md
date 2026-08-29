@@ -312,7 +312,7 @@ For each finding include:
 6. Exact recommendation
 7. An `evidence` block per the Evidence Requirement below
 
-<!-- Canonical copy lives in skill.md kernel; keep in sync if modified. -->
+<!-- Canonical copy in reference.md; if a summary also appears in skill.md kernel, keep both in sync. -->
 ### Evidence Requirement (MANDATORY)
 
 A finding is a claim about the artifact. A claim without a way to check it is indistinguishable from a guess, and a high verdict built on unchecked claims is worse than no review at all -- it looks rigorous while catching nothing. Every finding AND every clean-dimension verdict ("no issues found in X") MUST carry a JSON `evidence` block (schema, worked example, expectation types, and forbidden command patterns: see `reference.md` -> "Evidence Schema"). A finding or clean-dimension verdict with no `evidence` block at all is treated identically to `"verifiable": false` -- capped, not rejected, but never counted as confirmed.
