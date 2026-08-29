@@ -107,8 +107,8 @@ LINE_NUM=0
 if [[ -f "$LEDGER" ]]; then
   while IFS='|' read -r r_round r_branch r_base_sha r_tree_hash r_tuple_hash r_verdict r_timestamp; do
     LINE_NUM=$((LINE_NUM + 1))
-    if [[ -z "$r_round" || -z "$r_base_sha" || -z "$r_tree_hash" || \
-          -z "$r_tuple_hash" || -z "$r_verdict" ]]; then
+    if [[ -z "$r_round" || -z "$r_branch" || -z "$r_base_sha" || -z "$r_tree_hash" || \
+          -z "$r_tuple_hash" || -z "$r_verdict" || -z "$r_timestamp" ]]; then
       printf 'ERROR: malformed ledger record at line %d (loop=%s)\n' \
         "$LINE_NUM" "$LOOP_NAME" >&2
       exit 1
