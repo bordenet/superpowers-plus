@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 115 -->
+<!-- SKILL-COUNT: 116 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (49)
@@ -60,7 +60,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (24)
+## Productivity (25)
 
 | Skill | Description |
 |-------|-------------|
@@ -156,6 +156,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | Skill | Description |
 |-------|-------------|
 | `expert-interviewer` | Structured interviewing to produce written artifacts from domain knowledge. |
+| `knowledge-capture` | Captures SME expertise via structured interview (proactive) or formalizes existing conversations into wiki docs (reactive). Bottom-line-up-front articles with provenance. |
 | `incorporating-research` | Merges external research into documents. Strips artifacts, preserves voice. |
 | `perplexity-research` | Escalates to Perplexity MCP when stuck after 2+ failed attempts. |
 
