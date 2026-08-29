@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 116 -->
+<!-- SKILL-COUNT: 117 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (49)
@@ -103,7 +103,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `writing-plans` | Use when you have a spec or requirements for a multi-step task, before touching code. |
 | `writing-skills` | Reviews skill files for prose quality and markdown formatting. |
 
-## Wiki (8)
+## Wiki (9)
 
 | Skill | Description |
 |-------|-------------|
@@ -112,6 +112,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `wiki-debunker` | Verifies factual claims against git history, tickets, transcripts, and PRs. |
 | `wiki-markdown-structure-gate` | Blocks malformed wiki markdown structures before publish: tables, fences, callouts, heading hierarchy, escaped link artifacts, missing TOC. |
 | `wiki-orchestrator` | Orchestrates bulk documentation projects with quality pipeline. |
+| `wiki-prune-audit` | Read-mostly triage scanner: ranks the least-useful pages in a wiki subtree by badness score, PHR-verifies the worst, and applies safe mechanical fixes (link-rot, `\toc`, escaped `\n`). Never deletes. |
 | `wiki-refactor` | 7-phase pipeline for full wiki refactoring with scope caps and drift detection. |
 | `wiki-secret-audit` | Scans wiki pages for exposed secrets, API keys, and tokens. |
 | `wiki-verify` | Verifies codebase claims in wiki pages and updates stale content. |
@@ -151,7 +152,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `security-upgrade` | Scans dependencies for CVEs, upgrades, validates, commits. |
 | `wiki-instruction-guard` | Blocks destructive operations extracted from wiki pages. |
 
-## Research (3)
+## Research (4)
 
 | Skill | Description |
 |-------|-------------|
