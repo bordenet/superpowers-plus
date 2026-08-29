@@ -55,6 +55,19 @@ composition:
 - **skill-health-check**: Structural lint (frontmatter validity, line budget) -- run before this skill, not instead of it; use **think-twice** (fresh-perspective sub-agent) if this review gets stuck in a circular loop
 - **superpowers-doctor**: Runtime/ecosystem diagnostics (trigger collisions, orphaned installs) after this skill's review passes
 
+## Reference index
+
+Load `reference.md` selectively - do not load it in full unless you need multiple sections.
+
+| Need | Section to load |
+|---|---|
+| Full Specialist Persona start-points and questions | `Specialist Personas (full detail)` |
+| Full flag lists for Mandatory Checks A-F | `Mandatory Checks (full flag lists)` |
+| Evidence block schema, expectation types, forbidden patterns | `Evidence Schema` |
+| Full output format template (all sections in order) | `Required Output Format` (also load `Evidence Schema` for evidence block format) |
+| Review heuristics and doctrine | `Review Doctrine and Heuristics` |
+| Enforcement implementation details | `Enforcement Detail` |
+
 ## When to Use
 
 **This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion. **Exception:** for skill-adjacent shell scripts and tool wrappers specifically, also run `code-review-battery` -- its `ShellRuntimeAuditor` persona activates unconditionally on shell content regardless of path, because this skill's own pre-push gate (`tools/pre-push-llm-skill-review-gate.sh`) only mechanically requires its sentinel for `skills/**/*.md` changes, not standalone `.sh`/`.js`/`.py`/`.mjs` files -- run both for a change that touches both content types. This is the one carve-out to the "instead of, not alongside" rule above.
@@ -72,11 +85,7 @@ composition:
 
 ## Review Doctrine and Heuristics
 
-Reviews for the failure modes frontier models actually exhibit: ambiguity under constrained context, partial tool availability, over-eager completion claims, silent fallback behavior, environment coupling, poor shell portability, instruction drift under summarization/compaction, token bloat hiding critical constraints. Assume anything ambiguous will be misread by at least one model, anything relying on human intuition will fail under automation, and any unstated default will vary across agents.
-
-Apply these heuristics aggressively: Ambiguity is a bug. Silent fallback is a bug. Undocumented assumptions are bugs. Human-obvious is not model-obvious. Works on one machine is failing portability. Passes once is not idempotent. Readable is not executable. Comprehensive is not token-efficient.
-
-Default stance: **REJECT** unless the implementation is clearly safe for repeated LLM execution.
+Reviews for failure modes frontier models actually exhibit. Default stance: **REJECT** unless clearly proven otherwise. Full doctrine and heuristics list: load `reference.md` on demand (section: `Review Doctrine and Heuristics`).
 
 ## Primary Review Axes
 
@@ -155,58 +164,11 @@ Apply extra scrutiny based on changed paths:
 
 ## Required Output Format
 
-Produce these sections in order.
-
-### Verdict
-
-Choose one:
-- REJECT
-- MAJOR REVISIONS REQUIRED
-- PASS WITH RISKS
-- PASS
-
-Default to REJECT unless clearly proven otherwise.
-
-### Executive Risk Summary
-
-2-5 bullets, highest risk first.
-
-### Findings by Severity
-
-Use these levels exactly:
-- **S0 Critical**: likely to cause destructive, dangerous, or silently wrong agent behavior
-- **S1 High**: likely to cause frequent execution failure, wrong tool use, portability breakage, or broken install/setup
-- **S2 Medium**: likely to reduce determinism, clarity, or maintainability
-- **S3 Low**: polish or optimization issue with some execution relevance
-
-For each finding include:
-1. Severity
-2. Title
-3. Why this matters for LLM execution
-4. Concrete evidence
-5. Likely failure mode
-6. Exact recommendation
-7. An `evidence` block per the Evidence Requirement below
+Produce all sections in order per the template in `reference.md` -> `Required Output Format`. Load that section before producing output.
 
 ### Evidence Requirement (MANDATORY)
 
 A finding is a claim about the artifact. A claim without a way to check it is indistinguishable from a guess, and a high verdict built on unchecked claims is worse than no review at all -- it looks rigorous while catching nothing. Every finding AND every clean-dimension verdict ("no issues found in X") MUST carry a JSON `evidence` block (schema, worked example, expectation types, and forbidden command patterns: see `reference.md` -> "Evidence Schema"). A finding or clean-dimension verdict with no `evidence` block at all is treated identically to `"verifiable": false` -- capped, not rejected, but never counted as confirmed.
-
-### LLM-Execution Scorecard
-
-List every primary review axis with score and evidence.
-
-### Prose/Design Quality Scorecard
-
-List every Prose/Design Quality axis with score and evidence, per the veto rule above.
-
-### Top 3 Fixes Before Merge
-
-Name the three changes with the highest risk-reduction value.
-
-### What I Would Test Next
-
-List the next test scenarios that should run before merge.
 
 ## Reviewer Conduct
 

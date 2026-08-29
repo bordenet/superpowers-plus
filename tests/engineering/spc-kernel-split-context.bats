@@ -27,3 +27,17 @@ setup() {
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
+
+# ---------------------------------------------------------------------------
+# llm-skill-review kernel -- regression guard only.
+# Pinned at post-split baseline (18,603 bytes; pre-split: 19,754 bytes).
+# 60% reduction target (11,852 bytes) not yet achieved -- tracked as follow-up.
+# This test only prevents the kernel from growing LARGER than the post-split size.
+# Bumping SKILL_BYTE_BUDGET requires a comment explaining why the kernel grew.
+# ---------------------------------------------------------------------------
+@test "llm-skill-review kernel stays within byte budget" {
+  SKILL="$REPO_ROOT/skills/engineering/llm-skill-review/skill.md"
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  SKILL_BYTE_BUDGET=19500
+  [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
+}
