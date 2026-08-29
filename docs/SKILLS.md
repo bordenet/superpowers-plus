@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 116 -->
+<!-- SKILL-COUNT: 117 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (49)
+## Engineering (50)
 
 | Skill | Description |
 |-------|-------------|
@@ -47,6 +47,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `requirements-validation-pm` | Validates product / PM requirements: customer-grounded, stakeholder-owned, business-measurable. USE INSTEAD OF requirements-validation when author is a PM. |
 | `scope-tripwire` | Pre-push advisory gate comparing branch diff to ticket estimate. Warns when LOC exceeds 2x estimate (200 LOC/point default). Advisory only. |
 | `session-handoff` | Cold-start advisory: surfaces remote commits from the last 24h not on any local branch. Catches the stale-context pattern before you edit blind. Read-only. |
+| `skills-hierarchy-tuning` | Rebalances skill domains: diagnoses oversized domains, trigger mismatches, orphan skills, and loading failures. Applies moves, splits, and trigger fixes. |
 | `sp-bughunt` | Proactive adversarial bug hunt. Candidates flow through 5 named gates. Outputs ranked Confirmed bugs plus risk lists. Not for debugging a known failure. |
 | `spc-kernel-split` | Partition a large skill.md into a resident safety kernel and an on-demand reference. Proposes via keyword scoring, applies on confirmation, installs a context-budget regression test. |
 | `state-consistency-investigator` | Diagnoses state consistency failures: replication lag, cache staleness, event ordering. |
