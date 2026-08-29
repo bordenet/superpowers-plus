@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 115 -->
+<!-- SKILL-COUNT: 116 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (49)
+## Engineering (50)
 
 | Skill | Description |
 |-------|-------------|
@@ -19,6 +19,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
 | `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. |
+| `domain-build` | Build, deploy, and document skills from a completed domain-design output. Handles walking skeleton -> P0s -> cookbook -> handoff. Counterpart to domain-design. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints. |
 | `external-cli-audit` | Audits wrapper scripts invoking external CLIs. Enumerates defaults via `--help` before declaring correct. Catches silent scope/identity defaults bash can't see. |
