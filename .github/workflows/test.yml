@@ -94,83 +94,16 @@ jobs:
           git -C /tmp/bats checkout 41fb1bc31d1849b406fb18d4a6d8c6644b8300e7
           sudo /tmp/bats/install.sh /usr/local
 
-      - name: Commit gate tests (BATS)
-        run: bats tests/commit-gate-test.bats
+      - name: Bats policy lint (no stale opt-outs)
+        run: bash tools/ci-bats-discovery.sh --lint
 
-      - name: Installer integration tests (BATS)
-        run: bats tests/install-test.bats
-
-      - name: Claude guardrails regression tests (BATS)
-        run: bats tests/claude-guardrails-test.bats
-
-      - name: Wiki-write regression tests (BATS, sp-bughunt #3)
-        run: bats tests/wiki-write-test.bats
-
-      - name: Augment non-regression tests (BATS)
-        run: bats tests/augment-non-regression-test.bats
-        env:
-          PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
-
-      - name: CR-battery preservation tests (BATS)
-        run: bats tests/cr-battery-preservation-test.bats
-
-      - name: Install main tests (BATS)
-        run: bats tests/install-main-test.bats
-
-      - name: Session handoff check tests (BATS)
-        run: bats tests/session-handoff-check-test.bats
-
-      - name: Scope tripwire auto-detect tests (BATS)
-        run: bats tests/scope-tripwire-autodetect-test.bats
-
-      - name: Pre-push LOC gate remote-name tests (BATS)
-        run: bats tests/pre-push-loc-gate-remote-test.bats
-
-      - name: Pre-push LOC gate tests (BATS)
-        run: bats test/pre-push-loc-gate.bats
-
-      - name: Scope tripwire check tests (BATS)
-        run: bats test/scope-tripwire-check.bats
-
-      - name: Fence-scan tests (BATS)
-        run: bats test/fence-scan.bats
-
-      - name: Review-router tests (BATS)
-        run: bats test/review.bats
-
-      - name: Which-gate tests (BATS)
-        run: bats test/which-gate.bats
-
-      - name: repo-security-scan history tests (BATS)
-        run: bats test/repo-security-scan-history.bats
-
-      - name: Shell-runtime-auditor persona tests (BATS)
-        run: bats test/shell-runtime-auditor-count.bats
-
-      - name: Reviewer-count consistency tests (BATS)
-        run: bats test/reviewer-count-consistency.bats
-
-      - name: AI-process self-reference scan tests (BATS)
-        run: bats test/scan-ai-process-refs.bats
-
-      - name: Sentinel fast-forward tests (BATS)
-        run: bats tests/try-sentinel-fast-forward-test.bats
-
-      - name: Pre-push GIT_DIR leak tests (BATS)
-        run: bats test/pre-push-git-dir-leak.bats
-
-      - name: Suite-wide GIT_DIR isolation tests (BATS)
-        run: |
-          bats test/suite-git-dir-isolation.bats
-          bats tests/suite-git-dir-isolation-test.bats
+      - name: All bats suites (auto-discovered)
+        run: bash tools/ci-bats-discovery.sh --run
 
       - name: Doctor checks tests
         run: bash tools/tests/test_doctor_checks.sh
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
-
-      - name: MCP checks tests (BATS)
-        run: bats tests/mcp-checks-test.bats
 
       - name: TODO lock tests
         run: bash tools/tests/test_todo_lock.sh
@@ -200,20 +133,6 @@ jobs:
         run: |
           mapfile -t MD_FILES < <(find skills -name "*.md")
           bash tools/fence-scan.sh "${MD_FILES[@]}"
-
-      - name: Harness -- config-precedence resolver tests (BATS)
-        run: bats tests/tools/config-precedence.bats
-
-      - name: Harness -- spc-kernel-split behavioral tests (BATS)
-        run: bats tests/engineering/spc-kernel-split.bats
-
-      - name: Harness -- spc-kernel-split context budget tests (BATS)
-        run: bats tests/engineering/spc-kernel-split-context.bats
-
-      - name: Harness -- artifact size budget tests (BATS, advisory)
-        run: bats tests/harness/artifact-budgets.bats
-        env:
-          BUDGET_MODE: advisory
 
       - name: Harness -- skill size audit (advisory)
         continue-on-error: true
