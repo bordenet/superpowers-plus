@@ -43,6 +43,7 @@ BANNED_HASHES = {
     "71ed989267c8720f035a4d83bf49b4f5d5e88ecfc572d9b45ba5b97b222ff461",  # single token
     "cec947ca1e552b469bb8fe2ab4040357dc7162a86b91858b89d287564d0172be",  # single token
     "c6a602dfdb7eed402610ba9d86b5132218ab6b26604abd977130257ec9a306ba",  # adjacent-pair term
+    "99cf5279574d719a79bbccbdc81032125910c9ea6c7ee286480e4886b584a733",  # single token (git hosting platform)
 }
 
 TOKEN_RE = re.compile(r"[a-z]+")
