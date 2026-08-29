@@ -100,6 +100,31 @@ teardown() {
     [[ "$output" == "HAS_CODE" ]]
 }
 
+@test "staged_has_code: executable CI bats policy is HAS_CODE despite its .txt suffix" {
+    mkdir -p tests
+    echo "exclude test/flaky.bats  quarantined" > tests/ci-bats-policy.txt
+    git add tests/ci-bats-policy.txt
+    run ./harness.sh
+    [ "$status" -eq 0 ]
+    [[ "$output" == "HAS_CODE" ]]
+}
+
+@test "staged_has_code: a golden-compression fixture is HAS_CODE, not silently exempt" {
+    # Sibling drift (Defect Finder, 2026-08-28): _first_code_file() in
+    # tools/pre-push-code-review-gate.sh gained a golden-compression carve-out
+    # in this same diff, but staged_has_code() -- its documented mirror, per
+    # the comment above this function citing it -- did not. Without this, a
+    # commit touching only a golden fixture passes Gate 0 (pre-commit) with no
+    # sentinel required, then is BLOCKED at push by Gate 2, which DOES treat it
+    # as code -- the exact round-trip friction push-readiness.sh exists to kill.
+    mkdir -p test/golden-compression
+    echo "some golden content" > test/golden-compression/some-skill.golden.txt
+    git add test/golden-compression/some-skill.golden.txt
+    run ./harness.sh
+    [ "$status" -eq 0 ]
+    [[ "$output" == "HAS_CODE" ]]
+}
+
 @test "staged_has_code: a design doc (non-agent uppercase root .md) is DOCS_ONLY" {
     echo "# design" > DESIGN.md
     git add DESIGN.md

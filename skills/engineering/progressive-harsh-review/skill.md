@@ -50,7 +50,6 @@ composition:
 > **Pattern:** Three escalating critic personas, each scoring independently.
 
 **Announce at start:** "I'm using the **progressive-harsh-review** skill to red-team this work."
-
 ## Companion Skills
 
 - **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
@@ -136,16 +135,8 @@ If any are found, flag them as **Minor author-noise findings** in the report. Do
 ### Step 1: Dispatch Review
 **HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
 
-**Packet-mode dispatch (`CR_BATTERY_PACKET_MODE=1`):** Only when the host dispatches all 3 personas as sub-agents with confirmed shell tool access (incompatible with in-process role-switch fallback -- use inline dispatch instead); requires CWD = repo root and `tools/cr-battery-packet.sh` reachable; fallback to inline on any precondition failure:
-
-1. `SHA=$(git rev-parse HEAD)` -- skip to inline if non-zero (e.g. bare repo).
-2. `PACKET_DIR=$(tools/cr-battery-packet.sh init "$SHA" "$(git rev-parse --show-toplevel)")` -- single call; skip to inline if exit non-zero or `$PACKET_DIR` is empty.
-3. `cp "$DOCUMENT_PATH" "$PACKET_DIR/document.md"` -- where `$DOCUMENT_PATH` is the absolute path of the artifact (supplied by the invoker before this block); skip to inline if non-zero.
-4. `MANIFEST=$(tools/cr-battery-packet.sh manifest "$PACKET_DIR")` -- captures `$PACKET_DIR/manifest.json`; skip to inline if non-zero or `$MANIFEST` is empty.
-5. `DOC_PATH="$PACKET_DIR/document.md"` -- expand once. Before dispatching each persona, substitute both `$MANIFEST` and `$DOC_PATH` in the instruction below with their concrete filesystem paths; do NOT pass shell variable names to sub-agents. Pass all 3 personas: concrete manifest path + concrete document path as file paths -- do NOT inline document text. Example resolved instruction to send: *"Read `/absolute/path/to/packet/document.md` with your file-read tool, compute its sha256 (`shasum -a 256 <path>` on macOS, `sha256sum <path>` on Linux), and echo exactly one line: `Packet attestation: document.md: <sha256hex>`."*
-6. After all personas return, for each persona's output, extract the line matching `^Packet attestation: document.md: ` and run: `tools/cr-battery-packet.sh verify "$PACKET_DIR" document.md <sha256hex>` (3 args: packet dir, item name, the hex from the attestation line). Non-zero exit = integrity failure -- re-run only that persona in-process with the document text pasted inline into the prompt (the hybrid result is valid; it does not restart the full PHR).
-
-**Token savings:** eliminates all 3 inline document copies -- each sub-agent reads from disk rather than receiving the document inline.
+**Packet mode (`CR_BATTERY_PACKET_MODE=1`):** Use only for 3 shell-capable sub-agents from repo-root with `tools/cr-battery-packet.sh`; otherwise dispatch inline. Resolve `SHA=$(git rev-parse HEAD)` and repo root, then run `PACKET_DIR=$(tools/cr-battery-packet.sh init "$SHA" "$(git rev-parse --show-toplevel)")`, copy the invoker-supplied absolute `$DOCUMENT_PATH` to `$PACKET_DIR/document.md`, and run `MANIFEST=$(tools/cr-battery-packet.sh manifest "$PACKET_DIR")`; any non-zero/empty result falls back to inline.
+Dispatch concrete manifest/document paths, never variable names or inline text. Each persona reads the document, computes SHA-256 (`shasum -a 256` on macOS; `sha256sum` on Linux), and emits exactly `Packet attestation: document.md: <sha256hex>`. Verify each with `tools/cr-battery-packet.sh verify "$PACKET_DIR" document.md <sha256hex>`; on failure rerun only that persona inline. This removes all 3 inline document copies.
 
 For each persona, answer ALL scoring dimensions:
 
