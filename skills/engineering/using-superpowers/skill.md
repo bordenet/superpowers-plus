@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: []
   internal: false
+composition:
+  consumes: [user-request]
+  produces: [skill-invocation-decision]
+  capabilities: [skill-routing, session-initialization, protocol-enforcement]
+  priority: 10
 ---
 
 <SUBAGENT-STOP>
@@ -25,6 +30,14 @@ IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 
 This is not negotiable. This is not optional. You cannot rationalize your way out of this.
 </EXTREMELY-IMPORTANT>
+
+## When to Use
+
+- At the very start of every conversation — establishes which skills are available and how to invoke them
+- When you need to choose between skills for the current task
+- When a user asks how to invoke or configure superpowers
+
+**NOT when:** already mid-task with skills loaded — the session protocol fires once at start, not repeatedly.
 
 ## Instruction Priority
 

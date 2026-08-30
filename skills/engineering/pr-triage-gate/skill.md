@@ -28,6 +28,11 @@ coordination:
   enables: ["systematic-debugging", "code-review-battery"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [pr-description, target-branch]
+  produces: [triage-verdict, redundancy-report]
+  capabilities: [pr-triage, ci-gate, semantic-diff]
+  priority: 9
 ---
 
 # PR Triage Gate
@@ -37,6 +42,14 @@ coordination:
 > **Why this exists:** A PR whose stated features are already on the target branch is a no-op; every minute spent debugging its CI is wasted. A two-command check at the start catches this before the debugging loop starts.
 
 **Announce at start:** "I'm using the **pr-triage-gate** skill to verify this PR is still needed before debugging CI."
+
+## When to Use
+
+- Before debugging CI failures on any MR or PR — verifies the work isn't already on the target branch
+- When a PR appears stuck in CI and you're not sure if its changes are still needed
+- Before spending time cherry-picking or rebasing an MR that may be obsolete
+
+**NOT when:** you created the branch yourself in the current session and know it contains fresh work.
 
 ## MANDATORY -- Run before any CI debug work
 
