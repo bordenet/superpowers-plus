@@ -318,6 +318,7 @@ graph TD
   domain_design -->|enables| skill_authoring
   domain_design -->|enables| brainstorming
   domain_design -->|enables| debate
+  devsec_audit -->|then| repo_security_scan
   plan_and_execute -->|then| fallback_planning
   innovation -->|enables| brainstorming
   innovation -->|enables| plan_and_execute
@@ -340,6 +341,7 @@ graph TD
   quantitative_decision_gate -->|enables| debate
   quantitative_decision_gate -->|enables| plan_and_execute
   quantitative_decision_gate ==>|escalates to| think_twice
+  repo_security_scan -->|enables| security_upgrade
   screenshot -->|enables| systematic_debugging
   screenshot -->|enables| brainstorming
   screenshot -->|enables| feature_development
