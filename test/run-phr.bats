@@ -132,7 +132,10 @@ teardown() {
 
 @test "write: sentinel is 0644 mode" {
     ./run-phr.sh --verdict PASS --min-score 9.5 >/dev/null
-    perms=$(stat -f "%Lp" .phr-cleared 2>/dev/null || stat -c "%a" .phr-cleared 2>/dev/null)
+    # GNU stat first (Linux CI), BSD stat fallback (macOS). The reverse order is
+    # broken: GNU `stat -f` succeeds querying the filesystem but prints garbage,
+    # so its `||` fallback never fires. Matches tools/todo-crud.sh, todo-preflight.sh.
+    perms=$(stat -c "%a" .phr-cleared 2>/dev/null || stat -f "%Lp" .phr-cleared 2>/dev/null)
     [ "$perms" = "644" ]
 }
 

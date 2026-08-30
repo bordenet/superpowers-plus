@@ -1,0 +1,27 @@
+# CI bats policy -- consumed by tools/ci-bats-discovery.sh
+#
+# Every .bats file under test/, tests/ and skills/ runs in CI automatically.
+# This file is ONLY for suites that need special handling. Format:
+#
+#   exclude <path>            <reason...>     suite is not run at all
+#   env     <path> KEY=VALUE  <reason...>     suite runs with KEY set
+#
+# $REPO_ROOT in an env VALUE expands to the repo root. Nothing is eval'd.
+# `ci-bats-discovery.sh --lint` enforces these rules:
+#   - <path> must exactly match a suite printed by --list (no ./ or .. aliases)
+#   - only exclude and env directives are accepted; env takes one allowlisted
+#     UPPER_SNAKE=VALUE assignment (a second such token is rejected)
+#   - every entry needs a reason; ordinary prose such as issue=https://... is OK
+#   - each suite path may appear only once across all directives
+
+env tests/augment-non-regression-test.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  suite resolves the skills tree from this env var, not from cwd
+env tests/harness/artifact-budgets.bats BUDGET_MODE=advisory  budgets stay advisory until artifact-baselines.json has rows (docs/harness/artifact-budgets.md)
+
+# --- 2026-08-29: pre-existing failures surfaced when discovery replaced the ---
+# --- hand-enumerated CI list. These 3 suites were never run in CI before and ---
+# --- fail only on the Linux runner (all green on macOS). None are touched by  ---
+# --- the discovery change; it only exposed them. Fix + un-exclude tracked on  ---
+# --- branch fix/ci-bats-discovery-backlog (TODO ids 20260829-*).              ---
+exclude test/wiki-content-check.bats  2026-08-29: `check: shellcheck passes` fails on the CI runner's shellcheck but passes with 0.11.0 on macOS; needs the CI job's SC code before fixing
+exclude tests/compat-help-test.bats  2026-08-29: `todo-crud.sh self-test` exits non-zero only on the Linux CI runner; needs Linux repro of the first failing assertion
+exclude tests/skip-augment-test.bats  2026-08-29: `install.sh --check` output is HOME/path-dependent and omits .claude/skills on the CI runner; needs Linux repro

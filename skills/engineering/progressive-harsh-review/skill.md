@@ -51,6 +51,10 @@ composition:
 
 **Announce at start:** "I'm using the **progressive-harsh-review** skill to red-team this work."
 
+## Reference index
+
+Load `Anti-Patterns` from `reference.md` for the detection-and-correction table.
+
 ## Companion Skills
 
 - **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
@@ -136,6 +140,9 @@ If any are found, flag them as **Minor author-noise findings** in the report. Do
 ### Step 1: Dispatch Review
 **HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
 
+**Packet mode (`CR_BATTERY_PACKET_MODE=1`):** Use only for 3 shell-capable sub-agents from repo-root with `tools/cr-battery-packet.sh`; otherwise dispatch inline. Resolve `SHA=$(git rev-parse HEAD)` and repo root, then run `PACKET_DIR=$(tools/cr-battery-packet.sh init "$SHA" "$(git rev-parse --show-toplevel)")`, copy the invoker-supplied absolute `$DOCUMENT_PATH` to `$PACKET_DIR/document.md`, and run `MANIFEST=$(tools/cr-battery-packet.sh manifest "$PACKET_DIR")`; any non-zero/empty result falls back to inline.
+Dispatch concrete manifest/document paths, never variable names or inline text. Each persona reads the document, computes SHA-256 (`shasum -a 256` on macOS; `sha256sum` on Linux), and emits exactly `Packet attestation: document.md: <sha256hex>`. Verify each with `tools/cr-battery-packet.sh verify "$PACKET_DIR" document.md <sha256hex>`; on failure rerun only that persona inline. This removes all 3 inline document copies.
+
 For each persona, answer ALL scoring dimensions:
 
 | Dimension | Default Weight | Question |
@@ -198,13 +205,9 @@ When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict 
 tools/run-phr.sh --verdict PASS --min-score "<weighted-mean>"
 ```
 
-This writes `.phr-cleared` with format `v1|<HEAD-SHA>|PASS|<UTC-TS>|min-score=<N>`. The pre-push hook's Gate 5 reads this sentinel; without it, any push that touches design .md files (docs/*.md, DESIGN.md, etc. -- NOT skills/*.md, .ai-guidance/*.md, or AGENTS.md-family files, all of which are owned exclusively by Gate 6 / llm-skill-review, see that skill's own Enforcement Status) is refused at the local pre-push hook (developer-machine self-discipline, not a server-side security boundary).
-
 **Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
 
 Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 5 will report stale).
-
-> **Why this is mandatory:** PHR was discipline-only for too long -- design-doc changes shipped without running it repeatedly. The sentinel + Gate 5 closes the loop for that file class. Note Gate 5 is a productivity guardrail (catches forgetting), not a tamper-proof security control. Code review must still verify PHR actually ran, not just that the sentinel is present.
 
 ## Scoring Output Format
 
@@ -221,16 +224,6 @@ Header abbreviations: C=Correctness, S=Simplicity, V=Verifiability, B=Blind Spot
 | Operational Risk | 7 | Dependency on absent tooling not flagged |
 Per-persona weighted score: 7(.25)+8(.15)+6(.25)+5(.15)+7(.20) = 6.60
 ```
-
-## Anti-Patterns
-
-| Anti-Pattern | Detection | Correction |
-|--------------|-----------|------------|
-| Soft review | No score <7 given | Recalibrate with known-bad example |
-| Same feedback loop | Same comment 3 iterations | Escalate to structural fix |
-| Style over substance | All comments are formatting | Check logic, edge cases, error handling first |
-| Perfection paralysis | 3+ rounds, no convergence | Hard limit: 3 rounds then **escalate to human** — do NOT ship |
-| Missing context | Review without reading full file | Load surrounding context first |
 
 ## Failure Modes
 

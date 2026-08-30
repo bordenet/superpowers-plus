@@ -1,0 +1,37 @@
+# Candidate: 2>/dev/null Masks Genuine Absence in Evidence Commands
+id: candidate-007
+status: proposed
+kind: anti-pattern
+created: 2026-07-11
+source_gap: "Found during an evidence-schema resolution pass for the Field Reference Trace / Caller Removal Trace candidates: the pattern `grep -l PATTERN file... 2>/dev/null | wc -l` used throughout this file's absence-check idioms (e.g. Producer Trace's `grep -rE ... | wc -l` with an `-eq 0` expectation) silently swallows a genuine 'no such file or directory' error and reports it identically to a real, confirmed absence. Verified by substituting typo'd, nonexistent file paths into an exact committed evidence command and observing the same '1/1 verified, 0 falsified' verifier result as a true absence -- the verifier cannot currently distinguish 'grepped these real files and found nothing' from 'tried to grep files that don't exist, silently failed, found nothing.' This is a pre-existing pattern used throughout the whole file (Producer Trace, Caller Removal Trace, Field Reference Trace all rely on some variant of it), not something introduced by or specific to any single pattern -- it needs its own independent validation, not an ad-hoc fix folded into an unrelated batch under time pressure."
+source_exercise: null
+graduation_path: standard
+reviewer: defect-finder
+pattern: |
+  Any evidence command in this file (or authored against `tools/verify-cr-battery-evidence.js`)
+  that redirects stderr to /dev/null on a grep/find/test used for an ABSENCE claim
+  (an `-eq 0` / `exit_code: 0`-on-empty-output expectation) must be checked for whether
+  a file-not-found error on every named path would produce the same zero-count result
+  as a genuine, confirmed absence. If so, the command is not distinguishing "checked
+  and found nothing" from "failed to check anything." Flag as a verification-integrity
+  gap, not a functional defect in the code under review.
+examples:
+  - file: "skills/engineering/code-review-battery/reviewers/defect-finder.md (Field Reference Trace evidence idiom)"
+    issue: "test $(grep -l 'PATTERN' file1 file2 2>/dev/null | wc -l) -eq 0 returns exit 0 (pass) both when file1/file2 exist and contain no match, AND when file1/file2 do not exist at all -- 2>/dev/null discards the 'No such file or directory' error identically in both cases."
+    fix: "Not yet designed -- candidate is proposed, not validated. Possible directions: a separate file-existence pre-check before the absence grep, or piping stderr to a capture point that a companion clause inspects."
+confidence: 0.5
+ttl_days: 90
+validation:
+  exercises_tested: []
+  true_positives: 0
+  false_positives: 0
+  precision: null
+  deferred_validation_due: null
+rejection:
+  reason: null
+  date: null
+graduation:
+  promoted_date: null
+  reviewer_line: null
+  regression_check: null
+  tracking_handle: null

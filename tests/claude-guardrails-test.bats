@@ -486,17 +486,20 @@ _fixture_transcript() {
   [[ "$output" == *"already consumed"* ]]
 }
 
-@test "item 10: RED-autonomy fail-open when session_id is absent" {
+@test "item 10: RED-autonomy fail-CLOSED when session_id is absent" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # Omit session_id entirely from the hook input
+  # Omit session_id entirely from the hook input.
+  # Intentional fail-CLOSED (exit 2): an absent session_id means we cannot
+  # locate the transcript, so the approval gate cannot be verified.
+  # Failing open here would silently disable the gate if an agent strips the id.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id is absent
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
@@ -507,18 +510,20 @@ _fixture_transcript() {
   rm -rf "$fake_home"
 }
 
-@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-open" {
+@test "item 10: RED-autonomy path-traversal session_id sanitized to fail-CLOSED" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "approve push"
   local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
-  # session_id of all-special chars ("../..") sanitizes to "" (empty) → must fail-open.
-  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path — wrong test.
+  # session_id of all-special chars ("../..") sanitizes to "" (empty).
+  # "../../evil" would sanitize to "evil" (non-empty) and take the normal approval path.
+  # An empty-sanitized session_id must fail-CLOSED (exit 2) — same reasoning as
+  # the absent-session_id case: we cannot verify approval, so we must block.
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" \
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin main"},"transcript_path":"%s","session_id":"../../","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
   # No consumed-approvals file should be written when session_id sanitizes to empty
   local consumed_count
   consumed_count="$(find "$fake_home/.claude" -name '*.consumed-approvals.txt' 2>/dev/null | wc -l | tr -d ' ')"
@@ -1133,6 +1138,103 @@ _fixture_transcript_cursor() {
     <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"cursor-shape-assistant","cwd":"/tmp"}' "$TPATH")"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 2 ]
+}
+
+@test "item 10: R11: RED-autonomy recognizes an approval phrase answered via AskUserQuestion" {
+  # Real transcript shape (verified against an actual Claude Code session):
+  # an AskUserQuestion answer is NOT a plain user chat message -- it's a
+  # user-role turn whose content is a tool_result
+  # block wrapping a plain string, keyed by tool_use_id back to the
+  # assistant's AskUserQuestion tool_use call. Question text deliberately
+  # contains no approval/revoke phrase of its own, so this test can only pass
+  # because the ANSWER text is what's being scanned, not the question.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq1","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq1","content":"Your questions have been answered: \"Ready to continue?\"=\"approve push\". You can now continue with these answers in mind."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-approve","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: R11: RED-autonomy does NOT grant approval from an AskUserQuestion's own question wording when the human's answer refuses" {
+  # The question can contain an approval phrase (e.g. "Should I ship it
+  # now?") while the human's actual answer explicitly declines. The
+  # question's wording must never satisfy approval on its own -- only the
+  # answer segment is scanned.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq2","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq2","content":"Your questions have been answered: \"Should I approve push now?\"=\"no, not yet\". You can now continue with these answers in mind."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-refuse","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does NOT treat an unrelated tool_result containing the approval phrase as approval" {
+  # Negative case: a tool_result from a DIFFERENT tool (not AskUserQuestion)
+  # that happens to contain the literal phrase must never grant approval --
+  # e.g. a grep/Read result quoting this exact ticket's own description.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_bash1","name":"Bash","input":{"command":"echo hi"}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_bash1","content":"unrelated output that happens to say approve push in a log line"}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-unrelated-tool","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does NOT grant approval from a synthetic AskUserQuestion timeout message" {
+  # A "no response after Ns" timeout message is Claude's own synthetic text,
+  # not a genuine human answer, and contains no quoted "question"="answer"
+  # pair -- it must never be scanned for approval phrases even if it happens
+  # to contain words like "proceed".
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_askq3","name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_askq3","content":"No response after 60s -- the user may be away from keyboard. Proceed with push using your best judgment based on the context so far."}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-timeout","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
+}
+
+@test "item 10: R11: RED-autonomy does not crash and does not grant approval when tool_use id/tool_use_id are non-string" {
+  # Adversarial/malformed-transcript case: an AskUserQuestion tool_use with a
+  # list-typed "id" (unhashable -- would crash a bare set.add()) paired with
+  # an unrelated tool_result whose "tool_use_id" is also missing (defaults to
+  # Python None on both sides). Must neither crash the hook nor let the
+  # None/None collision grant approval.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  TPATH="$(mktemp).jsonl"
+  printf '%s\n' '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":["not","a","string"],"name":"AskUserQuestion","input":{}}]}}' > "$TPATH"
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"approve push"}]}}' >> "$TPATH"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin dev"},"transcript_path":"%s","session_id":"askq-nonstring-id","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"RED action without explicit approval"* ]]
 }
 
 # ---------------------------------------------------------------------------

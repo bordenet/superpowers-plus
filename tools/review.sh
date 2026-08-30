@@ -38,8 +38,8 @@
 #   1  usage error (missing subcommand, no paths)
 #   2  which-gate.sh could not extract detection logic (fails closed --
 #      never guess when the mechanical mapping is broken)
-#   3  at least one artifact matched NO gate (agent must resolve --
-#      likely a manifest-file gap or misspelled path)
+#   3  at least one artifact matched NO gate and was not explicitly exempt
+#      (agent must resolve -- likely a manifest-file gap or misspelled path)
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -47,7 +47,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WHICH_GATE="$SCRIPT_DIR/which-gate.sh"
 
 usage() {
-    sed -n '2,43p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    awk 'NR>1 && /^#/ {sub(/^# ?/,""); print; next} NR>1 {exit}' "${BASH_SOURCE[0]}"
 }
 
 if [[ $# -eq 0 || "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -79,6 +79,7 @@ fi
 declare -a LLM_PATHS=()
 declare -a PHR_PATHS=()
 declare -a CR_PATHS=()
+declare -a EXEMPT_PATHS=()
 declare -a UNMATCHED_PATHS=()
 
 classify_one() {
@@ -100,7 +101,16 @@ classify_one() {
         fi
     done
     if [[ "$matched" -eq 0 ]]; then
-        UNMATCHED_PATHS+=("$path")
+        rc=0
+        bash "$WHICH_GATE" --any=explicit-exempt "$path" >/dev/null 2>&1 || rc=$?
+        if [[ "$rc" -eq 0 ]]; then
+            EXEMPT_PATHS+=("$path")
+        elif [[ "$rc" -eq 1 ]]; then
+            UNMATCHED_PATHS+=("$path")
+        else
+            echo "ERROR: which-gate.sh returned unexpected exit $rc on '$path' (gate=explicit-exempt)" >&2
+            exit 2
+        fi
     fi
 }
 
@@ -147,6 +157,13 @@ if [[ "${#CR_PATHS[@]}" -gt 0 ]]; then
                "tools/run-battery.sh --verdict PASS" \
                ".code-review-cleared" \
                "${CR_PATHS[@]}"
+fi
+
+if [[ "${#EXEMPT_PATHS[@]}" -gt 0 ]]; then
+    maybe_sep
+    echo "EXEMPT: explicit root metadata; no sentinel review gate"
+    echo "FILES:"
+    for f in "${EXEMPT_PATHS[@]}"; do echo "  $f"; done
 fi
 
 if [[ "${#UNMATCHED_PATHS[@]}" -gt 0 ]]; then

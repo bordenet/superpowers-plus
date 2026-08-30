@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 113 -->
+<!-- SKILL-COUNT: 120 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (47)
+## Engineering (50)
 
 | Skill | Description |
 |-------|-------------|
@@ -36,6 +36,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |
+| `pr-triage-gate` | Semantic redundancy gate — before debugging CI or fixing any pull request, verify the PR's stated goals are not already on the target branch. |
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
 | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <7 = reject. |
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
@@ -46,7 +47,9 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `requirements-validation-pm` | Validates product / PM requirements: customer-grounded, stakeholder-owned, business-measurable. USE INSTEAD OF requirements-validation when author is a PM. |
 | `scope-tripwire` | Pre-push advisory gate comparing branch diff to ticket estimate. Warns when LOC exceeds 2x estimate (200 LOC/point default). Advisory only. |
 | `session-handoff` | Cold-start advisory: surfaces remote commits from the last 24h not on any local branch. Catches the stale-context pattern before you edit blind. Read-only. |
+| `skills-hierarchy-tuning` | Rebalances skill domains: diagnoses oversized domains, trigger mismatches, orphan skills, and loading failures. Applies moves, splits, and trigger fixes. |
 | `sp-bughunt` | Proactive adversarial bug hunt. Candidates flow through 5 named gates. Outputs ranked Confirmed bugs plus risk lists. Not for debugging a known failure. |
+| `spc-kernel-split` | Partition a large skill.md into a resident safety kernel and an on-demand reference. Proposes via keyword scoring, applies on confirmation, installs a context-budget regression test. |
 | `state-consistency-investigator` | Diagnoses state consistency failures: replication lag, cache staleness, event ordering. |
 | `subagent-driven-development` | Executes implementation plans with independent parallel tasks. |
 | `systematic-debugging` | Root-cause-first investigation: reproduce, hypothesize, isolate, fix. |
@@ -58,7 +61,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (24)
+## Productivity (25)
 
 | Skill | Description |
 |-------|-------------|
@@ -154,6 +157,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | Skill | Description |
 |-------|-------------|
 | `expert-interviewer` | Structured interviewing to produce written artifacts from domain knowledge. |
+| `knowledge-capture` | Captures SME expertise via structured interview (proactive) or formalizes existing conversations into wiki docs (reactive). Bottom-line-up-front articles with provenance. |
 | `incorporating-research` | Merges external research into documents. Strips artifacts, preserves voice. |
 | `perplexity-research` | Escalates to Perplexity MCP when stuck after 2+ failed attempts. |
 

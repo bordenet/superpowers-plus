@@ -32,6 +32,34 @@ Each skill exists because it caught a recurring, nagging problem.
 
 A system prompt is a suggestion the assistant can forget under context pressure. These skills are backed by lifecycle hooks and commit gates that run outside its own context, enforced by git itself once installed, not by whether it remembers to ask for review.
 
+## The AI-Harness
+
+Every `skill.md` an agent loads stays resident in the context window for the
+rest of the session and is re-sent on every LLM call. Most skill libraries let
+that cost grow unchecked. superpowers-plus runs a closed control loop over it -
+measure, shrink, guard - so instruction context is treated as a budgeted
+resource, not invisible overhead. Every box below is a real artifact in this
+repo.
+
+| Stage | Artifact | What it does |
+|-------|----------|--------------|
+| **Sensor** | [`tools/skill-size-audit.sh`](tools/skill-size-audit.sh) | Ranks every `skill.md` by byte count and exits non-zero when any exceeds the fleet threshold (default 10 KB). Bloat becomes a signal instead of silent drift. |
+| **Actuator** | [`spc-kernel-split`](skills/engineering/spc-kernel-split/skill.md) + [`tools/skill-partitioner`](tools/skill-partitioner) | Splits a monolithic skill into a small resident **kernel** and an on-demand **`reference.md`** that loads only when a specific lookup is needed. Keyword scoring draws the boundary; ambiguous sections go to a third file for human review. |
+| **Regulator** | [`artifact-budgets`](docs/harness/artifact-budgets.md) + `tests/harness/artifact-budgets.bats` | Byte budgets against a committed baseline manifest catch a skill that shrank today regrowing tomorrow. `BUDGET_MODE=advisory` warns; `BUDGET_MODE=strict` fails CI. |
+
+**Safety floor, non-negotiable:** hard gates, "never" rules, and
+run-every-time decision inputs always stay in the kernel. A split that moves a
+gate into the on-demand reference is wrong even when it scores a larger
+reduction.
+
+The loop then returns to the Sensor, every session and every commit. All three
+stages are wired up; kernel splits are being applied across the fleet, and
+[`docs/harness/reduction-history.md`](docs/harness/reduction-history.md) is the
+running ledger of before/after bytes per split - the numbers there, not any
+static diagram, are authoritative.
+
+**Full design:** [docs/harness/README.md](docs/harness/README.md)
+
 ## Standout Skills
 
 | Skill | What it does |
@@ -40,6 +68,7 @@ A system prompt is a suggestion the assistant can forget under context pressure.
 | [**llm-skill-review**](skills/engineering/llm-skill-review/skill.md) | Default reviewer for any skill.md or skill-adjacent tooling — covers LLM-execution safety (determinism, shell portability, tool contracts, cross-agent compatibility) and prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
 | [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. Skill.md reviews now go through `llm-skill-review` instead. |
+| [**spc-kernel-split**](skills/engineering/spc-kernel-split/skill.md) | The AI-Harness actuator: partitions an oversized `skill.md` into an always-loaded kernel plus an on-demand `reference.md`, then installs a permanent context-budget regression test. Hard gates and "never" rules never leave the kernel. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
@@ -67,7 +96,7 @@ Then tell your AI assistant what you're doing. The trigger examples are near the
 
 ## What's Included
 
-**113 skills** across 9 domains:
+**120 skills** across 9 domains:
 
 | Domain | Examples |
 |--------|----------|
@@ -208,7 +237,7 @@ After running `install.sh`, confirm skills loaded successfully:
 
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js find-skills
-# Expected: skill catalog printed without errors (superpowers-plus contributes 113 skills)
+# Expected: skill catalog printed without errors (superpowers-plus contributes 120 skills)
 ```
 
 Run the full 30-check diagnostic:
@@ -244,7 +273,7 @@ Skills form pipelines with explicit dependencies. Each pipeline has its own dedi
 | Wiki Pipeline | [Wiki Pipeline](docs/SKILL_TAXONOMY.md#wiki-pipeline) | 7-stage quality chain → publish → post-publish drift check |
 | Debug Flow | [Debug Flow](docs/SKILL_TAXONOMY.md#debug-flow) | debug-conductor → systematic-debugging + 6 internal sub-agents |
 | Code Review Chain | [Code Review Chain](docs/SKILL_TAXONOMY.md#code-review-chain) | requesting → battery → receiving → respond |
-| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 113 skills with typed edges (enables / escalates-to) |
+| Full Dependency Graph | [skill-dependency-graph.md](docs/skill-dependency-graph.md) | All 120 skills with typed edges (enables / escalates-to) |
 
 For how triggers fire, how skill names are resolved, how compression works, and the scoring algorithm behind `match-skills`, see **[docs/DESIGN.md](docs/DESIGN.md)**.
 
@@ -316,6 +345,9 @@ Utility scripts in `tools/`:
 | `public-repo-ip-check.sh` | Scans for proprietary content before public push |
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
 | `skill-cost-analyzer.sh` | Reports token cost per skill |
+| `skill-size-audit.sh` | Context-budget sensor: ranks every `skill.md` by byte count, flags any over the fleet threshold |
+| `skill-partitioner` | Kernel/reference actuator behind `spc-kernel-split` |
+| `measure-artifact-sizes.sh` | Context-budget regulator: measures always-on artifacts against `tests/harness/artifact-baselines.json` |
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
 | `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
@@ -343,7 +375,7 @@ Utility scripts in `tools/`:
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Full Skill Reference](docs/SKILLS.md) · [Task Tagging Taxonomy](skills/productivity/todo-management/references/taxonomy.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
+[Architecture](docs/ARCHITECTURE.md) · [The AI-Harness](docs/harness/README.md) · [Full Skill Reference](docs/SKILLS.md) · [Task Tagging Taxonomy](skills/productivity/todo-management/references/taxonomy.md) · [Enterprise Adopters](docs/ENTERPRISE_ADOPTERS_GUIDE.md) · [Contributing](docs/CONTRIBUTING.md) · [Upgrading](UPGRADING.md) · [Changelog](CHANGELOG.md)
 
 ## License
 
