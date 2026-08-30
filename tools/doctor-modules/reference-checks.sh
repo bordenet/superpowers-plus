@@ -89,7 +89,21 @@ for skill in "${!SKILL_PATH[@]}"; do
         if (index(tmp, "~/") == 0 && index(tmp, "/Users/") == 0) next
       }
       while (match(line, tilde_re) || match(line, users_re)) {
-        p = substr(line, RSTART, RLENGTH)
+        raw = substr(line, RSTART, RLENGTH)
+        next_ch = substr(line, RSTART + RLENGTH, 1)
+        p = raw
+        # Strip trailing sentence period (e.g. "...auto-populate to ~/.codex/.env.")
+        gsub(/\.$/, "", p)
+        # Strip mktemp template suffix (e.g. ~/.codex/.env.XXXXXX)
+        gsub(/\.[A-Z]{4,}$/, "", p)
+        # Skip dynamic template prefixes: raw ended in "-" and is immediately
+        # followed by a template placeholder char (<, {, $) in the source text,
+        # e.g. ~/context-ferry-<timestamp>.md  →  skip ~/context-ferry
+        if (raw ~ /-$/ && next_ch ~ /[<{$]/) { line = substr(line, RSTART + RLENGTH); continue }
+        # Strip remaining trailing dash (cut-off path with no following placeholder)
+        gsub(/-$/, "", p)
+        # Skip trivially short or incomplete paths
+        if (length(p) < 4) { line = substr(line, RSTART + RLENGTH); continue }
         if (!(p in seen)) { seen[p]=1; print p }
         line = substr(line, RSTART + RLENGTH)
       }
