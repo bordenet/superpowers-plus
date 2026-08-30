@@ -45,11 +45,11 @@ echo "Installing git hooks for superpowers-plus..."
 echo ""
 
 # Ensure hooks directory exists
-mkdir -p "$HOOKS_DIR"
+mkdir -p "$HOOKS_DIR" || { echo "ERROR: cannot create hooks directory: $HOOKS_DIR" >&2; exit 1; }
 
 # Ensure review token directory exists
 REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
-mkdir -p "$REVIEW_TOKEN_DIR"
+mkdir -p "$REVIEW_TOKEN_DIR" || { echo "ERROR: cannot create review token directory: $REVIEW_TOKEN_DIR" >&2; exit 1; }
 echo "✓ Review token directory ready: $REVIEW_TOKEN_DIR"
 
 # Install a hook with safe-overwrite semantics:
