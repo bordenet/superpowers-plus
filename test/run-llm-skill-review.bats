@@ -40,7 +40,7 @@ _write_envelope() {
 }
 
 _clean_dim() {
-    printf '{"claim":"a.txt exists","evidence":{"command":"test -f a.txt","expectation":{"type":"exit_code","value":0},"verifiable":true}}'
+    printf '{"reviewer":"Runtime Determinist","dimension":"Correctness","claim":"a.txt exists","evidence":{"command":"test -f a.txt","expectation":{"type":"exit_code","value":0},"verifiable":true}}'
 }
 
 @test "args: REJECT verdict -> exit 1" {
