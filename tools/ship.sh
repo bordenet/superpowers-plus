@@ -136,6 +136,56 @@ _generate_body() {
 }
 
 ###############################################################################
+# Aggregate `gh pr checks` output into one state.
+#
+# Usage: _aggregate_check_state "<gh pr checks output>"
+# Prints exactly one of: pending | running | failed | success
+#
+# Input is <name>\t<bucket> lines (see the --json/@tsv call site below).
+# Column 2 is gh's BUCKET, not the raw state:
+#   pass | fail | pending | skipping | cancel
+# (`gh pr checks --help`; a check whose state is SUCCESS prints as "pass").
+# Raw-state names like "cancelled"/"timed_out" are NOT emitted here by
+# current gh -- they are kept in the failed set only so an older gh that
+# does emit raw states still fails closed.
+#
+# Pure awk, deliberately NOT `grep -E`. The previous implementation used
+#   grep -qE '^(pending|in_progress|queued|)$'
+# which carries an EMPTY final alternative. GNU/BSD grep tolerate it, but
+# ugrep -- a common Homebrew `grep` replacement on macOS -- rejects it as
+# "empty (sub)expression" and exits 2. That non-zero exit made the `elif`
+# false, so a PR whose checks were still RUNNING fell through to "success"
+# and ship.sh merged it WITHOUT waiting for CI. Observed live on PR #1210
+# (2026-08-25); only branch protection prevented an unverified merge.
+###############################################################################
+_aggregate_check_state() {
+  local checks_out="$1"
+  [[ -n "$checks_out" ]] || { echo "pending"; return 0; }
+  printf '%s\n' "$checks_out" | awk -F'\t' '
+    BEGIN { n = 0; failed = 0; running = 0 }
+    {
+      if ($0 ~ /^[[:space:]]*$/) next
+      n++
+      s = $2
+      # ALLOWLIST, deliberately inverted. Only pass/skipping count as
+      # complete; ANY unrecognized value -- a future gh bucket, an empty
+      # column -- falls through to "running" so the loop keeps waiting and
+      # eventually aborts on _POLL_TIMEOUT, rather than merging unverified
+      # code. A denylist here is how the original bug shipped.
+      if (s == "fail" || s == "cancel" || s == "cancelled" || s == "failure" || \
+          s == "action_required" || s == "timed_out" || s == "startup_failure") failed = 1
+      else if (s == "pass" || s == "success" || s == "skipping" || s == "skipped" || s == "neutral") ;
+      else running = 1
+    }
+    END {
+      if (n == 0)       print "pending"
+      else if (failed)  print "failed"
+      else if (running) print "running"
+      else              print "success"
+    }'
+}
+
+###############################################################################
 # Push (skip when sourced for testing: SHIP_TESTMODE=1)
 ###############################################################################
 [[ "${SHIP_TESTMODE:-0}" == "1" ]] && return 0
@@ -145,10 +195,17 @@ if [[ "$BRANCH" == "$TARGET_BRANCH" ]]; then
   echo "ERROR: current branch equals target '$TARGET_BRANCH' -- create a feature branch first." >&2
   exit 1
 fi
-# Guard: never auto-delete canonical long-lived branches.
+# ship.sh is a FEATURE-branch tool: it pushes the current branch and finishes
+# with `gh pr merge --merge --delete-branch`. Run from dev/staging/main that
+# --delete-branch targets a canonical long-lived branch. Branch protection is
+# the only thing that refuses the deletion today -- do not rely on it.
 case "$BRANCH" in
   dev|staging|main)
-    echo "ERROR: refusing to operate on canonical branch '$BRANCH' -- create a feature branch first." >&2
+    echo "ERROR: refusing to ship FROM canonical branch '$BRANCH'." >&2
+    echo "  ship.sh merges with --delete-branch, which would target '$BRANCH'." >&2
+    echo "  For dev->staging / staging->main promotions use:" >&2
+    echo "    gh pr create --base <target> --head $BRANCH ... && gh pr merge <N> --merge" >&2
+    echo "  (no --delete-branch). See AGENTS.md '3-Tier promotion'." >&2
     exit 1
     ;;
 esac
@@ -212,33 +269,34 @@ _POLL_ELAPSED=0
 while true; do
   # gh pr checks exits non-zero if any check is failing; we swallow that so
   # the state machine below sees the aggregate and decides whether to abort.
-  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" 2>/dev/null || true)
-  if [[ -z "$_CHECKS_OUT" ]]; then
-    _AGG_STATE="pending"
-  else
-    # Pure-awk aggregate: avoids grep empty-alternative (ugrep on macOS exits 2
-    # for '^(pending|in_progress|queued|)$', causing a false "success" fallthrough).
-    # Priority: any terminal failure > any in-flight > all pass.
-    _AGG_STATE=$(printf '%s\n' "$_CHECKS_OUT" | awk -F'\t' '
-      BEGIN { has_fail=0; has_running=0; has_pass=0 }
-      {
-        s = $2
-        if (s == "fail" || s == "cancelled" || s == "action_required" || s == "timed_out")
-          has_fail = 1
-        else if (s == "pending" || s == "in_progress" || s == "queued" || s == "")
-          has_running = 1
-        else if (s == "pass" || s == "skipping" || s == "success")
-          has_pass = 1
-        else
-          has_running = 1   # unknown state: treat conservatively as in-flight
-      }
-      END {
-        if (has_fail)    print "failed"
-        else if (has_running) print "running"
-        else             print "success"
-      }
-    ')
-  fi
+  #
+  # Source the per-check state from gh's DOCUMENTED `bucket` JSON field, not
+  # from positional column 2 of the human-readable TSV. The TSV layout is not
+  # an API -- gh may restyle or reorder it -- whereas `bucket` is documented
+  # with a documented vocabulary (`gh pr checks --help`). Rendered back to
+  # <name>\t<bucket> via @tsv so _aggregate_check_state's input contract, and
+  # its test suite, are unchanged. --jq is gh's embedded jq: no external jq
+  # dependency (verified with jq off PATH).
+  #
+  # Deliberately NO fallback to the plain-TSV path on failure: a silent
+  # degrade to the weaker parser is exactly how the original defect survived.
+  # On failure this yields empty output, which _aggregate_check_state maps to
+  # "pending", so the loop keeps waiting and aborts on _POLL_TIMEOUT rather
+  # than merging unverified code.
+  # --required scopes this to the checks branch protection actually gates on,
+  # making GitHub the single source of truth. This repo currently runs 5
+  # checks but requires only 4 ("PR Content IP Scan" is advisory), so without
+  # --required a hung advisory workflow wedges every ship for the full
+  # _POLL_TIMEOUT on a PR GitHub would happily merge. If a check ought to
+  # block a merge, mark it required in branch protection -- do not encode a
+  # second, drifting policy here.
+  #
+  # An empty result (no protection, unreadable base, older gh without
+  # --required) maps to "pending", so the loop times out and exits non-zero.
+  # It must NEVER be read as "nothing to verify, safe to merge".
+  _CHECKS_OUT=$(gh pr checks "$PR_NUMBER" --required --json name,bucket \
+    --jq '.[] | [.name, .bucket] | @tsv' 2>/dev/null || true)
+  _AGG_STATE=$(_aggregate_check_state "$_CHECKS_OUT")
 
   case "$_AGG_STATE" in
     success)
@@ -253,6 +311,10 @@ while true; do
     running|pending)
       if [[ $_POLL_ELAPSED -ge $_POLL_TIMEOUT ]]; then
         echo "[ship] timed out waiting for checks after ${_POLL_TIMEOUT}s." >&2
+        echo "[ship] NOT merging -- timing out is a refusal, not a pass." >&2
+        echo "[ship] If no required checks were found at all, branch protection" >&2
+        echo "[ship]   may be missing on the base branch; that is a repo config" >&2
+        echo "[ship]   problem, not something ship.sh should merge through." >&2
         echo "[ship] PR #$PR_NUMBER is open. Merge manually once checks pass." >&2
         exit 1
       fi
@@ -268,7 +330,7 @@ while true; do
   esac
 done
 
-# --merge = create a real merge commit (matches GitLab's --squash=false). Use
-# --squash if you want a single squashed commit on the target branch instead.
+# --merge = create a real merge commit (non-squash mode). Use --squash if you
+# want a single squashed commit on the target branch instead.
 gh pr merge "$PR_NUMBER" --merge --delete-branch
 echo "[ship] done. PR #$PR_NUMBER merged."
