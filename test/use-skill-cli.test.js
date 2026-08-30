@@ -82,7 +82,14 @@ console.log('\n--- use-skill: unknown spp: prefix (exercises forceSpp branch) --
 
 console.log('\n--- use-skill: known skill still loads ---');
 {
-  const r = run(['use-skill', 'systematic-debugging']);
+  // Hermetic: do not depend on ~/.codex/skills being installed. Walk the
+  // repo's domain layout the same way resolveSkillNamespace does for an
+  // unprefixed name (personal dir -> findSkillInSourceRepo).
+  const repoSkills = path.resolve(__dirname, '..', 'skills');
+  const r = run(['use-skill', 'systematic-debugging'], {
+    PERSONAL_SKILLS_DIR: repoSkills,
+    SUPERPOWERS_SKILLS_DIR: '/dev/null',
+  });
   assertNotContains(r.combined, 'forceSpp is not defined',
     'known-skill path does not regress');
   assert(r.code === 0, `exits 0 on known skill (got: ${r.code}, want: 0)`);
