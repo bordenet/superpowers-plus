@@ -60,11 +60,19 @@ mode_capture() {
     echo "[capture-augment-baseline] Capturing state → $OUTPUT" >&2
     mkdir -p "$(dirname "$OUTPUT")"
 
-    # --- sp-doctor (summary-only to avoid embedding private overlay names) ---
+    # --- sp-doctor (exit code only) ---
+    # Intentionally capture only the exit code, not the full output. The
+    # summary-only output may contain git remote names that match the
+    # public-repo denylist (banned-term hashes), which would cause the
+    # fixture file itself to fail the IP scan. Only the exit code is needed:
+    # P2d compares exit_code from baseline; P2f probes a specific check
+    # number. The text output is transient diagnostic info, not a baseline
+    # regression signal.
     local dr_tmp dr_rc
     dr_tmp="$(mktemp)"
     dr_rc=0
-    bash "$REPO_ROOT/tools/sp-doctor.sh" --summary-only >"$dr_tmp" 2>&1 || dr_rc=$?
+    bash "$REPO_ROOT/tools/sp-doctor.sh" --summary-only >/dev/null 2>&1 || dr_rc=$?
+    echo "" >"$dr_tmp"   # placeholder: output intentionally omitted (see comment above)
     echo "[capture] sp-doctor exit=$dr_rc" >&2
 
     # --- skill catalog: bootstrap summary only ---

@@ -160,8 +160,15 @@ resolve_audit_base() {
     do
         [[ -n "$candidate" ]] || continue
         if git rev-parse --verify "$candidate" &>/dev/null; then
-            echo "$candidate"
-            return 0
+            # Only use this candidate if it is an ancestor of HEAD. A
+            # non-ancestor upstream means the branch was rebased (force-push
+            # scenario): using it as the base would make the range
+            # candidate..HEAD span unrelated merged dev history that predates
+            # the branch, producing retroactive false positives.
+            if git merge-base --is-ancestor "$candidate" HEAD 2>/dev/null; then
+                echo "$candidate"
+                return 0
+            fi
         fi
     done
 

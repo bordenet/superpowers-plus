@@ -362,7 +362,7 @@ console.log('\n--- Wiki skill router: trigger/anti_trigger overlap regression --
     })
     .filter(s => s.name);
 
-  assert(wikiSkills.length === 8, `loaded 8 wiki skills (got ${wikiSkills.length})`);
+  assert(wikiSkills.length === 9, `loaded 9 wiki skills (got ${wikiSkills.length})`);
 
   /**
    * Asserts that `prompt` routes to `expectedSkill` as #1 result among wiki skills.
