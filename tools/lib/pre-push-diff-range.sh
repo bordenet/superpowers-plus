@@ -71,7 +71,26 @@ resolve_diff_range() {
             RANGE="$local_sha"
             NEW_BRANCH_NO_BASE=true
         fi
-    else
+    elif git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+        # Normal update: remote tip is a direct ancestor of the new local SHA.
         RANGE="$remote_sha..$local_sha"
+    else
+        # Force-push / rebased branch: remote_sha is NOT an ancestor of
+        # local_sha, so remote_sha..local_sha would span unrelated history.
+        # Fall back to merge-base with the canonical flow branch instead.
+        local remote_default merge_base
+        remote_default="$(resolve_push_base_ref "$remote_name" || true)"
+        if [[ -n "$remote_default" ]]; then
+            merge_base=$(git merge-base "$local_sha" "$remote_default" 2>/dev/null || true)
+            if [[ -n "$merge_base" ]]; then
+                RANGE="$merge_base..$local_sha"
+            else
+                RANGE="$local_sha"
+                NEW_BRANCH_NO_BASE=true
+            fi
+        else
+            RANGE="$local_sha"
+            NEW_BRANCH_NO_BASE=true
+        fi
     fi
 }
