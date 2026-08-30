@@ -29,6 +29,14 @@ composition:
 
 Partition any large `skill.md` into a resident kernel and an on-demand reference, using the keyword-scoring rubric. Prove the split with a permanent context-budget regression test.
 
+## When to Use
+
+- A skill's `wc -c` exceeds the byte budget (>6 KB) and it's causing context pressure in production sessions
+- The doctor reports the skill is oversized or failing context-budget regression tests
+- A skill has a large reference section that is rarely needed at trigger time
+
+**NOT when:** the skill is appropriately sized — splitting for its own sake adds maintenance overhead without benefit.
+
 ## Reference index
 
 Load `reference.md` selectively. Do not load it for a routine operation.

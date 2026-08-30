@@ -12,6 +12,11 @@ coordination:
   enables: ["executing-plans", "subagent-driven-development"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [spec, requirements]
+  produces: [implementation-plan]
+  capabilities: [plan-generation, task-decomposition, context-documentation]
+  priority: 8
 ---
 
 # Writing Plans
@@ -28,6 +33,14 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+
+## When to Use
+
+- Before starting implementation on any non-trivial feature (>1 file changed)
+- When a spec or requirements document exists and needs to be turned into actionable tasks
+- When brainstorming has produced a design decision but no executable task list yet
+
+**NOT when:** the change is a single-file tweak or a hotfix — just make the change directly.
 
 ## Scope Check
 
