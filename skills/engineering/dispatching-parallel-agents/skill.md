@@ -12,6 +12,11 @@ coordination:
   enables: []
   escalates_to: ["subagent-driven-development"]
   internal: false
+composition:
+  consumes: [independent-task-list]
+  produces: [parallel-execution-plan, agent-results]
+  capabilities: [parallel-dispatch, concurrency, task-decomposition]
+  priority: 8
 ---
 
 # Dispatching Parallel Agents

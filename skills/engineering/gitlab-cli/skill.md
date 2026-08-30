@@ -54,6 +54,14 @@ composition:
 
 ---
 
+## When to Use
+
+- Working with glab-managed MRs, CI/CD pipelines, or issues from the command line
+- Setting up or troubleshooting `glab` authentication on any git hosting instance
+- Triggering manual CI jobs or checking pipeline status without opening a browser
+
+**NOT when:** working with GitHub (`gh`), Azure DevOps, or Bitbucket — use their respective CLI tools.
+
 ## Agent setup walkthrough
 
 When `glab` is missing or auth fails, walk the user through these steps **in order**. Ask which OS they use (macOS vs Windows) before giving install commands. Run checks yourself when you have shell access (with **network enabled**).

@@ -63,6 +63,14 @@ composition:
 
 **Announce at start:** "PRIME DIRECTIVE fired: no-empty-promises. I will not make an empty promise. I will make a code change instead."
 
+## When to Use
+
+- Fires automatically when the agent detects "empty promise" language (see triggers)
+- When you recognize you've just apologized without making a structural code change
+- Before closing any session where a failure pattern was identified but no skill was updated
+
+**NOT when:** the agent genuinely completed a structural fix — no interception needed if real code was changed.
+
 ## Why Promises Are Lies
 
 You have no persistent memory. When you write "I'll be more careful next time," you are making a promise you mechanically cannot keep. The moment this session ends, all context is gone. You will face the same situation fresh, with no trace of this failure.

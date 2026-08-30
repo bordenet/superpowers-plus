@@ -12,6 +12,11 @@ coordination:
   enables: ["writing-plans", "executing-plans"]
   escalates_to: []
   internal: false
+composition:
+  consumes: [feature-description]
+  produces: [isolated-workspace]
+  capabilities: [worktree-management, workspace-isolation]
+  priority: 6
 ---
 
 # Using Git Worktrees
@@ -23,6 +28,14 @@ Git worktrees create isolated workspaces sharing the same repository, allowing w
 **Core principle:** Systematic directory selection + safety verification = reliable isolation.
 
 **Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
+
+## When to Use
+
+- Starting feature work that needs isolation from current changes in the working tree
+- Executing an implementation plan that spans multiple tasks and branches
+- Working on multiple branches of the same repo simultaneously without stash churn
+
+**NOT when:** the feature is small enough to complete in one session on the current branch.
 
 ## Directory Selection Process
 

@@ -134,6 +134,14 @@ for skill in "${!SKILL_TRIGGERS_RAW[@]}"; do
       IFS=', ' read -ra _prev_skills <<< "$existing"
       for prev_skill in "${_prev_skills[@]}"; do
         [[ -z "$prev_skill" ]] && continue
+        # Suppress collision when two installs share the same canonical name: field.
+        # This is the expected dual-install pattern: one repo installs under the sp-*
+        # trigger alias (e.g. sp-execute) while another installs under the skill's
+        # canonical name (e.g. plan-and-execute). They are the same logical skill.
+        if [[ -n "${SKILL_YAML_NAME[$prev_skill]:-}" && \
+              "${SKILL_YAML_NAME[$prev_skill]}" == "${SKILL_YAML_NAME[$skill]:-}" ]]; then
+          continue
+        fi
         if ! in_same_group "$prev_skill" "$skill"; then
           all_known=false; break
         fi
