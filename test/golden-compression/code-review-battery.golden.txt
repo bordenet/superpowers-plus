@@ -138,7 +138,7 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | Diff adds/changes a metric or alarm definition, or an error-handling branch that emits a metric or feeds an alarm | Standards Enforcer (observability-completeness focus) | Dead definitions, Success/Failure asymmetry, undifferentiated failure modes |
 | Diff adds new user-visible functionality with zero metric/trace emits (OE Telemetry Gate) | Standards Enforcer (OE focus — mandatory Critical) | Feature ships with no time-series metrics or trace instrumentation; cannot be operated or alarmed on |
 
-Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
+**Collect every trigger that fires and dispatch all of them together as ONE round** (same "simultaneous" dispatch discipline as Phase 2 step 4) — e.g. if both the interaction-path and inbound-reference triggers fire, that is still Round 2, one dispatch, not two sequential round-trips. Firing triggers one-at-a-time adds pure serial latency with no rigor gain: dispatching N triggered re-checks together costs the same wall-clock as dispatching one. Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 ### Phase 5: Convergence
 **STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable ≥50%. **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
 ### Correlated-Failure Detection
