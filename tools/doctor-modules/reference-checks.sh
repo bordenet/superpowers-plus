@@ -35,7 +35,7 @@ for skill in "${!SKILL_PATH[@]}"; do
       [[ ! -f "$skill_dir/$ref" ]] && { echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++)); }
     fi
   done < <(awk '
-    /^```/{c=!c;next} c{next} /[├└│]/{next}
+    /^```/{c=!c;next} c{next} /(├|└|│)/{next}
     {
       line=$0
       # Structural refs: neutralize cross-skill paths then extract references/modules mentions

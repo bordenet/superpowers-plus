@@ -611,7 +611,7 @@ migrate_consumed_approvals() {
     if ! compgen -G "$old_dir/*.consumed-approvals.txt" >/dev/null 2>&1; then
         return 0
     fi
-    mkdir -p "$new_dir"
+    mkdir -p "$new_dir" || { echo "Error: cannot create directory: $new_dir" >&2; exit 1; }
     local f dest
     for f in "$old_dir"/*.consumed-approvals.txt; do
         dest="$new_dir/$(basename "$f")"
