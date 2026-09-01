@@ -92,7 +92,7 @@ git ls-files | grep -iE '\.(pem|key|p12|pfx|jks)$'
 
 **False positive filtering:** Matches in test files, `.example` files, and documentation are expected. Review each match to determine if it's a real secret or a placeholder.
 
-**Required — git history (commit-then-delete leaks):** HEAD-only greps miss secrets that were committed and later removed. Always run a history scan before claiming the secrets phase is clean. The history `-G` set MUST cover the same token + assignment classes as HEAD (not tokens alone).
+**Phase 1b — Git History Secrets (Mandatory):** working-tree clean ≠ history clean. HEAD-only greps miss secrets that were committed and later removed. The history `-G` set MUST cover the same token + assignment classes as HEAD (not tokens alone).
 
 ```bash
 # PRECONDITIONS. Both paths below read history. If history isn't present, both
@@ -113,7 +113,7 @@ if command -v gitleaks >/dev/null 2>&1; then
   # it gitleaks skips merge diffs, so a secret introduced in a merge
   # resolution and later deleted is invisible on the PREFERRED path too
   # (measured: 0 findings with "--all", 2 with "--all -m").
-  gitleaks git . --log-opts="--all -m" --no-banner -v
+  gitleaks git . --log-opts="--all -m" --no-banner -v --exit-code=1
 else
   # Portable fallback: same TOKEN_RE + ASSIGN_RE as HEAD (set above).
   # Do NOT pipe through head/truncation — a capped stream is an incomplete
@@ -136,7 +136,7 @@ else
 fi
 ```
 
-Treat history hits as real findings: rotate the credential, document the commit(s), and do not claim a clean secrets scan until history is clean or each hit has an explicit accepted-risk note. History rewrite (filter-branch / BFGs) is advisory and separate from detection. **Never treat a truncated or failed history scan as clean.**
+Treat history hits as real findings: rotate the credential, document the commit(s), and do not claim a clean secrets scan until history is clean or each hit has an explicit accepted-risk note. History rewrite is advisory. **Never treat a truncated or failed history scan as clean.** Install gitleaks if missing (macOS: `brew install gitleaks`). When clean, report: `CLEAN (gitleaks scanned N commits)` or `CLEAN (grep fallback, N commits scanned)` — a bare "clean" is insufficient.
 
 ### Phase 2: Dependency Vulnerabilities
 
@@ -227,7 +227,7 @@ After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 hi
 
 - **Never write custom scanning scripts.** The inline commands above ARE the automation.
 - **Run all four phases.** Don't skip because "this repo probably doesn't have X."
-- **Always include Phase 1 history.** Commit-then-delete secrets are still leaks.
+- **Phase 1b is mandatory.** Always scan git history — commit-then-delete secrets are still leaks.
 - **Triage each match.** Don't dismiss all as false positives without reviewing context.
 - **Re-run full scan after fixes** to confirm zero remaining issues on HEAD and history.
 - **Multi-repo:** Process each repo sequentially through all four phases.
@@ -245,6 +245,6 @@ After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 hi
 |---------|-----|
 | Scanner tool not installed (gitleaks, npm audit) | Install or use the Phase 1 uncapped `git log -p` / audit-tool fallbacks; never truncate |
 | False positive on test fixtures with dummy secrets | Maintain allowlist of known test fixtures per repo |
-| History scan too large for interactive review | Install gitleaks and re-run; if still blocked, stop and report INCOMPLETE — do not claim clean |
+| History scan too large / Phase 1b skipped | Install gitleaks (`brew install gitleaks`) and re-run; if still blocked, report INCOMPLETE — never claim clean |
 | History scan command fails / incomplete | Treat as failed secrets phase; do not assert zero remaining issues |
 | Dependency vuln has no fix available | Document as accepted risk with justification and review date |
