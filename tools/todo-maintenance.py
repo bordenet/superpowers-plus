@@ -13,7 +13,56 @@ from typing import Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PREFLIGHT = SCRIPT_DIR / "todo-preflight.sh"
-ARCHIVE_SCRIPT = SCRIPT_DIR.parent / "skills" / "productivity" / "todo-archive" / "todo-archive.sh"
+
+_ARCHIVE_REL = ("skills", "productivity", "todo-archive", "todo-archive.sh")
+
+
+def _spp_source_dir() -> Optional[Path]:
+    """Locate the superpowers-plus checkout (SPP_SOURCE_DIR): environment first,
+    then the ~/.codex/.env fallback that resolve_todo_path() uses in
+    todo-engine.py — but passing the path as a positional arg (like
+    sp-update.sh:resolve_managed_dir) so a metacharacter in $HOME can't reach
+    the shell. Returns None on any doubt; the caller degrades to the in-tree
+    path and its unchanged 'not found' message."""
+    val = os.environ.get("SPP_SOURCE_DIR", "").strip()
+    if not val:
+        # os.path.expanduser (unlike Path.home()) never raises — it returns the
+        # path unchanged when $HOME is unresolvable, and .is_file() is then False.
+        env_file = Path(os.path.expanduser("~/.codex/.env"))
+        if env_file.is_file():
+            try:
+                result = subprocess.run(
+                    ["bash", "-c",
+                     'set +u; source "$1" 2>/dev/null; printf %s "${SPP_SOURCE_DIR:-}"',
+                     "--", str(env_file)],
+                    capture_output=True, text=True, errors="replace", timeout=5,
+                )
+                val = result.stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                val = ""
+    if not val:
+        return None
+    path = Path(os.path.expanduser(os.path.expandvars(val)))
+    return path if path.is_dir() else None
+
+
+def _resolve_archive_script() -> Path:
+    """todo-archive.sh only works from inside a full checkout (it reaches
+    ../../../tools/todo-engine.py). Prefer the in-tree sibling; when tools/ was
+    installed standalone under ~/.codex/superpowers-plus/, fall back to the
+    registered source checkout."""
+    in_tree = SCRIPT_DIR.parent.joinpath(*_ARCHIVE_REL)
+    if in_tree.is_file():
+        return in_tree
+    spp = _spp_source_dir()
+    if spp:
+        candidate = spp.joinpath(*_ARCHIVE_REL)
+        if candidate.is_file():
+            return candidate
+    return in_tree  # unchanged: main() reports this path as not found
+
+
+ARCHIVE_SCRIPT = _resolve_archive_script()
 
 # macOS ships bash 3.2 (GPL2-frozen); many scripts require bash 4+.
 # Prefer a Homebrew-installed bash 4+ when available.
@@ -222,7 +271,11 @@ def main() -> None:
     if not PREFLIGHT.is_file():
         fail(f"todo-preflight.sh not found at {PREFLIGHT}")
     if not ARCHIVE_SCRIPT.is_file():
-        fail(f"todo-archive.sh not found at {ARCHIVE_SCRIPT}")
+        fail(
+            f"todo-archive.sh not found at {ARCHIVE_SCRIPT}. "
+            "If tools/ is installed standalone, run install.sh or set SPP_SOURCE_DIR "
+            "in ~/.codex/.env to the superpowers-plus checkout."
+        )
 
     preflight = run_preflight()
     todo_path = preflight["todo_path"]

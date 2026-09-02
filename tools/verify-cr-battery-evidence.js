@@ -282,7 +282,11 @@ function processClaims(claims, kind, cwd, state, summary) {
 // object that main() exits on. Throws on JSON parse / IO errors.
 function verifyEnvelope(envelopePath, cwd) {
   if (!fs.existsSync(envelopePath)) throw new Error(`envelope not found: ${envelopePath}`);
-  if (!fs.statSync(cwd).isDirectory()) throw new Error(`cwd is not a directory: ${cwd}`);
+  let _cwdStat;
+  try { _cwdStat = fs.statSync(cwd); } catch (e) {
+    throw new Error(`cwd is not accessible (${e.code || e.message}): ${cwd}`);
+  }
+  if (!_cwdStat.isDirectory()) throw new Error(`cwd is not a directory: ${cwd}`);
   const envelope = JSON.parse(fs.readFileSync(envelopePath, 'utf8'));
   const summary = {
     claims_total: 0, claims_replayed: 0,

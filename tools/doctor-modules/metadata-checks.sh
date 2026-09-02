@@ -19,10 +19,21 @@ declare -A _source_skill_names=()
 # skill-naming.sh is sourced by reference-checks.sh, but metadata-checks runs FIRST.
 # Source it here directly so _skill_dest_name is available for the .agents/skills/ scan.
 # The library is idempotent (loaded-guard at top), so double-sourcing is safe.
+# Standalone tool install (sp-doctor CLI) has no sibling lib/ — fall back to the
+# source checkout (SP_PLUS_DIR); without the mapping every alias install
+# (brainstorming -> sp-brainstorm) is falsely flagged as an orphan.
 _METADATA_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
+[[ -f "$_METADATA_NAMING_LIB" ]] || _METADATA_NAMING_LIB="${SP_PLUS_DIR}/lib/install/skill-naming.sh"
 # shellcheck source=../lib/install/skill-naming.sh
 # shellcheck disable=SC1091
-[[ -f "$_METADATA_NAMING_LIB" ]] && source "$_METADATA_NAMING_LIB"
+if [[ -f "$_METADATA_NAMING_LIB" ]]; then
+  source "$_METADATA_NAMING_LIB"
+else
+  # Diagnostic tool must not self-blind silently: without the alias map, every
+  # sp-* install looks orphaned and every renamed skill's references look missing.
+  echo "🟡 WARNING: skill-naming.sh not found (looked in \$SCRIPT_DIR/../lib/install and \$SP_PLUS_DIR/lib/install) — source→install alias mapping disabled; orphan and reference findings for sp-* skills may be false positives"
+  ((WARNINGS++)) || true
+fi
 _has_dest_name_fn=0
 declare -f _skill_dest_name > /dev/null 2>&1 && _has_dest_name_fn=1
 for dir in "${SOURCE_DIRS[@]}"; do
