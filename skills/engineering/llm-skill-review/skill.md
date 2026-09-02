@@ -195,6 +195,8 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 
 Gate 6 requires `.llm-skill-review-cleared` **v2** for `skills/*.md`, `.ai-guidance/*.md`, and AGENTS.md-family files, and **supersedes** PHR/code-review for those classes (`tools/md-files-changed.sh` `LLM_OWNED_REGEX`). Pass (**ADR-003**): verdict `PASS`|`PASS_WITH_RISKS`, `unresolved_s0_s1=0`, non-vacuous `clean_dimensions`, `evidence_replay=ok` (or `bypassed` with `PASS` only). `--min-score` is Prose/Design mean as sentinel **metadata** (`mean=`) — Gate 6 does not floor-compare it. Envelope details: reference.md "Enforcement Detail". Non-`.md` under `skills/` stays code-review's job.
 
+**NEVER write `.llm-skill-review-cleared` directly.** There is no valid manual content -- Gate 6 enforces strict v2 pipe-delimited schema (`v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok`); any hand-written content is always rejected. The script writes the sentinel; you do not. Writing the file by hand is the documented recurring failure mode this warning exists to prevent (incident: AI-761, 2026-09-02).
+
 **Sentinel write:** findings need `severity`; the envelope needs `"head_sha"` equal to the commit being cleared; at least one `clean_dimensions` entry needs replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) — a bare string or an all-`verifiable:false` set is refused as vacuous. Then:
 
 ```bash
