@@ -27,6 +27,17 @@ composition:
 > **Source:** `superpowers-plus`
 > **Part of:** Engineering Rigor skill family
 
+## Invocation
+
+If an argument was supplied with the trigger (PR URL, diff, branch name, or inline code), **use it immediately — do not ask what to review.** Examples:
+
+- `/sp-review https://github.com/org/repo/pull/123` → fetch the PR diff and begin review
+- `/sp-review #123` → treat as a short PR reference in the current repo; run `gh pr diff 123`
+- `/sp-review <pasted diff or code>` → review the supplied content directly
+- `/sp-review` *(no argument)* → ask: "What do you want me to review? (PR URL, diff, or branch name)"
+
+Parse the argument from whatever the user typed after the trigger keyword. Do not dump the skill body and wait — act.
+
 ## The Rule
 
 **The same engineering rigor that applies to your own work applies when reviewing others' work.**
