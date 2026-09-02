@@ -35,7 +35,7 @@ for skill in "${!SKILL_PATH[@]}"; do
       [[ ! -f "$skill_dir/$ref" ]] && { echo "🔴 CRITICAL: $skill — references '$ref' but file missing"; ((CRITICAL++)); }
     fi
   done < <(awk '
-    /^```/{c=!c;next} c{next} /[├└│]/{next}
+    /^```/{c=!c;next} c{next} /(├|└|│)/{next}
     {
       line=$0
       # Structural refs: neutralize cross-skill paths then extract references/modules mentions
@@ -126,7 +126,12 @@ declare -A INSTALLED_MATCH_DIR
 # under renamed skills is reported as missing.
 # shellcheck disable=SC2034  # DEST_NAME_SOURCE/DEST_NAMES_SET populated by _build_dest_name_index; unused here
 declare -A SOURCE_DEST_NAME=() DEST_NAME_SOURCE=() DEST_NAMES_SET=()
+# When the doctor runs from a standalone tool install (~/.codex/superpowers-plus/
+# tools/, symlinked to the sp-doctor CLI) there is no sibling lib/; fall back to
+# the source checkout (SP_PLUS_DIR = SPP_SOURCE_DIR). Skipping this mapping makes
+# every alias-named install (brainstorming -> sp-brainstorm) a false positive.
 _REF_NAMING_LIB="${SCRIPT_DIR}/../lib/install/skill-naming.sh"
+[[ -f "$_REF_NAMING_LIB" ]] || _REF_NAMING_LIB="${SP_PLUS_DIR}/lib/install/skill-naming.sh"
 if [[ -f "$_REF_NAMING_LIB" ]]; then
     # shellcheck source=lib/install/skill-naming.sh
     source "$_REF_NAMING_LIB"

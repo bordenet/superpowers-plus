@@ -16,7 +16,14 @@ if [[ -f "$MAINT_SCRIPT" ]] && command -v python3 &>/dev/null && command -v mkte
     mkdir -p "$fixture_root/home/.codex" "$fixture_root/data"
     fixture_todo="$fixture_root/data/TODO.md"
     fixture_env="$fixture_root/home/.codex/.env"
-    printf 'TODO_FILE_PATH=%s\n' "$fixture_todo" > "$fixture_env"
+    # HOME is redirected to the fixture, so todo-maintenance.py resolves
+    # todo-archive.sh from this .env. When the doctor runs from a standalone
+    # tool install there is no sibling skills/ tree — point it at the checkout.
+    {
+      printf 'TODO_FILE_PATH=%s\n' "$fixture_todo"
+      # single-quote-escaped, matching lib/install/deploy.sh register_source_repo
+      printf "SPP_SOURCE_DIR='%s'\n" "${SP_PLUS_DIR//\'/\'\\\'\'}"
+    } > "$fixture_env"
     # Small but structurally valid TODO with archivable history (≥5 done items, >7d old)
     cat > "$fixture_todo" <<'FIXTURE'
 # ACTIVE TASKS
