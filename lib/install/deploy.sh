@@ -405,6 +405,12 @@ skill_manifest_path() {
     printf '%s\n' "${state_dir}/skills.manifest"
 }
 
+# managed_skill_source_matches <skill_dir>
+# Returns 0 when the skill was installed by any managed superpowers overlay.
+# Matches "source: superpowers-*" so every overlay in the superpowers family
+# is covered by a single prefix check.  Used as a fallback guard when no
+# manifest exists; without this the pruner cannot identify which installed
+# skills it owns and leaves orphaned overlay skills permanently in place.
 managed_skill_source_matches() {
     local skill_dir="$1"
     local skill_file=""
@@ -413,7 +419,7 @@ managed_skill_source_matches() {
     [[ -z "$skill_file" && -f "$skill_dir/SKILL.md" ]] && skill_file="$skill_dir/SKILL.md"
     [[ -z "$skill_file" ]] && return 1
 
-    grep -q '^source: superpowers-plus$' "$skill_file" 2>/dev/null
+    grep -qE '^source: superpowers-[a-z]' "$skill_file" 2>/dev/null
 }
 
 # remove_stale_managed_dir <path>
