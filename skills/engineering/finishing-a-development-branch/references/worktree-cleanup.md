@@ -33,5 +33,33 @@ git worktree remove "$WORKTREE_PATH"
 git worktree prune  # self-healing: clears any stale registrations
 ```
 
+**If removal is refused** (`contains modified or untracked files`): the
+worktree holds files that exist nowhere else — uncommitted plans, notes,
+or scratch work. Never `--force` on your own initiative. Show your human
+partner what is at stake and ask:
+
+```bash
+git -C "$WORKTREE_PATH" status --porcelain -uall
+```
+
+```
+Worktree removal refused — these files were never committed:
+
+<file list>
+
+1. Commit them to <branch> before cleanup
+2. Move them into <main repo root>
+3. Delete them (unrecoverable)
+
+Which?
+```
+
+Carry out the choice, then remove the worktree.
+
+**If no human is reachable** (headless/non-interactive invocation, no
+terminal to ask on): do not guess which of the three to do — that is a
+destructive, irreversible-by-default decision. Print the file list, exit
+non-zero, and leave the worktree in place uncleaned.
+
 Otherwise: the host owns this workspace — leave it, use its own
 workspace-exit tool if it has one.

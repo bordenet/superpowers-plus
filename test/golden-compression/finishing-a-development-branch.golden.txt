@@ -153,3 +153,4 @@ For Options 1, 2, 4 — using the values captured in Step 4, per `references/wor
 - Proceeding with failing tests
 - Force-pushing without explicit request
 - Merging without verifying tests on result
+- `--force`-removing a worktree that refused removal — see `references/worktree-cleanup.md`
