@@ -5,6 +5,8 @@ augment_menu: true
 # Override rationale: Condensed from 164→96 lines for LLM context efficiency.
 # Adds anti_triggers, mandatory announce-at-start, and structured output format.
 # Base version is narrative-heavy; this version is procedural and gate-enforced.
+# 2026-09: ported the obra/superpowers v6.3.0 spike/bounded/architectural
+# three-path router in condensed form — see "Three Paths" below.
 triggers: ["/sp-brainstorm", "brainstorm", "design a feature", "build a new", "create a new", "add functionality", "plan a feature", "explore approaches", "design this"]
 anti_triggers: ["radical improvement", "10x improvement", "paradigm shift", "moonshot", "step-change", "comparing design options", "choose between design approaches", "three design options", "red-team design approaches", "formally compare approaches"]
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
@@ -33,22 +35,72 @@ composition:
 - User says "design a feature," "build a new," "explore approaches"
 - NOT for: bug fixing (`systematic-debugging`), extracting existing knowledge (`expert-interviewer`), choosing between known options (`debate`)
 
-Turn ideas into fully formed designs through collaborative dialogue. Understand context, ask questions one at a time, present design, get approval.
+Classify the request first, then work through the matching path below: understand context, refine the idea, present a design, get approval. Ceremony scales with the task; the approval gate never does.
 
 > **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `debate`.
 
 ### Ensemble Mode (Multi-Perspective)
 
-For broad, ambiguous, or high-impact prompts, brainstorming can activate **ensemble mode** — dispatching parallel perspective lenses (Product, Architecture, Reliability, Security, Simplicity, Contrarian) for richer exploration. See `references/ensemble-mode.md` for full protocol.
+For broad, ambiguous, or high-impact prompts on the **architectural** path, brainstorming can activate **ensemble mode** — dispatching parallel perspective lenses (Product, Architecture, Reliability, Security, Simplicity, Contrarian) for richer exploration. See `references/ensemble-mode.md` for full protocol.
 
 **Activation:** Apply `skills/_shared/multi-agent-activation-rubric.md`. Score ≥ 6 → ensemble. Score = 5 → ask user. Score < 5 → single-agent (this checklist).
 **Cost cap:** 1.5× single-agent tokens. **Max lenses:** 4.
 
 <HARD-GATE>
-Do NOT write any code or take implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented your intent and the user has approved it. This applies to EVERY path below and EVERY project regardless of perceived simplicity — the ceremony scales, the approval gate never does.
 </HARD-GATE>
 
+## Three Paths
+
+Classify before your first question and say the classification out loud —
+"this looks bounded, so I'll present a short design here rather than write
+a spec" — so the user can override it:
+
+- **Spike** — a feasibility question ("can we...", "is it possible...",
+  "quick and dirty is fine") whose output is an answer, not code you keep.
+  Present the question and probe plan in 2-3 sentences, get a nod, then
+  investigate as cheaply as correctness allows. No design doc, no spec
+  file. Report findings as a recommendation; anything you built stays
+  labeled throwaway.
+- **Bounded** — a well-scoped change to code that already exists in this
+  repo: a new flag, a small endpoint, a one-file fix. Understanding the
+  kind of app is not enough — bounded means the flow you're changing is
+  already here to read. No existing flow to change means the task is
+  architectural, not bounded. Ask the clarifying questions that matter,
+  present a short design IN CHAT (a few sentences to a few short
+  paragraphs), and STOP. No spec file, no plan document — implementation
+  starts only after an explicit yes to that design.
+- **Architectural** — new projects, new subsystems, changes that
+  restructure how components fit together or alter interfaces others
+  depend on. Follow the full checklist below: questions, 2-3 approaches,
+  sectioned design, written spec, spec review loop, then
+  `plan-and-execute`.
+
+When in doubt between two paths, take the heavier one. The ratchet is
+one-way: hidden complexity discovered mid-task upgrades the path — stop,
+say so, and step up. Nothing downgrades mid-task.
+
 ## Checklist (complete in order)
+
+**Spike:**
+
+1. Explore project context — enough to frame the probe
+2. Present question + probe plan (2-3 sentences)
+3. Get approval — a nod is enough
+4. Investigate — as cheaply as correctness allows
+5. Report findings — a recommendation; label anything built as throwaway
+
+**Bounded:**
+
+1. Explore project context — check files, docs, recent commits
+2. Ask clarifying questions — one at a time, prefer multiple choice
+3. Present short design in chat — approach, files touched, testing
+4. Get approval — STOP and wait for an explicit yes; presenting the
+   design and starting in the same breath skips the gate
+5. Implement via the normal development workflow (TDD applies) — no plan
+   document
+
+**Architectural:**
 
 1. **Explore project context** — check files, docs, recent commits
 2. **Assess scope** — if multiple independent subsystems, decompose first
@@ -59,6 +111,11 @@ Do NOT write any code or take implementation action until you have presented a d
 7. **Spec review loop** — dispatch spec-document-reviewer subagent; fix issues; max 3 iterations then escalate to human
 8. **User reviews written spec** — ask user to review before proceeding
 9. **Transition** — invoke `plan-and-execute` skill (or `debate` first if ≥3 viable approaches need formal comparison)
+
+The sections below (**Understanding the Idea** onward) are
+architectural-path depth. A spike stops at "present the probe, get a
+nod"; bounded work stops at context + a few questions + a short in-chat
+design.
 
 ## Understanding the Idea
 
@@ -85,7 +142,7 @@ Do NOT write any code or take implementation action until you have presented a d
 - Include targeted improvements for problems affecting the current work
 - Don't propose unrelated refactoring
 
-## After the Design
+## After the Design (architectural path)
 
 1. Write spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
 2. Run spec review loop (subagent reviewer, max 3 iterations)
@@ -100,7 +157,7 @@ Do NOT write any code or take implementation action until you have presented a d
 - **Explore alternatives** — always 2-3 approaches
 - **Incremental validation** — present, approve, move on
 
-## Example: Design Spec Output
+## Example: Design Spec Output (architectural path)
 
 ```markdown
 # Design: Feature Name
@@ -139,3 +196,8 @@ The skill has a visual-companion.md reference file — use it for the rendering 
 | Started coding before design approval | Delete code, restart from checklist step 3 |
 | Presented one approach as fait accompli | Back up, generate 2-3 alternatives with trade-offs |
 | Skipped spec review loop | Dispatch spec-document-reviewer sub-agent before proceeding |
+| Called it "bounded" to skip the design step | Reaching for a label to dodge ceremony IS the doubt — take the heavier path |
+| Presented a bounded design and started before hearing yes | The gate is the approval, not the design's length — stop and wait |
+| Called it bounded because you know this kind of app | Bounded measures the repo, not your familiarity — no existing flow to change means architectural |
+| Kept a spike's throwaway code without re-classifying | A spike's output is an answer; keeping the code is a new request — classify it |
+| Task grew mid-implementation, kept going on the old path | Hidden complexity upgrades the path — stop, say so, step up |

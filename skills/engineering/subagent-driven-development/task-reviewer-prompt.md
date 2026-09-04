@@ -55,6 +55,15 @@ Subagent (general-purpose):
     Your review is read-only on this checkout. Do not mutate the working
     tree, the index, HEAD, or branch state in any way.
 
+    ## You Do Not Dispatch Subagents
+
+    Do this review yourself. Never spawn a subagent to review part of the
+    diff, and never spawn another reviewer for a second opinion — the
+    controller already provides every review seat this task gets. A
+    reviewer you spawn duplicates one of them at full cost, and its
+    verdict counts for nothing. If the diff feels too large for one pass,
+    review it in passes yourself and say so in your report.
+
     ## Do Not Trust the Report
 
     Treat the implementer's report as unverified claims about the code. It
