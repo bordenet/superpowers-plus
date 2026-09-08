@@ -129,10 +129,10 @@ message.fieldName         body.fieldName
    MATCH                     MATCH
 ```
 
-**PROJ-XXX failure:**
+**Worked failure (`PROJ-XXX`):**
 
-- voice-service (receiver) expected `inboundLine`/`outboundLine` ✅
-- acquisition-service (sender) still sent `trackingLine` ❌
+- `service-b` (receiver) expected `inboundLine`/`outboundLine` ✅
+- `service-a` (sender) still sent `legacyLine` ❌
 
 ## Red Flags - STOP
 

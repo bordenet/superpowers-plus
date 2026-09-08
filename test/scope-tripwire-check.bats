@@ -86,7 +86,7 @@ teardown() {
 }
 
 @test "valid ref format but no LINEAR_API_KEY exits 0 (defers gracefully)" {
-    git checkout -q -b "feat/AI-123-some-feature"
+    git checkout -q -b "feat/PROJ-123-some-feature"
     LINEAR_API_KEY="" run bash "$SCRIPT"
     [ "$status" -eq 0 ]
     [[ "$output" == *"LINEAR_API_KEY"* ]] || [[ "$output" == *"advisory skipped"* ]]

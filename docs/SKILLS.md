@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 120 -->
+<!-- SKILL-COUNT: 122 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (50)
+## Engineering (52)
 
 | Skill | Description |
 |-------|-------------|
@@ -33,6 +33,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `investigation-state` | Persists debugging context (hypotheses, evidence) across sessions. |
 | `llm-behavior-investigator` | Diagnoses LLM/prompt behavior issues: tool selection, prompt regressions, parsing failures. |
 | `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
+| `merge-authorization-gate` | Hard stop before `gh pr merge` / `glab mr merge` / forge REST merge — these bypass git hooks and every pre-push gate. Requires a distinct human merge utterance in the current conversation. |
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
 | `output-verification` | Hard gate before describing generated output. Prevents confabulation. |
 | `pre-commit-gate` | Gate 1 of the commit chain: lint, typecheck, test. Deep-dive skill; invoke via `/sp-precommit` or through `unified-commit-gate`. |
@@ -40,6 +41,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `progressive-code-review-gate` | Mandatory progressive review loop via sub-agent before commit/push. |
 | `progressive-harsh-review` | Multi-persona adversarial review for non-code deliverables. Score <7 = reject. |
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
+| `push-authorization-gate` | Hard stop before `git push` — requires an explicit human approval utterance in the current conversation. The discipline layer atop `pre-tool-use-red-autonomy.sh`; adds sub-agent rules and the what-does-NOT-count table. |
 | `receiving-code-review` | Technical rigor when receiving feedback. No performative agreement. |
 | `reproduction-experiment-investigator` | Tests hypotheses through controlled reproduction attempts. |
 | `requesting-code-review` | Dispatches the code-review-battery before presenting code changes to a human. Skips if valid sentinel exists. |
