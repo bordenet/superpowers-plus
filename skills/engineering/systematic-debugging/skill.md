@@ -84,7 +84,8 @@ BEFORE attempting ANY fix:
 1. **Create failing test case** — use `superpowers:test-driven-development` skill
 2. **Implement single fix** — ONE change, no "while I'm here" improvements
 3. **Verify** — test passes, no other tests broken
-4. **If 2+ fixes failed** — STOP. Question the architecture. Each fix revealing new problems in different places = wrong architecture, not wrong fix. Discuss with human before continuing.
+4. **Record the refactoring disposition** as a `Refactoring-Disposition:` line in the fix commit message (or the `investigation-state` note, if the session has one) — same vocabulary as `hotfix-charter`: `REFACTOR_NOW` (the refactor *is* the fix), `PARK` (you saw a cleanup worth doing and deliberately deferred it — name what), or `NONE` (nothing structural worth refactoring) — plus one concrete reason. Default `NONE` for a clean fix; `PARK` only when you actually spotted deferrable structure. This is a wrap-up note, NOT license for a "while I'm here" edit (item 2 still governs: ONE change).
+5. **If 2+ fixes failed** — STOP. Question the architecture. Each fix revealing new problems in different places = wrong architecture, not wrong fix. Discuss with human before continuing.
 
 ## Red Flags — STOP, Return to Phase 1
 
@@ -136,3 +137,4 @@ When fixes keep failing, the problem is usually misdiagnosed. Don't try a third 
 - `adversarial-search` — search for the WRONG value when symptoms contradict expectations
 - `receiving-code-review` — responding to review feedback
 - `failure-autopsy` — post-mortem on failed approaches
+- `hotfix-charter` — the mechanically-enforced home of the REFACTOR_NOW/PARK/NONE disposition vocabulary (Phase 4 item 4)

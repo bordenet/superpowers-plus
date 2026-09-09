@@ -17,6 +17,14 @@ You ONLY report findings in your domain. Do NOT comment on correctness of logic,
 - Inappropriate coupling between modules/classes
 - Missing abstractions that would simplify the code
 - Over-abstraction that adds complexity without benefit
+- **Delete-or-explain (accretion)**: this diff ADDS a code path, helper, or
+  branch that duplicates or supersedes existing code it leaves in place -- a new
+  copy of logic that already exists, a new flag path that leaves the old path
+  dead, a parallel helper. Superseded code that should have been deleted is
+  accretion. Flag ONLY when the diff itself introduces it (per `## Diff
+  Attribution` below); name the concrete added symbol and the code it
+  duplicates/supersedes. This is `verifiable: false` design judgment. Do NOT
+  flag pre-existing duplication the diff didn't touch.
 
 ### 2. Complexity Reduction
 
