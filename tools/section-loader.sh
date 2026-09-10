@@ -25,7 +25,7 @@
 #
 # Why this exists:
 #   gitlab-cli/skill.md previously inlined this awk pattern between
-#   <!-- gitlab-cli-reference-loader:start/end --> markers. spc-kernel-split
+#   <!-- gitlab-cli-reference-loader:start/end --> markers. kernel-split
 #   extracts it as a shared tool so all kernel/reference pairs share one
 #   implementation instead of duplicating the pattern per-skill.
 # -----------------------------------------------------------------------------

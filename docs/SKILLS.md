@@ -5,7 +5,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 <!-- SKILL-COUNT: 122 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (52)
+## Engineering (55)
 
 | Skill | Description |
 |-------|-------------|
@@ -14,11 +14,13 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `branch-flow-gate` | Trusted-advisor gate for branch and PR hygiene. Advises on base alignment, retry-suffix branches, back-sync naming, and PR hygiene. Always exits 0 — advisory only. |
 | `branch-sync-gate` | Pull gate — MANDATORY before any work on an existing shared branch. git fetch + status check before touching code, running tests, or making changes. |
 | `code-review-battery` | Dispatches up to 7 parallel specialist reviewers instead of one shallow pass. Slash command: `/sp-cr-battery [min-score]` (optional 1.0–10.0 quality threshold, default 7.0). |
+| `codebase-recon` | Investigates a feature area, RCA, or cross-repo audit through 8 structured lenses (security, auth, data flow, error handling, config/secrets, test coverage, API surface, cross-repo consistency). Produces a findings table with evidence. |
 | `codeowners-drift-audit` | Audits CODEOWNERS for unowned files, dead rules, and invalid owner references. Works with GitHub and GitLab; degrades to advisory-only when neither CLI is authenticated. |
 | `cognitive-complexity-refactoring` | Refactors functions flagged by Biome for excessive cognitive complexity. |
 | `debug-conductor` | PREVIEW. Conductor-led bounded investigation for complex distributed incidents. |
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
 | `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. |
+| `domain-build` | Builds, deploys, and documents skills from a completed domain-design output. Walking skeleton -> remaining P0s -> cookbook -> handoff cycle. |
 | `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints. |
 | `external-cli-audit` | Audits wrapper scripts invoking external CLIs. Enumerates defaults via `--help` before declaring correct. Catches silent scope/identity defaults bash can't see. |
@@ -51,7 +53,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `session-handoff` | Cold-start advisory: surfaces remote commits from the last 24h not on any local branch. Catches the stale-context pattern before you edit blind. Read-only. |
 | `skills-hierarchy-tuning` | Rebalances skill domains: diagnoses oversized domains, trigger mismatches, orphan skills, and loading failures. Applies moves, splits, and trigger fixes. |
 | `sp-bughunt` | Proactive adversarial bug hunt. Candidates flow through 5 named gates. Outputs ranked Confirmed bugs plus risk lists. Not for debugging a known failure. |
-| `spc-kernel-split` | Partition a large skill.md into a resident safety kernel and an on-demand reference. Proposes via keyword scoring, applies on confirmation, installs a context-budget regression test. |
+| `kernel-split` | Partition a large skill.md into a resident safety kernel and an on-demand reference. Proposes via keyword scoring, applies on confirmation, installs a context-budget regression test. |
 | `state-consistency-investigator` | Diagnoses state consistency failures: replication lag, cache staleness, event ordering. |
 | `subagent-driven-development` | Executes implementation plans with independent parallel tasks. |
 | `systematic-debugging` | Root-cause-first investigation: reproduce, hypothesize, isolate, fix. |
@@ -77,6 +79,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `golden-agents` | Initializes or upgrades AI guidance (AGENTS.md) for git repos. |
 | `innovation` | Produces a single high-conviction innovation answer for the project. |
 | `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
+| `knowledge-capture` | Captures SME expertise via structured interview (proactive) or formalizes existing conversations into wiki docs (reactive). Bottom-line-up-front articles with provenance. |
 | `model-selector` | Recommends the most cost-effective AI model for a task. Enforces the codebase-retrieval filter before considering external models. |
 | `no-empty-promises` | PRIME DIRECTIVE: intercepts empty behavioral promises ("I'll be more careful") and forces a structural skill edit instead. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
@@ -106,7 +109,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `writing-plans` | Use when you have a spec or requirements for a multi-step task, before touching code. |
 | `writing-skills` | Reviews skill files for prose quality and markdown formatting. |
 
-## Wiki (8)
+## Wiki (9)
 
 | Skill | Description |
 |-------|-------------|
@@ -115,6 +118,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `wiki-debunker` | Verifies factual claims against git history, tickets, transcripts, and PRs. |
 | `wiki-markdown-structure-gate` | Blocks malformed wiki markdown structures before publish: tables, fences, callouts, heading hierarchy, escaped link artifacts, missing TOC. |
 | `wiki-orchestrator` | Orchestrates bulk documentation projects with quality pipeline. |
+| `wiki-prune-audit` | Read-mostly triage scanner: ranks the least-useful wiki pages under a root (duplication, obsolescence, low signal, orphans, structural defects, link-rot), verifies the worst, and applies only safe mechanical fixes. Never deletes, merges, or archives. |
 | `wiki-refactor` | 7-phase pipeline for full wiki refactoring with scope caps and drift detection. |
 | `wiki-secret-audit` | Scans wiki pages for exposed secrets, API keys, and tokens. |
 | `wiki-verify` | Verifies codebase claims in wiki pages and updates stale content. |
@@ -159,7 +163,6 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | Skill | Description |
 |-------|-------------|
 | `expert-interviewer` | Structured interviewing to produce written artifacts from domain knowledge. |
-| `knowledge-capture` | Captures SME expertise via structured interview (proactive) or formalizes existing conversations into wiki docs (reactive). Bottom-line-up-front articles with provenance. |
 | `incorporating-research` | Merges external research into documents. Strips artifacts, preserves voice. |
 | `perplexity-research` | Escalates to Perplexity MCP when stuck after 2+ failed attempts. |
 
