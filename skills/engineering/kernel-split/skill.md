@@ -1,11 +1,11 @@
 ---
-name: spc-kernel-split
+name: kernel-split
 source: superpowers-plus
 augment_menu: true
 auto_invoke: false
 description: "Partition any target skill.md into a resident safety kernel and an on-demand reference. Proposes a split using keyword scoring, applies on confirmation, and installs a permanent context-budget regression test."
 summary: "Use when: splitting a large skill.md into a kernel (always loaded) and reference (on demand). Triggers on: large skill, skill too big, reduce context budget, skill byte budget, kernel split, partition skill."
-triggers: ["/sp-spc-kernel-split", "split skill", "partition skill", "kernel split", "reference split", "skill too big", "reduce skill size", "skill byte budget", "context budget", "skill context reduction"]
+triggers: ["/sp-kernel-split", "split skill", "partition skill", "kernel split", "reference split", "skill too big", "reduce skill size", "skill byte budget", "context budget", "skill context reduction"]
 anti_triggers: ["split feature", "split service", "split PR", "split ticket"]
 coordination:
   group: engineering
@@ -23,9 +23,9 @@ composition:
   requires_all: false
 ---
 
-# spc-kernel-split
+# kernel-split
 
-> **Announce at start:** "I'm using the **spc-kernel-split** skill to partition `<target-skill.md>`."
+> **Announce at start:** "I'm using the **kernel-split** skill to partition `<target-skill.md>`."
 
 Partition any large `skill.md` into a resident kernel and an on-demand reference, using the keyword-scoring rubric. Prove the split with a permanent context-budget regression test.
 
@@ -46,7 +46,7 @@ Load `reference.md` selectively. Do not load it for a routine operation.
 | Full keyword scoring rubric and Failure Modes safety carve-out | `Scoring rubric` |
 | Handling ambiguous sections | `Ambiguous section decisions` |
 | Edge cases and safety-critical content rules | `Edge cases` |
-| How to apply this skill to a new skill | `How to apply spc-kernel-split to your skill` |
+| How to apply this skill to a new skill | `How to apply kernel-split to your skill` |
 
 ## Prerequisites
 
@@ -91,28 +91,28 @@ Verify the routing table rows match the reference headings. Fill in the `Need` c
 The kernel's routing table uses `reference.md` sections. The kernel must also embed a section-loader call (between marker comments) so agents can load individual reference sections on demand. Use a four-backtick outer fence so the inner ```bash block renders correctly:
 
 ````text
-<!-- spc-kernel-split-reference-loader:start -->
+<!-- kernel-split-reference-loader:start -->
 ```bash
 _project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-_spc_ref=""
+_ks_ref=""
 for _candidate in \
   "$_project_root/skills/<domain>/<skill-name>/reference.md" \
   "$HOME/.agents/skills/<skill-name>/reference.md"
 do
-  if [ -r "$_candidate" ]; then _spc_ref="$_candidate"; break; fi
+  if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
 done
-_spc_loader="$_project_root/tools/section-loader.sh"
-[ -r "$_spc_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+_ks_loader="$_project_root/tools/section-loader.sh"
+[ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
 _section='<section heading>'
-bash "$_spc_loader" "$_spc_ref" "$_section" \
+bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
 ```
-<!-- spc-kernel-split-reference-loader:end -->
+<!-- kernel-split-reference-loader:end -->
 ````
 
 ### Step 4 -- Add a context-budget regression test
 
-Add an entry to `tests/engineering/spc-kernel-split-context.bats`:
+Add an entry to `tests/engineering/kernel-split-context.bats`:
 
 ```text
 @test "SKILLNAME kernel stays within byte budget" {
@@ -129,8 +129,8 @@ Add an entry to `tests/engineering/spc-kernel-split-context.bats`:
 ### Step 5 -- Verify
 
 ```bash
-bats tests/engineering/spc-kernel-split.bats
-bats tests/engineering/spc-kernel-split-context.bats
+bats tests/engineering/kernel-split.bats
+bats tests/engineering/kernel-split-context.bats
 ```
 
 Verify: kernel byte count <= 60% of before, and the full behavioral test suite for the target skill passes.
@@ -156,4 +156,4 @@ Verify: kernel byte count <= 60% of before, and the full behavioral test suite f
 
 - `tools/section-loader.sh` -- section-precise reference reader
 - `tools/skill-partitioner` -- propose and apply subcommands
-- `tests/engineering/spc-kernel-split-context.bats` -- fleet-wide budget regression suite
+- `tests/engineering/kernel-split-context.bats` -- fleet-wide budget regression suite
