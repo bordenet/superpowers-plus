@@ -9,7 +9,7 @@ Visual reference for the skill hierarchy of superpowers-plus: orchestration chai
 > - **[OVERRIDE]**: superpowers-plus replaces this upstream obra/superpowers skill with a stricter, hardened version
 > - **[BASE]**: installed from obra/superpowers unchanged; superpowers-plus adds nothing to it
 > - All other nodes are net-new skills that exist only in superpowers-plus
-> - Solid arrows below reproduce a skill's own `coordination.enables` / `requires` frontmatter field exactly, verified against the source file. Dotted arrows mark a real relationship documented in a skill's prose that isn't (yet) encoded in its frontmatter. The machine-generated, always-current version of every coordination edge — all 122 skills, one diagram — lives at [skill-dependency-graph.md](skill-dependency-graph.md). This document is the hand-curated, human-readable subset: individually legible diagrams over one comprehensive but dense one.
+> - Solid arrows below reproduce a skill's own `coordination.enables` / `requires` frontmatter field exactly, verified against the source file. Dotted arrows mark a real relationship documented in a skill's prose that isn't (yet) encoded in its frontmatter. The machine-generated, always-current version of every coordination edge — all 122 skills — lives at [skill-dependency-graph.md](skill-dependency-graph.md), one small diagram per `coordination.group` plus a table of edges that cross group boundaries. This document is the hand-curated subset covering just the handful of pipelines worth walking through in prose.
 
 ---
 
