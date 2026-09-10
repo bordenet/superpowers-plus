@@ -102,7 +102,7 @@ else
   total="${#SIZE_LINES[@]}"
   shown=$(( TOP_N > 0 && TOP_N < total ? TOP_N : total ))
   echo "Skills shown: ${shown} of ${total}"
-  [[ "$over_threshold" -eq 1 ]] && echo "WARNING: One or more skills exceed the ${threshold_kb} KB threshold -- consider spc-kernel-split."
+  [[ "$over_threshold" -eq 1 ]] && echo "WARNING: One or more skills exceed the ${threshold_kb} KB threshold -- consider kernel-split."
 fi
 
 exit "$over_threshold"

@@ -176,15 +176,14 @@ LOG="$HOME/.claude/hooks/hook-audit.log"; mkdir -p "$(dirname "$LOG")"
 log() { echo "$(date -u +%FT%TZ) red-autonomy exit=$1 reason=$2" >> "$LOG"; }
 
 # Bypass now logged before returning so a disabled gate is never silent -- a
-# CLAUDE_HOOKS_BYPASS=1 escape valve without an audit trail was itself the
-# regression that this comment block calls out (AI-595 in upstream: hook
-# returned before LOG/log() were even defined).
+# CLAUDE_HOOKS_BYPASS=1 escape valve without an audit trail was itself a prior
+# regression (an earlier revision returned before LOG/log() were even defined).
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then log 0 "bypass-active"; exit 0; fi
 
 # Fail CLOSED, not open: under `set -e`, a missing jq or python3 crashes the
 # script mid-flight (Claude Code treats any non-2 exit as non-blocking) --
 # silently disabling the push-approval gate. Check upfront so an absent
-# dependency is a documented block, not a hidden bypass. (AI-595)
+# dependency is a documented block, not a hidden bypass.
 command -v jq >/dev/null 2>&1 || { log 2 "jq-missing"; echo "BLOCKED: jq is required but not found on PATH -- install it (brew install jq) before pushing." >&2; exit 2; }
 command -v python3 >/dev/null 2>&1 || { log 2 "python3-missing"; echo "BLOCKED: python3 is required but not found on PATH." >&2; exit 2; }
 

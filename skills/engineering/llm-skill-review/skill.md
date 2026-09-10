@@ -120,8 +120,8 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 
 **Critical veto (verbatim from progressive-harsh-review):** if ANY sub-persona scores Correctness or Operational Risk <=4 AND cites a specific defect (not a general concern), that is an automatic REJECT regardless of the weighted mean. An unrecoverable-failure-style finding MUST be scored on Operational Risk -- not Blind Spots alone -- to be veto-eligible; scoring it only on Blind Spots bypasses the veto gate.
 
-**Combining both scorecards into one top-level Verdict** (the gap a round-2 self-review found: two scorecards with no rule for merging them into one Verdict): use the WORSE of what either implies, never an average.
-- **LLM-Execution critical veto:** any unresolved S0 finding forces **REJECT** regardless of both scorecards' means -- an execution-safety finding this severe is never merely "at least MAJOR REVISIONS REQUIRED" (design-critic dogfood finding, 2026-07-17: an earlier draft referenced "either scorecard's critical veto" before this one existed, then contradicted it by capping S0 in the fallback bullet below).
+**Combining both scorecards into one top-level Verdict:** use the WORSE of what either implies, never an average.
+- **LLM-Execution critical veto:** any unresolved S0 finding forces **REJECT** regardless of both scorecards' means -- an execution-safety finding this severe is never merely "at least MAJOR REVISIONS REQUIRED".
 - Prose/Design's own critical veto (above) fires -> **REJECT**.
 - Prose/Design weighted mean <7 (PHR's REJECT band) -> at least **MAJOR REVISIONS REQUIRED**, regardless of S0-S3 findings.
 - Prose/Design weighted mean 7 to <8 (PHR's PASS_WITH_FIXES band) -> at least **PASS WITH RISKS**.
@@ -178,6 +178,7 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 - Do not call something safe because it is elegant.
 - Prefer explicit evidence from the diff or repository state.
 - If no diff is provided, inspect the effective implementation and infer the real behavior from the files.
+- **Fix economy.** Every recommended fix is as short as its severity allows -- an S3 fix in one sentence, an S2 fix in three or fewer; a fix that restates content already in the skill is not a fix. Sweep the sentences the recommendations would add and drop what does not change agent behavior. If the review's own recommendations would grow the skill more than ~15% with no S0/S1 finding driving it, dock Context Efficiency and recompute the Prose/Design aggregate -- a review that bloats the skill it audits has failed on its own terms.
 
 ## Failure Modes
 
@@ -195,7 +196,7 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 
 Gate 6 requires `.llm-skill-review-cleared` **v2** for `skills/*.md`, `.ai-guidance/*.md`, and AGENTS.md-family files, and **supersedes** PHR/code-review for those classes (`tools/md-files-changed.sh` `LLM_OWNED_REGEX`). Pass (**ADR-003**): verdict `PASS`|`PASS_WITH_RISKS`, `unresolved_s0_s1=0`, non-vacuous `clean_dimensions`, `evidence_replay=ok` (or `bypassed` with `PASS` only). `--min-score` is Prose/Design mean as sentinel **metadata** (`mean=`) — Gate 6 does not floor-compare it. Envelope details: reference.md "Enforcement Detail". Non-`.md` under `skills/` stays code-review's job.
 
-**NEVER write `.llm-skill-review-cleared` directly.** There is no valid manual content -- Gate 6 enforces strict v2 pipe-delimited schema (`v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok`); any hand-written content is always rejected. The script writes the sentinel; you do not. Writing the file by hand is the documented recurring failure mode this warning exists to prevent (incident: AI-761, 2026-09-02).
+**NEVER write `.llm-skill-review-cleared` directly.** There is no valid manual content -- Gate 6 enforces strict v2 pipe-delimited schema (`v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok`); any hand-written content is always rejected. The script writes the sentinel; you do not. Writing the file by hand is the documented recurring failure mode this warning exists to prevent.
 
 **Sentinel write:** findings need `severity`; the envelope needs `"head_sha"` equal to the commit being cleared; at least one `clean_dimensions` entry needs replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) — a bare string or an all-`verifiable:false` set is refused as vacuous. Then:
 

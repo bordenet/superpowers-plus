@@ -85,7 +85,7 @@ Phase 1: Build schema knowledge base
 
 Phase 2: Wire named connections
   Depends on: Phase 1 (need schema understanding to choose connection names)
-  Exit: config-service reads from named connections, tests pass
+  Exit: the service reads from named connections, tests pass
 
 Phase 3: Validate data flow
   Depends on: Phase 2
