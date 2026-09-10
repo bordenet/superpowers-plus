@@ -7,8 +7,10 @@
 # Key Decisions + Pending Questions -- a short annotation, not a full write.
 #
 # This is the backstop. The early-warning hook (user-prompt-submit-context-ferry.sh)
-# fires at turn ~20 with enough context remaining to run the full skill.
-# This hook fires at ~95% and ensures something useful exists regardless.
+# fires at ~70% of the context window (actual token usage, not turn count --
+# see that script's header for why) with enough context remaining to run the
+# full skill. This hook fires at ~95% and ensures something useful exists
+# regardless.
 #
 # Exit: always 0 (never blocks compaction).
 set -euo pipefail
