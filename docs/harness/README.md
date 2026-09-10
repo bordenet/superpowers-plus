@@ -26,7 +26,7 @@ bash tools/skill-size-audit.sh --json          # machine-readable
 
 ### 2. Actuator -- shrink
 
-The [`spc-kernel-split`](../../skills/engineering/spc-kernel-split/skill.md)
+The [`kernel-split`](../../skills/engineering/kernel-split/skill.md)
 skill (applied via [`tools/skill-partitioner`](../../tools/skill-partitioner))
 splits a monolithic skill into a small resident **kernel** -- loaded on every
 session -- plus an on-demand **reference** (a `reference.md` companion) that
@@ -52,7 +52,7 @@ manifest catch a skill that shrinks today from ballooning again tomorrow.
 `BUDGET_MODE=advisory` prints a warning; `BUDGET_MODE=strict` fails CI.
 
 The context-budget bats suite
-([`tests/engineering/spc-kernel-split-context.bats`](../../tests/engineering/spc-kernel-split-context.bats))
+([`tests/engineering/kernel-split-context.bats`](../../tests/engineering/kernel-split-context.bats))
 enforces the per-skill kernel byte budget for every skill that has been split.
 Add a new row when you split another skill; do not remove or bump a row
 without recording the reason in the test comment above it.
@@ -63,7 +63,7 @@ every session and every commit.
 ## Reduction ledger
 
 [`reduction-history.md`](reduction-history.md) is the single source of truth
-for measured reductions. Every application of `spc-kernel-split` appends a row
+for measured reductions. Every application of `kernel-split` appends a row
 with before/after byte counts and the resulting percentage. Trust the ledger,
 not any static graphic -- infographics can lag a split until re-exported.
 

@@ -1,4 +1,4 @@
-# spc-kernel-split -- Reference
+# kernel-split -- Reference
 
 Companion reference for `skill.md`. Contains the full scoring rubric, ambiguous section guidance, and the "How to apply" walkthrough.
 
@@ -7,7 +7,7 @@ Companion reference for `skill.md`. Contains the full scoring rubric, ambiguous 
 - Scoring rubric
 - Ambiguous section decisions
 - Edge cases
-- How to apply spc-kernel-split to your skill
+- How to apply kernel-split to your skill
 
 ## Scoring rubric
 
@@ -112,7 +112,7 @@ The section-loader is designed for this: `tools/section-loader.sh <reference.md>
 
 The default budget ratio is 0.6 (kernel must be <= 60% of original). For skills with a small critical-safety core and large reference material, a ratio of 0.4 is appropriate. Document the chosen ratio in the context-budget bats test as a comment.
 
-## How to apply spc-kernel-split to your skill
+## How to apply kernel-split to your skill
 
 1. **Check prerequisites** (behavioral tests, tools present).
 2. **Record the before baseline:** `wc -c skills/<domain>/<skill-name>/skill.md`
@@ -122,8 +122,8 @@ The default budget ratio is 0.6 (kernel must be <= 60% of original). For skills 
 6. **Run apply:** `tools/skill-partitioner apply skills/<domain>/<skill-name>/skill.md <proposed-kernel.md> <proposed-reference.md>`
 7. **Fill in the routing table** in the new `skill.md` (replace TBD `Need` values).
 8. **Add the section-loader call** (see `skill.md` Step 3).
-9. **Add the budget test** to `tests/engineering/spc-kernel-split-context.bats`.
-10. **Run bats:** `bats tests/engineering/spc-kernel-split.bats && bats tests/engineering/spc-kernel-split-context.bats`
+9. **Add the budget test** to `tests/engineering/kernel-split-context.bats`.
+10. **Run bats:** `bats tests/engineering/kernel-split.bats && bats tests/engineering/kernel-split-context.bats`
 11. **Verify** the kernel is at least 40% smaller than before.
 12. **Commit** the split as its own commit (isolable for rollback).
 13. **Add a row** to `docs/harness/reduction-history.md` recording the before/after bytes and reduction percentage.
