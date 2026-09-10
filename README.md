@@ -44,7 +44,7 @@ repo.
 | Stage | Artifact | What it does |
 |-------|----------|--------------|
 | **Sensor** | [`tools/skill-size-audit.sh`](tools/skill-size-audit.sh) | Ranks every `skill.md` by byte count and exits non-zero when any exceeds the fleet threshold (default 10 KB). Bloat becomes a signal instead of silent drift. |
-| **Actuator** | [`spc-kernel-split`](skills/engineering/spc-kernel-split/skill.md) + [`tools/skill-partitioner`](tools/skill-partitioner) | Splits a monolithic skill into a small resident **kernel** and an on-demand **`reference.md`** that loads only when a specific lookup is needed. Keyword scoring draws the boundary; ambiguous sections go to a third file for human review. |
+| **Actuator** | [`kernel-split`](skills/engineering/kernel-split/skill.md) + [`tools/skill-partitioner`](tools/skill-partitioner) | Splits a monolithic skill into a small resident **kernel** and an on-demand **`reference.md`** that loads only when a specific lookup is needed. Keyword scoring draws the boundary; ambiguous sections go to a third file for human review. |
 | **Regulator** | [`artifact-budgets`](docs/harness/artifact-budgets.md) + `tests/harness/artifact-budgets.bats` | Byte budgets against a committed baseline manifest catch a skill that shrank today regrowing tomorrow. `BUDGET_MODE=advisory` warns; `BUDGET_MODE=strict` fails CI. |
 
 **Safety floor, non-negotiable:** hard gates, "never" rules, and
@@ -68,7 +68,7 @@ static diagram, are authoritative.
 | [**llm-skill-review**](skills/engineering/llm-skill-review/skill.md) | Default reviewer for any skill.md or skill-adjacent tooling — covers LLM-execution safety (determinism, shell portability, tool contracts, cross-agent compatibility) and prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
 | [**debate**](skills/engineering/debate/skill.md) | Generates 3+ decision options, builds a comparison matrix, then red-teams the winner. Requires adversarial review before committing to an approach. |
 | [**progressive-harsh-review**](skills/engineering/progressive-harsh-review/skill.md) | Three escalating critic personas score non-code deliverables (plans, docs, designs) on 5 dimensions. Score below 6 = rejected. Skill.md reviews now go through `llm-skill-review` instead. |
-| [**spc-kernel-split**](skills/engineering/spc-kernel-split/skill.md) | The AI-Harness actuator: partitions an oversized `skill.md` into an always-loaded kernel plus an on-demand `reference.md`, then installs a permanent context-budget regression test. Hard gates and "never" rules never leave the kernel. |
+| [**kernel-split**](skills/engineering/kernel-split/skill.md) | The AI-Harness actuator: partitions an oversized `skill.md` into an always-loaded kernel plus an on-demand `reference.md`, then installs a permanent context-budget regression test. Hard gates and "never" rules never leave the kernel. |
 | [**systematic-debugging**](skills/engineering/systematic-debugging/skill.md) | Enforces root-cause-first investigation: reproduce, hypothesize, isolate, fix. No fixes without completing Phase 1. |
 | [**feature-development**](skills/engineering/feature-development/skill.md) | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
 | [**think-twice**](skills/productivity/think-twice/skill.md) | Detects when the AI is stuck in a loop and dispatches a fresh sub-agent with zero shared context. Auto-triggers on circular reasoning. |
@@ -346,7 +346,7 @@ Utility scripts in `tools/`:
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
 | `skill-cost-analyzer.sh` | Reports token cost per skill |
 | `skill-size-audit.sh` | Context-budget sensor: ranks every `skill.md` by byte count, flags any over the fleet threshold |
-| `skill-partitioner` | Kernel/reference actuator behind `spc-kernel-split` |
+| `skill-partitioner` | Kernel/reference actuator behind `kernel-split` |
 | `measure-artifact-sizes.sh` | Context-budget regulator: measures always-on artifacts against `tests/harness/artifact-baselines.json` |
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
