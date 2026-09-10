@@ -67,6 +67,12 @@ These were folded in from an internal overlay on 2026-09-08 and are the newest a
 
 `thinking-orchestrator` and `feature-development` are the two top-level dispatch hubs. Drawing them as one flowchart (the previous version of this doc) produces a tangle: **4 of the 9 skills `feature-development` enables are *also* enabled independently by `thinking-orchestrator`** (`think-twice`, `debate`, `plan-and-execute`, `verification-before-completion`), so a single-diagram layout forces those 4 edges to cross the whole width of the graph. Splitting the two hubs into separate fan-outs removes every crossing edge — each diagram below has zero line intersections. The overlap is called out once, in prose, instead of drawn four times as crossing arrows.
 
+For a single-image overview covering both hubs plus the commit chain, push/merge gates, and the harness loop in one frame:
+
+![superpowers-plus Skill Orchestration Map](images/skill-orchestration-map.png)
+
+*Manually generated 2026-09-10 from the same data as the diagrams below — a static snapshot, not auto-verified against frontmatter like the mermaid diagrams are. Re-generate rather than hand-edit if the underlying `coordination` fields change; the prompt used to produce it lives in this repo's PR history.*
+
 Every edge below matches the `coordination.enables` field of the source skill, verified directly against each skill.md.
 
 ### thinking-orchestrator fan-out
