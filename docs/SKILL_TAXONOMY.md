@@ -303,6 +303,7 @@ All 122 skills grouped by filesystem domain, verified against `skills/*/*/skill.
 *122 skills across 9 domains (9 overrides, 5 base, 108 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot.*
 
 *What's machine-regenerated vs. hand-curated, so the next update touches the right file:*
+
 - *Full per-skill coordination graph → `node tools/generate-skill-dag.js` regenerates [skill-dependency-graph.md](skill-dependency-graph.md) directly from frontmatter.*
 - *Per-skill token-cost table → `bash tools/skill-cost-analyzer.sh --markdown` regenerates [SKILL_TOKEN_COSTS.md](SKILL_TOKEN_COSTS.md) directly.*
 - *This document has no generator.* The diagrams above are a curated subset chosen for readability, and the Domain Reference table is filled in by hand from `find skills -name skill.md | wc -l` plus a per-domain `find skills/<domain> -name skill.md | wc -l`. Re-run both before trusting the counts in this file again — nothing regenerates them for you.
