@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # Script: skill-partitioner
 # PURPOSE: Propose or apply a kernel/reference split for a superpowers skill.
-#          Implements the spc-kernel-split pattern: partitions any
+#          Implements the kernel-split pattern: partitions any
 #          target skill.md into a resident safety kernel (always loaded) and an
 #          on-demand reference (loaded only when the specific section is needed).
 #

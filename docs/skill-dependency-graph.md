@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-08-15
+> **Last updated:** 2026-09-10
 
 This document visualizes the coordination relationships between skills in superpowers-plus.
 
@@ -11,14 +11,18 @@ This document visualizes the coordination relationships between skills in superp
 graph TD
   subgraph engineering["Engineering"]
     branch_flow_gate["branch-flow-gate"]
+    codebase_recon["codebase-recon"]
     cognitive_complexity_refactoring["cognitive-complexity-refactoring"]
+    domain_build["domain-build"]
     external_cli_audit["external-cli-audit"]
     feature_development["feature-development"]
     git_branch_conventions["git-branch-conventions"]
     gitlab_cli["gitlab-cli"]
     implementation_tracker["implementation-tracker"]
+    pr_triage_gate["pr-triage-gate"]
     requirements_validation["requirements-validation"]
     requirements_validation_pm["requirements-validation-pm"]
+    skills_hierarchy_tuning["skills-hierarchy-tuning"]
     using_git_worktrees["using-git-worktrees"]
     blast_radius_check["blast-radius-check"]
     debug_conductor["debug-conductor"]
@@ -36,6 +40,7 @@ graph TD
     reproduction_experiment_investigator["reproduction-experiment-investigator [internal]"]
     state_consistency_investigator["state-consistency-investigator [internal]"]
     timeline_trace_investigator["timeline-trace-investigator [internal]"]
+    kernel_split["kernel-split"]
   end
 
   subgraph thinking["Thinking"]
@@ -85,12 +90,14 @@ graph TD
     investigation_state["investigation-state"]
   end
 
-  subgraph quality["Quality"]
-    progressive_harsh_review["progressive-harsh-review"]
+  subgraph push-gates["Push Gates"]
+    merge_authorization_gate["merge-authorization-gate"]
+    push_authorization_gate["push-authorization-gate"]
+    scope_tripwire["scope-tripwire"]
   end
 
-  subgraph push-gates["Push Gates"]
-    scope_tripwire["scope-tripwire"]
+  subgraph quality["Quality"]
+    progressive_harsh_review["progressive-harsh-review"]
   end
 
   subgraph session-start["Session Start"]
@@ -141,6 +148,7 @@ graph TD
   end
 
   subgraph productivity["Productivity"]
+    knowledge_capture["knowledge-capture"]
     model_selector["model-selector"]
     plan_and_execute["plan-and-execute"]
     update_superpowers["update-superpowers"]
@@ -187,6 +195,7 @@ graph TD
   end
 
   subgraph wiki-pipeline["Wiki Pipeline"]
+    wiki_prune_audit["wiki-prune-audit"]
     wiki_orchestrator["wiki-orchestrator"]
     wiki_content_coherence["wiki-content-coherence"]
     wiki_markdown_structure_gate["wiki-markdown-structure-gate"]
@@ -214,6 +223,8 @@ graph TD
   branch_sync_gate -->|enables| finishing_a_development_branch
   code_review_battery -->|enables| progressive_code_review_gate
   code_review_battery -->|enables| verification_before_completion
+  codebase_recon -->|enables| surgical_fix
+  codebase_recon ==>|escalates to| progressive_harsh_review
   debate ==>|escalates to| thinking_orchestrator
   systematic_debugging -->|then| debug_conductor
   debug_conductor -->|enables| investigation_state
@@ -245,6 +256,8 @@ graph TD
   micro_harsh_review -->|enables| pre_commit_gate
   micro_harsh_review ==>|escalates to| progressive_code_review_gate
   output_verification -->|enables| verification_before_completion
+  pr_triage_gate -->|enables| systematic_debugging
+  pr_triage_gate -->|enables| code_review_battery
   pre_commit_gate -->|enables| enforce_style_guide
   enforce_style_guide -->|then| progressive_code_review_gate
   progressive_code_review_gate -->|enables| professional_language_audit
@@ -253,6 +266,7 @@ graph TD
   inter_agent_review_protocol -->|then| providing_code_review
   providing_code_review -->|enables| receiving_code_review
   providing_code_review ==>|escalates to| code_review_battery
+  push_authorization_gate -->|enables| unified_commit_gate
   receiving_code_review -->|enables| code_review_respond
   receiving_code_review ==>|escalates to| think_twice
   debug_conductor -->|then| reproduction_experiment_investigator
@@ -318,7 +332,6 @@ graph TD
   domain_design -->|enables| skill_authoring
   domain_design -->|enables| brainstorming
   domain_design -->|enables| debate
-  devsec_audit -->|then| repo_security_scan
   plan_and_execute -->|then| fallback_planning
   innovation -->|enables| brainstorming
   innovation -->|enables| plan_and_execute
@@ -341,7 +354,6 @@ graph TD
   quantitative_decision_gate -->|enables| debate
   quantitative_decision_gate -->|enables| plan_and_execute
   quantitative_decision_gate ==>|escalates to| think_twice
-  repo_security_scan -->|enables| security_upgrade
   screenshot -->|enables| systematic_debugging
   screenshot -->|enables| brainstorming
   screenshot -->|enables| feature_development
@@ -371,6 +383,8 @@ graph TD
   wiki_markdown_structure_gate -->|enables| wiki_debunker
   wiki_markdown_structure_gate ==>|escalates to| wiki_orchestrator
   wiki_orchestrator -->|enables| link_verification
+  wiki_prune_audit -->|enables| wiki_refactor
+  wiki_prune_audit ==>|escalates to| wiki_refactor
   wiki_refactor -->|enables| link_verification
   wiki_refactor -->|enables| wiki_secret_audit
   wiki_verify ==>|escalates to| wiki_orchestrator
@@ -381,15 +395,15 @@ graph TD
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Engineering | `branch-flow-gate`, `cognitive-complexity-refactoring`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `requirements-validation`, `requirements-validation-pm`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator` | Coordinated skill group |
+| Engineering | `branch-flow-gate`, `codebase-recon`, `cognitive-complexity-refactoring`, `domain-build`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `pr-triage-gate`, `requirements-validation`, `requirements-validation-pm`, `skills-hierarchy-tuning`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `kernel-split` | Coordinated skill group |
 | Thinking | `brainstorming`, `debate`, `adversarial-search`, `writing-plans`, `innovation`, `token-estimation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
 | Session Start Gate | `branch-sync-gate` | Coordinated skill group |
 | Code Quality | `code-review-battery`, `llm-skill-review`, `micro-harsh-review`, `inter-agent-review-protocol`, `requesting-code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
 | Completion Gate | `substrate-claim-audit`, `exhaustive-audit-validation`, `finishing-a-development-branch`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Commit Gates | `hotfix-charter`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`, `unified-commit-gate` | Quality checks before git commit |
 | Debugging | `investigation-state` | Coordinated skill group |
+| Push Gates | `merge-authorization-gate`, `push-authorization-gate`, `scope-tripwire` | Coordinated skill group |
 | Quality | `progressive-harsh-review` | Coordinated skill group |
-| Push Gates | `scope-tripwire` | Coordinated skill group |
 | Session Start | `session-handoff` | Coordinated skill group |
 | Meta | `using-superpowers`, `no-empty-promises`, `superpowers-help` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
@@ -399,14 +413,14 @@ graph TD
 | Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
 | Orchestration | `autonomous-chain-controller` | Coordinated skill group |
 | Pre Compact | `context-ferry` | Coordinated skill group |
-| Productivity | `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `session-status`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive`, `todo-management` | Coordinated skill group |
+| Productivity | `knowledge-capture`, `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `session-status`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive`, `todo-management` | Coordinated skill group |
 | Decision Making | `quantitative-decision-gate` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
 | Todo Enforcement | `todo-guardian` | Coordinated skill group |
 | Research | `expert-interviewer`, `incorporating-research` | Coordinated skill group |
 | Security | `repo-security-scan`, `security-upgrade`, `devsec-audit`, `wiki-instruction-guard` | Coordinated skill group |
 | Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Coordinated skill group |
-| Wiki Pipeline | `wiki-orchestrator`, `wiki-content-coherence`, `wiki-markdown-structure-gate`, `wiki-refactor` | Wiki authoring quality pipeline |
+| Wiki Pipeline | `wiki-prune-audit`, `wiki-orchestrator`, `wiki-content-coherence`, `wiki-markdown-structure-gate`, `wiki-refactor` | Wiki authoring quality pipeline |
 | Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `explain-like-im-five`, `markdown-table-discipline` | Coordinated skill group |
 
 ## Legend

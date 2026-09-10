@@ -1,6 +1,6 @@
 # Reduction history
 
-Rolling log of before/after sizes for every `spc-kernel-split` application in
+Rolling log of before/after sizes for every `kernel-split` application in
 this repo. This file is the single source of truth for the harness README
 ledger; any diagram or dashboard is downstream of the numbers here.
 
