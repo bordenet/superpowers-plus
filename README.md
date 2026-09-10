@@ -264,6 +264,8 @@ Copy `.env.example` to `~/.codex/.env` for runtime integrations, then set permis
 
 ## Skill Coordination
 
+![superpowers-plus Skill Orchestration Map](docs/images/skill-orchestration-map.png)
+
 Skills form pipelines with explicit dependencies. Each pipeline has its own dedicated diagram in [docs/SKILL_TAXONOMY.md](docs/SKILL_TAXONOMY.md):
 
 | Pipeline | Diagram | Purpose |
