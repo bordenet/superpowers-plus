@@ -41,12 +41,12 @@ Generates a mostly self-contained resume prompt so a fresh session -- on a diffe
 
 | Trigger | Why |
 |---------|-----|
-| UserPromptSubmit hook (turn-count) | Early warning at ~20 assistant turns (fires while context pressure is still low) -- fires exactly once per session via hysteresis flag |
+| UserPromptSubmit hook (token-usage) | Early warning at ~70% of the context window, from actual usage reported in the transcript (fires while context pressure is still low) -- fires exactly once per session via hysteresis flag |
 | PreCompact hook (Claude Code) | Backstop at ~95% context -- enriches ferry file with git state, branch, commits, and CLAUDE.md excerpt so model only needs to append Key Decisions |
 | `/context-ferry` | Manual -- invoke any time; works on any platform |
 | Natural language: "context is running low" | Phrase-matched trigger |
 
-**Turn-count trigger:** `user-prompt-submit-context-ferry.sh` counts `"role":"assistant"` occurrences in the session transcript JSONL. Default threshold: 20 turns (override via `CONTEXT_FERRY_TURN_THRESHOLD` env var). Writes a per-session flag file (`~/.claude/.context-ferry-warned-<session_id>`) so the warning fires exactly once per session — by design. To re-trigger for the same session, delete that flag file. Turn count is immune to large tool-output spikes that would distort a file-size proxy.
+**Token-usage trigger:** `user-prompt-submit-context-ferry.sh` reads the most recent `usage` object in the session transcript JSONL (input_tokens + cache_creation_input_tokens + cache_read_input_tokens) and fires once that crosses `CONTEXT_FERRY_TOKEN_THRESHOLD_PCT` (default 70) of `CONTEXT_FERRY_CONTEXT_WINDOW` (default 200000 tokens) -- an accurate proxy for context pressure regardless of how many turns it took to get there. When usage data is unavailable (no `jq`, unreadable transcript, or no usage reported yet), it falls back to a raw turn count at `CONTEXT_FERRY_TURN_THRESHOLD` (default 40) as a degraded signal. Writes a per-session flag file (`~/.claude/.context-ferry-warned-<session_id>`) so the warning fires exactly once per session -- by design. To re-trigger for the same session, delete that flag file.
 
 **PreCompact backstop:** When compaction fires at ~95%, `pre-compact-context-ferry.sh` generates a rich scaffold (`~/context-ferry-<timestamp>.md`) pre-populated with branch, recent commits, working tree status, unpushed commits, and CLAUDE.md excerpt. Model only appends Key Decisions, Pending Questions, and Next 3 Actions to the existing file -- minimizes token spend at critical context.
 
