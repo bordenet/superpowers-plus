@@ -15,6 +15,7 @@
 #
 # USAGE:
 #   slop-check.sh --content FILE [--mode full|summary|silent] [--format human|json]
+#   slop-check.sh --list-patterns
 #   slop-check.sh --help
 #
 # OPTIONS:
@@ -28,6 +29,13 @@
 #                       wanting only house style MUST pass this: the full
 #                       catalog is tuned for wiki prose and blocks ordinary
 #                       engineering vocabulary.
+#   --list-patterns     Print the pattern catalog, one TIER<TAB>LABEL<TAB>
+#                       PATTERN line per entry (TIER is block or warn), then
+#                       exit 0. Needs no --content; other options are
+#                       ignored. BOOSTER, INTENSIFIER and BUZZWORD patterns
+#                       match whole words; FILLER patterns match as
+#                       case-insensitive substrings. EM_DASH and EMOJI are
+#                       character checks and are not listed.
 #   --help              Show this help
 #
 # EXIT:
@@ -44,7 +52,8 @@
 #               not yet cross-listed in reference.md (see FILLERS comment)
 #   Advisory  — Cat 1 weak intensifiers (very, extremely, incredibly, quite,
 #               rather, really, highly, truly, absolutely, definitely), plus
-#               FILLERS_ADVISORY (high-false-positive connector phrasing)
+#               BUZZWORDS_ADVISORY and FILLERS_ADVISORY (terms with a high
+#               false-positive rate in engineering prose)
 # -----------------------------------------------------------------------------
 set -euo pipefail
 
@@ -118,6 +127,153 @@ show_help() {
     sed -n 's/^# \{0,1\}//p' "${BASH_SOURCE[0]}" | sed -n '/^Script:/,/^---/p'
 }
 
+# ---------------------------------------------------------------------------
+# Pattern catalog. Declared ahead of argument parsing so --list-patterns can
+# print it without a --content file; the scan loops further down read these
+# arrays.
+#
+# One occurrence, one violation: a blocking pattern must not contain another
+# blocking pattern as a whole-word run ('worth noting' inside "it's worth
+# noting", 'testament to' inside 'a testament to'). Each pattern is scanned
+# on its own, so a nested pair reports one phrase twice. Keep the shorter
+# pattern: it already matches every line the longer one would. Distinct
+# patterns that sit next to each other ('stands as a' then 'testament to')
+# are two tells and report twice. An advisory term inside a blocking phrase
+# ('enhance' in "designed to enhance") adds a warning, not a second
+# violation. test/slop-check.bats checks this across the whole catalog via
+# --list-patterns.
+# ---------------------------------------------------------------------------
+
+# Cat 1 blocking: boosters (excludes the weak intensifiers below)
+declare -a BOOSTERS=(
+    'delve' 'tapestry' 'multifaceted' 'myriad' 'plethora'
+    'remarkably' 'exceptionally' 'particularly' 'especially'
+    'significantly' 'substantially' 'considerably' 'dramatically'
+    'tremendously' 'immensely' 'profoundly'
+)
+
+# Cat 1: weak intensifiers -- advisory only, never block
+declare -a WEAK_INTENSIFIERS=(
+    'very' 'extremely' 'incredibly' 'quite' 'rather'
+    'really' 'highly' 'truly' 'absolutely' 'definitely'
+)
+
+# Cat 2: buzzwords (blocking). Multi-word entries match on word boundaries
+# like the rest, so 'stands as a' does not match "stands as an".
+declare -a BUZZWORDS=(
+    'utilize' 'leverage' 'robust' 'holistic' 'seamless' 'comprehensive'
+    'elegant' 'intuitive' 'streamlined' 'scalable' 'innovative'
+    'sophisticated' 'state-of-the-art' 'best-in-class' 'world-class'
+    'enterprise-ready' 'production-grade' 'battle-tested' 'industry-leading'
+    'game-changing' 'revolutionary' 'transformative' 'disruptive'
+    'cutting-edge' 'next-generation' 'groundbreaking' 'paradigm-shifting'
+    'synergy' 'empower' 'amplify'
+    'unlock' 'spearhead' 'champion' 'actionable' 'elevate' 'harness'
+    'future-proof' 'unprecedented' 'pivotal'
+    'nuanced' 'proactive' 'mission-critical' 'reimagine'
+    'bolster' 'transcend' 'resonate' 'showcase' 'underscore'
+    'crucial' 'invaluable'
+    'load-bearing' 'load bearing'
+    'testament to' 'stands as a'
+    'commitment to excellence' 'diverse array of'
+    'valuable insights' 'a wealth of' 'a treasure trove of'
+    'future outlook' 'future prospects'
+)
+# Advisory-only buzzwords: common in legitimate technical prose; flag but do
+# not block. interplay, meticulous(ly), and intricate/intricacies reproduced
+# blocking ordinary engineering sentences with no other AI tell present
+# ("The interplay between the connection pool and the retry queue caused the
+# leak."; "We meticulously verified each state transition."). vibrant is
+# fine when it describes a literal color, theme, or image, and a line-level
+# grep cannot tell that apart from marketing copy. 'serves as a' is the
+# copula-avoidance tell, but it is also ordinary technical English: 3
+# distinct packages (safer-buffer, magicast, @azure/msal-common) across about
+# 2,172 distinct third-party READMEs use it ("serves as a polyfill", "serves
+# as a common package dependency"), against 0 for 'stands as a', which stays
+# blocking.
+declare -a BUZZWORDS_ADVISORY=(
+    'enhance' 'dynamic' 'agile' 'ecosystem' 'facilitate' 'accelerate'
+    'interplay' 'meticulous' 'meticulously' 'intricate' 'intricacies'
+    'vibrant' 'serves as a'
+)
+
+# Cat 3: filler openers (blocking)
+#
+# 'every sustainable system', 'plays a vital role', and 'seamlessly integrat'
+# were carried over from the retired tools/wiki-content-check.sh's own
+# inline SLOP_PATTERNS list (dropped by accident when that script was
+# refactored to delegate here); they predate detecting-ai-slop/reference.md
+# and are not yet cross-listed there.
+#
+# Removed under the one-occurrence rule above because a shorter entry
+# already matches them: "it's worth noting" and "it is worth noting" (by
+# 'worth noting'), "in the modern era" (by 'in the modern'), "unlock the
+# potential" (by BUZZWORD 'unlock'), and "plays a crucial role" (by BUZZWORD
+# 'crucial'). Those last two now report under BUZZWORD, so a caller passing
+# --only FILLER no longer sees them.
+declare -a FILLERS=(
+    "it's important to note"
+    "it is important to note"
+    "worth noting"
+    "it's worth mentioning"
+    "it should be noted"
+    "needless to say"
+    "as you may know"
+    "as we all know"
+    "in today's world"
+    "in today's digital age"
+    "in the modern"
+    "at the end of the day"
+    "that being said"
+    "with that in mind"
+    "let me walk you through"
+    "let's dive in"
+    "let's explore"
+    "let's take a look at"
+    "let's break this down"
+    "in conclusion"
+    "in summary"
+    "in essence"
+    "welcome to the world of"
+    "cannot be overstated"
+    "designed to enhance"
+    "in a world where"
+    "every sustainable system"
+    "plays a vital role"
+    "seamlessly integrat"
+    "shed light on"
+    "sheds light on"
+    "despite these challenges"
+    "let me be clear"
+    "look no further"
+    "without further ado"
+    "sets the stage for"
+    "paves the way for"
+)
+
+# Advisory-only fillers: common connector phrasing in legitimate technical
+# prose (e.g. "when it comes to configuring retries..."); flag but do not
+# block. Demoted here after cr-battery review found them blocking plausible
+# non-slop engineering sentences with no other AI-tell present. "it turns
+# out" is deliberately absent: it is ordinary root-cause phrasing ("it turns
+# out the bug was a race condition") and flagged more real prose than slop.
+declare -a FILLERS_ADVISORY=(
+    "at its core,"
+    "at the heart of"
+    "when it comes to"
+)
+
+list_patterns() {
+    local p
+    for p in "${BOOSTERS[@]}";           do printf 'block\tBOOSTER\t%s\n' "$p"; done
+    for p in "${WEAK_INTENSIFIERS[@]}";  do printf 'warn\tINTENSIFIER\t%s\n' "$p"; done
+    for p in "${BUZZWORDS[@]}";          do printf 'block\tBUZZWORD\t%s\n' "$p"; done
+    for p in "${BUZZWORDS_ADVISORY[@]}"; do printf 'warn\tBUZZWORD\t%s\n' "$p"; done
+    for p in "${FILLERS[@]}";            do printf 'block\tFILLER\t%s\n' "$p"; done
+    for p in "${FILLERS_ADVISORY[@]}";   do printf 'warn\tFILLER\t%s\n' "$p"; done
+}
+
+LIST_PATTERNS=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)    show_help; exit 0 ;;
@@ -125,9 +281,15 @@ while [[ $# -gt 0 ]]; do
         --mode)       MODE="${2:?--mode requires full|summary|silent}"; shift 2 ;;
         --format)     FORMAT="${2:?--format requires human|json}"; shift 2 ;;
         --only)       ONLY="${2:?--only requires a comma-separated category list}"; shift 2 ;;
+        --list-patterns) LIST_PATTERNS=1; shift ;;
         *) printf 'ERROR: unknown option: %s\n' "$1" >&2; exit 2 ;;
     esac
 done
+
+if [[ "$LIST_PATTERNS" -eq 1 ]]; then
+    list_patterns
+    exit 0
+fi
 
 [[ -n "$CONTENT_FILE" ]]  || { echo "ERROR: --content FILE is required" >&2; exit 2; }
 [[ -r "$CONTENT_FILE" ]]  || { echo "ERROR: file not readable: $CONTENT_FILE" >&2; exit 2; }
@@ -313,12 +475,6 @@ scan_pattern() {
 # ---------------------------------------------------------------------------
 # Cat 1 blocking: boosters (excludes weak intensifiers handled below)
 # ---------------------------------------------------------------------------
-declare -a BOOSTERS=(
-    'delve' 'tapestry' 'multifaceted' 'myriad' 'plethora'
-    'remarkably' 'exceptionally' 'particularly' 'especially'
-    'significantly' 'substantially' 'considerably' 'dramatically'
-    'tremendously' 'immensely' 'profoundly'
-)
 for pat in "${BOOSTERS[@]}"; do
     _hits="$(scan_pattern "\b${pat}\b")"
     while IFS= read -r hit; do
@@ -329,10 +485,6 @@ done
 # ---------------------------------------------------------------------------
 # Cat 1: weak intensifiers — advisory only, never block
 # ---------------------------------------------------------------------------
-declare -a WEAK_INTENSIFIERS=(
-    'very' 'extremely' 'incredibly' 'quite' 'rather'
-    'really' 'highly' 'truly' 'absolutely' 'definitely'
-)
 for pat in "${WEAK_INTENSIFIERS[@]}"; do
     _hits="$(scan_pattern "\b${pat}\b")"
     while IFS= read -r hit; do
@@ -341,26 +493,8 @@ for pat in "${WEAK_INTENSIFIERS[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Cat 2: buzzwords (blocking)
+# Cat 2: buzzwords (blocking), then the advisory-only tier
 # ---------------------------------------------------------------------------
-declare -a BUZZWORDS=(
-    'utilize' 'leverage' 'robust' 'holistic' 'seamless' 'comprehensive'
-    'elegant' 'intuitive' 'streamlined' 'scalable' 'innovative'
-    'sophisticated' 'state-of-the-art' 'best-in-class' 'world-class'
-    'enterprise-ready' 'production-grade' 'battle-tested' 'industry-leading'
-    'game-changing' 'revolutionary' 'transformative' 'disruptive'
-    'cutting-edge' 'next-generation' 'groundbreaking' 'paradigm-shifting'
-    'synergy' 'empower' 'amplify'
-    'unlock' 'spearhead' 'champion' 'actionable' 'elevate' 'harness'
-    'future-proof' 'unprecedented' 'pivotal'
-    'nuanced' 'proactive' 'mission-critical' 'reimagine'
-    'bolster' 'transcend' 'resonate' 'showcase' 'underscore'
-    'crucial' 'invaluable'
-)
-# Advisory-only buzzwords: common in legitimate technical prose; flag but do not block.
-declare -a BUZZWORDS_ADVISORY=(
-    'enhance' 'dynamic' 'agile' 'ecosystem' 'facilitate' 'accelerate'
-)
 for pat in "${BUZZWORDS[@]}"; do
     _hits="$(scan_pattern "\b${pat}\b")"
     while IFS= read -r hit; do
@@ -375,50 +509,8 @@ for pat in "${BUZZWORDS_ADVISORY[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Cat 3: filler openers (blocking)
-#
-# 'every sustainable system', 'plays a crucial/vital role', and
-# 'seamlessly integrat' were carried over from the retired
-# tools/wiki-content-check.sh's own inline SLOP_PATTERNS list (dropped by
-# accident when that script was refactored to delegate here); they predate
-# detecting-ai-slop/reference.md and are not yet cross-listed there.
+# Cat 3: filler openers (blocking; catalog and provenance notes at the top)
 # ---------------------------------------------------------------------------
-declare -a FILLERS=(
-    "it's important to note"
-    "it is important to note"
-    "it's worth noting"
-    "it is worth noting"
-    "worth noting"
-    "it's worth mentioning"
-    "it should be noted"
-    "needless to say"
-    "as you may know"
-    "as we all know"
-    "in today's world"
-    "in today's digital age"
-    "in the modern era"
-    "in the modern"
-    "at the end of the day"
-    "that being said"
-    "with that in mind"
-    "let me walk you through"
-    "let's dive in"
-    "let's explore"
-    "let's take a look at"
-    "let's break this down"
-    "in conclusion"
-    "in summary"
-    "in essence"
-    "welcome to the world of"
-    "cannot be overstated"
-    "unlock the potential"
-    "designed to enhance"
-    "in a world where"
-    "every sustainable system"
-    "plays a crucial role"
-    "plays a vital role"
-    "seamlessly integrat"
-)
 for pat in "${FILLERS[@]}"; do
     _hits="$(scan_pattern "$pat")"
     while IFS= read -r hit; do
@@ -426,14 +518,7 @@ for pat in "${FILLERS[@]}"; do
     done <<< "$_hits"
 done
 
-# Advisory-only fillers: common connector phrasing in legitimate technical
-# prose (e.g. "when it comes to configuring retries..."); flag but do not
-# block. Demoted here after cr-battery review found both blocked plausible
-# non-slop engineering sentences with no other AI-tell present.
-declare -a FILLERS_ADVISORY=(
-    "at its core,"
-    "when it comes to"
-)
+# Advisory-only fillers (see FILLERS_ADVISORY in the catalog for why)
 for pat in "${FILLERS_ADVISORY[@]}"; do
     _hits="$(scan_pattern "$pat")"
     while IFS= read -r hit; do

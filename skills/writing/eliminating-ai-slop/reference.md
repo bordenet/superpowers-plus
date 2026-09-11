@@ -37,9 +37,11 @@ Apply in order, stop at first match:
 
 1. **Categorical veto (check this first):** Is the author formally enumerating a named category of failures that recurs across separate instances, where "bug" or "defect" would collapse a meaningful structural distinction? Detection signals: numbered modes listed by name ("Mode 1: X; Mode 2: Y"), FMEA-style tables with a Failure Mode column, or a section heading that names the category. Absent one of these signals, treat as non-categorical and proceed to step 2. If categorical signals are present, leave it unchanged. Legitimate example: a postmortem with a named section listing "Mode 1: sensor saturation (occurs under sustained load); Mode 2: clock drift (occurs after failover)"; "defect" would erase the structural distinction between modes.
 
-2. **Single-event test:** Does "what went wrong", "the problem", or "what to watch out for" substitute cleanly? If yes, replace. Slop examples: "the failure mode here was skipping code review" becomes "the problem was skipping code review"; "the failure mode for most teams is X" becomes "what most teams get wrong is X" (rhetorical generalization, not a formal category); "this approach has a defect pattern where X" becomes "this approach tends to X."
+2. **Concrete singular use:** Does the term name one specific fault, trigger, or mechanism, even in a single sentence with no enumeration, table, or heading? ("The main failure mode is retry amplification after a regional timeout.") If yes, leave it unchanged: it is a precise technical claim. This step needs no recurring category or structural signal, only a real fault named next to the term. It covers how a system fails; a process lapse or a generalization is not a mechanism, so the step 3 examples below still get replaced. (Kept in sync with the matching exemption in `detecting-ai-slop` Cat. 11.)
 
-3. **Default when uncertain:** Replace with the named problem ("the bug was X", "what typically goes wrong is Y", "the risk is Z").
+3. **Single-event test:** Does "what went wrong", "the problem", or "what to watch out for" substitute cleanly? If yes, replace. Slop examples: "the failure mode here was skipping code review" becomes "the problem was skipping code review"; "the failure mode for most teams is X" becomes "what most teams get wrong is X" (rhetorical generalization, not a formal category); "this approach has a defect pattern where X" becomes "this approach tends to X."
+
+4. **Default when uncertain:** Replace with the named problem ("the bug was X", "what typically goes wrong is Y", "the risk is Z").
 
 ### Structural Patterns (vary or restructure)
 
