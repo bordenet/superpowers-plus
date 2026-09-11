@@ -97,3 +97,42 @@ sha_lock_hash_file() {
         return 0
     fi
 }
+
+# Hash of an envelope's reviewer claims, excluding the annotations that
+# tools/verify-cr-battery-evidence.js writes back into the same file (the
+# top-level verifier_result, and a verifier object on each finding and
+# clean_dimension). Keys are sorted, so re-serialization alone does not change
+# the result. Uses node, which the verifier itself needs; without node the
+# verifier never runs, so the raw-file hash is stable and is used instead.
+# Prints nothing when the file is missing, or when node is present and the
+# file no longer parses as JSON (without node it prints the raw-file hash).
+sha_lock_hash_envelope_claims() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        return 0
+    fi
+    if ! command -v node >/dev/null 2>&1; then
+        sha_lock_hash_file "$file"
+        return 0
+    fi
+    node -e '
+const fs = require("fs");
+let env;
+try { env = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); } catch (e) { process.exit(0); }
+if (env && typeof env === "object") {
+  delete env.verifier_result;
+  for (const key of ["findings", "clean_dimensions"]) {
+    if (Array.isArray(env[key])) {
+      for (const claim of env[key]) {
+        if (claim && typeof claim === "object") delete claim.verifier;
+      }
+    }
+  }
+}
+const sorted = (v) => Array.isArray(v) ? v.map(sorted)
+  : (v && typeof v === "object")
+    ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])]))
+    : v;
+process.stdout.write(require("crypto").createHash("sha256").update(JSON.stringify(sorted(env))).digest("hex") + "\n");
+' -- "$file" 2>/dev/null || true
+}

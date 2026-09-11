@@ -43,6 +43,11 @@ cd "$REPO_ROOT"
 # --- Parse flags ---
 VERDICT="PASS"
 MIN_SCORE="7.0"
+# Envelope-mutation guard state. Set only on the envelope path; initialised
+# here so a stray exported value can never reach the post-verifier check on
+# the --staged or --no-envelope paths.
+PRE_VERIFIER_HASH=""
+PRESERVE_FILE=""
 STAGED_MODE=0
 _MIN_SCORE_EXPLICIT=0    # set to 1 if --min-score was provided; prevents BugPath override
 _BUG_FIX_MODE_EXPLICIT=0 # set to 1 if --mode=bug-fix provided
@@ -421,8 +426,28 @@ if [[ "$STAGED_MODE" -ne 1 ]] && [[ -n "$SHA_FOR_PRESERVE" ]]; then
             # to claims we never verified -- refuse to write it and exit 1.
             # Empty snapshot (no sha256sum/shasum on host) is treated as a
             # silent bypass so existing hash-tool-free hosts keep working.
+            #
+            # The hash covers the reviewer claims only, not the annotations
+            # the evidence-replay verifier below writes back into this same
+            # file (verifier_result, and a verifier object on each claim).
+            # Hashing the raw bytes made every freshly written envelope fail
+            # its first run as "MUTATED" -- the verifier's own write-back was
+            # the mutation -- and pass on the second, once the annotations
+            # already matched. Older sha-lock.sh copies without the claims
+            # helper fall back to the raw-file hash.
             PRE_VERIFIER_HASH=""
-            if declare -F sha_lock_hash_file >/dev/null 2>&1; then
+            if declare -F sha_lock_hash_envelope_claims >/dev/null 2>&1; then
+                PRE_VERIFIER_HASH="$(sha_lock_hash_envelope_claims "$PRESERVE_FILE")"
+                # With node present an empty snapshot means node could not
+                # hash the claims (e.g. pathological nesting) while the
+                # verifier may still run; skipping the guard then would be a
+                # silent bypass, so fail closed instead.
+                if [[ -z "$PRE_VERIFIER_HASH" ]] && command -v node >/dev/null 2>&1; then
+                    echo "❌ Cannot hash the claims in $PRESERVE_FILE; the envelope-mutation" >&2
+                    echo "   guard cannot run. Sentinel NOT written." >&2
+                    exit 1
+                fi
+            elif declare -F sha_lock_hash_file >/dev/null 2>&1; then
                 PRE_VERIFIER_HASH="$(sha_lock_hash_file "$PRESERVE_FILE")"
             fi
             # Evidence-replay verifier: mandatory in Bug Fix Mode, runs in Standard
@@ -463,9 +488,18 @@ unset _NO_ENVELOPE _BUG_FIX_MODE SHA_FOR_PRESERVE
 # Envelope-mutation guard, part 2: if the pre-verifier snapshot exists, re-hash
 # the file and refuse to write the sentinel if it changed since verification.
 # This closes the concurrent-orchestrator window that the sha-lock only narrows.
-if declare -F sha_lock_hash_file >/dev/null 2>&1 && [[ -n "${PRE_VERIFIER_HASH:-}" ]] && [[ -n "${PRESERVE_FILE:-}" ]]; then
-    POST_VERIFIER_HASH="$(sha_lock_hash_file "$PRESERVE_FILE")"
-    if [[ -n "$POST_VERIFIER_HASH" ]] && [[ "$PRE_VERIFIER_HASH" != "$POST_VERIFIER_HASH" ]]; then
+# Same hash function as the snapshot above. A claims rewrite that lands while
+# the verifier runs is overwritten by the verifier's own write-back, which
+# carries the claims it actually replayed, so the sentinel still binds to
+# verified claims. A post-snapshot that cannot be computed at all (file gone,
+# JSON no longer parses) fails closed.
+if [[ -n "${PRE_VERIFIER_HASH:-}" ]] && [[ -n "${PRESERVE_FILE:-}" ]]; then
+    if declare -F sha_lock_hash_envelope_claims >/dev/null 2>&1; then
+        POST_VERIFIER_HASH="$(sha_lock_hash_envelope_claims "$PRESERVE_FILE")"
+    else
+        POST_VERIFIER_HASH="$(sha_lock_hash_file "$PRESERVE_FILE")"
+    fi
+    if [[ "$PRE_VERIFIER_HASH" != "$POST_VERIFIER_HASH" ]]; then
         echo "❌ Envelope MUTATED during verification: another orchestrator rewrote" >&2
         echo "   $PRESERVE_FILE between the verifier pass and sentinel write." >&2
         echo "   Binding a sentinel to unverified claims is a silent-corruption path." >&2

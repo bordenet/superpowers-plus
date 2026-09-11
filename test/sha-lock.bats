@@ -115,3 +115,66 @@ teardown() {
     [[ "$(cat "$WORK/b.out")" == *"B-done"* ]]
     [ ! -d "$WORK/ser.lock" ]
 }
+
+# ── sha_lock_hash_envelope_claims ──────────────────────────────────────────
+#
+# run-battery.sh used to snapshot the raw envelope bytes before the evidence
+# verifier ran and compare after. The verifier writes its own annotations
+# back into that same file, so every freshly written envelope failed its
+# first run as "MUTATED" and passed on the second. These tests pin the fix:
+# the guard hashes the claims, not the verifier's write-back.
+
+write_envelope() {
+    cat > "$1" <<'EOF'
+{"findings": [], "clean_dimensions": [{"dimension": "Shell/Runtime Portability", "claim": "prints CLEAN", "evidence": {"command": "echo CLEAN", "expectation": {"type": "match", "value": "CLEAN"}, "verifiable": true, "rationale": "fixture"}}]}
+EOF
+}
+
+@test "sha_lock_hash_envelope_claims: unchanged by the verifier's own write-back (first-run MUTATED regression)" {
+    command -v node >/dev/null 2>&1 || skip "node not installed"
+    local verifier raw1 raw2 claims1 claims2
+    verifier="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)/tools/verify-cr-battery-evidence.js"
+    write_envelope "$WORK/env.json"
+    raw1=$(bash -c "source '$LIB' && sha_lock_hash_file '$WORK/env.json'")
+    claims1=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/env.json'")
+    node "$verifier" "$WORK/env.json" --cwd "$WORK" >/dev/null 2>&1
+    grep -q '"verifier_result"' "$WORK/env.json"
+    raw2=$(bash -c "source '$LIB' && sha_lock_hash_file '$WORK/env.json'")
+    claims2=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/env.json'")
+    [ "$raw1" != "$raw2" ]
+    [[ "$claims1" =~ ^[0-9a-f]{64}$ ]]
+    [ "$claims1" = "$claims2" ]
+}
+
+@test "sha_lock_hash_envelope_claims: hash CHANGES when a claim is rewritten" {
+    command -v node >/dev/null 2>&1 || skip "node not installed"
+    local h1 h2
+    write_envelope "$WORK/env.json"
+    h1=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/env.json'")
+    sed 's/prints CLEAN/prints something else/' "$WORK/env.json" > "$WORK/env2.json"
+    h2=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/env2.json'")
+    [ -n "$h1" ]
+    [ "$h1" != "$h2" ]
+}
+
+@test "sha_lock_hash_envelope_claims: ignores key order and whitespace" {
+    command -v node >/dev/null 2>&1 || skip "node not installed"
+    local h1 h2
+    write_envelope "$WORK/env.json"
+    node -e 'const fs=require("fs");const e=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const r={clean_dimensions:e.clean_dimensions,findings:e.findings};fs.writeFileSync(process.argv[2],JSON.stringify(r,null,4))' "$WORK/env.json" "$WORK/reordered.json"
+    h1=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/env.json'")
+    h2=$(bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/reordered.json'")
+    [ -n "$h1" ]
+    [ "$h1" = "$h2" ]
+}
+
+@test "sha_lock_hash_envelope_claims: prints nothing for a missing or unparseable file" {
+    command -v node >/dev/null 2>&1 || skip "node not installed (the helper falls back to the raw-file hash)"
+    printf '{"findings": [' > "$WORK/broken.json"
+    run bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/broken.json'"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    run bash -c "source '$LIB' && sha_lock_hash_envelope_claims '$WORK/missing.json'"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
