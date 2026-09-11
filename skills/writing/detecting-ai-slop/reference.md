@@ -150,7 +150,7 @@ Replace with plain language or specific descriptions.
 | load bearing | buzzword |
 | testament to | buzzword |
 | stands as a | buzzword (copula avoidance: scores under skill.md's Copula Avoidance row, not here; see *One occurrence, one hit*) |
-| serves as a | buzzword (copula avoidance: same treatment as `stands as a`) |
+| serves as a | buzzword (advisory; copula avoidance when plain "is" says the same thing, but also ordinary technical English such as "serves as a polyfill", so `slop-check.sh` warns instead of blocking) |
 | commitment to excellence | buzzword |
 | diverse array of | buzzword |
 | valuable insights | buzzword |

@@ -178,7 +178,7 @@ run_check() {
 # line number instead of hiding behind another term's hit.
 NEW_BLOCKING_TERMS=(
     'BUZZWORD|load-bearing' 'BUZZWORD|load bearing' 'BUZZWORD|testament to'
-    'BUZZWORD|stands as a' 'BUZZWORD|serves as a'
+    'BUZZWORD|stands as a'
     'BUZZWORD|commitment to excellence' 'BUZZWORD|diverse array of'
     'BUZZWORD|valuable insights' 'BUZZWORD|a wealth of'
     'BUZZWORD|a treasure trove of' 'BUZZWORD|future outlook'
@@ -228,11 +228,12 @@ The locking rules are intricate because two writers share one index.
 The intricacies of the TLS handshake broke the proxy.
 At the heart of the scheduler is a min-heap keyed by deadline.
 The dashboard uses a vibrant red for failed jobs.
+The safe-buffer package serves as a polyfill for older runtimes.
 EOF
     run_check --content "$CONTENT"
     [ "$status" -eq 0 ]
     local i
-    for i in 1 2 3 4 5 6 7; do
+    for i in 1 2 3 4 5 6 7 8; do
         [[ "$output" == *"WARN   "*": ${i}:"* ]] || { echo "line ${i} raised no warning" >&2; return 1; }
     done
 }

@@ -174,7 +174,7 @@ declare -a BUZZWORDS=(
     'bolster' 'transcend' 'resonate' 'showcase' 'underscore'
     'crucial' 'invaluable'
     'load-bearing' 'load bearing'
-    'testament to' 'stands as a' 'serves as a'
+    'testament to' 'stands as a'
     'commitment to excellence' 'diverse array of'
     'valuable insights' 'a wealth of' 'a treasure trove of'
     'future outlook' 'future prospects'
@@ -185,11 +185,16 @@ declare -a BUZZWORDS=(
 # ("The interplay between the connection pool and the retry queue caused the
 # leak."; "We meticulously verified each state transition."). vibrant is
 # fine when it describes a literal color, theme, or image, and a line-level
-# grep cannot tell that apart from marketing copy.
+# grep cannot tell that apart from marketing copy. 'serves as a' is the
+# copula-avoidance tell, but it is also ordinary technical English: 3
+# distinct packages (safer-buffer, magicast, @azure/msal-common) across about
+# 2,172 distinct third-party READMEs use it ("serves as a polyfill", "serves
+# as a common package dependency"), against 0 for 'stands as a', which stays
+# blocking.
 declare -a BUZZWORDS_ADVISORY=(
     'enhance' 'dynamic' 'agile' 'ecosystem' 'facilitate' 'accelerate'
     'interplay' 'meticulous' 'meticulously' 'intricate' 'intricacies'
-    'vibrant'
+    'vibrant' 'serves as a'
 )
 
 # Cat 3: filler openers (blocking)
