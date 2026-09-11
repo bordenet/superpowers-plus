@@ -23,7 +23,7 @@ composition:
 # Detecting AI Slop
 
 > **Guidelines:** See [CLAUDE.md](../../CLAUDE.md) for writing standards.
-> **Last Updated:** 2026-07-05
+> **Last Updated:** 2026-09-11
 > **See also:** [reference.md](./reference.md) (pattern dictionary), [examples.md](./examples.md) (usage examples)
 >
 > **Wrong skill?** Rewriting to remove slop → `eliminating-ai-slop`. Profanity/inappropriate language → `professional-language-audit`.
@@ -51,6 +51,7 @@ slop-check.sh --content FILE --mode summary
 
 Exit codes: `0` = clean (warnings only), `1` = blocking violations, `2` = usage error.
 Weak intensifiers (`very`, `extremely`, etc.) are always advisory -- they appear in output but never set exit code 1.
+Advisory-tier buzzwords and fillers (`interplay`, `meticulous`, `intricate`, `vibrant`, `at the heart of`, and the rest marked advisory in `reference.md`) behave the same way. `slop-check.sh --list-patterns` prints the full catalog with each entry's tier.
 
 When adding a new banned pattern, add it to `reference.md` and `tools/slop-check.sh` in the same commit.
 
@@ -82,6 +83,8 @@ The skill auto-detects content type from context:
 | Cover Letter | "cover letter", "dear hiring" |
 | README | Filename is "README" |
 | PRD | "requirements", "PRD", "product" |
+| Commit Message | Conventional-commit prefix, bare or scoped (`feat:`, `fix(api):`, `refactor:`), or explicitly labeled "commit message" |
+| Code Review Comment | Explicitly labeled "review comment", or inline diff context is present |
 
 **Override:** "Analyze this as a [type]: [text]"
 
@@ -120,7 +123,7 @@ Verdict: Heavy slop. Substantial rewrite needed.
 | Semantic | 20 | `min(20, 5 * semantic_pattern_instances)` — count each matched instance of a row marked Semantic in the Structural & Semantic Patterns table (5 pts per instance, not per pattern type); each instance scores once, on its stated dimension only |
 | Stylometric | 15 | `min(15, 5 * stylometric_flags)` |
 
-**Total:** Sum of dimensions, capped at 100.
+**Total:** Sum of dimensions, capped at 100. Count each occurrence once, even when it matches more than one dictionary entry or pattern row (see *One occurrence, one hit* in reference.md).
 
 ### Score Interpretation
 
@@ -159,11 +162,14 @@ Each pattern below scores +5 on its stated dimension.
 | Balanced to a Fault | Every pro has matching con of equal weight | Semantic |
 | Circular Reasoning | Rephrases thesis without new evidence | Semantic |
 | Structural Contrast | "It's not X; it's Y" and subject-varying forms ("The goal isn't X; it's Y"), elevation forms ("not just X — it's Y", "not merely X — it's Y"), plus hedged concessions ("a minor X, but a real one") (see Cat. 9 in reference.md) | Structural |
+| Copula Avoidance | "stands as" or "serves as" in place of a plain "is" that says the same thing (see Cat. 2 in reference.md); scores here, not also as a Lexical hit | Structural |
+| Gerund-Tail Commentary | A factual clause followed by ", highlighting...", ", underscoring...", or ", reinforcing..." that adds no new evidence ("The job retried three times, highlighting the importance of idempotency"); exempt when the gerund clause names a new concrete detail (metric, file, mechanism) | Structural |
 | Framework Name-Dropping | Framework invoked with no concrete claim attached (see Semantic Fabrication in reference.md) | Semantic |
 | Fabricated Open Questions | "Open questions"/"next steps" invented for closed or decided topics | Semantic |
 | Process Metrics as Results | Activity/funnel counts standing in for the actual outcome | Semantic |
+| Verification Theater | Completion or certainty claims ("all tests pass", "no regressions", "fully tested") with no linked command, CI run, or test name (see Semantic Fabrication in reference.md) | Semantic |
 
-**Cap behavior:** 6 rows above are tagged Structural; that dimension saturates at 25 points once any 5 of them are found (5 × 5 = 25), before style-tell weights are even added — same ceiling logic as below. 7 rows above are tagged Semantic; the dimension saturates at 20 points once any 4 of them are found (4 × 5 = 20) — this is a scoring ceiling, not a count of how many Semantic patterns exist. Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
+**Cap behavior:** 8 rows above are tagged Structural; that dimension saturates at 25 points once any 5 of them are found (5 × 5 = 25), before style-tell weights are even added — same ceiling logic as below. 8 rows above are tagged Semantic; the dimension saturates at 20 points once any 4 of them are found (4 × 5 = 20) — this is a scoring ceiling, not a count of how many Semantic patterns exist. Fabrication findings (framework name-dropping, fabricated open questions, process metrics as results, verification theater) are factual defects, not style defects: always list them in Top Offenders even when the dimension is already capped.
 
 ## Pattern Category Quick Reference
 
@@ -182,8 +188,8 @@ For the complete pattern dictionary, see [reference.md](./reference.md). **Dimen
 | Style Tells | one-sentence paragraphs, random bolding, abstract noun stacking | Structural | Restructure |
 | Typographic Tells | em-dash (—), en-dash, smart quotes | Lexical | Replace with standard punctuation (em-dash and en-dash score +3 pts each, not +2) |
 | Clichés | state of the art, at the end of the day, paradigm shift, move the needle, think outside the box (see reference.md Cat. 10 for full list) | Lexical | Replace with the specific claim. Score once per instance; if a phrase also matches a pattern in another Lexical category (e.g. "at the end of the day" also matching Filler Phrases Cat. 3, or "state of the art" also matching Buzzwords Cat. 2), the earlier-numbered category takes precedence, do not double-count. |
-| AI Jargon | failure mode, failure class, failure pattern, failure category, error class, defect pattern (singular and plural; full list and exemptions in reference.md Cat. 11) in free-running prose | Lexical | Flag at 2 pts per instance. See reference.md Cat. 11 for full exemption rules; do not flag structural section contracts, external quotations, or code/API contexts. Default replacement: name the actual problem. Full replacement guidance in eliminating-ai-slop. |
-| Semantic Fabrication | framework name-dropping, fabricated open questions, process metrics as results | Semantic | Ground in a source or delete |
+| AI Jargon | failure mode, failure class, failure pattern, failure category, error class, defect pattern (singular and plural; full list and exemptions in reference.md Cat. 11) in free-running prose | Lexical | Flag at 2 pts per instance. See reference.md Cat. 11 for full exemption rules; do not flag structural section contracts, external quotations, code/API contexts, or a concrete singular use that names how the system fails (a process lapse does not count). Default replacement: name the actual problem. Full replacement guidance in eliminating-ai-slop. |
+| Semantic Fabrication | framework name-dropping, fabricated open questions, process metrics as results, verification theater | Semantic | Ground in a source or delete |
 | Resurrected Corrected Claims | reintroducing a phrasing the author already struck earlier in the document/session | Semantic (unscored — requires session context, no scoring-table row) | Sweep prior corrections before each edit pass |
 
 ## Dictionary Integration

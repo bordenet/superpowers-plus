@@ -171,6 +171,126 @@ run_check() {
     [[ "$output" == *"BUZZWORD"* ]]
 }
 
+# ── Dictionary hardening: new terms, advisory tier, one hit per phrase ─────
+
+# Every blocking term added in this pass, as LABEL|term. The test writes one
+# term per line so a term that fails to block shows up as its own missing
+# line number instead of hiding behind another term's hit.
+NEW_BLOCKING_TERMS=(
+    'BUZZWORD|load-bearing' 'BUZZWORD|load bearing' 'BUZZWORD|testament to'
+    'BUZZWORD|stands as a'
+    'BUZZWORD|commitment to excellence' 'BUZZWORD|diverse array of'
+    'BUZZWORD|valuable insights' 'BUZZWORD|a wealth of'
+    'BUZZWORD|a treasure trove of' 'BUZZWORD|future outlook'
+    'BUZZWORD|future prospects'
+    'FILLER|shed light on' 'FILLER|sheds light on'
+    'FILLER|despite these challenges' 'FILLER|let me be clear'
+    'FILLER|look no further' 'FILLER|without further ado'
+    'FILLER|sets the stage for' 'FILLER|paves the way for'
+)
+
+@test "--list-patterns prints the catalog as tier, label, pattern without --content" {
+    run_check --list-patterns
+    [ "$status" -eq 0 ]
+    [[ "$output" == *$'block\tBUZZWORD\ttestament to'* ]]
+    [[ "$output" == *$'warn\tBUZZWORD\tinterplay'* ]]
+    [[ "$output" == *$'warn\tFILLER\tat the heart of'* ]]
+}
+
+@test "each newly added blocking term blocks under its own label, once" {
+    local entry i=0
+    : > "$CONTENT"
+    for entry in "${NEW_BLOCKING_TERMS[@]}"; do
+        printf 'Note %s here.\n' "${entry#*|}" >> "$CONTENT"
+    done
+    run_check --content "$CONTENT"
+    [ "$status" -eq 1 ]
+    for entry in "${NEW_BLOCKING_TERMS[@]}"; do
+        i=$((i + 1))
+        if [[ "$output" != *"BLOCK  ${entry%%|*}: ${i}:"* ]]; then
+            echo "line ${i} ('${entry#*|}') did not block as ${entry%%|*}" >&2
+            return 1
+        fi
+    done
+    [[ "$output" == *"${#NEW_BLOCKING_TERMS[@]} blocking violation(s)"* ]]
+}
+
+# These terms reproduced blocking ordinary engineering prose with no other
+# AI tell present, so they sit in the advisory tier: reported, never fatal.
+# `vibrant` is advisory here because its exemption (a literal color, theme,
+# or image asset) needs context a line-level grep cannot see.
+@test "advisory-tier terms warn but do not block legitimate engineering prose" {
+    cat > "$CONTENT" <<'EOF'
+The interplay between the connection pool and the retry queue caused the leak.
+We meticulously verified each state transition.
+The meticulous replay of the write-ahead log showed two lost writes.
+The locking rules are intricate because two writers share one index.
+The intricacies of the TLS handshake broke the proxy.
+At the heart of the scheduler is a min-heap keyed by deadline.
+The dashboard uses a vibrant red for failed jobs.
+The safe-buffer package serves as a polyfill for older runtimes.
+EOF
+    run_check --content "$CONTENT"
+    [ "$status" -eq 0 ]
+    local i
+    for i in 1 2 3 4 5 6 7 8; do
+        [[ "$output" == *"WARN   "*": ${i}:"* ]] || { echo "line ${i} raised no warning" >&2; return 1; }
+    done
+}
+
+@test "'it turns out' is not in the catalog: root-cause prose stays clean" {
+    printf 'It turns out the bug was a race condition in the cache warmer.\n' > "$CONTENT"
+    run_check --content "$CONTENT"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"clean (0 advisory warning(s))"* ]]
+}
+
+# One occurrence, one violation. Each pattern is scanned on its own, so a
+# pattern that contains another listed pattern reported the same phrase
+# twice. The first four phrases below each produced two violations before
+# the redundant longer pattern was removed.
+@test "a phrase matched by nested patterns produces exactly one violation" {
+    local phrase count
+    for phrase in "It's worth noting that retries are capped." \
+                  "In the modern era, we deploy daily." \
+                  "This will unlock the potential of the cache." \
+                  "The index plays a crucial role in lookups." \
+                  "This is a testament to careful engineering."; do
+        printf '%s\n' "$phrase" > "$CONTENT"
+        run_check --content "$CONTENT"
+        [ "$status" -eq 1 ]
+        count="$(printf '%s\n' "$output" | grep -c 'BLOCK  ')" || true
+        [ "$count" -eq 1 ] || { echo "'${phrase}' produced ${count} violations" >&2; return 1; }
+    done
+}
+
+# Catalog-wide guard for the same rule, so a future addition that nests
+# inside (or contains) an existing pattern fails here instead of shipping.
+# Every pattern goes on its own line; each blocking line must be hit exactly
+# once and each advisory line never.
+@test "catalog-wide: each pattern alone on a line blocks exactly once, or never if advisory" {
+    local catalog="$TMPDIR_LOCAL/catalog.tsv" counts="$TMPDIR_LOCAL/counts"
+    bash "$TOOL" --list-patterns > "$catalog"
+    [ -s "$catalog" ]
+    cut -f3 "$catalog" > "$CONTENT"
+    run_check --content "$CONTENT"
+    printf '%s\n' "$output" \
+        | sed -n 's/^\[slop-check\] BLOCK  [A-Z_]*: \([0-9][0-9]*\):.*/\1/p' \
+        | sort -n | uniq -c > "$counts"
+    local n=0 bad=0 tier label pat hits
+    while IFS=$'\t' read -r tier label pat; do
+        n=$((n + 1))
+        hits="$(awk -v n="$n" '$2 == n { print $1 }' "$counts")"
+        hits="${hits:-0}"
+        if { [[ "$tier" == block ]] && [[ "$hits" -ne 1 ]]; } ||
+           { [[ "$tier" == warn ]] && [[ "$hits" -ne 0 ]]; }; then
+            echo "line ${n} (${tier} ${label} '${pat}'): ${hits} blocking hit(s)" >&2
+            bad=1
+        fi
+    done < "$catalog"
+    [ "$bad" -eq 0 ]
+}
+
 @test "clean content passes with no output beyond the summary line" {
     printf 'Fixed a null pointer in the retry loop.\n' > "$CONTENT"
     run_check --content "$CONTENT" --mode summary

@@ -1,7 +1,7 @@
 # Detecting AI Slop - Pattern Reference
 
 > **Parent skill:** [skill.md](./skill.md)
-> **Last Updated:** 2026-07-05
+> **Last Updated:** 2026-09-11
 
 This file contains the complete pattern dictionary for slop detection. The core skill.md loads this on demand.
 
@@ -10,6 +10,8 @@ This file contains the complete pattern dictionary for slop detection. The core 
 ## Lexical Patterns (40 points max)
 
 Each pattern found adds 2 points to lexical score (exception: em-dash and en-dash score +3 pts each; see Category 7).
+
+**One occurrence, one hit.** When one occurrence matches more than one entry because one entry contains the other ("rich tapestry" and `tapestry`, "the journey" and `journey`, "could potentially" and `potentially`, "Of course!" and `of course`), score it once, under the earlier-numbered category. The same holds across dimensions: an occurrence that matches a Lexical entry and a Structural or Semantic row in skill.md ("As mentioned earlier" is Category 6 and Over-Signposting; "stands as a" is Category 2 and Copula Avoidance) scores once, on the Structural or Semantic row. Separate entries that sit next to each other without overlapping ("stands as a testament to" is `stands as a` plus `testament to`) are two tells and score twice. Overlap means the entries match the same words: a row that matches a whole sentence shape (Structural Contrast, Gerund-Tail Commentary, Formulaic Introduction) does not absorb Lexical entries inside that sentence, so "paradigm shift" in "It's not a bug fix; it's a paradigm shift" still scores under Category 10. A row's own trigger word (`underscoring` in Gerund-Tail Commentary, `stands as` in Copula Avoidance) scores only on the row, never also as the Lexical entry it resembles. When a Structural row and a Semantic row fire on the same words, score the Semantic row (a factual defect outranks a style defect) and list both in Top Offenders.
 
 ### Category 1: Generic Boosters
 
@@ -144,6 +146,26 @@ Replace with plain language or specific descriptions.
 | compelling | buzzword |
 | meaningful | buzzword |
 | impactful | buzzword |
+| load-bearing | buzzword |
+| load bearing | buzzword |
+| testament to | buzzword |
+| stands as a | buzzword (copula avoidance: scores under skill.md's Copula Avoidance row, not here; see *One occurrence, one hit*) |
+| serves as a | buzzword (advisory; copula avoidance when plain "is" says the same thing, but also ordinary technical English such as "serves as a polyfill", so `slop-check.sh` warns instead of blocking) |
+| commitment to excellence | buzzword |
+| diverse array of | buzzword |
+| valuable insights | buzzword |
+| a wealth of | buzzword |
+| a treasure trove of | buzzword |
+| future outlook | buzzword |
+| future prospects | buzzword |
+| vibrant | buzzword (exempt when it literally describes a color, UI theme, or image asset) |
+| interplay | buzzword (advisory) |
+| meticulous | buzzword (advisory) |
+| meticulously | buzzword (advisory) |
+| intricate | buzzword (advisory) |
+| intricacies | buzzword (advisory) |
+
+**Advisory entries** (marked advisory in this category and in Category 3) reproduced blocking ordinary engineering prose with no other AI tell present: "the interplay between the connection pool and the retry queue", "we meticulously verified each state transition". List an advisory hit in Top Offenders, but score it only when a non-advisory scored pattern appears in the same sentence; two advisory hits ("the intricate interplay") do not satisfy each other. `tools/slop-check.sh` keeps these in its advisory tier (`BUZZWORDS_ADVISORY`, `FILLERS_ADVISORY`): reported, never blocking. `vibrant` sits in that tier too, because a line-level grep cannot apply its color exemption.
 
 ### Category 3: Filler Phrases
 
@@ -200,6 +222,18 @@ Delete entirely - these add no meaning.
 | Shining a light on | filler |
 | Designed to enhance | filler |
 | Unlock the potential of | filler |
+| Shed light on | filler |
+| Sheds light on | filler |
+| Despite these challenges | filler |
+| Let me be clear | filler |
+| Look no further | filler |
+| Without further ado | filler |
+| Sets the stage for | filler |
+| Paves the way for | filler |
+| At its core, | filler (advisory) |
+| At the heart of | filler (advisory) |
+
+**Not listed:** "It turns out" is ordinary root-cause and postmortem phrasing ("it turns out the bug was a race condition") and flags more real prose than slop. Do not score it.
 
 **Exemption:** "In this article" and "In this guide" are exempt when the content-type is `README` or how-to documentation — orienting the reader at the start is expected. Flag only in AI-generated prose or marketing copy.
 
@@ -326,9 +360,10 @@ Phrases that sound analytical while dodging specifics. A reliable tell when they
 | the broader context | abstraction-phrase | stalling — state the context explicitly |
 | the framework | abstraction-phrase | vague when no framework is actually named |
 | the ecosystem | abstraction-phrase | used to imply scale without specifying it |
-| the journey | abstraction-phrase | metaphor in place of a process description — note: also aliases Cat. 2 `journey` buzzword; both patterns score independently if both apply |
+| the journey | abstraction-phrase | metaphor in place of a process description; contains Cat. 2 `journey`, so it scores once, under Cat. 2 (see *One occurrence, one hit*) |
 | the conversation | abstraction-phrase | "part of a larger conversation" — say which one |
 | the space | abstraction-phrase | "in this space" — name the domain |
+| whether you're X or Y | abstraction-phrase | generic-audience hook ("whether you're a developer or a manager"); a precise operational statement does not depend on the reader's role |
 
 **Detection rule:** Flag when the phrase substitutes for a concrete noun (person, system, process, number). If swapping the phrase with a specific noun breaks nothing, it's slop.
 
@@ -381,6 +416,7 @@ Symmetrical, slogan-like contrast patterns that feel manufactured. Each adds 5 p
 | core competency | cliche |
 | best of breed | cliche |
 | mission critical | cliche |
+| rich tapestry | cliche (contains Cat. 1 `tapestry`: scores once, under Cat. 1) |
 
 ### Category 11: AI Jargon in Human Prose
 
@@ -391,10 +427,11 @@ Terms AI assistants favor that read as machine output in prose written for human
 - Direct quotations from an external source (vendor alert, RFC, log message, error text). Skip the occurrence entirely.
 - Term in a code block, inline code span, or in a sentence describing a code construct by name ("catch the correct error class", "Python's BaseException class hierarchy"). This exemption applies to all six terms listed below; "error class" is the most frequent code-context case, the other five are treated identically. Flag only when the term appears in ordinary prose not describing a specific code construct.
 - Categorical veto: the author is formally enumerating a named category of failures that recurs across separate instances, where "bug" or "defect" would collapse a meaningful structural distinction. Detection signals: numbered modes listed by name ("Mode 1: X; Mode 2: Y"), FMEA-style tables with a Failure Mode column, or a section heading that names the category. Absent one of these signals, treat as non-categorical and flag normally. Legitimate example: a postmortem with a named section listing "Mode 1: sensor saturation (occurs under sustained load); Mode 2: clock drift (occurs after failover)"; "defect" would erase the structural distinction between modes. (Kept in sync with `eliminating-ai-slop`'s parallel "Categorical veto" rewriting step; both skills must agree on the same document.)
+- Concrete singular use: the term names one specific fault, trigger, or mechanism, even in a single sentence with no enumeration, table, or heading. "The main failure mode is retry amplification after a regional timeout" is a routine, precise technical claim; leave it. This is broader than the Categorical veto: it needs no recurring category and no structural signal, only a real fault named next to the term. It covers how a system fails; a process lapse or a generalization is not a mechanism, so "the failure mode here was skipping code review" still flags. "There could be a failure mode here" with nothing named still flags. (Kept in sync with the matching step in `eliminating-ai-slop`.)
 
 **Flag in all other free-running prose at 2 pts per instance:**
 
-Note: the code/API context exemption (third bullet above) applies to all six phrases. An agent flagging from this table must check all four exemption bullets before scoring.
+Note: the code/API context exemption (third bullet above) applies to all six phrases. An agent flagging from this table must check all five exemption bullets before scoring.
 
 | Phrase | Category |
 |--------|----------|
@@ -419,6 +456,7 @@ Patterns where the text asserts things the author has no basis for. These score 
 | Fabricated open questions / CTAs | Inventing "open questions", "next steps", or ownership gaps for topics that are closed or decided (e.g., claiming a decommissioned product "needs an owner and a timeline") | Flag unresolved-item framing that cites no source (ticket, doc, user statement). Exempt explicitly exploratory content (brainstorms, draft plans) where raising questions is the point |
 | Process metrics presented as results | Activity counts standing in for outcomes ("30 candidates tracked, 29 phone screens, 4 debriefs" burying "4 bar-raising hires made") | In a results/outcomes context, ask: do the numbers describe what was achieved, or how busy the process was? Funnel stats belong in appendices, not results lines |
 | Resurrected corrected claims | Reintroducing a claim the author already corrected earlier in the same document or session | Requires session/draft history, not the text alone: detectable only when prior corrections are in context. The prevention rule lives in `eliminating-ai-slop` (sweep for struck phrasings before each edit pass) |
+| Verification theater | Completion or certainty claims with no evidence attached: "all tests pass", "no regressions", "this fixes the issue", "fully tested" with no test command, CI run, test name, or reproduction case | Ask: could a reader check this claim right now from what is on the page? If not, it is an assertion, not a verification. Exempt when the claim is immediately followed by its own evidence ("all tests pass: `npm test`, 142/142") |
 
 **Detection heuristic for state claims:** flag claims about team, product, or project state that cite no source. The corresponding writing-time rule (check the source of truth — the project wiki or ticket tracker — before asserting state) lives in `eliminating-ai-slop`.
 
@@ -477,6 +515,27 @@ Patterns where the text asserts things the author has no basis for. These score 
 | "Who else agrees?" | engagement-bait | High |
 | "Drop a 🙋 if you..." | engagement-bait | High |
 | Line breaks after every sentence | listicle-abuse | Medium |
+
+### Commit Message Patterns
+
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| Generic verb + generic object, no concrete token ("feat: enhance X functionality", "fix: resolve issue with X") | generic-commit-shape | High |
+| Unbounded scope words ("all", "various", "multiple", "several") | scope-inflation | Medium |
+| "Refactor" where behavior, API, schema, or protocol actually changed | mislabeled-change | Medium |
+| Risk with no failure named ("fix potential issue", "improve reliability", "handle edge cases" with no case given) | unnamed-risk | High |
+
+**Detection rule:** require at least one concrete technical token after the type/scope: an endpoint, function or class name, config key, error code, schema field, dependency, or observable behavior. "fix(webhook): reject unsigned callbacks before JSON parsing" passes; "fix: improve webhook handling" does not.
+
+### Code Review Comment Patterns
+
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| Modal-only finding: "could", "might", "may", "seems" with no trigger, location, or consequence attached | modal-only-comment | High |
+| Generic praise: "LGTM" or "Looks great" plus a paragraph of unspecific justification | generic-praise | Medium |
+| "Edge cases", "error handling", "performance", or "security" invoked with no case, error, resource, or attacker capability named | unnamed-concern | High |
+
+**Detection rule:** a review comment should name at least two of: the triggering condition, the observable consequence, the location, and the proposed fix or test. "This could cause issues" names none; "When `refreshToken` is absent, `parseToken()` throws before the 401 path; return Unauthorized first" names all four.
 
 ---
 
