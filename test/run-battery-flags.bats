@@ -63,6 +63,16 @@ setup() {
     grep -q "git write-tree" "$SCRIPT"
 }
 
+@test "run-battery: mutation guard hashes envelope claims, not raw bytes, at both snapshots" {
+    # Raw-byte hashing made every fresh envelope fail its first run as
+    # "MUTATED": the evidence verifier writes its own annotations back into
+    # the envelope between the two snapshots. Behavior of the helper is
+    # covered in test/sha-lock.bats; this anchors that run-battery uses it.
+    local uses
+    uses="$(grep -c 'sha_lock_hash_envelope_claims "\$PRESERVE_FILE"' "$SCRIPT")"
+    [ "$uses" -ge 2 ]
+}
+
 @test "run-battery: delegates md-files-changed detection to helper" {
     grep -q "md-files-changed.sh" "$SCRIPT"
     # And the inline regex from earlier rounds is GONE.

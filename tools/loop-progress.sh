@@ -9,6 +9,11 @@
 # USAGE:
 #   tools/loop-progress.sh --loop NAME --round N [--paths SCOPE] --verdict V
 #
+#   Record each round the moment its verdict lands, BEFORE applying any fix:
+#   the fingerprint must capture the tree that was reviewed. Recording round
+#   1 after its fixes, then round 2 on that same tree, reads as zero delta
+#   and aborts even though real progress was made.
+#
 # EXIT CODES:
 #   0  Round recorded; progress detected (or first round).
 #   1  Invalid args, malformed ledger, or system error.
