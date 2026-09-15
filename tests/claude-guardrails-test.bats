@@ -453,7 +453,7 @@ _fixture_transcript() {
   [ "$status" -eq 0 ]
 }
 
-@test "item 10: RED-autonomy file-based token is single-use (consumed-hash anti-replay)" {
+@test "item 10: RED-autonomy file-based token is single-use per write; a freshly-written new token authorizes a new action" {
   local fake_home
   fake_home="$(_fresh_home)"
 
@@ -474,10 +474,47 @@ _fixture_transcript() {
   # Consumed-hash file must now exist in the new consumed/ directory
   [ -f "$fake_home/.claude/consumed/test-session-filetoken.consumed-approvals.txt" ]
 
-  # Write a NEW file-based token (simulating a replay attempt)
+  # A human is expected to write a FRESH token to authorize each new action
+  # within a session (_emit_file_token_recipe's own words: "they authorize a
+  # new ref ... that a repeated phrase cannot"). This is a genuinely new
+  # approval, not a replay of the first one, so it must be allowed. Sleep
+  # ensures a distinct mtime at 1s stat resolution.
+  sleep 1
   echo "push" > "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
 
-  # Second invocation: token hash already in consumed file → block with "already consumed"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  rm -f "$TPATH"
+  rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: RED-autonomy file-based token blocks exact-instance replay when the file survives consumption" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"transcript_path":"%s","session_id":"test-session-replay","cwd":"/tmp"}' "$TPATH")"
+  local token_file="$fake_home/.claude/session-env/test-session-replay.push-approval"
+
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "push" > "$token_file"
+  touch -t 202601010000 "$token_file"
+
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  [ "$status" -eq 0 ]
+
+  # Recreate the token with the IDENTICAL pinned mtime, simulating the case
+  # where the consuming `rm -f ... || true` failed to remove the original
+  # file (permissions, read-only mount) -- this exact-instance replay is
+  # what the mtime-keyed hash exists to still catch, even though a
+  # genuinely fresh token (different mtime, prior test) must pass.
+  echo "push" > "$token_file"
+  touch -t 202601010000 "$token_file"
+
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
   rm -f "$TPATH"
@@ -1301,7 +1338,7 @@ _fixture_transcript_cursor() {
   [ "$status" -eq 2 ]
 }
 
-@test "item 10: strict-disable: file-based approval token is single-use (consumed-hash anti-replay)" {
+@test "item 10: strict-disable: file-based approval token is single-use per write; a fresh token authorizes a new action" {
   local fake_home
   fake_home="$(_fresh_home)"
   _fixture_transcript "no approval here"
@@ -1317,8 +1354,35 @@ _fixture_transcript_cursor() {
   [ -f "$fake_home/.claude/consumed/strict-disable-filetoken.consumed-approvals.txt" ]
   [ ! -f "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval" ]
 
-  # Replay attempt with a freshly-written file token: consumed-hash still blocks.
+  # A freshly-written token (new mtime) authorizes a NEW strict-disable
+  # action -- not a replay of the first. Sleep ensures a distinct mtime.
+  sleep 1
   echo "strict-disable" > "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval"
+  HOME="$fake_home" run bash "$hook" <<<"$input"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
+@test "item 10: strict-disable: file-based token blocks exact-instance replay when the file survives consumption" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript "no approval here"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"tools/promotion-strict-toggle.sh disable main"},"transcript_path":"%s","session_id":"strict-disable-replay","cwd":"/tmp"}' "$TPATH")"
+  local token_file="$fake_home/.claude/session-env/strict-disable-replay.strict-disable-approval"
+
+  mkdir -p "$fake_home/.claude/session-env"
+  echo "strict-disable" > "$token_file"
+  touch -t 202601010000 "$token_file"
+
+  HOME="$fake_home" run bash "$hook" <<<"$input"
+  [ "$status" -eq 0 ]
+
+  # Same pinned mtime simulates `rm -f ... || true` failing to delete the
+  # original file -- the exact-instance replay the mtime-keyed hash catches.
+  echo "strict-disable" > "$token_file"
+  touch -t 202601010000 "$token_file"
   HOME="$fake_home" run bash "$hook" <<<"$input"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 2 ]

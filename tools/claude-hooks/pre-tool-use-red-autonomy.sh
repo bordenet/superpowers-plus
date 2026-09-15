@@ -507,8 +507,18 @@ EOF
   fi
 
   # Single-use, mirroring file-based Method 1 tokens for push/release.
+  #
+  # The hash MUST include the approval file's own mtime, not just
+  # SESSION_ID+"strict-disable": a human is expected to write a FRESH token
+  # for each new approval within one session. Hashing session+category alone
+  # collapses every strict-disable token to one fixed value, so the FIRST
+  # approval in a session permanently exhausts this gate for the rest of the
+  # session -- a freshly-written second token is wrongly rejected as
+  # "already consumed" (found 2026-09-15; same defect as the push/release
+  # token check below, fixed there for the identical reason).
   if [[ -f "$STRICT_DISABLE_APPROVAL_FILE" ]]; then
-    STRICT_DISABLE_TOKEN_HASH="$(printf '%s:strict-disable' "$SESSION_ID" | _sha256)"
+    STRICT_DISABLE_TOKEN_MTIME="$(stat -f '%m' "$STRICT_DISABLE_APPROVAL_FILE" 2>/dev/null || stat -c '%Y' "$STRICT_DISABLE_APPROVAL_FILE" 2>/dev/null || echo "no-mtime")"
+    STRICT_DISABLE_TOKEN_HASH="$(printf '%s:strict-disable:%s' "$SESSION_ID" "$STRICT_DISABLE_TOKEN_MTIME" | _sha256)"
     if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$STRICT_DISABLE_TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
       {
         echo "BLOCKED: RED action (strict-disable) approval token already consumed in this session."
@@ -1097,7 +1107,24 @@ fi
 if [[ "$TOKEN_SOURCE" == "file" ]]; then
   # NOTE: check-then-append is not atomic. Claude Code serializes pre-tool-use
   # hooks within a session, making concurrent races impossible in practice.
-  TOKEN_HASH="$(printf '%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" | _sha256)"
+  #
+  # The hash MUST include this approval file's own mtime, not just
+  # SESSION_ID+TOKEN_CATEGORY: the documented workflow (see
+  # _emit_file_token_recipe) has a human write a FRESH token to authorize
+  # EACH new push/delete within a session -- "they authorize a new ref ...
+  # that a repeated phrase cannot." Hashing session+category alone ignores
+  # which file write this is, so every 'push' token in a session collapses
+  # to the identical hash: the first approval consumes it, and every
+  # legitimately fresh token written afterward is rejected as "already
+  # consumed" even though it was never actually presented to this gate
+  # before. Reproduced 2026-09-15: a second push, to a different branch,
+  # was blocked this way after an earlier push in the same session had
+  # already succeeded once. Including mtime makes each write distinct while
+  # still rejecting a replay of the SAME still-on-disk file (defense in
+  # depth for when rm below fails, e.g. a permissions error).
+  APPROVAL_FILE_PATH="$SESSION_ENV_DIR/${SESSION_ID}.push-approval"
+  TOKEN_MTIME="$(stat -f '%m' "$APPROVAL_FILE_PATH" 2>/dev/null || stat -c '%Y' "$APPROVAL_FILE_PATH" 2>/dev/null || echo "no-mtime")"
+  TOKEN_HASH="$(printf '%s:%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" "$TOKEN_MTIME" | _sha256)"
   if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
     {
       echo "BLOCKED: RED action approval token already consumed in this session."
@@ -1109,7 +1136,7 @@ if [[ "$TOKEN_SOURCE" == "file" ]]; then
   fi
   echo "$TOKEN_HASH" >> "$CONSUMED_FILE"
   # Remove file-based approval token (it is single-use by design).
-  rm -f "$SESSION_ENV_DIR/${SESSION_ID}.push-approval" 2>/dev/null || true
+  rm -f "$APPROVAL_FILE_PATH" 2>/dev/null || true
 fi
 
 log 0 "approved-${TOKEN_CATEGORY}(${TOKEN_SOURCE})"
