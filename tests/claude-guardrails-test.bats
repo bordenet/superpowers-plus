@@ -477,10 +477,11 @@ _fixture_transcript() {
   # A human is expected to write a FRESH token to authorize each new action
   # within a session (_emit_file_token_recipe's own words: "they authorize a
   # new ref ... that a repeated phrase cannot"). This is a genuinely new
-  # approval, not a replay of the first one, so it must be allowed. Sleep
-  # ensures a distinct mtime at 1s stat resolution.
-  sleep 1
+  # approval, not a replay of the first one, so it must be allowed. Pin an
+  # explicit, different mtime (rather than `sleep 1`) so the test is fast
+  # and its intent -- "distinct write" -- is not left implicit.
   echo "push" > "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
+  touch -t 202601010001 "$fake_home/.claude/session-env/test-session-filetoken.push-approval"
 
   HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
     run bash "$hook" <<<"$input"
@@ -507,11 +508,13 @@ _fixture_transcript() {
     run bash "$hook" <<<"$input"
   [ "$status" -eq 0 ]
 
-  # Recreate the token with the IDENTICAL pinned mtime, simulating the case
-  # where the consuming `rm -f ... || true` failed to remove the original
-  # file (permissions, read-only mount) -- this exact-instance replay is
-  # what the mtime-keyed hash exists to still catch, even though a
-  # genuinely fresh token (different mtime, prior test) must pass.
+  # Recreate the token and re-pin the IDENTICAL mtime. This models any two
+  # writes that happen to collide on mtime (e.g. same-second writes on a
+  # coarse-resolution filesystem), not specifically a failed `rm` -- the
+  # hook's own `rm -f ... || true` does succeed here, in this scratch
+  # tmpdir, before the file is recreated. Either way, the mtime-keyed hash
+  # exists to still catch this collision, even though a genuinely fresh
+  # token (different mtime, prior test) must pass.
   echo "push" > "$token_file"
   touch -t 202601010000 "$token_file"
 
@@ -521,6 +524,113 @@ _fixture_transcript() {
   rm -rf "$fake_home"
   [ "$status" -eq 2 ]
   [[ "$output" == *"already consumed"* ]]
+}
+
+@test "item 10: Augment day-scoped approval file authorizes MULTIPLE RED actions in one session (standing approval, not single-use)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local day_file="$fake_home/.red-autonomy-augment-approved-$(date +%Y%m%d)"
+
+  # A human creates this once, by hand, to stand as approval for every RED
+  # action for the rest of the calendar day -- unlike a Method-1
+  # push-approval file, nothing ever deletes it. Routing it through the
+  # same single-use consumed-hash check as Method-1 tokens (both tagged
+  # bare "push", both TOKEN_SOURCE="file") made its own unchanging mtime
+  # collide with itself on every action after the first, permanently
+  # blocking the rest of the day with "already consumed" -- the same root
+  # cause this commit fixes for Method-1 tokens, but silently unfixed here
+  # because this source was never given a hash exemption the way
+  # "transcript" tokens already have.
+  touch "$day_file"
+
+  # AUGMENT_SESSION is derived internally from the payload shape (a
+  # conversation_id with NO session_id -- the real Augment CLI shape), not
+  # from an environment variable -- there is no session_id here at all, and
+  # no transcript_path/TPATH either, since Augment sessions have no
+  # scannable transcript in this fixture.
+  local input1
+  input1='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"conversation_id":"augment-day-multi","cwd":"/tmp"}'
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input1"
+  [ "$status" -eq 0 ]
+
+  # Second, later RED action in the SAME session, same day-file untouched:
+  # must also be allowed, not blocked as "already consumed".
+  local input2
+  input2='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/y"},"conversation_id":"augment-day-multi","cwd":"/tmp"}'
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input2"
+  local status2="$status"
+  local output2="$output"
+
+  # The day-file must survive both invocations -- it is a standing
+  # approval, never single-use, never deleted by this hook.
+  local day_file_survived=0
+  [[ -f "$day_file" ]] && day_file_survived=1
+
+  rm -rf "$fake_home"
+  [ "$status2" -eq 0 ]
+  [[ "$output2" != *"already consumed"* ]]
+  [ "$day_file_survived" -eq 1 ]
+}
+
+@test "item 10: Augment day-scoped approval file is intentionally machine+day scoped, not session-scoped (authorizes a DIFFERENT conversation_id too)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local day_file="$fake_home/.red-autonomy-augment-approved-$(date +%Y%m%d)"
+
+  # This pins the day-file's documented (and intentionally broad) scope:
+  # keyed by calendar day only, not by conversation_id/session_id, so ANY
+  # Augment session on this machine that day is authorized -- not just the
+  # session that happens to run twice. A narrower, session-scoped fix would
+  # make this test fail; if that's ever the intended change, this test's
+  # assertion is the one to update, deliberately, not silently.
+  touch "$day_file"
+
+  local input1
+  input1='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/x"},"conversation_id":"augment-session-A","cwd":"/tmp"}'
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input1"
+  [ "$status" -eq 0 ]
+
+  # A SECOND, DIFFERENT conversation_id (a different Augment session
+  # entirely) against the SAME untouched day-file must also be authorized.
+  local input2
+  input2='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/y"},"conversation_id":"augment-session-B","cwd":"/tmp"}'
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input2"
+  local status2="$status"
+  local output2="$output"
+
+  rm -rf "$fake_home"
+  [ "$status2" -eq 0 ]
+  [[ "$output2" != *"already consumed"* ]]
+}
+
+@test "item 10: a real session_id present alongside conversation_id never falls back to the Augment day-file (session_id takes precedence)" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  local day_file="$fake_home/.red-autonomy-augment-approved-$(date +%Y%m%d)"
+
+  # A day-file exists, but this payload carries a real (non-empty)
+  # session_id -- the normal Claude Code path -- alongside a conversation_id.
+  # Regression pin: SESSION_ID derivation must keep preferring session_id
+  # (AUGMENT_SESSION must stay 0) so an unrelated Augment day-file can never
+  # silently authorize a normal Claude Code session that has no approval of
+  # its own.
+  touch "$day_file"
+
+  local input
+  input='{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin feature/z"},"session_id":"real-cc-session","conversation_id":"augment-session-C","cwd":"/tmp"}'
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+
+  rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"BLOCKED: RED action without explicit approval in current session."* ]]
 }
 
 @test "item 10: RED-autonomy fail-CLOSED when session_id is absent" {
@@ -1355,9 +1465,10 @@ _fixture_transcript_cursor() {
   [ ! -f "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval" ]
 
   # A freshly-written token (new mtime) authorizes a NEW strict-disable
-  # action -- not a replay of the first. Sleep ensures a distinct mtime.
-  sleep 1
+  # action -- not a replay of the first. Pin an explicit, different mtime
+  # (rather than `sleep 1`) so the test is fast and deterministic.
   echo "strict-disable" > "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval"
+  touch -t 202601010001 "$fake_home/.claude/session-env/strict-disable-filetoken.strict-disable-approval"
   HOME="$fake_home" run bash "$hook" <<<"$input"
   rm -f "$TPATH"; rm -rf "$fake_home"
   [ "$status" -eq 0 ]
@@ -1379,8 +1490,8 @@ _fixture_transcript_cursor() {
   HOME="$fake_home" run bash "$hook" <<<"$input"
   [ "$status" -eq 0 ]
 
-  # Same pinned mtime simulates `rm -f ... || true` failing to delete the
-  # original file -- the exact-instance replay the mtime-keyed hash catches.
+  # Same pinned mtime models any two writes that happen to collide on
+  # mtime -- the mtime-keyed hash exists to still catch this case.
   echo "strict-disable" > "$token_file"
   touch -t 202601010000 "$token_file"
   HOME="$fake_home" run bash "$hook" <<<"$input"
