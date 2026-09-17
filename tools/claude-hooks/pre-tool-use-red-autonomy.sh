@@ -401,7 +401,7 @@ fi
 # an audit-log entry). Adversarial-input case (session_id sanitizes to empty)
 # also hits this path -- correct outcome, not a regression.
 if [[ -z "$SESSION_ID" ]]; then
-  log 2 "no-session-id-fail-closed" TP
+  log 2 "no-session-id-fail-closed" fired
   cat >&2 <<'MSG'
 BLOCKED: no session_id (Claude Code) or conversation_id (Augment Code) in
 hook input, so this RED action has no scoping key to bind approval to.
@@ -541,7 +541,7 @@ EOF
       echo "  This weakens branch protection on dev/staging/main and requires its OWN approval -- a prior 'approve push' or 'promote to main' does NOT satisfy this gate by design (AGENTS.md: never bundled with the promotion approval itself)."
       echo "  Say 'approve strict-disable' to authorize this action."
     } >&2
-    log 2 no-approval-strict-disable TP
+    log 2 no-approval-strict-disable fired
     exit 2
   fi
 
@@ -572,7 +572,7 @@ except OSError:
         echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
         echo "  Request a new approval."
       } >&2
-      log 2 token-consumed-strict-disable TP
+      log 2 token-consumed-strict-disable fired
       exit 2
     fi
     echo "$STRICT_DISABLE_TOKEN_HASH" >> "$CONSUMED_FILE"
@@ -1166,7 +1166,7 @@ if [[ -z "$TOKEN_CATEGORY" ]]; then
     echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
     echo "  Say 'approve push' or another approval phrase to authorize this action."
   } >&2
-  log 2 no-approval TP
+  log 2 no-approval fired
   exit 2
 fi
 
@@ -1180,7 +1180,7 @@ if [[ "$TOKEN_SOURCE" == "transcript" ]]; then
       echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
       echo "  A prior git push/branch-delete this session targeted a different ref, this action escalates severity (push -> force-push -> delete) beyond what was approved, or the target could not be resolved unambiguously. Repeating the same approval phrase will NOT authorize this -- a denied attempt is never treated as its own precedent. Use the explicit file-based approval token for a new target, or start a fresh session."
     } >&2
-    log 2 target-mismatch TP
+    log 2 target-mismatch fired
     exit 2
   fi
 fi
@@ -1232,7 +1232,7 @@ except OSError:
       echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
       echo "  The '$TOKEN_CATEGORY' token was already used. Request a new approval."
     } >&2
-    log 2 token-consumed TP
+    log 2 token-consumed fired
     exit 2
   fi
   echo "$TOKEN_HASH" >> "$CONSUMED_FILE"

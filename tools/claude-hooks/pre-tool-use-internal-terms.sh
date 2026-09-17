@@ -131,7 +131,7 @@ if [[ -n "$HITS" ]]; then
     while IFS= read -r hit; do echo "  - $hit"; done <<<"$HITS"
     echo "Scrub the commits, or set CLAUDE_HOOKS_BYPASS=1 to override (see audit log)."
   } >&2
-  log 2 hits-found TP
+  log 2 hits-found fired
   exit 2
 fi
 log 0 clean

@@ -1,11 +1,16 @@
 # Hook Block Audit
 
-The red-autonomy, internal-terms, and git-identity hooks write audit records to `~/.claude/hooks/hook-audit.log`. Classified block and malformed-input records include two fields used for review:
+The red-autonomy, internal-terms, and git-identity hooks write audit records to `~/.claude/hooks/hook-audit.log`. Block and malformed-input records include two fields used for review:
 
-- `class=TP|FP|unknown` records true positive (TP), false positive (FP), or unknown (not yet adjudicated).
+- `class=fired|unknown` distinguishes a policy gate that fired from a malformed or dependency-failure event.
 - `sid=<session>` groups records from the same sanitized Claude Code or Augment session. Missing identifiers use `sid=-`.
 
-The hooks initially assign `TP` when an existing policy condition blocks an action. Dependency failures and malformed input that reach audit logging use `unknown`. A hook cannot establish that its own decision was a false positive, so `FP` is reserved for local post-review classification. The reporter retains each accepted record's real nonzero exit code; this includes exit 5 from malformed internal-terms and git-identity input.
+`fired` is deliberately not called a true positive. A gate cannot adjudicate its
+own decision, and no production path can prove a false positive. Legacy
+`class=TP` and `class=FP` records are therefore normalized to
+fired-but-unadjudicated by the reporter. Dependency failures and malformed input
+use `unknown`. The reporter retains each accepted record's real nonzero exit
+code; this includes exit 5 from malformed internal-terms and git-identity input.
 
 This metadata does not change which actions the hooks allow or block. Red-autonomy still fails closed on malformed input. Internal-terms and git-identity retain their existing malformed-input exit statuses.
 
@@ -29,25 +34,41 @@ Run the report from the repository root:
 python3 tools/hook-block-report.py
 ```
 
-The reporter accepts only regular files. It opens supplied paths nonblocking and refuses final-component symlinks before reading, so a FIFO or symlink cannot turn a bounded report into an unbounded wait or an unintended read. The default report reads at most the last 1 MiB of the log, plus one preceding byte to verify the first record boundary, and emits deterministic tab-separated counts:
+The reporter reads retained generations in chronological order: `.2`, `.1`,
+then the live log. It accepts only regular files, opens paths nonblocking, and
+refuses final-component symlinks, so a FIFO or symlink cannot turn a bounded
+report into an unbounded wait or unintended read. The default applies one 1 MiB
+ceiling across the combined retained window, plus one preceding byte to verify
+the first record boundary. If append or rotation changes the generation set
+during the read, the reporter fails and asks for a retry instead of mixing two
+snapshots. A successful run emits deterministic tab-separated counts:
 
 ```text
-hook	exit	TP	FP	unknown
-red-autonomy	2	3	0	1
-internal-terms	2	1	0	0
-internal-terms	5	0	0	1
-git-identity	2	2	0	0
-git-identity	5	0	0	1
-TOTAL	-	6	0	3
-ignored_lines	4
+hook	exit	fired_unadjudicated	unknown
+red-autonomy	2	3	1
+internal-terms	2	1	0
+internal-terms	5	0	1
+git-identity	2	2	0
+git-identity	5	0	1
+TOTAL	-	6	3
+excluded_lines	4
+files_read	3
 truncated	no
 ```
 
-Use `--max-bytes` to select a smaller bounded tail. The hard limit is 16 MiB. Exit 2 records may omit `class` for legacy compatibility and are then counted as `unknown`. Other nonzero exits are accepted only when they contain an explicit class and `reason=malformed-input`. Format-invalid, duplicate-field, and unsupported records are counted under `ignored_lines`; their contents are never echoed.
+Use `--max-bytes` to select a smaller combined tail. The hard limit is 16 MiB.
+Exit 2 records may omit `class` for legacy compatibility and are then counted as
+`unknown`. Other nonzero exits are accepted only when they contain an explicit
+class and `reason=malformed-input`. Successful records and lines outside the
+block-event schema are counted under `excluded_lines`; their contents are never
+echoed. `truncated=no` means the byte ceiling omitted none of the retained files.
+It does not claim that older, already-rotated history still exists.
 
 The parser validates record format and field allowlists. It does not authenticate records or prove that a hook emitted them. Anyone who can modify the local log can add or alter a format-valid record, classification, or count.
 
-Aggregate counts are suitable for a committed report. Do not commit the source audit log.
+Timestamped aggregate counts are suitable for a committed report. A later run
+may be higher or lower: appends can advance a byte-bounded tail, and rotation
+can replace retained generations. Do not commit the source audit log.
 
 ## Local Detail Review
 
@@ -57,13 +78,13 @@ Use detail mode only on the local machine:
 python3 tools/hook-block-report.py --details
 ```
 
-Detail mode prints a `LOCAL ONLY - DO NOT COMMIT DETAIL OUTPUT` warning and only the parsed timestamp, hook, exit code, class, session identifier, reason, tool name, recognized input key names, and unknown-key count. It never prints an unparsed log line.
+Detail mode prints a `LOCAL ONLY - DO NOT COMMIT DETAIL OUTPUT` warning and only
+the parsed timestamp, hook, exit code, normalized class, session identifier,
+reason, tool name, recognized input key names, and unknown-key count. It never
+prints an unparsed log line.
 
-To adjudicate a suspected false positive, copy the log to a local temporary file, change only that record's `class` field to `FP`, and report against the copy:
-
-```bash
-cp ~/.claude/hooks/hook-audit.log /tmp/hook-audit.review.log
-python3 tools/hook-block-report.py --log /tmp/hook-audit.review.log --details
-```
-
-Keep the review copy and detailed output local. Only the aggregate TP, FP, and unknown counts should enter version control.
+Use that metadata to locate the original local session and reproduce a suspected
+false positive. A false-positive claim requires the reproduction and a regression
+test; editing the hook's self-reported class is not adjudication. Keep session
+details and source logs local. Commit only timestamped aggregates and the
+reproduction-safe conclusion.

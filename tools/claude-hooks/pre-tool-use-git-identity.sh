@@ -161,7 +161,7 @@ if [[ -n "$EXPECTED" && "$ACTUAL" != "$EXPECTED" ]]; then
     echo "  actual:   $ACTUAL"
     echo "  fix:      git config user.email '$EXPECTED'"
   } >&2
-  log 2 mismatch TP
+  log 2 mismatch fired
   exit 2
 fi
 log 0 ok

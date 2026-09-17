@@ -177,13 +177,17 @@ run_session_start() {
     local metrics="$HOOKS_DIR/skill-router-metrics.jsonl"
     local first_output="$BATS_TEST_TMPDIR/stale-reclaim-first.out"
     local second_output="$BATS_TEST_TMPDIR/stale-reclaim-second.out"
-    local first_pid second_pid waited
+    local first_pid second_pid waited real_mkdir real_rm real_mv real_wc
     mkdir -p "$stub_dir" "$sync_dir" "$HOOKS_DIR/.log-rotation.lock"
     : > "$lock_pid"
     backdate_seconds "$lock_pid" 3600
     backdate_seconds "$HOOKS_DIR/.log-rotation.lock" 3600
     write_kib "$metrics" 5121
     printf 'previous metrics\n' > "$metrics.1"
+    real_mkdir="$(command -v mkdir)"
+    real_rm="$(command -v rm)"
+    real_mv="$(command -v mv)"
+    real_wc="$(command -v wc)"
 
     # Hold both hooks after their initial mkdir loses to the stale lock. The
     # rm/mv stubs then force the destructive interleaving that used to remove
@@ -256,15 +260,15 @@ run_session_start() {
     HOME="$TEST_HOME" PATH="$stub_dir:$PATH" STALE_RACE_SYNC="$sync_dir" \
         STALE_ROTATION_LOCK="$HOOKS_DIR/.log-rotation.lock" \
         STALE_LOCK_PID="$lock_pid" STALE_METRICS="$metrics" \
-        REAL_MKDIR="$(command -v mkdir)" REAL_RM="$(command -v rm)" \
-        REAL_MV="$(command -v mv)" REAL_WC="$(command -v wc)" \
+        REAL_MKDIR="$real_mkdir" REAL_RM="$real_rm" \
+        REAL_MV="$real_mv" REAL_WC="$real_wc" \
         bash "$HOOK" <<<"$HOOK_INPUT" > "$first_output" 2>&1 &
     first_pid=$!
     HOME="$TEST_HOME" PATH="$stub_dir:$PATH" STALE_RACE_SYNC="$sync_dir" \
         STALE_ROTATION_LOCK="$HOOKS_DIR/.log-rotation.lock" \
         STALE_LOCK_PID="$lock_pid" STALE_METRICS="$metrics" \
-        REAL_MKDIR="$(command -v mkdir)" REAL_RM="$(command -v rm)" \
-        REAL_MV="$(command -v mv)" REAL_WC="$(command -v wc)" \
+        REAL_MKDIR="$real_mkdir" REAL_RM="$real_rm" \
+        REAL_MV="$real_mv" REAL_WC="$real_wc" \
         bash "$HOOK" <<<"$HOOK_INPUT" > "$second_output" 2>&1 &
     second_pid=$!
 
@@ -298,7 +302,7 @@ run_session_start() {
     local ready="$BATS_TEST_TMPDIR/release-owner-ready"
     local release="$BATS_TEST_TMPDIR/release-owner-release"
     local hook_output="$BATS_TEST_TMPDIR/release-owner.out"
-    local hook_pid waited
+    local hook_pid waited real_wc
     mkdir "$stub_dir"
     # shellcheck disable=SC2016
     printf '%s\n' \
@@ -310,9 +314,10 @@ run_session_start() {
         'exec "$REAL_WC" "$@"' > "$stub_dir/wc"
     chmod +x "$stub_dir/wc"
     write_kib "$HOOKS_DIR/skill-router-metrics.jsonl" 5121
+    real_wc="$(command -v wc)"
 
     HOME="$TEST_HOME" PATH="$stub_dir:$PATH" ROTATION_READY="$ready" \
-        ROTATION_RELEASE="$release" REAL_WC="$(command -v wc)" \
+        ROTATION_RELEASE="$release" REAL_WC="$real_wc" \
         bash "$HOOK" <<<"$HOOK_INPUT" > "$hook_output" 2>&1 &
     hook_pid=$!
 
@@ -350,7 +355,7 @@ run_session_start() {
     local initial_output="$BATS_TEST_TMPDIR/initial-acquirer.out"
     local replacement_output="$BATS_TEST_TMPDIR/replacement-owner.out"
     local metrics="$HOOKS_DIR/skill-router-metrics.jsonl"
-    local initial_pid replacement_pid replacement_owner waited
+    local initial_pid replacement_pid replacement_owner waited real_mkdir real_wc
     mkdir "$initial_stub_dir" "$replacement_stub_dir"
 
     # Pause the original process after it successfully creates the lock
@@ -379,9 +384,11 @@ run_session_start() {
         'exec "$REAL_WC" "$@"' > "$replacement_stub_dir/wc"
     chmod +x "$initial_stub_dir/mkdir" "$replacement_stub_dir/wc"
     write_kib "$metrics" 5121
+    real_mkdir="$(command -v mkdir)"
+    real_wc="$(command -v wc)"
 
     HOME="$TEST_HOME" PATH="$initial_stub_dir:$PATH" \
-        REAL_MKDIR="$(command -v mkdir)" ROTATION_LOCK_PATH="$HOOKS_DIR/.log-rotation.lock" \
+        REAL_MKDIR="$real_mkdir" ROTATION_LOCK_PATH="$HOOKS_DIR/.log-rotation.lock" \
         INITIAL_READY="$initial_ready" INITIAL_RELEASE="$initial_release" \
         bash "$HOOK" <<<"$HOOK_INPUT" > "$initial_output" 2>&1 &
     initial_pid=$!
@@ -401,7 +408,7 @@ run_session_start() {
 
     HOME="$TEST_HOME" PATH="$replacement_stub_dir:$PATH" \
         REPLACEMENT_READY="$replacement_ready" REPLACEMENT_RELEASE="$replacement_release" \
-        REAL_WC="$(command -v wc)" \
+        REAL_WC="$real_wc" \
         bash "$HOOK" <<<"$HOOK_INPUT" > "$replacement_output" 2>&1 &
     replacement_pid=$!
 

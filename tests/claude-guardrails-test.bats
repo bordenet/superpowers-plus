@@ -2090,7 +2090,7 @@ BROKEN
   rm -rf "$aug_dir" "$cmd_dir"
 }
 
-@test "item 5: slash-menu mirror skips when claude skills-dir entry exists for same name" {
+@test "item 5: slash-menu mirror hides alias when claude skills-dir entry exists for same name" {
   local aug_dir cmd_dir skills_dir
   aug_dir="$(mktemp -d)"
   cmd_dir="$(mktemp -d)"
@@ -2108,8 +2108,10 @@ BROKEN
     run bash "$REPO_ROOT/tools/claude-commands-mirror.sh"
   [ "$status" -eq 0 ]
 
-  # Command file must NOT be written — skills-dir entry takes precedence
-  [ ! -f "$cmd_dir/foo.md" ]
+  # Keep the typed command working, but hide the duplicate from model context.
+  [ -f "$cmd_dir/foo.md" ]
+  grep -q '^disable-model-invocation: true$' "$cmd_dir/foo.md"
+  grep -q 'Invoke the `foo` skill' "$cmd_dir/foo.md"
 
   rm -rf "$aug_dir" "$cmd_dir" "$skills_dir"
 }

@@ -33,6 +33,10 @@
     "distinct_skills_invoked": 41,
     "claude_sessions_sampled": 99
   },
+  "measurement_notes": {
+    "duplicate_entries": "Counts every visible entry participating in a canonical-name collision, not only the extra copy.",
+    "hook_counts": "Point-in-time raw block counts captured before P1f instrumentation; they are not TP/FP adjudications."
+  },
   "hooks": {
     "total_blocks": 1368,
     "red_autonomy_blocks": 1006,

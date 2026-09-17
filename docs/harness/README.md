@@ -105,3 +105,4 @@ reduction ledger's `Deferred` table under `Reason` and defer.
 |---|---|
 | [`reduction-history.md`](reduction-history.md) | Per-split ledger and cumulative savings |
 | [`artifact-budgets.md`](artifact-budgets.md) | Regulator: budget regression tests and rebaseline workflow |
+| [`ip-audit-evidence.md`](ip-audit-evidence.md) | Scan call sites, aggregate block evidence, and the no-weakening decision |
