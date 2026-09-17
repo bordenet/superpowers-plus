@@ -201,7 +201,9 @@ while IFS= read -r _line; do
     resolve_diff_range "$local_sha" "$remote_sha" "$REMOTE_NAME"
     echo "  Checking commits: $RANGE (${remote_ref#refs/heads/})"
 
-    if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
+    if already_reviewed_on_trusted_branch "$local_sha" "$REMOTE_NAME"; then
+        echo "  [code-review-gate] ${local_sha:0:8} is already on main/staging (fully reviewed) — sentinel not required."
+    elif [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
         # No merge-base found -- enumerate ALL files reachable from the tip
         # and decide if the push is truly docs-only before failing closed.
         # This over-approximates (may include ancestor commits already on the
