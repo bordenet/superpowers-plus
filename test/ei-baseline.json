@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-22T03:30:13.632Z",
+  "generated_at": "2026-09-17T19:18:02.260Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -26,6 +26,13 @@
         "normalized_hash": "b98d69860b0b034e",
         "length": 68,
         "first_line": "See `reference.md` for the catalogue and concrete advisory examples."
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "6a104c28ac858f4c",
+        "length": 5122,
+        "first_line": "### F1. Retry spiral"
       }
     ],
     "engineering/branch-sync-gate/skill.md": [
@@ -53,14 +60,47 @@
         "normalized_hash": "cfab42344abe4b6c",
         "length": 851,
         "first_line": "| Failure | Detection | Recovery |"
-      }
-    ],
-    "engineering/evidence-adjudicator/skill.md": [
+      },
       {
         "kind": "SEC",
         "name": "Failure Modes",
         "normalized_hash": "7980cc521843ec84",
         "length": 348,
+        "first_line": "| Mode | Symptom | Recovery |"
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "77e8221908aa40ba",
+        "length": 341,
+        "first_line": "| Mode | Symptom | Recovery |"
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "d8cfb672d7144697",
+        "length": 363,
+        "first_line": "| Mode | Symptom | Recovery |"
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "f4debfb34ea66b18",
+        "length": 328,
+        "first_line": "| Mode | Symptom | Recovery |"
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "04340af719bbba53",
+        "length": 329,
+        "first_line": "| Mode | Symptom | Recovery |"
+      },
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "110f09cd87790511",
+        "length": 302,
         "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
@@ -125,15 +165,6 @@
         "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
-    "engineering/infra-config-investigator/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "77e8221908aa40ba",
-        "length": 341,
-        "first_line": "| Mode | Symptom | Recovery |"
-      }
-    ],
     "engineering/investigation-state/skill.md": [
       {
         "kind": "SEC",
@@ -141,15 +172,6 @@
         "normalized_hash": "1db7d6b7cd344565",
         "length": 524,
         "first_line": "| Failure | Fix |"
-      }
-    ],
-    "engineering/llm-behavior-investigator/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "d8cfb672d7144697",
-        "length": 363,
-        "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
     "engineering/llm-skill-review/skill.md": [
@@ -231,15 +253,6 @@
         "first_line": "- **Blind implementation:** Implementing every suggestion without evaluating whether it's correct for THIS codebase"
       }
     ],
-    "engineering/reproduction-experiment-investigator/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "f4debfb34ea66b18",
-        "length": 328,
-        "first_line": "| Mode | Symptom | Recovery |"
-      }
-    ],
     "engineering/requirements-validation/skill.md": [
       {
         "kind": "SEC",
@@ -256,15 +269,6 @@
         "normalized_hash": "e02ee9c262cf7d48",
         "length": 2152,
         "first_line": "| Failure | Fix |"
-      }
-    ],
-    "engineering/state-consistency-investigator/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "04340af719bbba53",
-        "length": 329,
-        "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
     "engineering/subagent-driven-development/skill.md": [
@@ -292,15 +296,6 @@
         "normalized_hash": "9e841911c08ce766",
         "length": 326,
         "first_line": "| Failure | Fix |"
-      }
-    ],
-    "engineering/timeline-trace-investigator/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "110f09cd87790511",
-        "length": 302,
-        "first_line": "| Mode | Symptom | Recovery |"
       }
     ],
     "engineering/token-estimation/skill.md": [
@@ -929,6 +924,15 @@
         "name": "Failure Modes",
         "normalized_hash": "d0c01cb341040df8",
         "length": 587,
+        "first_line": "| Failure | Fix |"
+      }
+    ],
+    "engineering/code-review-battery/skill.md": [
+      {
+        "kind": "SEC",
+        "name": "Failure Modes",
+        "normalized_hash": "b1c70f2a9e4175b7",
+        "length": 772,
         "first_line": "| Failure | Fix |"
       }
     ]

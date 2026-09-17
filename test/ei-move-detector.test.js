@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * EI-MOVE-DETECTOR: Catches load-bearing content moved out of skill.md.
+ * EI-MOVE-DETECTOR: Catches load-bearing content lost from a skill's protected
+ * source set: skill.md, sibling reference.md, and debug-conductor's six helper
+ * protocols under references/.
  *
  * Companion to compression-safety.test.js, which detects DELETE in compressed
- * output. This test detects MOVE: content that left skill.md entirely (e.g.
- * silently extracted to references/foo.md or _shared/) — a regression vector
- * because the loader reads skill.md only and does not follow links.
+ * output. This test detects content that leaves the skill's resident/on-demand
+ * source set entirely. Moving content between skill.md and its references is
+ * allowed because the combined protocol remains available to the skill.
  *
  * Compares the current skill.md against test/ei-baseline.json:
  *   1. Every <EXTREMELY_IMPORTANT> block must still be present (normalized match)
@@ -34,9 +36,14 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { stripFrontmatter } = require('../lib/frontmatter');
+const { getProtectedSourcePaths } = require('../lib/protected-skill-sources');
 
-const SKILLS_DIR = path.join(__dirname, '..', 'skills');
-const BASELINE_PATH = path.join(__dirname, 'ei-baseline.json');
+const SKILLS_DIR = process.env.EI_MOVE_SKILLS_DIR
+    ? path.resolve(process.env.EI_MOVE_SKILLS_DIR)
+    : path.join(__dirname, '..', 'skills');
+const BASELINE_PATH = process.env.EI_MOVE_BASELINE_PATH
+    ? path.resolve(process.env.EI_MOVE_BASELINE_PATH)
+    : path.join(__dirname, 'ei-baseline.json');
 const SHRINK_FLOOR = 0.30; // 30% length-floor
 
 const PROTECTED_HEADINGS = [
@@ -106,14 +113,22 @@ function extractAllProtectedBlocks(text) {
     return blocks;
 }
 
+function extractSkillProtectedBlocks(skillPath) {
+    const blocks = [];
+    for (const sourcePath of getProtectedSourcePaths(skillPath)) {
+        const raw = stripFrontmatter(fs.readFileSync(sourcePath, 'utf8'));
+        blocks.push(...extractAllProtectedBlocks(raw));
+    }
+    return blocks;
+}
+
 // --- Baseline generation ---
 
 function buildBaseline() {
     const baseline = { generated_at: new Date().toISOString(), skills: {} };
     for (const skillPath of findAllSkills(SKILLS_DIR)) {
         const rel = path.relative(SKILLS_DIR, skillPath);
-        const raw = stripFrontmatter(fs.readFileSync(skillPath, 'utf8'));
-        const blocks = extractAllProtectedBlocks(raw);
+        const blocks = extractSkillProtectedBlocks(skillPath);
         if (blocks.length === 0) continue;
         baseline.skills[rel] = blocks.map((b, i) => ({
             kind: b.kind,
@@ -177,8 +192,7 @@ function detect() {
             );
             continue;
         }
-        const raw = stripFrontmatter(fs.readFileSync(skillPath, 'utf8'));
-        const current = extractAllProtectedBlocks(raw);
+        const current = extractSkillProtectedBlocks(skillPath);
 
         // Hash consumption map: tracks remaining instances of each hash so that
         // two baseline blocks with identical normalized content each need a surviving
@@ -255,6 +269,14 @@ function detect() {
 
 // --- Main ---
 
-const args = process.argv.slice(2);
-if (args.includes('--update')) buildBaseline();
-else detect();
+module.exports = {
+    extractAllProtectedBlocks,
+    extractSkillProtectedBlocks,
+    getProtectedSourcePaths,
+};
+
+if (require.main === module) {
+    const args = process.argv.slice(2);
+    if (args.includes('--update')) buildBaseline();
+    else detect();
+}

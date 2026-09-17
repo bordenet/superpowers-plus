@@ -1,7 +1,7 @@
 # Confidence Scoring Calibration Guide
 
 > **Purpose:** Shared calibration reference for all evidence confidence scores across investigator skills.
-> **Used by:** All investigator skills, evidence-adjudicator, debug-conductor.
+> **Used by:** `debug-conductor` and its internal investigator/adjudicator helper prompts (`skills/engineering/debug-conductor/references/`).
 
 ## Universal Calibration Table
 

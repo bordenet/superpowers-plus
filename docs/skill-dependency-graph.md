@@ -1,9 +1,9 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-09-10
+> **Last updated:** 2026-09-17
 
-This document visualizes the coordination relationships between skills in superpowers-plus. One diagram per `coordination.group` (internal edges only) -- a single graph with all 122 skills and every cross-group edge is unreadable at GitHub's rendering width, so edges that cross group boundaries are listed in [Cross-Group Edges](#cross-group-edges) below instead of drawn.
+This document visualizes the coordination relationships between skills in superpowers-plus. One diagram per `coordination.group` (internal edges only) -- a single graph with all 116 skills and every cross-group edge is unreadable at GitHub's rendering width, so edges that cross group boundaries are listed in [Cross-Group Edges](#cross-group-edges) below instead of drawn.
 
 ## Diagrams by Group
 
@@ -97,7 +97,7 @@ flowchart LR
   quantitative_decision_gate["quantitative-decision-gate"]
 ```
 
-### Engineering (31)
+### Engineering (25)
 
 Coordinated skill group
 
@@ -127,12 +127,6 @@ flowchart LR
   test_driven_development["test-driven-development"]
   codeowners_drift_audit["codeowners-drift-audit"]
   subagent_driven_development["subagent-driven-development"]
-  evidence_adjudicator["evidence-adjudicator [internal]"]
-  infra_config_investigator["infra-config-investigator [internal]"]
-  llm_behavior_investigator["llm-behavior-investigator [internal]"]
-  reproduction_experiment_investigator["reproduction-experiment-investigator [internal]"]
-  state_consistency_investigator["state-consistency-investigator [internal]"]
-  timeline_trace_investigator["timeline-trace-investigator [internal]"]
   kernel_split["kernel-split"]
   pr_triage_gate -->|enables| systematic_debugging
   requirements_validation ==>|escalates to| feature_development
@@ -143,18 +137,6 @@ flowchart LR
   executing_plans -->|enables| subagent_driven_development
   dispatching_parallel_agents ==>|escalates to| subagent_driven_development
   blast_radius_check -.->|then| field_rename_verification
-  debug_conductor -.->|then| evidence_adjudicator
-  evidence_adjudicator ==>|escalates to| debug_conductor
-  debug_conductor -.->|then| infra_config_investigator
-  infra_config_investigator ==>|escalates to| debug_conductor
-  debug_conductor -.->|then| llm_behavior_investigator
-  llm_behavior_investigator ==>|escalates to| debug_conductor
-  debug_conductor -.->|then| reproduction_experiment_investigator
-  reproduction_experiment_investigator ==>|escalates to| debug_conductor
-  debug_conductor -.->|then| state_consistency_investigator
-  state_consistency_investigator ==>|escalates to| debug_conductor
-  debug_conductor -.->|then| timeline_trace_investigator
-  timeline_trace_investigator ==>|escalates to| debug_conductor
 ```
 
 ### Experimental (1)
@@ -549,7 +531,7 @@ Edges whose source and target skills belong to different coordination groups -- 
 | Completion Gate | `substrate-claim-audit`, `exhaustive-audit-validation`, `finishing-a-development-branch`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
 | Debugging | `investigation-state` | Coordinated skill group |
 | Decision Making | `quantitative-decision-gate` | Coordinated skill group |
-| Engineering | `branch-flow-gate`, `codebase-recon`, `cognitive-complexity-refactoring`, `domain-build`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `pr-triage-gate`, `requirements-validation`, `requirements-validation-pm`, `skills-hierarchy-tuning`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `kernel-split` | Coordinated skill group |
+| Engineering | `branch-flow-gate`, `codebase-recon`, `cognitive-complexity-refactoring`, `domain-build`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `pr-triage-gate`, `requirements-validation`, `requirements-validation-pm`, `skills-hierarchy-tuning`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `kernel-split` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
 | Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
 | Meta | `using-superpowers`, `no-empty-promises`, `superpowers-help` | Coordinated skill group |

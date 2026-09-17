@@ -1,25 +1,4 @@
----
-name: llm-behavior-investigator
-source: superpowers-plus
-description: "Specialized investigator for diagnosing LLM/prompt behavior issues: tool selection failures, prompt regressions, context window problems, and parsing failures. Dispatched by debug-conductor as part of forked debugging."
-summary: "Use when: diagnosing LLM/prompt behavior issues like tool selection failures."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [llm-evidence, prompt-diff-analysis, tool-call-audit]
-  consumes: [incident-description, agent-traces, prompt-versions, tool-definitions]
-  capabilities: [prompt-regression-detection, tool-selection-audit, context-analysis]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: diagnoses LLM/prompt behavior issues (tool selection, prompt regressions, parsing) -->
 
 # Prompt / LLM Behavior Investigator
 

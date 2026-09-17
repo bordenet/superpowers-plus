@@ -1,25 +1,4 @@
----
-name: timeline-trace-investigator
-source: superpowers-plus
-description: "Specialized investigator for reconstructing incident timelines from distributed traces, logs, deployments, and metrics. Produces structured TimelineEvidence for the debug conductor. NOT a standalone skill — dispatched by debug-conductor as part of forked debugging."
-summary: "Use when: reconstructing incident timelines from distributed traces and logs."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [timeline-evidence, gap-analysis, correlation-map]
-  consumes: [incident-description, incident-timeframe, trace-ids, service-names]
-  capabilities: [timeline-reconstruction, trace-gap-detection, deployment-correlation]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: reconstructs incident timelines from distributed traces and logs -->
 
 # Timeline & Trace Investigator
 

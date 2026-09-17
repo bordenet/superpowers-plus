@@ -1,25 +1,4 @@
----
-name: evidence-adjudicator
-source: superpowers-plus
-description: "Synthesizes evidence from all investigator branches into a root cause verdict. Builds reasoning trees, detects contradictions, weighs evidence strength over agent count, and produces a ranked diagnosis. Dispatched by debug-conductor."
-summary: "Use when: synthesizing evidence from investigator branches into root cause verdict."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [root-cause-verdict, reasoning-tree, evidence-synthesis]
-  consumes: [branch-evidence-all, investigation-branches, incident-packet]
-  capabilities: [evidence-synthesis, contradiction-detection, confidence-aggregation]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: synthesizes evidence from investigator branches into a root cause verdict -->
 
 # Evidence Adjudicator (Root Cause Synthesizer)
 

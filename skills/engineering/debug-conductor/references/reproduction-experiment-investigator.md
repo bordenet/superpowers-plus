@@ -1,25 +1,4 @@
----
-name: reproduction-experiment-investigator
-source: superpowers-plus
-description: "Specialized investigator for testing hypotheses through reproduction attempts. Designs experiments, executes controlled tests, and reports whether a hypothesis can be confirmed or rejected. Dispatched by debug-conductor."
-summary: "Use when: testing hypotheses through controlled reproduction attempts."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [experiment-evidence, reproduction-recipe, hypothesis-verdict]
-  consumes: [hypothesis, reproduction-steps, expected-outcome, environment-context]
-  capabilities: [hypothesis-testing, controlled-reproduction, environment-comparison]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: tests hypotheses through controlled reproduction attempts -->
 
 # Reproduction & Experiment Investigator
 

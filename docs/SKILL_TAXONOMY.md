@@ -9,7 +9,7 @@ Visual reference for the skill hierarchy of superpowers-plus: orchestration chai
 > - **[OVERRIDE]**: superpowers-plus replaces this upstream obra/superpowers skill with a stricter, hardened version
 > - **[BASE]**: installed from obra/superpowers unchanged; superpowers-plus adds nothing to it
 > - All other nodes are net-new skills that exist only in superpowers-plus
-> - Solid arrows below reproduce a skill's own `coordination.enables` / `requires` frontmatter field exactly, verified against the source file. Dotted arrows mark a real relationship documented in a skill's prose that isn't (yet) encoded in its frontmatter. The machine-generated, always-current version of every coordination edge — all 122 skills — lives at [skill-dependency-graph.md](skill-dependency-graph.md), one small diagram per `coordination.group` plus a table of edges that cross group boundaries. This document is the hand-curated subset covering just the handful of pipelines worth walking through in prose.
+> - Solid arrows below reproduce a skill's own `coordination.enables` / `requires` frontmatter field exactly, verified against the source file. Dotted arrows mark a real relationship documented in a skill's prose that isn't (yet) encoded in its frontmatter. The machine-generated, always-current version of every coordination edge — all 116 skills — lives at [skill-dependency-graph.md](skill-dependency-graph.md), one small diagram per `coordination.group` plus a table of edges that cross group boundaries. This document is the hand-curated subset covering just the handful of pipelines worth walking through in prose.
 
 ---
 
@@ -21,9 +21,9 @@ superpowers-plus installs on top of [obra/superpowers](https://github.com/obra/s
 |-------|---------|
 | **superpowers-plus overrides** | 9 skills that replace an upstream obra/superpowers skill of the same name with additional enforcement gates |
 | **superpowers-plus base (unchanged)** | 5 skills (`dispatching-parallel-agents`, `executing-plans`, `using-git-worktrees`, `using-superpowers`, `writing-plans`) added from obra/superpowers at the v2.6.0 fold-in, unchanged |
-| **superpowers-plus additions** | 108 net-new skills covering engineering, wiki, security, research, and more |
+| **superpowers-plus additions** | 102 net-new skills covering engineering, wiki, security, research, and more |
 
-122 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
+116 skills total. Count verified against `find skills -name skill.md | wc -l`; per-domain breakdown in [Domain Reference](#domain-reference) below.
 
 ---
 
@@ -210,7 +210,7 @@ Skill mapping for the gate stages that invoke a skill rather than a raw script, 
 
 ## Debug Flow
 
-`debug-conductor` requires `systematic-debugging [OVERRIDE]` (its own `coordination.requires`) and enables `investigation-state` and `failure-autopsy` (its own `coordination.enables`). It also dispatches six specialist sub-agents directly in its prose; those sub-agents are internal to `debug-conductor` and not invoked directly by users.
+`debug-conductor` requires `systematic-debugging [OVERRIDE]` (its own `coordination.requires`) and enables `investigation-state` and `failure-autopsy` (its own `coordination.enables`). It also builds six specialist sub-agent prompts from its own `references/*.md` files (`skills/engineering/debug-conductor/references/`); those helpers are internal to `debug-conductor`, not standalone skills, and are not invoked directly by users.
 
 ```mermaid
 flowchart TD
@@ -225,7 +225,7 @@ flowchart TD
     DC -->|enables| IS
     DC -->|enables| FA
 
-    subgraph subs["Internal sub-agents (not user-invocable, dispatched in prose)"]
+    subgraph subs["Internal helpers (skills/engineering/debug-conductor/references/*.md, not user-invocable)"]
         EA[evidence-adjudicator]
         ICI[infra-config-investigator]
         LBI[llm-behavior-investigator]
@@ -290,11 +290,11 @@ The loop is continuous: Sensor → Actuator → Regulator → back to Sensor, ev
 
 ## Domain Reference
 
-All 122 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; **†** marks debug-conductor internal sub-agents (not invoked directly); all others are net-new superpowers-plus additions. Full one-line descriptions for every skill: [SKILLS.md](SKILLS.md).
+All 116 skills grouped by filesystem domain, verified against `skills/*/*/skill.md` directly. **[OVERRIDE]** replaces an upstream obra/superpowers skill; **[BASE]** is installed from obra/superpowers unchanged; all others are net-new superpowers-plus additions. debug-conductor's six internal helpers (evidence-adjudicator, infra-config-investigator, llm-behavior-investigator, reproduction-experiment-investigator, state-consistency-investigator, timeline-trace-investigator) are `references/*.md` files under `skills/engineering/debug-conductor/`, not skills, and are not counted here — see [Debug Flow](#debug-flow) above. Full one-line descriptions for every skill: [SKILLS.md](SKILLS.md).
 
 | Domain | Count | Skills |
 |--------|-------|--------|
-| **engineering** | 55 | blast-radius-check, brainstorming **[OVERRIDE]**, branch-flow-gate, branch-sync-gate, code-review-battery, codebase-recon, codeowners-drift-audit, cognitive-complexity-refactoring, debate, debug-conductor, dispatching-parallel-agents **[BASE]**, domain-build, evidence-adjudicator†, executing-plans **[BASE]**, external-cli-audit, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, gitlab-cli, hotfix-charter, implementation-tracker, infra-config-investigator†, investigation-state, llm-behavior-investigator†, llm-skill-review, merge-authorization-gate, micro-harsh-review, output-verification, pr-triage-gate, pre-commit-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, push-authorization-gate, receiving-code-review **[OVERRIDE]**, reproduction-experiment-investigator†, requesting-code-review **[OVERRIDE]**, requirements-validation, requirements-validation-pm, scope-tripwire, session-handoff, skills-hierarchy-tuning, sp-bughunt, kernel-split, state-consistency-investigator†, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, timeline-trace-investigator†, token-estimation, unified-commit-gate, using-git-worktrees **[BASE]**, using-superpowers **[BASE]**, verification-before-completion **[OVERRIDE]** |
+| **engineering** | 49 | blast-radius-check, brainstorming **[OVERRIDE]**, branch-flow-gate, branch-sync-gate, code-review-battery, codebase-recon, codeowners-drift-audit, cognitive-complexity-refactoring, debate, debug-conductor, dispatching-parallel-agents **[BASE]**, domain-build, executing-plans **[BASE]**, external-cli-audit, feature-development, field-rename-verification, finishing-a-development-branch **[OVERRIDE]**, git-branch-conventions, gitlab-cli, hotfix-charter, implementation-tracker, investigation-state, llm-skill-review, merge-authorization-gate, micro-harsh-review, output-verification, pr-triage-gate, pre-commit-gate, progressive-code-review-gate, progressive-harsh-review, providing-code-review, push-authorization-gate, receiving-code-review **[OVERRIDE]**, requesting-code-review **[OVERRIDE]**, requirements-validation, requirements-validation-pm, scope-tripwire, session-handoff, skills-hierarchy-tuning, sp-bughunt, kernel-split, subagent-driven-development **[OVERRIDE]**, systematic-debugging **[OVERRIDE]**, test-driven-development **[OVERRIDE]**, token-estimation, unified-commit-gate, using-git-worktrees **[BASE]**, using-superpowers **[BASE]**, verification-before-completion **[OVERRIDE]** |
 | **experimental** | 1 | experimental-self-prompting |
 | **issue-tracking** | 5 | issue-authoring, issue-comment-debunker, issue-editing, issue-link-verification, issue-verify |
 | **observability** | 10 | completeness-check, evolution-loop, exhaustive-audit-validation, failure-autopsy, holistic-repo-verification, measurement-integrity, skill-health-check, skill-trigger-audit, substrate-claim-audit, superpowers-doctor |
@@ -306,7 +306,7 @@ All 122 skills grouped by filesystem domain, verified against `skills/*/*/skill.
 
 ---
 
-*122 skills across 9 domains (9 overrides, 5 base, 108 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot.*
+*116 skills across 9 domains (9 overrides, 5 base, 102 net-new). Counts verified against the filesystem, not carried forward from an earlier snapshot.*
 
 *What's machine-regenerated vs. hand-curated, so the next update touches the right file:*
 

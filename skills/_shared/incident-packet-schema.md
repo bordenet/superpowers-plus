@@ -1,7 +1,7 @@
 # Incident Packet Schema
 
 > **Canonical source.** The debugging orchestration system uses this schema for cross-skill communication.
-> Referenced by: `debug-conductor`, `evidence-adjudicator`, all `*-investigator` skills, `investigation-state`.
+> Referenced by: `debug-conductor` and its internal helper prompts (`evidence-adjudicator`, `*-investigator`, in `skills/engineering/debug-conductor/references/`), `investigation-state`.
 >
 > **Status:** Protocol definition only. End-to-end packet persistence tooling is not yet implemented.
 > Agents maintain packet state in-context; there is no durable store.

@@ -1,7 +1,7 @@
 # Multi-Agent Result Schema
 
 > **Canonical source.** Every branch in a multi-agent dispatch MUST produce output conforming to this schema.
-> Referenced by: `plan-and-execute`, `brainstorming`, `subagent-driven-development`, `evidence-adjudicator`.
+> Referenced by: `plan-and-execute`, `brainstorming`, `subagent-driven-development`, `debug-conductor`'s `evidence-adjudicator` helper prompt.
 
 ## Schema
 

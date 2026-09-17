@@ -67,7 +67,7 @@ Chain: [ordered skill list]
 |-----------|-------|
 | New feature | brainstorming -> debate -> plan-and-execute -> TDD -> review -> verify |
 | Bug fix | systematic-debugging -> TDD -> review -> verify |
-| Distributed incident | debug-conductor -> (investigators forked) -> evidence-adjudicator -> failure-autopsy |
+| Distributed incident | debug-conductor -> failure-autopsy (investigation and adjudication are internal to debug-conductor) |
 | Refactor | blast-radius-check -> plan -> TDD -> review -> verify |
 | Content | brainstorming -> plan -> harsh-review -> verify |
 | Investigation | adversarial-search -> investigation-state -> autopsy |

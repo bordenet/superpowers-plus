@@ -258,6 +258,17 @@ else
     fail "audit should pass when the fake term's hash is not in the active set"
 fi
 
+# Public product names used by tracked skills are not internal codenames. Build
+# the name from character codes so the regression fixture itself cannot become
+# a scanner false positive before this check runs.
+PUBLIC_SKILL_NAME="$(printf '\147\151\164\154\141\142\055\143\154\151')"
+if printf 'document the %s integration\n' "$PUBLIC_SKILL_NAME" \
+    | python3 "$SCRIPT_DIR/tools/check-banned-term-hashes.py" >/dev/null 2>&1; then
+    pass "hash-based scan permits the public Git-hosting product used by a tracked skill"
+else
+    fail "public tracked skill names must not be classified as internal codenames"
+fi
+
 repo="$TMP_ROOT/banned-hash-staged"
 new_repo "$repo"
 printf 'mentions AcmeTestCodename here\n' >> "$repo/README.md"

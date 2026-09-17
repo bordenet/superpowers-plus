@@ -2,10 +2,10 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 122 -->
+<!-- SKILL-COUNT: 116 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
-## Engineering (55)
+## Engineering (49)
 
 | Skill | Description |
 |-------|-------------|
@@ -21,7 +21,6 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `debate` | Generates 3+ decision options, builds comparison matrix, red-teams the winner. |
 | `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies. |
 | `domain-build` | Builds, deploys, and documents skills from a completed domain-design output. Walking skeleton -> remaining P0s -> cookbook -> handoff cycle. |
-| `evidence-adjudicator` | Synthesizes evidence from investigator branches into a root cause verdict. |
 | `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints. |
 | `external-cli-audit` | Audits wrapper scripts invoking external CLIs. Enumerates defaults via `--help` before declaring correct. Catches silent scope/identity defaults bash can't see. |
 | `feature-development` | Full lifecycle orchestrator: brainstorm, debate, plan, TDD, review, verify. |
@@ -31,9 +30,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `gitlab-cli` | Full reference card for GitLab operations via `glab`: MRs, CI/CD, variables, issues, raw API. Includes macOS/Windows install and auth walkthrough. |
 | `hotfix-charter` | Gates `hotfix/*` and `fix/<TICKET-ID>-*` branches on a HOTFIX-CHARTER.md. Prevents scope creep on emergency fixes. |
 | `implementation-tracker` | Maintains a living progress document across multi-session implementations. |
-| `infra-config-investigator` | Diagnoses infrastructure, configuration, and deployment failures. |
 | `investigation-state` | Persists debugging context (hypotheses, evidence) across sessions. |
-| `llm-behavior-investigator` | Diagnoses LLM/prompt behavior issues: tool selection, prompt regressions, parsing failures. |
 | `llm-skill-review` | Primary reviewer for skill.md files and skill-adjacent tooling — LLM-execution safety plus prose/design quality (absorbed from progressive-harsh-review) in one pass. Wired into `tools/pre-push` as Gate 6; supersedes both PHR and code-review-battery for `skills/*.md`. |
 | `merge-authorization-gate` | Hard stop before `gh pr merge` / `glab mr merge` / forge REST merge — these bypass git hooks and every pre-push gate. Requires a distinct human merge utterance in the current conversation. |
 | `micro-harsh-review` | Per-batch adversarial review for code changes. 3 personas, 5 dimensions. Score <8 = reject. |
@@ -45,7 +42,6 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `providing-code-review` | Engineering rigor gate for reviewing PRs. |
 | `push-authorization-gate` | Hard stop before `git push` — requires an explicit human approval utterance in the current conversation. The discipline layer atop `pre-tool-use-red-autonomy.sh`; adds sub-agent rules and the what-does-NOT-count table. |
 | `receiving-code-review` | Technical rigor when receiving feedback. No performative agreement. |
-| `reproduction-experiment-investigator` | Tests hypotheses through controlled reproduction attempts. |
 | `requesting-code-review` | Dispatches the code-review-battery before presenting code changes to a human. Skips if valid sentinel exists. |
 | `requirements-validation` | Tests requirements for falsifiability, measurability, and independence. |
 | `requirements-validation-pm` | Validates product / PM requirements: customer-grounded, stakeholder-owned, business-measurable. USE INSTEAD OF requirements-validation when author is a PM. |
@@ -54,11 +50,9 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `skills-hierarchy-tuning` | Rebalances skill domains: diagnoses oversized domains, trigger mismatches, orphan skills, and loading failures. Applies moves, splits, and trigger fixes. |
 | `sp-bughunt` | Proactive adversarial bug hunt. Candidates flow through 5 named gates. Outputs ranked Confirmed bugs plus risk lists. Not for debugging a known failure. |
 | `kernel-split` | Partition a large skill.md into a resident safety kernel and an on-demand reference. Proposes via keyword scoring, applies on confirmation, installs a context-budget regression test. |
-| `state-consistency-investigator` | Diagnoses state consistency failures: replication lag, cache staleness, event ordering. |
 | `subagent-driven-development` | Executes implementation plans with independent parallel tasks. |
 | `systematic-debugging` | Root-cause-first investigation: reproduce, hypothesize, isolate, fix. |
 | `test-driven-development` | Write tests before implementation code. |
-| `timeline-trace-investigator` | Reconstructs incident timelines from traces, logs, deployments, and metrics. |
 | `token-estimation` | Translates any effort question into token-range estimates with confidence bands. Bans day/week/sprint output. Calibration table + overlap tiebreakers included. |
 | `unified-commit-gate` | Entry point for the full commit gate chain (`/sp-commit`). Runs all 5 gates in sequence; escalates to individual gate skills for deep-dive. |
 | `using-git-worktrees` | Use when starting feature work that needs isolation from current workspace or before executing implementation plans. |

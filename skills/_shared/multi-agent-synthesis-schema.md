@@ -1,7 +1,7 @@
 # Multi-Agent Synthesis Schema
 
 > **Canonical source.** The synthesis layer MUST produce output conforming to this schema after merging branch results.
-> Referenced by: `plan-and-execute`, `brainstorming`, `subagent-driven-development`, `evidence-adjudicator`.
+> Referenced by: `plan-and-execute`, `brainstorming`, `subagent-driven-development`, `debug-conductor`'s `evidence-adjudicator` helper prompt.
 
 ## Schema
 

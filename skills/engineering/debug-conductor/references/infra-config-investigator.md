@@ -1,25 +1,4 @@
----
-name: infra-config-investigator
-source: superpowers-plus
-description: "Specialized investigator for diagnosing infrastructure, configuration, and deployment failures: config changes, resource exhaustion, deployment regressions, cloud provider issues, and environment mismatches. Dispatched by debug-conductor."
-summary: "Use when: diagnosing infrastructure, config, or deployment failures."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [infra-evidence, deployment-correlation, config-diff-analysis]
-  consumes: [incident-description, deployment-timeline, config-versions, infrastructure-topology]
-  capabilities: [deployment-correlation, config-diff-analysis, resource-metric-assessment]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: diagnoses infrastructure, config, and deployment failures -->
 
 # Infra / Config / Deployment Investigator
 

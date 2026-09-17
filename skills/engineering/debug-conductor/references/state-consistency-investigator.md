@@ -1,25 +1,4 @@
----
-name: state-consistency-investigator
-source: superpowers-plus
-description: "Specialized investigator for diagnosing state consistency failures: replication lag, cache staleness, event ordering issues, cross-service data divergence, and eventual consistency bugs. Dispatched by debug-conductor."
-summary: "Use when: diagnosing state consistency failures across distributed systems."
-triggers: []
-anti_triggers: []
-coordination:
-  group: engineering
-  order: 10
-  requires: ["debug-conductor"]
-  enables: []
-  escalates_to: ["debug-conductor"]
-  internal: true
-composition:
-  produces: [state-evidence, consistency-analysis, replication-assessment]
-  consumes: [incident-description, affected-entities, service-boundaries, consistency-expectations]
-  capabilities: [cross-source-comparison, replication-lag-detection, event-ordering-audit]
-  priority: 2
-  optional: true
-  requires_all: false
----
+<!-- debug-conductor helper: diagnoses state consistency failures across distributed systems -->
 
 # State Consistency Investigator
 

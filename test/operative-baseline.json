@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T01:44:44.839Z",
+  "generated_at": "2026-09-17T19:18:02.284Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
@@ -17,7 +17,7 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 4
+      "code_fences": 11
     },
     "engineering/branch-sync-gate/skill.md": {
       "step_headings": 0,
@@ -28,8 +28,8 @@
     "engineering/code-review-battery/skill.md": {
       "step_headings": 8,
       "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 4
+      "hard_gate_table": 2,
+      "code_fences": 9
     },
     "engineering/cognitive-complexity-refactoring/skill.md": {
       "step_headings": 0,
@@ -44,22 +44,16 @@
       "code_fences": 1
     },
     "engineering/debug-conductor/skill.md": {
-      "step_headings": 6,
+      "step_headings": 42,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 1
+      "code_fences": 10
     },
     "engineering/dispatching-parallel-agents/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 4
-    },
-    "engineering/evidence-adjudicator/skill.md": {
-      "step_headings": 7,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 2
     },
     "engineering/executing-plans/skill.md": {
       "step_headings": 3,
@@ -109,23 +103,11 @@
       "hard_gate_table": 0,
       "code_fences": 1
     },
-    "engineering/infra-config-investigator/skill.md": {
-      "step_headings": 6,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 1
-    },
     "engineering/investigation-state/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 3
-    },
-    "engineering/llm-behavior-investigator/skill.md": {
-      "step_headings": 6,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 1
     },
     "engineering/micro-harsh-review/skill.md": {
       "step_headings": 0,
@@ -169,12 +151,6 @@
       "hard_gate_table": 0,
       "code_fences": 1
     },
-    "engineering/reproduction-experiment-investigator/skill.md": {
-      "step_headings": 5,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 1
-    },
     "engineering/requesting-code-review/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
@@ -208,13 +184,7 @@
     "engineering/sp-bughunt/skill.md": {
       "step_headings": 6,
       "stop_markers": 0,
-      "hard_gate_table": 1,
-      "code_fences": 1
-    },
-    "engineering/state-consistency-investigator/skill.md": {
-      "step_headings": 6,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
+      "hard_gate_table": 2,
       "code_fences": 2
     },
     "engineering/subagent-driven-development/skill.md": {
@@ -233,12 +203,6 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 2,
-      "code_fences": 2
-    },
-    "engineering/timeline-trace-investigator/skill.md": {
-      "step_headings": 6,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
       "code_fences": 2
     },
     "engineering/token-estimation/skill.md": {
@@ -515,7 +479,7 @@
       "step_headings": 6,
       "stop_markers": 0,
       "hard_gate_table": 1,
-      "code_fences": 0
+      "code_fences": 1
     },
     "security/public-repo-ip-audit/skill.md": {
       "step_headings": 5,
@@ -592,14 +556,14 @@
     "writing/detecting-ai-slop/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 2
+      "hard_gate_table": 6,
+      "code_fences": 4
     },
     "writing/eliminating-ai-slop/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 1
+      "code_fences": 3
     },
     "writing/markdown-table-discipline/skill.md": {
       "step_headings": 0,
@@ -636,6 +600,42 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 3
+    },
+    "engineering/codebase-recon/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 12
+    },
+    "engineering/codeowners-drift-audit/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
+    },
+    "engineering/gitlab-cli/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 18
+    },
+    "engineering/kernel-split/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 6,
+      "code_fences": 7
+    },
+    "engineering/llm-skill-review/skill.md": {
+      "step_headings": 0,
+      "stop_markers": 0,
+      "hard_gate_table": 4,
+      "code_fences": 5
+    },
+    "observability/skill-trigger-audit/skill.md": {
+      "step_headings": 5,
+      "stop_markers": 0,
+      "hard_gate_table": 0,
+      "code_fences": 1
     }
   }
 }

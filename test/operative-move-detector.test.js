@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
  * OPERATIVE-MOVE-DETECTOR: Catches operative procedure (Step/Stage/⛔/HARD-GATE/
- * code blocks) silently moved out of skill.md.
+ * code blocks) lost from a skill's protected source set: skill.md, sibling
+ * reference.md, and debug-conductor's six helper protocols under references/.
  *
  * Companion to ei-move-detector.test.js. EI-move handles `<EXTREMELY_IMPORTANT>`
- * and protected sections; this handles non-EI operative content patterns that
- * the loader-can't-follow-links problem also breaks.
+ * and protected sections; this handles non-EI operative content patterns.
+ * Moving content between skill.md and its references is allowed because the
+ * detector compares aggregate counts across the combined protocol.
  *
  * Patterns scanned (each per-skill counted):
  *   - "## Step N" / "## Stage N" / "## Phase N" headings
@@ -26,9 +28,14 @@
 const fs = require('fs');
 const path = require('path');
 const { stripFrontmatter } = require('../lib/frontmatter');
+const { getProtectedSourcePaths } = require('../lib/protected-skill-sources');
 
-const SKILLS_DIR = path.join(__dirname, '..', 'skills');
-const BASELINE_PATH = path.join(__dirname, 'operative-baseline.json');
+const SKILLS_DIR = process.env.OP_MOVE_SKILLS_DIR
+    ? path.resolve(process.env.OP_MOVE_SKILLS_DIR)
+    : path.join(__dirname, '..', 'skills');
+const BASELINE_PATH = process.env.OP_MOVE_BASELINE_PATH
+    ? path.resolve(process.env.OP_MOVE_BASELINE_PATH)
+    : path.join(__dirname, 'operative-baseline.json');
 
 // --- Helpers ---
 
@@ -49,6 +56,21 @@ function countPatterns(text) {
         hard_gate_table: (text.match(/^\|.*\b(HARD\s*GATE|BLOCK|MUST)\b.*\|/gim) || []).length,
         code_fences: Math.floor((text.match(/^```/gm) || []).length / 2), // pairs
     };
+}
+
+function countSkillPatterns(skillPath) {
+    const totals = {
+        step_headings: 0,
+        stop_markers: 0,
+        hard_gate_table: 0,
+        code_fences: 0,
+    };
+    for (const sourcePath of getProtectedSourcePaths(skillPath)) {
+        const raw = stripFrontmatter(fs.readFileSync(sourcePath, 'utf8'));
+        const counts = countPatterns(raw);
+        for (const key of Object.keys(totals)) totals[key] += counts[key];
+    }
+    return totals;
 }
 
 function loadWaivers() {
@@ -84,8 +106,7 @@ function buildBaseline() {
     const baseline = { generated_at: new Date().toISOString(), skills: {} };
     for (const sp of findAllSkills(SKILLS_DIR)) {
         const rel = path.relative(SKILLS_DIR, sp);
-        const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));
-        const counts = countPatterns(raw);
+        const counts = countSkillPatterns(sp);
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
         if (total > 0) baseline.skills[rel] = counts;
     }
@@ -119,8 +140,7 @@ function detect() {
             }
             continue;
         }
-        const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));
-        const current = countPatterns(raw);
+        const current = countSkillPatterns(sp);
         for (const k of Object.keys(expected)) {
             totalChecks++;
             const drop = expected[k] - (current[k] || 0);
@@ -144,6 +164,10 @@ function detect() {
 
 // --- Main ---
 
-const args = process.argv.slice(2);
-if (args.includes('--update')) buildBaseline();
-else detect();
+module.exports = { countPatterns, countSkillPatterns, getProtectedSourcePaths };
+
+if (require.main === module) {
+    const args = process.argv.slice(2);
+    if (args.includes('--update')) buildBaseline();
+    else detect();
+}
