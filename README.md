@@ -352,6 +352,7 @@ Utility scripts in `tools/`:
 | `measure-artifact-sizes.sh` | Context-budget regulator: measures always-on artifacts against `tests/harness/artifact-baselines.json` |
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
+| `router-precision.py` | Reports advisory-router hint rate, hints per prompt, precision, and automatic versus explicit skill invocation from bounded local JSONL parsing. See [Skill Router Precision](docs/router-precision.md). |
 | `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
 | `slop-check.sh` | Centralized AI slop gate -- blocking check for em/en-dash, boosters, buzzwords, and filler openers; advisory warnings for weak intensifiers and terms with a high false-positive rate in engineering prose. Shared by wiki, PHR, Linear, and recruiting paths. See `skills/writing/detecting-ai-slop/reference.md` for the pattern catalog. |
 

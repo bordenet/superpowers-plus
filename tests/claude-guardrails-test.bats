@@ -2118,6 +2118,30 @@ BROKEN
 # Item 6 — UserPromptSubmit skill router
 # ---------------------------------------------------------------------------
 
+_make_router_boundary_catalog() {
+  local skills_dir="$1" skill_file i
+
+  # Flatten the repository's real domain-grouped skill tree into the layout
+  # consumed by the hook. The scorer itself excludes internal/manual-only
+  # entries and deduplicates aliases, yielding the reviewed 118-skill corpus.
+  i=0
+  while IFS= read -r -d '' skill_file; do
+    i=$((i + 1))
+    mkdir -p "$skills_dir/catalog-$i"
+    cp "$skill_file" "$skills_dir/catalog-$i/skill.md"
+  done < <(find "$REPO_ROOT/skills" -type f -name skill.md \
+    -not -path '*/_archive/*' -print0)
+
+  # The reviewed installed catalog has two unrelated personal workflow
+  # entries in addition to the repository's 116 routable names. Preserve the
+  # real 118-document IDF denominator without importing machine-local files.
+  mkdir -p "$skills_dir/catalog-personal-1" "$skills_dir/catalog-personal-2"
+  printf -- '---\nname: phone-screen-prep\ndescription: "Unrelated hiring workflow"\n---\nBody.\n' \
+    > "$skills_dir/catalog-personal-1/skill.md"
+  printf -- '---\nname: resume-screening\ndescription: "Unrelated hiring workflow"\n---\nBody.\n' \
+    > "$skills_dir/catalog-personal-2/skill.md"
+}
+
 @test "item 6: skill-router advises on matching prompt" {
   local skills_dir cache_dir
   skills_dir="$(mktemp -d)"
@@ -2217,6 +2241,113 @@ BROKEN
 
   # Cache must have been regenerated (newer mtime)
   [ "$mtime2" -gt "$mtime1" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router rebuilds cache when source inventory removes a skill" {
+  local skills_dir cache_dir cache_file removed_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+  removed_file="$cache_dir/removed-brainstorming.md"
+
+  mkdir -p "$skills_dir/brainstorming"
+  printf -- '---\nname: brainstorming\ndescription: "Generate product ideas and alternatives"\n---\nBody.\n' \
+    > "$skills_dir/brainstorming/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_file" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/initial-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"brainstorm product ideas","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: brainstorming"* ]]
+  ROUTER_TEST_CACHE="$cache_file" python3 -c '
+import hashlib
+import json
+import os
+
+cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
+inventory = cache["source_inventory"]
+assert inventory["count"] == 1, inventory
+assert inventory["sha256"] == hashlib.sha256(b"brainstorming").hexdigest(), inventory
+'
+
+  # Moving the only source file away leaves no surviving skill.md whose mtime
+  # could invalidate the cache. Inventory identity must catch the deletion.
+  mv "$skills_dir/brainstorming/skill.md" "$removed_file"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_file" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/removed-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"brainstorm product ideas","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  ROUTER_TEST_CACHE="$cache_file" python3 -c '
+import hashlib
+import json
+import os
+
+cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
+assert not any(entry["name"] == "brainstorming" for entry in cache["entries"]), cache
+inventory = cache["source_inventory"]
+assert inventory["count"] == 0, inventory
+assert inventory["sha256"] == hashlib.sha256(b"").hexdigest(), inventory
+'
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router rebuilds cache after a count-preserving source rename" {
+  local skills_dir cache_dir cache_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+
+  mkdir -p "$skills_dir/brainstorming"
+  printf -- '---\nname: brainstorming\ndescription: "Generate product ideas and alternatives"\n---\nBody.\n' \
+    > "$skills_dir/brainstorming/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_file" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/initial-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"brainstorm product ideas","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: brainstorming"* ]]
+  mv "$skills_dir/brainstorming" "$skills_dir/ideation-source"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_file" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/renamed-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"brainstorm product ideas","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: brainstorming"* ]]
+  ROUTER_TEST_CACHE="$cache_file" \
+  ROUTER_TEST_METRICS="$cache_dir/renamed-metrics.jsonl" \
+    python3 -c '
+import hashlib
+import json
+import os
+
+cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
+inventory = cache["source_inventory"]
+assert inventory["count"] == 1, inventory
+assert inventory["sha256"] == hashlib.sha256(b"ideation-source").hexdigest(), inventory
+record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
+assert record["rebuilt"] is True, record
+'
 
   rm -rf "$skills_dir" "$cache_dir"
 }
@@ -2462,6 +2593,500 @@ assert isinstance(d, dict) and 'entries' in d and 'doc_freq' in d, 'cache did no
 
   [ "$status" -eq 0 ]
   [[ "$output" != *"widget-internal-helper"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router defaults to one hint and bounds the override at the legacy maximum" {
+  local skills_dir cache_dir hint_count invalid skill
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  for skill in alpha beta gamma delta; do
+    mkdir -p "$skills_dir/$skill-router"
+    printf -- '---\nname: %s-router\ndescription: "%s signal"\n---\nBody.\n' "$skill" "$skill" \
+      > "$skills_dir/$skill-router/skill.md"
+  done
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/default-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"alpha-router beta-router gamma-router delta-router","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+  [ "$hint_count" -eq 1 ]
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/override-metrics.jsonl" \
+  CLAUDE_SKILL_ROUTER_MAX_HINTS=3 \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"alpha-router beta-router gamma-router delta-router","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+  [ "$hint_count" -eq 3 ]
+
+  # Three was the old hard-coded limit. The override remains capped there so
+  # an invalid operator value cannot flood one prompt with unbounded hints.
+  # Zero and text fall back to the default instead of disabling routing.
+  for invalid in 0 4 many; do
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/invalid-$invalid-metrics.jsonl" \
+    CLAUDE_SKILL_ROUTER_MAX_HINTS="$invalid" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<'{"hook_event_name":"UserPromptSubmit","prompt":"alpha-router beta-router gamma-router delta-router","cwd":"/tmp"}'
+
+    [ "$status" -eq 0 ]
+    hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+    [ "$hint_count" -eq 1 ]
+  done
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router calibrated score floor rejects incidental overlap but keeps genuine matches" {
+  local skills_dir cache_dir i
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  mkdir -p "$skills_dir/roadmap-helper"
+  printf -- '---\nname: roadmap-helper\ndescription: "Plan execution milestones in detail"\n---\nBody.\n' \
+    > "$skills_dir/roadmap-helper/skill.md"
+
+  # Score calibration must use a representative multi-skill corpus because
+  # IDF rises with corpus size. A one-skill fixture made incidental overlap
+  # look artificially weak and allowed the same prompt to clear the floor in
+  # the real installed corpus.
+  for i in {1..11}; do
+    mkdir -p "$skills_dir/auxiliary-$i"
+    printf -- '---\nname: auxiliary-%s\ndescription: "Unrelated catalog entry"\n---\nBody.\n' "$i" \
+      > "$skills_dir/auxiliary-$i/skill.md"
+  done
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/default-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"the plan changed","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+
+  # Zero is a valid diagnostic override. It demonstrates that the default
+  # floor, rather than the token matcher, rejected the incidental overlap.
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/zero-floor-metrics.jsonl" \
+  CLAUDE_SKILL_ROUTER_MIN_SCORE=0 \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"the plan changed","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: roadmap-helper"* ]]
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/two-signal-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"plan the milestones","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: roadmap-helper"* ]]
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/genuine-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"use roadmap-helper for this work","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Likely match: roadmap-helper"* ]]
+
+  python3 -c "
+import json
+
+default = json.loads(open('$cache_dir/default-metrics.jsonl').read())
+zero_floor = json.loads(open('$cache_dir/zero-floor-metrics.jsonl').read())
+genuine = json.loads(open('$cache_dir/genuine-metrics.jsonl').read())
+two_signal = json.loads(open('$cache_dir/two-signal-metrics.jsonl').read())
+assert default['score'] < default['threshold'] == 0.55, default
+assert default['suggested'] is None, default
+assert zero_floor['score'] == default['score'], (zero_floor, default)
+assert zero_floor['suggested'] == 'roadmap-helper', zero_floor
+assert genuine['score'] >= genuine['threshold'] == 0.55, genuine
+assert genuine['suggested'] == 'roadmap-helper', genuine
+assert two_signal['score'] >= two_signal['threshold'] == 0.55, two_signal
+assert two_signal['suggested'] == 'roadmap-helper', two_signal
+"
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router canonical J1 favors debugging over a generic test name token" {
+  local skills_dir cache_dir hint_count prompt case_index metrics_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+
+  _make_router_boundary_catalog "$skills_dir"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/bare-debug-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"debug","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  ROUTER_TEST_CACHE="$cache_dir/skill-router-cache.json" \
+  ROUTER_TEST_METRICS="$cache_dir/bare-debug-metrics.jsonl" \
+    python3 -c '
+import json
+import os
+
+cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
+systematic = next(entry for entry in cache["entries"] if entry["name"] == "systematic-debugging")
+assert "debugging" in systematic["generic_name_tokens"], systematic
+record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
+assert record["suggested"] is None, record
+'
+
+  case_index=0
+  while IFS= read -r prompt; do
+    [[ -n "$prompt" ]] || continue
+    case_index=$((case_index + 1))
+    metrics_file="$cache_dir/ordinary-$case_index-metrics.jsonl"
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
+
+    [ "$status" -eq 0 ]
+    hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+    [ "$hint_count" -eq 1 ]
+    [[ "$output" == *"Likely match: systematic-debugging"* ]]
+    [[ "$output" != *"test-driven-development"* ]]
+    [[ "$output" != *"debug-conductor"* ]]
+  done <<'ORDINARY_J1_CASES'
+debug a failing test
+debug a failing test with parallel workers
+debug a complex failing test
+debug a failing test in a distributed test harness
+ORDINARY_J1_CASES
+
+  ROUTER_TEST_METRICS="$cache_dir/ordinary-1-metrics.jsonl" python3 -c '
+import json
+import os
+
+record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
+assert "/systematic-debugging" in record["explicit_aliases"], record
+assert "/sp-debug" in record["explicit_aliases"], record
+'
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/generic-token-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"test this","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/complex-incident-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"investigate a complex distributed incident across services with parallel hypotheses","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+  [ "$hint_count" -eq 1 ]
+  [[ "$output" == *"Likely match: debug-conductor"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router gives bounded weight to exact published positive triggers" {
+  local skills_dir cache_dir hint_count prompt expected_trigger case_index metrics_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  _make_router_boundary_catalog "$skills_dir"
+
+  case_index=0
+  while IFS='|' read -r prompt expected_trigger; do
+    [[ -n "$prompt" ]] || continue
+    case_index=$((case_index + 1))
+    metrics_file="$cache_dir/trigger-$case_index-metrics.jsonl"
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
+
+    [ "$status" -eq 0 ]
+    hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
+    [ "$hint_count" -eq 1 ]
+    [[ "$output" == *"Likely match: debug-conductor"* ]]
+    ROUTER_TEST_METRICS="$metrics_file" \
+    ROUTER_EXPECTED_TRIGGER="$expected_trigger" \
+      python3 -c '
+import json
+import os
+
+record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
+assert os.environ["ROUTER_EXPECTED_TRIGGER"] in record["matched_terms"], record
+'
+  done <<'POSITIVE_TRIGGER_CASES'
+debug across services during a production incident|debug across services
+incident investigation across checkout and fulfillment services|incident investigation
+POSITIVE_TRIGGER_CASES
+
+  ROUTER_TEST_CACHE="$cache_dir/skill-router-cache.json" python3 -c '
+import json
+import os
+
+cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
+assert cache["n_docs"] == 118, cache["n_docs"]
+conductor = next(entry for entry in cache["entries"] if entry["name"] == "debug-conductor")
+assert set(conductor["positive_triggers"]) == {
+    "investigate distributed",
+    "debug across services",
+    "incident investigation",
+    "forked debugging",
+    "parallel investigation",
+}, conductor
+'
+
+  case_index=0
+  while IFS= read -r prompt; do
+    [[ -n "$prompt" ]] || continue
+    case_index=$((case_index + 1))
+    metrics_file="$cache_dir/near-miss-$case_index-metrics.jsonl"
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"debug-conductor"* ]]
+  done <<'POSITIVE_TRIGGER_NEAR_MISSES'
+debug across one service during a production incident
+incident response across checkout and fulfillment services
+POSITIVE_TRIGGER_NEAR_MISSES
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router rejects non-finite or out-of-range score floors and writes standard JSON" {
+  local skills_dir cache_dir metrics_file huge_score invalid index
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  metrics_file="$cache_dir/skill-router-metrics.jsonl"
+  huge_score="$(printf '9%.0s' {1..400})"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+
+  index=0
+  for invalid in "$huge_score" 10.1 -1 NaN Infinity; do
+    metrics_file="$cache_dir/invalid-$index.jsonl"
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+    CLAUDE_SKILL_ROUTER_MIN_SCORE="$invalid" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<'{"hook_event_name":"UserPromptSubmit","prompt":"use widget-maker","cwd":"/tmp"}'
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Likely match: widget-maker"* ]]
+    ROUTER_TEST_METRICS="$metrics_file" python3 -c '
+import json
+import os
+
+raw = open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read()
+record = json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+assert record["threshold"] == 0.55, record
+assert "Infinity" not in raw and "NaN" not in raw, raw
+'
+    index=$((index + 1))
+  done
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router telemetry rejects symlinks without mutating their targets" {
+  local skills_dir cache_dir metrics_link metrics_target
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  metrics_link="$cache_dir/metrics-link.jsonl"
+  metrics_target="$cache_dir/metrics-target.txt"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+  printf '%s\n' 'preserve-target' > "$metrics_target"
+  chmod 644 "$metrics_target"
+  ln -s "$metrics_target" "$metrics_link"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$metrics_link" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"use widget-maker","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  ROUTER_TEST_LINK="$metrics_link" ROUTER_TEST_TARGET="$metrics_target" python3 -c '
+import os
+import stat
+
+link = os.environ["ROUTER_TEST_LINK"]
+target = os.environ["ROUTER_TEST_TARGET"]
+assert os.path.islink(link)
+assert open(target, encoding="utf-8").read() == "preserve-target\n"
+assert stat.S_IMODE(os.stat(target).st_mode) == 0o644
+'
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router telemetry rejects FIFOs without blocking" {
+  local skills_dir cache_dir metrics_fifo
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  metrics_fifo="$cache_dir/metrics.fifo"
+
+  mkdir -p "$skills_dir/widget-maker"
+  printf -- '---\nname: widget-maker\ndescription: "Makes widgets from raw parts"\n---\nBody.\n' \
+    > "$skills_dir/widget-maker/skill.md"
+  mkfifo "$metrics_fifo"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$metrics_fifo" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run python3 -c '
+import subprocess
+import sys
+
+result = subprocess.run(
+    ["bash", sys.argv[1]],
+    input="{\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"use widget-maker\",\"cwd\":\"/tmp\"}\n",
+    text=True,
+    timeout=5,
+)
+raise SystemExit(result.returncode)
+' "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh"
+
+  [ "$status" -eq 0 ]
+  [ -p "$metrics_fifo" ]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router excludes disable-model-invocation skills and invalidates old caches" {
+  local skills_dir cache_dir cache_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  cache_file="$cache_dir/skill-router-cache.json"
+
+  mkdir -p "$skills_dir/manual-widget"
+  printf -- '---\nname: manual-widget\ndescription: "Widget maker for manual use"\ndisable-model-invocation: true\n---\nBody.\n' \
+    > "$skills_dir/manual-widget/skill.md"
+
+  # A version-1 cache still contains the manual-only skill. The router must
+  # rebuild it under the current exclusion rules even when no skill file is
+  # newer than the cache.
+  printf '%s\n' '{"version":1,"entries":[{"name":"manual-widget","description":"old","tokens":["widget"],"anti_triggers":[]}],"doc_freq":{"widget":1},"n_docs":1}' \
+    > "$cache_file"
+  sleep 1
+  touch "$cache_file"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_file" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/skill-router-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"make a widget","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  python3 -c "
+import json
+cache = json.load(open('$cache_file'))
+assert cache['version'] == 4
+assert cache['entries'] == []
+"
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router metrics contain bounded metadata and never raw prompt terms" {
+  local skills_dir cache_dir metrics_file prompt
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  metrics_file="$cache_dir/skill-router-metrics.jsonl"
+  prompt="please inspect privatewidgets now"
+
+  mkdir -p "$skills_dir/private-marker"
+  printf -- '---\nname: private-marker\ndescription: "Privatewidget diagnostics"\n---\nBody.\n' \
+    > "$skills_dir/private-marker/skill.md"
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<"$(printf '{\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"%s\",\"cwd\":\"/tmp\",\"session_id\":{\"nested\":\"bad\"}}' "$prompt")"
+
+  [ "$status" -eq 0 ]
+  [ -s "$metrics_file" ]
+  ROUTER_TEST_PROMPT="$prompt" ROUTER_TEST_METRICS="$metrics_file" python3 -c '
+import hashlib
+import json
+import os
+import stat
+
+prompt = os.environ["ROUTER_TEST_PROMPT"]
+raw = open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read()
+record = json.loads(raw)
+required = {
+    "ts", "rebuilt", "status", "hints", "session_id", "prompt_sha256",
+    "suggested", "score", "runner_up", "matched_terms", "explicit_aliases",
+    "threshold", "max_hints",
+}
+assert required <= record.keys(), record
+assert prompt not in raw
+assert record["session_id"] is None
+assert record["prompt_sha256"] == hashlib.sha256(prompt.encode()).hexdigest()
+assert len(record["matched_terms"]) <= 5
+assert all(isinstance(term, str) and len(term) <= 64 for term in record["matched_terms"])
+assert record["matched_terms"] == ["privatewidget"], record
+assert "privatewidgets" not in record["matched_terms"], record
+assert record["explicit_aliases"] == ["/private-marker"], record
+assert record["threshold"] == 0.55
+assert stat.S_IMODE(os.stat(os.environ["ROUTER_TEST_METRICS"]).st_mode) == 0o600
+'
 
   rm -rf "$skills_dir" "$cache_dir"
 }
