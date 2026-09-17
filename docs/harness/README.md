@@ -104,3 +104,5 @@ reduction ledger's `Note` column and defer.
 |---|---|
 | [`reduction-history.md`](reduction-history.md) | Per-split ledger and cumulative savings |
 | [`artifact-budgets.md`](artifact-budgets.md) | Regulator: budget regression tests and rebaseline workflow |
+| [`test-inventory.tsv`](test-inventory.tsv) | Exact test path, runner, coverage, and P1h deletion record |
+| [`test-pruning-20260917.md`](test-pruning-20260917.md) | P1h pruning decisions, retained safeguards, and known gaps |

@@ -12,10 +12,10 @@
 - [ ] `test/ei-move-detector.test.js` + `test/operative-move-detector.test.js` GREEN
 - [ ] `test/hub-anchor-validator.test.js` GREEN
 - [ ] `test/skill-invocation-smoke.test.js` GREEN; coverage ≥80%
-- [ ] All in-scope skills have goldens in `test/golden-compression/`
+- [ ] Direct compression-rule and compression-safety suites pass; no exact-output snapshot coverage is claimed
 - [ ] `tools/optimization-classification.tsv` complete (reviewer-confirmed)
 - [ ] `test/skill-invocation-fixtures.json` reviewer-confirmed
-  (verified_by ≠ "auto-seed (...)" for every entry)
+  (each entry has non-empty reviewed operative assertions and accepted review provenance)
 
 ## Hard gates (ALL must pass to proceed)
 

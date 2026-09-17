@@ -3,108 +3,215 @@
 CI test runner for wiki-instruction-guard blocklist patterns.
 
 Validates that:
-1. Every command in known-bad-commands.txt matches at least one pattern
-2. Every line in known-bad-prose.txt matches at least one prose pattern
-3. Every line in known-good-commands.txt matches NO patterns
+1. Canonical JSON field types and safety semantics are exact and fail closed
+2. Every command in known-bad-commands.txt matches at least one pattern
+3. Every line in known-bad-prose.txt matches at least one prose pattern
+4. Every line in known-good-commands.txt matches NO patterns
 """
 
+import copy
+import json
 import re
 import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Pattern definitions (must match skill.md exactly)
+# Canonical pattern source. The skill points agents to this same file, so the
+# executable corpus test and the instruction artifact cannot maintain copies.
 # ---------------------------------------------------------------------------
-
-CATEGORIES = {
-    "CAT1": [
-        r'rm\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)',
-        r'rm\s+-[a-zA-Z]*r\s+-[a-zA-Z]*f',
-        r'rm\s+.*\s+(/(etc|var|home|root|usr|opt|boot|srv|lib|bin|sbin)/|~/|\$HOME/)',
-        r'(mkfs[.\s]|dd\s+if=|shred\s)',
-        r'(wipefs|sgdisk\s+--zap)',
-        r'truncate\s+-s\s+0',
-        r'crontab\s+-r',
-        r'>\s*(~/\.(bashrc|profile|zshrc|ssh)|/etc/)',
-        r'find\s+.*(-delete|-exec\s+rm)',
-    ],
-    "CAT2": [
-        r'(cat|less|head|tail|grep).*\.env.*\|.*(curl|wget|nc|ncat|netcat)',
-        r'curl.*[$].*(_KEY|_TOKEN|_SECRET|_PAT|PASSWORD)',
-        r'nc\s+-l',
-        r'(cat|cp|scp|rsync).*~/\.ssh/(id_|known_hosts|authorized_keys)',
-        r'(env|printenv|set)\s*\|.*(curl|wget|nc)',
-    ],
-    "CAT3": [
-        r'git\s+push\s+.*--force($|\s[^-])',
-        r'git\s+push\s+-[a-zA-Z]*f',
-        r'git\s+reset\s+--hard\s+(origin|upstream)',
-        r'git\s+push\s+.*\s+:refs/',
-        r'git\s+filter-branch',
-    ],
-    "CAT4": [
-        r'curl\s.*\|\s*(bash|sh|zsh|python[23]?|perl|ruby|node)',
-        r'wget\s.*-O\s*-\s*\|\s*(bash|sh|zsh|python[23]?)',
-        r'(bash|sh|zsh)\s+<\(curl',
-        r'sh\s+-c\s+.*(curl|wget|rm|dd|mkfs|chmod|chown)',
-        r'eval\s+"\$\((curl|wget)',
-        r'(python[23]?|ruby|perl|node)\s+-[ce]\s+"\$\((curl|wget)',
-    ],
-    "CAT5": [
-        r'chmod\s+777',
-        r'chown\s+(root|0:)',
-        r'chmod\s+[ugo]*\+s',
-        r'docker\s+run\s+.*--privileged',
-    ],
-    "CAT5_WARN": [
-        r'sudo\s',
-    ],
-    "CAT6": [
-        r'security\s+(find-generic-password|find-internet-password|dump-keychain)',
-        r'export\s+[A-Z_]*(_TOKEN|_KEY|_SECRET|_PAT)=["\']?[A-Za-z0-9]',
-    ],
-    "CAT7": [
-        r'(skip|ignore|disable|bypass)\s+.*(safety|security|guard|scan|check|wiki-instruction-guard)',
-        r'(override|disregard)\s+(previous|system|safety)\s+(instructions|rules|constraints)',
-        r'(already\s+verified|pre-?approved|security\s+team\s+has\s+reviewed|safe\s+to\s+execute\s+directly)',
-        r'(ignore\s+previous\s+instructions|you\s+are\s+now|new\s+system\s+prompt|act\s+as\s+if)',
-    ],
-    "CAT8": [
-        r':\(\)\{.*:\|:.*\};:',
-        r'kill\s+-9\s+-1',
-        r'(shutdown|reboot|halt|poweroff)\s',
-    ],
-    "CAT9": [
-        r'(>|>>|tee|cp|mv|cat\s*<<).*wiki-instruction-guard/references/',
-        r'(>|>>|tee|cp|mv|cat\s*<<).*domain-allowlist',
-    ],
-    "OBFUSC": [
-        r'base64\s+(-d|--decode).*\|\s*(bash|sh)',
-        r'echo.*\|\s*base64.*\|\s*(bash|sh)',
-        r"r['\"]" + "{2}m",
-        r'printf\s+.*\\x.*\|\s*(bash|sh)',
-        r'alias\s+[a-zA-Z0-9_]+=.*rm\s',
-        r'python[23]?\s+-c\s+.*\b(os\.system|subprocess|exec\(|eval\()',
-        r'cat\s*<<.*>\s*(~/\.ssh|/etc/)',
-        r'echo\s+.*rm\s',
-        r'echo\s+.*curl.*\|.*bash',
-        r'tee\s+.*\|\s*(bash|sh)',
-        r'perl\s+-e\s+.*\b(unlink|rmdir|system)',
-        r'ruby\s+-e\s+.*\b(FileUtils\.(rm|remove)|system|exec)',
-        r'\$\(.*\brm\b',
-    ],
+PATTERN_FILE = Path(__file__).parent.parent / "references" / "blocklist-patterns.json"
+EXPECTED_CATEGORY_VERDICTS = {
+    "CAT1": "BLOCK",
+    "CAT2": "BLOCK",
+    "CAT3": "BLOCK",
+    "CAT4": "BLOCK",
+    "CAT5": "BLOCK",
+    "CAT5_WARN": "WARN",
+    "CAT6": "BLOCK",
+    "CAT7": "NON_OVERRIDABLE",
+    "CAT8": "BLOCK",
+    "CAT9": "BLOCK",
+    "OBFUSC": "BLOCK",
 }
+EXPECTED_CATEGORIES = set(EXPECTED_CATEGORY_VERDICTS)
+EXPECTED_ROOT_FIELDS = {"schema_version", "code_case_sensitive", "code_categories", "prose"}
+EXPECTED_CATEGORY_FIELDS = {"name", "verdict", "patterns"}
+EXPECTED_PROSE_FIELDS = {"case_insensitive", "verdict", "patterns"}
 
-PROSE_PATTERNS = [
-    r'(delete|remove|wipe|clean|clear|purge|destroy|erase)\s+.*(all|entire|contents\s+of|everything\s+in)\s+.*(\.ssh|\.env|\.codex|home\s+directory|credentials|secrets|keys)',
-    r'(send|upload|post|share|transmit|forward|email)\s+.*(all|every|entire|contents\s+of)\s+.*(secret|key|token|credential|password|\.env|\.ssh)',
-    r'(force[\s-]push|rewrite\s+history|reset\s+.*hard|delete\s+.*branch)',
-]
+
+def validate_pattern_contract(document):
+    """Reject malformed or semantically weakened canonical blocklist data."""
+    errors = []
+
+    if type(document) is not dict:
+        raise ValueError("blocklist pattern source must be a JSON object")
+
+    def require_fields(value, expected, path):
+        if type(value) is not dict:
+            errors.append(f"{path} must be an object")
+            return False
+        actual = set(value)
+        if actual != expected:
+            errors.append(
+                f"{path} fields must be exactly {sorted(expected)}; got {sorted(actual)}"
+            )
+        return True
+
+    def require_type(value, expected_type, path):
+        if type(value) is not expected_type:
+            errors.append(f"{path} must be {expected_type.__name__}")
+            return False
+        return True
+
+    require_fields(document, EXPECTED_ROOT_FIELDS, "root")
+
+    schema_version = document.get("schema_version")
+    if require_type(schema_version, int, "schema_version") and schema_version != 1:
+        errors.append("schema_version must be 1")
+
+    code_case_sensitive = document.get("code_case_sensitive")
+    if require_type(code_case_sensitive, bool, "code_case_sensitive") and code_case_sensitive is not True:
+        errors.append("code_case_sensitive must be true")
+
+    categories = document.get("code_categories")
+    if require_type(categories, dict, "code_categories"):
+        actual_categories = set(categories)
+        if actual_categories != EXPECTED_CATEGORIES:
+            errors.append(
+                "code_categories keys must be exactly "
+                f"{sorted(EXPECTED_CATEGORIES)}; got {sorted(actual_categories)}"
+            )
+
+        for category, expected_verdict in EXPECTED_CATEGORY_VERDICTS.items():
+            if category not in categories:
+                continue
+            config = categories[category]
+            path = f"code_categories.{category}"
+            if not require_fields(config, EXPECTED_CATEGORY_FIELDS, path):
+                continue
+
+            name = config.get("name")
+            if require_type(name, str, f"{path}.name") and not name:
+                errors.append(f"{path}.name must be non-empty")
+
+            verdict = config.get("verdict")
+            if require_type(verdict, str, f"{path}.verdict") and verdict != expected_verdict:
+                errors.append(f"{path}.verdict must be {expected_verdict}")
+
+            patterns = config.get("patterns")
+            if require_type(patterns, list, f"{path}.patterns"):
+                if not patterns:
+                    errors.append(f"{path}.patterns must be non-empty")
+                for index, pattern in enumerate(patterns):
+                    pattern_path = f"{path}.patterns[{index}]"
+                    if require_type(pattern, str, pattern_path) and not pattern:
+                        errors.append(f"{pattern_path} must be non-empty")
+
+    prose = document.get("prose")
+    if require_fields(prose, EXPECTED_PROSE_FIELDS, "prose"):
+        case_insensitive = prose.get("case_insensitive")
+        if require_type(case_insensitive, bool, "prose.case_insensitive") and case_insensitive is not True:
+            errors.append("prose.case_insensitive must be true")
+
+        verdict = prose.get("verdict")
+        if require_type(verdict, str, "prose.verdict") and verdict != "WARN":
+            errors.append("prose.verdict must be WARN")
+
+        patterns = prose.get("patterns")
+        if require_type(patterns, list, "prose.patterns"):
+            if not patterns:
+                errors.append("prose.patterns must be non-empty")
+            for index, pattern in enumerate(patterns):
+                pattern_path = f"prose.patterns[{index}]"
+                if require_type(pattern, str, pattern_path) and not pattern:
+                    errors.append(f"{pattern_path} must be non-empty")
+
+    if errors:
+        raise ValueError("invalid blocklist pattern contract:\n- " + "\n- ".join(errors))
+
+
+PATTERN_DATA = json.loads(PATTERN_FILE.read_text(encoding="utf-8"))
+validate_pattern_contract(PATTERN_DATA)
+CATEGORIES = {
+    name: config["patterns"]
+    for name, config in PATTERN_DATA["code_categories"].items()
+}
+PROSE_PATTERNS = PATTERN_DATA["prose"]["patterns"]
+CODE_FLAGS = 0 if PATTERN_DATA["code_case_sensitive"] else re.IGNORECASE
+PROSE_FLAGS = re.IGNORECASE if PATTERN_DATA["prose"]["case_insensitive"] else 0
+for patterns in CATEGORIES.values():
+    for pattern in patterns:
+        re.compile(pattern, CODE_FLAGS)
+for pattern in PROSE_PATTERNS:
+    re.compile(pattern, PROSE_FLAGS)
 
 # All code-block patterns flattened (for false-positive testing)
 ALL_CODE_PATTERNS = []
 for cat, patterns in CATEGORIES.items():
     ALL_CODE_PATTERNS.extend(patterns)
+
+
+def _mutated_document(mutator):
+    document = copy.deepcopy(PATTERN_DATA)
+    mutator(document)
+    return document
+
+
+def contract_mutation_cases():
+    """Build independent mutations that every canonical contract check must reject."""
+    cases = [
+        ("root type", []),
+        ("missing schema_version", _mutated_document(lambda d: d.pop("schema_version"))),
+        ("schema_version type", _mutated_document(lambda d: d.__setitem__("schema_version", "1"))),
+        ("schema_version value", _mutated_document(lambda d: d.__setitem__("schema_version", 2))),
+        ("missing code_case_sensitive", _mutated_document(lambda d: d.pop("code_case_sensitive"))),
+        ("code_case_sensitive type", _mutated_document(lambda d: d.__setitem__("code_case_sensitive", 1))),
+        ("code_case_sensitive value", _mutated_document(lambda d: d.__setitem__("code_case_sensitive", False))),
+        ("missing code_categories", _mutated_document(lambda d: d.pop("code_categories"))),
+        ("code_categories type", _mutated_document(lambda d: d.__setitem__("code_categories", []))),
+        ("unexpected category", _mutated_document(lambda d: d["code_categories"].__setitem__("CAT10", {}))),
+        ("missing prose", _mutated_document(lambda d: d.pop("prose"))),
+        ("prose type", _mutated_document(lambda d: d.__setitem__("prose", []))),
+        ("missing prose.case_insensitive", _mutated_document(lambda d: d["prose"].pop("case_insensitive"))),
+        ("prose.case_insensitive type", _mutated_document(lambda d: d["prose"].__setitem__("case_insensitive", 1))),
+        ("prose.case_insensitive value", _mutated_document(lambda d: d["prose"].__setitem__("case_insensitive", False))),
+        ("missing prose.verdict", _mutated_document(lambda d: d["prose"].pop("verdict"))),
+        ("prose.verdict type", _mutated_document(lambda d: d["prose"].__setitem__("verdict", None))),
+        ("prose.verdict value", _mutated_document(lambda d: d["prose"].__setitem__("verdict", "BLOCK"))),
+        ("missing prose.patterns", _mutated_document(lambda d: d["prose"].pop("patterns"))),
+        ("prose.patterns type", _mutated_document(lambda d: d["prose"].__setitem__("patterns", {}))),
+        ("empty prose.patterns", _mutated_document(lambda d: d["prose"].__setitem__("patterns", []))),
+        ("prose pattern type", _mutated_document(lambda d: d["prose"]["patterns"].__setitem__(0, 7))),
+    ]
+
+    for category in EXPECTED_CATEGORY_VERDICTS:
+        cases.extend([
+            (f"missing {category}", _mutated_document(lambda d, c=category: d["code_categories"].pop(c))),
+            (f"{category} type", _mutated_document(lambda d, c=category: d["code_categories"].__setitem__(c, []))),
+            (f"missing {category}.name", _mutated_document(lambda d, c=category: d["code_categories"][c].pop("name"))),
+            (f"{category}.name type", _mutated_document(lambda d, c=category: d["code_categories"][c].__setitem__("name", None))),
+            (f"missing {category}.verdict", _mutated_document(lambda d, c=category: d["code_categories"][c].pop("verdict"))),
+            (f"{category}.verdict type", _mutated_document(lambda d, c=category: d["code_categories"][c].__setitem__("verdict", None))),
+            (f"{category}.verdict value", _mutated_document(lambda d, c=category: d["code_categories"][c].__setitem__("verdict", "MUTATED"))),
+            (f"missing {category}.patterns", _mutated_document(lambda d, c=category: d["code_categories"][c].pop("patterns"))),
+            (f"{category}.patterns type", _mutated_document(lambda d, c=category: d["code_categories"][c].__setitem__("patterns", {}))),
+            (f"empty {category}.patterns", _mutated_document(lambda d, c=category: d["code_categories"][c].__setitem__("patterns", []))),
+            (f"{category} pattern type", _mutated_document(lambda d, c=category: d["code_categories"][c]["patterns"].__setitem__(0, 7))),
+        ])
+
+    return cases
+
+
+def test_canonical_contract_mutations():
+    """Every required-field or semantic mutation must fail closed."""
+    failures = []
+    for label, document in contract_mutation_cases():
+        try:
+            validate_pattern_contract(document)
+        except ValueError:
+            continue
+        failures.append(f"  CONTRACT MUTATION ACCEPTED: {label}")
+    return failures
 
 
 def load_test_file(filename):
@@ -136,7 +243,7 @@ def test_known_bad_commands():
         patterns = CATEGORIES[category]
         matched = False
         for pattern in patterns:
-            if re.search(pattern, command):
+            if re.search(pattern, command, CODE_FLAGS):
                 matched = True
                 break
 
@@ -154,7 +261,7 @@ def test_known_bad_prose():
     for _, text in entries:
         matched = False
         for pattern in PROSE_PATTERNS:
-            if re.search(pattern, text, re.IGNORECASE):
+            if re.search(pattern, text, PROSE_FLAGS):
                 matched = True
                 break
 
@@ -171,14 +278,18 @@ def test_known_good_commands():
 
     # Categories that produce WARN (not BLOCK) are excluded from false-positive checks
     # because some good commands intentionally match them (e.g., sudo)
-    warn_categories = {"CAT5_WARN"}
+    warn_categories = {
+        name
+        for name, config in PATTERN_DATA["code_categories"].items()
+        if config["verdict"] == "WARN"
+    }
 
     for _, command in entries:
         for cat_name, patterns in CATEGORIES.items():
             if cat_name in warn_categories:
                 continue
             for pattern in patterns:
-                if re.search(pattern, command):
+                if re.search(pattern, command, CODE_FLAGS):
                     failures.append(
                         f"  FALSE POSITIVE [{cat_name}]: {command}\n"
                         f"    Matched: {pattern}"
@@ -186,7 +297,7 @@ def test_known_good_commands():
 
         # Also check prose patterns (case-insensitive)
         for pattern in PROSE_PATTERNS:
-            if re.search(pattern, command, re.IGNORECASE):
+            if re.search(pattern, command, PROSE_FLAGS):
                 failures.append(
                     f"  FALSE POSITIVE [PROSE]: {command}\n"
                     f"    Matched: {pattern}"
@@ -201,8 +312,17 @@ def main():
 
     all_failures = []
 
-    # Test 1: Known-bad commands
-    print("\n[1/3] Testing known-bad-commands.txt...")
+    # Test 1: Canonical JSON schema and semantics
+    print("\n[1/4] Testing canonical contract mutations...")
+    failures = test_canonical_contract_mutations()
+    if failures:
+        print(f"  FAIL: {len(failures)} mutations were accepted")
+        all_failures.extend(failures)
+    else:
+        print(f"  PASS: {len(contract_mutation_cases())} mutations rejected")
+
+    # Test 2: Known-bad commands
+    print("\n[2/4] Testing known-bad-commands.txt...")
     failures = test_known_bad_commands()
     if failures:
         print(f"  FAIL: {len(failures)} commands did not match")
@@ -211,8 +331,8 @@ def main():
         entries = load_test_file("known-bad-commands.txt")
         print(f"  PASS: {len(entries)} commands matched their categories")
 
-    # Test 2: Known-bad prose
-    print("\n[2/3] Testing known-bad-prose.txt...")
+    # Test 3: Known-bad prose
+    print("\n[3/4] Testing known-bad-prose.txt...")
     failures = test_known_bad_prose()
     if failures:
         print(f"  FAIL: {len(failures)} prose lines did not match")
@@ -221,8 +341,8 @@ def main():
         entries = load_test_file("known-bad-prose.txt")
         print(f"  PASS: {len(entries)} prose lines matched")
 
-    # Test 3: Known-good commands (false positive check)
-    print("\n[3/3] Testing known-good-commands.txt...")
+    # Test 4: Known-good commands (false positive check)
+    print("\n[4/4] Testing known-good-commands.txt...")
     failures = test_known_good_commands()
     if failures:
         print(f"  FAIL: {len(failures)} false positives detected")

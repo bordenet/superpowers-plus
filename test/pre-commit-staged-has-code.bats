@@ -106,17 +106,23 @@ teardown() {
     git add tests/ci-bats-policy.txt
     run ./harness.sh
     [ "$status" -eq 0 ]
+  [[ "$output" == "HAS_CODE" ]]
+}
+
+@test "staged_has_code: test fixture data is HAS_CODE despite its .txt suffix" {
+    mkdir -p test/fixtures/journeys
+    echo "fixture payload" > test/fixtures/journeys/J8-daily-driver.txt
+    git add test/fixtures/journeys/J8-daily-driver.txt
+    run ./harness.sh
+    [ "$status" -eq 0 ]
     [[ "$output" == "HAS_CODE" ]]
 }
 
-@test "staged_has_code: a golden-compression fixture is HAS_CODE, not silently exempt" {
-    # Sibling drift (Defect Finder, 2026-08-28): _first_code_file() in
-    # tools/pre-push-code-review-gate.sh gained a golden-compression carve-out
-    # in this same diff, but staged_has_code() -- its documented mirror, per
-    # the comment above this function citing it -- did not. Without this, a
-    # commit touching only a golden fixture passes Gate 0 (pre-commit) with no
-    # sentinel required, then is BLOCKED at push by Gate 2, which DOES treat it
-    # as code -- the exact round-trip friction push-readiness.sh exists to kill.
+@test "staged_has_code: a reintroduced retired compression snapshot is HAS_CODE" {
+    # Incident regression (Defect Finder / Guardian, 2026-08-28): this must
+    # mirror _first_code_file() so a commit cannot pass here and fail at push.
+    # The snapshot corpus is intentionally absent; the guard prevents a future
+    # file under its legacy path from becoming silently unreviewed.
     mkdir -p test/golden-compression
     echo "some golden content" > test/golden-compression/some-skill.golden.txt
     git add test/golden-compression/some-skill.golden.txt

@@ -1,0 +1,142 @@
+# P1h test inventory. One exact path per row; validated by test/test-inventory.test.js.
+# runner names the normal execution path. "manual only" is an explicit coverage gap, not an implied CI claim.
+status	kind	path	runner	coverage
+retained	suite	mcp/smoke-test.js	CI node-tests: cd mcp && npm test	MCP server startup, tool listing, and skill loading
+retained	suite	skills/productivity/todo-archive/tests/test_todo_archive.sh	CI shell-tests: TODO archive tests	TODO archive validation and archive writes
+retained	suite	skills/security/wiki-instruction-guard/tests/test_blocklist.py	CI security-scan: wiki instruction guard blocklist tests	Canonical schema/type/verdict/case-semantics mutations plus known-bad command/prose and known-good false-positive corpus
+retained	suite	test/branch-flow-gate3.bats	tools/test-all.sh; CI Bats discovery	Branch-flow Gate 3 behavior and sentinel checks
+retained	suite	test/branch-flow-preflight.bats	tools/test-all.sh; CI Bats discovery	Branch-flow preflight validation
+retained	suite	test/ci-bats-discovery.bats	tools/test-all.sh; CI Bats discovery	Bats discovery, policy lint, exclusions, and fail-closed floors
+retained	suite	test/codeowners-drift-audit.bats	tools/test-all.sh; CI Bats discovery	CODEOWNERS dead-rule and unowned-file audit behavior
+retained	suite	test/commit-msg.bats	tools/test-all.sh; CI Bats discovery	Commit-message hook policy and bypass resistance
+retained	suite	test/composition-engine.test.js	tools/test-all.sh; CI node-tests	Skill composition resolution and ordering
+retained	suite	test/compress.test.js	tools/test-all.sh; CI node-tests	Compression transformations, safety sections, code fences, and whitespace rules
+retained	suite	test/compression-safety.test.js	tools/test-all.sh; CI node-tests	Safety-critical content retained after compression
+retained	suite	test/doctor-standalone-layout.bats	tools/test-all.sh; CI Bats discovery	Doctor behavior in standalone installed layouts
+retained	suite	test/ei-move-detector.test.js	tools/test-all.sh; CI node-tests	Explicit-instruction movement against reviewed baseline and waivers
+retained	suite	test/fence-scan.bats	tools/test-all.sh; CI Bats discovery	Markdown fenced-shell extraction and syntax checking
+retained	suite	test/find-polluter.bats	tools/test-all.sh; CI Bats discovery	Git/config pollution diagnosis
+retained	suite	test/frontmatter.test.js	tools/test-all.sh; CI node-tests	Frontmatter parsing, malformed input, and field normalization
+retained	suite	test/harsh-review-reviewer-length.bats	tools/test-all.sh; CI Bats discovery	Harsh-review reviewer prompt length limits
+retained	suite	test/hotfix-charter-check.bats	tools/test-all.sh; CI Bats discovery	Hotfix charter branch and document gates
+retained	suite	test/hub-anchor-validator.test.js	tools/test-all.sh; CI node-tests	Hub skill anchors and reference integrity
+retained	suite	test/install-hooks.bats	tools/test-all.sh; CI Bats discovery	Hook installation, update, and preservation behavior
+retained	suite	test/install-patterns-merge.bats	tools/test-all.sh; CI Bats discovery	Installed pattern-file merge behavior
+retained	suite	test/integration-test.sh	manual only: bash test/integration-test.sh	Legacy end-to-end CLI integration checks
+retained	suite	test/invocation-fixture-oracle.test.js	tools/test-all.sh; CI node-tests: invocation fixture oracle	Reviewed oracle validation and trigger refresh non-mutation
+retained	suite	test/knowledge-capture.bats	tools/test-all.sh; CI Bats discovery	Knowledge-capture workflow and artifact behavior
+retained	suite	test/language-scanner.test.js	tools/test-all.sh; CI node-tests	Language scanner matching and exclusions
+retained	suite	test/loop-progress.bats	tools/test-all.sh; CI Bats discovery	Loop progress detection and stall handling
+retained	suite	test/managed_skill_source_matches.bats	tools/test-all.sh; CI Bats discovery	Managed installed skill/source parity
+retained	suite	test/md-files-changed.bats	tools/test-all.sh; CI Bats discovery	Markdown review ownership and base resolution
+retained	suite	test/operative-move-detector.test.js	tools/test-all.sh; CI node-tests	Operative-pattern movement against reviewed baseline and waivers
+retained	suite	test/post-commit.bats	tools/test-all.sh; CI Bats discovery	Post-commit sentinel and cleanup behavior
+retained	suite	test/post-squash-cleanup.bats	tools/test-all.sh; CI Bats discovery	Post-squash cleanup boundaries
+retained	suite	test/pre-commit-staged-has-code.bats	tools/test-all.sh; CI Bats discovery	Staged code classification, including retired snapshot-class reintroduction
+retained	suite	test/pre-push-code-review-gate.bats	tools/test-all.sh; CI Bats discovery	Code-review sentinel gating and code/docs classification
+retained	suite	test/pre-push-diff-range.bats	tools/test-all.sh; CI Bats discovery	Pre-push range selection and new-branch behavior
+retained	suite	test/pre-push-gate4.bats	tools/test-all.sh; CI Bats discovery	PHR Gate 4/5 sentinel behavior
+retained	suite	test/pre-push-git-dir-leak.bats	tools/test-all.sh; CI Bats discovery	GIT_DIR contamination regression
+retained	suite	test/pre-push-llm-skill-review-gate.bats	tools/test-all.sh; CI Bats discovery	LLM skill review sentinel parsing and ownership
+retained	suite	test/pre-push-loc-gate.bats	tools/test-all.sh; CI Bats discovery	LOC gate thresholds and exemptions
+retained	suite	test/promotion-strict-toggle.bats	tools/test-all.sh; CI Bats discovery	Promotion strict-mode toggling
+retained	suite	test/public-repo-ip-check.test.sh	tools/test-all.sh; CI security-scan	Public-repository IP disclosure patterns and help contract
+retained	suite	test/push-readiness.bats	tools/test-all.sh; CI Bats discovery	Push-readiness orchestration and gate reporting
+retained	suite	test/repo-security-scan-history.bats	tools/test-all.sh; CI Bats discovery	Repository secret scan history boundaries
+retained	suite	test/review-package.bats	tools/test-all.sh; CI Bats discovery	Review package construction and validation
+retained	suite	test/review.bats	tools/test-all.sh; CI Bats discovery	Review router output, mixed gates, and fail-closed paths
+retained	suite	test/reviewer-count-consistency.bats	tools/test-all.sh; CI Bats discovery	Code-review reviewer count consistency
+retained	suite	test/run-battery-flags.bats	tools/test-all.sh; CI Bats discovery	Battery runner argument validation
+retained	suite	test/run-llm-skill-review.bats	tools/test-all.sh; CI Bats discovery	LLM skill review runner envelope and sentinel rules
+retained	suite	test/run-phr.bats	tools/test-all.sh; CI Bats discovery	PHR runner verdict and sentinel rules
+retained	suite	test/scan-ai-process-refs.bats	tools/test-all.sh; CI Bats discovery	AI process reference scanner behavior
+retained	suite	test/scope-tripwire-check.bats	tools/test-all.sh; CI Bats discovery	Scope tripwire sizing and ticket checks
+retained	suite	test/sdd-workspace.bats	tools/test-all.sh; CI Bats discovery	Subagent-driven development workspace ownership
+retained	suite	test/sha-lock.bats	tools/test-all.sh; CI Bats discovery	SHA lock acquisition and stale-lock handling
+retained	suite	test/shell-runtime-auditor-count.bats	tools/test-all.sh; CI Bats discovery	ShellRuntimeAuditor dispatch count
+retained	suite	test/ship.bats	tools/test-all.sh; CI Bats discovery	Ship workflow safety, CI polling, and state transitions
+retained	suite	test/skill-discovery.test.js	tools/test-all.sh; CI node-tests	Skill discovery across source roots and namespaces
+retained	suite	test/skill-guidance-regress.bats	tools/test-all.sh; CI Bats discovery	Prompt-only guidance cases against reviewed expected verdicts
+retained	suite	test/skill-invocation-smoke.test.js	tools/test-all.sh; CI node-tests	Skill loading, reviewed operative assertions, trigger ranking, and composition targets
+retained	suite	test/skill-router.test.js	tools/test-all.sh; CI node-tests	Skill-router ranking, aliases, exclusions, and malformed input
+retained	suite	test/slop-check.bats	tools/test-all.sh; CI Bats discovery	AI-slop scanner severity, redaction, and errors
+retained	suite	test/suite-git-dir-isolation.bats	tools/test-all.sh; CI Bats discovery	Nested Bats isolation from inherited GIT_DIR
+retained	suite	test/task-brief.bats	tools/test-all.sh; CI Bats discovery	Task brief creation and workspace paths
+retained	suite	test/test-inventory.test.js	tools/test-all.sh; CI node-tests: test inventory consistency	Every retained runnable test has one inventory row with runner and coverage
+retained	suite	test/test_cli_bin_dir_in_profiles.sh	manual only: bash test/test_cli_bin_dir_in_profiles.sh	CLI bin directory shell-profile installation
+retained	suite	test/test_dest_name_index.bats	tools/test-all.sh; CI Bats discovery	Destination-name index behavior
+retained	suite	test/test_skill_dest_name.sh	manual only: bash test/test_skill_dest_name.sh	Skill destination-name mapping
+retained	suite	test/toc-delimiter-check.bats	tools/test-all.sh; CI Bats discovery	Wiki TOC delimiter validation and delegated errors
+retained	suite	test/todo-maintenance-standalone.bats	tools/test-all.sh; CI Bats discovery	TODO maintenance in standalone layouts
+retained	suite	test/use-skill-cli.test.js	tools/test-all.sh; CI node-tests	use-skill CLI resolution, compression, and error behavior
+retained	suite	test/verify-cr-battery-evidence.test.js	tools/test-all.sh; CI node-tests	Review evidence schema and replay verification
+retained	suite	test/which-gate.bats	tools/test-all.sh; CI Bats discovery	Mechanical artifact-to-review-gate classification
+retained	suite	test/wiki-content-check.bats	tools/test-all.sh; CI excluded by tests/ci-bats-policy.txt	Wiki content H1, slop, TOC, reference, and error gates
+retained	suite	test/wiki-markdown-validate.test.js	tools/test-all.sh only	Wiki Markdown validation and normalization
+retained	suite	test/wiki-oneshot.bats	tools/test-all.sh; CI Bats discovery	One-shot wiki workflow against local mock API
+retained	suite	test/workflow-state.test.js	tools/test-all.sh; CI node-tests	Workflow state transitions and persistence
+retained	suite	tests/augment-menu-test.bats	CI Bats discovery	Augment menu generation and filtering
+retained	suite	tests/augment-non-regression-test.bats	CI Bats discovery with PERSONAL_SKILLS_DIR	Augment installed-skill non-regression baseline
+retained	suite	tests/baseline-capture-test.bats	CI Bats discovery	Baseline capture determinism and validation
+retained	suite	tests/claude-guardrails-test.bats	CI Bats discovery	Claude hook installation and guardrail regressions
+retained	suite	tests/commit-gate-test.bats	CI Bats discovery	Commit gate behavior and CLI contract
+retained	suite	tests/compat-help-test.bats	CI excluded by tests/ci-bats-policy.txt; manual Bats	Compatibility tools and help contracts on supported local hosts
+retained	suite	tests/cr-battery-preservation-test.bats	CI Bats discovery	Code-review battery artifact preservation
+retained	suite	tests/engineering/kernel-split-context.bats	CI Bats discovery	Kernel split context-cost boundaries
+retained	suite	tests/engineering/kernel-split.bats	CI Bats discovery	Kernel split behavior and reference extraction
+retained	suite	tests/env-doctor-test.bats	CI Bats discovery	Environment doctor diagnosis and exit behavior
+retained	suite	tests/harness/artifact-budgets.bats	CI Bats discovery with BUDGET_MODE=advisory	Artifact budget collection, comparison, and failure handling
+retained	suite	tests/install-main-test.bats	CI Bats discovery	Main installer skill installation and pruning
+retained	suite	tests/install-test.bats	CI Bats discovery	Augment installer integration and pruning
+retained	suite	tests/mcp-checks-test.bats	CI Bats discovery	MCP configuration and dependency checks
+retained	suite	tests/perplexity-setup-test.bats	CI Bats discovery	Perplexity setup and configuration handling
+retained	suite	tests/pre-push-loc-gate-remote-test.bats	CI Bats discovery	LOC gate remote/base behavior
+retained	suite	tests/scope-tripwire-autodetect-test.bats	CI Bats discovery	Scope tripwire ticket autodetection
+retained	suite	tests/session-handoff-check-test.bats	CI Bats discovery	Session handoff branch/activity checks
+retained	suite	tests/skip-augment-test.bats	CI excluded by tests/ci-bats-policy.txt; manual Bats	Installer --skip-augment behavior
+retained	suite	tests/suite-git-dir-isolation-test.bats	CI Bats discovery	Top-level CI Bats isolation from inherited GIT_DIR
+retained	suite	tests/tools/config-precedence.bats	CI Bats discovery	Tool configuration precedence
+retained	suite	tests/try-sentinel-fast-forward-test.bats	CI Bats discovery	Generated-fixture fast-forward registry and cleanup boundaries
+retained	suite	tests/wiki-write-test.bats	CI Bats discovery	Wiki write validation, confirmation, and local API behavior
+retained	suite	tests/yaml-checks-alias-exemption-test.bats	CI Bats discovery	YAML alias exemption and error handling
+retained	suite	tools/tests/test_doctor_checks.sh	CI shell-tests: doctor checks tests	Doctor module checks and TODO archive smoke
+retained	suite	tools/tests/test_todo_engine.py	CI shell-tests: TODO engine unit tests	TODO engine parsing, mutation, and locking
+retained	suite	tools/tests/test_todo_lock.sh	CI shell-tests: TODO lock tests	TODO lock concurrency and stale-lock recovery
+deleted	document	exercises/forked-debugging/experiment-matrix.md	none (deleted)	Pre-experiment design document; no automated assertions or runner
+deleted	fixture	exercises/forked-debugging/fixtures/S1.json	none (deleted)	Synthetic forked-debugging input consumed only by deleted stub
+deleted	fixture	exercises/forked-debugging/fixtures/S2.json	none (deleted)	Synthetic forked-debugging input consumed only by deleted stub
+deleted	fixture	exercises/forked-debugging/fixtures/S3.json	none (deleted)	Synthetic forked-debugging input consumed only by deleted stub
+deleted	fixture	exercises/forked-debugging/fixtures/S4.json	none (deleted)	Synthetic forked-debugging input consumed only by deleted stub
+deleted	fixture	exercises/forked-debugging/fixtures/S5.json	none (deleted)	Synthetic forked-debugging input consumed only by deleted stub
+deleted	document	exercises/forked-debugging/results-comparison.md	none (deleted)	Predicted results without executed experiments or assertions
+deleted	support	exercises/forked-debugging/results/.gitignore	none (deleted)	Ignore rule used only by deleted experiment stub
+deleted	harness	exercises/forked-debugging/run-experiment.sh	none (deleted)	Placeholder result writer with null metrics and no agent dispatch
+deleted	fixture	exercises/multi-agent-skills/fixtures/BS-1-vague-feature.json	none (deleted)	Unconsumed synthetic brainstorming fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/BS-2-architecture-redesign.json	none (deleted)	Unconsumed synthetic brainstorming fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/BS-3-simple-ui.json	none (deleted)	Unconsumed synthetic brainstorming fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/SD-1-independent-files.json	none (deleted)	Unconsumed synthetic subagent-dispatch fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/SD-2-moderate-coupling.json	none (deleted)	Unconsumed synthetic subagent-dispatch fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/SD-3-tight-coupling.json	none (deleted)	Unconsumed synthetic subagent-dispatch fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/WP-1-simple-utility.json	none (deleted)	Unconsumed synthetic writing-plans fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/WP-2-medium-feature.json	none (deleted)	Unconsumed synthetic writing-plans fixture
+deleted	fixture	exercises/multi-agent-skills/fixtures/WP-3-large-cross-service.json	none (deleted)	Unconsumed synthetic writing-plans fixture
+deleted	snapshot	test/golden-compression/autonomous-chain-controller.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/branch-flow-gate.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/code-review-battery.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/debate.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/debug-conductor.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/feature-development.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/finishing-a-development-branch.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/investigation-state.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/link-verification.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/plan-and-execute.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/pre-push-quality-gate.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/progressive-code-review-gate.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/progressive-harsh-review.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/readme-authoring.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/sp-bughunt.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/think-twice.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/thinking-orchestrator.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/todo-management.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	snapshot	test/golden-compression/verification-before-completion.golden.txt	none (deleted)	Whole-document compression snapshot; exact-output coverage removed
+deleted	suite	tools/tests/test_tool_help.sh	none (deleted)	Unregistered shallow help-text loop duplicated direct CLI contract tests

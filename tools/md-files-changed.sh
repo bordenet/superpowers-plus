@@ -10,7 +10,8 @@
 #          regex nor the ownership boundary is ever duplicated.
 #
 # Scope counted as AI-guidance-relevant (the default, undecorated output):
-#   - any path under skills/*.md, docs/*.md, or .ai-guidance/*.md
+#   - any path under skills/*.md, docs/*.md, exercises/*.md, or .ai-guidance/*.md
+#   - tools/optimization-go-no-go-template.md (human-reviewed release template)
 #   - repo-root *.md whose filename starts with an uppercase letter
 #     (e.g. AGENTS.md, DESIGN.md, ARCHITECTURE.md)
 #   - AGENTS.md, CLAUDE.md, GEMINI.md, CODEX.md, COPILOT.md, or AGENT.md at
@@ -28,9 +29,10 @@
 #     limit, not because the audience changes)
 #   - any AGENTS.md / CLAUDE.md / GEMINI.md / CODEX.md / COPILOT.md /
 #     AGENT.md file, at any path depth
-# Everything else in the AI-guidance-relevant set (docs/*.md, and root- or
-# nested- uppercase *.md that is NOT one of the agent-file basenames above,
-# e.g. DESIGN.md, ARCHITECTURE.md) remains PHR's (Gate 5's) territory.
+# Everything else in the AI-guidance-relevant set (docs/*.md,
+# exercises/*.md, and root- or nested-uppercase *.md that is NOT one of the
+# agent-file basenames above, e.g. DESIGN.md, ARCHITECTURE.md) remains PHR's
+# (Gate 5's) territory.
 #
 # USAGE:
 #   tools/md-files-changed.sh                   # diff against best-guess base
@@ -142,7 +144,7 @@ LLM_OWNED_REGEX='(^skills/|^\.ai-guidance/).*\.md$|(^|/)(AGENTS|CLAUDE|GEMINI|CO
 # Apply the AI-guidance-relevance filter to a newline-separated file list on
 # stdin. Superset of the llm-skill-review-owned files above.
 filter() {
-    grep -E '(^skills/|^docs/|^\.ai-guidance/).*\.md$|^[A-Z][A-Za-z_-]*\.md$|(^|/)(AGENTS|CLAUDE|GEMINI|CODEX|COPILOT|AGENT)\.md$' \
+    grep -E '(^skills/|^docs/|^exercises/|^\.ai-guidance/).*\.md$|^tools/optimization-go-no-go-template\.md$|^[A-Z][A-Za-z_-]*\.md$|(^|/)(AGENTS|CLAUDE|GEMINI|CODEX|COPILOT|AGENT)\.md$' \
         | grep -vE '^(README|CHANGELOG)\.md$' || true
 }
 

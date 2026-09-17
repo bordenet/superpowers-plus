@@ -56,19 +56,19 @@ REMOTE_NAME="${1:-origin}"
 # here -- they fall through to the generic .md/.txt/.rst exemption below,
 # same as any other prose file. tests/ci-bats-policy.txt is the deliberate
 # exception: it controls which suites CI executes, so it is executable policy,
-# not prose. test/golden-compression/*.golden.txt is a second, narrower
-# exception: a long-standing tracked fixture with no home in any gate (not
-# skills/*.md, not PHR-scoped prose) that predates this session -- anchoring
-# --any=explicit-exempt to root-only (this diff) stopped it being silently
-# swept up by the unanchored .md/.txt/.rst fallthrough; it needs an explicit
-# route, not a silent pass. Other .md/.txt/.rst files and well-known root
-# metadata are exempt.
+# not prose. All test/fixtures/** files are executable test inputs regardless
+# of extension, so they require code review too. The legacy
+# test/golden-compression/*.golden.txt path remains a narrower fail-closed
+# exception even though its snapshots were pruned: if that artifact class
+# returns, it must not silently bypass review. Other .md/.txt/.rst files and
+# well-known root metadata are exempt.
 _first_code_file() {
     awk '
         /^\s*$/                             { next }
         /^skills\/.*\.md$/                  { next }
         /^skills\//                         { print; next }
         /^tests\/ci-bats-policy\.txt$/       { print; next }
+        /^test\/fixtures\//                 { print; next }
         /^test\/golden-compression\/.*\.golden\.txt$/ { print; next }
         /\.(md|txt|rst)$/                   { next }
         /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }

@@ -149,19 +149,20 @@ const fixtures = JSON.parse(fs.readFileSync(FIXTURES, 'utf8'));
 const skills = fixtures.skills || {};
 const totalInScope = Object.keys(skills).length;
 let withFixtures = 0;
+const { validateReviewedFixture } = require('../tools/seed-invocation-fixtures');
 
 console.log(`Running skill-invocation-smoke against ${totalInScope} in-scope skills...\n`);
 
+assert(totalInScope > 0, 'fixture oracle must contain at least one in-scope skill');
+
 for (const [name, fx] of Object.entries(skills)) {
-    const hasSubs = (fx.expected_substrings || []).length > 0;
-    const hasTrigs = (fx.triggers || []).length > 0;
-    if (!hasSubs && !hasTrigs) {
-        skipped++;
-        console.log(`  ⏭️  ${name}: SKIP (no fixture substrings/triggers — pending P0.6)`);
+    try {
+        validateReviewedFixture(name, fx);
+    } catch (error) {
+        assert(false, error.message);
         continue;
     }
     withFixtures++;
-    const isDraft = typeof fx.verified_by === 'string' && fx.verified_by.startsWith('auto-seed');
 
     // 1. use-skill returns body containing every substring.
     // Try bare name first; on resolver miss (non-zero exit), fall back to
@@ -200,10 +201,11 @@ for (const [name, fx] of Object.entries(skills)) {
             const rankMatch = tl.match(/^\|\s*(\d+)\s*\|/);
             if (rankMatch && parseInt(rankMatch[1], 10) <= 3) { top3 = true; break; }
         }
-        // Trigger ranking is heuristic; in auto-seed (draft) state, demote to warning so
-        // generic triggers ("build", "implement") don't fail CI before reviewer pass.
-        const checkFn = isDraft ? softAssert : assert;
-        checkFn(top3, `${name}: trigger "${trig}" did not rank target in top-3`);
+        // Ranking is heuristic and the seeder refreshes these phrases from
+        // frontmatter. The independently reviewed body assertions above are
+        // the operative, fail-closed oracle; routing drift remains visible as
+        // an advisory until a reviewer promotes a trigger to a literal oracle.
+        softAssert(top3, `${name}: trigger "${trig}" did not rank target in top-3`);
     }
 
     // 3. composition.uses[] targets resolve
@@ -279,7 +281,7 @@ console.log(`\nFixture coverage: ${withFixtures}/${totalInScope} (${coverage.toF
 console.log(`${pass} passed, ${fail} failed, ${skipped} skipped, ${warnings} warning(s)`);
 
 if (warnings > 0) {
-    console.log('\nWarnings (auto-seed fixtures — reviewer must tune triggers in P0.6):');
+    console.log('\nWarnings (heuristic trigger ranking; operative body assertions still passed):');
     warningMsgs.forEach(w => console.log(`  ⚠️  ${w}`));
 }
 

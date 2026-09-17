@@ -199,7 +199,7 @@ This repo runs four optimization-safety detectors in CI on every PR:
 | `test/ei-move-detector.test.js` | `<EXTREMELY_IMPORTANT>` / Hallucination Prevention / Incident Log / References / Failure Modes blocks moved out of `skill.md` |
 | `test/operative-move-detector.test.js` | Drops in `## Step N` / `⛔` / HARD-GATE table rows / fenced code blocks |
 | `test/hub-anchor-validator.test.js` | Cross-skill `Step N` references whose target anchor disappeared |
-| `test/skill-invocation-smoke.test.js` | `use-skill` body missing per-skill expected substrings, or trigger phrases that no longer rank in top-3 |
+| `test/skill-invocation-smoke.test.js` | `use-skill` body missing independently reviewed operative substrings; trigger ranking drift is reported as advisory |
 
 The `hub-anchor-validator` auto-discovers hub skills — skills that orchestrate others by cross-referencing their `Step N` / `Stage N` anchors. To register a skill as a hub and enable this validation, declare the skills it references in frontmatter:
 
@@ -228,14 +228,15 @@ node test/ei-move-detector.test.js --update
 # Update operative-pattern baseline
 node test/operative-move-detector.test.js --update
 
-# Re-emit goldens for skills you touched
-node test/compress.test.js --update
-
-# Add/refresh fixture entry for the smoke test (required for new skills)
+# Refresh frontmatter-derived trigger phrases; reviewed body assertions are preserved
 node tools/seed-invocation-fixtures.js
 ```
 
-Auto-seeded fixture entries (those whose triggers are "too generic to assert top-3") should have their `triggers` array filled in manually after seeding — see the fixture file's `verified_by` field.
+For a new in-scope skill, hand-author at least one literal
+`expected_substrings` assertion, then record `verified_by` and `verified_at`.
+The seeder refuses empty or automatically derived operative assertions and
+never rewrites reviewed values. Trigger ranking is heuristic and remains an
+advisory signal.
 
 Stage the regenerated baseline alongside your skill change in the same commit and explain in the PR body why the change is intentional.
 

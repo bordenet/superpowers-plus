@@ -13,6 +13,5 @@
 # path-only design was rejected in review for exactly this reason).
 # shellcheck disable=SC2034  # consumed by the sourcing script (try-sentinel-fast-forward.sh)
 declare -A FASTFORWARD_GENERATORS=(
-    ["test/golden-compression/"]="node test/compress.test.js --update"
     ["test/ei-baseline.json"]="node test/ei-move-detector.test.js --update"
 )

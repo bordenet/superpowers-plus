@@ -34,6 +34,24 @@ SCRIPT="$REPO_ROOT/tools/which-gate.sh"
     [[ "$output" != *"llm-skill-review gate: REQUIRED"* ]]
 }
 
+@test "exercises/*.md requires PHR only" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" exercises/forked-debugging/experiment-matrix.md
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PHR gate: REQUIRED"* ]]
+    [[ "$output" != *"llm-skill-review gate: REQUIRED"* ]]
+    [[ "$output" != *"cr-battery gate: REQUIRED"* ]]
+}
+
+@test "optimization go/no-go template requires PHR only" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" tools/optimization-go-no-go-template.md
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PHR gate: REQUIRED"* ]]
+    [[ "$output" != *"llm-skill-review gate: REQUIRED"* ]]
+    [[ "$output" != *"cr-battery gate: REQUIRED"* ]]
+}
+
 @test "tools/*.sh requires cr-battery only" {
     cd "$REPO_ROOT"
     run bash "$SCRIPT" tools/pre-push-loc-gate.sh
@@ -47,7 +65,16 @@ SCRIPT="$REPO_ROOT/tools/which-gate.sh"
     cd "$REPO_ROOT"
     run bash "$SCRIPT" tests/ci-bats-policy.txt
     [ "$status" -eq 0 ]
+  [[ "$output" == *"cr-battery gate: REQUIRED"* ]]
+}
+
+@test "test fixture data requires cr-battery despite a .txt suffix" {
+    cd "$REPO_ROOT"
+    run bash "$SCRIPT" test/fixtures/journeys/J8-daily-driver.txt
+    [ "$status" -eq 0 ]
     [[ "$output" == *"cr-battery gate: REQUIRED"* ]]
+    [[ "$output" != *"PHR gate: REQUIRED"* ]]
+    [[ "$output" != *"llm-skill-review gate: REQUIRED"* ]]
 }
 
 @test "root README.md has no gate coverage" {

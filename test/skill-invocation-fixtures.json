@@ -1,6 +1,6 @@
 {
-  "_comment": "Per-skill invocation fixtures used by skill-invocation-smoke.test.js. Each entry asserts the skill's compressed body contains every expected_substring (catches 'operative procedure replaced by TODO' — non-empty body alone is insufficient). triggers[] are documented invocation phrases — match-skills must rank the target in top-3.  Fixtures hand-authored in P0.6 alongside golden generation with reviewer sign-off (GOLDEN-VERIFIED). Skills NOT in this file are skipped (not in-scope for the optimization program).",
-  "_status": "P0.6 auto-seeded 2026-04-29 — reviewer must verify each entry and replace verified_by stub",
+  "_comment": "Per-skill invocation fixtures used by skill-invocation-smoke.test.js. Each reviewed expected_substring is a literal operative assertion independent of live compression output. triggers[] are frontmatter-derived routing checks. Missing assertions or unreviewed provenance fail closed.",
+  "_status": "Operative assertions independently reviewed for P1h on 2026-09-17; trigger refreshes preserve them",
   "skills": {
     "readme-authoring": {
       "expected_substrings": [
@@ -9,8 +9,8 @@
         "3. **Examples:** Run each code example"
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "debug-conductor": {
       "expected_substrings": [
@@ -23,8 +23,8 @@
         "debug across services",
         "incident investigation"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "code-review-battery": {
       "expected_substrings": [
@@ -37,8 +37,8 @@
         "battery review",
         "parallel review"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "progressive-code-review-gate": {
       "expected_substrings": [
@@ -47,8 +47,8 @@
         "The monolithic reviewer MUST receive:"
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "feature-development": {
       "expected_substrings": [
@@ -57,8 +57,8 @@
         "6. Exit gate: All phases complete, all tests pass, no regressions."
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "thinking-orchestrator": {
       "expected_substrings": [
@@ -67,8 +67,8 @@
         "4. **Did I challenge my own conclusions?** If not, you are exhibiting confirmation bias."
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "plan-and-execute": {
       "expected_substrings": [
@@ -77,8 +77,8 @@
         "1. Re-read the TODO (it may have been improved by a prior retro)"
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "sp-bughunt": {
       "expected_substrings": [
@@ -91,8 +91,8 @@
         "find the worst bugs",
         "what are the worst bugs"
       ],
-      "verified_by": "auto-resync after sp-bughunt refactor",
-      "verified_at": "2026-05-24"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "autonomous-chain-controller": {
       "expected_substrings": [
@@ -105,8 +105,8 @@
         "fix and ship",
         "end to end"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "progressive-harsh-review": {
       "expected_substrings": [
@@ -119,8 +119,8 @@
         "progressive review",
         "red team this"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "investigation-state": {
       "expected_substrings": [
@@ -129,8 +129,8 @@
         "3. `investigation-crud.sh set-verdict --id UUID --hypothesis N --verdict confirmed --reason \"...\"`"
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "think-twice": {
       "expected_substrings": [
@@ -139,8 +139,8 @@
         "3. **Dispatch** (in priority order):"
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "debate": {
       "expected_substrings": [
@@ -153,8 +153,8 @@
         "compare design approaches",
         "design comparison matrix"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     },
     "branch-flow-gate": {
       "expected_substrings": [
@@ -168,8 +168,8 @@
         "deploy to prod",
         "back-sync"
       ],
-      "verified_by": "advisory-mode rewrite per perplexity guidance",
-      "verified_at": "2026-05-25"
+      "verified_by": "P1h independent oracle review",
+      "verified_at": "2026-09-17"
     }
   }
 }

@@ -268,11 +268,14 @@ staged_has_code() {
     # depth) and .ai-guidance/*.md fall through to the generic .md exemption
     # below, same as any other doc -- also owned by llm-skill-review.
     # tests/ci-bats-policy.txt is executable CI policy, so it remains code.
+    # test/fixtures/** contains executable test inputs, including prose-shaped
+    # .txt data, and must follow the same code-review path as its consumers.
     # test/golden-compression/*.golden.txt mirrors _first_code_file() in
     # tools/pre-push-code-review-gate.sh (see "Keep the two in sync" above):
     # without this, a commit was waved through here and then blocked at push,
     # since Gate 2 DOES classify the same file as code. (Defect Finder /
-    # Guardian, 2026-08-28)
+    # Guardian, 2026-08-28). Keep this fail-closed rule even though the current
+    # legacy snapshot fixtures were pruned; it guards against silent reintroduction.
     local staged_code
     staged_code=$(git diff --cached --name-only --diff-filter=ACDMRT 2>/dev/null \
         | awk '
@@ -280,6 +283,7 @@ staged_has_code() {
             /^skills\/.*\.md$/                  { next }
             /^skills\//                         { print; next }
             /^tests\/ci-bats-policy\.txt$/       { print; next }
+            /^test\/fixtures\//                 { print; next }
             /^test\/golden-compression\/.*\.golden\.txt$/ { print; next }
             /\.(md|txt|rst)$/                   { next }
             /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }

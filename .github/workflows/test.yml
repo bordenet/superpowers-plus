@@ -61,6 +61,12 @@ jobs:
       - name: Skill-invocation smoke
         run: node test/skill-invocation-smoke.test.js
 
+      - name: Invocation fixture oracle
+        run: node test/invocation-fixture-oracle.test.js
+
+      - name: Test inventory consistency
+        run: node test/test-inventory.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:
@@ -149,6 +155,9 @@ jobs:
 
       - name: Dangerous pattern scan
         run: bash tools/dangerous-pattern-scan.sh
+
+      - name: Wiki instruction guard blocklist tests
+        run: python3 skills/security/wiki-instruction-guard/tests/test_blocklist.py
 
       - name: IP disclosure audit
         run: bash test/public-repo-ip-check.test.sh

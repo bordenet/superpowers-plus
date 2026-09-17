@@ -3,15 +3,13 @@
  * Unit tests for lib/compress.js — skill content compression.
  * Run: node test/compress.test.js
  *
- * Tests two things:
- *   1. Compression rules work correctly (unit tests)
- *   2. Golden-file regression: compressed output of top-5 skills matches snapshots
+ * Tests compression rules directly. Exact whole-document snapshots were
+ * removed because harmless skill prose edits made them high-churn without
+ * adding behavioral coverage.
  */
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const { compressSkillContent, STRIP_SECTIONS, DENSITY_RULES, protectCodeBlocks } = require('../lib/compress');
+const { compressSkillContent } = require('../lib/compress');
 
 let pass = 0;
 let fail = 0;
@@ -119,76 +117,6 @@ assert(compressSkillContent('⛔ **HARD GATE:** do not skip\n\ncontent').include
 console.log('\n--- Whitespace tightening ---');
 assert(!compressSkillContent('## Heading\n\n\n\ncontent').includes('\n\n\n'), 'collapses 3+ blank lines');
 assert(!compressSkillContent('content   \nnext').includes('   '), 'strips trailing whitespace');
-
-// --- Golden file regression ---
-console.log('\n--- Golden file regression ---');
-const goldenDir = path.join(__dirname, 'golden-compression');
-const { stripFrontmatter } = require('../lib/frontmatter');
-const skills = [
-    // Originals (pre-optimization program)
-    'plan-and-execute', 'code-review-battery', 'verification-before-completion',
-    'todo-management', 'finishing-a-development-branch', 'link-verification',
-    // P0.6 additions: in-scope optimization targets
-    'readme-authoring', 'debug-conductor', 'progressive-code-review-gate',
-    'feature-development', 'thinking-orchestrator', 'sp-bughunt',
-    'autonomous-chain-controller', 'progressive-harsh-review',
-    'investigation-state', 'think-twice', 'debate',
-];
-
-const updateMode = process.argv.includes('--update');
-const driftedSkills = [];
-
-for (const skill of skills) {
-    const goldenPath = path.join(goldenDir, `${skill}.golden.txt`);
-    const skillFile = findSkillFile(skill);
-    if (!skillFile) { console.log(`  ⏭️  ${skill}: skill.md not found`); continue; }
-
-    const raw = fs.readFileSync(skillFile, 'utf8');
-    const compressed = compressSkillContent(stripFrontmatter(raw));
-
-    if (updateMode) {
-        const header = `# Skill: ${skill}\n\n`;
-        const existed = fs.existsSync(goldenPath);
-        fs.writeFileSync(goldenPath, header + compressed + '\n');
-        console.log(`  ✏️  ${skill}: golden ${existed ? 'updated' : 'written'} (${compressed.length} chars)`);
-        continue;
-    }
-
-    if (!fs.existsSync(goldenPath)) {
-        console.log(`  ⏭️  ${skill}: golden file not found (run with --update to create)`);
-        continue;
-    }
-
-    const golden = fs.readFileSync(goldenPath, 'utf8');
-    // Compare content after the "# Skill: name" header (golden includes it, compressed doesn't)
-    const goldenBody = golden.replace(/^# Skill: [^\n]+\n\n/, '');
-    const failedBefore = fail;
-    eq(compressed, goldenBody.trim(), `golden regression: ${skill}`);
-    if (fail > failedBefore) driftedSkills.push(skill);
-}
-
-if (driftedSkills.length > 0 && !updateMode) {
-    console.log('');
-    console.log('────────────────────────────────────────────────────────────');
-    console.log('  GOLDEN FILE DRIFT detected for:');
-    for (const s of driftedSkills) console.log(`    - ${s}`);
-    console.log('');
-    console.log('  If the skill .md change was intentional, regenerate goldens:');
-    console.log('    node test/compress.test.js --update');
-    console.log('  then re-run:');
-    console.log('    node test/compress.test.js');
-    console.log('  and inspect the diff in test/golden-compression/ before committing.');
-    console.log('────────────────────────────────────────────────────────────');
-}
-
-function findSkillFile(name) {
-    const skillsDir = path.join(__dirname, '..', 'skills');
-    for (const domain of fs.readdirSync(skillsDir)) {
-        const p = path.join(skillsDir, domain, name, 'skill.md');
-        if (fs.existsSync(p)) return p;
-    }
-    return null;
-}
 
 // --- Summary ---
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -120,6 +120,17 @@ teardown() {
     HEAD_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
     [ "$status" -eq 0 ]
+  [[ "$output" == "HAS_CODE" ]]
+}
+
+@test "code-review-gate: test fixture data is HAS_CODE despite its .txt suffix" {
+    mkdir -p test/fixtures/journeys
+    echo "fixture payload" > test/fixtures/journeys/J8-daily-driver.txt
+    git add test/fixtures/journeys/J8-daily-driver.txt
+    git commit -q -m "add journey fixture"
+    HEAD_SHA=$(git rev-parse HEAD)
+    run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
+    [ "$status" -eq 0 ]
     [[ "$output" == "HAS_CODE" ]]
 }
 
@@ -165,22 +176,13 @@ teardown() {
     [[ "$output" == "DOCS_ONLY" ]]
 }
 
-# ---------------------------------------------------------------------------
-# Regression: test/golden-compression/*.golden.txt is a long-standing tracked
-# fixture that predates this session (present since v2.6.0-era commits). It
-# is neither skills/*.md (llm-skill-review), nor PHR-scoped prose, nor caught
-# by the pre-existing .md/.txt/.rst "not code" fallthrough -- so on its own it
-# has always caused review.sh route to fail closed with exit 3 ("agent must
-# resolve"). Anchoring the explicit-exempt regex to root-only (this diff)
-# closes the accidental silent-pass path but does not by itself give this
-# file a home; route it as cr-battery code, the same precedent already set
-# for tests/ci-bats-policy.txt just above in this function.
-# ---------------------------------------------------------------------------
-@test "code-review-gate: a golden-compression fixture is HAS_CODE, not silently exempt" {
+# Incident regression (Defect Finder / Guardian, 2026-08-28): the retired
+# snapshot path remains fail-closed if it is ever reintroduced.
+@test "code-review-gate: a reintroduced retired compression snapshot is HAS_CODE" {
     mkdir -p test/golden-compression
     echo "some golden content" > test/golden-compression/some-skill.golden.txt
     git add test/golden-compression/some-skill.golden.txt
-    git commit -q -m "regenerate golden"
+    git commit -q -m "reintroduce compression snapshot"
     HEAD_SHA=$(git rev-parse HEAD)
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}"
     [ "$status" -eq 0 ]

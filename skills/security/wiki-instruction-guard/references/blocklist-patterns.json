@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "code_case_sensitive": true,
+  "code_categories": {
+    "CAT1": {
+      "name": "Filesystem destruction",
+      "verdict": "BLOCK",
+      "patterns": [
+        "rm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)",
+        "rm\\s+-[a-zA-Z]*r\\s+-[a-zA-Z]*f",
+        "rm\\s+.*\\s+(/(etc|var|home|root|usr|opt|boot|srv|lib|bin|sbin)/|~/|\\$HOME/)",
+        "(mkfs[.\\s]|dd\\s+if=|shred\\s)",
+        "(wipefs|sgdisk\\s+--zap)",
+        "truncate\\s+-s\\s+0",
+        "crontab\\s+-r",
+        ">\\s*(~/\\.(bashrc|profile|zshrc|ssh)|/etc/)",
+        "find\\s+.*(-delete|-exec\\s+rm)"
+      ]
+    },
+    "CAT2": {
+      "name": "Secret exfiltration",
+      "verdict": "BLOCK",
+      "patterns": [
+        "(cat|less|head|tail|grep).*\\.env.*\\|.*(curl|wget|nc|ncat|netcat)",
+        "curl.*[$].*(_KEY|_TOKEN|_SECRET|_PAT|PASSWORD)",
+        "nc\\s+-l",
+        "(cat|cp|scp|rsync).*~/\\.ssh/(id_|known_hosts|authorized_keys)",
+        "(env|printenv|set)\\s*\\|.*(curl|wget|nc)"
+      ]
+    },
+    "CAT3": {
+      "name": "Git destruction",
+      "verdict": "BLOCK",
+      "patterns": [
+        "git\\s+push\\s+.*--force($|\\s[^-])",
+        "git\\s+push\\s+-[a-zA-Z]*f",
+        "git\\s+reset\\s+--hard\\s+(origin|upstream)",
+        "git\\s+push\\s+.*\\s+:refs/",
+        "git\\s+filter-branch"
+      ]
+    },
+    "CAT4": {
+      "name": "Untrusted code execution",
+      "verdict": "BLOCK",
+      "patterns": [
+        "curl\\s.*\\|\\s*(bash|sh|zsh|python[23]?|perl|ruby|node)",
+        "wget\\s.*-O\\s*-\\s*\\|\\s*(bash|sh|zsh|python[23]?)",
+        "(bash|sh|zsh)\\s+<\\(curl",
+        "sh\\s+-c\\s+.*(curl|wget|rm|dd|mkfs|chmod|chown)",
+        "eval\\s+\"\\$\\((curl|wget)",
+        "(python[23]?|ruby|perl|node)\\s+-[ce]\\s+\"\\$\\((curl|wget)"
+      ]
+    },
+    "CAT5": {
+      "name": "Privilege escalation",
+      "verdict": "BLOCK",
+      "patterns": [
+        "chmod\\s+777",
+        "chown\\s+(root|0:)",
+        "chmod\\s+[ugo]*\\+s",
+        "docker\\s+run\\s+.*--privileged"
+      ]
+    },
+    "CAT5_WARN": {
+      "name": "Privilege escalation advisory",
+      "verdict": "WARN",
+      "patterns": [
+        "sudo\\s"
+      ]
+    },
+    "CAT6": {
+      "name": "Credential theft",
+      "verdict": "BLOCK",
+      "patterns": [
+        "security\\s+(find-generic-password|find-internet-password|dump-keychain)",
+        "export\\s+[A-Z_]*(_TOKEN|_KEY|_SECRET|_PAT)=[\"']?[A-Za-z0-9]"
+      ]
+    },
+    "CAT7": {
+      "name": "Guard bypass",
+      "verdict": "NON_OVERRIDABLE",
+      "patterns": [
+        "(skip|ignore|disable|bypass)\\s+.*(safety|security|guard|scan|check|wiki-instruction-guard)",
+        "(override|disregard)\\s+(previous|system|safety)\\s+(instructions|rules|constraints)",
+        "(already\\s+verified|pre-?approved|security\\s+team\\s+has\\s+reviewed|safe\\s+to\\s+execute\\s+directly)",
+        "(ignore\\s+previous\\s+instructions|you\\s+are\\s+now|new\\s+system\\s+prompt|act\\s+as\\s+if)"
+      ]
+    },
+    "CAT8": {
+      "name": "System abuse",
+      "verdict": "BLOCK",
+      "patterns": [
+        ":\\(\\)\\{.*:\\|:.*\\};:",
+        "kill\\s+-9\\s+-1",
+        "(shutdown|reboot|halt|poweroff)\\s"
+      ]
+    },
+    "CAT9": {
+      "name": "Self-protection",
+      "verdict": "BLOCK",
+      "patterns": [
+        "(>|>>|tee|cp|mv|cat\\s*<<).*wiki-instruction-guard/references/",
+        "(>|>>|tee|cp|mv|cat\\s*<<).*domain-allowlist"
+      ]
+    },
+    "OBFUSC": {
+      "name": "Obfuscation detection",
+      "verdict": "BLOCK",
+      "patterns": [
+        "base64\\s+(-d|--decode).*\\|\\s*(bash|sh)",
+        "echo.*\\|\\s*base64.*\\|\\s*(bash|sh)",
+        "r['\\\"]{2}m",
+        "printf\\s+.*\\\\x.*\\|\\s*(bash|sh)",
+        "alias\\s+[a-zA-Z0-9_]+=.*rm\\s",
+        "python[23]?\\s+-c\\s+.*\\b(os\\.system|subprocess|exec\\(|eval\\()",
+        "cat\\s*<<.*>\\s*(~/\\.ssh|/etc/)",
+        "echo\\s+.*rm\\s",
+        "echo\\s+.*curl.*\\|.*bash",
+        "tee\\s+.*\\|\\s*(bash|sh)",
+        "perl\\s+-e\\s+.*\\b(unlink|rmdir|system)",
+        "ruby\\s+-e\\s+.*\\b(FileUtils\\.(rm|remove)|system|exec)",
+        "\\$\\(.*\\brm\\b"
+      ]
+    }
+  },
+  "prose": {
+    "case_insensitive": true,
+    "verdict": "WARN",
+    "patterns": [
+      "(delete|remove|wipe|clean|clear|purge|destroy|erase)\\s+.*(all|entire|contents\\s+of|everything\\s+in)\\s+.*(\\.ssh|\\.env|\\.codex|home\\s+directory|credentials|secrets|keys)",
+      "(send|upload|post|share|transmit|forward|email)\\s+.*(all|every|entire|contents\\s+of)\\s+.*(secret|key|token|credential|password|\\.env|\\.ssh)",
+      "(force[\\s-]push|rewrite\\s+history|reset\\s+.*hard|delete\\s+.*branch)"
+    ]
+  }
+}

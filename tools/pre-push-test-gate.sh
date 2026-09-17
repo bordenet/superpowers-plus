@@ -3,8 +3,8 @@
 # pre-push-test-gate.sh
 #
 # Gate 1 of the pre-push composer: runs tools/test-all.sh --fast (local fast
-# test suite) before every push. Without this, catching stale test fixtures
-# (golden-compression snapshots, EI-move baselines) was purely a CI
+# test suite) before every push. Without this, catching stale generated test
+# fixtures such as EI-move baselines was purely a CI
 # round-trip: push, wait for CI to fail, fix locally, push again.
 #
 # Skipped entirely when the push contains ONLY branch deletions (every ref's

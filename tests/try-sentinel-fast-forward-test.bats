@@ -10,7 +10,7 @@
 #
 # Each test builds an isolated git repo (not this real repo) with a FAKE
 # generator registered via FASTFORWARD_REGISTRY, so these tests never touch
-# this repo's real generators (test/compress.test.js, etc.) or its real
+# this repo's real generators or its real
 # sentinels.
 
 SCRIPT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)/tools/try-sentinel-fast-forward.sh"
@@ -36,10 +36,8 @@ EOF
 
     # Fake generator: deterministically writes fixture/content.txt (the
     # REGISTERED output) from source/truth.txt (a deliberately UNREGISTERED
-    # input, mirroring how the real test/compress.test.js reads skill files
-    # from skills/ -- never itself under the registered test/golden-compression/
-    # output directory it writes to; see that script's readFileSync/
-    # writeFileSync split). Committed with content.txt deliberately STALE
+    # input, mirroring a generator whose source is outside its registered
+    # output directory. Committed with content.txt deliberately STALE
     # (not what the generator produces) so advance_fixture_correctly() has a
     # real byte-level change to make without ever touching the unregistered
     # input -- exactly the "only the derived fixture changed since the

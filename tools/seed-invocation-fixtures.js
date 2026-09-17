@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 /**
- * Seed test/skill-invocation-fixtures.json from goldens + frontmatter.
+ * Refresh trigger phrases in test/skill-invocation-fixtures.json from
+ * frontmatter without changing the independently reviewed body assertions.
  *
  * For each in-scope skill, pulls:
- *   - expected_substrings[] : 3 distinctive substrings from the compressed
- *     golden body. Selection rule: longest substantive lines that aren't
- *     headings, blockquotes, or boilerplate (avoid "Source: `superpowers-plus`",
- *     "When to use:" stubs, etc).
+ *   - expected_substrings[] : reviewer-owned literal assertions. This tool
+ *     validates but never derives or updates them from live/compressed output.
  *   - triggers[] : up to 3 trigger phrases from frontmatter `triggers:` list,
  *     preferring multi-word phrases (more specific = better top-3 ranking).
  *
- * Per plan P0.6: fixtures are reviewer-verified ("GOLDEN-VERIFIED"). This
- * script provides a defensible auto-seed; reviewer must confirm by setting
- * verified_by and verified_at fields.
+ * The operative assertions are an independent oracle. A missing assertion,
+ * auto-seeded provenance, or malformed review date fails closed before the
+ * file can be updated.
  *
  * Run: node tools/seed-invocation-fixtures.js
  */
@@ -20,10 +19,8 @@
 
 const fs = require('fs');
 const path = require('path');
-
 const ROOT = path.resolve(__dirname, '..');
 const FIXTURES = path.join(ROOT, 'test', 'skill-invocation-fixtures.json');
-const GOLDEN_DIR = path.join(ROOT, 'test', 'golden-compression');
 const SKILLS_DIR = path.join(ROOT, 'skills');
 
 function findSkillFile(name) {
@@ -68,42 +65,49 @@ function parseFrontmatterTriggers(raw) {
     return out;
 }
 
-function pickExpectedSubstrings(goldenPath) {
-    if (!fs.existsSync(goldenPath)) return [];
-    const text = fs.readFileSync(goldenPath, 'utf8');
-    // Skip the "# Skill: <name>" header line
-    const body = text.split('\n').slice(1).join('\n');
-    const candidates = [];
-    let inCode = false;
-    for (const ln of body.split('\n')) {
-        if (/^```/.test(ln)) { inCode = !inCode; continue; }
-        if (inCode) continue;
-        const t = ln.trim();
-        if (t.length < 30 || t.length > 100) continue;
-        if (/^#/.test(t)) continue;
-        if (/^>/.test(t)) continue;
-        if (/^[-*|]/.test(t)) continue;
-        if (/superpowers-plus/i.test(t)) continue;
-        if (/source:|purpose:|when to use|^\*\*/i.test(t)) continue;
-        candidates.push(t);
+function validateReviewedFixture(name, fixture) {
+    const assertions = fixture.expected_substrings;
+    if (!Array.isArray(assertions) || assertions.length === 0) {
+        throw new Error(`${name}: at least one independently reviewed operative assertion is required`);
     }
-    // Pick 3 spread across the body for resilience
-    if (candidates.length === 0) return [];
-    if (candidates.length <= 3) return candidates;
-    const stride = Math.floor(candidates.length / 3);
-    return [candidates[0], candidates[stride], candidates[stride * 2]].slice(0, 3);
+    if (assertions.some(value => typeof value !== 'string' || value.trim() === '')) {
+        throw new Error(`${name}: operative assertions must be non-empty strings`);
+    }
+    if (new Set(assertions).size !== assertions.length) {
+        throw new Error(`${name}: operative assertions must be unique`);
+    }
+    if (typeof fixture.verified_by !== 'string' || fixture.verified_by.trim() === ''
+        || /auto[- ]?(seed|resync)|compressed output/i.test(fixture.verified_by)) {
+        throw new Error(`${name}: expected_substrings require independent review provenance`);
+    }
+    if (typeof fixture.verified_at !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fixture.verified_at)) {
+        throw new Error(`${name}: verified_at must be YYYY-MM-DD`);
+    }
+}
+
+function refreshTriggers(fixture, triggers) {
+    return { ...fixture, triggers };
 }
 
 // Export parseFrontmatterTriggers so the smoke test unit block can import the
 // actual implementation rather than maintaining a divergence-prone copy.
-module.exports = { parseFrontmatterTriggers };
+module.exports = { parseFrontmatterTriggers, refreshTriggers, validateReviewedFixture };
 
 // Guard: only run the main seeding logic when executed directly, not when
 // require()'d by a test importing parseFrontmatterTriggers.
 if (require.main === module) {
     const fixtures = JSON.parse(fs.readFileSync(FIXTURES, 'utf8'));
     const today = new Date().toISOString().slice(0, 10);
-    let seeded = 0;
+    let refreshed = 0;
+
+    for (const [name, fixture] of Object.entries(fixtures.skills)) {
+        try {
+            validateReviewedFixture(name, fixture);
+        } catch (error) {
+            console.error(`❌ ${error.message}`);
+            process.exit(1);
+        }
+    }
 
     for (const name of Object.keys(fixtures.skills)) {
         const sf = findSkillFile(name);
@@ -111,19 +115,15 @@ if (require.main === module) {
             console.log(`  ⏭️  ${name}: skill.md not found`);
             continue;
         }
-        const subs = pickExpectedSubstrings(path.join(GOLDEN_DIR, `${name}.golden.txt`));
         const trigs = parseFrontmatterTriggers(fs.readFileSync(sf, 'utf8'))
             .filter(t => t.length >= 4 && t.split(' ').length >= 2)
             .slice(0, 3);
-        fixtures.skills[name].expected_substrings = subs;
-        fixtures.skills[name].triggers = trigs;
-        fixtures.skills[name].verified_by = 'auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)';
-        fixtures.skills[name].verified_at = today;
-        seeded++;
-        console.log(`  ✅ ${name}: ${subs.length} substrings, ${trigs.length} triggers`);
+        fixtures.skills[name] = refreshTriggers(fixtures.skills[name], trigs);
+        refreshed++;
+        console.log(`  ✅ ${name}: kept ${fixtures.skills[name].expected_substrings.length} reviewed assertions, refreshed ${trigs.length} triggers`);
     }
 
-    fixtures._status = `P0.6 auto-seeded ${today} — reviewer must verify each entry and replace verified_by stub`;
+    fixtures._status = `Trigger metadata refreshed ${today}; reviewed operative assertions preserved`;
     fs.writeFileSync(FIXTURES, JSON.stringify(fixtures, null, 4) + '\n');
-    console.log(`\n✅ ${seeded} skills seeded → ${path.relative(process.cwd(), FIXTURES)}`);
+    console.log(`\n✅ ${refreshed} skill trigger fixtures refreshed → ${path.relative(process.cwd(), FIXTURES)}`);
 }
