@@ -104,3 +104,28 @@ resolve_diff_range() {
         fi
     fi
 }
+
+# already_reviewed_on_trusted_branch <sha> <remote_name>
+#
+# True when <sha> is already reachable from origin/main or origin/staging --
+# i.e. it already passed every review gate to land there. Content in this
+# state needs no second review just because it is being pushed again under a
+# different branch name: the common case is a promotion back-sync
+# (`chore/sync-dev-with-main`, always cut directly from main's tip per
+# AGENTS.md) or a re-push of an already-merged branch. A branch with new
+# commits on top of main (e.g. an in-progress hotfix cut from main) is NOT an
+# ancestor of main's current tip, so this correctly does not exempt it.
+#
+# Deliberately does not fetch: relies on the local remote-tracking refs
+# already present from the push/PR flow that got here. If those refs are
+# stale-behind, the check just fails to exempt (falls back to requiring a
+# real sentinel) -- fail-closed, never fail-open.
+already_reviewed_on_trusted_branch() {
+    local sha="$1" remote_name="$2"
+    local ref
+    for ref in "$remote_name/main" "$remote_name/staging"; do
+        git rev-parse --verify -q "$ref" >/dev/null 2>&1 || continue
+        git merge-base --is-ancestor "$sha" "$ref" 2>/dev/null && return 0
+    done
+    return 1
+}

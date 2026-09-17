@@ -278,7 +278,12 @@ check_branch_flow_readiness() {
   fi
 }
 
-if [[ ${#CHANGED[@]} -eq 0 ]]; then
+# shellcheck source=tools/lib/pre-push-diff-range.sh
+source "$REPO_ROOT/tools/lib/pre-push-diff-range.sh"
+
+if already_reviewed_on_trusted_branch "$HEAD_SHA" "$REMOTE"; then
+  note "OK|${HEAD_SHA:0:8} is already on main/staging (fully reviewed)|nothing to review"
+elif [[ ${#CHANGED[@]} -eq 0 ]]; then
   note "OK|no files changed vs $TARGET|nothing to review"
 else
   # Ask the ROUTER which sentinel each changed file needs. review.sh route
