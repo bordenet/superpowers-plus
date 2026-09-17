@@ -196,7 +196,9 @@ while IFS= read -r _line; do
     resolve_diff_range "$local_sha" "$remote_sha" "$REMOTE_NAME"
     echo "  Checking commits: $RANGE (${remote_ref#refs/heads/})"
 
-    if [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
+    if already_reviewed_on_trusted_branch "$local_sha" "$REMOTE_NAME"; then
+        echo "  [phr-gate] ${local_sha:0:8} is already on main/staging (fully reviewed) — sentinel not required."
+    elif [[ "$NEW_BRANCH_NO_BASE" == "true" ]]; then
         check_phr_sentinel "$RANGE" "$local_sha" "no_base" || ERRORS=$((ERRORS + 1))
     else
         check_phr_sentinel "$RANGE" "$local_sha" || ERRORS=$((ERRORS + 1))
