@@ -173,7 +173,45 @@
 set -euo pipefail
 
 LOG="$HOME/.claude/hooks/hook-audit.log"; mkdir -p "$(dirname "$LOG")"
-log() { echo "$(date -u +%FT%TZ) red-autonomy exit=$1 reason=$2" >> "$LOG"; }
+AUDIT_SID="-"
+AUDIT_TOOL="-"
+AUDIT_INPUT_KEYS="-"
+AUDIT_UNKNOWN_KEYS="0"
+log() {
+  local status="$1" reason="$2" class="${3:-}" metadata="${4:-}" line
+  line="$(date -u +%FT%TZ) red-autonomy exit=$status reason=$reason"
+  if [[ -n "$class" || "$status" == "2" ]]; then
+    line+=" class=${class:-unknown} sid=$AUDIT_SID"
+  fi
+  [[ -n "$metadata" ]] && line+=" $metadata"
+  echo "$line" >> "$LOG"
+}
+
+set_audit_metadata() {
+  local raw="$1" value sid tool input_keys unknown_keys
+  value="$(jq -r '
+    def text_or_empty: if type == "string" then . else "" end;
+    def recognized_hook_keys: ["conversation_id", "cwd", "session_id", "tool_input", "tool_name", "transcript_path"];
+    if type == "object" then
+      . as $root
+      | recognized_hook_keys as $recognized
+      | ($root | keys) as $keys
+      |
+      [
+        (($root.session_id // $root.conversation_id // "") | text_or_empty | gsub("[^A-Za-z0-9_-]"; "") | .[0:128]),
+        (($root.tool_name // "") | text_or_empty | gsub("[^A-Za-z0-9_.:-]"; "") | .[0:64]),
+        ($keys | map(select(. as $key | $recognized | index($key))) | sort | join(",")),
+        ($keys | map(select(. as $key | ($recognized | index($key)) == null)) | length | tostring)
+      ] | join("|")
+    else "|||0" end
+  ' <<<"$raw" 2>/dev/null || true)"
+  IFS='|' read -r sid tool input_keys unknown_keys <<<"${value:-|||0}"
+  [[ -n "$sid" ]] && AUDIT_SID="$sid"
+  [[ -n "$tool" ]] && AUDIT_TOOL="$tool"
+  [[ -n "$input_keys" ]] && AUDIT_INPUT_KEYS="$input_keys"
+  [[ "$unknown_keys" =~ ^[0-9]+$ ]] && AUDIT_UNKNOWN_KEYS="$unknown_keys"
+  return 0
+}
 
 # Bypass now logged before returning so a disabled gate is never silent -- a
 # CLAUDE_HOOKS_BYPASS=1 escape valve without an audit trail was itself a prior
@@ -184,8 +222,8 @@ if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then log 0 "bypass-active"; exit 0;
 # script mid-flight (Claude Code treats any non-2 exit as non-blocking) --
 # silently disabling the push-approval gate. Check upfront so an absent
 # dependency is a documented block, not a hidden bypass.
-command -v jq >/dev/null 2>&1 || { log 2 "jq-missing"; echo "BLOCKED: jq is required but not found on PATH -- install it (brew install jq) before pushing." >&2; exit 2; }
-command -v python3 >/dev/null 2>&1 || { log 2 "python3-missing"; echo "BLOCKED: python3 is required but not found on PATH." >&2; exit 2; }
+command -v jq >/dev/null 2>&1 || { log 2 "jq-missing" unknown; echo "BLOCKED: jq is required but not found on PATH -- install it (brew install jq) before pushing." >&2; exit 2; }
+command -v python3 >/dev/null 2>&1 || { log 2 "python3-missing" unknown; echo "BLOCKED: python3 is required but not found on PATH." >&2; exit 2; }
 
 # Portable SHA256 shim — capability resolved once at script load, not per call.
 if command -v sha256sum &>/dev/null; then
@@ -195,6 +233,7 @@ else
 fi
 
 INPUT="$(cat)"
+set_audit_metadata "$INPUT"
 # Fail closed on malformed hook input -- without this, the first `jq` call
 # below would itself fail under `set -euo pipefail` (a plain, non-`local`
 # command-substitution assignment), aborting the whole script with jq's own
@@ -209,7 +248,7 @@ INPUT="$(cat)"
 # Defect Finder). Also validates the specific sub-path this script indexes.
 if ! jq -e 'type == "object" and ((.tool_input // {}) | type == "object")' <<<"$INPUT" >/dev/null 2>&1; then
   echo "BLOCKED: malformed PreToolUse hook input (invalid JSON shape) -- failing closed." >&2
-  log 2 malformed-input
+  log 2 malformed-input unknown "tool=$AUDIT_TOOL input_keys=$AUDIT_INPUT_KEYS unknown_keys=$AUDIT_UNKNOWN_KEYS"
   exit 2
 fi
 CMD="$(jq -r '.tool_input.command // empty' <<<"$INPUT")"
@@ -362,7 +401,7 @@ fi
 # an audit-log entry). Adversarial-input case (session_id sanitizes to empty)
 # also hits this path -- correct outcome, not a regression.
 if [[ -z "$SESSION_ID" ]]; then
-  log 2 "no-session-id-fail-closed"
+  log 2 "no-session-id-fail-closed" TP
   cat >&2 <<'MSG'
 BLOCKED: no session_id (Claude Code) or conversation_id (Augment Code) in
 hook input, so this RED action has no scoping key to bind approval to.
@@ -502,7 +541,7 @@ EOF
       echo "  This weakens branch protection on dev/staging/main and requires its OWN approval -- a prior 'approve push' or 'promote to main' does NOT satisfy this gate by design (AGENTS.md: never bundled with the promotion approval itself)."
       echo "  Say 'approve strict-disable' to authorize this action."
     } >&2
-    log 2 no-approval-strict-disable
+    log 2 no-approval-strict-disable TP
     exit 2
   fi
 
@@ -533,7 +572,7 @@ except OSError:
         echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
         echo "  Request a new approval."
       } >&2
-      log 2 token-consumed-strict-disable
+      log 2 token-consumed-strict-disable TP
       exit 2
     fi
     echo "$STRICT_DISABLE_TOKEN_HASH" >> "$CONSUMED_FILE"
@@ -1127,7 +1166,7 @@ if [[ -z "$TOKEN_CATEGORY" ]]; then
     echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
     echo "  Say 'approve push' or another approval phrase to authorize this action."
   } >&2
-  log 2 no-approval
+  log 2 no-approval TP
   exit 2
 fi
 
@@ -1141,7 +1180,7 @@ if [[ "$TOKEN_SOURCE" == "transcript" ]]; then
       echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
       echo "  A prior git push/branch-delete this session targeted a different ref, this action escalates severity (push -> force-push -> delete) beyond what was approved, or the target could not be resolved unambiguously. Repeating the same approval phrase will NOT authorize this -- a denied attempt is never treated as its own precedent. Use the explicit file-based approval token for a new target, or start a fresh session."
     } >&2
-    log 2 target-mismatch
+    log 2 target-mismatch TP
     exit 2
   fi
 fi
@@ -1193,7 +1232,7 @@ except OSError:
       echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
       echo "  The '$TOKEN_CATEGORY' token was already used. Request a new approval."
     } >&2
-    log 2 token-consumed
+    log 2 token-consumed TP
     exit 2
   fi
   echo "$TOKEN_HASH" >> "$CONSUMED_FILE"

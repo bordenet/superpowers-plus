@@ -283,6 +283,8 @@ For how triggers fire, how skill names are resolved, how compression works, and 
 
 The commit-gate chain (`unified-commit-gate` → pre-commit → style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
 
+The red-autonomy, internal-terms, and git-identity hooks write privacy-limited classified records to `~/.claude/hooks/hook-audit.log`. Run `python3 tools/hook-block-report.py` for stable TP, FP, and unknown counts grouped by hook and exit code. Detailed output is local-only; commit aggregate counts only. See [Hook Block Audit](docs/hook-block-audit.md) for the record format and review workflow.
+
 **`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit. The sentinel format is `v1|SHA|VERDICT|TIMESTAMP|min-score=N`; write it only via `tools/run-battery.sh [--min-score N] --verdict PASS`. The primary slash command is `/sp-cr-battery`.
 
 **Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`). If `SUPERPOWERS_SKILLS_DIR` points to a nonexistent or incomplete directory the runtime falls back to `~/.codex/skills/`; verify with `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` after setting the variable.
@@ -345,6 +347,7 @@ Utility scripts in `tools/`:
 | `todo-maintenance.sh` | Archival and cleanup of completed tasks |
 | `investigation-crud.sh` | Investigation state CRUD (hypotheses, evidence, verdicts) |
 | `public-repo-ip-check.sh` | Scans for proprietary content before public push |
+| `hook-block-report.py` | Reads a bounded tail of the local hook audit log and reports stable TP, FP, and unknown counts for blocks and malformed-input exits |
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
 | `skill-cost-analyzer.sh` | Reports token cost per skill |
 | `skill-size-audit.sh` | Context-budget sensor: ranks every `skill.md` by byte count, flags any over the fleet threshold |

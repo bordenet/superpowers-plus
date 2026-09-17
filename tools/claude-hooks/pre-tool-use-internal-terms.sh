@@ -10,12 +10,64 @@ set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
 
 LOG="$HOME/.claude/hooks/hook-audit.log"; mkdir -p "$(dirname "$LOG")"
-log() { echo "$(date -u +%FT%TZ) internal-terms exit=$1 reason=$2" >> "$LOG"; }
+AUDIT_SID="-"
+AUDIT_TOOL="-"
+AUDIT_INPUT_KEYS="-"
+AUDIT_UNKNOWN_KEYS="0"
+log() {
+  local status="$1" reason="$2" class="${3:-}" metadata="${4:-}" line
+  line="$(date -u +%FT%TZ) internal-terms exit=$status reason=$reason"
+  if [[ -n "$class" || "$status" == "2" ]]; then
+    line+=" class=${class:-unknown} sid=$AUDIT_SID"
+  fi
+  [[ -n "$metadata" ]] && line+=" $metadata"
+  echo "$line" >> "$LOG"
+}
+
+set_audit_metadata() {
+  local raw="$1" value sid tool input_keys unknown_keys
+  value="$(jq -r '
+    def text_or_empty: if type == "string" then . else "" end;
+    def recognized_hook_keys: ["conversation_id", "cwd", "session_id", "tool_input", "tool_name", "transcript_path"];
+    if type == "object" then
+      . as $root
+      | recognized_hook_keys as $recognized
+      | ($root | keys) as $keys
+      |
+      [
+        (($root.session_id // $root.conversation_id // "") | text_or_empty | gsub("[^A-Za-z0-9_-]"; "") | .[0:128]),
+        (($root.tool_name // "") | text_or_empty | gsub("[^A-Za-z0-9_.:-]"; "") | .[0:64]),
+        ($keys | map(select(. as $key | $recognized | index($key))) | sort | join(",")),
+        ($keys | map(select(. as $key | ($recognized | index($key)) == null)) | length | tostring)
+      ] | join("|")
+    else "|||0" end
+  ' <<<"$raw" 2>/dev/null || true)"
+  IFS='|' read -r sid tool input_keys unknown_keys <<<"${value:-|||0}"
+  [[ -n "$sid" ]] && AUDIT_SID="$sid"
+  [[ -n "$tool" ]] && AUDIT_TOOL="$tool"
+  [[ -n "$input_keys" ]] && AUDIT_INPUT_KEYS="$input_keys"
+  [[ "$unknown_keys" =~ ^[0-9]+$ ]] && AUDIT_UNKNOWN_KEYS="$unknown_keys"
+  return 0
+}
+
+read_input_field() {
+  local filter="$1" value rc
+  set +e
+  value="$(jq -r "$filter" <<<"$INPUT")"
+  rc=$?
+  set -e
+  if [[ "$rc" -ne 0 ]]; then
+    log "$rc" malformed-input unknown "tool=$AUDIT_TOOL input_keys=$AUDIT_INPUT_KEYS unknown_keys=$AUDIT_UNKNOWN_KEYS"
+    exit "$rc"
+  fi
+  printf '%s' "$value"
+}
 
 INPUT="$(cat)"
-TOOL="$(jq -r '.tool_name // empty' <<<"$INPUT")"
-CMD="$(jq -r '.tool_input.command // empty' <<<"$INPUT")"
-CWD="$(jq -r '.cwd // empty' <<<"$INPUT")"
+set_audit_metadata "$INPUT"
+TOOL="$(read_input_field '.tool_name // empty')"
+CMD="$(read_input_field '.tool_input.command // empty')"
+CWD="$(read_input_field '.cwd // empty')"
 [[ "$TOOL" != "Bash" ]] && { log 0 not-bash; exit 0; }
 [[ "$CMD" =~ (^|[^A-Za-z0-9_])git[[:space:]]+push([[:space:]]|$) ]] || { log 0 not-push; exit 0; }
 
@@ -79,7 +131,7 @@ if [[ -n "$HITS" ]]; then
     while IFS= read -r hit; do echo "  - $hit"; done <<<"$HITS"
     echo "Scrub the commits, or set CLAUDE_HOOKS_BYPASS=1 to override (see audit log)."
   } >&2
-  log 2 hits-found
+  log 2 hits-found TP
   exit 2
 fi
 log 0 clean
