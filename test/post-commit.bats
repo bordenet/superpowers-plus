@@ -102,3 +102,74 @@ read_sentinel_sha() {
     sentinel_sha=$(read_sentinel_sha)
     [[ "$sentinel_sha" == "tree:${tree}" ]]
 }
+
+@test "post-commit: promotes .phr-cleared on amend with no tree change" {
+    head1=$(git rev-parse HEAD)
+    echo "v1|${head1}|PASS|2026-05-23T00:00:00Z|min-score=9.5" > .phr-cleared
+    git commit -q --amend --no-edit -m "seed (amended)" >/dev/null
+    head2=$(git rev-parse HEAD)
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    sentinel_sha=$(cut -d'|' -f2 < .phr-cleared)
+    [[ "$sentinel_sha" == "$head2" ]]
+    grep -q "min-score=9.5" .phr-cleared   # trailing field preserved
+}
+
+@test "post-commit: leaves .phr-cleared alone on non-PASS verdict" {
+    head1=$(git rev-parse HEAD)
+    echo "v1|${head1}|PASS_WITH_FIXES|2026-05-23T00:00:00Z|min-score=7.0" > .phr-cleared
+    git commit -q --amend --no-edit -m "seed (amended)" >/dev/null
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    sentinel_sha=$(cut -d'|' -f2 < .phr-cleared)
+    [[ "$sentinel_sha" == "$head1" ]]
+}
+
+@test "post-commit: promotes .llm-skill-review-cleared (v2, 7 fields) preserving trailing fields" {
+    head1=$(git rev-parse HEAD)
+    echo "v2|${head1}|PASS_WITH_RISKS|2026-05-23T00:00:00Z|mean=8.5|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
+    git commit -q --amend --no-edit -m "seed (amended)" >/dev/null
+    head2=$(git rev-parse HEAD)
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    line=$(cat .llm-skill-review-cleared)
+    [[ "$line" == "v2|${head2}|PASS_WITH_RISKS|2026-05-23T00:00:00Z|mean=8.5|unresolved_s0_s1=0|evidence_replay=ok" ]]
+}
+
+@test "post-commit: leaves .llm-skill-review-cleared alone on non-passing verdict" {
+    head1=$(git rev-parse HEAD)
+    echo "v2|${head1}|REJECT|2026-05-23T00:00:00Z|mean=4.0|unresolved_s0_s1=2|evidence_replay=ok" > .llm-skill-review-cleared
+    git commit -q --amend --no-edit -m "seed (amended)" >/dev/null
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    sentinel_sha=$(cut -d'|' -f2 < .llm-skill-review-cleared)
+    [[ "$sentinel_sha" == "$head1" ]]
+}
+
+@test "post-commit: promotes all three sentinels across a tree-identical promotion merge" {
+    # Simulates dev -> staging: a merge commit whose tree matches the branch
+    # it merged in ("trees match; SHAs differ only by the promotion merge
+    # commit"). staging has made no independent commits, so the merge is a
+    # clean fast-forward-equivalent and the merge commit's tree equals dev's.
+    git branch dev
+    git checkout -q -b staging
+    git checkout -q dev
+    echo feature > feature.txt
+    git add feature.txt
+    git commit -qm "feature work"
+    dev_head=$(git rev-parse HEAD)
+    echo "v1|${dev_head}|PASS|2026-05-23T00:00:00Z|min-score=8.0" > .code-review-cleared
+    echo "v1|${dev_head}|PASS|2026-05-23T00:00:00Z|min-score=9.5" > .phr-cleared
+    echo "v2|${dev_head}|PASS|2026-05-23T00:00:00Z|mean=9.0|unresolved_s0_s1=0|evidence_replay=ok" > .llm-skill-review-cleared
+
+    git checkout -q staging
+    git merge -q --no-ff dev -m "promote dev to staging"
+    merge_head=$(git rev-parse HEAD)
+    [[ "$merge_head" != "$dev_head" ]]
+
+    run bash "$HOOK"
+    [ "$status" -eq 0 ]
+    [[ "$(cut -d'|' -f2 < .code-review-cleared)" == "$merge_head" ]]
+    [[ "$(cut -d'|' -f2 < .phr-cleared)" == "$merge_head" ]]
+    [[ "$(cut -d'|' -f2 < .llm-skill-review-cleared)" == "$merge_head" ]]
+}

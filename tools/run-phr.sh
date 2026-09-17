@@ -19,10 +19,17 @@
 #   The .phr-cleared sentinel + pre-push Gate 5 closes that gap so PHR
 #   becomes script-enforced, not prose-instruction-enforced.
 #
-# NOTE: --staged mode was REMOVED. The post-commit hook only promotes
-#   .code-review-cleared; promoting .phr-cleared from tree-SHA to commit-SHA
-#   was advertised but never implemented, so --staged sentinels were guaranteed
-#   to be flagged "stale" at push time. Run PHR AFTER `git commit`.
+# NOTE: --staged mode was REMOVED. Promoting a tree-SHA sentinel to a
+#   commit-SHA before the commit existed was advertised but never
+#   implemented, so --staged sentinels were guaranteed to be flagged "stale"
+#   at push time. Run PHR AFTER `git commit`.
+#
+#   The post-commit hook DOES promote .phr-cleared in HEAD-mode: after any
+#   commit whose tree matches the sentinel's recorded SHA (amend-only edits,
+#   and clean promotion merges such as dev -> staging where the merge
+#   commit's tree is identical to the branch it merged in), the sentinel is
+#   carried forward to the new HEAD SHA without a fresh PHR round. See
+#   tools/post-commit.
 # -----------------------------------------------------------------------------
 set -euo pipefail
 

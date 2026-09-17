@@ -507,8 +507,26 @@ EOF
   fi
 
   # Single-use, mirroring file-based Method 1 tokens for push/release.
+  #
+  # The hash MUST include the approval file's own mtime, not just
+  # SESSION_ID+"strict-disable": a human is expected to write a FRESH token
+  # for each new approval within one session. Hashing session+category alone
+  # collapses every strict-disable token to one fixed value, so the FIRST
+  # approval in a session permanently exhausts this gate for the rest of the
+  # session -- a freshly-written second token is wrongly rejected as
+  # "already consumed" (found 2026-09-15; same defect as the push/release
+  # token check below, fixed there for the identical reason).
   if [[ -f "$STRICT_DISABLE_APPROVAL_FILE" ]]; then
-    STRICT_DISABLE_TOKEN_HASH="$(printf '%s:strict-disable' "$SESSION_ID" | _sha256)"
+    # python3, not `stat -f`/`stat -c` -- see the identical fix and full
+    # rationale on the push/release token check below (GNU `-f` is a
+    # boolean flag, not a format string, and silently leaks volatile
+    # filesystem state into the hash on Linux).
+    STRICT_DISABLE_TOKEN_MTIME="$(python3 -c 'import os,sys
+try:
+    print(int(os.path.getmtime(sys.argv[1])))
+except OSError:
+    print("no-mtime")' "$STRICT_DISABLE_APPROVAL_FILE" 2>/dev/null || echo "no-mtime")"
+    STRICT_DISABLE_TOKEN_HASH="$(printf '%s:strict-disable:%s' "$SESSION_ID" "$STRICT_DISABLE_TOKEN_MTIME" | _sha256)"
     if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$STRICT_DISABLE_TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
       {
         echo "BLOCKED: RED action (strict-disable) approval token already consumed in this session."
@@ -1049,19 +1067,55 @@ TOKEN_CATEGORY_RAW="$(extract_approval_token)"
 if [[ -z "$TOKEN_CATEGORY_RAW" && "${AUGMENT_SESSION:-0}" == "1" ]]; then
   _AUGMENT_APPROVAL_FILE="$HOME/.red-autonomy-augment-approved-$(date +%Y%m%d)"
   if [[ -f "$_AUGMENT_APPROVAL_FILE" ]]; then
-    TOKEN_CATEGORY_RAW="push"
+    # ":augment" suffix, not bare "push" -- this file is a day-scoped
+    # STANDING approval (never deleted, meant to authorize every RED action
+    # for the rest of the calendar day), not a single-use Method-1 token.
+    # Tagging it "push" indistinguishably from Method 1 fed it through the
+    # same single-use consumed-hash check below, keyed on this file's own
+    # mtime -- but the day-file's mtime never changes between uses (it is
+    # never rewritten, just created once), so every action after the first
+    # collided on an identical hash and was wrongly blocked as "already
+    # consumed" for the rest of the day (found alongside, and same root
+    # cause as, the Method-1 collision this commit otherwise fixes: a
+    # token source whose validity is meant to span multiple actions was
+    # run through logic that assumes one hash = one action). Routing it to
+    # its own TOKEN_SOURCE below skips that check entirely, matching how
+    # "transcript" tokens are already exempted for the same reason.
+    TOKEN_CATEGORY_RAW="push:augment"
     log 0 "augment-day-file-approval"
   fi
 fi
 
-# Constrain to known literals only. ":tr" suffix marks transcript-sourced tokens;
-# bare "push"/"release" are from the file-based approval mechanism.
+# Residual trust-boundary disclosure (matching this file's practice of
+# naming every gap rather than leaving it implicit): $_AUGMENT_APPROVAL_FILE
+# is keyed by calendar day only -- NOT by session_id or conversation_id --
+# by design, so one human-run `touch` at the start of the day authorizes
+# every RED action, in every Augment session on this machine, for the rest
+# of that day. `touch` is not itself a RED-gated command, so an agent could
+# self-create this file and grant itself standing approval; this is the
+# same category of risk this file already accepts for Method-1 (a token
+# file's mere existence is trusted, not cryptographically tied to a human
+# action) but broader in blast radius (day+machine, not one action). This
+# exemption from the consumed-hash check (below) does not add that risk --
+# it was already latent in the day-file design -- but it does remove the
+# accidental, bug-induced ceiling of "~1 action per session per day" (the
+# hash is keyed by SESSION_ID, i.e. conversation_id for Augment, so the
+# pre-fix bug capped each conversation_id at one action, not the whole
+# machine) that the mtime-collision previously imposed. If this scope
+# proves too broad in practice, key $_AUGMENT_APPROVAL_FILE by
+# conversation_id instead.
+#
+# Constrain to known literals only. ":tr" suffix marks transcript-sourced
+# tokens; ":augment" marks the day-scoped Augment fallback file (also
+# reusable across a session, like transcript tokens -- see above); bare
+# "push"/"release" are from the single-use Method-1 file-approval mechanism.
 TOKEN_SOURCE="file"
 case "$TOKEN_CATEGORY_RAW" in
   push)             TOKEN_CATEGORY="push" ;;
   release)          TOKEN_CATEGORY="release" ;;
   push:tr)          TOKEN_CATEGORY="push";    TOKEN_SOURCE="transcript" ;;
   release:tr)       TOKEN_CATEGORY="release"; TOKEN_SOURCE="transcript" ;;
+  push:augment)     TOKEN_CATEGORY="push";    TOKEN_SOURCE="augment-day" ;;
   *)                TOKEN_CATEGORY="" ;;
 esac
 
@@ -1097,7 +1151,42 @@ fi
 if [[ "$TOKEN_SOURCE" == "file" ]]; then
   # NOTE: check-then-append is not atomic. Claude Code serializes pre-tool-use
   # hooks within a session, making concurrent races impossible in practice.
-  TOKEN_HASH="$(printf '%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" | _sha256)"
+  #
+  # The hash MUST include this approval file's own mtime, not just
+  # SESSION_ID+TOKEN_CATEGORY: the documented workflow (see
+  # _emit_file_token_recipe) has a human write a FRESH token to authorize
+  # EACH new push/delete within a session -- "they authorize a new ref ...
+  # that a repeated phrase cannot." Hashing session+category alone ignores
+  # which file write this is, so every 'push' token in a session collapses
+  # to the identical hash: the first approval consumes it, and every
+  # legitimately fresh token written afterward is rejected as "already
+  # consumed" even though it was never actually presented to this gate
+  # before. Reproduced 2026-09-15: a second push, to a different branch,
+  # was blocked this way after an earlier push in the same session had
+  # already succeeded once. Including mtime makes each write distinct while
+  # still rejecting a replay of the SAME still-on-disk file (defense in
+  # depth for when rm below fails, e.g. a permissions error).
+  # python3, not `stat -f`/`stat -c`: this script already hard-requires
+  # python3 (line 188), and the BSD/GNU stat flag split is a real trap here,
+  # not a style choice -- GNU's `-f` is `--file-system` (a boolean flag, NOT
+  # "use this format string"), so `stat -f '%m' "$FILE"` on Linux silently
+  # mis-parses into two filesystem-mode operands and leaks a multi-line
+  # mount/free-space status block onto stdout instead of failing cleanly.
+  # That block gets captured into TOKEN_MTIME, and its "Free"/"Available"
+  # fields are volatile filesystem state -- reproduced (code-review-battery,
+  # 2026-09-15): two `stat -f '%m' file || stat -c '%Y' file` calls one
+  # second apart, against the SAME unmodified file, produced two DIFFERENT
+  # captured values purely from unrelated disk-block churn, which defeats
+  # the exact-instance-replay defense this hash exists to provide. This
+  # script's CI runner is ubuntu-latest, i.e. GNU stat, so this is not a
+  # theoretical platform gap.
+  APPROVAL_FILE_PATH="$SESSION_ENV_DIR/${SESSION_ID}.push-approval"
+  TOKEN_MTIME="$(python3 -c 'import os,sys
+try:
+    print(int(os.path.getmtime(sys.argv[1])))
+except OSError:
+    print("no-mtime")' "$APPROVAL_FILE_PATH" 2>/dev/null || echo "no-mtime")"
+  TOKEN_HASH="$(printf '%s:%s:%s' "$SESSION_ID" "$TOKEN_CATEGORY" "$TOKEN_MTIME" | _sha256)"
   if [[ -f "$CONSUMED_FILE" ]] && grep -qF "$TOKEN_HASH" "$CONSUMED_FILE" 2>/dev/null; then
     {
       echo "BLOCKED: RED action approval token already consumed in this session."
@@ -1109,7 +1198,7 @@ if [[ "$TOKEN_SOURCE" == "file" ]]; then
   fi
   echo "$TOKEN_HASH" >> "$CONSUMED_FILE"
   # Remove file-based approval token (it is single-use by design).
-  rm -f "$SESSION_ENV_DIR/${SESSION_ID}.push-approval" 2>/dev/null || true
+  rm -f "$APPROVAL_FILE_PATH" 2>/dev/null || true
 fi
 
 log 0 "approved-${TOKEN_CATEGORY}(${TOKEN_SOURCE})"

@@ -84,7 +84,7 @@ ALL work MUST happen in this repository (the directory containing this AGENTS.md
 - Run `./tools/harsh-review.sh` (subset of `test-all.sh`) before any commit; install hooks: `./tools/install-hooks.sh`
 - `commit-msg` hook: auto-converts smart quotes, em dashes, arrows, etc. to ASCII; rejects any remaining non-ASCII. If a commit is rejected, edit the message to use ASCII equivalents. Requires `python3` in PATH (hook exits 1 with an explicit error if missing).
 - Skills changes: `code-review-battery` + PHR required (pre-commit sentinel enforced). The PHR-trigger file list comes from `tools/md-files-changed.sh` — the single source of truth for the regex and exclusions.
-- **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--staged]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation. With `--staged`, the sentinel records `tree:<sha>` and the post-commit hook promotes it to the new HEAD SHA, eliminating the stage→battery→commit→battery double-run.
+- **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--staged]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation. With `--staged`, the sentinel records `tree:<sha>` and the post-commit hook promotes it to the new HEAD SHA, eliminating the stage→battery→commit→battery double-run. The post-commit hook also carries `.code-review-cleared`, `.phr-cleared`, and `.llm-skill-review-cleared` forward across any commit whose tree is provably unchanged from a passing sentinel's recorded SHA — this covers a clean promotion merge (e.g. `dev → staging`, tree-identical to the branch merged in) so promoting already-reviewed content doesn't force a fresh review just because the merge commit has a new SHA.
 - **Pre-push runs `test-all.sh --fast` automatically** (Gate 1 of 7). Before spending that runtime, use read-only `tools/push-readiness.sh [--json]` to list sentinel blockers without consuming them; pass `--destination <branch>` for a non-same-name refspec such as `HEAD:main`. Gate 6 requires `.llm-skill-review-cleared` for `skills/*.md` changes; it supersedes (not supplements) the code-review and PHR gates for that file class specifically. Gate 7 is a per-commit LOC advisory (warn-only by default; see `tools/pre-push-loc-gate.sh`'s own header for `LOC_GATE_MODE=block` opt-in).
 - **Before dispatching any review sub-agent, run `tools/review.sh route <path> [<path> ...]` first** — it wraps `tools/which-gate.sh` and prints one block per artifact class (skill name, sentinel file, and runner), with a separate block for each gate when paths span multiple classes. Never pick the review dispatcher from memory — the three review skills' own "Wrong skill?" prose banners only fire *after* the wrong skill is loaded, which is after the dispatch decision was already wrong; `tools/review.sh` fires before any skill loads. On non-zero exit (router missing, extraction failure, or unmatched artifact), stop and consult the gate bullets above rather than picking from memory.
 - **Writing a bats fixture that does its own `git init`/`git -C <tmpdir>` work?** `test/setup_suite.bash` (bats-core auto-loads it once, before any test forks) already centrally `unset`s `GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX` for every `bats test/` invocation — no per-file repetition needed. It exists because a leaked `GIT_DIR` (from an unrelated git experiment in the same shell) once silently redirected a fixture's own `git -C <tmpdir> init/commit` onto the real repo, corrupting `.git/config`. See `test/setup_suite.bash` for the full incident writeup.
@@ -118,6 +118,13 @@ skills/{domain}/{skill-name}/
 1. Feature branch → push to `origin`, open PR into `origin/dev`
 2. `dev → staging`: explicit human instruction only
 3. `staging → main`: explicit human instruction + batch review approval
+
+A promotion PR carries content already reviewed on its source branch — it is
+not new feature work. Once the human instruction (and, for `staging → main`,
+the batch review approval) is given, open the PR and merge on green required
+checks. Do not re-run brainstorming, debate, or the full feature-development
+skill chain against a promotion diff solely because a skill-router match
+fired; those are for design decisions, and a promotion merge has none.
 
 After any release to `main`, open a sync PR (merge commit) to bring promotion history back to `dev`:
 `git checkout -b chore/sync-dev-with-main origin/main && git push origin chore/sync-dev-with-main`
