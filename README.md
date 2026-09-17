@@ -164,6 +164,8 @@ Sets up the Augment adapter and a skills directory. Does **not** install the ful
 
 Plugin mode installs skills only. For a complete setup that includes superpowers-core, use the `install.sh` path above.
 
+When Claude Code lifecycle guardrails are enabled, the SessionStart hook bounds its local logs. It rotates `~/.claude/hooks/hook-audit.log` above 1 MiB and keeps `.1` and `.2`. It rotates the metrics file selected by `CLAUDE_SKILL_ROUTER_METRICS` above 5 MiB and keeps `.1`; the default is `~/.claude/hooks/skill-router-metrics.jsonl`. Rotation is best-effort: missing, unreadable, symlinked, or unexpected file entries do not stop a Claude Code session. A recent empty rotation lock is preserved, while an empty lock older than five minutes is reclaimed.
+
 ### Codex
 
 ```text
