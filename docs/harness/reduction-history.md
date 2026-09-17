@@ -46,6 +46,7 @@ activated skill body.
 | Skill | Before | Kernel after | Reduction | Note |
 |---|---|---|---|---|
 | progressive-harsh-review | 18018 | 6447 | 64% | Persona weights, vetoes, verdicts, convergence, anti-recursion, and sentinel stay resident; project-floor detail, report format, and failures load from `reference.md` through trusted managed tooling. |
+| context-ferry | 10688 | 4893 | 54% | Full/PreCompact routing, durable-state priority, safety invariants, and origin-bound reference loading remain resident; output scaffold, fidelity/privacy detail, and failure recovery moved to `reference.md`. |
 
 The PHR compression golden is intentionally not regenerated here. P1h removes
 exact-text compression goldens while retaining structural checks, so refreshing

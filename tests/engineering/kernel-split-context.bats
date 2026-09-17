@@ -53,3 +53,24 @@ setup() {
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
+
+# ---------------------------------------------------------------------------
+# context-ferry -- split from 10,688 bytes on 2026-09-17.
+# The 5,000-byte ceiling retains compaction-safe sequencing while moving the
+# duplicated scaffold template and detailed fidelity/recovery tables on demand.
+# ---------------------------------------------------------------------------
+@test "context-ferry stays within kernel byte budget" {
+  SKILL="$REPO_ROOT/skills/productivity/context-ferry/skill.md"
+  SKILL_BYTE_BUDGET=5000
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
+}
+
+@test "context-ferry reduction ledger matches current kernel bytes" {
+  local skill="$REPO_ROOT/skills/productivity/context-ferry/skill.md"
+  local history="$REPO_ROOT/docs/harness/reduction-history.md"
+  local current_bytes recorded_bytes
+  current_bytes="$(wc -c < "$skill" | tr -d ' ')"
+  recorded_bytes="$(awk -F '|' '$2 ~ /context-ferry/ { gsub(/[[:space:]]/, "", $4); print $4 }' "$history")"
+  [ "$recorded_bytes" = "$current_bytes" ]
+}
