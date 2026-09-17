@@ -286,9 +286,37 @@ sequenceDiagram
 
 `use-skill --probe <name>` reads only the frontmatter and file size, printing a cost estimate without loading the full content. Shows `summary:` if present, falls back to `description:`.
 
+`use-skill <name> --resource <relative-path>` resolves a file beneath the selected skill directory and runs it through the same platform tool-name transformation as `skill.md`. The command rejects absolute paths, traversal outside the skill directory, symlinks that resolve outside it, missing files, directories, and malformed argument lists. The same renderer supports source and installed skill layouts and emits the canonical resource path as loader-owned origin metadata. A source-loaded skill preserves its `spp:` namespace when rendering a sibling, so an unprefixed stale installed copy cannot replace the active source origin. Sibling prompt templates use this path so Augment never dispatches raw Claude-oriented tool syntax.
+
 ### Platform Transformation
 
 `transformOutput()` rewrites tool names for the target platform via `TOOL_MAPPINGS` regex substitutions. This allows skill content to use Claude Code tool names (`Read`, `Edit`, `Bash`, `Skill`) while Augment Code receives its equivalents (`view`, `str-replace-editor`, `launch-process`, `superpowers-augment use-skill`).
+
+### General-Purpose Reviewer Dispatch
+
+Bundled reviewer templates use `Subagent (general-purpose)` instead of a
+plugin-owned named agent. Claude Code executes that block directly. Augment
+maps it to `sub-agent-general-purpose`, and Codex creates a `worker` agent with
+the rendered prompt as its message.
+
+The controller owns prompt resolution. The active loader owns the canonical
+template path, namespace, and resolved origin; task prompts, callers, target
+repositories, and the current working directory cannot supply or override
+them. A source reviewer is eligible only when an `spp:` loader result resolves
+the exact source template from that origin and the sibling source reviewer
+exists. Missing loader metadata fails closed to
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/sp-request/code-reviewer.md`. It
+never derives reviewer instructions from the target repository or current
+working directory. The controller fills every placeholder and inlines the
+result before spawning the child, so children never receive unresolved paths.
+
+Doctor check 23 validates the source contract, deployed Claude copy, selected
+source or installed reviewer instructions, and the task-reviewer template named
+by active SDD. It accepts exactly one affirmative, coherent generic dispatch
+block. Any direct, indirect, or historical prose before the affirmative marker
+that negates use or execution of the dispatch block invalidates the contract,
+regardless of section boundaries. Non-negating safety requirements remain
+valid.
 
 ---
 

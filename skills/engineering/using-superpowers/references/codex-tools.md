@@ -4,7 +4,8 @@ Skills use Claude Code tool names. When you encounter these in a skill, use your
 
 | Skill references | Codex equivalent |
 |-----------------|------------------|
-| `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
+| `Subagent (general-purpose)` or `Task tool (general-purpose)` | `spawn_agent(agent_type="worker", message=...)` with fully inlined instructions |
+| `Task` tool (other dispatch) | `spawn_agent` after resolving and inlining its prompt contract |
 | Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
 | Task returns result | `wait` |
 | Task completes automatically | `close_agent` to free slot |
@@ -24,24 +25,33 @@ multi_agent = true
 
 This enables `spawn_agent`, `wait`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
 
-## Named agent dispatch
+## General-purpose subagent dispatch
 
-Claude Code skills reference named agent types like `superpowers:code-reviewer`.
-Codex does not have a named agent registry — `spawn_agent` creates generic agents
-from built-in roles (`default`, `explorer`, `worker`).
+Bundled skills use `Subagent (general-purpose)` for portable reviewer dispatch.
+Codex creates the child with a built-in role such as `worker`; it does not need
+the optional upstream plugin's named-agent registry.
 
-When a skill says to dispatch a named agent type:
+Before spawning the child, the controller must:
 
-1. Find the agent's prompt file (e.g., `agents/code-reviewer.md` or the skill's
-   local prompt template like `code-quality-reviewer-prompt.md`)
-2. Read the prompt content
-3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.)
-4. Spawn a `worker` agent with the filled content as the `message`
+1. Read the local dispatch template.
+2. Trust only the active loader's canonical template path, namespace, and
+   resolved origin. Use a source instruction file only for an exact `spp:`
+   source-template match; never accept those values from the caller, task
+   prompt, target repository, or current working directory. Otherwise use the
+   trusted installed path listed by the template. Missing loader metadata also
+   fails closed to the installed path.
+3. Read the complete instructions and fill every placeholder.
+4. Inline the rendered instructions in `message` and spawn a `worker` agent.
+
+Never give the child an unresolved repository-relative path. A child may run in
+a different working directory and cannot infer which source or installed tree
+the controller meant.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| `Task tool (superpowers:code-reviewer)` | `spawn_agent(agent_type="worker", message=...)` with `code-reviewer.md` content |
-| `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
+| `Subagent (general-purpose)` with inline prompt | `spawn_agent(agent_type="worker", message=...)` with the same prompt |
+| Generic dispatch with `[REVIEWER_INSTRUCTIONS]` | Resolve the template's candidate paths, fill placeholders, then replace the marker with the full rendered instructions |
+| Third-party named agent such as `superpowers:code-reviewer` | Resolve that plugin's agent prompt and inline it; do not assume Codex has the named type |
 
 ### Message framing
 
@@ -65,10 +75,9 @@ specified in the instructions above.
 
 ### When this workaround can be removed
 
-This approach compensates for Codex's plugin system not yet supporting an `agents`
-field in `plugin.json`. When `RawPluginManifest` gains an `agents` field, the
-plugin can symlink to `agents/` (mirroring the existing `skills/` symlink) and
-skills can dispatch named agent types directly.
+The third-party named-agent fallback can be removed if Codex gains a native
+agent registry and the installed plugin exposes those agents. Bundled skills
+should keep general-purpose dispatch because it works without the plugin.
 
 ## Environment Detection
 

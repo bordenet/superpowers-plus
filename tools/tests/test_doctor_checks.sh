@@ -213,7 +213,7 @@ test_reviewer_dispatch_no_stale_patterns() {
     "code-reviewer subagent"
     "code reviewer subagent"
     "Dispatch final code-reviewer"
-    "Task tool with superpowers:code-reviewer type"
+    "superpowers:code-reviewer"
   )
   for pattern in "${stale_patterns[@]}"; do
     if [[ "$output" == *"$pattern"* ]]; then
@@ -245,6 +245,486 @@ test_reviewer_dispatch_sdd_detection() {
   else
     # No stale patterns — skill is healthy
     pass "reviewer-dispatch: sdd rendering is healthy"
+  fi
+}
+
+_make_reviewer_dispatch_doctor_fixture() {
+  local fixture_root="$1"
+  local source_sdd="$SCRIPT_DIR/../../skills/engineering/subagent-driven-development"
+  local source_request="$SCRIPT_DIR/../../skills/engineering/requesting-code-review"
+  local deployed_sdd="$fixture_root/home/.claude/skills/subagent-driven-development"
+  mkdir -p "$fixture_root/home/.codex" \
+    "$fixture_root/skills/engineering/subagent-driven-development" \
+    "$fixture_root/skills/engineering/requesting-code-review" \
+    "$deployed_sdd" \
+    "$fixture_root/home/.claude/skills/sp-request"
+  cp "$source_sdd/skill.md" \
+    "$source_sdd/task-reviewer-prompt.md" \
+    "$source_sdd/code-quality-reviewer-prompt.md" \
+    "$fixture_root/skills/engineering/subagent-driven-development/"
+  cp "$fixture_root/skills/engineering/subagent-driven-development/skill.md" \
+    "$fixture_root/skills/engineering/subagent-driven-development/task-reviewer-prompt.md" \
+    "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$deployed_sdd/"
+  cp "$source_request/code-reviewer.md" \
+    "$fixture_root/skills/engineering/requesting-code-review/code-reviewer.md"
+  cp "$source_request/code-reviewer.md" \
+    "$fixture_root/home/.claude/skills/sp-request/code-reviewer.md"
+}
+
+_run_reviewer_dispatch_doctor_fixture() {
+  local fixture_root="$1"
+  local module output
+  module="$SCRIPT_DIR/../doctor-modules/integration-checks.sh"
+
+  output=$(
+    # shellcheck disable=SC2030 # Fixture environment is intentionally local to this subshell.
+    HOME="$fixture_root/home"
+    # shellcheck disable=SC2030 # Fixture environment is intentionally local to this subshell.
+    CLAUDE_CONFIG_DIR="$fixture_root/home/.claude"
+    REPO_ROOT="$fixture_root"
+    WARNINGS=0
+    # shellcheck source=tools/doctor-modules/integration-checks.sh
+    source "$module"
+    _doctor_integration_checks
+    printf 'WARNINGS=%s\n' "$WARNINGS"
+  )
+  printf '%s\n' "$output"
+}
+
+test_reviewer_dispatch_plugin_independent() {
+  local fixture_root output
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer-dispatch"* || "$output" != *"WARNINGS=0"* ]]; then
+    fail "reviewer-dispatch: valid source and deployed contracts triggered a warning: $output"
+  else
+    pass "reviewer-dispatch: validates deployed generic and active SDD contracts"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  printf '%s\n' 'Task tool (superpowers:code-reviewer):' \
+    > "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"still depends on the plugin agent type"* ]]; then
+    pass "reviewer-dispatch: rejects stale deployed plugin-agent dispatch"
+  else
+    fail "reviewer-dispatch: missed stale deployed plugin-agent dispatch: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  rm "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"deployed Claude reviewer contract is missing"* ]]; then
+    pass "reviewer-dispatch: warns when deployed Claude reviewer contract is missing"
+  else
+    fail "reviewer-dispatch: missed absent deployed Claude reviewer contract: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  rm "$fixture_root/home/.claude/skills/sp-request/code-reviewer.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"deployed Claude reviewer instructions are missing"* ]]; then
+    pass "reviewer-dispatch: warns when resolved Claude reviewer instructions are missing"
+  else
+    fail "reviewer-dispatch: missed absent resolved Claude reviewer instructions: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'NEGATED'
+Do not dispatch Subagent (general-purpose):
+  description: "Code quality review"
+  model: required
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+NEGATED
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: rejects negated generic-dispatch instructions"
+  else
+    fail "reviewer-dispatch: accepted negated generic-dispatch instructions: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'NEGATED'
+## Controller contract
+
+Do not use the following dispatch block.
+Controller contract: dispatch the following block.
+Subagent (general-purpose):
+  description: "Code quality review"
+  model: [MODEL, REQUIRED: choose explicitly]
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+NEGATED
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: rejects structurally valid dispatch after exact nearby negation"
+  else
+    fail "reviewer-dispatch: accepted dispatch after 'Do not use the following dispatch block': $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'NEGATED'
+## Historical guidance
+
+Historically, controllers were instructed not to dispatch the block below.
+
+## Controller contract
+
+Controller contract: dispatch the following block.
+Subagent (general-purpose):
+  description: "Code quality review"
+  model: [MODEL, REQUIRED: choose explicitly]
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+NEGATED
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: rejects historical dispatch negation before the marker"
+  else
+    fail "reviewer-dispatch: accepted historical dispatch negation before the marker: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'NEGATED'
+## Prior example
+
+The generic subagent block below is illustrative and must not be executed.
+
+## Controller contract
+
+Controller contract: dispatch the following block.
+Subagent (general-purpose):
+  description: "Code quality review"
+  model: [MODEL, REQUIRED: choose explicitly]
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+NEGATED
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: rejects indirect dispatch negation before the marker"
+  else
+    fail "reviewer-dispatch: accepted indirect dispatch negation before the marker: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'NEGATED'
+## Obsolete procedure
+
+Do not dispatch the following generic subagent.
+
+## Controller contract
+
+Controller contract: dispatch the following block.
+Subagent (general-purpose):
+  description: "Code quality review"
+  model: [MODEL, REQUIRED: choose explicitly]
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+NEGATED
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: rejects direct dispatch negation before the marker"
+  else
+    fail "reviewer-dispatch: accepted direct dispatch negation before the marker: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" <<'LEGITIMATE'
+## Safety requirements
+
+Do not omit reviewer instructions from the dispatch block.
+The controller validates the generic subagent block before use.
+
+## Controller contract
+
+Controller contract: dispatch the following block.
+Subagent (general-purpose):
+  description: "Code quality review"
+  model: [MODEL, REQUIRED: choose explicitly]
+  prompt: |
+    [REVIEWER_INSTRUCTIONS]
+LEGITIMATE
+  cp "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" != *"reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: accepts legitimate non-negating contract prose"
+  else
+    fail "reviewer-dispatch: rejected legitimate non-negating contract prose: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  printf '\n# stale installed copy\n' \
+    >> "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"deployed Claude reviewer contract is stale"* ]]; then
+    pass "reviewer-dispatch: detects a stale deployed Claude reviewer contract"
+  else
+    fail "reviewer-dispatch: missed stale deployed Claude reviewer contract: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-dispatch-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  cat > "$fixture_root/home/.claude/skills/subagent-driven-development/task-reviewer-prompt.md" <<'NEGATED'
+Do not dispatch Subagent (general-purpose):
+  description: "Review Task N"
+  model: required
+  prompt: |
+    You are reviewing one task's implementation.
+NEGATED
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"active task-reviewer contract is not a coherent general-purpose dispatch"* ]]; then
+    pass "reviewer-dispatch: validates the task-reviewer template used by active SDD"
+  else
+    fail "reviewer-dispatch: missed invalid active task-reviewer template: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+}
+
+_resolve_reviewer_instruction_fixture() {
+  local fixture_root="$1"
+  local active_template="$2"
+  local module="$3"
+  local asserted_root="${4:-}"
+  local installed_reviewer="$fixture_root/home/.claude/skills/sp-request/code-reviewer.md"
+  (
+    # shellcheck disable=SC2030 # Fixture environment is intentionally local to this subshell.
+    HOME="$fixture_root/home"
+    # shellcheck disable=SC2030 # Fixture environment is intentionally local to this subshell.
+    CLAUDE_CONFIG_DIR="$fixture_root/home/.claude"
+    REPO_ROOT="$fixture_root"
+    WARNINGS=0
+    # shellcheck source=tools/doctor-modules/integration-checks.sh
+    source "$module"
+    _doctor_integration_checks >/dev/null
+    if ! declare -F _doctor_reviewer_instruction_path >/dev/null; then
+      printf '%s\n' '__missing_reviewer_instruction_resolver__'
+      return 0
+    fi
+    _doctor_reviewer_instruction_path "$active_template" \
+      "$installed_reviewer" \
+      "$asserted_root"
+  )
+}
+
+test_reviewer_instruction_source_resolution() {
+  local fixture_root trusted_root module source_contract source_reviewer
+  local installed_contract installed_reviewer target_contract target_reviewer selected
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-origin-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  trusted_root="$fixture_root/trusted-source"
+  module="$trusted_root/tools/doctor-modules/integration-checks.sh"
+  mkdir -p "$trusted_root/tools/doctor-modules" \
+    "$trusted_root/skills/engineering/subagent-driven-development" \
+    "$trusted_root/skills/engineering/requesting-code-review"
+  cp "$SCRIPT_DIR/../doctor-modules/integration-checks.sh" "$module"
+  cp "$SCRIPT_DIR/../../skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$trusted_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md"
+  cp "$SCRIPT_DIR/../../skills/engineering/requesting-code-review/code-reviewer.md" \
+    "$trusted_root/skills/engineering/requesting-code-review/code-reviewer.md"
+  source_contract="$trusted_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md"
+  source_reviewer="$trusted_root/skills/engineering/requesting-code-review/code-reviewer.md"
+  source_reviewer="$(cd -P "$(dirname "$source_reviewer")" && pwd)/$(basename "$source_reviewer")"
+  installed_contract="$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"
+  installed_reviewer="$fixture_root/home/.claude/skills/sp-request/code-reviewer.md"
+  target_contract="$fixture_root/target-project/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md"
+  target_reviewer="$fixture_root/target-project/skills/engineering/requesting-code-review/code-reviewer.md"
+  mkdir -p "$(dirname "$target_contract")" "$(dirname "$target_reviewer")"
+  cp "$source_contract" "$target_contract"
+  printf '%s\n' '# MALICIOUS TARGET REVIEWER' > "$target_reviewer"
+
+  selected=$(_resolve_reviewer_instruction_fixture "$fixture_root" "$source_contract" "$module")
+  if [[ "$selected" == "$source_reviewer" ]]; then
+    pass "reviewer-dispatch: verified source template selects its source reviewer"
+  else
+    fail "reviewer-dispatch: verified source template selected '$selected' instead of '$source_reviewer'"
+  fi
+
+  selected=$(_resolve_reviewer_instruction_fixture "$fixture_root" "$installed_contract" "$module")
+  if [[ "$selected" == "$installed_reviewer" ]]; then
+    pass "reviewer-dispatch: installed template selects the trusted installed reviewer"
+  else
+    fail "reviewer-dispatch: installed template selected '$selected' instead of '$installed_reviewer'"
+  fi
+
+  selected=$(
+    cd "$fixture_root/target-project"
+    _resolve_reviewer_instruction_fixture \
+      "$fixture_root" "$target_contract" "$module" "$fixture_root/target-project"
+  )
+  if [[ "$selected" == "$installed_reviewer" && "$selected" != "$target_reviewer" ]]; then
+    pass "reviewer-dispatch: malicious target-project reviewer cannot override installed instructions"
+  else
+    fail "reviewer-dispatch: malicious target-project reviewer influenced selection: $selected"
+  fi
+
+  mv "$source_reviewer" "${source_reviewer}.missing"
+  selected=$(_resolve_reviewer_instruction_fixture "$fixture_root" "$source_contract" "$module")
+  if [[ "$selected" == "$installed_reviewer" ]]; then
+    pass "reviewer-dispatch: missing verified-source reviewer falls back to installed instructions"
+  else
+    fail "reviewer-dispatch: missing verified-source reviewer selected '$selected' instead of '$installed_reviewer'"
+  fi
+
+  rm -rf "${fixture_root:?}"
+}
+
+test_reviewer_instruction_contract_rejects_target_repo_origin() {
+  local fixture_root output prompt rewritten
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-policy-XXXXXX")
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  for prompt in \
+    "$fixture_root/skills/engineering/subagent-driven-development/code-quality-reviewer-prompt.md" \
+    "$fixture_root/home/.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md"; do
+    rewritten="${prompt}.rewritten"
+    awk '{
+      gsub(/<LOADER_RESOLVED_SUPERPOWERS_PLUS_ROOT>/, "<target-repo>")
+      print
+    }' "$prompt" > "$rewritten"
+    mv "$rewritten" "$prompt"
+  done
+  output=$(_run_reviewer_dispatch_doctor_fixture "$fixture_root")
+  if [[ "$output" == *"reviewer-instruction source policy is unsafe or incomplete"* ]]; then
+    pass "reviewer-dispatch: doctor rejects target-repository reviewer resolution"
+  else
+    fail "reviewer-dispatch: doctor accepted target-repository reviewer resolution: $output"
+  fi
+  rm -rf "${fixture_root:?}"
+}
+
+test_plugin_rollback_commands_pin_user_scope() {
+  local runbook="$SCRIPT_DIR/../../docs/harness/upstream-plugin-parity.md"
+  if grep -Fxq \
+      'claude plugin disable --scope user superpowers@superpowers-marketplace' "$runbook" && \
+     grep -Fxq \
+      'claude plugin enable --scope user superpowers@superpowers-marketplace' "$runbook"; then
+    pass "plugin parity: disable and rollback commands pin user scope"
+  else
+    fail "plugin parity: disable and rollback commands must both include --scope user"
+  fi
+}
+
+test_reviewer_dispatch_augment_real_sdd_prompt() {
+  local adapter="$SCRIPT_DIR/../../superpowers-augment.js"
+  [[ -f "$adapter" ]] || { skip "superpowers-augment.js not found"; return; }
+  command -v node &>/dev/null || { skip "node not available"; return; }
+  local fixture_root installed_sdd output skill_output expected_origin
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/augment-reviewer-dispatch-XXXXXX")
+  installed_sdd="$fixture_root/installed/subagent-driven-development"
+  expected_origin="$(cd -P "$SCRIPT_DIR/../.." && pwd)/skills/engineering/subagent-driven-development/task-reviewer-prompt.md"
+  mkdir -p "$fixture_root/home/.codex" "$installed_sdd"
+  cat > "$installed_sdd/skill.md" <<'STALE_SKILL'
+---
+name: subagent-driven-development
+description: stale installed fixture
+---
+
+# STALE INSTALLED SDD
+STALE_SKILL
+  printf '%s\n' 'STALE INSTALLED REVIEWER PROMPT' > "$installed_sdd/task-reviewer-prompt.md"
+
+  skill_output=$(HOME="$fixture_root/home" \
+    SPP_SOURCE_DIR="$SCRIPT_DIR/../.." \
+    PERSONAL_SKILLS_DIR="$fixture_root/installed" \
+    SUPERPOWERS_SKILLS_DIR="$fixture_root/installed" \
+    node "$adapter" use-skill spp:subagent-driven-development 2>/dev/null || true)
+
+  output=$(HOME="$fixture_root/home" \
+    SPP_SOURCE_DIR="$SCRIPT_DIR/../.." \
+    PERSONAL_SKILLS_DIR="$fixture_root/installed" \
+    SUPERPOWERS_SKILLS_DIR="$fixture_root/installed" \
+    node "$adapter" use-skill spp:subagent-driven-development \
+      --resource task-reviewer-prompt.md 2>/dev/null || true)
+  rm -rf "${fixture_root:?}"
+
+  if [[ "$skill_output" == *"use-skill spp:subagent-driven-development --resource <prompt-file>"* ]] && \
+     [[ "$skill_output" != *"# STALE INSTALLED SDD"* ]] && \
+     [[ "$output" == *"# Skill Resource: spp:subagent-driven-development/task-reviewer-prompt.md"* ]] && \
+     [[ "$output" == *"# Skill Resource Origin: $expected_origin"* ]] && \
+     [[ "$output" == *"Controller contract: dispatch the following block."* ]] && \
+     [[ "$output" == *"You are reviewing one task's implementation"* ]] && \
+     [[ "$output" != *"STALE INSTALLED REVIEWER PROMPT"* ]] && \
+     [[ "$(grep -c 'sub-agent-general-purpose tool:' <<< "$output")" -eq 1 ]] && \
+     [[ "$output" != *"Subagent (general-purpose)"* ]] && \
+     [[ "$output" != *"launch-process (or handle directly) (general-purpose)"* ]]; then
+    pass "reviewer-dispatch: Augment preserves source namespace and transforms the real SDD prompt"
+  else
+    fail "reviewer-dispatch: Augment lost source origin or rendered the wrong SDD prompt: skill=$skill_output resource=$output"
+  fi
+}
+
+test_reviewer_dispatch_doctor_pins_current_source() {
+  local fixture_root repo_root stale_sdd module output
+  fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/doctor-reviewer-source-XXXXXX")
+  repo_root="$SCRIPT_DIR/../.."
+  stale_sdd="$fixture_root/stale-source/skills/engineering/subagent-driven-development"
+  module="$SCRIPT_DIR/../doctor-modules/integration-checks.sh"
+  _make_reviewer_dispatch_doctor_fixture "$fixture_root"
+  mkdir -p "$stale_sdd"
+  cat > "$stale_sdd/skill.md" <<'STALE_SKILL'
+---
+name: subagent-driven-development
+description: stale source that must not win doctor resolution
+---
+
+# Stale SDD
+STALE_SKILL
+
+  output=$(
+    # shellcheck disable=SC2031 # This is a new fixture subshell, not a continuation of the earlier one.
+    export HOME="$fixture_root/home"
+    # shellcheck disable=SC2031 # This is a new fixture subshell, not a continuation of the earlier one.
+    export CLAUDE_CONFIG_DIR="$fixture_root/home/.claude"
+    export SPP_SOURCE_DIR="$fixture_root/stale-source"
+    export PERSONAL_SKILLS_DIR="$repo_root/skills"
+    export SUPERPOWERS_SKILLS_DIR="$repo_root/skills"
+    REPO_ROOT="$repo_root"
+    WARNINGS=0
+    # shellcheck source=tools/doctor-modules/integration-checks.sh
+    source "$module"
+    _doctor_integration_checks
+    printf 'WARNINGS=%s\n' "$WARNINGS"
+  )
+  rm -rf "${fixture_root:?}"
+
+  if [[ "$output" == *"WARNINGS=0"* ]]; then
+    pass "reviewer-dispatch: doctor pins Augment rendering to its current source checkout"
+  else
+    fail "reviewer-dispatch: ambient SPP_SOURCE_DIR redirected doctor away from REPO_ROOT: $output"
   fi
 }
 
@@ -470,6 +950,12 @@ echo "Check 22: Reviewer-dispatch rendering"
 test_reviewer_dispatch_contains_subagent
 test_reviewer_dispatch_no_stale_patterns
 test_reviewer_dispatch_sdd_detection
+test_reviewer_dispatch_plugin_independent
+test_reviewer_instruction_source_resolution
+test_reviewer_instruction_contract_rejects_target_repo_origin
+test_reviewer_dispatch_augment_real_sdd_prompt
+test_reviewer_dispatch_doctor_pins_current_source
+test_plugin_rollback_commands_pin_user_scope
 echo ""
 echo "Step 3.1: --help flag"
 test_help_flag_exits_zero

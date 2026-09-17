@@ -179,6 +179,15 @@ Never adjudicate before round 5 to end a loop early — that's pre-judging with 
 
 ## Prompt Templates
 
+- On Augment, render a sibling template through the adapter before dispatch and
+  preserve the namespace shown in this skill's `# Skill:` header. A source load
+  (`# Skill: spp:subagent-driven-development`) must use
+  `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill spp:subagent-driven-development --resource <prompt-file>`.
+  An installed unprefixed load uses
+  `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill subagent-driven-development --resource <prompt-file>`.
+  Never drop `spp:` from a source load; that can select a stale installed
+  sibling. The rendered output translates platform tool names; do not dispatch
+  the raw sibling file.
 - [implementer-prompt.md](implementer-prompt.md) — dispatch implementer subagent
 - [task-reviewer-prompt.md](task-reviewer-prompt.md) — dispatch task reviewer (spec + quality)
 - [re-review-prompt.md](re-review-prompt.md) — dispatch scoped re-review after a fix round (verifies fixes only, doesn't re-read the whole task)

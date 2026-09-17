@@ -104,3 +104,4 @@ reduction ledger's `Note` column and defer.
 |---|---|
 | [`reduction-history.md`](reduction-history.md) | Per-split ledger and cumulative savings |
 | [`artifact-budgets.md`](artifact-budgets.md) | Regulator: budget regression tests and rebaseline workflow |
+| [`upstream-plugin-parity.md`](upstream-plugin-parity.md) | Coverage and live acceptance steps for disabling the optional upstream plugin |

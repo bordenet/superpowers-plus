@@ -161,14 +161,13 @@ function checkBootstrap() {
 const TOOL_MAPPINGS = [
     [/\bTodoWrite\b/g, 'todo-crud.sh (add/complete/move/defer) — NEVER use str-replace-editor or save-file on TODO.md. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh add -p P2 -d "description" -t "#tag"'],
     [/\bTodoRead\b/g, 'todo-crud.sh cat (full file) or todo-crud.sh list (filtered) — NEVER use view tool on TODO.md directly. Run: ~/.codex/superpowers-plus/tools/todo-crud.sh cat'],
-    [/Task tool with superpowers:code-reviewer type/g, 'sub-agent-code-reviewer tool'],
-    [/Task tool \(superpowers:code-reviewer\):/g, 'sub-agent-code-reviewer tool:'],
-    [/Dispatch superpowers:code-reviewer subagent/g, 'Dispatch sub-agent-code-reviewer'],
+    [/Subagent \(general-purpose\):/g, 'sub-agent-general-purpose tool:'],
+    [/Task tool \(general-purpose\):/g, 'sub-agent-general-purpose tool:'],
     [/\bcode-reviewer subagent\b/g, 'sub-agent-code-reviewer'],
     [/\bcode reviewer subagent\b/g, 'sub-agent-code-reviewer'],
     [/Dispatch final code-reviewer/g, 'Dispatch final sub-agent-code-reviewer'],
     [/dispatch final code reviewer/gi, 'Dispatch final sub-agent-code-reviewer'],
-    [/\bTask\b tool(?! with superpowers:code-reviewer type| \(superpowers:code-reviewer\))/g, 'launch-process (or handle directly)'],
+    [/\bTask\b tool/g, 'launch-process (or handle directly)'],
     [/\bRead\b tool/g, 'view tool'],
     [/\bWrite\b tool/g, 'save-file tool'],
     [/\bEdit\b tool/g, 'str-replace-editor tool'],
@@ -187,6 +186,39 @@ function transformOutput(text) {
         result = result.replace(pattern, replacement);
     }
     return result;
+}
+
+function renderSkillResource(skillFile, skillName, resourcePath) {
+    if (!resourcePath || path.isAbsolute(resourcePath)) {
+        console.error('Error: resource path must be a relative file within the skill directory');
+        process.exit(1);
+    }
+
+    const skillDir = fs.realpathSync(path.dirname(skillFile));
+    const candidate = path.resolve(skillDir, resourcePath);
+    if (candidate === skillDir || !candidate.startsWith(skillDir + path.sep)) {
+        console.error('Error: resource path must stay within the skill directory');
+        process.exit(1);
+    }
+    if (!fs.existsSync(candidate)) {
+        console.error('Error: Skill resource not found: ' + resourcePath);
+        process.exit(1);
+    }
+
+    const resourceFile = fs.realpathSync(candidate);
+    if (!resourceFile.startsWith(skillDir + path.sep)) {
+        console.error('Error: resource path must stay within the skill directory');
+        process.exit(1);
+    }
+    if (!fs.statSync(resourceFile).isFile()) {
+        console.error('Error: Skill resource is not a file: ' + resourcePath);
+        process.exit(1);
+    }
+
+    const transformed = transformOutput(fs.readFileSync(resourceFile, 'utf8'));
+    console.log('# Skill Resource: ' + skillName + '/' + resourcePath);
+    console.log('# Skill Resource Origin: ' + resourceFile + '\n');
+    console.log(transformed);
 }
 
 // extractFrontmatter and findSkillFile are imported from ./lib/frontmatter (see top of file)
@@ -422,6 +454,14 @@ function useSkill(skillName, options = {}) {
         console.error('Run "superpowers-augment find-skills" to see available skills');
         process.exit(1);
     }
+    if (options.resource) {
+        renderSkillResource(skillFile, skillName, options.resource);
+        try {
+            workflowState.recordSkillInvocation(actualName);
+        } catch (_) { /* non-fatal — advisory mode */ }
+        return;
+    }
+
     const content = fs.readFileSync(skillFile, 'utf8');
 
     if (options.probe) {
@@ -664,7 +704,20 @@ switch (command) {
     case 'use-skill': {
         const probeMode = args[0] === '--probe';
         const skillArg = probeMode ? args[1] : args[0];
-        useSkill(skillArg, { probe: probeMode });
+        const resourceFlagIndex = args.indexOf('--resource');
+        if (probeMode && resourceFlagIndex !== -1) {
+            console.error('Error: --probe and --resource cannot be used together');
+            process.exit(1);
+        }
+        if (resourceFlagIndex !== -1 &&
+            (resourceFlagIndex !== 1 || args.length !== 3 || !args[2])) {
+            console.error('Usage: node superpowers-augment.js use-skill <name> --resource <relative-path>');
+            process.exit(1);
+        }
+        useSkill(skillArg, {
+            probe: probeMode,
+            resource: resourceFlagIndex === -1 ? null : args[2],
+        });
         break;
     }
     case 'find-skills': findSkills(args[0] || 'all'); break;
@@ -849,6 +902,7 @@ switch (command) {
         console.log('Usage:');
         console.log('  node superpowers-augment.js bootstrap              # Initialize session');
         console.log('  node superpowers-augment.js use-skill <name>       # Load a specific skill');
+        console.log('  node superpowers-augment.js use-skill <name> --resource <path> # Render a sibling skill resource');
         console.log('  node superpowers-augment.js use-skill sp-<name>   # sp-X → superpowers-X shorthand');
         console.log('  node superpowers-augment.js use-skill spp:<name>  # Load from superpowers-plus source');
         console.log('  node superpowers-augment.js use-skill spo:<name>  # Load from overlay source repo');
