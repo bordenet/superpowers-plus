@@ -41,3 +41,15 @@ setup() {
   SKILL_BYTE_BUDGET=19500
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
+
+# ---------------------------------------------------------------------------
+# progressive-harsh-review -- split from 18,018 bytes on 2026-09-17.
+# The plan's 7,000-byte ceiling keeps dispatch instructions resident while
+# score-floor examples and recovery tables remain on demand.
+# ---------------------------------------------------------------------------
+@test "progressive-harsh-review stays within kernel byte budget" {
+  SKILL="$REPO_ROOT/skills/engineering/progressive-harsh-review/skill.md"
+  SKILL_BYTE_BUDGET=7000
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
+}

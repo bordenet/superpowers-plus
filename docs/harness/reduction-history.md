@@ -45,7 +45,12 @@ activated skill body.
 
 | Skill | Before | Kernel after | Reduction | Note |
 |---|---|---|---|---|
-| _none yet_ | | | | |
+| progressive-harsh-review | 18018 | 6447 | 64% | Persona weights, vetoes, verdicts, convergence, anti-recursion, and sentinel stay resident; project-floor detail, report format, and failures load from `reference.md` through trusted managed tooling. |
+
+The PHR compression golden is intentionally not regenerated here. P1h removes
+exact-text compression goldens while retaining structural checks, so refreshing
+that soon-to-be-deleted fixture would create throwaway churn. Final integration
+also depends on P1d making the operative-move detector reference-aware.
 
 ## Deferred (score under 40% after safety-correct curation)
 

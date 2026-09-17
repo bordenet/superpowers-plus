@@ -110,17 +110,17 @@
     },
     "progressive-harsh-review": {
       "expected_substrings": [
-        "Focus: typos, formatting, naming, style, completeness, internal consistency.",
-        "Tone: experienced, skeptical, pattern-aware.",
-        "For each persona, answer ALL scoring dimensions:"
+        "Each persona reads independently.",
+        "Correctness or Operational Risk <=4 is a hard veto only with a specific defect.",
+        "Limit the entire remediation cycle to 3 review rounds."
       ],
       "triggers": [
         "harsh review",
         "progressive review",
         "red team this"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "independent Codex review",
+      "verified_at": "2026-09-17"
     },
     "investigation-state": {
       "expected_substrings": [

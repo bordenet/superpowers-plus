@@ -24,8 +24,8 @@ anti_triggers:
   - review someone's PR
   - design review inside debate
   - quick feedback
-description: "Multi-persona adversarial review for non-code deliverables (plans, documents, designs after debate). Simulates 3 critic personas scoring on correctness, simplicity, blind spots, verifiability, and operational risk. Verdict bands: PASS >=8, PASS_WITH_FIXES 7 to <8, REJECT <7. Self-assessment trigger: invoke before presenting any non-code deliverable (see When to Use in skill body). For code PRs, use code-review-battery instead. For skill.md files, use llm-skill-review instead."
-summary: "Use when: about to present a plan, spec, or non-code proposal. Fires on intent to present, not only on explicit user request. For code PRs use code-review-battery. For skill.md files use llm-skill-review."
+description: "Adversarial review for plans, specs, and other non-code deliverables. Three independent personas score correctness, simplicity, verifiability, blind spots, and operational risk. Route code to code-review-battery and skill files to llm-skill-review."
+summary: "Use before presenting a non-code deliverable. Route code and skill files to their dedicated review gates."
 coordination:
   group: quality
   order: 2
@@ -40,202 +40,110 @@ composition:
   priority: 30
 ---
 
+## Reference index
+
+| Need | Reference section |
+|---|---|
+| Repository sets a score floor | Project-min override |
+| Review fails or stalls | Remediation and failure modes |
+| Final report needs a template | Scoring output format |
+| Review behavior looks weak | Anti-Patterns |
+| A neighboring workflow is needed | Companion skills |
+
+
 # Progressive Harsh Review
 
-> **Mechanical routing:** don't decide from memory or from the "Wrong skill?" prose below -- run `tools/review.sh route <path> [<path> ...]` first (paths of the files you're about to review). It wraps `tools/which-gate.sh` and prints the correct skill + sentinel + runner for each artifact. If the router says a different skill, follow the router, not this banner. If the router errors or is unavailable, stop and report -- do not fall back to the prose. The banner is an inner backstop, not a substitute for the mechanical check.
+> **Mechanical routing:** Run `tools/review.sh route <path> [<path> ...]` first. Obey its result; stop on error or an unclassified artifact.
 >
-> **Wrong skill?** Code PR review → `progressive-code-review-gate`. File-protocol review → `code-review-respond`. Quick feedback → `providing-code-review`. Skill.md files or skill-adjacent tooling → `llm-skill-review`.
->
-> **Purpose:** Multi-persona adversarial review that catches what self-review cannot.
-> **Pattern:** Three escalating critic personas, each scoring independently.
+> **Wrong skill?** Code -> `code-review-battery`; skills/tooling -> `llm-skill-review`; design comparison -> `debate`.
 
 **Announce at start:** "I'm using the **progressive-harsh-review** skill to red-team this work."
 
-## Reference index
+## When to use
 
-Load `Anti-Patterns` from `reference.md` for the detection-and-correction table.
+Use before presenting non-code work or on a hostile-review request. Exclude code, skills, brainstorming, and design-option selection.
 
-## Companion Skills
+## Persona dimension table
 
-- **progressive-code-review-gate**: Code-level review (this skill reviews designs/plans)
-- **llm-skill-review**: Skill.md and skill-adjacent tooling review (this skill's former skill-review responsibility moved here)
-- **brainstorming**: Generating options before review
-- **micro-harsh-review**: Per-batch code review
-- **providing-code-review**: Code-specific review
+Each persona reads independently. Send only its row, the common dimension questions, and artifact/repository access.
 
-## When to Use
+| Persona | Start point | C | S | V | B | OR |
+|---|---|---:|---:|---:|---:|---:|
+| JuniorDevNitpicker | Line-by-line prose | 35 | 25 | 15 | 20 | 5 |
+| SeniorArchCritic | Promises vs. evidence | 25 | 15 | 25 | 15 | 20 |
+| OpsRealist | Failures and state changes | 25 | 10 | 10 | 25 | 30 |
 
-**Intent-based (self-fire — do not wait to be asked):**
-- **About to present any non-code deliverable to the human** — plans, specs, designs, documents
-- The trigger is the INTENT to present, not whether the human explicitly requested review
-- If there is even a 1% chance the human expects a solid artifact, run PHR first
+Dimensions: **Correctness** (holds?), **Simplicity** (needless complexity?), **Verifiability** (checkable?), **Blind Spots** (omissions?), **Operational Risk** (adverse failures?). Each row totals 100.
 
-**Explicit request:**
-- When the user says "review this harshly", "find what's wrong", or "red team this"
+For user-visible functionality, missing named metrics and trace/span strategy caps OpsRealist's Operational Risk at 4; cite the omission.
 
-**NOT for:**
-- Code PRs → use `code-review-battery` instead
-- Skill.md files or skill-adjacent tooling → use `llm-skill-review` instead
-- Design comparison (choosing between options) → `debate` handles that
-- Initial brainstorming (too early — nothing to review yet)
+## Review process
 
-## The Three Personas
+1. **Fresh-reader check.** Flag local paths, undefined identifiers, process commentary, and inaccessible references. Remove this author noise before shipping; do not lower scores for it alone.
+2. **Independent review.** Author != Reviewer. Dispatch all personas from artifact paths with only their row, five questions, and repository access. Persona reviewers must not invoke PHR, debate, code-review-battery, or other reviewers; each returns one scorecard. Remediate only after aggregation.
+3. **Score.** Score each dimension 1-10 with the persona's weights, then take the equal-weight average of the three weighted scores.
+4. **Apply veto.** Correctness or Operational Risk <=4 is a hard veto only with a specific defect. Unrecoverable failures must affect Operational Risk, not Blind Spots alone.
+5. **Verdict.** Use the table. A repository floor raises the PASS bar only; load `Project-min override`.
+6. **Remediate.** Fix and verify every material finding. After round one, review the delta. REJECT requires root-cause analysis and full re-review.
+7. **Check correlation.** Any flag below or unsupported clean sweep requires a new persona starting point.
+8. **Converge.** Require the active floor, no veto/flag, and no new material issues. Escalate after 3 rounds without convergence; never auto-ship.
 
-### Persona 1: JuniorDevNitpicker (Surface Quality)
-Focus: typos, formatting, naming, style, completeness, internal consistency.
-Tone: eager, thorough, detail-oriented.
-**Full access:** All codebase context is available. Every persona may follow any lead.
-**START FROM:** Line-by-line reading of the artifact — every heading, table, and claim.
-**PRIORITIZE:** Surface correctness, naming consistency, undefined terms, broken cross-references, missing steps, formatting errors.
-**Dimension weights:** Correctness 35%, Simplicity 25%, Blind Spots 20%, Verifiability 15%, Operational Risk 5%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
+## Verdicts
 
-### Persona 2: SeniorArchCritic (Structural Quality)
-Focus: structure, internal consistency, scope boundaries, coverage completeness.
-Tone: experienced, skeptical, pattern-aware.
-**Full access:** All codebase context is available. Every persona may follow any lead.
-**START FROM:** Promises made vs. evidence provided — do all claims hold when traced against the rest of the document?
-**PRIORITIZE:** Internal consistency, dependency assumptions, coverage completeness, reversibility of decisions, overlap with peer artifacts.
-**Dimension weights:** Correctness 25%, Simplicity 15%, Verifiability 25%, Blind Spots 15%, Operational Risk 20%. *(Code-term equivalents: Testability, Edge Cases, Security/Perf.)*
+| Weighted mean | Verdict | Action |
+|---:|---|---|
+| >=8 | PASS | Ship after all gates clear |
+| 7 to <8 | PASS_WITH_FIXES | Fix and rescore changed areas |
+| <7 | REJECT | Root-cause, remediate, full re-review |
+| Any with veto | REJECT | Clear the cited defect, full re-review |
 
-### Persona 3: OpsRealist (Operational Quality)
-Focus: failure scenarios, blind spots, adverse conditions, adoption risk, OE telemetry.
-Tone: battle-scarred, worst-case thinker, "what breaks at 3am — and will we know when it does?"
-**Full access:** All codebase context is available. Every persona may follow any lead.
-**START FROM:** Failure scenarios — what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution?
-**PRIORITIZE:** Unrecoverable failure paths, missing rollback/fallback, global activation risk, dependency on absent tooling, 3 AM resilience, and missing observability for new behavior.
-**Dimension weights:** Correctness 25%, Simplicity 10%, Blind Spots 25%, Verifiability 10%, Operational Risk 30%. *(Code-term equivalents: Edge Cases, Testability, Security/Perf.)*
-**OE Telemetry Gate (hard veto on feature work):** For any artifact that proposes, describes, or approves new user-visible functionality — if the plan does NOT specify the metrics (time-series counters/gauges/histograms) AND distributed traces (trace IDs, span instrumentation) required to operate the feature in production, score Operational Risk ≤ 4 and cite this as the defect. Retrofitting observability after ship is not acceptable; the plan must name what will be measured, not defer to "we'll add metrics later." Score Operational Risk ≥ 5 only when the artifact explicitly names the metric/trace strategy for the new behavior.
+PASS_WITH_FIXES never clears the gate. Limit the entire remediation cycle to 3 review rounds.
 
-## Artifact-Aware Persona Mapping
-PHR is for **non-code deliverables** — plans, design docs, specifications. Each persona's code-oriented start points and scoring dimensions translate to non-code equivalents as follows. Personas score against the non-code dimension equivalents when reviewing plans/docs — do not score a plan on null handling or retry logic — and must adapt their starting-point-specific evidence to the artifact type. A Nitpicker that only checks whitespace on a plan is not doing its job.
+## Correlated-failure checks
 
-| Persona | Code start point | Non-code equivalent |
-|---------|-----------------|---------------------|
-| JuniorDevNitpicker | Line-by-line diff | Line-by-line prose reading: undefined terms, broken formatting, inconsistent naming, missing steps |
-| SeniorArchCritic | Interface contracts & callers | Internal consistency: promises made vs. evidence provided; dependency assumptions; completeness of coverage |
-| OpsRealist | Failure modes & state transitions | Failure scenarios in the plan: what happens if an assumption is wrong, a step is skipped, or the context changes mid-execution; OE telemetry named for new behavior |
+- `CORRELATED EVIDENCE`: shared evidence; one persona restarts from its lens.
+- `ECHO REASONING`: materially identical reasoning; require an independent restatement.
+- Clean sweep: each persona shows evidence from its distinct start point or re-examines.
 
-Dimension mapping for non-code artifacts:
+## Sentinel after PASS
 
-| Dimension (code) | Dimension (non-code) | Question |
-|-----------------|---------------------|----------|
-| Correctness | Correctness | Does the artifact do what it claims? Are there logical errors or false assertions? |
-| Simplicity | Simplicity | Is it the simplest way to express this? Unnecessary complexity, redundancy, over-qualification? |
-| Testability | Verifiability | Can each claim or step be independently verified or audited? |
-| Edge Cases | Blind Spots | What scenarios, contexts, or failure paths are not addressed? |
-| Security/Perf | Operational Risk | What breaks under adverse conditions? Misuse vectors, adoption failure, dependency on absent tooling? |
-
-## The Process
-
-### Step 0: Fresh-Reader Pre-Check (author-noise audit)
-Before dispatching personas, grep the artifact for author-noise leakage — content only the author would recognize that will confuse a fresh reader:
-
-- Machine-local paths (e.g., `/Users/matt/`, `/home/runner/`, `/tmp/build-123/`)
-- Invented identifiers not defined in the artifact (e.g., referencing a function that doesn't exist in the diff)
-- Process commentary left in ("I added this because...", "TODO from our discussion", "per the Slack thread")
-- Internal ticket/PR references a public reader cannot resolve
-
-If any are found, flag them as **Minor author-noise findings** in the report. Do NOT score down for these — they are editorial, not correctness failures. Remove them before shipping if found.
-
-### Step 1: Dispatch Review
-**HARD GATE: Author ≠ Reviewer.** Use a sub-agent or explicit role switch.
-
-**Packet mode (`CR_BATTERY_PACKET_MODE=1`):** Use only for 3 shell-capable sub-agents from repo-root with `tools/cr-battery-packet.sh`; otherwise dispatch inline. Resolve `SHA=$(git rev-parse HEAD)` and repo root, then run `PACKET_DIR=$(tools/cr-battery-packet.sh init "$SHA" "$(git rev-parse --show-toplevel)")`, copy the invoker-supplied absolute `$DOCUMENT_PATH` to `$PACKET_DIR/document.md`, and run `MANIFEST=$(tools/cr-battery-packet.sh manifest "$PACKET_DIR")`; any non-zero/empty result falls back to inline.
-Dispatch concrete manifest/document paths, never variable names or inline text. Each persona reads the document, computes SHA-256 (`shasum -a 256` on macOS; `sha256sum` on Linux), and emits exactly `Packet attestation: document.md: <sha256hex>`. Verify each with `tools/cr-battery-packet.sh verify "$PACKET_DIR" document.md <sha256hex>`; on failure rerun only that persona inline. This removes all 3 inline document copies.
-
-For each persona, answer ALL scoring dimensions:
-
-| Dimension | Default Weight | Question |
-|-----------|----------------|----------|
-| Correctness | 30% | Does it do what it claims? Are there errors or false assertions? |
-| Simplicity | 20% | Is it the simplest approach? Over-engineered or redundant? |
-| Verifiability | 15% | Can each claim or step be independently verified or audited? |
-| Blind Spots | 20% | What scenarios or failure paths were not addressed? |
-| Operational Risk | 15% | What breaks under adverse conditions? Misuse vectors, adoption failure? |
-
-**Weight precedence:** The per-persona weights defined in **The Three Personas** section govern each persona's scoring. The table above is the fallback applied only when a persona has no explicit weight definition. Never average per-persona weights together into a single global pass — each persona uses its own weights independently.
-
-### Step 2: Score and Aggregate
-Each persona scores 1-10 on each dimension, using per-persona weights. **Aggregation rule:** compute each persona's weighted dimension score, then take an equal-weight average across the three personas. This replaces the previous MINIMUM rule, which was overly pessimistic when one persona was mismatched to the task.
-
-**Critical veto:** If ANY persona scores Correctness or Operational Risk ≤4 AND cites a specific defect (not a general concern), that finding acts as a **hard veto** — automatic REJECT regardless of the weighted mean. This preserves safety without making the whole system hostage to the weakest persona on non-critical dimensions.
-
-> **Blind Spots / unrecoverable failure findings:** An unrecoverable-failure finding (e.g., "no rollback on global activation") MUST be scored on Operational Risk — not Blind Spots alone — so it is eligible for the critical veto. Scoring it only on Blind Spots bypasses the veto gate.
-
-### Step 3: Verdict
-| Weighted Mean | Verdict | Action |
-|---------------|---------|--------|
-| ≥8 | **PASS** | Ship it |
-| 7 to <8 | **PASS_WITH_FIXES** | Fix all findings, re-score changed areas only. Exit only when Step 6 convergence is met — never exit solely because a round found no new issues. |
-| <7 | **REJECT** | Root-cause analysis → remediate → full re-review |
-| Any | **REJECT (veto)** | Critical veto fired — fix the cited defect, full re-review |
-
-> **Project-min override:** If the project specifies a minimum score floor (e.g., 9.2), that floor raises the PASS bar only. A weighted mean that meets the generic ≥8 PASS threshold but falls below the project min is treated as **PASS_WITH_FIXES** rather than PASS. The REJECT band (<7) and the critical veto are **not affected**.
->
-> Example: mean 8.3 under a 9.2 project floor → generic band says PASS, override says PASS_WITH_FIXES. Mean 6.8 under any project floor → REJECT (override does not apply to the REJECT band). Mean 9.5 under a 9.2 floor → PASS (floor is met).
-
-### Step 4: Remediation (if needed)
-On REJECT:
-
-1. **Root-cause analysis** — why did the issues exist? (missed requirement, wrong assumption, insufficient context)
-2. **Chain to remediation skills:**
-   - Design issues → `debate` (generate alternatives)
-   - Stuck/circular → `think-twice` (fresh perspective)
-   - Plan issues → `plan-and-execute` (replan)
-3. **Re-review** — minimum 2 rounds. Round 2 reviews ONLY delta changes.
-
-### Step 5: Correlated-Failure Detection
-After scoring, scan persona outputs for **shared blind spots**:
-
-1. **Evidence overlap:** If all 3 personas cite the same evidence for their findings, flag `⚠️ CORRELATED EVIDENCE`. At least one persona must re-examine from a different starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, OpsRealist: failure scenario enumeration + OE telemetry check).
-2. **Phrasing similarity:** If 2+ personas use near-identical phrasing, flag `⚠️ ECHO REASONING`. Require the echoing persona to restate the finding through their own analytical lens.
-3. **Clean-sweep suspicion:** If ALL personas report no findings, verify each persona's output shows evidence of their distinct starting point (Nitpicker: line-by-line artifact reading, ArchCritic: promises-vs-evidence tracing, OpsRealist: failure scenario enumeration + OE telemetry check). If any persona's output lacks starting-point-specific evidence, re-examine.
-
-Flags trigger re-examination, not automatic verdict changes.
-
-### Step 6: Convergence
-- **Exit when:** Final round weighted mean ≥8 (or project min if higher) AND no active Critical vetoes AND no correlated-failure flags AND no new material issues in latest round
-- **Escalate when:** 3 rounds without convergence → summarize blockers, escalate to human
-
-## Sentinel Write After PASS (MANDATORY)
-
-When the final round verdict is **PASS** (weighted mean ≥ 8.0 per the verdict table above, AND ≥ the project minimum if one is set, AND no active critical vetoes, AND no correlated-failure flags), **immediately** run:
+Only PASS clears the gate. Run PHR AFTER `git commit` once the floor is met with no veto or correlation flag:
 
 ```bash
 tools/run-phr.sh --verdict PASS --min-score "<weighted-mean>"
 ```
 
-**Only PASS clears the gate.** PASS_WITH_FIXES (mean 7 to <8 or below project-min) → another round, do NOT write sentinel. REJECT (<7 or critical veto) → root-cause, remediate, full re-review.
+The sentinel binds to HEAD. Commit, amend, or rebase requires fresh review unless promotion is tree-identical.
 
-Run PHR AFTER `git commit` -- the sentinel binds to HEAD SHA. Any subsequent commit/amend/rebase invalidates it (Gate 5 will report stale).
+## Reference loading
 
-## Scoring Output Format
+Load only the needed section: a repository score floor, detailed failure recovery, or the report template.
 
-Header abbreviations: C=Correctness, S=Simplicity, V=Verifiability, B=Blind Spots, OR=Operational Risk.
-
-```markdown
-### Persona: SeniorArchCritic (C25/S15/V25/B15/OR20)
-| Dimension | Score | Finding |
-|-----------|-------|---------|
-| Correctness | 7 | Claim X contradicts evidence in section 3 |
-| Simplicity | 8 | Bounded scope |
-| Verifiability | 6 | No worked example for the edge case described |
-| Blind Spots | 5 | Global activation with no staged rollout described |
-| Operational Risk | 7 | Dependency on absent tooling not flagged |
-Per-persona weighted score: 7(.25)+8(.15)+6(.25)+5(.15)+7(.20) = 6.60
+<!-- kernel-split-reference-loader:start -->
+```bash
+_project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+_ks_ref=""
+for _candidate in \
+  "$HOME/.agents/skills/sp-phr/reference.md" \
+  "$HOME/.codex/skills/sp-phr/reference.md" \
+  "$HOME/.claude/skills/sp-phr/reference.md"
+do
+  [ -r "$_candidate" ] || continue
+  if [ -n "$_ks_ref" ] && ! cmp -s "$_ks_ref" "$_candidate"; then
+    printf 'installed references diverge: %s\n' "$_candidate" >&2
+    exit 1
+  fi
+  [ -n "$_ks_ref" ] || _ks_ref="$_candidate"
+done
+_ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+if [ -z "$_ks_ref" ]; then
+  _ks_ref="$_project_root/skills/engineering/progressive-harsh-review/reference.md"
+  [ -r "$_ks_loader" ] || _ks_loader="$_project_root/tools/section-loader.sh"
+fi
+[ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section loader missing\n' >&2; exit 1; }
+_section='<section heading>'
+bash "$_ks_loader" "$_ks_ref" "$_section" \
+  || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
 ```
-
-## Failure Modes
-
-| Failure | Fix |
-|---------|-----|
-| Self-reviewed in same thinking pass | Use sub-agent (preferred) — in-process role switch with no context isolation is significantly less reliable; if used, explicitly discard the author's reasoning and start fresh from the artifact text |
-| All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
-| Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
-| Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
-| Only reviewed happy path | OpsRealist must consider failure, rollback, 3am scenarios, and OE telemetry for new behavior |
-| Round N mean lower than Round N-1 | Remediation introduced new issues — flag REGRESSION, root-cause before Round N+1 |
-| No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
-| Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
-| Unrecoverable finding scored only on Blind Spots | Must ALSO score Operational Risk to be veto-eligible — Blind Spots alone bypasses the veto gate |
-| Skipped sentinel write after PASS | Pre-push Gate 5 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
+<!-- kernel-split-reference-loader:end -->
