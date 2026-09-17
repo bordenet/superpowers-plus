@@ -28,9 +28,9 @@ bash tools/skill-size-audit.sh --json          # machine-readable
 
 The [`kernel-split`](../../skills/engineering/kernel-split/skill.md)
 skill (applied via [`tools/skill-partitioner`](../../tools/skill-partitioner))
-splits a monolithic skill into a small resident **kernel** -- loaded on every
-session -- plus an on-demand **reference** (a `reference.md` companion) that
-loads only when a specific lookup is needed.
+splits a monolithic skill into a small activation-time **kernel** -- loaded
+when the skill is selected -- plus an on-demand **reference** (a
+`reference.md` companion) that loads only when a specific lookup is needed.
 
 The kernel/reference boundary is drawn by keyword scoring on each section:
 `auth`, `gate`, `verify`, `secret`, `never`, `must`, and similar signals push
@@ -67,7 +67,8 @@ for measured reductions. Every application of `kernel-split` appends a row
 with before/after byte counts and the resulting percentage. Trust the ledger,
 not any static graphic -- infographics can lag a split until re-exported.
 
-The ledger starts empty. Populate it as you apply the actuator.
+The ledger contains the aggregate pre-simplification baseline. Its `Applied`
+split table starts empty; populate that table as you apply the actuator.
 
 ## Config precedence resolver (harness sibling)
 
@@ -91,12 +92,12 @@ Not every large skill is a good split candidate:
 - Skills whose bulk is one monolithic section score near zero on the partitioner
   and cannot be auto-split without restructuring first.
 - Skills whose "reference-looking" content is actually a run-every-time decision
-  input must stay resident even if the raw partitioner score suggests otherwise.
-  The safety floor overrides the score.
+  input must stay in the activation-time kernel even if the raw partitioner
+  score suggests otherwise. The safety floor overrides the score.
 
 Do not chase percentages past the safety floor. When the split does not clear
 the 40% target after safety-correct curation, record the reason in the
-reduction ledger's `Note` column and defer.
+reduction ledger's `Deferred` table under `Reason` and defer.
 
 ## Related docs
 

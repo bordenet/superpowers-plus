@@ -291,12 +291,14 @@ arrEq(both.composition.produces, ['output-a'], 'composition.produces correct wit
 console.log('\n--- parseFrontmatter: new field defaults ---');
 const emptyDefaults = parseFrontmatter('');
 assert(emptyDefaults.coordination === null, 'default: coordination is null');
+assert(emptyDefaults.disable_model_invocation === false, 'default: disable_model_invocation is false');
 eq(emptyDefaults.source, '', 'default: source is empty string');
 eq(emptyDefaults.overrides, '', 'default: overrides is empty string');
 eq(emptyDefaults.summary, '', 'default: summary is empty string');
 
 const efDefaults = extractFrontmatter('/nonexistent/path/skill.md');
 assert(efDefaults.coordination === null, 'error-path: coordination is null');
+assert(efDefaults.disable_model_invocation === false, 'error-path: disable_model_invocation is false');
 eq(efDefaults.source, '', 'error-path: source is empty string');
 eq(efDefaults.overrides, '', 'error-path: overrides is empty string');
 eq(efDefaults.summary, '', 'error-path: summary is empty string');
@@ -306,6 +308,20 @@ console.log('\n--- parseFrontmatter: defaults sync check ---');
 const parseDefKeys = Object.keys(parseFrontmatter('')).sort();
 const errorDefKeys = Object.keys(extractFrontmatter('/nonexistent/x.md')).sort();
 arrEq(parseDefKeys, errorDefKeys, 'parse defaults and error-path defaults have same keys');
+
+console.log('\n--- parseFrontmatter: disable-model-invocation ---');
+{
+    for (const spelling of ['true', 'yes', 'on', '1']) {
+        const fm = parseFrontmatter(`---\nname: manual\ndisable-model-invocation: ${spelling}\n---`);
+        assert(fm.disable_model_invocation === true,
+            `disable-model-invocation accepts ${spelling}`);
+    }
+    for (const spelling of ['false', 'no', 'off', '0']) {
+        const fm = parseFrontmatter(`---\nname: automatic\ndisable-model-invocation: ${spelling}\n---`);
+        assert(fm.disable_model_invocation === false,
+            `disable-model-invocation accepts ${spelling}`);
+    }
+}
 
 // --- validateFrontmatter ---
 console.log('\n--- validateFrontmatter: valid skill ---');
