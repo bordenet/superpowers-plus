@@ -94,6 +94,10 @@ hooks/run-hook.cmd
 # Gemini local generated files (machine-specific, not project source)
 .gemini/mcp-server/
 .gemini/skills
+# Codex CLI local generated files (machine-specific, not project source;
+# .codex/INSTALL.md stays tracked -- it's project documentation)
+.codex/config.toml
+.codex/environments/
 
 # cr-battery per-engineer run preservation (durable Phase 6 reports)
 .cr-battery-runs/

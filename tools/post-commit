@@ -1,21 +1,38 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # Hook: post-commit
-# PURPOSE: Reduce the stage→battery→commit→battery double-run.
+# PURPOSE: Reduce review double-runs after a commit whose tree provably did
+#          not change the reviewed content -- amends, cherry-pick-same, and
+#          (the common promotion case) a clean merge commit whose tree is
+#          identical to the branch it merged in, e.g. `dev -> staging`: "Trees
+#          match; SHAs differ only by the promotion merge commit" (see TODO.md
+#          promotion log). Without this, every such commit invalidates all
+#          three review sentinels and forces a from-scratch re-review of
+#          content that was already cleared, even though nothing changed.
 #
-# Two paths:
+# Covers all three sentinel files with the same two promotion rules:
 #
-#   1. Staged-mode sentinel (`v1|tree:<sha>|...`)
-#      Promote the sentinel to `v1|<new-HEAD-sha>|...` if the new commit's
-#      tree matches the recorded tree SHA. This is the common case: caller
-#      ran `tools/run-battery.sh --staged` before `git commit`.
+#   1. Staged-mode (`v1|tree:<sha>|...`, code-review only -- PHR and
+#      llm-skill-review never had a --staged writer mode):
+#      Promote to `v1|<new-HEAD-sha>|...` if the new commit's tree matches
+#      the recorded tree SHA.
 #
-#   2. HEAD-mode sentinel (`v1|<old-sha>|...`)
-#      Promote the sentinel to the new HEAD when the diff vs the recorded
-#      SHA is empty (amend-only change, no tree delta).
+#   2. HEAD-mode (`<ver>|<old-sha>|<verdict>|...`):
+#      Promote to the new HEAD when `git diff` between the recorded SHA and
+#      the new HEAD is empty -- true for amend-only edits AND for a clean
+#      merge commit that introduces no content beyond what its parent(s)
+#      already had reviewed.
+#
+# A sentinel is only promoted if its verdict is one of the file's OWN passing
+# verdicts (code-review: PASS/PASS_WITH_NITS; PHR: PASS; llm-skill-review:
+# PASS/PASS_WITH_RISKS) -- a non-passing sentinel is left alone, same as
+# before. Every field besides the SHA (verdict, timestamp, score, and any
+# format-specific trailing fields) is carried over byte-for-byte, so this
+# hook never needs to know a sentinel's exact field count -- new fields added
+# to a writer script don't require a matching update here.
 #
 # Anything else: leave the sentinel alone. pre-push will refuse the push and
-# the caller will re-run the battery — the safe default.
+# the caller will re-run the review — the safe default.
 #
 # INSTALL: ./tools/install-hooks.sh (this hook is installed alongside the
 #          existing pre-commit/pre-push/commit-msg hooks)
@@ -28,49 +45,75 @@ set -uo pipefail
 [[ "${SP_SKIP_POST_COMMIT:-0}" == "1" ]] && exit 0
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-SENTINEL_FILE="$REPO_ROOT/.code-review-cleared"
-
-[[ -f "$SENTINEL_FILE" ]] || exit 0
-
-sentinel_ver=$(cut -d'|' -f1 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-sentinel_sha=$(cut -d'|' -f2 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-sentinel_verdict=$(cut -d'|' -f3 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-sentinel_ts=$(cut -d'|' -f4 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-sentinel_score=$(cut -d'|' -f5 < "$SENTINEL_FILE" 2>/dev/null || echo "")
-
-[[ "$sentinel_ver" == "v1" ]] || exit 0
-[[ "$sentinel_verdict" == "PASS" || "$sentinel_verdict" == "PASS_WITH_NITS" ]] || exit 0
+cd "$REPO_ROOT" || exit 0
 
 new_head=$(git rev-parse HEAD 2>/dev/null || echo "")
 new_tree=$(git rev-parse "HEAD^{tree}" 2>/dev/null || echo "")
 [[ -n "$new_head" && -n "$new_tree" ]] || exit 0
 
-promote() {
-    local line="v1|${new_head}|${sentinel_verdict}|${sentinel_ts}"
-    [[ -n "$sentinel_score" ]] && line="${line}|${sentinel_score}"
-    echo "$line" > "$SENTINEL_FILE"
-    echo "✓ post-commit: sentinel promoted to ${new_head:0:8} (was ${1})"
+# promote_sentinel <file> <label> <allow_tree_mode> <passing-verdict>...
+#
+# Reads the sentinel's first line as a '|'-delimited array so field count is
+# never hardcoded here: field 0 is the version tag, field 1 the SHA (or
+# `tree:<sha>`), field 2 the verdict, fields 3+ are carried over unchanged.
+promote_sentinel() {
+    local file="$1" label="$2" allow_tree_mode="$3"; shift 3
+    local passing_verdicts=("$@")
+
+    [[ -f "$file" ]] || return 0
+
+    local line line_count
+    line_count=$(awk 'NF{c++} END{print c+0}' "$file" 2>/dev/null || echo 0)
+    [[ "$line_count" -eq 1 ]] || return 0   # malformed/multi-line: leave alone
+
+    local -a fields
+    IFS='|' read -r -a fields <<< "$(head -n1 "$file" 2>/dev/null || true)"
+    [[ "${#fields[@]}" -ge 4 ]] || return 0
+
+    local sha="${fields[1]}" verdict="${fields[2]}"
+    local ok=0 v
+    for v in "${passing_verdicts[@]}"; do
+        [[ "$verdict" == "$v" ]] && ok=1 && break
+    done
+    [[ "$ok" -eq 1 ]] || return 0
+
+    promote() {
+        local old_desc="$1"
+        fields[1]="$new_head"
+        local out
+        out="$(IFS='|'; echo "${fields[*]}")"
+        echo "$out" > "$file"
+        echo "✓ post-commit: ${label} sentinel promoted to ${new_head:0:8} (was ${old_desc})"
+    }
+
+    case "$sha" in
+        tree:*)
+            if [[ "$allow_tree_mode" == "1" ]]; then
+                local recorded_tree="${sha#tree:}"
+                if [[ "$recorded_tree" == "$new_tree" ]]; then
+                    promote "tree:${recorded_tree:0:8}"
+                else
+                    echo "⚠ post-commit: ${label} staged tree (${recorded_tree:0:8}) does not match new HEAD tree (${new_tree:0:8})."
+                    echo "  Sentinel left as-is; re-run the review before pushing."
+                fi
+            fi
+            ;;
+        *)
+            # HEAD-mode: promote only when the new HEAD has zero diff against
+            # the recorded SHA -- true for amend-without-changes,
+            # cherry-pick-same, AND a clean merge commit whose tree matches
+            # the branch it merged in (the promotion case this hook targets).
+            if git rev-parse --verify "$sha" >/dev/null 2>&1; then
+                if git diff --quiet "$sha" "$new_head" 2>/dev/null; then
+                    promote "${sha:0:8}"
+                fi
+            fi
+            ;;
+    esac
 }
 
-case "$sentinel_sha" in
-    tree:*)
-        recorded_tree="${sentinel_sha#tree:}"
-        if [[ "$recorded_tree" == "$new_tree" ]]; then
-            promote "tree:${recorded_tree:0:8}"
-        else
-            echo "⚠ post-commit: staged tree (${recorded_tree:0:8}) does not match new HEAD tree (${new_tree:0:8})."
-            echo "  Sentinel left as-is; re-run tools/run-battery.sh before pushing."
-        fi
-        ;;
-    *)
-        # HEAD-mode sentinel. Promote only when the new HEAD has zero diff
-        # against the recorded SHA (amend-without-changes / cherry-pick-same).
-        if git rev-parse --verify "$sentinel_sha" >/dev/null 2>&1; then
-            if git diff --quiet "$sentinel_sha" HEAD 2>/dev/null; then
-                promote "${sentinel_sha:0:8}"
-            fi
-        fi
-        ;;
-esac
+promote_sentinel "$REPO_ROOT/.code-review-cleared" "code-review" 1 PASS PASS_WITH_NITS
+promote_sentinel "$REPO_ROOT/.phr-cleared" "PHR" 0 PASS
+promote_sentinel "$REPO_ROOT/.llm-skill-review-cleared" "llm-skill-review" 0 PASS PASS_WITH_RISKS
 
 exit 0
