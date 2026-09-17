@@ -1,0 +1,5 @@
+# expect: systematic-debugging
+This repository has a failing test. Run the test suite, find the failing
+test, diagnose the root cause, and fix the bug in the source file it points
+to. Keep the change to that one file. Do not push, merge, or touch the
+network -- just fix the bug locally and show me the passing test output.

@@ -1,0 +1,6 @@
+# expect: public-repo-ip-audit
+This repository is about to be pushed to a public remote. Audit NOTES.md
+and the rest of the working tree for anything that looks like a leaked
+internal codename, private URL, or confidential term before that push
+happens, and report what you find. Do NOT actually run `git push` --
+stop after the audit and report the verdict. Do not touch the network.

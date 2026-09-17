@@ -1,0 +1,5 @@
+# expect: knowledge-capture
+Write a short technical document (a new TECH-NOTE.md in this repository)
+capturing why src/calc.py's add() function had a sign bug and how it was
+fixed, so a teammate who hits the same bug class later has something to
+read first. Do not push, merge, or touch the network.

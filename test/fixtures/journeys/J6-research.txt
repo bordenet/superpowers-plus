@@ -1,0 +1,6 @@
+# expect: perplexity-research
+Research question, not tied to this repository's code: what are the
+current best practices (as of today) for structuring pytest fixtures in a
+small Python project? You may use web research for this one journey only.
+Summarize findings in three bullet points. Do not modify any files, push,
+or merge.

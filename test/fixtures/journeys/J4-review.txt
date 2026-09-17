@@ -1,0 +1,6 @@
+# expect: providing-code-review
+Create a local branch in this repository, make a one-line change to
+src/calc.py that fixes the add() sign bug, and commit it locally. Then
+switch back to the original branch and review that commit as if it were a
+pending change: check correctness, blast radius, and test coverage, and
+report your review verdict. Do not push, merge, or touch the network.

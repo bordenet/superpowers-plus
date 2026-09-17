@@ -1,0 +1,5 @@
+# expect: progressive-harsh-review
+This repository's PLAN.md already holds a short implementation plan. Run
+a progressive-harsh-review pass on that plan before any implementation
+work starts, and report the verdict. Do not modify any files, push, or
+touch the network.

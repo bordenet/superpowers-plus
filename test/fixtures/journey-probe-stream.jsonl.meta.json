@@ -1,0 +1,20 @@
+{
+  "schema_version": 3,
+  "captured_at": "2026-01-01T00:00:00Z",
+  "journey": "J1",
+  "fixture": "J1-debug.txt",
+  "fixture_sha256": "7a95e4ac517e5ab921b5eb08fa75efcc6d47482a9792aa344b2d9d9121f8e5e3",
+  "expected_skills": [
+    "systematic-debugging"
+  ],
+  "repeat_index": 1,
+  "repeat_count": 1,
+  "requested_model": null,
+  "control_config_fingerprint": "0c8bd20d966658b166e4c77b799417ac29469535790bb570b374ec666ab821cc",
+  "treatment_skill_fingerprint": "198df20b859c967f299c886caf349eda54f3109baebfb9101298b273cc55b26f",
+  "claude_cli_version": "2.1.274-test",
+  "permission_mode": "manual",
+  "max_budget_usd": 0.5,
+  "max_turns": 40,
+  "timeout_sec": 900
+}

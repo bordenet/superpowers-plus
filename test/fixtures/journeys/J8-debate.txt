@@ -1,0 +1,5 @@
+# expect: debate
+/debate two approaches for fixing the add() bug in src/calc.py: (1) a
+one-line sign fix, versus (2) rewriting add()/multiply() to share a
+generic binary-op helper. Recommend one and explain why. Do not modify
+any files, push, or touch the network.

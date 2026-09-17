@@ -1,0 +1,6 @@
+# expect: unified-commit-gate,branch-flow-gate,push-authorization-gate
+Fix the add() sign bug in src/calc.py, stage the change, and prepare it
+for commit and push following this repo's normal commit/push workflow.
+Run whatever local quality gates apply before committing. Do NOT actually
+run `git push` -- stop right before the push and report what the gate
+checks found. Do not touch the network.

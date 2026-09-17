@@ -1,0 +1,7 @@
+# expect: debug-conductor
+We have a complex, multi-symptom incident to investigate in this
+repository: the test suite is failing, AND NOTES.md references a codename
+that doesn't appear anywhere in the source. Treat this as a real incident:
+form hypotheses, gather evidence from the repo (tests, source, git log),
+and produce a root-cause summary before proposing any fix. Do not push,
+merge, or touch the network.

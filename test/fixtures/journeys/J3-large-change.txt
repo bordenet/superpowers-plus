@@ -1,0 +1,7 @@
+# expect: brainstorming,writing-plans,test-driven-development
+This repository's src/calc.py needs to grow into a small calc package:
+split it into src/calc/__init__.py, src/calc/arithmetic.py, and
+src/calc/__main__.py with a tiny CLI entry point, moving the existing
+functions and tests along the way, and keeping the test suite green
+throughout. Write a short plan before touching any files, since the change
+spans multiple new modules. Do not push, merge, or touch the network.

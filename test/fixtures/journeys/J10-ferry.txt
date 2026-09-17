@@ -1,0 +1,6 @@
+# expect: context-ferry
+/context-ferry
+We were in the middle of fixing the add() bug in src/calc.py (per
+PLAN.md) when context is about to run out. Capture a resume prompt for
+picking this work back up in a fresh session. Do not modify any files,
+push, or touch the network.

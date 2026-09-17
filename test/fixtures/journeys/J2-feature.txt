@@ -1,0 +1,6 @@
+# expect: brainstorming,test-driven-development
+Add a small, bounded feature to this repository: a `subtract(a, b)`
+function in src/calc.py with a matching test in tests/test_calc.py. Keep
+the change to those two files. Write the failing test first, then the
+implementation that makes it pass. Do not push, merge, or touch the
+network.
