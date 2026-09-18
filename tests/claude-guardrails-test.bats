@@ -889,6 +889,32 @@ _fixture_transcript_prior_push() {
   [[ "$output" == *"does not match"* ]] || [[ "${lines[*]}" == *"does not match"* ]]
 }
 
+@test "item 10: R6: the target-mismatch block names the exact recovery token path" {
+  # The block used to say "use the explicit file-based approval token" without
+  # naming it. That is unactionable: the agent cannot discover the session_id
+  # the hook was invoked with, so it cannot construct the path. In practice
+  # that produced two wrong guesses and four dead round-trips before a human
+  # pushed by hand. The message must name the resolved path, and it must name
+  # the HUMAN as the one who creates it -- printing the path grants nothing.
+  local fake_home
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" \
+    <<<"$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"recovery-path-test","cwd":"/tmp"}' "$TPATH")"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 2 ]
+  # The session_id the hook actually used, so the path is copy-pasteable.
+  [[ "$output" == *"recovery-path-test.push-approval"* ]]
+  # The token directory, not just the bare filename.
+  [[ "$output" == *"session-env"* ]]
+  # Recovery is a human action; the agent must not read this as self-service.
+  [[ "$output" == *"human"* ]]
+  # The gate itself must not have been softened into a warning.
+  [[ "$output" == *"BLOCKED"* ]]
+}
+
 @test "item 10: R6: repeat push to the SAME branch already attempted is allowed" {
   local fake_home
   fake_home="$(_fresh_home)"

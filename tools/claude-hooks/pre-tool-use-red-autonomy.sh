@@ -1178,7 +1178,22 @@ if [[ "$TOKEN_SOURCE" == "transcript" ]]; then
     {
       echo "BLOCKED: RED action approval does not match this command's target/severity."
       echo "  command: $(printf '%s' "$CMD" | tr '\n' ' ')"
-      echo "  A prior git push/branch-delete this session targeted a different ref, this action escalates severity (push -> force-push -> delete) beyond what was approved, or the target could not be resolved unambiguously. Repeating the same approval phrase will NOT authorize this -- a denied attempt is never treated as its own precedent. Use the explicit file-based approval token for a new target, or start a fresh session."
+      echo "  A prior git push/branch-delete this session targeted a different ref, this action escalates severity (push -> force-push -> delete) beyond what was approved, or the target could not be resolved unambiguously. Repeating the same approval phrase will NOT authorize this -- a denied attempt is never treated as its own precedent."
+      # Name the exact recovery path. Telling the caller to "use the explicit
+      # file-based approval token" without naming it is unactionable: an agent
+      # cannot discover the session_id this hook was invoked with (its own
+      # scratchpad and task-output directories expose DIFFERENT uuids, and
+      # guessing produced two wrong tokens and four dead round-trips before a
+      # human had to push by hand). Printing the resolved path costs nothing,
+      # weakens no check -- the human still has to create the file -- and turns
+      # a dead end into one copy-pasteable command.
+      echo ""
+      echo "  TO RECOVER, the human (not the agent) runs:"
+      echo "    echo push > $SESSION_ENV_DIR/${SESSION_ID}.push-approval"
+      echo "  Use 'release' instead of 'push' for a release-category action."
+      echo "  That token is single-use and is consumed by the next RED action."
+      echo "  Alternatives: the human runs the command directly, or starts a"
+      echo "  fresh session (target-binding state is per-session)."
     } >&2
     log 2 target-mismatch fired
     exit 2

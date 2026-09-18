@@ -23,6 +23,7 @@ RUN_SHELLCHECK=1
 RUN_BATS=1
 RUN_NODE=1
 RUN_HARSH=1
+RUN_FAST=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -34,7 +35,7 @@ while [[ $# -gt 0 ]]; do
         --no-bats)       RUN_BATS=0;       shift ;;
         --no-node)       RUN_NODE=0;       shift ;;
         --no-harsh)      RUN_HARSH=0;      shift ;;
-        --fast)          RUN_SHELLCHECK=0; RUN_HARSH=0; shift ;;
+        --fast)          RUN_SHELLCHECK=0; RUN_HARSH=0; RUN_FAST=1; shift ;;
         *) echo "❌ Unknown flag: $1" >&2; exit 1 ;;
     esac
 done
@@ -111,11 +112,50 @@ _bats_jobs() {
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
+# Bats targets for this run. Normally the whole test/ directory; in fast mode
+# (which the pre-push hook runs under `timeout 300`) the files declared in
+# test/.slow-bats are excluded. A single test that outruns the gate's budget
+# kills the suite mid-stream with no `not ok` line, so the gate fails
+# deterministically and looks like a hang rather than a timeout.
+_bats_targets() {
+    local slow_list="$REPO_ROOT/test/.slow-bats"
+    if [[ "$RUN_FAST" -ne 1 || ! -f "$slow_list" ]]; then
+        printf '%s\n' "$REPO_ROOT/test/"
+        return 0
+    fi
+    local -a skip=()
+    local line
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        skip+=("$line")
+    done < "$slow_list"
+
+    local f base s excluded=0
+    for f in "$REPO_ROOT"/test/*.bats; do
+        [[ -e "$f" ]] || continue
+        base="$(basename "$f")"
+        for s in "${skip[@]}"; do
+            if [[ "$base" == "$s" ]]; then
+                base=""
+                excluded=$((excluded + 1))
+                break
+            fi
+        done
+        [[ -n "$base" ]] && printf '%s\n' "$f"
+    done
+    if [[ "$excluded" -gt 0 ]]; then
+        echo "  [bats] --fast: excluded $excluded slow file(s) per test/.slow-bats (they run in the full suite)" >&2
+    fi
+}
+
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_bats() {
     if ! command -v bats >/dev/null 2>&1; then
         echo "⚠️  bats not installed; skipping"
         return 0
     fi
+    local -a targets=()
+    while IFS= read -r line; do targets+=("$line"); done < <(_bats_targets)
     # Force git's fsmonitor off for every git invocation the tests spawn. With
     # core.fsmonitor=true in a developer's global ~/.gitconfig, each throwaway
     # test repo starts a detached `git fsmonitor--daemon` that inherits bats'
@@ -125,11 +165,11 @@ run_bats() {
         jobs=$(_bats_jobs)
         echo "  [bats] running with --jobs $jobs (GNU parallel found)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats --jobs "$jobs" --no-parallelize-within-files test/
+            bats --jobs "$jobs" --no-parallelize-within-files "${targets[@]}"
     else
         echo "  [bats] GNU parallel not found -- running serially (brew install parallel for a speedup)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats test/
+            bats "${targets[@]}"
     fi
 }
 
