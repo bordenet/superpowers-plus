@@ -33,7 +33,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { readSkillUnit } = require('../lib/skill-unit');
+const { stripFrontmatter } = require('../lib/frontmatter');
 
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 const BASELINE_PATH = path.join(__dirname, 'ei-baseline.json');
@@ -112,7 +112,7 @@ function buildBaseline() {
     const baseline = { generated_at: new Date().toISOString(), skills: {} };
     for (const skillPath of findAllSkills(SKILLS_DIR)) {
         const rel = path.relative(SKILLS_DIR, skillPath);
-        const raw = readSkillUnit(skillPath);
+        const raw = stripFrontmatter(fs.readFileSync(skillPath, 'utf8'));
         const blocks = extractAllProtectedBlocks(raw);
         if (blocks.length === 0) continue;
         baseline.skills[rel] = blocks.map((b, i) => ({
@@ -177,7 +177,7 @@ function detect() {
             );
             continue;
         }
-        const raw = readSkillUnit(skillPath);
+        const raw = stripFrontmatter(fs.readFileSync(skillPath, 'utf8'));
         const current = extractAllProtectedBlocks(raw);
 
         // Hash consumption map: tracks remaining instances of each hash so that

@@ -28,8 +28,10 @@
 #   tools/test-tree-guard.sh snapshot <state-file>
 #   tools/test-tree-guard.sh verify   <state-file>
 #
-# EXIT: 0 = clean (sweep always 0; it heals rather than blocks)
-#       1 = undeclared pollution found by verify
+# EXIT: 0 = clean
+#       1 = undeclared pollution (verify), or a refused manifest pattern
+#           (sweep). sweep heals silently; it only fails on a pattern it
+#           refused to expand, which is a manifest bug, not debris.
 #       2 = usage error
 set -euo pipefail
 
@@ -37,7 +39,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$REPO_ROOT/test/.test-artifacts"
 
 usage() {
-    sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d' | sed 's/^# \{0,1\}//'
     exit "${1:-2}"
 }
 
@@ -58,13 +60,55 @@ is_declared() {
     return 1
 }
 
+# Reject a manifest pattern that could reach outside the repo BEFORE it is
+# expanded. sweep runs `rm -rf` on whatever this yields, on every test-all.sh
+# invocation including the pre-push gate, so a single bad line -- a typo, or a
+# hostile one-line diff on a branch someone is reviewing -- must not be able to
+# delete anything outside the working tree. `../x` was confirmed to escape and
+# delete files in $HOME before this check existed.
+validate_pattern() {
+    local pattern="$1"
+    case "$pattern" in
+        /*|'~'*)
+            printf 'test-tree-guard: REFUSED absolute pattern: %s\n' "$pattern" >&2
+            return 1 ;;
+        ..|../*|*/../*|*/..)
+            printf 'test-tree-guard: REFUSED parent-traversal pattern: %s\n' "$pattern" >&2
+            return 1 ;;
+    esac
+    return 0
+}
+
+# Final gate: the resolved path must be a real descendant of REPO_ROOT. This
+# catches what pattern syntax cannot -- notably an in-repo symlink whose target
+# lives outside, where deleting "inside" the repo destroys outside content.
+path_is_inside_repo() {
+    local path="$1" parent resolved
+    parent="$(cd "$(dirname "$path")" 2>/dev/null && pwd -P)" || return 1
+    resolved="$parent/$(basename "$path")"
+    local root_real
+    root_real="$(cd "$REPO_ROOT" && pwd -P)" || return 1
+    [[ "$resolved" == "$root_real"/* ]]
+}
+
 cmd_sweep() {
-    local pattern found=0 path
+    local pattern found=0 path refused=0
     while IFS= read -r pattern; do
         [[ -z "$pattern" ]] && continue
+        validate_pattern "$pattern" || { refused=1; continue; }
         while IFS= read -r path; do
-            [[ -e "$path" ]] || continue
-            rm -rf "$path"
+            [[ -e "$path" || -L "$path" ]] || continue
+            # Never follow a symlink out of the tree: remove the link itself.
+            if [[ -L "$path" ]]; then
+                rm -f "$path"
+            else
+                path_is_inside_repo "$path" || {
+                    printf 'test-tree-guard: REFUSED path outside repo: %s\n' "$path" >&2
+                    refused=1
+                    continue
+                }
+                rm -rf "$path"
+            fi
             printf 'test-tree-guard: swept leftover artifact: %s\n' \
                 "${path#"$REPO_ROOT"/}" >&2
             found=1
@@ -73,13 +117,16 @@ cmd_sweep() {
     if [[ "$found" -eq 1 ]]; then
         printf 'test-tree-guard: a previous run died before cleanup; tree healed.\n' >&2
     fi
+    # A refused pattern is a manifest bug, not routine housekeeping: fail so it
+    # is fixed rather than silently ignored on every future run.
+    [[ "$refused" -eq 1 ]] && return 1
     return 0
 }
 
 cmd_snapshot() {
     local state="${1:-}"
     [[ -n "$state" ]] || usage 2
-    (cd "$REPO_ROOT" && git status --porcelain) > "$state"
+    (cd "$REPO_ROOT" && git status --porcelain --untracked-files=all) > "$state"
 }
 
 cmd_verify() {
@@ -92,7 +139,7 @@ cmd_verify() {
 
     local after
     after="$(mktemp)"
-    (cd "$REPO_ROOT" && git status --porcelain) > "$after"
+    (cd "$REPO_ROOT" && git status --porcelain --untracked-files=all) > "$after"
 
     # Lines present after the suite that were not there before it.
     while IFS= read -r line; do

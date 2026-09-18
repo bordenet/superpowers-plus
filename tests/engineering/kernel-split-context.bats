@@ -47,9 +47,15 @@ setup() {
 # The plan's 7,000-byte ceiling keeps dispatch instructions resident while
 # score-floor examples and recovery tables remain on demand.
 # ---------------------------------------------------------------------------
+# Budget raised from 7000: the "## Failure Modes" table was deliberately moved
+# BACK into the resident kernel. Loading it on demand put the anti-rubber-
+# stamping rules (score-inflation cap, REGRESSION flag, Operational-Risk veto
+# eligibility) behind the exact condition they exist to prevent -- a rubber-
+# stamped review never reaches "detailed failure recovery" and so never loads
+# them. Resident bytes are the cheaper mistake.
 @test "progressive-harsh-review stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/engineering/progressive-harsh-review/skill.md"
-  SKILL_BYTE_BUDGET=7000
+  SKILL_BYTE_BUDGET=8500
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
@@ -70,9 +76,11 @@ setup() {
 # The 5,000-byte ceiling retains compaction-safe sequencing while moving the
 # duplicated scaffold template and detailed fidelity/recovery tables on demand.
 # ---------------------------------------------------------------------------
+# Budget raised from 5000 for the same reason as PHR: its Failure Modes table
+# is resident again rather than on-demand.
 @test "context-ferry stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/productivity/context-ferry/skill.md"
-  SKILL_BYTE_BUDGET=5000
+  SKILL_BYTE_BUDGET=6500
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }

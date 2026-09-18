@@ -84,19 +84,6 @@ Ferry written to: ~/context-ferry-<timestamp>.md
 If the Write tool is unavailable, print `cat > ~/context-ferry-<timestamp>.md`
 with the content and ask the user to run it.
 
-## Failure Modes
-
-| Failure | Recovery |
-|---------|---------|
-| Auto-compact fires before Step 3 completes | Sections already written survive in conversation history; new session reads what's there and proceeds |
-| No execution doc found | All task/progress state goes inline -- omit the Execution Document section |
-| Pending question was implicit (never phrased as a question) | Rephrase it as a clear direct question; do not omit it |
-| Task file unreadable | Note "task file at `<path>` could not be read" and fall back to conversation-memory tasks |
-| No git repo in working directory | Hook writes "No git repository" note; skill proceeds normally |
-| Write tool unavailable | Print the ferry prompt only; tell user to save manually |
-| Early-warning hook fired but model continued without running /context-ferry | PreCompact backstop will still catch it and write the scaffold. High-context sessions should treat the hook warning as a genuine interruption, not a suggestion. |
-| Context exhausted mid-skill (full path started too late) | Stop wherever you are; write the ferry file with whatever sections completed. Partial ferry is better than no ferry. |
-
 ## Companion skills
 
 - `session-handoff`: cold-start sibling Git activity.

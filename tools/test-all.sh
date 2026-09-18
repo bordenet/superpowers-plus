@@ -48,10 +48,20 @@ declare -a PASSED=()
 # the debris silently breaks the NEXT run and reads as a real failure. Sweep
 # declared artifacts first (healing a tree a crashed run left dirty), snapshot
 # the tree, and verify afterwards that nothing undeclared was created.
-TREE_GUARD="$(dirname "${BASH_SOURCE[0]}")/test-tree-guard.sh"
+TREE_GUARD="$SCRIPT_DIR/test-tree-guard.sh"
 TREE_STATE=""
+if [[ ! -x "$TREE_GUARD" ]]; then
+    echo "⚠️  working-tree guard missing or not executable: $TREE_GUARD" >&2
+    echo "    test pollution will NOT be detected this run." >&2
+fi
 if [[ -x "$TREE_GUARD" ]]; then
-    "$TREE_GUARD" sweep || true
+    # M4: a refused manifest pattern is a manifest bug. Surface it instead of
+    # discarding the exit code -- `|| true` here defeated the whole point of
+    # making sweep fail on a pattern it refused to expand.
+    if ! "$TREE_GUARD" sweep; then
+        echo "❌ working-tree guard: sweep refused one or more manifest patterns (see above)" >&2
+        FAILED+=("working-tree guard (sweep)")
+    fi
     TREE_STATE="$(mktemp)"
     "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
 fi
@@ -134,7 +144,7 @@ _bats_targets() {
     for f in "$REPO_ROOT"/test/*.bats; do
         [[ -e "$f" ]] || continue
         base="$(basename "$f")"
-        for s in "${skip[@]}"; do
+        for s in ${skip[@]+"${skip[@]}"}; do
             if [[ "$base" == "$s" ]]; then
                 base=""
                 excluded=$((excluded + 1))
@@ -165,11 +175,11 @@ run_bats() {
         jobs=$(_bats_jobs)
         echo "  [bats] running with --jobs $jobs (GNU parallel found)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats --jobs "$jobs" --no-parallelize-within-files "${targets[@]}"
+            bats --jobs "$jobs" --no-parallelize-within-files ${targets[@]+"${targets[@]}"}
     else
         echo "  [bats] GNU parallel not found -- running serially (brew install parallel for a speedup)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats "${targets[@]}"
+            bats ${targets[@]+"${targets[@]}"}
     fi
 }
 

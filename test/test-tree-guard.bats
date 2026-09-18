@@ -79,6 +79,62 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+# --- containment regressions -------------------------------------------
+# sweep runs `rm -rf` on every test-all.sh invocation, including the pre-push
+# gate. A `../x` manifest line was confirmed to escape the repo and delete
+# files in $HOME. These pin every escape route shut.
+
+@test "guard: sweep REFUSES a parent-traversal pattern and deletes nothing outside" {
+    mkdir -p "$BATS_TEST_TMPDIR/outside"
+    echo precious > "$BATS_TEST_TMPDIR/outside/victim.txt"
+    printf '../outside/*\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REFUSED parent-traversal"* ]]
+    [ -f "$BATS_TEST_TMPDIR/outside/victim.txt" ]
+}
+
+@test "guard: sweep REFUSES an absolute pattern" {
+    printf '/etc/*\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REFUSED absolute pattern"* ]]
+    [ -f /etc/hosts ]
+}
+
+@test "guard: sweep REFUSES a tilde pattern" {
+    printf '~/*\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REFUSED absolute pattern"* ]]
+}
+
+@test "guard: sweep unlinks an in-repo symlink instead of deleting its target" {
+    mkdir -p "$BATS_TEST_TMPDIR/target"
+    echo keepme > "$BATS_TEST_TMPDIR/target/outside.txt"
+    ln -s "$BATS_TEST_TMPDIR/target" "$REPO/skills/linkdir"
+    printf 'skills/linkdir\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 0 ]
+    [ ! -L "$REPO/skills/linkdir" ]
+    # The link is gone; what it pointed at must be untouched.
+    [ -f "$BATS_TEST_TMPDIR/target/outside.txt" ]
+}
+
+@test "guard: a declared artifact inside a NEW untracked directory is not misreported" {
+    # git status collapses an untracked tree to the directory unless
+    # --untracked-files=all is passed, which made a DECLARED artifact in a new
+    # directory report as UNDECLARED pollution and fail the run.
+    printf 'skills/brandnew/fixture.md\n' > "$REPO/test/.test-artifacts"
+    "$REPO/tools/test-tree-guard.sh" snapshot "$BATS_TEST_TMPDIR/state"
+    mkdir -p "$REPO/skills/brandnew"
+    echo fixture > "$REPO/skills/brandnew/fixture.md"
+    run "$REPO/tools/test-tree-guard.sh" verify "$BATS_TEST_TMPDIR/state"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"declared artifact still present"* ]]
+    [[ "$output" != *"UNDECLARED"* ]]
+}
+
 @test "guard: verify refuses to pass when the snapshot is missing" {
     run "$REPO/tools/test-tree-guard.sh" verify "$BATS_TEST_TMPDIR/absent-state"
     [ "$status" -eq 1 ]
