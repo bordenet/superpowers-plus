@@ -204,8 +204,16 @@ run_bats_tests_dir() {
         return 0
     fi
     [[ -d "$REPO_ROOT/tests" ]] || { echo "no tests/ directory"; return 0; }
+    # -r is REQUIRED. `bats <dir>` does not recurse, so the first version of
+    # this ran only the 22 top-level files and silently skipped the 7 in
+    # subdirectories -- including every kernel-split safety suite -- while
+    # reporting 381 tests green. A gate that looks like it covers something
+    # and does not is worse than no gate.
+    local found
+    found=$(find "$REPO_ROOT/tests" -name '*.bats' | wc -l | tr -d ' ')
+    echo "  [bats] tests/: $found file(s), serial"
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-        bats "$REPO_ROOT/tests/"
+        bats -r "$REPO_ROOT/tests/"
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite

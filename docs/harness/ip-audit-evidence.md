@@ -22,21 +22,37 @@ shared scan-once cache would risk suppressing a required check.
 
 ## Local aggregate snapshot
 
-At 2026-09-17T19:47:07Z, the bounded reporter read every byte in the retained
-local window with a 16 MiB ceiling:
+**Methodology: the block below is verbatim stdout, pasted unedited.** It is not
+transcribed, summarized, or rounded. An earlier revision of this table carried a
+hand-tidied `Unknown` column (1,170 / 300 / 60 against actual 1,186 / 305 / 61)
+while claiming to be a literal reading. In a document whose only job is to be
+the evidentiary record, adjusted numbers are worse than wrong ones, because a
+wrong number can be caught and a tidied one cannot. Paste the output; do not
+retype it.
 
-| Hook | Fired, unadjudicated | Unknown |
-|---|---:|---:|
-| red-autonomy | 140 | 1,170 |
-| internal-terms | 50 | 300 |
-| git-identity | 10 | 60 |
-| **Total** | **200** | **1,530** |
+Note the tool keys rows by `(hook, exit)`, not by hook alone. To compare against
+any per-hook figure, sum across that hook's exit codes.
 
-The snapshot read one file, excluded 26,965 successful or out-of-schema lines,
-and reported `truncated=no`. That flag means the byte ceiling omitted none of
-the retained files; it does not make an all-time retention claim. Later counts
-may be higher or lower because appends can advance a bounded tail and rotation
-can replace retained generations.
+Captured `2026-09-18T06:27:03Z` by
+`python3 tools/hook-block-report.py --max-bytes 16777216`:
+
+```text
+hook	exit	fired_unadjudicated	unknown
+red-autonomy	2	224	1300
+internal-terms	2	80	337
+git-identity	2	16	67
+TOTAL	-	320	1704
+excluded_lines	29101
+files_read	1
+truncated	no
+```
+
+`truncated=no` means the byte ceiling omitted none of the retained files; it
+does not make an all-time retention claim. Later counts may be higher or lower,
+because appends advance a bounded tail and rotation replaces retained
+generations. This snapshot is therefore not reproducible after the fact — only
+the method is. Re-run the command for a current reading rather than expecting
+these figures.
 
 No production path adjudicates a block as true or false. Legacy `TP` and `FP`
 labels were written by the gate or accepted by the parser, not independently

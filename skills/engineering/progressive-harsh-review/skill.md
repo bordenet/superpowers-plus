@@ -45,7 +45,6 @@ composition:
 | Need | Reference section |
 |---|---|
 | Repository sets a score floor | Project-min override |
-| Review fails or stalls | Failure Modes |
 | Final report needs a template | Scoring output format |
 | Review behavior looks weak | Anti-Patterns |
 | A neighboring workflow is needed | Companion skills |

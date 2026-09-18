@@ -38,7 +38,6 @@ Load each named section before its step; load the others on demand.
 | Diagnose hook behavior | Trigger mechanics |
 | Full path, before writing | Output template |
 | Full path, before saving | Fidelity and sensitive content |
-| A step fails | Failure Modes |
 | Choose a neighboring workflow | Companion skills |
 
 

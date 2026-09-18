@@ -93,13 +93,21 @@ install_phr_fixture() {
     'Review process' \
     'Verdicts' \
     'Correlated-failure checks' \
-    'Sentinel after PASS'; do
+    'Sentinel after PASS' \
+    'Failure Modes'; do
     grep -Fxq "## $heading" "$SKILL"
     ! grep -Fxq "## $heading" "$REFERENCE"
   done
+  # 'Failure Modes' moved from the on-demand list to the resident list above,
+  # and the assertion was INVERTED rather than the file moved back. Loading
+  # that table on demand put the anti-rubber-stamping rules -- the <=7
+  # score-inflation cap, the REGRESSION flag, Operational-Risk veto
+  # eligibility -- behind the exact condition they exist to prevent: a
+  # rubber-stamped review never reaches "detailed failure recovery", so it
+  # never loads the rule that would have caught it. Moving the file to satisfy
+  # the old assertion would silently reopen that hole.
   for heading in \
     'Project-min override' \
-    'Failure Modes' \
     'Scoring output format' \
     'Anti-Patterns' \
     'Companion skills'; do
