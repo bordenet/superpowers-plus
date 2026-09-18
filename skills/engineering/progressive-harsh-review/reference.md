@@ -10,19 +10,20 @@ A repository minimum raises only the PASS floor. It does not change the REJECT b
 
 Example: 8.3 under a 9.2 floor is PASS_WITH_FIXES; 6.8 is REJECT; 9.5 may PASS.
 
-## Remediation and failure modes
+## Failure Modes
 
-| Failure | Required response |
-|---|---|
-| Same-pass self-review | Dispatch a fresh sub-agent; a role switch is a fallback and must restart from artifact text. |
-| Personas repeat one finding | Each names a lens-specific failure or cites why none exists. |
-| Score inflated around a defect | A dimension with a concrete issue scores no higher than 7. |
-| REJECT receives a partial patch | Root-cause and run a full re-review. |
-| Happy path only | OpsRealist checks failure, rollback, 3 AM operation, metrics, and traces. |
-| Score regresses in a later round | Flag REGRESSION and root-cause before continuing. |
-| Three rounds fail to converge | Escalate with blockers; do not ship. |
-| Unrecoverable risk appears only under Blind Spots | Also score Operational Risk so veto logic can apply. |
-| PASS sentinel omitted | Run the sentinel command after commit; the push gate fails closed otherwise. |
+| Failure | Fix |
+|---------|-----|
+| Self-reviewed in same thinking pass | Use sub-agent (preferred) — in-process role switch with no context isolation is significantly less reliable; if used, explicitly discard the author's reasoning and start fresh from the artifact text |
+| All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
+| Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
+| Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
+| Only reviewed happy path | OpsRealist must consider failure, rollback, 3am scenarios, and OE telemetry for new behavior |
+| Round N mean lower than Round N-1 | Remediation introduced new issues — flag REGRESSION, root-cause before Round N+1 |
+| No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
+| Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
+| Unrecoverable finding scored only on Blind Spots | Must ALSO score Operational Risk to be veto-eligible — Blind Spots alone bypasses the veto gate |
+| Skipped sentinel write after PASS | Pre-push Gate 5 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
 
 ## Scoring output format
 

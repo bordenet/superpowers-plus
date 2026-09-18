@@ -25,7 +25,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { stripFrontmatter } = require('../lib/frontmatter');
+const { readSkillUnit } = require('../lib/skill-unit');
 
 const SKILLS_DIR = path.join(__dirname, '..', 'skills');
 const BASELINE_PATH = path.join(__dirname, 'operative-baseline.json');
@@ -44,7 +44,16 @@ function findAllSkills(dir) {
 
 function countPatterns(text) {
     return {
-        step_headings: (text.match(/^#{2,4}\s+(Step|Stage|Phase)\s+\d+/gim) || []).length,
+        // Two equivalent encodings of an ordered procedure: "### Step N" headings,
+        // and a bolded ordered list ("1. **Fresh-reader check.**"). A kernel split
+        // routinely converts the first into the second without losing a single
+        // step, so counting only headings reports a total wipeout (-7) for a
+        // procedure that is fully intact. Counting both keeps the gate measuring
+        // "does this skill still have its ordered procedure" rather than which
+        // markdown flavor it is written in. This can only RAISE a current count,
+        // never lower one, so it cannot mask a real drop and needs no rebaseline.
+        step_headings: (text.match(/^#{2,4}\s+(Step|Stage|Phase)\s+\d+/gim) || []).length
+            + (text.match(/^\s*\d+\.\s+\*\*/gm) || []).length,
         stop_markers: (text.match(/⛔/g) || []).length,
         hard_gate_table: (text.match(/^\|.*\b(HARD\s*GATE|BLOCK|MUST)\b.*\|/gim) || []).length,
         code_fences: Math.floor((text.match(/^```/gm) || []).length / 2), // pairs
@@ -84,7 +93,7 @@ function buildBaseline() {
     const baseline = { generated_at: new Date().toISOString(), skills: {} };
     for (const sp of findAllSkills(SKILLS_DIR)) {
         const rel = path.relative(SKILLS_DIR, sp);
-        const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));
+        const raw = readSkillUnit(sp);
         const counts = countPatterns(raw);
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
         if (total > 0) baseline.skills[rel] = counts;
@@ -119,7 +128,7 @@ function detect() {
             }
             continue;
         }
-        const raw = stripFrontmatter(fs.readFileSync(sp, 'utf8'));
+        const raw = readSkillUnit(sp);
         const current = countPatterns(raw);
         for (const k of Object.keys(expected)) {
             totalChecks++;

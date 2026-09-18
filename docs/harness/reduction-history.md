@@ -41,17 +41,31 @@ Percentages are the net reduction of the activation-time kernel vs the
 pre-split `skill.md`. Bytes moved to `reference.md` do not count toward the
 activated skill body.
 
+A split does two different things, and this ledger reports them separately
+because conflating them hid a real regression once already. **Moved** bytes
+leave the kernel but stay in the skill unit, reachable through the section
+loader. **Deleted** bytes leave the skill entirely -- prose compressed,
+examples dropped, tables condensed. Only `Retained` is recoverable at runtime;
+`Deleted` is a permanent content decision and needs its own justification.
+Earlier revisions of this table described all three splits as content that
+"moved to `reference.md`", which was false for roughly half of PHR.
+
 ## Applied
 
-| Skill | Before | Kernel after | Reduction | Note |
-|---|---|---|---|---|
-| progressive-harsh-review | 18018 | 6447 | 64% | Persona weights, vetoes, verdicts, convergence, anti-recursion, and sentinel stay resident; project-floor detail, report format, and failures load from `reference.md` through trusted managed tooling. |
-| context-ferry | 10688 | 4893 | 54% | Full/PreCompact routing, durable-state priority, safety invariants, and origin-bound reference loading remain resident; output scaffold, fidelity/privacy detail, and failure recovery moved to `reference.md`. |
+| Skill | Before | Kernel after | Reference | Retained | Deleted | Reduction | Note |
+|---|---|---|---|---|---|---|---|
+| progressive-harsh-review | 18018 | 6447 | 3169 | 9616 | 8402 (47%) | 64% | Persona weights, vetoes, verdicts, convergence, anti-recursion, and sentinel stay resident; project-floor detail, report format, and the verbatim `## Failure Modes` table load from `reference.md` through trusted managed tooling. Deleted: the three long-form `### Persona N` lens definitions and `## Artifact-Aware Persona Mapping`, condensed into one persona dimension table per the approved Phase 2A plan. |
+| context-ferry | 10688 | 4893 | 4282 | 9175 | 1513 (14%) | 54% | Full/PreCompact routing, durable-state priority, safety invariants, and origin-bound reference loading remain resident; output scaffold, output path, fidelity/privacy detail, and the verbatim `## Failure Modes` table live in `reference.md`. Deleted: prose compression of step narration. |
+| debate | 13660 | 5752 | 5129 | 10881 | 2779 (20%) | 57% | Mandatory routing and origin-bound installed/source reference loading remain resident; detailed protocols and examples moved to `reference.md`. Deleted: worked example prose and duplicated persona text now sourced from PHR. |
 
 The PHR compression golden is intentionally not regenerated here. P1h removes
 exact-text compression goldens while retaining structural checks, so refreshing
 that soon-to-be-deleted fixture would create throwaway churn. Final integration
 also depends on P1d making the operative-move detector reference-aware.
+
+### Combined-tree merge requirement
+
+When P1h fixture hardening merges, retain Debate's P2A `expected_substrings`, `verified_by`, `verified_at`, and `merge_requirement` fields while adopting P1h's fail-closed fixture validation and trigger-refresh behavior.
 
 ## Deferred (score under 40% after safety-correct curation)
 

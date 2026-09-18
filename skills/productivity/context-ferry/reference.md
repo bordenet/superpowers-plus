@@ -68,17 +68,34 @@ Review ~/context-ferry-<timestamp>.md before sharing it.
 
 Do not block or skip generation. The user controls later storage and sharing.
 
-## Failure modes
+## Output path
+
+Write the completed ferry prompt to this exact path, then print the confirmation
+line so the user can find it without searching:
+
+```
+~/context-ferry-<YYYY-MM-DD>T<HHMMss>.md
+```
+
+```
+Ferry written to: ~/context-ferry-<timestamp>.md
+```
+
+If the Write tool is unavailable, print `cat > ~/context-ferry-<timestamp>.md`
+with the content and ask the user to run it.
+
+## Failure Modes
 
 | Failure | Recovery |
-|---|---|
-| Compaction interrupts generation | Save or print completed blocks; Partial ferry is better than no ferry. |
-| No execution document | Put all task/progress state inline and omit that section. |
-| Pending issue was implicit | State it as a direct question and label it as rephrased. |
-| Task file unreadable | Name the unreadable path and fall back to memory-labeled tasks. |
-| No Git repository | Record that fact and continue. |
-| Write tool unavailable | Print the ferry prompt and ask the user to save it. |
-| Early warning ignored | Rely on the PreCompact scaffold, but mark fidelity degraded if needed. |
+|---------|---------|
+| Auto-compact fires before Step 3 completes | Sections already written survive in conversation history; new session reads what's there and proceeds |
+| No execution doc found | All task/progress state goes inline -- omit the Execution Document section |
+| Pending question was implicit (never phrased as a question) | Rephrase it as a clear direct question; do not omit it |
+| Task file unreadable | Note "task file at `<path>` could not be read" and fall back to conversation-memory tasks |
+| No git repo in working directory | Hook writes "No git repository" note; skill proceeds normally |
+| Write tool unavailable | Print the ferry prompt only; tell user to save manually |
+| Early-warning hook fired but model continued without running /context-ferry | PreCompact backstop will still catch it and write the scaffold. High-context sessions should treat the hook warning as a genuine interruption, not a suggestion. |
+| Context exhausted mid-skill (full path started too late) | Stop wherever you are; write the ferry file with whatever sections completed. Partial ferry is better than no ferry. |
 
 ## Companion skills
 

@@ -55,6 +55,17 @@ setup() {
 }
 
 # ---------------------------------------------------------------------------
+# debate kernel -- split from a 13,660-byte resident skill on 2026-09-17.
+# The 6,000-byte plan budget is stricter than the generic 60% cap (8,196).
+# ---------------------------------------------------------------------------
+@test "debate skill stays within kernel byte budget" {
+  SKILL="$REPO_ROOT/skills/engineering/debate/skill.md"
+  SKILL_BYTE_BUDGET=6000
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
+}
+
+# ---------------------------------------------------------------------------
 # context-ferry -- split from 10,688 bytes on 2026-09-17.
 # The 5,000-byte ceiling retains compaction-safe sequencing while moving the
 # duplicated scaffold template and detailed fidelity/recovery tables on demand.
@@ -73,4 +84,19 @@ setup() {
   current_bytes="$(wc -c < "$skill" | tr -d ' ')"
   recorded_bytes="$(awk -F '|' '$2 ~ /context-ferry/ { gsub(/[[:space:]]/, "", $4); print $4 }' "$history")"
   [ "$recorded_bytes" = "$current_bytes" ]
+}
+
+@test "debate reduction ledger matches exact kernel bytes and floor percentage" {
+  SKILL="$REPO_ROOT/skills/engineering/debate/skill.md"
+  HISTORY="$REPO_ROOT/docs/harness/reduction-history.md"
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  ledger_before="$(awk -F '|' '/^\| debate / { gsub(/[[:space:]]/, "", $3); print $3 }' "$HISTORY")"
+  ledger_after="$(awk -F '|' '/^\| debate / { gsub(/[[:space:]]/, "", $4); print $4 }' "$HISTORY")"
+  # Reduction sits at field 8: the ledger gained Reference/Retained/Deleted
+  # columns so moved and deleted bytes are reported separately (see the doc).
+  ledger_reduction="$(awk -F '|' '/^\| debate / { gsub(/[[:space:]]/, "", $8); print $8 }' "$HISTORY")"
+  expected_reduction=$(( (ledger_before - current_bytes) * 100 / ledger_before ))
+
+  [ "$ledger_after" -eq "$current_bytes" ]
+  [ "$ledger_reduction" = "${expected_reduction}%" ]
 }

@@ -99,7 +99,7 @@ install_phr_fixture() {
   done
   for heading in \
     'Project-min override' \
-    'Remediation and failure modes' \
+    'Failure Modes' \
     'Scoring output format' \
     'Anti-Patterns' \
     'Companion skills'; do

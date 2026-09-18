@@ -42,6 +42,19 @@ done
 declare -a FAILED=()
 declare -a PASSED=()
 
+# Working-tree guard. A test that writes into the repo leaks its fixture when a
+# run dies hard -- teardown does not run on SIGKILL and no trap can make it, so
+# the debris silently breaks the NEXT run and reads as a real failure. Sweep
+# declared artifacts first (healing a tree a crashed run left dirty), snapshot
+# the tree, and verify afterwards that nothing undeclared was created.
+TREE_GUARD="$(dirname "${BASH_SOURCE[0]}")/test-tree-guard.sh"
+TREE_STATE=""
+if [[ -x "$TREE_GUARD" ]]; then
+    "$TREE_GUARD" sweep || true
+    TREE_STATE="$(mktemp)"
+    "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
+fi
+
 run_suite() {
     local label="$1"; shift
     echo ""
@@ -160,6 +173,13 @@ run_harsh_review() {
 [[ "$RUN_HARSH"      -eq 1 ]] && run_suite "harsh-review.sh" run_harsh_review
 [[ "$RUN_BATS"       -eq 1 ]] && run_suite "bats test/"      run_bats
 [[ "$RUN_NODE"       -eq 1 ]] && run_suite "node test/*"     run_node_tests
+
+# Undeclared in-tree writes fail the run and are named. A declared artifact
+# left behind is reported but not fatal -- the next sweep heals it.
+if [[ -n "$TREE_STATE" ]]; then
+    run_suite "working-tree guard" "$TREE_GUARD" verify "$TREE_STATE"
+    rm -f "$TREE_STATE"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"

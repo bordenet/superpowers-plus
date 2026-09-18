@@ -1,105 +1,64 @@
 # Skill: debate
 
+## Reference index
+Load only the sections required by the process. Preflight, comparison, and hostile review are mandatory; the remaining sections are on demand.
+
+| Need | Read this reference section |
+|---|---|
+| Before every debate | Preflight routing |
+| Mandatory before building the matrix | Comparison protocol |
+| Before adversarial review | Hostile review protocol |
+| When an output example is needed | Output and example |
+| When tempted to skip a gate | Rationalizations to reject |
+| When choosing a neighboring workflow | Companion skills |
 # Design Triad
+## When to use
+Use before committing to a non-trivial architecture, data model, integration, or other significant design choice. Also use when the user asks for design alternatives or a comparison.
 
-> Core principle: Never commit to a design without considering at least three alternatives and surviving a harsh review.
-## Preflight
-⛔ **HARD GATE: Do not stall here.** Choose your route within 30 seconds, then proceed to Step 1.
-
-**Step 0, before picking a route on a non-trivial decision** — don't rely on memory of whether `brainstorming` ran:
-
-- Check `docs/superpowers/specs/` for an existing spec on this topic. Found one → point to it instead of re-deriving requirements from memory (reasoning that only ever existed inline, never written down, is vulnerable to being lost to context compaction).
-- No spec, and this isn't route 3's low-stakes case below → run `brainstorming` first. One-time bootstrap call, not the mid-investigation pattern route 2 forbids.
-- `brainstorming` surfaces ≥3 approaches → it re-invokes `debate` itself; that nested pass runs Steps 1-5 and produces the decision-record. The outer call is satisfied by that record — don't run Steps 1-5 again on the same spec.
-- `brainstorming` surfaces 2 (its routine baseline, not an edge case) → it does not re-invoke `debate`. The written, human-reviewed spec is the accepted resolution; the outer call proceeds from here using that spec as if it were the "spec already exists" branch above, rather than waiting on a decision-record that will never arrive.
-
-Then pick ONE:
-
-1. **Requirements and architecture are known** — state the key requirement and the architectural constraint in one sentence each, then proceed to Step 1.
-2. **Requirements or architecture need investigation** — pause debate, investigate separately (ask clarifying questions, review docs, check constraints), summarize findings in one sentence each, then proceed to Step 1. If investigation reveals inputs are fundamentally unclear or contradictory, escalate to the user — do not proceed with unresolved inputs on high-stakes decisions. Do NOT invoke other design/architecture skills mid-investigation on this route as an ad hoc research shortcut — that creates recursive loops. (Step 0's one-time `brainstorming` bootstrap call is a separate, bounded, self-terminating exception, not this pattern.)
-3. **This is a low-stakes, reversible decision** (no architecture change, no external interface change, no irreversible cost) — state: "Low-stakes decision, proceeding without formal validation." Then proceed to Step 1.
-
-Stalling at preflight (loading skills without executing them, deliberating about whether to validate, or cycling back to re-decide) is **the single most common failure mode** of this skill. If you've spent more than 30 seconds choosing your route, you are stalling. Pick an option and move to Step 1.
-## The Process (5 Steps)
-| Step | Type | What Happens | Gate |
-|------|------|-------------|------|
-| 1. GENERATE | Diverge | Produce ≥3 genuinely distinct design options | ≥3 options, each implementable |
-| 2. COMPARE | Analyze | Structured comparison matrix across 6 criteria | Matrix complete, recommendation stated |
-| 3. HARSH REVIEW | Converge | Red-team via **separated reviewer** (sub-agent or explicit role switch) | All weaknesses documented by non-author (Q7a may loop to Step 1 once) |
-| 4. EDGE CASES | Diverge | Final brainstorm targeting gaps found in Step 3 | Edge cases cataloged |
-| 5. ITERATE | Loop | Fix → verify fixes landed → re-review (min 2 rounds) | Converged or escalated |
-## Step 1: Generate Options
-Produce **minimum THREE** options. Each must be:
-
-- **Genuinely different** — not superficial variations (different data model, different decomposition, different integration pattern)
-- **Implementable** — within current constraints, not fantasy
-- **Compact** — max 3 bullet points per option: approach, key trade-off, risk profile
-
-⛔ HARD GATE: If you can only think of one approach, invoke `think-twice` for a fresh perspective before proceeding. Two straw men and one real option is a violation.
-## Step 2: Compare
-Build a comparison matrix. **Constraint: max 5 words per cell.**
-
-| Criterion | Option A | Option B | Option C |
-|-----------|----------|----------|----------|
-| Complexity | | | |
-| Testability | | | |
-| Maintainability | | | |
-| Risk | | | |
-| Fit with existing patterns | | | |
-| Reversibility (cost to undo) | | | |
-State your recommendation with explicit rationale (2-3 sentences). If only one option is viable, the matrix documents WHY the others don't work — that documentation has value.
-
-⛔ **HARD GATE: Recommendation ≠ Completion.** Stating a recommendation here is Step 2 of 5. You MUST proceed to Step 3 (Harsh Review), Step 4 (Edge Cases), and Step 5 (Iterate) before claiming the design decision is made. Stopping at a recommendation without adversarial review is a violation — it is the single most common failure mode of this skill.
-## Step 3: Harsh Review (Red Team)
-⛔ **HARD GATE: Author ≠ Reviewer.** You MUST NOT red-team your own design in the same thinking pass that produced it. Use ONE of:
-
-- **Sub-agent** (preferred): Dispatch a sub-agent with role "hostile reviewer" and full context of the design
-- **Explicit role switch**: Complete the design, then start a new section with: *"I am now reviewing this as a hostile critic. My job is to find what's WRONG."*
-
-Self-review in the same pass that wrote the design is **a violation** — it produces theater, not adversarial pressure.
-
-**Stakes-scaled reviewers:** For designs that are irreversible OR high-blast-radius (e.g., a shared-schema or external-interface change, a data migration, or anything with no quick rollback), dispatch ≥2 independent sub-agent reviewers (distinct contexts) and reconcile divergences — a single reviewer shares your blind spots. Do NOT invoke `progressive-harsh-review` or `quantitative-decision-gate` as the reviewer (both list `debate` in their `enables` and would route back here — recursion). Low-stakes, reversible designs keep the single separated reviewer.
-
-For the selected design, the reviewer answers ALL of these (**max 1 sentence per answer**):
-
-1. What's the weakest assumption?
-2. What failure mode hasn't been considered?
-3. What would a hostile code reviewer attack?
-4. What edge case would break this in production?
-5. What happens if the adjacent system changes?
-6. **Cross-reference check:** Do the design's concrete details (file paths, integration points, claimed behaviors) actually work within the project's real directory structure, existing conventions, and stated constraints?
-7. **Option-set integrity** (one sentence per sub-question): (a) *Anti-straw-man* — extending the Step 1 gate into this pass, is each rejected option one that a competent engineer would genuinely propose? If it is an artificial foil, return to Step 1 once and re-run Step 2 with the replacement included (this resets the round counter — the next Step 3 on the new set is Round 1); an option that loses on the merits is documented, not regenerated. (b) *Status-quo* — was "keep the status quo / don't build this" priced as a design comparison anchor (an option column in the Step-2 matrix, not a build/no-build re-litigation that belongs to requirements-validation; greenfield satisfies this with a "defer / time-boxed spike" anchor)?
-
-REQUIRED: Invoke `adversarial-search` principles — search for the WRONG thing, not confirmation of the RIGHT thing.
-## Step 4: Edge Cases
-One more divergent brainstorm targeting ONLY the gaps surfaced in Step 3. **Cap: 10 edge cases max.** Not a full re-design — focused on:
-
-- Failure modes that need handling
-- Boundary conditions that need tests
-- Integration points that need defensive code
-## Step 5: Iterate
-`harsh-review → fix → verify → re-review` loop:
-
-⛔ **HARD GATE: Minimum 2 full review rounds.** Round 1 = the initial harsh review (Step 3). Round 2 = re-review after fixes. You may NOT declare convergence without completing Round 2. Declaring "converged" after only Step 3 is a violation.
-
-Each round has THREE phases:
-
-1. Fix: Address issues found in the previous review
-2. **Verify fixes landed:** Cross-reference each resolution against the actual artifact (spec, code, design doc). Confirm the fix appears in the output, not just in a resolution table. Claimed-but-not-implemented fixes are the #1 failure mode.
-3. **Re-review:** Run harsh review again (Step 3 questions) on the UPDATED artifact
-
-- **Exit when:** Round 2+ finds no new material issues
-- **Escalate when:** 3 rounds completed without convergence — summarize blockers, escalate to human
-- **Do NOT:** Continue beyond 3 rounds — diminishing returns
-- **Delta-only:** Each round documents ONLY what changed since the previous round, not the full design
+Do not use after implementation has begun, for bug fixing, or for initial idea exploration.
+## Mandatory process
+1. **Preflight.** Load `Preflight routing` before every debate. Choose a route within 30 seconds; unresolved high-stakes inputs go to the user.
+2. **Generate.** Produce a minimum three genuinely distinct, implementable options. Include status quo or a time-boxed spike as a real comparison anchor. If only one option emerges, invoke `think-twice`.
+3. **Compare.** Load `Comparison protocol` before building the matrix. Use all six criteria, no more than five words per cell. Recommend in two or three sentences. A recommendation is not completion.
+4. **Review.** Author and reviewer must be separate. Load `Hostile review protocol`; use one separated reviewer for reversible work and at least two for irreversible or high-blast-radius work. Do NOT invoke `progressive-harsh-review` or `quantitative-decision-gate` as the reviewer because both can route back to debate.
+5. **Probe edge cases.** List no more than ten failure modes, boundaries, tests, or defensive integration points surfaced by review.
+6. **Iterate.** Run `review -> fix -> verify the fix in the artifact -> re-review`. Complete a minimum two full review rounds and no more than three. Exit only when a round finds no new material issue. If three rounds completed without convergence, escalate. Do NOT continue beyond 3 rounds.
+## Hard gates
+- Three options must be genuinely different, not superficial variations or two straw men around a preferred answer.
+- A separated reviewer must test the chosen option and the integrity of the option set.
+- Verify fixes landed: every claimed resolution must be visible in the updated artifact.
+- Keep each review answer to one sentence and each later round delta-only.
+- Never claim convergence after the initial review.
 ## Output
-A compact inline **ADR-lite** record — this is the `decision-record` artifact:
+Return a compact inline decision record containing: decision and rationale; options considered; rejected options and reasons; edge-case catalog; review findings and resolutions; open risks. Write under `docs/superpowers/specs/` only when explicitly requested.
+## Reference loading
+Load only the named section. `Preflight routing` is mandatory before Step 1, `Comparison protocol` before Step 3, and `Hostile review protocol` before Step 4. Load the output example or rationalizations only when needed.
 
-1. **Decision:** the selected approach (with rationale)
-2. **Options considered:** the ≥3 generated, one line each
-3. **Rejected + why:** each rejected alternative and the reason
-4. **Edge-case catalog:** from Step 4
-5. **Harsh-review findings + resolutions:** from Steps 3 and 5
-6. **Open risks:** anything unresolved at convergence
-
-Unlike `brainstorming`, debate defaults to inline output (the `decision-record` is handed to the next step, e.g. `plan-and-execute`); write a file under `docs/superpowers/specs/` only on explicit request.
+```bash
+_ks_ref=""
+_ks_loader=""
+for _candidate in \
+  "$HOME/.claude/skills/sp-debate/reference.md" \
+  "$HOME/.codex/skills/sp-debate/reference.md" \
+  "$HOME/.agents/skills/sp-debate/reference.md"
+do
+  if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
+done
+if [ -n "$_ks_ref" ]; then
+  _ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+else
+  _project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  _source_dir="$_project_root/skills/engineering/debate"
+  if [ -n "$_project_root" ] && [ -r "$_source_dir/skill.md" ] && \
+     [ -r "$_source_dir/reference.md" ] && \
+     [ -r "$_project_root/tools/section-loader.sh" ]; then
+    _ks_ref="$_source_dir/reference.md"
+    _ks_loader="$_project_root/tools/section-loader.sh"
+  fi
+fi
+[ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+_section='<section heading>'
+bash "$_ks_loader" "$_ks_ref" "$_section" \
+  || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
+```

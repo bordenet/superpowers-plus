@@ -88,21 +88,34 @@ Verify the routing table rows match the reference headings. Fill in the `Need` c
 
 ### Step 3 -- Wire the section-loader call
 
-The kernel's routing table uses `reference.md` sections. The kernel must also embed a section-loader call (between marker comments) so agents can load individual reference sections on demand. Use a four-backtick outer fence so the inner ```bash block renders correctly:
+Embed this origin-bound loader. Source references use their checkout loader; installed references use managed tooling. Replace `<installed-name>` with `_skill_dest_name` output (usually the first `/sp-*` trigger without `/`, such as `sp-debate`). Installed precedence is `.claude`, `.codex`, `.agents`: `deploy.sh` always refreshes `.claude`, while `--skip-augment` can preserve stale optional copies. The outer four-backtick fence renders the inner block:
 
 ````text
 <!-- kernel-split-reference-loader:start -->
 ```bash
-_project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 _ks_ref=""
+_ks_loader=""
 for _candidate in \
-  "$_project_root/skills/<domain>/<skill-name>/reference.md" \
-  "$HOME/.agents/skills/<skill-name>/reference.md"
+  "$HOME/.claude/skills/<installed-name>/reference.md" \
+  "$HOME/.codex/skills/<installed-name>/reference.md" \
+  "$HOME/.agents/skills/<installed-name>/reference.md"
 do
   if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
 done
-_ks_loader="$_project_root/tools/section-loader.sh"
+if [ -n "$_ks_ref" ]; then
+  _ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+else
+  _project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  _source_dir="$_project_root/skills/<domain>/<skill-name>"
+  if [ -n "$_project_root" ] && [ -r "$_source_dir/skill.md" ] && \
+     [ -r "$_source_dir/reference.md" ] && \
+     [ -r "$_project_root/tools/section-loader.sh" ]; then
+    _ks_ref="$_source_dir/reference.md"
+    _ks_loader="$_project_root/tools/section-loader.sh"
+  fi
+fi
 [ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
 _section='<section heading>'
 bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
@@ -141,6 +154,8 @@ Verify: kernel byte count <= 60% of before, and the full behavioral test suite f
 - **Never move YAML frontmatter.** It always stays in the kernel (scored +999).
 - **Never silently omit preflight blocks.** A section containing a mandatory pre-write checklist must either stay in the kernel, or be listed in the routing table with an explicit "load before every write" note so agents always fetch it before the associated operation.
 - **The section-loader must fail loudly** (non-zero exit) when a heading is missing -- it never falls back to whole-file.
+- **Bind loader to reference origin.** A validated source tuple uses its checkout loader; installed references use only `~/.codex/superpowers-plus/tools/section-loader.sh`.
+- **Use installed destination names.** A source skill named `debate` with trigger `/sp-debate` resolves installed references under `sp-debate/`.
 - **The budget test is permanent** -- it fails if the kernel grows past the pinned ratio. Do not delete it.
 
 ## Failure Modes
