@@ -140,3 +140,31 @@ setup() {
     [ "$status" -eq 1 ]
     [[ "$output" == *"missing snapshot"* ]]
 }
+
+@test "guard: sweep REFUSES a bare * that would wipe the working tree" {
+    # `*` is inside the repo, so the traversal and absolute checks both pass it.
+    # It matched every top-level entry and rm -rf'd the working tree, reporting
+    # "tree healed" with exit 0, on every test-all.sh run including pre-push.
+    echo keep > "$REPO/toplevel.txt"
+    printf '*\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"glob in its first path component"* ]]
+    [ -f "$REPO/toplevel.txt" ]
+    [ -d "$REPO/skills" ]
+    [ -d "$REPO/tools" ]
+}
+
+@test "guard: sweep REFUSES ** but still allows a scoped glob" {
+    printf '**\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 1 ]
+    [ -d "$REPO/skills" ]
+    # A legitimate declaration names its directory and must keep working.
+    mkdir -p "$REPO/skills/sub"
+    echo leak > "$REPO/skills/sub/leak.md"
+    printf 'skills/*/leak.md\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    [ "$status" -eq 0 ]
+    [ ! -e "$REPO/skills/sub/leak.md" ]
+}

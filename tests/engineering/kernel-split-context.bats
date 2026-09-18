@@ -108,3 +108,52 @@ setup() {
   [ "$ledger_after" -eq "$current_bytes" ]
   [ "$ledger_reduction" = "${expected_reduction}%" ]
 }
+
+# PHR had NO ledger test, so its row drifted unnoticed while context-ferry's and
+# debate's were caught. Every split skill in the ledger needs one.
+@test "progressive-harsh-review reduction ledger matches current kernel bytes" {
+  SKILL="$REPO_ROOT/skills/engineering/progressive-harsh-review/skill.md"
+  HISTORY="$REPO_ROOT/docs/harness/reduction-history.md"
+  current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
+  recorded="$(awk -F '|' '/^\| progressive-harsh-review / { gsub(/[[:space:]]/, "", $4); print $4 }' "$HISTORY")"
+  [ "$recorded" = "$current_bytes" ]
+}
+
+@test "reduction ledger Retained column equals kernel + reference for every split" {
+  HISTORY="$REPO_ROOT/docs/harness/reduction-history.md"
+  for pair in "progressive-harsh-review:engineering" "context-ferry:productivity" "debate:engineering"; do
+    name="${pair%%:*}"; domain="${pair##*:}"
+    k="$(wc -c < "$REPO_ROOT/skills/$domain/$name/skill.md" | tr -d ' ')"
+    r="$(wc -c < "$REPO_ROOT/skills/$domain/$name/reference.md" | tr -d ' ')"
+    ledger_ref="$(awk -F '|' -v n=" $name " '$2 == n { gsub(/[[:space:]]/, "", $5); print $5 }' "$HISTORY")"
+    ledger_ret="$(awk -F '|' -v n=" $name " '$2 == n { gsub(/[[:space:]]/, "", $6); print $6 }' "$HISTORY")"
+    [ "$ledger_ref" = "$r" ]
+    [ "$ledger_ret" -eq "$((k + r))" ]
+  done
+}
+
+# A narrow waiver must never widen into a deletion licence. Before this, ANY
+# OP-WAIVER entry for a skill authorized deleting its whole skill.md -- and
+# debate has no ei-baseline entry, so its operative waiver was its only guard.
+@test "op-waivers: a narrow waiver does NOT authorize deleting the whole skill" {
+  local work="$BATS_TEST_TMPDIR/w"
+  mkdir -p "$work"
+  cp -R "$REPO_ROOT/lib" "$REPO_ROOT/test" "$REPO_ROOT/skills" "$work/"
+  rm "$work/skills/engineering/debate/skill.md"
+  run node "$work/test/operative-move-detector.test.js"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"skill.md no longer exists"* ]]
+}
+
+@test "op-waivers: a commented example is documentation, not a live waiver" {
+  local work="$BATS_TEST_TMPDIR/w2"
+  mkdir -p "$work"
+  cp -R "$REPO_ROOT/lib" "$REPO_ROOT/test" "$REPO_ROOT/skills" "$work/"
+  printf '\n# EXAMPLE ONLY: OP-WAIVER: engineering/systematic-debugging/skill.md step_headings -9 — sample\n' \
+    >> "$work/test/.op-waivers"
+  perl -0pi -e 's/^(#{2,4})\s+(?:Step|Stage|Phase)\s+\d+\s*:?\s*/$1 Renamed /gm' \
+    "$work/skills/engineering/systematic-debugging/skill.md"
+  run node "$work/test/operative-move-detector.test.js"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"step_headings"* ]]
+}

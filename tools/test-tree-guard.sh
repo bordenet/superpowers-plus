@@ -76,6 +76,20 @@ validate_pattern() {
             printf 'test-tree-guard: REFUSED parent-traversal pattern: %s\n' "$pattern" >&2
             return 1 ;;
     esac
+    # Refuse a pattern whose FIRST path component contains a glob. `*` and `**`
+    # are inside the repo, so the traversal and absolute checks above both pass
+    # them -- and a one-line manifest diff of `*` then rm -rf'd every top-level
+    # entry in the working tree and reported "tree healed", exit 0, on every
+    # test-all.sh run including the pre-push gate. A declared artifact always
+    # knows which directory it lives in, so requiring a literal first component
+    # costs a real manifest nothing.
+    local first="${pattern%%/*}"
+    case "$first" in
+        *'*'*|*'?'*|*'['*)
+            printf 'test-tree-guard: REFUSED pattern with a glob in its first path component: %s\n' "$pattern" >&2
+            printf '  a declared artifact must name the directory it lives in.\n' >&2
+            return 1 ;;
+    esac
     return 0
 }
 

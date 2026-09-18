@@ -82,6 +82,11 @@ function loadWaivers() {
     const raw = (process.env.OP_WAIVERS || '') + '\n' + fileRaw;
     const out = [];
     for (const line of raw.split('\n')) {
+        // A commented line is documentation, never a live waiver. The manifest
+        // is 20+ lines of header prose that invites worked examples, and
+        // "# EXAMPLE ONLY, do not use: OP-WAIVER: <skill> step_headings -9"
+        // was being honored as a real entry.
+        if (/^\s*#/.test(line)) continue;
         const m = line.match(/OP-WAIVER:\s*(\S+)\s+(\S+)\s+-(\d+)/);
         if (m) out.push({ skill: m[1], pattern: m[2], drop: parseInt(m[3], 10) });
     }
@@ -92,14 +97,24 @@ function isWaived(waivers, skill, pattern, drop) {
     return waivers.some(w => w.skill === skill && w.pattern === pattern && drop <= w.drop);
 }
 
-// Whole-skill waiver: any OP-WAIVER entry for this skill regardless of pattern/drop.
-// Used for the missing-file case where all patterns are effectively gone.
-// NOTE: a narrowly-scoped waiver (e.g. -1 on a single pattern) also satisfies this
-// check — log a visible warning so reviewers know the waiver scope was broadened.
+// Deleting a whole skill.md requires a waiver that says so EXPLICITLY, with the
+// reserved pattern name __missing__. It used to be granted by ANY entry for the
+// skill, which meant a narrow "-3 code_fences" waiver silently authorized
+// deleting the entire file. With waivers committed in test/.op-waivers that was
+// permanent: `rm skills/engineering/debate/skill.md` passed both detectors, and
+// debate has no entry in ei-baseline.json, so its operative waiver was the only
+// thing standing between deletion and a green run. A narrow waiver must never
+// widen into a deletion licence.
+//
+// The documented policy (docs/CONTRIBUTING.md) is to run --update for an
+// intentional deletion rather than waive at all; __missing__ exists so that an
+// unavoidable in-flight deletion is at least explicit, reviewable, and loud.
+const MISSING_FILE_PATTERN = '__missing__';
+
 function isSkillWaived(waivers, skill) {
-    const w = waivers.find(e => e.skill === skill);
+    const w = waivers.find(e => e.skill === skill && e.pattern === MISSING_FILE_PATTERN);
     if (w) {
-        console.log(`  ⚠️  ${skill}: missing-file waived by OP-WAIVER entry (pattern=${w.pattern}, drop=${w.drop})`);
+        console.log(`  ⚠️  ${skill}: MISSING FILE explicitly waived (OP-WAIVER ${MISSING_FILE_PATTERN})`);
         return true;
     }
     return false;

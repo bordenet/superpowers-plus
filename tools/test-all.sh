@@ -184,6 +184,31 @@ run_bats() {
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
+#
+# The tests/ tree (51 files, 381 tests -- the R6 guardrail suite, the
+# kernel-split safety suites, the commit-gate suite) was historically never run
+# here: run_bats covered test/ only. That two-tier discovery is why a red
+# ledger test shipped -- CI runs tests/ via ci-bats-discovery.sh, so a developer
+# could go green locally and push into red CI.
+#
+# It runs SERIALLY and deliberately. The --jobs audit documented above covered
+# test/ only; tests/ has never been audited for shared mutable state, and it
+# demonstrably has cross-file interference -- commit-gate-test.bats "overlay
+# mode scopes token to overlay repo" passes alone (serial AND --jobs 8) and
+# fails only when the whole tree runs concurrently. Running it under --jobs
+# would import an intermittent failure, which is the single most expensive
+# failure shape this repo has. Serial until each file is audited.
+run_bats_tests_dir() {
+    if ! command -v bats >/dev/null 2>&1; then
+        echo "⚠️  bats not installed; skipping"
+        return 0
+    fi
+    [[ -d "$REPO_ROOT/tests" ]] || { echo "no tests/ directory"; return 0; }
+    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+        bats "$REPO_ROOT/tests/"
+}
+
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_node_tests() {
     if ! command -v node >/dev/null 2>&1; then
         echo "❌ node not installed; required for JS test suite"
@@ -223,6 +248,9 @@ run_harsh_review() {
 [[ "$RUN_HARSH"      -eq 1 ]] && run_suite "harsh-review.sh" run_harsh_review
 [[ "$RUN_BATS"       -eq 1 ]] && run_suite "bats test/"      run_bats
 [[ "$RUN_NODE"       -eq 1 ]] && run_suite "node test/*"     run_node_tests
+# Not in --fast: the pre-push gate runs under `timeout 300` and tests/ is slow.
+# CI runs it via ci-bats-discovery.sh regardless.
+[[ "$RUN_BATS" -eq 1 && "$RUN_FAST" -ne 1 ]] && run_suite "bats tests/ (serial)" run_bats_tests_dir
 
 # Undeclared in-tree writes fail the run and are named. A declared artifact
 # left behind is reported but not fatal -- the next sweep heals it.
