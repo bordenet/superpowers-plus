@@ -55,6 +55,11 @@ before this harness measures it.
 ```bash
 bats tests/harness/artifact-budgets.bats
 bash tools/measure-artifact-sizes.sh --dry-run
+
+> **`--dry-run` NEVER exits non-zero.** It prints `BREACH` rows and returns 0,
+> because only the `compare` path populates `budget_breaches`. Checking `$?`
+> after a dry run tells you nothing -- read the rows. Run without the flag to
+> get a real exit code.
 python3 tools/resident-cost-report.py --repo --text
 python3 tools/resident-cost-report.py --host --text
 ```

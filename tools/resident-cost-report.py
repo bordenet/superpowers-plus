@@ -610,9 +610,29 @@ def build_host_report(claude_home: Path) -> dict:
     sources: list[tuple[Path, str | None, bool]] = []
 
     # Surface 1: user-level installed skills.
+    #
+    # `skills/synced/**` is EXCLUDED from the governed listing and counted
+    # separately. It holds first-party skills that Claude Code syncs in on
+    # Anthropic's schedule -- 19 of them appeared mid-project (brainstorming,
+    # debate, progressive-harsh-review, think-twice, ...), adding 8,445 bytes
+    # and 19 entries with no change to this repo. Roughly 11 collide by
+    # frontmatter name with skills this repo installs under sp-* aliases.
+    #
+    # Folding an ungoverned surface into the governed number makes the budget
+    # gate report a regression this repo cannot cause or fix, which is worse
+    # than not measuring it. It is still REPORTED -- as host_synced_* -- so the
+    # cost stays visible rather than hidden. See diet.md, "a FOURTH duplicate
+    # source", for the options on what to do about the collisions.
     skills_dir = claude_home / "skills"
+    synced_root = skills_dir / "synced"
+    synced_entries = 0
     for skill_md in find_skill_files(skills_dir):
-        sources.append((skill_md, None, False))
+        try:
+            skill_md.relative_to(synced_root)
+        except ValueError:
+            sources.append((skill_md, None, False))
+        else:
+            synced_entries += 1
 
     # Surface 2: user-level custom commands (includes claude-commands-mirror
     # output, source-command-* Codex imports, and hand-authored commands).
@@ -693,6 +713,8 @@ def build_host_report(claude_home: Path) -> dict:
         "host_listing_bytes": host_listing_bytes,
         "host_listing_tokens_est": round(host_listing_bytes / 4),
         "host_entries": host_entries,
+        # Ungoverned first-party surface, reported but excluded from the budget.
+        "host_synced_entries": synced_entries,
         "host_hidden_entries": host_hidden_entries,
         "host_duplicate_entries": host_duplicate_entries,
         "host_all_collision_entries": host_all_collision_entries,

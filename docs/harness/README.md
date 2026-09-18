@@ -38,10 +38,41 @@ sections into the kernel; `example`, `walkthrough`, `troubleshoot`, `catalog`
 push them to the reference. Ambiguous sections land in a third file for human
 review before `apply`.
 
-> **Safety floor (non-negotiable):** hard gates, "never" rules, and
-> run-every-time decision inputs always stay in the kernel. They are never
-> demoted to the reference, regardless of size. A split that moves a gate out
-> of the kernel is wrong, even if it scores a larger reduction.
+> **Safety floor (non-negotiable) -- a RULE FOR THE SPLIT AUTHOR, not a
+> property of the actuator.** Hard gates, "never" rules, and run-every-time
+> decision inputs must stay in the kernel. A split that moves a gate out of the
+> kernel is wrong, even if it scores a larger reduction.
+>
+> **The partitioner does NOT enforce this, and you must not rely on it to.**
+> `tools/skill-partitioner` scans the full section body for hard-gate keywords
+> only inside a heading matching `failure mode`. Every other section is scored
+> on `heading + a 200-character preview`, so a `## Examples and edge cases`
+> section scores -2 and goes to the reference no matter how many NEVER rules
+> sit past character 200. `apply` adds no safety assertion. Verify the floor by
+> reading the proposed kernel, every time.
+>
+> This was learned the hard way: progressive-harsh-review shipped a split that
+> demoted its anti-rubber-stamping rules (the <=7 score-inflation cap, the
+> REGRESSION flag, Operational-Risk veto eligibility) to the reference, where
+> they loaded only on a path a rubber-stamping review never takes. They were
+> moved back resident. See `reduction-history.md`.
+
+### Test-suite machinery (added 2026-09-18)
+
+Four pieces landed with the Phase-2A splits and are easy to mis-trust:
+
+| Piece | What it does | Gotcha |
+|---|---|---|
+| `tools/test-tree-guard.sh` + `test/.test-artifacts` | Sweeps declared in-tree test artifacts before a run, then snapshots/verifies the tree and FAILS on any undeclared create or modify | A test may write inside the repo ONLY if its exact path is declared. `sweep` refuses traversal, absolute, tilde, and a glob in the first path component -- a bare `*` once wiped a working tree and reported "tree healed" |
+| `test/.slow-bats` | Excludes named bats files from `--fast` | `--fast` is what the pre-push gate runs under `timeout 300`. A file listed here does NOT run pre-push |
+| `bats tests/ (serial)` | Sixth suite; runs the 29 files under `tests/` | **Full-suite only, never `--fast`.** Runs SERIALLY -- `tests/` has proven cross-file interference and was never audited for `--jobs` |
+| `bats -r` | Required for the `tests/` suite | `bats <dir>` does NOT recurse. Without `-r` it ran 22 top-level files, silently skipped 7 subdirectories including every kernel-split safety suite, and reported 381 tests green |
+
+**Consequence worth stating plainly:** because `tests/` is excluded from
+`--fast`, BOTH regulator suites -- `tests/harness/artifact-budgets.bats` and
+`tests/engineering/kernel-split-context.bats` -- do **not** run in the pre-push
+gate. They run in the full local suite and in CI. Do not read a green pre-push
+as "budgets and ledgers verified."
 
 ### 3. Regulator -- guard
 
@@ -67,8 +98,10 @@ for measured reductions. Every application of `kernel-split` appends a row
 with before/after byte counts and the resulting percentage. Trust the ledger,
 not any static graphic -- infographics can lag a split until re-exported.
 
-The ledger contains the aggregate pre-simplification baseline. Its `Applied`
-split table starts empty; populate that table as you apply the actuator.
+The ledger contains the aggregate pre-simplification baseline and the `Applied`
+split table. Append a row per split; do not reorder. Report **Retained**
+(kernel + reference, recoverable at runtime) separately from **Deleted** (gone
+from the skill entirely) -- conflating them once hid a real regression.
 
 ## Config precedence resolver (harness sibling)
 
