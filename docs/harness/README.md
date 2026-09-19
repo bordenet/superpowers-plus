@@ -65,7 +65,7 @@ Four pieces landed with the Phase-2A splits and are easy to mis-trust:
 |---|---|---|
 | `tools/test-tree-guard.sh` + `test/.test-artifacts` | Sweeps declared in-tree test artifacts before a run, then snapshots/verifies the tree and FAILS on any undeclared create or modify | A test may write inside the repo ONLY if its exact path is declared. `sweep` refuses traversal, absolute, tilde, and a glob in the first path component -- a bare `*` once wiped a working tree and reported "tree healed" |
 | `test/.slow-bats` | Excludes named bats files from `--fast` | `--fast` is what the pre-push gate runs under `timeout 300`. A file listed here does NOT run pre-push |
-| `bats tests/ (serial)` | Sixth suite; runs the 29 files under `tests/` | **Full-suite only, never `--fast`.** Runs SERIALLY -- `tests/` has proven cross-file interference and was never audited for `--jobs` |
+| `bats tests/ (serial)` | Sixth suite; runs every `.bats` file `bats -r` finds under `tests/` | **Full-suite only, never `--fast`.** Runs SERIALLY -- `tests/` has proven cross-file interference and was never audited for `--jobs`. The file count is intentionally not stated here: `tools/test-all.sh` computes it at runtime rather than trusting a hardcoded number, and a prior revision of this row hardcoded "29" -- already wrong the same day it was written (actual: 30) -- which is exactly the stale-fact-in-prose class of bug this table exists to prevent. Run `find tests -name '*.bats' \| wc -l` for the live count |
 | `bats -r` | Required for the `tests/` suite | `bats <dir>` does NOT recurse. Without `-r` it ran 22 top-level files, silently skipped 7 subdirectories including every kernel-split safety suite, and reported 381 tests green |
 
 **Consequence worth stating plainly:** because `tests/` is excluded from
@@ -73,6 +73,14 @@ Four pieces landed with the Phase-2A splits and are easy to mis-trust:
 `tests/engineering/kernel-split-context.bats` -- do **not** run in the pre-push
 gate. They run in the full local suite and in CI. Do not read a green pre-push
 as "budgets and ledgers verified."
+
+**Known enforcement gap:** nothing mechanically asserts that these two named
+regulator files stay inside the directories `bats -r tests/` actually walks --
+today that's `tests/{engineering,harness,productivity,tools}/*.bats` plus the
+22 top-level files. If either regulator file is ever renamed or moved outside
+those directories, `test-all.sh`'s reported count would drop with no failure
+and no warning. Not yet fixed; PHR round 1 (2026-09-18) found this via the
+same stale-count bug it's paired with above.
 
 ### 3. Regulator -- guard
 

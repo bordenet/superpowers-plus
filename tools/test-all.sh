@@ -185,11 +185,13 @@ run_bats() {
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
 #
-# The tests/ tree (51 files, 381 tests -- the R6 guardrail suite, the
-# kernel-split safety suites, the commit-gate suite) was historically never run
-# here: run_bats covered test/ only. That two-tier discovery is why a red
-# ledger test shipped -- CI runs tests/ via ci-bats-discovery.sh, so a developer
-# could go green locally and push into red CI.
+# The tests/ tree (the R6 guardrail suite, the kernel-split safety suites, the
+# commit-gate suite -- file/test counts deliberately not stated here; see the
+# stale-"29"/"51"-files incident PHR round 1 caught 2026-09-18, run
+# `find tests -name '*.bats' | wc -l` for the live count) was historically
+# never run here: run_bats covered test/ only. That two-tier discovery is why
+# a red ledger test shipped -- CI runs tests/ via ci-bats-discovery.sh, so a
+# developer could go green locally and push into red CI.
 #
 # It runs SERIALLY and deliberately. The --jobs audit documented above covered
 # test/ only; tests/ has never been audited for shared mutable state, and it

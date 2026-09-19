@@ -21,8 +21,16 @@ skipped in CI and runs only on developer machines.
 | Artifact class | Kind | Tolerance | Host-only |
 |---|---|---|---|
 | Augment core rule | file | 5% | Yes |
-| Projected skill listing and counts | metric | 5% | No |
+| Projected skill listing and counts | metric | 5%* | No |
 | Installed Claude listing and SessionStart payload | metric | 5% | Yes |
+
+\* "Projected skill listing and counts" aggregates 8 sub-metrics; 5 use 5%
+tolerance, but 3 are exact/fail-closed (0% tolerance, verified against
+`tests/harness/artifact-baselines.json`, PHR round 1 2026-09-18 found this row
+disagreeing with the prose two paragraphs below): `resident-descriptions-over-250`
+(ceiling), `resident-parse-failures` (ceiling), and `resident-skill-files-scanned`
+(floor, `comparison: minimum`). Do not read "5%" in this row as covering
+those three -- they fail on any deviation, by design.
 
 Repo metrics are committed and run in CI. Host-only metrics are also committed
 as aggregate values, but the measurement tool skips them whenever `CI` is set.

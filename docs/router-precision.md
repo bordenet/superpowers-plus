@@ -134,6 +134,28 @@ The analyzer reads prompt text only to verify the digest and classify an
 invocation. It emits aggregate counts, never prompt text or transcript paths.
 It does not contact a network service.
 
+## Install drift is a real risk to every number above
+
+**PHR round 1 (2026-09-18) found this happening on the machine that hosts this
+repo, not hypothetically.** The schema above describes what the REPO's hook
+(`tools/claude-hooks/user-prompt-submit-skill-router.sh`) writes. The
+INSTALLED hook that actually runs (typically `~/.claude/hooks/user-prompt-submit-skill-router.sh`)
+can be an older copy that writes fewer fields -- confirmed live: a 550-line
+installed hook writing only `{hints, rebuilt, status, ts}` against a 986-line
+repo hook that writes the full 13-field schema. Every hinted record then fails
+the `suggested is None` / `session_id is None` / `prompt_sha256 is None` checks
+in `analyze()`, `evaluable_suggestions` is permanently 0, and `Precision`
+reports `n/a` forever -- indistinguishable from "not enough data yet" unless
+you know to look for it.
+
+As of this fix, that failure is no longer silent: a new `schema_incomplete_hints`
+counter appears in the `Skipped:` line, and when it accounts for the total
+precision failure (hinted_prompts > 0, evaluable_suggestions == 0,
+schema_incomplete_hints > half of hinted_prompts) the tool prints an explicit
+stderr warning naming install drift as the likely cause and pointing at the
+repo hook to diff against. Re-sync the installed hook from the repo copy to
+restore real measurement; this doc does not do that for you.
+
 Retain router metrics only for the active calibration window. Delete or rotate
 the local file within 30 days, or immediately after the routing decision is
 made if that occurs sooner. The tool does not delete data automatically.

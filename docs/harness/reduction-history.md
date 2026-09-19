@@ -58,14 +58,22 @@ Earlier revisions of this table described all three splits as content that
 | context-ferry | 10688 | 6026 | 3116 | 9142 | 1546 (14%) | 43% | Full/PreCompact routing, durable-state priority, safety invariants, origin-bound reference loading, AND the verbatim `## Failure Modes` table remain resident; the output scaffold, output path, and fidelity/privacy detail live in `reference.md`. Failure Modes moved back resident for the same reason as PHR. Deleted: prose compression of step narration. |
 | debate | 13660 | 6243 | 4557 | 10800 | 2860 (20%) | 54% | Mandatory routing and origin-bound installed/source reference loading remain resident; detailed protocols and examples moved to `reference.md`. Deleted: worked example prose and duplicated persona text now sourced from PHR. 2026-09-18: `## Rationalizations to reject` moved back resident from reference.md (matches PHR/context-ferry precedent -- anti-rubber-stamping content must not live behind the on-demand-load condition it prevents). |
 
+**Branch shorthand used below:** `P1h` = `chore/simplify-p1h-test-pruning`;
+`P1d` = `chore/simplify-p1d-debug-helpers`; `P2A` = the Phase 2A kernel-split
+batch (the PHR/context-ferry/debate rows above) -- not a branch, committed
+directly to `dev`. As of 2026-09-18, `P1h` and `P1d` both exist on `origin`
+at `ced54426` and `aec3b808` respectively (`git rev-parse <branch>
+origin/<branch>` returns identical SHAs for both); verify directly rather
+than trusting a status claim in prose, since branch state changes.
+
 The PHR compression golden is intentionally not regenerated here. P1h removes
 exact-text compression goldens while retaining structural checks, so refreshing
 that soon-to-be-deleted fixture would create throwaway churn. Final integration
 also depends on P1d making the operative-move detector reference-aware.
 
-### Combined-tree merge requirement
+### Combined-tree merge requirement (transient -- remove this subsection once P1h merges)
 
-When P1h fixture hardening merges, retain Debate's P2A `expected_substrings`, `verified_by`, `verified_at`, and `merge_requirement` fields while adopting P1h's fail-closed fixture validation and trigger-refresh behavior.
+When P1h fixture hardening merges, retain Debate's P2A `expected_substrings`, `verified_by`, `verified_at`, and `merge_requirement` fields while adopting P1h's fail-closed fixture validation and trigger-refresh behavior. This is a cross-branch coordination note, not permanent ledger content -- delete it the day P1h lands (merged or abandoned), whichever comes first.
 
 ## Deferred (score under 40% after safety-correct curation)
 

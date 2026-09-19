@@ -418,6 +418,7 @@ def analyze(
     matched_invocations = {"automatic": 0, "explicit": 0}
     missing_transcripts = 0
     unmatched_prompt_hashes = 0
+    schema_incomplete_hints = 0
     transcript_lines_skipped = 0
     transcript_byte_limits = 0
     transcript_total_bytes = 0
@@ -425,9 +426,20 @@ def analyze(
     records_by_session: Dict[str, List[MetricRecord]] = {}
 
     for record in records:
-        if not record.hints or record.suggested is None:
+        if not record.hints:
+            continue
+        # PHR round 1 (2026-09-18) found these two conditions silently
+        # dropped hinted records with NO counter incremented -- on a machine
+        # where the installed hook writes an older/shorter record schema
+        # (missing suggested/session_id/prompt_sha256 entirely), every
+        # hinted record fails here, evaluable_suggestions is permanently 0,
+        # and the old "Skipped:" line showed every NAMED reason at zero --
+        # a diagnostic that could not account for its own null result.
+        if record.suggested is None:
+            schema_incomplete_hints += 1
             continue
         if record.session_id is None or record.prompt_sha256 is None:
+            schema_incomplete_hints += 1
             continue
         records_by_session.setdefault(record.session_id, []).append(record)
 
@@ -522,6 +534,7 @@ def analyze(
         transcript_lines_skipped,
         transcript_byte_limits,
         transcript_total_byte_limit,
+        schema_incomplete_hints,
     )
 
 
@@ -559,6 +572,7 @@ def print_human(report: dict) -> None:
         f"unsafe_session_ids={skipped['unsafe_session_ids']} "
         f"missing_transcripts={skipped['missing_transcripts']} "
         f"unmatched_prompt_hashes={skipped['unmatched_prompt_hashes']} "
+        f"schema_incomplete_hints={skipped['schema_incomplete_hints']} "
         f"metrics_byte_limit={skipped['metrics_byte_limit']} "
         f"metrics_record_limit={skipped['metrics_record_limit']} "
         f"transcript_byte_limits={skipped['transcript_byte_limits']} "
@@ -566,6 +580,19 @@ def print_human(report: dict) -> None:
         f"{skipped['transcript_total_byte_limit']} "
         f"transcript_scan_limit={skipped['transcript_scan_limit']}"
     )
+    if report["hinted_prompts"] > 0 and report["evaluable_suggestions"] == 0:
+        hint_ratio = skipped["schema_incomplete_hints"] / report["hinted_prompts"]
+        if hint_ratio > 0.5:
+            print(
+                "WARNING: precision is n/a because "
+                f"{skipped['schema_incomplete_hints']}/{report['hinted_prompts']} "
+                "hinted records are missing suggested/session_id/prompt_sha256 "
+                "-- this is a record-schema mismatch (e.g. an installed hook "
+                "older than this repo's), not 'insufficient data yet'. Compare "
+                "the installed hook to tools/claude-hooks/"
+                "user-prompt-submit-skill-router.sh.",
+                file=sys.stderr,
+            )
 
 
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
@@ -650,6 +677,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         transcript_lines_skipped,
         transcript_byte_limits,
         transcript_total_byte_limit,
+        schema_incomplete_hints,
     ) = analyze(
         records,
         transcript_paths,
@@ -663,6 +691,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "unsafe_session_ids": unsafe_session_ids,
         "missing_transcripts": missing_transcripts,
         "unmatched_prompt_hashes": unmatched_prompt_hashes,
+        "schema_incomplete_hints": schema_incomplete_hints,
         "metrics_byte_limit": metric_counters.byte_limit_hit,
         "metrics_record_limit": metric_counters.record_limit_hit,
         "transcript_byte_limits": transcript_byte_limits,
