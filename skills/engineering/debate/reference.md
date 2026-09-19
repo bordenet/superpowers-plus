@@ -76,19 +76,6 @@ Example matrix:
 | Existing-pattern fit | Matches existing | New pattern | Mixed |
 | Reversibility | Hard, persisted | Easy, stateless | Hard, mixed |
 
-## Rationalizations to reject
-
-| Excuse | Required response |
-|---|---|
-| There is only one way | Invoke `think-twice`. |
-| Other options are obviously wrong | Explain the loss in the matrix. |
-| This is too simple | Test the assumptions anyway. |
-| Review found nothing | Answer every hostile-review question. |
-| There is no time | Compare now to avoid rework. |
-| The recommendation is done | Complete review, edge cases, and iteration. |
-| I reviewed my own design | Separate author and reviewer. |
-| I documented the resolution | Verify it landed in the artifact. |
-
 ## Companion skills
 
 - `brainstorming`: generate ideas before evaluation.

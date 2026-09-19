@@ -62,11 +62,15 @@ setup() {
 
 # ---------------------------------------------------------------------------
 # debate kernel -- split from a 13,660-byte resident skill on 2026-09-17.
-# The 6,000-byte plan budget is stricter than the generic 60% cap (8,196).
+# Budget raised 6000->6500 on 2026-09-18: moved `## Rationalizations to
+# reject` back resident from reference.md, matching the PHR/context-ferry
+# precedent (anti-rubber-stamping content must not live behind the exact
+# on-demand-load condition it exists to prevent -- see diet.md). Still
+# stricter than the generic 60% cap (8,196).
 # ---------------------------------------------------------------------------
 @test "debate skill stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/engineering/debate/skill.md"
-  SKILL_BYTE_BUDGET=6000
+  SKILL_BYTE_BUDGET=6500
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
