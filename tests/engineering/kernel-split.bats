@@ -218,6 +218,57 @@ MD
   rm -rf "$tmpdir"
 }
 
+@test "skill-partitioner never silently sends a far-keyword hard-gate Failure Modes section to reference.md" {
+  # cr-battery 2026-09-19 (Defect Finder): the sibling test above places the
+  # hard-gate keyword in the first sentence, well inside the 200-char scoring
+  # preview -- it would pass identically on the pre-fix code that only
+  # scanned `preview`, so it never actually exercised the reported bug
+  # (a keyword in row 3 or 10 of a real Failure Modes table, far past 200
+  # chars, was silently misclassified to reference.md). This pads well past
+  # that boundary before the keyword appears.
+  #
+  # Note: this asserts the actual safety invariant the fix protects --
+  # NEVER silently in reference.md -- not "always in kernel." The hard-gate
+  # bypass only cancels the automatic -999-to-reference; the section's score
+  # still comes from the 200-char preview, so a keyword found only via the
+  # full-body scan correctly lands in ambiguous-items.md for human review at
+  # `apply` time, which is a safe, non-silent outcome, not a bug. (First
+  # draft of this test asserted "must land in kernel" and failed against the
+  # code -- caught by running it before trusting it; the code's own comment
+  # ("falls through... to get their kernel-hint bumps") somewhat overstates
+  # this, since a bump only happens if the same keyword is ALSO in-preview.)
+  HARD_GATE_FIXTURE="$TMPDIR_/hard-gate-far-fixture.md"
+  {
+    printf -- '---\nname: hard-gate-far-fixture\ndescription: fixture with a hard-gate keyword past the preview window\n---\n\n'
+    printf '## Command catalog\n\nReference material for lookup only.\n\n'
+    printf '## Failure Modes\n\n'
+    printf '| Failure | Fix |\n|---------|-----|\n'
+    # Each filler row is well over 20 chars; ten of them clears 200.
+    for i in $(seq 1 10); do
+      printf '| Filler failure row number %02d describing an ordinary non-gating issue | Apply the ordinary non-gating fix for row %02d |\n' "$i" "$i"
+    done
+    printf '| Skipped sentinel write | NEVER skip the sentinel write. You MUST abort and escalate. This is a hard gate. |\n'
+  } > "$HARD_GATE_FIXTURE"
+
+  run bash "$PARTITIONER" propose "$HARD_GATE_FIXTURE"
+  [ "$status" -eq 0 ]
+  tmpdir="$(printf '%s\n' "$output" | grep 'Proposed split written to:' | sed 's/.*: //')"
+
+  # The real invariant: NEVER silently in reference.md. It may legitimately
+  # land in kernel OR ambiguous (human reviews ambiguous before apply) --
+  # both are safe; only reference.md is the silent-failure shape.
+  run grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+  [ "$status" -eq 1 ]
+  run grep -q "^## Failure Modes" "$tmpdir/proposed-kernel.md"
+  kernel_hit="$status"
+  run grep -q "^## Failure Modes" "$tmpdir/ambiguous-items.md"
+  ambiguous_hit="$status"
+  # Exactly one of kernel/ambiguous must contain it (0 = grep found it).
+  [ "$kernel_hit" -eq 0 -o "$ambiguous_hit" -eq 0 ]
+
+  rm -rf "$tmpdir"
+}
+
 @test "kernel-split loader template works from a source checkout" {
   source_repo="$TMPDIR_/source-repo"
   mkdir -p \

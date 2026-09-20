@@ -90,12 +90,13 @@ METRICS_FILE="${CLAUDE_SKILL_ROUTER_METRICS:-$HOME/.claude/hooks/skill-router-me
 # would keep silently serving stale entries (e.g. a newly-added
 # disable-model-invocation skill would still be advisory-hinted) until
 # some unrelated skill.md file happened to change and triggered the mtime
-# sweep below. Version 3 adds name-token provenance and bounded published
-# aliases used by the precision analyzer; old caches cannot safely infer
-# either field. Version 4 adds bounded published positive-trigger phrases
-# used by the scorer plus a privacy-safe source-inventory count/digest; a
-# version 3 cache would silently omit that evidence, while an early version 4
-# cache without the inventory is rejected by the shape/currentness check.
+# sweep below. This field starts at 4 in its first shipped revision (no
+# version 3 was ever released -- cr-battery 2026-09-19 confirmed via git
+# history); the numbering documents internal design iteration during
+# development, not separately-released versions. What version 4 requires:
+# bounded published positive-trigger phrases used by the scorer, plus a
+# privacy-safe source-inventory count/digest; an entry missing either is
+# rejected by the shape/currentness check below and rebuilt.
 CACHE_SCHEMA_VERSION=4
 
 # MAX_HINTS: default 1 (was 3). Evidence (diet.md P1c, 607 logged
@@ -130,7 +131,7 @@ esac
 # Invalid, non-finite, or out-of-range overrides fall back to the default.
 MIN_SCORE="${CLAUDE_SKILL_ROUTER_MIN_SCORE:-0.55}"
 if ! [[ "$MIN_SCORE" =~ ^[0-9]+(\.[0-9]+)?$ ]] || \
-   ! LC_ALL=C awk -v score="$MIN_SCORE" 'BEGIN { exit !(score >= 0 && score <= 10) }'; then
+   ! LC_ALL=C awk -v score="$MIN_SCORE" 'BEGIN { exit !(score >= 0 && score <= 10) }' 2>/dev/null; then
     MIN_SCORE=0.55
 fi
 
@@ -163,8 +164,10 @@ PROMPT="${PROMPT:0:4096}"
 # session_id: best-effort, for tools/router-precision.py to later join a
 # hint against the transcript that followed it. Absent on older Claude
 # Code versions or non-interactive callers -- recorded as null, not an
-# error (see 'Older records without session_id are counted for rates
-# only' in tools/router-precision.py).
+# error. A null session_id still counts toward router-precision.py's
+# hint_rate/hints_per_prompt, but is excluded from evaluable_suggestions
+# (cr-battery 2026-09-19: fixed a stale comment here that quoted text
+# that didn't actually exist in router-precision.py -- see analyze()).
 SESSION_ID="$(printf '%s' "$INPUT" | python3 -c "
 import sys, json, re
 try:
@@ -892,7 +895,7 @@ fi
 # real hook output: only the "[skill-router] Likely match: ..." lines are
 # meant for the user/LLM. The unfiltered $SCORE_OUTPUT (meta line included)
 # is still passed to the metrics step below.
-HINT_LINES="$(printf '%s\n' "$SCORE_OUTPUT" | grep -v '^##META##' || true)"
+HINT_LINES="$(printf '%s\n' "$SCORE_OUTPUT" | grep -v '^##META##' 2>/dev/null || true)"
 
 if [[ -n "$HINT_LINES" ]]; then
     printf '%s\n' "$HINT_LINES"

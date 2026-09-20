@@ -458,6 +458,46 @@ assert report["skipped"]["missing_transcripts"] == 1, report
   [[ "$output" == *"metrics_record_limit=False"* ]]
 }
 
+@test "router-precision counts and warns on schema-incomplete hinted records instead of silently dropping them" {
+  # cr-battery 2026-09-19 (Standards Enforcer + PHR OpsRealist, both
+  # independently flagged this): the schema_incomplete_hints counter and its
+  # stderr WARNING (added to fix a real silent-drop bug -- an installed hook
+  # older than the repo's wrote a shorter record schema, and every hinted
+  # record vanished with every named Skipped counter at 0) had zero test
+  # coverage. This is the missing case: hints non-empty, but
+  # suggested/session_id/prompt_sha256 all null.
+  local fixture_dir metrics transcripts
+  fixture_dir="$(mktemp -d "${BATS_TEST_TMPDIR}/router-precision-schema-incomplete.XXXXXX")"
+  metrics="$fixture_dir/metrics.jsonl"
+  transcripts="$fixture_dir/transcripts"
+  mkdir -p "$transcripts"
+  printf '%s\n' '{"session_id":null,"prompt_sha256":null,"hints":["brainstorming"],"suggested":null}' > "$metrics"
+
+  run python3 "$REPO_ROOT/tools/router-precision.py" \
+    --metrics "$metrics" \
+    --transcripts "$transcripts" \
+    --json
+
+  [ "$status" -eq 0 ]
+  ROUTER_PRECISION_JSON="$output" python3 -c '
+import json
+import os
+
+report = json.loads(os.environ["ROUTER_PRECISION_JSON"])
+assert report["skipped"]["schema_incomplete_hints"] == 1, report
+assert report["evaluable_suggestions"] == 0, report
+'
+
+  run python3 "$REPO_ROOT/tools/router-precision.py" \
+    --metrics "$metrics" \
+    --transcripts "$transcripts"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"schema_incomplete_hints=1"* ]]
+  [[ "$output" == *"WARNING: precision is n/a because"* ]]
+  [[ "$output" == *"record-schema mismatch"* ]]
+}
+
 @test "router-precision docs inventory routing telemetry and trigger terms" {
   run python3 -c '
 import sys

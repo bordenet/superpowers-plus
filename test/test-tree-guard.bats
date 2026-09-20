@@ -121,6 +121,28 @@ setup() {
     [ -f "$BATS_TEST_TMPDIR/target/outside.txt" ]
 }
 
+@test "guard: a glob reaching THROUGH a symlinked directory does not escape the repo" {
+    # cr-battery 2026-09-19 (Guardian): the sibling test above declares the
+    # symlink itself as the literal artifact (skills/linkdir, no trailing
+    # glob). This is the shape that test never covered: a glob in a
+    # NON-first path component reaching through a symlinked directory
+    # (skills/linkdir/*) to a file outside the repo. Guardian built a
+    # throwaway repo and confirmed live this is already refused by
+    # path_is_inside_repo()'s physical-path check -- this pins that result
+    # as a permanent regression test rather than leaving it un-pinned.
+    mkdir -p "$BATS_TEST_TMPDIR/outside"
+    echo precious > "$BATS_TEST_TMPDIR/outside/victim.txt"
+    ln -s "$BATS_TEST_TMPDIR/outside" "$REPO/skills/linkdir"
+    printf 'skills/linkdir/*\n' > "$REPO/test/.test-artifacts"
+    run "$REPO/tools/test-tree-guard.sh" sweep
+    # A refused path is a manifest bug and fails the run on purpose (same as
+    # the parent-traversal/absolute/tilde refusals above) -- but the file
+    # outside the repo must survive regardless of the exit code.
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REFUSED path outside repo"* ]]
+    [ -f "$BATS_TEST_TMPDIR/outside/victim.txt" ]
+}
+
 @test "guard: a declared artifact inside a NEW untracked directory is not misreported" {
     # git status collapses an untracked tree to the directory unless
     # --untracked-files=all is passed, which made a DECLARED artifact in a new

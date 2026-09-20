@@ -29,13 +29,29 @@
 #   tools/test-tree-guard.sh verify   <state-file>
 #
 # EXIT: 0 = clean
-#       1 = undeclared pollution (verify), or a refused manifest pattern
-#           (sweep). sweep heals silently; it only fails on a pattern it
-#           refused to expand, which is a manifest bug, not debris.
+#       1 = undeclared pollution (verify), a refused manifest pattern
+#           (sweep) -- sweep heals silently; it only fails on a pattern it
+#           refused to expand, which is a manifest bug, not debris -- or a
+#           missing/unreadable snapshot file passed to verify.
 #       2 = usage error
+#       (cr-battery 2026-09-19, ShellRuntimeAuditor: git itself can also
+#       propagate its own fatal exit code, e.g. 128, if REPO_ROOT is ever
+#       not inside a git repository -- not expected in this repo's own use,
+#       guarded against below so a caller never sees an undocumented code.)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# cr-battery 2026-09-19 (ShellRuntimeAuditor): every subcommand shells out to
+# `git status`; without this guard, running from a copy of this script
+# outside a git checkout propagates git's own raw fatal exit code (128), not
+# the documented 0/1/2 contract, with git's bare stderr as the only
+# diagnostic. Confirmed live before adding this.
+if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf 'test-tree-guard: %s is not a git repository\n' "$REPO_ROOT" >&2
+    exit 1
+fi
+
 MANIFEST="$REPO_ROOT/test/.test-artifacts"
 
 usage() {

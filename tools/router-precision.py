@@ -288,6 +288,14 @@ def message_content(record: dict) -> object:
 
 
 def user_text(record: dict) -> Optional[str]:
+    # cr-battery 2026-09-19: these five exclusions had no rationale comment.
+    # Claude Code transcripts interleave real typed prompts with synthetic
+    # user-role records: isMeta/isSidechain mark subagent and tool-scaffolding
+    # turns, promptSource=="system" marks an injected system reminder, and
+    # userType in {system, meta, tool_result} marks a non-human turn emitted
+    # by the harness itself -- none of these represent an actual user prompt
+    # the router scored. See the "ignores system and meta user records"
+    # bats test for the load-bearing behavior this defends.
     if record.get("type") != "user":
         return None
     if record.get("isMeta") is True or record.get("isSidechain") is True:
