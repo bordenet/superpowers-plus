@@ -1,6 +1,7 @@
 ---
 name: experimental-self-prompting
 source: superpowers-plus
+disable-model-invocation: true
 triggers: ["self-prompt", "write prompt for analysis", "context-free prompt", "reframe analysis"]
 anti_triggers: ["brainstorm", "think twice", "stuck in a loop", "debug this"]
 description: "⚠️ EXPERIMENTAL - Write comprehensive context-free prompts before analyzing code. Validated in 20-round experiment but NOT production-ready. Always verify outputs manually."
