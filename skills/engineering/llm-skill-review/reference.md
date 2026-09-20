@@ -92,7 +92,7 @@ Questions:
 
 ### 6) Prose/Design Critic ensemble (from progressive-harsh-review)
 
-Run as PHR's actual three-persona ensemble, not a single pass -- a round-2 self-review found that collapsing this into one persona silently dropped PHR's ensemble/averaging/correlated-failure design, the exact "silent fallback" failure class this skill exists to catch in others. Each sub-persona scores all five Prose/Design Quality Axes (`skill.md`) using its OWN weights below; average the three weighted scores with equal weight afterward (PHR's Step 2 rule). Dimension definitions and weights are copied verbatim from `progressive-harsh-review`'s "Persona dimension table" section to avoid re-deriving them out of sync with the source.
+Run as PHR's actual three-persona ensemble, not a single pass -- a round-2 self-review found that collapsing this into one persona silently dropped PHR's ensemble/averaging/correlated-failure design, the exact "silent fallback" failure class this skill exists to catch in others. Each sub-persona scores all five Prose/Design Quality Axes (`skill.md`) using its OWN weights below; average the three weighted scores with equal weight afterward (PHR's Step 3 rule). Dimension definitions and weights are copied verbatim from `progressive-harsh-review`'s "Persona dimension table" section to avoid re-deriving them out of sync with the source.
 
 **6a) JuniorDevNitpicker (Surface Quality)** -- weights: Correctness 35%, Simplicity 25%, Blind Spots 20%, Verifiability 15%, Operational Risk 5%. Start from: line-by-line reading of the skill.md -- every heading, trigger, table entry, undefined term.
 
