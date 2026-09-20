@@ -153,7 +153,7 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 | Blind Spots | What scenarios, edge cases, or artifact types does the skill fail to address? |
 | Operational Risk | What breaks the skill under adverse conditions -- wrong trigger match, absent dependency, misuse, trigger collision with a sibling skill? |
 
-**Aggregation:** each of the three sub-personas scores all five axes using its OWN per-persona weights (never a shared/averaged weight set), then the three weighted scores are averaged with equal weight -- PHR's Step 2 rule, not re-derived here.
+**Aggregation:** each of the three sub-personas scores all five axes using its OWN per-persona weights (never a shared/averaged weight set), then the three weighted scores are averaged with equal weight -- PHR's Step 3 rule, not re-derived here.
 
 **Critical veto (verbatim from progressive-harsh-review):** if ANY sub-persona scores Correctness or Operational Risk <=4 AND cites a specific defect (not a general concern), that is an automatic REJECT regardless of the weighted mean. An unrecoverable-failure-style finding MUST be scored on Operational Risk -- not Blind Spots alone -- to be veto-eligible; scoring it only on Blind Spots bypasses the veto gate.
 
@@ -211,8 +211,7 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 
 - Be tough, terse, and specific.
 - Do not praise unless it clearly reduces execution risk.
-- Do not spend time on style commentary unless it affects agent behavior.
-- Do not call something safe because it is elegant.
+- Do not spend time on style commentary unless it affects agent behavior, and do not call something safe because it is elegant.
 - Prefer explicit evidence from the diff or repository state.
 - If no diff is provided, inspect the effective implementation and infer the real behavior from the files.
 - **Fix economy.** Every recommended fix is as short as its severity allows -- an S3 fix in one sentence, an S2 fix in three or fewer; a fix that restates content already in the skill is not a fix. Sweep the sentences the recommendations would add and drop what does not change agent behavior. If the review's own recommendations would grow the skill more than ~15% with no S0/S1 finding driving it, dock Context Efficiency and recompute the Prose/Design aggregate -- a review that bloats the skill it audits has failed on its own terms.
