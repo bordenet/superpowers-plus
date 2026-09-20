@@ -220,9 +220,53 @@ run_bats_tests_dir() {
     # and does not is worse than no gate.
     local found
     found=$(find "$REPO_ROOT/tests" -name '*.bats' | wc -l | tr -d ' ')
-    echo "  [bats] tests/: $found file(s), serial"
-    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-        bats -r "$REPO_ROOT/tests/"
+
+    # SERIAL_ONLY: files with known cross-file interference. Only these are
+    # forced serial; everything else runs under --jobs. Previously the whole
+    # directory ran serially because of the single commit-gate-test.bats case
+    # ("overlay mode scopes token to overlay repo"), which made 29 innocent
+    # files pay for 1 and pushed the full suite past 45 minutes. The safety
+    # property is unchanged -- the interfering file still never runs
+    # concurrently with anything, including itself.
+    # To retire this carve-out: fix the shared mutable state in the named file,
+    # remove it here, and confirm the suite is green over 3 consecutive runs.
+    local serial_only=("commit-gate-test.bats")
+
+    local -a parallel_files=() serial_files=()
+    local f base skip
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        base="${f##*/}"
+        skip=0
+        for s in "${serial_only[@]}"; do
+            [[ "$base" == "$s" ]] && { skip=1; break; }
+        done
+        if [[ "$skip" -eq 1 ]]; then serial_files+=("$f"); else parallel_files+=("$f"); fi
+    done < <(find "$REPO_ROOT/tests" -name '*.bats' | sort)
+
+    local rc=0
+    if [[ ${#parallel_files[@]} -gt 0 ]]; then
+        if command -v parallel >/dev/null 2>&1; then
+            local jobs
+            jobs=$(_bats_jobs)
+            echo "  [bats] tests/: $found file(s) -- ${#parallel_files[@]} with --jobs $jobs, ${#serial_files[@]} serial"
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+                bats --jobs "$jobs" --no-parallelize-within-files "${parallel_files[@]}" || rc=1
+        else
+            echo "  [bats] tests/: $found file(s), serial (GNU parallel not found -- brew install parallel)"
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+                bats "${parallel_files[@]}" || rc=1
+        fi
+    fi
+
+    # The interfering files, strictly serial, after the parallel batch.
+    if [[ ${#serial_files[@]} -gt 0 ]]; then
+        echo "  [bats] tests/: ${#serial_files[@]} known-interfering file(s), serial"
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+            bats "${serial_files[@]}" || rc=1
+    fi
+
+    return "$rc"
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
