@@ -38,11 +38,24 @@ setup() {
 # 60% reduction target (11,852 bytes) not yet achieved -- tracked as follow-up.
 # This test only prevents the kernel from growing LARGER than the post-split size.
 # Bumping SKILL_BYTE_BUDGET requires a comment explaining why the kernel grew.
+#
+# 2026-09-20: bumped 19,500 -> 21,000. WHY: this skill was registered here as a
+# kernel-split skill but shipped with ZERO kernel-split-reference-loader blocks,
+# while issuing "load reference.md" instructions at 7 call sites -- a half-applied
+# split (kernel-split/skill.md Step 3 makes embedding the loader mandatory). Its
+# reference.md was therefore unreachable at runtime: no origin binding, no loud
+# failure, no exact-section extraction. Adding the canonical loader block costs
+# ~1,350 bytes and is not optional content -- it is the mechanism every other
+# split skill already carries.
+# Earn this back, do not just raise it again: skill.md's "Evidence Requirement
+# (MANDATORY)" paragraph is duplicated VERBATIM (~90 words) at reference.md's
+# corresponding section, which reference.md itself admits and asks to keep in
+# sync. Deduplicating that is the intended path back under 19,500.
 # ---------------------------------------------------------------------------
 @test "llm-skill-review kernel stays within byte budget" {
   SKILL="$REPO_ROOT/skills/engineering/llm-skill-review/skill.md"
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
-  SKILL_BYTE_BUDGET=19500
+  SKILL_BYTE_BUDGET=21000
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
 

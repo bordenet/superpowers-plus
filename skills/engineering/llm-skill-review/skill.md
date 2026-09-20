@@ -68,6 +68,43 @@ Load `reference.md` selectively - do not load it in full unless you need multipl
 | Review heuristics and doctrine | `Review Doctrine and Heuristics` |
 | Enforcement implementation details | `Enforcement Detail` |
 
+Load a section with this block. Replace `<section heading>` with the exact string from
+the table above. It resolves an installed copy first, falls back to a source checkout,
+and exits non-zero with a named reason rather than proceeding on missing content.
+
+<!-- kernel-split-reference-loader:start -->
+```bash
+_ks_ref=""
+_ks_loader=""
+for _candidate in \
+  "$HOME/.claude/skills/sp-llm-review/reference.md" \
+  "$HOME/.codex/skills/sp-llm-review/reference.md" \
+  "$HOME/.agents/skills/sp-llm-review/reference.md"
+do
+  if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
+done
+if [ -n "$_ks_ref" ]; then
+  _ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+else
+  _project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  _source_dir="$_project_root/skills/engineering/llm-skill-review"
+  if [ -n "$_project_root" ] && [ -r "$_source_dir/skill.md" ] && \
+     [ -r "$_source_dir/reference.md" ] && \
+     [ -r "$_project_root/tools/section-loader.sh" ]; then
+    _ks_ref="$_source_dir/reference.md"
+    _ks_loader="$_project_root/tools/section-loader.sh"
+  fi
+fi
+[ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
+_section='<section heading>'
+bash "$_ks_loader" "$_ks_ref" "$_section" \
+  || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
+```
+<!-- kernel-split-reference-loader:end -->
+
 ## When to Use
 
 **This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion. **Exception:** for skill-adjacent shell scripts and tool wrappers specifically, also run `code-review-battery` -- its `ShellRuntimeAuditor` persona activates unconditionally on shell content regardless of path, because this skill's own pre-push gate (`tools/pre-push-llm-skill-review-gate.sh`) only mechanically requires its sentinel for `skills/**/*.md` changes, not standalone `.sh`/`.js`/`.py`/`.mjs` files -- run both for a change that touches both content types. This is the one carve-out to the "instead of, not alongside" rule above.
