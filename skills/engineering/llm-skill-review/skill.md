@@ -106,7 +106,7 @@ Score each axis from 0.0 to 10.0 and justify with evidence:
 
 ## Prose/Design Quality Axes (absorbed from progressive-harsh-review)
 
-A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) by running Persona 6 as PHR's actual three-sub-persona ensemble (see Specialist Personas below), using `progressive-harsh-review`'s own per-persona weights, aggregation rule, and critical-veto rule verbatim -- see that skill's **"The Three Personas"** section (NOT "Step 1: Dispatch Review," which is only the generic fallback table used when a persona has no explicit weight definition -- citing the fallback table here was a round-2 self-review defect, fixed):
+A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) by running Persona 6 as PHR's actual three-sub-persona ensemble (see Specialist Personas below), using `progressive-harsh-review`'s own per-persona weights, aggregation rule, and critical-veto rule verbatim -- see that skill's **"Persona dimension table"** section (NOT "Step 1: Dispatch Review," which is only the generic fallback table used when a persona has no explicit weight definition -- citing the fallback table here was a round-2 self-review defect, fixed):
 
 | Axis | What to evaluate |
 |---|---|

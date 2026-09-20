@@ -116,6 +116,8 @@ else
 fi
 [ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
 [ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
 _section='<section heading>'
 bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }

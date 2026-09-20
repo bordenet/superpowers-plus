@@ -13,10 +13,10 @@ Do not stall here. Check `docs/superpowers/specs/` for an existing spec instead 
 Then choose one route:
 
 1. Requirements and architecture are known: state the key requirement and architectural constraint in one sentence each.
-2. Either needs investigation: pause, inspect the relevant evidence, summarize each finding in one sentence, and return. Do not invoke design skills recursively during this investigation. Escalate contradictory or unresolved high-stakes inputs.
+2. Either needs investigation: pause, inspect the relevant evidence, summarize each finding in one sentence, and return. Do not invoke design skills recursively during this investigation. Escalate contradictory or unresolved high-stakes inputs to `thinking-orchestrator`.
 3. The decision is low-stakes and reversible: state that fact and proceed without formal validation.
 
-### Step 1: Generate options
+### Step 2: Generate options
 
 Produce at least three genuinely distinct, implementable options with no more than three bullets each: approach, key trade-off, and risk profile.
 
@@ -24,7 +24,7 @@ Produce at least three genuinely distinct, implementable options with no more th
 
 ## Comparison protocol
 
-### Step 2: Compare
+### Step 3: Compare
 
 Give each option no more than three bullets: approach, key trade-off, and risk profile. Compare Complexity, Testability, Maintainability, Risk, Fit with existing patterns, and Reversibility. Keep matrix cells to five words or fewer.
 
@@ -34,11 +34,11 @@ If one option is the only viable choice, the matrix must still explain why the o
 
 ## Hostile review protocol
 
-### Step 3: Harsh review
+### Step 4: Harsh review
 
 ⛔ **HARD GATE: Author and reviewer must differ.**
 
-Use a fresh sub-agent when available; otherwise make an explicit role switch after finishing the design. For the reviewer's lens, reuse the relevant `progressive-harsh-review` persona name (`JuniorDevNitpicker`, `SeniorArchCritic`, or `OpsRealist`) rather than redefining personas here. This is a persona reference only: do not invoke that skill from debate.
+Dispatch a fresh sub-agent when available (Claude Code: `Task()`/Agent tool with a hostile-reviewer prompt carrying the full design context; other platforms: see `using-superpowers`'s Platform Adaptation section for the equivalent dispatch mechanism); otherwise make an explicit role switch after finishing the design ("You are now the hostile reviewer. Discard the author's reasoning; start fresh from the artifact text alone."). For the reviewer's lens, reuse the relevant `progressive-harsh-review` persona name (`JuniorDevNitpicker`, `SeniorArchCritic`, or `OpsRealist`) rather than redefining personas here. This is a persona reference only: do not invoke that skill from debate.
 
 The reviewer answers each question in one sentence:
 
@@ -51,15 +51,15 @@ The reviewer answers each question in one sentence:
 7. Is every rejected option one a competent engineer would propose? If not, replace it once and rerun comparison; the next review becomes round one.
 8. Was status quo, deferment, or a time-boxed spike priced as the comparison anchor?
 
-Search for disconfirming evidence. An option that loses on merit stays documented; do not regenerate it merely because it lost.
+**REQUIRED:** Invoke `adversarial-search` principles -- search for the WRONG thing, not confirmation of the RIGHT thing. An option that loses on merit stays documented; do not regenerate it merely because it lost.
 
-### Step 4: Probe edge cases
+### Step 5: Probe edge cases
 
 List at most ten failure modes, boundaries, tests, or defensive integration points surfaced by hostile review.
 
-### Step 5: Iterate
+### Step 6: Iterate
 
-⛔ **HARD GATE: Complete at least two full review rounds.** Run review, fix, verify the fix in the artifact, and re-review; stop after three rounds and escalate if the design has not converged.
+⛔ **HARD GATE: Complete at least two full review rounds.** Run review, fix, verify the fix in the artifact, and re-review; stop after three rounds and escalate to `thinking-orchestrator` if the design has not converged.
 
 ## Output and example
 

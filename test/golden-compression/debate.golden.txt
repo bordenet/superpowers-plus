@@ -21,13 +21,22 @@ Do not use after implementation has begun, for bug fixing, or for initial idea e
 3. **Compare.** Load `Comparison protocol` before building the matrix. Use all six criteria, no more than five words per cell. Recommend in two or three sentences. A recommendation is not completion.
 4. **Review.** Author and reviewer must be separate. Load `Hostile review protocol`; use one separated reviewer for reversible work and at least two for irreversible or high-blast-radius work. Do NOT invoke `progressive-harsh-review` or `quantitative-decision-gate` as the reviewer because both can route back to debate.
 5. **Probe edge cases.** List no more than ten failure modes, boundaries, tests, or defensive integration points surfaced by review.
-6. **Iterate.** Run `review -> fix -> verify the fix in the artifact -> re-review`. Complete a minimum two full review rounds and no more than three. Exit only when a round finds no new material issue. If three rounds completed without convergence, escalate. Do NOT continue beyond 3 rounds.
+6. **Iterate.** Run `review -> fix -> verify the fix in the artifact -> re-review`. Complete a minimum two full review rounds and no more than three. Exit only when a round finds no new material issue. If three rounds completed without convergence, escalate to `thinking-orchestrator` with the unresolved findings rather than continuing to iterate. Do NOT continue beyond 3 rounds.
 ## Hard gates
 - Three options must be genuinely different, not superficial variations or two straw men around a preferred answer.
 - A separated reviewer must test the chosen option and the integrity of the option set.
 - Verify fixes landed: every claimed resolution must be visible in the updated artifact.
 - Keep each review answer to one sentence and each later round delta-only.
 - Never claim convergence after the initial review.
+## Failure Modes
+| Failure | Fix |
+|---------|-----|
+| Only one option ever generated | Invoke `think-twice`; never proceed with fewer than three genuinely distinct options |
+| Reviewer is the same pass/agent as the author | Dispatch a fresh sub-agent, or make an explicit role switch that discards the author's reasoning and starts fresh from the artifact text |
+| Three rounds completed without convergence | Escalate to `thinking-orchestrator` with the unresolved findings — do not keep iterating past round 3 |
+| A rejected option is a straw man, not one a competent engineer would propose | Replace it once and rerun comparison; the next review becomes round one |
+| A claimed fix was never verified in the updated artifact | Re-read the artifact directly — a fix summary is not evidence the fix landed |
+| Convergence claimed after only one review round | Never claim convergence after the initial review; a minimum of two full rounds is a hard gate, not a suggestion |
 ## Rationalizations to reject
 | Excuse | Required response |
 |---|---|
@@ -42,7 +51,7 @@ Do not use after implementation has begun, for bug fixing, or for initial idea e
 ## Output
 Return a compact inline decision record containing: decision and rationale; options considered; rejected options and reasons; edge-case catalog; review findings and resolutions; open risks. Write under `docs/superpowers/specs/` only when explicitly requested.
 ## Reference loading
-Load only the named section. `Preflight routing` is mandatory before Step 1, `Comparison protocol` before Step 3, and `Hostile review protocol` before Step 4. Load the output example only when needed.
+Load only the named section. `Preflight routing` is mandatory before Step 1, `Comparison protocol` before Step 3, and `Hostile review protocol` before Step 4. Load the output example only when needed. When an installed copy is found (any of `.claude`/`.codex`/`.agents`), loading requires the separately-provisioned `~/.codex/superpowers-plus` checkout -- an install missing that shared dependency gets a loud `section-loader missing` failure, not silent wrong content.
 
 ```bash
 _ks_ref=""
@@ -68,6 +77,8 @@ else
 fi
 [ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
 [ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
 _section='<section heading>'
 bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }

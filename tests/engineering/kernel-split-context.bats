@@ -10,10 +10,14 @@ setup() {
 # ---------------------------------------------------------------------------
 # kernel-split itself -- meta check that the skill stays kernel-sized.
 # Authored as a kernel from the start; it should stay small.
+# Budget raised 8000->8100 on 2026-09-20 (llm-skill-review, 3x-converged S3):
+# added a 2-line "replace before running" comment above the canonical
+# template's `_section='<section heading>'` placeholder, which had shipped
+# with no substitution instruction across all 4 loader instances.
 # ---------------------------------------------------------------------------
 @test "kernel-split skill stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/engineering/kernel-split/skill.md"
-  SKILL_BYTE_BUDGET=8000
+  SKILL_BYTE_BUDGET=8100
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
@@ -65,12 +69,21 @@ setup() {
 # Budget raised 6000->6500 on 2026-09-18: moved `## Rationalizations to
 # reject` back resident from reference.md, matching the PHR/context-ferry
 # precedent (anti-rubber-stamping content must not live behind the exact
-# on-demand-load condition it exists to prevent -- see diet.md). Still
-# stricter than the generic 60% cap (8,196).
+# on-demand-load condition it exists to prevent -- see diet.md).
+# Budget raised 6500->7500 on 2026-09-20 (llm-skill-review, multiple
+# converging findings): the kernel-split rewrite had silently DELETED (not
+# relocated) the REQUIRED `adversarial-search` invocation and left the
+# hostile-review dispatch step naming no concrete tool -- both restored,
+# plus a new resident `## Failure Modes` table (was missing entirely,
+# unlike its two Phase-2A siblings).
+# Budget raised 7500->7800 same day: documented the shared
+# ~/.codex/superpowers-plus loader dependency in Reference loading prose
+# (Cross-Agent Compatibility Critic S1 -- the dependency was undocumented
+# at point of use). Still stricter than the generic 60% cap (8,196).
 # ---------------------------------------------------------------------------
 @test "debate skill stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/engineering/debate/skill.md"
-  SKILL_BYTE_BUDGET=6500
+  SKILL_BYTE_BUDGET=7800
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }
@@ -82,9 +95,19 @@ setup() {
 # ---------------------------------------------------------------------------
 # Budget raised from 5000 for the same reason as PHR: its Failure Modes table
 # is resident again rather than on-demand.
+# Budget raised 6500->7000 on 2026-09-20 (llm-skill-review, S0): the
+# kernel-split rewrite had replaced Step 1's explicit checkbox-toggle /
+# BLOCKED-comment / write-back-to-disk mechanics with the unoperationalized
+# verb "track" -- a silent regression in the skill's one mandatory-write
+# step. Restored. Also added an "Output path" routing-table row and a
+# sensitive-content-scan trigger on the PreCompact abbreviated path (which
+# previously never loaded that check at all).
+# Budget raised 7000->7300 same day: documented the shared
+# ~/.codex/superpowers-plus loader dependency (Cross-Agent Compatibility
+# Critic S1).
 @test "context-ferry stays within kernel byte budget" {
   SKILL="$REPO_ROOT/skills/productivity/context-ferry/skill.md"
-  SKILL_BYTE_BUDGET=6500
+  SKILL_BYTE_BUDGET=7300
   current_bytes="$(wc -c < "$SKILL" | tr -d ' ')"
   [ "$current_bytes" -le "$SKILL_BYTE_BUDGET" ]
 }

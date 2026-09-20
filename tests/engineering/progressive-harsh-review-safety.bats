@@ -168,11 +168,21 @@ install_phr_fixture() {
     'cd "$1" && /bin/bash "$2"' _ "$target_project" "$loader_script"
 
   [ "$status" -ne 0 ]
-  [[ "$output" == *'section loader missing'* ]]
+  [[ "$output" == *'section-loader missing'* ]]
   [[ "$output" != *'MALICIOUS PROJECT LOADER'* ]]
 }
 
-@test "PHR installed loader fails closed on divergent reference copies" {
+@test "PHR installed loader tolerates a stale divergent copy the way debate/context-ferry do" {
+  # cr-battery/llm-skill-review 2026-09-20 (5 converging reviewers, one with a
+  # live repro): PHR's loader used to scan ALL installed candidates
+  # unconditionally and hard-fail via `cmp -s` the instant any two differed --
+  # this broke the exact deploy state kernel-split's own docs call sanctioned
+  # ("`deploy.sh` always refreshes `.claude`, while `--skip-augment` can
+  # preserve stale optional copies"). debate's and context-ferry's loaders
+  # never had this: they check `.claude` first and take it on first match,
+  # so a stale `.codex`/`.agents` copy is never even inspected. PHR now uses
+  # the identical canonical template. This test locks in the corrected
+  # behavior: a divergent third copy no longer aborts loading.
   local fixture_home="$TMPDIR_/divergent-home"
   local target_project="$TMPDIR_/divergent-project"
   local loader_script="$TMPDIR_/divergent-loader.sh"
@@ -187,8 +197,9 @@ install_phr_fixture() {
   run env HOME="$fixture_home" /bin/bash -c \
     'cd "$1" && /bin/bash "$2"' _ "$target_project" "$loader_script"
 
-  [ "$status" -ne 0 ]
-  [[ "$output" == *'installed references diverge'* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" != *'installed references diverge'* ]]
+  [[ "$output" == *'## Anti-Patterns'* ]]
 }
 
 @test "PHR invocation fixture records the independent review" {

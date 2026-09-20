@@ -38,6 +38,7 @@ Load each named section before its step; load the others on demand.
 | Diagnose hook behavior | Trigger mechanics |
 | Full path, before writing | Output template |
 | Full path, before saving | Fidelity and sensitive content |
+| Full path, before Step 5 (exact path/fallback) | Output path |
 | Choose a neighboring workflow | Companion skills |
 
 
@@ -55,7 +56,7 @@ Preserve verified state so a fresh session can resume without reconstructing thi
 | PreCompact with generated scaffold | Abbreviated path only |
 | PreCompact but scaffold missing | Full sequence fallback |
 
-**PreCompact abbreviated path:** append only Key Decisions, Pending Questions, and Next 3 Actions to `~/context-ferry-<timestamp>.md`. Do NOT run the full sequence when that scaffold exists. If missing, use the full sequence.
+**PreCompact abbreviated path:** append only Key Decisions, Pending Questions, and Next 3 Actions to `~/context-ferry-<timestamp>.md`. Do NOT run the full sequence when that scaffold exists. If missing, use the full sequence. Before appending, scan the content for credentials/tokens/API keys/PII; if found, prepend the sensitive-content warning from `Fidelity and sensitive content` even though the rest of that section is otherwise skipped on this path.
 
 Use `/context-ferry` manually where hooks are unavailable. Load `Trigger mechanics` only to diagnose a hook.
 
@@ -63,7 +64,7 @@ Use `/context-ferry` manually where hooks are unavailable. Load `Trigger mechani
 
 Run in order. Write discrete blocks so partial work survives compaction.
 
-1. **Update the execution doc.** Find the active plan/checklist; track completed, partial, or blocked work. Required when found. If several exist, update the most recently modified execution plan; list all candidates.
+1. **Update the execution doc.** Find the active plan/checklist. Required when found -- a stale plan doc is worse than no plan doc, since the new session will trust it. If found: check off completed items (`- [ ]` -> `- [x]`), add a brief status note to in-progress items (e.g. `*(in progress: partial -- see ferry prompt)*`), add a `BLOCKED:` comment to blocked items, and **write the updated file back to its existing path** -- this step edits the source file, it is not satisfied by only noting status in the ferry prompt. If several exist, update the most recently modified execution plan; list all candidates.
 2. **Collect pending state.** Capture unanswered questions verbatim. The task file is authoritative; copy its incomplete work. Label memory-only tasks and unreadable sources; never invent content.
 3. **Build the resume prompt.** Load `Output template` and fill each applicable field. If a question is pending, action 1 re-asks it.
 4. **Apply handling signals.** Load `Fidelity and sensitive content`, record fidelity honestly, and add its warning for secrets or private data. Do not block or skip generation.
@@ -81,7 +82,7 @@ Partial ferry is better than no ferry. If context becomes critical mid-sequence,
 
 ## Reference loading
 
-`Output template` and `Fidelity and sensitive content` are mandatory for the full path. Other sections are on demand.
+`Output template`, `Fidelity and sensitive content`, and `Output path` are mandatory for the full path. Other sections are on demand. When an installed copy is found (any of `.claude`/`.codex`/`.agents`), loading requires the separately-provisioned `~/.codex/superpowers-plus` checkout -- an install missing that shared dependency gets a loud `section-loader missing` failure, not silent wrong content.
 
 <!-- kernel-split-reference-loader:start -->
 ```bash
@@ -104,6 +105,8 @@ if [ -z "$_ks_ref" ] && [ -n "$_project_root" ] && \
 fi
 [ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
 [ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
 _section='<section heading>'
 bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }

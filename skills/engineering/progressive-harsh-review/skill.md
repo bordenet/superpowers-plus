@@ -116,31 +116,35 @@ The sentinel binds to HEAD. Commit, amend, or rebase requires fresh review unles
 
 ## Reference loading
 
-Load only the needed section: a repository score floor, detailed failure recovery, or the report template.
+Load only the needed section: `Project-min override`, `Anti-Patterns`, or `Scoring output format` (see the routing table above for exact heading names -- the loader below requires an exact match). When an installed copy is found (any of `.claude`/`.codex`/`.agents`), loading requires the separately-provisioned `~/.codex/superpowers-plus` checkout -- an install missing that shared dependency gets a loud `section-loader missing` failure, not silent wrong content.
 
 <!-- kernel-split-reference-loader:start -->
 ```bash
-_project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 _ks_ref=""
+_ks_loader=""
 for _candidate in \
-  "$HOME/.agents/skills/sp-phr/reference.md" \
+  "$HOME/.claude/skills/sp-phr/reference.md" \
   "$HOME/.codex/skills/sp-phr/reference.md" \
-  "$HOME/.claude/skills/sp-phr/reference.md"
+  "$HOME/.agents/skills/sp-phr/reference.md"
 do
-  [ -r "$_candidate" ] || continue
-  if [ -n "$_ks_ref" ] && ! cmp -s "$_ks_ref" "$_candidate"; then
-    printf 'installed references diverge: %s\n' "$_candidate" >&2
-    exit 1
-  fi
-  [ -n "$_ks_ref" ] || _ks_ref="$_candidate"
+  if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
 done
-_ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
-if [ -z "$_ks_ref" ]; then
-  _ks_ref="$_project_root/skills/engineering/progressive-harsh-review/reference.md"
-  [ -r "$_ks_loader" ] || _ks_loader="$_project_root/tools/section-loader.sh"
+if [ -n "$_ks_ref" ]; then
+  _ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+else
+  _project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  _source_dir="$_project_root/skills/engineering/progressive-harsh-review"
+  if [ -n "$_project_root" ] && [ -r "$_source_dir/skill.md" ] && \
+     [ -r "$_source_dir/reference.md" ] && \
+     [ -r "$_project_root/tools/section-loader.sh" ]; then
+    _ks_ref="$_source_dir/reference.md"
+    _ks_loader="$_project_root/tools/section-loader.sh"
+  fi
 fi
 [ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
-[ -r "$_ks_loader" ] || { printf 'section loader missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
 _section='<section heading>'
 bash "$_ks_loader" "$_ks_ref" "$_section" \
   || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
