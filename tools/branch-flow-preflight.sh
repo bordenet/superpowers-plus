@@ -2,7 +2,9 @@
 # -----------------------------------------------------------------------------
 # Script: branch-flow-preflight.sh
 # PURPOSE: TRUSTED-ADVISOR release-management hygiene check.
-#          ALWAYS EXITS 0. Never blocks. Never gates. Suggestions only.
+#          Never blocks or gates on advisory content -- exits 0 for every
+#          branch-flow check. Exits 1 only on malformed CLI usage (e.g.
+#          --sha with no value); that is a usage error, not an advisory.
 #
 # USAGE:   tools/branch-flow-preflight.sh                          (auto: check current branch)
 #          tools/branch-flow-preflight.sh <source> <target>        (check pair)
@@ -96,8 +98,10 @@ Usage: tools/branch-flow-preflight.sh [<source> [<target>]] [--sha <SHA>]
        tools/branch-flow-preflight.sh --identical-check <err1> <err2>
        tools/branch-flow-preflight.sh -h | --help
 
-TRUSTED-ADVISOR release-management hygiene check. ALWAYS EXITS 0; it never
-blocks and never gates. Suggestions only.
+TRUSTED-ADVISOR release-management hygiene check. Never blocks or gates on
+advisory content; exits 0 for every branch-flow check. Exits 1 only on
+malformed CLI usage (e.g. --sha with no value) -- a usage error, not an
+advisory finding.
 
 Arguments:
   <source>            Branch to check. Default: the current branch.
@@ -349,7 +353,17 @@ else
         || echo unknown)"
 fi
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET:-${REQUIRED_BASE#origin/}}|${TS}" > "$SENTINEL"
+# Both TARGET (arg 2) and REQUIRED_BASE (only computed when advisories run,
+# i.e. never for protected branches) can be empty here -- the tool's own
+# documented no-args "auto: check current branch" usage on a protected
+# branch hits exactly this case. Falling back to SOURCE keeps the sentinel's
+# target field non-empty for the self-push case Gate 4 actually checks
+# (pushing dev needs a target=dev sentinel). Without this, the no-args
+# invocation silently reproduces the "sentinel unwritable" deadlock this
+# same commit's SKIP_ADVISORIES branch was written to close.
+SENTINEL_TARGET="${TARGET:-${REQUIRED_BASE#origin/}}"
+SENTINEL_TARGET="${SENTINEL_TARGET:-$SOURCE}"
+echo "v1|${SOURCE_SHA}|${SOURCE}|${SENTINEL_TARGET}|${TS}" > "$SENTINEL"
 chmod 0644 "$SENTINEL" 2>/dev/null || true
 
 # Always exit 0. This is guidance, not enforcement.

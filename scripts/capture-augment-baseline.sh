@@ -25,7 +25,7 @@ OUTPUT="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
 # tests for THIS script assert its JSON shape and drift detection -- they do not
 # assert sp-doctor's or run-battery's correctness, and those two tools cost
 # minutes per invocation (sp-doctor walks 123 skills x 30 checks). This script
-# is invoked 8 times across 6 tests, which made tests/baseline-capture-test.bats
+# is invoked 10 times across 6 tests, which made tests/baseline-capture-test.bats
 # the single slowest file in the suite. Overriding these three lets the test
 # substitute stubs and keeps the real behaviour on the default path.
 : "${CAPTURE_SP_DOCTOR:=$REPO_ROOT/tools/sp-doctor.sh}"

@@ -211,13 +211,16 @@ run_bats() {
 # a red ledger test shipped -- CI runs tests/ via ci-bats-discovery.sh, so a
 # developer could go green locally and push into red CI.
 #
-# It runs SERIALLY and deliberately. The --jobs audit documented above covered
-# test/ only; tests/ has never been audited for shared mutable state, and it
-# demonstrably has cross-file interference -- commit-gate-test.bats "overlay
-# mode scopes token to overlay repo" passes alone (serial AND --jobs 8) and
-# fails only when the whole tree runs concurrently. Running it under --jobs
-# would import an intermittent failure, which is the single most expensive
-# failure shape this repo has. Serial until each file is audited.
+# It runs under --jobs, with ONE named exception. The --jobs audit
+# documented above covered test/ file-by-file; tests/ has NOT received that
+# same per-file audit -- it has one known, demonstrated cross-file
+# interference case: commit-gate-test.bats "overlay mode scopes token to
+# overlay repo" passes alone (serial AND --jobs 8) but fails when the whole
+# tree runs concurrently, because it depends on process-global state. That
+# one file is carved into SERIAL_ONLY below and never runs concurrently with
+# anything. The other files are NOT individually audited the way test/'s are
+# -- if another cross-file interference surfaces, add it to SERIAL_ONLY
+# rather than assuming it's already covered.
 run_bats_tests_dir() {
     if ! command -v bats >/dev/null 2>&1; then
         echo "⚠️  bats not installed; skipping"
