@@ -914,17 +914,32 @@ fi
 # (already just a hex digest computed above) and SESSION_ID/MIN_SCORE/
 # MAX_HINTS, none of which can reconstruct the prompt.
 mkdir -p "$(dirname "$METRICS_FILE")" 2>/dev/null || true
+# cr-battery 2026-09-19 (Design Critic): this used to pass 8 positional
+# argv values to the python heredoc below, with the bash call site and the
+# `sys.argv[N]` reads ~70 lines apart in a different language register --
+# no shared symbol connected them, so a future field inserted in the middle
+# of the argv list would silently shift every subsequent read with no
+# error. Named env vars remove the ordinal dependency: an added field is a
+# one-line addition on both ends, order-independent, self-documenting.
+REBUILT_FLAG="$rebuild_needed" \
+SCORE_EXIT="$SCORE_EXIT" \
+SCORE_OUTPUT_RAW="$SCORE_OUTPUT" \
+ROUTER_SESSION_ID="$SESSION_ID" \
+ROUTER_PROMPT_SHA256="$PROMPT_SHA256" \
+ROUTER_MIN_SCORE="$MIN_SCORE" \
+ROUTER_MAX_HINTS="$MAX_HINTS" \
+ROUTER_METRICS_FILE="$METRICS_FILE" \
 python3 -c "
-import json, math, os, stat, sys, time
+import json, math, os, stat, time
 
-rebuilt_flag = sys.argv[1]
-score_exit = sys.argv[2]
-raw = sys.argv[3] if len(sys.argv) > 3 else ''
-session_id = sys.argv[4] if len(sys.argv) > 4 else ''
-prompt_sha256 = sys.argv[5] if len(sys.argv) > 5 else ''
-threshold_arg = sys.argv[6] if len(sys.argv) > 6 else ''
-max_hints_arg = sys.argv[7] if len(sys.argv) > 7 else ''
-metrics_path = sys.argv[8] if len(sys.argv) > 8 else ''
+rebuilt_flag = os.environ.get('REBUILT_FLAG', '')
+score_exit = os.environ.get('SCORE_EXIT', '')
+raw = os.environ.get('SCORE_OUTPUT_RAW', '')
+session_id = os.environ.get('ROUTER_SESSION_ID', '')
+prompt_sha256 = os.environ.get('ROUTER_PROMPT_SHA256', '')
+threshold_arg = os.environ.get('ROUTER_MIN_SCORE', '')
+max_hints_arg = os.environ.get('ROUTER_MAX_HINTS', '')
+metrics_path = os.environ.get('ROUTER_METRICS_FILE', '')
 
 lines = raw.split(chr(10))
 hints = [l.split('Likely match: ', 1)[1].split(' — ')[0] for l in lines if 'Likely match:' in l]
@@ -993,6 +1008,6 @@ try:
         raise OSError('short telemetry write')
 finally:
     os.close(descriptor)
-" "$rebuild_needed" "$SCORE_EXIT" "$SCORE_OUTPUT" "$SESSION_ID" "$PROMPT_SHA256" "$MIN_SCORE" "$MAX_HINTS" "$METRICS_FILE" 2>/dev/null || true
+" 2>/dev/null || true
 
 exit 0

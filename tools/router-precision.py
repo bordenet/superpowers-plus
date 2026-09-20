@@ -435,15 +435,18 @@ def analyze(
     max_transcript_bytes: int,
     max_total_transcript_bytes: int,
     max_line_bytes: int,
-) -> Tuple[dict, int, int, int, int, bool, int]:
-    # cr-battery 2026-09-19 (Design Critic + Defect Finder, convergent): this
-    # annotation drifted to 6 elements the moment schema_incomplete_hints was
-    # added as a 7th return value, in the same diff that added it -- caught
-    # by the review, not by anything mechanical (no mypy/type-check gate
-    # exists in this repo). Fixed to match the actual return statement below.
-    # A dataclass (matching this file's own ParseCounters/MetricRecord/Turn
-    # convention) would remove the positional-arity risk entirely; deferred
-    # as a larger, non-zero-regression-risk refactor -- tracked in TODO.md.
+) -> dict:
+    # cr-battery 2026-09-19/20 (Design Critic + Defect Finder, convergent):
+    # this used to return a 7-element positional tuple whose type annotation
+    # had already drifted to 6 elements the moment schema_incomplete_hints
+    # was added, in the same diff that added it -- caught by review, not by
+    # anything mechanical (no mypy/type-check gate exists in this repo).
+    # Design Critic's preferred fix (build the report dict, including
+    # "skipped", directly here instead of unpacking+reassembling a tuple in
+    # main()) removes the positional-arity risk entirely rather than just
+    # documenting it -- applied. The caller only adds the metrics-level
+    # counters it already knows about (metrics_lines, unsafe_session_ids,
+    # etc.) that analyze() has no way to see.
     total_hints = sum(len(record.hints) for record in records)
     hinted_prompts = sum(bool(record.hints) for record in records)
     evaluable = 0
@@ -560,16 +563,16 @@ def analyze(
         "precision": correct / evaluable if evaluable else None,
         "matched_invocations": matched_invocations,
         "suggested_not_invoked": suggested_not_invoked,
+        "skipped": {
+            "missing_transcripts": missing_transcripts,
+            "unmatched_prompt_hashes": unmatched_prompt_hashes,
+            "schema_incomplete_hints": schema_incomplete_hints,
+            "transcript_lines": transcript_lines_skipped,
+            "transcript_byte_limits": transcript_byte_limits,
+            "transcript_total_byte_limit": transcript_total_byte_limit,
+        },
     }
-    return (
-        report,
-        missing_transcripts,
-        unmatched_prompt_hashes,
-        transcript_lines_skipped,
-        transcript_byte_limits,
-        transcript_total_byte_limit,
-        schema_incomplete_hints,
-    )
+    return report
 
 
 def percentage(value: Optional[float]) -> str:
@@ -704,34 +707,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.max_scan_entries,
         args.max_depth,
     )
-    (
-        report,
-        missing_transcripts,
-        unmatched_prompt_hashes,
-        transcript_lines_skipped,
-        transcript_byte_limits,
-        transcript_total_byte_limit,
-        schema_incomplete_hints,
-    ) = analyze(
+    report = analyze(
         records,
         transcript_paths,
         args.max_transcript_bytes,
         args.max_total_transcript_bytes,
         args.max_line_bytes,
     )
-    report["skipped"] = {
+    # analyze() populated report["skipped"] with everything it computed
+    # itself; add the metrics-level counters only main() knows about.
+    report["skipped"].update({
         "metrics_lines": metric_counters.skipped_lines,
-        "transcript_lines": transcript_lines_skipped,
         "unsafe_session_ids": unsafe_session_ids,
-        "missing_transcripts": missing_transcripts,
-        "unmatched_prompt_hashes": unmatched_prompt_hashes,
-        "schema_incomplete_hints": schema_incomplete_hints,
         "metrics_byte_limit": metric_counters.byte_limit_hit,
         "metrics_record_limit": metric_counters.record_limit_hit,
-        "transcript_byte_limits": transcript_byte_limits,
-        "transcript_total_byte_limit": transcript_total_byte_limit,
         "transcript_scan_limit": scan_limited,
-    }
+    })
 
     if args.json:
         print(json.dumps(report, sort_keys=True))
