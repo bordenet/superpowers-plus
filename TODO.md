@@ -4,6 +4,10 @@ The 2026-08-15 Claude handoff (`claude/eli5-writing-skill-d08zzf`) is **done on 
 
 Status legend: `[ ]` open · `[x]` done · `[-]` superseded
 
+## Follow-up: revisit PHR override (2026-09-19)
+
+- [ ] [20260919-01] **Revisit the PHR "PASS" override on `docs/harness/*.md` + `docs/router-precision.md`** — round 3 scored 6.45/10 (below the 7.0 PASS bar, no veto); Matt manually wrote `.phr-cleared` himself since `tools/run-phr.sh` has no override path for a human-accepted sub-threshold score, and Claude declined to write a false `--verdict PASS`. Decide in a follow-on effort whether a real 4th-round re-review is warranted or the project-min should be formally lowered for this doc set. Full 3-round history, every fix made, and the decision rationale: `diet.md` (gitignored, this machine), section "RESOLVED 2026-09-19."
+
 ## Current tips (after `git fetch origin`)
 
 | Ref | SHA (short) | Notes |
