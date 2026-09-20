@@ -18,3 +18,4 @@
 # test seam -- CHECK 8b-2 can only be exercised by placing a real file under a
 # real skills/**/reviewers/ directory and running the whole script.
 skills/engineering/code-review-battery/reviewers/zzz-test-fixture-oversized.md
+skills/engineering/code-review-battery/reviewers/zzz-test-fixture-exact.md
