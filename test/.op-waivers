@@ -1,0 +1,46 @@
+# Bounded operative-pattern waivers, read by test/operative-move-detector.test.js.
+#
+# Format:  OP-WAIVER: <skill-path> <pattern> -<max-drop> — <reason>
+#
+# Bounded on all three axes: one skill, one pattern, one maximum magnitude. A
+# drop LARGER than the declared number still fails. This is deliberately not a
+# blanket switch, and it is deliberately committed: a waiver belongs in git
+# history next to the change that needed it, where it can be read, blamed, and
+# removed when the reason expires.
+#
+# WHY THIS FILE EXISTS INSTEAD OF A WIDER REGEX:
+# The first attempt at these two entries broadened countPatterns.step_headings
+# to also count bolded ordered-list items. That looked tidier and was far worse:
+# measured across 106 skills it granted ~400 units of undetectable deletion
+# budget to buy the 12 units needed here, and it let a "1. **name**: ..."
+# companion-skills list satisfy a gate meant to protect an ordered procedure.
+# Deleting all four real "### Phase N" headings from systematic-debugging passed
+# under it. Two narrow, reviewable waivers are the correct trade.
+#
+# Before adding an entry: prefer restoring the content, or moving it into the
+# skill's reference.md where the loader can still reach it. Waive only a genuine
+# re-encoding where the operative content demonstrably survives.
+
+# PHR's seven "### Step 0..6" headings became an eight-item numbered procedure
+# under "## Review process" (skill.md). Every step survives -- fresh-reader
+# check, dispatch, score, veto, verdict, remediate, correlation, convergence --
+# and the resident kernel still carries the veto and convergence rules. The
+# encoding changed; the procedure did not.
+OP-WAIVER: engineering/progressive-harsh-review/skill.md step_headings -7 — kernel split re-encoded "### Step N" as a numbered procedure list; all steps retained
+
+# context-ferry's five "### Step N" headings likewise became a numbered list;
+# the output path, PreCompact abbreviated path, and fidelity handling all remain
+# resident, with the full template in reference.md.
+OP-WAIVER: productivity/context-ferry/skill.md step_headings -5 — kernel split re-encoded "### Step N" as a numbered procedure list; all steps retained
+
+# debate's five "### Step N" headings and five stop markers live in
+# reference.md, which its loader resolves (source checkout, installed sp-debate
+# alias, and all three install roots -- exercised by 15 cases in
+# tests/engineering/debate-safety.bats). Content moved, not deleted.
+OP-WAIVER: engineering/debate/skill.md step_headings -5 — moved to reachable reference.md; loader coverage in debate-safety.bats
+OP-WAIVER: engineering/debate/skill.md stop_markers -5 — moved to reachable reference.md; loader coverage in debate-safety.bats
+
+# context-ferry's output-path and confirmation fences now live under
+# "## Output path" in reference.md; the path itself remains resident at
+# skill.md's numbered step 5, so the instruction never left the kernel.
+OP-WAIVER: productivity/context-ferry/skill.md code_fences -3 — output-scaffold fences moved to reachable reference.md; path stays resident

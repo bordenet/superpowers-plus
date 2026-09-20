@@ -23,6 +23,7 @@ RUN_SHELLCHECK=1
 RUN_BATS=1
 RUN_NODE=1
 RUN_HARSH=1
+RUN_FAST=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -34,7 +35,7 @@ while [[ $# -gt 0 ]]; do
         --no-bats)       RUN_BATS=0;       shift ;;
         --no-node)       RUN_NODE=0;       shift ;;
         --no-harsh)      RUN_HARSH=0;      shift ;;
-        --fast)          RUN_SHELLCHECK=0; RUN_HARSH=0; shift ;;
+        --fast)          RUN_SHELLCHECK=0; RUN_HARSH=0; RUN_FAST=1; shift ;;
         *) echo "❌ Unknown flag: $1" >&2; exit 1 ;;
     esac
 done
@@ -42,19 +43,60 @@ done
 declare -a FAILED=()
 declare -a PASSED=()
 
+# Working-tree guard. A test that writes into the repo leaks its fixture when a
+# run dies hard -- teardown does not run on SIGKILL and no trap can make it, so
+# the debris silently breaks the NEXT run and reads as a real failure. Sweep
+# declared artifacts first (healing a tree a crashed run left dirty), snapshot
+# the tree, and verify afterwards that nothing undeclared was created.
+TREE_GUARD="$SCRIPT_DIR/test-tree-guard.sh"
+TREE_STATE=""
+if [[ ! -x "$TREE_GUARD" ]]; then
+    # cr-battery 2026-09-19 (ShellRuntimeAuditor, reproduced live): this used
+    # to print a warning and continue -- TREE_STATE stayed empty, so the
+    # "if [[ -n "$TREE_STATE" ]]" verify call below was silently skipped with
+    # no entry in FAILED. A lost executable bit (a plausible checkout/CI slip)
+    # defeated the guard's entire "impossible to miss" promise: the suite
+    # reported full green while genuine test pollution went undetected.
+    echo "❌ working-tree guard missing or not executable: $TREE_GUARD" >&2
+    echo "    test pollution will NOT be detected this run." >&2
+    FAILED+=("working-tree guard (missing/not executable)")
+fi
+if [[ -x "$TREE_GUARD" ]]; then
+    # M4: a refused manifest pattern is a manifest bug. Surface it instead of
+    # discarding the exit code -- `|| true` here defeated the whole point of
+    # making sweep fail on a pattern it refused to expand.
+    if ! "$TREE_GUARD" sweep; then
+        echo "❌ working-tree guard: sweep refused one or more manifest patterns (see above)" >&2
+        FAILED+=("working-tree guard (sweep)")
+    fi
+    TREE_STATE="$(mktemp)"
+    "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
+fi
+
+# Per-suite wall time is recorded and reprinted in the summary. Without it,
+# "the suite is slow" is unactionable -- it took a manual bisect to find that
+# one serial directory and one test shelling out to sp-doctor/run-battery
+# accounted for most of a 45-minute run. Now the suite reports its own hotspots.
+SUITE_TIMES=()
+
 run_suite() {
     local label="$1"; shift
     echo ""
     echo "═══════════════════════════════════════════════════════════"
     echo "  ▶ $label"
     echo "═══════════════════════════════════════════════════════════"
+    local _start _elapsed
+    _start=$(date +%s)
     if "$@"; then
-        echo "✓ $label passed"
+        _elapsed=$(( $(date +%s) - _start ))
+        echo "✓ $label passed (${_elapsed}s)"
         PASSED+=("$label")
     else
-        echo "❌ $label failed"
+        _elapsed=$(( $(date +%s) - _start ))
+        echo "❌ $label failed (${_elapsed}s)"
         FAILED+=("$label")
     fi
+    SUITE_TIMES+=("${_elapsed}s  $label")
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite "label" run_shellcheck
@@ -98,11 +140,50 @@ _bats_jobs() {
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
+# Bats targets for this run. Normally the whole test/ directory; in fast mode
+# (which the pre-push hook runs under `timeout 300`) the files declared in
+# test/.slow-bats are excluded. A single test that outruns the gate's budget
+# kills the suite mid-stream with no `not ok` line, so the gate fails
+# deterministically and looks like a hang rather than a timeout.
+_bats_targets() {
+    local slow_list="$REPO_ROOT/test/.slow-bats"
+    if [[ "$RUN_FAST" -ne 1 || ! -f "$slow_list" ]]; then
+        printf '%s\n' "$REPO_ROOT/test/"
+        return 0
+    fi
+    local -a skip=()
+    local line
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        skip+=("$line")
+    done < "$slow_list"
+
+    local f base s excluded=0
+    for f in "$REPO_ROOT"/test/*.bats; do
+        [[ -e "$f" ]] || continue
+        base="$(basename "$f")"
+        for s in ${skip[@]+"${skip[@]}"}; do
+            if [[ "$base" == "$s" ]]; then
+                base=""
+                excluded=$((excluded + 1))
+                break
+            fi
+        done
+        [[ -n "$base" ]] && printf '%s\n' "$f"
+    done
+    if [[ "$excluded" -gt 0 ]]; then
+        echo "  [bats] --fast: excluded $excluded slow file(s) per test/.slow-bats (they run in the full suite)" >&2
+    fi
+}
+
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_bats() {
     if ! command -v bats >/dev/null 2>&1; then
         echo "⚠️  bats not installed; skipping"
         return 0
     fi
+    local -a targets=()
+    while IFS= read -r line; do targets+=("$line"); done < <(_bats_targets)
     # Force git's fsmonitor off for every git invocation the tests spawn. With
     # core.fsmonitor=true in a developer's global ~/.gitconfig, each throwaway
     # test repo starts a detached `git fsmonitor--daemon` that inherits bats'
@@ -112,12 +193,94 @@ run_bats() {
         jobs=$(_bats_jobs)
         echo "  [bats] running with --jobs $jobs (GNU parallel found)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats --jobs "$jobs" --no-parallelize-within-files test/
+            bats --jobs "$jobs" --no-parallelize-within-files ${targets[@]+"${targets[@]}"}
     else
         echo "  [bats] GNU parallel not found -- running serially (brew install parallel for a speedup)"
         GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
-            bats test/
+            bats ${targets[@]+"${targets[@]}"}
     fi
+}
+
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
+#
+# The tests/ tree (the R6 guardrail suite, the kernel-split safety suites, the
+# commit-gate suite -- file/test counts deliberately not stated here; see the
+# stale-"29"/"51"-files incident PHR round 1 caught 2026-09-18, run
+# `find tests -name '*.bats' | wc -l` for the live count) was historically
+# never run here: run_bats covered test/ only. That two-tier discovery is why
+# a red ledger test shipped -- CI runs tests/ via ci-bats-discovery.sh, so a
+# developer could go green locally and push into red CI.
+#
+# It runs under --jobs, with ONE named exception. The --jobs audit
+# documented above covered test/ file-by-file; tests/ has NOT received that
+# same per-file audit -- it has one known, demonstrated cross-file
+# interference case: commit-gate-test.bats "overlay mode scopes token to
+# overlay repo" passes alone (serial AND --jobs 8) but fails when the whole
+# tree runs concurrently, because it depends on process-global state. That
+# one file is carved into SERIAL_ONLY below and never runs concurrently with
+# anything. The other files are NOT individually audited the way test/'s are
+# -- if another cross-file interference surfaces, add it to SERIAL_ONLY
+# rather than assuming it's already covered.
+run_bats_tests_dir() {
+    if ! command -v bats >/dev/null 2>&1; then
+        echo "⚠️  bats not installed; skipping"
+        return 0
+    fi
+    [[ -d "$REPO_ROOT/tests" ]] || { echo "no tests/ directory"; return 0; }
+    # -r is REQUIRED. `bats <dir>` does not recurse, so the first version of
+    # this ran only the 22 top-level files and silently skipped the 7 in
+    # subdirectories -- including every kernel-split safety suite -- while
+    # reporting 381 tests green. A gate that looks like it covers something
+    # and does not is worse than no gate.
+    local found
+    found=$(find "$REPO_ROOT/tests" -name '*.bats' | wc -l | tr -d ' ')
+
+    # SERIAL_ONLY: files with known cross-file interference. Only these are
+    # forced serial; everything else runs under --jobs. Previously the whole
+    # directory ran serially because of the single commit-gate-test.bats case
+    # ("overlay mode scopes token to overlay repo"), which made 29 innocent
+    # files pay for 1 and pushed the full suite past 45 minutes. The safety
+    # property is unchanged -- the interfering file still never runs
+    # concurrently with anything, including itself.
+    # To retire this carve-out: fix the shared mutable state in the named file,
+    # remove it here, and confirm the suite is green over 3 consecutive runs.
+    local serial_only=("commit-gate-test.bats")
+
+    local -a parallel_files=() serial_files=()
+    local f base skip
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        base="${f##*/}"
+        skip=0
+        for s in "${serial_only[@]}"; do
+            [[ "$base" == "$s" ]] && { skip=1; break; }
+        done
+        if [[ "$skip" -eq 1 ]]; then serial_files+=("$f"); else parallel_files+=("$f"); fi
+    done < <(find "$REPO_ROOT/tests" -name '*.bats' | sort)
+
+    local rc=0
+    if [[ ${#parallel_files[@]} -gt 0 ]]; then
+        if command -v parallel >/dev/null 2>&1; then
+            local jobs
+            jobs=$(_bats_jobs)
+            echo "  [bats] tests/: $found file(s) -- ${#parallel_files[@]} with --jobs $jobs, ${#serial_files[@]} serial"
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+                bats --jobs "$jobs" --no-parallelize-within-files "${parallel_files[@]}" || rc=1
+        else
+            echo "  [bats] tests/: $found file(s), serial (GNU parallel not found -- brew install parallel)"
+            GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+                bats "${parallel_files[@]}" || rc=1
+        fi
+    fi
+
+    # The interfering files, strictly serial, after the parallel batch.
+    if [[ ${#serial_files[@]} -gt 0 ]]; then
+        echo "  [bats] tests/: ${#serial_files[@]} known-interfering file(s), serial"
+        GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+            bats "${serial_files[@]}" || rc=1
+    fi
+
+    return "$rc"
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
@@ -160,6 +323,16 @@ run_harsh_review() {
 [[ "$RUN_HARSH"      -eq 1 ]] && run_suite "harsh-review.sh" run_harsh_review
 [[ "$RUN_BATS"       -eq 1 ]] && run_suite "bats test/"      run_bats
 [[ "$RUN_NODE"       -eq 1 ]] && run_suite "node test/*"     run_node_tests
+# Not in --fast: the pre-push gate runs under `timeout 300` and tests/ is slow.
+# CI runs it via ci-bats-discovery.sh regardless.
+[[ "$RUN_BATS" -eq 1 && "$RUN_FAST" -ne 1 ]] && run_suite "bats tests/ (serial)" run_bats_tests_dir
+
+# Undeclared in-tree writes fail the run and are named. A declared artifact
+# left behind is reported but not fatal -- the next sweep heals it.
+if [[ -n "$TREE_STATE" ]]; then
+    run_suite "working-tree guard" "$TREE_GUARD" verify "$TREE_STATE"
+    rm -f "$TREE_STATE"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
@@ -167,6 +340,12 @@ echo "  SUMMARY"
 echo "═══════════════════════════════════════════════════════════"
 for s in "${PASSED[@]}"; do echo "  ✓ $s"; done
 for s in "${FAILED[@]}"; do echo "  ✗ $s"; done
+if [[ ${#SUITE_TIMES[@]} -gt 0 ]]; then
+    echo ""
+    echo "  Wall time by suite (slowest first):"
+    printf '    %s\n' "${SUITE_TIMES[@]}" | sort -rn
+fi
+
 echo ""
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo "❌ ${#FAILED[@]} suite(s) failed."

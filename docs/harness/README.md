@@ -28,9 +28,9 @@ bash tools/skill-size-audit.sh --json          # machine-readable
 
 The [`kernel-split`](../../skills/engineering/kernel-split/skill.md)
 skill (applied via [`tools/skill-partitioner`](../../tools/skill-partitioner))
-splits a monolithic skill into a small resident **kernel** -- loaded on every
-session -- plus an on-demand **reference** (a `reference.md` companion) that
-loads only when a specific lookup is needed.
+splits a monolithic skill into a small activation-time **kernel** -- loaded
+when the skill is selected -- plus an on-demand **reference** (a
+`reference.md` companion) that loads only when a specific lookup is needed.
 
 The kernel/reference boundary is drawn by keyword scoring on each section:
 `auth`, `gate`, `verify`, `secret`, `never`, `must`, and similar signals push
@@ -38,10 +38,49 @@ sections into the kernel; `example`, `walkthrough`, `troubleshoot`, `catalog`
 push them to the reference. Ambiguous sections land in a third file for human
 review before `apply`.
 
-> **Safety floor (non-negotiable):** hard gates, "never" rules, and
-> run-every-time decision inputs always stay in the kernel. They are never
-> demoted to the reference, regardless of size. A split that moves a gate out
-> of the kernel is wrong, even if it scores a larger reduction.
+> **Safety floor (non-negotiable) -- a RULE FOR THE SPLIT AUTHOR, not a
+> property of the actuator.** Hard gates, "never" rules, and run-every-time
+> decision inputs must stay in the kernel. A split that moves a gate out of the
+> kernel is wrong, even if it scores a larger reduction.
+>
+> **The partitioner does NOT enforce this, and you must not rely on it to.**
+> `tools/skill-partitioner` scans the full section body for hard-gate keywords
+> only inside a heading matching `failure mode`. Every other section is scored
+> on `heading + a 200-character preview`, so a `## Examples and edge cases`
+> section scores -2 and goes to the reference no matter how many NEVER rules
+> sit past character 200. `apply` adds no safety assertion. Verify the floor by
+> reading the proposed kernel, every time.
+>
+> This was learned the hard way: progressive-harsh-review shipped a split that
+> demoted its anti-rubber-stamping rules (the <=7 score-inflation cap, the
+> REGRESSION flag, Operational-Risk veto eligibility) to the reference, where
+> they loaded only on a path a rubber-stamping review never takes. They were
+> moved back resident. See `reduction-history.md`.
+
+### Test-suite machinery (added 2026-09-18)
+
+Four pieces landed with the Phase-2A splits and are easy to mis-trust:
+
+| Piece | What it does | Gotcha |
+|---|---|---|
+| `tools/test-tree-guard.sh` + `test/.test-artifacts` | Sweeps declared in-tree test artifacts before a run, then snapshots/verifies the tree and FAILS on any undeclared create or modify | A test may write inside the repo ONLY if its exact path is declared. `sweep` refuses traversal, absolute, tilde, and a glob in the first path component -- a bare `*` once wiped a working tree and reported "tree healed" |
+| `test/.slow-bats` | Excludes named bats files from `--fast` | `--fast` is what the pre-push gate runs under `timeout 300`. A file listed here does NOT run pre-push |
+| `bats tests/ (serial)` | Sixth suite; runs every `.bats` file `bats -r` finds under `tests/` | **Full-suite only, never `--fast`.** Runs SERIALLY -- `tests/` has proven cross-file interference and was never audited for `--jobs`. The file count is intentionally not stated here: `tools/test-all.sh` computes it at runtime rather than trusting a hardcoded number, and a prior revision of this row hardcoded "29" -- already wrong the same day it was written (actual: 30) -- which is exactly the stale-fact-in-prose class of bug this table exists to prevent. Run `find tests -name '*.bats' \| wc -l` for the live count |
+| `bats -r` | Required for the `tests/` suite | `bats <dir>` does NOT recurse. Without `-r` it ran 22 top-level files, silently skipped 7 subdirectories including every kernel-split safety suite, and reported 381 tests green |
+
+**Consequence worth stating plainly:** because `tests/` is excluded from
+`--fast`, BOTH regulator suites -- `tests/harness/artifact-budgets.bats` and
+`tests/engineering/kernel-split-context.bats` -- do **not** run in the pre-push
+gate. They run in the full local suite and in CI. Do not read a green pre-push
+as "budgets and ledgers verified."
+
+**Known enforcement gap:** nothing mechanically asserts that these two named
+regulator files stay inside the directories `bats -r tests/` actually walks --
+today that's `tests/{engineering,harness,productivity,tools}/*.bats` plus the
+22 top-level files. If either regulator file is ever renamed or moved outside
+those directories, `test-all.sh`'s reported count would drop with no failure
+and no warning. Not yet fixed; PHR round 1 (2026-09-18) found this via the
+same stale-count bug it's paired with above.
 
 ### 3. Regulator -- guard
 
@@ -67,7 +106,10 @@ for measured reductions. Every application of `kernel-split` appends a row
 with before/after byte counts and the resulting percentage. Trust the ledger,
 not any static graphic -- infographics can lag a split until re-exported.
 
-The ledger starts empty. Populate it as you apply the actuator.
+The ledger contains the aggregate pre-simplification baseline and the `Applied`
+split table. Append a row per split; do not reorder. Report **Retained**
+(kernel + reference, recoverable at runtime) separately from **Deleted** (gone
+from the skill entirely) -- conflating them once hid a real regression.
 
 ## Config precedence resolver (harness sibling)
 
@@ -91,12 +133,12 @@ Not every large skill is a good split candidate:
 - Skills whose bulk is one monolithic section score near zero on the partitioner
   and cannot be auto-split without restructuring first.
 - Skills whose "reference-looking" content is actually a run-every-time decision
-  input must stay resident even if the raw partitioner score suggests otherwise.
-  The safety floor overrides the score.
+  input must stay in the activation-time kernel even if the raw partitioner
+  score suggests otherwise. The safety floor overrides the score.
 
 Do not chase percentages past the safety floor. When the split does not clear
 the 40% target after safety-correct curation, record the reason in the
-reduction ledger's `Note` column and defer.
+reduction ledger's `Deferred` table under `Reason` and defer.
 
 ## Related docs
 
@@ -104,3 +146,4 @@ reduction ledger's `Note` column and defer.
 |---|---|
 | [`reduction-history.md`](reduction-history.md) | Per-split ledger and cumulative savings |
 | [`artifact-budgets.md`](artifact-budgets.md) | Regulator: budget regression tests and rebaseline workflow |
+| [`ip-audit-evidence.md`](ip-audit-evidence.md) | Scan call sites, aggregate block evidence, and the no-weakening decision |

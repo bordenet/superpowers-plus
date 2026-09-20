@@ -1,0 +1,4 @@
+{"ts": 1.0, "rebuilt": true, "status": "ok", "hints": ["alpha-skill", "beta-skill"]}
+{"ts": 2.0, "rebuilt": false, "status": "ok", "hints": []}
+{"ts": 3.0, "rebuilt": false, "status": "ok", "hints": ["alpha-skill"]}
+{"ts": 4.0, "rebuilt": false, "status": "ok", "hints": []}

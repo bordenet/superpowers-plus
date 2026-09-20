@@ -2,7 +2,9 @@
 # -----------------------------------------------------------------------------
 # Script: branch-flow-preflight.sh
 # PURPOSE: TRUSTED-ADVISOR release-management hygiene check.
-#          ALWAYS EXITS 0. Never blocks. Never gates. Suggestions only.
+#          Never blocks or gates on advisory content -- exits 0 for every
+#          branch-flow check. Exits 1 only on malformed CLI usage (e.g.
+#          --sha with no value); that is a usage error, not an advisory.
 #
 # USAGE:   tools/branch-flow-preflight.sh                          (auto: check current branch)
 #          tools/branch-flow-preflight.sh <source> <target>        (check pair)
@@ -85,8 +87,47 @@ fi
 # ---------------------------------------------------------------------------
 TIP_SHA_OVERRIDE=""
 _args=()
+
+# -h/--help must be handled explicitly. Without this they fell through to the
+# catch-all below and were consumed as the <source> branch name, so `--help`
+# silently RAN the preflight (and wrote the sentinel) instead of printing usage
+# -- a real hazard for an agent probing an unfamiliar tool for its interface.
+show_help() {
+    cat <<'HELP'
+Usage: tools/branch-flow-preflight.sh [<source> [<target>]] [--sha <SHA>]
+       tools/branch-flow-preflight.sh --identical-check <err1> <err2>
+       tools/branch-flow-preflight.sh -h | --help
+
+TRUSTED-ADVISOR release-management hygiene check. Never blocks or gates on
+advisory content; exits 0 for every branch-flow check. Exits 1 only on
+malformed CLI usage (e.g. --sha with no value) -- a usage error, not an
+advisory finding.
+
+Arguments:
+  <source>            Branch to check. Default: the current branch.
+  <target>            Branch it will be pushed/merged into. Default: none.
+
+Options:
+  --sha <SHA>         Override the tip SHA written to the sentinel
+                      (cherry-pick support).
+  --identical-check   Compare two error strings for a loop-on-identical-error
+                      stop condition.
+  -h, --help          Show this help and exit 0 without running any check
+                      and without writing a sentinel.
+
+Writes .branch-flow-cleared (audit trail, not enforcement):
+  v1|<source-tip-sha>|<source>|<target>|<utc-iso-timestamp>
+
+Escape hatches (each suppresses one specific advisory):
+  touch .git/base-advisory-ack-<branch-slug>   per-branch ack
+  GIT_BASE_OVERRIDE=1                          one-shot override
+  Branch prefix in {hotfix/, release/, backport/, tagged-release/}
+HELP
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -h|--help) show_help; exit 0 ;;
         --sha) [[ $# -ge 2 ]] || { printf 'error: --sha requires a SHA value\n' >&2; exit 1; }
                TIP_SHA_OVERRIDE="$2"; shift 2 ;;
         *) _args+=("$1"); shift ;;
@@ -122,11 +163,20 @@ SKIP_ADVISORIES=false
 case "$SOURCE" in
     main|master|develop|dev|staging)
         if [[ -z "$TIP_SHA_OVERRIDE" ]]; then
-            info "'$SOURCE' is a protected/long-lived branch; advisory skipped."
-            exit 0
+            # The ADVISORY is what a protected branch skips -- not the audit
+            # record. Previously this exited here without writing the sentinel,
+            # while pre-push Gate 4 hard-requires .branch-flow-cleared for
+            # exactly these canonical-flow targets (dev/staging/main). That made
+            # a dev->dev push unsatisfiable through the sanctioned tool: the one
+            # command Gate 4's own error message tells you to run could not
+            # produce the file it demands, unless you happened to pass --sha.
+            # Write the audit trail, then skip the advisory as before.
+            info "'$SOURCE' is a protected/long-lived branch; advisory skipped (sentinel still written)."
+            SKIP_ADVISORIES=true
+        else
+            info "'$SOURCE' is a protected/long-lived branch; advisory skipped (writing sentinel for cherry-pick)."
+            SKIP_ADVISORIES=true
         fi
-        info "'$SOURCE' is a protected/long-lived branch; advisory skipped (writing sentinel for cherry-pick)."
-        SKIP_ADVISORIES=true
         ;;
 esac
 
@@ -303,7 +353,17 @@ else
         || echo unknown)"
 fi
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "v1|${SOURCE_SHA}|${SOURCE}|${TARGET:-${REQUIRED_BASE#origin/}}|${TS}" > "$SENTINEL"
+# Both TARGET (arg 2) and REQUIRED_BASE (only computed when advisories run,
+# i.e. never for protected branches) can be empty here -- the tool's own
+# documented no-args "auto: check current branch" usage on a protected
+# branch hits exactly this case. Falling back to SOURCE keeps the sentinel's
+# target field non-empty for the self-push case Gate 4 actually checks
+# (pushing dev needs a target=dev sentinel). Without this, the no-args
+# invocation silently reproduces the "sentinel unwritable" deadlock this
+# same commit's SKIP_ADVISORIES branch was written to close.
+SENTINEL_TARGET="${TARGET:-${REQUIRED_BASE#origin/}}"
+SENTINEL_TARGET="${SENTINEL_TARGET:-$SOURCE}"
+echo "v1|${SOURCE_SHA}|${SOURCE}|${SENTINEL_TARGET}|${TS}" > "$SENTINEL"
 chmod 0644 "$SENTINEL" 2>/dev/null || true
 
 # Always exit 0. This is guidance, not enforcement.

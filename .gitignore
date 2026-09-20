@@ -106,3 +106,9 @@ MODULAR-MIGRATION-PROMPT.md
 
 # Isolated per-task worktrees (each is its own git checkout under its own branch)
 .worktrees/
+
+# Declared transient test artifacts (see test/.test-artifacts).
+# tools/test-tree-guard.sh sweeps these; they must never be committed. A
+# `git add -A` run right after a test created this file once committed it,
+# which then made every post-sweep tree permanently dirty.
+skills/engineering/code-review-battery/reviewers/zzz-test-fixture-oversized.md

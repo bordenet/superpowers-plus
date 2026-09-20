@@ -1,0 +1,21 @@
+# Declared in-tree test artifacts.
+#
+# THE RULE: a test writes to "$BATS_TEST_TMPDIR" (bats) or mktemp -d. It may
+# write inside the repo ONLY if the exact path is declared here.
+#
+# Paths are globs, relative to the repo root. tools/test-tree-guard.sh:
+#   - sweeps these before every suite run, healing a tree left dirty by a run
+#     that died before teardown (SIGKILL runs no teardown, and no trap helps);
+#   - fails the suite on any created/modified path NOT listed here.
+#
+# Adding a line is a deliberate, reviewable exception. Prefer fixing the test.
+#
+# Why this file exists: a leaked fixture from a crashed run broke three
+# subsequent runs in one day and baited a kill of a live suite, because the
+# debris was indistinguishable from a real failure.
+
+# tools/harsh-review.sh is a monolithic repo-wide script with no function-level
+# test seam -- CHECK 8b-2 can only be exercised by placing a real file under a
+# real skills/**/reviewers/ directory and running the whole script.
+skills/engineering/code-review-battery/reviewers/zzz-test-fixture-oversized.md
+skills/engineering/code-review-battery/reviewers/zzz-test-fixture-exact.md

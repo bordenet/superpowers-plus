@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'touch \"$CLAUDE_PLUGIN_ROOT/hook-executed\" && printf %s \"fixture-session-start-payload\"'"
+          }
+        ]
+      }
+    ]
+  }
+}

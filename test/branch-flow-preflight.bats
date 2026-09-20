@@ -194,6 +194,26 @@ teardown() {
     [ -f .branch-flow-cleared ]
 }
 
+@test "sentinel: zero-arg auto-mode on a protected branch writes a non-empty target field" {
+    # setup() leaves HEAD on 'main' (protected). No args, no explicit
+    # checkout -- this is the exact invocation the pre-push hook actually
+    # uses (skill.md wires "./tools/branch-flow-preflight.sh" with zero
+    # args). REQUIRED_BASE is never computed on the SKIP_ADVISORIES path,
+    # so without a fallback the target field lands empty and Gate 4 rejects
+    # the sentinel as "format unrecognized" -- reproduced and fixed 2026-09-20.
+    run ./preflight.sh
+    [ "$status" -eq 0 ]
+    [ -f .branch-flow-cleared ]
+    fields=$(awk -F'|' '{print NF}' < .branch-flow-cleared)
+    [ "$fields" -eq 5 ]
+    for i in 1 2 3 4 5; do
+        val=$(awk -F'|' -v i="$i" '{print $i}' < .branch-flow-cleared)
+        [ -n "$val" ]
+    done
+    target=$(awk -F'|' '{print $4}' < .branch-flow-cleared)
+    [ "$target" = "main" ]
+}
+
 # --- Self-target sanity check still exits 0 (just doesn't make sense) ---
 
 @test "advisory: source == target exits 0 (protected branch source)" {

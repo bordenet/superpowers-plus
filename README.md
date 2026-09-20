@@ -164,6 +164,8 @@ Sets up the Augment adapter and a skills directory. Does **not** install the ful
 
 Plugin mode installs skills only. For a complete setup that includes superpowers-core, use the `install.sh` path above.
 
+When Claude Code lifecycle guardrails are enabled, the SessionStart hook bounds its local logs. It rotates `~/.claude/hooks/hook-audit.log` above 1 MiB and keeps `.1` and `.2`. The block reporter reads those retained generations with the live log as one bounded chronological window. It rotates the metrics file selected by `CLAUDE_SKILL_ROUTER_METRICS` above 5 MiB and keeps `.1`; the default is `~/.claude/hooks/skill-router-metrics.jsonl`. Rotation is best-effort: missing, unreadable, symlinked, or unexpected file entries do not stop a Claude Code session. A recent empty rotation lock is preserved, while an empty lock older than five minutes is reclaimed.
+
 ### Codex
 
 ```text
@@ -283,6 +285,8 @@ For how triggers fire, how skill names are resolved, how compression works, and 
 
 The commit-gate chain (`unified-commit-gate` → pre-commit → style → code review → language → IP audit) runs automatically on every `git commit` when hooks are installed. The IP audit blocks commits containing proprietary identifiers, internal hostnames, or credentials. If a push is blocked, run `bash tools/public-repo-ip-check.sh` to see exactly what matched; if it's a false positive, add an exception pattern to `.ip-patterns`.
 
+The red-autonomy, internal-terms, and git-identity hooks write privacy-limited records to `~/.claude/hooks/hook-audit.log`. Run `python3 tools/hook-block-report.py` for fired-but-unadjudicated and unknown counts grouped by hook and exit code. A fired gate is not automatically a true positive; false-positive claims require local reproduction. Detailed output is local-only; commit timestamped aggregates only. See [Hook Block Audit](docs/hook-block-audit.md) for the record format and review workflow.
+
 **`git commit --no-verify` exists but bypassing gates is prohibited.** If a gate is genuinely broken, fix the gate — don't disable it. Changes to `skills/` additionally require a passing `code-review-battery` sentinel before the commit hook allows the commit. The sentinel format is `v1|SHA|VERDICT|TIMESTAMP|min-score=N`; write it only via `tools/run-battery.sh [--min-score N] --verdict PASS`. The primary slash command is `/sp-cr-battery`.
 
 **Skill priority when installed and git-cloned versions coexist:** The agent runtime loads skills from `~/.codex/skills/` (installed copy). If you are developing new skills in the git clone, run `bash install.sh --upgrade` to sync the installed copy, or point `SUPERPOWERS_SKILLS_DIR` to the git checkout for live reloading (see `docs/ARCHITECTURE.md`). If `SUPERPOWERS_SKILLS_DIR` points to a nonexistent or incomplete directory the runtime falls back to `~/.codex/skills/`; verify with `node ~/.codex/superpowers-augment/superpowers-augment.js find-skills` after setting the variable.
@@ -345,6 +349,7 @@ Utility scripts in `tools/`:
 | `todo-maintenance.sh` | Archival and cleanup of completed tasks |
 | `investigation-crud.sh` | Investigation state CRUD (hypotheses, evidence, verdicts) |
 | `public-repo-ip-check.sh` | Scans for proprietary content before public push |
+| `hook-block-report.py` | Reads one bounded tail across retained hook-audit generations and reports fired-but-unadjudicated and unknown events |
 | `skill-trigger-validator.sh` | Audits trigger overlaps and missing triggers |
 | `skill-cost-analyzer.sh` | Reports token cost per skill |
 | `skill-size-audit.sh` | Context-budget sensor: ranks every `skill.md` by byte count, flags any over the fleet threshold |
@@ -352,6 +357,7 @@ Utility scripts in `tools/`:
 | `measure-artifact-sizes.sh` | Context-budget regulator: measures always-on artifacts against `tests/harness/artifact-baselines.json` |
 | `generate-skill-dag.js` | Generates skill dependency graph (Mermaid) |
 | `skill-metrics-analyzer.sh` | Analyzes skill usage metrics |
+| `router-precision.py` | Reports advisory-router hint rate, hints per prompt, precision, and automatic versus explicit skill invocation from bounded local JSONL parsing. See [Skill Router Precision](docs/router-precision.md). |
 | `parse-frontmatter.sh` | Extracts YAML frontmatter from skill files |
 | `slop-check.sh` | Centralized AI slop gate -- blocking check for em/en-dash, boosters, buzzwords, and filler openers; advisory warnings for weak intensifiers and terms with a high false-positive rate in engineering prose. Shared by wiki, PHR, Linear, and recruiting paths. See `skills/writing/detecting-ai-slop/reference.md` for the pattern catalog. |
 

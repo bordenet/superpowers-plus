@@ -6,7 +6,29 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 SCRIPT="$REPO_ROOT/scripts/capture-augment-baseline.sh"
 OUTPUT="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
 
+# Stub the three heavy external probes. These tests assert this script's JSON
+# shape, idempotency and drift detection -- NOT sp-doctor's or run-battery's
+# correctness. Unstubbed, the script is invoked 10 times across the 6 tests
+# below and each invocation walks 123 skills x 30 checks (sp-doctor) plus a
+# full review battery, which made this the slowest file in the entire suite
+# by a wide margin. The script defaults these to the real tools, so production
+# behaviour is untouched; only this test substitutes stubs.
+# The stubs mimic the contract the script actually depends on: exit 0 and, for
+# the augment probe, JSON-ish text on stdout. augment.js is invoked via `node`
+# (scripts/capture-augment-baseline.sh:98), not bash -- it must be valid JS.
+_make_stubs() {
+    _STUB_DIR="$(mktemp -d)"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$_STUB_DIR/sp-doctor.sh"
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$_STUB_DIR/run-battery.sh"
+    printf 'process.stdout.write("stub-bootstrap");\nprocess.exit(0);\n' > "$_STUB_DIR/augment.js"
+    chmod +x "$_STUB_DIR/sp-doctor.sh" "$_STUB_DIR/run-battery.sh" "$_STUB_DIR/augment.js"
+    export CAPTURE_SP_DOCTOR="$_STUB_DIR/sp-doctor.sh"
+    export CAPTURE_RUN_BATTERY="$_STUB_DIR/run-battery.sh"
+    export CAPTURE_AUGMENT_JS="$_STUB_DIR/augment.js"
+}
+
 setup() {
+    _make_stubs
     # Save a copy of the baseline so we can restore it after each test
     _BASELINE_BACKUP="$(mktemp)"
     if [[ -f "$OUTPUT" ]]; then
@@ -25,6 +47,8 @@ teardown() {
         rm -f "$OUTPUT"
     fi
     rm -f "$_BASELINE_BACKUP"
+    [[ -n "${_STUB_DIR:-}" ]] && rm -rf "$_STUB_DIR"
+    return 0
 }
 
 # ---------------------------------------------------------------------------

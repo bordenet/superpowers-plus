@@ -7,6 +7,7 @@ setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd -P)"
   SECTION_LOADER="$REPO_ROOT/tools/section-loader.sh"
   PARTITIONER="$REPO_ROOT/tools/skill-partitioner"
+  KERNEL_SPLIT_SKILL="$REPO_ROOT/skills/engineering/kernel-split/skill.md"
   TMPDIR_="$(mktemp -d)"
   FIXTURE="$TMPDIR_/fixture-skill.md"
   REFERENCE="$TMPDIR_/fixture-reference.md"
@@ -60,6 +61,48 @@ MD
 
 teardown() {
   rm -rf "$TMPDIR_"
+}
+
+render_kernel_split_loader() {
+  local section="$1"
+  local script_file="$2"
+
+  awk '
+    /<!-- kernel-split-reference-loader:start -->/ { in_block = 1; next }
+    in_block && /^```bash$/ { next }
+    in_block && /^```$/ { exit }
+    in_block { print }
+  ' "$KERNEL_SPLIT_SKILL" \
+    | sed \
+        -e 's|<domain>|engineering|g' \
+        -e 's|<skill-name>|fixture-skill|g' \
+        -e 's|<installed-name>|sp-fixture|g' \
+        -e "s|_section='<section heading>'|_section='$section'|" \
+    > "$script_file"
+}
+
+install_template_fixture() {
+  local home_dir="$1"
+  local layout="$2"
+  local reference_source="${3:-$REFERENCE}"
+  local install_dir
+
+  case "$layout" in
+    agents) install_dir="$home_dir/.agents/skills/sp-fixture" ;;
+    codex) install_dir="$home_dir/.codex/skills/sp-fixture" ;;
+    claude) install_dir="$home_dir/.claude/skills/sp-fixture" ;;
+    *)
+      printf 'unknown install layout: %s\n' "$layout" >&2
+      return 2
+      ;;
+  esac
+
+  mkdir -p \
+    "$install_dir" \
+    "$home_dir/.codex/superpowers-plus/tools"
+  cp "$reference_source" "$install_dir/reference.md"
+  cp "$SECTION_LOADER" "$home_dir/.codex/superpowers-plus/tools/section-loader.sh"
+  chmod +x "$home_dir/.codex/superpowers-plus/tools/section-loader.sh"
 }
 
 @test "section-loader.sh exists and is executable" {
@@ -169,7 +212,182 @@ MD
   # Hard-gate Failure Modes MUST land in kernel (safety invariant).
   grep -q "^## Failure Modes" "$tmpdir/proposed-kernel.md"
   # And MUST NOT be in reference.
-  ! grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+  run grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+  [ "$status" -eq 1 ]
 
   rm -rf "$tmpdir"
+}
+
+@test "skill-partitioner never silently sends a far-keyword hard-gate Failure Modes section to reference.md" {
+  # cr-battery 2026-09-19 (Defect Finder): the sibling test above places the
+  # hard-gate keyword in the first sentence, well inside the 200-char scoring
+  # preview -- it would pass identically on the pre-fix code that only
+  # scanned `preview`, so it never actually exercised the reported bug
+  # (a keyword in row 3 or 10 of a real Failure Modes table, far past 200
+  # chars, was silently misclassified to reference.md). This pads well past
+  # that boundary before the keyword appears.
+  #
+  # Note: this asserts the actual safety invariant the fix protects --
+  # NEVER silently in reference.md -- not "always in kernel." The hard-gate
+  # bypass only cancels the automatic -999-to-reference; the section's score
+  # still comes from the 200-char preview, so a keyword found only via the
+  # full-body scan correctly lands in ambiguous-items.md for human review at
+  # `apply` time, which is a safe, non-silent outcome, not a bug. (First
+  # draft of this test asserted "must land in kernel" and failed against the
+  # code -- caught by running it before trusting it; the code's own comment
+  # ("falls through... to get their kernel-hint bumps") somewhat overstates
+  # this, since a bump only happens if the same keyword is ALSO in-preview.)
+  HARD_GATE_FIXTURE="$TMPDIR_/hard-gate-far-fixture.md"
+  {
+    printf -- '---\nname: hard-gate-far-fixture\ndescription: fixture with a hard-gate keyword past the preview window\n---\n\n'
+    printf '## Command catalog\n\nReference material for lookup only.\n\n'
+    printf '## Failure Modes\n\n'
+    printf '| Failure | Fix |\n|---------|-----|\n'
+    # Each filler row is well over 20 chars; ten of them clears 200.
+    for i in $(seq 1 10); do
+      printf '| Filler failure row number %02d describing an ordinary non-gating issue | Apply the ordinary non-gating fix for row %02d |\n' "$i" "$i"
+    done
+    printf '| Skipped sentinel write | NEVER skip the sentinel write. You MUST abort and escalate. This is a hard gate. |\n'
+  } > "$HARD_GATE_FIXTURE"
+
+  run bash "$PARTITIONER" propose "$HARD_GATE_FIXTURE"
+  [ "$status" -eq 0 ]
+  tmpdir="$(printf '%s\n' "$output" | grep 'Proposed split written to:' | sed 's/.*: //')"
+
+  # The real invariant: NEVER silently in reference.md. It may legitimately
+  # land in kernel OR ambiguous (human reviews ambiguous before apply) --
+  # both are safe; only reference.md is the silent-failure shape.
+  run grep -q "^## Failure Modes" "$tmpdir/proposed-reference.md"
+  [ "$status" -eq 1 ]
+  run grep -q "^## Failure Modes" "$tmpdir/proposed-kernel.md"
+  kernel_hit="$status"
+  run grep -q "^## Failure Modes" "$tmpdir/ambiguous-items.md"
+  ambiguous_hit="$status"
+  # Exactly one of kernel/ambiguous must contain it (0 = grep found it).
+  [ "$kernel_hit" -eq 0 -o "$ambiguous_hit" -eq 0 ]
+
+  rm -rf "$tmpdir"
+}
+
+@test "kernel-split loader template works from a source checkout" {
+  source_repo="$TMPDIR_/source-repo"
+  mkdir -p \
+    "$source_repo/skills/engineering/fixture-skill" \
+    "$source_repo/tools" \
+    "$TMPDIR_/empty-home"
+  cp "$FIXTURE" "$source_repo/skills/engineering/fixture-skill/skill.md"
+  cp "$REFERENCE" "$source_repo/skills/engineering/fixture-skill/reference.md"
+  cp "$SECTION_LOADER" "$source_repo/tools/section-loader.sh"
+  chmod +x "$source_repo/tools/section-loader.sh"
+  git -C "$source_repo" init -q
+  script_file="$TMPDIR_/source-template-loader.sh"
+  render_kernel_split_loader "Alpha section" "$script_file"
+
+  run env HOME="$TMPDIR_/empty-home" bash -c "cd '$source_repo' && bash '$script_file'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "## Alpha section"* ]]
+}
+
+@test "kernel-split loader template works from an installed alias" {
+  install_home="$TMPDIR_/installed-home"
+  consumer="$TMPDIR_/consumer"
+  mkdir -p "$consumer"
+  install_template_fixture "$install_home" agents
+  script_file="$TMPDIR_/installed-template-loader.sh"
+  render_kernel_split_loader "Beta section" "$script_file"
+
+  run env HOME="$install_home" bash -c "cd '$consumer' && bash '$script_file'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "## Beta section"* ]]
+  [[ "$output" == *"### Beta sub-heading"* ]]
+}
+
+@test "kernel-split loader template executes every installed skill layout" {
+  for layout in claude codex agents; do
+    install_home="$TMPDIR_/$layout-home"
+    consumer="$TMPDIR_/$layout-consumer"
+    mkdir -p "$consumer"
+    install_template_fixture "$install_home" "$layout"
+    script_file="$TMPDIR_/$layout-template-loader.sh"
+    render_kernel_split_loader "Beta section" "$script_file"
+
+    run env HOME="$install_home" bash -c "cd '$consumer' && bash '$script_file'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "## Beta section"* ]]
+    [[ "$output" == *"### Beta sub-heading"* ]]
+  done
+}
+
+@test "kernel-split installed template outranks a complete malicious current-project tuple" {
+  install_home="$TMPDIR_/malicious-home"
+  consumer="$TMPDIR_/malicious-consumer"
+  consumer_skill="$consumer/skills/engineering/fixture-skill"
+  malicious_marker="$TMPDIR_/kernel-template-project-loader.executed"
+  mkdir -p "$consumer_skill" "$consumer/tools"
+  git -C "$consumer" init -q
+  install_template_fixture "$install_home" claude
+  cp "$FIXTURE" "$consumer_skill/skill.md"
+  cat > "$consumer_skill/reference.md" <<'MD'
+# Poison project reference
+
+## Beta section
+
+PROJECT-TEMPLATE-REFERENCE-POISON
+MD
+  grep -Fq 'PROJECT-TEMPLATE-REFERENCE-POISON' "$consumer_skill/reference.md"
+  cat > "$consumer/tools/section-loader.sh" <<'SH'
+#!/usr/bin/env bash
+: "${MALICIOUS_MARKER:?}"
+: > "$MALICIOUS_MARKER"
+printf 'PROJECT-LOADER-EXECUTED\n'
+SH
+  chmod +x "$consumer/tools/section-loader.sh"
+  script_file="$TMPDIR_/malicious-template-loader.sh"
+  render_kernel_split_loader "Beta section" "$script_file"
+
+  run env \
+    HOME="$install_home" \
+    MALICIOUS_MARKER="$malicious_marker" \
+    bash -c "cd '$consumer' && bash '$script_file'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "## Beta section"* ]]
+  [[ "$output" == *"Beta body line 1."* ]]
+  [[ "$output" != *"PROJECT-TEMPLATE-REFERENCE-POISON"* ]]
+  [[ "$output" != *"PROJECT-LOADER-EXECUTED"* ]]
+  [ ! -e "$malicious_marker" ]
+}
+
+@test "kernel-split template chooses canonical Claude reference over divergent optional copies" {
+  install_home="$TMPDIR_/divergent-home"
+  consumer="$TMPDIR_/divergent-consumer"
+  stale_agents="$TMPDIR_/stale-agents.md"
+  stale_codex="$TMPDIR_/stale-codex.md"
+  mkdir -p "$consumer"
+  git -C "$consumer" init -q
+  sed 's/Alpha body line 1/STALE-AGENTS/' "$REFERENCE" > "$stale_agents"
+  sed 's/Alpha body line 1/STALE-CODEX/' "$REFERENCE" > "$stale_codex"
+  install_template_fixture "$install_home" agents "$stale_agents"
+  install_template_fixture "$install_home" codex "$stale_codex"
+  install_template_fixture "$install_home" claude "$REFERENCE"
+  script_file="$TMPDIR_/divergent-template-loader.sh"
+  render_kernel_split_loader "Alpha section" "$script_file"
+
+  run env HOME="$install_home" bash -c "cd '$consumer' && bash '$script_file'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Alpha body line 1."* ]]
+  [[ "$output" != *"STALE-AGENTS"* ]]
+  [[ "$output" != *"STALE-CODEX"* ]]
+}
+
+@test "kernel-split installed loader fails on an unknown section" {
+  install_home="$TMPDIR_/missing-home"
+  consumer="$TMPDIR_/missing-consumer"
+  mkdir -p "$consumer"
+  install_template_fixture "$install_home" claude
+  script_file="$TMPDIR_/missing-template-loader.sh"
+  render_kernel_split_loader "Missing section" "$script_file"
+
+  run env HOME="$install_home" bash -c "cd '$consumer' && bash '$script_file'"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"section not found: Missing section"* ]]
 }

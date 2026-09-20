@@ -1,6 +1,7 @@
 ---
 name: autonomous-chain-controller
 source: superpowers-plus
+disable-model-invocation: true
 triggers:
   - "build"
   - "implement"
