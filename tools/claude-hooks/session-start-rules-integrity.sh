@@ -58,6 +58,15 @@ HOOKS_DIR="$HOME/.claude/hooks"
 METRICS_FILE="${CLAUDE_SKILL_ROUTER_METRICS:-$HOOKS_DIR/skill-router-metrics.jsonl}"
 ROTATION_LOCK="$HOOKS_DIR/.log-rotation.lock"
 ROTATION_RECLAIM_CLAIM="$HOOKS_DIR/.log-rotation.reclaim"
+# Separate from ROTATION_RECLAIM_CLAIM on purpose: lockf(1)/flock(1) create
+# their lock-target path if it is missing, so serializing on the claim path
+# itself recreates it as a plain file the instant recover_legacy_reclaim_
+# directory() has just rmdir'd it -- observed on Linux CI (flock creates
+# missing lock targets by default; neither lockf(1) nor flock(1) exist on
+# macOS, so this path was never exercised locally). A dedicated, always-ok-
+# to-recreate lock file keeps that OS-level serialization primitive from
+# fighting the application-level "is a reclaim in progress" marker.
+ROTATION_RECLAIM_LOCKFILE="$HOOKS_DIR/.log-rotation.reclaim.lock"
 ROTATION_LOCK_HELD=0
 ROTATION_LOCK_OWNER_RECORD=""
 ROTATION_INCOMPLETE_LOCK_STALE_SECONDS=300
@@ -239,10 +248,10 @@ run_reclaim_attempt_under_advisory_lock() {
 
   prepare_reclaim_claim_file || return 0
   if lock_tool="$(command -v lockf 2>/dev/null)" && [[ -n "$lock_tool" ]]; then
-    ROTATION_RECLAIM_GUARD=1 "$lock_tool" -t 0 "$ROTATION_RECLAIM_CLAIM" \
+    ROTATION_RECLAIM_GUARD=1 "$lock_tool" -t 0 "$ROTATION_RECLAIM_LOCKFILE" \
       /bin/bash "$hook_script" --reclaim-and-rotate || true
   elif lock_tool="$(command -v flock 2>/dev/null)" && [[ -n "$lock_tool" ]]; then
-    ROTATION_RECLAIM_GUARD=1 "$lock_tool" -n "$ROTATION_RECLAIM_CLAIM" \
+    ROTATION_RECLAIM_GUARD=1 "$lock_tool" -n "$ROTATION_RECLAIM_LOCKFILE" \
       /bin/bash "$hook_script" --reclaim-and-rotate || true
   fi
 }

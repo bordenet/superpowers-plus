@@ -2151,7 +2151,11 @@ _make_router_boundary_catalog() {
 
   # Flatten the repository's real domain-grouped skill tree into the layout
   # consumed by the hook. The scorer itself excludes internal/manual-only
-  # entries and deduplicates aliases, yielding the reviewed 118-skill corpus.
+  # entries and deduplicates aliases, yielding the reviewed 115-skill corpus
+  # (122 skill.md files - 6 internal - 3 disable-model-invocation as of
+  # 2026-09-20's diet.md Tier A demotion + 2 synthetic personal entries
+  # below = 115; this number moves whenever the real repo's routable-skill
+  # count changes, by design -- recompute rather than guess when it drifts).
   i=0
   while IFS= read -r -d '' skill_file; do
     i=$((i + 1))
@@ -2161,8 +2165,8 @@ _make_router_boundary_catalog() {
     -not -path '*/_archive/*' -print0)
 
   # The reviewed installed catalog has two unrelated personal workflow
-  # entries in addition to the repository's 116 routable names. Preserve the
-  # real 118-document IDF denominator without importing machine-local files.
+  # entries in addition to the repository's 113 routable names. Preserve the
+  # real 115-document IDF denominator without importing machine-local files.
   mkdir -p "$skills_dir/catalog-personal-1" "$skills_dir/catalog-personal-2"
   printf -- '---\nname: phone-screen-prep\ndescription: "Unrelated hiring workflow"\n---\nBody.\n' \
     > "$skills_dir/catalog-personal-1/skill.md"
@@ -2890,7 +2894,7 @@ import json
 import os
 
 cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
-assert cache["n_docs"] == 118, cache["n_docs"]
+assert cache["n_docs"] == 115, cache["n_docs"]
 conductor = next(entry for entry in cache["entries"] if entry["name"] == "debug-conductor")
 assert set(conductor["positive_triggers"]) == {
     "investigate distributed",
