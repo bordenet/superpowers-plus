@@ -50,12 +50,25 @@ read_manifest() {
 }
 
 # Does $1 (a repo-relative path) match any declared glob?
+#
+# cr-battery 2026-09-19 (Defect Finder, reproduced): this previously used
+# bash's `[[ == $pattern ]]` string-pattern match, where a bare `*` crosses
+# `/` -- but cmd_sweep enumerates candidates via `compgen -G`, real pathname
+# expansion, where `*` does NOT cross `/`. For any pattern with a glob in a
+# non-terminal segment (e.g. `skills/*/leak.md`), the two disagreed: a file
+# one segment deeper than the pattern anticipates was called "declared,
+# sweep will heal it" by verify, while sweep's own compgen -G could never
+# actually find it to delete -- permanent, silently-tolerated pollution that
+# both defeats detection and defeats remediation. Fixed by driving is_declared
+# off the exact same compgen -G expansion sweep uses, so the two functions
+# can never diverge again.
 is_declared() {
-    local path="$1" pattern
+    local path="$1" pattern match
     while IFS= read -r pattern; do
         [[ -z "$pattern" ]] && continue
-        # shellcheck disable=SC2053  # glob match on the right is the point
-        [[ "$path" == $pattern ]] && return 0
+        while IFS= read -r match; do
+            [[ "$match" == "$path" ]] && return 0
+        done < <(cd "$REPO_ROOT" && compgen -G "$pattern" 2>/dev/null || true)
     done < <(read_manifest)
     return 1
 }

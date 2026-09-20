@@ -371,9 +371,27 @@ def read_transcript(
 
 
 def same_skill(invoked: str, suggested: str) -> bool:
+    # cr-battery 2026-09-19: tail-only matching let a differently-namespaced
+    # skill sharing a tail name count as a correct suggestion (e.g. invoking
+    # anthropic-skills:brainstorming counted as matching a suggestion of
+    # unscoped "brainstorming") -- reproduced live, precision reported 1.0 on
+    # a confirmed false-positive match. This repo's router corpus only ever
+    # suggests unscoped names (verified: no colon-qualified name exists in
+    # the local skills corpus), so a namespace prefix on EITHER side means
+    # the invocation resolved to a specific installed copy that may or may
+    # not be the one suggested -- only tail-match when NEITHER side carries
+    # a namespace prefix (a first-pass fix that required namespace equality
+    # only when BOTH sides had one was verified live to NOT close this case,
+    # since the reproduction has exactly one namespaced side -- fixed here).
     if invoked == suggested:
         return True
-    return invoked.rsplit(":", 1)[-1] == suggested.rsplit(":", 1)[-1]
+    # No legitimate tail-match case survives once either side has a
+    # namespace prefix (see comment above) -- when neither side has a colon,
+    # tail-matching and exact-matching are the same comparison anyway, so
+    # this function is now just exact equality. Kept as an explicit function
+    # (not inlined at call sites) so the reasoning above stays attached to
+    # the one place this comparison is made.
+    return False
 
 
 def explicit_invocation(
@@ -409,7 +427,15 @@ def analyze(
     max_transcript_bytes: int,
     max_total_transcript_bytes: int,
     max_line_bytes: int,
-) -> Tuple[dict, int, int, int, int, bool]:
+) -> Tuple[dict, int, int, int, int, bool, int]:
+    # cr-battery 2026-09-19 (Design Critic + Defect Finder, convergent): this
+    # annotation drifted to 6 elements the moment schema_incomplete_hints was
+    # added as a 7th return value, in the same diff that added it -- caught
+    # by the review, not by anything mechanical (no mypy/type-check gate
+    # exists in this repo). Fixed to match the actual return statement below.
+    # A dataclass (matching this file's own ParseCounters/MetricRecord/Turn
+    # convention) would remove the positional-arity risk entirely; deferred
+    # as a larger, non-zero-regression-risk refactor -- tracked in TODO.md.
     total_hints = sum(len(record.hints) for record in records)
     hinted_prompts = sum(bool(record.hints) for record in records)
     evaluable = 0

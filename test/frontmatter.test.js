@@ -194,6 +194,15 @@ eq(stripFrontmatter("Just body text"), 'Just body text', 'stripFrontmatter: no f
 eq(stripFrontmatter("---\nname: x\n---\nBody"), 'Body', 'stripFrontmatter: no trailing newline');
 // Body contains --- horizontal rule (regression: was silently dropped)
 eq(stripFrontmatter("---\nname: x\n---\nBefore\n---\nAfter"), 'Before\n---\nAfter', 'stripFrontmatter: body --- preserved');
+// cr-battery 2026-09-19 (Standards Enforcer): NO leading frontmatter, but a
+// LATER bare --- (a horizontal rule). The confirmed real-world bug: this
+// exact shape (a reference.md with no frontmatter but a mid-document ---)
+// was silently truncated -- everything from the first --- to the next ---
+// was discarded, losing up to 67% of a real file. The hasFrontmatter guard
+// added to fix it restricts frontmatter detection to line 0; this is the one
+// shape none of the existing cases above actually exercises (all of them
+// either have real leading frontmatter, or no --- anywhere in the body).
+eq(stripFrontmatter("# Title\n\nIntro.\n\n---\n\nSurvives.\n"), '# Title\n\nIntro.\n\n---\n\nSurvives.', 'stripFrontmatter: no leading frontmatter, mid-document --- preserved');
 
 // --- Error path tests ---
 console.log('\n-- Error paths --');

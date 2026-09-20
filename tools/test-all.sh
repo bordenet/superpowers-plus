@@ -51,8 +51,15 @@ declare -a PASSED=()
 TREE_GUARD="$SCRIPT_DIR/test-tree-guard.sh"
 TREE_STATE=""
 if [[ ! -x "$TREE_GUARD" ]]; then
-    echo "⚠️  working-tree guard missing or not executable: $TREE_GUARD" >&2
+    # cr-battery 2026-09-19 (ShellRuntimeAuditor, reproduced live): this used
+    # to print a warning and continue -- TREE_STATE stayed empty, so the
+    # "if [[ -n "$TREE_STATE" ]]" verify call below was silently skipped with
+    # no entry in FAILED. A lost executable bit (a plausible checkout/CI slip)
+    # defeated the guard's entire "impossible to miss" promise: the suite
+    # reported full green while genuine test pollution went undetected.
+    echo "❌ working-tree guard missing or not executable: $TREE_GUARD" >&2
     echo "    test pollution will NOT be detected this run." >&2
+    FAILED+=("working-tree guard (missing/not executable)")
 fi
 if [[ -x "$TREE_GUARD" ]]; then
     # M4: a refused manifest pattern is a manifest bug. Surface it instead of

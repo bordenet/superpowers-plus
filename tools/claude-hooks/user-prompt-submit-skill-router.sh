@@ -549,6 +549,16 @@ trap 'rm -f "$SCORE_PY_FILE"' EXIT
 if [ -n "$SCORE_PY_FILE" ]; then
   cat > "$SCORE_PY_FILE" <<'SCORE_PY'
 import sys, json, re, math
+from collections import namedtuple
+
+# cr-battery 2026-09-19 (Design Critic): the scored/ranked list grew from a
+# 3-element tuple (1 unpack site) to 5 elements accessed at 6 different
+# positions (2 full unpacks + 4 magic-number indices: ranked[0][3],
+# ranked[0][4], etc.) with zero language-level enforcement that they agree.
+# A namedtuple turns every one of those into a named attribute.
+Candidate = namedtuple(
+    "Candidate", "total name description matched_terms explicit_aliases"
+)
 
 try:
     cache_path = sys.argv[1]
@@ -798,7 +808,7 @@ try:
                 term[:64]
                 for term in sorted(contrib, key=lambda t: (-contrib[t], t))[:5]
             ]
-            scored.append((
+            scored.append(Candidate(
                 total,
                 entry['name'],
                 entry['description'],
@@ -806,7 +816,7 @@ try:
                 entry.get('explicit_aliases', []),
             ))
 
-    scored.sort(key=lambda x: -x[0])
+    scored.sort(key=lambda c: -c.total)
 
     # Dedup by name (first/highest-scoring occurrence wins), unconditionally
     # -- not just when building `hints` below. The raw top score / runner-up
@@ -815,16 +825,15 @@ try:
     seen_names = set()
     ranked = []
     for item in scored:
-        _total, name, _desc, _terms, _aliases = item
-        if name in seen_names:
+        if item.name in seen_names:
             continue
-        seen_names.add(name)
+        seen_names.add(item.name)
         ranked.append(item)
 
-    top_score = ranked[0][0] if ranked else None
-    runner_up_score = ranked[1][0] if len(ranked) > 1 else None
-    top_terms = ranked[0][3] if ranked else []
-    top_explicit_aliases = ranked[0][4] if ranked else []
+    top_score = ranked[0].total if ranked else None
+    runner_up_score = ranked[1].total if len(ranked) > 1 else None
+    top_terms = ranked[0].matched_terms if ranked else []
+    top_explicit_aliases = ranked[0].explicit_aliases if ranked else []
 
     # MIN_SCORE gate: `ranked` is sorted descending, so the first entry
     # below the floor means every entry after it is too -- emit no hint at
@@ -833,12 +842,12 @@ try:
     # never actually invoked).
     hints = []
     suggested = None
-    for total, name, desc, _terms, _aliases in ranked:
-        if total < min_score:
+    for candidate in ranked:
+        if candidate.total < min_score:
             break
-        hints.append((name, desc))
+        hints.append((candidate.name, candidate.description))
         if suggested is None:
-            suggested = name
+            suggested = candidate.name
         if len(hints) >= max_hints:
             break
 

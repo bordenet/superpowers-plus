@@ -9,7 +9,6 @@ Load only the sections required by the process. Preflight, comparison, and hosti
 | Mandatory before building the matrix | Comparison protocol |
 | Before adversarial review | Hostile review protocol |
 | When an output example is needed | Output and example |
-| When tempted to skip a gate | Rationalizations to reject |
 | When choosing a neighboring workflow | Companion skills |
 # Design Triad
 ## When to use
@@ -29,10 +28,21 @@ Do not use after implementation has begun, for bug fixing, or for initial idea e
 - Verify fixes landed: every claimed resolution must be visible in the updated artifact.
 - Keep each review answer to one sentence and each later round delta-only.
 - Never claim convergence after the initial review.
+## Rationalizations to reject
+| Excuse | Required response |
+|---|---|
+| There is only one way | Invoke `think-twice`. |
+| Other options are obviously wrong | Explain the loss in the matrix. |
+| This is too simple | Test the assumptions anyway. |
+| Review found nothing | Answer every hostile-review question. |
+| There is no time | Compare now to avoid rework. |
+| The recommendation is done | Complete review, edge cases, and iteration. |
+| I reviewed my own design | Separate author and reviewer. |
+| I documented the resolution | Verify it landed in the artifact. |
 ## Output
 Return a compact inline decision record containing: decision and rationale; options considered; rejected options and reasons; edge-case catalog; review findings and resolutions; open risks. Write under `docs/superpowers/specs/` only when explicitly requested.
 ## Reference loading
-Load only the named section. `Preflight routing` is mandatory before Step 1, `Comparison protocol` before Step 3, and `Hostile review protocol` before Step 4. Load the output example or rationalizations only when needed.
+Load only the named section. `Preflight routing` is mandatory before Step 1, `Comparison protocol` before Step 3, and `Hostile review protocol` before Step 4. Load the output example only when needed.
 
 ```bash
 _ks_ref=""

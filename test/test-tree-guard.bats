@@ -135,6 +135,25 @@ setup() {
     [[ "$output" != *"UNDECLARED"* ]]
 }
 
+@test "guard: verify does not falsely call a glob-through-a-deeper-path 'declared' when sweep could never find it" {
+    # cr-battery 2026-09-19 (Defect Finder, reproduced live before the fix):
+    # is_declared() used bash `[[ == $pattern ]]` matching, where `*` crosses
+    # `/`, but cmd_sweep enumerates via `compgen -G`, where it doesn't. A
+    # pattern like `skills/*/leak.md` matched a file ONE SEGMENT DEEPER
+    # (skills/sub/nested/leak.md) in is_declared, so verify called it a
+    # "declared artifact... sweep will heal it" -- but sweep's own compgen -G
+    # over that same pattern can never enumerate that deeper path, so it is
+    # never actually cleaned. Permanent, silently-tolerated pollution.
+    printf 'skills/*/leak.md\n' > "$REPO/test/.test-artifacts"
+    "$REPO/tools/test-tree-guard.sh" snapshot "$BATS_TEST_TMPDIR/state"
+    mkdir -p "$REPO/skills/sub/nested"
+    echo leak > "$REPO/skills/sub/nested/leak.md"
+    run "$REPO/tools/test-tree-guard.sh" verify "$BATS_TEST_TMPDIR/state"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"UNDECLARED test pollution: skills/sub/nested/leak.md"* ]]
+    [[ "$output" != *"declared artifact still present"* ]]
+}
+
 @test "guard: verify refuses to pass when the snapshot is missing" {
     run "$REPO/tools/test-tree-guard.sh" verify "$BATS_TEST_TMPDIR/absent-state"
     [ "$status" -eq 1 ]

@@ -286,6 +286,57 @@ assert report["matched_invocations"] == {"automatic": 2, "explicit": 1}, report
 '
 }
 
+@test "router-precision does not count a differently-namespaced skill sharing a tail name as a correct suggestion" {
+  # cr-battery 2026-09-19 (Defect Finder): same_skill() previously matched on
+  # tail name alone, so invoking anthropic-skills:brainstorming counted as
+  # correct against a suggestion of unscoped "brainstorming" -- reproduced
+  # live with precision=1.0 on a confirmed false-positive match. This repo's
+  # skill ecosystem genuinely has multiple namespace prefixes (superpowers:,
+  # anthropic-skills:, sp-) sharing tail names right now.
+  local fixture_dir metrics transcripts
+  fixture_dir="$(mktemp -d "${BATS_TEST_TMPDIR}/router-precision-namespace.XXXXXX")"
+  metrics="$fixture_dir/metrics.jsonl"
+  transcripts="$fixture_dir/transcripts"
+  mkdir -p "$transcripts"
+
+  python3 -c '
+import hashlib
+import json
+import sys
+
+metrics, transcripts = sys.argv[1:]
+prompt = "Help me brainstorm this feature"
+prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+with open(metrics, "w", encoding="utf-8") as metric_handle:
+    metric_handle.write(json.dumps({
+        "session_id": "ns-test",
+        "prompt_sha256": prompt_hash,
+        "hints": ["brainstorming"],
+        "suggested": "brainstorming",
+    }) + "\n")
+with open(f"{transcripts}/ns-test.jsonl", "w", encoding="utf-8") as transcript:
+    transcript.write(json.dumps({"type": "user", "message": {"content": prompt}}) + "\n")
+    transcript.write(json.dumps({"type": "assistant", "message": {"content": [{
+        "type": "tool_use", "name": "Skill", "input": {"skill": "anthropic-skills:brainstorming"}
+    }]}}) + "\n")
+' "$metrics" "$transcripts"
+
+  run python3 "$REPO_ROOT/tools/router-precision.py" \
+    --metrics "$metrics" \
+    --transcripts "$transcripts" \
+    --json
+
+  [ "$status" -eq 0 ]
+  ROUTER_PRECISION_JSON="$output" python3 -c '
+import json
+import os
+
+report = json.loads(os.environ["ROUTER_PRECISION_JSON"])
+assert report["evaluable_suggestions"] == 1, report
+assert report["correct_suggestions"] == 0, report
+'
+}
+
 @test "router-precision runs under the macOS system Python 3.9 runtime" {
   if [[ ! -x /usr/bin/python3 ]]; then
     skip "/usr/bin/python3 not present"
