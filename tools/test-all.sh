@@ -73,19 +73,30 @@ if [[ -x "$TREE_GUARD" ]]; then
     "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
 fi
 
+# Per-suite wall time is recorded and reprinted in the summary. Without it,
+# "the suite is slow" is unactionable -- it took a manual bisect to find that
+# one serial directory and one test shelling out to sp-doctor/run-battery
+# accounted for most of a 45-minute run. Now the suite reports its own hotspots.
+SUITE_TIMES=()
+
 run_suite() {
     local label="$1"; shift
     echo ""
     echo "═══════════════════════════════════════════════════════════"
     echo "  ▶ $label"
     echo "═══════════════════════════════════════════════════════════"
+    local _start _elapsed
+    _start=$(date +%s)
     if "$@"; then
-        echo "✓ $label passed"
+        _elapsed=$(( $(date +%s) - _start ))
+        echo "✓ $label passed (${_elapsed}s)"
         PASSED+=("$label")
     else
-        echo "❌ $label failed"
+        _elapsed=$(( $(date +%s) - _start ))
+        echo "❌ $label failed (${_elapsed}s)"
         FAILED+=("$label")
     fi
+    SUITE_TIMES+=("${_elapsed}s  $label")
 }
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite "label" run_shellcheck
@@ -326,6 +337,12 @@ echo "  SUMMARY"
 echo "═══════════════════════════════════════════════════════════"
 for s in "${PASSED[@]}"; do echo "  ✓ $s"; done
 for s in "${FAILED[@]}"; do echo "  ✗ $s"; done
+if [[ ${#SUITE_TIMES[@]} -gt 0 ]]; then
+    echo ""
+    echo "  Wall time by suite (slowest first):"
+    printf '    %s\n' "${SUITE_TIMES[@]}" | sort -rn
+fi
+
 echo ""
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo "❌ ${#FAILED[@]} suite(s) failed."

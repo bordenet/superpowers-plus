@@ -20,6 +20,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
 
+# Heavy external probes, injectable for tests.
+# Defaults are the real tools, so production behaviour is unchanged. The unit
+# tests for THIS script assert its JSON shape and drift detection -- they do not
+# assert sp-doctor's or run-battery's correctness, and those two tools cost
+# minutes per invocation (sp-doctor walks 123 skills x 30 checks). This script
+# is invoked 8 times across 6 tests, which made tests/baseline-capture-test.bats
+# the single slowest file in the suite. Overriding these three lets the test
+# substitute stubs and keeps the real behaviour on the default path.
+: "${CAPTURE_SP_DOCTOR:=$REPO_ROOT/tools/sp-doctor.sh}"
+: "${CAPTURE_RUN_BATTERY:=$REPO_ROOT/tools/run-battery.sh}"
+: "${CAPTURE_AUGMENT_JS:=$HOME/.codex/superpowers-augment/superpowers-augment.js}"
+
 # Files tracked for SHA256 drift detection (paths relative to REPO_ROOT)
 TRACKED_TOOLS=(
     "tools/commit-gate.sh"
@@ -71,7 +83,7 @@ mode_capture() {
     local dr_tmp dr_rc
     dr_tmp="$(mktemp)"
     dr_rc=0
-    bash "$REPO_ROOT/tools/sp-doctor.sh" --summary-only >/dev/null 2>&1 || dr_rc=$?
+    bash "$CAPTURE_SP_DOCTOR" --summary-only >/dev/null 2>&1 || dr_rc=$?
     echo "" >"$dr_tmp"   # placeholder: output intentionally omitted (see comment above)
     echo "[capture] sp-doctor exit=$dr_rc" >&2
 
@@ -83,7 +95,7 @@ mode_capture() {
     local cat_tmp cat_rc
     cat_tmp="$(mktemp)"
     cat_rc=0
-    node "$HOME/.codex/superpowers-augment/superpowers-augment.js" bootstrap \
+    node "$CAPTURE_AUGMENT_JS" bootstrap \
         >"$cat_tmp" 2>&1 || cat_rc=$?
     echo "[capture] skill-catalog exit=$cat_rc" >&2
 
@@ -91,7 +103,7 @@ mode_capture() {
     local batt_tmp batt_rc
     batt_tmp="$(mktemp)"
     batt_rc=0
-    bash "$REPO_ROOT/tools/run-battery.sh" >"$batt_tmp" 2>&1 || batt_rc=$?
+    bash "$CAPTURE_RUN_BATTERY" >"$batt_tmp" 2>&1 || batt_rc=$?
     echo "[capture] run-battery exit=$batt_rc" >&2
 
     # --- collect all tracked files ---
