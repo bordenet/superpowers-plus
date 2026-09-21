@@ -24,7 +24,7 @@ anti_triggers:
   - review someone's PR
   - design review inside debate
   - quick feedback
-description: "Adversarial review for plans, specs, and other non-code deliverables. Three independent personas score correctness, simplicity, verifiability, blind spots, and operational risk. Route code to code-review-battery and skill files to llm-skill-review."
+description: "Adversarial review for plans, specs, and other non-code deliverables. One persona for reversible work, three for irreversible (ADRs, contracts, migrations). Route code to code-review-battery and skill files to llm-skill-review."
 summary: "Use before presenting a non-code deliverable. Route code and skill files to their dedicated review gates."
 coordination:
   group: quality
@@ -64,7 +64,7 @@ Use before presenting non-code work or on a hostile-review request. Exclude code
 
 ## Persona dimension table
 
-**How many personas.** Irreversible artifacts get all three: ADRs, public API or contract specs, data-model and migration docs, security policy, and anything its author marks irreversible. Everything else is reversible and gets ONE persona, SeniorArchCritic. Unsure -> three. Each persona reads independently. Send only its row, the common dimension questions, and artifact/repository access.
+**Persona count:** all three for irreversible artifacts (ADRs, API/contract specs, migrations, security policy, author-marked); otherwise SeniorArchCritic alone; unsure -> three. Each persona reads independently. Send only its row, the common dimension questions, and artifact/repository access.
 
 | Persona | Start point | C | S | V | B | OR |
 |---|---|---:|---:|---:|---:|---:|
@@ -80,10 +80,10 @@ For user-visible functionality, missing named metrics and trace/span strategy ca
 
 1. **Fresh-reader check.** Flag local paths, undefined identifiers, process commentary, and inaccessible references. Remove this author noise before shipping; do not lower scores for it alone.
 2. **Independent review.** Author != Reviewer. Dispatch the personas chosen above from artifact paths with only their row, five questions, and repository access. Persona reviewers must not invoke PHR, debate, code-review-battery, or other reviewers; each returns one scorecard. Remediate only after aggregation.
-3. **Score.** Score each dimension 1-10 with the persona's weights. One persona: its weighted score is the mean. Three: take the equal-weight average of the three weighted scores.
+3. **Score.** Score each dimension 1-10 with the persona's weights; with three, take the equal-weight average of the weighted scores.
 4. **Apply veto.** Correctness or Operational Risk <=4 is a hard veto only with a specific defect. Unrecoverable failures must affect Operational Risk, not Blind Spots alone.
 5. **Verdict.** Use the table. A repository floor raises the PASS bar only; load `Project-min override`.
-6. **Remediate.** Fix and verify every material finding. After round one, continue the SAME reviewer on the delta only, stating its earlier input is superseded for changed files; a fresh reviewer needs the complete prior findings, not a summary. REJECT requires root-cause analysis and full re-review.
+6. **Remediate.** Fix and verify every material finding. After round one, continue the same reviewer on the delta (a fresh one needs the full prior findings). REJECT requires root-cause analysis and full re-review.
 7. **Check correlation.** Any flag below or unsupported clean sweep requires a new persona starting point.
 8. **Converge.** Require the active floor, no veto/flag, and no new material issues. Escalate after 3 rounds without convergence; never auto-ship.
 
@@ -112,7 +112,7 @@ Only PASS clears the gate. Run PHR AFTER `git commit` once the floor is met with
 tools/run-phr.sh --verdict PASS --min-score "<weighted-mean>"
 ```
 
-The sentinel binds to HEAD. Commit, amend, or rebase requires fresh review unless promotion is tree-identical.
+Clearance holds only while the reviewed docs are byte-identical (`tools/lib/sentinel-scope.sh`).
 
 ## Reference loading
 
@@ -158,10 +158,8 @@ bash "$_ks_loader" "$_ks_ref" "$_section" \
 | Self-reviewed in same thinking pass | Use sub-agent (preferred) — in-process role switch with no context isolation is significantly less reliable; if used, explicitly discard the author's reasoning and start fresh from the artifact text |
 | All personas gave same feedback | Each persona must name ≥1 plausible failure mode unique to their lens, or cite a specific property of the change explaining why none exists (generic dismissal = rubber-stamp) — identical findings means the lenses aren't distinct |
 | Score inflated to avoid re-work | Findings with concrete issues MUST score ≤7 on that dimension |
-| Remediation skipped after REJECT | REJECT means start over. No "fix one thing and call it done" |
 | Only reviewed happy path | OpsRealist must consider failure, rollback, 3am scenarios, and OE telemetry for new behavior |
 | Round N mean lower than Round N-1 | Remediation introduced new issues — flag REGRESSION, root-cause before Round N+1 |
 | No output summary before presenting | Always emit PHR SUMMARY block (rounds, mean, verdict, project-min, vetoes) |
-| Shipped at round 3 without convergence | 3 rounds = escalate to human with blocker list — never auto-ship |
 | Unrecoverable finding scored only on Blind Spots | Must ALSO score Operational Risk to be veto-eligible — Blind Spots alone bypasses the veto gate |
 | Skipped sentinel write after PASS | Pre-push Gate 5 refuses the push with "PHR sentinel missing." Run `tools/run-phr.sh --verdict PASS --min-score <N>` and retry. |
