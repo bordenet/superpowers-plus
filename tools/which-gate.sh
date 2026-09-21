@@ -92,8 +92,19 @@ for f in "$MD_FILES_CHANGED" "$CR_GATE"; do
     fi
 done
 
-# --- Extract cr-battery's detection logic verbatim (never hand-copied) ---
-CR_FUNC_SRC="$(sed -n '/^_first_code_file() {/,/^}/p' "$CR_GATE")"
+# cr-battery's code-file rule set lives in tools/lib/sentinel-scope.sh, shared
+# with the pre-push gate and push-readiness. Sourced, not sed-extracted: the
+# old extraction copied _first_code_file out of the gate script and broke the
+# moment that function delegated to a helper it did not also copy.
+SENTINEL_SCOPE_LIB="$REPO_ROOT/tools/lib/sentinel-scope.sh"
+if [[ ! -r "$SENTINEL_SCOPE_LIB" ]]; then
+    echo "ERROR: expected library missing: $SENTINEL_SCOPE_LIB" >&2
+    exit 2
+fi
+# shellcheck source=tools/lib/sentinel-scope.sh
+source "$SENTINEL_SCOPE_LIB"
+
+# --- Extract the explicit-exemption logic verbatim (never hand-copied) ---
 EXEMPT_FUNC_SRC="$(sed -n '/^_first_explicit_review_exempt_file() {/,/^}/p' "$CR_GATE")"
 
 fail_extract() {
@@ -102,21 +113,18 @@ fail_extract() {
     echo "  Update the sed extraction in $(basename "${BASH_SOURCE[0]}") to match." >&2
     exit 2
 }
-[[ -n "$CR_FUNC_SRC" ]] && [[ "$(printf '%s' "$CR_FUNC_SRC" | tail -1)" == "}" ]] \
-    || fail_extract "_first_code_file()" "$CR_GATE"
 [[ -n "$EXEMPT_FUNC_SRC" ]] && [[ "$(printf '%s' "$EXEMPT_FUNC_SRC" | tail -1)" == "}" ]] \
     || fail_extract "_first_explicit_review_exempt_file()" "$CR_GATE"
 
 TMP_LIB="$(mktemp "${TMPDIR:-/tmp}/which-gate-lib.XXXXXX")"
 trap 'rm -f "$TMP_LIB"' EXIT
-printf '%s\n' "$CR_FUNC_SRC" > "$TMP_LIB"
-printf '%s\n' "$EXEMPT_FUNC_SRC" >> "$TMP_LIB"
+printf '%s\n' "$EXEMPT_FUNC_SRC" > "$TMP_LIB"
 # shellcheck source=/dev/null
 source "$TMP_LIB"
 
 cr_battery_covers() {
     local path="$1"
-    [[ -n "$(printf '%s\n' "$path" | _first_code_file)" ]]
+    [[ -n "$(printf '%s\n' "$path" | sentinel_scope_code_files)" ]]
 }
 
 explicit_exempt_covers() {

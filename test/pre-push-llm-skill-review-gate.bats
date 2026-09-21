@@ -46,6 +46,8 @@ source ./stub-colors.sh
 REPO_ROOT="$PWD"
 LLM_SKILL_REVIEW_SENTINEL="$PWD/.llm-skill-review-cleared"
 EOF
+    # The gate's stale check delegates to the shared scope library.
+    printf 'source %q\n' "$REPO_ROOT_REAL/tools/lib/sentinel-scope.sh" >> harness.sh
     cat extracted-fn.sh >> harness.sh
     cat >> harness.sh <<'EOF'
 
@@ -230,7 +232,10 @@ teardown() {
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"stale"* ]]
-    [[ "$output" == *"Review was for"* ]]
+    # Shared report (tools/lib/sentinel-scope.sh). deadbeef... is not a real
+    # commit, so content identity cannot be proven and the gate fails closed.
+    [[ "$output" == *"Clearance was for commit"* ]]
+    [[ "$output" == *"not found locally"* ]]
 }
 
 # --- Non-passing verdict ---

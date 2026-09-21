@@ -27,6 +27,9 @@ fi
 
 # shellcheck source=tools/lib/pre-push-diff-range.sh
 source "$REPO_ROOT/tools/lib/pre-push-diff-range.sh"
+# shellcheck source=tools/lib/sentinel-scope.sh
+source "$REPO_ROOT/tools/lib/sentinel-scope.sh"
+
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -140,11 +143,11 @@ check_llm_skill_review_sentinel() {
         return 1
     fi
 
-    if [[ "$sentinel_sha" != "$pushed_sha" ]]; then
+    # Content, not commit: carry clearance forward when no llm-skill-review-owned
+    # file differs between the reviewed and pushed commits.
+    if ! sentinel_scope_unchanged "$sentinel_sha" "$pushed_sha" sentinel_scope_llm_owned; then
         echo -e "  ${RED}❌ PUSH BLOCKED: llm-skill-review sentinel is stale.${NC}"
-        echo "    Review was for: ${sentinel_sha:0:8}"
-        echo "    Pushing:        ${pushed_sha:0:8}"
-        echo "    Commits were made after the review. Re-run then tools/run-llm-skill-review.sh."
+        sentinel_scope_report "llm-skill-review (tools/run-llm-skill-review.sh)" "$sentinel_sha" "$pushed_sha"
         return 1
     fi
 

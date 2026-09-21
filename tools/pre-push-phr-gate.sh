@@ -33,6 +33,9 @@ fi
 
 # shellcheck source=tools/lib/pre-push-diff-range.sh
 source "$REPO_ROOT/tools/lib/pre-push-diff-range.sh"
+# shellcheck source=tools/lib/sentinel-scope.sh
+source "$REPO_ROOT/tools/lib/sentinel-scope.sh"
+
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -173,11 +176,11 @@ check_phr_sentinel() {
         return 1
     fi
 
-    if [[ "$phr_sha" != "$pushed_sha" ]]; then
+    # Content, not commit: carry clearance forward when no PHR-eligible file
+    # differs between the reviewed and pushed commits.
+    if ! sentinel_scope_unchanged "$phr_sha" "$pushed_sha" sentinel_scope_phr_eligible; then
         echo -e "  ${RED}❌ PUSH BLOCKED: PHR sentinel is stale.${NC}"
-        echo "    PHR was for: ${phr_sha:0:8}"
-        echo "    Pushing:     ${pushed_sha:0:8}"
-        echo "    Commits were made after PHR. Re-run PHR then tools/run-phr.sh."
+        sentinel_scope_report "PHR (tools/run-phr.sh)" "$phr_sha" "$pushed_sha"
         return 1
     fi
 

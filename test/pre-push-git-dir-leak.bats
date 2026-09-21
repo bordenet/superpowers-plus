@@ -36,6 +36,7 @@ setup() {
     done
     cp "$REPO_ROOT_REAL/tools/lib/pre-push-diff-range.sh" tools/lib/pre-push-diff-range.sh
     cp "$REPO_ROOT_REAL/tools/lib/code-review-sentinel.sh" tools/lib/code-review-sentinel.sh
+    cp "$REPO_ROOT_REAL/tools/lib/sentinel-scope.sh" tools/lib/sentinel-scope.sh
     cp "$REPO_ROOT_REAL/tools/pre-push" tools/pre-push
     chmod +x tools/pre-push
     # Gate 0 hard-requires this file to exist before the composer's gates run.
