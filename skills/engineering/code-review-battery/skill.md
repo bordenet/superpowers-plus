@@ -117,7 +117,7 @@ Analyze the diff and select reviewers:
 | **BugPath Verifier** | Root cause, fix coverage, sibling bugs, regression test | BugPath Mode active (see Phase 0.5) — mandatory, not skippable |
 | **Monolith** (on-demand) | All dimensions | `--all` flag or manual request |
 
-**Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian (+ Standards Enforcer / Defect Finder only if a metric/alarm or other dispatch signal below is present). Any code → Defect Finder + Guardian + Standards Enforcer + conditionally Design Critic and Performance Analyst.
+**Decision rules:** Docs-only → Standards Enforcer only. Config-only → Guardian (+ Standards Enforcer / Defect Finder only if a metric/alarm or other dispatch signal below is present). Any code → **ONE combined reviewer** carrying the Defect Finder, Guardian and Standards Enforcer lenses in a single agent, plus a mandatory `placement` dimension (one sentence + file:line: "is this the right place, or is there a simpler root cause?"; missing = incomplete review). Add separate agents only from the signal table below and the Mandatory activation rules. Measured 2026-09-20: 5 fresh agents on a 212-line diff cost 393k tokens, mostly re-reading the same files and re-running the same tests; the root-cause finding came from the placement question, which no diff signal triggers — hence mandatory.
 
 **Signal-driven dispatch** (additive — a signal activates its reviewer(s); it never deactivates one already selected above). Scan the diff for these signals and route accordingly:
 
@@ -206,7 +206,7 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | Diff adds/changes a metric or alarm definition, or an error-handling branch that emits a metric or feeds an alarm | Standards Enforcer (observability-completeness focus) | Dead definitions, Success/Failure asymmetry, undifferentiated failure modes |
 | Diff adds new user-visible functionality with zero metric/trace emits (OE Telemetry Gate) | Standards Enforcer (OE focus — mandatory Critical) | Feature ships with no time-series metrics or trace instrumentation; cannot be operated or alarmed on |
 
-**Collect every trigger that fires and dispatch all of them together as ONE round** (same "simultaneous" dispatch discipline as Phase 2 step 4) — e.g. if both the interaction-path and inbound-reference triggers fire, that is still Round 2, one dispatch, not two sequential round-trips. Firing triggers one-at-a-time adds pure serial latency with no rigor gain: dispatching N triggered re-checks together costs the same wall-clock as dispatching one. Re-dispatch with focused instruction (diff slice + refreshed context + trigger signal). Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
+**Collect every trigger that fires and dispatch all of them together as ONE round** (same "simultaneous" dispatch discipline as Phase 2 step 4) — e.g. if both the interaction-path and inbound-reference triggers fire, that is still Round 2, one dispatch, not two sequential round-trips. Firing triggers one-at-a-time adds pure serial latency with no rigor gain: dispatching N triggered re-checks together costs the same wall-clock as dispatching one. Continue the Round 1 reviewer where possible, sending the diff slice + trigger signal and stating its earlier context is superseded for changed files; a fresh agent needs the complete Round 1 findings, not a summary. Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
 
 ### Phase 5: Convergence
 

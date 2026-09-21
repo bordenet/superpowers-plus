@@ -13,7 +13,7 @@
 ## When to use
 Use before presenting non-code work or on a hostile-review request. Exclude code, skills, brainstorming, and design-option selection.
 ## Persona dimension table
-Each persona reads independently. Send only its row, the common dimension questions, and artifact/repository access.
+**How many personas.** Irreversible artifacts get all three: ADRs, public API or contract specs, data-model and migration docs, security policy, and anything its author marks irreversible. Everything else is reversible and gets ONE persona, SeniorArchCritic. Unsure -> three. Each persona reads independently. Send only its row, the common dimension questions, and artifact/repository access.
 
 | Persona | Start point | C | S | V | B | OR |
 |---|---|---:|---:|---:|---:|---:|
@@ -26,11 +26,11 @@ Dimensions: **Correctness** (holds?), **Simplicity** (needless complexity?), **V
 For user-visible functionality, missing named metrics and trace/span strategy caps OpsRealist's Operational Risk at 4; cite the omission.
 ## Review process
 1. **Fresh-reader check.** Flag local paths, undefined identifiers, process commentary, and inaccessible references. Remove this author noise before shipping; do not lower scores for it alone.
-2. **Independent review.** Author != Reviewer. Dispatch all personas from artifact paths with only their row, five questions, and repository access. Persona reviewers must not invoke PHR, debate, code-review-battery, or other reviewers; each returns one scorecard. Remediate only after aggregation.
-3. **Score.** Score each dimension 1-10 with the persona's weights, then take the equal-weight average of the three weighted scores.
+2. **Independent review.** Author != Reviewer. Dispatch the personas chosen above from artifact paths with only their row, five questions, and repository access. Persona reviewers must not invoke PHR, debate, code-review-battery, or other reviewers; each returns one scorecard. Remediate only after aggregation.
+3. **Score.** Score each dimension 1-10 with the persona's weights. One persona: its weighted score is the mean. Three: take the equal-weight average of the three weighted scores.
 4. **Apply veto.** Correctness or Operational Risk <=4 is a hard veto only with a specific defect. Unrecoverable failures must affect Operational Risk, not Blind Spots alone.
 5. **Verdict.** Use the table. A repository floor raises the PASS bar only; load `Project-min override`.
-6. **Remediate.** Fix and verify every material finding. After round one, review the delta. REJECT requires root-cause analysis and full re-review.
+6. **Remediate.** Fix and verify every material finding. After round one, continue the SAME reviewer on the delta only, stating its earlier input is superseded for changed files; a fresh reviewer needs the complete prior findings, not a summary. REJECT requires root-cause analysis and full re-review.
 7. **Check correlation.** Any flag below or unsupported clean sweep requires a new persona starting point.
 8. **Converge.** Require the active floor, no veto/flag, and no new material issues. Escalate after 3 rounds without convergence; never auto-ship.
 ## Verdicts
