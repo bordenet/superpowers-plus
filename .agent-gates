@@ -24,7 +24,12 @@ CLASS=shell
 # .code-review-cleared file written by code-review-battery. The SHA-specific
 # check (sentinel SHA == pushed ref) still happens at pre-push. This pre-commit
 # check verifies only that battery was run at all before staging changes.
-REQUIRE_CODE_REVIEW_SENTINEL=true
+# Disabled 2026-09-21 (Matt's decision, diet2 T4): the pre-commit check is
+# presence-only -- ANY .code-review-cleared, for any commit, satisfies it -- so
+# it cannot be met honestly before the commit it guards exists and adds no
+# protection pre-push lacks. It also blocked every commit in a fresh worktree.
+# Pre-push Gate 2 remains the real, content-scoped check.
+REQUIRE_CODE_REVIEW_SENTINEL=false
 
 # REVIEW_TOKEN_TTL: How many seconds a review token is considered fresh (default: 300)
 # Increase for repos where review-to-commit time is longer (e.g., large test suites)
