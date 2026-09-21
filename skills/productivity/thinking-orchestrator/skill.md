@@ -9,7 +9,7 @@ coordination:
   group: thinking
   order: 0
   requires: []
-  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "debate", "plan-and-execute"]
+  enables: ["adversarial-search", "think-twice", "verification-before-completion", "exhaustive-audit-validation", "completeness-check", "investigation-state", "feature-development", "debate", "plan-and-execute", "output-verification", "progressive-harsh-review", "systematic-debugging", "debug-conductor"]
   escalates_to: []
   internal: false
 composition:
@@ -51,7 +51,7 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | Claiming "done"/"shipped"/"fixed" (single fix) | `verification-before-completion` | Evidence before assertions |
 | Claiming done (bulk edit/audit/refactoring) | `exhaustive-audit-validation` then `verification-before-completion` | Exhaustive scope first |
 | Repo takeover, incomplete work audit | `completeness-check` | Detect abandoned work |
-| Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (≥7 to pass) |
+| Need adversarial quality review of deliverable | `progressive-harsh-review` | Multi-persona scoring (mean ≥8 to PASS; 7 to <8 is PASS_WITH_FIXES and does NOT clear the gate) |
 | Complex debugging across service boundaries | `systematic-debugging` + `investigation-state` | Serial-first: reproduce → hypothesize → isolate → fix |
 | Debugging stalled after systematic-debugging + think-twice (rubric ≥6) | `debug-conductor` | Escalation to conductor-led forked investigation (requires serial attempt first) |
 | Declared P1/P2 production incident with explicit user override | `debug-conductor` | Direct escalation (bypass serial-first for active incidents only) |
@@ -70,7 +70,10 @@ This is the **hub skill** for metacognition and thinking quality. It routes to t
 | `investigation-state` | Debugging | Persist investigation context across sessions |
 | `feature-development` | Feature work | Orchestrate full feature lifecycle |
 | `debate` | Decision quality | 3+ options, comparison, harsh review |
+| `progressive-harsh-review` | Deliverable quality | Multi-persona adversarial scoring; mean >=8 to PASS |
 | `plan-and-execute` | Execution planning | Challenge → plan → quality gates → execute |
+| `systematic-debugging` | Debugging | Reproduce → hypothesize → isolate → fix, serial-first |
+| `debug-conductor` | Debugging escalation | Conductor-led forked investigation after serial attempt |
 
 ## The Iron Law
 

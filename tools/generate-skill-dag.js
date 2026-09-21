@@ -22,6 +22,32 @@ function unquoteYaml(s) {
   return s;
 }
 
+// Numeric value of coordination.order, defaulting to 99 only when genuinely absent
+// or non-numeric. Number() rather than `|| 99`, because 0 is a legitimate value (it is
+// the convention for a group's hub skill). Number() rather than a typeof check, so the
+// sort stays correct for any caller that hands us an order still in string form --
+// parseFrontmatter above coerces it, but this function does not depend on that.
+function coordinationOrderOf(skill) {
+  var raw = skill.coordination ? skill.coordination.order : undefined;
+  var n = Number(raw);
+  return (raw === undefined || raw === null || raw === '' || !isFinite(n)) ? 99 : n;
+}
+
+// Order skills within a coordination group. Per docs/DESIGN.md: coordination.order
+// ASC, then alphabetically by name. Two bugs this encodes against:
+//   1. `order || 99` treats the legitimate `order: 0` (used by all 14 hub skills --
+//      thinking-orchestrator, unified-commit-gate, using-superpowers, ...) as "unset"
+//      and sorts the hub LAST in its own group.
+//   2. Without the alpha tie-break, groups with duplicate order values (e.g. thinking's
+//      brainstorming/debate) fall back to filesystem enumeration order, which is not
+//      guaranteed stable across platforms.
+function compareCoordinationOrder(a, b) {
+  var ao = coordinationOrderOf(a);
+  var bo = coordinationOrderOf(b);
+  if (ao !== bo) return ao - bo;
+  return a.name.localeCompare(b.name);
+}
+
 function parseFrontmatter(content) {
   // Normalize CRLF/CR to LF before parsing
   content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -69,7 +95,7 @@ function parseFrontmatter(content) {
               val = [];
             } else if (val === 'true') val = true;
             else if (val === 'false') val = false;
-            else if (/^\d+$/.test(val)) val = parseInt(val);
+            else if (/^-?\d+(\.\d+)?$/.test(val)) val = Number(val);
             else val = unquoteYaml(val);
             coordObj[coordCurrentKey] = val;
           }
@@ -151,7 +177,7 @@ function generateMermaidByGroup(skills) {
   }
 
   for (const group of Object.values(groups)) {
-    group.sort((a, b) => (a.coordination.order || 99) - (b.coordination.order || 99));
+    group.sort(compareCoordinationOrder);
   }
 
   const crossEdges = [];
@@ -247,7 +273,7 @@ function generateMarkdown(skills, dag) {
 
   var groupTable = groups.map(function(g) {
     var gSkills = coordinated.filter(function(s) { return s.coordination.group === g; })
-      .sort(function(a, b) { return (a.coordination.order || 99) - (b.coordination.order || 99); });
+      .sort(compareCoordinationOrder);
     var names = gSkills.map(function(s) { return '`' + s.name + '`'; }).join(', ');
     return '| ' + formatGroupName(g) + ' | ' + names + ' | ' + getGroupPurpose(g) + ' |';
   }).join('\n');
@@ -302,16 +328,23 @@ function generateMarkdown(skills, dag) {
     '```bash\nnode tools/generate-skill-dag.js\n```\n';
 }
 
-// Main
-var skills = extractSkillData();
-var dag = generateMermaidByGroup(skills);
-var markdown = generateMarkdown(skills, dag);
+function main() {
+  var skills = extractSkillData();
+  var dag = generateMermaidByGroup(skills);
+  var markdown = generateMarkdown(skills, dag);
 
-var outputPath = process.argv[2] === '--output' ? process.argv[3] : DEFAULT_OUTPUT;
-var outputDir = path.dirname(outputPath);
-if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-fs.writeFileSync(outputPath, markdown);
+  var outputPath = process.argv[2] === '--output' ? process.argv[3] : DEFAULT_OUTPUT;
+  var outputDir = path.dirname(outputPath);
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(outputPath, markdown);
 
-console.log('Generated skill dependency graph: ' + outputPath);
-console.log('  - ' + skills.length + ' total skills');
-console.log('  - ' + skills.filter(function(s) { return s.coordination; }).length + ' with coordination');
+  console.log('Generated skill dependency graph: ' + outputPath);
+  console.log('  - ' + skills.length + ' total skills');
+  console.log('  - ' + skills.filter(function(s) { return s.coordination; }).length + ' with coordination');
+}
+
+// Exported for test/skill-dag-order.test.js. Running the file directly still
+// regenerates the document, so `node tools/generate-skill-dag.js` is unchanged.
+module.exports = { compareCoordinationOrder, coordinationOrderOf, parseFrontmatter };
+
+if (require.main === module) main();

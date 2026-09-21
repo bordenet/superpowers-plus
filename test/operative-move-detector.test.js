@@ -44,6 +44,18 @@ function findAllSkills(dir) {
 
 function countPatterns(text) {
     return {
+        // REVERTED: an earlier version of this also counted bolded ordered-list
+        // items, on the theory that a kernel split merely re-encodes "### Step N"
+        // as "1. **Step.**" and that widening a count can never mask a drop.
+        // Both halves were wrong. Raising the measured value above a STALE
+        // baseline IS the masking mechanism: with the broader term, deleting all
+        // four real "### Phase N" headings from systematic-debugging still passed,
+        // because 21 unrelated bolded list items held the count above its baseline
+        // of 4. Measured across 106 skills the broadening granted ~400 units of
+        // undetectable deletion budget against an actual need of 13, and a
+        // "1. **name**: ..." companion-skills list satisfied it just as well as a
+        // real procedure. Legitimate re-encodings get a bounded, per-skill,
+        // reviewable OP-WAIVER instead.
         step_headings: (text.match(/^#{2,4}\s+(Step|Stage|Phase)\s+\d+/gim) || []).length,
         stop_markers: (text.match(/⛔/g) || []).length,
         hard_gate_table: (text.match(/^\|.*\b(HARD\s*GATE|BLOCK|MUST)\b.*\|/gim) || []).length,
@@ -52,9 +64,29 @@ function countPatterns(text) {
 }
 
 function loadWaivers() {
-    const raw = process.env.OP_WAIVERS || '';
+    // Two sources, same bounded format. CI reads the PR body via OP_WAIVERS so a
+    // reviewer sees the justification next to the diff. A committed
+    // test/.op-waivers file carries the same entries durably, so the identical
+    // check runs locally and at the pre-push gate instead of passing in CI and
+    // failing on every developer machine.
+    //
+    // The format is bounded on all three axes -- skill, pattern, and maximum
+    // drop -- so a waiver can never widen into a blanket exemption. That is the
+    // whole reason this is preferred over broadening countPatterns: a global
+    // regex change granted ~400 units of slack across 57 skills to buy the 12
+    // units actually needed here.
+    let fileRaw = '';
+    try {
+        fileRaw = fs.readFileSync(path.join(__dirname, '.op-waivers'), 'utf8');
+    } catch { /* absent is normal */ }
+    const raw = (process.env.OP_WAIVERS || '') + '\n' + fileRaw;
     const out = [];
     for (const line of raw.split('\n')) {
+        // A commented line is documentation, never a live waiver. The manifest
+        // is 20+ lines of header prose that invites worked examples, and
+        // "# EXAMPLE ONLY, do not use: OP-WAIVER: <skill> step_headings -9"
+        // was being honored as a real entry.
+        if (/^\s*#/.test(line)) continue;
         const m = line.match(/OP-WAIVER:\s*(\S+)\s+(\S+)\s+-(\d+)/);
         if (m) out.push({ skill: m[1], pattern: m[2], drop: parseInt(m[3], 10) });
     }
@@ -65,14 +97,24 @@ function isWaived(waivers, skill, pattern, drop) {
     return waivers.some(w => w.skill === skill && w.pattern === pattern && drop <= w.drop);
 }
 
-// Whole-skill waiver: any OP-WAIVER entry for this skill regardless of pattern/drop.
-// Used for the missing-file case where all patterns are effectively gone.
-// NOTE: a narrowly-scoped waiver (e.g. -1 on a single pattern) also satisfies this
-// check — log a visible warning so reviewers know the waiver scope was broadened.
+// Deleting a whole skill.md requires a waiver that says so EXPLICITLY, with the
+// reserved pattern name __missing__. It used to be granted by ANY entry for the
+// skill, which meant a narrow "-3 code_fences" waiver silently authorized
+// deleting the entire file. With waivers committed in test/.op-waivers that was
+// permanent: `rm skills/engineering/debate/skill.md` passed both detectors, and
+// debate has no entry in ei-baseline.json, so its operative waiver was the only
+// thing standing between deletion and a green run. A narrow waiver must never
+// widen into a deletion licence.
+//
+// The documented policy (docs/CONTRIBUTING.md) is to run --update for an
+// intentional deletion rather than waive at all; __missing__ exists so that an
+// unavoidable in-flight deletion is at least explicit, reviewable, and loud.
+const MISSING_FILE_PATTERN = '__missing__';
+
 function isSkillWaived(waivers, skill) {
-    const w = waivers.find(e => e.skill === skill);
+    const w = waivers.find(e => e.skill === skill && e.pattern === MISSING_FILE_PATTERN);
     if (w) {
-        console.log(`  ⚠️  ${skill}: missing-file waived by OP-WAIVER entry (pattern=${w.pattern}, drop=${w.drop})`);
+        console.log(`  ⚠️  ${skill}: MISSING FILE explicitly waived (OP-WAIVER ${MISSING_FILE_PATTERN})`);
         return true;
     }
     return false;

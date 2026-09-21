@@ -1,9 +1,130 @@
 {
   "version": 1,
-  "generated_at": "2026-08-27T00:00:00Z",
+  "generated_at": "2026-09-17T15:54:46Z",
   "tolerance_default": 0.05,
-  "notes": "Byte-size budget manifest for always-on artifacts loaded into every agent session. Ships empty; add rows for the artifacts you want to guard (bootstrap payload, per-host rule files) and populate baselines via `tools/measure-artifact-sizes.sh --rebaseline`. See docs/harness/artifact-budgets.md for the add-a-row workflow.",
-  "artifacts": [],
+  "notes": "Budget manifest for always-on context and activation-time skill inventory. Repo metrics run in CI; host_only rows run on developer machines. Rebaseline only after an intentional, reviewed cost change. See docs/harness/artifact-budgets.md.",
+  "artifacts": [
+    {
+      "id": "resident-listing-bytes",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "listing_bytes",
+      "size_bytes": 32840,
+      "tolerance": 0.05,
+      "host_only": false,
+      "sha256": "b3f8d90890ff63140906b7342525578463f0cfff23c7062a464cbc248fa5128a"
+    },
+    {
+      "id": "resident-auto-count",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "auto_count",
+      "size_bytes": 122,
+      "tolerance": 0.05,
+      "host_only": false,
+      "sha256": "1be00341082e25c4e251ca6713e767f7131a2823b0052caf9c9b006ec512f6cb"
+    },
+    {
+      "id": "resident-max-description-bytes",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "max_description_bytes",
+      "size_bytes": 949,
+      "tolerance": 0.05,
+      "host_only": false,
+      "sha256": "3033cf66fa728da7a2940d823aad8118fb40687ebfad1147c313478b2baafe4b"
+    },
+    {
+      "id": "resident-max-skill-md-bytes",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "max_skill_md_bytes",
+      "size_bytes": 29357,
+      "tolerance": 0.05,
+      "host_only": false,
+      "sha256": "289f103d2c859635b6020a4a380ebae16bd4f40dec29eb4738317fecc8c20050"
+    },
+    {
+      "id": "resident-descriptions-over-250",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "descriptions_over_250",
+      "size_bytes": 52,
+      "tolerance": 0,
+      "host_only": false,
+      "sha256": "41cfc0d1f2d127b04555b7246d84019b4d27710a3f3aff6e7764375b1e06e05d"
+    },
+    {
+      "id": "resident-duplicate-names",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "duplicate_names",
+      "size_bytes": 0,
+      "tolerance": 0.05,
+      "host_only": false,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "id": "resident-parse-failures",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "parse_failures",
+      "size_bytes": 0,
+      "tolerance": 0,
+      "host_only": false,
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "id": "resident-skill-files-scanned",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --repo --json",
+      "json_key": "skill_files_scanned",
+      "size_bytes": 122,
+      "comparison": "minimum",
+      "tolerance": 0,
+      "host_only": false,
+      "sha256": "1be00341082e25c4e251ca6713e767f7131a2823b0052caf9c9b006ec512f6cb"
+    },
+    {
+      "id": "augment-core-rule",
+      "kind": "file",
+      "path": "~/.augment/rules/core.always.md",
+      "size_bytes": 4887,
+      "tolerance": 0.05,
+      "host_only": true,
+      "sha256": "39d6dd67e1ed290bebd0b96df32c667436ffb452cead974d9d0945c1170315ea"
+    },
+    {
+      "id": "resident-host-listing-bytes",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --host --json",
+      "json_key": "host_listing_bytes",
+      "size_bytes": 60725,
+      "tolerance": 0.05,
+      "host_only": true,
+      "sha256": "919fa510e1a6c13ecccc05c36326057a263cdac29c8278912c614a971467c41f"
+    },
+    {
+      "id": "resident-host-sessionstart-context-bytes",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --host --json",
+      "json_key": "host_sessionstart_context_bytes",
+      "size_bytes": 4049,
+      "tolerance": 0.05,
+      "host_only": true,
+      "sha256": "9fc7ef2c7100149c53ca373e5f4a8cdeb1df6a787bf4e01dab583875c89d6c7f"
+    },
+    {
+      "id": "resident-host-duplicate-entries",
+      "kind": "metric",
+      "command": "python3 tools/resident-cost-report.py --host --json",
+      "json_key": "host_duplicate_entries",
+      "size_bytes": 136,
+      "tolerance": 0.05,
+      "host_only": true,
+      "sha256": "36ebe205bcdfc499a25e6923f4450fa8d48196ceb4fa0ce077d9d8ec4a36926d"
+    }
+  ],
   "deferred": [
     {
       "id": "superpowers-doctor-payload",
@@ -12,12 +133,20 @@
     {
       "id": "mcp-tool-inventory",
       "reason": "MCP servers do not expose --list-tools --json. Prerequisite: add that flag to each server's stdio entry point."
+    },
+    {
+      "id": "augment-bootstrap-payload",
+      "reason": "The installed bootstrap command writes host session and skill-index state. Prerequisite: expose a side-effect-free --print-only command before measuring its output."
     }
   ],
   "rebaseline_history": [
     {
       "at": "2026-08-27T00:00:00Z",
       "reason": "initial manifest, empty template"
+    },
+    {
+      "at": "2026-09-17T15:54:46Z",
+      "reason": "diet.md Phase 0 baseline"
     }
   ]
 }

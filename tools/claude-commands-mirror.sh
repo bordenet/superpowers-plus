@@ -4,6 +4,23 @@
 # Source: ~/.agents/skills/ (Augment IDE slash menu, SKILL.md format).
 # Target: ~/.claude/commands/ (Claude Code custom slash commands).
 # Idempotent: overwrites on each run, prunes stale managed entries.
+#
+# Dedup: deploy installs aliased skills under their /sp-* trigger directory
+# name (e.g. ~/.claude/skills/sp-debate) while the skill's own frontmatter
+# `name:` stays the original (e.g. "debate") -- so a naive
+# `-d "$SKILLS_DIR/$name"` check never matches an aliased skill, and every
+# one gets ALSO mirrored as a second, model-visible command, duplicating the
+# resident skill listing. Fix: index the frontmatter `name:` of every
+# installed skill once, and treat a source as a duplicate if its name is
+# either a $SKILLS_DIR/<name> directory OR appears in that index (covers the
+# aliased/renamed-directory case). Duplicates still get a command file --
+# users type /debate and /progressive-harsh-review daily and it must keep
+# working -- but it carries `disable-model-invocation: true` so it costs
+# zero resident context: hidden from the model, still runnable by the user.
+#
+# Also skips stale Codex "migrate from Claude" imports (source-command-*
+# directories whose SKILL.md body says "migrated source command") entirely;
+# any such command mirrored by a prior run is pruned.
 set -euo pipefail
 
 SRC="${AUGMENT_MENU_DIR:-$HOME/.agents/skills}"
@@ -27,6 +44,17 @@ Each \$SRC/<skill>/SKILL.md becomes \$DST/<name>.md with:
   description: "<description from SKILL.md>"
   ---
   Invoke the \`<name>\` skill ...
+
+A source whose frontmatter \`name:\` matches an installed skill under
+\$CLAUDE_SKILLS_DIR (directly at \$SKILLS_DIR/<name>/, or indirectly via an
+aliased /sp-* install directory whose own frontmatter name is <name>) is
+already resident and model-visible there -- its mirrored command is still
+written (so /<name> keeps working) but with \`disable-model-invocation: true\`,
+hiding it from the model to avoid duplicating the skill listing.
+
+Sources named source-command-* (or whose SKILL.md body says "migrated
+source command") are stale Codex-migration imports and are skipped
+entirely; any command previously mirrored for one is pruned.
 
 Idempotent: files are overwritten on every run.
 Stale entries (managed by this script, no longer in source) are removed.
@@ -60,7 +88,23 @@ fi
 
 mkdir -p "$DST"
 
+# Build the installed-skill name index once: the frontmatter `name:` of
+# every $SKILLS_DIR/*/{skill.md,SKILL.md}. Keyed by frontmatter name (not
+# directory name) so an aliased install directory (e.g. sp-debate, whose
+# frontmatter name is "debate") is still caught as a duplicate of "debate".
+declare -A INSTALLED_NAME=()
+if [[ -d "$SKILLS_DIR" ]]; then
+    for installed_md in "$SKILLS_DIR"/*/skill.md "$SKILLS_DIR"/*/SKILL.md; do
+        [[ -f "$installed_md" ]] || continue
+        installed_name="$(awk '/^name:/{$1=""; sub(/^ /,""); gsub(/"/,""); print; exit}' "$installed_md")"
+        [[ -n "$installed_name" ]] && INSTALLED_NAME["$installed_name"]=1
+    done
+fi
+
 declare -a KEEP=()
+mirrored_visible=0
+mirrored_hidden_alias=0
+skipped_source_command=0
 
 for skill_dir in "$SRC"/*/; do
     [[ -f "$skill_dir/SKILL.md" ]] || continue
@@ -72,11 +116,21 @@ for skill_dir in "$SRC"/*/; do
     [[ -z "$name" ]] && { log_warn "no name: in $skill_md — skipping"; continue; }
     [[ "$name" =~ ^[a-zA-Z0-9_-]+$ ]] || { log_warn "invalid name in $skill_md — skipping"; continue; }
 
-    # If a ~/.claude/skills/<name>/ entry exists, it takes precedence — skip the mirror
-    # to avoid showing two entries with the same name in the slash-command menu.
-    if [[ -d "$SKILLS_DIR/$name" ]]; then
-        log_verbose "  skipped (skills-dir entry exists): $name"
+    # Stale Codex "migrate from Claude" imports: never mirrored. Any
+    # previously-mirrored command for one is caught by the prune pass below
+    # (it simply is never added to KEEP).
+    if [[ "$name" == source-command-* ]] || grep -q "migrated source command" "$skill_md" 2>/dev/null; then
+        log_verbose "  skipped (source-command import): $name"
+        skipped_source_command=$((skipped_source_command + 1))
         continue
+    fi
+
+    # Duplicate detection: the skill is already resident and model-visible
+    # under $SKILLS_DIR, either directly ($SKILLS_DIR/$name/) or via an
+    # aliased /sp-* install directory whose frontmatter name is $name.
+    is_dup=0
+    if [[ -d "$SKILLS_DIR/$name" ]] || [[ -n "${INSTALLED_NAME[$name]+x}" ]]; then
+        is_dup=1
     fi
 
     out="$DST/${name}.md"
@@ -85,6 +139,9 @@ for skill_dir in "$SRC"/*/; do
             printf -- '---\n'
             printf 'description: "%s"\n' "$desc"
             printf 'source: "claude-commands-mirror"\n'
+            if [[ "$is_dup" -eq 1 ]]; then
+                printf 'disable-model-invocation: true\n'
+            fi
             printf -- '---\n'
             printf '\n'
             printf "Invoke the \`%s\` skill from \`%s\`. Read the SKILL.md file and follow its procedure exactly.\n" \
@@ -92,7 +149,13 @@ for skill_dir in "$SRC"/*/; do
         } > "$out"
     fi
     KEEP+=("${name}.md")
-    log_verbose "  mirrored: $name → $out"
+    if [[ "$is_dup" -eq 1 ]]; then
+        mirrored_hidden_alias=$((mirrored_hidden_alias + 1))
+        log_verbose "  mirrored (hidden alias, resident in $SKILLS_DIR): $name → $out"
+    else
+        mirrored_visible=$((mirrored_visible + 1))
+        log_verbose "  mirrored: $name → $out"
+    fi
 done
 
 # Prune stale managed commands — only files this script owns (source: "claude-commands-mirror").
@@ -111,4 +174,4 @@ for existing in "$DST"/*.md; do
     fi
 done
 
-log_info "Mirrored ${#KEEP[@]} skill(s) to $DST"
+log_info "Mirrored ${#KEEP[@]} skill(s) to $DST (visible=$mirrored_visible, hidden-alias=$mirrored_hidden_alias, skipped-source-command=$skipped_source_command)"

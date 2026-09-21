@@ -15,7 +15,7 @@
 #   - each suite path may appear only once across all directives
 
 env tests/augment-non-regression-test.bats PERSONAL_SKILLS_DIR=$REPO_ROOT/skills  suite resolves the skills tree from this env var, not from cwd
-env tests/harness/artifact-budgets.bats BUDGET_MODE=advisory  budgets stay advisory until artifact-baselines.json has rows (docs/harness/artifact-budgets.md)
+env tests/harness/artifact-budgets.bats BUDGET_MODE=advisory  stays advisory until seven days of linked zero-breach CI evidence (docs/harness/artifact-budgets.md)
 
 # --- 2026-08-29: pre-existing failures surfaced when discovery replaced the ---
 # --- hand-enumerated CI list. These 3 suites were never run in CI before and ---
