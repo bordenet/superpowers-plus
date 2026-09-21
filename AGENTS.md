@@ -83,7 +83,7 @@ ALL work MUST happen in this repository (the directory containing this AGENTS.md
 - **Full test surface**: `./tools/test-all.sh` runs shellcheck + harsh-review + bats + node test/*. `tools/ci-bats-discovery.sh` is CI's suite discovery, policy lint, and runner. The framework block above lists `bats test/` for parity with golden-agents conventions, but the actual suite is larger. Use `--fast` for a node+bats-only inner loop; CI must run the full suite.
 - Run `./tools/harsh-review.sh` (subset of `test-all.sh`) before any commit; install hooks: `./tools/install-hooks.sh`
 - `commit-msg` hook: auto-converts smart quotes, em dashes, arrows, etc. to ASCII; rejects any remaining non-ASCII. If a commit is rejected, edit the message to use ASCII equivalents. Requires `python3` in PATH (hook exits 1 with an explicit error if missing).
-- Skills changes: `code-review-battery` + PHR required (pre-commit sentinel enforced). The PHR-trigger file list comes from `tools/md-files-changed.sh` — the single source of truth for the regex and exclusions.
+- Review gates are enforced at **pre-push**: code → `code-review-battery`, design docs → PHR, `skills/*.md` and AGENTS-family files → `llm-skill-review`. A sentinel covers the reviewed *content*: it stays valid across amends/rebases until a file in that gate's scope changes (`tools/lib/sentinel-scope.sh`). The pre-commit sentinel check is off for this repo (`REQUIRE_CODE_REVIEW_SENTINEL=false` in `.agent-gates`). The PHR-trigger file list comes from `tools/md-files-changed.sh` — the single source of truth for the regex and exclusions.
 - **Sentinel**: `tools/run-battery.sh [--verdict PASS|PASS_WITH_NITS] [--staged]` is the ONLY permitted way to write `.code-review-cleared`. Writing it directly is a critical policy violation. With `--staged`, the sentinel records `tree:<sha>` and the post-commit hook promotes it to the new HEAD SHA, eliminating the stage→battery→commit→battery double-run. The post-commit hook also carries `.code-review-cleared`, `.phr-cleared`, and `.llm-skill-review-cleared` forward across any commit whose tree is provably unchanged from a passing sentinel's recorded SHA — this covers a clean promotion merge (e.g. `dev → staging`, tree-identical to the branch merged in) so promoting already-reviewed content doesn't force a fresh review just because the merge commit has a new SHA.
 - **Pre-push runs `test-all.sh --fast` automatically** (Gate 1 of 7). Before spending that runtime, use read-only `tools/push-readiness.sh [--json]` to list sentinel blockers without consuming them; pass `--destination <branch>` for a non-same-name refspec such as `HEAD:main`. Gate 6 requires `.llm-skill-review-cleared` for `skills/*.md` changes; it supersedes (not supplements) the code-review and PHR gates for that file class specifically. Gate 7 is a per-commit LOC advisory (warn-only by default; see `tools/pre-push-loc-gate.sh`'s own header for `LOC_GATE_MODE=block` opt-in).
 - **Before dispatching any review sub-agent, run `tools/review.sh route <path> [<path> ...]` first** — it wraps `tools/which-gate.sh` and prints one block per artifact class (skill name, sentinel file, and runner), with a separate block for each gate when paths span multiple classes. Never pick the review dispatcher from memory — the three review skills' own "Wrong skill?" prose banners only fire *after* the wrong skill is loaded, which is after the dispatch decision was already wrong; `tools/review.sh` fires before any skill loads. On non-zero exit (router missing, extraction failure, or unmatched artifact), stop and consult the gate bullets above rather than picking from memory.
@@ -138,14 +138,13 @@ Then open PR `chore/sync-dev-with-main → dev`. Squash promotions leave SHAs on
 
 ## Claude Code guardrails
 
-Non-regression scaffolding for the Claude Code self-debug action plan; for self-debug guidance use the `systematic-debugging` skill (`/sp-systematic-debugging`). PR-0 ships
-**zero active behavior** — it is pure scaffolding and baseline capture.
+Claude Code lifecycle hooks (red-autonomy, skill router, context ferry, git identity, and others) installed into `~/.claude/hooks/` and registered in `~/.claude/settings.json` by `setup/install-claude-guardrails.sh`; for self-debug guidance use the `systematic-debugging` skill (`/sp-systematic-debugging`). `install.sh` reports hook parity (installed vs. shipped) after every run; `uninstall.sh` removes the hooks and their registrations.
 
-**Environment variables** (all default OFF; add to your local `~/.codex/.env`):
+**Environment variables** (add to your local `~/.codex/.env`):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SUPERPOWERS_CLAUDE_GUARDRAILS` | `0` | P3 kill switch — enables the full guardrails subsystem (PR-3+) |
+| `SUPERPOWERS_CLAUDE_GUARDRAILS` | `1` | Kill switch — installs the guardrail hooks; set `0` to opt out |
 | `CLAUDE_HOOKS_BYPASS` | `0` | Per-hook bypass for ops escape hatch (PR-1+) |
 | `AUGMENT_PARITY_OFF` | `0` | Parity-mode toggle for cross-tool validation (PR-2+) |
 

@@ -79,15 +79,54 @@ jobs:
   shell-tests:
     name: Shell Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
+      # Promotion dedupe. A PR into staging or main whose merge result has the
+      # SAME TREE as a commit that already passed this workflow on a push to
+      # dev/staging/main re-tests byte-identical code: ~8.5 min for nothing,
+      # twice per promotion. Skip the heavy steps only when (1) this PR's merge
+      # result tree equals its head tree (the base adds nothing untested) and
+      # (2) a successful push run of this workflow exists for a commit with
+      # that exact tree. Any error or doubt falls through to a full run. The job
+      # still reports success, so the required "Shell Tests" check is satisfied.
+      - name: Skip if this exact tree already passed (promotion dedupe)
+        id: dedupe
+        if: github.event_name == 'pull_request' && (github.base_ref == 'staging' || github.base_ref == 'main')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          full() { echo "dedupe: $1 -- running the full suite"; exit 0; }
+          git fetch --no-tags --depth=1 origin "$HEAD_SHA" >/dev/null 2>&1 || full "cannot fetch head"
+          merge_tree="$(git rev-parse 'HEAD^{tree}')" || full "no merge tree"
+          head_tree="$(git rev-parse "${HEAD_SHA}^{tree}")" || full "no head tree"
+          [ "$merge_tree" = "$head_tree" ] || full "merge result differs from head"
+          shas="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?event=push&status=success&per_page=30" \
+                  --jq '.workflow_runs[] | select(.head_branch=="dev" or .head_branch=="staging" or .head_branch=="main") | .head_sha')" \
+                  || full "cannot list prior runs"
+          for sha in $shas; do
+            tree="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${sha}" --jq '.tree.sha' 2>/dev/null)" || continue
+            if [ "$tree" = "$head_tree" ]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "dedupe: tree $head_tree already passed Tests on push (commit $sha) -- skipping heavy steps"
+              exit 0
+            fi
+          done
+          full "no successful push run found for tree $head_tree"
+
       - name: Configure git identity
+        if: steps.dedupe.outputs.skip != 'true'
         run: |
           git config --global user.email "ci@superpowers-plus.test"
           git config --global user.name "CI Runner"
 
       - name: Install BATS
+        if: steps.dedupe.outputs.skip != 'true'
         run: |
           git clone --depth 1 --branch v1.11.0 \
             https://github.com/bats-core/bats-core.git /tmp/bats
@@ -98,26 +137,33 @@ jobs:
           sudo /tmp/bats/install.sh /usr/local
 
       - name: Bats policy lint (no stale opt-outs)
+        if: steps.dedupe.outputs.skip != 'true'
         run: bash tools/ci-bats-discovery.sh --lint
 
       - name: All bats suites (auto-discovered)
+        if: steps.dedupe.outputs.skip != 'true'
         run: bash tools/ci-bats-discovery.sh --run
 
       - name: Doctor checks tests
+        if: steps.dedupe.outputs.skip != 'true'
         run: bash tools/tests/test_doctor_checks.sh
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
       - name: TODO lock tests
+        if: steps.dedupe.outputs.skip != 'true'
         run: bash tools/tests/test_todo_lock.sh
 
       - name: TODO engine unit tests
+        if: steps.dedupe.outputs.skip != 'true'
         run: python3 tools/tests/test_todo_engine.py -v
 
       - name: TODO archive tests
+        if: steps.dedupe.outputs.skip != 'true'
         run: bash skills/productivity/todo-archive/tests/test_todo_archive.sh
 
       - name: SKILLS.md count lint
+        if: steps.dedupe.outputs.skip != 'true'
         run: |
           ACTUAL=$(find skills/ -name "skill.md" -not -path "*/_adapters/*" | wc -l | tr -d ' ')
           DECLARED=$(grep -o 'SKILL-COUNT: [0-9]*' docs/SKILLS.md | grep -o '[0-9]*')
@@ -133,11 +179,13 @@ jobs:
           echo "PASS: $ACTUAL skills match declared count in docs/SKILLS.md"
 
       - name: Full-corpus fence-scan (all skills/**/*.md)
+        if: steps.dedupe.outputs.skip != 'true'
         run: |
           mapfile -t MD_FILES < <(find skills -name "*.md")
           bash tools/fence-scan.sh "${MD_FILES[@]}"
 
       - name: Harness -- skill size audit (advisory)
+        if: steps.dedupe.outputs.skip != 'true'
         continue-on-error: true
         run: bash tools/skill-size-audit.sh
 
