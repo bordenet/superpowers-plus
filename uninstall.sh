@@ -106,6 +106,132 @@ run_rm() {
     fi
 }
 
+# --- Claude Code integration (hooks, settings.json entries, mirrored commands) ---
+# Added 2026-09-21: an end-to-end sandbox test showed these all survived even
+# --purge, so "uninstalled" sessions kept running every superpowers hook.
+CLAUDE_HOOKS_DIR="${HOME}/.claude/hooks"
+CLAUDE_COMMANDS_DIR="${HOME}/.claude/commands"
+CLAUDE_SETTINGS="${HOME}/.claude/settings.json"
+
+# Names of the hooks this repo ships. Only these are ever removed, so a user's
+# own hooks in the same directory are left alone.
+shipped_hook_names() {
+    local src="$SCRIPT_DIR/tools/claude-hooks" f
+    [[ -d "$src" ]] || return 0
+    for f in "$src"/*.sh; do
+        [[ -f "$f" ]] && basename "$f"
+    done
+}
+
+# Drop settings.json hook entries that point at a shipped hook; keep everything
+# else (the user's own hooks, model, permissions...). Backs the file up first.
+unregister_claude_hooks() {
+    [[ -f "$CLAUDE_SETTINGS" ]] || return 0
+    local names
+    names="$(shipped_hook_names | tr '\n' ' ')"
+    [[ -n "$names" ]] || { log_warn "Shipped hook list unavailable -- leaving $CLAUDE_SETTINGS untouched"; return 0; }
+    if ! command -v python3 >/dev/null 2>&1; then
+        log_warn "python3 not found -- remove superpowers hook entries from $CLAUDE_SETTINGS by hand"
+        return 0
+    fi
+    local count
+    count="$(SP_NAMES="$names" SP_SETTINGS="$CLAUDE_SETTINGS" SP_WRITE="$([[ "$DRY_RUN" == "true" ]] && echo 0 || echo 1)" python3 - <<'PYEOF'
+import json, os, re, shutil, time
+path = os.environ["SP_SETTINGS"]
+names = set(os.environ["SP_NAMES"].split())
+ours = lambda cmd: bool(re.search(r"\.claude/hooks/([^/\s]+)$", cmd or "")) and \
+    re.search(r"\.claude/hooks/([^/\s]+)$", cmd).group(1) in names
+try:
+    data = json.load(open(path))
+except Exception:
+    print("-1"); raise SystemExit(0)
+removed = 0
+hooks = data.get("hooks")
+if isinstance(hooks, dict):
+    for event in list(hooks):
+        groups = hooks[event] if isinstance(hooks[event], list) else []
+        kept_groups = []
+        for g in groups:
+            entries = g.get("hooks", []) if isinstance(g, dict) else []
+            kept = [h for h in entries if not ours(h.get("command", ""))]
+            removed += len(entries) - len(kept)
+            if kept:
+                g["hooks"] = kept
+                kept_groups.append(g)
+        if kept_groups:
+            hooks[event] = kept_groups
+        else:
+            del hooks[event]
+    if not hooks:
+        del data["hooks"]
+if removed and os.environ["SP_WRITE"] == "1":
+    shutil.copy2(path, f"{path}.pre-uninstall.{time.strftime('%Y%m%dT%H%M%S')}")
+    with open(path, "w") as fh:
+        json.dump(data, fh, indent=2)
+        fh.write("\n")
+print(removed)
+PYEOF
+)"
+    if [[ "$count" == "-1" ]]; then
+        log_warn "Could not parse $CLAUDE_SETTINGS -- left untouched"
+    elif [[ "$DRY_RUN" == "true" ]]; then
+        log_info "[DRY-RUN] Would unregister $count superpowers hook entr(y/ies) from $CLAUDE_SETTINGS"
+    else
+        log_success "Unregistered $count superpowers hook entr(y/ies) from settings.json (backup kept beside it)"
+    fi
+}
+
+remove_claude_integration() {
+    log_info "Removing Claude Code hooks, hook registrations and mirrored commands..."
+    unregister_claude_hooks
+    local name hook_count=0
+    while IFS= read -r name; do
+        [[ -n "$name" ]] || continue
+        is_safe_name "${name%.sh}" || continue
+        if [[ -f "${CLAUDE_HOOKS_DIR}/${name}" ]]; then
+            run_rm "${CLAUDE_HOOKS_DIR}/${name}"
+            hook_count=$((hook_count + 1))
+        fi
+    done < <(shipped_hook_names)
+    log_success "Removed $hook_count Claude hook script(s)"
+    # Commands mirrored by tools/claude-commands-mirror.sh carry this exact
+    # frontmatter line; anything without it belongs to the user or another tool.
+    local cmd cmd_count=0
+    if [[ -d "$CLAUDE_COMMANDS_DIR" ]]; then
+        for cmd in "$CLAUDE_COMMANDS_DIR"/*.md; do
+            [[ -f "$cmd" ]] || continue
+            if grep -q '^source: "claude-commands-mirror"' "$cmd" 2>/dev/null; then
+                run_rm "$cmd"
+                cmd_count=$((cmd_count + 1))
+            fi
+        done
+    fi
+    log_success "Removed $cmd_count mirrored Claude command(s)"
+    # An `if`, not `[[ ]] && ...`: as a function's last command, a false test
+    # would make the function return 1 and abort the caller under `set -e`.
+    if [[ -d "${HOME}/.config/claude-hooks" ]]; then
+        log_info "Kept ~/.config/claude-hooks/ (your pattern lists; delete by hand if unwanted)"
+    fi
+}
+
+# sp-* CLI links point into the managed checkout; --purge deletes that
+# checkout, so remove only links that resolve into it (never anyone else's).
+remove_cli_links() {
+    local dir link target removed=0
+    for dir in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
+        [[ -d "$dir" ]] || continue
+        for link in "$dir"/sp-*; do
+            [[ -L "$link" ]] || continue
+            target="$(readlink "$link")"
+            if [[ "$target" == "$MANAGED_DIR/"* ]]; then
+                run_rm "$link"
+                removed=$((removed + 1))
+            fi
+        done
+    done
+    log_success "Removed $removed sp-* command link(s)"
+}
+
 # NOTE: We intentionally do NOT modify ~/.codex/.env during uninstall.
 # That file contains MCP server credentials, API keys, and secrets that
 # must never be rewritten by an uninstaller. Stale *_SOURCE_DIR entries
@@ -295,6 +421,15 @@ main() {
         done
         skill_count=$((skill_count + 1))
     done
+    # _shared/ is deployed separately by install_skills (a support directory
+    # skills reference, not a skill), so it is not in the skills list above.
+    if other_repo_provides "skills" "_shared"; then
+        log_verbose "Keeping _shared/ -- still provided by another overlay"
+    else
+        for target_dir in "$SKILLS_DIR" "$CLAUDE_SKILLS_DIR"; do
+            [[ -d "${target_dir}/_shared" ]] && run_rm "${target_dir}/_shared"
+        done
+    fi
     log_success "Removed $skill_count skill(s)"
 
     # Step 1b: Remove Augment slash menu skills (~/.agents/skills/)
@@ -349,6 +484,9 @@ main() {
     [[ -d "$ADAPTER_DIR" ]] && run_rm "$ADAPTER_DIR"
     log_success "Adapter removed"
 
+    # Step 5b: Claude Code integration
+    remove_claude_integration
+
     # Step 6: .env is intentionally left alone (contains MCP credentials)
     log_verbose "Skipping .env — stale $SOURCE_VAR entry is harmless"
 
@@ -360,6 +498,10 @@ main() {
         [[ -d "${CODEX_DIR}/doctor-backups" ]] && run_rm "${CODEX_DIR}/doctor-backups"
         [[ -d "${CODEX_DIR}/superpowers-review" ]] && run_rm "${CODEX_DIR}/superpowers-review"
         [[ -f "${CODEX_DIR}/.superpowers-session" ]] && run_rm "${CODEX_DIR}/.superpowers-session"
+        remove_cli_links
+        # Ownership marker for ~/.codex; stale once everything is purged, and it
+        # would block a later install of a different superpowers ecosystem.
+        [[ -f "${CODEX_DIR}/.superpowers-ecosystem" ]] && run_rm "${CODEX_DIR}/.superpowers-ecosystem"
         log_success "Purge complete"
     fi
 
