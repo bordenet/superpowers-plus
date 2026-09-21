@@ -11,7 +11,9 @@
 #   bash setup/install-claude-guardrails.sh --help
 #
 # KILL SWITCH: Set SUPERPOWERS_CLAUDE_GUARDRAILS=0 to exit without writing
-#   anything to ~/.claude/ (bake-period default, see PR-0 .env.example).
+#   anything to ~/.claude/. Default is 1 (install) since 2026-09-21: with the
+#   old default of 0, a skipped install looked like a completed one and hooks
+#   silently went ~4 weeks stale (see lib/install/hook-parity.sh).
 #
 # EXIT: 0 = success or kill-switch; 1 = hard error
 # -----------------------------------------------------------------------------
@@ -50,10 +52,10 @@ USAGE
 
 KILL SWITCH
   SUPERPOWERS_CLAUDE_GUARDRAILS=0 bash setup/install-claude-guardrails.sh
-    → exits 0 without writing anything (default during bake period)
+    → exits 0 without writing anything (opt-out; default is to install)
 
 ENV VARS (all optional)
-  SUPERPOWERS_CLAUDE_GUARDRAILS  0=skip (default), 1=install
+  SUPERPOWERS_CLAUDE_GUARDRAILS  1=install (default), 0=skip
   CLAUDE_HOOKS_BYPASS            1=skip all hooks for one invocation (runtime)
 HELP
       exit 0
@@ -63,10 +65,10 @@ HELP
 done
 
 # ---------------------------------------------------------------------------
-# P3 kill switch (default 0 = OFF during bake period)
+# P3 kill switch (default 1 = install; 0 opts out)
 # ---------------------------------------------------------------------------
 _kill_switch_check() {
-  if [[ "${SUPERPOWERS_CLAUDE_GUARDRAILS:-0}" == "0" ]]; then
+  if [[ "${SUPERPOWERS_CLAUDE_GUARDRAILS:-1}" == "0" ]]; then
     log_info "Kill switch ON (SUPERPOWERS_CLAUDE_GUARDRAILS=0). Skipping install."
     log_info "To enable: SUPERPOWERS_CLAUDE_GUARDRAILS=1 bash $0"
     exit 0

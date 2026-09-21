@@ -314,6 +314,27 @@ run_node_tests() {
     return "$rc"
 }
 
+# The skill-content guards in tests/engineering/ (kernel byte budgets, the
+# reduction ledger, PHR safety pins) run in --fast too. They take ~7 s, and
+# without them a skill edit that breaks a budget passes every local gate and
+# fails only on Linux CI, ~9 minutes later (PR #1326, 2026-09-21). The rest of
+# tests/ stays out of --fast: it is ~140 s even in parallel, and pre-push
+# Gate 1 runs under `timeout 300`.
+# shellcheck disable=SC2329  # invoked indirectly via run_suite
+run_bats_skill_guards() {
+    command -v bats >/dev/null 2>&1 || { echo "⚠️  bats not installed; skipping"; return 0; }
+    local -a files=()
+    local f
+    while IFS= read -r f; do [[ -n "$f" ]] && files+=("$f"); done \
+        < <(find "$REPO_ROOT/tests/engineering" -name '*.bats' 2>/dev/null | sort)
+    [[ ${#files[@]} -gt 0 ]] || { echo "no tests/engineering/*.bats"; return 0; }
+    if command -v parallel >/dev/null 2>&1; then
+        bats --jobs "$(_bats_jobs)" --no-parallelize-within-files "${files[@]}"
+    else
+        bats "${files[@]}"
+    fi
+}
+
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_harsh_review() {
     bash "$SCRIPT_DIR/harsh-review.sh"
@@ -326,6 +347,7 @@ run_harsh_review() {
 # Not in --fast: the pre-push gate runs under `timeout 300` and tests/ is slow.
 # CI runs it via ci-bats-discovery.sh regardless.
 [[ "$RUN_BATS" -eq 1 && "$RUN_FAST" -ne 1 ]] && run_suite "bats tests/ (serial)" run_bats_tests_dir
+[[ "$RUN_BATS" -eq 1 && "$RUN_FAST" -eq 1 ]] && run_suite "bats tests/engineering (skill guards)" run_bats_skill_guards
 
 # Undeclared in-tree writes fail the run and are named. A declared artifact
 # left behind is reported but not fatal -- the next sweep heals it.
