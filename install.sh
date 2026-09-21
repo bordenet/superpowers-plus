@@ -651,7 +651,7 @@ install_claude_guardrails() {
     local guardrails_out guardrails_rc=0
     guardrails_out="$(bash "$guardrails_script" 2>&1)" || guardrails_rc=$?
     if [[ $guardrails_rc -eq 0 ]]; then
-        log_info "Claude Code guardrails: OK (SUPERPOWERS_CLAUDE_GUARDRAILS=${SUPERPOWERS_CLAUDE_GUARDRAILS:-0})"
+        log_info "Claude Code guardrails: OK (SUPERPOWERS_CLAUDE_GUARDRAILS=${SUPERPOWERS_CLAUDE_GUARDRAILS:-1})"
         if [[ "$guardrails_out" == *"Kill switch ON"* ]]; then
             log_warn "Claude Code guardrails were SKIPPED (kill switch). Hooks were not installed or updated."
             log_warn "  Enable with: SUPERPOWERS_CLAUDE_GUARDRAILS=1 bash $guardrails_script"

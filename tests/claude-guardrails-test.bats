@@ -46,6 +46,21 @@ _fresh_home() {
 # Item 11 tests
 # ---------------------------------------------------------------------------
 
+# 11d' — default ON since 2026-09-21: with the variable UNSET the installer
+# writes the hooks. The old default of 0 made a skipped install look like a
+# completed one, and hooks went ~4 weeks stale on a dev machine.
+@test "item 11d': guardrails install by default when SUPERPOWERS_CLAUDE_GUARDRAILS is unset" {
+  local fake_home
+  fake_home="$(_fresh_home)"
+  HOME="$fake_home" run env -u SUPERPOWERS_CLAUDE_GUARDRAILS bash "$INSTALLER"
+  [ "$status" -eq 0 ]
+  local hook_count
+  hook_count="$(find "$fake_home/.claude/hooks" -name '*.sh' 2>/dev/null | wc -l | tr -d ' ')"
+  rm -rf "$fake_home"
+  [ "$hook_count" -gt 0 ] || { echo "default install wrote no hooks"; return 1; }
+  [[ "$output" != *"Kill switch ON"* ]]
+}
+
 # 11d — kill switch (P3): SUPERPOWERS_CLAUDE_GUARDRAILS=0 must block all writes
 @test "item 11d: kill switch (SUPERPOWERS_CLAUDE_GUARDRAILS=0) blocks all writes" {
   local fake_home
