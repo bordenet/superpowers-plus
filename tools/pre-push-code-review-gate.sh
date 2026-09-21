@@ -34,6 +34,8 @@ fi
 source "$REPO_ROOT/tools/lib/pre-push-diff-range.sh"
 # shellcheck source=tools/lib/code-review-sentinel.sh
 source "$REPO_ROOT/tools/lib/code-review-sentinel.sh"
+# shellcheck source=tools/lib/sentinel-scope.sh
+source "$REPO_ROOT/tools/lib/sentinel-scope.sh"
 
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -63,17 +65,11 @@ REMOTE_NAME="${1:-origin}"
 # swept up by the unanchored .md/.txt/.rst fallthrough; it needs an explicit
 # route, not a silent pass. Other .md/.txt/.rst files and well-known root
 # metadata are exempt.
+
+# The code-file rule set lives in tools/lib/sentinel-scope.sh so this gate,
+# push-readiness.sh and the stale-sentinel check share one definition.
 _first_code_file() {
-    awk '
-        /^\s*$/                             { next }
-        /^skills\/.*\.md$/                  { next }
-        /^skills\//                         { print; next }
-        /^tests\/ci-bats-policy\.txt$/       { print; next }
-        /^test\/golden-compression\/.*\.golden\.txt$/ { print; next }
-        /\.(md|txt|rst)$/                   { next }
-        /^(\.gitignore|\.gitattributes|\.editorconfig|README|CHANGELOG|LICENSE|\.env\.example)$/ { next }
-        { print }
-    ' | head -1
+    sentinel_scope_code_files | head -1
 }
 
 # Reads filenames from stdin and prints the first root metadata path that is
@@ -167,16 +163,20 @@ check_code_review_sentinel() {
 
     # Compare against the ref actually being pushed, not necessarily HEAD.
     # Pre-push hooks can push non-HEAD refs (e.g., worktrees, detached heads).
-    if [[ "$sentinel_sha" != "$pushed_sha" ]]; then
+    # A review attests to CONTENT, not to a commit. Carry clearance forward
+    # when no code file differs between the reviewed and the pushed commit, so
+    # a message-only amend, a rebase, or a docs-only follow-up commit does not
+    # force a full re-review. Any in-scope change still invalidates it.
+    if ! sentinel_scope_unchanged "$sentinel_sha" "$pushed_sha" sentinel_scope_code_files; then
         echo ""
         echo -e "  ${RED}❌ PUSH BLOCKED: Code review clearance is stale.${NC}"
         echo ""
-        echo "  Clearance was for commit: ${sentinel_sha:0:8}"
-        echo "  Pushing commit:           ${pushed_sha:0:8}"
-        echo ""
-        echo "  Commits were made after the review. Re-run code-review-battery, then push."
+        sentinel_scope_report "code-review-battery" "$sentinel_sha" "$pushed_sha"
         echo ""
         return 1
+    fi
+    if [[ "$sentinel_sha" != "$pushed_sha" ]]; then
+        echo "  [code-review-gate] Clearance for ${sentinel_sha:0:8} carried forward to ${pushed_sha:0:8}: no code file changed."
     fi
 
     if [[ "$sentinel_verdict" != "PASS" && "$sentinel_verdict" != "PASS_WITH_NITS" ]]; then

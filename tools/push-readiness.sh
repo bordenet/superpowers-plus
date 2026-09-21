@@ -87,6 +87,8 @@ esac
 # the real pre-push consumer rejects (or vice versa).
 # shellcheck source=tools/lib/code-review-sentinel.sh
 source "$REPO_ROOT/tools/lib/code-review-sentinel.sh"
+# shellcheck source=tools/lib/sentinel-scope.sh
+source "$REPO_ROOT/tools/lib/sentinel-scope.sh"
 
 # Resolve what this push would be compared against, mirroring how the gates
 # derive their range: the branch's own upstream if it has one, else the
@@ -339,8 +341,12 @@ else
       if [[ -n "$SENTINEL_ERROR" ]]; then
         note "BLOCKED|$sentinel $SENTINEL_ERROR|$runner"
         BLOCKERS=$((BLOCKERS + 1))
-      elif [[ "$s_sha" != "$HEAD_SHA" ]]; then
-        note "BLOCKED|$sentinel STALE (cleared ${s_sha:0:8}, HEAD is ${HEAD_SHA:0:8})|$runner"
+      elif [[ "$s_sha" != "$HEAD_SHA" ]] && ! {
+             _scope_fn="$(sentinel_scope_classifier_for "$sentinel")" &&
+             sentinel_scope_unchanged "$s_sha" "$HEAD_SHA" "$_scope_fn"; }; then
+        # Must match the pre-push gates exactly, or readiness lies: clearance is
+        # carried forward when no in-scope file differs (see sentinel-scope.sh).
+        note "BLOCKED|$sentinel STALE (cleared ${s_sha:0:8}, HEAD is ${HEAD_SHA:0:8}; changed: $(printf '%s' "${SENTINEL_SCOPE_CHANGED:-n/a}" | tr '\n' ' '))|$runner"
         BLOCKERS=$((BLOCKERS + 1))
       else
         # Each gate accepts a DIFFERENT verdict set. A single union set here

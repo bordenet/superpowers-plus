@@ -35,6 +35,8 @@ EOF
 set -euo pipefail
 source ./stub-colors.sh
 EOF
+    # _first_code_file delegates to the shared rule set in tools/lib.
+    printf 'source %q\n' "$REPO_ROOT_REAL/tools/lib/sentinel-scope.sh" >> harness.sh
     cat extracted-fns.sh >> harness.sh
     cat >> harness.sh <<'EOF'
 

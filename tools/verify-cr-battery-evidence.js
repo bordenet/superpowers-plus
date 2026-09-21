@@ -123,7 +123,11 @@ function parseExpectation(stdout, exitCode, expectation) {
   const lines = stdout.split('\n').filter(l => l.trim().length > 0);
   switch (expectation.type) {
     case 'count': {
-      const m = String(expectation.value).match(/^(>=|<=|==|>|<)(\d+)$/);
+      // A bare integer (2 or "2") means ==2. Rejecting it used to make the
+      // expectation an 'error', which silently capped that dimension's score --
+      // the single most common way hand-built envelopes failed.
+      const raw = String(expectation.value).trim();
+      const m = (/^\d+$/.test(raw) ? `==${raw}` : raw).match(/^(>=|<=|==|>|<)\s*(\d+)$/);
       if (!m) return { status: 'error', detail: `bad count value "${expectation.value}" (expected one of: >N, >=N, <N, <=N, ==N where N is a non-negative integer)` };
       const [, cmp, n] = m;
       const N = parseInt(n, 10);
@@ -135,7 +139,15 @@ function parseExpectation(stdout, exitCode, expectation) {
       return { status: ok ? 'verified' : 'falsified', observed: `non_blank_lines=${lines.length}` };
     }
     case 'exit_code': {
-      const want = Number(expectation.value);
+      // Accept 0, "0" and "==0". Anything else is an authoring error, reported
+      // loudly -- Number("==0") is NaN, which used to falsify silently.
+      // Number("") === 0, so an empty or whitespace value would silently mean
+      // "exit 0". Require an explicit integer literal.
+      const rawExit = String(expectation.value == null ? '' : expectation.value).trim().replace(/^==\s*/, '');
+      const want = /^-?\d+$/.test(rawExit) ? Number(rawExit) : NaN;
+      if (!Number.isInteger(want)) {
+        return { status: 'error', detail: `bad exit_code value "${expectation.value}" (expected an integer, e.g. 0)` };
+      }
       return { status: exitCode === want ? 'verified' : 'falsified', observed: `exit=${exitCode}` };
     }
     case 'match': {
@@ -144,7 +156,13 @@ function parseExpectation(stdout, exitCode, expectation) {
         return { status: 'error', detail: `regex pattern length ${pat.length} exceeds ${MAX_REGEX_PATTERN_LEN}-byte ReDoS guard` };
       }
       // Truncate stdout before .test() so a pathological pattern cannot run unbounded
-      const haystack = stdout.length > MAX_STDOUT_FOR_MATCH ? stdout.slice(0, MAX_STDOUT_FOR_MATCH) : stdout;
+      // Strip exactly ONE terminal newline -- the last line's own terminator.
+      // Command output almost always ends in \n, and JS `$` (no m flag) does not
+      // match before it the way Python's does, so `^ok$` falsified against
+      // "ok\n". Only one is removed, so trailing-newline structure stays
+      // checkable: "foo\n" and "foo\n\n" still differ after stripping.
+      const trimmed = stdout.endsWith('\n') ? stdout.slice(0, -1) : stdout;
+      const haystack = trimmed.length > MAX_STDOUT_FOR_MATCH ? trimmed.slice(0, MAX_STDOUT_FOR_MATCH) : trimmed;
       let re;
       try { re = new RegExp(pat); }
       catch (e) { return { status: 'error', detail: `bad regex: ${e.message}` }; }

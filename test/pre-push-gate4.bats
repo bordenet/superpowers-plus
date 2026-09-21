@@ -44,6 +44,8 @@ source ./stub-colors.sh
 REPO_ROOT="$PWD"
 PHR_SENTINEL="$PWD/.phr-cleared"
 EOF
+    # The gate's stale check delegates to the shared scope library.
+    printf 'source %q\n' "$REPO_ROOT_REAL/tools/lib/sentinel-scope.sh" >> harness.sh
     cat extracted-fn.sh >> harness.sh
     cat >> harness.sh <<'EOF'
 
@@ -182,7 +184,9 @@ teardown() {
     run ./harness.sh "${BASE_SHA}..${HEAD_SHA}" "$HEAD_SHA"
     [ "$status" -eq 1 ]
     [[ "$output" == *"stale"* ]]
-    [[ "$output" == *"PHR was for"* ]]
+    # Shared report (tools/lib/sentinel-scope.sh); the fake SHA is not a real
+    # commit, so content identity is unprovable and the gate fails closed.
+    [[ "$output" == *"Clearance was for commit"* ]]
 }
 
 # --- Non-passing verdict ---

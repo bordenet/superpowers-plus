@@ -143,7 +143,7 @@ Score each axis from 0.0 to 10.0 and justify with evidence:
 
 ## Prose/Design Quality Axes (absorbed from progressive-harsh-review)
 
-A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) by running Persona 6 as PHR's actual three-sub-persona ensemble (see Specialist Personas below), using `progressive-harsh-review`'s own per-persona weights, aggregation rule, and critical-veto rule verbatim -- see that skill's **"Persona dimension table"** section (NOT "Step 1: Dispatch Review," which is only the generic fallback table used when a persona has no explicit weight definition -- citing the fallback table here was a round-2 self-review defect, fixed):
+A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) using `progressive-harsh-review`'s persona rule, per-persona weights, aggregation and critical veto verbatim (its **"Persona dimension table"** section, NOT the generic "Step 1: Dispatch Review" fallback). Skill files are **reversible** artifacts, so by PHR's rule the combined reviewer scores them as one persona (SeniorArchCritic weights); run the 3-persona ensemble only when the change is irreversible by PHR's definition:
 
 | Axis | What to evaluate |
 |---|---|
@@ -153,7 +153,7 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 | Blind Spots | What scenarios, edge cases, or artifact types does the skill fail to address? |
 | Operational Risk | What breaks the skill under adverse conditions -- wrong trigger match, absent dependency, misuse, trigger collision with a sibling skill? |
 
-**Aggregation:** each of the three sub-personas scores all five axes using its OWN per-persona weights (never a shared/averaged weight set), then the three weighted scores are averaged with equal weight -- PHR's Step 3 rule, not re-derived here.
+**Aggregation:** one persona -> its weighted score IS the Prose/Design score. Ensemble -> each sub-persona scores all five axes with its OWN weights, then the three are averaged equally (PHR's Step 3 rule).
 
 **Critical veto (verbatim from progressive-harsh-review):** if ANY sub-persona scores Correctness or Operational Risk <=4 AND cites a specific defect (not a general concern), that is an automatic REJECT regardless of the weighted mean. An unrecoverable-failure-style finding MUST be scored on Operational Risk -- not Blind Spots alone -- to be veto-eligible; scoring it only on Blind Spots bypasses the veto gate.
 
@@ -164,18 +164,21 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 - Prose/Design weighted mean 7 to <8 (PHR's PASS_WITH_FIXES band) -> at least **PASS WITH RISKS**.
 - Otherwise, follow the worse of: highest unresolved severity (S1 present -> at least MAJOR REVISIONS REQUIRED; S2 only -> at least PASS WITH RISKS; S3-only/none -> PASS eligible) and the Prose/Design band above.
 
-## Specialist Personas
+## Reviewer Dispatch
 
-Run these in parallel if tooling allows (e.g. `Task()`-based parallel sub-agent dispatch, as `code-review-battery` already documents). Full start-points and questions for each are in `reference.md` -- load it before dispatching.
+**Default: ONE combined reviewer**, not one agent per persona. It covers Mandatory Checks A-F and the Prose/Design axes above, and MUST emit a `placement` verdict -- one sentence plus file:line answering "is this the right place, or is there a simpler root cause?" A review without `placement` is incomplete. Build its input once (changed files, `tools/fence-scan.sh` output, the reference.md sections the checks cite) and hand it over; the reviewer keeps repo access and does not re-derive what it was given.
 
-| # | Persona | Focus |
-|---|---------|-------|
-| 1 | Runtime Determinist | Instruction ordering, trigger precision, hidden branching, stop conditions |
-| 2 | Shell Portability Auditor | Shell scripts, installers, hooks, quoting, environment assumptions -- be extremely picky |
-| 3 | Tool Contract Guardian | MCP/tool wiring, argument discipline, validation before side effects |
-| 4 | Cross-Agent Compatibility Critic | Claude/Augment/Cursor differences, hook semantics, file placement |
-| 5 | Context Efficiency Examiner | Token pressure, duplication, buried constraints, compaction resilience |
-| 6 | Prose/Design Critic ensemble (3 sub-personas, from `progressive-harsh-review`) | The five Prose/Design Quality Axes above, run as PHR's real 3-persona ensemble (Nitpicker/ArchCritic/OpsRealist, see reference.md), plus skill-file specifics: unique triggers, valid YAML, no broken cross-references, correct coordination fields, effective anti-triggers, populated Failure Modes table |
+Add a specialist (start-points and questions in `reference.md`) **only when its signal is in the diff**:
+
+| Signal in the diff | Specialist |
+|---|---|
+| Shell scripts, installers, hooks, fenced shell examples | Shell Portability Auditor |
+| MCP/tool wiring, tool arguments, side-effecting tool calls | Tool Contract Guardian |
+| AGENTS.md-family files, hook config, per-agent install paths | Cross-Agent Compatibility Critic |
+
+Runtime Determinist (check A) and Context Efficiency Examiner (token pressure) are the combined reviewer's own lenses, not separate agents.
+
+**Re-review after fixes: continue the same reviewer** and send only the delta -- files changed since the reviewed commit (`sentinel_scope_unchanged`, `tools/lib/sentinel-scope.sh`) -- stating that its earlier input is superseded for those files. If it cannot be continued, a fresh reviewer gets the COMPLETE prior findings verbatim from the run envelope plus the delta; a summary is not acceptable input. (Measured 2026-09-20: a continued reviewer's re-review round cost ~5k tokens; a fresh reviewer cost 65-87k.)
 
 ## Mandatory Checks
 
@@ -223,8 +226,7 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 | Reviewer fabricates a Shell/Tool Contract finding on a pure-prompt skill with no shell/tool code | State "N/A" explicitly per the Mandatory Checks instruction -- never invent a finding to fill a section |
 | Trigger-collision check skipped | Grep every sibling `skill.md`'s `triggers`/`aliases` for exact-string overlap before approving frontmatter -- this is mechanical, not judgment-based |
 | Self-reviewed in the same thinking pass as authoring | Use a sub-agent (preferred), matching `progressive-harsh-review`'s "Author != Reviewer" hard gate |
-| Both Prose/Design and LLM-execution scorecards skipped in the same pass | Both are mandatory for any skill.md -- this skill replaces two separate passes, not one |
-| Verdict asserted without both scorecards shown | Required Output Format lists both scorecards in order; a verdict with neither is not a valid report |
+| A scorecard skipped, or a verdict asserted without both shown | Both are mandatory for any skill.md (this skill replaces two passes, not one); Required Output Format lists them in order |
 | A clean-dimension verdict ("no issues found") ships with no evidence block | Treated identically to `verifiable: false` -- capped, not confirmed. A sentence asserting cleanliness is not evidence of it; see Evidence Requirement |
 | Embedded `bash`/`sh` example in the skill.md itself never actually run through `bash -n` | Prose review alone cannot catch this -- run `tools/fence-scan.sh <file>` before asserting the doc's own examples are clean |
 
@@ -243,8 +245,4 @@ HEAD_SHA=$(git rev-parse HEAD); mkdir -p .cr-battery-runs
 tools/run-llm-skill-review.sh --verdict PASS --min-score "<Prose/Design-mean>"
 ```
 
-`--min-score` = Persona 6 Prose/Design mean. AGENTS-family files need this gate alone (not also PHR). Unsure? `tools/which-gate.sh <path>`.
-
-## Final Reminder
-
-These artifacts are consumed by LLMs under uncertainty. Review accordingly.
+`--min-score` = the Prose/Design score. AGENTS-family files need this gate alone (not also PHR). Unsure? `tools/which-gate.sh <path>`.
