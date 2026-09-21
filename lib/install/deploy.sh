@@ -887,6 +887,17 @@ install_cli_commands() {
                 installed=$((installed + 1))
                 continue
             fi
+            # A shared bin dir (/usr/local/bin) serves every $HOME on the machine.
+            # A link that still resolves into a DIFFERENT home belongs to another
+            # live install -- repointing it hijacks that install's command. This
+            # happened on every run of the installer's own test suite, which
+            # installs into a temp $HOME and silently rewired the developer's
+            # real sp-update. Dangling links, and links into this $HOME, are
+            # still replaced as before.
+            if [[ -e "$existing" && "$existing" != "$HOME/"* ]]; then
+                log_warn "$cmd_name at $link belongs to another install ($existing) -- leaving it"
+                continue
+            fi
             rm -f "$link"
         elif [[ -e "$link" ]]; then
             log_warn "$cmd_name exists at $link but is not a symlink — skipping"
