@@ -915,6 +915,33 @@ _fixture_transcript_prior_push() {
   [[ "$output" == *"BLOCKED"* ]]
 }
 
+@test "item 10: R6: the target-mismatch block names the one-line chat recovery, and that line works" {
+  # The named-target escape valve has always accepted "approve push to <ref>"
+  # typed in chat, but the block never said so; every new branch in a session
+  # cost the human a terminal command or a token file (2026-09-21: four
+  # branches, four interruptions). The block must print that line -- and the
+  # EXACT printed line, sent back as the human's reply, must unlock the push.
+  # A recovery hint that does not work is worse than none.
+  local fake_home hook="$REPO_ROOT/tools/claude-hooks/pre-tool-use-red-autonomy.sh"
+  fake_home="$(_fresh_home)"
+  _fixture_transcript_prior_push "git push origin branch-a" "approve push"
+  local input
+  input="$(printf '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git push origin branch-b"},"transcript_path":"%s","session_id":"chat-recovery-test","cwd":"/tmp"}' "$TPATH")"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"FASTEST RECOVERY"* ]]
+  local advised
+  advised="$(printf '%s\n' "$output" | grep -A1 'FASTEST RECOVERY' | tail -1 | sed 's/^ *//')"
+  [ "$advised" = "approve push to branch-b" ]
+  # Round-trip: the human sends exactly that line.
+  printf '{"role":"user","content":"%s"}\n' "$advised" >> "$TPATH"
+  HOME="$fake_home" CLAUDE_HOOKS_PATTERNS_FILE_OVERRIDE="$REPO_ROOT/claude-config/red-autonomy-patterns.txt" \
+    run bash "$hook" <<<"$input"
+  rm -f "$TPATH"; rm -rf "$fake_home"
+  [ "$status" -eq 0 ]
+}
+
 @test "item 10: R6: repeat push to the SAME branch already attempted is allowed" {
   local fake_home
   fake_home="$(_fresh_home)"

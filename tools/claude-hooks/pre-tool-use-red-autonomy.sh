@@ -1093,7 +1093,9 @@ if (current_target != AMBIGUOUS and prior_target != AMBIGUOUS
 elif _named_target_escape_valve(transcript_path, current_target):
     print("allow")
 else:
-    print("deny")
+    # Carry the resolved target (parsed from tool_input.command, never from
+    # prose) so the BLOCKED message can name the one-line recovery below.
+    print("deny" if current_target == AMBIGUOUS else "deny " + current_target)
 EOF2
 }
 
@@ -1187,8 +1189,21 @@ if [[ "$TOKEN_SOURCE" == "transcript" ]]; then
       # human had to push by hand). Printing the resolved path costs nothing,
       # weakens no check -- the human still has to create the file -- and turns
       # a dead end into one copy-pasteable command.
+      # Lead with the cheapest safe recovery. The named-target escape valve
+      # (see _named_target_escape_valve) already accepts an approval phrase
+      # that names this exact ref, typed in chat -- but this message never
+      # said so, so every new branch in a session cost the human a terminal
+      # command or a token file instead of one sentence (2026-09-21: four
+      # branches, four interruptions).
+      _bound_target="${BINDING_VERDICT#deny}"; _bound_target="${_bound_target# }"
+      if [[ -n "$_bound_target" ]]; then
+        echo ""
+        echo "  FASTEST RECOVERY -- the human says, in chat, naming this exact branch:"
+        echo "    approve push to ${_bound_target#*/}"
+        echo "  (Authorizes this exact target only, not any other branch.)"
+      fi
       echo ""
-      echo "  TO RECOVER, the human (not the agent) runs:"
+      echo "  OR the human (not the agent) runs:"
       echo "    echo push > $SESSION_ENV_DIR/${SESSION_ID}.push-approval"
       echo "  Use 'release' instead of 'push' for a release-category action."
       echo "  That token is single-use and is consumed by the next RED action."
