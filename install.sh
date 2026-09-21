@@ -120,6 +120,14 @@ unset _arg _a _uninstall_args
 # Platform-specific skill deployment paths
 # Claude Code: Native Skill tool reads from ~/.claude/skills/
 CLAUDE_SKILLS_DIR="${HOME}/.claude/skills"
+# Claude Code lifecycle hooks. setup/install-claude-guardrails.sh defines the
+# same path as CLAUDE_HOOKS_DIR, but it runs as a subprocess so that value is
+# unreachable here; keep the two in lockstep if either ever moves.
+# shellcheck disable=SC2034  # read by check_hook_parity() in lib/install/hook-parity.sh
+CLAUDE_HOOKS_DIR="${HOME}/.claude/hooks"
+# Set by check_hook_parity when HOOK_PARITY_STRICT=1 and drift is found;
+# main() exits with it so CI can branch on install.sh's own status.
+HOOK_PARITY_EXIT_CODE=0
 # Augment Agent: superpowers-augment.js reads from ~/.codex/skills/ (SKILLS_DIR above)
 # Augment IDE slash menu: user-level ~/.agents/skills/ (curated subset only — SKILL.md format)
 # Augment discovers skills here regardless of which workspace is open.
@@ -197,6 +205,8 @@ source "${INSTALL_LIB_DIR}/deps.sh"          # check_dependencies, check_node_ve
 source "${INSTALL_LIB_DIR}/deploy.sh"        # install_skill(s), install_adapter/rules/templates/tools
 # shellcheck source=lib/install/migrate.sh
 source "${INSTALL_LIB_DIR}/migrate.sh"       # post_install_migrations
+# shellcheck source=lib/install/hook-parity.sh
+source "${INSTALL_LIB_DIR}/hook-parity.sh"   # check_hook_parity
 
 # Load .env if present (for optional integrations)
 # Source in a subshell to prevent .env from mutating installer shell state
@@ -512,6 +522,7 @@ validate_installation() {
     log_success "Installation validated"
 }
 
+
 # Print summary
 print_summary() {
     echo ""
@@ -633,12 +644,42 @@ install_claude_guardrails() {
         log_warn "install-claude-guardrails.sh not found — skipping Claude hooks install"
         return 0
     fi
-    if bash "$guardrails_script" >/dev/null 2>&1; then
+    # Do NOT discard this child's output. It announces its own kill-switch skip
+    # ("Kill switch ON ... Skipping install."), and swallowing that message is
+    # exactly why a skipped hook install looked identical to a completed one for
+    # ~4 weeks. Capture it so a skip is visible, and replay it on skip/failure.
+    local guardrails_out guardrails_rc=0
+    guardrails_out="$(bash "$guardrails_script" 2>&1)" || guardrails_rc=$?
+    if [[ $guardrails_rc -eq 0 ]]; then
         log_info "Claude Code guardrails: OK (SUPERPOWERS_CLAUDE_GUARDRAILS=${SUPERPOWERS_CLAUDE_GUARDRAILS:-0})"
+        if [[ "$guardrails_out" == *"Kill switch ON"* ]]; then
+            log_warn "Claude Code guardrails were SKIPPED (kill switch). Hooks were not installed or updated."
+            log_warn "  Enable with: SUPERPOWERS_CLAUDE_GUARDRAILS=1 bash $guardrails_script"
+        fi
     else
-        log_warn "Claude Code guardrails installer exited non-zero — run manually:"
+        log_warn "Claude Code guardrails installer exited $guardrails_rc — run manually:"
         log_warn "  bash setup/install-claude-guardrails.sh"
+        # Print captured child output with %s, not through log_warn. log_warn
+        # uses printf '%b', which expands backslash escapes in the argument --
+        # so literal \n or \033[ in a subprocess's stdout could forge log lines
+        # or inject ANSI sequences. This is the only place a subprocess's full
+        # stdout is replayed, so it is the only place that matters.
+        if [[ -n "$guardrails_out" ]]; then
+            printf '%s\n' "$guardrails_out" | while IFS= read -r _line; do
+                printf '  output: %s\n' "$_line"
+            done
+        fi
     fi
+
+    # Parity runs AFTER the install attempt, so it reports freshly-updated state.
+    # Calling it from validate_installation() (which both call sites run BEFORE
+    # this function) made it warn "hooks are NOT installed" moments before
+    # installing them on a fresh machine.
+    # Record rather than swallow: HOOK_PARITY_STRICT=1 must reach install.sh's
+    # own exit code, or the contract is a lie to any CI wrapper that runs
+    # `HOOK_PARITY_STRICT=1 install.sh || fail`. Deferred to the end of main()
+    # so strict mode reports drift without aborting a half-finished install.
+    check_hook_parity || HOOK_PARITY_EXIT_CODE=$?
 }
 
 # Check mode — validate prerequisites without installing
@@ -751,7 +792,7 @@ main() {
         # Record this ecosystem as the owner of this ~/.codex install.
         write_ecosystem_marker
         print_summary
-        return
+        return "$HOOK_PARITY_EXIT_CODE"
     fi
 
     # Install skills
@@ -815,6 +856,8 @@ main() {
 
     # Print summary
     print_summary
+
+    return "$HOOK_PARITY_EXIT_CODE"
 }
 
 # Run main
