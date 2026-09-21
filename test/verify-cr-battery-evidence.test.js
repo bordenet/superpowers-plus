@@ -161,6 +161,27 @@ check('rewritten envelope file ends with exactly one trailing newline', (() => {
     return raw.endsWith('\n') && !raw.endsWith('\n\n');
 })());
 
+// --- Authoring traps that used to fail silently (diet2 / 2026-09-20) ---
+// Each of these cost real time when hand-building envelopes. They are now
+// accepted (bare count, ==N exit code, anchored match vs trailing newline) or
+// rejected LOUDLY as 'error' -- never silently falsified.
+{
+    const { parseExpectation: pe } = require(path.join(__dirname, '..', 'tools', 'verify-cr-battery-evidence.js'));
+    check('count: bare integer "2" means ==2', pe('a\nb\n', 0, { type: 'count', value: '2' }).status === 'verified');
+    check('count: bare number 2 means ==2', pe('a\nb\n', 0, { type: 'count', value: 2 }).status === 'verified');
+    check('count: bare "0" means ==0', pe('', 0, { type: 'count', value: '0' }).status === 'verified');
+    check('count: bare "3" falsifies against 2 lines', pe('a\nb\n', 0, { type: 'count', value: '3' }).status === 'falsified');
+    check('count: operator forms still work (>=1)', pe('a\n', 0, { type: 'count', value: '>=1' }).status === 'verified');
+    check('count: garbage is still an explicit error', pe('a\n', 0, { type: 'count', value: 'lots' }).status === 'error');
+    check('exit_code: "0" accepted', pe('', 0, { type: 'exit_code', value: '0' }).status === 'verified');
+    check('exit_code: "==0" accepted', pe('', 0, { type: 'exit_code', value: '==0' }).status === 'verified');
+    check('exit_code: non-integer is an explicit error, not a silent falsify',
+        pe('', 0, { type: 'exit_code', value: 'zero' }).status === 'error');
+    check('match: ^ok$ matches output "ok\\n" (trailing newline)', pe('ok\n', 0, { type: 'match', value: '^ok$' }).status === 'verified');
+    check('match: ^ok$ matches output "ok\\n\\n"', pe('ok\n\n', 0, { type: 'match', value: '^ok$' }).status === 'verified');
+    check('match: anchoring still rejects extra content', pe('ok then more\n', 0, { type: 'match', value: '^ok$' }).status === 'falsified');
+}
+
 // Cleanup
 try { fs.rmSync(TMP, { recursive: true }); } catch (_) {}
 
