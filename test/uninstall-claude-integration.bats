@@ -182,3 +182,25 @@ PY
     [ ! -L "$HOME/.local/bin/sp-rel" ]
     [ -L "$HOME/.local/bin/sp-mine" ]
 }
+
+# Regression (reviewer repro, 2026-09-21): matching a shipped hook path ANYWHERE
+# in the command deleted user hooks that merely mentioned one. Only the invoked
+# program counts.
+@test "uninstall: keeps user commands that only MENTION a shipped hook path" {
+    local n
+    n="$(basename "$(find "$REPO_ROOT/tools/claude-hooks" -name '*.sh' | sort | head -1)")"
+    python3 - "$HOME/.claude/settings.json" "$n" <<'PY'
+import json, sys
+p, n = sys.argv[1], sys.argv[2]
+d = json.load(open(p))
+keep = [f"/user/own/hook.sh --note=see .claude/hooks/{n} for reference",
+        f"echo $HOME/.claude/hooks/{n}",
+        f"/user/own/wrapper.sh $HOME/.claude/hooks/{n}",
+        f"/user/own/x.sh 'unbalanced .claude/hooks/{n}"]
+d["hooks"]["Stop"] = [{"hooks": [{"type": "command", "command": c} for c in keep]}]
+json.dump(d, open(p, "w"))
+PY
+    run bash "$REPO_ROOT/uninstall.sh" --yes
+    [ "$status" -eq 0 ]
+    [ "$(settings_count 'sum(c.startswith(("/user/own/","echo ")) for c in cmds)')" = 5 ]
+}

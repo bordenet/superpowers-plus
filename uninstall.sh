@@ -145,11 +145,27 @@ unregister_claude_hooks() {
 import json, os, re, shutil, time
 path = os.environ["SP_SETTINGS"]
 names = set(os.environ["SP_NAMES"].split())
-# Match the hook file anywhere in the command, not only at its end, so a
-# registration with arguments or quotes ('"$HOME/.claude/hooks/x.sh" --flag')
-# is still recognised; otherwise the file is deleted but its entry survives.
+# An entry is ours only if the program it INVOKES is a shipped hook: parse the
+# command like a shell (quotes, arguments), skip a leading interpreter, and
+# require the invoked path to end exactly in .claude/hooks/<shipped name>.
+# Matching the path anywhere in the command deleted user hooks that merely
+# mentioned one (e.g. in a --note= argument). Unparseable commands are kept.
+import shlex
+INTERPRETERS = {"bash", "sh", "zsh", "dash", "env", "/bin/bash", "/bin/sh",
+                "/usr/bin/env", "/bin/zsh", "/usr/bin/bash"}
 def ours(cmd):
-    return any(m in names for m in re.findall(r"\.claude/hooks/([^/\s\"']+)", cmd or ""))
+    try:
+        tokens = shlex.split(cmd or "")
+    except ValueError:
+        return False
+    while tokens and (tokens[0] in INTERPRETERS or os.path.basename(tokens[0]) in INTERPRETERS
+                      or tokens[0].startswith("-")):
+        tokens = tokens[1:]
+    if not tokens:
+        return False
+    path = tokens[0]
+    parts = path.replace("\\", "/").split("/")
+    return len(parts) >= 3 and parts[-3] == ".claude" and parts[-2] == "hooks" and parts[-1] in names
 try:
     data = json.load(open(path))
 except Exception:
