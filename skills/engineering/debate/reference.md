@@ -59,7 +59,7 @@ List at most ten failure modes, boundaries, tests, or defensive integration poin
 
 ### Step 6: Iterate
 
-⛔ **HARD GATE: Complete at least two full review rounds.** Run review, fix, verify the fix in the artifact, and re-review; stop after three rounds and escalate to `thinking-orchestrator` if the design has not converged.
+⛔ **HARD GATE: Complete at least two full review rounds.** Run review, fix, verify the fix in the artifact, and re-review by continuing the same reviewer on the delta (a fresh reviewer needs the complete prior findings, not a summary); stop after three rounds and escalate to `thinking-orchestrator` if the design has not converged.
 
 ## Output and example
 
