@@ -178,7 +178,13 @@ check('rewritten envelope file ends with exactly one trailing newline', (() => {
     check('exit_code: non-integer is an explicit error, not a silent falsify',
         pe('', 0, { type: 'exit_code', value: 'zero' }).status === 'error');
     check('match: ^ok$ matches output "ok\\n" (trailing newline)', pe('ok\n', 0, { type: 'match', value: '^ok$' }).status === 'verified');
-    check('match: ^ok$ matches output "ok\\n\\n"', pe('ok\n\n', 0, { type: 'match', value: '^ok$' }).status === 'verified');
+    check('match: only ONE terminal newline is stripped ("ok\\n\\n" is not "ok")', pe('ok\n\n', 0, { type: 'match', value: '^ok$' }).status === 'falsified');
+    check('match: trailing-newline structure stays checkable', pe('foo\n', 0, { type: 'match', value: '[^\\n]$' }).status === 'verified'
+        && pe('foo\n\n', 0, { type: 'match', value: '[^\\n]$' }).status === 'falsified');
+    check('exit_code: empty string is an explicit error, not exit 0', pe('', 0, { type: 'exit_code', value: '' }).status === 'error');
+    check('exit_code: whitespace is an explicit error', pe('', 0, { type: 'exit_code', value: '  ' }).status === 'error');
+    check('exit_code: null is an explicit error', pe('', 0, { type: 'exit_code', value: null }).status === 'error');
+    check('exit_code: 0x0 is an explicit error', pe('', 0, { type: 'exit_code', value: '0x0' }).status === 'error');
     check('match: anchoring still rejects extra content', pe('ok then more\n', 0, { type: 'match', value: '^ok$' }).status === 'falsified');
 }
 

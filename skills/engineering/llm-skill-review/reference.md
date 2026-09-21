@@ -1,10 +1,10 @@
 # LLM Skill Review — Reference
 
-Companion to `skill.md` (kept under the 250-line structural limit per `skill-health-check`). Load this file when actually dispatching the Specialist Personas or applying the Mandatory Checks in full detail — `skill.md` only summarizes them.
+Companion to `skill.md` (kept under the 250-line structural limit per `skill-health-check`). Load this file for the full detail behind the Mandatory Checks and the reviewer lenses — `skill.md` only summarizes them.
 
 ## Specialist Personas (full detail)
 
-Run these in parallel if tooling allows (e.g. `Task()`-based parallel sub-agent dispatch, as `code-review-battery` already documents for its own reviewer roster). If not, emulate them sequentially while keeping their scoring separate.
+These are **lenses, not a dispatch roster.** Per `skill.md` "Reviewer Dispatch", ONE combined reviewer applies #1 (Runtime Determinist), #5 (Context Efficiency Examiner) and #6 itself. #2-#4 become separate agents only when their signal is in the diff (shell/installer; tool wiring; AGENTS-family or hook config). When a separate agent is dispatched, hand it only its own section below.
 
 ### 1) Runtime Determinist
 
@@ -92,7 +92,7 @@ Questions:
 
 ### 6) Prose/Design Critic ensemble (from progressive-harsh-review)
 
-Run as PHR's actual three-persona ensemble, not a single pass -- a round-2 self-review found that collapsing this into one persona silently dropped PHR's ensemble/averaging/correlated-failure design, the exact "silent fallback" failure class this skill exists to catch in others. Each sub-persona scores all five Prose/Design Quality Axes (`skill.md`) using its OWN weights below; average the three weighted scores with equal weight afterward (PHR's Step 3 rule). Dimension definitions and weights are copied verbatim from `progressive-harsh-review`'s "Persona dimension table" section to avoid re-deriving them out of sync with the source.
+Persona count follows `progressive-harsh-review`'s reversibility rule, stated in that skill's own "Persona dimension table": **skill files are reversible, so one persona -- 6b SeniorArchCritic -- whose weighted score IS the Prose/Design score.** Run all three (6a-6c) and average them only for an irreversible change. This is an explicit rule shared with PHR, not the silent collapse a round-2 self-review once caught here: that collapse dropped the ensemble without saying so; this names when and why. When the ensemble runs, each sub-persona scores all five Prose/Design Quality Axes (`skill.md`) using its OWN weights below, then the three are averaged equally (PHR's Step 3 rule). Dimension definitions and weights are copied verbatim from `progressive-harsh-review`'s "Persona dimension table" section to avoid re-deriving them out of sync with the source.
 
 **6a) JuniorDevNitpicker (Surface Quality)** -- weights: Correctness 35%, Simplicity 25%, Blind Spots 20%, Verifiability 15%, Operational Risk 5%. Start from: line-by-line reading of the skill.md -- every heading, trigger, table entry, undefined term.
 

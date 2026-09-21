@@ -141,7 +141,10 @@ function parseExpectation(stdout, exitCode, expectation) {
     case 'exit_code': {
       // Accept 0, "0" and "==0". Anything else is an authoring error, reported
       // loudly -- Number("==0") is NaN, which used to falsify silently.
-      const want = Number(String(expectation.value).trim().replace(/^==\s*/, ''));
+      // Number("") === 0, so an empty or whitespace value would silently mean
+      // "exit 0". Require an explicit integer literal.
+      const rawExit = String(expectation.value == null ? '' : expectation.value).trim().replace(/^==\s*/, '');
+      const want = /^-?\d+$/.test(rawExit) ? Number(rawExit) : NaN;
       if (!Number.isInteger(want)) {
         return { status: 'error', detail: `bad exit_code value "${expectation.value}" (expected an integer, e.g. 0)` };
       }
@@ -153,11 +156,12 @@ function parseExpectation(stdout, exitCode, expectation) {
         return { status: 'error', detail: `regex pattern length ${pat.length} exceeds ${MAX_REGEX_PATTERN_LEN}-byte ReDoS guard` };
       }
       // Truncate stdout before .test() so a pathological pattern cannot run unbounded
-      // Strip trailing newlines before matching. Command output almost always
-      // ends in \n, and JS `$` (no m flag) does not match before a trailing
-      // newline the way Python's does -- so an anchored `^ok$` falsified
-      // against the output "ok\n". Authors should not have to know that.
-      const trimmed = stdout.replace(/\n+$/, '');
+      // Strip exactly ONE terminal newline -- the last line's own terminator.
+      // Command output almost always ends in \n, and JS `$` (no m flag) does not
+      // match before it the way Python's does, so `^ok$` falsified against
+      // "ok\n". Only one is removed, so trailing-newline structure stays
+      // checkable: "foo\n" and "foo\n\n" still differ after stripping.
+      const trimmed = stdout.endsWith('\n') ? stdout.slice(0, -1) : stdout;
       const haystack = trimmed.length > MAX_STDOUT_FOR_MATCH ? trimmed.slice(0, MAX_STDOUT_FOR_MATCH) : trimmed;
       let re;
       try { re = new RegExp(pat); }

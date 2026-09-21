@@ -5,6 +5,8 @@ read but doesn't need to live in the main procedure body.
 
 ## Anti-Patterns
 
+These apply when 2+ reviewer agents are dispatched (signal-triggered specialists, `--all`). With the default single combined reviewer, the correction for "all agree" still applies: it must name >=1 plausible failure mode or cite why none exists.
+
 | Anti-Pattern | Detection | Correction |
 |--------------|-----------|------------|
 | All reviewers agree | No disagreements found | Force second-order critique: each reviewer names >=1 plausible failure mode OR cites a specific property of the change explaining why none exists (e.g., "pure rename, no callers"). Generic dismissal is rubber-stamping. |
@@ -96,6 +98,8 @@ VERDICT choices: `PASS`, `PASS_WITH_NITS`, `PASS_WITH_FIXES`, `REJECT`. ACTION i
 - True convergent findings promoted to at least Important; echo convergent retain original severity.
 
 ## Correlated-Failure Detection
+
+Multi-reviewer runs only (2+ agents). A single combined reviewer has no cross-reviewer overlap to measure; its guard is the mandatory `placement` dimension and the evidence replay.
 
 **Evidence overlap:** ≥3 reviewers cite same file+line range for their ONLY finding → `⚠️ CORRELATED EVIDENCE — expand to adjacent modules`.
 **Phrasing similarity:** 2+ reviewers use near-identical phrasing for different findings → `⚠️ ECHO REASONING — re-examine from different entry`.
