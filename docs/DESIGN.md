@@ -71,7 +71,7 @@ composition:                              # object, optional — capability/arti
 | `mcp_install_hint` | No | string | — | Install script shown when MCP is missing |
 | `coordination` | No | object | `null` | DAG metadata for chain resolution |
 | `coordination.group` | No | string | — | Logical group label |
-| `coordination.order` | No | integer | `0` | Topo-sort tie-break (ascending) |
+| `coordination.order` | No | number | `99` | Topo-sort tie-break (ascending). Not a unique key -- duplicate values within a group are legal and expected (`order` bands skills coarsely); ties resolve alphabetically by skill name. Negative values sort ahead of the rest of the group; `0` is a real value, conventionally the group's hub skill. Fractional values are legal and used to slot a skill between two existing bands without renumbering (e.g. `wiki-content-coherence` is stage `2.5`). |
 | `coordination.requires` | No | string[] | `[]` | Blocking prerequisites |
 | `coordination.enables` | No | string[] | `[]` | Downstream skills |
 | `coordination.escalates_to` | No | string[] | `[]` | Fallback targets |

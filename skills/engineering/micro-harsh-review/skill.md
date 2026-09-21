@@ -1,6 +1,7 @@
 ---
 name: micro-harsh-review
 source: superpowers-plus
+disable-model-invocation: true
 triggers:
   - "review this change"
   - "review this code"

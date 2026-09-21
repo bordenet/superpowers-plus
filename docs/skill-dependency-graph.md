@@ -1,7 +1,7 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-09-10
+> **Last updated:** 2026-09-20
 
 This document visualizes the coordination relationships between skills in superpowers-plus. One diagram per `coordination.group` (internal edges only) -- a single graph with all 122 skills and every cross-group edge is unreadable at GitHub's rendering width, so edges that cross group boundaries are listed in [Cross-Group Edges](#cross-group-edges) below instead of drawn.
 
@@ -14,16 +14,16 @@ Coordinated skill group
 ```mermaid
 flowchart LR
   code_review_battery["code-review-battery"]
+  inter_agent_review_protocol["inter-agent-review-protocol"]
   llm_skill_review["llm-skill-review"]
   micro_harsh_review["micro-harsh-review"]
-  inter_agent_review_protocol["inter-agent-review-protocol"]
   requesting_code_review["requesting-code-review"]
   providing_code_review["providing-code-review"]
   receiving_code_review["receiving-code-review"]
   code_review_respond["code-review-respond"]
-  llm_skill_review ==>|escalates to| code_review_battery
   inter_agent_review_protocol -->|enables| providing_code_review
   inter_agent_review_protocol ==>|escalates to| code_review_battery
+  llm_skill_review ==>|escalates to| code_review_battery
   inter_agent_review_protocol -.->|then| providing_code_review
   providing_code_review -->|enables| receiving_code_review
   providing_code_review ==>|escalates to| code_review_battery
@@ -39,13 +39,18 @@ Quality checks before git commit
 ```mermaid
 flowchart LR
   hotfix_charter["hotfix-charter"]
+  unified_commit_gate["unified-commit-gate"]
   pre_commit_gate["pre-commit-gate"]
   enforce_style_guide["enforce-style-guide"]
   progressive_code_review_gate["progressive-code-review-gate"]
   professional_language_audit["professional-language-audit"]
   public_repo_ip_audit["public-repo-ip-audit"]
-  unified_commit_gate["unified-commit-gate"]
   hotfix_charter -->|enables| unified_commit_gate
+  unified_commit_gate ==>|escalates to| pre_commit_gate
+  unified_commit_gate ==>|escalates to| enforce_style_guide
+  unified_commit_gate ==>|escalates to| progressive_code_review_gate
+  unified_commit_gate ==>|escalates to| professional_language_audit
+  unified_commit_gate ==>|escalates to| public_repo_ip_audit
   pre_commit_gate -->|enables| enforce_style_guide
   pre_commit_gate -.->|then| enforce_style_guide
   enforce_style_guide -->|enables| progressive_code_review_gate
@@ -54,11 +59,6 @@ flowchart LR
   progressive_code_review_gate -.->|then| professional_language_audit
   professional_language_audit -->|enables| public_repo_ip_audit
   professional_language_audit -.->|then| public_repo_ip_audit
-  unified_commit_gate ==>|escalates to| pre_commit_gate
-  unified_commit_gate ==>|escalates to| enforce_style_guide
-  unified_commit_gate ==>|escalates to| progressive_code_review_gate
-  unified_commit_gate ==>|escalates to| professional_language_audit
-  unified_commit_gate ==>|escalates to| public_repo_ip_audit
 ```
 
 ### Completion Gate (5)
@@ -68,15 +68,15 @@ Verification and TODO maintenance before claiming done
 ```mermaid
 flowchart LR
   substrate_claim_audit["substrate-claim-audit"]
+  output_verification["output-verification"]
   exhaustive_audit_validation["exhaustive-audit-validation"]
   finishing_a_development_branch["finishing-a-development-branch"]
   verification_before_completion["verification-before-completion"]
-  output_verification["output-verification"]
   substrate_claim_audit -->|enables| output_verification
   substrate_claim_audit -->|enables| verification_before_completion
+  output_verification -->|enables| verification_before_completion
   exhaustive_audit_validation -->|enables| verification_before_completion
   verification_before_completion -.->|then| finishing_a_development_branch
-  output_verification -->|enables| verification_before_completion
 ```
 
 ### Debugging (1)
@@ -172,15 +172,15 @@ Coordinated skill group
 
 ```mermaid
 flowchart LR
+  issue_authoring["issue-authoring"]
   issue_comment_debunker["issue-comment-debunker"]
   issue_editing["issue-editing"]
   issue_link_verification["issue-link-verification"]
   issue_verify["issue-verify"]
-  issue_authoring["issue-authoring"]
+  issue_authoring -->|enables| issue_verify
   issue_comment_debunker -->|enables| issue_editing
   issue_comment_debunker -->|enables| issue_authoring
   issue_editing -->|enables| issue_verify
-  issue_authoring -->|enables| issue_verify
 ```
 
 ### Meta (3)
@@ -189,9 +189,9 @@ Coordinated skill group
 
 ```mermaid
 flowchart LR
-  using_superpowers["using-superpowers"]
   no_empty_promises["no-empty-promises"]
   superpowers_help["superpowers-help"]
+  using_superpowers["using-superpowers"]
 ```
 
 ### Meta Improvement (1)
@@ -209,11 +209,11 @@ Coordinated skill group
 
 ```mermaid
 flowchart LR
+  completeness_check["completeness-check"]
   holistic_repo_verification["holistic-repo-verification"]
   skill_health_check["skill-health-check"]
   skill_trigger_audit["skill-trigger-audit"]
   superpowers_doctor["superpowers-doctor"]
-  completeness_check["completeness-check"]
   skill_health_check ==>|escalates to| superpowers_doctor
 ```
 
@@ -241,6 +241,7 @@ Coordinated skill group
 
 ```mermaid
 flowchart LR
+  todo_management["todo-management"]
   knowledge_capture["knowledge-capture"]
   model_selector["model-selector"]
   plan_and_execute["plan-and-execute"]
@@ -252,13 +253,12 @@ flowchart LR
   skill_authoring["skill-authoring"]
   screenshot["screenshot"]
   todo_archive["todo-archive"]
-  todo_management["todo-management"]
+  todo_management -->|enables| todo_archive
+  todo_management -->|enables| fallback_planning
   plan_and_execute -->|enables| todo_management
   domain_design -->|enables| skill_authoring
   plan_and_execute -.->|then| fallback_planning
   todo_management -.->|then| todo_archive
-  todo_management -->|enables| todo_archive
-  todo_management -->|enables| fallback_planning
 ```
 
 ### Push Gates (3)
@@ -350,21 +350,21 @@ Metacognition and thinking orchestration
 
 ```mermaid
 flowchart LR
+  thinking_orchestrator["thinking-orchestrator"]
+  token_estimation["token-estimation"]
   brainstorming["brainstorming"]
   debate["debate"]
   adversarial_search["adversarial-search"]
   writing_plans["writing-plans"]
   innovation["innovation"]
-  token_estimation["token-estimation"]
-  thinking_orchestrator["thinking-orchestrator"]
+  thinking_orchestrator -->|enables| adversarial_search
+  thinking_orchestrator -->|enables| debate
+  token_estimation -->|enables| debate
   brainstorming -->|enables| debate
   brainstorming ==>|escalates to| thinking_orchestrator
   debate ==>|escalates to| thinking_orchestrator
   adversarial_search ==>|escalates to| thinking_orchestrator
   innovation -->|enables| brainstorming
-  token_estimation -->|enables| debate
-  thinking_orchestrator -->|enables| adversarial_search
-  thinking_orchestrator -->|enables| debate
 ```
 
 ### Todo Enforcement (1)
@@ -394,11 +394,11 @@ Wiki authoring quality pipeline
 
 ```mermaid
 flowchart LR
+  wiki_refactor["wiki-refactor"]
   wiki_prune_audit["wiki-prune-audit"]
   wiki_orchestrator["wiki-orchestrator"]
   wiki_content_coherence["wiki-content-coherence"]
   wiki_markdown_structure_gate["wiki-markdown-structure-gate"]
-  wiki_refactor["wiki-refactor"]
   wiki_prune_audit -->|enables| wiki_refactor
   wiki_prune_audit ==>|escalates to| wiki_refactor
   wiki_orchestrator -.->|then| wiki_content_coherence
@@ -524,6 +524,10 @@ Edges whose source and target skills belong to different coordination groups -- 
 | `thinking-orchestrator` | enables | `investigation-state` |
 | `thinking-orchestrator` | enables | `feature-development` |
 | `thinking-orchestrator` | enables | `plan-and-execute` |
+| `thinking-orchestrator` | enables | `output-verification` |
+| `thinking-orchestrator` | enables | `progressive-harsh-review` |
+| `thinking-orchestrator` | enables | `systematic-debugging` |
+| `thinking-orchestrator` | enables | `debug-conductor` |
 | `todo-guardian` | enables | `verification-before-completion` |
 | `todo-guardian` | escalates to | `quantitative-decision-gate` |
 | `todo-management` | requires | `todo-guardian` |
@@ -544,20 +548,20 @@ Edges whose source and target skills belong to different coordination groups -- 
 
 | Group | Skills | Purpose |
 |-------|--------|---------|
-| Code Quality | `code-review-battery`, `llm-skill-review`, `micro-harsh-review`, `inter-agent-review-protocol`, `requesting-code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
-| Commit Gates | `hotfix-charter`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`, `unified-commit-gate` | Quality checks before git commit |
-| Completion Gate | `substrate-claim-audit`, `exhaustive-audit-validation`, `finishing-a-development-branch`, `verification-before-completion`, `output-verification` | Verification and TODO maintenance before claiming done |
+| Code Quality | `code-review-battery`, `inter-agent-review-protocol`, `llm-skill-review`, `micro-harsh-review`, `requesting-code-review`, `providing-code-review`, `receiving-code-review`, `code-review-respond` | Coordinated skill group |
+| Commit Gates | `hotfix-charter`, `unified-commit-gate`, `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit` | Quality checks before git commit |
+| Completion Gate | `substrate-claim-audit`, `output-verification`, `exhaustive-audit-validation`, `finishing-a-development-branch`, `verification-before-completion` | Verification and TODO maintenance before claiming done |
 | Debugging | `investigation-state` | Coordinated skill group |
 | Decision Making | `quantitative-decision-gate` | Coordinated skill group |
 | Engineering | `branch-flow-gate`, `codebase-recon`, `cognitive-complexity-refactoring`, `domain-build`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `pr-triage-gate`, `requirements-validation`, `requirements-validation-pm`, `skills-hierarchy-tuning`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `kernel-split` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
-| Issue Tracking | `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify`, `issue-authoring` | Coordinated skill group |
-| Meta | `using-superpowers`, `no-empty-promises`, `superpowers-help` | Coordinated skill group |
+| Issue Tracking | `issue-authoring`, `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify` | Coordinated skill group |
+| Meta | `no-empty-promises`, `superpowers-help`, `using-superpowers` | Coordinated skill group |
 | Meta Improvement | `evolution-loop` | Coordinated skill group |
-| Observability | `holistic-repo-verification`, `skill-health-check`, `skill-trigger-audit`, `superpowers-doctor`, `completeness-check` | Coordinated skill group |
+| Observability | `completeness-check`, `holistic-repo-verification`, `skill-health-check`, `skill-trigger-audit`, `superpowers-doctor` | Coordinated skill group |
 | Orchestration | `autonomous-chain-controller` | Coordinated skill group |
 | Pre Compact | `context-ferry` | Coordinated skill group |
-| Productivity | `knowledge-capture`, `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `session-status`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive`, `todo-management` | Coordinated skill group |
+| Productivity | `todo-management`, `knowledge-capture`, `model-selector`, `plan-and-execute`, `update-superpowers`, `domain-design`, `fallback-planning`, `session-status`, `golden-agents`, `skill-authoring`, `screenshot`, `todo-archive` | Coordinated skill group |
 | Push Gates | `merge-authorization-gate`, `push-authorization-gate`, `scope-tripwire` | Coordinated skill group |
 | Quality | `progressive-harsh-review` | Coordinated skill group |
 | Quality Feedback | `failure-autopsy`, `measurement-integrity` | Coordinated skill group |
@@ -566,10 +570,10 @@ Edges whose source and target skills belong to different coordination groups -- 
 | Session Start | `session-handoff` | Coordinated skill group |
 | Session Start Gate | `branch-sync-gate` | Coordinated skill group |
 | Stuck Escalation | `think-twice`, `perplexity-research` | Getting unstuck when blocked |
-| Thinking | `brainstorming`, `debate`, `adversarial-search`, `writing-plans`, `innovation`, `token-estimation`, `thinking-orchestrator` | Metacognition and thinking orchestration |
+| Thinking | `thinking-orchestrator`, `token-estimation`, `brainstorming`, `debate`, `adversarial-search`, `writing-plans`, `innovation` | Metacognition and thinking orchestration |
 | Todo Enforcement | `todo-guardian` | Coordinated skill group |
 | Wiki | `link-verification`, `wiki-debunker`, `wiki-secret-audit`, `wiki-verify` | Coordinated skill group |
-| Wiki Pipeline | `wiki-prune-audit`, `wiki-orchestrator`, `wiki-content-coherence`, `wiki-markdown-structure-gate`, `wiki-refactor` | Wiki authoring quality pipeline |
+| Wiki Pipeline | `wiki-refactor`, `wiki-prune-audit`, `wiki-orchestrator`, `wiki-content-coherence`, `wiki-markdown-structure-gate` | Wiki authoring quality pipeline |
 | Writing | `detecting-ai-slop`, `eliminating-ai-slop`, `writing-skills`, `plan-quality-gates`, `readme-authoring`, `explain-like-im-five`, `markdown-table-discipline` | Coordinated skill group |
 
 ## Legend

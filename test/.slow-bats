@@ -1,0 +1,20 @@
+# Bats files excluded from --fast (and therefore from the pre-push gate).
+#
+# The pre-push hook runs `timeout 300 tools/test-all.sh --fast`. Any single
+# test that can exceed that budget makes the gate fail deterministically, with
+# no `not ok` line -- the suite is simply killed mid-stream. That reads as a
+# hang or a mystery failure, not a timeout, and it cost this repo three
+# misdiagnoses in one day (twice mistaken for a hang, once provoking the kill
+# of a healthy run).
+#
+# Listed files still run in the FULL suite (`tools/test-all.sh`) and in CI.
+# They are excluded only from the fast/pre-push path.
+#
+# Add a file here only when it is genuinely slow by nature -- not to dodge a
+# failure. One filename per line, relative to test/.
+
+# Nests the entire repo-wide tools/harsh-review.sh inside a bats case to
+# exercise CHECK 8b-2 against a real skills/**/reviewers/ path. Measured at
+# 6+ minutes, against a 300s gate budget. The full suite already runs
+# harsh-review.sh as its own top-level suite, so nothing is lost in --fast.
+harsh-review-reviewer-length.bats

@@ -1,0 +1,52 @@
+{
+  "captured_at": "2026-09-17T15:54:46Z",
+  "rollback_sha": "0216a9abefdc31dbdebe4fa76a8aa63788d0113d",
+  "repo": {
+    "skill_files": 122,
+    "skill_md_bytes": 1019947,
+    "frontmatter_bytes": 132669,
+    "frontmatter_percent": 13,
+    "skills_at_235_to_250_lines": 20,
+    "projected_listing_bytes": 32840,
+    "projected_listing_tokens": 8210,
+    "automatic_skills": 122,
+    "manual_skills": 0,
+    "internal_skills": 6,
+    "descriptions_over_250_chars": 52,
+    "duplicate_skill_names": 0
+  },
+  "host": {
+    "listing_entries": 222,
+    "listing_bytes": 60725,
+    "listing_tokens": 15181,
+    "hidden_entries": 0,
+    "duplicate_entries": 136,
+    "session_start_context_bytes": 4049,
+    "session_start_tokens": 1012,
+    "session_start_raw_stdout_bytes": 4330,
+    "session_start_output_count": 2,
+    "session_start_observed_at": "2026-09-17T15:02:31.304Z",
+    "router_prompts": 607,
+    "router_hint_rate_percent": 94,
+    "router_distinct_skills_suggested": 113,
+    "skill_tool_calls": 77,
+    "distinct_skills_invoked": 41,
+    "claude_sessions_sampled": 99
+  },
+  "measurement_notes": {
+    "duplicate_entries": "Counts every visible entry participating in a canonical-name collision, not only the extra copy.",
+    "hook_counts": "Point-in-time raw block counts captured before P1f instrumentation; they are not TP/FP adjudications."
+  },
+  "hooks": {
+    "total_blocks": 1368,
+    "red_autonomy_blocks": 1006,
+    "red_autonomy_malformed_input": 95,
+    "red_autonomy_target_mismatch": 98,
+    "internal_terms_blocks": 255,
+    "hook_audit_log_bytes": 1600000
+  },
+  "workflow": {
+    "feature_development_chain_bytes": 104000,
+    "feature_development_chain_tokens": 26000
+  }
+}

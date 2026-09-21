@@ -96,9 +96,15 @@ BEGIN {
   cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
 }
 
-function score(heading, preview,    text, body, sc, kw, has_hard_gate) {
+function score(heading, preview, full_body,    text, body, sc, kw, has_hard_gate) {
   text = tolower(heading " " preview)
-  body = tolower(preview)
+  # Hard-gate detection scans the ENTIRE section body, not the 200-char
+  # scoring preview. A Failure Modes table carries its MUST/NEVER rows at
+  # arbitrary positions -- in PHR they sat in rows 3 and 10, far past the
+  # preview window -- so a truncated scan silently demoted a hard-gate
+  # section to reference and defeated the safety carve-out below. Scoring
+  # keeps using the bounded preview; only the safety check needs the body.
+  body = tolower(full_body)
   sc = 0
   if (index(tolower(heading), "failure mode") > 0) {
     # Failure Modes normally demotes to reference (-999), BUT if the section
@@ -127,7 +133,7 @@ function flush_section(    sc, dest) {
     cur_heading = ""; cur_lines = ""; cur_preview = ""; cur_preview_len = 0
     return
   }
-  sc = score(cur_heading, cur_preview)
+  sc = score(cur_heading, cur_preview, cur_lines)
   if (sc >= 2)       { dest = kernel_file }
   else if (sc <= -1) { dest = ref_file }
   else               { dest = ambig_file }

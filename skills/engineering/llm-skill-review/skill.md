@@ -68,6 +68,43 @@ Load `reference.md` selectively - do not load it in full unless you need multipl
 | Review heuristics and doctrine | `Review Doctrine and Heuristics` |
 | Enforcement implementation details | `Enforcement Detail` |
 
+Load a section with this block. Replace `<section heading>` with the exact string from
+the table above. It resolves an installed copy first, falls back to a source checkout,
+and exits non-zero with a named reason rather than proceeding on missing content.
+
+<!-- kernel-split-reference-loader:start -->
+```bash
+_ks_ref=""
+_ks_loader=""
+for _candidate in \
+  "$HOME/.claude/skills/sp-llm-review/reference.md" \
+  "$HOME/.codex/skills/sp-llm-review/reference.md" \
+  "$HOME/.agents/skills/sp-llm-review/reference.md"
+do
+  if [ -r "$_candidate" ]; then _ks_ref="$_candidate"; break; fi
+done
+if [ -n "$_ks_ref" ]; then
+  _ks_loader="$HOME/.codex/superpowers-plus/tools/section-loader.sh"
+else
+  _project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  _source_dir="$_project_root/skills/engineering/llm-skill-review"
+  if [ -n "$_project_root" ] && [ -r "$_source_dir/skill.md" ] && \
+     [ -r "$_source_dir/reference.md" ] && \
+     [ -r "$_project_root/tools/section-loader.sh" ]; then
+    _ks_ref="$_source_dir/reference.md"
+    _ks_loader="$_project_root/tools/section-loader.sh"
+  fi
+fi
+[ -r "$_ks_ref" ] || { printf 'reference missing\n' >&2; exit 1; }
+[ -r "$_ks_loader" ] || { printf 'section-loader missing\n' >&2; exit 1; }
+# Replace <section heading> below with one of the exact strings from
+# the Reference index table above before running.
+_section='<section heading>'
+bash "$_ks_loader" "$_ks_ref" "$_section" \
+  || { printf 'section not found: %s\n' "$_section" >&2; exit 1; }
+```
+<!-- kernel-split-reference-loader:end -->
+
 ## When to Use
 
 **This is the default reviewer for skill.md files and skill-adjacent tooling** -- invoke it instead of `progressive-harsh-review` or `code-review-battery` for these, not alongside them as a third opinion. **Exception:** for skill-adjacent shell scripts and tool wrappers specifically, also run `code-review-battery` -- its `ShellRuntimeAuditor` persona activates unconditionally on shell content regardless of path, because this skill's own pre-push gate (`tools/pre-push-llm-skill-review-gate.sh`) only mechanically requires its sentinel for `skills/**/*.md` changes, not standalone `.sh`/`.js`/`.py`/`.mjs` files -- run both for a change that touches both content types. This is the one carve-out to the "instead of, not alongside" rule above.
@@ -106,7 +143,7 @@ Score each axis from 0.0 to 10.0 and justify with evidence:
 
 ## Prose/Design Quality Axes (absorbed from progressive-harsh-review)
 
-A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) by running Persona 6 as PHR's actual three-sub-persona ensemble (see Specialist Personas below), using `progressive-harsh-review`'s own per-persona weights, aggregation rule, and critical-veto rule verbatim -- see that skill's **"The Three Personas"** section (NOT "Step 1: Dispatch Review," which is only the generic fallback table used when a persona has no explicit weight definition -- citing the fallback table here was a round-2 self-review defect, fixed):
+A skill.md review must also judge whether it is a well-written, sensible artifact for a human -- not just whether an LLM can execute it safely. Score these five axes (0.0-10.0) by running Persona 6 as PHR's actual three-sub-persona ensemble (see Specialist Personas below), using `progressive-harsh-review`'s own per-persona weights, aggregation rule, and critical-veto rule verbatim -- see that skill's **"Persona dimension table"** section (NOT "Step 1: Dispatch Review," which is only the generic fallback table used when a persona has no explicit weight definition -- citing the fallback table here was a round-2 self-review defect, fixed):
 
 | Axis | What to evaluate |
 |---|---|
@@ -116,7 +153,7 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 | Blind Spots | What scenarios, edge cases, or artifact types does the skill fail to address? |
 | Operational Risk | What breaks the skill under adverse conditions -- wrong trigger match, absent dependency, misuse, trigger collision with a sibling skill? |
 
-**Aggregation:** each of the three sub-personas scores all five axes using its OWN per-persona weights (never a shared/averaged weight set), then the three weighted scores are averaged with equal weight -- PHR's Step 2 rule, not re-derived here.
+**Aggregation:** each of the three sub-personas scores all five axes using its OWN per-persona weights (never a shared/averaged weight set), then the three weighted scores are averaged with equal weight -- PHR's Step 3 rule, not re-derived here.
 
 **Critical veto (verbatim from progressive-harsh-review):** if ANY sub-persona scores Correctness or Operational Risk <=4 AND cites a specific defect (not a general concern), that is an automatic REJECT regardless of the weighted mean. An unrecoverable-failure-style finding MUST be scored on Operational Risk -- not Blind Spots alone -- to be veto-eligible; scoring it only on Blind Spots bypasses the veto gate.
 
@@ -174,8 +211,7 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 
 - Be tough, terse, and specific.
 - Do not praise unless it clearly reduces execution risk.
-- Do not spend time on style commentary unless it affects agent behavior.
-- Do not call something safe because it is elegant.
+- Do not spend time on style commentary unless it affects agent behavior, and do not call something safe because it is elegant.
 - Prefer explicit evidence from the diff or repository state.
 - If no diff is provided, inspect the effective implementation and infer the real behavior from the files.
 - **Fix economy.** Every recommended fix is as short as its severity allows -- an S3 fix in one sentence, an S2 fix in three or fewer; a fix that restates content already in the skill is not a fix. Sweep the sentences the recommendations would add and drop what does not change agent behavior. If the review's own recommendations would grow the skill more than ~15% with no S0/S1 finding driving it, dock Context Efficiency and recompute the Prose/Design aggregate -- a review that bloats the skill it audits has failed on its own terms.

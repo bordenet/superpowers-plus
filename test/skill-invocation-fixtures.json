@@ -110,17 +110,17 @@
     },
     "progressive-harsh-review": {
       "expected_substrings": [
-        "Focus: typos, formatting, naming, style, completeness, internal consistency.",
-        "Tone: experienced, skeptical, pattern-aware.",
-        "For each persona, answer ALL scoring dimensions:"
+        "Each persona reads independently.",
+        "Correctness or Operational Risk <=4 is a hard veto only with a specific defect.",
+        "Limit the entire remediation cycle to 3 review rounds."
       ],
       "triggers": [
         "harsh review",
         "progressive review",
         "red team this"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "independent Codex review",
+      "verified_at": "2026-09-17"
     },
     "investigation-state": {
       "expected_substrings": [
@@ -144,17 +144,18 @@
     },
     "debate": {
       "expected_substrings": [
-        "Produce **minimum THREE** options. Each must be:",
-        "3. What would a hostile code reviewer attack?",
-        "3. **Re-review:** Run harsh review again (Step 3 questions) on the UPDATED artifact"
+        "Produce a minimum three genuinely distinct, implementable options.",
+        "Author and reviewer must be separate.",
+        "Complete a minimum two full review rounds and no more than three."
       ],
       "triggers": [
         "three design options",
         "compare design approaches",
         "design comparison matrix"
       ],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "independent P2A llm-skill-review",
+      "verified_at": "2026-09-17",
+      "merge_requirement": "P1h must retain these P2A expected_substrings and P2A review metadata while adopting fail-closed fixture validation."
     },
     "branch-flow-gate": {
       "expected_substrings": [
