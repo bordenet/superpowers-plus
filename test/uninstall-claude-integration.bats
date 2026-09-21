@@ -128,3 +128,57 @@ PY
     run bash "$REPO_ROOT/uninstall.sh" --yes
     [ "$status" -eq 0 ]
 }
+
+# Registrations are matched wherever the shipped file appears in the command,
+# not only at its end: an entry with arguments or quotes used to survive while
+# its hook file was deleted, leaving settings.json pointing at nothing.
+@test "uninstall: unregisters every realistic spelling of a shipped hook command" {
+    local n
+    n="$(basename "$(find "$REPO_ROOT/tools/claude-hooks" -name '*.sh' | sort | head -1)")"
+    python3 - "$HOME/.claude/settings.json" "$n" <<'PY'
+import json, sys
+p, n = sys.argv[1], sys.argv[2]
+d = json.load(open(p))
+variants = [f"~/.claude/hooks/{n}", "${HOME}/.claude/hooks/" + n, f"/Users/someone/.claude/hooks/{n}",
+            f'"$HOME/.claude/hooks/{n}"', f'"$HOME/.claude/hooks/{n}" --strict', f"bash $HOME/.claude/hooks/{n} x"]
+d["hooks"]["Stop"] = [{"hooks": [{"type": "command", "command": v} for v in variants]}]
+json.dump(d, open(p, "w"))
+PY
+    run bash "$REPO_ROOT/uninstall.sh" --yes
+    [ "$status" -eq 0 ]
+    [ "$(settings_count 'sum(".claude/hooks/" in c for c in cmds)')" = 0 ]
+    [ "$(settings_count '"/user/own/hook.sh" in cmds')" = True ]
+}
+
+# A same-directory hook whose name the repo does not ship is the user's.
+@test "uninstall: never unregisters a user hook that merely lives in .claude/hooks" {
+    python3 - "$HOME/.claude/settings.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+d["hooks"]["Stop"] = [{"hooks": [{"type": "command", "command": "$HOME/.claude/hooks/users-own-hook.sh"}]}]
+json.dump(d, open(p, "w"))
+PY
+    run bash "$REPO_ROOT/uninstall.sh" --yes
+    [ "$status" -eq 0 ]
+    [ "$(settings_count '"$HOME/.claude/hooks/users-own-hook.sh" in cmds')" = True ]
+}
+
+# Regression: with tools/claude-hooks present but empty, shipped_hook_names'
+# loop ended on a false `[[ -f ]]` and returned 1, aborting uninstall.sh under
+# `set -e` halfway through.
+@test "uninstall: does not abort when the shipped-hooks directory is empty" {
+    local copy="$BATS_TEST_TMPDIR/repo-copy"
+    mkdir -p "$copy/tools/claude-hooks"
+    cp "$REPO_ROOT/uninstall.sh" "$copy/"
+    run bash "$copy/uninstall.sh" --yes
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Removed 0 Claude hook script(s)"* ]]
+}
+
+@test "uninstall --purge: removes a RELATIVE sp-* link into the checkout" {
+    ln -s ../../.codex/superpowers-plus/tools/sp-update.sh "$HOME/.local/bin/sp-rel"
+    run bash "$REPO_ROOT/uninstall.sh" --yes --purge
+    [ "$status" -eq 0 ]
+    [ ! -L "$HOME/.local/bin/sp-rel" ]
+    [ -L "$HOME/.local/bin/sp-mine" ]
+}

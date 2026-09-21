@@ -119,8 +119,14 @@ shipped_hook_names() {
     local src="$SCRIPT_DIR/tools/claude-hooks" f
     [[ -d "$src" ]] || return 0
     for f in "$src"/*.sh; do
-        [[ -f "$f" ]] && basename "$f"
+        # `|| continue`, not `[[ ]] && ...`: with no matches the glob stays
+        # literal, the test is false, and as the loop's last command it would
+        # make this function return 1 -- aborting uninstall.sh under `set -e`
+        # halfway through (after skills are gone, before hooks are).
+        [[ -f "$f" ]] || continue
+        basename "$f"
     done
+    return 0
 }
 
 # Drop settings.json hook entries that point at a shipped hook; keep everything
@@ -139,8 +145,11 @@ unregister_claude_hooks() {
 import json, os, re, shutil, time
 path = os.environ["SP_SETTINGS"]
 names = set(os.environ["SP_NAMES"].split())
-ours = lambda cmd: bool(re.search(r"\.claude/hooks/([^/\s]+)$", cmd or "")) and \
-    re.search(r"\.claude/hooks/([^/\s]+)$", cmd).group(1) in names
+# Match the hook file anywhere in the command, not only at its end, so a
+# registration with arguments or quotes ('"$HOME/.claude/hooks/x.sh" --flag')
+# is still recognised; otherwise the file is deleted but its entry survives.
+def ours(cmd):
+    return any(m in names for m in re.findall(r"\.claude/hooks/([^/\s\"']+)", cmd or ""))
 try:
     data = json.load(open(path))
 except Exception:
@@ -223,6 +232,12 @@ remove_cli_links() {
         for link in "$dir"/sp-*; do
             [[ -L "$link" ]] || continue
             target="$(readlink "$link")"
+            # Resolve relative targets against the link's own directory,
+            # lexically -- by the time this runs the checkout may be gone, so
+            # nothing can be cd'd into.
+            if [[ "$target" != /* ]]; then
+                target="$(python3 -c 'import os,sys;print(os.path.normpath(os.path.join(os.path.dirname(sys.argv[1]),sys.argv[2])))' "$link" "$target" 2>/dev/null || echo "$target")"
+            fi
             if [[ "$target" == "$MANAGED_DIR/"* ]]; then
                 run_rm "$link"
                 removed=$((removed + 1))
