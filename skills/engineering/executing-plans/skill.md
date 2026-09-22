@@ -1,5 +1,6 @@
 ---
 name: executing-plans
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["execute this plan", "implement the plan", "execute plan file", "carry out this plan", "run the plan"]
 anti_triggers: ["write a plan", "create a plan", "plan this out"]

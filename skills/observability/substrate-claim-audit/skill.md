@@ -1,5 +1,6 @@
 ---
 name: substrate-claim-audit
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-substrate-audit", "substrate audit", "verify substrate", "audit named artifacts", "verify metric exists", "check symbol exists", "evidence before naming", "propose SLI", "propose SLO", "propose alarm", "propose dashboard", "propose runbook", "propose metric", "propose health check", "design observability", "draft observability spec", "list KPIs", "name new metric", "name new counter", "quote threshold target"]

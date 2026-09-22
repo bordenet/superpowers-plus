@@ -1,5 +1,6 @@
 ---
 name: screenshot
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-ss", "/sp-screenshot", "look at my screenshot", "screenshot shows", "check this screenshot", "I screenshotted"]

@@ -1,5 +1,6 @@
 ---
 name: thinking-orchestrator
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["no issue found", "looks fine", "no changes needed", "everything is consistent", "user reports bug", "user says something is wrong", "stuck:confirmation-bias", "stuck:narrow-search", "stuck:premature-closure", "think twice", "you're stuck", "you're looping", "stuck in a loop", "stop and think", "rigorous review", "thorough analysis", "deep dive", "harsh review", "what's the best approach", "where should we put", "where to store", "where to place", "which option", "which is better", "how should this be structured", "recommend a strategy", "what would you recommend", "what's the best place"]
 anti_triggers: ["just implement it with no alternatives", "one obvious answer", "no tradeoffs needed", "already decided — just do it", "evaluate alternatives", "compare approaches", "comparison matrix", "evaluate options"]

@@ -1,5 +1,6 @@
 ---
 name: issue-comment-debunker
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["comment on ticket", "post status update", "add investigation summary", "update the ticket with"]
 anti_triggers: ["create issue", "update ticket fields", "close ticket"]

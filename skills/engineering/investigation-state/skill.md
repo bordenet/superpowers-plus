@@ -1,5 +1,6 @@
 ---
 name: investigation-state
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["start investigation", "investigate this bug", "resume investigation",
            "what have we tried", "investigation status", "debug checkpoint",

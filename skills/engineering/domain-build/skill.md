@@ -1,5 +1,6 @@
 ---
 name: domain-build
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-domain-build", "build the P0 skills", "implement the domain design", "ship the walking skeleton", "build domain skills", "execute domain plan"]

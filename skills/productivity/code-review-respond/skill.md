@@ -1,5 +1,6 @@
 ---
 name: code-review-respond
+disable-model-invocation: true
 source: superpowers-plus
 description: Use when acting as the reviewer agent for a ~/.codex/superpowers-review/ request.md → response.md file protocol handoff
 summary: "Use when: you ARE the reviewer agent reading a superpowers-review request.md. Skip when: sending work to a reviewer or reviewing a PR directly."

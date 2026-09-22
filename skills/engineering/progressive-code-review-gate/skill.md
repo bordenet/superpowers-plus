@@ -1,5 +1,6 @@
 ---
 name: progressive-code-review-gate
+disable-model-invocation: true
 source: superpowers-plus
 aliases: [PCRG, code-gate]
 triggers: ["code review before commit", "review my code changes", "harsh code review", "adversarial review", "review my diff"]

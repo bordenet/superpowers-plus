@@ -1,5 +1,6 @@
 ---
 name: evolution-loop
+disable-model-invocation: true
 source: superpowers-plus
 triggers:
   - "improve the skills"

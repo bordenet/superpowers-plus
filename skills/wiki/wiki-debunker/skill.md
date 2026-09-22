@@ -1,5 +1,6 @@
 ---
 name: wiki-debunker
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["verify these claims", "fact-check this", "is this accurate", "cite sources for", "find evidence for"]
 anti_triggers: ["write wiki page", "edit wiki", "update wiki content"]

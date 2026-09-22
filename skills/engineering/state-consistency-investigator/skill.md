@@ -1,5 +1,6 @@
 ---
 name: state-consistency-investigator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Specialized investigator for diagnosing state consistency failures: replication lag, cache staleness, event ordering issues, cross-service data divergence, and eventual consistency bugs. Dispatched by debug-conductor."
 summary: "Use when: diagnosing state consistency failures across distributed systems."

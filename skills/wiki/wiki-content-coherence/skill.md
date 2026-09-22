@@ -1,5 +1,6 @@
 ---
 name: wiki-content-coherence
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["check wiki page coherence", "refactor wiki page", "deduplicate wiki content", "audit wiki page structure", "wiki:coherence-check"]
 anti_triggers: ["verify wiki facts", "fact-check", "check claims accuracy", "verify wiki", "reorganize wiki pages", "wiki overhaul"]

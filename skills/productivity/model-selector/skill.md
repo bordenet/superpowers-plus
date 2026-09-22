@@ -1,5 +1,6 @@
 ---
 name: model-selector
+disable-model-invocation: true
 source: superpowers-plus
 description: Use when user explicitly asks which AI model to use, says "pick a model", "what model should I use", "which model is best for this", "should I switch models", or "help me choose a model". Guides model selection from the approved list to optimize cost without compromising quality.
 summary: "Use when: user explicitly asks which AI model to use for a task."

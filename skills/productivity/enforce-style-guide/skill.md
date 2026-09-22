@@ -1,5 +1,6 @@
 ---
 name: enforce-style-guide
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-style", "check style", "enforce coding standards", "lint this", "style guide", "commit:style", "commit:lint"]

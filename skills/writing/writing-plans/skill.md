@@ -1,5 +1,6 @@
 ---
 name: writing-plans
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["/sp-write-plan", "/sp-plan", "write a plan", "create a plan", "plan this out", "implementation plan", "before touching code", "spec is ready"]
 anti_triggers: ["execute the plan", "carry out the plan", "implement the plan", "create a plan and execute", "plan and execute"]

@@ -1,5 +1,6 @@
 ---
 name: output-verification
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["verify output", "inspect output", "check output", "verify rendered", "check pdf", "check html", "inspect artifact", "describe generated output", "review generated artifact", "read back the file", "ready to share", "ready to hand off", "ready to deliver", "output looks good", "rendered correctly", "diagrams look correct", "all rendered correctly", "covers all requirements", "verified", "reviewed the output", "checked the PDF", "presenting results"]
 anti_triggers: ["write code", "implement", "fix bug", "before commit", "review PR"]

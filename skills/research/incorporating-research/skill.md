@@ -1,5 +1,6 @@
 ---
 name: incorporating-research
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["incorporate research", "merge this research", "add this to the doc", "incorporate findings", "add external research"]
 anti_triggers: ["research this topic", "find information about", "what does X mean"]

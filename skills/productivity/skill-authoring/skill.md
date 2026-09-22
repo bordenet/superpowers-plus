@@ -1,5 +1,6 @@
 ---
 name: skill-authoring
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["create a skill", "make a skill", "I need a skill", "new skill for", "skill that", "what skills should", "skill gap analysis", "turn this pattern into a skill", "synthesize skill", "generate skill"]
 anti_triggers: ["check skill health", "diagnose skill", "run doctor", "what skills are available", "list skills", "which skills", "help with skills"]
