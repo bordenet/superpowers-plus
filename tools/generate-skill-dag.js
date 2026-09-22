@@ -159,7 +159,7 @@ function formatGroupName(name) {
   return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-// One 122-node graph.TD with every group as a subgraph is unreadable at
+// One 123-node graph.TD with every group as a subgraph is unreadable at
 // GitHub's rendering width (the failure mode this replaces). Instead: one
 // small flowchart PER coordination.group (internal edges only), plus a
 // separate table of edges that cross group boundaries so no information is

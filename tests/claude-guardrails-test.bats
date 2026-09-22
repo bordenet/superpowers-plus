@@ -2214,7 +2214,7 @@ _make_router_boundary_catalog() {
   # Flatten the repository's real domain-grouped skill tree into the layout
   # consumed by the hook. The scorer itself excludes internal/manual-only
   # entries and deduplicates aliases, yielding the reviewed 27-skill corpus
-  # (122 skill.md files - 97 disable-model-invocation entries + 2 synthetic
+  # (123 skill.md files - 98 disable-model-invocation entries + 2 synthetic
   # personal entries below = 27; all 6 internal entries are also manual after
   # U1). This number moves whenever the real repo's routable-skill
   # count changes, by design -- recompute rather than guess when it drifts).
@@ -2911,6 +2911,54 @@ assert "/sp-debug" in record["explicit_aliases"], record
 
   [ "$status" -eq 0 ]
   [[ "$output" != *"Likely match: debug-conductor"* ]]
+
+  rm -rf "$skills_dir" "$cache_dir"
+}
+
+@test "item 6: skill-router routes recurrence to durable-correction across the full catalog" {
+  local skills_dir cache_dir prompt case_index metrics_file
+  skills_dir="$(mktemp -d)"
+  cache_dir="$(mktemp -d)"
+  _make_router_boundary_catalog "$skills_dir"
+
+  case_index=0
+  while IFS= read -r prompt; do
+    [[ -n "$prompt" ]] || continue
+    case_index=$((case_index + 1))
+    metrics_file="$cache_dir/recurrence-$case_index-metrics.jsonl"
+    CODEX_SKILLS_DIR="$skills_dir" \
+    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
+    CLAUDE_HOOKS_BYPASS=0 \
+      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+      <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Likely match: durable-correction"* ]]
+    ROUTER_TEST_METRICS="$metrics_file" python3 -c '
+import json
+import os
+
+record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
+assert record["suggested"] == "durable-correction", record
+assert record["score"] >= record["threshold"] == 0.55, record
+'
+  done <<'DURABLE_CORRECTION_CASES'
+This is the third time the same mistake happened
+You said this was fixed already and it happened again
+The same build failure happened again
+Check again: you said this was fixed and it happened again
+DURABLE_CORRECTION_CASES
+
+  CODEX_SKILLS_DIR="$skills_dir" \
+  CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
+  CLAUDE_SKILL_ROUTER_METRICS="$cache_dir/ordinary-first-defect-metrics.jsonl" \
+  CLAUDE_HOOKS_BYPASS=0 \
+    run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
+    <<<'{"hook_event_name":"UserPromptSubmit","prompt":"The build has an unexpected failure","cwd":"/tmp"}'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Likely match: durable-correction"* ]]
 
   rm -rf "$skills_dir" "$cache_dir"
 }
