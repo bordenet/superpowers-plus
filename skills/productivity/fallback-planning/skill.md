@@ -1,5 +1,6 @@
 ---
 name: fallback-planning
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["fallback plan", "contingency plan", "plan B", "what if this fails", "backup approach", "risk mitigation", "fallback TODO", "alternative plan"]
 anti_triggers: ["primary plan", "implement feature", "execute plan"]

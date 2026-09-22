@@ -1,5 +1,6 @@
 ---
 name: quantitative-decision-gate
+disable-model-invocation: true
 source: superpowers-plus
 triggers:
   - "should I"

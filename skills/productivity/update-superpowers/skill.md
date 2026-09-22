@@ -1,5 +1,6 @@
 ---
 name: update-superpowers
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-update", "update superpowers", "upgrade superpowers", "pull superpowers", "refresh superpowers", "update skills", "upgrade skills", "superpowers-update", "sp-update --branch", "update superpowers staging", "update superpowers dev"]

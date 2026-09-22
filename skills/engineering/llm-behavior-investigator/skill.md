@@ -1,5 +1,6 @@
 ---
 name: llm-behavior-investigator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Specialized investigator for diagnosing LLM/prompt behavior issues: tool selection failures, prompt regressions, context window problems, and parsing failures. Dispatched by debug-conductor as part of forked debugging."
 summary: "Use when: diagnosing LLM/prompt behavior issues like tool selection failures."

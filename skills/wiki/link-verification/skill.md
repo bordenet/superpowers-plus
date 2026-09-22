@@ -1,5 +1,6 @@
 ---
 name: link-verification
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["add code reference", "link to repo", "reference the wiki page", "cite the issue ticket", "verify links", "check if URL exists", "verify this URL", "check this link", "wiki:verify-links", "link:verify", "fix wiki links", "fix broken links", "check broken links"]
 anti_triggers: ["verify issue links", "check ticket URLs", "issue link"]

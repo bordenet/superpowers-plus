@@ -1,5 +1,6 @@
 ---
 name: pre-commit-gate
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["/sp-precommit", "commit:pre-check"]
 anti_triggers: ["review PR", "review this PR", "output looks wrong", "debug this"]

@@ -1,5 +1,6 @@
 ---
 name: professional-language-audit
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["before wiki update", "check for profanity", "scan for unprofessional language", "language audit", "professional language check", "commit:language", "commit:profanity"]
 anti_triggers: ["code review", "scan for secrets", "security audit", "check for bugs", "scan shell scripts"]

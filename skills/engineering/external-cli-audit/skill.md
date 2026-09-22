@@ -1,5 +1,6 @@
 ---
 name: external-cli-audit
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-external-cli-audit", "audit installer", "audit wrapper script", "review claude mcp add", "review gh pr create", "review kubectl", "review aws cli", "review npm publish", "default flags", "scope flag", "what does this CLI default to", "check CLI defaults"]
@@ -23,8 +24,7 @@ composition:
 
 # External CLI Audit
 
-> **Purpose:** Catch the silent class of bugs where a wrapper script invokes an external CLI with defaults that don't match the deployment intent.
-> **Origin:** Codified after a 2026-04-27 miss in `mcp-servers/install.sh` audit. The audit confirmed every per-server installer called `claude mcp add` correctly — but never inspected what `claude mcp add` *defaults to*. Result: registrations landed at project scope (visible only inside the install dir), not user scope (visible globally). The parallel audit did not catch it.
+> **Purpose:** Catch the silent class of bugs where a wrapper script invokes an external CLI with defaults that don't match the deployment intent. **Origin:** Codified after a 2026-04-27 miss in `mcp-servers/install.sh` audit. The audit confirmed every per-server installer called `claude mcp add` correctly — but never inspected what `claude mcp add` *defaults to*. Result: registrations landed at project scope (visible only inside the install dir), not user scope (visible globally). The parallel audit did not catch it.
 
 **Announce at start:** "I'm using the **external-cli-audit** skill to verify CLI defaults and scope flags."
 

@@ -1,5 +1,6 @@
 ---
 name: exhaustive-audit-validation
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["audit complete", "done with refactoring", "finished updating", "all skills fixed", "bulk edit done"]
 anti_triggers: ["quick check", "spot check", "just verify one thing"]

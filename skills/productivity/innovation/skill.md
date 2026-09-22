@@ -1,5 +1,6 @@
 ---
 name: innovation
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-innovate", "innovate", "innovation mode", "what's the smartest addition", "most impactful thing I could build", "10x this", "what if we started from scratch", "step-change improvement", "what's the boldest move"]

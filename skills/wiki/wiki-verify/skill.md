@@ -1,5 +1,6 @@
 ---
 name: wiki-verify
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["verify this wiki page", "fact-check the vendor page", "check if wiki is up to date", "run wiki audit", "is this documentation stale", "validate wiki accuracy", "check wiki accuracy", "verify wiki facts", "audit the wiki"]
 anti_triggers: ["edit wiki", "update wiki page", "create wiki page", "write wiki"]

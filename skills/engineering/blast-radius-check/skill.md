@@ -1,5 +1,6 @@
 ---
 name: blast-radius-check
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-blast", "refactor", "modify existing", "change existing", "update function", "update method", "fix bug", "quick fix", "multi-component change", "cross-service change"]

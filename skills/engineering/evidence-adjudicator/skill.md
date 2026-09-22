@@ -1,5 +1,6 @@
 ---
 name: evidence-adjudicator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Synthesizes evidence from all investigator branches into a root cause verdict. Builds reasoning trees, detects contradictions, weighs evidence strength over agent count, and produces a ranked diagnosis. Dispatched by debug-conductor."
 summary: "Use when: synthesizing evidence from investigator branches into root cause verdict."

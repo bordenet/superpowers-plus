@@ -343,6 +343,65 @@ console.log('\n--- stem function ---');
   eq(stem('deployment'), 'deploy', 'deployment → deploy (strip -ment)');
 }
 
+// --- Model-visible skill budget ---
+// U1 (diet2.md): the automatic skill surface is an allowlist, not merely a
+// maximum. An exact assertion catches both accidental re-promotion of a
+// manual skill and accidental demotion of a safety-critical resident skill.
+console.log('\n--- Model-visible skill budget ---');
+{
+  const { extractFrontmatter } = require('../lib/frontmatter');
+  const fs = require('fs');
+  const path = require('path');
+
+  function collectSkillFiles(directory) {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+      const candidate = path.join(directory, entry.name);
+      if (entry.isDirectory()) return collectSkillFiles(candidate);
+      return entry.isFile() && entry.name.toLowerCase() === 'skill.md'
+        ? [candidate]
+        : [];
+    });
+  }
+
+  const expected = [
+    'brainstorming',
+    'branch-flow-gate',
+    'branch-sync-gate',
+    'code-review-battery',
+    'context-ferry',
+    'debate',
+    'feature-development',
+    'llm-skill-review',
+    'merge-authorization-gate',
+    'no-empty-promises',
+    'progressive-harsh-review',
+    'public-repo-ip-audit',
+    'push-authorization-gate',
+    'session-handoff',
+    'session-status',
+    'superpowers-help',
+    'systematic-debugging',
+    'test-driven-development',
+    'think-twice',
+    'todo-guardian',
+    'todo-management',
+    'unified-commit-gate',
+    'using-git-worktrees',
+    'using-superpowers',
+    'verification-before-completion',
+  ];
+  const skillsRoot = path.join(__dirname, '..', 'skills');
+  const actual = collectSkillFiles(skillsRoot)
+    .map(file => extractFrontmatter(file))
+    .filter(fm => fm.name && fm.disable_model_invocation !== true)
+    .map(fm => fm.name)
+    .sort();
+
+  eq(actual.length, 25, 'exactly 25 skills remain model-visible');
+  eq(JSON.stringify(actual), JSON.stringify(expected),
+    'model-visible skills match the reviewed U1 allowlist');
+}
+
 // --- Wiki skill router regression tests (deferred item 1) ---
 // Load real wiki skills from disk and assert exactly one skill is selected for
 // each realistic prompt. Guards against trigger/anti_trigger overlap regressions.
@@ -425,7 +484,9 @@ console.log('\n--- using-superpowers / superpowers-help de-collision (#955) ---'
   const help = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'superpowers-help', 'skill.md'));
   usp.anti_triggers = usp.anti_triggers || [];
   help.anti_triggers = help.anti_triggers || [];
-  const pair = [usp, help];
+  const pair = [usp, help]
+    .filter(skill => skill.disable_model_invocation !== true);
+  eq(pair.length, 2, '#955 pair remains model-visible');
 
   function assertWinner(prompt, expectedSkill, label) {
     const results = matchSkillsTfIdf(prompt, pair, pair.length);
@@ -458,7 +519,9 @@ console.log('\n--- no-empty-promises / todo-guardian "remember to" collision ---
   const guardian = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'todo-guardian', 'skill.md'));
   nep.anti_triggers = nep.anti_triggers || [];
   guardian.anti_triggers = guardian.anti_triggers || [];
-  const pair = [nep, guardian];
+  const pair = [nep, guardian]
+    .filter(skill => skill.disable_model_invocation !== true);
+  eq(pair.length, 2, 'empty-promise collision pair remains model-visible');
 
   function assertWinner(prompt, expectedSkill, label) {
     const results = matchSkillsTfIdf(prompt, pair, pair.length);

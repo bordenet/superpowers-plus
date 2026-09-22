@@ -1,5 +1,6 @@
 ---
 name: devsec-audit
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 description: "Full-repo, multi-component DevSec audit producing a consultant-style consolidated security report. Composes repo-security-scan (Phases 1/3/4 only) + read-only CVE-scan commands (cargo audit, npm audit, pip-audit) + auto-installed tooling (cargo-deny, gitleaks, semgrep) + 6 specialist sub-agents mirroring AttackerPersona's 5 threat dimensions plus egress allowlist tracing. Quarterly or pre-release cadence -- NOT per-PR (cost ~80k tokens per repo)."

@@ -1,5 +1,6 @@
 ---
 name: wiki-instruction-guard
+disable-model-invocation: true
 source: superpowers-plus
 triggers:
   - "execute wiki instructions"

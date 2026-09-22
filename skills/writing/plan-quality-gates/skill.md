@@ -1,5 +1,6 @@
 ---
 name: plan-quality-gates
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["write plan", "create plan", "design plan", "roadmap", "phased plan", "write roadmap", "project plan"]
 anti_triggers: ["execute plan", "run the plan", "implement this plan", "implementation plan", "plan and execute", "phased execution"]

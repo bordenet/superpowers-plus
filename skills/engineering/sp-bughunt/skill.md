@@ -1,5 +1,6 @@
 ---
 name: sp-bughunt
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-bughunt", "spot the worst bugs", "find the worst bugs", "what are the worst bugs", "hunt for bugs", "bug hunt", "find critical bugs", "audit for bugs", "worst bugs in", "top N bugs", "most dangerous bugs"]

@@ -1,5 +1,6 @@
 ---
 name: plan-and-execute
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-execute", "plan and execute", "plan-and-execute", "create a plan and execute", "challenge me", "give me a challenge",
