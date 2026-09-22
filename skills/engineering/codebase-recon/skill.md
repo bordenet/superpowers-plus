@@ -1,5 +1,6 @@
 ---
 name: codebase-recon
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-codebase-recon", "investigate this feature area", "how does this work across repos", "find all the places that", "do an RCA", "RCA investigation", "RCA on", "wide-band investigation", "codebase reconnaissance", "what's the blast radius", "find all ungated paths", "audit this area"]

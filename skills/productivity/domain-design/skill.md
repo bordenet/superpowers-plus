@@ -1,5 +1,6 @@
 ---
 name: domain-design
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["design a new skill domain", "plan a skill family", "what skills should we build for", "domain design for", "design a domain", "new superpowers domain", "skill family design", "plan skills for"]
 anti_triggers: ["write a skill", "fix a skill", "skill quality"]

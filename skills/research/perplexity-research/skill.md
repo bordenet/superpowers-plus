@@ -1,5 +1,6 @@
 ---
 name: perplexity-research
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-research", "research this", "use perplexity", "I'm stuck", "need to research", "look this up", "stuck:research", "stuck:knowledge"]

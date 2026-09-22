@@ -1,5 +1,6 @@
 ---
 name: superpowers-doctor
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-doctor", "superpowers doctor", "skill health", "audit skills", "check skills", "skill diagnostics", "doctor", "skill problems", "broken skills", "skill integrity", "deep clean skills"]

@@ -1,5 +1,6 @@
 ---
 name: todo-archive
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["archive todos", "archive completed tasks", "search archived todos", "show archived todos", "todo archive", "archive history", "clean up todos", "archived tasks", "old todos", "todo history search"]
 anti_triggers: ["add task", "create TODO", "what should I work on"]

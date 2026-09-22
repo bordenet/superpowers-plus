@@ -1,5 +1,6 @@
 ---
 name: repo-security-scan
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-scan", "security scan", "scan for secrets", "scan for vulnerabilities", "audit repo security", "check for hardcoded keys", "check for insecure code", "security review", "scan repos", "find secrets in code", "credential scan", "security audit"]
@@ -70,8 +71,7 @@ Use a **documented subset** of patterns from `skills/_shared/secret-detection.md
 # High-confidence token patterns in tracked files
 TOKEN_RE='(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16}|xox[bpsar]-[a-zA-Z0-9-]+|glpat-[a-zA-Z0-9-]+)'
 # NOTE: [[:space:]], not \s — a PORTABILITY fix, not a universal bug.
-# `git log -G` uses the platform regcomp: glibc accepts \s, BSD/macOS treats it
-# as literal 's', so on macOS the history scan matched ZERO assignment-class
+# `git log -G` uses the platform regcomp: glibc accepts \s, BSD/macOS treats it as literal 's', so on macOS the history scan matched ZERO assignment-class
 # secrets while the HEAD scan (grep -E) matched fine (0 vs 2 commits).
 # [[:space:]] is correct in both engines on both platforms. Don't "simplify".
 ASSIGN_RE='(api[_-]?key|secret[_-]?key|password|private[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}'

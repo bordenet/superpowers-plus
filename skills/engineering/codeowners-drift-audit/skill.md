@@ -1,5 +1,6 @@
 ---
 name: codeowners-drift-audit
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-codeowners-drift-audit", "/codeowners-drift-audit", "CODEOWNERS out of date", "who owns this file", "codeowners audit", "unowned files", "CODEOWNERS drift"]
@@ -36,8 +37,7 @@ composition:
 
 ## How to Run
 
-Run the single script below via `bash` (enforced at runtime, see Failure
-Modes). Locates CODEOWNERS (`.github/`, then root, then `docs/` -- GitHub's
+Run the single script below via `bash` (enforced at runtime, see Failure Modes). Locates CODEOWNERS (`.github/`, then root, then `docs/` -- GitHub's
 own order), finds unowned files, dead rules, and invalid owners. Stateless.
 
 > **Exit code:** exit 0 with all three `===` headers printed means complete.

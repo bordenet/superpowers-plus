@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-09-17T15:54:46Z",
+  "generated_at": "2026-09-22T00:59:00Z",
   "tolerance_default": 0.05,
   "notes": "Budget manifest for always-on context and activation-time skill inventory. Repo metrics run in CI; host_only rows run on developer machines. Rebaseline only after an intentional, reviewed cost change. See docs/harness/artifact-budgets.md.",
   "artifacts": [
@@ -9,20 +9,20 @@
       "kind": "metric",
       "command": "python3 tools/resident-cost-report.py --repo --json",
       "json_key": "listing_bytes",
-      "size_bytes": 32840,
+      "size_bytes": 7331,
       "tolerance": 0.05,
       "host_only": false,
-      "sha256": "b3f8d90890ff63140906b7342525578463f0cfff23c7062a464cbc248fa5128a"
+      "sha256": "f789909693b3898605450349b35d0218bc556c51f960f944e50ae242dc3446a3"
     },
     {
       "id": "resident-auto-count",
       "kind": "metric",
       "command": "python3 tools/resident-cost-report.py --repo --json",
       "json_key": "auto_count",
-      "size_bytes": 122,
+      "size_bytes": 25,
       "tolerance": 0.05,
       "host_only": false,
-      "sha256": "1be00341082e25c4e251ca6713e767f7131a2823b0052caf9c9b006ec512f6cb"
+      "sha256": "b7a56873cd771f2c446d369b649430b65a756ba278ff97ec81bb6f55b2e73569"
     },
     {
       "id": "resident-max-description-bytes",
@@ -39,20 +39,20 @@
       "kind": "metric",
       "command": "python3 tools/resident-cost-report.py --repo --json",
       "json_key": "max_skill_md_bytes",
-      "size_bytes": 29357,
+      "size_bytes": 29838,
       "tolerance": 0.05,
       "host_only": false,
-      "sha256": "289f103d2c859635b6020a4a380ebae16bd4f40dec29eb4738317fecc8c20050"
+      "sha256": "69b501f7743eb7e15be868b9883dcbbd1f913e87e8429c5d7c9c20c9006f4fa4"
     },
     {
       "id": "resident-descriptions-over-250",
       "kind": "metric",
       "command": "python3 tools/resident-cost-report.py --repo --json",
       "json_key": "descriptions_over_250",
-      "size_bytes": 52,
+      "size_bytes": 49,
       "tolerance": 0,
       "host_only": false,
-      "sha256": "41cfc0d1f2d127b04555b7246d84019b4d27710a3f3aff6e7764375b1e06e05d"
+      "sha256": "0e17daca5f3e175f448bacace3bc0da47d0655a74c8dd0dc497a3afbdad95f1f"
     },
     {
       "id": "resident-duplicate-names",
@@ -147,6 +147,10 @@
     {
       "at": "2026-09-17T15:54:46Z",
       "reason": "diet.md Phase 0 baseline"
+    },
+    {
+      "at": "2026-09-22T00:59:00Z",
+      "reason": "U1 reviewed model-visible skill budget reduced to 25"
     }
   ]
 }

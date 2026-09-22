@@ -1,5 +1,6 @@
 ---
 name: wiki-markdown-structure-gate
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["wiki table syntax", "fix malformed wiki table", "audit wiki markdown structure", "broken admonition block", "bad code fence in wiki", "heading hierarchy in wiki", "wiki formatting gate", "escaped wiki link artifact"]
 anti_triggers: ["database table", "sql table", "schema table"]

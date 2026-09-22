@@ -1,5 +1,6 @@
 ---
 name: kernel-split
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 auto_invoke: false

@@ -1,5 +1,6 @@
 ---
 name: receiving-code-review
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 # Override rationale: Adds Systemic Verification gate (search for OTHER instances

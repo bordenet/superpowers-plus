@@ -1,5 +1,6 @@
 ---
 name: requesting-code-review
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 # Override rationale: Routes review requests through code-review-battery (the

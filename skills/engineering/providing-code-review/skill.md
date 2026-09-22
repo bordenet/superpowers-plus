@@ -1,5 +1,6 @@
 ---
 name: providing-code-review
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-review", "review this PR", "review these changes", "code review", "provide feedback", "check this implementation", "ready for review", "needs review", "look at this PR"]

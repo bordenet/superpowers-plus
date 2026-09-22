@@ -1,5 +1,6 @@
 ---
 name: timeline-trace-investigator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Specialized investigator for reconstructing incident timelines from distributed traces, logs, deployments, and metrics. Produces structured TimelineEvidence for the debug conductor. NOT a standalone skill — dispatched by debug-conductor as part of forked debugging."
 summary: "Use when: reconstructing incident timelines from distributed traces and logs."

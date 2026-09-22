@@ -1,5 +1,6 @@
 ---
 name: git-branch-conventions
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["git checkout -b", "git switch -c", "git branch <name>", "git worktree add -b", "create a work branch", "name this branch", "new branch name", "what should I call this branch"]
 anti_triggers: ["merge branch", "delete branch", "list branches"]

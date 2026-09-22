@@ -1,5 +1,6 @@
 ---
 name: skills-hierarchy-tuning
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 description: Use when reviewing skill organization, rebalancing domains, adjusting loading triggers, or responding to structural review signals. Triggers on "reorganize skills", "skill hierarchy needs adjustment", "too many skills in domain", "split this skill folder", "domain rebalancing".

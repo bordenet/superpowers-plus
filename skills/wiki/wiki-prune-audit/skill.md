@@ -1,5 +1,6 @@
 ---
 name: wiki-prune-audit
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: false
 triggers: ["/sp-wiki-prune-audit", "prune the wiki", "audit wiki for pruning", "audit the wiki for dead weight", "find the worst wiki pages", "worst wiki pages", "find dead wiki pages", "wiki decay scan", "rank wiki pages by quality", "wiki:prune-audit", "which wiki pages should we delete"]

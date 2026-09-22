@@ -1,5 +1,6 @@
 ---
 name: expert-interviewer
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["help me document", "capture what I know", "write up the problem space", "I need to explain this to the team", "domain interview"]
 anti_triggers: ["design a feature", "build a component", "implement", "brainstorm approaches", "write code", "interview me about", "knowledge capture"]

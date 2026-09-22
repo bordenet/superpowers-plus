@@ -1,5 +1,6 @@
 ---
 name: finishing-a-development-branch
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 # Override rationale: Adds mandatory Step 0 (autonomous code review via

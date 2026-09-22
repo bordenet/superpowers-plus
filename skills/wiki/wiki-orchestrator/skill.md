@@ -1,5 +1,6 @@
 ---
 name: wiki-orchestrator
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["document X in wiki", "write wiki documentation for", "publish to wiki", "wiki:create", "wiki:update", "wiki:publish", "cross-reference wiki", "bulk wiki update", "update all wiki pages", "add links across wiki", "structure this wiki page"]
 anti_triggers: ["verify", "verify this wiki page", "check wiki page", "validate wiki", "wiki verification", "verify wiki URL", "check wiki link", "fact-check wiki", "wiki secret scan", "edit wiki page", "delete wiki page", "update wiki page", "check accuracy", "fact-check", "verify claims", "fix wiki links", "fix broken links", "audit the wiki", "refactor wiki page", "reorganize wiki pages", "reorganize all wiki", "scan wiki for credentials"]

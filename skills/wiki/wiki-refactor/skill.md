@@ -1,5 +1,6 @@
 ---
 name: wiki-refactor
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["refactor wiki", "restructure wiki", "deduplicate wiki", "wiki overhaul", "reorganize wiki pages", "wiki:refactor", "reorganize all wiki pages"]
 anti_triggers: ["edit single wiki page", "write wiki page", "update wiki content", "wiki:edit", "refactor wiki page", "deduplicate wiki content"]

@@ -1,5 +1,6 @@
 ---
 name: knowledge-capture
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 description: "Use when capturing SME expertise through structured interviewing (proactive), or formalizing conversations/debug sessions/tribal knowledge into durable wiki documentation (reactive). Bottom-line-up-front articles with provenance, published to your team's wiki. NOT for editing existing wiki pages, design exploration, or casual Q&A."

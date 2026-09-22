@@ -1,5 +1,6 @@
 ---
 name: implementation-tracker
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["start implementation", "track implementation", "resume work on issue", "update progress", "implementation complete", "archive progress"]
 description: Use when implementing large issues across multiple sessions. Creates and maintains a living progress document that tracks completed work, decisions, refinements, and findings.

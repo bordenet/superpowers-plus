@@ -1,5 +1,6 @@
 ---
 name: field-rename-verification
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["rename this field", "change the API contract", "refactor this type across services", "update field name from X to Y"]
 anti_triggers: ["rename local variable", "rename this file", "simple rename within one file"]

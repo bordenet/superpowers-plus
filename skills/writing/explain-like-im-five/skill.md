@@ -1,5 +1,6 @@
 ---
 name: explain-like-im-five
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/eli5", "explain this simply", "explain like I'm five", "explain like i'm 5", "break this down", "help me understand", "what does this mean", "explain this concept", "make this easier to understand"]

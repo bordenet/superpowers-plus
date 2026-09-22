@@ -1,5 +1,6 @@
 ---
 name: cognitive-complexity-refactoring
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["cognitive complexity too high", "too many nested ifs", "refactor this function", "Biome complexity error", "simplify this logic"]
 anti_triggers: ["add biome-ignore", "suppress lint warning"]

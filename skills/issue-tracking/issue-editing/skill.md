@@ -1,5 +1,6 @@
 ---
 name: issue-editing
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["update ticket", "edit issue", "change status of", "assign issue to", "add label to issue"]
 anti_triggers: ["create ticket", "create issue", "open a ticket", "file a bug"]

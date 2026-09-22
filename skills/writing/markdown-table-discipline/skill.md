@@ -1,5 +1,6 @@
 ---
 name: markdown-table-discipline
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["creating a table", "markdown table", "table formatting", "table vs list", "format as table"]
 anti_triggers: ["write a document", "create wiki page", "draft email"]

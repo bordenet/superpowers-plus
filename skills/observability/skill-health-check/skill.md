@@ -1,5 +1,6 @@
 ---
 name: skill-health-check
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["skill lint", "skill structure check", "validate skill yaml", "skill regression test", "skill coverage report"]
 anti_triggers: ["doctor", "diagnose", "runtime skill issue"]
