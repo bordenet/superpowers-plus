@@ -1,6 +1,7 @@
 ---
 name: no-empty-promises
 source: superpowers-plus
+disable-model-invocation: true
 augment_menu: true
 triggers:
   - "I'll be more careful"

@@ -370,10 +370,10 @@ console.log('\n--- Model-visible skill budget ---');
     'code-review-battery',
     'context-ferry',
     'debate',
+    'durable-correction',
     'feature-development',
     'llm-skill-review',
     'merge-authorization-gate',
-    'no-empty-promises',
     'progressive-harsh-review',
     'public-repo-ip-audit',
     'push-authorization-gate',
@@ -503,38 +503,52 @@ console.log('\n--- using-superpowers / superpowers-help de-collision (#955) ---'
   assertWinner('session start', 'using-superpowers', 'retained-session-start');
 }
 
-// --- no-empty-promises / todo-guardian collision regression ---
-// lib/intent-patterns.js maps the substring "remember to" to todo-guardian.
-// no-empty-promises' own trigger list and Acceptance Criteria examples must
-// never reintroduce that exact substring, or the phrase silently routes to
-// the wrong skill instead of firing the PRIME DIRECTIVE. Found via
-// code-review-battery after a "remember to" trigger and a worked example
-// containing the same phrase both lost this contest empirically.
-console.log('\n--- no-empty-promises / todo-guardian "remember to" collision ---');
+// --- durable-correction redirect and false-positive boundary ---
+// A human-reported recurrence/process failure must beat every visible skill,
+// while a first, local defect must remain an ordinary debugging event.
+console.log('\n--- durable-correction redirect boundary ---');
 {
   const { extractFrontmatter } = require('../lib/frontmatter');
   const path = require('path');
 
-  const nep = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'no-empty-promises', 'skill.md'));
-  const guardian = extractFrontmatter(path.join(__dirname, '..', 'skills', 'productivity', 'todo-guardian', 'skill.md'));
-  nep.anti_triggers = nep.anti_triggers || [];
-  guardian.anti_triggers = guardian.anti_triggers || [];
-  const pair = [nep, guardian]
-    .filter(skill => skill.disable_model_invocation !== true);
-  eq(pair.length, 2, 'empty-promise collision pair remains model-visible');
+  const fs = require('fs');
+
+  function collectSkillFiles(directory) {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+      const candidate = path.join(directory, entry.name);
+      if (entry.isDirectory()) return collectSkillFiles(candidate);
+      return entry.isFile() && entry.name.toLowerCase() === 'skill.md'
+        ? [candidate]
+        : [];
+    });
+  }
+
+  const visible = collectSkillFiles(path.join(__dirname, '..', 'skills'))
+    .map(file => extractFrontmatter(file))
+    .filter(skill => skill.name && skill.disable_model_invocation !== true)
+    .map(skill => ({ ...skill, anti_triggers: skill.anti_triggers || [] }));
+  eq(visible.length, 25, 'redirect boundary uses the full visible corpus');
 
   function assertWinner(prompt, expectedSkill, label) {
-    const results = matchSkillsTfIdf(prompt, pair, pair.length);
+    const results = matchSkillsTfIdf(prompt, visible, visible.length);
     const top = results[0];
     eq(top && top.name, expectedSkill,
       `${label}: "${prompt}" → ${expectedSkill} (got: ${top ? top.name : 'none'}, score: ${top ? top.score.toFixed(4) : 'n/a'})`);
   }
 
-  // The exact phrase that collides -- must keep losing to todo-guardian.
-  assertWinner('next time I will remember to fetch', 'todo-guardian', 'collision-remember-to');
-  // no-empty-promises' own kept trigger/example phrasing must still win.
-  assertWinner("I'll keep that in mind for next time", 'no-empty-promises', 'kept-example-phrase');
-  assertWinner("I'll be more careful next time", 'no-empty-promises', 'core-trigger-phrase');
+  function assertNotWinner(prompt, excludedSkill, label) {
+    const results = matchSkillsTfIdf(prompt, visible, visible.length);
+    const top = results[0];
+    assert(top && top.name !== excludedSkill,
+      `${label}: "${prompt}" must not route to ${excludedSkill} (got: ${top ? top.name : 'none'})`);
+  }
+
+  assertWinner('This is the third time the same mistake happened', 'durable-correction', 'explicit-recurrence');
+  assertWinner('You said this was fixed already and it happened again', 'durable-correction', 'failed-prior-fix');
+  assertWinner('Why does this keep happening?', 'durable-correction', 'keep-happening');
+  assertWinner('The same build failure happened again', 'durable-correction', 'domain-recurrence');
+  assertWinner('Check again: you said this was fixed and it happened again', 'durable-correction', 'mixed-recurrence-retry');
+  assertNotWinner('The build has an unexpected failure', 'durable-correction', 'ordinary-first-defect');
 }
 
 // --- Summary ---

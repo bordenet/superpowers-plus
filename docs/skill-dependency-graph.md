@@ -1,9 +1,9 @@
 # Skill Dependency Graph
 
 > **Auto-generated** by `tools/generate-skill-dag.js`
-> **Last updated:** 2026-09-20
+> **Last updated:** 2026-09-22
 
-This document visualizes the coordination relationships between skills in superpowers-plus. One diagram per `coordination.group` (internal edges only) -- a single graph with all 122 skills and every cross-group edge is unreadable at GitHub's rendering width, so edges that cross group boundaries are listed in [Cross-Group Edges](#cross-group-edges) below instead of drawn.
+This document visualizes the coordination relationships between skills in superpowers-plus. One diagram per `coordination.group` (internal edges only) -- a single graph with all 123 skills and every cross-group edge is unreadable at GitHub's rendering width, so edges that cross group boundaries are listed in [Cross-Group Edges](#cross-group-edges) below instead of drawn.
 
 ## Diagrams by Group
 
@@ -183,12 +183,13 @@ flowchart LR
   issue_editing -->|enables| issue_verify
 ```
 
-### Meta (3)
+### Meta (4)
 
 Coordinated skill group
 
 ```mermaid
 flowchart LR
+  durable_correction["durable-correction"]
   no_empty_promises["no-empty-promises"]
   superpowers_help["superpowers-help"]
   using_superpowers["using-superpowers"]
@@ -456,6 +457,11 @@ Edges whose source and target skills belong to different coordination groups -- 
 | `debug-conductor` | escalates to | `thinking-orchestrator` |
 | `domain-design` | enables | `brainstorming` |
 | `domain-design` | enables | `debate` |
+| `durable-correction` | enables | `systematic-debugging` |
+| `durable-correction` | enables | `failure-autopsy` |
+| `durable-correction` | enables | `verification-before-completion` |
+| `durable-correction` | enables | `evolution-loop` |
+| `durable-correction` | escalates to | `think-twice` |
 | `evolution-loop` | enables | `skill-authoring` |
 | `external-cli-audit` | escalates to | `providing-code-review` |
 | `failure-autopsy` | requires | `evolution-loop` |
@@ -556,7 +562,7 @@ Edges whose source and target skills belong to different coordination groups -- 
 | Engineering | `branch-flow-gate`, `codebase-recon`, `cognitive-complexity-refactoring`, `domain-build`, `external-cli-audit`, `feature-development`, `git-branch-conventions`, `gitlab-cli`, `implementation-tracker`, `pr-triage-gate`, `requirements-validation`, `requirements-validation-pm`, `skills-hierarchy-tuning`, `using-git-worktrees`, `blast-radius-check`, `debug-conductor`, `sp-bughunt`, `executing-plans`, `systematic-debugging`, `dispatching-parallel-agents`, `field-rename-verification`, `test-driven-development`, `codeowners-drift-audit`, `subagent-driven-development`, `evidence-adjudicator`, `infra-config-investigator`, `llm-behavior-investigator`, `reproduction-experiment-investigator`, `state-consistency-investigator`, `timeline-trace-investigator`, `kernel-split` | Coordinated skill group |
 | Experimental | `experimental-self-prompting` | Coordinated skill group |
 | Issue Tracking | `issue-authoring`, `issue-comment-debunker`, `issue-editing`, `issue-link-verification`, `issue-verify` | Coordinated skill group |
-| Meta | `no-empty-promises`, `superpowers-help`, `using-superpowers` | Coordinated skill group |
+| Meta | `durable-correction`, `no-empty-promises`, `superpowers-help`, `using-superpowers` | Coordinated skill group |
 | Meta Improvement | `evolution-loop` | Coordinated skill group |
 | Observability | `completeness-check`, `holistic-repo-verification`, `skill-health-check`, `skill-trigger-audit`, `superpowers-doctor` | Coordinated skill group |
 | Orchestration | `autonomous-chain-controller` | Coordinated skill group |

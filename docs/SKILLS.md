@@ -2,7 +2,7 @@
 
 Complete list of skills in superpowers-plus. Auto-trigger skills fire based on context; explicit skills are invoked manually.
 
-<!-- SKILL-COUNT: 122 -->
+<!-- SKILL-COUNT: 123 -->
 <!-- Generated from skills/ directory. Update when adding or removing skills. -->
 
 ## Engineering (55)
@@ -65,7 +65,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `using-superpowers` | Use when starting any conversation — establishes how to find and use skills. |
 | `verification-before-completion` | Evidence before assertions. Runs verification commands before claiming done. |
 
-## Productivity (25)
+## Productivity (26)
 
 | Skill | Description |
 |-------|-------------|
@@ -74,6 +74,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `code-review-respond` | Acts as the reviewer agent for file protocol handoff. |
 | `context-ferry` | Generates a self-contained resume prompt before context compaction. Fires via PreCompact hook in Claude Code; invoke manually with `/context-ferry` anywhere. |
 | `domain-design` | Designs new skill families from scratch: research, brainstorm, review, prioritize, document. |
+| `durable-correction` | Redirects human-reported recurrence into immediate repair, a durable control at the failure point, and negative-plus-positive validation. |
 | `enforce-style-guide` | Checks shebang, error handling, help flags, line limits, ShellCheck compliance. |
 | `fallback-planning` | Generates machine-agnostic fallback TODOs for top risks in an implementation plan. |
 | `golden-agents` | Initializes or upgrades AI guidance (AGENTS.md) for git repos. |
@@ -81,7 +82,7 @@ Complete list of skills in superpowers-plus. Auto-trigger skills fire based on c
 | `inter-agent-review-protocol` | Sends work to a separate reviewer agent via the `request.md` → `response.md` file protocol. |
 | `knowledge-capture` | Captures SME expertise via structured interview (proactive) or formalizes existing conversations into wiki docs (reactive). Bottom-line-up-front articles with provenance. |
 | `model-selector` | Recommends the most cost-effective AI model for a task. Enforces the codebase-retrieval filter before considering external models. |
-| `no-empty-promises` | PRIME DIRECTIVE: intercepts empty behavioral promises ("I'll be more careful") and forces a structural skill edit instead. |
+| `no-empty-promises` | Manual legacy tool that intercepts empty behavioral promises. Automatic recurrence routing is owned by `durable-correction`. |
 | `plan-and-execute` | Challenge, plan, stress-test, phased execution with retrospectives between phases. |
 | `quantitative-decision-gate` | Forces decision matrix evaluation before escalating questions to the user. |
 | `screenshot` | Visual input bridge. Grabs N most recent screenshots and dispatches to fix, explain, compare, spec, do-this, or free-form intent. `/sp-ss [N] [intent]`. |
