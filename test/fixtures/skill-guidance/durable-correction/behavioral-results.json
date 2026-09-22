@@ -1,0 +1,35 @@
+{
+  "method": "Fresh-agent RED/GREEN comparison; GREEN agent loaded durable-correction before responding.",
+  "cases": [
+    {
+      "id": "failed-control-recurrence-under-deadline",
+      "input": "You said this was fixed already and it happened again. We need to ship today.",
+      "red": {
+        "classification": "unclassified",
+        "response": "Repair the release defect now and defer prevention until after release.",
+        "status": "fixed"
+      },
+      "green": {
+        "classification": "failed-control recurrence",
+        "response": "Repair the canonical generator source, replace the failed checklist with a blocking generated-output consistency check, exercise the original failure and a valid case, and verify that the check runs at the real CI or commit boundary.",
+        "status": "contained"
+      },
+      "material_change": "Prevention is no longer deferred, the failed control is replaced, and success is withheld until negative, positive, and boundary evidence exists."
+    },
+    {
+      "id": "ordinary-first-typo",
+      "input": "There is a typo in the heading.",
+      "red": {
+        "classification": "ordinary correction",
+        "response": "Correct the word and inspect the narrow diff.",
+        "status": "contained"
+      },
+      "green": {
+        "classification": "ordinary correction",
+        "response": "Correct the word, search for remaining occurrences, inspect the narrow diff, and do not open a prevention track or post-mortem.",
+        "status": "contained"
+      },
+      "material_change": "No heavy process was added to an ordinary first-time correction."
+    }
+  ]
+}
