@@ -1,5 +1,6 @@
 ---
 name: dispatching-parallel-agents
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["dispatch agents in parallel", "run agents concurrently", "parallel agents", "multiple independent tasks", "parallelize this"]
 anti_triggers: ["sequential tasks", "depends on previous", "one at a time"]

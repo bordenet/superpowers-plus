@@ -1,5 +1,6 @@
 ---
 name: holistic-repo-verification
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-checkrepo", "repo health", "verify repo", "CI is green", "check all workflows", "before creating PR"]

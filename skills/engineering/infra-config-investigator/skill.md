@@ -1,5 +1,6 @@
 ---
 name: infra-config-investigator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Specialized investigator for diagnosing infrastructure, configuration, and deployment failures: config changes, resource exhaustion, deployment regressions, cloud provider issues, and environment mismatches. Dispatched by debug-conductor."
 summary: "Use when: diagnosing infrastructure, config, or deployment failures."

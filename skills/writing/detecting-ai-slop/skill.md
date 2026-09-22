@@ -1,5 +1,6 @@
 ---
 name: detecting-ai-slop
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-detect", "calculate slop score", "check for AI slop", "detect AI writing", "slop density", "is this AI generated", "writing definitions", "tooltip text", "prose for documentation", "writing prose", "documentation text", "review AI text", "check AI writing", "score this text", "analyze writing quality"]

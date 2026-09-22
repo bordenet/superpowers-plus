@@ -1,5 +1,6 @@
 ---
 name: wiki-secret-audit
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["scan wiki for secrets", "audit wiki for credentials", "check for exposed API keys", "wiki security scan", "find leaked tokens in wiki", "scan wiki for credentials"]
 anti_triggers: ["scan code for secrets", "repo security scan", "CVE scan"]

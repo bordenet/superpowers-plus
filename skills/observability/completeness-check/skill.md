@@ -1,5 +1,6 @@
 ---
 name: completeness-check
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["is this done", "claiming done", "audit accumulated debt", "check for incomplete work", "find unfinished work"]
 anti_triggers: ["implement this", "build this feature", "write the code", "actively working on", "still in progress"]

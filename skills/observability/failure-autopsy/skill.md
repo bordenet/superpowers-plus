@@ -1,5 +1,6 @@
 ---
 name: failure-autopsy
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers:

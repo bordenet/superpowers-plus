@@ -1,5 +1,6 @@
 ---
 name: subagent-driven-development
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["execute plan with subagents", "subagent per task", "subagent-driven", "implement plan with subagents", "fresh subagent per task"]
 anti_triggers: ["simple task", "one file change", "quick fix"]

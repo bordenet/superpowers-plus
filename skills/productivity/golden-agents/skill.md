@@ -1,5 +1,6 @@
 ---
 name: golden-agents
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["set up AI guidance", "add AGENTS.md", "initialize repo", "upgrade AI guidance", "add CLAUDE.md"]
 anti_triggers: ["write a skill", "check skill health", "diagnose skills"]

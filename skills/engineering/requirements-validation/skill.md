@@ -1,5 +1,6 @@
 ---
 name: requirements-validation
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["validate requirements", "requirements review", "are these requirements valid", "contradictory requirements", "conflicting requirements", "requirements testing", "testable requirements", "requirements falsifiability", "check requirements for contradictions"]
 anti_triggers: ["implement requirements", "build this feature", "write code for"]

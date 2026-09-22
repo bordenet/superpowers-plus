@@ -1,5 +1,6 @@
 ---
 name: eliminating-ai-slop
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-write", "remove AI slop", "fix slop", "rewrite without slop", "eliminate slop patterns", "make this less AI", "write prose for docs", "draft a message", "compose an email", "write a post", "edit this writing", "review my prose"]

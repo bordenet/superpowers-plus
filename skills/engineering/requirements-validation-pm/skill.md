@@ -1,5 +1,6 @@
 ---
 name: requirements-validation-pm
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-requirements-validation-pm", "validate product requirements", "PM requirements review", "validate user stories", "check stakeholder needs", "validate market fit", "are these PRDs valid", "contradictory product requirements", "stakeholder alignment check"]
@@ -24,8 +25,7 @@ composition:
 
 # Requirements Validation (PM)
 
-> **Core principle:** Every product requirement must be customer-grounded, stakeholder-owned, and business-measurable. Contradictions between stakeholders must be surfaced for decision, not silently resolved by the PM or the AI.
-> **Inversion rule:** The PM lens validates WHY (customer need, business rationale) and WHAT (user-visible outcome). It does NOT validate HOW (technical feasibility, implementation contracts, code-level acceptance criteria) — that's the engineer counterpart's job.
+> **Core principle:** Every product requirement must be customer-grounded, stakeholder-owned, and business-measurable. Contradictions between stakeholders must be surfaced for decision, not silently resolved by the PM or the AI. **Inversion rule:** The PM lens validates WHY (customer need, business rationale) and WHAT (user-visible outcome). It does NOT validate HOW (technical feasibility, implementation contracts, code-level acceptance criteria) — that's the engineer counterpart's job.
 >
 > **Wrong skill?**
 > - Engineer / technical acceptance-criteria validation -> `requirements-validation` (engineer-side)

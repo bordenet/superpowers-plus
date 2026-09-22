@@ -1,5 +1,6 @@
 ---
 name: security-upgrade
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["scan for CVEs", "upgrade vulnerable packages", "dependency security audit", "npm audit", "dependency vulnerabilities"]
 anti_triggers: ["scan for secrets in code", "exposed credentials", "hardcoded password"]

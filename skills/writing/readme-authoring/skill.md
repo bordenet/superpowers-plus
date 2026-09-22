@@ -1,5 +1,6 @@
 ---
 name: readme-authoring
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["create README", "update README", "write README", "improve README", "README best practices"]
 anti_triggers: ["write skill file", "create skill", "skill.md format"]

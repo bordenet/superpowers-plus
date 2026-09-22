@@ -1,5 +1,6 @@
 ---
 name: token-estimation
+disable-model-invocation: true
 source: superpowers-plus
 augment_menu: false
 triggers:

@@ -1,5 +1,6 @@
 ---
 name: measurement-integrity
+disable-model-invocation: true
 source: superpowers-plus
 triggers:
   - "coverage is"

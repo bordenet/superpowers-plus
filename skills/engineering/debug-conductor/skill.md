@@ -1,5 +1,6 @@
 ---
 name: debug-conductor
+disable-model-invocation: true
 source: superpowers-plus
 description: "PREVIEW - Conductor-led bounded investigation for complex distributed system incidents. Serial or parallel branches. Produces incident packets. Persistence tooling not yet implemented."
 summary: "Use when: debugging complex distributed system incidents with multiple possible causes."

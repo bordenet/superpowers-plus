@@ -2213,10 +2213,10 @@ _make_router_boundary_catalog() {
 
   # Flatten the repository's real domain-grouped skill tree into the layout
   # consumed by the hook. The scorer itself excludes internal/manual-only
-  # entries and deduplicates aliases, yielding the reviewed 115-skill corpus
-  # (122 skill.md files - 6 internal - 3 disable-model-invocation as of
-  # 2026-09-20's diet.md Tier A demotion + 2 synthetic personal entries
-  # below = 115; this number moves whenever the real repo's routable-skill
+  # entries and deduplicates aliases, yielding the reviewed 27-skill corpus
+  # (122 skill.md files - 97 disable-model-invocation entries + 2 synthetic
+  # personal entries below = 27; all 6 internal entries are also manual after
+  # U1). This number moves whenever the real repo's routable-skill
   # count changes, by design -- recompute rather than guess when it drifts).
   i=0
   while IFS= read -r -d '' skill_file; do
@@ -2227,8 +2227,8 @@ _make_router_boundary_catalog() {
     -not -path '*/_archive/*' -print0)
 
   # The reviewed installed catalog has two unrelated personal workflow
-  # entries in addition to the repository's 113 routable names. Preserve the
-  # real 115-document IDF denominator without importing machine-local files.
+  # entries in addition to the repository's 25 routable names. Preserve the
+  # real 27-document IDF denominator without importing machine-local files.
   mkdir -p "$skills_dir/catalog-personal-1" "$skills_dir/catalog-personal-2"
   printf -- '---\nname: phone-screen-prep\ndescription: "Unrelated hiring workflow"\n---\nBody.\n' \
     > "$skills_dir/catalog-personal-1/skill.md"
@@ -2852,6 +2852,8 @@ import os
 cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
 systematic = next(entry for entry in cache["entries"] if entry["name"] == "systematic-debugging")
 assert "debugging" in systematic["generic_name_tokens"], systematic
+assert cache["n_docs"] == 27, cache["n_docs"]
+assert all(entry["name"] != "debug-conductor" for entry in cache["entries"]), cache
 record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
 assert record["suggested"] is None, record
 '
@@ -2908,21 +2910,19 @@ assert "/sp-debug" in record["explicit_aliases"], record
     <<<'{"hook_event_name":"UserPromptSubmit","prompt":"investigate a complex distributed incident across services with parallel hypotheses","cwd":"/tmp"}'
 
   [ "$status" -eq 0 ]
-  hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
-  [ "$hint_count" -eq 1 ]
-  [[ "$output" == *"Likely match: debug-conductor"* ]]
+  [[ "$output" != *"Likely match: debug-conductor"* ]]
 
   rm -rf "$skills_dir" "$cache_dir"
 }
 
-@test "item 6: skill-router gives bounded weight to exact published positive triggers" {
-  local skills_dir cache_dir hint_count prompt expected_trigger case_index metrics_file
+@test "item 6: skill-router excludes a demoted skill even for its exact published triggers" {
+  local skills_dir cache_dir prompt case_index metrics_file
   skills_dir="$(mktemp -d)"
   cache_dir="$(mktemp -d)"
   _make_router_boundary_catalog "$skills_dir"
 
   case_index=0
-  while IFS='|' read -r prompt expected_trigger; do
+  while IFS= read -r prompt; do
     [[ -n "$prompt" ]] || continue
     case_index=$((case_index + 1))
     metrics_file="$cache_dir/trigger-$case_index-metrics.jsonl"
@@ -2934,57 +2934,27 @@ assert "/sp-debug" in record["explicit_aliases"], record
       <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
 
     [ "$status" -eq 0 ]
-    hint_count="$(printf '%s\n' "$output" | grep -c '^\[skill-router\] Likely match:' || true)"
-    [ "$hint_count" -eq 1 ]
-    [[ "$output" == *"Likely match: debug-conductor"* ]]
-    ROUTER_TEST_METRICS="$metrics_file" \
-    ROUTER_EXPECTED_TRIGGER="$expected_trigger" \
-      python3 -c '
+    [[ "$output" != *"Likely match: debug-conductor"* ]]
+    ROUTER_TEST_METRICS="$metrics_file" python3 -c '
 import json
 import os
 
 record = json.loads(open(os.environ["ROUTER_TEST_METRICS"], encoding="utf-8").read())
-assert os.environ["ROUTER_EXPECTED_TRIGGER"] in record["matched_terms"], record
+assert record["suggested"] != "debug-conductor", record
 '
-  done <<'POSITIVE_TRIGGER_CASES'
-debug across services during a production incident|debug across services
-incident investigation across checkout and fulfillment services|incident investigation
-POSITIVE_TRIGGER_CASES
+  done <<'DEMOTED_TRIGGER_CASES'
+debug across services during a production incident
+incident investigation across checkout and fulfillment services
+DEMOTED_TRIGGER_CASES
 
   ROUTER_TEST_CACHE="$cache_dir/skill-router-cache.json" python3 -c '
 import json
 import os
 
 cache = json.load(open(os.environ["ROUTER_TEST_CACHE"], encoding="utf-8"))
-assert cache["n_docs"] == 115, cache["n_docs"]
-conductor = next(entry for entry in cache["entries"] if entry["name"] == "debug-conductor")
-assert set(conductor["positive_triggers"]) == {
-    "investigate distributed",
-    "debug across services",
-    "incident investigation",
-    "forked debugging",
-    "parallel investigation",
-}, conductor
+assert cache["n_docs"] == 27, cache["n_docs"]
+assert all(entry["name"] != "debug-conductor" for entry in cache["entries"]), cache
 '
-
-  case_index=0
-  while IFS= read -r prompt; do
-    [[ -n "$prompt" ]] || continue
-    case_index=$((case_index + 1))
-    metrics_file="$cache_dir/near-miss-$case_index-metrics.jsonl"
-    CODEX_SKILLS_DIR="$skills_dir" \
-    CLAUDE_SKILL_ROUTER_CACHE="$cache_dir/skill-router-cache.json" \
-    CLAUDE_SKILL_ROUTER_METRICS="$metrics_file" \
-    CLAUDE_HOOKS_BYPASS=0 \
-      run bash "$REPO_ROOT/tools/claude-hooks/user-prompt-submit-skill-router.sh" \
-      <<<"$(printf '{"hook_event_name":"UserPromptSubmit","prompt":"%s","cwd":"/tmp"}' "$prompt")"
-
-    [ "$status" -eq 0 ]
-    [[ "$output" != *"debug-conductor"* ]]
-  done <<'POSITIVE_TRIGGER_NEAR_MISSES'
-debug across one service during a production incident
-incident response across checkout and fulfillment services
-POSITIVE_TRIGGER_NEAR_MISSES
 
   rm -rf "$skills_dir" "$cache_dir"
 }

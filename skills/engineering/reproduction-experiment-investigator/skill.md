@@ -1,5 +1,6 @@
 ---
 name: reproduction-experiment-investigator
+disable-model-invocation: true
 source: superpowers-plus
 description: "Specialized investigator for testing hypotheses through reproduction attempts. Designs experiments, executes controlled tests, and reports whether a hypothesis can be confirmed or rejected. Dispatched by debug-conductor."
 summary: "Use when: testing hypotheses through controlled reproduction attempts."

@@ -1,5 +1,6 @@
 ---
 name: adversarial-search
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["adversarial search", "investigation inversion", "search for the wrong thing", "confirmation bias check"]
 anti_triggers: ["brainstorm", "design options", "plan this feature", "self-prompt"]

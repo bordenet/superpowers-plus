@@ -1,5 +1,6 @@
 ---
 name: issue-verify
+disable-model-invocation: true
 source: superpowers-plus
 triggers: ["verify issue", "check if ticket exists", "issue identifier in commit message", "link PR to issue"]
 anti_triggers: ["create issue", "update issue", "edit ticket"]
