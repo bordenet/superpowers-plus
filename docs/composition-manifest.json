@@ -233,6 +233,12 @@
     "capabilities": ["orchestrates-workflow", "designs-domains"],
     "priority": 5
   },
+  "durable-correction": {
+    "consumes": ["human-correction", "incident-description"],
+    "produces": ["immediate-repair", "durable-control", "verification-report"],
+    "capabilities": ["redirects-after-recurrence", "prevents-repeat-failures", "escalates-failed-controls"],
+    "priority": 1
+  },
   "enforce-style-guide": {
     "consumes": ["code-changes"],
     "produces": ["lint-results"],

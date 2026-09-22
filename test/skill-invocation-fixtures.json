@@ -157,6 +157,21 @@
       "verified_at": "2026-09-17",
       "merge_requirement": "P1h must retain these P2A expected_substrings and P2A review metadata while adopting fail-closed fixture validation."
     },
+    "durable-correction": {
+      "expected_substrings": [
+        "Classify the event as exactly one of:",
+        "Repair track:",
+        "Do not trust the failed control",
+        "Report exactly one status:"
+      ],
+      "triggers": [
+        "this keeps happening",
+        "you said this was fixed",
+        "same mistake again"
+      ],
+      "verified_by": "behavioral RED/GREEN exercise",
+      "verified_at": "2026-09-21"
+    },
     "branch-flow-gate": {
       "expected_substrings": [
         "Trusted Advisor (auto-invoked)",

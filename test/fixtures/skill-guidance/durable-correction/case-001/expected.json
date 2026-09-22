@@ -1,0 +1,20 @@
+{
+  "skill_path": "skills/productivity/durable-correction/skill.md",
+  "must_match": [
+    "ordinary correction.*process failure.*failed-control recurrence",
+    "contained.*prevented.*unresolved",
+    "original failure.*reject",
+    "valid behavior.*work",
+    "point of failure"
+  ],
+  "must_not_match": [
+    "promise to be more careful",
+    "Every failure requires a skill edit",
+    "apology.*resolved"
+  ],
+  "required_phrases": [
+    "Repair track",
+    "Prevention track",
+    "Do not trust the failed control"
+  ]
+}
