@@ -257,7 +257,7 @@ PY
     || { log_error "settings.json is invalid JSON after merge"; return 1; }
 import json, sys; json.load(open(sys.argv[1]))
 VALIDATE
-  log_info "settings.json merged (hooks events: $(python3 -c "import json; d=json.load(open('$SETTINGS_JSON')); print(len(d.get('hooks', {})))"))"
+  log_info "settings.json merged (hooks events: $(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); print(len(d.get('hooks', {})))" "$SETTINGS_JSON"))"
 }
 
 # ---------------------------------------------------------------------------

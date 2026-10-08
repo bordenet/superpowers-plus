@@ -183,6 +183,21 @@ PY
     [ -L "$HOME/.local/bin/sp-mine" ]
 }
 
+# Git Bash installs write wrapper scripts, not symlinks (lib/install/deploy.sh).
+# The wrapper single-quotes the script path, so the sweep must recognise that form.
+@test "uninstall --purge: removes sp-* wrapper scripts into the checkout, keeps others" {
+    local m="$HOME/.codex/superpowers-plus" b="$HOME/.local/bin"
+    printf '#!/usr/bin/env bash\n# superpowers-plus sp-* wrapper\nexec bash '"'"'%s/tools/sp-update.sh'"'"' "$@"\n' "$m" > "$b/sp-wrapped"
+    printf '#!/usr/bin/env bash\n# superpowers-plus sp-* wrapper\nexec bash '"'"'/elsewhere/sp-x.sh'"'"' "$@"\n' > "$b/sp-other-checkout"
+    printf '#!/usr/bin/env bash\necho mine\n' > "$b/sp-user-script"
+    run bash "$REPO_ROOT/uninstall.sh" --yes --purge
+    [ "$status" -eq 0 ]
+    [ ! -e "$b/sp-wrapped" ]
+    [ -f "$b/sp-other-checkout" ]
+    [ -f "$b/sp-user-script" ]
+}
+
+
 # Regression (reviewer repro, 2026-09-21): matching a shipped hook path ANYWHERE
 # in the command deleted user hooks that merely mentioned one. Only the invoked
 # program counts.
@@ -203,4 +218,24 @@ PY
     run bash "$REPO_ROOT/uninstall.sh" --yes
     [ "$status" -eq 0 ]
     [ "$(settings_count 'sum(c.startswith(("/user/own/","echo ")) for c in cmds)')" = 5 ]
+}
+
+# check_foreign_ecosystem: the SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=1 bypass
+# (used by install.ps1 -Force) must pass a foreign lock, and only that value.
+_foreign_check() {
+    bash -c 'source "$1/lib/install/logging.sh"; source "$1/lib/install/deploy.sh"; check_foreign_ecosystem' _ "$REPO_ROOT"
+}
+
+@test "check_foreign_ecosystem: refuses a foreign lock by default" {
+    echo other-ecosystem > "$HOME/.codex/.superpowers-ecosystem"
+    run env -u SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM -u FORCE bash -c "$(declare -f _foreign_check); REPO_ROOT='$REPO_ROOT' _foreign_check"
+    [ "$status" -ne 0 ]
+}
+
+@test "check_foreign_ecosystem: SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=1 bypasses, other values do not" {
+    echo other-ecosystem > "$HOME/.codex/.superpowers-ecosystem"
+    run env SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=1 bash -c "$(declare -f _foreign_check); REPO_ROOT='$REPO_ROOT' _foreign_check"
+    [ "$status" -eq 0 ]
+    run env SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=yes bash -c "$(declare -f _foreign_check); REPO_ROOT='$REPO_ROOT' _foreign_check"
+    [ "$status" -ne 0 ]
 }

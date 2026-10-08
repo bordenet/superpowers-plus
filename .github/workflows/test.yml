@@ -189,6 +189,130 @@ jobs:
         continue-on-error: true
         run: bash tools/skill-size-audit.sh
 
+  windows-install:
+    name: Windows Install (Git Bash)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    # Runner shells are elevated; the runner is disposable and single-user.
+    env:
+      SUPERPOWERS_ALLOW_ELEVATED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: install.ps1 refuses an elevated shell without the override
+        shell: powershell
+        run: |
+          $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+          if (-not (New-Object Security.Principal.WindowsPrincipal $id).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'runner shell is not elevated; this check would prove nothing' }
+          $env:SUPERPOWERS_ALLOW_ELEVATED = $null
+          # Redirected native stderr throws under the runner's default 'stop'.
+          $ErrorActionPreference = 'Continue'
+          $err = & powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -NoPrereqInstall 2>&1 | Out-String
+          $rc = $LASTEXITCODE
+          $ErrorActionPreference = 'Stop'
+          if ($rc -eq 0) { throw 'install.ps1 ran elevated without SUPERPOWERS_ALLOW_ELEVATED=1' }
+          if ($err -notmatch 'does not run from an elevated') { throw "install.ps1 failed for another reason: $err" }
+          if (Test-Path "$HOME\.local\bin\python3") { throw 'install.ps1 wrote the python3 shim before refusing' }
+          # The runner appends 'exit $LASTEXITCODE', which is the refusal's 1.
+          exit 0
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          git config --global user.email "ci@superpowers-plus.test"
+          git config --global user.name "CI Runner"
+
+      - name: install.ps1 (Git Bash bootstrap + install.sh)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -NoPrereqInstall
+
+      - name: Verify installed state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$(ls -A "$HOME/.claude/skills")"
+          test -n "$(ls -A "$HOME/.codex/skills")"
+          test -n "$(ls -A "$HOME/.agents/skills")"
+          test -x "$HOME/.claude/hooks/pre-tool-use-red-autonomy.sh"
+          "$HOME/.local/bin/python3" -c 'import sys; assert sys.version_info >= (3, 8)'
+          [ "$(powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('PYTHONUTF8','User')" | tr -d '\r')" = "1" ]
+          [ -n "$(powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('CLAUDE_CODE_GIT_BASH_PATH','User')" | tr -d '\r')" ]
+          # sp-* commands are wrappers on Windows (ln -s copies there): each must
+          # carry the marker and exec its script with a single-quoted path.
+          shopt -s nullglob
+          wrappers=("$HOME"/.local/bin/sp-*)
+          [ "${#wrappers[@]}" -gt 0 ]
+          for w in "${wrappers[@]}"; do
+            grep -qF '# superpowers-plus sp-* wrapper' "$w"
+            grep -q "^exec bash '.*/\.codex/superpowers-plus/" "$w"
+          done
+
+      - name: python3.cmd shim (PowerShell)
+        shell: powershell
+        run: |
+          & "$HOME\.local\bin\python3.cmd" -c 'import sys; assert sys.version_info >= (3, 8)'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: install.ps1 again (idempotent)
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -NoPrereqInstall
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $parts = @([Environment]::GetEnvironmentVariable('Path','User') -split ';' | Where-Object { $_ })
+          $n = @($parts | Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ieq "$HOME\.local\bin" }).Count
+          if ($n -ne 1) { throw "~\.local\bin appears $n times on the user PATH after a second run" }
+          if ([Environment]::ExpandEnvironmentVariables($parts[0]).TrimEnd('\') -ine "$HOME\.local\bin") { throw "~\.local\bin is not first on the user PATH ($($parts[0]) is)" }
+          if (@(Get-ChildItem "$HOME\.local\bin\sp-*").Count -eq 0) { throw 'sp-* wrappers missing after a second run' }
+
+      - name: -Force bypasses the ecosystem lock only
+        shell: bash
+        run: |
+          set -euo pipefail
+          lock="$HOME/.codex/.superpowers-ecosystem"
+          echo other-ecosystem > "$lock"
+          sentinel="$HOME/.codex/superpowers-plus/ci-untracked-sentinel"
+          # Make the managed dir a real checkout so a stray git clean -fd
+          # would actually delete the untracked sentinel.
+          managed="$(dirname "$sentinel")"
+          mkdir -p "$managed"
+          # It needs a reachable origin/main with the local HEAD ahead of it,
+          # otherwise the sync stops at "could not fetch" before any reset.
+          git init -q --bare "$HOME/ci-origin.git"
+          git -C "$managed" init -q -b main
+          git -C "$managed" commit -q --allow-empty -m base
+          git -C "$managed" remote add origin "$HOME/ci-origin.git"
+          git -C "$managed" push -q origin main
+          git -C "$managed" commit -q --allow-empty -m local-ahead
+          touch "$sentinel"
+          if powershell -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -NoPrereqInstall; then
+            echo "install.ps1 should refuse a foreign ecosystem without -Force"; exit 1
+          fi
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -NoPrereqInstall -Force
+          [ "$(head -n1 "$lock" | tr -d '\r')" = "superpowers-plus" ]
+          # -Force must not run git clean -fd in the managed checkout.
+          test -e "$sentinel"
+
+      # Advisory until the suite is ported to Git Bash; failures are reported, not blocking.
+      - name: Bats under Git Bash (advisory)
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm install -g bats
+          export PATH="$HOME/.local/bin:$PATH" PYTHONUTF8=1
+          bats test/
+
+      - name: install.ps1 -Uninstall
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path "$HOME\.local\bin\python3") { throw 'python3 shim not removed' }
+          if (Test-Path "$HOME\.local\bin\python3.cmd") { throw 'python3.cmd shim not removed' }
+          if (@(Get-ChildItem "$HOME\.local\bin\sp-*" -ErrorAction SilentlyContinue).Count -ne 0) { throw 'sp-* wrappers not removed' }
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest

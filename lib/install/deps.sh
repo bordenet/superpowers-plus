@@ -99,8 +99,17 @@ install_dependency() {
             esac
             ;;
         windows)
-            log_error "Auto-install not supported on native Windows."
-            log_error "Please install '$pkg' manually (e.g., 'winget install $pkg')"
+            local winget_id
+            case "$pkg" in
+                git) winget_id="Git.Git" ;;
+                node) winget_id="OpenJS.NodeJS.LTS" ;;
+                python3) winget_id="Python.Python.3.12" ;;
+                jq) winget_id="jqlang.jq" ;;
+                *) winget_id="$pkg" ;;
+            esac
+            log_error "Auto-install not supported from Git Bash."
+            log_error "Run install.ps1 from PowerShell (installs prerequisites via winget),"
+            log_error "or install manually: winget install --id $winget_id -e"
             return 1
             ;;
         *)

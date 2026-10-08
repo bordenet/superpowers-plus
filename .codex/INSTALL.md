@@ -7,6 +7,7 @@
 - **bash 4+**: macOS ships bash 3.2; run `brew install bash` first
 - **git**: macOS: `xcode-select --install`
 - **Node.js 18+**: macOS: `brew install node`
+- **Python 3**: macOS: `brew install python3`
 
 The installer detects missing prerequisites and tells you exactly how to fix them.
 
@@ -25,7 +26,7 @@ The installer automatically:
 - Sets up the bootstrap script and agent configuration
 - Auto-fixes CRLF line endings on Windows/WSL
 
-> **Windows/WSL:** Run from within WSL-Ubuntu, not Windows cmd/PowerShell.
+> **Windows (no WSL):** In PowerShell run `git clone https://github.com/bordenet/superpowers-plus.git $HOME\.codex\superpowers-plus`, `cd $HOME\.codex\superpowers-plus`, then `powershell -ExecutionPolicy Bypass -File .\install.ps1`. Run it from a normal (not elevated) PowerShell; it refuses to run elevated. It installs missing Python and jq with winget and runs `install.sh` under Git Bash. If Git for Windows or Node.js is missing, it stops and prints the `winget install` command to run from an elevated PowerShell first.
 
 ## Verify Installation
 
@@ -41,11 +42,15 @@ cd ~/.codex/superpowers-plus
 bash install.sh --upgrade
 ```
 
+Windows (PowerShell): run `git pull` in `$HOME\.codex\superpowers-plus`, then `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
+
 ## Uninstalling
 
 ```bash
 bash install.sh --uninstall
 ```
+
+Windows (PowerShell): `powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uninstall`
 
 ## What You Get
 

@@ -244,9 +244,20 @@ remove_claude_integration() {
 # checkout, so remove only links that resolve into it (never anyone else's).
 remove_cli_links() {
     local dir link target removed=0
+    # Wrappers single-quote the path, writing an embedded ' as '\''.
+    local sq="'"
+    local quoted_managed="${MANAGED_DIR//$sq/$sq\\$sq$sq}"
     for dir in /usr/local/bin "$HOME/.local/bin" "$HOME/bin"; do
         [[ -d "$dir" ]] || continue
         for link in "$dir"/sp-*; do
+            # Git Bash installs write wrapper scripts instead of symlinks.
+            if [[ -f "$link" && ! -L "$link" ]] \
+                && grep -qF "# superpowers-plus sp-* wrapper" "$link" 2>/dev/null \
+                && grep -qF "exec bash '$quoted_managed/" "$link" 2>/dev/null; then
+                run_rm "$link"
+                removed=$((removed + 1))
+                continue
+            fi
             [[ -L "$link" ]] || continue
             target="$(readlink "$link")"
             # Resolve relative targets against the link's own directory,
