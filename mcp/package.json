@@ -18,7 +18,7 @@
   "author": "Matt Bordenet <bordenet@users.noreply.github.com>",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.32.0"
   },
   "overrides": {
     "@hono/node-server": "2.1.0"
