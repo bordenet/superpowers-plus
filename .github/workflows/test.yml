@@ -87,6 +87,9 @@ jobs:
       - name: Full oracle input parity
         run: node test/lite-full-unchanged.test.js
 
+      - name: Full installed output parity
+        run: node test/lite-full-installed.test.js
+
   shell-tests:
     name: Shell Tests
     runs-on: ubuntu-latest
