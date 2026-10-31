@@ -109,7 +109,7 @@ issue filing.
    confirmation. List rejected candidates.
 3. **Read safely, read-only.** Measure first (`wc -lc`; lines >100000 chars);
    take line numbers and counts before content; extract small fields from
-   specific lines (`sed -n Np | jq -c …`, `cut -c1-500`). Never modify a
+   specific lines (`sed -n Np | jq -c …`, or `sed -n Np | cut -c1-500` without jq). Never modify a
    session file. Only human prompts are the user's words — hook output,
    reminders, and tool results are not.
 4. **Report with evidence.** Every finding cites `path:line`; no citation, no

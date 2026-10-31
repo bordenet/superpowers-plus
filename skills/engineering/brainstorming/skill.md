@@ -41,7 +41,7 @@ it feels. Find out what they want and why before anything gets built.
 > **Wrong skill?** Bug fixing → `systematic-debugging`. Extracting existing knowledge → `expert-interviewer`. Choosing between known options → `debate`.
 
 <HARD-GATE>
-Do NOT write product code, scaffold, install dependencies, create projects, or invoke an implementation skill until the user has approved the design for this path (spike: the probe plan; bounded: the in-chat design; architectural: the written spec). Reading and exploring are fine. The only exemption is the **Clear** path below, where the request itself is the approved design. Approval covers what you showed; "sounds good" to an idea is not approval of a design you have not presented.
+Do NOT write product code, scaffold, install dependencies, create projects, or invoke an implementation skill until the user has approved the design for this path (spike: the probe plan; bounded: the in-chat design; architectural: the written spec). Reading and exploring are fine. Two exemptions only: the **Clear** path below, where the request itself is the approved design; and an accepted skip offer, where the skill ends and the gate leaves with it. Approval covers what you showed; "sounds good" to an idea is not approval of a design you have not presented.
 </HARD-GATE>
 
 ## Look Before You Ask
@@ -60,7 +60,9 @@ classification in one plain line so the user can override it:
 - **Clear** — everything that matters is in the request ("make the icon
   cornflower blue"): no material choice left open, so two competent builders
   would produce the same result, and the user did not ask to brainstorm.
-  Do it through the normal workflow (TDD applies) and say what you did.
+  If you can name one open choice that would change the result, it is not
+  Clear. Do it through the normal workflow (TDD applies) and say what you
+  did. (An approval round here would only make the user repeat themselves.)
 - **Spike** — a feasibility question ("can we...", "quick and dirty is
   fine") whose output is an answer, not code you keep. Present the question
   and probe plan in 2-3 sentences, get a nod, investigate as cheaply as
@@ -76,14 +78,8 @@ classification in one plain line so the user can override it:
 When in doubt, take the heavier path. The ratchet is one-way: hidden
 complexity found mid-task upgrades the path — stop, say so, step up.
 Several independent projects: say so, agree an order, brainstorm one at a
-time.
-
-**Why Clear overrides "the gate never scales":** an approval round on a
-request that already fixes every material choice asks the user to repeat
-what they just said. It costs a turn and adds no information. The gate
-exists to stop building the wrong thing, and a request with nothing left to
-interpret leaves nothing to get wrong. The test stays narrow: if you can
-name one open choice that would change the result, the request is not Clear.
+time. When a quick throwaway build would teach more than another question,
+offer a spike.
 
 ## Your First Message (non-Clear paths)
 
@@ -123,7 +119,9 @@ As soon as you understand one part (what it is for, how one piece behaves),
 play that part back in about 200-300 words, then return to questions about
 the next part. Only what they said goes in as theirs; anything you filled in
 is marked as your proposal with a reason. End each playback by asking what
-is wrong or missing.
+is wrong or missing. If the part is something they will look at (a page, a
+screen, a schedule) and they have not had the visual-companion offer, send
+the offer first and hold the playback for the next message.
 
 ## Lay Out the Approaches
 

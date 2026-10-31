@@ -659,3 +659,11 @@ run_session_start() {
     [ "$(cat "$HOOKS_DIR/hook-audit.log.2")" = "previous second generation" ]
     [ "$(file_size "$HOOKS_DIR/hook-audit.log")" -gt $((1025 * 1024)) ]
 }
+
+@test "SessionStart tells Claude Code how to resolve skills without the obra plugin" {
+    run_session_start
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"[superpowers-plus] A skill named <name> or superpowers:<name>"* ]]
+    [[ "$output" == *"[Ss][Kk][Ii][Ll][Ll].md"* ]]
+}

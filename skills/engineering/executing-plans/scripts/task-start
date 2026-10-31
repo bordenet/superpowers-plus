@@ -19,10 +19,13 @@ fi
 plan=$1
 n=$2
 sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
+# Local change vs upstream: fail before writing anything when cwd is not the
+# target repo (an empty BASE would otherwise surface only at task-done).
+base=$(git rev-parse HEAD) || { echo "run from the target repository: $(pwd)" >&2; exit 2; }
 
 out=$("$sdd/task-brief" "$plan" "$n")
 brief=$(printf '%s\n' "$out" | sed -n 's/^wrote \(.*\): [0-9][0-9]* lines$/\1/p')
 [ -n "$brief" ] || { echo "task-brief did not report a path: $out" >&2; exit 1; }
 
 echo "brief: $brief"
-echo "base: $(git rev-parse HEAD)"
+echo "base: $base"

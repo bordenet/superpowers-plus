@@ -18,7 +18,7 @@ variables for Steps 3-5; never recompute them.
 
 ## Step 5: Cleanup Worktree
 
-For Option 1 and a confirmed discard — using the values captured above. PR
+For merge-locally and a confirmed discard — using the values captured above. PR
 and keep-as-is preserve the worktree.
 
 `GIT_DIR == GIT_COMMON`: normal repo, nothing to clean up, done.

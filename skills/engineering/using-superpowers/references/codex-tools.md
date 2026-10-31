@@ -2,17 +2,16 @@
 
 Skills use Claude Code tool names. When you encounter these in a skill, use your platform equivalent:
 
-| Skill references | Codex equivalent |
-|-----------------|------------------|
-| `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
-| Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
-| Task returns result | Arrives in your mailbox; `wait_agent` only when idle (below) |
-| Resume a subagent (fix rounds) | `followup_task` (V2) |
-| Task completes automatically | V2: evicted automatically. V1 only: `close_agent` |
-| `TodoWrite` (task tracking) | `update_plan` |
-| `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
-| `Read`, `Write`, `Edit` (files) | Use your native file tools |
-| `Bash` (run commands) | Use your native shell tools |
+| Skill references | Codex multi-agent V2 | Codex multi-agent V1 |
+|-----------------|------------------|------------------|
+| `Task` tool (dispatch subagent) | `spawn_agent` with `fork_turns` (see [Named agent dispatch](#named-agent-dispatch)) | `spawn_agent` with `fork_context` |
+| Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls | same |
+| Task returns result | Arrives in your mailbox; `wait_agent` only when idle | `wait` |
+| Resume a subagent (fix rounds) | `followup_task` | `send_input` / `resume_agent` |
+| Task completes automatically | Evicted automatically | `close_agent` to free the slot |
+| `TodoWrite` (task tracking) | `update_plan` | same |
+| `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions | same |
+| `Read`, `Write`, `Edit`, `Bash` | Native file and shell tools | same |
 
 ## Subagent dispatch requires multi-agent support
 
@@ -24,7 +23,8 @@ multi_agent = true
 ```
 
 This enables the multi-agent tools. Current model presets run V2; older ones
-run V1. Trust your actual tool list over this table when they disagree.
+run V1. Trust your actual tool list over this table when they disagree. The
+bullets below are V2 unless marked.
 
 - **Spawning:** `spawn_agent {fork_turns: "none"}` gives a clean child; the
   default `"all"` copies your whole transcript into it.
@@ -33,13 +33,13 @@ run V1. Trust your actual tool list over this table when they disagree.
   against your spawn allowlist. Machine backstop in `~/.codex/config.toml`:
   `[agents] default_subagent_model = "<mid-tier>"`,
   `default_subagent_reasoning_effort = "medium"`.
-- **Fix rounds:** resume the implementer with `followup_task`; on V2 a spawned
-  agent can always be messaged again, so never re-dispatch fresh for that.
+- **Fix rounds:** resume the implementer (`followup_task`; V1 `send_input`) —
+  a spawned agent can be messaged again, so never re-dispatch fresh for that.
 - **Waiting:** `wait_agent` is an event subscription, not a poll. With local
   work left, don't wait — results arrive with your next turn. When idle, wait
   in 5-10 minute stretches (`timeout_ms` 300000-600000); after each, post one
   status line, run `list_agents`, and chase children that finished silently.
-  Never stack polls shorter than five minutes.
+  Never stack polls shorter than five minutes. (V1: the same cadence with `wait`.)
 
 ## Named agent dispatch
 

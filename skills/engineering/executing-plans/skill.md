@@ -4,7 +4,8 @@ disable-model-invocation: true
 source: superpowers-plus
 # 2026-10: obra/superpowers 7.0.1 parity (native execution: shared SDD
 # workspace + ledger, rulings, completion contract, one final review),
-# condensed. Scripts task-start/task-done are obra's, unchanged.
+# condensed. Scripts task-start/task-done are obra's plus a not-a-repo
+# guard, %q command rendering, and no duplicate ledger lines.
 triggers: ["execute this plan", "implement the plan", "execute plan file", "carry out this plan", "run the plan"]
 anti_triggers: ["write a plan", "create a plan", "plan this out"]
 description: Use when executing an approved written plan natively in the current session with required verification and review
@@ -60,6 +61,11 @@ the per-task gate, the final reviewer is the second pair of eyes.
   gates), even mid-plan.
 
 ## Setup
+
+Run every command from the target repo's root. Script paths below
+(`scripts/…`, `../subagent-driven-development/…`) are relative to this
+skill's installed directory — `~/.claude/skills/executing-plans` or
+`~/.codex/skills/executing-plans` — so prefix them with it.
 
 1. Isolated workspace via `using-git-worktrees`; never implement on
    main/master without explicit consent.

@@ -26,14 +26,9 @@ dir=$("$sdd/sdd-workspace" "$plan")
 log="$dir/task-${n}-tests.log"
 ledger="$dir/progress.md"
 
-# Render the command the way a person would type it, for the ledger line.
-cmd=""
-for a in "$@"; do
-  case "$a" in
-    *[[:space:]\"\;\|\&]*) cmd="$cmd '$a'" ;;
-    *) cmd="$cmd $a" ;;
-  esac
-done
+# Render the command as valid shell for the ledger line (local change vs
+# upstream: %q also covers single quotes).
+cmd=$(printf ' %q' "$@")
 cmd=${cmd# }
 
 rc=0
@@ -48,5 +43,10 @@ fi
 last=$(grep -v '^[[:space:]]*$' "$log" | tail -n 1) || last="(no output)"
 [ -f "$ledger" ] || printf '# SDD ledger — plan: %s\n' "$plan" > "$ledger"
 line="Task $n: complete (commits $(git rev-parse --short=7 "$base")..$(git rev-parse --short=7 HEAD), tests: $cmd → $last)"
+# A re-run must not record the same task twice (resume keys on these lines).
+if grep -q "^Task $n: complete " "$ledger"; then
+  echo "ledger: Task $n already recorded; not appending"
+  exit 0
+fi
 printf '%s\n' "$line" >> "$ledger"
 echo "ledger: $line"

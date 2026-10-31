@@ -25,6 +25,6 @@ with the filled template from `requesting-code-review/code-reviewer.md`.
 Opt-in, only when the user asks or says the session model is too expensive
 for coordination, and only for a whole plan: dispatch ONE orchestrator
 subagent on a mid-tier model with the plan path and the instruction to run
-`subagent-driven-development` end to end. Nested subagents work three layers
-deep by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). The workspace and
+`subagent-driven-development` end to end. Nesting depth is capped by the
+harness (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` overrides it). The workspace and
 ledger live on disk. Relay its "Rulings I made" list verbatim, not summarized.
