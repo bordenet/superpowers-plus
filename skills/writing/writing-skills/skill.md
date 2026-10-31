@@ -2,6 +2,7 @@
 name: writing-skills
 disable-model-invocation: true
 source: superpowers-plus
+augment_menu: true
 triggers: ["skill writing style", "skill prose quality", "skill markdown format", "SKILL.md format", "skill file conventions"]
 anti_triggers: ["use skill", "find skill", "load skill", "create a skill", "make a skill", "new skill for"]
 description: "Use when reviewing skill files for prose quality, markdown formatting, and style conventions. NOT for creating new skills — see Creation Checklist within this skill."

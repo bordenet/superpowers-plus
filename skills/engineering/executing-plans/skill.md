@@ -2,6 +2,7 @@
 name: executing-plans
 disable-model-invocation: true
 source: superpowers-plus
+augment_menu: true
 # 2026-10: obra/superpowers 7.0.1 parity (native execution: shared SDD
 # workspace + ledger, rulings, completion contract, one final review),
 # condensed. Scripts task-start/task-done are obra's plus a not-a-repo

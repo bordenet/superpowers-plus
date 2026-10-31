@@ -1,21 +1,21 @@
 {
   "schema": 1,
-  "oracle": "0a3959923097dd5af3ade06fe68668a9561983fd",
+  "oracle": "5f9d9e57ac135cb862ed821dba5feb3b214ba744",
   "roots": {
     ".codex/skills": {
       "entries": 297,
-      "bytes": 2063980,
-      "sha256": "4ba5851d1e6c91850017d6733ffdf8ce0bad8412e54c41c2ac6ccc5196d903b9"
+      "bytes": 2064094,
+      "sha256": "2ddff7d874041c0b940808884ef3689754fb20b15947a467756c57d46bc713f0"
     },
     ".claude/skills": {
       "entries": 297,
-      "bytes": 2063980,
-      "sha256": "4ba5851d1e6c91850017d6733ffdf8ce0bad8412e54c41c2ac6ccc5196d903b9"
+      "bytes": 2064094,
+      "sha256": "2ddff7d874041c0b940808884ef3689754fb20b15947a467756c57d46bc713f0"
     },
     ".agents/skills": {
-      "entries": 150,
-      "bytes": 1237399,
-      "sha256": "0eedc8f0ba15f51a21cd8936044e97458908dc04c404a5bb41ad678729e83417"
+      "entries": 178,
+      "bytes": 1452124,
+      "sha256": "3b73b54fc1e391bd1cd1fa09214451bdf71295e8a369703fa7859121cd70f2a6"
     },
     ".augment/rules": {
       "entries": 1,
@@ -23,9 +23,9 @@
       "sha256": "fa2ace6b6e70bfe8fb6d286426a079d368b010397d41c1dbe99722b97d582779"
     },
     ".claude/commands": {
-      "entries": 58,
-      "bytes": 30000,
-      "sha256": "8d8a53067ef05c73ae59d9c7ba812adb4a7f7f52060df106bd4226d3d602b1d9"
+      "entries": 64,
+      "bytes": 32216,
+      "sha256": "dd97817db676158bf0fad37be3556bf13e6f4cb52c7f8bc12edf945651d04b97"
     },
     ".local/bin": {
       "entries": 3,
