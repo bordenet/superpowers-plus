@@ -204,25 +204,12 @@ Ready to implement <feature-name>
 
 ## Common Mistakes
 
-### Skipping ignore verification
-
-- **Problem:** Worktree contents get tracked, pollute git status
-- **Fix:** Always use `git check-ignore` before creating project-local worktree
-
-### Assuming directory location
-
-- **Problem:** Creates inconsistency, violates project conventions
-- **Fix:** Follow priority: existing > CLAUDE.md > ask
-
-### Proceeding with failing tests
-
-- **Problem:** Can't distinguish new bugs from pre-existing issues
-- **Fix:** Report failures, get explicit permission to proceed
-
-### Hardcoding setup commands
-
-- **Problem:** Breaks on projects using different tools
-- **Fix:** Auto-detect from project files (package.json, etc.)
+| Mistake | Fix |
+|---------|-----|
+| Skipping ignore verification (contents get tracked) | `git check-ignore` before a project-local worktree |
+| Assuming directory location | Priority: existing > CLAUDE.md > ask |
+| Proceeding with failing baseline tests | Report failures, get explicit permission |
+| Hardcoding setup commands | Auto-detect from project files |
 
 ## Red Flags
 

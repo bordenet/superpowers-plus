@@ -189,18 +189,7 @@ Implementation complete. What would you like to do?
 Which option?
 ```
 
-Detached HEAD (no merge — the host owns the workspace):
-
-```
-Implementation complete. You're on a detached HEAD (externally managed workspace).
-
-1. Push as new branch and create a Pull Request
-2. Keep as-is (I'll handle it later)
-
-Which option?
-```
-
-Discarding is never a menu item; it exists only when the user explicitly asks to throw the work away (see **Discard on request**). Wait for their answer.
+Detached HEAD: say "You're on a detached HEAD (externally managed workspace)" and offer only the PR and keep-as-is options, numbered 1-2 — no merge, the host owns the workspace. Discarding is never a menu item; it exists only when the user explicitly asks to throw the work away (see **Discard on request**). Wait for their answer.
 
 ### Step 4: Execute Choice
 
