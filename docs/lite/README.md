@@ -61,3 +61,4 @@ for this planning track; protected oracle/interface decisions still need owner a
 These proposals remain subject to the execution approvals above.
 
 - [Isolate each host before measurement](measurement-isolation.md)
+- [Require component evidence for duplicate recommendations](duplicate-evidence.md)
