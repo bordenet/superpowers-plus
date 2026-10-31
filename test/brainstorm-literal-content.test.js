@@ -44,7 +44,7 @@ test('visual companion preserves literal replacement tokens in supplied HTML', a
   const unkeyed = await fetch(`http://127.0.0.1:${started.port}/`);
   assert.equal(unkeyed.status, 403, 'requests without the session key must be rejected');
   await unkeyed.body?.cancel();
-  // The keyed URL sets the session cookie and redirects to '/', as a browser sees it.
+  // The keyed URL serves a bootstrap page and sets the session cookie, as a browser sees it.
   const keyed = await fetch(started.url, { redirect: 'manual' });
   const cookie = (keyed.headers.get('set-cookie') || '').split(';')[0];
   await keyed.body?.cancel();

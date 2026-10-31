@@ -84,3 +84,12 @@ setup() {
     [ "$status" -eq 2 ]
     [[ "$output" == *"no commits yet"* ]]
 }
+
+@test "task scripts run when the installed copies lost their exec bits" {
+    chmod -x "$SKILLS"/executing-plans/scripts/* "$SKILLS"/subagent-driven-development/scripts/*
+    run bash "$START" docs/plan.md 1
+    [ "$status" -eq 0 ]
+    base=$(git rev-parse HEAD)
+    run bash "$DONE" docs/plan.md 1 "$base" -- true
+    [ "$status" -eq 0 ]
+}
