@@ -81,7 +81,7 @@ BEFORE attempting ANY fix:
 
 ### Phase 4: Implementation
 
-1. **Create failing test case** — use `superpowers:test-driven-development` skill
+1. **Create failing test case** — use `test-driven-development` skill
 2. **Implement single fix** — ONE change, no "while I'm here" improvements
 3. **Verify** — test passes, no other tests broken
 4. **Record the refactoring disposition** as a `Refactoring-Disposition:` line in the fix commit message (or the `investigation-state` note, if the session has one) — same vocabulary as `hotfix-charter`: `REFACTOR_NOW` (the refactor *is* the fix), `PARK` (you saw a cleanup worth doing and deliberately deferred it — name what), or `NONE` (nothing structural worth refactoring) — plus one concrete reason. Default `NONE` for a clean fix; `PARK` only when you actually spotted deferrable structure. This is a wrap-up note, NOT license for a "while I'm here" edit (item 2 still governs: ONE change).

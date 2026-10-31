@@ -63,6 +63,9 @@ jobs:
       - name: Skill-invocation smoke
         run: node test/skill-invocation-smoke.test.js
 
+      - name: Visual companion keyed server
+        run: node --test test/brainstorm-literal-content.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:

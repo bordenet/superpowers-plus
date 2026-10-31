@@ -2,16 +2,16 @@
 
 Skills use Claude Code tool names. When you encounter these in a skill, use your platform equivalent:
 
-| Skill references | Codex equivalent |
-|-----------------|------------------|
-| `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
-| Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
-| Task returns result | `wait` |
-| Task completes automatically | `close_agent` to free slot |
-| `TodoWrite` (task tracking) | `update_plan` |
-| `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
-| `Read`, `Write`, `Edit` (files) | Use your native file tools |
-| `Bash` (run commands) | Use your native shell tools |
+| Skill references | Codex multi-agent V2 | Codex multi-agent V1 |
+|-----------------|------------------|------------------|
+| `Task` tool (dispatch subagent) | `spawn_agent` with `fork_turns` (see [Named agent dispatch](#named-agent-dispatch)) | `spawn_agent` with `fork_context` |
+| Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls | same |
+| Task returns result | Arrives in your mailbox; `wait_agent` only when idle | `wait` |
+| Resume a subagent (fix rounds) | `followup_task` | `send_input` / `resume_agent` |
+| Task completes automatically | Evicted automatically | `close_agent` to free the slot |
+| `TodoWrite` (task tracking) | `update_plan` | same |
+| `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions | same |
+| `Read`, `Write`, `Edit`, `Bash` | Native file and shell tools | same |
 
 ## Subagent dispatch requires multi-agent support
 
@@ -22,11 +22,30 @@ Add to your Codex config (`~/.codex/config.toml`):
 multi_agent = true
 ```
 
-This enables `spawn_agent`, `wait`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
+This enables the multi-agent tools. Current model presets run V2; older ones
+run V1. Trust your actual tool list over this table when they disagree (V1
+names were read from the codex 0.164.0 binary). The bullets below are V2
+unless marked.
+
+- **Spawning:** `spawn_agent {fork_turns: "none"}` gives a clean child; the
+  default `"all"` copies your whole transcript into it.
+- **Models:** every spawn sets `model` AND `reasoning_effort` explicitly
+  (setting only `model` resets effort to that model's default), checked
+  against your spawn allowlist. Machine backstop in `~/.codex/config.toml`:
+  `[agents] default_subagent_model = "<mid-tier>"`,
+  `default_subagent_reasoning_effort = "medium"`.
+- **Fix rounds:** resume the implementer (`followup_task`; V1 `send_input`) —
+  a spawned agent can be messaged again, so never re-dispatch fresh for that.
+- **Waiting:** `wait_agent` is an event subscription, not a poll. With local
+  work left, don't wait — results arrive with your next turn. When idle, wait
+  in 5-10 minute stretches (`timeout_ms` 300000-600000); after each, post one
+  status line, run `list_agents`, and chase children that finished silently.
+  Never stack polls shorter than five minutes. (V1: the same cadence with
+  `wait`; V1 has no `list_agents`, so reconcile from your own spawn list.)
 
 ## Named agent dispatch
 
-Claude Code skills reference named agent types like `superpowers:code-reviewer`.
+Some skills name a dedicated reviewer agent (formerly `superpowers:code-reviewer`).
 Codex does not have a named agent registry — `spawn_agent` creates generic agents
 from built-in roles (`default`, `explorer`, `worker`).
 
@@ -40,7 +59,7 @@ When a skill says to dispatch a named agent type:
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| `Task tool (superpowers:code-reviewer)` | `spawn_agent(agent_type="worker", message=...)` with `code-reviewer.md` content |
+| A code-reviewer dispatch | `spawn_agent(agent_type="worker", message=...)` with `requesting-code-review/code-reviewer.md` content |
 | `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
 
 ### Message framing
@@ -62,13 +81,6 @@ specified in the instructions above.
 - Use task-delegation framing ("Your task is...") rather than persona framing ("You are...")
 - Wrap instructions in XML tags — the model treats tagged blocks as authoritative
 - End with an explicit execution directive to prevent summarization of the instructions
-
-### When this workaround can be removed
-
-This approach compensates for Codex's plugin system not yet supporting an `agents`
-field in `plugin.json`. When `RawPluginManifest` gains an `agents` field, the
-plugin can symlink to `agents/` (mirroring the existing `skills/` symlink) and
-skills can dispatch named agent types directly.
 
 ## Environment Detection
 
