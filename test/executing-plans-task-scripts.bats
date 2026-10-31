@@ -52,7 +52,7 @@ setup() {
     mkdir -p "$outside"
     cp docs/plan.md "$outside/plan.md"
     cd "$outside"
-    run bash "$START" plan.md 1
+    GIT_CEILING_DIRECTORIES="$outside" run bash "$START" plan.md 1
     [ "$status" -ne 0 ]
     [ ! -e "$outside/.superpowers" ]
 }

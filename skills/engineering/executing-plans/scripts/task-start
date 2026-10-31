@@ -18,6 +18,7 @@ fi
 
 plan=$1
 n=$2
+case $n in ''|*[!0-9]*) echo "TASK_NUMBER must be a plain integer: $n" >&2; exit 2 ;; esac
 sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
 # Local change vs upstream: fail before writing anything when cwd is not the
 # target repo (an empty BASE would otherwise surface only at task-done).
