@@ -371,8 +371,5 @@ if (( ${#ADVISORIES[@]} > 0 )); then
 fi
 
 echo "[claude-hooks/SessionStart] rules-file integrity OK; invariants at $INV"
-# Replaces the obra/superpowers plugin's skill bootstrap: names like
-# superpowers:<name> no longer resolve to a plugin once it is uninstalled.
-echo "[superpowers-plus] A skill named <name> or superpowers:<name> lives at ~/.claude/skills/<name or sp-* alias>/skill.md (find: grep -l '^name: <name>\$' ~/.claude/skills/*/[Ss][Kk][Ii][Ll][Ll].md); if the Skill tool can't load it, Read that file."
 log 0 ok
 exit 0

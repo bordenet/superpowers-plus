@@ -23,8 +23,9 @@ multi_agent = true
 ```
 
 This enables the multi-agent tools. Current model presets run V2; older ones
-run V1. Trust your actual tool list over this table when they disagree. The
-bullets below are V2 unless marked.
+run V1. Trust your actual tool list over this table when they disagree (V1
+names were read from the codex 0.164.0 binary). The bullets below are V2
+unless marked.
 
 - **Spawning:** `spawn_agent {fork_turns: "none"}` gives a clean child; the
   default `"all"` copies your whole transcript into it.
@@ -39,7 +40,8 @@ bullets below are V2 unless marked.
   work left, don't wait — results arrive with your next turn. When idle, wait
   in 5-10 minute stretches (`timeout_ms` 300000-600000); after each, post one
   status line, run `list_agents`, and chase children that finished silently.
-  Never stack polls shorter than five minutes. (V1: the same cadence with `wait`.)
+  Never stack polls shorter than five minutes. (V1: the same cadence with
+  `wait`; V1 has no `list_agents`, so reconcile from your own spawn list.)
 
 ## Named agent dispatch
 

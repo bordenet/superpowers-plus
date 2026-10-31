@@ -206,7 +206,7 @@ Discarding is never a menu item; it exists only when the user explicitly asks to
 
 Handlers are keyed by the option's label, not its number (the detached menu numbers differently).
 
-**Merge locally:** move to the main repo root (`git -C "$GIT_COMMON/.." rev-parse --show-toplevel`) → checkout base → pull → merge → run tests on the result (fail: stop, keep branch and worktree, report) → clean up the worktree (Step 5) → delete the merged branch.
+**Merge locally:** move to the main repo root (linked worktree: `git -C "$GIT_COMMON/.." rev-parse --show-toplevel`; normal checkout or submodule: stay in the current toplevel) → checkout base → pull → merge → run tests on the result (fail: stop, keep branch and worktree, report) → clean up the worktree (Step 5) → delete the merged branch.
 
 **Push and create PR:**
 

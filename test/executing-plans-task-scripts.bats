@@ -68,3 +68,19 @@ setup() {
     recorded=$(sed -n 's/^Task 1: complete .*tests: \(.*\) → .*/\1/p' "$ledger")
     [ "$(bash -c "$recorded")" = "it's ok" ]
 }
+
+@test "task-done rejects a non-integer task number before running tests" {
+    base=$(git rev-parse HEAD)
+    run bash "$DONE" docs/plan.md 1.5 "$base" -- true
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"plain integer"* ]]
+}
+
+@test "task-start names an empty repository instead of a wrong cwd" {
+    empty="$BATS_TEST_TMPDIR/empty"
+    mkdir -p "$empty" && cd "$empty" && git init -q
+    cp "$WORK/docs/plan.md" plan.md
+    run bash "$START" plan.md 1
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"no commits yet"* ]]
+}
