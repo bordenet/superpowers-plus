@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -61,6 +63,9 @@ jobs:
       - name: Skill-invocation smoke
         run: node test/skill-invocation-smoke.test.js
 
+      - name: Visual companion keyed server
+        run: node --test test/brainstorm-literal-content.test.js
+
       - name: MCP smoke test
         run: cd mcp && npm test
         env:
@@ -75,6 +80,18 @@ jobs:
 
       - name: CR battery evidence verifier tests
         run: node test/verify-cr-battery-evidence.test.js
+
+      - name: Lite manifest validation
+        run: node scripts/validate-lite-manifest.js
+
+      - name: Lite manifest regression tests
+        run: node test/lite-manifest.test.js
+
+      - name: Full oracle input parity
+        run: node test/lite-full-unchanged.test.js
+
+      - name: Full installed output parity
+        run: node test/lite-full-installed.test.js
 
   shell-tests:
     name: Shell Tests

@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "oracle": "0a3959923097dd5af3ade06fe68668a9561983fd",
+  "roots": {
+    ".codex/skills": {
+      "entries": 297,
+      "bytes": 2063980,
+      "sha256": "4ba5851d1e6c91850017d6733ffdf8ce0bad8412e54c41c2ac6ccc5196d903b9"
+    },
+    ".claude/skills": {
+      "entries": 297,
+      "bytes": 2063980,
+      "sha256": "4ba5851d1e6c91850017d6733ffdf8ce0bad8412e54c41c2ac6ccc5196d903b9"
+    },
+    ".agents/skills": {
+      "entries": 150,
+      "bytes": 1237399,
+      "sha256": "0eedc8f0ba15f51a21cd8936044e97458908dc04c404a5bb41ad678729e83417"
+    },
+    ".augment/rules": {
+      "entries": 1,
+      "bytes": 4887,
+      "sha256": "fa2ace6b6e70bfe8fb6d286426a079d368b010397d41c1dbe99722b97d582779"
+    },
+    ".claude/commands": {
+      "entries": 58,
+      "bytes": 30000,
+      "sha256": "8d8a53067ef05c73ae59d9c7ba812adb4a7f7f52060df106bd4226d3d602b1d9"
+    },
+    ".local/bin": {
+      "entries": 3,
+      "bytes": 142,
+      "sha256": "7d17be14ab67d41a03a825f641f72fe6a4e22bb434c21557dc68f9ed43bd8d36"
+    }
+  },
+  "bootstrap": {
+    "stdout": "# Superpowers\n\nBefore acting, check if a skill applies. Even 1% chance → load it.\nPriority: user instructions > skills > system defaults.\nProcess skills (debugging, brainstorming) before implementation skills.\n\n## Critical auto-triggers (ALWAYS apply — never skip)\n- **BEFORE any git commit/push:** `use-skill unified-commit-gate` — runs all 5 gates in one load.\n  Tests passing ≠ ready to commit. Your FIXES are new code and need their own gate pass.\n  Individual deep-dive skills: `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`.\n- **WHEN stuck (same error 3x, circular reasoning):** `use-skill think-twice`\n- **WHEN writing shell scripts:** Load the shell language module first.\n\n119 superpowers (auto-trigger) + 6 explicit skills installed.\nLoad: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`\nUnsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills \"your query\"`\n",
+    "stderr": ""
+  }
+}

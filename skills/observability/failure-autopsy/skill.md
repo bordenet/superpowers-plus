@@ -13,6 +13,8 @@ triggers:
   - "broke something"
   - "wrong approach"
   - "wasted time"
+  - "what went wrong in this session"
+  - "why was that session so expensive"
 anti_triggers:
   - "wrong file path"
   - "wrong variable name"
@@ -89,6 +91,32 @@ Impact: [time wasted, wrong output, user intervention]
 ### Step 4: Preventive Action
 
 **Immediate fix** + **Process update** + **Skill update**
+
+## Session Transcript Diagnosis
+
+For "what went wrong in that session" (repeated work, ignored plan, a skill
+that never fired, too slow, too expensive) — current or past session. Ported
+from obra/superpowers 7.0.1 `diagnosing-superpowers`, minus its upstream
+issue filing.
+
+1. **Intake first.** One question at a time until you can state: which
+   session(s), turn range if known, expected vs actual, and the observable
+   they care about. "It took too long" is a complaint, not a statement. An
+   already-scoped request is itself the statement.
+2. **Locate and confirm.** Claude Code: `~/.claude/projects/<cwd-slug>/<id>.jsonl`
+   (+ subagent transcripts); Codex: `~/.codex/sessions/YYYY/MM/DD/*.jsonl`.
+   Confirm by quoting the first prompt and timestamp; recency is not
+   confirmation. List rejected candidates.
+3. **Read safely, read-only.** Measure first (`wc -lc`; lines >100000 chars);
+   take line numbers and counts before content; extract small fields from
+   specific lines (`sed -n Np | jq -c …`, or `sed -n Np | cut -c1-500` without jq). Never modify a
+   session file. Only human prompts are the user's words — hook output,
+   reminders, and tool results are not.
+4. **Report with evidence.** Every finding cites `path:line`; no citation, no
+   finding. Every number comes from the transcript or a command you ran.
+   Then run the 5-Why above on the confirmed findings.
+5. **Sharing.** Never export transcripts unasked; redact secrets and personal
+   data first and show the user exactly what leaves the machine.
 
 ---
 

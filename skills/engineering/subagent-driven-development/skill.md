@@ -54,9 +54,9 @@ For tasks with sufficient isolation (different files, independent interfaces), t
 6. **Run `bash scripts/review-package PLAN_FILE BASE_SHA HEAD`** — writes diff file; verify `git log BASE_SHA..HEAD --oneline` shows only this task's commits; dispatch task reviewer using `task-reviewer-prompt.md` with diff path
 7. **Review issues?** → enter the fix loop below (Critical/Important, or a confirmed ⚠️ gap) | remaining ⚠️ items → resolve yourself (you hold cross-task context)
 8. **Mark complete** → append to progress ledger → next task
-9. **After all tasks** — invoke `superpowers:unified-commit-gate` via `/sp-push`; when gate clears, `git push`. Sentinel required; docs-only exclusion: see unified-commit-gate Push Mode.
-10. **After push** — invoke `superpowers:requesting-code-review` for final whole-branch review
-11. **Finish** — invoke `superpowers:finishing-a-development-branch`
+9. **After all tasks** — invoke `unified-commit-gate` via `/sp-push`; when gate clears, `git push`. Sentinel required; docs-only exclusion: see unified-commit-gate Push Mode.
+10. **After push** — invoke `requesting-code-review` for final whole-branch review
+11. **Finish** — invoke `finishing-a-development-branch`
 
 ## Pre-Flight Plan Review
 
@@ -77,9 +77,7 @@ Everything pasted into a dispatch stays in your context for the rest of the sess
 - **Review package:** `bash scripts/review-package PLAN_FILE BASE_SHA HEAD` → path for reviewer (never enters your context)
 - **Dispatch content:** (1) where this task fits, (2) brief file path (implementer reads all task requirements from it — do not summarize inline), (3) interfaces from earlier tasks, (4) report path + contract. No pasted task history from prior tasks.
 
-**Batch small same-shape work.** When the plan lists several tasks that are each a small, independent edit of the same kind — the same one-line fix, constant change, or field addition repeated across files — do not dispatch one subagent per task. Compose one dispatch brief listing every file and its change, send the whole batch to a single subagent, and review its diff as one unit. Reserve one-dispatch-per-task for work that needs its own judgment, its own tests, or its own review surface. After the batch's single review passes, append one `Task N: complete` ledger line per task number the batch covered, all citing the same shared commit range — resume-after-compaction still keys on individual task numbers (Durable Progress), not on the dispatch that produced them.
-
-**Waiting on dispatched subagents:** never poll a wait interface with short timeouts, and never sit in one silent, open-ended wait either. While you have local work — ledger updates, packaging the next review, reading reports — keep working; child results arrive on their own. When you are genuinely idle, wait in bounded stretches (five to ten minutes, where your platform allows), and between stretches post one line of status and reconcile your live children: list them, and chase any that finished without reporting.
+**Batching small same-shape tasks, and waiting on dispatched subagents:** read `references/batching-and-waiting.md` at that step.
 
 ## Durable Progress
 
@@ -124,6 +122,8 @@ Always specify model explicitly — omitting it inherits the session's most expe
 5. **Same error 3+ times** → invoke `think-twice` for fresh perspective before re-dispatch
 
 Never force retry without changes. If stuck, something must change.
+
+**"⚠️ Cannot verify from diff" items** (requirements in unchanged code or spanning tasks): resolve each yourself before marking the task complete — you hold the cross-task context. A confirmed gap is a failed spec review and enters the fix loop.
 
 ## Constructing Reviewer Prompts
 
@@ -179,18 +179,18 @@ Never adjudicate before round 5 to end a loop early — that's pre-judging with 
 
 | Skill | Role |
 |-------|------|
-| `superpowers:using-git-worktrees` | Set up isolated workspace (REQUIRED) |
-| `superpowers:writing-plans` | Creates the plan this executes |
-| `superpowers:requesting-code-review` | Final whole-branch code review |
-| `superpowers:finishing-a-development-branch` | After all tasks complete |
-| `superpowers:executing-plans` | Alternative: native execution in the current session |
+| `using-git-worktrees` | Set up isolated workspace (REQUIRED) |
+| `writing-plans` | Creates the plan this executes |
+| `requesting-code-review` | Final whole-branch code review |
+| `finishing-a-development-branch` | After all tasks complete |
+| `executing-plans` | Alternative: native execution in the current session |
 
 ## Prompt Templates
 
 - [implementer-prompt.md](implementer-prompt.md) — dispatch implementer subagent
 - [task-reviewer-prompt.md](task-reviewer-prompt.md) — dispatch task reviewer (spec + quality)
 - [re-review-prompt.md](re-review-prompt.md) — dispatch scoped re-review after a fix round (verifies fixes only, doesn't re-read the whole task)
-- Final review: use `superpowers:requesting-code-review`'s `code-reviewer.md`
+- Final review: use `requesting-code-review`'s `code-reviewer.md`
 
 **Minimal dispatch example** (full template in `implementer-prompt.md`):
 

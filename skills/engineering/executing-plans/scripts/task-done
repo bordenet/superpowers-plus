@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Close one task of an inline plan execution in a single call: run the task's
+# test command, keep its full output in the workspace, print the tail, and —
+# only if the command succeeded — append the completion line to the ledger.
+# A failing command records nothing: the task is not complete.
+#
+# Usage: task-done PLAN_FILE TASK_NUMBER BASE -- TEST_COMMAND [ARGS...]
+#   BASE is the SHA task-start printed; the completion line records BASE..HEAD.
+# Exit: the test command's exit status.
+set -euo pipefail
+
+if [ $# -lt 5 ] || [ "$4" != "--" ]; then
+  echo "usage: task-done PLAN_FILE TASK_NUMBER BASE -- TEST_COMMAND [ARGS...]" >&2
+  exit 2
+fi
+
+plan=$1
+n=$2
+base=$3
+shift 4
+case $n in ''|*[!0-9]*) echo "TASK_NUMBER must be a plain integer: $n" >&2; exit 2 ;; esac
+sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
+
+git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
+
+dir=$("${BASH:-bash}" "$sdd/sdd-workspace" "$plan")
+log="$dir/task-${n}-tests.log"
+ledger="$dir/progress.md"
+
+# Render the command as valid shell for the ledger line (local change vs
+# upstream: %q also covers single quotes).
+cmd=$(printf ' %q' "$@")
+cmd=${cmd# }
+
+rc=0
+"$@" > "$log" 2>&1 || rc=$?
+
+tail -n 5 "$log"
+if [ "$rc" -ne 0 ]; then
+  echo "task-done: test command exited $rc; Task $n NOT recorded (full output: $log)" >&2
+  exit "$rc"
+fi
+
+last=$(grep -v '^[[:space:]]*$' "$log" | tail -n 1) || last="(no output)"
+[ -f "$ledger" ] || printf '# SDD ledger — plan: %s\n' "$plan" > "$ledger"
+line="Task $n: complete (commits $(git rev-parse --short=7 "$base")..$(git rev-parse --short=7 HEAD), tests: $cmd → $last)"
+# A re-run must not record the same task twice (resume keys on these lines).
+if grep -q "^Task $n: complete " "$ledger"; then
+  echo "ledger: Task $n already recorded; not appending"
+  exit 0
+fi
+printf '%s\n' "$line" >> "$ledger"
+echo "ledger: $line"

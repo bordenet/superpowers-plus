@@ -7,12 +7,6 @@
       "hard_gate_table": 0,
       "code_fences": 6
     },
-    "engineering/brainstorming/skill.md": {
-      "step_headings": 0,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 1
-    },
     "engineering/branch-flow-gate/skill.md": {
       "step_headings": 0,
       "stop_markers": 0,
@@ -60,12 +54,6 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 2
-    },
-    "engineering/executing-plans/skill.md": {
-      "step_headings": 3,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 0
     },
     "engineering/external-cli-audit/skill.md": {
       "step_headings": 7,

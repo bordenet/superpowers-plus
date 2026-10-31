@@ -1733,6 +1733,7 @@ _fixture_transcript_cursor() {
       pre-tool-use-git-identity.sh \
       pre-tool-use-red-autonomy.sh \
       session-start-rules-integrity.sh \
+      session-start-skill-resolution.sh \
       pre-compact-reinject.sh \
       post-tool-use-verify.sh \
       subagent-stop-claims-evidence.sh; do

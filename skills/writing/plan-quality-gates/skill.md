@@ -23,7 +23,7 @@ composition:
 # Plan Quality Gates
 
 > **Last Updated:** 2026-03-20
-> **Fires alongside:** `superpowers:plan-and-execute` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
+> **Fires alongside:** `plan-and-execute` — this skill is ADDITIVE, not a replacement. Also relevant during brainstorming when plan/roadmap topics arise (load manually if needed).
 >
 > **Wrong skill?** Executing a plan → `plan-and-execute`. Feature design → `brainstorming` or `debate`. Writing documentation → `readme-authoring`.
 > **See also:** [detecting-ai-slop reference](../detecting-ai-slop/reference.md) § Fabricated Calendar Timelines

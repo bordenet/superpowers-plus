@@ -140,7 +140,7 @@ Treat history hits as real findings: rotate the credential, document the commit(
 
 ### Phase 2: Dependency Vulnerabilities
 
-**When upgrading dependencies:** use `superpowers:security-upgrade` for discovery → scan → upgrade → validate → commit/push. It is the upgrade path after CVE findings — not a hard prerequisite for a scan-only run.
+**When upgrading dependencies:** use `security-upgrade` for discovery → scan → upgrade → validate → commit/push. It is the upgrade path after CVE findings — not a hard prerequisite for a scan-only run.
 
 Quick scan commands (from security-upgrade; safe for scan-only):
 
@@ -206,7 +206,7 @@ git ls-files -z 2>/dev/null | xargs -0 grep -lnE \
 For each finding:
 
 1. **Secrets found** → Remove the secret, rotate it, add pattern to `.gitignore`
-2. **Dependency CVEs** → Use `superpowers:security-upgrade` workflow (scan → upgrade → validate → commit)
+2. **Dependency CVEs** → Use `security-upgrade` workflow (scan → upgrade → validate → commit)
 3. **Insecure patterns** → Fix the code, apply TDD where applicable
 4. **Misconfiguration** → Add missing entries, disable debug mode
 
@@ -221,7 +221,7 @@ fix(security): replace eval() with JSON.parse() in parser.js
 
 ## Verification
 
-After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 history step**, to confirm zero remaining issues on **both HEAD and git history** (or every remaining history hit has a dated accepted-risk note). A HEAD-only re-grep is not a full scan. Use `superpowers:verification-before-completion` — evidence before assertions.
+After all fixes, **re-run the full scan (Phases 0–4), including the Phase 1 history step**, to confirm zero remaining issues on **both HEAD and git history** (or every remaining history hit has a dated accepted-risk note). A HEAD-only re-grep is not a full scan. Use `verification-before-completion` — evidence before assertions.
 
 ## Rules
 

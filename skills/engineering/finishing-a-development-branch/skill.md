@@ -141,7 +141,7 @@ If `git log` errors rather than producing empty output, the remote ref does not 
 
 1. Check for rebase in progress: `git rebase --show-current-patch 2>/dev/null && echo REBASE_IN_PROGRESS || echo CLEAN`. If `REBASE_IN_PROGRESS`, ask human to confirm abort before running `git rebase --abort`.
 2. Capture stash state: `git status --short`. If uncommitted changes exist, run `git stash push -m "pre-rebase WIP" && STASHED=true || { echo "STASH FAILED — manual intervention required."; STASHED=false; return 1; }`. If clean, note `STASHED=false` — do not run `git stash pop` later.
-3. Detect force-push requirement: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null && echo FORCE_PUSH_REQUIRED=true || echo FORCE_PUSH_REQUIRED=false`. Then rebase: `git rebase "${BASE_REF:-origin/main}"`. If `FORCE_PUSH_REQUIRED=true`, push will need `--force-with-lease`; confirm with human at Step 4 Option 2.
+3. Detect force-push requirement: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null && echo FORCE_PUSH_REQUIRED=true || echo FORCE_PUSH_REQUIRED=false`. Then rebase: `git rebase "${BASE_REF:-origin/main}"`. If `FORCE_PUSH_REQUIRED=true`, push will need `--force-with-lease`; confirm with human at Step 4 "Push and create PR".
 4. If rebase produced conflicts: resolve them, `git add <files>`, `git rebase --continue`, then follow `unified-commit-gate § Post-Conflict Trap` (typecheck → lint → test). If no conflicts: proceed to step 5.
 5. Restore stash (only if `STASHED=true` and rebase complete): `git stash pop`. If conflicts, resolve then re-run typecheck → lint → test.
 6. Re-run Step 0 (rebase rewrites HEAD, sentinel stale), re-run Step 1 (tests), then re-run Step 1.5. If clean, run `rm -f "$ATTEMPT_FILE"`. If this was attempt 2 and Step 1.5 still shows commits: **escalate to human** — do not run a third rebase.
@@ -177,7 +177,7 @@ If any candidate returns a SHA, use that branch as the base. If all fail, the br
 
 ### Step 3: Present Options
 
-Present exactly these 4 options:
+Capture the worktree state first — see `references/worktree-cleanup.md` for the exact commands and why order matters. A detached HEAD (`git branch --show-current` empty) in a linked worktree is an externally managed workspace. Present exactly one menu, as written:
 
 ```
 Implementation complete. What would you like to do?
@@ -185,33 +185,34 @@ Implementation complete. What would you like to do?
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
 
 Which option?
 ```
 
+Detached HEAD: say "You're on a detached HEAD (externally managed workspace)" and offer only the PR and keep-as-is options, numbered 1-2 — no merge, the host owns the workspace. Discarding is never a menu item; it exists only when the user explicitly asks to throw the work away (see **Discard on request**). Wait for their answer.
+
 ### Step 4: Execute Choice
 
-Capture the worktree state before any option below `cd`'s away — see `references/worktree-cleanup.md` for the exact commands and why order matters.
+Handlers are keyed by the option's label, not its number (the detached menu numbers differently).
 
-**Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree (using `$WORKTREE_PATH`).
+**Merge locally:** move to the main repo root (linked worktree: `git -C "$GIT_COMMON/.." rev-parse --show-toplevel`; normal checkout or submodule: stay in the current toplevel) → checkout base → pull → merge → run tests on the result (fail: stop, keep branch and worktree, report) → clean up the worktree (Step 5) → delete the merged branch.
 
-**Option 2 (Push and create PR):**
+**Push and create PR:**
 
-1. Run `tools/branch-flow-preflight.sh <current-branch> <base-branch>` to validate the (source, target) pair against the canonical flow and write `.branch-flow-cleared`. The pre-push hook reads this sentinel and refuses pushes to dev/main without it.
-2. Push the branch. `unified-commit-gate` (push mode) fires before push.
+1. Run `tools/branch-flow-preflight.sh <branch> <base-branch>` to validate the (source, target) pair against the canonical flow and write `.branch-flow-cleared`. The pre-push hook reads this sentinel and refuses pushes to dev/main without it. On a detached HEAD, `<branch>` is a new name you propose (per git-branch-conventions).
+2. Push the branch (detached HEAD: `git push -u origin HEAD:refs/heads/<branch>`). `unified-commit-gate` (push mode) fires before push.
 3. Create the PR: `gh pr create --fill` (`--fill` pre-fills title/body from commits; override with `--title`/`--body`). If the work has an issue identifier (per git-branch-conventions' "Before Naming the Branch"), the title should include it, matching branch/commit.
 4. GitHub auto-links AND auto-closes an issue if the PR body contains `Fixes #123` or `Closes #123` **and the PR merges into the repo's default branch** (not just any branch) — confirm that's actually intended before using that phrasing; a plain reference (`#123`) links without closing. If citing an issue, verify it resolves via `issue-verify` first — never construct the reference from memory.
 5. `gh pr edit` has a body-replacement footgun when adding a link after the fact — see `external-cli-audit`'s CLI Default Hazards table.
-6. Cleanup the worktree per **Step 5: Cleanup Worktree** below.
+6. Keep the worktree: review fixes land there.
 
-**Option 3 (Keep as-is):** Report status. Keep worktree.
+**Keep as-is:** Report status. Keep worktree.
 
-**Option 4 (Discard):** Confirm first (require typed "discard"). Then delete branch and cleanup worktree (using `$WORKTREE_PATH`).
+**Discard on request** (only after an explicit request): list the branch, its commits (`git log --oneline <base>..HEAD`), and the worktree path; require the typed word "discard". Then move to the main repo root, clean up the worktree (Step 5), and force-delete the branch.
 
 ### Step 5: Cleanup Worktree
 
-For Options 1, 2, 4 — using the values captured in Step 4, per `references/worktree-cleanup.md`. For Option 3 — keep worktree, skip this step.
+For merge-locally and a confirmed discard — using the values captured in Step 3, per `references/worktree-cleanup.md`. PR and keep-as-is preserve the worktree.
 
 ## Anti-Patterns
 
@@ -219,9 +220,9 @@ For Options 1, 2, 4 — using the values captured in Step 4, per `references/wor
 |-------|-------|
 | Presenting options without completing Step 0 | Review first, options second |
 | Skipping test verification because review passed | Review ≠ tests. Both required. |
-| Open-ended "What should I do next?" | Present exactly 4 structured options |
-| Auto-cleanup worktree for Option 3 | Only cleanup for Options 1, 2, and 4 |
-| Deleting work without confirmation | Require typed "discard" for Option 4 |
+| Open-ended "What should I do next?" | Present exactly the structured menu for this state |
+| Listing "Discard" in the menu, or cleaning up after a PR | Discard only on explicit request; clean up only after merge or confirmed discard |
+| Deleting work without confirmation | Require the typed word "discard" |
 | Citing an issue reference in a PR body without verifying it resolves | Verify via `issue-verify` before citing; never build the reference from memory |
 
 ## Red Flags
@@ -237,7 +238,7 @@ For Options 1, 2, 4 — using the values captured in Step 4, per `references/wor
 - **code-review-battery**: The review engine Step 0 dispatches
 - **progressive-code-review-gate**: Verdict mapping and dispatch procedure
 - **verification-before-completion**: Fires before this skill (completion-gate order 2)
-- **unified-commit-gate** (push mode): Fires when Option 2 triggers a push; § Post-Conflict Trap mandates typecheck after rebase/stash-pop conflicts
+- **unified-commit-gate** (push mode): Fires when "Push and create PR" triggers a push; § Post-Conflict Trap mandates typecheck after rebase/stash-pop conflicts
 - **subagent-driven-development**: Calls this skill after all tasks complete
 - **issue-verify**: Verify an issue identifier before citing it in a branch, commit, or PR
-- **external-cli-audit**: CLI default hazards (e.g. `gh pr edit`'s body-replacement behavior) referenced from Option 2
+- **external-cli-audit**: CLI default hazards (e.g. `gh pr edit`'s body-replacement behavior) referenced from "Push and create PR"

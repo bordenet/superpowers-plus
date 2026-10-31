@@ -28,6 +28,10 @@
           {
             "type": "command",
             "command": "$HOME/.claude/hooks/session-start-rules-integrity.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/session-start-skill-resolution.sh"
           }
         ]
       }
