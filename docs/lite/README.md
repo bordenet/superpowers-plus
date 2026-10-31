@@ -55,3 +55,9 @@ is pending; no runtime enforcement is claimed.
 must link here and state whether their criteria are proposals or approved execution
 requirements. Public planning text supersedes conflicting historical recommendations
 for this planning track; protected oracle/interface decisions still need owner approval.
+
+## Planning amendments
+
+These proposals remain subject to the execution approvals above.
+
+- [Isolate each host before measurement](measurement-isolation.md)
