@@ -37,6 +37,31 @@ Git worktrees create isolated workspaces sharing the same repository, allowing w
 
 **NOT when:** the feature is small enough to complete in one session on the current branch.
 
+## Step 0: Detect Existing Isolation
+
+Before creating anything:
+
+```bash
+GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
+GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
+BRANCH=$(git branch --show-current)
+git rev-parse --show-superproject-working-tree 2>/dev/null  # prints a path → submodule, treat as normal repo
+```
+
+- `GIT_DIR != GIT_COMMON` and not a submodule → already in a linked worktree.
+  Do NOT create another; skip to **Run Project Setup**. Report the path and
+  branch, or "detached HEAD, externally managed — branch needed at finish".
+- Otherwise (normal checkout): honor any declared worktree preference; if
+  none, ask consent first ("Set up an isolated worktree? It protects your
+  current branch."). Declined → work in place, skip to **Run Project Setup**.
+
+## Step 1: Prefer the Harness's Native Tool
+
+If you have a native worktree tool (e.g. `EnterWorktree`, `WorktreeCreate`,
+a `/worktree` command, a `--worktree` flag), use it and skip to **Run Project
+Setup**. `git worktree add` beside a native tool creates state the harness
+cannot see or clean up. Only with no native tool, continue below.
+
 ## Directory Selection Process
 
 Follow this priority order:
@@ -199,25 +224,10 @@ Ready to implement <feature-name>
 - **Problem:** Breaks on projects using different tools
 - **Fix:** Auto-detect from project files (package.json, etc.)
 
-## Example Workflow
-
-```
-You: I'm using the using-git-worktrees skill to set up an isolated workspace.
-
-[Check .worktrees/ - exists]
-[Verify ignored - git check-ignore confirms .worktrees/ is ignored]
-[Create worktree: git worktree add .worktrees/auth -b feature/auth]
-[Run npm install]
-[Run npm test - 47 passing]
-
-Worktree ready at /Users/jesse/myproject/.worktrees/auth
-Tests passing (47 tests, 0 failures)
-Ready to implement auth feature
-```
-
 ## Red Flags
 
 **Never:**
+- Create a worktree while already inside one, or beside a native worktree tool
 - Create worktree without verifying it's ignored (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking

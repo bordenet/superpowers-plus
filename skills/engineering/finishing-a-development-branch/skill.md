@@ -177,7 +177,7 @@ If any candidate returns a SHA, use that branch as the base. If all fail, the br
 
 ### Step 3: Present Options
 
-Present exactly these 4 options:
+Capture the worktree state first — see `references/worktree-cleanup.md` for the exact commands and why order matters. A detached HEAD (`git branch --show-current` empty) in a linked worktree is an externally managed workspace. Present exactly one menu, as written:
 
 ```
 Implementation complete. What would you like to do?
@@ -185,14 +185,24 @@ Implementation complete. What would you like to do?
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
 
 Which option?
 ```
 
-### Step 4: Execute Choice
+Detached HEAD (no merge — the host owns the workspace):
 
-Capture the worktree state before any option below `cd`'s away — see `references/worktree-cleanup.md` for the exact commands and why order matters.
+```
+Implementation complete. You're on a detached HEAD (externally managed workspace).
+
+1. Push as new branch and create a Pull Request
+2. Keep as-is (I'll handle it later)
+
+Which option?
+```
+
+Discarding is never a menu item; it exists only when the user explicitly asks to throw the work away (see **Discard on request**). Wait for their answer.
+
+### Step 4: Execute Choice
 
 **Option 1 (Merge locally):** Checkout base → pull → merge → verify tests on result → delete branch → cleanup worktree (using `$WORKTREE_PATH`).
 
@@ -203,15 +213,15 @@ Capture the worktree state before any option below `cd`'s away — see `referenc
 3. Create the PR: `gh pr create --fill` (`--fill` pre-fills title/body from commits; override with `--title`/`--body`). If the work has an issue identifier (per git-branch-conventions' "Before Naming the Branch"), the title should include it, matching branch/commit.
 4. GitHub auto-links AND auto-closes an issue if the PR body contains `Fixes #123` or `Closes #123` **and the PR merges into the repo's default branch** (not just any branch) — confirm that's actually intended before using that phrasing; a plain reference (`#123`) links without closing. If citing an issue, verify it resolves via `issue-verify` first — never construct the reference from memory.
 5. `gh pr edit` has a body-replacement footgun when adding a link after the fact — see `external-cli-audit`'s CLI Default Hazards table.
-6. Cleanup the worktree per **Step 5: Cleanup Worktree** below.
+6. Keep the worktree: review fixes land there.
 
 **Option 3 (Keep as-is):** Report status. Keep worktree.
 
-**Option 4 (Discard):** Confirm first (require typed "discard"). Then delete branch and cleanup worktree (using `$WORKTREE_PATH`).
+**Discard on request** (only after an explicit request): list the branch, its commits (`git log --oneline <base>..HEAD`), and the worktree path; require the typed word "discard". Then move to the main repo root, clean up the worktree (Step 5), and force-delete the branch.
 
 ### Step 5: Cleanup Worktree
 
-For Options 1, 2, 4 — using the values captured in Step 4, per `references/worktree-cleanup.md`. For Option 3 — keep worktree, skip this step.
+For Option 1 and a confirmed discard — using the values captured in Step 3, per `references/worktree-cleanup.md`. PR and keep-as-is preserve the worktree.
 
 ## Anti-Patterns
 
@@ -219,9 +229,9 @@ For Options 1, 2, 4 — using the values captured in Step 4, per `references/wor
 |-------|-------|
 | Presenting options without completing Step 0 | Review first, options second |
 | Skipping test verification because review passed | Review ≠ tests. Both required. |
-| Open-ended "What should I do next?" | Present exactly 4 structured options |
-| Auto-cleanup worktree for Option 3 | Only cleanup for Options 1, 2, and 4 |
-| Deleting work without confirmation | Require typed "discard" for Option 4 |
+| Open-ended "What should I do next?" | Present exactly the structured menu for this state |
+| Listing "Discard" in the menu, or cleaning up after a PR | Discard only on explicit request; clean up only after merge or confirmed discard |
+| Deleting work without confirmation | Require the typed word "discard" |
 | Citing an issue reference in a PR body without verifying it resolves | Verify via `issue-verify` before citing; never build the reference from memory |
 
 ## Red Flags
