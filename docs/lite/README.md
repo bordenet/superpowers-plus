@@ -1,64 +1,61 @@
 # Lite planning: start here
 
-Status: planning hold. Measurement and implementation are not authorized by these documents.
+Updated 2026-11-01. Reconciliation and source-only baseline are complete.
+Native measurement and implementation remain separately gated.
 
-This is the canonical entrypoint for future lite planning. A separate standalone
-integration effort removes the requirement for a second superpowers installation.
-Its completion has not been confirmed by the owner. A commit, merged PR or idle
-process is not that confirmation.
+Read [current state and next steps](current-state.md) first. It records the pinned
+standalone Full release, completed efficiency deployment, source-only measurements,
+remaining compatibility decisions and the next bounded preparation task.
 
-## What may proceed
+## What is ready
 
-Sanitized planning Markdown may be reviewed and published. Product code, tests,
-installers, hooks, configuration, installed skills and host/model measurement
-probes stay outside this authorization. Normal documentation quality gates still
-apply; their isolated test fixtures do not authorize product changes or new probes.
-Existing implementation worktrees and staged work must remain untouched.
+The standalone/upstream-parity work, Codex discovery/hook repairs and validation
+reuse/strategy improvements are released. Main and dev have identical file trees.
+The normal installer completed from released main; recorded deployed runtime, hook
+and skill files were freshly checked against that source. No repeat installation,
+release or full test run is needed to begin planning.
 
-## Before any execution
+A selection manifest and Full compatibility checks are shipped. Complete Light
+installation, catalog/load helpers, lifecycle transitions and native acceptance
+are unfinished. Source projections do not establish native host cost or support.
 
-1. Obtain the owner's standalone completion confirmation and accepted revision,
-   verification report and remaining limitations.
-2. Obtain permission for read-only reconciliation against that revision. Reconcile
-   staged lite work explicitly; do not resume, merge, discard or rebase it automatically.
-3. Preserve the historical Full oracle and interface. If intentional standalone
-   changes conflict with them, propose a scoped amendment for owner approval;
-   do not regenerate compatibility fixtures to hide a conflict.
-4. Present a bounded host-specific measurement plan, including configuration
-   isolation, controls, calls, spend and containment checks. Obtain execution approval.
-5. Present the resulting evidence before requesting any implementation approval.
-   Completion confirmation, documentation approval and a favorable result each
-   leave the next execution step subject to its own authorization.
+## Before further execution
 
-Measure any proposed lite saving against the same pinned standalone Full revision.
-Standalone dependency removal and reduced suite listings are separate benefits;
-never count one removed contribution in both totals. Historical measurements retain
-only their recorded source, host, configuration and metric scope. They establish
-neither current standalone costs nor complete Light support.
+1. Preserve historical evidence, dirty implementation worktrees and their index.
+   Reconcile unfinished P2b explicitly; do not automatically resume, rebase or discard it.
+2. Preserve the historical oracle and interface. Current repository compatibility
+   tests use a later pinned source; propose a scoped execution-contract amendment
+   identifying intentional changes before any new compatibility claim.
+3. Prepare a bounded host-specific comparison of the same standalone Full revision,
+   a core-only discovery projection, and a description-only candidate. Keep source
+   bytes, actual host listings, whole-request tokens and duplicate cleanup separate.
+4. Present the frozen cases, effective configuration roots, observation method,
+   permitted outputs, model/host versions and exact calls/spend for approval.
+   No paid startup/smoke probe or retry is free or implicitly approved.
+5. Present valid results before requesting implementation approval. Codex and Claude
+   are the required hosts after the approved efficiency release; Augment is optional.
+   Optional/unverified hosts do not become supported through another host's results.
 
-## Legacy handoffs
+The owner's proceed instruction covers reconciliation and planning maintenance.
+A favorable projection, completed deployment or published plan does not authorize
+contract/oracle changes, a default flip or the next product implementation.
+Full remains the shipped installation; do not publish complete Light savings.
 
-The private migration bundle is historical execution material. Its `AGENTS.md`,
-`NEXT-PROMPT.md`, `NEXT-PROMPT.txt` and launcher instructions are retired as current
-execution authority: do not paste or launch them. Earlier GO decisions and staged
-review results do not lift this hold. Retain the bundle outside Git as evidence;
-never copy its reports, archives, authentication material or local resume files here.
+## Historical material and tracking
 
-The private required read path and prompt twins still omit this hold. This public
-page does not change those files or enforce a launcher block. An executor started
-from the old bundle can still miss it. Before that bundle is used again, the owner
-must explicitly retire it in favor of this entrypoint, or authorize a private
-read-order/prompt amendment with a corresponding manifest update. That correction
-is pending; no runtime enforcement is claimed.
+[Historical baseline](baseline.md) is preserved for provenance. Private migration
+prompts now direct readers to a compact current-state document before their old
+instructions. Original versions and checksums are retained locally. The legacy
+launcher itself is unchanged; navigation banners are not a runtime enforcement
+block, and those retired prompts must not be launched.
 
-[Historical baseline](baseline.md) is retained for provenance. Later planning notes
-must link here and state whether their criteria are proposals or approved execution
-requirements. Public planning text supersedes conflicting historical recommendations
-for this planning track; protected oracle/interface decisions still need owner approval.
+Keep active planning in one current-state document with a small execution checklist
+and disk-backed evidence. GitHub issues are unnecessary unless they demonstrably
+reduce repeated context loading; no parallel tracker was created for this task.
 
-## Planning amendments
+## Measurement proposals
 
-These proposals remain subject to the execution approvals above.
+These remain subject to the execution approvals above:
 
 - [Isolate each host before measurement](measurement-isolation.md)
 - [Require component evidence for duplicate recommendations](duplicate-evidence.md)
