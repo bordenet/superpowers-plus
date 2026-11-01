@@ -1,3 +1,5 @@
+> Historical measurement: read [current state](current-state.md) for the 2026-11-01 standalone reconciliation. The figures and oracle below retain their original scope.
+
 # Lite baseline and Full oracle
 
 Measured on 2026-10-23 at `45186ef62e2ac91f8ec173d92d36b5058380eff2`, the permanent Full oracle and this slice's freshly fetched `origin/dev` base. This baseline documents existing behavior; it introduces no Light installation behavior.
