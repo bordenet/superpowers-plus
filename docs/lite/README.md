@@ -63,3 +63,4 @@ These proposals remain subject to the execution approvals above.
 - [Isolate each host before measurement](measurement-isolation.md)
 - [Require component evidence for duplicate recommendations](duplicate-evidence.md)
 - [Validate controls and core coverage before comparison](evaluation-validity.md)
+- [Score repeated negative controls with consistent units](negative-controls.md)
