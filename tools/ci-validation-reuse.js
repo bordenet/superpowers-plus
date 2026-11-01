@@ -33,6 +33,10 @@ function createPlan(suite, env = process.env) {
   const event = JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH, 'utf8'));
   const context = {
     schema: 1, suite, tree: git('rev-parse', 'HEAD^{tree}'),
+    // CI suites retain the global closure: their dynamic/oracle readers have
+    // no proven narrow exclusion. Bind the shared audited-selection policy.
+    selectionPolicy: fs.existsSync('config/validation-inputs.json')
+      ? hash(fs.readFileSync('config/validation-inputs.json', 'utf8')) : 'global-unknown-closure',
     workflow: git('rev-parse', `HEAD:${WORKFLOW}`), helper: git('rev-parse', `HEAD:${HELPER}`),
     runner: [env.RUNNER_OS, env.RUNNER_ARCH, env.ImageOS, env.ImageVersion],
     runtime: [process.version, os.release(), command('npm', ['--version']),

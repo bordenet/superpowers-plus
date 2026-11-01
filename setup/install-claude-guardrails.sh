@@ -121,6 +121,8 @@ _install_hook_scripts() {
   mkdir -p "$CLAUDE_HOOKS_DIR"
   for h in "$HOOKS_SRC"/*.sh; do
     [[ -f "$h" ]] || continue
+    # Paired mandatory adapter files have their own registration/ownership path.
+    [[ "${h##*/}" == pre-tool-use-review-strategy.sh ]] && continue
     install -m 0755 "$h" "$CLAUDE_HOOKS_DIR/$(basename "$h")"
     count=$((count + 1))
   done
@@ -320,6 +322,9 @@ main() {
   _check_cli_version
   _install_hook_scripts
   _refresh_registered_codex_hooks
+  if [[ -f "$REPO_ROOT/setup/install-review-strategy-hooks.py" ]]; then
+    python3 "$REPO_ROOT/setup/install-review-strategy-hooks.py" --home "$HOME" --refresh-existing
+  fi
   _install_patterns
   _merge_settings
   log_info "Done. Run with --check to verify installed state."
