@@ -691,13 +691,25 @@ def main():
                 pump.join()
         if log_errors:
             raise RuntimeError('execution log failed; prior journal remains unresolved')
+        # A new empty collector preserves the final full traversal while
+        # retaining its already-computed payload for value-free diagnostics.
+        finished = {}
         if interrupted:
             code, outcome = 128 + interrupted[0], 'INTERRUPTED'
         elif result:
             code, outcome = result if result > 0 else 128 - result, 'FAIL'
         elif stream_errors:
             code, outcome = 1, 'OUTPUT_ERROR'
-        elif context(root, [], env, active_check) != base_context:
+        elif context(root, [], env, active_check, finished) != base_context:
+            initial, final = foundation['payload'], finished['payload']
+            changed = {'components': sorted(key for key in initial if initial[key] != final[key])}
+            # These keys are fixed registered names, never resolved paths,
+            # private values, environment entries or command inventories.
+            for group in ('external', 'tools'):
+                names = sorted(key for key in initial[group] if initial[group][key] != final[group][key])
+                if names:
+                    changed[group] = names
+            print('validation: changed input components ' + json.dumps(changed, sort_keys=True), file=sys.stderr)
             print('validation: inputs changed during run; no PASS receipt written', file=sys.stderr)
             code, outcome = 1, 'INPUTS_CHANGED'
         else:

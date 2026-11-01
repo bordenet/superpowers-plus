@@ -112,6 +112,19 @@ async function waitFor(check) {
     throw new Error('timed out waiting for child fixture');
 }
 async function main() {
+    await test('input-change diagnostics identify components without exposing values', () => {
+        const f = fixture();
+        const body = fs.readFileSync(f.entry, 'utf8').replace(
+            'exit "${FAILURE:-0}"', 'git config diagnostic.value "$DIAG_SECRET"\nexit "${FAILURE:-0}"');
+        fs.writeFileSync(f.entry, body);
+        const secret = 'private-context-value-must-stay-hidden';
+        const result = f.run(['--fast'], { DIAG_SECRET: secret });
+        assert.strictEqual(result.status, 1, result.stdout + result.stderr);
+        assert(result.stderr.includes('inputs changed during run'), result.stderr);
+        assert(result.stderr.includes('"components": ["git-config"]'), result.stderr);
+        assert(!(result.stdout + result.stderr).includes(secret));
+        assert.strictEqual(f.count(), 1);
+    });
     await test('missing required lint cannot establish named coverage', () => {
         const first = staticFixture();
         const bin = path.join(first.f.area, 'without shellcheck'); fs.mkdirSync(bin);
