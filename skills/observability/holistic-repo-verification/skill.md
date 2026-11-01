@@ -5,8 +5,8 @@ source: superpowers-plus
 augment_menu: true
 triggers: ["/sp-checkrepo", "repo health", "verify repo", "CI is green", "check all workflows", "before creating PR"]
 anti_triggers: ["fix CI", "debug pipeline", "write tests"]
-description: Verify ALL aspects of repository health before claiming work is complete. Checks CI workflows, GitHub Pages deployment, and any other workflows that affect repo status.
-summary: "Use when: verifying repo health (CI, deployments) before claiming done."
+description: Audit repository health when explicitly requested, or verify workflows required for the assigned release. Distinguish release blockers from unrelated and advisory checks.
+summary: "Use when: an explicit whole-repository health audit or required release workflow verification. Do not expand every task into an all-workflow audit."
 coordination:
   group: observability
   order: 1
@@ -21,132 +21,50 @@ composition:
   priority: 30
 ---
 
-# holistic-repo-verification
+# Holistic Repository Verification
 
-**MANDATORY**: Use this skill before claiming any repository work is complete, before creating PRs, and before reporting that "CI is green."
+> **Wrong skill?** Task completion evidence -> `verification-before-completion`. Commit/push checks -> `unified-commit-gate`.
 
-> **Wrong skill?** Pre-commit code quality → `pre-commit-gate`. Output verification → `output-verification`. Completion gate → `verification-before-completion`.
+## Choose the scope first
 
-## When to Use
+| User's request | Verification boundary |
+|---|---|
+| Explicit repository-health audit | Inventory all relevant workflows, Pages if used, and other requested deployment systems |
+| Release/deployment | Required checks and deployment workflows for the exact artifact/environment being released |
+| Ordinary fix, PR, documentation, or status update | Its acceptance criteria and required forge checks; no automatic whole-repository audit |
 
-- Before a major release or after large refactoring
-- After merging multiple feature branches
-- When CI passes but something still feels wrong
-- Periodic health check on repo consistency
+Record which checks block the requested outcome and why. Forge protection,
+repository release policy, and the user's acceptance criteria remain authoritative.
+Never waive one because it is slow. Do not make unrelated branches, advisory
+post-merge jobs, or older failures into new blockers for a narrower task.
 
-## The Core Principle
+## Verify without re-executing
 
-**A repository is only "green" when ALL status indicators are green.**
+1. Read required workflow/check status for the exact target head or artifact.
+2. Use provenance-bound results for the same tested tree and execution context.
+   Commit or PR identity alone is not a test input. The CI runner owns receipt reuse.
+3. If equivalent validation is in progress, follow that producer with one watcher.
+   Do not start another full suite or repeatedly request unchanged status.
+4. If source, context, or merge-result tree differs, require validation of those
+   new inputs. Missing, failed, cancelled, skipped, or untrusted evidence is not PASS.
+5. Read the required deployment result when deployment is in scope.
+6. Report required checks, pending advisory checks, and known unrelated findings
+   separately. Stop when the assigned acceptance boundary is satisfied.
 
-This includes:
+## Explicit whole-repository audit
 
-- CI workflow (`.github/workflows/ci.yml`)
-- GitHub Pages deployment (`pages build and deployment`)
-- Any other custom workflows in `.github/workflows/`
-- GitHub Pages status via API
+For a requested health audit, inspect the latest relevant run of each workflow,
+not merely the most recently completed workflow. Check Pages only if the repository
+uses it; check other deployment systems only when they apply. Name the branch,
+head, and scope. A pending required check is pending, not green; a known error
+must be disclosed even when it is outside a release's blocking scope.
 
-**Never claim "CI passes" when only checking the CI workflow. That's a narrow, incomplete verification.**
+Do not repair unrelated findings, alter protections, or trigger new workflows
+without authority. An audit is read-only unless the user authorized fixes.
 
-## Verification Checklist
+## Report
 
-### 1. Check ALL GitHub Actions Workflows
-
-```bash
-# List all workflow runs for the repo (most recent first)
-gh api /repos/{owner}/{repo}/actions/runs --jq '.workflow_runs[:10] | .[] | "\(.name): \(.conclusion) (\(.display_title))"'
-```
-
-Or via GitHub API:
-
-```text
-GET /repos/{owner}/{repo}/actions/runs?per_page=10
-```
-
-**Check for:**
-
-- `CI` workflow: must show `conclusion: success`
-- `pages build and deployment` workflow: must show `conclusion: success`
-- Any other workflows: must show `conclusion: success`
-
-### 2. Check GitHub Pages Status (if repo uses Pages)
-
-```bash
-gh api /repos/{owner}/{repo}/pages --jq '.status'
-```
-
-Or via GitHub API:
-
-```text
-GET /repos/{owner}/{repo}/pages
-```
-
-**Expected:** `status: built` (not `errored` or `building`)
-
-### 3. Verify No Failing Workflow Runs
-
-Look at the most recent run of EACH distinct workflow. All must pass.
-
-## Common Failures and Fixes
-
-### Pages "Upload artifact" Failure
-
-**Symptom:** CI passes but Pages fails with tar errors about files being "removed before we read it"
-
-**Cause:** Symlinks in the repository pointing to external directories that don't exist on GitHub runners
-
-**Fix:** Replace symlinks with actual file copies
-
-### Pages Build Failure
-
-**Symptom:** `status: errored` on Pages API
-
-**Cause:** Various - check the workflow run logs for specific errors
-
-**Fix:** Examine the failing job's logs via:
-
-```text
-GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs
-```
-
-## Reporting Format
-
-When verifying repository health, report like this:
-
-```markdown
-## Repository Health: {repo-name}
-
-| Workflow | Status | Run # |
-|----------|--------|-------|
-| CI | ✅ success | 169 |
-| pages build and deployment | ✅ success | 128 |
-
-GitHub Pages: ✅ built
-
-**Overall Status: GREEN** ✅
-```
-
-If failing: add `### Failing Workflow Details` with workflow name, run #, error.
-
-## Failure Modes
-
-| Failure | Fix |
-|---------|-----|
-| Checking only most recent workflow run, not most recent of EACH workflow | List all distinct workflows, check latest run of each |
-| Claiming "all green" while a workflow is still running | Wait for completion — "in progress" is not "success" |
-| Only checking GitHub Actions — missing Azure DevOps pipelines | Use the appropriate CI/CD API for the repo's hosting platform |
-| Not waiting for Pages deployment after push | Pages builds are async — poll until status is `built` or `errored` |
-
-## Success Criteria
-
-ALL workflow runs `conclusion: success` · GitHub Pages `status: built` (if applicable) · no `failure/cancelled/errored`.
-
-**If failing:** Identify failing workflow → get specific error from job logs → fix root cause (not re-run) → wait for ALL workflows → re-check holistically.
-
-## Companion Skills
-
-- **completeness-check**: Quick scope check (lighter than this)
-- **pre-commit-gate**: Pre-commit quality gate
-- **verification-before-completion**: Task completion verification
-- **output-verification**: Verifying generated output
-- **exhaustive-audit-validation**: Deep audit (this is repo-level)
-- **measurement-integrity**: Metric integrity checks
+State the assigned scope, required results, remaining blockers, and advisory or
+unrelated findings. Cite the actual workflow/deployment records. Do not claim
+whole-repository health from a narrow release check. Do not withhold a completed
+narrow task merely to obtain an unrequested whole-repository green badge.

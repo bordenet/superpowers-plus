@@ -112,3 +112,6 @@ MODULAR-MIGRATION-PROMPT.md
 # `git add -A` run right after a test created this file once committed it,
 # which then made every post-sweep tree permanently dirty.
 skills/engineering/code-review-battery/reviewers/zzz-test-fixture-oversized.md
+
+# Generated immutable CI validation plans and receipts
+.ci-validation/
