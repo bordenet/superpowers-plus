@@ -112,8 +112,8 @@ run_suite() {
 # shellcheck disable=SC2329  # invoked indirectly via run_suite "label" run_shellcheck
 run_shellcheck() {
     if ! command -v shellcheck >/dev/null 2>&1; then
-        echo "⚠️  shellcheck not installed; skipping"
-        return 0
+        echo "❌ shellcheck is required for registered lint coverage" >&2
+        return 127
     fi
     # Match the scope used by tools/harsh-review.sh: every tracked .sh plus
     # extensionless hooks under tools/. Exclude vendored / generated paths.
@@ -252,7 +252,7 @@ run_bats_tests_dir() {
     # property is unchanged -- the interfering file still never runs
     # concurrently with anything, including itself.
     # To retire this carve-out: fix the shared mutable state in the named file,
-    # remove it here, and confirm the suite is green over 3 consecutive runs.
+    # remove it here only with bounded production-path concurrency/isolation proof.
     local serial_only=("commit-gate-test.bats")
 
     local -a parallel_files=() serial_files=()
@@ -346,7 +346,9 @@ run_bats_skill_guards() {
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_harsh_review() {
-    bash "$SCRIPT_DIR/harsh-review.sh"
+    # shellcheck source=tools/lib/validation-check-bodies.sh
+    source "$SCRIPT_DIR/lib/validation-check-bodies.sh"
+    validation_check_body harsh
 }
 
 [[ "$RUN_SHELLCHECK" -eq 1 ]] && run_suite "shellcheck"      run_shellcheck

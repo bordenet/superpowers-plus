@@ -80,9 +80,11 @@ assert_all_match() {
         '\(up to [0-9]+ parallel reviewers\)'
 }
 
-@test "requesting-code-review/skill.md's reviewer-count mention matches the canonical count" {
-    assert_all_match "$REPO_ROOT/skills/engineering/requesting-code-review/skill.md" \
-        'dispatches (up to )?[0-9]+ specialist reviewers'
+@test "requesting-code-review delegates reviewer policy to the canonical battery" {
+    local skill="$REPO_ROOT/skills/engineering/requesting-code-review/skill.md"
+    grep -qF '**code-review-battery**: The review engine this skill dispatches' "$skill"
+    # Caller owns routing and reuse; specialist counts belong to the engine.
+    ! grep -qiE 'dispatches (up to )?[0-9]+ specialist reviewers' "$skill"
 }
 
 @test "docs/SKILLS.md's reviewer-count mention matches the canonical count" {

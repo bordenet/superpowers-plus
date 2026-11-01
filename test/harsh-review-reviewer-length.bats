@@ -1,27 +1,33 @@
 #!/usr/bin/env bats
-# Unit test for tools/harsh-review.sh CHECK 8b-2 (reviewer prompt file length).
-#
-# harsh-review.sh is a monolithic, repo-wide script with no function-level
-# test seams (all checks run in one pass against the real tree), so this test
-# runs the real script against the real repo with temporary fixture files
-# injected under skills/**/reviewers/*.md, rather than a hermetic fresh-repo
-# fixture (the pattern used by tools/*-gate.sh tests, which don't need the
-# rest of the repo's real content to run cleanly). Fixtures are always
-# removed in teardown, including on assertion failure.
-#
-# Both scenarios (over-400 fails, exactly-400 does not) are asserted from a
-# SINGLE harsh-review.sh run, not two -- this script takes several minutes
-# per invocation over the whole repo, and running it twice to check one
-# check's two boundary cases was itself the single largest cost in the full
-# test suite (diet.md W1 Cause C, 2026-09-20). Two distinct fixture files in
-# the same run exercise both boundaries without doubling the scan cost.
+# Real production-path boundary test for CHECK 8b-2. One isolated repository
+# contains both limits; it never writes into the checkout running the suite.
+# The receipt front door, raw harsh body and real rejection remain exercised.
 
 setup() {
-    REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
-    HARSH_REVIEW="$REPO_ROOT/tools/harsh-review.sh"
+    SOURCE_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
+    AREA="$BATS_TEST_TMPDIR/reviewer-length"
+    REPO_ROOT="$AREA/repo"
+    export HOME="$AREA/home" CODEX_HOME="$AREA/home/.codex" CLAUDE_CONFIG_DIR="$AREA/home/.claude"
+    export GIT_CONFIG_GLOBAL="$AREA/home/.gitconfig"
+    unset SPP_SOURCE_DIR PERSONAL_SKILLS_DIR AUGMENT_MENU_DIR SUPERPOWERS_SKILLS_DIR
+    mkdir -p "$REPO_ROOT/docs" "$HOME"
+    cp -R "$SOURCE_ROOT/tools" "$REPO_ROOT/tools"
+    mkdir -p "$REPO_ROOT/lib/install"
+    cp "$SOURCE_ROOT/lib/install/skill-naming.sh" "$REPO_ROOT/lib/install/"
+    for name in README AGENTS CLAUDE; do printf '# %s\n' "$name" > "$REPO_ROOT/$name.md"; done
+    printf 'root = true\n' > "$REPO_ROOT/.editorconfig"
+    printf '# Architecture\n' > "$REPO_ROOT/docs/ARCHITECTURE.md"
+    printf '# Contributing\n' > "$REPO_ROOT/docs/CONTRIBUTING.md"
     FIXTURE_DIR="$REPO_ROOT/skills/engineering/code-review-battery/reviewers"
+    mkdir -p "$FIXTURE_DIR"
     OVER_FIXTURE="$FIXTURE_DIR/zzz-test-fixture-oversized.md"
     EXACT_FIXTURE="$FIXTURE_DIR/zzz-test-fixture-exact.md"
+    HARSH_REVIEW="$REPO_ROOT/tools/harsh-review.sh"
+    git -C "$REPO_ROOT" init -q
+    git -C "$REPO_ROOT" config user.name 'Reviewer Fixture'
+    git -C "$REPO_ROOT" config user.email reviewer@example.invalid
+    git -C "$REPO_ROOT" add .
+    git -C "$REPO_ROOT" commit -qm fixture
 }
 
 teardown() {
@@ -43,6 +49,7 @@ teardown() {
     run bash "$HARSH_REVIEW"
 
     # Over-400 case: named with its exact line count.
+    [ "$status" -ne 0 ]
     [[ "$output" == *"Reviewer prompt file length"* ]]
     [[ "$output" == *"zzz-test-fixture-oversized.md"* ]]
     [[ "$output" == *"${over_lines} lines (max 400)"* ]]

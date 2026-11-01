@@ -28,11 +28,36 @@ composition:
 # Executing Plans
 
 Execute the plan yourself, task by task, in this session: no per-task
-implementer or reviewer subagent, one fresh-context review of the whole
-branch at the end. The brief is the spec, the ledger is your memory, TDD is
+implementer or reviewer subagent, one routed final review per missing artifact class
+at the end. The brief is the spec, the ledger is your memory, TDD is
 the per-task gate, the final reviewer is the second pair of eyes.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+
+## Execution control
+
+An independent execution controller owns phase acceptance and may STOP scope
+expansion. This role is separate from implementation and code review; use a
+fresh agent for a drift exception or disputed acceptance, not every action.
+Routine decisions use the deterministic `tools/execution-admission.py` gate.
+
+Before a managed edit, check or review, register the active phase, its open
+acceptance criterion, exact patch paths or check argv/selector, and proof inputs
+in the private execution-control registry. Invoke admission with the actual
+request before execution. Missing ownership, stale prerequisite fingerprints,
+unrelated selectors and successor work before predecessor acceptance STOP.
+Close criteria only against their required evidence. Reuse unchanged proof.
+The ledger records costs and exceptions; it cannot substitute for admission.
+Unsupported host boundaries remain UNENFORCED in the support matrix.
 
 ## When to Use
 
@@ -46,7 +71,7 @@ the per-task gate, the final reviewer is the second pair of eyes.
 
 ## Operating Rules
 
-- **Continuous:** do not pause to check in between tasks. Narrate at most one
+- **Continuous within admitted scope:** do not pause to check in between tasks. Narrate at most one
   short line between tool calls; bookkeeping rides in the same call as work.
 - **Rulings, not stalls:** decide conflicts, ambiguities, and plan defects.
   The spec is the binding authority, the plan its argument. Ledger each as
@@ -93,7 +118,7 @@ skill's installed directory — `~/.claude/skills/executing-plans` or
 1. **Take:** `bash scripts/task-start PLAN_FILE N` prints the brief path and
    BASE. Read the brief every time — memory is a summary, the brief has the
    exact values. Mark the todo in_progress.
-2. **Work the steps** in their RED-GREEN order. Watching the test fail is a
+2. **Admit, then work the steps** in their RED-GREEN order. Watching the test fail is a
    step; a test that passes before the implementation exists is a finding
    about the test. Compare every `Expected:` line to real output:
    matches → next; code wrong → `systematic-debugging`, never patch the
@@ -104,7 +129,7 @@ skill's installed directory — `~/.claude/skills/executing-plans` or
    the final run passed; every `Expected:` was compared; every deviation has a
    `Ruling:` line. Anything missing → the task is not complete.
 4. **Complete:** `bash scripts/task-done PLAN_FILE N BASE -- <test command>`
-   runs the brief's whole-task tests and, only on success, appends
+   must use the authoritative runner, reusing its valid task coverage before it appends
    `Task <N>: complete (commits <base>..<head>, tests: <cmd> → <result>)`.
    A failing run records nothing. Mark the todo complete; next task.
 
@@ -112,21 +137,22 @@ skill's installed directory — `~/.claude/skills/executing-plans` or
 
 1. `bash ../subagent-driven-development/scripts/review-package PLAN_FILE
    MERGE_BASE HEAD` (MERGE_BASE = `git merge-base <base-branch> HEAD`).
-2. **With a subagent tool:** dispatch one reviewer on the most capable model
-   (set the model explicitly) with `requesting-code-review`'s
-   `code-reviewer.md`, the package, plan and spec paths, the plan's Review
-   Focus verbatim, and a pointer to the ledger's `Ruling:` lines. Never
-   replace it with your own read of the diff. **Without one:** perform that
-   review yourself as a separate pass, ledger
-   `Final review: self-review (no subagent tool)`, and say so — the user
-   decides whether that suffices before merge.
+2. Resolve the native review preflight and actual artifact routes. Obey REUSE,
+   WAIT or STOP; dispatch only a required class with REVIEW_REQUIRED.
+   **With a subagent tool:** send the routed class's reviewer the package,
+   plan/spec, Review Focus and ledger rulings, with
+   `SPP_REVIEW_CLASS=<required-class> SPP_REVIEW_SNAPSHOT=<strategy.snapshot>`.
+   Use one combined reviewer per missing class, on the most capable available
+   model. Never replace independent review with your own read of the diff.
+   **Without one:** ledger `Final review: self-review (no subagent tool)`;
+   the user decides whether that suffices before merge.
 3. **Re-grade by effect** (what a reasonable user gets if it ships), not by
    whether the spec named the input. Each "Declined to judge" item becomes a
    ledgered `Final: Ruling:`.
 4. **Critical/Important → ONE fix pass**, each fix: reproducing test RED →
-   GREEN, then the whole suite green; ledger
+   GREEN, then resolve missing/invalidated project coverage; ledger
    `Final: fixed <finding> — <test> RED→GREEN, suite <N>/<N>`. No re-review
-   dispatch. Not fixing is a `Final: Ruling:`. **Minor →**
+   dispatch without a new actionable basis. Not fixing is a `Final: Ruling:`. **Minor →**
    `Final: minor (deferred): <one-liner>`, never fixed, never a ruling.
 
 ## Finish
@@ -136,8 +162,8 @@ with cost if wrong) and every deferred minor under "Deferred minors" —
 exhaustive; it is the only place those decisions reach the user. When the
 review is clean and fixes are committed, delete this plan's workspace
 directory (siblings belong to other plans). Before pushing, run
-`unified-commit-gate` (`/sp-push`) once per branch push; a valid
-`.code-review-cleared` sentinel must exist for HEAD. Then follow
+`unified-commit-gate` (`/sp-push`), reusing valid content/context coverage.
+Confirm the required native clearances with read-only readiness for the pushed ref. Then follow
 `finishing-a-development-branch`.
 
 ## Common Rationalizations

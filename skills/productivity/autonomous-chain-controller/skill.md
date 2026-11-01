@@ -13,7 +13,7 @@ anti_triggers:
   - "build the matrix"
   - "build a table"
   - "simple one-liner"
-description: "Meta-orchestrator that auto-detects required skill chain, executes with quality gates between steps, and auto-retries on failures. User says \"build X\" — this handles brainstorming through verification."
+description: "Meta-orchestrator that auto-detects required skill chain, admits actions against phase acceptance, and stops unchanged failures. User says \"build X\" — this handles brainstorming through verification."
 summary: "Use when: multi-step task. Skip when: single focused action."
 coordination:
   group: orchestration
@@ -34,6 +34,22 @@ composition:
 > **Wrong skill?** Single action -> invoke directly. Planning only -> plan-and-execute.
 
 **Announce at start:** "I am using the **autonomous-chain-controller** to orchestrate the full workflow."
+
+## Execution control
+
+An independent execution controller owns phase acceptance and may STOP scope
+expansion. This role is separate from implementation and code review; use a
+fresh agent for a drift exception or disputed acceptance, not every action.
+Routine decisions use the deterministic `tools/execution-admission.py` gate.
+
+Before a managed edit, check or review, register the active phase, its open
+acceptance criterion, exact patch paths or check argv/selector, and proof inputs
+in the private execution-control registry. Invoke admission with the actual
+request before execution. Missing ownership, stale prerequisite fingerprints,
+unrelated selectors and successor work before predecessor acceptance STOP.
+Close criteria only against their required evidence. Reuse unchanged proof.
+The ledger records costs and exceptions; it cannot substitute for admission.
+Unsupported host boundaries remain UNENFORCED in the support matrix.
 
 ## When to Use
 
@@ -75,14 +91,16 @@ Chain: [ordered skill list]
 
 ### Phase 3: Execute with Gates
 
-Between EVERY skill:
+Before every managed action, run action admission against the active phase
+and its open acceptance criterion. Check actual patch paths or exact check
+argv; a TODO count or the next skill in a chain is insufficient evidence.
+Before every automated review or test/check pass, obtain the native snapshot-
+bound REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP strategy decision.
 
-- [ ] Previous output correct?
-- [ ] TODOs logged? (todo-guardian)
-- [ ] No regressions? (measurement-integrity)
-- [ ] Correct branch?
-
-Gate failure: retry < 2 -> retry / retry >= 2 -> think-twice / retry >= 3 -> HALT
+A failed or interrupted unchanged attempt STOPs. Preserve evidence and diagnose
+the owning gap; retry only changed inputs or an explicitly authorized bounded
+diagnostic. Do not restart prior clean skills. Accept predecessor criteria from
+verified evidence before admitting the next phase.
 
 ### Phase 4: Completion
 
@@ -97,14 +115,14 @@ All skills done + gates passed + verification + TODO sweep.
 | Premature completion | Remaining skills | Block -> resume |
 | TODO amnesia | Unlogged items | Pause -> extract -> resume |
 | Branch drift | Wrong branch | HALT -> fix -> resume |
-| Gate cascade | 3x same failure | HALT -> autopsy -> escalate |
+| Gate failure | Unchanged failed inputs | STOP before another attempt; diagnose owning gap |
 | Scope creep | >8 skills | Split into sub-chains |
 
 ## Anti-Patterns
 
 | Anti-Pattern | Detection | Correction |
 |--------------|-----------|------------|
-| Skipped gate | No between-skill check | Add gate, re-run previous skill |
+| Skipped gate | Missing admission or evidence | STOP; run only missing required coverage |
 | Wrong chain selected | Output mismatches task | Re-classify, new chain |
 | Premature completion | Skills remaining | Block until all complete |
 | Scope creep | >8 skills in chain | Split into sub-chains |
@@ -116,7 +134,7 @@ All skills done + gates passed + verification + TODO sweep.
 | Wrong chain | Output mismatch | Re-analyze, new chain |
 | Chain too long | >8 skills | Split into 2 sub-chains |
 | Missing skill | Reference missing | Skip + log TODO |
-| Retry loop | Repeated failure | think-twice, then escalate |
+| Retry loop | Unchanged attempt proposed | Refuse before execution; independent controller resolves exception |
 
 ## Companion Skills
 
