@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-22T03:30:13.632Z",
+  "generated_at": "2026-11-01T01:03:52.499Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": [
       {
@@ -71,22 +71,6 @@
         "normalized_hash": "404d0adb4baf1199",
         "length": 868,
         "first_line": "| Failure | Fix |"
-      }
-    ],
-    "engineering/feature-development/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Incident History",
-        "normalized_hash": "e29f21064b69e733",
-        "length": 211,
-        "first_line": "**2026-03-27:** Agent skipped brainstorming, think-twice, and harsh review. Confabulated summary without reading output."
-      },
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "62027c25b3a9f516",
-        "length": 480,
-        "first_line": "| Failure | Recovery |"
       }
     ],
     "engineering/field-rename-verification/skill.md": [
@@ -176,7 +160,7 @@
         "name": "Incident History",
         "normalized_hash": "f4dfd02badbd1bbb",
         "length": 362,
-        "first_line": "**2026-03-27:** Agent generated PDF from wiki export. Script printed \"Processing 17 documents\" (expected 13) — agent did"
+        "first_line": "**2026-03-27:** Agent generated PDF from wiki export. Script printed \"Processing 17 documents\" (expected 13) \u2014 agent did"
       },
       {
         "kind": "SEC",
@@ -316,8 +300,8 @@
       {
         "kind": "SEC",
         "name": "Failure Modes",
-        "normalized_hash": "da8bbd2016d9b38e",
-        "length": 730,
+        "normalized_hash": "1d5c3a661b7b0f2f",
+        "length": 725,
         "first_line": "| Failure | Recovery |"
       }
     ],
@@ -330,22 +314,13 @@
         "first_line": "If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill."
       }
     ],
-    "engineering/verification-before-completion/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Incident History",
-        "normalized_hash": "40154dedfd4d0b52",
-        "length": 860,
-        "first_line": "| Date | Violation | Impact |"
-      }
-    ],
     "experimental/experimental-self-prompting/skill.md": [
       {
         "kind": "SEC",
         "name": "Failure Modes",
         "normalized_hash": "643549b5c4e68172",
         "length": 367,
-        "first_line": "- **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts — set a maximum depth (3 roun"
+        "first_line": "- **Infinite self-prompting loop:** Agent generates prompts that trigger more self-prompts \u2014 set a maximum depth (3 roun"
       }
     ],
     "issue-tracking/issue-authoring/skill.md": [
@@ -375,7 +350,7 @@
         "name": "Failure Modes",
         "normalized_hash": "e0e701939bec9438",
         "length": 299,
-        "first_line": "- **Vague titles:** \"Fix bug\" or \"Update thing\" — titles must be specific and actionable (max 80 chars)"
+        "first_line": "- **Vague titles:** \"Fix bug\" or \"Update thing\" \u2014 titles must be specific and actionable (max 80 chars)"
       }
     ],
     "issue-tracking/issue-comment-debunker/skill.md": [
@@ -391,14 +366,14 @@
         "name": "block-1",
         "normalized_hash": "26fdaa44498d063c",
         "length": 3096,
-        "first_line": "**Evaluate this gate BEFORE generating the Preflight Evidence Block.** GATE FAIL → do not generate the preflight block —"
+        "first_line": "**Evaluate this gate BEFORE generating the Preflight Evidence Block.** GATE FAIL \u2192 do not generate the preflight block \u2014"
       },
       {
         "kind": "EI",
         "name": "block-2",
         "normalized_hash": "df237f4265fcab6f",
         "length": 1651,
-        "first_line": "**Before generating this block, apply the AI Meta-Commentary HARD GATE above. GATE FAIL → do not generate this block — o"
+        "first_line": "**Before generating this block, apply the AI Meta-Commentary HARD GATE above. GATE FAIL \u2192 do not generate this block \u2014 o"
       },
       {
         "kind": "SEC",
@@ -435,7 +410,7 @@
         "name": "Failure Modes",
         "normalized_hash": "6f69db19f78c4afd",
         "length": 336,
-        "first_line": "- **Stale update:** Editing without fetching — overwrites a teammate's concurrent change"
+        "first_line": "- **Stale update:** Editing without fetching \u2014 overwrites a teammate's concurrent change"
       }
     ],
     "issue-tracking/issue-link-verification/skill.md": [
@@ -539,15 +514,6 @@
         "normalized_hash": "839aae10dfe4b96e",
         "length": 342,
         "first_line": "| Failure | Detection | Recovery |"
-      }
-    ],
-    "observability/holistic-repo-verification/skill.md": [
-      {
-        "kind": "SEC",
-        "name": "Failure Modes",
-        "normalized_hash": "d8c8f9d4f9e1b833",
-        "length": 529,
-        "first_line": "| Failure | Fix |"
       }
     ],
     "observability/measurement-integrity/skill.md": [
@@ -655,7 +621,7 @@
         "name": "References",
         "normalized_hash": "656fdc8fda0f361e",
         "length": 199,
-        "first_line": "- [`references/workflows.md`](references/workflows.md) — Phase 2 workflow templates (new/upgrade/migrate), Phase 3 redir"
+        "first_line": "- [`references/workflows.md`](references/workflows.md) \u2014 Phase 2 workflow templates (new/upgrade/migrate), Phase 3 redir"
       },
       {
         "kind": "SEC",
@@ -818,14 +784,14 @@
         "name": "block-0",
         "normalized_hash": "7f952a3a3a083ba4",
         "length": 246,
-        "first_line": "Try `web-search` + `web-fetch` first. Only escalate if ≥50% worse than expected."
+        "first_line": "Try `web-search` + `web-fetch` first. Only escalate if \u226550% worse than expected."
       },
       {
         "kind": "SEC",
         "name": "References",
         "normalized_hash": "62d4a86c0d16f4cb",
         "length": 270,
-        "first_line": "- [`references/cost-reference.md`](references/cost-reference.md) — High/low-value use cases, efficiency tactics, cost-co"
+        "first_line": "- [`references/cost-reference.md`](references/cost-reference.md) \u2014 High/low-value use cases, efficiency tactics, cost-co"
       }
     ],
     "security/public-repo-ip-audit/skill.md": [
@@ -913,14 +879,14 @@
         "name": "References",
         "normalized_hash": "66ef7558f4d0951a",
         "length": 422,
-        "first_line": "- [`references/anti-slop-rules.md`](references/anti-slop-rules.md) — Word/phrase blocklist, vague→concrete replacements,"
+        "first_line": "- [`references/anti-slop-rules.md`](references/anti-slop-rules.md) \u2014 Word/phrase blocklist, vague\u2192concrete replacements,"
       },
       {
         "kind": "SEC",
         "name": "Failure Modes",
         "normalized_hash": "6eb735cd5c8af3b5",
         "length": 309,
-        "first_line": "- **AI slop in README:** Phrases like \"robust solution\" or \"This README provides\" — run eliminating-ai-slop after drafti"
+        "first_line": "- **AI slop in README:** Phrases like \"robust solution\" or \"This README provides\" \u2014 run eliminating-ai-slop after drafti"
       }
     ],
     "writing/writing-skills/skill.md": [
