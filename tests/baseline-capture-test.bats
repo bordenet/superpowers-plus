@@ -2,9 +2,27 @@
 # tests/baseline-capture-test.bats
 # Non-regression tests for scripts/capture-augment-baseline.sh (PR-0)
 
-REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
-SCRIPT="$REPO_ROOT/scripts/capture-augment-baseline.sh"
-OUTPUT="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
+SOURCE_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd -P)"
+
+# Tests exercise a disposable source tree. Restoring bytes after deleting a
+# real tracked file lost its mode (0644 -> mktemp0600) on a clean CI checkout.
+_source_fingerprint() {
+    python3 - "$SOURCE_ROOT" <<'PYMODE'
+import hashlib,pathlib,stat,sys
+root=pathlib.Path(sys.argv[1]);h=hashlib.sha256()
+for name in ["tests/fixtures/augment-baseline-pre-claude-guardrails.json", "tools/commit-gate.sh"]:
+    p=root/name;h.update(name.encode()+str(stat.S_IMODE(p.stat().st_mode)).encode()+p.read_bytes())
+print(h.hexdigest())
+PYMODE
+}
+
+setup_file() {
+    _source_fingerprint > "$BATS_FILE_TMPDIR/source-fingerprint"
+}
+
+teardown_file() {
+    [ "$(_source_fingerprint)" = "$(cat "$BATS_FILE_TMPDIR/source-fingerprint")" ]
+}
 
 # Stub the three heavy external probes. These tests assert this script's JSON
 # shape, idempotency and drift detection -- NOT sp-doctor's or run-battery's
@@ -28,27 +46,32 @@ _make_stubs() {
 }
 
 setup() {
+    REPO_ROOT="$BATS_TEST_TMPDIR/repo"
+    SCRIPT="$REPO_ROOT/scripts/capture-augment-baseline.sh"
+    OUTPUT="$REPO_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json"
+    mkdir -p "$REPO_ROOT/scripts" "$REPO_ROOT/tools" "$REPO_ROOT/tests/fixtures" "$REPO_ROOT/lib"
+    cp -p "$SOURCE_ROOT/scripts/capture-augment-baseline.sh" "$SCRIPT"
+    cp -R "$SOURCE_ROOT/lib/install" "$REPO_ROOT/lib/install"
+    local tool
+    for tool in commit-gate.sh public-repo-ip-check.sh dangerous-pattern-scan.sh run-battery.sh sp-doctor.sh; do
+        cp -p "$SOURCE_ROOT/tools/$tool" "$REPO_ROOT/tools/$tool"
+    done
+    cp -p "$SOURCE_ROOT/tests/fixtures/augment-baseline-pre-claude-guardrails.json" "$OUTPUT"
     _make_stubs
-    # Save a copy of the baseline so we can restore it after each test
-    _BASELINE_BACKUP="$(mktemp)"
-    if [[ -f "$OUTPUT" ]]; then
-        cp "$OUTPUT" "$_BASELINE_BACKUP"
-        _BASELINE_EXISTED=true
-    else
-        _BASELINE_EXISTED=false
-    fi
 }
 
 teardown() {
-    # Restore baseline to its pre-test state
-    if [[ "$_BASELINE_EXISTED" == "true" ]]; then
-        cp "$_BASELINE_BACKUP" "$OUTPUT"
-    else
-        rm -f "$OUTPUT"
-    fi
-    rm -f "$_BASELINE_BACKUP"
     [[ -n "${_STUB_DIR:-}" ]] && rm -rf "$_STUB_DIR"
     return 0
+}
+
+@test "capture and drift mutations remain inside the disposable source tree" {
+    [ "$REPO_ROOT" != "$SOURCE_ROOT" ]
+    [[ "$SCRIPT" == "$BATS_TEST_TMPDIR/"* ]]
+    [[ "$OUTPUT" == "$BATS_TEST_TMPDIR/"* ]]
+    printf '# isolated mutation\n' >> "$REPO_ROOT/tools/commit-gate.sh"
+    rm -f "$OUTPUT"
+    [ "$(_source_fingerprint)" = "$(cat "$BATS_FILE_TMPDIR/source-fingerprint")" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -81,6 +104,7 @@ for section in ("sp_doctor", "skill_catalog", "run_battery"):
     assert "exit_code" in d[section], f"{section} missing 'exit_code'"
 # file_hashes must be non-empty
 assert len(d["file_hashes"]) > 0, "file_hashes is empty"
+assert "lib/install/deploy.sh" in d["file_hashes"], "installer module inventory missing"
 PYEOF
     [ "$status" -eq 0 ]
 }
