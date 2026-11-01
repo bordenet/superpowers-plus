@@ -10,6 +10,13 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const SOURCE = path.resolve(__dirname, '..');
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'validation receipts with spaces '));
+// Standalone diagnostics may name one exact scenario. The authoritative full
+// and named-file producers never forward this selector or infer full coverage.
+const selection = process.argv.slice(2);
+if (selection.length && (selection.length !== 2 || selection[0] !== '--case' || !selection[1])) {
+    throw new Error('Usage: validation-receipt.test.js [--case EXACT_NAME]');
+}
+const selectedCase = selection[1];
 let cases = 0;
 function fixture() {
     const area = fs.mkdtempSync(path.join(base, 'case '));
@@ -18,8 +25,13 @@ function fixture() {
     fs.mkdirSync(path.join(root, 'tools'), { recursive: true });
     fs.mkdirSync(home);
     fs.copyFileSync(path.join(SOURCE, 'tools/validation-receipt.py'), path.join(root, 'tools/validation-receipt.py'));
+    fs.copyFileSync(path.join(SOURCE, 'tools/validation-strategy.py'), path.join(root, 'tools/validation-strategy.py'));
+    fs.copyFileSync(path.join(SOURCE, 'tools/validation-inputs.py'), path.join(root, 'tools/validation-inputs.py'));
     fs.copyFileSync(path.join(SOURCE, 'tools/test-tree-guard.sh'), path.join(root, 'tools/test-tree-guard.sh'));
     fs.chmodSync(path.join(root, 'tools/test-tree-guard.sh'), 0o755);
+    // Dynamic authorization is outside static receipts; this fixture stubs
+    // that separate concern rather than manufacturing its cached clearance.
+    fs.writeFileSync(path.join(root, 'tools/public-repo-ip-check.sh'), '#!/usr/bin/env bash\nexit 0\n');
     const entry = path.join(root, 'tools/test-all.sh');
     // Keep the actual wrapper dispatch, including its executable body marker.
     const prefix = fs.readFileSync(path.join(SOURCE, 'tools/test-all.sh'), 'utf8').split('# VALIDATION_RECEIPT_BODY\n')[0];
@@ -57,11 +69,28 @@ exit "\${FAILURE:-0}"
         env: { ...env, ...extra }, stdio: ['ignore', 'pipe', 'pipe'] });
     return { area, root, home, entry, env, run, count, start, git };
 }
+function staticFixture() {
+    const f = fixture();
+    fs.mkdirSync(path.join(f.root, 'tools/lib'));
+    fs.mkdirSync(path.join(f.root, 'test'));
+    fs.writeFileSync(path.join(f.root, 'test/skill-router.test.js'), '// fixture\n');
+    fs.copyFileSync(path.join(SOURCE, 'tools/test-all.sh'), f.entry);
+    fs.copyFileSync(path.join(SOURCE, 'tools/lib/validation-check-bodies.sh'), path.join(f.root, 'tools/lib/validation-check-bodies.sh'));
+    fs.writeFileSync(path.join(f.root, 'tools/lib/harsh-review-body.sh'), '#!/usr/bin/env bash\nprintf "harsh\\n" >> "$STATIC_COUNTER"\n');
+    const bin = path.join(f.area, 'registered tools'); fs.mkdirSync(bin);
+    for (const tool of ['shellcheck', 'node', 'bats']) {
+        fs.writeFileSync(path.join(bin, tool), '#!/usr/bin/env bash\nprintf "' + tool + '\\n" >> "$STATIC_COUNTER"\n', { mode: 0o755 });
+    }
+    const countFile = path.join(f.area, 'static calls');
+    return { f, bin, countFile, extra: { STATIC_COUNTER: countFile, PATH: bin + path.delimiter + f.env.PATH } };
+}
 function passed(result) {
     assert.strictEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
 }
 async function test(name, fn) {
-    await fn();
+    if (selectedCase && name !== selectedCase) return;
+    try { await fn(); }
+    catch (error) { console.error(`not ok - ${name}`); throw error; }
     cases++;
     console.log(`ok ${cases} - ${name}`);
 }
@@ -83,6 +112,261 @@ async function waitFor(check) {
     throw new Error('timed out waiting for child fixture');
 }
 async function main() {
+    await test('missing required lint cannot establish named coverage', () => {
+        const first = staticFixture();
+        const bin = path.join(first.f.area, 'without shellcheck'); fs.mkdirSync(bin);
+        for (const directory of first.extra.PATH.split(path.delimiter)) {
+            if (!directory || !fs.existsSync(directory)) continue;
+            for (const name of fs.readdirSync(directory)) {
+                const target = path.join(bin, name);
+                if (name === 'shellcheck' || fs.existsSync(target)) continue;
+                try {
+                    if (fs.statSync(path.join(directory, name)).isFile()) fs.symlinkSync(path.join(directory, name), target);
+                } catch (_) { /* inaccessible or broken entries are not executable inputs */ }
+            }
+        }
+        const namedEnv = { ...first.extra, PATH: bin };
+        const missing = first.f.run(['--check', 'shellcheck'], namedEnv);
+        assert.strictEqual(missing.status, 127, missing.stdout + missing.stderr);
+        assert(missing.stderr.includes('shellcheck is required'), missing.stderr);
+        assert.notStrictEqual(first.f.run(['--check', 'shellcheck'], namedEnv).status, 0);
+        assert.notStrictEqual(first.f.run(['--check', 'harsh'], namedEnv).status, 0);
+        const second = staticFixture();
+        assert.notStrictEqual(second.f.run([], { ...second.extra, PATH: bin }).status, 0);
+        for (const f of [first.f, second.f]) {
+            const cache = path.join(f.root, '.git/validation-receipts-v1');
+            assert(!fs.readdirSync(cache).filter(n => n.endsWith('.json')).some(n =>
+                JSON.parse(fs.readFileSync(path.join(cache, n), 'utf8')).result === 'PASS'));
+        }
+    });
+    await test('composed full receipts retain reused producer evidence', () => {
+        for (const damage of ['log', 'receipt', 'missing']) {
+            const { f, extra, countFile } = staticFixture();
+            passed(f.run(['--check', 'shellcheck'], extra));
+            passed(f.run(['--check', 'harsh'], extra));
+            passed(f.run([], extra)); passed(f.run([], extra));
+            const before = fs.readFileSync(countFile, 'utf8');
+            const cache = path.join(f.root, '.git/validation-receipts-v1');
+            const name = fs.readdirSync(cache).find(n => n.endsWith('.json') &&
+                JSON.parse(fs.readFileSync(path.join(cache, n), 'utf8')).args.join(' ') === '--check shellcheck');
+            const receipt = path.join(cache, name);
+            const lint = JSON.parse(fs.readFileSync(receipt, 'utf8'));
+            if (damage === 'log') fs.appendFileSync(path.join(cache, lint.log), 'tampered original evidence');
+            if (damage === 'receipt') fs.appendFileSync(receipt, ' ');
+            if (damage === 'missing') fs.unlinkSync(receipt);
+            const refused = f.run([], extra);
+            assert.notStrictEqual(refused.status, 0, 'composed full PASS must validate its reused evidence');
+            assert.strictEqual(fs.readFileSync(countFile, 'utf8'), before, 'damaged provenance must not rerun expensive bodies');
+        }
+    });
+    await test('registered individual node coverage executes once and changes invalidate', () => {
+        const f = fixture();
+        fs.mkdirSync(path.join(f.root, 'tools/lib'));
+        fs.copyFileSync(path.join(SOURCE, 'tools/lib/validation-check-bodies.sh'), path.join(f.root, 'tools/lib/validation-check-bodies.sh'));
+        fs.mkdirSync(path.join(f.root, 'test'));
+        const input = path.join(f.root, 'test/example.test.js'); fs.writeFileSync(input, '// first\n');
+        const bin = path.join(f.area, 'node bin'); fs.mkdirSync(bin);
+        fs.writeFileSync(path.join(bin, 'node'), '#!/usr/bin/env bash\nprintf x >> "$NODE_COUNTER"\n', { mode: 0o755 });
+        const countFile = path.join(f.area, 'node count');
+        const extra = { NODE_COUNTER: countFile, PATH: bin + path.delimiter + f.env.PATH };
+        passed(f.run(['--check', 'node:example.test.js'], extra));
+        passed(f.run(['--check', 'node:example.test.js'], extra));
+        assert.strictEqual(fs.readFileSync(countFile, 'utf8'), 'x');
+        fs.writeFileSync(input, '// changed\n');
+        passed(f.run(['--check', 'node:example.test.js'], extra));
+        assert.strictEqual(fs.readFileSync(countFile, 'utf8'), 'xx');
+        assert.notStrictEqual(f.run(['--check', 'node:../arbitrary.js'], extra).status, 0);
+    });
+    await test('only the registered producer entry can establish coverage', () => {
+        const f = fixture(); const alternate = path.join(f.root, 'tools/arbitrary.sh');
+        fs.copyFileSync(f.entry, alternate);
+        const result = spawnSync('python3', [path.join(f.root, 'tools/validation-receipt.py'), alternate], {
+            cwd: f.root, env: f.env, encoding: 'utf8', timeout: 10000,
+        });
+        assert.notStrictEqual(result.status, 0, result.stdout + result.stderr);
+        assert.strictEqual(f.count(), 0, 'arbitrary script must never mint registered coverage');
+    });
+    await test('audited documentation changes reuse lint; unknown and shell inputs execute', () => {
+        const f = fixture();
+        for (const dir of ['tools/lib', 'config', 'docs']) fs.mkdirSync(path.join(f.root, dir));
+        fs.copyFileSync(path.join(SOURCE, 'tools/lib/validation-check-bodies.sh'), path.join(f.root, 'tools/lib/validation-check-bodies.sh'));
+        const doc = path.join(f.root, 'docs/note.md'); fs.writeFileSync(doc, 'baseline');
+        const bin = path.join(f.area, 'lint bin'); fs.mkdirSync(bin);
+        fs.writeFileSync(path.join(bin, 'shellcheck'), '#!/usr/bin/env bash\nprintf x >> "$LINT_COUNTER"\n', { mode: 0o755 });
+        const setup = spawnSync('python3', ['-B', '-c', String.raw`
+import importlib.util,json,pathlib,sys
+root=pathlib.Path(sys.argv[1]); spec=importlib.util.spec_from_file_location('inputs',root/'tools/validation-inputs.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+(root/'config/validation-inputs.json').write_text(json.dumps({'schema':1,'shell_audit':m.shell_snapshot(root),'shellcheck_exclusions':['docs/note.md']}))
+`, f.root], { encoding: 'utf8' }); passed(setup);
+        f.git(['add', '.']);
+        const counter = path.join(f.area, 'lint count');
+        const extra = { LINT_COUNTER: counter, PATH: bin + path.delimiter + f.env.PATH };
+        passed(f.run(['--check', 'shellcheck'], extra));
+        fs.writeFileSync(doc, 'changed documentation');
+        const reused = f.run(['--check', 'shellcheck'], extra); passed(reused);
+        assert(reused.stdout.includes('reusing PASS'), reused.stdout);
+        assert.strictEqual(fs.readFileSync(counter, 'utf8'), 'x');
+        fs.writeFileSync(path.join(f.root, 'unknown-input'), 'unknown dependency');
+        passed(f.run(['--check', 'shellcheck'], extra));
+        // Independent safety matrix: these are global, even for lint. Each
+        // mutation must execute once, then its identical successor must reuse.
+        const globals = ['config/suite-manifest.json', '.github/workflows/test.yml',
+            'tools/generated-reader.js', 'docs/unknown.md'];
+        for (let i = 0; i < globals.length; i++) {
+            const target = path.join(f.root, globals[i]);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, 'changed global input\n');
+            passed(f.run(['--check', 'shellcheck'], extra));
+            const same = f.run(['--check', 'shellcheck'], extra); passed(same);
+            assert(same.stdout.includes('reusing PASS'), same.stdout);
+            assert.strictEqual(fs.readFileSync(counter, 'utf8'), 'x'.repeat(3 + i));
+            fs.writeFileSync(doc, 'documentation mutation ' + i);
+            const active = f.run(['--check', 'shellcheck'], extra); passed(active);
+            assert(active.stdout.includes('reusing PASS'), 'selection must remain active during global matrix: ' + active.stdout);
+            assert.strictEqual(fs.readFileSync(counter, 'utf8'), 'x'.repeat(3 + i));
+        }
+        fs.appendFileSync(f.entry, '\n# changed audited shell source\n');
+        passed(f.run(['--check', 'shellcheck'], extra));
+        assert.strictEqual(fs.readFileSync(counter, 'utf8'), 'xxxxxxx');
+    });
+    await test('native precommit selection invalidates when HEAD changes with the same index', () => {
+        const { f, extra } = staticFixture();
+        fs.copyFileSync(path.join(SOURCE, 'tools/lib/pre-commit-static-body.sh'), path.join(f.root, 'tools/lib/pre-commit-static-body.sh'));
+        fs.writeFileSync(path.join(f.root, 'invalid.sh'), '#!/usr/bin/env bash\nif then\n');
+        f.git(['add', '.']); f.git(['commit', '-qm', 'invalid committed file outside staged selection']);
+        const index = f.git(['write-tree']);
+        passed(f.run(['--check', 'native:pre-commit-static'], extra));
+        f.git(['reset', '--soft', 'HEAD^']);
+        assert.strictEqual(f.git(['write-tree']), index, 'index bytes remain identical');
+        const changed = f.run(['--check', 'native:pre-commit-static'], extra);
+        assert.notStrictEqual(changed.status, 0, 'newly selected invalid source must not reuse empty-selection PASS');
+        assert(changed.stdout.includes('bash syntax error'), changed.stdout + changed.stderr);
+    });
+    await test('native precommit and default Bats enter registered bodies without caching authorization', () => {
+        const { f, bin, countFile, extra } = staticFixture();
+        for (const name of ['tools/pre-commit', 'tools/commit-gate.sh', 'tools/harsh-review.sh', 'tools/lib/review-token.sh', 'tools/lib/pre-commit-static-body.sh']) {
+            if (fs.existsSync(path.join(SOURCE, name))) fs.copyFileSync(path.join(SOURCE, name), path.join(f.root, name));
+        }
+        fs.mkdirSync(path.join(f.root, 'tests'));
+        fs.writeFileSync(path.join(f.root, 'tests/example.bats'), '# fixture inventory\n');
+        fs.writeFileSync(path.join(f.home, '.gitconfig'), '[user]\n name = Native Fixture\n email = native@example.invalid\n');
+        fs.writeFileSync(path.join(f.root, '.agent-gates'), 'SKIP_REVIEW_TOKEN=true\nREQUIRE_CODE_REVIEW_SENTINEL=false\n');
+        const auth = path.join(f.area, 'native authority');
+        fs.writeFileSync(path.join(f.root, 'tools/public-repo-ip-check.sh'), '#!/usr/bin/env bash\nprintf x >> "$NATIVE_AUTH_COUNTER"\n');
+        f.git(['add', '.']); f.git(['commit', '-qm', 'native fixture']);
+        const feature = path.join(f.root, 'feature.sh');
+        fs.writeFileSync(feature, '#!/usr/bin/env bash\necho ok\n'); f.git(['add', 'feature.sh']);
+        const opaque = path.join(f.area, 'opaque configured command');
+        const env = { ...f.env, ...extra, NATIVE_AUTH_COUNTER: auth, OPAQUE_COUNTER: opaque };
+        const run = name => spawnSync('bash', [path.join(f.root, 'tools', name)], { cwd: f.root, env, encoding: 'utf8', timeout: 15000 });
+        passed(run('pre-commit'));
+        const precommit = run('pre-commit'); passed(precommit);
+        assert(precommit.stdout.includes('reusing PASS'), precommit.stdout);
+        assert.strictEqual(fs.readFileSync(countFile, 'utf8').split('\n').filter(x => x === 'shellcheck').length, 1);
+        passed(run('commit-gate.sh'));
+        const commit = run('commit-gate.sh'); passed(commit);
+        assert(commit.stdout.includes('reusing PASS'), commit.stdout);
+        assert.strictEqual(fs.readFileSync(countFile, 'utf8').split('\n').filter(x => x === 'bats').length, 1);
+        assert.strictEqual(fs.readFileSync(auth, 'utf8'), 'xxxx', 'two precommits and two native clearances authorize freshly');
+        const tokens = path.join(f.home, '.codex/review-tokens');
+        assert.strictEqual(fs.readdirSync(tokens).length, 2, 'each native clearance mints its own genuine new fixture token');
+        fs.writeFileSync(feature, '#!/usr/bin/env bash\nif then\n');
+        assert.notStrictEqual(run('pre-commit').status, 0, 'changed staged-path working bytes still reject invalid shell');
+        const afterFailure = fs.readFileSync(countFile, 'utf8');
+        assert.notStrictEqual(run('pre-commit').status, 0);
+        assert.strictEqual(fs.readFileSync(countFile, 'utf8'), afterFailure, 'same failed static check does not execute twice');
+        fs.writeFileSync(feature, '#!/usr/bin/env bash\necho restored\n');
+        fs.appendFileSync(path.join(f.root, '.agent-gates'), 'EXTRA_TEST=printf x >> "$OPAQUE_COUNTER"\n');
+        passed(run('commit-gate.sh'));
+        const configured = run('commit-gate.sh'); passed(configured);
+        assert(configured.stdout.includes('reusing PASS'), configured.stdout);
+        assert.strictEqual(fs.readFileSync(opaque, 'utf8'), 'xx', 'static reuse cannot suppress an unregistered configured command');
+    });
+    await test('registered CI checks preserve body, selection and fresh setup boundaries', () => {
+        const { f, bin, extra } = staticFixture();
+        fs.mkdirSync(path.join(f.root, 'config'));
+        fs.copyFileSync(path.join(SOURCE, 'config/validation-checks.json'), path.join(f.root, 'config/validation-checks.json'));
+        fs.copyFileSync(path.join(SOURCE, 'tools/lib/ci-validation-bodies.sh'), path.join(f.root, 'tools/lib/ci-validation-bodies.sh'));
+        const calls = path.join(f.area, 'ci calls'), authority = path.join(f.area, 'ip calls');
+        const harness = path.join(f.area, 'security harness calls');
+        fs.writeFileSync(path.join(f.root, 'test/public-repo-ip-check.test.sh'), '#!/usr/bin/env bash\nprintf x >> "$CI_HARNESS_COUNTER"\n');
+        fs.writeFileSync(path.join(bin, 'node'), '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$CI_COUNTER"\n', { mode: 0o755 });
+        fs.writeFileSync(path.join(f.root, 'tools/public-repo-ip-check.sh'), '#!/usr/bin/env bash\nprintf x >> "$IP_COUNTER"\n');
+        // Provisioning occurs before producer context capture and is not a check.
+        f.git(['config', '--file', path.join(f.home, '.gitconfig'), 'user.name', 'Fixture CI']);
+        f.git(['config', '--file', path.join(f.home, '.gitconfig'), 'user.email', 'ci@example.invalid']);
+        f.git(['add', '.']);
+        fs.writeFileSync(path.join(f.root, 'new-input'), 'present but not staged\n');
+        const env = { ...extra, CI_COUNTER: calls, IP_COUNTER: authority, CI_HARNESS_COUNTER: harness };
+        passed(f.run(['--check', 'ci:node-tests-frontmatter-parser-tests'], env));
+        const reused = f.run(['--check', 'ci:node-tests-frontmatter-parser-tests'], env); passed(reused);
+        assert(reused.stdout.includes('reusing PASS'), reused.stdout);
+        assert.strictEqual(fs.readFileSync(calls, 'utf8'), 'test/frontmatter.test.js\n');
+        f.git(['add', 'new-input']);
+        passed(f.run(['--check', 'ci:node-tests-frontmatter-parser-tests'], env));
+        assert.strictEqual(fs.readFileSync(calls, 'utf8'), 'test/frontmatter.test.js\ntest/frontmatter.test.js\n');
+        const stagedOnly = path.join(f.area, 'index-only version');
+        fs.writeFileSync(stagedOnly, 'different index bytes, identical worktree\n');
+        const blob = f.git(['hash-object', '-w', stagedOnly]);
+        f.git(['update-index', '--cacheinfo', '100644,' + blob + ',new-input']);
+        passed(f.run(['--check', 'ci:node-tests-frontmatter-parser-tests'], env));
+        assert.strictEqual(fs.readFileSync(calls, 'utf8'), 'test/frontmatter.test.js\n'.repeat(3),
+            'changed staged bytes must invalidate even when name/status and worktree bytes are unchanged');
+        passed(f.run(['--check', 'ci:security-scan-ip-disclosure-audit'], env));
+        passed(f.run(['--check', 'ci:security-scan-ip-disclosure-audit'], env));
+        assert.strictEqual(fs.readFileSync(harness, 'utf8'), 'x', 'repeatable IP regression harness runs once and is never dropped');
+        assert.strictEqual(fs.readFileSync(authority, 'utf8'), 'xx', 'IP authority must remain fresh on static reuse');
+        const setup = f.run(['--check', 'ci:shell-tests-configure-git-identity'], env);
+        assert.notStrictEqual(setup.status, 0, 'setup cannot be reused as validation coverage');
+    });
+    await test('real full dispatcher shares raw static bodies with prior direct requests', () => {
+        const f = fixture();
+        fs.mkdirSync(path.join(f.root, 'tools/lib'));
+        fs.mkdirSync(path.join(f.root, 'test'));
+        fs.writeFileSync(path.join(f.root, 'test/skill-router.test.js'), '// fixture\n');
+        fs.copyFileSync(path.join(SOURCE, 'tools/test-all.sh'), f.entry);
+        fs.copyFileSync(path.join(SOURCE, 'tools/lib/validation-check-bodies.sh'), path.join(f.root, 'tools/lib/validation-check-bodies.sh'));
+        fs.writeFileSync(path.join(f.root, 'tools/lib/harsh-review-body.sh'), '#!/usr/bin/env bash\nprintf "harsh\\n" >> "$STATIC_COUNTER"\n');
+        const bin = path.join(f.area, 'registered tools'); fs.mkdirSync(bin);
+        for (const tool of ['shellcheck', 'node', 'bats']) {
+            fs.writeFileSync(path.join(bin, tool), `#!/usr/bin/env bash\nprintf '${tool}\\n' >> "$STATIC_COUNTER"\n`, { mode: 0o755 });
+        }
+        const countFile = path.join(f.area, 'static calls');
+        const extra = { STATIC_COUNTER: countFile, PATH: bin + path.delimiter + f.env.PATH };
+        for (const check of ['shellcheck', 'harsh', 'router']) passed(f.run(['--check', check], extra));
+        passed(f.run([], extra));
+        const calls = fs.readFileSync(countFile, 'utf8').trim().split('\n');
+        for (const tool of ['shellcheck', 'harsh', 'node']) {
+            assert.strictEqual(calls.filter(n => n === tool).length, 1, `${tool}: ${calls}`);
+        }
+        // Raw bodies must refuse the public front door instead of reacquiring
+        // their parent's real inherited lock and hanging forever.
+        fs.writeFileSync(path.join(f.root, 'tools/lib/harsh-review-body.sh'),
+            '#!/usr/bin/env bash\nexec bash "$(dirname "$0")/../test-all.sh" --check harsh\n');
+        const recursive = f.run(['--check', 'harsh'], extra);
+        assert.strictEqual(recursive.status, 1, recursive.stdout + recursive.stderr);
+        assert(recursive.stderr.includes('recursive receipt front door'), recursive.stderr);
+        // Bats and other process launchers may close inherited descriptors.
+        // Losing the descriptor must not turn same-owner reentry into a wait.
+        fs.writeFileSync(path.join(f.root, 'tools/lib/harsh-review-body.sh'),
+            '#!/usr/bin/env bash\npython3 -c \'import subprocess,sys;sys.exit(subprocess.call(["bash",sys.argv[1],"--check","harsh"],close_fds=True))\' "$(dirname "$0")/../test-all.sh"\n');
+        const closed = f.run(['--check', 'harsh'], extra);
+        assert.strictEqual(closed.status, 1, closed.stdout + closed.stderr);
+        assert(closed.stderr.includes('recursive receipt front door'), closed.stderr);
+
+    });
+    await test('registered static requests reuse full coverage and unknown checks refuse', () => {
+        const f = fixture();
+        passed(f.run([]));
+        passed(f.run(['--check', 'shellcheck']));
+        passed(f.run(['--check', 'harsh']));
+        passed(f.run(['--check', 'router']));
+        assert.strictEqual(f.count(), 1, 'covered static checks must not execute after full');
+        const unknown = f.run(['--check', 'caller-command']);
+        assert.notStrictEqual(unknown.status, 0);
+        assert.strictEqual(f.count(), 1);
+    });
     await test('first executes; identical dirty contents and history-only commits reuse', () => {
         const f = fixture();
         passed(f.run()); passed(f.run());
@@ -95,8 +379,9 @@ async function main() {
         fs.writeFileSync(path.join(f.root, 'input'), 'dirty');
         passed(f.run()); passed(f.run()); assert.strictEqual(f.count(), 2);
         f.git(['add', 'input']); passed(f.run());
+        assert.strictEqual(f.count(), 3, 'changed staged blob is a real input, even with unchanged working bytes');
         f.git(['commit', '-qm', 'same tested bytes now committed']); passed(f.run());
-        assert.strictEqual(f.count(), 2);
+        assert.strictEqual(f.count(), 3, 'commit identity alone does not invalidate the staged input');
     });
     await test('identical linked worktree uses the common-dir receipt', () => {
         const f = fixture(); passed(f.run());
@@ -232,7 +517,7 @@ async function main() {
         const cache = path.join(f.root, '.git/validation-receipts-v1');
         const filename = fs.readdirSync(cache).find(n => n.endsWith('.json'));
         const saved = JSON.parse(fs.readFileSync(path.join(cache, filename), 'utf8'));
-        assert.strictEqual(saved.schema, 2); assert.strictEqual(saved.producer, 'test-all.sh/validation-receipt-v2');
+        assert.strictEqual(saved.schema, 3); assert.strictEqual(saved.producer, 'test-all.sh/validation-receipt-v3');
         assert.deepStrictEqual(saved.args, ['--fast']); assert(saved.started <= saved.completed);
         const log = fs.readFileSync(path.join(cache, saved.log), 'utf8');
         assert(log.includes('visible stdout')); assert(log.includes('visible stderr'));
@@ -450,6 +735,8 @@ with open(os.environ["SCRATCH_PROOF"],"w") as out: json.dump(paths,out)
             n => JSON.parse(fs.readFileSync(path.join(f.root, '.git/validation-receipts-v1', n), 'utf8')).result === 'PASS'));
         passed(f.run()); assert.strictEqual(f.count(), 2);
     });
+    if (selectedCase && cases !== 1) throw new Error('Unknown exact receipt scenario: ' + selectedCase);
+    if (selectedCase) console.log('# coverage: one exact scenario only');
     console.log(`1..${cases}`);
 }
 main().then(() => fs.rmSync(base, { recursive: true, force: true })).catch(error => {

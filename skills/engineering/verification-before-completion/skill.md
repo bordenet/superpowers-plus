@@ -26,6 +26,15 @@ composition:
 
 > **Wrong skill?** Commit/push checks -> `unified-commit-gate`. Whole-repository health -> `holistic-repo-verification`. Branch integration -> `finishing-a-development-branch`.
 
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+
 ## Evidence contract
 
 Every completion claim needs evidence. Evidence remains valid while its tested

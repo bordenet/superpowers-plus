@@ -97,7 +97,7 @@
     "autonomous-chain-controller": {
       "expected_substrings": [
         "Complexity: LOW (1-2) | MEDIUM (3-5) | HIGH (6+)",
-        "Gate failure: retry < 2 -> retry / retry >= 2 -> think-twice / retry >= 3 -> HALT",
+        "Before every managed action, run action admission",
         "All skills done + gates passed + verification + TODO sweep."
       ],
       "triggers": [

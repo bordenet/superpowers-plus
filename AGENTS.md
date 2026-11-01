@@ -94,19 +94,12 @@ ALL work MUST happen in this repository (the directory containing this AGENTS.md
 - ❌ NEVER emit "ready to push", "let me commit", "about to merge", "committing", or "pushing to" without first scanning for required-skill triggers
 
 ### TODO Tools
-- `todo-crud.sh` — task CRUD (handles preflight, locking, backup)
-- `todo-preflight.sh --create-if-missing` — init only
-- `todo-maintenance.sh` — housekeeping
 
-Full protocol: `use-skill todo-management`
+Load `.ai-guidance/todo-tools.md` when using TODO tools.
 
 ### Skill File Structure
-```
-skills/{domain}/{skill-name}/
-├── skill.md        # REQUIRED: YAML frontmatter + triggers
-├── examples.md     # OPTIONAL
-└── reference.md    # OPTIONAL
-```
+
+Load `.ai-guidance/skill-file-structure.md` before editing skills.
 
 ### 🔴 Git Workflow — GitHub First, Always
 

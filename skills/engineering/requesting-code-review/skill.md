@@ -26,8 +26,8 @@ anti_triggers:
   - code review battery
   - ready to commit
   - ready to push
-description: "Use when presenting code changes to a human for review — dispatches code-review-battery. Self-fires on intent to present (see Cardinal Rule in skill body). Skips battery dispatch if valid sentinel exists for clean HEAD. Always runs battery before presenting, never after."
-summary: "Use when: about to present code to a human (even informally). Skip when: valid sentinel exists for HEAD (battery already ran this unit of work)."
+description: "Use when presenting code changes to a human for review — dispatches code-review-battery. Self-fires on intent to present (see Cardinal Rule in skill body). Resolves current content/context coverage before presentation; reuses valid review evidence and reviews only missing or affected scope."
+summary: "Use when: about to present code to a human (even informally). Skip dispatch when native strategy proves valid review coverage for the current content/context."
 coordination:
   group: code-quality
   order: 2
@@ -46,81 +46,44 @@ composition:
 
 # Requesting Code Review
 
-Dispatch `code-review-battery` to catch issues before they cascade. The battery dispatches up to 7 specialist reviewers in parallel — each focused on a distinct set of review dimensions — producing deeper analysis than any single-pass review.
+Use the repository's review router and native clearance parser before dispatch.
+Review missing or invalidated classes; preserve an existing clean independent
+review while its content, coverage, dependencies and guidance remain valid.
 
-**Core principle:** Review early, review often.
+## Strategy before execution
 
-## 🔴 Before Asking the Human to Review
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
 
-Apply this protocol whenever you are about to show a human your work — PR links, summaries, "here's what I built," "please review my changes." **Run this check before writing that message.**
+## Before presenting completed work
 
-**Step 1 — Read the sentinel, HEAD SHA, and worktree state:**
+Use the actual target snapshot, including relevant staged/unstaged changes.
+In superpowers-plus, run `tools/review.sh route <paths>` and read
+`tools/push-readiness.sh --json` or `tools/review-preflight.py --staged`.
+Never infer staleness from HEAD alone or parse a guessed sentinel format.
 
-```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
-cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
-echo "HEAD: $(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
-git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
-```
+- Valid content-scoped clearance: reuse it, including after tree-identical
+  merges, amends or history-only commits. Do not dispatch another reviewer.
+- Missing/invalidated clearance: obtain the required initial or affected-delta
+  review and use the native writer after genuine review judgment.
+- Failed/malformed evidence: STOP and diagnose; preserve it rather than deleting
+  the sentinel to force a clean slate.
+- Uncommitted relevant changes: review that exact snapshot. Do not stash or
+  commit merely to make the status look clean.
 
-**Step 2 — Decide:**
+One initial independent review is sufficient when clean and above the required
+floor. Reopen for material changed scope, an unresolved actionable finding,
+invalidated evidence or an explicitly justified independent safety lens. Report
+a low score without new actionable evidence; never chase it by redispatching.
 
-| Result | Action |
-|--------|--------|
-| `NO CLEARANCE` | STOP. Run `code-review-battery` first. Do not write the review request. |
-| Sentinel SHA ≠ HEAD SHA | STOP. Changes were made after last review. Re-run `code-review-battery`. |
-| Sentinel valid for HEAD but `WORKTREE_DIRTY` | STOP. Staged/unstaged changes exist that battery didn't review. Commit or stash, then re-run battery. |
-| `v1\|SHA\|PASS\|...` or `PASS_WITH_NITS`, SHA matches HEAD, AND `WORKTREE_CLEAN` | Proceed — include the clearance line in your message (see Step 3) |
-| Anything else | STOP. Sentinel is malformed. Delete `.code-review-cleared`, re-run battery. |
-
-**Step 3 — Include the clearance in your human-facing message:**
-
-Every message that presents work to the human for review MUST open with the clearance line:
-
-```
-🔍 Review cleared: PASS | SHA: abc12345 | 2026-04-02T21:29Z
-```
-
-This is not optional decoration. It lets the human verify at a glance that battery ran on exactly the code being reviewed.
-If you cannot produce this line, you have not run battery on HEAD. Run it now.
-
-## 🔴 The Cardinal Rule
-
-**The INTENT TO PRESENT is the trigger — not the words you use.**
-
-The moment you are forming a response to the human that describes code you wrote — that is the trigger. Before the words exist. Not after you say "done". Before you start writing the sentence.
-
-This applies unconditionally. No threshold for simplicity. No exception for small fixes. No exception for "the user will just look at the diff themselves." Every response. Every time.
-
-| Internal state (INTENT) | Required gate |
-|------------------------|--------------|
-| Forming a response that describes code changes | Battery must have PASSED |
-| About to commit or push | Battery must have PASSED; sentinel must exist |
-| About to share an MR/PR link | Sentinel must exist for HEAD |
-| About to write a completion summary | Battery must have PASSED |
-| **ANY moment of transitioning from "working" to "reporting"** | **This IS the trigger. There is no hesitation threshold.** |
-
-**If battery already ran and sentinel exists for HEAD**: Evidence confirmed. Do not re-dispatch. Note the clearance and proceed.
-
-**If battery has not run**: Run it now, before writing a single word of the response.
-
-The autonomous review is not the human's job to request. You must do it yourself, every time, before the response is formed.
-
-**Why this rule exists:** See the 2026-04-02b incident in `verification-before-completion` Incident History. The gate failed because the implementation→reporting transition was not recognized as a trigger despite an explicit incident log entry from earlier the same session. The fix: trigger on INTENT, not on output language.
-
-## When to Use / When to Request Review
-
-**Always (hard gates):**
-- Before presenting ANY work as "ready/done/complete" to a human
-- After completing a major feature or bug fix
-- Before merge to main
-- Before offering to commit, push, or create a PR
-- After each task in subagent-driven development
-
-**Also valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
-- After fixing a complex bug
+Progress updates may report existing results without launching tests or review.
+A final completion claim needs valid evidence for the actual presented scope.
+Keep review evidence in its native artifact; do not force process banners into
+every human-facing message or treat publication permission as review clearance.
 
 ## How to Request
 
@@ -145,8 +108,8 @@ Follow the `code-review-battery` procedure:
 
 | Severity | Action |
 |----------|--------|
-| Critical | Fix immediately. Re-dispatch battery. |
-| Important | Fix before proceeding. Re-dispatch if >1 fixed. |
+| Critical | Fix immediately; validate the fix and review only its affected delta when required. |
+| Important | Fix before proceeding; reopen only affected scope with an actionable basis. |
 | Minor | Fix now or document for follow-up. |
 | Reviewer wrong | Push back with technical reasoning and evidence. |
 
@@ -158,10 +121,10 @@ Only proceed to presenting work as "ready" when battery verdict is **PASS** or *
 
 | Workflow | When to Review |
 |----------|---------------|
-| **Subagent-driven development** | After EACH task — catch issues before they compound |
+| **Subagent-driven development** | At the approved review boundary; new scope/findings select the required delta |
 | **Feature development** | After implementation, before presenting options |
 | **Ad-hoc development** | Before merge or when stuck |
-| **Finishing a branch** | Step 0 of `finishing-a-development-branch` dispatches `code-review-battery` directly |
+| **Finishing a branch** | Resolve native strategy first; dispatch only missing/invalidated review coverage |
 
 ## Anti-Patterns
 

@@ -127,7 +127,13 @@ done
 if [[ -z "${EXTRA_TEST:-}" && "${SKIP_DEFAULT_TESTS:-false}" != "true" ]]; then
     if command -v bats &>/dev/null && compgen -G "$REPO_ROOT/tests/*.bats" > /dev/null 2>&1; then
         printf '%b\n' "${YELLOW}[${STEP}]${NC} Running default tests (bats tests/)..."
-        if bats "$REPO_ROOT/tests/" 2>&1; then
+        _default_test=(bats "$REPO_ROOT/tests/")
+        if [[ -f "$SCRIPT_DIR/validation-receipt.py" && -f "$SCRIPT_DIR/test-all.sh" ]]; then
+            _default_test=(python3 "$SCRIPT_DIR/validation-receipt.py" "$SCRIPT_DIR/test-all.sh" --check native:commit-default)
+        else
+            echo "strategy: UNENFORCED legacy default Bats boundary" >&2
+        fi
+        if "${_default_test[@]}" 2>&1; then
             printf '%b\n' "${GREEN}  ✓ Tests passed${NC}"
         else
             printf '%b\n' "${RED}  ✗ Tests failed — fix before committing${NC}"
@@ -209,7 +215,9 @@ if [[ $ERRORS -gt 0 ]]; then
 else
 
 printf '%b\n' "${YELLOW}[${STEP}]${NC} Running harsh-review.sh..."
-if bash "$SCRIPT_DIR/harsh-review.sh" --changed-only; then
+# The default registered check can reuse full/static evidence. Its complete
+# scan is conservative; fresh token issuance below remains mandatory.
+if bash "$SCRIPT_DIR/harsh-review.sh"; then
     # Require a NEW token for this repo (a file that was not in the pre-snapshot).
     _NOW=$(date +%s)
     _FOUND_NEW_TOKEN=false

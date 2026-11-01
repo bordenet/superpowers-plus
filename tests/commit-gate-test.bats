@@ -15,6 +15,15 @@ source "$TOOLS_DIR/lib/review-token.sh"
 setup() {
     export TEST_HOME="$(mktemp -d)"
     export HOME="$TEST_HOME"
+    export CODEX_HOME="$HOME/.codex"
+    export CLAUDE_CONFIG_DIR="$HOME/.claude"
+    export GIT_CONFIG_GLOBAL="$TEST_HOME/.gitconfig"
+    export TMPDIR="$TEST_HOME/tmp"
+    export FIXTURE_STATIC_CALLS="$TEST_HOME/static-calls"
+    mkdir -p "$TMPDIR"
+    # A temporary HOME alone does not neutralize inherited profile overrides.
+    unset SPP_SOURCE_DIR PERSONAL_SKILLS_DIR AUGMENT_MENU_DIR SUPERPOWERS_SKILLS_DIR
+    unset SP_OVERLAY_SOURCE_DIR _SP_HARSH_REVIEW_OVERLAY
     export REVIEW_TOKEN_DIR="${HOME}/.codex/review-tokens"
     mkdir -p "$REVIEW_TOKEN_DIR"
     # Prevent recursive bats invocation when commit-gate.sh runs inside tests
@@ -44,6 +53,23 @@ _create_fixture_repo() {
     printf '# Architecture\n' > "$repo_dir/docs/ARCHITECTURE.md"
     # Copy tools from real repo
     cp -R "$REAL_REPO_ROOT/tools" "$repo_dir/tools"
+    # Registered strict lint follows this real transitive source dependency.
+    mkdir -p "$repo_dir/lib/install"
+    cp "$REAL_REPO_ROOT/lib/install/skill-naming.sh" "$repo_dir/lib/install/"
+    if [[ "${1:-real}" == "unit-static" ]]; then
+        # Token-format/orchestration assertions use the real receipt front door
+        # and token writer, with explicit cheap static BODY substitutes only.
+        # These fixture-owned receipts cannot clear source or another checkout.
+        cat > "$repo_dir/tools/lib/validation-check-bodies.sh" <<'UNIT_STATIC'
+#!/usr/bin/env bash
+validation_check_body() {
+    case "$1" in
+        shellcheck|harsh) printf '%s\n' "$1" >> "$FIXTURE_STATIC_CALLS" ;;
+        *) return 2 ;;
+    esac
+}
+UNIT_STATIC
+    fi
     # Minimal skills dir (empty is fine — no skills to validate)
     mkdir -p "$repo_dir/skills"
     # Initial commit so git commands work
@@ -68,6 +94,8 @@ _create_empty_repo() {
     printf '# Contributing\n' > "$repo_dir/docs/CONTRIBUTING.md"
     printf '# Architecture\n' > "$repo_dir/docs/ARCHITECTURE.md"
     cp -R "$REAL_REPO_ROOT/tools" "$repo_dir/tools"
+    mkdir -p "$repo_dir/lib/install"
+    cp "$REAL_REPO_ROOT/lib/install/skill-naming.sh" "$repo_dir/lib/install/"
     mkdir -p "$repo_dir/skills"
     # Stage required files but do NOT commit — HEAD does not exist
     git -C "$repo_dir" add -A
@@ -85,6 +113,27 @@ _seed_token() {
     echo "$repo_root" > "$REVIEW_TOKEN_DIR/${cksum_val}.${ts}.$$"
 }
 
+@test "fixture profiles and outputs belong to this test" {
+    [ "$CODEX_HOME" = "$HOME/.codex" ]
+    [ "$CLAUDE_CONFIG_DIR" = "$HOME/.claude" ]
+    [ "$TMPDIR" = "$TEST_HOME/tmp" ]
+    [ "$GIT_CONFIG_GLOBAL" = "$TEST_HOME/.gitconfig" ]
+    [ "$FIXTURE_STATIC_CALLS" = "$TEST_HOME/static-calls" ]
+}
+
+@test "unit static substitutes execute once while each real token writer stays fresh" {
+    local fixture
+    fixture=$(_create_fixture_repo unit-static)
+    run bash "$fixture/tools/harsh-review.sh"
+    [ "$status" -eq 0 ]
+    run bash "$fixture/tools/harsh-review.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"reusing PASS"* ]]
+    [ "$(cat "$FIXTURE_STATIC_CALLS")" = "$(printf 'shellcheck\nharsh')" ]
+    [ "$(find "$REVIEW_TOKEN_DIR" -type f | wc -l | tr -d ' ')" -eq 2 ]
+    rm -rf "$fixture"
+}
+
 @test "harsh-review.sh creates a token file on success" {
     local fixture
     fixture=$(_create_fixture_repo)
@@ -98,7 +147,7 @@ _seed_token() {
 
 @test "token file contains repo root path" {
     local fixture
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     run bash "$fixture/tools/harsh-review.sh"
     [ "$status" -eq 0 ]
     local latest_token
@@ -116,7 +165,7 @@ _seed_token() {
     # When running harsh-review.sh directly (not via a wrapper), ambient
     # SP_OVERLAY_SOURCE_DIR from .env must NOT redirect repo scoping.
     local fixture overlay_dir
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     overlay_dir=$(mktemp -d)
     git -C "$overlay_dir" init -q
     # Set ambient SP_OVERLAY_SOURCE_DIR (simulating .env export) WITHOUT the
@@ -185,7 +234,7 @@ _seed_token() {
 
 @test "token filename contains a unix timestamp field" {
     local fixture
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     run bash "$fixture/tools/harsh-review.sh"
     rm -rf "$fixture"
     [ "$status" -eq 0 ]
@@ -372,7 +421,7 @@ _seed_token() {
 
 @test "commit-gate.sh creates a token" {
     local fixture
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     bash "$fixture/tools/commit-gate.sh"
     rm -rf "$fixture"
     local token_count
@@ -843,7 +892,7 @@ EOF
 
 @test "commit-gate.sh skips default tests when SKIP_DEFAULT_TESTS has inline comment" {
     local fixture
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     # If inline-comment stripping is correct, 'true # skip' parses as 'true'
     echo "SKIP_DEFAULT_TESTS=true # skip bats for this repo" > "$fixture/.agent-gates"
     # Remove bats tests so default test step would fail if it ran
@@ -857,7 +906,7 @@ EOF
     # If '#' were stripped from EXTRA_TEST, 'printf' would lose its args and the
     # gate would produce unexpected output or exit nonzero. Verify it exits 0 cleanly.
     local fixture
-    fixture=$(_create_fixture_repo)
+    fixture=$(_create_fixture_repo unit-static)
     # Use SKIP_DEFAULT_TESTS so bats is not required; EXTRA_TEST with '#' replaces it
     printf 'SKIP_DEFAULT_TESTS=true\nEXTRA_TEST=printf '"'"'# ok\\n'"'"'\n' > "$fixture/.agent-gates"
     run bash "$fixture/tools/commit-gate.sh"

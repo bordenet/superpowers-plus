@@ -24,6 +24,15 @@ composition:
 
 # Unified Commit Gate
 
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+
 ## When to Use
 
 **Before `git commit`:** Run Gates 1–4 (lint/build/test, style, code review, language audit). **Before `git push` (Push Mode):** same gates plus sentinel check and proof-of-output requirement.

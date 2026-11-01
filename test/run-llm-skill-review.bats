@@ -15,7 +15,9 @@ setup() {
     git add a.txt
     git commit -q -m init
     mkdir -p tools/lib
-    cp "$SCRIPT" ./tools/run-llm-skill-review.sh
+    # Unit cases exercise the exact native BODY, not a partial installation.
+    # Public wrapper/dispatcher integration lives in review-strategy.test.js.
+    sed '1,/# REVIEW_NATIVE_BODY/d' "$SCRIPT" > ./tools/run-llm-skill-review.sh
     chmod +x ./tools/run-llm-skill-review.sh
     cp "$VERIFIER" ./tools/verify-cr-battery-evidence.js
     cp "$GATE" ./tools/lib/llm-skill-review-envelope-gate.js

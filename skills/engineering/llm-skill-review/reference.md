@@ -120,7 +120,7 @@ Flag any of the following:
 
 ### B. Shell and Runtime Portability
 
-**Fenced `bash`/`sh` code blocks embedded in the skill.md/reference.md itself are in scope too, not just standalone `.sh` files** -- an illustrative example that looks correct to a human reader can still be invalid shell (e.g. a bare `<file>` placeholder inside a fence tokenizes as `< file` followed by a dangling `>` redirect: a real, reproducible `bash -n` failure, not a hypothetical one). Run `tools/fence-scan.sh <changed .md file>` -- a mechanical, judgment-free `bash -n` (blocking) + ShellCheck (advisory) pass over every embedded fence -- before asserting a doc's examples are clean. Known limitation: this catches syntactic breakage only; a fence kept syntactically valid but made semantically wrong by a rewritten surrounding paragraph will not be caught.
+**Fenced `bash`/`sh` code blocks embedded in the skill.md/reference.md itself are in scope too, not just standalone `.sh` files** -- an illustrative example that looks correct to a human reader can still be invalid shell (e.g. a bare `<file>` placeholder inside a fence tokenizes as `< file` followed by a dangling `>` redirect: a real, reproducible `bash -n` failure, not a hypothetical one). Run `tools/test-all.sh --check ci:shell-tests-full-corpus-fence-scan-all-skills-md` -- a mechanical, judgment-free `bash -n` (blocking) + ShellCheck (advisory) pass over every embedded fence -- before asserting a doc's examples are clean. Known limitation: this catches syntactic breakage only; a fence kept syntactically valid but made semantically wrong by a rewritten surrounding paragraph will not be caught.
 
 Flag any of the following:
 - bashisms without a guaranteed bash runtime
