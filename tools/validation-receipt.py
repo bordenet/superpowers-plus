@@ -226,12 +226,20 @@ def main():
     env = dict(os.environ)
     # Hook-local Git variables must never redirect nested fixture repositories.
     for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_PREFIX',
-                 'PWD', 'OLDPWD', 'SHLVL', '_'):
+                 'PWD', 'OLDPWD', 'SHLVL', '_',
+                 'CODEX_TOOL_CALL_ID', 'CODEX_THREAD_ID', 'CODEX_SESSION_ID'):
         env.pop(name, None)
         os.environ.pop(name, None)
     if 'GIT_EXEC_PATH' not in env:
         env['GIT_EXEC_PATH'] = os.fsdecode(subprocess.check_output(
             ['git', '--exec-path'], env=env)).rstrip('\n')
+    # Git prepends its helper directory when launching a native hook. Give
+    # direct callers the same execution PATH before hashing or running tests;
+    # retain every caller-supplied directory and custom GIT_EXEC_PATH override.
+    paths = env.get('PATH', os.defpath).split(os.pathsep)
+    while paths and paths[0] == env['GIT_EXEC_PATH']:
+        paths.pop(0)
+    env['PATH'] = os.pathsep.join([env['GIT_EXEC_PATH'], *paths])
     common = Path(os.fsdecode(git(root, 'rev-parse', '--git-common-dir')).strip())
     if not common.is_absolute():
         common = root / common

@@ -194,6 +194,34 @@ async function main() {
         passed(f.run(['--fast'], { GIT_EXEC_PATH: custom }));
         assert.strictEqual(f.count(), 2);
     });
+    await test('Codex invocation identifiers are removed from execution and reuse context', () => {
+        const f = fixture();
+        fs.writeFileSync(f.entry, fs.readFileSync(f.entry, 'utf8').replace('set -eu\n',
+            'set -eu\ntest -z "${CODEX_TOOL_CALL_ID+x}${CODEX_THREAD_ID+x}${CODEX_SESSION_ID+x}"\n'));
+        passed(f.run([], { CODEX_TOOL_CALL_ID: 'first-call', CODEX_THREAD_ID: 'first-thread',
+            CODEX_SESSION_ID: 'first-session' }));
+        passed(f.run(['--fast'], { CODEX_TOOL_CALL_ID: 'second-call', CODEX_THREAD_ID: 'second-thread',
+            CODEX_SESSION_ID: 'second-session' }));
+        assert.strictEqual(f.count(), 1);
+        passed(f.run(['--fast'], { CODEX_PERMISSION_PROFILE: 'changed-execution-policy' }));
+        assert.strictEqual(f.count(), 2, 'execution policy must remain an input');
+    });
+    await test('a real native git pre-push reuses direct FULL coverage without executing again', () => {
+        const f = fixture();
+        // Keep PATH tools and Git configuration identical before and after the
+        // baseline; only Git's own hook environment may change.
+        const remote = path.join(f.area, 'bare remote');
+        passed(spawnSync('git', ['init', '-q', '--bare', remote], { env: f.env, encoding: 'utf8' }));
+        const hook = path.join(f.root, '.git/hooks/pre-push');
+        fs.writeFileSync(hook, '#!/bin/sh\nexec bash tools/test-all.sh --fast\n', { mode: 0o755 });
+        passed(f.run([]));
+        const push = spawnSync('git', ['push', remote, 'HEAD:main'], {
+            cwd: f.root, env: f.env, encoding: 'utf8', timeout: 15000,
+        });
+        passed(push);
+        assert(push.stdout.includes('validation: reusing PASS'), push.stdout);
+        assert.strictEqual(f.count(), 1, 'native hook must not execute the suite again');
+    });
     await test('runner receipts bind streamed execution logs and complete result metadata', () => {
         const f = fixture();
         const source = fs.readFileSync(f.entry, 'utf8').replace('state=$(mktemp)',
