@@ -1,21 +1,21 @@
 {
   "schema": 1,
-  "oracle": "dfab58334ee37b20cc8469f4f0629e976003dd73",
+  "oracle": "62b02b4d2228418d9d4e16e06f287484963a3875",
   "roots": {
     ".codex/skills": {
       "entries": 297,
-      "bytes": 2064328,
-      "sha256": "8ea3832380b8acc2b35eec77f10cfcc9cd31d7040e69f280702190896221a216"
+      "bytes": 2053367,
+      "sha256": "b382fe2dc47dcff2af9efa2d6a69f170e611eb839216fdf1f2954883cbd00cf7"
     },
     ".claude/skills": {
       "entries": 297,
-      "bytes": 2064328,
-      "sha256": "8ea3832380b8acc2b35eec77f10cfcc9cd31d7040e69f280702190896221a216"
+      "bytes": 2053367,
+      "sha256": "b382fe2dc47dcff2af9efa2d6a69f170e611eb839216fdf1f2954883cbd00cf7"
     },
     ".agents/skills": {
       "entries": 178,
-      "bytes": 1452358,
-      "sha256": "bd07cecfe1f8487f12ab79ec4e3cc074a6a704ad3f3c80d47ed435f2dc482860"
+      "bytes": 1444495,
+      "sha256": "5c03ec3b096856f5bfe1446426b578a6363d84a173a922df0395b88d2822290d"
     },
     ".augment/rules": {
       "entries": 1,
@@ -24,8 +24,8 @@
     },
     ".claude/commands": {
       "entries": 64,
-      "bytes": 32216,
-      "sha256": "dd97817db676158bf0fad37be3556bf13e6f4cb52c7f8bc12edf945651d04b97"
+      "bytes": 32146,
+      "sha256": "6f733a3d7498156607c38a7d822b2273da686b0dd65d5af8befef9f89cc3da1f"
     },
     ".local/bin": {
       "entries": 3,
@@ -34,7 +34,7 @@
     }
   },
   "bootstrap": {
-    "stdout": "# Superpowers\n\nBefore acting, check if a skill applies. Even 1% chance → load it.\nPriority: user instructions > skills > system defaults.\nProcess skills (debugging, brainstorming) before implementation skills.\n\n## Critical auto-triggers (ALWAYS apply — never skip)\n- **BEFORE any git commit/push:** `use-skill unified-commit-gate` — runs all 5 gates in one load.\n  Tests passing ≠ ready to commit. Your FIXES are new code and need their own gate pass.\n  Individual deep-dive skills: `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`.\n- **WHEN stuck (same error 3x, circular reasoning):** `use-skill think-twice`\n- **WHEN writing shell scripts:** Load the shell language module first.\n\n119 superpowers (auto-trigger) + 6 explicit skills installed.\nLoad: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`\nUnsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills \"your query\"`\n",
+    "stdout": "# Superpowers\n\nBefore acting, check if a skill applies. Even 1% chance \u2192 load it.\nPriority: user instructions > skills > system defaults.\nProcess skills (debugging, brainstorming) before implementation skills.\n\n## Critical auto-triggers (ALWAYS apply \u2014 never skip)\n- **BEFORE any git commit/push:** `use-skill unified-commit-gate` \u2014 runs all 5 gates in one load.\n  Tests passing \u2260 ready to commit. Your FIXES are new code and need their own gate pass.\n  Individual deep-dive skills: `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`.\n- **WHEN stuck (same error 3x, circular reasoning):** `use-skill think-twice`\n- **WHEN writing shell scripts:** Load the shell language module first.\n\n119 superpowers (auto-trigger) + 6 explicit skills installed.\nLoad: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`\nUnsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills \"your query\"`\n",
     "stderr": ""
   }
 }

@@ -29,7 +29,7 @@ composition:
 **Before `git commit`:** Run Gates 1–4 (lint/build/test, style, code review, language audit). **Before `git push` (Push Mode):** same gates plus sentinel check and proof-of-output requirement.
 
 **Gate applicability:**
-- **Before commit:** Gates 1 (lint/build/test), 2 (style), 3 (code review), 4 (language audit). Skip Gates 2 and 4 when no applicable file types are staged — you control invocation, nothing is automatic. Each invocation re-evaluates; results are not cached across invocations.
+- **Before commit:** Gates 1 (lint/build/test), 2 (style), 3 (code review), 4 (language audit). Skip Gates 2 and 4 when no applicable file types are staged — you control invocation, nothing is automatic. Each invocation re-evaluates applicability; passing validation is reused for unchanged tested content and context. A second skill or commit does not require a second execution.
 - **Before push (Push Mode):** All gates apply, plus sentinel check and proof-of-output requirement (see Push Mode section below). Gate 5 (IP audit) runs once per remote you push to; if pushing to multiple remotes, run Gate 5 once per remote. Skipped for confirmed private remotes — when in doubt, run the audit anyway.
 
 **Not for:** code-review-only analysis (use `progressive-code-review-gate` directly instead). Debugging a single gate failure (load that gate's individual skill).
@@ -40,20 +40,15 @@ If any gate fails and the fix is non-obvious, load the individual deep-dive skil
 
 When invoked at push time (`git push`, `/sp-push`), all gates apply plus:
 
-1. **Show output** — every gate result must appear in the conversation. "It passed" without visible output is a violation.
-2. **Sentinel check** — before pushing any branch with code changes, verify `.code-review-cleared` exists for HEAD:
-
-```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
-HEAD=$(git rev-parse HEAD 2>/dev/null)
-cat "$SENTINEL" 2>/dev/null | grep -q "sha:${HEAD}" && echo "CLEARED" || echo "NOT CLEARED — run code-review-battery first"
-```
-
-| Sentinel state | Action |
-|---|---|
-| Valid for HEAD | Proceed to push |
-| Missing or wrong SHA | Run `code-review-battery`, then push |
-| Docs-only push (`.md`, `.txt`, `.rst`, `.gitignore`, `.editorconfig`, `README`, `CHANGELOG`, `LICENSE`, `.env.example`) | Sentinel not required |
+1. **Use existing evidence first.** Record the tested content/context, suite,
+   producer and log. Invoke the authoritative runner; it reuses a valid PASS or
+   waits for an equivalent active run. Do not invoke raw sub-suites to evade reuse.
+2. **Check actual review clearance.** Use the repository's native read-only
+   parser/readiness tool, not a guessed sentinel format or HEAD-only grep.
+   In superpowers-plus, `tools/push-readiness.sh --json` resolves the real gate
+   scope. A valid content-scoped clearance survives a tree-identical merge or
+   amend. Route only missing/invalidated review classes with `tools/review.sh`.
+   Never write a sentinel directly or treat a blocked readiness report as PASS.
 
 3. **Gate 5 (IP audit)** runs once per remote target. Run it for each remote you push to. Skip for confirmed private remotes — when in doubt, run it.
 
@@ -75,8 +70,8 @@ npm run typecheck  # or: tsc --noEmit
 npm test           # or: vitest --run
 ```
 
-**Show output for all commands**, including the shell scan. Claiming "it passes" without output is a violation.
-**Gate fails?** → Fix, then re-run lint → typecheck → test in sequence (not just the failing step). Your fixes are new code and need their own full pass. Deep-dive: `use-skill pre-commit-gate`.
+**Retain evidence for all required checks.** A cached result must identify the successful producer, tested inputs/context and log. Do not re-execute a passing suite merely to print fresh output.
+**Gate fails?** -> Fix the defect, then validate the changed inputs through lint -> typecheck -> test. Existing unaffected evidence remains valid; the runner must invalidate affected coverage. Deep-dive: `use-skill pre-commit-gate`.
 
 ### Post-Conflict Trap
 
@@ -118,17 +113,14 @@ git diff --staged        # pre-commit
 git diff @{u}..HEAD      # pre-push unpushed commits
 ```
 
-Check sentinel first:
-```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
-cat "$SENTINEL" 2>/dev/null && git diff --quiet && git diff --cached --quiet && echo "CLEARED"
-```
-
-If sentinel is valid for HEAD and worktree is clean → skip dispatch. Otherwise dispatch `sub-agent-code-reviewer` with the diff and instruction to read full source files.
+Check the native content-scoped readiness result first. Reuse valid review
+clearance across unchanged commits/merges; missing or invalidated coverage requires
+the correctly routed independent review. Do not duplicate a reviewer another skill
+already dispatched for the same snapshot.
 
 **Verdict mapping:** Critical → FAIL | Important (≥2) → FAIL | Important (1) → PASS_WITH_NITS | Minor → PASS_WITH_NITS | Clean → PASS
 
-**On FAIL:** Fix MUST-FIX and SHOULD-FIX, then full re-review. Cap at 5 rounds — stop and tell the human at Round 5.
+**On FAIL:** Fix MUST-FIX and SHOULD-FIX, then delta review of the fixes and affected paths by the original reviewer. Cap at 5 rounds — stop and tell the human at Round 5.
 **On PASS_WITH_NITS:** Fix nits, targeted re-review (affected files + original reviewers only).
 **Gate fails?** Deep-dive: `use-skill progressive-code-review-gate`.
 
@@ -221,7 +213,7 @@ Any match → **HARD BLOCK**. Fix and re-scan. Design docs and planning docs NEV
 
 | Failure | Recovery |
 |---------|----------|
-| Claiming gate passes without showing output | Violation — every gate requires visible tool output |
+| Claiming a gate passes without evidence | Identify its real producer, inputs/context and log |
 | Committing between gates | All 5 gates run as a single atomic sequence |
 | Skipping Gate 3 for "small changes" | Size doesn't determine risk — all code commits get reviewed |
 | Not re-running gates after fixing a failure | Fixes are new code — restart from Gate 1 |

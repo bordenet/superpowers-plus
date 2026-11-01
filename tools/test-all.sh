@@ -15,7 +15,13 @@
 # -----------------------------------------------------------------------------
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# All callers (including native pre-push) share content-based PASS receipts.
+# The helper executes the body below; this process must not fall through.
+# shellcheck disable=SC2093
+exec python3 "$(dirname "$0")/validation-receipt.py" "$0" "$@"
+# VALIDATION_RECEIPT_BODY
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT" || { echo "❌ Could not cd to $REPO_ROOT" >&2; exit 1; }
 
@@ -70,7 +76,11 @@ if [[ -x "$TREE_GUARD" ]]; then
         FAILED+=("working-tree guard (sweep)")
     fi
     TREE_STATE="$(mktemp)"
-    "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
+    if ! "$TREE_GUARD" snapshot "$TREE_STATE"; then
+        rm -f "$TREE_STATE"
+        TREE_STATE=""
+        FAILED+=("working-tree guard (snapshot)")
+    fi
 fi
 
 # Per-suite wall time is recorded and reprinted in the summary. Without it,

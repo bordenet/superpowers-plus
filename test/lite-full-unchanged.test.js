@@ -8,7 +8,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const ORACLE = 'dfab58334ee37b20cc8469f4f0629e976003dd73';
+const ORACLE = '62b02b4d2228418d9d4e16e06f287484963a3875';
 
 // P1 changes metadata/CI only. Freeze both payload and installer/runtime inputs
 // to prove that Full sees no new file, changed byte, destination, or command.
