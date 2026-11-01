@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "oracle": "b07c2362d8d9f25864719a2bd0dfa2ee2479fe5b",
+  "oracle": "09d0281da0ee33198937f6b8e54390d9b82ba3f3",
   "roots": {
     ".codex/skills": {
       "entries": 297,
@@ -34,7 +34,7 @@
     }
   },
   "bootstrap": {
-    "stdout": "# Superpowers\n\nBefore acting, check if a skill applies. Even 1% chance \u2192 load it.\nPriority: user instructions > skills > system defaults.\nProcess skills (debugging, brainstorming) before implementation skills.\n\n## Critical auto-triggers (ALWAYS apply \u2014 never skip)\n- **BEFORE any git commit/push:** `use-skill unified-commit-gate` \u2014 runs all 5 gates in one load.\n  Tests passing \u2260 ready to commit. Your FIXES are new code and need their own gate pass.\n  Individual deep-dive skills: `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`.\n- **WHEN stuck (same error 3x, circular reasoning):** `use-skill think-twice`\n- **WHEN writing shell scripts:** Load the shell language module first.\n\n119 superpowers (auto-trigger) + 6 explicit skills installed.\nLoad: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`\nUnsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills \"your query\"`\n",
+    "stdout": "# Superpowers\n\nBefore acting, check if a skill applies. Even 1% chance → load it.\nPriority: user instructions > skills > system defaults.\nProcess skills (debugging, brainstorming) before implementation skills.\n\n## Critical auto-triggers (ALWAYS apply — never skip)\n- **BEFORE any git commit/push:** `use-skill unified-commit-gate` — runs all 5 gates in one load.\n  Tests passing ≠ ready to commit. Your FIXES are new code and need their own gate pass.\n  Individual deep-dive skills: `pre-commit-gate`, `enforce-style-guide`, `progressive-code-review-gate`, `professional-language-audit`, `public-repo-ip-audit`.\n- **WHEN stuck (same error 3x, circular reasoning):** `use-skill think-twice`\n- **WHEN writing shell scripts:** Load the shell language module first.\n\n119 superpowers (auto-trigger) + 6 explicit skills installed.\nLoad: `node ~/.codex/superpowers-augment/superpowers-augment.js use-skill <name>`\nUnsure which skill? `node ~/.codex/superpowers-augment/superpowers-augment.js match-skills \"your query\"`\n",
     "stderr": ""
   }
 }
