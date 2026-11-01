@@ -8,7 +8,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
-const ORACLE = '62b02b4d2228418d9d4e16e06f287484963a3875';
+const ORACLE = 'b07c2362d8d9f25864719a2bd0dfa2ee2479fe5b';
 const ROOTS = ['.codex/skills', '.claude/skills', '.agents/skills',
     '.augment/rules', '.claude/commands', '.local/bin'];
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
