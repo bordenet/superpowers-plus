@@ -16,6 +16,8 @@
 set -uo pipefail
 
 # All callers (including native pre-push) share content-based PASS receipts.
+# The helper executes the body below; this process must not fall through.
+# shellcheck disable=SC2093
 exec python3 "$(dirname "$0")/validation-receipt.py" "$0" "$@"
 # VALIDATION_RECEIPT_BODY
 set -uo pipefail
